@@ -86,6 +86,36 @@ class Pose:
     def from_rotvec(cls, rotvec: np.ndarray, translation: np.ndarray) -> Pose:
         return cls(rotation_from_rotvec(rotvec), np.asarray(translation, dtype=np.float64))
 
+    @classmethod
+    def look_at(
+        cls, eye: np.ndarray, target: np.ndarray, up: np.ndarray | None = None
+    ) -> Pose:
+        """Camera at ``eye`` looking at ``target``, with +z as the optical axis.
+
+        Building rig poses by hand from rotation vectors is a reliable source of cameras
+        pointing at the sky. This is the constructor every caller should reach for; the
+        rotvec form stays for solvers, which think in tangent space.
+        """
+        eye = np.asarray(eye, dtype=np.float64).reshape(3)
+        target = np.asarray(target, dtype=np.float64).reshape(3)
+        world_up = np.array([0.0, 0.0, 1.0]) if up is None else np.asarray(up, dtype=np.float64)
+
+        forward = target - eye
+        norm = np.linalg.norm(forward)
+        if norm < 1e-9:
+            raise ValueError("eye and target coincide")
+        forward = forward / norm
+
+        right = np.cross(forward, world_up)
+        if np.linalg.norm(right) < 1e-9:
+            raise ValueError("view direction is parallel to up; pick a different up vector")
+        right = right / np.linalg.norm(right)
+        # Image +y points down, so down is the second camera axis.
+        down = np.cross(forward, right)
+
+        rotation = np.vstack([right, down, forward])
+        return cls(rotation, -rotation @ eye)
+
     @property
     def rotvec(self) -> np.ndarray:
         return rotvec_from_rotation(self.rotation)
@@ -236,6 +266,24 @@ def refine_pose(
     return Pose.from_rotvec(params[:3], params[3:])
 
 
+def _iterations_needed(inlier_ratio: float, confidence: float, cap: int) -> int:
+    """How many RANSAC samples are needed to see one all-inlier set, with `confidence`.
+
+    ``log1p`` rather than ``log(1 - x)`` because for a small inlier ratio ``ratio**6`` falls
+    below float64 epsilon, ``1.0 - ratio**6`` rounds to exactly 1.0, and its log is exactly
+    zero — a division by zero on precisely the hard inputs the estimator exists to handle.
+    """
+    if inlier_ratio <= 0.0:
+        return cap
+    all_inlier_probability = inlier_ratio**6
+    if all_inlier_probability >= 1.0:
+        return 1
+    denominator = math.log1p(-all_inlier_probability)
+    if denominator == 0.0:
+        return cap
+    return min(cap, int(math.log1p(-confidence) / denominator) + 1)
+
+
 @dataclass(frozen=True, slots=True)
 class PnpResult:
     pose: Pose
@@ -295,12 +343,7 @@ def ransac_pnp(
         if count > best_count:
             best_count = count
             best_inliers = inliers
-            ratio = count / n
-            if ratio > 0:
-                denominator = math.log(max(1e-12, 1.0 - ratio**6))
-                iterations = min(
-                    max_iterations, int(math.log(1.0 - confidence) / denominator) + 1
-                )
+            iterations = _iterations_needed(count / n, confidence, max_iterations)
         if completed >= iterations:
             break
 

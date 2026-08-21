@@ -58,8 +58,6 @@ class Corridor:
     origin: geo.Origin
     world_seed: int
     segments: tuple[CorridorSegment, ...]
-    #: Lateral offset of the kerb line from the corridor centreline, metres.
-    kerb_offset_m: float = 6.0
 
     @property
     def length_m(self) -> float:
@@ -68,8 +66,26 @@ class Corridor:
         )
 
     def position_at(self, station_m: float, lateral_m: float = 0.0) -> tuple[float, float]:
-        """Corridor station to (lat, lon). The corridor runs due east from its origin."""
-        return geo.enu_to_geodetic(self.origin, station_m, self.kerb_offset_m + lateral_m)
+        """Corridor station to (lat, lon).
+
+        **The corridor's local mesh frame is the ENU frame**: +x east is the station along the
+        kerb, +y north is the lateral offset from the kerb line, +z up. There is exactly one
+        frame and no offset between them.
+
+        An earlier version placed the kerb line at a lateral offset from a notional centreline,
+        which meant meshes were authored in one frame and positions reported in another. Poses
+        recovered from imagery then came out displaced by exactly that offset — a constant
+        error that looks like a calibration problem and is really a convention mismatch. One
+        frame, no conversion, no place for the bug to live.
+        """
+        return geo.enu_to_geodetic(self.origin, station_m, lateral_m)
+
+    def local_to_geodetic(self, point: object) -> tuple[float, float]:
+        """A point in the corridor's mesh frame to (lat, lon). The identity mapping, named."""
+        import numpy as np
+
+        xyz = np.asarray(point, dtype=float).reshape(3)
+        return geo.enu_to_geodetic(self.origin, float(xyz[0]), float(xyz[1]))
 
 
 def build_corridor(
