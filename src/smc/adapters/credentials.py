@@ -53,6 +53,10 @@ class Credential:
     free_tier: str
     #: True when the system cannot run at all without it.
     required: bool = False
+    #: False when the value is a plain setting (a URL, a region, a mountpoint name) that needs
+    #: no account anywhere. Separating this from `required` is what makes the shopping list
+    #: honest: several entries here look like credentials and are simply configuration.
+    needs_signup: bool = True
 
     @property
     def is_set(self) -> bool:
@@ -110,12 +114,15 @@ CREDENTIALS: tuple[Credential, ...] = (
             "index, ALIKED+LightGlue matching, pose against building footprints. NOTE: the "
             "stack behind this is NOT BUILT — it is the critical-path module in "
             "docs/03-build-order.md, and no published method reaches sub-metre from "
-            "crowdsourced RGB without Google's VPS. Setting this variable does not make "
-            "anchoring work; it points at the index once it exists."
+            "crowdsourced RGB without Google's VPS. The stack behind it is now BUILT: see "
+            "smc.mapping.anchoring. What remains is the learned front end - descriptors and "
+            "feature matching - and the index itself. Setting this variable points at that "
+            "index once it has been produced."
         ),
         where_to_get="Self-hosted. s3:// or gs:// path to the built index",
         commercial_safe=True,
         free_tier="Self-hosted; cost is GPU embedding time plus storage",
+        needs_signup=False,
     ),
     Credential(
         env_var="MAPILLARY_ACCESS_TOKEN",
@@ -144,6 +151,7 @@ CREDENTIALS: tuple[Credential, ...] = (
         where_to_get="No key needed; set the region, e.g. us-west-2",
         commercial_safe=True,
         free_tier="Free. Buildings/transportation are ODbL — reference only, never merged",
+        needs_signup=False,
     ),
     Credential(
         env_var="PROJECT_SIDEWALK_BASE_URL",
@@ -153,6 +161,7 @@ CREDENTIALS: tuple[Credential, ...] = (
         where_to_get="No key; e.g. https://sidewalk-dc.cs.washington.edu",
         commercial_safe=True,
         free_tier="Free, open data",
+        needs_signup=False,
     ),
     Credential(
         env_var="RTK2GO_MOUNTPOINT",
@@ -162,6 +171,7 @@ CREDENTIALS: tuple[Credential, ...] = (
         where_to_get="rtk2go.com:2101 — no rover registration; pick a base within 35-50 km",
         commercial_safe=True,
         free_tier="Free. 800+ community base stations",
+        needs_signup=False,
     ),
     # --- Model weights and hosted inference. ---
     Credential(
@@ -182,6 +192,7 @@ CREDENTIALS: tuple[Credential, ...] = (
         where_to_get="Set a region, e.g. us-central1; auth via GOOGLE_APPLICATION_CREDENTIALS",
         commercial_safe=True,
         free_tier="Metered. Self-hosting on spot L4 is usually cheaper at volume",
+        needs_signup=False,
     ),
     # --- Storage and data plane. ---
     Credential(
@@ -193,6 +204,7 @@ CREDENTIALS: tuple[Credential, ...] = (
         commercial_safe=True,
         free_tier="n/a",
         required=True,
+        needs_signup=False,
     ),
     Credential(
         env_var="SMC_OBJECT_STORE_URL",
@@ -203,6 +215,7 @@ CREDENTIALS: tuple[Credential, ...] = (
         commercial_safe=True,
         free_tier="n/a",
         required=True,
+        needs_signup=False,
     ),
     # --- Device side. ---
     Credential(
@@ -234,7 +247,12 @@ class CredentialReport:
         lines: list[str] = []
         commercial_risk = [c for c in self.configured if not c.commercial_safe]
 
+        signup = [c for c in self.missing if c.needs_signup]
         lines.append(f"configured: {len(self.configured)}   missing: {len(self.missing)}")
+        lines.append(
+            f"of the missing, {len(signup)} need an account somewhere; "
+            "the rest are plain settings"
+        )
         if self.missing_required:
             lines.append("")
             lines.append("REQUIRED, NOT SET — the system will not run:")
