@@ -350,8 +350,14 @@ def ransac_pnp(
     if best_inliers is None or best_count < min_inliers:
         return None
 
-    refined = refine_pose(points[best_inliers], uv[best_inliers], k, 
-                          solve_pnp_dlt(points[best_inliers], uv[best_inliers], k))
+    # The consensus set can be degenerate even when the sample that found it was not —
+    # coplanar inliers, or a cheirality-inconsistent refit. That is a failure to estimate,
+    # which returns None, not an exception for the caller to handle.
+    try:
+        seed_pose = solve_pnp_dlt(points[best_inliers], uv[best_inliers], k)
+    except (ValueError, np.linalg.LinAlgError):
+        return None
+    refined = refine_pose(points[best_inliers], uv[best_inliers], k, seed_pose)
     errors = reprojection_errors(points, uv, refined, k)
     final_inliers = errors < threshold_px
     if int(final_inliers.sum()) < min_inliers:

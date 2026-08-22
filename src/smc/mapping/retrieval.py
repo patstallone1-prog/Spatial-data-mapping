@@ -43,6 +43,9 @@ class ReferenceFrame:
     #: How well this reference is itself anchored. Error propagates.
     position_sigma_m: float = 0.5
     source: str = "owned"
+    #: Local feature descriptors for ``points_2d``, when the frame was seeded for real
+    #: matching. ``None`` means this frame can only be used by the simulation oracle.
+    local_descriptors: np.ndarray | None = None
 
     def __post_init__(self) -> None:
         descriptor = np.asarray(self.descriptor, dtype=np.float32).reshape(-1)
@@ -56,6 +59,18 @@ class ReferenceFrame:
             raise ValueError("points_world and points_2d must have the same length")
         object.__setattr__(self, "points_world", points_world)
         object.__setattr__(self, "points_2d", points_2d)
+        if self.local_descriptors is not None:
+            descriptors = np.asarray(self.local_descriptors)
+            if len(descriptors) != len(points_2d):
+                raise ValueError(
+                    f"local_descriptors ({len(descriptors)}) must align with points_2d "
+                    f"({len(points_2d)})"
+                )
+            object.__setattr__(self, "local_descriptors", descriptors)
+
+    @property
+    def supports_real_matching(self) -> bool:
+        return self.local_descriptors is not None and len(self.local_descriptors) > 0
 
 
 @dataclass(frozen=True, slots=True)

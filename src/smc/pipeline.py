@@ -3,9 +3,13 @@
 corridor -> survey pass -> reference index -> contributor capture -> anchoring -> street snap
 -> measurement -> world-facts -> scored against ground truth.
 
-Every stage is the real implementation except feature matching, which is
-:class:`~smc.sim.matcher.OracleMatcher`. That one substitution is why the accuracy figures this
-produces are an **upper bound**, and it is stated in the result rather than in a footnote.
+Every stage is now the real implementation, feature matching included: correspondences are
+earned from pixels by :class:`~smc.mapping.features.OpenCVMatcher` rather than read out of the
+renderer's depth buffer. Results are therefore measurements rather than upper bounds.
+
+The oracle remains available through ``matcher="oracle"`` for one purpose: running both and
+comparing is what separates "the geometry is wrong" from "the matching is wrong", and without
+that separation a bad number tells you nothing about where to look.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ from smc.facts.truth import GroundTruthFact
 from smc.ingest.photobank import BankFrame, GlassesProfile
 from smc.mapping.anchoring import AnchoringConfig, AnchoringPipeline
 from smc.mapping.descriptors import TinyImageDescriptor
+from smc.mapping.features import FeatureConfig, OpenCVMatcher
 from smc.mapping.retrieval import DescriptorIndex
 from smc.measure.extract import MeasurementConfig, measure_cross_section, to_world_facts
 from smc.overlay.street import StreetMap
@@ -70,13 +75,14 @@ def run_pipeline(
     *,
     profile: GlassesProfile | None = None,
     scale_relative_sigma: float = 0.024,
+    matcher: str = "opencv",
+    feature_config: FeatureConfig | None = None,
     seed: int = 0,
 ) -> PipelineResult:
     """Push a set of captured frames all the way through to scored facts.
 
     ``scale_relative_sigma`` defaults to the glasses figure — camera height plus metric depth,
-    no independent anchor — because that is what a wearer actually has. The vehicle rig's much
-    tighter figure would flatter every geometric result here.
+    no independent anchor — because that is what a wearer actually has.
     """
     profile = profile or GlassesProfile()
     descriptor = TinyImageDescriptor()
@@ -88,13 +94,17 @@ def run_pipeline(
         prior_error = geo.distance_m(
             frame.record.lat, frame.record.lon, frame.true_lat, frame.true_lon
         )
-        matcher = OracleMatcher(frame.render, seed=seed + i)
+        engine = (
+            OpenCVMatcher(frame.render.image, feature_config)
+            if matcher == "opencv"
+            else OracleMatcher(frame.render, seed=seed + i)
+        )
         pipeline = AnchoringPipeline(
-            index, matcher, k, corridor.origin, AnchoringConfig(min_similarity=0.2)  # type: ignore[attr-defined]
+            index, engine, k, corridor.origin, AnchoringConfig(min_similarity=0.2)  # type: ignore[attr-defined]
         )
         anchor = pipeline.anchor(
             descriptor.describe(frame.render.image),
-            matcher.keypoints(),
+            engine.keypoints(),
             frame.record.lat,
             frame.record.lon,
             frame.record.position_sigma_m,

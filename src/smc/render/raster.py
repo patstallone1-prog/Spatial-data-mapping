@@ -68,19 +68,46 @@ class RenderResult:
 def _surface_detail(world: np.ndarray) -> np.ndarray:
     """Deterministic per-position detail in [0, 1], keyed on world coordinates.
 
-    Two octaves of a hashed lattice. Not a beautiful noise function — it only has to be
-    view-consistent, high-frequency enough to give a matcher something to lock onto, and free
-    of a repeating period that would create false correspondences across a repetitive street.
+    Two properties are load-bearing and they pull in opposite directions.
+
+    *View consistency*: detail is a function of the 3D world position, so the same square
+    centimetre of kerb looks the same from any viewpoint. Screen-space noise would look
+    identical to a person and be worthless to a matcher, because nothing would correspond
+    between two views.
+
+    *Distinctiveness*: an earlier version used two octaves on a regular lattice, and it was
+    pathologically repetitive. SIFT found plenty of keypoints and then Lowe's ratio test threw
+    almost all of them away, exactly as it should — every descriptor had a dozen equally good
+    matches elsewhere in the frame. Measured: 12 matches between rig frames six metres apart.
+    Five octaves at irrational frequency ratios, with a decorrelating rotation between them,
+    removes the repeat period that was manufacturing the ambiguity.
+
+    Even so, synthetic texture validating a real matcher is close to circular. This makes the
+    simulator a fair test of the *pipeline*; only real photographs test the matcher.
     """
     detail = np.zeros(world.shape[:-1])
-    for scale, weight in ((37.0, 0.6), (149.0, 0.4)):
-        cell = np.floor(world * scale / 10.0)
+    total_weight = 0.0
+    # Irrational-ish ratios so octaves do not share a common period.
+    frequencies = (3.1, 7.3, 17.9, 41.7, 97.1)
+    rotation = np.array(
+        [
+            [0.8047, -0.5928, 0.0234],
+            [0.5936, 0.8041, -0.0311],
+            [-0.0018, 0.0389, 0.9992],
+        ]
+    )
+    sample = world
+    for octave, frequency in enumerate(frequencies):
+        weight = 0.62**octave
+        cell = np.floor(sample * frequency)
         h = (
-            cell[..., 0] * 374761393.0 + cell[..., 1] * 668265263.0 + cell[..., 2] * 2147483647.0
-        )
+            cell[..., 0] * 127.1 + cell[..., 1] * 311.7 + cell[..., 2] * 74.7
+        ) * (1.0 + 0.37 * octave)
         h = np.sin(h) * 43758.5453
         detail += weight * (h - np.floor(h))
-    return detail
+        total_weight += weight
+        sample = sample @ rotation
+    return detail / total_weight
 
 
 def render_meshes(

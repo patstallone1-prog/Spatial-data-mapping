@@ -29,6 +29,7 @@ import numpy as np
 from smc import geo
 from smc.carla_gen.gnss import PRESETS, Environment, GnssSimulator
 from smc.mapping.descriptors import FrameDescriptor, TinyImageDescriptor
+from smc.mapping.features import FeatureConfig, detect
 from smc.mapping.pose import Pose
 from smc.mapping.retrieval import DescriptorIndex, ReferenceFrame
 from smc.render.raster import RenderResult
@@ -47,6 +48,10 @@ class SeedingConfig:
     gnss_environment: Environment = Environment.RTK_FIXED
     #: Floor on a reference's reported sigma. No survey is better than its calibration.
     min_reference_sigma_m: float = 0.03
+    #: Seed with real detected features and their descriptors rather than sampled surface
+    #: points. Required for anything but the simulation oracle to match against the index.
+    use_real_features: bool = True
+    feature_config: FeatureConfig | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,9 +84,13 @@ def seed_reference_frame(
     would produce a reference index that is perfect in a way no rig can be, and every accuracy
     number measured against it would be fiction.
     """
-    points_world, pixels = render.sample_correspondences(
-        np.eye(3), config.points_per_frame, rng
-    )
+    descriptors: np.ndarray | None = None
+    if config.use_real_features:
+        points_world, pixels, descriptors = _feature_correspondences(render, config)
+    else:
+        points_world, pixels = render.sample_correspondences(
+            np.eye(3), config.points_per_frame, rng
+        )
     if len(points_world) < 20:
         return None
 
@@ -108,7 +117,29 @@ def seed_reference_frame(
         points_2d=pixels,
         position_sigma_m=sigma,
         source="rtk_rig",
+        local_descriptors=descriptors,
     )
+
+
+def _feature_correspondences(
+    render: RenderResult, config: SeedingConfig
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Detect features and look up the 3D position each one landed on.
+
+    This is what a real stereo rig does: detect in the image, read depth at those pixels, keep
+    the ones that hit geometry. Features that land on sky have no 3D position and are dropped —
+    silently keeping them would put points at infinity into the index and wreck PnP.
+    """
+    features = detect(render.image, config.feature_config or FeatureConfig())
+    if len(features) == 0:
+        return np.zeros((0, 3)), np.zeros((0, 2)), np.zeros((0, 128))
+
+    columns = np.clip(np.round(features.keypoints[:, 0]).astype(int), 0, render.world.shape[1] - 1)
+    rows = np.clip(np.round(features.keypoints[:, 1]).astype(int), 0, render.world.shape[0] - 1)
+    world = render.world[rows, columns]
+    hit = np.isfinite(world).all(axis=1)
+
+    return world[hit], features.keypoints[hit], features.descriptors[hit]
 
 
 def seed_index(
