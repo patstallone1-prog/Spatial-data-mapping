@@ -1,0 +1,673 @@
+<title>Kerbside Simulator</title>
+<style>
+  :root {
+    --ground: #e9ecef;
+    --surface: #ffffff;
+    --surface-2: #f3f5f7;
+    --line: #d2d7dd;
+    --line-soft: #e2e6ea;
+    --ink: #14171b;
+    --ink-2: #4c545d;
+    --ink-3: #7b838c;
+    --accent: #d4176b;
+    --accent-soft: rgba(212, 23, 107, 0.10);
+    --pass: #1f7a4d;
+    --partial: #a86a08;
+    --blocked: #ab3b30;
+    --pass-bg: rgba(31, 122, 77, 0.10);
+    --partial-bg: rgba(168, 106, 8, 0.11);
+    --blocked-bg: rgba(171, 59, 48, 0.10);
+    --shadow: 0 1px 2px rgba(20, 23, 27, 0.06), 0 8px 24px rgba(20, 23, 27, 0.06);
+
+    --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+      "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101317;
+      --surface: #181c21;
+      --surface-2: #1e232a;
+      --line: #2d343c;
+      --line-soft: #232a31;
+      --ink: #e7eaee;
+      --ink-2: #a3abb5;
+      --ink-3: #79828d;
+      --accent: #ff5c9d;
+      --accent-soft: rgba(255, 92, 157, 0.13);
+      --pass: #55c48c;
+      --partial: #e0aa4a;
+      --blocked: #e8776a;
+      --pass-bg: rgba(85, 196, 140, 0.12);
+      --partial-bg: rgba(224, 170, 74, 0.12);
+      --blocked-bg: rgba(232, 119, 106, 0.12);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 28px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #101317;
+    --surface: #181c21;
+    --surface-2: #1e232a;
+    --line: #2d343c;
+    --line-soft: #232a31;
+    --ink: #e7eaee;
+    --ink-2: #a3abb5;
+    --ink-3: #79828d;
+    --accent: #ff5c9d;
+    --accent-soft: rgba(255, 92, 157, 0.13);
+    --pass: #55c48c;
+    --partial: #e0aa4a;
+    --blocked: #e8776a;
+    --pass-bg: rgba(85, 196, 140, 0.12);
+    --partial-bg: rgba(224, 170, 74, 0.12);
+    --blocked-bg: rgba(232, 119, 106, 0.12);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  .prose { max-width: 68ch; }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.08; font-weight: 700; }
+  h2 { font-size: 22px; line-height: 1.25; font-weight: 650; }
+  h3 { font-size: 16px; line-height: 1.35; font-weight: 650; }
+  p { margin: 0; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  header.masthead {
+    border-bottom: 1px solid var(--line);
+    padding: 56px 0 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .lede { color: var(--ink-2); font-size: 17px; max-width: 62ch; }
+
+  .statband {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .stat { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .stat .v {
+    font-family: var(--mono);
+    font-size: 21px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .stat .k {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  section { padding-top: 56px; display: flex; flex-direction: column; gap: 20px; }
+
+  .sechead { display: flex; flex-direction: column; gap: 8px; }
+
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--ground);
+    padding: 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 13px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-2);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--ink-3); color: var(--ink); }
+  .chip[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .chip:focus-visible, .card:focus-visible, .lb-close:focus-visible, .lb-nav:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .count {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    padding: 0;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: zoom-in;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    box-shadow: var(--shadow);
+    transition: transform 0.14s ease, border-color 0.14s ease;
+  }
+  @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .card img { width: 100%; display: block; aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface-2); }
+  .card .meta {
+    padding: 9px 11px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    border-top: 1px solid var(--line-soft);
+  }
+  .card .meta b { color: var(--ink-2); font-weight: 600; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13.5px; }
+  td .sub { display: block; color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .tag.pass { color: var(--pass); background: var(--pass-bg); }
+  .tag.partial { color: var(--partial); background: var(--partial-bg); }
+  .tag.blocked { color: var(--blocked); background: var(--blocked-bg); }
+  .tag.design { color: var(--ink-2); background: var(--surface-2); }
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 16px 18px;
+    border-radius: 0 3px 3px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .note strong { font-weight: 650; }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .panel {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .panel li { display: flex; gap: 10px; align-items: baseline; font-size: 14.5px; line-height: 1.45; }
+  .panel li .tag { flex: none; }
+  .panel li span { color: var(--ink-2); }
+  .panel li b { color: var(--ink); font-weight: 600; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 28px;
+  }
+
+  /* Lightbox */
+  .lb {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(8, 10, 12, 0.93);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 14px;
+  }
+  .lb[open-state="on"] { display: flex; }
+  .lb img {
+    max-width: min(1000px, 92vw);
+    max-height: 74vh;
+    border-radius: 3px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+  .lb-meta {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: #cfd5dc;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+    max-width: 92vw;
+  }
+  .lb-meta b { color: #fff; font-weight: 600; }
+  .lb-controls { display: flex; gap: 10px; align-items: center; }
+  .lb-nav, .lb-close {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.09);
+    color: #eef1f4;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 8px 15px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .lb-nav:hover, .lb-close:hover { background: rgba(255, 255, 255, 0.18); }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Simulation build &middot; 20 August 2026</p>
+    <h1>Kerbside Simulator</h1>
+    <p class="lede">
+      A synthetic street corridor, driven twice: once by a survey rig with RTK positioning, once
+      by a wearer at walking pace. Every kerb height and footway width in it is known exactly, so
+      the mapping engine can be scored against the truth instead of against its own confidence.
+    </p>
+    <div class="statband">
+      <div class="stat"><span class="v">330&nbsp;m</span><span class="k">Corridor</span></div>
+      <div class="stat"><span class="v">0.011&nbsp;m</span><span class="k">Position error</span></div>
+      <div class="stat"><span class="v">13&nbsp;mm</span><span class="k">Kerb height MAE</span></div>
+      <div class="stat"><span class="v">SIFT</span><span class="k">Real matching</span></div>
+      <div class="stat"><span class="v">297</span><span class="k">Tests passing</span></div>
+    </div>
+  </header>
+
+  <section id="frames">
+    <div class="sechead">
+      <p class="eyebrow">01 &middot; What the cameras see</p>
+      <h2>Frame browser</h2>
+      <p class="prose" style="color: var(--ink-2)">
+        Wearer frames are generated at the resolution the Meta toolkit actually delivers &mdash;
+        1440&times;1080 stills, 720p stream &mdash; not the 12&nbsp;MP the sensor captures.
+        Shown here downscaled to 480&times;360. Click any frame to enlarge; arrow keys step through.
+      </p>
+    </div>
+
+    <div class="toolbar" role="group" aria-label="Filter frames">
+      <button class="chip" data-filter="all" aria-pressed="true">All</button>
+      <button class="chip" data-filter="wearer" aria-pressed="false">Wearer</button>
+      <button class="chip" data-filter="rig" aria-pressed="false">Survey rig</button>
+      <button class="chip" data-filter="context" aria-pressed="false">Context</button>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="accuracy">
+    <div class="sechead">
+      <p class="eyebrow">02 &middot; Measured against known truth</p>
+      <h2>Where accuracy stands</h2>
+    </div>
+
+    <div class="note">
+      <p><strong>The reference index only anchors captures taken from its own vantage.</strong></p>
+      <p style="color: var(--ink-2)">
+        With real feature matching, a survey driven from the roadway anchors roadway captures to
+        34&nbsp;mm and footway captures <em>not at all</em> &mdash; zero of fifteen. Surveying the
+        footway instead anchors the same wearer captures to 11&nbsp;mm. The simulation oracle is
+        blind to this, because it never looks at pixels. It is the sharpest architectural finding
+        so far: the RTK rig bootstraps the index, but it has to walk the footway as well as drive
+        the lane.
+      </p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Measurement</th><th>Target</th><th>Result</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Position, matched vantage<span class="sub">footway survey, wearer capture</span></td>
+            <td class="num">&le; 1.0 m</td>
+            <td class="num">0.011 m mean<span class="sub">0.028 m worst</span></td>
+            <td><span class="tag pass">Pass</span></td>
+          </tr>
+          <tr>
+            <td>Position, roadway vantage<span class="sub">rig survey, rig capture</span></td>
+            <td class="num">&le; 1.0 m</td>
+            <td class="num">0.034 m mean<span class="sub">0.141 m worst</span></td>
+            <td><span class="tag pass">Pass</span></td>
+          </tr>
+          <tr>
+            <td>Position, crossed vantage<span class="sub">rig survey, wearer capture</span></td>
+            <td class="num">&le; 1.0 m</td>
+            <td class="num">no anchor<span class="sub">0 of 15 frames</span></td>
+            <td><span class="tag blocked">Fails</span></td>
+          </tr>
+          <tr>
+            <td>Anchoring yield<span class="sub">strict ratio, mutual, epipolar filters</span></td>
+            <td class="num">&mdash;</td>
+            <td class="num">40&ndash;80%<span class="sub">refuses rather than guesses</span></td>
+            <td><span class="tag partial">Cost of precision</span></td>
+          </tr>
+          <tr>
+            <td>Reference index<span class="sub">RTK survey pass</span></td>
+            <td class="num">centimetre</td>
+            <td class="num">0.030 m</td>
+            <td><span class="tag pass">Pass</span></td>
+          </tr>
+          <tr>
+            <td>Kerb height<span class="sub">bucket: flush / low / standard / high</span></td>
+            <td class="num">&ge; 85% correct bucket</td>
+            <td class="num">13 mm MAE<span class="sub">flat across resolutions</span></td>
+            <td><span class="tag pass">Pass</span></td>
+          </tr>
+          <tr>
+            <td>Footway width<span class="sub">on frames that anchored</span></td>
+            <td class="num">&plusmn;0.30 m original<span class="sub">&plusmn;0.15 m revised</span></td>
+            <td class="num">0.006&ndash;0.019 m MAE<span class="sub">survivorship bias applies</span></td>
+            <td><span class="tag partial">Small sample</span></td>
+          </tr>
+          <tr>
+            <td>Cross slope<span class="sub">compliant vs not, at the 2.08% limit</span></td>
+            <td class="num">&plusmn;2% category</td>
+            <td class="num">0.0147 &plusmn; 0.0055<span class="sub">cannot decide</span></td>
+            <td><span class="tag design">Advisory by design</span></td>
+          </tr>
+          <tr>
+            <td>Quarter-inch level change<span class="sub">Tier C hazard geometry</span></td>
+            <td class="num">not promised</td>
+            <td class="num">not attempted</td>
+            <td><span class="tag design">Correct</span></td>
+          </tr>
+          <tr>
+            <td>Capture spacing under varying pace</td>
+            <td class="num">stable baseline</td>
+            <td class="num">2.8% spacing CV<span class="sub">from 38% speed CV</span></td>
+            <td><span class="tag pass">Pass</span></td>
+          </tr>
+          <tr>
+            <td>GNSS error model<span class="sub">crowdsourced mix</span></td>
+            <td class="num">~5.5 m published</td>
+            <td class="num">5.15 m</td>
+            <td><span class="tag pass">Calibrated</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="prose" style="color: var(--ink-2)">
+      Two caveats sit on the geometry figures. <strong>Survivorship bias:</strong> with 40&ndash;80%
+      of frames anchoring, the ones that survive are the ones with good geometry, so accuracy on
+      survivors flatters what full coverage would give. And <strong>the texture is synthetic</strong>
+      &mdash; procedural surface detail was itself defeating the ratio test until it was rebuilt
+      with five decorrelated octaves, which raised rig-to-rig matches at six metres from 12 to 22.
+      Synthetic texture validating a real matcher is close to circular. Only photographs settle it.
+    </p>
+  </section>
+
+  <section id="completeness">
+    <div class="sechead">
+      <p class="eyebrow">03 &middot; Build state</p>
+      <h2>What is finished, and what is not</h2>
+    </div>
+
+    <div class="cols">
+      <div class="panel">
+        <h3>Working end to end</h3>
+        <ul>
+          <li><span class="tag pass">Done</span><span><b>Simulated world</b> &mdash; hierarchical kerb, ramp and defect distributions with modelled non-compliance</span></li>
+          <li><span class="tag pass">Done</span><span><b>Renderer</b> &mdash; world-anchored surface detail, buildings, exact ground truth</span></li>
+          <li><span class="tag pass">Done</span><span><b>Capture trigger</b> &mdash; distance-gated, verified against varying gait</span></li>
+          <li><span class="tag pass">Done</span><span><b>Frame store</b> &mdash; content-addressed, idempotent, expiring</span></li>
+          <li><span class="tag pass">Done</span><span><b>RTK seeding</b> &mdash; the bootstrap for the reference index</span></li>
+          <li><span class="tag pass">Done</span><span><b>Pose solving</b> &mdash; PnP, RANSAC, covariance</span></li>
+          <li><span class="tag pass">Done</span><span><b>Metric scale</b> &mdash; five-source fusion, disagreement flagged not averaged</span></li>
+          <li><span class="tag pass">Done</span><span><b>Measurement extraction</b> &mdash; kerb, width, cross slope with uncertainty</span></li>
+          <li><span class="tag pass">Done</span><span><b>Street overlay</b> &mdash; snapping, stable feature identity, shared map frame</span></li>
+          <li><span class="tag pass">Done</span><span><b>Real feature matching</b> &mdash; SIFT/ORB, ratio, mutual and epipolar filters. Licence-clean.</span></li>
+          <li><span class="tag pass">Done</span><span><b>Six keyless APIs</b> &mdash; Overpass, Nominatim, Project Sidewalk, Overture, OpenFreeMap, RTK2go</span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h3>Blocking the real-world claim</h3>
+        <ul>
+          <li><span class="tag blocked">Open</span><span><b>Real photographs</b> &mdash; nothing has yet touched one. The calibration harness is built and waiting for a folder of corner pairs.</span></li>
+          <li><span class="tag partial">Next</span><span><b>Learned matching</b> &mdash; ALIKED + LightGlue, which should survive the vantage gap that defeats SIFT</span></li>
+          <li><span class="tag partial">Next</span><span><b>Descriptors</b> &mdash; MegaLoc, replacing the tiny-image baseline</span></li>
+          <li><span class="tag partial">Next</span><span><b>Footway survey pass</b> &mdash; the index needs both vantages, not just the driven one</span></li>
+          <li><span class="tag partial">Next</span><span><b>SfM</b> &mdash; GLUEMAP per cell cluster</span></li>
+          <li><span class="tag partial">Next</span><span><b>Semantics</b> &mdash; kerb-ramp detector, surface segmentation, sign OCR</span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h3>Integration, well understood</h3>
+        <ul>
+          <li><span class="tag partial">Pending</span><span><b>Meta toolkit bindings</b> &mdash; live device and Mock Device Kit</span></li>
+          <li><span class="tag partial">Pending</span><span><b>CARLA asset import</b> &mdash; needs an Unreal source build</span></li>
+          <li><span class="tag partial">Pending</span><span><b>On-device redaction</b> &mdash; EgoBlur, Apache 2.0, drop-in</span></li>
+          <li><span class="tag partial">Pending</span><span><b>Server</b> &mdash; ingest endpoint, PostGIS schema, coverage service</span></li>
+          <li><span class="tag partial">Pending</span><span><b>Ground-truth checker</b> &mdash; the types exist; the service that runs it every release does not</span></li>
+          <li><span class="tag partial">Pending</span><span><b>Distribution</b> &mdash; robot API, consumer app, OpenSidewalks export</span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h3>Verified this pass</h3>
+        <ul>
+          <li><span class="tag pass">Fixed</span><span>Tilted plane spanning both surfaces &mdash; a 2% tilt across ten metres out-voted both real surfaces</span></li>
+          <li><span class="tag pass">Fixed</span><span>Building facade winning the footway fit &mdash; 1500 inliers against 252, then reporting zero width</span></li>
+          <li><span class="tag pass">Fixed</span><span>Percentile-trim width bias &mdash; systematic 67&nbsp;mm, invisible to corroboration</span></li>
+          <li><span class="tag pass">Fixed</span><span>Kerb hint subtracting the observer's own offset</span></li>
+          <li><span class="tag pass">Fixed</span><span><code>np.cross</code> on 2-D vectors, removed in NumPy 2</span></li>
+          <li><span class="tag pass">Fixed</span><span>Repetitive procedural texture defeating Lowe's ratio test</span></li>
+          <li><span class="tag pass">Fixed</span><span>Uncaught pose-solver failure on a degenerate consensus set</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>297 tests &middot; lint clean</span>
+    <span>Real SIFT matching &middot; synthetic texture</span>
+    <span>Field of view unverified against hardware</span>
+  </footer>
+</div>
+
+<div class="lb" id="lb" open-state="off" role="dialog" aria-modal="true" aria-label="Frame viewer">
+  <img id="lb-img" alt="" />
+  <div class="lb-meta" id="lb-meta"></div>
+  <div class="lb-controls">
+    <button class="lb-nav" id="lb-prev">&larr; Prev</button>
+    <button class="lb-close" id="lb-close">Close</button>
+    <button class="lb-nav" id="lb-next">Next &rarr;</button>
+  </div>
+</div>
+
+<script>
+  const FRAMES = __FRAME_DATA__;
+
+  const KIND_LABEL = {
+    wearer: "Wearer",
+    rig: "Survey rig",
+    context: "Context",
+  };
+
+  const grid = document.getElementById("grid");
+  const countEl = document.getElementById("count");
+  const lb = document.getElementById("lb");
+  const lbImg = document.getElementById("lb-img");
+  const lbMeta = document.getElementById("lb-meta");
+
+  let filter = "all";
+  let visible = [];
+  let cursor = 0;
+
+  function shown() {
+    return filter === "all" ? FRAMES : FRAMES.filter((f) => f.kind === filter);
+  }
+
+  function render() {
+    visible = shown();
+    grid.replaceChildren();
+    visible.forEach((frame, i) => {
+      const card = document.createElement("button");
+      card.className = "card";
+      card.type = "button";
+      card.setAttribute("aria-label", `Open ${KIND_LABEL[frame.kind]} frame at station ${frame.station} metres`);
+
+      const img = document.createElement("img");
+      img.src = frame.src;
+      img.alt = `${KIND_LABEL[frame.kind]} view at station ${frame.station} m`;
+      img.loading = "lazy";
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const left = document.createElement("span");
+      left.innerHTML = `<b>${KIND_LABEL[frame.kind]}</b>`;
+      const right = document.createElement("span");
+      right.textContent = `${frame.station} m`;
+      meta.append(left, right);
+
+      card.append(img, meta);
+      card.addEventListener("click", () => open(i));
+      grid.append(card);
+    });
+    countEl.textContent = `${visible.length} frame${visible.length === 1 ? "" : "s"}`;
+  }
+
+  function open(i) {
+    cursor = (i + visible.length) % visible.length;
+    const frame = visible[cursor];
+    lbImg.src = frame.src;
+    lbImg.alt = `${KIND_LABEL[frame.kind]} view at station ${frame.station} m`;
+    const bits = [
+      `<b>${KIND_LABEL[frame.kind]}</b>`,
+      `station <b>${frame.station} m</b>`,
+      `heading <b>${frame.yaw >= 0 ? "+" : ""}${frame.yaw}&deg;</b>`,
+      `geometry fill <b>${frame.coverage}%</b>`,
+      `<b>${frame.res}</b>`,
+    ];
+    if (frame.label) bits.push(`<b>${frame.label}</b>`);
+    lbMeta.innerHTML = bits.join("");
+    lb.setAttribute("open-state", "on");
+  }
+
+  function close() {
+    lb.setAttribute("open-state", "off");
+    lbImg.src = "";
+  }
+
+  document.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      filter = chip.dataset.filter;
+      document.querySelectorAll(".chip").forEach((c) => {
+        c.setAttribute("aria-pressed", String(c === chip));
+      });
+      render();
+    });
+  });
+
+  document.getElementById("lb-close").addEventListener("click", close);
+  document.getElementById("lb-prev").addEventListener("click", () => open(cursor - 1));
+  document.getElementById("lb-next").addEventListener("click", () => open(cursor + 1));
+  lb.addEventListener("click", (e) => { if (e.target === lb) close(); });
+
+  document.addEventListener("keydown", (e) => {
+    if (lb.getAttribute("open-state") !== "on") return;
+    if (e.key === "Escape") close();
+    if (e.key === "ArrowLeft") open(cursor - 1);
+    if (e.key === "ArrowRight") open(cursor + 1);
+  });
+
+  render();
+</script>
