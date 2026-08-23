@@ -192,10 +192,60 @@ def _render_baseline(config: FeatureConfig) -> dict[str, float]:
     }
 
 
+VANTAGE_KEYS = ("road", "walk")
+
+
+def _vantage_of(path: Path) -> str | None:
+    """Read the vantage from a filename like ``corner01_road_a.jpg``."""
+    parts = path.stem.lower().split("_")
+    for key in VANTAGE_KEYS:
+        if key in parts:
+            return key
+    return None
+
+
+def vantage_report(directory: Path, config: FeatureConfig) -> dict[str, list[PairResult]]:
+    """Group photographs by corner and compare same-vantage against cross-vantage matching.
+
+    This is the experiment that decides an operational cost. In simulation, an index surveyed
+    from the roadway does not anchor footway captures at all — but the simulator's synthetic
+    texture is already marginal for same-vantage matching, so it cannot distinguish "SIFT cannot
+    cross this" from "my rendered surfaces cannot". Real photographs can.
+
+    If cross-vantage matching works on real brick and concrete, a corridor needs **one** survey
+    pass. If it does not, every corridor must be driven *and* walked, for the life of the
+    product.
+    """
+    groups: dict[str, dict[str, list[Path]]] = defaultdict(lambda: defaultdict(list))
+    for path in discover_photos(directory):
+        vantage = _vantage_of(path)
+        if vantage is None:
+            continue
+        groups[path.stem.split("_")[0]][vantage].append(path)
+
+    same: list[PairResult] = []
+    cross: list[PairResult] = []
+    for corner, by_vantage in groups.items():
+        for vantage, paths in by_vantage.items():
+            for i in range(len(paths) - 1):
+                for j in range(i + 1, len(paths)):
+                    same.append(evaluate_pair(paths[i], paths[j], f"{corner}:{vantage}", config))
+        road = by_vantage.get("road", [])
+        walk = by_vantage.get("walk", [])
+        for left in road:
+            for right in walk:
+                cross.append(evaluate_pair(left, right, f"{corner}:cross", config))
+    return {"same": same, "cross": cross}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="smc.calibrate")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name, help_text in (("photos", "score a photo folder"), ("sweep", "grid search")):
+    for name, help_text in (
+        ("photos", "score a photo folder"),
+        ("sweep", "grid search"),
+        ("vantage", "compare same-vantage against cross-vantage matching"),
+    ):
         cmd = sub.add_parser(name, help=help_text)
         cmd.add_argument("--dir", type=Path, required=True)
         cmd.add_argument("--out", type=Path)
@@ -205,10 +255,20 @@ def main(argv: list[str] | None = None) -> int:
     if not directory.exists():
         print(f"no such directory: {directory}")
         print()
-        print("Supply photographs like this:")
         print(f"  mkdir -p {directory}")
-        print("  # two or more shots of the same corner, 2-5 m apart along the footway")
-        print("  # name them corner01_a.jpg, corner01_b.jpg, corner02_a.jpg, ...")
+        print()
+        if args.command == "vantage":
+            print("Then shoot each corner from BOTH positions, four photos per corner:")
+            print("  corner01_road_a.jpg   standing in the traffic lane, ~1.3 m high")
+            print("  corner01_road_b.jpg   same, 2-5 m further along the street")
+            print("  corner01_walk_a.jpg   standing on the pavement, ~1.6 m high, eye level")
+            print("  corner01_walk_b.jpg   same, 2-5 m further along")
+            print()
+            print("Both positions must see the same kerb and the same building frontage.")
+            print("Six corners is enough to decide; one is not.")
+        else:
+            print("Then supply two or more shots of the same corner, 2-5 m apart:")
+            print("  corner01_a.jpg, corner01_b.jpg, corner02_a.jpg, ...")
         return 2
 
     groups = discover(directory)
@@ -217,6 +277,45 @@ def main(argv: list[str] | None = None) -> int:
         print(f"found {len(groups)} group(s) but none with two or more photos.")
         print("Matching is a relation between views; a single photo of a corner measures nothing.")
         return 2
+
+    if args.command == "vantage":
+        config = FeatureConfig(max_features=4000, contrast_threshold=0.008)
+        result = vantage_report(directory, config)
+        if not result["same"] and not result["cross"]:
+            print("no photographs named with a vantage.")
+            print("Name them corner01_road_a.jpg / corner01_walk_a.jpg so pairs can be grouped.")
+            return 2
+
+        for label, key in (("same vantage", "same"), ("across vantages", "cross")):
+            stats = summarise(result[key])
+            if not stats:
+                print(f"{label}: no pairs")
+                continue
+            print(
+                f"{label:<16} {stats['pairs']:.0f} pairs, "
+                f"{stats['usable_fraction']:.0%} usable, "
+                f"median inliers {stats['median_geometric_inliers']:.0f}"
+            )
+
+        same_stats = summarise(result["same"])
+        cross_stats = summarise(result["cross"])
+        print()
+        if not cross_stats:
+            print("No cross-vantage pairs. Shoot each corner from the lane AND the pavement.")
+            return 2
+        if cross_stats["usable_fraction"] >= 0.5:
+            print("VERDICT: cross-vantage matching works on real surfaces.")
+            print("  One survey pass per corridor is enough. The simulated failure was the")
+            print("  renderer's synthetic texture, not a limit of the detector.")
+        elif same_stats and same_stats["usable_fraction"] >= 0.5:
+            print("VERDICT: same-vantage works, cross-vantage does not.")
+            print("  The simulated finding holds on real surfaces. Every corridor must be")
+            print("  driven and walked; budget both passes. See smc.mapping.seeding.")
+        else:
+            print("VERDICT: inconclusive — same-vantage matching is also failing.")
+            print("  Run `smc.calibrate sweep` first; the detector settings are wrong for")
+            print("  these surfaces, and nothing can be concluded about vantage until they fit.")
+        return 0
 
     if args.command == "sweep":
         rows = sweep(directory)
