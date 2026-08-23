@@ -20,54 +20,17 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from typing import Protocol, runtime_checkable
 
 import numpy as np
 
 from smc.curate.assess import Assessment, CurationConfig, assess, curate
 from smc.curate.compress import CompressionProfile, ImageFormat
 from smc.curate.people import PeopleConfig, assess_people
-from smc.ingest.journal import EntryState, JournalEntry, LocalPhotoJournal, mark
+from smc.ingest.destinations import Destination
+from smc.ingest.journal import EntryState, LocalPhotoJournal, mark
 
 #: Pillow format names for each target.
 _PIL_FORMAT = {ImageFormat.AVIF: "AVIF", ImageFormat.HEIC: "HEIF", ImageFormat.JPEG: "JPEG"}
-
-
-@runtime_checkable
-class Destination(Protocol):
-    """Where the nightly batch goes. Must confirm receipt, not merely accept."""
-
-    name: str
-
-    def send(self, entry: JournalEntry, payload: bytes) -> bool: ...
-
-
-class DirectoryDestination:
-    """Write the batch to a folder — a synced drive, an external disk, a mount point.
-
-    Confirmation is a re-read of the written bytes rather than the absence of an exception. A
-    write that silently truncated on a full disk would otherwise be treated as delivered, and
-    the phone would then delete its only copy.
-    """
-
-    name = "directory"
-
-    def __init__(self, root: Path | str, *, suffix: str = "avif") -> None:
-        self._root = Path(root)
-        self._root.mkdir(parents=True, exist_ok=True)
-        self._suffix = suffix
-
-    @property
-    def root(self) -> Path:
-        return self._root
-
-    def send(self, entry: JournalEntry, payload: bytes) -> bool:
-        night = entry.captured_at.date().isoformat()
-        target = self._root / night / f"{entry.frame_id}.{self._suffix}"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(payload)
-        return target.exists() and target.stat().st_size == len(payload)
 
 
 @dataclass(frozen=True, slots=True)

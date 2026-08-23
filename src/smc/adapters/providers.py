@@ -15,6 +15,7 @@ from smc.adapters.base import (
     LocalizationResult,
     _require_env,
 )
+from smc.adapters.free import USER_AGENT
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -50,11 +51,55 @@ class MapillaryImagery:
 
     def nearby(
         self, lat: float, lon: float, radius_m: float, limit: int = 50
-    ) -> Sequence[ImageRef]:  # pragma: no cover - network
-        raise NotImplementedError(
-            "wire an HTTP client to BASE_URL with request_params(); kept out of the adapter so "
-            "the transport is chosen once, at the edge"
-        )
+    ) -> Sequence[ImageRef]:
+        """Fetch image metadata near a point.
+
+        Returns metadata only. The imagery itself is CC BY-SA and is fetched separately, used
+        transiently for anchoring, and never stored in the facts table — see
+        docs/01-dependency-stack.md 0.2.
+        """
+        import json
+        import urllib.parse
+        import urllib.request
+
+        params = urllib.parse.urlencode(self.request_params(lat, lon, radius_m, limit))
+        url = f"{self.BASE_URL}?{params}"
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        results: list[ImageRef] = []
+        for item in payload.get("data", []):
+            geometry = item.get("geometry", {}).get("coordinates")
+            if not geometry or len(geometry) < 2:
+                continue
+            captured = item.get("captured_at")
+            results.append(
+                ImageRef(
+                    image_id=str(item.get("id", "")),
+                    lat=float(geometry[1]),
+                    lon=float(geometry[0]),
+                    heading_deg=(
+                        float(item["compass_angle"]) if item.get("compass_angle") is not None
+                        else None
+                    ),
+                    captured_at_s=float(captured) / 1000.0 if captured else None,
+                    url=str(item.get("thumb_2048_url", "")),
+                    provider=self.name,
+                    commercial_safe=self.commercial_safe,
+                )
+            )
+        return results
+
+    def fetch_image(self, ref: ImageRef) -> bytes:
+        """Download one image. Transient: used for anchoring, then discarded."""
+        import urllib.request
+
+        if not ref.url.startswith("https://"):
+            raise ValueError(f"refusing a non-HTTPS image URL: {ref.url!r}")
+        request = urllib.request.Request(ref.url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return response.read()
 
 
 class StreetViewImagery:

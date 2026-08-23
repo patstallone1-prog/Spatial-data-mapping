@@ -24,7 +24,8 @@ from smc.ingest.capture import RigConfig, contributor_pass, survey_pass
 from smc.ingest.store import LocalFrameStore
 from smc.mapping.anchoring import AnchoringConfig, AnchoringPipeline
 from smc.mapping.descriptors import TinyImageDescriptor
-from smc.mapping.seeding import seed_index
+from smc.mapping.features import FeatureConfig, OpenCVMatcher
+from smc.mapping.seeding import SeedingConfig, survey_vantages
 from smc.render.png import write_png
 from smc.sim import OracleMatcher
 
@@ -42,13 +43,19 @@ def _seed(args: argparse.Namespace) -> int:
 
     print(f"corridor {args.id}: {corridor.length_m:.0f} m, {len(corridor.segments)} segments")
 
-    survey = survey_pass(corridor, config)
-    index, report = seed_index(survey, corridor.origin, seed=args.seed)
-    print(
-        f"survey pass:      {len(survey)} frames -> index of {report.frames_seeded}, "
-        f"reference sigma {report.mean_reference_sigma_m:.3f} m, "
-        f"{report.mean_points_per_frame:.0f} points/frame"
+    # Both vantage classes. An index built only from the lane does not anchor captures from
+    # the pavement — measured, not assumed; see smc.mapping.seeding.
+    index, reports = survey_vantages(
+        corridor, width=args.width, height=args.height, focal_px=args.width * 0.75,
+        config=SeedingConfig(affine_views=args.affine_views), seed=args.seed,
     )
+    for name, report in reports.items():
+        print(
+            f"survey {name:<9} {report.frames_seeded} frames, "
+            f"sigma {report.mean_reference_sigma_m:.3f} m, "
+            f"{report.mean_points_per_frame:.0f} features/frame"
+        )
+    survey = survey_pass(corridor, config)
     write_png(survey[len(survey) // 2][1].image, out / "survey_sample.png")
 
     store = LocalFrameStore(out / "frames")
@@ -72,6 +79,7 @@ def _seed(args: argparse.Namespace) -> int:
     print(f"ground truth:     {len(truth)} facts")
 
     descriptor = TinyImageDescriptor()
+    features = FeatureConfig(max_features=4000, contrast_threshold=0.008, min_matches=10)
     errors: list[float] = []
     priors: list[float] = []
     sigmas: list[float] = []
@@ -79,13 +87,17 @@ def _seed(args: argparse.Namespace) -> int:
     sample = [f for c in contributors for f in c][: args.score]
 
     for frame in sample:
-        matcher = OracleMatcher(frame.render, seed=args.seed)
+        matcher = (
+            OpenCVMatcher(frame.render.image, features)
+            if args.matcher == "opencv"
+            else OracleMatcher(frame.render, seed=args.seed)
+        )
         pipeline = AnchoringPipeline(
             index,
             matcher,
             config.intrinsics,
             corridor.origin,
-            AnchoringConfig(min_similarity=0.25),
+            AnchoringConfig(min_similarity=0.2),
         )
         result = pipeline.anchor(
             descriptor.describe(frame.render.image),
@@ -117,8 +129,13 @@ def _seed(args: argparse.Namespace) -> int:
                 "systematic error, so treat sigma as a floor."
             )
     print()
-    print("  Scored with OracleMatcher: an upper bound. It reads correspondences from the")
-    print("  world buffer rather than earning them from pixels. Real matching is unproven.")
+    if args.matcher == "opencv":
+        print("  Scored with real SIFT matching: correspondences earned from pixels.")
+        print("  Yield below 1.0 is the intended trade — strict filters refuse rather than")
+        print("  guess, because a wrongly anchored frame poisons every fact built on it.")
+    else:
+        print("  Scored with OracleMatcher: an UPPER BOUND. It reads correspondences from the")
+        print("  world buffer rather than earning them from pixels.")
 
     (out / "summary.json").write_text(
         json.dumps(
@@ -133,7 +150,7 @@ def _seed(args: argparse.Namespace) -> int:
                 "refused": refused,
                 "prior_error_mean_m": float(np.mean(priors)) if priors else None,
                 "posterior_error_mean_m": float(np.mean(errors)) if errors else None,
-                "matcher": "oracle (simulation only)",
+                "matcher": args.matcher,
             },
             indent=2,
         )
@@ -157,6 +174,9 @@ def main(argv: list[str] | None = None) -> int:
     seed.add_argument("--height", type=int, default=160)
     seed.add_argument("--score", type=int, default=16)
     seed.add_argument("--seed", type=int, default=20260820)
+    seed.add_argument("--matcher", default="opencv", choices=("opencv", "oracle"))
+    seed.add_argument("--affine-views", action="store_true",
+                      help="simulate viewpoints when seeding (slower build, larger index)")
     seed.add_argument("--lat", type=float, default=38.9072)
     seed.add_argument("--lon", type=float, default=-77.0369)
 

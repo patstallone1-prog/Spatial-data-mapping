@@ -12,13 +12,12 @@ import pytest
 from smc.curate.compress import CompressionProfile, ImageFormat
 from smc.curate.people import Detection, PeopleConfig, assess_people
 from smc.ingest.cameraroll import ingest, scan
-from smc.ingest.daily import (
-    BatchPolicy,
+from smc.ingest.daily import BatchPolicy, decode, encode, next_window, run_batch
+from smc.ingest.destinations import (
     DirectoryDestination,
-    decode,
-    encode,
-    next_window,
-    run_batch,
+    GcsConfig,
+    GcsDestination,
+    build_destination,
 )
 from smc.ingest.journal import (
     EntryState,
@@ -246,6 +245,45 @@ class TestPrivacyFilter:
         detection = Detection(10, 20, 30, 40, "body", 0.9)
         assert detection.area == 1200
         assert detection.centre() == (25.0, 40.0)
+
+
+class TestDestinations:
+    def test_local_path_gives_a_directory_destination(self, tmp_path: Path) -> None:
+        assert isinstance(build_destination(str(tmp_path)), DirectoryDestination)
+
+    def test_gs_url_gives_a_gcs_destination(self) -> None:
+        destination = build_destination("gs://a-bucket/some/prefix")
+        assert isinstance(destination, GcsDestination)
+        assert destination.config.bucket == "a-bucket"
+        assert destination.config.prefix == "some/prefix"
+
+    def test_bucket_only_url_gets_a_default_prefix(self) -> None:
+        assert GcsConfig.from_url("gs://a-bucket").prefix == "frames"
+
+    def test_bad_urls_are_refused(self) -> None:
+        with pytest.raises(ValueError, match="gs://"):
+            GcsConfig.from_url("https://example.com/bucket")
+        with pytest.raises(ValueError, match="no bucket"):
+            GcsConfig.from_url("gs://")
+        with pytest.raises(NotImplementedError, match="S3"):
+            build_destination("s3://a-bucket")
+
+    def test_object_name_is_content_addressed_and_dated(self) -> None:
+        destination = build_destination("gs://a-bucket")
+        payload = png_bytes(photo(1))
+        entry = new_entry(payload, 320, 240, source="test")
+        name = destination.object_name(entry)
+        assert entry.frame_id in name
+        assert name.endswith(".avif")
+        assert entry.captured_at.date().isoformat() in name
+
+    def test_missing_credentials_are_reported_not_raised(self, monkeypatch) -> None:
+        """Discovering this at 02:00 is worse than discovering it at setup."""
+        monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
+        destination = GcsDestination(GcsConfig(bucket="definitely-not-a-real-bucket-smc"))
+        ok, message = destination.check_access()
+        assert isinstance(ok, bool)
+        assert message
 
 
 class TestCameraRoll:

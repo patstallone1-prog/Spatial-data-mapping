@@ -1,5 +1,9 @@
 # Status — 2026-08-20
 
+> **Superseded on 2026-08-23 by `docs/09-production-review.md`.** Parts B1 and B2 below are
+> out of date: measurement extraction, the street overlay and real feature matching have since
+> been built. Kept for the credential list in Part A, which is still current.
+
 191 tests, lint clean, four commits. Run `python -m smc.adapters check` for a live version of
 Part A.
 

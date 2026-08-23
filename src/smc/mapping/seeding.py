@@ -10,7 +10,23 @@ poses are known to centimetres and whose 3D structure is metric by construction 
 baseline. Every later monocular capture — from glasses, from a phone, from anyone — localises
 against that survey rather than against another guess.
 
-Two consequences worth being explicit about:
+**The vantage constraint, measured.** A survey drives the lane; a wearer walks the pavement.
+Those two cameras sit four metres apart laterally and a third of a metre apart vertically, and
+in simulation an index built from one anchors captures from the other **not at all** — zero of
+fifteen, against 12 of 15 for same-vantage captures. Isolating the stages showed retrieval was
+never the problem (6 of 6 frames retrieved the right reference, similarity 0.47); local feature
+matching returned 1-4 correspondences where 10 are needed, even with affine view simulation and
+even bypassing retrieval entirely. Surface overlap between the two views is 43%, so the two
+cameras genuinely see the same wall — the descriptors simply do not survive the change.
+
+Whether that is a property of SIFT or of the simulator's synthetic texture **cannot be settled
+in simulation**, because the renderer's procedural detail is already marginal for same-vantage
+matching. It is settled by photographs; see ``python -m smc.calibrate vantage``.
+
+Until it is settled, :func:`survey_vantages` treats it as real and surveys both positions. That
+is more work per corridor and it is the only option that is known to work.
+
+Two further consequences:
 
 * The reference layer is an **asset**, not a cache. It is the thing that makes crowdsourced
   monocular capture reach sub-metre at all, and it is what a competitor without a surveyed
@@ -28,6 +44,7 @@ import numpy as np
 
 from smc import geo
 from smc.carla_gen.gnss import PRESETS, Environment, GnssSimulator
+from smc.mapping.affine import AffineView, default_views, detect_multi_view
 from smc.mapping.descriptors import FrameDescriptor, TinyImageDescriptor
 from smc.mapping.features import FeatureConfig, detect
 from smc.mapping.pose import Pose
@@ -52,6 +69,10 @@ class SeedingConfig:
     #: points. Required for anything but the simulation oracle to match against the index.
     use_real_features: bool = True
     feature_config: FeatureConfig | None = None
+    #: Detect across simulated viewpoints so the index can be matched from vantages the survey
+    #: never occupied. Costs index build time and index size; see :mod:`smc.mapping.affine`.
+    affine_views: bool = True
+    views: tuple[AffineView, ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,7 +151,12 @@ def _feature_correspondences(
     the ones that hit geometry. Features that land on sky have no 3D position and are dropped —
     silently keeping them would put points at infinity into the index and wreck PnP.
     """
-    features = detect(render.image, config.feature_config or FeatureConfig())
+    feature_config = config.feature_config or FeatureConfig()
+    features = (
+        detect_multi_view(render.image, feature_config, config.views or default_views())
+        if config.affine_views
+        else detect(render.image, feature_config)
+    )
     if len(features) == 0:
         return np.zeros((0, 3)), np.zeros((0, 2)), np.zeros((0, 128))
 
@@ -140,6 +166,34 @@ def _feature_correspondences(
     hit = np.isfinite(world).all(axis=1)
 
     return world[hit], features.keypoints[hit], features.descriptors[hit]
+
+
+@dataclass(frozen=True, slots=True)
+class Vantage:
+    """A camera position class the survey should cover.
+
+    A vantage is not a viewpoint along the route — it is a *class* of viewpoint: out in the
+    lane at dash height, on the pavement at eye height. Captures anchor against references from
+    their own class, so an index that omits a class cannot serve the contributors who use it.
+    """
+
+    name: str
+    #: Lateral offset from the kerb line. Negative is in the carriageway.
+    lateral_m: float
+    height_m: float
+    #: Spacing between survey stations for this vantage.
+    spacing_m: float = 4.0
+
+    @property
+    def is_footway(self) -> bool:
+        return self.lateral_m > 0.0
+
+
+#: The two classes that matter for this product. A rig that only drives cannot serve wearers.
+DEFAULT_VANTAGES: tuple[Vantage, ...] = (
+    Vantage("roadway", lateral_m=-4.2, height_m=1.30, spacing_m=4.0),
+    Vantage("footway", lateral_m=1.10, height_m=1.60, spacing_m=3.0),
+)
 
 
 def seed_index(
@@ -185,3 +239,66 @@ def seed_index(
         mean_points_per_frame=float(np.mean(counts)) if counts else 0.0,
         rejected=rejected,
     )
+
+
+def survey_vantages(
+    corridor: object,
+    vantages: tuple[Vantage, ...] = DEFAULT_VANTAGES,
+    *,
+    width: int = 480,
+    height: int = 360,
+    focal_px: float = 360.0,
+    config: SeedingConfig | None = None,
+    seed: int = 0,
+) -> tuple[DescriptorIndex, dict[str, SeedingReport]]:
+    """Survey a corridor from every vantage class into one index.
+
+    The practical answer to the vantage constraint. Each class is surveyed separately and the
+    references land in a single index, so a query retrieves whichever class it resembles without
+    anything downstream needing to know classes exist.
+
+    The cost is honest: covering both classes means driving the corridor *and* walking it. That
+    is the price of a reference layer that serves both a vehicle fleet and a wearer network, and
+    it is cheaper than a corridor that silently fails to anchor half its contributors.
+    """
+    from smc.ingest.photobank import GlassesProfile, wearer_pose
+    from smc.mapping.pose import Pose, intrinsics
+    from smc.render.raster import corridor_triangles, render_meshes
+
+    config = config or SeedingConfig()
+    triangles, colours = corridor_triangles(corridor)
+    k = intrinsics(focal_px, width / 2.0, height / 2.0)
+    length = float(getattr(corridor, "length_m", 100.0))
+
+    index = DescriptorIndex()
+    reports: dict[str, SeedingReport] = {}
+
+    for vantage in vantages:
+        frames: list[tuple[str, RenderResult, Pose]] = []
+        for i, station in enumerate(np.arange(4.0, max(length - 15.0, 5.0), vantage.spacing_m)):
+            if vantage.is_footway:
+                profile = GlassesProfile(
+                    photo_width=width, photo_height=height,
+                    eye_height_m=vantage.height_m, footway_offset_m=vantage.lateral_m,
+                )
+                pose = wearer_pose(float(station), profile, 0.0)
+            else:
+                eye = np.array([float(station), vantage.lateral_m, vantage.height_m])
+                target = np.array([float(station) + 40.0, 1.0, vantage.height_m * 0.8])
+                pose = Pose.look_at(eye, target)
+            frames.append(
+                (
+                    f"{vantage.name}-{i:05d}",
+                    render_meshes(triangles, colours, pose, k, width, height),
+                    pose,
+                )
+            )
+
+        partial, report = seed_index(
+            frames, corridor.origin, config=config, seed=seed  # type: ignore[attr-defined]
+        )
+        for frame in partial._frames:
+            index.add(frame)
+        reports[vantage.name] = report
+
+    return index, reports

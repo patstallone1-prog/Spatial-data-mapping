@@ -21,6 +21,8 @@ dependencies = [
 [project.optional-dependencies]
 carla = ["carla>=0.9.15"]
 dev = ["pytest>=8", "mypy>=1.10", "ruff>=0.5"]
+# Uploading the nightly batch to Google Cloud Storage.
+gcs = ["google-cloud-storage>=2.14"]
 
 [build-system]
 requires = ["hatchling"]

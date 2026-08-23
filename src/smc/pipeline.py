@@ -59,6 +59,16 @@ class PipelineResult:
         return self.anchored_count / len(self.outcomes) if self.outcomes else 0.0
 
 
+def _intrinsics_for(frame: BankFrame, profile: GlassesProfile) -> np.ndarray:
+    """Per-frame intrinsics, from the capture record where available."""
+    from smc.mapping.pose import intrinsics
+
+    record = frame.record
+    if record.focal_px and record.width and record.height:
+        return intrinsics(float(record.focal_px), record.width / 2.0, record.height / 2.0)
+    return profile.intrinsics()
+
+
 def _reason_counts(outcomes: tuple[FrameOutcome, ...]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for outcome in outcomes:
@@ -86,11 +96,15 @@ def run_pipeline(
     """
     profile = profile or GlassesProfile()
     descriptor = TinyImageDescriptor()
-    k = profile.intrinsics()
     outcomes: list[FrameOutcome] = []
     all_facts: list[WorldFact] = []
 
     for i, frame in enumerate(frames):
+        # Intrinsics come from the frame's own record, not from a batch-wide profile. A batch
+        # mixes sources — glasses, phone, vehicle rig — and each has a different focal length.
+        # Solving one camera's geometry with another's produces a pose that is confidently
+        # wrong, which is the one failure mode nothing downstream can detect.
+        k = _intrinsics_for(frame, profile)
         prior_error = geo.distance_m(
             frame.record.lat, frame.record.lon, frame.true_lat, frame.true_lon
         )

@@ -21,7 +21,8 @@ from pathlib import Path
 
 from smc.curate.compress import CompressionProfile, ImageFormat
 from smc.ingest.cameraroll import default_sources, ingest, scan
-from smc.ingest.daily import BatchPolicy, DirectoryDestination, next_window, run_batch
+from smc.ingest.daily import BatchPolicy, next_window, run_batch
+from smc.ingest.destinations import GcsDestination, build_destination
 from smc.ingest.journal import EntryState, LocalPhotoJournal
 
 
@@ -73,7 +74,18 @@ def _batch(args: argparse.Namespace) -> int:
             format=ImageFormat(args.format), quality=args.quality, max_edge_px=args.max_edge
         ),
     )
-    destination = DirectoryDestination(args.out, suffix=args.format)
+    destination = build_destination(str(args.out), suffix=args.format)
+    if isinstance(destination, GcsDestination):
+        ok, message = destination.check_access()
+        print(f"destination: gs://{destination.config.bucket}/{destination.config.prefix}")
+        if not ok:
+            print(f"  unreachable: {message}")
+            print("  run `gcloud auth application-default login`, or set")
+            print("  GOOGLE_APPLICATION_CREDENTIALS to a service-account key")
+            return 2
+        print(f"  {message}")
+        print()
+
     with LocalPhotoJournal(args.journal) as journal:
         before = journal.total_bytes()
         report = run_batch(
@@ -82,7 +94,6 @@ def _batch(args: argparse.Namespace) -> int:
         )
         print(report.describe())
         print()
-        print(f"destination: {destination.root}")
         print(f"journal: {before / 1e6:.1f} MB -> {journal.total_bytes() / 1e6:.1f} MB")
     return 0
 
@@ -103,7 +114,7 @@ def _schedule(args: argparse.Namespace) -> int:
     print(f"      <string>{Path('.venv/bin/python').resolve()}</string>")
     print("      <string>-m</string><string>smc.phone</string><string>batch</string>")
     print(f"      <string>--journal</string><string>{args.journal.resolve()}</string>")
-    print(f"      <string>--out</string><string>{args.out.resolve()}</string>")
+    print(f"      <string>--out</string><string>{args.out}</string>")
     print("    </array>")
     print("    <key>StartCalendarInterval</key>")
     print("    <dict><key>Hour</key><integer>2</integer>"
@@ -131,7 +142,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("status", parents=[common], help="what is in the journal")
 
     p_batch = sub.add_parser("batch", parents=[common], help="run the nightly batch now")
-    p_batch.add_argument("--out", type=Path, default=Path("build/nightly"))
+    p_batch.add_argument(
+        "--out", default="build/nightly",
+        help="a local folder, or gs://bucket/prefix",
+    )
     p_batch.add_argument("--budget", type=float, default=250.0, help="megabytes")
     p_batch.add_argument("--format", default="avif", choices=[f.value for f in ImageFormat])
     p_batch.add_argument("--quality", type=int, default=72)
@@ -141,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
     p_batch.add_argument("--not-charging", action="store_true")
 
     p_sched = sub.add_parser("schedule", parents=[common], help="show the nightly schedule")
-    p_sched.add_argument("--out", type=Path, default=Path("build/nightly"))
+    p_sched.add_argument("--out", default="build/nightly")
 
     args = parser.parse_args(argv)
     return {

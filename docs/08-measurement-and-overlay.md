@@ -35,7 +35,9 @@ frame, and is seen from a good angle; the footway's *far* edge is against the bu
 often outside the frame or occluded, and is what sets the width. So the wearer measures the
 near feature very well and the far one poorly. The vantage, not the sensor, is the limit.
 
-Every figure above is scored with `OracleMatcher` and is therefore an **upper bound**.
+**Superseded.** Every figure above was scored with `OracleMatcher` and is an upper bound.
+Real SIFT matching has since replaced it as the default everywhere; see
+`docs/09-production-review.md` for measured figures.
 
 ## 2. Measurement extraction
 
