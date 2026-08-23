@@ -59,8 +59,14 @@ class CurationConfig:
     #: Mean luma bounds, 0-255.
     min_brightness: float = 28.0
     max_brightness: float = 232.0
-    #: Fraction of pixels at the extremes before a frame counts as blown out.
-    max_clipped_fraction: float = 0.35
+    #: Fraction of pixels at pure white before a frame counts as blown out.
+    max_highlight_clipped: float = 0.35
+    #: Fraction of pixels at pure black before the shadows are unrecoverable.
+    #:
+    #: Kept separate from highlight clipping, because merging them reports a crushed night
+    #: photograph as "blown out" — the opposite diagnosis, and the reason string is what
+    #: somebody reads when deciding whether a threshold is wrong.
+    max_shadow_clipped: float = 0.45
     #: Hamming distance between 64-bit hashes below which two frames are near-duplicates.
     duplicate_distance: int = 6
     #: Frames kept per H3 cell per day. Past this, extra views add little.
@@ -79,7 +85,8 @@ class Assessment:
     cell_id: str
     sharpness: float
     brightness: float
-    clipped_fraction: float
+    highlight_clipped: float
+    shadow_clipped: float
     hash_value: int
     #: Higher is more worth uploading.
     score: float
@@ -96,7 +103,8 @@ class Assessment:
             cell_id=self.cell_id,
             sharpness=self.sharpness,
             brightness=self.brightness,
-            clipped_fraction=self.clipped_fraction,
+            highlight_clipped=self.highlight_clipped,
+            shadow_clipped=self.shadow_clipped,
             hash_value=self.hash_value,
             score=self.score,
             verdict=verdict,
@@ -212,20 +220,22 @@ def assess(
     config = config or CurationConfig()
     thumb = _thumbnail(image, config.thumbnail_px)
     brightness = float(thumb.mean())
-    clipped = float(np.mean((thumb < 6) | (thumb > 249)))
+    highlight = float(np.mean(thumb > 249))
+    shadow = float(np.mean(thumb < 6))
     sharp = sharpness(image, config.thumbnail_px)
 
     # Sharpness dominates: a blurred frame is worthless however well exposed. Mid-grey
     # exposure is mildly preferred because it leaves the most headroom for the matcher.
     exposure_penalty = abs(brightness - 128.0) / 128.0
-    score = sharp * (1.0 - 0.35 * exposure_penalty) * (1.0 - clipped)
+    score = sharp * (1.0 - 0.35 * exposure_penalty) * (1.0 - highlight - shadow)
 
     return Assessment(
         frame_id=frame_id,
         cell_id=cell_id,
         sharpness=sharp,
         brightness=brightness,
-        clipped_fraction=clipped,
+        highlight_clipped=highlight,
+        shadow_clipped=shadow,
         hash_value=dhash(image),
         score=score,
     )
@@ -253,13 +263,23 @@ def curate(
     blur_threshold = max(config.blur_floor, median_sharpness * config.blur_relative_floor)
 
     for a in assessments:
-        if a.brightness < config.min_brightness:
-            out.append(a.with_verdict(Verdict.DROP_DARK, f"mean luma {a.brightness:.0f}"))
+        if a.brightness < config.min_brightness or a.shadow_clipped > config.max_shadow_clipped:
+            out.append(
+                a.with_verdict(
+                    Verdict.DROP_DARK,
+                    f"mean luma {a.brightness:.0f}, {a.shadow_clipped:.0%} crushed",
+                )
+            )
         elif (
             a.brightness > config.max_brightness
-            or a.clipped_fraction > config.max_clipped_fraction
+            or a.highlight_clipped > config.max_highlight_clipped
         ):
-            out.append(a.with_verdict(Verdict.DROP_BLOWN, f"{a.clipped_fraction:.0%} clipped"))
+            out.append(
+                a.with_verdict(
+                    Verdict.DROP_BLOWN,
+                    f"mean luma {a.brightness:.0f}, {a.highlight_clipped:.0%} blown",
+                )
+            )
         elif a.sharpness < blur_threshold:
             out.append(
                 a.with_verdict(

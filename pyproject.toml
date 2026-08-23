@@ -8,7 +8,11 @@ dependencies = [
     "pydantic>=2.7",
     # Real feature detection and matching. SIFT (patent expired 2020) and ORB (BSD) are both
     # licence-clean, unlike the SuperPoint/SuperGlue pairing most tutorials reach for.
-    "opencv-python-headless>=4.9",
+    #
+    # Pinned below 5.0 deliberately: OpenCV 5 removed HOGDescriptor and ships no bundled Haar
+    # cascades, which are what the on-device privacy filter uses. Its replacement (FaceDetectorYN)
+    # needs a downloaded ONNX model, and this filter has to work offline on a phone.
+    "opencv-python-headless>=4.9,<5",
     # Real photo loading: HEIC is the iPhone default and OpenCV cannot read it.
     "pillow>=10.0",
     "pillow-heif>=0.16",
