@@ -19,6 +19,7 @@ import argparse
 from datetime import UTC, datetime
 from pathlib import Path
 
+from smc.config import Settings
 from smc.curate.compress import CompressionProfile, ImageFormat
 from smc.ingest.cameraroll import default_sources, ingest, scan
 from smc.ingest.daily import BatchPolicy, next_window, run_batch
@@ -49,6 +50,7 @@ def _ingest(args: argparse.Namespace) -> int:
 
 
 def _status(args: argparse.Namespace) -> int:
+    settings = Settings.from_env()
     with LocalPhotoJournal(args.journal) as journal:
         print(f"journal: {journal.root}")
         print(f"  {journal.count()} frames, {journal.total_bytes() / 1e6:.1f} MB")
@@ -63,10 +65,15 @@ def _status(args: argparse.Namespace) -> int:
         broken = integrity["rows_without_blobs"] + integrity["blobs_without_rows"]
         print(f"  integrity: {'ok' if broken == 0 else f'{broken} mismatches'}")
         print(f"  next window: {next_window(datetime.now(UTC)).astimezone()}")
+        if settings.object_store_url:
+            print(f"  destination: {settings.object_store_url}")
     return 0
 
 
 def _batch(args: argparse.Namespace) -> int:
+    # Loads .env.local, so GOOGLE_CLOUD_PROJECT reaches the destination without being exported
+    # by whatever launched the job — launchd starts with almost no environment.
+    settings = Settings.from_env()
     policy = BatchPolicy(
         max_batch_megabytes=args.budget,
         privacy_filter=not args.no_privacy_filter,
@@ -74,7 +81,9 @@ def _batch(args: argparse.Namespace) -> int:
             format=ImageFormat(args.format), quality=args.quality, max_edge_px=args.max_edge
         ),
     )
-    destination = build_destination(str(args.out), suffix=args.format)
+    destination = build_destination(
+        str(args.out), suffix=args.format, project=settings.google_cloud_project
+    )
     if isinstance(destination, GcsDestination):
         ok, message = destination.check_access()
         print(f"destination: gs://{destination.config.bucket}/{destination.config.prefix}")

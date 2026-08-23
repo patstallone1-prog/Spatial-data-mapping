@@ -277,6 +277,16 @@ class TestDestinations:
         assert name.endswith(".avif")
         assert entry.captured_at.date().isoformat() in name
 
+    def test_project_is_carried_into_the_client_config(self) -> None:
+        """User ADC has no billing project; one must be attached or some APIs refuse."""
+        destination = build_destination("gs://a-bucket", project="my-project-123")
+        assert destination.config.project == "my-project-123"  # type: ignore[attr-defined]
+
+    def test_project_falls_back_to_the_environment(self, monkeypatch) -> None:
+        monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "from-env")
+        destination = build_destination("gs://a-bucket")
+        assert destination.config.project == "from-env"  # type: ignore[attr-defined]
+
     def test_missing_credentials_are_reported_not_raised(self, monkeypatch) -> None:
         """Discovering this at 02:00 is worse than discovering it at setup."""
         monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)

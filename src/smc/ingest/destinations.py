@@ -110,12 +110,28 @@ class GcsDestination:
         if self._bucket is not None:
             return
         try:
+            import google.auth
             from google.cloud import storage
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
                 "GCS uploads need google-cloud-storage; install the 'gcs' extra"
             ) from exc
-        self._client = storage.Client(project=self._config.project)
+
+        credentials = None
+        if self._config.project:
+            # Attach the project as the quota project. User credentials from `gcloud auth
+            # application-default login` carry no billing project of their own, and without one
+            # attached every call warns and some APIs refuse outright. Storage happens to work
+            # regardless, which makes this easy to leave broken until a different service needs
+            # it and fails for reasons that look unrelated.
+            try:
+                credentials, _ = google.auth.default()
+                if hasattr(credentials, "with_quota_project"):
+                    credentials = credentials.with_quota_project(self._config.project)
+            except Exception:
+                credentials = None
+
+        self._client = storage.Client(project=self._config.project, credentials=credentials)
         self._bucket = self._client.bucket(self._config.bucket)
 
     def object_name(self, entry: JournalEntry) -> str:
