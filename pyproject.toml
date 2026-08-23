@@ -9,6 +9,9 @@ dependencies = [
     # Real feature detection and matching. SIFT (patent expired 2020) and ORB (BSD) are both
     # licence-clean, unlike the SuperPoint/SuperGlue pairing most tutorials reach for.
     "opencv-python-headless>=4.9",
+    # Real photo loading: HEIC is the iPhone default and OpenCV cannot read it.
+    "pillow>=10.0",
+    "pillow-heif>=0.16",
 ]
 
 [project.optional-dependencies]

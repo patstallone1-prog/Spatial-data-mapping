@@ -34,9 +34,8 @@ from pathlib import Path
 
 import numpy as np
 
+from smc.ingest.photos import discover_photos, load_photo
 from smc.mapping.features import Detector, FeatureConfig, detect, match_features
-
-SUPPORTED = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp")
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,29 +59,31 @@ class PairResult:
         return self.geometric_inliers >= 12
 
 
-def load_image(path: Path) -> np.ndarray:
-    import cv2
+def load_image(path: Path, *, glasses_resolution: bool = False) -> np.ndarray:
+    """Load a photograph with EXIF orientation applied.
 
-    image = cv2.imread(str(path), cv2.IMREAD_COLOR)
-    if image is None:
-        raise ValueError(f"could not read {path}")
-    return image[:, :, ::-1].copy()  # BGR to RGB
+    Orientation is not optional. An iPhone stores portrait shots unrotated with a tag, and a
+    loader that ignores it will fail to match a portrait against a landscape view of the same
+    corner — a failure that looks exactly like a broken matcher.
+    """
+    image, _ = load_photo(path, to_glasses_resolution=glasses_resolution)
+    return image
 
 
 def discover(directory: Path) -> dict[str, list[Path]]:
     """Group photos by the filename stem before the first underscore."""
     groups: dict[str, list[Path]] = defaultdict(list)
-    for path in sorted(directory.iterdir()):
-        if path.suffix.lower() in SUPPORTED:
-            groups[path.stem.split("_")[0]].append(path)
+    for path in discover_photos(directory):
+        groups[path.stem.split("_")[0]].append(path)
     return dict(groups)
 
 
 def evaluate_pair(
-    left: Path, right: Path, group: str, config: FeatureConfig
+    left: Path, right: Path, group: str, config: FeatureConfig,
+    *, glasses_resolution: bool = False,
 ) -> PairResult:
-    left_features = detect(load_image(left), config)
-    right_features = detect(load_image(right), config)
+    left_features = detect(load_image(left, glasses_resolution=glasses_resolution), config)
+    right_features = detect(load_image(right, glasses_resolution=glasses_resolution), config)
 
     loose = FeatureConfig(
         detector=config.detector,
@@ -108,7 +109,9 @@ def evaluate_pair(
     )
 
 
-def evaluate_directory(directory: Path, config: FeatureConfig) -> list[PairResult]:
+def evaluate_directory(
+    directory: Path, config: FeatureConfig, *, glasses_resolution: bool = False
+) -> list[PairResult]:
     """Every within-group pair in a directory."""
     results: list[PairResult] = []
     for group, paths in discover(directory).items():
@@ -116,7 +119,12 @@ def evaluate_directory(directory: Path, config: FeatureConfig) -> list[PairResul
             continue
         for i in range(len(paths) - 1):
             for j in range(i + 1, len(paths)):
-                results.append(evaluate_pair(paths[i], paths[j], group, config))
+                results.append(
+                    evaluate_pair(
+                        paths[i], paths[j], group, config,
+                        glasses_resolution=glasses_resolution,
+                    )
+                )
     return results
 
 
@@ -236,6 +244,14 @@ def main(argv: list[str] | None = None) -> int:
     results = evaluate_directory(directory, config)
     stats = summarise(results)
 
+    sample = next(iter(pairable.values()))[0]
+    _, meta = load_photo(sample)
+    print(f"camera: {meta.describe()}")
+    if meta.focal_px():
+        print(f"        focal from EXIF: {meta.focal_px():.0f} px (usable intrinsics)")
+    else:
+        print("        no focal length in EXIF; intrinsics must come from a calibration target")
+    print()
     print(f"{len(pairable)} corner group(s), {len(results)} pair(s)\n")
     print(f"{'group':<14} {'features':>9} {'ratio':>7} {'inliers':>8}  verdict")
     for r in results:
@@ -248,6 +264,18 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print(f"usable pairs: {stats['usable_fraction']:.0%}")
     print(f"median geometric inliers: {stats['median_geometric_inliers']:.0f} (floor is 12)")
+
+    # The comparison that matters for the product: an iPhone shoots eight times the pixels
+    # the glasses deliver, so matching that only works at full resolution does not transfer.
+    downscaled = summarise(evaluate_directory(directory, config, glasses_resolution=True))
+    if downscaled:
+        print()
+        print("same photographs downscaled to the 1440 px the glasses deliver:")
+        print(f"  usable pairs: {downscaled['usable_fraction']:.0%}, "
+              f"median inliers {downscaled['median_geometric_inliers']:.0f}")
+        if downscaled["usable_fraction"] < 0.6 * max(stats["usable_fraction"], 1e-9):
+            print("  -> matching depends on resolution the glasses will never deliver.")
+            print("     Calibrate against the downscaled numbers, not the full-resolution ones.")
 
     baseline = _render_baseline(config)
     print()
