@@ -13,7 +13,7 @@ install:
 	uv pip install -e .
 
 install-dev:
-	uv pip install -e '.[dev,gcs]'
+	uv pip install -e '.[dev,gcs,learned]'
 
 test:
 	PYTHONPATH=src $(PY) -m pytest tests -q

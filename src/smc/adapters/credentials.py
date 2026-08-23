@@ -106,6 +106,24 @@ CREDENTIALS: tuple[Credential, ...] = (
     ),
     # --- Commercial-safe equivalents, already wired behind the same interfaces. ---
     Credential(
+        env_var="PANORAMAX_ENDPOINT",
+        service="Panoramax (IGN + OpenStreetMap France)",
+        capability=Capability.ANCHOR_IMAGERY,
+        purpose=(
+            "Default anchor imagery. STAC API, no account, no token. Imagery is CC BY-SA 4.0 — "
+            "the same share-alike terms as Mapillary, so treat derived facts as a Produced Work "
+            "either way. The advantage is not the licence: the server is MIT and federated, so "
+            "a corridor that matters can be self-hosted instead of depending on a platform."
+        ),
+        where_to_get=(
+            "Nothing needed. Set only to point at your own instance, e.g. "
+            "https://panoramax.example.org/api"
+        ),
+        commercial_safe=True,
+        free_tier="Free, unlimited, no registration",
+        needs_signup=False,
+    ),
+    Credential(
         env_var="SMC_ANCHOR_INDEX_URL",
         service="Owned anchoring index (MegaLoc descriptors + Overture footprints)",
         capability=Capability.VISUAL_POSITIONING,
@@ -128,11 +146,14 @@ CREDENTIALS: tuple[Credential, ...] = (
         env_var="MAPILLARY_ACCESS_TOKEN",
         service="Mapillary API v4",
         capability=Capability.ANCHOR_IMAGERY,
-        purpose="Anchor imagery. The commercial-safe replacement for Street View.",
+        purpose=(
+            "Fallback anchor imagery, behind Panoramax. Needed only where Panoramax has no "
+            "coverage. Requires an explicit opt-in as well as this token."
+        ),
         where_to_get="mapillary.com/dashboard/developers -> register an application",
         commercial_safe=True,
         free_tier="Free for all uses. 60k/min entity, 10k/min search, 50k/day tiles",
-        required=True,
+        required=False,
     ),
     Credential(
         env_var="MAPTILER_API_KEY",

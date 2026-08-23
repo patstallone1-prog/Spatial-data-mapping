@@ -16,6 +16,7 @@ from smc.adapters.base import (
     _require_env,
 )
 from smc.adapters.free import USER_AGENT
+from smc.adapters.panoramax import PanoramaxImagery
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -24,18 +25,40 @@ if TYPE_CHECKING:
 # --- Anchor imagery -----------------------------------------------------------------------
 
 
-class MapillaryImagery:
-    """Mapillary API v4 — the commercial-safe anchor source.
+class PanoramaxProvider(PanoramaxImagery):
+    """The default anchor-imagery source. No credential; see :mod:`smc.adapters.panoramax`."""
 
-    Imagery is CC BY-SA 4.0. Derived *measurements* published as a Produced Work are fine;
-    the imagery itself must not enter the product. See docs/01-dependency-stack.md 0.2.
+    name = "panoramax"
+    commercial_safe = True
+    requires_credential = False
+
+
+class MapillaryImagery:
+    """Mapillary API v4 — kept as a fallback, no longer the default.
+
+    Imagery is CC BY-SA 4.0, the same share-alike terms as Panoramax, so it offers no licensing
+    advantage. What it does carry is platform risk that Panoramax does not: it needs an account
+    and a token, it cannot be self-hosted, and it is operated by a company that also sells
+    wearable cameras — which is to say, by a potential competitor whose terms can change.
+
+    Retained because its coverage is larger in some regions, and coverage is the one thing that
+    matters when a corridor has none. Selecting it is deliberate: it requires a token *and*
+    an explicit ``allow_platform_dependency=True``, so it can never become the default by
+    accident.
     """
 
     name = "mapillary"
     commercial_safe = True
+    requires_credential = True
     BASE_URL = "https://graph.mapillary.com/images"
 
-    def __init__(self) -> None:
+    def __init__(self, *, allow_platform_dependency: bool = False) -> None:
+        if not allow_platform_dependency:
+            raise AdapterUnavailable(
+                "Mapillary is a fallback, not the default: it needs an account and cannot be "
+                "self-hosted. Use panoramax, or pass allow_platform_dependency=True with a "
+                "reason (usually: Panoramax has no coverage in the target region)."
+            )
         self._token = _require_env("MAPILLARY_ACCESS_TOKEN", "MapillaryImagery")
 
     def request_params(self, lat: float, lon: float, radius_m: float, limit: int) -> dict[str, str]:
@@ -193,11 +216,15 @@ class OwnedAnchoring:
 
 @dataclass(frozen=True, slots=True)
 class ProviderChoice:
-    anchor_imagery: str = "mapillary"
+    anchor_imagery: str = "panoramax"
     visual_positioning: str = "owned_anchoring"
 
 
-_ANCHOR_IMAGERY = {"mapillary": MapillaryImagery, "street_view": StreetViewImagery}
+_ANCHOR_IMAGERY = {
+    "panoramax": PanoramaxProvider,
+    "mapillary": MapillaryImagery,
+    "street_view": StreetViewImagery,
+}
 _VISUAL_POSITIONING = {"arcore_geospatial": ArCoreGeospatial, "owned_anchoring": OwnedAnchoring}
 
 

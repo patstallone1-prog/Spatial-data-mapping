@@ -249,6 +249,7 @@ def survey_vantages(
     height: int = 360,
     focal_px: float = 360.0,
     config: SeedingConfig | None = None,
+    descriptor_model: FrameDescriptor | None = None,
     seed: int = 0,
 ) -> tuple[DescriptorIndex, dict[str, SeedingReport]]:
     """Survey a corridor from every vantage class into one index.
@@ -295,7 +296,11 @@ def survey_vantages(
             )
 
         partial, report = seed_index(
-            frames, corridor.origin, config=config, seed=seed  # type: ignore[attr-defined]
+            frames,
+            corridor.origin,  # type: ignore[attr-defined]
+            config=config,
+            descriptor_model=descriptor_model,
+            seed=seed,
         )
         for frame in partial._frames:
             index.add(frame)

@@ -87,6 +87,7 @@ def run_pipeline(
     scale_relative_sigma: float = 0.024,
     matcher: str = "opencv",
     feature_config: FeatureConfig | None = None,
+    descriptor: object | None = None,
     seed: int = 0,
 ) -> PipelineResult:
     """Push a set of captured frames all the way through to scored facts.
@@ -95,7 +96,9 @@ def run_pipeline(
     no independent anchor — because that is what a wearer actually has.
     """
     profile = profile or GlassesProfile()
-    descriptor = TinyImageDescriptor()
+    # The index and the query must be described by the same model; comparing a MegaLoc vector
+    # against a tiny-image vector is meaningless and would fail silently as poor recall.
+    descriptor = descriptor or TinyImageDescriptor()
     outcomes: list[FrameOutcome] = []
     all_facts: list[WorldFact] = []
 

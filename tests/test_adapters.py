@@ -45,8 +45,8 @@ class TestCredentialRegistry:
             monkeypatch.delenv(c.env_var, raising=False)
         report = check()
         assert not report.ok
+        # Anchor imagery is no longer on this list: Panoramax needs no credential.
         assert {c.env_var for c in report.missing_required} == {
-            "MAPILLARY_ACCESS_TOKEN",
             "HUGGINGFACE_TOKEN",
             "SMC_DATABASE_URL",
             "SMC_OBJECT_STORE_URL",
@@ -70,16 +70,25 @@ class TestProviderSelection:
             build_anchor_imagery("street_view", allow_internal_only=True), StreetViewImagery
         )
 
-    def test_safe_provider_needs_no_opt_in(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_default_provider_needs_no_credential(self) -> None:
+        provider = build_anchor_imagery("panoramax")
+        assert provider.requires_credential is False  # type: ignore[attr-defined]
+
+    def test_mapillary_needs_an_explicit_opt_in(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """It is a platform dependency, not a licensing upgrade: same CC BY-SA imagery."""
         monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "x")
-        assert isinstance(build_anchor_imagery("mapillary"), MapillaryImagery)
+        with pytest.raises(AdapterUnavailable, match="fallback, not the default"):
+            build_anchor_imagery("mapillary")
+        assert isinstance(
+            MapillaryImagery(allow_platform_dependency=True), MapillaryImagery
+        )
 
     def test_missing_credential_is_reported_clearly(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.delenv("MAPILLARY_ACCESS_TOKEN", raising=False)
         with pytest.raises(AdapterUnavailable, match="MAPILLARY_ACCESS_TOKEN"):
-            build_anchor_imagery("mapillary")
+            MapillaryImagery(allow_platform_dependency=True)
 
     def test_unknown_provider_rejected(self) -> None:
         with pytest.raises(AdapterUnavailable, match="unknown"):
@@ -97,8 +106,8 @@ class TestProviderSelection:
     def test_default_choice_is_the_safe_one(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from smc.adapters.providers import ProviderChoice
 
-        monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "x")
         choice = ProviderChoice()
+        assert choice.anchor_imagery == "panoramax"
         assert build_anchor_imagery(choice.anchor_imagery).commercial_safe  # type: ignore[attr-defined]
         assert build_visual_positioning(choice.visual_positioning).commercial_safe  # type: ignore[attr-defined]
 
@@ -106,7 +115,9 @@ class TestProviderSelection:
 class TestMapillaryQuery:
     def test_bbox_is_centred_on_the_request(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "tok")
-        params = MapillaryImagery().request_params(38.9072, -77.0369, radius_m=50.0, limit=25)
+        params = MapillaryImagery(allow_platform_dependency=True).request_params(
+            38.9072, -77.0369, radius_m=50.0, limit=25
+        )
         west, south, east, north = (float(v) for v in params["bbox"].split(","))
         assert west < -77.0369 < east
         assert south < 38.9072 < north

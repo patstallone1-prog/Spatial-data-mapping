@@ -77,3 +77,23 @@ class TinyImageDescriptor:
             # nothing rather than one that matches everything.
             return np.zeros(self.dimension) + 1e-6
         return flat / norm
+
+
+def build_descriptor(name: str = "auto") -> FrameDescriptor:
+    """Select a global descriptor by name.
+
+    ``auto`` prefers MegaLoc when PyTorch is installed and falls back to the tiny-image
+    baseline otherwise. The fallback is loud in the logs rather than silent, because an index
+    built with one model and queried with the other returns plausible nonsense — every
+    similarity is low, nothing retrieves, and it looks like a coverage problem.
+    """
+    if name in ("auto", "megaloc"):
+        from smc.mapping import megaloc
+
+        if megaloc.available():
+            return megaloc.MegaLocDescriptor()
+        if name == "megaloc":
+            raise RuntimeError(
+                "MegaLoc needs PyTorch: install the 'learned' extra, or select 'tiny_image'"
+            )
+    return TinyImageDescriptor()
