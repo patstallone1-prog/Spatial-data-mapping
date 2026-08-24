@@ -8,8 +8,8 @@
 set -uo pipefail
 
 PROJECT="/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource"
-OWNER="${GITHUB_OWNER:-patstallone1}"
-REPO="${GITHUB_REPO:-spatial-data-mapping}"
+OWNER="${GITHUB_OWNER:-patstallone1-prog}"
+REPO="${GITHUB_REPO:-Spatial-data-mapping}"
 
 # Homebrew's bin is not on every shell's PATH, and a bare `gh: command not found` sends people
 # reinstalling something they already have.
