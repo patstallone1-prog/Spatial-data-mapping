@@ -1,0 +1,500 @@
+<title>Kerbside</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f6f4f1;
+    --paper-2: #efece7;
+    --card: #ffffff;
+    --rule: #ddd8d1;
+    --rule-soft: #e8e4de;
+    --ink: #16181c;
+    --ink-2: #555c66;
+    --ink-3: #8a919b;
+    --accent: #c8175f;
+    --accent-soft: rgba(200, 23, 95, 0.10);
+    --shadow: 0 1px 2px rgba(22, 24, 28, 0.05), 0 16px 44px rgba(22, 24, 28, 0.09);
+
+    --display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+    --body: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #101216;
+      --paper-2: #171b21;
+      --card: #191e25;
+      --rule: #2a323b;
+      --rule-soft: #222a33;
+      --ink: #eceff3;
+      --ink-2: #a2acb8;
+      --ink-3: #74808d;
+      --accent: #ff5c9b;
+      --accent-soft: rgba(255, 92, 155, 0.14);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 48px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #101216;
+    --paper-2: #171b21;
+    --card: #191e25;
+    --rule: #2a323b;
+    --rule-soft: #222a33;
+    --ink: #eceff3;
+    --ink-2: #a2acb8;
+    --ink-3: #74808d;
+    --accent: #ff5c9b;
+    --accent-soft: rgba(255, 92, 155, 0.14);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 26px; }
+  .narrow { max-width: 660px; }
+
+  h1, h2, h3 { margin: 0; font-family: var(--display); text-wrap: balance; }
+  h1 {
+    font-size: clamp(42px, 8.4vw, 82px);
+    line-height: 0.98;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-variation-settings: "opsz" 128;
+  }
+  h2 {
+    font-size: clamp(26px, 3.6vw, 34px);
+    line-height: 1.14;
+    font-weight: 600;
+    letter-spacing: -0.021em;
+    font-variation-settings: "opsz" 72;
+  }
+  h3 { font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -0.012em; }
+  p { margin: 0; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  /* ---------- masthead ---------- */
+  header.top {
+    display: flex; align-items: center; gap: 12px;
+    padding: 26px 0 0;
+  }
+  .mark {
+    width: 30px; height: 30px; border-radius: 7px; background: var(--accent);
+    display: grid; place-items: center; color: #fff;
+    font-family: var(--display); font-weight: 700; font-size: 17px; flex: none;
+  }
+  .brand { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.02em; }
+  header.top .right { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 62px 0 30px; display: flex; flex-direction: column; gap: 24px; }
+  .lede {
+    font-size: clamp(19px, 2.3vw, 22px);
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 30em;
+  }
+  .lede em { font-family: var(--display); font-style: italic; color: var(--ink); }
+
+  .cta { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 11px;
+    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+    padding: 17px 30px; border-radius: 10px;
+    font-family: var(--body); font-size: 17px; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    box-shadow: 0 2px 5px rgba(200, 23, 95, 0.22), 0 14px 30px rgba(200, 23, 95, 0.18);
+    transition: transform 0.14s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn.ghost {
+    background: transparent; color: var(--ink); border-color: var(--rule);
+    box-shadow: none; padding: 15px 24px; font-size: 15.5px;
+  }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+  .btn:focus-visible, .shot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .ctarow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .ctanote { font-size: 14px; color: var(--ink-3); font-family: var(--mono); }
+  .ctanote b { color: var(--ink-2); font-weight: 500; }
+
+  /* ---------- scan viewer ---------- */
+  .viewer {
+    margin-top: 14px;
+    border: 1px solid var(--rule); border-radius: 14px; overflow: hidden;
+    background: var(--card); box-shadow: var(--shadow);
+  }
+  .frame { position: relative; aspect-ratio: 4 / 3; background: #0c1015; }
+  .frame img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    opacity: 0; transition: opacity 0.5s ease;
+  }
+  .frame img.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .frame img { transition: none; } }
+  .frame .tag {
+    position: absolute; left: 14px; bottom: 14px;
+    background: rgba(8, 11, 15, 0.72); color: #eef2f6;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+    padding: 6px 11px; border-radius: 6px;
+  }
+  .shots { display: flex; gap: 8px; padding: 11px 12px; border-top: 1px solid var(--rule-soft); overflow-x: auto; }
+  .shot {
+    flex: none; width: 74px; border: 2px solid transparent; border-radius: 7px;
+    overflow: hidden; padding: 0; background: none; cursor: pointer; line-height: 0;
+  }
+  .shot img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .shot[aria-pressed="true"] { border-color: var(--accent); }
+
+  /* ---------- sections ---------- */
+  section { padding-top: 74px; display: flex; flex-direction: column; gap: 20px; }
+  .rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 22px; }
+  .col { display: flex; flex-direction: column; gap: 9px; }
+  .col .n {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.12em;
+  }
+  .col p { color: var(--ink-2); font-size: 15.5px; line-height: 1.58; }
+
+  .figures {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--rule);
+    border: 1px solid var(--rule); border-radius: 11px; overflow: hidden;
+  }
+  .fig { background: var(--card); padding: 17px 19px; display: flex; flex-direction: column; gap: 4px; }
+  .fig .v {
+    font-family: var(--display); font-size: 30px; font-weight: 600;
+    letter-spacing: -0.02em; line-height: 1;
+  }
+  .fig .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 18px 22px; border-radius: 0 10px 10px 0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .callout p { color: var(--ink-2); font-size: 15.5px; }
+  .callout b { color: var(--ink); }
+
+  .devicelist { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--rule);
+    border-radius: 11px; overflow: hidden; background: var(--card); }
+  .devrow {
+    display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center;
+    padding: 15px 19px; border-bottom: 1px solid var(--rule-soft);
+  }
+  .devrow:last-child { border-bottom: 0; }
+  .devrow .what { font-size: 15.5px; }
+  .devrow .what span { display: block; color: var(--ink-3); font-size: 13.5px; }
+  .tick {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase;
+    font-weight: 600; padding: 4px 10px; border-radius: 5px; white-space: nowrap;
+  }
+  .tick.yes { color: #17734a; background: rgba(23, 115, 74, 0.12); }
+  .tick.no { color: #a53a30; background: rgba(165, 58, 48, 0.12); }
+  :root[data-theme="dark"] .tick.yes,
+  :root:not([data-theme="light"]) .tick.yes { color: #62c894; background: rgba(98, 200, 148, 0.14); }
+  :root[data-theme="dark"] .tick.no,
+  :root:not([data-theme="light"]) .tick.no { color: #ed8074; background: rgba(237, 128, 116, 0.14); }
+
+  footer {
+    margin-top: 84px; padding: 26px 0 70px; border-top: 1px solid var(--rule);
+    display: flex; flex-wrap: wrap; gap: 10px 28px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="mark">K</div>
+    <div class="brand">Kerbside</div>
+    <div class="right" id="devicetag"></div>
+  </header>
+
+  <div class="hero">
+    <p class="eyebrow">A map of the walkable world</p>
+    <h1>The pavement is<br />missing from the map.</h1>
+    <p class="lede">
+      Every navigation system knows the roads to the centimetre and almost nothing about the
+      three feet beside them. Kerbside builds that missing layer from ordinary photographs &mdash;
+      <em>how high the kerb is, how wide the footway, whether the ramp is really passable</em> &mdash;
+      captured by people already walking past.
+    </p>
+
+    <div class="cta">
+      <div class="ctarow">
+        <button class="btn" id="download">Download the app</button>
+        <a class="btn ghost" href="__APP_URL__" target="_blank" rel="noopener">Open it now</a>
+      </div>
+      <p class="ctanote" id="ctanote"></p>
+    </div>
+  </div>
+
+  <div class="viewer">
+    <div class="frame" id="frame">
+      <span class="tag" id="frametag"></span>
+    </div>
+    <div class="shots" id="shots"></div>
+  </div>
+
+  <section id="how">
+    <hr class="rule" />
+    <div class="narrow">
+      <p class="eyebrow">How it works</p>
+      <h2>Depth without a depth sensor.</h2>
+    </div>
+    <div class="cols">
+      <div class="col">
+        <span class="n">01</span>
+        <h3>It photographs when you move</h3>
+        <p>
+          Not on a timer. A frame is taken once you have walked far enough for it to show
+          something new, so the spacing between frames holds whether you dawdle or stride &mdash;
+          and that even spacing is what lets two views be turned into geometry.
+        </p>
+      </div>
+      <div class="col">
+        <span class="n">02</span>
+        <h3>It works out where you stood</h3>
+        <p>
+          A phone's GPS is accurate to several metres, which is the width of the entire footway.
+          Matching what the camera saw against surveyed imagery of the same place recovers the
+          position and the direction you faced, to within centimetres.
+        </p>
+      </div>
+      <div class="col">
+        <span class="n">03</span>
+        <h3>It measures, and admits doubt</h3>
+        <p>
+          Overlapping views give kerb height, footway width and surface. Every figure carries how
+          confident it is and when it was last seen. Where a measurement contradicts the plan, the
+          measurement wins and the disagreement is recorded.
+        </p>
+      </div>
+    </div>
+
+    <div class="figures">
+      <div class="fig"><span class="v">13 mm</span><span class="k">Kerb height error</span></div>
+      <div class="fig"><span class="v">11 mm</span><span class="k">Position after anchoring</span></div>
+      <div class="fig"><span class="v">50&times;</span><span class="k">Culled before upload</span></div>
+      <div class="fig"><span class="v">1&times;/day</span><span class="k">Times the radio wakes</span></div>
+    </div>
+  </section>
+
+  <section>
+    <hr class="rule" />
+    <div class="narrow">
+      <p class="eyebrow">On your phone</p>
+      <h2>Most of what it photographs, it throws away.</h2>
+      <p class="lede" style="font-size: 17px; margin-top: 10px">
+        Uploading everything would flatten a battery and a data plan for almost no return. So the
+        judging happens where the photographs already are.
+      </p>
+    </div>
+
+    <div class="cols">
+      <div class="col">
+        <h3>Nightly, on a charger</h3>
+        <p>
+          At two in the morning the app reviews the day and drops what carries no information:
+          too dark, blown out, blurred, near-identical to a sharper frame, or surplus to a place
+          already well covered.
+        </p>
+      </div>
+      <div class="col">
+        <h3>People are deleted, not blurred</h3>
+        <p>
+          A photograph whose subject is a person says nothing about a kerb. Those frames are
+          deleted on the device before anything is compressed or sent. Where the phone cannot
+          judge automatically, it asks you, and sends nothing unless you say so.
+        </p>
+      </div>
+      <div class="col">
+        <h3>One batch, then erased</h3>
+        <p>
+          What survives is compressed and sent once. Local copies are erased only after the
+          batch is safely written &mdash; until then your phone holds the only copy, and it is
+          treated that way.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><b>Nothing is uploaded without you.</b></p>
+      <p>
+        Photographs live in the app's own storage on your device. The nightly run produces a
+        batch that you choose to save. There is no silent background upload, and no account.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <hr class="rule" />
+    <div class="narrow">
+      <p class="eyebrow">What it runs on</p>
+      <h2>The camera matters more than the phone.</h2>
+    </div>
+
+    <div class="devicelist">
+      <div class="devrow">
+        <div class="what">Smart glasses<span>Ray-Ban Meta and similar. The app opens the shutter itself.</span></div>
+        <span class="tick yes">Automatic</span>
+      </div>
+      <div class="devrow">
+        <div class="what">Mounted camera<span>A rig on a vehicle. Full shutter control, survey-grade position.</span></div>
+        <span class="tick yes">Automatic</span>
+      </div>
+      <div class="devrow">
+        <div class="what">Android phone<span>Captures while the app is open and you are walking.</span></div>
+        <span class="tick yes">Automatic</span>
+      </div>
+      <div class="devrow">
+        <div class="what">iPhone<span>iOS forbids camera access in the background &mdash; for every app, with no exception to request. You shoot; the rest is automatic.</span></div>
+        <span class="tick no">Manual shutter</span>
+      </div>
+    </div>
+
+    <p class="narrow" style="color: var(--ink-2); font-size: 15.5px">
+      Glasses are the point. A wider frame, taken hands-free while you walk somewhere you were
+      going anyway, is worth far more than a better phone camera you have to hold up.
+    </p>
+  </section>
+
+  <section>
+    <hr class="rule" />
+    <div class="narrow" style="display: flex; flex-direction: column; gap: 20px">
+      <p class="eyebrow">Start</p>
+      <h2>It installs from the browser. There is no store, and no account.</h2>
+      <div class="cta">
+        <div class="ctarow">
+          <button class="btn" id="download2">Download the app</button>
+          <a class="btn ghost" href="__APP_URL__" target="_blank" rel="noopener">Open it in this browser</a>
+        </div>
+        <p class="ctanote" id="ctanote2"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Street data &copy; OpenStreetMap contributors (ODbL)</span>
+    <span>Reference imagery via Panoramax (CC BY-SA)</span>
+    <span>Photographs stay on your device</span>
+  </footer>
+</div>
+
+<script>
+  const SHOTS = __SHOTS__;
+  const APP_HTML = __APP__;
+
+  /* ---------- scan viewer ---------- */
+  const frame = document.getElementById("frame");
+  const shots = document.getElementById("shots");
+  const frametag = document.getElementById("frametag");
+  const images = [];
+
+  SHOTS.forEach((s, i) => {
+    const img = document.createElement("img");
+    img.src = s.src;
+    img.alt = s.alt;
+    if (i === 0) img.classList.add("on");
+    frame.insertBefore(img, frametag);
+    images.push(img);
+
+    const b = document.createElement("button");
+    b.className = "shot";
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(i === 0));
+    b.setAttribute("aria-label", s.alt);
+    b.innerHTML = `<img src="${s.src}" alt="" />`;
+    b.addEventListener("click", () => show(i));
+    shots.append(b);
+  });
+
+  let current = 0;
+  let timer = null;
+
+  function show(i) {
+    current = i;
+    images.forEach((img, k) => img.classList.toggle("on", k === i));
+    shots.querySelectorAll(".shot").forEach((b, k) => b.setAttribute("aria-pressed", String(k === i)));
+    frametag.textContent = SHOTS[i].tag;
+    // A person choosing a frame means they are reading it; stop cycling under them.
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+  show(0);
+
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    timer = setInterval(() => {
+      if (!timer) return;
+      const next = (current + 1) % SHOTS.length;
+      images.forEach((img, k) => img.classList.toggle("on", k === next));
+      shots.querySelectorAll(".shot").forEach((b, k) => b.setAttribute("aria-pressed", String(k === next)));
+      frametag.textContent = SHOTS[next].tag;
+      current = next;
+    }, 3800);
+  }
+
+  /* ---------- device ---------- */
+  function detect() {
+    const ua = navigator.userAgent;
+    const touch = navigator.maxTouchPoints > 1;
+    if (/iPhone|iPod/.test(ua) || /iPad/.test(ua) || (/Macintosh/.test(ua) && touch)) return "ios";
+    if (/Android/.test(ua)) return "android";
+    return "desktop";
+  }
+  const DEVICE = detect();
+  const NOTES = {
+    ios: "iPhone \u00b7 saves an HTML file. Open it in Safari, then <b>Share \u2192 Add to Home Screen</b>. Or use <b>Open it now</b> and add that instead.",
+    android: "Android \u00b7 saves an HTML file. Open it in Chrome, then <b>Install app</b>.",
+    desktop: "Desktop \u00b7 saves an HTML file you can open in any browser. Nothing is installed.",
+  };
+  const TAGS = { ios: "iPhone", android: "Android", desktop: "Desktop" };
+  document.getElementById("devicetag").textContent = TAGS[DEVICE];
+  document.getElementById("ctanote").innerHTML = NOTES[DEVICE];
+  document.getElementById("ctanote2").innerHTML = NOTES[DEVICE];
+
+  /* ---------- download ---------- */
+  async function download() {
+    const filename = "kerbside.html";
+    const downloads = await (window.claude?.use?.("downloads") ?? Promise.resolve(null));
+    if (downloads) {
+      try {
+        await downloads.save({ filename, data: APP_HTML, mimeType: "text/html" });
+        return;
+      } catch (e) {
+        // A declined save is an ordinary outcome, not an error to report.
+        return;
+      }
+    }
+    // Fallback for any context without the capability: a plain blob link.
+    const blob = new Blob([APP_HTML], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  document.getElementById("download").addEventListener("click", download);
+  document.getElementById("download2").addEventListener("click", download);
+</script>

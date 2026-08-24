@@ -1,0 +1,1001 @@
+<title>Kerbside Capture</title>
+<style>
+  :root {
+    --ground: #0b0e12;
+    --surface: #141a21;
+    --surface-2: #1b232c;
+    --line: #263039;
+    --line-soft: #1e262f;
+    --ink: #e6ecf2;
+    --ink-2: #98a6b4;
+    --ink-3: #6b7885;
+    --accent: #ff4d8f;
+    --accent-soft: rgba(255, 77, 143, 0.14);
+    --ok: #4fbe86;
+    --warn: #ddaa46;
+    --stop: #e8776a;
+    --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  :root[data-theme="light"] {
+    --ground: #eef1f5; --surface: #ffffff; --surface-2: #f4f6f9;
+    --line: #d6dce3; --line-soft: #e5eaef;
+    --ink: #121820; --ink-2: #4e5966; --ink-3: #7c8794;
+    --accent: #d4176b; --accent-soft: rgba(212, 23, 107, 0.11);
+    --ok: #1f7a4d; --warn: #a86a08; --stop: #ab3b30;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  /* A class that sets `display` beats the user-agent's [hidden] rule, so anything laid out
+     with flex or grid stays visible when hidden. Restore the intent once, globally. */
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 74px;
+  }
+  h1,h2,h3 { margin: 0; letter-spacing: -0.02em; }
+  h1 { font-size: 20px; font-weight: 680; }
+  h2 { font-size: 16px; font-weight: 650; }
+  h3 { font-size: 13px; font-weight: 650; }
+  p { margin: 0; }
+
+  .app { max-width: 620px; margin: 0 auto; padding: 0 14px; }
+
+  header.bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 0 12px; position: sticky; top: 0; z-index: 30;
+    background: var(--ground); border-bottom: 1px solid var(--line-soft);
+  }
+  .mark {
+    width: 26px; height: 26px; border-radius: 6px; background: var(--accent);
+    display: grid; place-items: center; color: #fff;
+    font-family: var(--mono); font-weight: 700; font-size: 13px; flex: none;
+  }
+  .bar .state { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+
+  .view { display: none; padding-top: 14px; }
+  .view.on { display: flex; flex-direction: column; gap: 14px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; padding: 15px 16px;
+    display: flex; flex-direction: column; gap: 11px;
+  }
+  .card p { color: var(--ink-2); font-size: 13.5px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .stat { background: var(--surface); padding: 11px 13px; display: flex; flex-direction: column; gap: 2px; }
+  .stat .v { font-family: var(--mono); font-size: 19px; font-weight: 640; font-variant-numeric: tabular-nums; }
+  .stat .k { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+    padding: 12px 18px; border-radius: 9px; font: inherit; font-weight: 620;
+    cursor: pointer; width: 100%;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; gap: 9px; }
+
+  .pill {
+    display: inline-flex; align-items: center; font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 640;
+    padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 15%, transparent); }
+  .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+  .pill.stop { color: var(--stop); background: color-mix(in srgb, var(--stop) 15%, transparent); }
+  .pill.mute { color: var(--ink-3); background: var(--surface-2); }
+
+  /* camera */
+  .stage {
+    position: relative; border-radius: 11px; overflow: hidden;
+    background: #000; aspect-ratio: 3 / 4;
+    border: 1px solid var(--line);
+  }
+  .stage video, .stage canvas.preview { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .stage .idle {
+    position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+    color: var(--ink-3); font-size: 13px; padding: 22px; background: var(--surface-2);
+  }
+  .hud {
+    position: absolute; left: 10px; right: 10px; bottom: 10px;
+    display: flex; gap: 8px; align-items: center;
+    font-family: var(--mono); font-size: 10.5px; color: #dfe6ed;
+  }
+  .hud span { background: rgba(6, 9, 12, 0.66); padding: 4px 8px; border-radius: 5px; }
+  .shutter {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 44px;
+    width: 62px; height: 62px; border-radius: 50%;
+    background: #fff; border: 4px solid rgba(255,255,255,0.45); cursor: pointer;
+  }
+  .shutter:disabled { opacity: 0.35; }
+
+  .strip { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; }
+  .strip img {
+    width: 62px; height: 82px; object-fit: cover; border-radius: 6px;
+    border: 1px solid var(--line); flex: none;
+  }
+
+  ul.list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.list li { display: flex; gap: 9px; align-items: baseline; font-size: 13.5px; color: var(--ink-2); }
+  ul.list li b { color: var(--ink); font-weight: 620; }
+
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .barrow { display: grid; grid-template-columns: 116px 1fr 42px; gap: 9px; align-items: center;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .track { height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 4px; }
+  .barrow .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  nav.tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: var(--surface); border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .tab {
+    background: none; border: 0; color: var(--ink-3); font: inherit;
+    padding: 11px 4px 12px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: 10.5px; font-family: var(--mono); letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .tab .ic { font-size: 16px; line-height: 1; }
+  .tab[aria-selected="true"] { color: var(--accent); }
+
+  #map { display: block; width: 100%; height: 340px; border-radius: 11px;
+    border: 1px solid var(--line); background: #0a0e13; touch-action: none; }
+
+  code { font-family: var(--mono); font-size: 0.87em; background: var(--surface-2);
+    border: 1px solid var(--line-soft); padding: 1px 5px; border-radius: 4px; }
+  .muted { color: var(--ink-3); font-size: 12px; }
+
+  .reviewgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+  .reviewitem { position: relative; border: 2px solid var(--line); border-radius: 8px;
+    overflow: hidden; cursor: pointer; background: none; padding: 0; }
+  .reviewitem img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; }
+  .reviewitem .tick {
+    position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(8,11,15,0.72); color: transparent; display: grid; place-items: center;
+    font-size: 12px; line-height: 1; border: 1px solid rgba(255,255,255,0.28);
+  }
+  .reviewitem[aria-pressed="true"] { border-color: var(--accent); }
+  .reviewitem[aria-pressed="true"] .tick { background: var(--accent); color: #fff; }
+  .reviewitem:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="mark">K</div>
+    <h1>Kerbside</h1>
+    <div class="state" id="topstate"></div>
+  </header>
+
+  <!-- ================= CAPTURE ================= -->
+  <div class="view on" id="v-capture">
+    <div class="stage" id="stage">
+      <div class="idle" id="stage-idle">
+        Camera off.<br />Start it to capture, or import frames from glasses.
+      </div>
+      <video id="video" playsinline muted autoplay hidden></video>
+      <div class="hud" id="hud" hidden>
+        <span id="hud-speed">0.0 m/s</span>
+        <span id="hud-dist">0.0 m</span>
+        <span id="hud-reason">ready</span>
+      </div>
+      <button class="shutter" id="shutter" hidden aria-label="Take a photograph"></button>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="cam-toggle">Start camera</button>
+      <button class="btn ghost" id="import-btn">Import</button>
+      <input type="file" id="import-input" accept="image/*" multiple hidden />
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <h2>Automatic capture</h2>
+        <span class="pill" id="auto-pill">off</span>
+      </div>
+      <p id="auto-explain"></p>
+      <button class="btn ghost" id="auto-toggle">Turn on automatic capture</button>
+      <p class="muted" id="auto-note"></p>
+    </div>
+
+    <div class="card">
+      <h2>Today</h2>
+      <div class="strip" id="today-strip"></div>
+      <p class="muted" id="today-note">Nothing captured yet.</p>
+    </div>
+  </div>
+
+  <!-- ================= LIBRARY ================= -->
+  <div class="view" id="v-library">
+    <div class="grid2">
+      <div class="stat"><span class="v" id="lib-frames">0</span><span class="k">Frames held</span></div>
+      <div class="stat"><span class="v" id="lib-size">0 MB</span><span class="k">On device</span></div>
+      <div class="stat"><span class="v" id="lib-sent">0</span><span class="k">Sent all time</span></div>
+      <div class="stat"><span class="v" id="lib-saved">0 MB</span><span class="k">Saved by culling</span></div>
+    </div>
+    <div class="card">
+      <h2>What is waiting</h2>
+      <p>Frames stay on this device until the nightly run keeps them, and are erased once the batch is written. Nothing leaves automatically.</p>
+      <div class="strip" id="lib-strip"></div>
+      <button class="btn ghost" id="clear-btn">Erase everything held</button>
+    </div>
+  </div>
+
+  <!-- ================= TONIGHT ================= -->
+  <div class="view" id="v-tonight">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <h2>The nightly run</h2>
+        <span class="pill mute" id="next-run"></span>
+      </div>
+      <p>
+        Reviews the day, drops what carries no information, compresses what survives, writes one
+        batch, then erases the local copies. Runs by itself at 2am when the app is open; you can
+        also run it now.
+      </p>
+      <button class="btn" id="run-btn">Run tonight's batch now</button>
+      <p class="muted" id="run-note"></p>
+    </div>
+
+    <div class="card" id="result-card" hidden>
+      <h2>Result</h2>
+      <div class="grid2">
+        <div class="stat"><span class="v" id="r-kept">0</span><span class="k">Kept</span></div>
+        <div class="stat"><span class="v" id="r-dropped">0</span><span class="k">Dropped</span></div>
+        <div class="stat"><span class="v" id="r-before">0 MB</span><span class="k">Before</span></div>
+        <div class="stat"><span class="v" id="r-after">0 MB</span><span class="k">After</span></div>
+      </div>
+      <div class="bars" id="r-bars"></div>
+      <button class="btn" id="save-btn">Save the batch</button>
+      <p class="muted" id="save-note"></p>
+    </div>
+
+    <div class="card" id="review-card" hidden>
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <h2>Check these before they go</h2>
+        <span class="pill warn" id="review-count"></span>
+      </div>
+      <p id="review-why"></p>
+      <div class="reviewgrid" id="reviewgrid"></div>
+      <div class="row">
+        <button class="btn ghost" id="review-none">Send none</button>
+        <button class="btn" id="review-done">Send the ticked ones</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>What gets dropped, and why</h2>
+      <ul class="list">
+        <li><span class="pill stop">Person</span><span><b>Anyone is the subject.</b> Deleted before anything is compressed or written. Never leaves the device.</span></li>
+        <li><span class="pill warn">Blurred</span><span><b>Judged against the day</b>, not a fixed number &mdash; a brick wall and an overcast sky score differently at identical focus.</span></li>
+        <li><span class="pill warn">Duplicate</span><span><b>Near-identical to a sharper frame.</b> Standing still produces dozens; they share a viewpoint and a GPS error, so they are not corroboration.</span></li>
+        <li><span class="pill warn">Exposure</span><span><b>Too dark, or blown out.</b> Nothing recoverable either way.</span></li>
+        <li><span class="pill mute">Surplus</span><span><b>Past a quota for one place.</b> The budget is better spent where there is no coverage at all.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= MAP ================= -->
+  <div class="view" id="v-map">
+    <canvas id="map"></canvas>
+    <div class="grid2">
+      <div class="stat"><span class="v" id="m-walk">0</span><span class="k">Footways here</span></div>
+      <div class="stat"><span class="v" id="m-cover">0</span><span class="k">Scanned</span></div>
+    </div>
+    <div class="card">
+      <h2>Alamo Square, San Francisco</h2>
+      <p>
+        Street and footway geometry from OpenStreetMap; pink marks where street-level imagery
+        already exists. Your captures join this once positions are recovered.
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= DEVICE NOTE ================= -->
+  <div class="view" id="v-about">
+    <div class="card">
+      <h2 id="dev-title">Device</h2>
+      <p id="dev-body"></p>
+      <ul class="list" id="dev-list"></ul>
+    </div>
+    <div class="card">
+      <h2>Install it</h2>
+      <p id="install-body"></p>
+    </div>
+    <div class="card">
+      <h2>Privacy</h2>
+      <p>
+        Photographs stay in this browser's storage on this device. Nothing is uploaded. The
+        nightly run writes a batch file that you choose to save &mdash; you decide where it goes.
+      </p>
+      <p id="face-note"></p>
+    </div>
+  </div>
+</div>
+
+<nav class="tabs">
+  <button class="tab" data-view="capture" aria-selected="true"><span class="ic">&#9673;</span>Capture</button>
+  <button class="tab" data-view="library" aria-selected="false"><span class="ic">&#9776;</span>Library</button>
+  <button class="tab" data-view="tonight" aria-selected="false"><span class="ic">&#9788;</span>Tonight</button>
+  <button class="tab" data-view="map" aria-selected="false"><span class="ic">&#9678;</span>Map</button>
+</nav>
+
+<script>
+const DATA = __MAP_DATA__;
+
+/* ============ device ============ */
+function detectDevice() {
+  const ua = navigator.userAgent;
+  const touch = navigator.maxTouchPoints > 1;
+  if (/iPhone|iPod/.test(ua) || /iPad/.test(ua) || (/Macintosh/.test(ua) && touch)) return "ios";
+  if (/Android/.test(ua)) return "android";
+  return "desktop";
+}
+const DEVICE = detectDevice();
+const STANDALONE = window.matchMedia("(display-mode: standalone)").matches ||
+  window.navigator.standalone === true;
+
+/* ============ storage ============ */
+const DB_NAME = "kerbside", STORE = "frames", META = "meta";
+let db = null;
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        d.createObjectStore(STORE, { keyPath: "id" }).createIndex("at", "at");
+      }
+      if (!d.objectStoreNames.contains(META)) d.createObjectStore(META, { keyPath: "k" });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function tx(store, mode) { return db.transaction(store, mode).objectStore(store); }
+function wrap(req) { return new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); }
+
+async function putFrame(f) { return wrap(tx(STORE, "readwrite").put(f)); }
+async function allFrames() { return wrap(tx(STORE, "readonly").getAll()); }
+async function deleteFrames(ids) {
+  const store = tx(STORE, "readwrite");
+  for (const id of ids) store.delete(id);
+  return new Promise((r) => { store.transaction.oncomplete = r; });
+}
+async function getMeta(k, fallback) {
+  const v = await wrap(tx(META, "readonly").get(k));
+  return v === undefined ? fallback : v.v;
+}
+async function setMeta(k, v) { return wrap(tx(META, "readwrite").put({ k, v })); }
+
+/* ============ image measures (ported from the pipeline) ============ */
+function thumbnail(source, side) {
+  // Area-averaged, via two-step canvas downscale. Sampling one pixel per cell would make the
+  // hash move under blur, which is exactly the case a duplicate filter must see through.
+  const c = document.createElement("canvas");
+  c.width = side; c.height = side;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.imageSmoothingEnabled = true;
+  g.imageSmoothingQuality = "high";
+  g.drawImage(source, 0, 0, side, side);
+  const d = g.getImageData(0, 0, side, side).data;
+  const out = new Float64Array(side * side);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    out[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+  }
+  return out;
+}
+
+function sharpness(source, side = 96) {
+  // Laplacian variance normalised by image contrast. Raw variance scales with contrast, so a
+  // blown frame would out-score a correctly exposed one of the same scene.
+  const t = thumbnail(source, side);
+  const lap = [];
+  for (let y = 1; y < side - 1; y++) {
+    for (let x = 1; x < side - 1; x++) {
+      const i = y * side + x;
+      lap.push(-4 * t[i] + t[i - side] + t[i + side] + t[i - 1] + t[i + 1]);
+    }
+  }
+  const varOf = (a) => {
+    let m = 0; for (const v of a) m += v; m /= a.length;
+    let s = 0; for (const v of a) s += (v - m) * (v - m); return s / a.length;
+  };
+  const contrast = varOf(Array.from(t));
+  return contrast < 1e-6 ? 0 : varOf(lap) / contrast;
+}
+
+function dhash(source) {
+  const side = 9;
+  const t = thumbnail(source, side);
+  let hi = 0n;
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      hi = (hi << 1n) | (t[y * side + x + 1] > t[y * side + x] ? 1n : 0n);
+    }
+  }
+  return hi;
+}
+function hamming(a, b) {
+  let v = a ^ b, n = 0;
+  while (v) { n += Number(v & 1n); v >>= 1n; }
+  return n;
+}
+
+function exposure(source) {
+  const t = thumbnail(source, 64);
+  let sum = 0, hot = 0, cold = 0;
+  for (const v of t) { sum += v; if (v > 249) hot++; if (v < 6) cold++; }
+  return { mean: sum / t.length, highlight: hot / t.length, shadow: cold / t.length };
+}
+
+/* ============ people detection ============ */
+let faceDetector = null;
+if ("FaceDetector" in window) {
+  try { faceDetector = new window.FaceDetector({ fastMode: true }); } catch (e) { faceDetector = null; }
+}
+async function personIsSubject(bitmap) {
+  // Where the browser has no detector, frames are HELD rather than sent. Refusing to send is
+  // the only safe default: this is a camera worn in public, and a face reaching a server is
+  // not something an apology fixes.
+  if (!faceDetector) return { known: false, subject: false };
+  try {
+    const faces = await faceDetector.detect(bitmap);
+    if (!faces.length) return { known: true, subject: false };
+    const area = bitmap.width * bitmap.height;
+    const largest = Math.max(...faces.map((f) => f.boundingBox.width * f.boundingBox.height));
+    return { known: true, subject: largest / area >= 0.035 || faces.length >= 3 };
+  } catch (e) {
+    return { known: false, subject: false };
+  }
+}
+
+/* ============ capture ============ */
+const CONFIG = {
+  minBaselineM: 0.75, maxBaselineM: 4.0, captureHz: 4,
+  minSpeed: 0.4, maxSpeed: 22, maxFrames: 400,
+};
+let stream = null, autoOn = false, watchId = null;
+let lastFix = null, distanceSince = 0, lastShotAt = 0, lastSpeed = 0, lastReason = "ready";
+
+const video = document.getElementById("video");
+const stageIdle = document.getElementById("stage-idle");
+const hud = document.getElementById("hud");
+const shutter = document.getElementById("shutter");
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } },
+      audio: false,
+    });
+  } catch (e) {
+    alert("Camera unavailable: " + e.message + "\n\nA secure context (https) and permission are required.");
+    return;
+  }
+  video.srcObject = stream;
+  video.hidden = false; stageIdle.hidden = true; hud.hidden = false; shutter.hidden = false;
+  document.getElementById("cam-toggle").textContent = "Stop camera";
+}
+function stopCamera() {
+  stream?.getTracks().forEach((t) => t.stop());
+  stream = null; video.hidden = true; stageIdle.hidden = false; hud.hidden = true; shutter.hidden = true;
+  document.getElementById("cam-toggle").textContent = "Start camera";
+}
+document.getElementById("cam-toggle").addEventListener("click", () => stream ? stopCamera() : startCamera());
+
+function haversine(a, b) {
+  const R = 6371000, toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+function startTracking() {
+  if (!navigator.geolocation) return false;
+  watchId = navigator.geolocation.watchPosition((pos) => {
+    const fix = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: pos.timestamp };
+    lastSpeed = pos.coords.speed ?? (lastFix ? haversine(lastFix, fix) / Math.max((fix.t - lastFix.t) / 1000, 0.001) : 0);
+    if (lastFix) distanceSince += haversine(lastFix, fix);
+    lastFix = fix;
+    updateHud();
+    maybeAutoCapture();
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+  return true;
+}
+function stopTracking() { if (watchId !== null) navigator.geolocation.clearWatch(watchId); watchId = null; }
+
+function updateHud() {
+  document.getElementById("hud-speed").textContent = (lastSpeed || 0).toFixed(1) + " m/s";
+  document.getElementById("hud-dist").textContent = distanceSince.toFixed(1) + " m";
+  document.getElementById("hud-reason").textContent = lastReason;
+}
+
+function triggerDecision() {
+  // Distance, not a clock. At walking pace a 4 Hz timer puts frames 0.35 m apart: far too
+  // short a baseline to recover depth, and the spacing swings with every change of pace.
+  if (!stream) return { go: false, why: "camera off" };
+  const now = Date.now();
+  if (now - lastShotAt < 1000 / CONFIG.captureHz) return { go: false, why: "rate" };
+  if (lastSpeed < CONFIG.minSpeed) return { go: false, why: "too slow" };
+  if (lastSpeed > CONFIG.maxSpeed) return { go: false, why: "in a vehicle" };
+  if (distanceSince >= CONFIG.maxBaselineM) return { go: true, why: "gap" };
+  if (distanceSince < CONFIG.minBaselineM) return { go: false, why: "no baseline" };
+  return { go: true, why: "moved" };
+}
+
+async function maybeAutoCapture() {
+  if (!autoOn) return;
+  const d = triggerDecision();
+  lastReason = d.why;
+  updateHud();
+  if (d.go) await capture("auto");
+}
+
+async function capture(source) {
+  if (!stream) return;
+  const track = stream.getVideoTracks()[0];
+  const settings = track.getSettings();
+  const c = document.createElement("canvas");
+  // 1440x1080 is what the Meta toolkit delivers; capturing more measures a camera the
+  // pipeline will never see.
+  const targetW = 1440, targetH = 1080;
+  const sw = settings.width || video.videoWidth, sh = settings.height || video.videoHeight;
+  const scale = Math.min(sw / targetW, sh / targetH);
+  const cw = Math.round(targetW * scale), ch = Math.round(targetH * scale);
+  c.width = targetW; c.height = targetH;
+  c.getContext("2d").drawImage(video, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, targetW, targetH);
+  const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.88));
+  await store(blob, source);
+  lastShotAt = Date.now();
+  distanceSince = 0;
+}
+
+async function store(blob, source) {
+  const bitmap = await createImageBitmap(blob);
+  const frame = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    at: Date.now(),
+    source,
+    blob,
+    bytes: blob.size,
+    w: bitmap.width, h: bitmap.height,
+    lat: lastFix?.lat ?? null, lon: lastFix?.lon ?? null, acc: lastFix?.acc ?? null,
+    sharp: sharpness(bitmap),
+    hash: dhash(bitmap).toString(),
+    exp: exposure(bitmap),
+  };
+  bitmap.close?.();
+  await putFrame(frame);
+  await refresh();
+}
+
+shutter.addEventListener("click", () => capture("manual"));
+
+document.getElementById("auto-toggle").addEventListener("click", async () => {
+  autoOn = !autoOn;
+  if (autoOn && !startTracking()) { autoOn = false; alert("Location is unavailable, so distance-based capture cannot run."); }
+  if (!autoOn) stopTracking();
+  paintAuto();
+});
+
+function paintAuto() {
+  const pill = document.getElementById("auto-pill");
+  pill.textContent = autoOn ? "on" : "off";
+  pill.className = "pill " + (autoOn ? "ok" : "mute");
+  document.getElementById("auto-toggle").textContent =
+    autoOn ? "Turn off automatic capture" : "Turn on automatic capture";
+}
+
+/* import from glasses or camera roll */
+document.getElementById("import-btn").addEventListener("click", () => document.getElementById("import-input").click());
+document.getElementById("import-input").addEventListener("change", async (e) => {
+  const files = [...e.target.files];
+  for (const f of files) await store(f, "import");
+  e.target.value = "";
+  alert(`Imported ${files.length} frame${files.length === 1 ? "" : "s"}.`);
+});
+
+/* ============ nightly batch ============ */
+function nextRun() {
+  const now = new Date();
+  const t = new Date(now); t.setHours(2, 0, 0, 0);
+  if (t <= now) t.setDate(t.getDate() + 1);
+  return t;
+}
+
+async function curate(frames) {
+  const out = frames.map((f) => ({ ...f, verdict: "keep", why: "" }));
+  if (!out.length) return out;
+
+  const median = [...out].map((f) => f.sharp).sort((a, b) => a - b)[Math.floor(out.length / 2)];
+  const blurGate = Math.max(0.05, median * 0.25);
+
+  const survivors = [];
+  for (const f of out) {
+    if (f.exp.mean < 28 || f.exp.shadow > 0.45) { f.verdict = "dark"; f.why = "underexposed"; }
+    else if (f.exp.mean > 232 || f.exp.highlight > 0.35) { f.verdict = "blown"; f.why = "blown out"; }
+    else if (f.sharp < blurGate) { f.verdict = "blurred"; f.why = "soft against the day"; }
+    else survivors.push(f);
+  }
+
+  survivors.sort((a, b) => b.sharp - a.sharp);
+  const unique = [];
+  for (const f of survivors) {
+    const twin = unique.find((u) => hamming(BigInt(u.hash), BigInt(f.hash)) <= 6);
+    if (twin) { f.verdict = "duplicate"; f.why = "near a sharper frame"; }
+    else unique.push(f);
+  }
+
+  for (const f of unique) {
+    const bitmap = await createImageBitmap(f.blob);
+    const person = await personIsSubject(bitmap);
+    bitmap.close?.();
+    if (person.subject) { f.verdict = "person"; f.why = "a person is the subject"; }
+    else if (!person.known) { f.verdict = "held"; f.why = "no face detector in this browser"; }
+  }
+  return out;
+}
+
+async function compress(blob) {
+  const bitmap = await createImageBitmap(blob);
+  const c = document.createElement("canvas");
+  const scale = Math.min(1, 1440 / Math.max(bitmap.width, bitmap.height));
+  c.width = Math.round(bitmap.width * scale);
+  c.height = Math.round(bitmap.height * scale);
+  c.getContext("2d").drawImage(bitmap, 0, 0, c.width, c.height);
+  bitmap.close?.();
+  const type = "image/webp";
+  return new Promise((r) => c.toBlob((b) => r(b || blob), type, 0.72));
+}
+
+let lastBatch = null;
+
+document.getElementById("run-btn").addEventListener("click", runBatch);
+
+async function runBatch() {
+  const btn = document.getElementById("run-btn");
+  btn.disabled = true; btn.textContent = "Reviewing the day...";
+  const frames = await allFrames();
+  if (!frames.length) {
+    btn.disabled = false; btn.textContent = "Run tonight's batch now";
+    document.getElementById("run-note").textContent = "Nothing to review.";
+    return;
+  }
+  const before = frames.reduce((a, f) => a + f.bytes, 0);
+  const judged = await curate(frames);
+  const kept = judged.filter((f) => f.verdict === "keep");
+  const dropped = judged.filter((f) => f.verdict !== "keep" && f.verdict !== "held");
+  const held = judged.filter((f) => f.verdict === "held");
+
+  btn.textContent = "Compressing...";
+  const parts = [];
+  let after = 0;
+  for (const f of kept) {
+    const small = await compress(f.blob);
+    after += small.size;
+    parts.push({ f, blob: small });
+  }
+
+  await deleteFrames(dropped.map((f) => f.id));
+  lastBatch = { parts, kept, dropped, held, before, after };
+
+  const counts = {};
+  for (const f of dropped) counts[f.verdict] = (counts[f.verdict] || 0) + 1;
+  if (held.length) counts.held = held.length;
+
+  document.getElementById("result-card").hidden = false;
+  document.getElementById("r-kept").textContent = kept.length;
+  document.getElementById("r-dropped").textContent = dropped.length;
+  document.getElementById("r-before").textContent = (before / 1e6).toFixed(1) + " MB";
+  document.getElementById("r-after").textContent = (after / 1e6).toFixed(2) + " MB";
+
+  const colours = { person: "var(--stop)", blurred: "var(--warn)", duplicate: "var(--warn)",
+    dark: "var(--warn)", blown: "var(--warn)", held: "var(--ink-3)" };
+  const max = Math.max(1, ...Object.values(counts));
+  document.getElementById("r-bars").innerHTML = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, n]) =>
+      `<div class="barrow"><span>${k}</span><span class="track"><span class="fill" style="width:${(n / max) * 100}%;background:${colours[k] || "var(--ink-3)"}"></span></span><span class="n">${n}</span></div>`)
+    .join("") || '<p class="muted">Nothing dropped.</p>';
+
+  paintReview(held);
+  document.getElementById("save-note").textContent = "";
+
+  btn.disabled = false; btn.textContent = "Run tonight's batch now";
+  document.getElementById("run-note").textContent =
+    `Reviewed ${frames.length}, kept ${kept.length}. Local copies are erased once you save.`;
+  await setMeta("lastRun", Date.now());
+  await refresh();
+}
+
+/* Frames this browser could not clear automatically are reviewed by a person rather than
+   blocked outright. FaceDetector exists on almost no browser, so holding everything would
+   mean nothing is ever sent; sending them unchecked is not an option either. Ticking is
+   opt-in and nothing is ticked by default, so inaction sends nothing. */
+let reviewChoices = new Map();
+
+function paintReview(held) {
+  const card = document.getElementById("review-card");
+  const grid = document.getElementById("reviewgrid");
+  reviewChoices = new Map();
+  grid.innerHTML = "";
+  if (!held.length) { card.hidden = true; return; }
+  card.hidden = false;
+  document.getElementById("review-count").textContent = `${held.length} to check`;
+  document.getElementById("review-why").textContent =
+    "This browser has no face detector, so these were not cleared automatically. Tick only the frames with no identifiable person in them. Anything left unticked is deleted.";
+  for (const f of held) {
+    reviewChoices.set(f.id, false);
+    const b = document.createElement("button");
+    b.className = "reviewitem"; b.type = "button"; b.setAttribute("aria-pressed", "false");
+    b.setAttribute("aria-label", "Approve this frame for sending");
+    const url = URL.createObjectURL(f.blob);
+    b.innerHTML = `<img src="${url}" alt="Held frame awaiting review" /><span class="tick">&#10003;</span>`;
+    b.querySelector("img").onload = () => URL.revokeObjectURL(url);
+    b.addEventListener("click", () => {
+      const now = !reviewChoices.get(f.id);
+      reviewChoices.set(f.id, now);
+      b.setAttribute("aria-pressed", String(now));
+    });
+    grid.append(b);
+  }
+}
+
+document.getElementById("review-none").addEventListener("click", async () => {
+  const ids = [...reviewChoices.keys()];
+  if (!ids.length) return;
+  await deleteFrames(ids);
+  reviewChoices = new Map();
+  document.getElementById("review-card").hidden = true;
+  await refresh();
+});
+
+document.getElementById("review-done").addEventListener("click", async () => {
+  const approved = [...reviewChoices.entries()].filter(([, on]) => on).map(([id]) => id);
+  const rejected = [...reviewChoices.entries()].filter(([, on]) => !on).map(([id]) => id);
+  const frames = (await allFrames()).filter((f) => approved.includes(f.id));
+  for (const f of frames) {
+    const small = await compress(f.blob);
+    lastBatch = lastBatch || { parts: [], kept: [], dropped: [], held: [], before: 0, after: 0 };
+    lastBatch.parts.push({ f, blob: small });
+    lastBatch.after += small.size;
+    lastBatch.before += f.bytes;
+  }
+  if (rejected.length) await deleteFrames(rejected);
+  reviewChoices = new Map();
+  document.getElementById("review-card").hidden = true;
+  document.getElementById("r-kept").textContent = lastBatch ? lastBatch.parts.length : 0;
+  document.getElementById("result-card").hidden = !(lastBatch && lastBatch.parts.length);
+  await refresh();
+});
+
+document.getElementById("save-btn").addEventListener("click", async () => {
+  if (!lastBatch || !lastBatch.parts.length) { alert("Nothing to save."); return; }
+  const note = document.getElementById("save-note");
+  const downloads = await (window.claude?.use?.("downloads") ?? Promise.resolve(null));
+
+  let saved = 0;
+  for (const { f, blob } of lastBatch.parts) {
+    const name = `kerbside-${new Date(f.at).toISOString().slice(0, 10)}-${f.id}.webp`;
+    if (downloads) {
+      try { await downloads.save({ filename: name, data: await blob.arrayBuffer(), mimeType: "image/webp" }); saved++; }
+      catch (e) { /* declined is a normal outcome */ }
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+      saved++;
+    }
+  }
+  if (saved) {
+    const sentBefore = await getMeta("sent", 0);
+    const savedBefore = await getMeta("savedBytes", 0);
+    await setMeta("sent", sentBefore + saved);
+    await setMeta("savedBytes", savedBefore + (lastBatch.before - lastBatch.after));
+    await deleteFrames(lastBatch.parts.map((p) => p.f.id));
+    lastBatch = null;
+    document.getElementById("result-card").hidden = true;
+    note.textContent = "";
+    await refresh();
+    alert(`Saved ${saved} frame${saved === 1 ? "" : "s"}. Local copies erased.`);
+  }
+});
+
+document.getElementById("clear-btn").addEventListener("click", async () => {
+  const frames = await allFrames();
+  if (!frames.length) return;
+  if (!confirm(`Erase all ${frames.length} held frames? This cannot be undone.`)) return;
+  await deleteFrames(frames.map((f) => f.id));
+  await refresh();
+});
+
+/* auto-run at the window while the app is open */
+setInterval(async () => {
+  const now = new Date();
+  if (now.getHours() !== 2 || now.getMinutes() > 4) return;
+  const last = await getMeta("lastRun", 0);
+  if (Date.now() - last < 6 * 3600 * 1000) return;
+  runBatch();
+}, 60000);
+
+/* ============ ui refresh ============ */
+async function refresh() {
+  const frames = (await allFrames()).sort((a, b) => b.at - a.at);
+  const bytes = frames.reduce((a, f) => a + f.bytes, 0);
+  document.getElementById("lib-frames").textContent = frames.length;
+  document.getElementById("lib-size").textContent = (bytes / 1e6).toFixed(1) + " MB";
+  document.getElementById("lib-sent").textContent = await getMeta("sent", 0);
+  document.getElementById("lib-saved").textContent = ((await getMeta("savedBytes", 0)) / 1e6).toFixed(1) + " MB";
+  document.getElementById("topstate").textContent = frames.length ? `${frames.length} held` : "";
+
+  const today = frames.filter((f) => Date.now() - f.at < 86400000);
+  document.getElementById("today-note").textContent = today.length
+    ? `${today.length} frame${today.length === 1 ? "" : "s"} today.`
+    : "Nothing captured yet.";
+
+  for (const [id, list] of [["today-strip", today.slice(0, 14)], ["lib-strip", frames.slice(0, 14)]]) {
+    const el = document.getElementById(id);
+    el.innerHTML = "";
+    for (const f of list) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(f.blob);
+      img.alt = "Captured frame";
+      img.onload = () => URL.revokeObjectURL(img.src);
+      el.append(img);
+    }
+  }
+  document.getElementById("next-run").textContent =
+    "next " + nextRun().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ============ tabs ============ */
+document.querySelectorAll(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+    document.querySelectorAll(".view").forEach((v) => v.classList.remove("on"));
+    document.getElementById("v-" + tab.dataset.view).classList.add("on");
+    if (tab.dataset.view === "map") drawMap();
+  });
+});
+
+/* ============ map ============ */
+const mapCanvas = document.getElementById("map");
+const mg = mapCanvas.getContext("2d");
+let mapView = null;
+
+function fitMap() {
+  const [w, s, e, n] = DATA.bbox;
+  const rect = mapCanvas.getBoundingClientRect();
+  const kx = Math.cos((((s + n) / 2) * Math.PI) / 180);
+  const scale = Math.min(rect.width / ((e - w) * kx), rect.height / (n - s)) * 0.94;
+  return { cx: (w + e) / 2, cy: (s + n) / 2, scale, kx, base: scale };
+}
+function drawMap() {
+  const rect = mapCanvas.getBoundingClientRect();
+  if (!rect.width) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  mapCanvas.width = Math.round(rect.width * dpr);
+  mapCanvas.height = Math.round(rect.height * dpr);
+  mg.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!mapView) mapView = fitMap();
+  const v = mapView;
+  const P = (lon, lat) => [rect.width / 2 + (lon - v.cx) * v.kx * v.scale, rect.height / 2 - (lat - v.cy) * v.scale];
+
+  mg.fillStyle = "#0a0e13";
+  mg.fillRect(0, 0, rect.width, rect.height);
+  const line = (ways, colour, width, dash) => {
+    mg.setLineDash(dash || []);
+    mg.strokeStyle = colour; mg.lineWidth = width; mg.lineJoin = "round"; mg.lineCap = "round";
+    mg.beginPath();
+    for (const way of ways) {
+      let first = true;
+      for (const [lon, lat] of way.g) { const [x, y] = P(lon, lat); first ? (mg.moveTo(x, y), first = false) : mg.lineTo(x, y); }
+    }
+    mg.stroke();
+    mg.setLineDash([]);
+  };
+  line(DATA.roads, "#39434f", 4.5);
+  line(DATA.roads, "#29323d", 3);
+  line(DATA.pedestrian.filter((w) => w.k === "sidewalk"), "#5d707f", 1.2);
+  line(DATA.pedestrian.filter((w) => w.k === "crossing"), "#b9862a", 1.2, [3, 3]);
+  for (const c of DATA.coverage) {
+    const [x, y] = P(c.lon, c.lat);
+    mg.beginPath(); mg.arc(x, y, 5.5, 0, Math.PI * 2);
+    mg.fillStyle = "rgba(255,77,143,0.2)"; mg.fill();
+    mg.beginPath(); mg.arc(x, y, 3, 0, Math.PI * 2);
+    mg.fillStyle = "#ff4d8f"; mg.fill();
+  }
+}
+let mdrag = false, mlast = null;
+mapCanvas.addEventListener("pointerdown", (e) => { mdrag = true; mlast = [e.clientX, e.clientY]; mapCanvas.setPointerCapture(e.pointerId); });
+mapCanvas.addEventListener("pointermove", (e) => {
+  if (!mdrag || !mapView) return;
+  mapView.cx -= (e.clientX - mlast[0]) / (mapView.kx * mapView.scale);
+  mapView.cy += (e.clientY - mlast[1]) / mapView.scale;
+  mlast = [e.clientX, e.clientY];
+  drawMap();
+});
+mapCanvas.addEventListener("pointerup", () => { mdrag = false; });
+mapCanvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  if (!mapView) return;
+  mapView.scale = Math.min(Math.max(mapView.scale * Math.exp(-e.deltaY * 0.0016), mapView.base * 0.6), mapView.base * 12);
+  drawMap();
+}, { passive: false });
+
+document.getElementById("m-walk").textContent = DATA.pedestrian.filter((w) => w.k === "sidewalk").length;
+document.getElementById("m-cover").textContent = DATA.coverage.length;
+
+/* ============ device copy ============ */
+const COPY = {
+  ios: {
+    title: "iPhone",
+    body: "iOS does not allow any app, web or native, to use the camera while it is in the background. You take the photographs; everything after the shutter runs on its own.",
+    list: [
+      ["stop", "No background capture", "A platform rule with no exception to request"],
+      ["ok", "Curation and compression", "Runs here, on this device"],
+      ["ok", "Glasses frames", "Export from the Meta app, then Import"],
+    ],
+    install: "Open in Safari, tap Share, then Add to Home Screen. It then runs full-screen and keeps its library between sessions.",
+  },
+  android: {
+    title: "Android",
+    body: "Chrome permits camera capture while the app is open and in view. Keep the screen on while walking a corridor.",
+    list: [
+      ["ok", "Capture while walking", "Distance-triggered, not on a timer"],
+      ["ok", "Curation and compression", "Runs here, on this device"],
+      ["ok", "Glasses frames", "Export from the Meta app, then Import"],
+    ],
+    install: "Open in Chrome, then Install app from the menu.",
+  },
+  desktop: {
+    title: "Desktop",
+    body: "Useful for reviewing a day and running the nightly pass. Capture is possible with a webcam, though the field tool is a phone or glasses.",
+    list: [
+      ["ok", "Import and review", "Drop in frames from anywhere"],
+      ["ok", "Curation and compression", "Runs here, in this browser"],
+      ["warn", "Capture", "Webcam only; no motion trigger without location"],
+    ],
+    install: "Install from the address bar, or just keep the tab open.",
+  },
+};
+
+const copy = COPY[DEVICE];
+document.getElementById("dev-title").textContent = copy.title;
+document.getElementById("dev-body").textContent = copy.body;
+document.getElementById("dev-list").innerHTML = copy.list
+  .map(([tone, head, tail]) => `<li><span class="pill ${tone}">${tone === "ok" ? "yes" : tone === "stop" ? "no" : "part"}</span><span><b>${head}.</b> ${tail}</span></li>`)
+  .join("");
+document.getElementById("install-body").textContent =
+  STANDALONE ? "Installed. Running as an app." : copy.install;
+
+document.getElementById("auto-explain").textContent = DEVICE === "ios"
+  ? "Fires the shutter for you while the app is open and on screen, once you have moved far enough for a frame to show something new. iOS stops capture the moment you switch away."
+  : "Fires the shutter for you once you have moved far enough for a frame to show something new. Distance, not a timer, so spacing holds whether you dawdle or stride.";
+document.getElementById("auto-note").textContent =
+  "Needs location permission: distance is what decides when to shoot.";
+
+document.getElementById("face-note").textContent = faceDetector
+  ? "This browser has a face detector, so frames whose subject is a person are deleted before anything is written."
+  : "This browser has no face detector. Frames are held back rather than written, because sending a photograph of somebody is not a mistake that can be undone.";
+
+/* ============ boot ============ */
+(async () => {
+  db = await openDb();
+  paintAuto();
+  await refresh();
+  window.addEventListener("resize", () => { mapView = null; drawMap(); });
+})();
+</script>
