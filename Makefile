@@ -6,7 +6,7 @@
 VENV := .venv
 PY   := $(VENV)/bin/python
 
-.PHONY: install install-dev test lint typecheck check clean
+.PHONY: install install-dev test lint typecheck check secrets clean
 
 install:
 	uv venv --python 3.12
@@ -27,7 +27,10 @@ format:
 typecheck:
 	uv run --with mypy mypy src
 
-check: lint test
+secrets:
+	./tools/check_secrets.sh
+
+check: lint secrets test
 
 clean:
 	rm -rf build .pytest_cache .ruff_cache .mypy_cache
