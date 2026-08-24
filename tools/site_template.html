@@ -1,0 +1,815 @@
+<title>Kerbside</title>
+<style>
+  :root {
+    --ground: #eceff3;
+    --surface: #ffffff;
+    --surface-2: #f4f6f9;
+    --line: #d5dbe2;
+    --line-soft: #e4e9ee;
+    --ink: #121820;
+    --ink-2: #4d5865;
+    --ink-3: #7d8894;
+    --accent: #d4176b;
+    --accent-soft: rgba(212, 23, 107, 0.12);
+    --ok: #1f7a4d;
+    --warn: #a86a08;
+    --stop: #ab3b30;
+
+    --map-bg: #dfe4ea;
+    --map-road: #ffffff;
+    --map-road-line: #c3ccd6;
+    --map-walk: #8fa3b5;
+    --map-cross: #c08a1f;
+    --map-cover: #d4176b;
+    --map-label: #56616e;
+
+    --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+      "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1015;
+      --surface: #141a21;
+      --surface-2: #1a222b;
+      --line: #26313c;
+      --line-soft: #1d2630;
+      --ink: #e4eaf1;
+      --ink-2: #9aa8b6;
+      --ink-3: #6f7d8b;
+      --accent: #ff4d8f;
+      --accent-soft: rgba(255, 77, 143, 0.15);
+      --ok: #4fbe86;
+      --warn: #dda746;
+      --stop: #e8776a;
+
+      --map-bg: #0a0e13;
+      --map-road: #29323d;
+      --map-road-line: #39434f;
+      --map-walk: #5d707f;
+      --map-cross: #b9862a;
+      --map-cover: #ff4d8f;
+      --map-label: #7d8a97;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0c1015;
+    --surface: #141a21;
+    --surface-2: #1a222b;
+    --line: #26313c;
+    --line-soft: #1d2630;
+    --ink: #e4eaf1;
+    --ink-2: #9aa8b6;
+    --ink-3: #6f7d8b;
+    --accent: #ff4d8f;
+    --accent-soft: rgba(255, 77, 143, 0.15);
+    --ok: #4fbe86;
+    --warn: #dda746;
+    --stop: #e8776a;
+
+    --map-bg: #0a0e13;
+    --map-road: #29323d;
+    --map-road-line: #39434f;
+    --map-walk: #5d707f;
+    --map-cross: #b9862a;
+    --map-cover: #ff4d8f;
+    --map-label: #7d8a97;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 { margin: 0; letter-spacing: -0.021em; text-wrap: balance; }
+  h1 { font-size: clamp(26px, 4.4vw, 38px); line-height: 1.1; font-weight: 700; }
+  h2 { font-size: 21px; line-height: 1.25; font-weight: 640; }
+  h3 { font-size: 15px; line-height: 1.35; font-weight: 640; }
+  p { margin: 0; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 22px; }
+  .prose { max-width: 66ch; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ---- masthead ---- */
+  header.top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 0 16px;
+  }
+  .mark {
+    width: 30px; height: 30px; flex: none;
+    border-radius: 6px;
+    background: var(--accent);
+    display: grid; place-items: center;
+    color: #fff; font-family: var(--mono); font-weight: 700; font-size: 15px;
+  }
+  .brand { font-weight: 660; letter-spacing: -0.02em; font-size: 17px; }
+  .top nav { margin-left: auto; display: flex; gap: 20px; }
+  .top nav a {
+    color: var(--ink-2); text-decoration: none; font-size: 14px;
+  }
+  .top nav a:hover { color: var(--accent); }
+
+  /* ---- map ---- */
+  .mapshell {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--map-bg);
+    height: min(62vh, 560px);
+    min-height: 380px;
+  }
+  #map { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  #map.dragging { cursor: grabbing; }
+
+  .panel {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10), 0 12px 32px rgba(0, 0, 0, 0.10);
+  }
+  .panel.controls { top: 12px; left: 12px; width: 218px; }
+  .panel.legend { bottom: 12px; left: 12px; }
+  .panel.readout {
+    bottom: 12px; right: 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+    font-variant-numeric: tabular-nums; padding: 8px 11px;
+  }
+  .panel h3 { margin-bottom: 9px; }
+
+  .layer {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 13.5px; color: var(--ink-2);
+    padding: 3px 0; cursor: pointer; user-select: none;
+  }
+  .layer input { accent-color: var(--accent); margin: 0; }
+  .swatch { width: 15px; height: 3px; border-radius: 2px; flex: none; }
+  .swatch.dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  .zoombtns { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .zoombtns button {
+    width: 32px; height: 32px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 7px; font-size: 17px; cursor: pointer; line-height: 1;
+  }
+  .zoombtns button:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- status strip ---- */
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    gap: 1px; background: var(--line);
+    border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    margin-top: 14px;
+  }
+  .cell { background: var(--surface); padding: 12px 15px; display: flex; flex-direction: column; gap: 3px; }
+  .cell .v { font-family: var(--mono); font-size: 19px; font-weight: 620; font-variant-numeric: tabular-nums; }
+  .cell .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+
+  section { padding-top: 52px; display: flex; flex-direction: column; gap: 18px; }
+  .sechead { display: flex; flex-direction: column; gap: 7px; }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 16px; }
+  .card {
+    border: 1px solid var(--line); background: var(--surface);
+    border-radius: 9px; padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 11px;
+  }
+  .card p { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.07em;
+    text-transform: uppercase; font-weight: 640;
+    padding: 3px 9px; border-radius: 4px; white-space: nowrap;
+  }
+  .pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
+  .pill.stop { color: var(--stop); background: color-mix(in srgb, var(--stop) 14%, transparent); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+    padding: 11px 20px; border-radius: 7px;
+    font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none;
+    font-family: inherit;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+  .btn:focus-visible, .layer:focus-within, .zoombtns button:focus-visible,
+  .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .devicebox {
+    border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+    padding: 20px 22px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .devicehead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .caps { display: flex; flex-direction: column; gap: 9px; margin: 0; padding: 0; list-style: none; }
+  .caps li { display: flex; gap: 10px; align-items: baseline; font-size: 14.5px; color: var(--ink-2); }
+  .caps li b { color: var(--ink); font-weight: 620; }
+
+  .strip-photos { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+  .thumb {
+    flex: none; width: 118px; border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden; background: var(--surface-2); padding: 0; cursor: pointer;
+  }
+  .thumb img { width: 100%; display: block; aspect-ratio: 3 / 4; object-fit: cover; }
+  .thumb span {
+    display: block; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+    padding: 4px 5px; border-top: 1px solid var(--line-soft);
+  }
+  .thumb[aria-pressed="true"] { border-color: var(--accent); }
+
+  table { border-collapse: collapse; width: 100%; min-width: 520px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+  thead th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500; background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  code {
+    font-family: var(--mono); font-size: 0.87em; background: var(--surface-2);
+    border: 1px solid var(--line-soft); padding: 1px 5px; border-radius: 4px;
+  }
+
+  footer {
+    margin-top: 64px; padding: 22px 0 60px; border-top: 1px solid var(--line);
+    color: var(--ink-3); font-family: var(--mono); font-size: 11px;
+    display: flex; flex-wrap: wrap; gap: 10px 26px;
+  }
+
+  @media (max-width: 700px) {
+    .panel.controls { width: 168px; padding: 10px 11px; }
+    .panel.legend { display: none; }
+    .mapshell { height: 52vh; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="mark">K</div>
+    <div class="brand">Kerbside</div>
+    <nav>
+      <a href="#coverage">Coverage</a>
+      <a href="#capture">Capture app</a>
+      <a href="#how">How it works</a>
+    </nav>
+  </header>
+
+  <div class="mapshell">
+    <canvas id="map"></canvas>
+
+    <div class="panel controls">
+      <h3>Layers</h3>
+      <label class="layer"><input type="checkbox" id="l-road" checked />
+        <span class="swatch" style="background: var(--map-road-line)"></span> Streets</label>
+      <label class="layer"><input type="checkbox" id="l-walk" checked />
+        <span class="swatch" style="background: var(--map-walk)"></span> Footways</label>
+      <label class="layer"><input type="checkbox" id="l-cross" checked />
+        <span class="swatch" style="background: var(--map-cross)"></span> Crossings</label>
+      <label class="layer"><input type="checkbox" id="l-cover" checked />
+        <span class="swatch dot" style="background: var(--map-cover)"></span> Scanned</label>
+    </div>
+
+    <div class="zoombtns">
+      <button id="zin" aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">&minus;</button>
+      <button id="zreset" aria-label="Reset view" style="font-size: 12px">&#8635;</button>
+    </div>
+
+    <div class="panel legend">
+      <h3>Alamo Square, San&nbsp;Francisco</h3>
+      <p style="font-size: 12.5px; color: var(--ink-2); margin: 0; max-width: 27ch">
+        Street and footway geometry from OpenStreetMap. Pink marks where street-level scans
+        already exist.
+      </p>
+    </div>
+
+    <div class="panel readout" id="readout"></div>
+  </div>
+
+  <div class="strip">
+    <div class="cell"><span class="v" id="s-walk">&mdash;</span><span class="k">Footway segments</span></div>
+    <div class="cell"><span class="v" id="s-cross">&mdash;</span><span class="k">Crossings</span></div>
+    <div class="cell"><span class="v" id="s-cover">&mdash;</span><span class="k">Scanned points</span></div>
+    <div class="cell"><span class="v" id="s-pct">&mdash;</span><span class="k">Coverage</span></div>
+  </div>
+
+  <section id="coverage">
+    <div class="sechead">
+      <p class="eyebrow">The map</p>
+      <h2>Today it is a street map. It fills in as people walk.</h2>
+      <p class="prose" style="color: var(--ink-2)">
+        Every footway on this map is a place the network can eventually describe: kerb height,
+        width, surface, whether a ramp exists and whether it is passable. Almost none of it is
+        described yet &mdash; that is the honest state of a map built from scratch. Pink shows where
+        street-level imagery already exists. As scans accumulate, those segments carry measured
+        geometry, and dense corridors become continuous three-dimensional reconstructions rather
+        than lines on a plan.
+      </p>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <h3>Latest capture session</h3>
+        <p id="session-note">&mdash;</p>
+        <div class="strip-photos" id="photostrip"></div>
+        <p style="font-size: 13px; color: var(--ink-3)">
+          Frames from one walk. Sequences like this are what stitch into a corridor once
+          positions are recovered.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Why this session is not on the map</h3>
+        <p>
+          These frames carry no GPS &mdash; Location Services was off for the camera, so there is no
+          position to place them at. The imagery is perfectly usable for matching; what is
+          missing is the rough starting point the anchoring step refines.
+        </p>
+        <p>
+          <span class="pill warn">Action</span>
+          Turn on Location Services for the camera before capturing. The app does this for you;
+          this session was shot manually.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="capture">
+    <div class="sechead">
+      <p class="eyebrow">The capture app</p>
+      <h2>Get the app</h2>
+      <p class="prose" style="color: var(--ink-2)">
+        It listens for the moments worth photographing, keeps only the frames that carry
+        information, compresses them overnight and sends one batch a day. What it can do
+        depends on the hardware it runs on, and the differences are not small.
+      </p>
+    </div>
+
+    <div class="devicebox">
+      <div class="devicehead">
+        <h3 id="dev-name">Detecting your device&hellip;</h3>
+        <span class="pill" id="dev-pill">&mdash;</span>
+      </div>
+      <p style="color: var(--ink-2); font-size: 14.5px" id="dev-summary"></p>
+      <ul class="caps" id="dev-caps"></ul>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px">
+        <button class="btn" id="dl-main">Download</button>
+        <button class="btn ghost" id="dl-alt">Set up the nightly job</button>
+      </div>
+      <p style="font-size: 12.5px; color: var(--ink-3)" id="dl-note"></p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Device</th><th>Can the app take a photo on its own?</th><th>What you get</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>Smart glasses</b><span style="display:block;color:var(--ink-3);font-size:12.5px">Ray-Ban Meta and similar</span></td>
+            <td><span class="pill ok">Yes</span> The app opens the shutter itself</td>
+            <td class="num">1440&times;1080 stills<span style="display:block;color:var(--ink-3);font-size:12px">hands-free, continuous</span></td>
+          </tr>
+          <tr>
+            <td><b>Mounted camera</b><span style="display:block;color:var(--ink-3);font-size:12.5px">Pi rig, action camera, dashcam</span></td>
+            <td><span class="pill ok">Yes</span> Full control of the shutter</td>
+            <td class="num">Global shutter, RTK option<span style="display:block;color:var(--ink-3);font-size:12px">survey grade</span></td>
+          </tr>
+          <tr>
+            <td><b>Android phone</b></td>
+            <td><span class="pill ok">Yes</span> Background capture permitted</td>
+            <td class="num">Automatic while walking</td>
+          </tr>
+          <tr>
+            <td><b>iPhone</b></td>
+            <td><span class="pill stop">No</span> iOS forbids background camera access</td>
+            <td class="num">Manual capture, then automatic<span style="display:block;color:var(--ink-3);font-size:12px">curation and upload</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <h3>The iPhone limitation, stated plainly</h3>
+        <p>
+          iOS will not let any app use the camera while it is in the background. That is a
+          platform rule, not something an app can request an exception to, and no capture app on
+          the App Store works around it. On iPhone you shoot manually, or you pair glasses and
+          the phone becomes the brains rather than the eyes.
+        </p>
+        <p>
+          Everything <em>after</em> the shutter still runs automatically on iPhone: scoring,
+          culling, compression and the nightly send all work in the background.
+        </p>
+      </div>
+      <div class="card">
+        <h3>What runs overnight, on your phone</h3>
+        <p>
+          At 2am, on a charger and on Wi-Fi, the app reviews the day: it drops frames that are
+          dark, blown out, blurred, near-duplicates of a sharper frame, or surplus to an area
+          already well covered &mdash; and deletes any frame whose subject is a person before anything
+          is sent.
+        </p>
+        <p>
+          What survives is re-encoded and uploaded once. Local copies are erased only after the
+          server confirms receipt. On a real day's photographs that is roughly
+          <b>a fifty-fold reduction</b>, and one transfer instead of a radio kept warm all day.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="sechead">
+      <p class="eyebrow">How it works</p>
+      <h2>From a photograph to a measurement</h2>
+    </div>
+    <div class="cols">
+      <div class="card">
+        <h3>1 &middot; Capture what matters</h3>
+        <p>
+          A frame is taken when you have moved far enough for it to show something new &mdash; not on
+          a timer. Walking pace varies constantly; distance does not, so the spacing between
+          frames stays even whether you dawdle or stride.
+        </p>
+      </div>
+      <div class="card">
+        <h3>2 &middot; Work out where it was taken</h3>
+        <p>
+          GPS puts a photograph on roughly the right block, several metres out. Matching it
+          against surveyed reference imagery of the same place recovers position and heading to
+          within centimetres. This is the step everything else depends on.
+        </p>
+      </div>
+      <div class="card">
+        <h3>3 &middot; Measure, and say how sure</h3>
+        <p>
+          Overlapping views give kerb height, footway width and surface. Every value carries a
+          confidence, whether it was measured or inferred, and how recently it was seen. Where a
+          measurement contradicts the plan, the measurement wins and the disagreement is flagged.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Street data &copy; OpenStreetMap contributors (ODbL)</span>
+    <span>Existing coverage via Panoramax (CC BY-SA)</span>
+    <span>Coverage figures describe this view only</span>
+  </footer>
+</div>
+
+<script>
+  const DATA = __MAP_DATA__;
+
+  /* ---------- map ---------- */
+  const canvas = document.getElementById("map");
+  const ctx = canvas.getContext("2d");
+  const readout = document.getElementById("readout");
+
+  const layers = { road: true, walk: true, cross: true, cover: true };
+  let view = null;
+  let dpr = 1;
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function fitView() {
+    const [w, s, e, n] = DATA.bbox;
+    const rect = canvas.getBoundingClientRect();
+    // Mercator is overkill across 800 m; a cosine-corrected equirectangular fit is exact enough
+    // that no line moves by a pixel, and it keeps the projection legible.
+    const midLat = (s + n) / 2;
+    const kx = Math.cos((midLat * Math.PI) / 180);
+    const spanX = (e - w) * kx;
+    const spanY = n - s;
+    const scale = Math.min(rect.width / spanX, rect.height / spanY) * 0.94;
+    return {
+      cx: (w + e) / 2,
+      cy: (s + n) / 2,
+      scale,
+      kx,
+      base: scale,
+    };
+  }
+
+  function project(lon, lat) {
+    const rect = canvas.getBoundingClientRect();
+    return [
+      rect.width / 2 + (lon - view.cx) * view.kx * view.scale,
+      rect.height / 2 - (lat - view.cy) * view.scale,
+    ];
+  }
+
+  function unproject(px, py) {
+    const rect = canvas.getBoundingClientRect();
+    return [
+      view.cx + (px - rect.width / 2) / (view.kx * view.scale),
+      view.cy - (py - rect.height / 2) / view.scale,
+    ];
+  }
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!view) view = fitView();
+    draw();
+  }
+
+  function drawWays(ways, colour, width) {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    for (const way of ways) {
+      let first = true;
+      for (const [lon, lat] of way.g) {
+        const [x, y] = project(lon, lat);
+        if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
+      }
+    }
+    ctx.stroke();
+  }
+
+  function draw() {
+    const rect = canvas.getBoundingClientRect();
+    ctx.fillStyle = css("--map-bg");
+    ctx.fillRect(0, 0, rect.width, rect.height);
+
+    const z = view.scale / view.base;
+
+    if (layers.road) {
+      drawWays(DATA.roads, css("--map-road-line"), Math.max(5, 7 * Math.min(z, 2.4)));
+      drawWays(DATA.roads, css("--map-road"), Math.max(3, 4.6 * Math.min(z, 2.4)));
+    }
+    if (layers.walk) {
+      drawWays(DATA.pedestrian.filter((w) => w.k === "sidewalk"), css("--map-walk"), Math.max(1, 1.5 * Math.min(z, 2.2)));
+    }
+    if (layers.cross) {
+      ctx.setLineDash([4, 3]);
+      drawWays(DATA.pedestrian.filter((w) => w.k === "crossing"), css("--map-cross"), Math.max(1, 1.6 * Math.min(z, 2.2)));
+      ctx.setLineDash([]);
+    }
+    if (layers.cover) {
+      const r = Math.max(3, 4.4 * Math.min(z, 2.2));
+      for (const c of DATA.coverage) {
+        const [x, y] = project(c.lon, c.lat);
+        ctx.beginPath();
+        ctx.arc(x, y, r + 3, 0, Math.PI * 2);
+        ctx.fillStyle = css("--accent-soft");
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = css("--map-cover");
+        ctx.fill();
+      }
+    }
+
+    const [lon, lat] = [view.cx, view.cy];
+    readout.textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}  \u00b7  ${z.toFixed(1)}\u00d7`;
+  }
+
+  /* pan and zoom */
+  let dragging = false;
+  let last = null;
+
+  canvas.addEventListener("pointerdown", (e) => {
+    dragging = true; last = [e.clientX, e.clientY];
+    canvas.classList.add("dragging");
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - last[0];
+    const dy = e.clientY - last[1];
+    last = [e.clientX, e.clientY];
+    view.cx -= dx / (view.kx * view.scale);
+    view.cy += dy / view.scale;
+    draw();
+  });
+  const endDrag = (e) => {
+    dragging = false; canvas.classList.remove("dragging");
+    if (e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) {
+      canvas.releasePointerCapture(e.pointerId);
+    }
+  };
+  canvas.addEventListener("pointerup", endDrag);
+  canvas.addEventListener("pointercancel", endDrag);
+
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const before = unproject(e.clientX - rect.left, e.clientY - rect.top);
+    const factor = Math.exp(-e.deltaY * 0.0016);
+    view.scale = Math.min(Math.max(view.scale * factor, view.base * 0.55), view.base * 14);
+    const after = unproject(e.clientX - rect.left, e.clientY - rect.top);
+    // Keep the point under the cursor fixed while zooming.
+    view.cx += before[0] - after[0];
+    view.cy += before[1] - after[1];
+    draw();
+  }, { passive: false });
+
+  function zoomBy(factor) {
+    view.scale = Math.min(Math.max(view.scale * factor, view.base * 0.55), view.base * 14);
+    draw();
+  }
+  document.getElementById("zin").addEventListener("click", () => zoomBy(1.45));
+  document.getElementById("zout").addEventListener("click", () => zoomBy(1 / 1.45));
+  document.getElementById("zreset").addEventListener("click", () => { view = fitView(); draw(); });
+
+  for (const [key, id] of [["road", "l-road"], ["walk", "l-walk"], ["cross", "l-cross"], ["cover", "l-cover"]]) {
+    document.getElementById(id).addEventListener("change", (e) => {
+      layers[key] = e.target.checked;
+      draw();
+    });
+  }
+
+  window.addEventListener("resize", resize);
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  }
+
+  /* ---------- coverage figures ---------- */
+  const sidewalks = DATA.pedestrian.filter((w) => w.k === "sidewalk").length;
+  const crossings = DATA.pedestrian.filter((w) => w.k === "crossing").length;
+  document.getElementById("s-walk").textContent = sidewalks.toLocaleString();
+  document.getElementById("s-cross").textContent = crossings.toLocaleString();
+  document.getElementById("s-cover").textContent = DATA.coverage.length.toLocaleString();
+  const pct = DATA.coverage.length / Math.max(sidewalks, 1);
+  document.getElementById("s-pct").textContent = pct < 0.01 ? "<1%" : `${Math.round(pct * 100)}%`;
+
+  /* ---------- photo strip ---------- */
+  const strip = document.getElementById("photostrip");
+  document.getElementById("session-note").textContent =
+    `${DATA.session.frames} frames from a walk in San Francisco, shot on an iPhone 14.`;
+  DATA.session.photos.forEach((p) => {
+    const b = document.createElement("button");
+    b.className = "thumb";
+    b.type = "button";
+    b.setAttribute("aria-pressed", "false");
+    b.innerHTML = `<img src="${p.src}" alt="Footway frame captured at ${p.t}" loading="lazy" /><span>${p.t}</span>`;
+    b.addEventListener("click", () => {
+      const on = b.getAttribute("aria-pressed") === "true";
+      strip.querySelectorAll(".thumb").forEach((t) => t.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", on ? "false" : "true");
+    });
+    strip.append(b);
+  });
+
+  /* ---------- device detection ---------- */
+  function detectDevice() {
+    const ua = navigator.userAgent;
+    const touch = navigator.maxTouchPoints > 1;
+    if (/iPhone|iPod/.test(ua) || (/iPad/.test(ua) || (/Macintosh/.test(ua) && touch))) {
+      return "ios";
+    }
+    if (/Android/.test(ua)) return "android";
+    return "desktop";
+  }
+
+  const PROFILES = {
+    ios: {
+      name: "iPhone",
+      pill: ["stop", "Manual capture only"],
+      summary:
+        "iOS does not permit any app to use the camera in the background. You take the photographs; everything after that is automatic.",
+      caps: [
+        ["No", "Background capture \u2014 blocked by iOS, for every app, with no exception to request"],
+        ["Yes", "Curation, compression and the nightly upload run on their own"],
+        ["Yes", "Pair smart glasses and the phone drives the shutter for you"],
+      ],
+      main: "Download for iPhone",
+      alt: "Pair glasses instead",
+      note: "Requires iOS 17 or later. Location Services must be on for captures to be placeable.",
+    },
+    android: {
+      name: "Android",
+      pill: ["ok", "Full background capture"],
+      summary:
+        "Android permits background camera access, so the app can capture while you walk without you touching it.",
+      caps: [
+        ["Yes", "Automatic capture whenever you are walking or cycling"],
+        ["Yes", "Curation, compression and the nightly upload run on their own"],
+        ["Yes", "Pairs with smart glasses for a wider, hands-free frame"],
+      ],
+      main: "Download for Android",
+      alt: "Set up the nightly job",
+      note: "Requires Android 10 or later. Foreground-service notice shown while capturing.",
+    },
+    desktop: {
+      name: "Desktop",
+      pill: ["ok", "Rig and processing tools"],
+      summary:
+        "The phone app is the field tool. On a desktop you get the vehicle-rig firmware and the processing pipeline that turns a day's captures into measurements.",
+      caps: [
+        ["Yes", "Vehicle rig firmware \u2014 global shutter, optional centimetre GNSS"],
+        ["Yes", "The nightly curation and upload job, runnable on this machine"],
+        ["Yes", "Processing pipeline: anchoring, measurement, world-facts export"],
+      ],
+      main: "Download the toolkit",
+      alt: "Set up the nightly job",
+      note: "macOS and Linux. Python 3.12 or later.",
+    },
+  };
+
+  const profile = PROFILES[detectDevice()];
+  document.getElementById("dev-name").textContent = profile.name;
+  const pill = document.getElementById("dev-pill");
+  pill.className = `pill ${profile.pill[0]}`;
+  pill.textContent = profile.pill[1];
+  document.getElementById("dev-summary").textContent = profile.summary;
+  document.getElementById("dev-caps").innerHTML = profile.caps
+    .map(
+      ([yes, text]) =>
+        `<li><span class="pill ${yes === "Yes" ? "ok" : "stop"}">${yes}</span><span>${text}</span></li>`
+    )
+    .join("");
+  document.getElementById("dl-main").textContent = profile.main;
+  document.getElementById("dl-alt").textContent = profile.alt;
+  document.getElementById("dl-note").textContent = profile.note;
+
+  /* ---------- downloads ---------- */
+  const NIGHTLY_PLIST = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.kerbside.nightly</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>python3</string>
+    <string>-m</string><string>smc.phone</string><string>batch</string>
+    <string>--journal</string><string>build/phone</string>
+    <string>--out</string><string>gs://YOUR_BUCKET</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+  <key>RunAtLoad</key><false/>
+</dict>
+</plist>
+`;
+
+  async function offer(filename, data, mime) {
+    const downloads = await (window.claude?.use?.("downloads") ?? Promise.resolve(null));
+    if (!downloads) {
+      alert(
+        "Downloads are not available in this view.\n\nThe capture app is not published yet \u2014 " +
+        "the pipeline it runs is at the project repository."
+      );
+      return;
+    }
+    try {
+      await downloads.save({ filename, data, mimeType: mime });
+    } catch (err) {
+      // A declined save is a normal outcome, not a failure to report.
+    }
+  }
+
+  document.getElementById("dl-main").addEventListener("click", () => {
+    alert(
+      `${profile.name} build is not published yet.\n\n` +
+      "The capture, curation and upload pipeline is complete and running; the packaged app " +
+      "is the remaining step. Use \u201cSet up the nightly job\u201d to run the processing side today."
+    );
+  });
+
+  document.getElementById("dl-alt").addEventListener("click", () => {
+    offer("com.kerbside.nightly.plist", NIGHTLY_PLIST, "application/xml");
+  });
+
+  resize();
+</script>
