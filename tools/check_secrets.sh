@@ -20,7 +20,10 @@ declare -a PATTERNS=(
 status=0
 revs=$(git rev-list --all)
 for pattern in "${PATTERNS[@]}"; do
-  if hits=$(git grep -nIE "$pattern" $revs -- . 2>/dev/null | head -5) && [ -n "$hits" ]; then
+  # Exclude this file: it lists the patterns literally and would otherwise match itself on
+  # every run, which is how a scanner teaches everyone to ignore its output.
+  if hits=$(git grep -nIE "$pattern" $revs -- . ':!tools/check_secrets.sh' 2>/dev/null | head -5) \
+     && [ -n "$hits" ]; then
     echo "LEAK: $pattern"
     echo "$hits" | sed 's/^/  /'
     status=1
