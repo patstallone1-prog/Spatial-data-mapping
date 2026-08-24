@@ -72,8 +72,12 @@ def load_image(path: Path, *, glasses_resolution: bool = False) -> np.ndarray:
 
 def discover(directory: Path) -> dict[str, list[Path]]:
     """Group photos by the filename stem before the first underscore."""
+    photos = discover_photos(directory)
+    positioned = group_by_position(photos)
+    if positioned and max(len(v) for v in positioned.values()) > 1:
+        return positioned
     groups: dict[str, list[Path]] = defaultdict(list)
-    for path in discover_photos(directory):
+    for path in photos:
         groups[path.stem.split("_")[0]].append(path)
     return dict(groups)
 
@@ -193,6 +197,63 @@ def _render_baseline(config: FeatureConfig) -> dict[str, float]:
 
 
 VANTAGE_KEYS = ("road", "walk")
+
+#: Two photographs within this distance are treated as the same corner.
+CORNER_RADIUS_M = 25.0
+#: ...and within this many minutes, so a return visit months later is a separate corner.
+CORNER_WINDOW_MINUTES = 45.0
+
+
+def group_by_position(paths: list[Path]) -> dict[str, list[Path]]:
+    """Cluster photographs into corners using EXIF position and time.
+
+    Filename conventions are a fine fallback and a poor primary: photographs exported from a
+    phone arrive as ``IMG_4821.HEIC``, and asking somebody to rename forty files before they can
+    run anything is how a diagnostic goes unused. Position and capture time are already in the
+    file and are what actually define "the same corner, shot twice".
+
+    Time matters as well as distance: standing on the same corner a month later is a different
+    observation, not a second view of the same one, and pairing them would measure seasonal
+    change rather than viewpoint.
+    """
+    from smc import geo
+    from smc.ingest.photos import load_photo
+
+    located: list[tuple[Path, float, float, float]] = []
+    unlocated: list[Path] = []
+    for path in paths:
+        try:
+            _, meta = load_photo(path, max_width=64)
+        except Exception:
+            continue
+        if meta.has_position and meta.captured_at:
+            located.append(
+                (path, float(meta.lat), float(meta.lon), meta.captured_at.timestamp())
+            )
+        else:
+            unlocated.append(path)
+
+    groups: dict[str, list[Path]] = {}
+    assigned: list[tuple[float, float, float, str]] = []
+    for path, lat, lon, when in sorted(located, key=lambda row: row[3]):
+        match = next(
+            (
+                name
+                for (glat, glon, gwhen, name) in assigned
+                if geo.distance_m(lat, lon, glat, glon) <= CORNER_RADIUS_M
+                and abs(when - gwhen) <= CORNER_WINDOW_MINUTES * 60
+            ),
+            None,
+        )
+        if match is None:
+            match = f"corner{len(groups) + 1:02d}"
+            assigned.append((lat, lon, when, match))
+        groups.setdefault(match, []).append(path)
+
+    # Anything without EXIF position falls back to the filename convention.
+    for path in unlocated:
+        groups.setdefault(path.stem.split("_")[0], []).append(path)
+    return groups
 
 
 def _vantage_of(path: Path) -> str | None:

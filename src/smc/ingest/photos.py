@@ -22,7 +22,9 @@ Not as good as a calibration target, and far better than a guess.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -45,6 +47,16 @@ class PhotoMeta:
     camera: str = ""
     orientation_applied: bool = False
     downscaled_from: tuple[int, int] | None = None
+    #: Capture position from EXIF, when the camera recorded one.
+    lat: float | None = None
+    lon: float | None = None
+    #: Horizontal accuracy in metres, if the camera recorded it.
+    gps_accuracy_m: float | None = None
+    captured_at: datetime | None = None
+
+    @property
+    def has_position(self) -> bool:
+        return self.lat is not None and self.lon is not None
 
     @property
     def is_portrait(self) -> bool:
@@ -78,6 +90,8 @@ class PhotoMeta:
             bits.append("rotated")
         if self.downscaled_from:
             bits.append(f"from {self.downscaled_from[0]}x{self.downscaled_from[1]}")
+        if self.has_position:
+            bits.append(f"{self.lat:.5f},{self.lon:.5f}")
         return " · ".join(bits)
 
 
@@ -129,10 +143,14 @@ def load_photo(
         path=path,
         width=image.width,
         height=image.height,
-        focal_35mm=exif.get("focal_35mm"),
+        focal_35mm=exif.get("focal_35mm"),  # type: ignore[arg-type]
         camera=str(exif.get("camera", "")),
         orientation_applied=orientation_applied,
         downscaled_from=downscaled_from,
+        lat=exif.get("lat"),  # type: ignore[arg-type]
+        lon=exif.get("lon"),  # type: ignore[arg-type]
+        gps_accuracy_m=exif.get("gps_accuracy_m"),  # type: ignore[arg-type]
+        captured_at=exif.get("captured_at"),  # type: ignore[arg-type]
     )
 
 
@@ -163,6 +181,50 @@ def _read_exif(image) -> dict[str, object]:
     model = str(tags.get("Model", "")).strip()
     if make or model:
         out["camera"] = f"{make} {model}".strip()
+
+    if taken := (tags.get("DateTimeOriginal") or tags.get("DateTime")):
+        with contextlib.suppress(ValueError):
+            out["captured_at"] = datetime.strptime(str(taken), "%Y:%m:%d %H:%M:%S")
+
+    out.update(_read_gps(raw))
+    return out
+
+
+def _read_gps(raw) -> dict[str, object]:
+    """Latitude, longitude and accuracy from the GPS IFD.
+
+    EXIF stores position as degrees/minutes/seconds plus a hemisphere letter, so a naive read
+    that ignores the reference gives a point in the wrong hemisphere — which for a mapping
+    pipeline is a failure that looks like a wildly wrong GPS fix rather than a parsing bug.
+    """
+    out: dict[str, object] = {}
+    try:
+        gps = raw.get_ifd(0x8825)
+    except Exception:  # pragma: no cover - EXIF parsers are fragile
+        return out
+    if not gps:
+        return out
+
+    def to_degrees(value) -> float | None:
+        try:
+            degrees, minutes, seconds = (float(v) for v in value)
+        except (TypeError, ValueError):
+            return None
+        return degrees + minutes / 60.0 + seconds / 3600.0
+
+    lat = to_degrees(gps.get(2))
+    lon = to_degrees(gps.get(4))
+    if lat is not None and str(gps.get(1, "N")).upper().startswith("S"):
+        lat = -lat
+    if lon is not None and str(gps.get(3, "E")).upper().startswith("W"):
+        lon = -lon
+    if lat is not None:
+        out["lat"] = lat
+    if lon is not None:
+        out["lon"] = lon
+    if (accuracy := gps.get(31)) is not None:
+        with contextlib.suppress(TypeError, ValueError):
+            out["gps_accuracy_m"] = float(accuracy)
     return out
 
 
