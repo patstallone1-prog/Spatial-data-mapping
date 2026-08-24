@@ -199,8 +199,9 @@
     </button>
     <input type="file" id="import-input" accept="image/*,.heic,.heif" multiple hidden />
     <p class="muted" id="import-note">
-      Bring in frames from the glasses app, the camera roll, or a memory card. Position and time
-      are read from each file where the camera recorded them.
+      Bring in frames from the glasses app, the camera roll, or a memory card. They are copied
+      into this app's own storage and scored on arrival; position and capture time are read from
+      each file. Nothing is uploaded until the cull has run and you have said so.
     </p>
 
     <div class="card">
@@ -228,6 +229,19 @@
       <div class="stat"><span class="v" id="lib-sent">0</span><span class="k">Sent all time</span></div>
       <div class="stat"><span class="v" id="lib-saved">0 MB</span><span class="k">Saved by culling</span></div>
     </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <h2>What would survive tonight</h2>
+        <span class="pill mute" id="proj-pill">-</span>
+      </div>
+      <p id="proj-note">Nothing held.</p>
+      <div class="bars" id="proj-bars"></div>
+      <p class="muted">
+        Every photograph you select is scored the moment it lands, here on the device. Nothing is
+        uploaded until it has been through this and you have said so.
+      </p>
+    </div>
+
     <div class="card">
       <h2>What is waiting</h2>
       <p>Frames stay on this device until the nightly run keeps them, and are erased once the batch is written. Nothing leaves automatically.</p>
@@ -936,6 +950,7 @@ document.getElementById("review-none").addEventListener("click", async () => {
   reviewChoices = new Map();
   document.getElementById("review-card").hidden = true;
   await refresh();
+  await paintCloud();
 });
 
 document.getElementById("review-done").addEventListener("click", async () => {
@@ -955,6 +970,9 @@ document.getElementById("review-done").addEventListener("click", async () => {
   document.getElementById("r-kept").textContent = lastBatch ? lastBatch.parts.length : 0;
   document.getElementById("result-card").hidden = !(lastBatch && lastBatch.parts.length);
   await refresh();
+  // Approving frames changes whether there is anything to upload, so the send button has to be
+  // re-evaluated. Without this it stays disabled and the batch is stranded.
+  await paintCloud();
 });
 
 document.getElementById("save-btn").addEventListener("click", async () => {
@@ -1084,6 +1102,63 @@ document.getElementById("upload-btn").addEventListener("click", async () => {
   }
 });
 
+
+/* ============ projection ============ */
+/* The same quality gates the nightly run applies, reported rather than acted on. Selecting two
+   hundred photographs and learning only the next morning that most were junk is a bad way to
+   find out; this says so immediately, on device, before anything is uploaded. Deliberately
+   excludes the person check, which decodes every frame and is too slow to run on every refresh. */
+function projectCull(frames) {
+  if (!frames.length) return { keep: 0, counts: {} };
+  const median = [...frames].map((f) => f.sharp).sort((a, b) => a - b)[Math.floor(frames.length / 2)];
+  const blurGate = Math.max(0.05, median * 0.25);
+  const counts = {};
+  const survivors = [];
+
+  for (const f of frames) {
+    if (f.exp.mean < 28 || f.exp.shadow > 0.45) counts.dark = (counts.dark || 0) + 1;
+    else if (f.exp.mean > 232 || f.exp.highlight > 0.35) counts.blown = (counts.blown || 0) + 1;
+    else if (f.sharp < blurGate) counts.blurred = (counts.blurred || 0) + 1;
+    else survivors.push(f);
+  }
+
+  survivors.sort((a, b) => b.sharp - a.sharp);
+  const unique = [];
+  for (const f of survivors) {
+    if (unique.some((u) => hamming(BigInt(u.hash), BigInt(f.hash)) <= 6)) {
+      counts.duplicate = (counts.duplicate || 0) + 1;
+    } else unique.push(f);
+  }
+  return { keep: unique.length, counts };
+}
+
+function paintProjection(frames) {
+  const pill = document.getElementById("proj-pill");
+  const note = document.getElementById("proj-note");
+  const bars = document.getElementById("proj-bars");
+  if (!frames.length) {
+    pill.textContent = "-"; pill.className = "pill mute";
+    note.textContent = "Nothing held.";
+    bars.innerHTML = "";
+    return;
+  }
+  const { keep, counts } = projectCull(frames);
+  const dropped = frames.length - keep;
+  pill.textContent = `${keep} of ${frames.length}`;
+  pill.className = "pill " + (keep ? "ok" : "warn");
+  note.textContent = dropped
+    ? `${dropped} of ${frames.length} carry nothing the map can use and would be deleted here, before anything is sent.`
+    : `All ${frames.length} would be sent.`;
+
+  const colours = { blurred: "var(--warn)", duplicate: "var(--warn)", dark: "var(--warn)", blown: "var(--warn)" };
+  const max = Math.max(1, ...Object.values(counts));
+  bars.innerHTML = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, n]) =>
+      `<div class="barrow"><span>${k}</span><span class="track"><span class="fill" style="width:${(n / max) * 100}%;background:${colours[k] || "var(--ink-3)"}"></span></span><span class="n">${n}</span></div>`)
+    .join("");
+}
+
 /* ============ ui refresh ============ */
 async function refresh() {
   const frames = (await allFrames()).sort((a, b) => b.at - a.at);
@@ -1112,6 +1187,7 @@ async function refresh() {
   }
   document.getElementById("next-run").textContent =
     "next " + nextRun().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  paintProjection(frames);
 }
 
 /* ============ tabs ============ */
