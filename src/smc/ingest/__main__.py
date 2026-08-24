@@ -79,7 +79,10 @@ def _seed(args: argparse.Namespace) -> int:
     print(f"ground truth:     {len(truth)} facts")
 
     descriptor = TinyImageDescriptor()
-    features = FeatureConfig(max_features=4000, contrast_threshold=0.008, min_matches=10)
+    # min_matches left at the calibrated default (15). It was previously lowered to 10 to
+    # compensate for the renderer's weak synthetic texture, which is exactly the wrong
+    # direction: on real photographs a threshold of 12 already admits a third wrong places.
+    features = FeatureConfig(max_features=4000, contrast_threshold=0.008)
     errors: list[float] = []
     priors: list[float] = []
     sigmas: list[float] = []

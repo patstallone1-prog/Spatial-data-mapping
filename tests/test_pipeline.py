@@ -30,6 +30,9 @@ SEED = 20260820
 
 #: Real matching only works when the reference index shares the query's vantage, so the
 #: wearer stack is seeded from the footway. See `test_vantage_mismatch_defeats_real_matching`.
+#: The simulator's procedural texture yields fewer matches than real surfaces, so these
+#: tests relax the calibrated threshold to keep exercising the pipeline. Production uses the
+#: default 15, measured on real photography — see FeatureConfig.min_matches.
 FEATURES = FeatureConfig(max_features=4000, contrast_threshold=0.008, min_matches=10)
 
 

@@ -57,7 +57,24 @@ class FeatureConfig:
     #: Fundamental-matrix RANSAC threshold, pixels. None disables geometric verification.
     geometric_threshold_px: float | None = 2.5
     #: Below this many surviving matches the pair is not worth passing to PnP.
-    min_matches: int = 12
+    #:
+    #: **Calibrated on real street photography**, not chosen. Across 344 pairs from an iPhone 14
+    #: walk — 59 of the same spot, 285 of demonstrably different places on the same street — the
+    #: inlier counts separate cleanly:
+    #:
+    #: =========  ====================  =========================
+    #: threshold  recall, same spot     false positives, elsewhere
+    #: =========  ====================  =========================
+    #: 12         51%                   4.2%   (precision 71%)
+    #: 15         41%                   0.0%   (precision 100%)
+    #: =========  ====================  =========================
+    #:
+    #: Different-place pairs top out at 13 inliers (p99), so 15 sits just above the noise floor.
+    #: At 12 nearly a third of accepted pairs are the wrong place, and a wrong place produces a
+    #: confidently wrong pose that nothing downstream can detect. Ten points of recall is the
+    #: right price for that, especially since a query is matched against several references and
+    #: only needs one to succeed.
+    min_matches: int = 15
     #: SIFT contrast threshold. Lower finds more features on flat surfaces like concrete.
     contrast_threshold: float = 0.02
     #: Edge threshold. Kerb lines are edges, so this is loosened from the OpenCV default.
