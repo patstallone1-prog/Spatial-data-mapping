@@ -193,9 +193,15 @@
 
     <div class="row">
       <button class="btn" id="cam-toggle">Start camera</button>
-      <button class="btn ghost" id="import-btn">Import</button>
-      <input type="file" id="import-input" accept="image/*" multiple hidden />
     </div>
+    <button class="btn ghost" id="import-btn" style="border-style: dashed; padding: 16px">
+      Select photos from this device
+    </button>
+    <input type="file" id="import-input" accept="image/*,.heic,.heif" multiple hidden />
+    <p class="muted" id="import-note">
+      Bring in frames from the glasses app, the camera roll, or a memory card. Position and time
+      are read from each file where the camera recorded them.
+    </p>
 
     <div class="card">
       <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
@@ -270,6 +276,16 @@
         <button class="btn ghost" id="review-none">Send none</button>
         <button class="btn" id="review-done">Send the ticked ones</button>
       </div>
+    </div>
+
+    <div class="card" id="upload-card">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <h2>Send to the map</h2>
+        <span class="pill mute" id="cloud-pill">checking</span>
+      </div>
+      <p id="cloud-note">Uploads the compressed batch so the corridors appear on the map.</p>
+      <button class="btn" id="upload-btn" disabled>Upload the batch</button>
+      <p class="muted" id="upload-progress"></p>
     </div>
 
     <div class="card">
@@ -460,6 +476,139 @@ async function personIsSubject(bitmap) {
   }
 }
 
+
+/* ============ EXIF ============ */
+/* A photograph's position and capture time are the two things the pipeline needs and the
+   camera already recorded. Reading them here means an imported frame arrives with a rough
+   position to anchor from, instead of being unplaceable the way a stripped file is.
+
+   Written by hand rather than pulled from a library: this reads four tags out of the APP1
+   segment, and shipping a general-purpose EXIF parser to do that would be most of a megabyte. */
+async function readExif(file) {
+  const head = new DataView(await file.slice(0, 256 * 1024).arrayBuffer());
+  if (head.byteLength < 4 || head.getUint16(0) !== 0xffd8) return {};   // not a JPEG
+
+  let offset = 2;
+  while (offset + 4 < head.byteLength) {
+    if (head.getUint8(offset) !== 0xff) break;
+    const marker = head.getUint8(offset + 1);
+    const size = head.getUint16(offset + 2);
+    if (marker === 0xe1) {
+      if (head.getUint32(offset + 4) === 0x45786966) return parseTiff(head, offset + 10);
+      return {};
+    }
+    if (marker === 0xda) break;   // start of scan: no more metadata
+    offset += 2 + size;
+  }
+  return {};
+}
+
+function parseTiff(view, start) {
+  const little = view.getUint16(start) === 0x4949;
+  const u16 = (o) => view.getUint16(o, little);
+  const u32 = (o) => view.getUint32(o, little);
+  if (u16(start + 2) !== 0x002a) return {};
+
+  const out = {};
+  const rational = (o) => u32(o) / (u32(o + 4) || 1);
+
+  // Bytes per component, by TIFF type. Getting this wrong is not a rounding error: an ASCII
+  // hemisphere letter ("W") is 2 bytes and sits inline, but sized as 4-byte components it looks
+  // like an offset, the letter reads as empty, the sign is never applied, and the photograph
+  // lands in the opposite hemisphere.
+  const TYPE_SIZE = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8 };
+
+  function valueOffset(type, count, entryValueAt) {
+    const size = (TYPE_SIZE[type] || 4) * count;
+    return size > 4 ? start + u32(entryValueAt) : entryValueAt;
+  }
+
+  function walk(dirStart, handler) {
+    if (dirStart + 2 > view.byteLength) return;
+    const count = u16(dirStart);
+    for (let i = 0; i < count; i++) {
+      const entry = dirStart + 2 + i * 12;
+      if (entry + 12 > view.byteLength) return;
+      handler(u16(entry), u16(entry + 2), u32(entry + 4), entry + 8);
+    }
+  }
+
+  const dms = (base) => rational(base) + rational(base + 8) / 60 + rational(base + 16) / 3600;
+
+  walk(start + u32(start + 4), (tag, type, count, valueAt) => {
+    if (tag === 0x8769) walk(start + u32(valueAt), (t2, ty2, c2, v2) => {
+      const a2 = valueOffset(ty2, c2, v2);
+      if (t2 === 0xa405) out.focal35 = u16(a2);                       // FocalLengthIn35mmFilm
+      if (t2 === 0x9003) out.taken = ascii(view, a2, c2);             // DateTimeOriginal
+    });
+    if (tag === 0x8825) walk(start + u32(valueAt), (t2, ty2, c2, v2) => {
+      const a2 = valueOffset(ty2, c2, v2);
+      if (t2 === 1) out.latRef = ascii(view, a2, c2);
+      if (t2 === 2) out.lat = dms(a2);
+      if (t2 === 3) out.lonRef = ascii(view, a2, c2);
+      if (t2 === 4) out.lon = dms(a2);
+      if (t2 === 31) out.acc = rational(a2);                          // HorizontalPositioningError
+    });
+    if (tag === 0x0110) out.model = ascii(view, valueOffset(type, count, valueAt), count);
+  });
+
+  // Hemisphere letters are separate tags. Ignoring them puts the photo in the wrong half of
+  // the world, which reads as a wildly broken GPS fix rather than a parsing mistake.
+  if (out.lat != null && (out.latRef || "N").toUpperCase().startsWith("S")) out.lat = -out.lat;
+  if (out.lon != null && (out.lonRef || "E").toUpperCase().startsWith("W")) out.lon = -out.lon;
+  return out;
+}
+
+function ascii(view, at, count) {
+  let s = "";
+  for (let i = 0; i < count - 1 && at + i < view.byteLength; i++) {
+    const c = view.getUint8(at + i);
+    if (!c) break;
+    s += String.fromCharCode(c);
+  }
+  return s.trim();
+}
+
+function exifDate(text) {
+  const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(text || "");
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : null;
+}
+
+/* ============ cloud ============ */
+/* Only the publishable key is here, and that is deliberate. A secret or service-role key in a
+   web page is readable by anyone who opens it, so this bucket is configured write-only: the
+   app may upload and may not read, list or delete. The worst an exposed publishable key can
+   do is add objects. */
+const CLOUD = {
+  url: "__SUPABASE_URL__",
+  key: "__SUPABASE_ANON_KEY__",
+  bucket: "captures",
+};
+
+async function cloudReady() {
+  if (!CLOUD.url || !CLOUD.key) return { ok: false, why: "not configured" };
+  try {
+    const r = await fetch(`${CLOUD.url}/storage/v1/object/list/${CLOUD.bucket}`, {
+      method: "POST",
+      headers: { apikey: CLOUD.key, Authorization: `Bearer ${CLOUD.key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix: "", limit: 1 }),
+    });
+    return r.ok ? { ok: true } : { ok: false, why: `storage returned ${r.status}` };
+  } catch (e) {
+    return { ok: false, why: "offline" };
+  }
+}
+
+async function cloudPut(path, body, type) {
+  const r = await fetch(`${CLOUD.url}/storage/v1/object/${CLOUD.bucket}/${path}`, {
+    method: "POST",
+    headers: { apikey: CLOUD.key, Authorization: `Bearer ${CLOUD.key}`, "Content-Type": type },
+    body,
+  });
+  if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 140)}`);
+  return true;
+}
+
 /* ============ capture ============ */
 const CONFIG = {
   minBaselineM: 0.75, maxBaselineM: 4.0, captureHz: 4,
@@ -561,16 +710,20 @@ async function capture(source) {
   distanceSince = 0;
 }
 
-async function store(blob, source) {
+async function store(blob, source, meta = {}) {
   const bitmap = await createImageBitmap(blob);
   const frame = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    at: Date.now(),
+    at: meta.at ?? Date.now(),
     source,
     blob,
     bytes: blob.size,
     w: bitmap.width, h: bitmap.height,
-    lat: lastFix?.lat ?? null, lon: lastFix?.lon ?? null, acc: lastFix?.acc ?? null,
+    lat: meta.lat ?? lastFix?.lat ?? null,
+    lon: meta.lon ?? lastFix?.lon ?? null,
+    acc: meta.acc ?? lastFix?.acc ?? null,
+    focal35: meta.focal35 ?? null,
+    model: meta.model ?? null,
     sharp: sharpness(bitmap),
     hash: dhash(bitmap).toString(),
     exp: exposure(bitmap),
@@ -601,9 +754,32 @@ function paintAuto() {
 document.getElementById("import-btn").addEventListener("click", () => document.getElementById("import-input").click());
 document.getElementById("import-input").addEventListener("change", async (e) => {
   const files = [...e.target.files];
-  for (const f of files) await store(f, "import");
+  const note = document.getElementById("import-note");
+  let placed = 0, unreadable = 0;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    note.textContent = `Reading ${i + 1} of ${files.length}...`;
+    let meta = {};
+    try { meta = await readExif(f); } catch (err) { meta = {}; }
+    const at = exifDate(meta.taken);
+    try {
+      await store(f, "import", {
+        lat: meta.lat ?? null, lon: meta.lon ?? null, acc: meta.acc ?? null,
+        focal35: meta.focal35 ?? null, model: meta.model ?? null,
+        at: at ?? f.lastModified ?? Date.now(),
+      });
+      if (meta.lat != null) placed++;
+    } catch (err) {
+      // HEIC decodes only where the platform supports it; a file we cannot open is skipped
+      // rather than failing the whole import.
+      unreadable++;
+    }
+  }
   e.target.value = "";
-  alert(`Imported ${files.length} frame${files.length === 1 ? "" : "s"}.`);
+  const bits = [`${files.length - unreadable} added`];
+  if (placed) bits.push(`${placed} with a position`);
+  if (unreadable) bits.push(`${unreadable} could not be opened here`);
+  note.textContent = bits.join(", ") + ".";
 });
 
 /* ============ nightly batch ============ */
@@ -717,6 +893,7 @@ async function runBatch() {
     `Reviewed ${frames.length}, kept ${kept.length}. Local copies are erased once you save.`;
   await setMeta("lastRun", Date.now());
   await refresh();
+  await paintCloud();
 }
 
 /* Frames this browser could not clear automatically are reviewed by a person rather than
@@ -830,6 +1007,83 @@ setInterval(async () => {
   runBatch();
 }, 60000);
 
+
+/* ============ upload ============ */
+let cloudOk = false;
+
+async function paintCloud() {
+  const pill = document.getElementById("cloud-pill");
+  const note = document.getElementById("cloud-note");
+  const btn = document.getElementById("upload-btn");
+  const state = await cloudReady();
+  cloudOk = state.ok;
+  pill.textContent = state.ok ? "connected" : state.why;
+  pill.className = "pill " + (state.ok ? "ok" : "warn");
+  note.textContent = state.ok
+    ? "Uploads the compressed batch and its positions, so these corridors appear on the map. The bucket is write-only: this app can add frames and cannot read anyone's."
+    : `Storage is unreachable (${state.why}). The batch can still be saved to this device.`;
+  btn.disabled = !state.ok || !lastBatch || !lastBatch.parts.length;
+}
+
+document.getElementById("upload-btn").addEventListener("click", async () => {
+  if (!lastBatch || !lastBatch.parts.length) return;
+  const btn = document.getElementById("upload-btn");
+  const progress = document.getElementById("upload-progress");
+  btn.disabled = true;
+
+  const runId = `${new Date().toISOString().slice(0, 10)}-${Math.random().toString(36).slice(2, 8)}`;
+  const manifest = [];
+  let sent = 0, failed = 0;
+
+  for (let i = 0; i < lastBatch.parts.length; i++) {
+    const { f, blob } = lastBatch.parts[i];
+    progress.textContent = `Uploading ${i + 1} of ${lastBatch.parts.length}...`;
+    const name = `${runId}/${f.id}.webp`;
+    try {
+      await cloudPut(name, blob, "image/webp");
+      manifest.push({
+        id: f.id, path: name, at: f.at,
+        lat: f.lat, lon: f.lon, acc: f.acc,
+        w: f.w, h: f.h, bytes: blob.size,
+        sharp: f.sharp, focal35: f.focal35 ?? null, model: f.model ?? null,
+        source: f.source,
+      });
+      sent++;
+    } catch (e) {
+      failed++;
+    }
+  }
+
+  // The manifest is what makes the images usable: without positions and capture times the
+  // pipeline has pixels and nothing to anchor them with.
+  if (manifest.length) {
+    try {
+      await cloudPut(`${runId}/manifest.json`, JSON.stringify({ runId, frames: manifest }, null, 1),
+        "application/json");
+    } catch (e) {
+      failed++;
+    }
+  }
+
+  if (sent && !failed) {
+    // Local copies go only once the far end has them. Until then this device holds the only copy.
+    await deleteFrames(lastBatch.parts.map((p) => p.f.id));
+    for (const m of manifest) if (m.lat != null) uploadedPoints.push({ lon: m.lon, lat: m.lat, mine: true });
+    await setMeta("uploaded", (await getMeta("uploaded", 0)) + sent);
+    await setMeta("points", uploadedPoints);
+    lastBatch = null;
+    document.getElementById("result-card").hidden = true;
+    progress.textContent = `Uploaded ${sent}. Local copies erased.`;
+    await refresh();
+    drawMap();
+  } else {
+    progress.textContent = failed
+      ? `${sent} uploaded, ${failed} failed. Nothing was erased; try again.`
+      : "Nothing uploaded.";
+    btn.disabled = false;
+  }
+});
+
 /* ============ ui refresh ============ */
 async function refresh() {
   const frames = (await allFrames()).sort((a, b) => b.at - a.at);
@@ -874,6 +1128,7 @@ document.querySelectorAll(".tab").forEach((tab) => {
 const mapCanvas = document.getElementById("map");
 const mg = mapCanvas.getContext("2d");
 let mapView = null;
+let uploadedPoints = [];
 
 function fitMap() {
   const [w, s, e, n] = DATA.bbox;
@@ -916,6 +1171,14 @@ function drawMap() {
     mg.fillStyle = "rgba(255,77,143,0.2)"; mg.fill();
     mg.beginPath(); mg.arc(x, y, 3, 0, Math.PI * 2);
     mg.fillStyle = "#ff4d8f"; mg.fill();
+  }
+  // Your own uploads, drawn distinctly so it is obvious what you added.
+  for (const c of uploadedPoints) {
+    const [x, y] = P(c.lon, c.lat);
+    mg.beginPath(); mg.arc(x, y, 7, 0, Math.PI * 2);
+    mg.fillStyle = "rgba(79,190,134,0.22)"; mg.fill();
+    mg.beginPath(); mg.arc(x, y, 3.4, 0, Math.PI * 2);
+    mg.fillStyle = "#4fbe86"; mg.fill();
   }
 }
 let mdrag = false, mlast = null;
@@ -995,7 +1258,9 @@ document.getElementById("face-note").textContent = faceDetector
 (async () => {
   db = await openDb();
   paintAuto();
+  uploadedPoints = await getMeta("points", []);
   await refresh();
+  paintCloud();
   window.addEventListener("resize", () => { mapView = null; drawMap(); });
 })();
 </script>
