@@ -34,6 +34,12 @@ from pathlib import Path
 
 import numpy as np
 
+from smc.ingest.glasses_sim import (
+    DegradationConfig,
+    DeliveryMode,
+    degrade,
+    fov_gap,
+)
 from smc.ingest.photos import discover_photos, load_photo
 from smc.mapping.features import Detector, FeatureConfig, detect, match_features
 
@@ -59,14 +65,22 @@ class PairResult:
         return self.geometric_inliers >= 12
 
 
-def load_image(path: Path, *, glasses_resolution: bool = False) -> np.ndarray:
+def load_image(
+    path: Path, *, glasses_resolution: bool = False, mode: DeliveryMode | None = None
+) -> np.ndarray:
     """Load a photograph with EXIF orientation applied.
 
     Orientation is not optional. An iPhone stores portrait shots unrotated with a tag, and a
     loader that ignores it will fail to match a portrait against a landscape view of the same
     corner — a failure that looks exactly like a broken matcher.
+
+    ``mode`` degrades the photograph to what the Wearables toolkit actually delivers — an
+    eighth of the pixels, through a codec. Calibrating on the raw phone file measures a camera
+    the product does not have.
     """
-    image, _ = load_photo(path, to_glasses_resolution=glasses_resolution)
+    image, _ = load_photo(path, to_glasses_resolution=glasses_resolution and mode is None)
+    if mode is not None:
+        image, _ = degrade(image, DegradationConfig(mode=mode))
     return image
 
 
@@ -84,10 +98,14 @@ def discover(directory: Path) -> dict[str, list[Path]]:
 
 def evaluate_pair(
     left: Path, right: Path, group: str, config: FeatureConfig,
-    *, glasses_resolution: bool = False,
+    *, glasses_resolution: bool = False, mode: DeliveryMode | None = None,
 ) -> PairResult:
-    left_features = detect(load_image(left, glasses_resolution=glasses_resolution), config)
-    right_features = detect(load_image(right, glasses_resolution=glasses_resolution), config)
+    left_features = detect(
+        load_image(left, glasses_resolution=glasses_resolution, mode=mode), config
+    )
+    right_features = detect(
+        load_image(right, glasses_resolution=glasses_resolution, mode=mode), config
+    )
 
     loose = FeatureConfig(
         detector=config.detector,
@@ -114,7 +132,8 @@ def evaluate_pair(
 
 
 def evaluate_directory(
-    directory: Path, config: FeatureConfig, *, glasses_resolution: bool = False
+    directory: Path, config: FeatureConfig, *, glasses_resolution: bool = False,
+    mode: DeliveryMode | None = None,
 ) -> list[PairResult]:
     """Every within-group pair in a directory."""
     results: list[PairResult] = []
@@ -126,7 +145,7 @@ def evaluate_directory(
                 results.append(
                     evaluate_pair(
                         paths[i], paths[j], group, config,
-                        glasses_resolution=glasses_resolution,
+                        glasses_resolution=glasses_resolution, mode=mode,
                     )
                 )
     return results
@@ -310,6 +329,10 @@ def main(argv: list[str] | None = None) -> int:
         cmd = sub.add_parser(name, help=help_text)
         cmd.add_argument("--dir", type=Path, required=True)
         cmd.add_argument("--out", type=Path)
+        cmd.add_argument(
+            "--as-glasses", nargs="?", const="photo", choices=("photo", "stream"),
+            help="degrade to what the Wearables toolkit delivers before measuring",
+        )
     args = parser.parse_args(argv)
 
     directory: Path = args.dir
@@ -401,12 +424,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     config = FeatureConfig(max_features=4000, contrast_threshold=0.008)
-    results = evaluate_directory(directory, config)
+    mode = DeliveryMode(args.as_glasses) if args.as_glasses else None
+    results = evaluate_directory(directory, config, mode=mode)
     stats = summarise(results)
 
     sample = next(iter(pairable.values()))[0]
     _, meta = load_photo(sample)
     print(f"camera: {meta.describe()}")
+    if mode:
+        width, height = mode.resolution
+        print(f"        degraded to glasses {mode}: {width}x{height}, re-encoded")
+    if note := fov_gap(meta.focal_35mm):
+        print(f"        {note}")
     if meta.focal_px():
         print(f"        focal from EXIF: {meta.focal_px():.0f} px (usable intrinsics)")
     else:
@@ -427,10 +456,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # The comparison that matters for the product: an iPhone shoots eight times the pixels
     # the glasses deliver, so matching that only works at full resolution does not transfer.
-    downscaled = summarise(evaluate_directory(directory, config, glasses_resolution=True))
+    downscaled = summarise(
+        evaluate_directory(directory, config, mode=DeliveryMode.PHOTO)
+    )
     if downscaled:
         print()
-        print("same photographs downscaled to the 1440 px the glasses deliver:")
+        print("same photographs as the glasses would deliver them (1440x1080, re-encoded):")
         print(f"  usable pairs: {downscaled['usable_fraction']:.0%}, "
               f"median inliers {downscaled['median_geometric_inliers']:.0f}")
         if downscaled["usable_fraction"] < 0.6 * max(stats["usable_fraction"], 1e-9):
