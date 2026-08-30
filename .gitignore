@@ -1,13 +1,13 @@
-.venv/
-build/
-__pycache__/
-*.pyc
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.env
-.env.local
-*.pem
 
 # Personal capture sets: test fixtures, not source.
+*.pem
+*.pyc
+.env
+.env.local
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+build/
 photos/
