@@ -24,17 +24,17 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from smc import geo  # noqa: E402
-from smc.adapters.free import BoundingBox, OverpassClient, _get  # noqa: E402
-from smc.ingest.glasses_sim import (  # noqa: E402
+from smc import geo
+from smc.adapters.free import BoundingBox, OverpassClient, _get
+from smc.ingest.glasses_sim import (
     DegradationConfig,
     DeliveryMode,
     degrade,
     estimated_fov_deg,
 )
-from smc.ingest.photos import discover_photos, load_photo  # noqa: E402
-from smc.mapping.features import FeatureConfig, detect, match_features  # noqa: E402
-from smc.overlay.street import StreetMap, StreetSegment  # noqa: E402
+from smc.ingest.photos import discover_photos, load_photo
+from smc.mapping.features import FeatureConfig, detect, match_features
+from smc.overlay.street import StreetMap, StreetSegment
 
 #: Frames within this distance and time are treated as the same place.
 CLUSTER_RADIUS_M = 25.0
@@ -62,7 +62,7 @@ def load(directory: Path, limit: int | None) -> list[Frame]:
     for path in paths:
         try:
             _, meta = load_photo(path, max_width=96)
-        except Exception as exc:  # noqa: BLE001 - a file we cannot open is reported, not fatal
+        except Exception as exc:
             print(f"  unreadable: {path.name} ({type(exc).__name__})")
             continue
         frames.append(
@@ -104,9 +104,9 @@ def cluster(frames: list[Frame]) -> dict[str, list[Frame]]:
         else:
             # No position: fall back to a time gap, which is all that is left.
             name = "unplaced"
-            if groups[name] and frame.at and groups[name][-1].at:
-                if frame.at - groups[name][-1].at > 180:
-                    name = f"unplaced{len(groups) + 1:02d}"
+            previous = groups[name][-1].at if groups[name] else None
+            if previous and frame.at and frame.at - previous > 180:
+                name = f"unplaced{len(groups) + 1:02d}"
         groups[name].append(frame)
     return dict(groups)
 
@@ -149,7 +149,7 @@ def fetch_streets(lat: float, lon: float, radius_m: float) -> dict:
         f"{client.PUBLIC_ENDPOINT}?data="
         + f'[out:json][timeout:60];(way["highway"]({area}););out geom;'.replace(" ", "%20")
     )
-    client._throttle()  # noqa: SLF001
+    client._throttle()
     walks = client.fetch(bbox)
     return {"roads": roads, "walks": walks, "bbox": bbox}
 
@@ -216,7 +216,10 @@ def main() -> int:
         print(f"  {label}:")
         print(f"    {len(pairs)} pairs, median {np.median(counts):.0f} features/frame")
         print(f"    usable (>=15 inliers): {usable.sum()} ({100 * usable.mean():.0f}%)")
-        print(f"    inliers: median {np.median(inliers):.0f}, p90 {np.percentile(inliers, 90):.0f}, max {inliers.max()}")
+        print(
+            f"    inliers: median {np.median(inliers):.0f}, "
+            f"p90 {np.percentile(inliers, 90):.0f}, max {inliers.max()}"
+        )
         near = inliers[[p["gap_s"] <= 20 for p in pairs]]
         if len(near):
             print(f"    within 20 s of each other: {len(near)} pairs, "
@@ -230,15 +233,22 @@ def main() -> int:
             (geo.distance_m(centre_lat, centre_lon, f.lat, f.lon) for f in placed), default=0.0
         )
         radius = max(250.0, min(spread * 1.4 + 150.0, 1500.0))
-        print(f"\n=== map ===")
+        print("\n=== map ===")
         print(f"  centre {centre_lat:.5f}, {centre_lon:.5f}  spread {spread:.0f} m")
         print(f"  fetching streets within {radius:.0f} m...")
         data = fetch_streets(centre_lat, centre_lon, radius)
         roads = to_lines(data["roads"], lambda t: "road" if t.get("highway") else None)
         walks = to_lines(
             data["walks"],
-            lambda t: "crossing" if t.get("footway") == "crossing"
-            else ("sidewalk" if t.get("footway") == "sidewalk" or t.get("highway") == "footway" else None),
+            lambda t: (
+                "crossing"
+                if t.get("footway") == "crossing"
+                else (
+                    "sidewalk"
+                    if t.get("footway") == "sidewalk" or t.get("highway") == "footway"
+                    else None
+                )
+            ),
         )
         print(f"  {len(roads)} roads, {len(walks)} footways and crossings")
 
