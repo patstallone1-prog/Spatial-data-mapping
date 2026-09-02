@@ -28,6 +28,10 @@ Neighborhood names are labels. H3 cells are the physical shard boundary.
   disabled by default and should be used only when a reconstruction or audit
   proves the extra pixels matter.
 - The compiled world stores derived geometry/facts, not source imagery.
+- CV/depth storage keeps metric depth, segmentation, point-cloud artifact
+  locators, measured surfaces, inferred surfaces, and simulation-readiness flags
+  separate. A curb height is not considered exact until a metric-depth cross
+  section has been promoted into a measured `curb_edge` row.
 
 ## Byte Policy
 
@@ -49,6 +53,13 @@ Git; pixels move to release assets.
 - 108 capture images, about 70 MB total, ready to pack/upload.
 - 0 external-provider pixel bytes committed.
 
+The current CV/depth store at `data/sf_corridor/depth/` records:
+
+- 1,619 eligible observations queued as `needs_depth`.
+- 25,682 simulation-ready surface rows.
+- 4,410 curb-edge seed rows.
+- 0 measured curb heights, because no metric depth/point-cloud stage has run yet.
+
 Build it with:
 
 ```bash
@@ -68,4 +79,14 @@ Pack it with:
   --manifest data/sf_corridor/storage/release_shards.json \
   --capture-root data/captures \
   --out-dir build/release_assets/sf-current
+```
+
+Build CV/depth storage with:
+
+```bash
+.venv/bin/python scripts/build_cv_depth_store.py \
+  --catalog data/sf_corridor \
+  --osm-cache data/sf_corridor/stats/osm_ways.json \
+  --out data/sf_corridor/depth \
+  --run-id sf-corridor-depth-seed
 ```

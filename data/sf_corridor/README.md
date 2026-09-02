@@ -29,6 +29,8 @@ Current dense seed:
 - Sequences: 19
 - H3 coverage cells: 171
 - External provider pixels committed: no
+- CV/depth surface rows: 25,682
+- Exact measured curb heights: 0
 
 Storage expansion now follows `storage/release_shards.json`:
 
@@ -40,6 +42,10 @@ Storage expansion now follows `storage/release_shards.json`:
   default.
 - Compiled world output remains derived geometry/facts plus provenance pointers,
   not a pile of source photos.
+- CV/depth output stores metric-depth artifact slots, segmentation slots,
+  point-cloud slots, inferred simulation surfaces, and measured surface rows
+  separately. Current SF curb/sidewalk rows are simulation seeds until metric
+  depth promotes them.
 
 Build/update the storage plan:
 
@@ -60,4 +66,14 @@ Pack planned release assets for upload:
   --manifest data/sf_corridor/storage/release_shards.json \
   --capture-root data/captures \
   --out-dir build/release_assets/sf-current
+```
+
+Build/update CV/depth storage:
+
+```bash
+.venv/bin/python scripts/build_cv_depth_store.py \
+  --catalog data/sf_corridor \
+  --osm-cache data/sf_corridor/stats/osm_ways.json \
+  --out data/sf_corridor/depth \
+  --run-id sf-corridor-depth-seed
 ```

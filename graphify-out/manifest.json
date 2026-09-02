@@ -732,9 +732,9 @@
     "semantic_hash": ""
   },
   "data/sf_corridor/dataset_manifest.json": {
-    "mtime": 1788384226.1759374,
-    "seen": 1788384542.754167,
-    "ast_hash": "0bc4c2eb5a5c34870b9bb509db37ccd8",
+    "mtime": 1788385124.8398128,
+    "seen": 1788385391.946012,
+    "ast_hash": "a8b14bfb9a4381a655d5cb5b0419b88f",
     "semantic_hash": ""
   },
   "data/sf_corridor/licenses/sources.json": {
@@ -768,9 +768,9 @@
     "semantic_hash": ""
   },
   "scripts/build_sf_corridor_3d.py": {
-    "mtime": 1788328486.9787102,
-    "seen": 1788373655.694121,
-    "ast_hash": "a6259b81efcdb2e081a2bac8aa9489d8",
+    "mtime": 1788385790.2375448,
+    "seen": 1788385851.894911,
+    "ast_hash": "838346ce2377c31deed21fc076c70acc",
     "semantic_hash": ""
   },
   "scripts/ingest_sf_corridor.py": {
@@ -888,9 +888,9 @@
     "semantic_hash": ""
   },
   "data/sf_corridor/README.md": {
-    "mtime": 1788384245.8206663,
-    "seen": 1788384542.756022,
-    "ast_hash": "a81fdb0d3733bd01000222416e80fa5f",
+    "mtime": 1788385154.650298,
+    "seen": 1788385391.9479911,
+    "ast_hash": "daf59f9d9ab61a6b7049066304cfc2a8",
     "semantic_hash": ""
   },
   "docs/12-install-and-capture-gate.md": {
@@ -918,9 +918,9 @@
     "semantic_hash": ""
   },
   "docs/sf-corridor-3d.html": {
-    "mtime": 1788373599.420756,
-    "seen": 1788373655.6959622,
-    "ast_hash": "2c58a4fbdeb236cab8ee81f02d8357bd",
+    "mtime": 1788385796.8285007,
+    "seen": 1788385851.896961,
+    "ast_hash": "f7b2adc45797b92dcdbb4a2970d42de6",
     "semantic_hash": ""
   },
   "docs/apple-touch-icon.png": {
@@ -1002,21 +1002,21 @@
     "semantic_hash": ""
   },
   "scripts/pack_release_assets.py": {
-    "mtime": 1788384137.9224594,
-    "seen": 1788384542.754403,
-    "ast_hash": "e7ebc7d786ad0e955cd655101824d33f",
+    "mtime": 1788384651.0285156,
+    "seen": 1788385391.946281,
+    "ast_hash": "86654e959eaf69cf8efd677bcf43075e",
     "semantic_hash": ""
   },
   "src/smc/storage/__init__.py": {
-    "mtime": 1788384029.7268836,
-    "seen": 1788384542.7556028,
-    "ast_hash": "5faab12fbbc540e381e5c57367a51188",
+    "mtime": 1788384651.0276413,
+    "seen": 1788385391.947535,
+    "ast_hash": "91dc7dc00dcdb6b6122615ce00a91bd3",
     "semantic_hash": ""
   },
   "src/smc/storage/release_pack.py": {
-    "mtime": 1788384137.9217153,
-    "seen": 1788384542.755604,
-    "ast_hash": "866d4b8b1f833404746c7f864c56eccc",
+    "mtime": 1788384651.0281281,
+    "seen": 1788385391.947535,
+    "ast_hash": "99ad802fda5fb901b243c79fdfa7b490",
     "semantic_hash": ""
   },
   "src/smc/storage/release_shards.py": {
@@ -1026,9 +1026,9 @@
     "semantic_hash": ""
   },
   "tests/test_release_pack.py": {
-    "mtime": 1788384137.9231315,
-    "seen": 1788384542.755776,
-    "ast_hash": "7bf7be8bb2b4314fc7fe221e03b612f7",
+    "mtime": 1788384651.028818,
+    "seen": 1788385391.947726,
+    "ast_hash": "4802f32a780d33d4b5a26ef5e9ca94a9",
     "semantic_hash": ""
   },
   "tests/test_release_shards.py": {
@@ -1038,9 +1038,57 @@
     "semantic_hash": ""
   },
   "docs/14-scalable-storage.md": {
-    "mtime": 1788384263.98524,
-    "seen": 1788384542.75619,
-    "ast_hash": "21f4486fd35ba4e58615065971ca8aeb",
+    "mtime": 1788385154.6507773,
+    "seen": 1788385391.948162,
+    "ast_hash": "5017e01b544bec16ba99a6ef3ccd180d",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor/depth/runs/sf-corridor-depth-seed.json": {
+    "mtime": 1788385059.3763137,
+    "seen": 1788385391.946013,
+    "ast_hash": "fc01d27e91e795fc22b726303f897f33",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor/depth/stats/summary.json": {
+    "mtime": 1788385059.3765702,
+    "seen": 1788385391.946014,
+    "ast_hash": "fc01d27e91e795fc22b726303f897f33",
+    "semantic_hash": ""
+  },
+  "scripts/build_cv_depth_store.py": {
+    "mtime": 1788384980.6655974,
+    "seen": 1788385391.946236,
+    "ast_hash": "ddb7306d7b5f847c746bc6a094855dd4",
+    "semantic_hash": ""
+  },
+  "src/smc/depth/__init__.py": {
+    "mtime": 1788384980.6639917,
+    "seen": 1788385391.94676,
+    "ast_hash": "b2d2a0fc3aea5fd33794b6c0ff6e48cc",
+    "semantic_hash": ""
+  },
+  "src/smc/depth/storage.py": {
+    "mtime": 1788384980.664416,
+    "seen": 1788385391.946761,
+    "ast_hash": "de8bf70a5d6444ac976021ca4d2ed8c5",
+    "semantic_hash": ""
+  },
+  "src/smc/depth/surfaces.py": {
+    "mtime": 1788385047.6378357,
+    "seen": 1788385391.946761,
+    "ast_hash": "69ce4b3d44984a62c5ff0ccb140d693c",
+    "semantic_hash": ""
+  },
+  "tests/test_depth_storage.py": {
+    "mtime": 1788385032.2618585,
+    "seen": 1788385391.947621,
+    "ast_hash": "494b401640017c081b4014de4a723b65",
+    "semantic_hash": ""
+  },
+  "docs/15-cv-depth-storage.md": {
+    "mtime": 1788385154.6513972,
+    "seen": 1788385391.948163,
+    "ast_hash": "5a457fb97a8b312fed3e5d88813d87a7",
     "semantic_hash": ""
   }
 }

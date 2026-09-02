@@ -2,17 +2,22 @@
   "title": "SF street-imagery dense metadata catalog",
   "generated_at": "2026-09-02T18:26:39.018370+00:00",
   "region": "sf-corridor",
- "storage_policy": "metadata in Git; owned capture pixels packed into GitHub Release assets; no raw provider imagery",
+  "storage_policy": "metadata in Git; owned capture pixels packed into GitHub Release assets; no raw provider imagery",
   "inputs": [
     "data/sf_corridor_panoramax_full",
     "data/sf_corridor_kartaview_probe"
   ],
   "files": [
+    "coverage/h3.parquet",
+    "depth/observations/depth_index.parquet",
+    "depth/runs/sf-corridor-depth-seed.json",
+    "depth/stats/summary.json",
+    "depth/surfaces/surface_measurements.parquet",
+    "licenses/sources.json",
     "observations/external-000.parquet",
     "sequences/external.parquet",
-    "coverage/h3.parquet",
-    "licenses/sources.json",
- "stats/summary.json",
- "storage/release_shards.json"
-  ]
+    "stats/summary.json",
+    "storage/release_shards.json"
+  ],
+  "cv_depth_policy": "metric depth, segmentation, point-cloud artifacts are indexed separately from simulation surfaces; measured curb heights require metric-depth promotion"
 }

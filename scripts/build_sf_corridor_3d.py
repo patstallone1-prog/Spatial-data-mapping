@@ -192,6 +192,12 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     observations = pq.read_table(root / "observations" / "external-000.parquet").to_pylist()
     coverage = pq.read_table(root / "coverage" / "h3.parquet").to_pylist()
     sequences = pq.read_table(root / "sequences" / "external.parquet").to_pylist()
+    depth_summary_path = root / "depth" / "stats" / "summary.json"
+    depth_summary = (
+        json.loads(depth_summary_path.read_text(encoding="utf-8"))
+        if depth_summary_path.exists()
+        else {}
+    )
     ways, osm_summary = annotate_osm_features(ways, coverage)
     obs_by_sequence: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for obs in observations:
@@ -234,6 +240,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "coverage_cells": len(coverage),
             "providers": dict(Counter(row["provider"] for row in observations)),
             "osm": osm_summary,
+            "cv_depth": depth_summary,
         },
         "bbox": {
             "south": SF_CORRIDOR.bbox.south,
@@ -283,11 +290,11 @@ h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-sp
 .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
 .key { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
 .sw { width:10px; height:10px; border-radius:50%; background:var(--pink); }
-.toolbar { justify-self:end; max-width:430px; display:flex; gap:8px; align-items:center; }
+.toolbar { justify-self:end; max-width:620px; display:flex; flex-wrap:wrap; justify-content:flex-end; align-content:flex-start; gap:8px; align-items:center; }
 button { color:var(--ink); background:rgba(16,25,30,.9); border:1px solid var(--line); border-radius:7px; padding:10px 12px; font:inherit; cursor:pointer; }
 button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgba(255,77,143,.20); }
 #tip { position:fixed; left:14px; bottom:14px; width:min(520px, calc(100vw - 28px)); color:var(--muted); font-size:12px; }
-@media (max-width: 760px) { .hud { grid-template-columns:1fr; } .toolbar { justify-self:stretch; overflow-x:auto; } .meta { grid-template-columns:repeat(2, 1fr); } }
+@media (max-width: 760px) { .hud { grid-template-columns:1fr; } .toolbar { justify-self:stretch; justify-content:flex-start; } .toolbar button { padding:9px 10px; } .meta { grid-template-columns:repeat(2, 1fr); } }
 </style>
 </head>
 <body>
@@ -300,11 +307,14 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <div class="stat"><b id="eligible">0</b><span>eligible</span></div>
       <div class="stat"><b id="seq">0</b><span>sequences</span></div>
       <div class="stat"><b id="cells">0</b><span>H3 cells</span></div>
+      <div class="stat"><b id="surfaces">0</b><span>surfaces</span></div>
+      <div class="stat"><b id="measured">0</b><span>measured curb</span></div>
     </div>
 <div class="legend">
 <span class="key"><span class="sw" style="background:#d6e7ea"></span>OSM street map</span>
 <span class="key"><span class="sw" style="background:#9fb4bb"></span>covered 3D buildings</span>
 <span class="key"><span class="sw" style="background:#ff4d8f"></span>curb bands</span>
+<span class="key"><span class="sw" style="background:#ffffff"></span>CV/depth backlog</span>
 <span class="key"><span class="sw"></span>metadata observations</span>
 <span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
 <span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
@@ -321,7 +331,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
     <button id="reset">Reset</button>
   </div>
 </div>
-<div id="tip">Drag to orbit, wheel or pinch to zoom. Uncovered blocks stay as the base map; covered blocks add OSM building massing and curb bands.</div>
+<div id="tip">Drag to orbit, wheel or pinch to zoom. Uncovered blocks stay as the base map; covered blocks add OSM building massing and curb bands. CV/depth rows are stored for simulation, but exact curb heights require metric depth promotion.</div>
 <script type="application/json" id="payload">__PAYLOAD__</script>
 <script type="module">
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
@@ -331,6 +341,8 @@ document.getElementById("obs").textContent = DATA.summary.observations.toLocaleS
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
 document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleString();
 document.getElementById("cells").textContent = DATA.summary.coverage_cells.toLocaleString();
+document.getElementById("surfaces").textContent = (DATA.summary.cv_depth.surface_rows || 0).toLocaleString();
+document.getElementById("measured").textContent = (DATA.summary.cv_depth.measured_curb_height_count || 0).toLocaleString();
 
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
