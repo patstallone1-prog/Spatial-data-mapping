@@ -19,14 +19,32 @@ declare -a PATTERNS=(
 
 status=0
 revs=$(git rev-list --all)
+
+# The working tree as well as history, including files not yet added. deploy.sh runs this before
+# it commits, so scanning history alone would wave through the one case that actually matters: a
+# credential written a minute ago, about to be pushed for the first time. Gitignored paths are
+# left out -- .env.local is meant to hold keys and never leaves this machine.
+worktree=()
+while IFS= read -r -d '' f; do worktree+=("$f"); done \
+  < <(git ls-files -coz --exclude-standard -- . ':!tools/check_secrets.sh')
+
 for pattern in "${PATTERNS[@]}"; do
   # Exclude this file: it lists the patterns literally and would otherwise match itself on
   # every run, which is how a scanner teaches everyone to ignore its output.
-  if hits=$(git grep -nIE "$pattern" $revs -- . ':!tools/check_secrets.sh' 2>/dev/null | head -5) \
-     && [ -n "$hits" ]; then
-    echo "LEAK: $pattern"
+  hits=$(git grep -nIE "$pattern" $revs -- . ':!tools/check_secrets.sh' 2>/dev/null | head -5)
+  if [ -n "$hits" ]; then
+    echo "LEAK in history: $pattern"
     echo "$hits" | sed 's/^/  /'
     status=1
+  fi
+
+  if [ ${#worktree[@]} -gt 0 ]; then
+    hits=$(grep -nIE "$pattern" "${worktree[@]}" 2>/dev/null | head -5)
+    if [ -n "$hits" ]; then
+      echo "LEAK in working tree: $pattern"
+      echo "$hits" | sed 's/^/  /'
+      status=1
+    fi
   fi
 done
 
@@ -35,5 +53,5 @@ if git log --all --oneline -- .env.local .env 2>/dev/null | grep -q .; then
   status=1
 fi
 
-[ $status -eq 0 ] && echo "clean: no credential values in any commit"
+[ $status -eq 0 ] && echo "clean: no credential values in history or the working tree"
 exit $status

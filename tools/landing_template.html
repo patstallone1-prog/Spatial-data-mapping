@@ -1,3 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#0b0e12" />
+<meta name="description" content="Kerbside measures kerb height and footway width from ordinary camera frames." />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Kerbside" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" href="icon-192.png" />
 <title>Kerbside</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -138,6 +150,16 @@
   .ctarow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .ctanote { font-size: 14px; color: var(--ink-3); font-family: var(--mono); }
   .ctanote b { color: var(--ink-2); font-weight: 500; }
+  .steps {
+    margin: 4px 0 0; padding-left: 21px; max-width: 34em;
+    color: var(--ink-2); font-size: 15px; line-height: 1.62;
+  }
+  .steps li { margin: 6px 0; }
+  .steps b { color: var(--ink); font-weight: 600; }
+  .steps code {
+    font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere;
+    background: var(--paper-2); padding: 1px 5px; border-radius: 4px;
+  }
 
   /* ---------- scan viewer ---------- */
   .viewer {
@@ -224,6 +246,8 @@
     font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
   }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header class="top">
@@ -244,9 +268,14 @@
 
     <div class="cta">
       <div class="ctarow">
-        <button class="btn" id="download">Download the app</button>
-        <a class="btn ghost" href="__APP_URL__" target="_blank" rel="noopener">Open it now</a>
+        <button class="btn" id="get-android">Download for Samsung</button>
+        <button class="btn" id="get-ios">Download for iPhone</button>
       </div>
+      <div class="ctarow">
+        <a class="btn ghost" id="open-app" href="app.html">Open it now</a>
+        <a class="btn ghost" id="save-app" href="app.html" download="kerbside.html">Save the file</a>
+      </div>
+      <ol class="steps" id="steps" hidden></ol>
       <p class="ctanote" id="ctanote"></p>
     </div>
   </div>
@@ -388,9 +417,14 @@
       <h2>It installs from the browser. There is no store, and no account.</h2>
       <div class="cta">
         <div class="ctarow">
-          <button class="btn" id="download2">Download the app</button>
-          <a class="btn ghost" href="__APP_URL__" target="_blank" rel="noopener">Open it in this browser</a>
+          <button class="btn" id="get-android2">Download for Samsung</button>
+          <button class="btn" id="get-ios2">Download for iPhone</button>
         </div>
+        <div class="ctarow">
+          <a class="btn ghost" id="open-app2" href="app.html">Open it in this browser</a>
+          <a class="btn ghost" id="save-app2" href="app.html" download="kerbside.html">Save the file</a>
+        </div>
+        <ol class="steps" id="steps2" hidden></ol>
         <p class="ctanote" id="ctanote2"></p>
       </div>
     </div>
@@ -405,7 +439,7 @@
 
 <script>
   const SHOTS = __SHOTS__;
-  const APP_HTML = __APP__;
+  const APP_URL = "__APP_URL__";
 
   /* ---------- scan viewer ---------- */
   const frame = document.getElementById("frame");
@@ -465,36 +499,100 @@
   }
   const DEVICE = detect();
   const NOTES = {
-    ios: "iPhone \u00b7 saves an HTML file. Open it in Safari, then <b>Share \u2192 Add to Home Screen</b>. Or use <b>Open it now</b> and add that instead.",
-    android: "Android \u00b7 saves an HTML file. Open it in Chrome, then <b>Install app</b>.",
-    desktop: "Desktop \u00b7 saves an HTML file you can open in any browser. Nothing is installed.",
+    ios: "iPhone \u00b7 installs to the home screen through <b>Share \u2192 Add to Home Screen</b>. Apple gives no site a button that does it, so the iPhone button shows the three taps.",
+    android: "Android \u00b7 installs straight from the browser. Camera and location work once installed; choose <b>While using the app</b>.",
+    desktop: "Desktop \u00b7 opens in this browser and can be installed from the address bar. The field tool is a phone.",
   };
   const TAGS = { ios: "iPhone", android: "Android", desktop: "Desktop" };
   document.getElementById("devicetag").textContent = TAGS[DEVICE];
   document.getElementById("ctanote").innerHTML = NOTES[DEVICE];
   document.getElementById("ctanote2").innerHTML = NOTES[DEVICE];
 
-  /* ---------- download ---------- */
-  async function download() {
-    const filename = "kerbside.html";
-    const downloads = await (window.claude?.use?.("downloads") ?? Promise.resolve(null));
-    if (downloads) {
-      try {
-        await downloads.save({ filename, data: APP_HTML, mimeType: "text/html" });
-        return;
-      } catch (e) {
-        // A declined save is an ordinary outcome, not an error to report.
-        return;
-      }
-    }
-    // Fallback for any context without the capability: a plain blob link.
-    const blob = new Blob([APP_HTML], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  /* ---------- install ---------- */
+  // There is no .apk and no .ipa to hand out: this is a web app, and the thing that actually
+  // lands an icon on a phone's home screen is an install, not a file. Android exposes that as an
+  // event a button can fire. iOS does not expose it at all -- Apple routes every install through
+  // the Share menu and offers no API -- so the honest iPhone button shows the taps rather than
+  // pretending to perform them.
+  let installPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    installPrompt = e;
+    paintButtons();
+  });
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    paintButtons();
+    setNote("Installed. Open Kerbside from the home screen.");
+  });
+
+  const STEPS = {
+    ios: [
+      "Open <code>" + APP_URL + "</code> in <b>Safari</b>. Chrome on iPhone and in-app browsers cannot add to the home screen.",
+      "Tap <b>Share</b> \u2014 the square with the arrow coming out of the top.",
+      "Scroll down, tap <b>Add to Home Screen</b>, then <b>Add</b>.",
+      "Open it from the home screen. The first shutter asks for the camera and for location: choose <b>While Using the App</b>, which is what lets every frame carry a position.",
+    ],
+    android: [
+      "Open <code>" + APP_URL + "</code> in <b>Chrome</b> or <b>Samsung Internet</b>.",
+      "Open the <b>\u22ee</b> menu, then tap <b>Install app</b> or <b>Add to Home screen</b>.",
+      "Confirm <b>Install</b>.",
+      "Open it from the app drawer. The first shutter asks for the camera and for location: choose <b>While using the app</b>, which is what lets every frame carry a position.",
+    ],
+  };
+
+  function showSteps(kind) {
+    ["steps", "steps2"].forEach((id) => {
+      const ol = document.getElementById(id);
+      ol.innerHTML = STEPS[kind].map((t) => "<li>" + t + "</li>").join("");
+      ol.hidden = false;
+    });
   }
 
-  document.getElementById("download").addEventListener("click", download);
-  document.getElementById("download2").addEventListener("click", download);
+  function setNote(text) {
+    document.getElementById("ctanote").innerHTML = text;
+    document.getElementById("ctanote2").innerHTML = text;
+  }
+
+  function paintButtons() {
+    ["get-android", "get-android2"].forEach((id) => {
+      document.getElementById(id).textContent =
+        installPrompt ? "Install on this phone" : "Download for Samsung";
+    });
+  }
+
+  async function android() {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const choice = await installPrompt.userChoice.catch(() => null);
+      installPrompt = null;
+      paintButtons();
+      if (choice && choice.outcome === "accepted") { setNote("Installing."); return; }
+      setNote("Not installed. The steps below still work.");
+    }
+    showSteps("android");
+  }
+
+  ["get-android", "get-android2"].forEach((id) => document.getElementById(id).addEventListener("click", android));
+  ["get-ios", "get-ios2"].forEach((id) => document.getElementById(id).addEventListener("click", () => showSteps("ios")));
+
+  // Saving the page is a genuine download, but a file opened from Files or Downloads runs on
+  // file:// where browsers refuse both the camera and location. Say so rather than let somebody
+  // discover it in the street.
+  ["save-app", "save-app2"].forEach((id) =>
+    document.getElementById(id).addEventListener("click", () =>
+      setNote("Saving a copy. A saved file can show the map and read imported photographs, but browsers will not give it the camera or your location \u2014 install it instead to capture.")
+    )
+  );
+
+  if (DEVICE !== "desktop") showSteps(DEVICE === "ios" ? "ios" : "android");
+  paintButtons();
+
+  // Registering this is what makes the site installable at all: Chrome will not raise an install
+  // prompt for a page with no service worker handling fetches.
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 </script>
+</body>
+</html>

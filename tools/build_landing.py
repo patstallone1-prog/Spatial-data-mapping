@@ -13,6 +13,10 @@ from PIL import Image  # noqa: E402
 
 from smc.ingest.photos import discover_photos, load_photo  # noqa: E402
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from site_config import APP_URL, SITE_URL  # noqa: E402
+
 
 def encode(path: pathlib.Path, width: int, quality: int = 72) -> str:
     image = Image.open(path).convert("RGB")
@@ -54,27 +58,22 @@ for path in photos[:: max(1, len(photos) // 3)][:3]:
         }
     )
 
-def js_string(text: str) -> str:
-    """JSON-encode for embedding inside a <script> block.
+app = pathlib.Path("build/kerbside-app.html")
+if not app.exists():
+    sys.exit("build/kerbside-app.html is missing. Run tools/build_app.py first.")
 
-    json.dumps escapes quotes but not ``</script>``, and an HTML parser ends the script at the
-    first one it sees regardless of JavaScript string context. Inlining a whole HTML document
-    without escaping it therefore truncates the page at that point and everything after it
-    silently disappears.
-    """
-    return json.dumps(text).replace("</", "<\\/")
-
-
-app = pathlib.Path("build/kerbside-app.html").read_text()
 template = pathlib.Path("tools/landing_template.html").read_text()
 out = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "build/landing.html")
 out.parent.mkdir(parents=True, exist_ok=True)
-APP_URL = "https://claude.ai/code/artifact/792e815f-0a05-4135-8b86-28299c1be520"
 
+# The landing page used to carry the whole app inlined as a string, so that its download button
+# had something to hand over without a server. There is a server now -- GitHub Pages -- and the
+# app is a real URL, so the page links to it instead. That is what makes the download work from
+# the internet, and it takes several megabytes back out of the page.
 out.write_text(
     template.replace("__SHOTS__", json.dumps(shots))
-    .replace("__APP__", js_string(app))
     .replace("__APP_URL__", APP_URL)
+    .replace("__SITE_URL__", SITE_URL)
 )
-print(f"{len(shots)} demo frames, app {len(app) / 1e6:.2f} MB")
+print(f"{len(shots)} demo frames, app hosted at {APP_URL}")
 print(f"{out}: {out.stat().st_size / 1e6:.2f} MB")

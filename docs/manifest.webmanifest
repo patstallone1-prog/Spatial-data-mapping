@@ -1,0 +1,40 @@
+{
+  "id": "/Spatial-data-mapping/",
+  "name": "Kerbside",
+  "short_name": "Kerbside",
+  "description": "Measures kerb height and footway width from ordinary camera frames, on the phone, before anything is sent.",
+  "start_url": "./app.html?from=home",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#0c1015",
+  "theme_color": "#0b0e12",
+  "categories": [
+    "utilities",
+    "navigation"
+  ],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

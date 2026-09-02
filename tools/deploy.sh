@@ -26,6 +26,9 @@ command -v gh  >/dev/null || die "gh is not installed. Run: brew install gh"
 
 gh auth status >/dev/null 2>&1 || die "Not signed in to GitHub. Run: gh auth login"
 
+say "Building the site"
+./tools/build_all.sh || die "Build failed. Nothing pushed."
+
 say "Checking for credentials in every commit"
 ./tools/check_secrets.sh || die "Secrets found. Nothing pushed."
 
@@ -55,5 +58,25 @@ git branch -M main
 say "Pushing to $OWNER/$REPO"
 git push -u origin main || die "Push failed. If it mentions history, run: git push -u origin main --force-with-lease"
 
-say "Done: https://github.com/$OWNER/$REPO"
-git log --oneline -1 | sed 's/^/  latest: /'
+# Pages is what makes the download a download. Without it the install buttons point at a 404,
+# so this is part of deploying rather than a separate setup step somebody has to remember.
+say "Publishing docs/ to GitHub Pages"
+if gh api "repos/$OWNER/$REPO/pages" >/dev/null 2>&1; then
+  gh api -X PUT "repos/$OWNER/$REPO/pages" \
+    -f 'source[branch]=main' -f 'source[path]=/docs' >/dev/null \
+    && echo "  source set to main /docs"
+else
+  gh api -X POST "repos/$OWNER/$REPO/pages" \
+    -f 'source[branch]=main' -f 'source[path]=/docs' >/dev/null \
+    && echo "  Pages enabled on main /docs" \
+    || echo "  Could not enable Pages. A private repository needs a paid plan for it."
+fi
+
+SITE="https://$(echo "$OWNER" | tr '[:upper:]' '[:lower:]').github.io/$REPO/"
+say "Done"
+echo "  repository  https://github.com/$OWNER/$REPO"
+echo "  site        $SITE"
+echo "  app         ${SITE}app.html"
+git log --oneline -1 | sed 's/^/  latest:     /'
+echo
+echo "  The first build takes a minute or two. Until it finishes the address returns 404."

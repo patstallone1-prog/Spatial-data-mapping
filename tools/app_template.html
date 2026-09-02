@@ -1,3 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#0b0e12" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Kerbside" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.webmanifest" />
 <title>Kerbside Capture</title>
 <style>
   :root {
@@ -82,6 +92,17 @@
   .btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .row { display: flex; gap: 9px; }
 
+  .install-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .install-link {
+    display: block; color: var(--ink-2); text-decoration: none;
+    font-family: var(--mono); font-size: 11.5px; overflow-wrap: anywhere;
+    border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px;
+  }
+  .install-link:hover { color: var(--accent); border-color: var(--accent); }
+  .steps { margin: 0; padding-left: 19px; color: var(--ink-2); font-size: 14.5px; line-height: 1.62; }
+  .steps li { margin: 5px 0; }
+  .steps b { color: var(--ink); }
+
   .pill {
     display: inline-flex; align-items: center; font-family: var(--mono);
     font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 640;
@@ -136,7 +157,7 @@
   nav.tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
     background: var(--surface); border-top: 1px solid var(--line);
-    display: grid; grid-template-columns: repeat(4, 1fr);
+    display: grid; grid-template-columns: repeat(5, 1fr);
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
   .tab {
@@ -168,6 +189,8 @@
   .reviewitem[aria-pressed="true"] .tick { background: var(--accent); color: #fff; }
   .reviewitem:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
+</head>
+<body>
 
 <div class="app">
   <header class="bar">
@@ -194,6 +217,18 @@
     <div class="row">
       <button class="btn" id="cam-toggle">Start camera</button>
     </div>
+
+    <div class="grid2">
+      <div class="stat"><span class="v" id="gps-v">&mdash;</span><span class="k" id="gps-k">Location</span></div>
+      <div class="stat"><span class="v" id="lens-v">&mdash;</span><span class="k" id="lens-k">Lens</span></div>
+    </div>
+    <p class="muted" id="gate-note">
+      The camera opens the wide lens and waits for a position. Both have to be there before the
+      shutter unlocks &mdash; a frame with no fix cannot be placed on the map afterwards, and a
+      frame off the narrow lens matches its neighbours less than half as often.
+    </p>
+    <button class="btn ghost" id="lens-override" hidden>Shoot on the narrow lens anyway</button>
+
     <button class="btn ghost" id="import-btn" style="border-style: dashed; padding: 16px">
       Select photos from this device
     </button>
@@ -340,6 +375,17 @@
     <div class="card">
       <h2>Install it</h2>
       <p id="install-body"></p>
+      <div class="install-actions">
+        <button class="btn" id="android-install-btn">Samsung / Android</button>
+        <button class="btn ghost" id="ios-install-btn">iPhone</button>
+      </div>
+      <ol class="steps" id="install-steps" hidden></ol>
+      <a class="install-link" id="app-link" href="__APP_URL__">__APP_URL__</a>
+      <div class="row">
+        <button class="btn ghost" id="copy-link">Copy the address</button>
+        <a class="btn ghost" id="save-file" href="app.html" download="kerbside.html">Save a copy</a>
+      </div>
+      <p class="muted" id="install-note"></p>
     </div>
     <div class="card">
       <h2>Privacy</h2>
@@ -357,6 +403,7 @@
   <button class="tab" data-view="library" aria-selected="false"><span class="ic">&#9776;</span>Library</button>
   <button class="tab" data-view="tonight" aria-selected="false"><span class="ic">&#9788;</span>Tonight</button>
   <button class="tab" data-view="map" aria-selected="false"><span class="ic">&#9678;</span>Map</button>
+  <button class="tab" data-view="about" aria-selected="false"><span class="ic">&#8681;</span>App</button>
 </nav>
 
 <script>
@@ -630,32 +677,173 @@ const CONFIG = {
 };
 let stream = null, autoOn = false, watchId = null;
 let lastFix = null, distanceSince = 0, lastShotAt = 0, lastSpeed = 0, lastReason = "ready";
+let gpsState = "off", gpsMessage = "";
+
+// A fix that is old or vague is worse than none: it puts a kerb somewhere it is not, and
+// nothing downstream can tell that apart from a good measurement. 65 m is generous for a
+// phone with a clear sky and still tight enough to snap to the right block.
+const FIX_MAX_AGE_MS = 20000;
+const FIX_MAX_ACC_M = 65;
+
+// The phone's own camera app calls it 0.5x. Optically it is about 13 mm equivalent, 104 degrees
+// across, against 26 mm and 69 degrees for the main lens. Measured on 328 real pairs from this
+// project's own capture sets, the wide lens matched a neighbouring frame 51% of the time and the
+// main lens 20%: the wider frame carries more of the kerb line into the overlap, so there is
+// something to match on. That gap is the reason this app refuses the narrow lens by default.
+const LENS = { kind: "unknown", label: "", zoom: null, track: null };
+let lensOverride = false;
 
 const video = document.getElementById("video");
 const stageIdle = document.getElementById("stage-idle");
 const hud = document.getElementById("hud");
 const shutter = document.getElementById("shutter");
 
+const VIDEO_SIZE = { width: { ideal: 1920 }, height: { ideal: 1440 } };
+
+/** The wide lens as its own device. Safari and Chrome both enumerate it, but only once camera
+ *  permission has been granted at least once -- before that every label is an empty string.
+ *  So this runs after the first stream is open, never before. */
+async function findWideDevice(currentId) {
+  let devices = [];
+  try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (e) { return null; }
+  const back = devices.filter((d) => d.kind === "videoinput" && !/front|user/i.test(d.label));
+  // "Back Ultra Wide Camera" is the one we want. "Back Dual Wide Camera" is a virtual device
+  // that opens at 1x, so matching a bare "wide" would pick the wrong lens on every iPhone.
+  const wide = back.find((d) => /ultra/i.test(d.label));
+  if (!wide || wide.deviceId === currentId) return wide || null;
+  return wide;
+}
+
+/** Android usually exposes one logical back camera that zooms out past 1x rather than a separate
+ *  device. Its minimum zoom is the same optics the camera app labels 0.5x. */
+async function pullZoomWide(track) {
+  const caps = track.getCapabilities ? track.getCapabilities() : null;
+  if (!caps || !caps.zoom || typeof caps.zoom.min !== "number") return null;
+  if (caps.zoom.min >= 0.95) return null;
+  try { await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min }] }); } catch (e) { return null; }
+  const z = track.getSettings().zoom;
+  return typeof z === "number" ? z : caps.zoom.min;
+}
+
 async function startCamera() {
+  if (!window.isSecureContext) {
+    alert("The camera needs a secure connection.\n\nOpen the app over https, or install it from the site, rather than from a file saved on the device.");
+    return;
+  }
+  // Location first. Waiting for the fix while the camera warms up costs nothing, and it means
+  // the shutter is usually unlocked by the time the preview appears.
+  startTracking();
+
+  let s;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } },
+    s = await navigator.mediaDevices.getUserMedia({
+      video: Object.assign({ facingMode: { ideal: "environment" } }, VIDEO_SIZE),
       audio: false,
     });
   } catch (e) {
+    stopTracking();
     alert("Camera unavailable: " + e.message + "\n\nA secure context (https) and permission are required.");
     return;
   }
+
+  LENS.kind = "unknown"; LENS.label = ""; LENS.zoom = null;
+  const currentId = s.getVideoTracks()[0].getSettings().deviceId || null;
+  const wide = await findWideDevice(currentId);
+  if (wide && wide.deviceId !== currentId) {
+    try {
+      const w = await navigator.mediaDevices.getUserMedia({
+        video: Object.assign({ deviceId: { exact: wide.deviceId } }, VIDEO_SIZE),
+        audio: false,
+      });
+      s.getTracks().forEach((t) => t.stop());
+      s = w;
+      LENS.kind = "ultrawide"; LENS.label = wide.label;
+    } catch (e) {
+      // Some devices list the lens but refuse to open it directly. Keep the stream we have.
+    }
+  } else if (wide) {
+    LENS.kind = "ultrawide"; LENS.label = wide.label;
+  }
+
+  stream = s;
+  LENS.track = s.getVideoTracks()[0];
+  if (!LENS.label) LENS.label = LENS.track.label || "";
+
+  const z = await pullZoomWide(LENS.track);
+  if (z !== null) {
+    LENS.zoom = z;
+    if (z <= 0.65) LENS.kind = "ultrawide";
+  }
+  if (LENS.kind === "unknown") LENS.kind = /ultra/i.test(LENS.label) ? "ultrawide" : "main";
+
   video.srcObject = stream;
   video.hidden = false; stageIdle.hidden = true; hud.hidden = false; shutter.hidden = false;
   document.getElementById("cam-toggle").textContent = "Stop camera";
+  paintGate();
 }
+
 function stopCamera() {
-  stream?.getTracks().forEach((t) => t.stop());
-  stream = null; video.hidden = true; stageIdle.hidden = false; hud.hidden = true; shutter.hidden = true;
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = null; LENS.track = null; LENS.kind = "unknown"; LENS.label = ""; LENS.zoom = null;
+  stopTracking();
+  autoOn = false;
+  video.hidden = true; stageIdle.hidden = false; hud.hidden = true; shutter.hidden = true;
   document.getElementById("cam-toggle").textContent = "Start camera";
+  paintAuto();
+  paintGate();
 }
 document.getElementById("cam-toggle").addEventListener("click", () => stream ? stopCamera() : startCamera());
+
+document.getElementById("lens-override").addEventListener("click", () => {
+  lensOverride = !lensOverride;
+  paintGate();
+});
+
+/** Everything that has to be true before a frame is worth keeping. */
+function shutterGate() {
+  if (!stream) return { ok: false, why: "camera off" };
+  if (LENS.kind !== "ultrawide" && !lensOverride) return { ok: false, why: "narrow lens" };
+  if (gpsState === "denied") return { ok: false, why: "location refused" };
+  if (!lastFix) return { ok: false, why: "no fix yet" };
+  if (Date.now() - lastFix.t > FIX_MAX_AGE_MS) return { ok: false, why: "fix stale" };
+  if (lastFix.acc > FIX_MAX_ACC_M) return { ok: false, why: "fix too vague" };
+  return { ok: true, why: "ready" };
+}
+
+function paintGate() {
+  const gate = shutterGate();
+  shutter.disabled = !gate.ok;
+
+  const gv = document.getElementById("gps-v"), gk = document.getElementById("gps-k");
+  if (gpsState === "denied") { gv.textContent = "refused"; gk.textContent = "Allow while using app"; }
+  else if (gpsState === "unsupported") { gv.textContent = "none"; gk.textContent = "No location here"; }
+  else if (gpsState === "failing") { gv.textContent = "failing"; gk.textContent = gpsMessage || "No signal"; }
+  else if (lastFix) { gv.textContent = "±" + Math.round(lastFix.acc) + " m"; gk.textContent = lastFix.acc <= FIX_MAX_ACC_M ? "Position held" : "Too vague to keep"; }
+  else if (gpsState === "waiting") { gv.textContent = "waiting"; gk.textContent = "Finding you"; }
+  else { gv.textContent = "off"; gk.textContent = "Location"; }
+
+  const lv = document.getElementById("lens-v"), lk = document.getElementById("lens-k");
+  if (!stream) { lv.textContent = "off"; lk.textContent = "Lens"; }
+  else if (LENS.kind === "ultrawide") { lv.textContent = "0.5×"; lk.textContent = LENS.zoom !== null ? "Wide, zoom " + LENS.zoom.toFixed(2) : "Wide lens"; }
+  else { lv.textContent = "1×"; lk.textContent = lensOverride ? "Narrow, allowed" : "Narrow, blocked"; }
+
+  const override = document.getElementById("lens-override");
+  override.hidden = !stream || LENS.kind === "ultrawide";
+  override.textContent = lensOverride ? "Go back to wide only" : "Shoot on the narrow lens anyway";
+
+  document.getElementById("gate-note").textContent = gate.ok
+    ? "Ready. Every frame is stamped with the position it was taken at."
+    : GATE_NOTE[gate.why] || gate.why;
+}
+
+const GATE_NOTE = {
+  "camera off": "The camera opens the wide lens and waits for a position. Both have to be there before the shutter unlocks — a frame with no fix cannot be placed on the map afterwards.",
+  "narrow lens": "This browser will not open the wide lens, so the shutter is locked. Frames off the narrow lens match their neighbours 20% of the time against 51% for the wide one, which is the difference between a corridor that reconstructs and one that does not.",
+  "location refused": "Location is refused, so the shutter stays locked. Allow it While Using the App in the phone's settings — a photograph with no fix cannot be placed afterwards, because the position is not recoverable from the pixels.",
+  "no fix yet": "Waiting for the first fix. Outdoors and still for a moment is fastest.",
+  "fix stale": "The last fix is more than twenty seconds old. Holding until a fresh one arrives.",
+  "fix too vague": "The fix is too vague to put a kerb on the right block. Holding until it tightens.",
+};
 
 function haversine(a, b) {
   const R = 6371000, toRad = (d) => (d * Math.PI) / 180;
@@ -665,29 +853,50 @@ function haversine(a, b) {
 }
 
 function startTracking() {
-  if (!navigator.geolocation) return false;
-  watchId = navigator.geolocation.watchPosition((pos) => {
-    const fix = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: pos.timestamp };
-    lastSpeed = pos.coords.speed ?? (lastFix ? haversine(lastFix, fix) / Math.max((fix.t - lastFix.t) / 1000, 0.001) : 0);
-    if (lastFix) distanceSince += haversine(lastFix, fix);
-    lastFix = fix;
-    updateHud();
-    maybeAutoCapture();
-  }, () => {}, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+  if (!navigator.geolocation) { gpsState = "unsupported"; paintGate(); return false; }
+  if (watchId !== null) return true;
+  gpsState = "waiting";
+  paintGate();
+  // maximumAge 0, not a cached fix: a position from several minutes ago belongs to a different
+  // stretch of pavement, and stamping this frame with it would be worse than leaving it blank.
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const fix = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: pos.timestamp };
+      lastSpeed = pos.coords.speed ?? (lastFix ? haversine(lastFix, fix) / Math.max((fix.t - lastFix.t) / 1000, 0.001) : 0);
+      if (lastFix) distanceSince += haversine(lastFix, fix);
+      lastFix = fix;
+      gpsState = "on";
+      updateHud();
+      maybeAutoCapture();
+    },
+    (err) => {
+      gpsState = err.code === err.PERMISSION_DENIED ? "denied" : "failing";
+      gpsMessage = err.message || "";
+      paintGate();
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+  );
   return true;
 }
-function stopTracking() { if (watchId !== null) navigator.geolocation.clearWatch(watchId); watchId = null; }
+function stopTracking() {
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  watchId = null;
+  gpsState = "off";
+  lastFix = null;
+}
 
 function updateHud() {
   document.getElementById("hud-speed").textContent = (lastSpeed || 0).toFixed(1) + " m/s";
   document.getElementById("hud-dist").textContent = distanceSince.toFixed(1) + " m";
   document.getElementById("hud-reason").textContent = lastReason;
+  paintGate();
 }
 
 function triggerDecision() {
   // Distance, not a clock. At walking pace a 4 Hz timer puts frames 0.35 m apart: far too
   // short a baseline to recover depth, and the spacing swings with every change of pace.
-  if (!stream) return { go: false, why: "camera off" };
+  const gate = shutterGate();
+  if (!gate.ok) return { go: false, why: gate.why };
   const now = Date.now();
   if (now - lastShotAt < 1000 / CONFIG.captureHz) return { go: false, why: "rate" };
   if (lastSpeed < CONFIG.minSpeed) return { go: false, why: "too slow" };
@@ -706,7 +915,8 @@ async function maybeAutoCapture() {
 }
 
 async function capture(source) {
-  if (!stream) return;
+  const gate = shutterGate();
+  if (!gate.ok) { lastReason = gate.why; updateHud(); return; }
   const track = stream.getVideoTracks()[0];
   const settings = track.getSettings();
   const c = document.createElement("canvas");
@@ -719,7 +929,10 @@ async function capture(source) {
   c.width = targetW; c.height = targetH;
   c.getContext("2d").drawImage(video, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, targetW, targetH);
   const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.88));
-  await store(blob, source);
+  await store(blob, source, {
+    lat: lastFix.lat, lon: lastFix.lon, acc: lastFix.acc, fixAgeMs: Date.now() - lastFix.t,
+    lens: LENS.kind, zoom: LENS.zoom,
+  });
   lastShotAt = Date.now();
   distanceSince = 0;
 }
@@ -733,9 +946,15 @@ async function store(blob, source, meta = {}) {
     blob,
     bytes: blob.size,
     w: bitmap.width, h: bitmap.height,
-    lat: meta.lat ?? lastFix?.lat ?? null,
-    lon: meta.lon ?? lastFix?.lon ?? null,
-    acc: meta.acc ?? lastFix?.acc ?? null,
+    // Only what the frame itself carries. An imported photograph taken yesterday across town
+    // must not inherit this phone's position now: a wrong fix is indistinguishable downstream
+    // from a measured one, and would put a kerb on a street it was never seen from.
+    lat: meta.lat ?? null,
+    lon: meta.lon ?? null,
+    acc: meta.acc ?? null,
+    fixAgeMs: meta.fixAgeMs ?? null,
+    lens: meta.lens ?? null,
+    zoom: meta.zoom ?? null,
     focal35: meta.focal35 ?? null,
     model: meta.model ?? null,
     sharp: sharpness(bitmap),
@@ -750,10 +969,10 @@ async function store(blob, source, meta = {}) {
 shutter.addEventListener("click", () => capture("manual"));
 
 document.getElementById("auto-toggle").addEventListener("click", async () => {
+  if (!stream) { alert("Start the camera first. Automatic capture fires its shutter."); return; }
   autoOn = !autoOn;
-  if (autoOn && !startTracking()) { autoOn = false; alert("Location is unavailable, so distance-based capture cannot run."); }
-  if (!autoOn) stopTracking();
   paintAuto();
+  paintGate();
 });
 
 function paintAuto() {
@@ -1287,7 +1506,7 @@ const COPY = {
       ["ok", "Curation and compression", "Runs here, on this device"],
       ["ok", "Glasses frames", "Export from the Meta app, then Import"],
     ],
-    install: "Open in Safari, tap Share, then Add to Home Screen. It then runs full-screen and keeps its library between sessions.",
+    install: "iOS has no button that installs a web app; Apple routes it through the Share menu and offers no API to any site. So the iPhone button below shows you the three taps rather than pretending to do them.",
   },
   android: {
     title: "Android",
@@ -1297,7 +1516,7 @@ const COPY = {
       ["ok", "Curation and compression", "Runs here, on this device"],
       ["ok", "Glasses frames", "Export from the Meta app, then Import"],
     ],
-    install: "Open in Chrome, then Install app from the menu.",
+    install: "Chrome and Samsung Internet can install this outright. The button below opens the phone's own install prompt.",
   },
   desktop: {
     title: "Desktop",
@@ -1307,7 +1526,7 @@ const COPY = {
       ["ok", "Curation and compression", "Runs here, in this browser"],
       ["warn", "Capture", "Webcam only; no motion trigger without location"],
     ],
-    install: "Install from the address bar, or just keep the tab open.",
+    install: "Install from the address bar, or just keep the tab open. The field tool is a phone or a pair of glasses.",
   },
 };
 
@@ -1317,8 +1536,90 @@ document.getElementById("dev-body").textContent = copy.body;
 document.getElementById("dev-list").innerHTML = copy.list
   .map(([tone, head, tail]) => `<li><span class="pill ${tone}">${tone === "ok" ? "yes" : tone === "stop" ? "no" : "part"}</span><span><b>${head}.</b> ${tail}</span></li>`)
   .join("");
-document.getElementById("install-body").textContent =
-  STANDALONE ? "Installed. Running as an app." : copy.install;
+/* ============ install ============ */
+const APP_URL = "__APP_URL__";
+const appLink = document.getElementById("app-link");
+appLink.href = APP_URL;
+appLink.textContent = APP_URL;
+
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  // Chrome fires this only when the page is genuinely installable: served over https, with a
+  // manifest, icons and a service worker. Holding on to the event is what lets a button do the
+  // install instead of describing it.
+  e.preventDefault();
+  installPrompt = e;
+  paintInstall();
+});
+window.addEventListener("appinstalled", () => {
+  installPrompt = null;
+  document.getElementById("install-note").textContent = "Installed. Open it from the home screen.";
+  paintInstall();
+});
+
+const STEPS = {
+  ios: [
+    "Open <b>" + APP_URL + "</b> in <b>Safari</b>. Chrome and the in-app browsers cannot add to the home screen.",
+    "Tap <b>Share</b> — the square with the arrow out of the top.",
+    "Scroll and tap <b>Add to Home Screen</b>, then <b>Add</b>.",
+    "Open it from the home screen. The first shutter asks for the camera and for location: choose <b>While Using the App</b>.",
+  ],
+  android: [
+    "Open <b>" + APP_URL + "</b> in <b>Chrome</b> or <b>Samsung Internet</b>.",
+    "Open the <b>⋮</b> menu and tap <b>Install app</b>, or <b>Add to Home screen</b>.",
+    "Confirm <b>Install</b>.",
+    "Open it from the app drawer. The first shutter asks for the camera and for location: choose <b>While using the app</b>.",
+  ],
+};
+
+function showSteps(kind) {
+  const ol = document.getElementById("install-steps");
+  ol.innerHTML = STEPS[kind].map((t) => "<li>" + t + "</li>").join("");
+  ol.hidden = false;
+}
+
+document.getElementById("android-install-btn").addEventListener("click", async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice.catch(() => null);
+    installPrompt = null;
+    paintInstall();
+    document.getElementById("install-note").textContent =
+      choice && choice.outcome === "accepted" ? "Installing." : "Not installed. The steps below still work.";
+    if (!choice || choice.outcome !== "accepted") showSteps("android");
+    return;
+  }
+  showSteps("android");
+});
+
+document.getElementById("ios-install-btn").addEventListener("click", () => showSteps("ios"));
+
+document.getElementById("copy-link").addEventListener("click", async () => {
+  const note = document.getElementById("install-note");
+  try {
+    await navigator.clipboard.writeText(APP_URL);
+    note.textContent = "Address copied. Paste it into Safari or Chrome on the phone.";
+  } catch (e) {
+    note.textContent = "Copy the address above by hand — this browser blocked the clipboard.";
+  }
+});
+
+function paintInstall() {
+  document.getElementById("install-body").textContent = STANDALONE
+    ? "Installed. This is the app running on its own, with its own storage."
+    : copy.install;
+  document.getElementById("android-install-btn").textContent =
+    installPrompt ? "Install on this phone" : "Samsung / Android";
+}
+paintInstall();
+if (!STANDALONE) showSteps(DEVICE === "ios" ? "ios" : "android");
+
+// The service worker is what makes the app installable and what lets it open with no signal.
+// It only exists when the app is served from the site; a saved copy has no origin to register
+// against, and failing quietly is the right outcome there.
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 
 document.getElementById("auto-explain").textContent = DEVICE === "ios"
   ? "Fires the shutter for you while the app is open and on screen, once you have moved far enough for a frame to show something new. iOS stops capture the moment you switch away."
@@ -1337,6 +1638,9 @@ document.getElementById("face-note").textContent = faceDetector
   uploadedPoints = await getMeta("points", []);
   await refresh();
   paintCloud();
+  paintGate();
   window.addEventListener("resize", () => { mapView = null; drawMap(); });
 })();
 </script>
+</body>
+</html>
