@@ -37,17 +37,19 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <div class="stat"><b id="seq">0</b><span>sequences</span></div>
       <div class="stat"><b id="cells">0</b><span>H3 cells</span></div>
     </div>
-    <div class="legend">
-      <span class="key"><span class="sw"></span>metadata observations</span>
-      <span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
-      <span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
+<div class="legend">
+<span class="key"><span class="sw" style="background:#d6e7ea"></span>OSM street map</span>
+<span class="key"><span class="sw"></span>metadata observations</span>
+<span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
+<span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
       <span class="key"><span class="sw" style="background:var(--cyan)"></span>sequence paths</span>
     </div>
   </div>
-  <div class="toolbar panel">
-    <button data-layer="coverage" aria-pressed="true">Coverage</button>
-    <button data-layer="observations" aria-pressed="true">Photos</button>
-    <button data-layer="sequences" aria-pressed="true">Sequences</button>
+<div class="toolbar panel">
+<button data-layer="streets" aria-pressed="true">Streets</button>
+<button data-layer="coverage" aria-pressed="true">Coverage</button>
+<button data-layer="observations" aria-pressed="true">Photos</button>
+<button data-layer="sequences" aria-pressed="true">Sequences</button>
     <button data-layer="districts" aria-pressed="true">Districts</button>
     <button id="reset">Reset</button>
   </div>
@@ -115,9 +117,109 @@ function line(points, color, opacity = 1, y = 2, widthHint = 1) {
   return obj;
 }
 
+function segmentRibbon(a, b, width, color, opacity, y) {
+  const [x1, z1] = [xy(a[0], a[1])[0], -xy(a[0], a[1])[1]];
+  const [x2, z2] = [xy(b[0], b[1])[0], -xy(b[0], b[1])[1]];
+  const dx = x2 - x1;
+  const dz = z2 - z1;
+  const length = Math.hypot(dx, dz);
+  if (length < 0.8) return null;
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(length, 1.4, width),
+    new THREE.MeshStandardMaterial({ color, transparent: opacity < 1, opacity, roughness: 0.92, metalness: 0.02 })
+  );
+  mesh.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+  mesh.rotation.y = Math.atan2(-dz, dx);
+  return mesh;
+}
+
+function ribbon(points, width, color, opacity, y) {
+  const group = new THREE.Group();
+  for (let i = 1; i < points.length; i += 1) {
+    const segment = segmentRibbon(points[i - 1], points[i], width, color, opacity, y);
+    if (segment) group.add(segment);
+  }
+  return group;
+}
+
+function labelSprite(text, color = "#edf5f5", scale = 90) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "rgba(7, 16, 19, 0.70)";
+  ctx.strokeStyle = "rgba(214, 231, 234, 0.26)";
+  ctx.lineWidth = 3;
+  roundRect(ctx, 12, 22, 488, 76, 18);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = "600 42px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text.slice(0, 28), 256, 62, 450);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
+  sprite.scale.set(scale, scale * 0.25, 1);
+  return sprite;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function labelAt(text, lon, lat, y, group, color = "#edf5f5", scale = 90) {
+  const sprite = labelSprite(text, color, scale);
+  const [x, yy] = xy(lon, lat);
+  sprite.position.set(x, y, -yy);
+  group.add(sprite);
+}
+
+function longestMidpoint(points) {
+  let best = null;
+  let bestLength = -1;
+  for (let i = 1; i < points.length; i += 1) {
+    const [x1, y1] = xy(points[i - 1][0], points[i - 1][1]);
+    const [x2, y2] = xy(points[i][0], points[i][1]);
+    const length = Math.hypot(x2 - x1, y2 - y1);
+    if (length > bestLength) {
+      bestLength = length;
+      best = [(points[i - 1][0] + points[i][0]) / 2, (points[i - 1][1] + points[i][1]) / 2];
+    }
+  }
+  return best;
+}
+
+const streetNames = new Set();
+let streetLabelCount = 0;
 for (const way of DATA.ways) {
-  const color = way.kind === "crossing" ? 0xe0a84e : way.kind === "sidewalk" ? 0x8fa4a6 : 0x30464e;
-  groups.streets.add(line(way.points, color, way.kind === "street" ? 0.55 : 0.92, 3));
+  const isCrossing = way.kind === "crossing";
+  const isSidewalk = way.kind === "sidewalk";
+  const color = isCrossing ? 0xe0a84e : isSidewalk ? 0xb5c5c8 : 0xd6e7ea;
+  const widthMeters = isCrossing ? 5.2 : isSidewalk ? 2.4 : 4.6;
+  const opacity = isCrossing ? 0.94 : isSidewalk ? 0.62 : 0.72;
+  groups.streets.add(ribbon(way.points, widthMeters, color, opacity, isCrossing ? 6 : isSidewalk ? 4.5 : 3.2));
+  groups.streets.add(line(way.points, color, isCrossing ? 1 : 0.72, isCrossing ? 8 : 6));
+  if (!isCrossing && !isSidewalk && way.name && !streetNames.has(way.name) && streetLabelCount < 90) {
+    const midpoint = longestMidpoint(way.points);
+    if (midpoint) {
+      streetNames.add(way.name);
+      streetLabelCount += 1;
+      labelAt(way.name, midpoint[0], midpoint[1], 28, groups.streets, "#d6e7ea", 78);
+    }
+  }
 }
 
 const districtColors = [0x1d4d58, 0x355038, 0x4a3e61, 0x5a4930, 0x533749, 0x29475f];
@@ -130,15 +232,16 @@ DATA.districts.forEach((d, i) => {
   );
   mesh.position.set((x1 + x2) / 2, 3, -(y1 + y2) / 2);
   groups.districts.add(mesh);
+  labelAt(d.name, (d.west + d.east) / 2, (d.south + d.north) / 2, 54, groups.districts, "#ffffff", 145);
 });
 
 for (const c of DATA.coverage) {
-  const height = 12 + 130 * Math.min(1, c.score || 0);
-  const radius = 12 + Math.min(36, c.eligible * 1.5);
+  const height = 10 + 92 * Math.min(1, c.score || 0);
+  const radius = 9 + Math.min(26, c.eligible * 1.1);
   const color = c.score > 0.58 ? 0x4fbe86 : c.score > 0.34 ? 0xe0a84e : 0x355866;
   const mesh = new THREE.Mesh(
     new THREE.CylinderGeometry(radius, radius, height, 6, 1),
-    new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.72, roughness: 0.64 })
+    new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.46, roughness: 0.64 })
   );
   const [x, y] = xy(c.lon, c.lat);
   mesh.position.set(x, height / 2, -y);

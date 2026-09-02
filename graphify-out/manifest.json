@@ -1602,8 +1602,8 @@
     "semantic_hash": ""
   },
   "data/sf_corridor/stats/audit.json": {
-    "mtime": 1788326771.2581227,
-    "seen": 1788326815.392892,
+    "mtime": 1788327622.253731,
+    "seen": 1788327623.876361,
     "ast_hash": "f8f6c3e9b8f4a321b7ad6fd6ab7e904b",
     "semantic_hash": ""
   },
@@ -1626,9 +1626,9 @@
     "semantic_hash": ""
   },
   "scripts/build_sf_corridor_3d.py": {
-    "mtime": 1788326500.5313387,
-    "seen": 1788326815.392896,
-    "ast_hash": "9685af645c241b4d5660a7079f01aac5",
+    "mtime": 1788327566.288295,
+    "seen": 1788327623.876429,
+    "ast_hash": "e6c29c502f534e126242008044b784ed",
     "semantic_hash": ""
   },
   "scripts/ingest_sf_corridor.py": {
@@ -1776,9 +1776,9 @@
     "semantic_hash": ""
   },
   "docs/sf-corridor-3d.html": {
-    "mtime": 1788326779.930266,
-    "seen": 1788326815.3944042,
-    "ast_hash": "770c7dd6f7be5e1af2449b0833e7de36",
+    "mtime": 1788327575.288024,
+    "seen": 1788327623.878345,
+    "ast_hash": "0e7702f372cafa7d1aa8b522dc5f5fd2",
     "semantic_hash": ""
   },
   "docs/apple-touch-icon.png": {

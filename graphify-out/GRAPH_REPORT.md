@@ -1,7 +1,7 @@
 # Graph Report - spatial-mapping-crowdsource  (2026-09-01)
 
 ## Corpus Check
-- 148 files · ~3,528,646 words
+- 148 files · ~3,529,704 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a1d92e3a`
+- Built from commit: `deeee393`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

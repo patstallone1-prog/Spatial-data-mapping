@@ -13873,7 +13873,7 @@
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "scripts/build_sf_corridor_3d.py",
-      "source_location": "L375"
+      "source_location": "L478"
     },
     {
       "id": "scripts_build_sf_corridor_3d_overpass_query",
@@ -27186,7 +27186,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/build_sf_corridor_3d.py",
-      "source_location": "L377",
+      "source_location": "L480",
       "weight": 1.0
     },
     {
@@ -27198,7 +27198,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/build_sf_corridor_3d.py",
-      "source_location": "L386",
+      "source_location": "L489",
       "weight": 1.0
     },
     {
@@ -27210,7 +27210,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/build_sf_corridor_3d.py",
-      "source_location": "L390",
+      "source_location": "L493",
       "weight": 1.0
     },
     {
@@ -56195,7 +56195,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/build_sf_corridor_3d.py",
-      "source_location": "L375",
+      "source_location": "L478",
       "weight": 1.0
     },
     {
@@ -79297,5 +79297,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a1d92e3af52f3c5e4497508b0d5815ab70d68e28"
+  "built_at_commit": "deeee39383963df4b4afb7c18c2d9ad550d92969"
 }
