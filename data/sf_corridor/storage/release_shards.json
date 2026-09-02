@@ -1,0 +1,4385 @@
+{
+  "city": {
+    "name": "San Francisco",
+    "slug": "sf"
+  },
+  "dataset": "sf-corridor",
+  "generated_at": "2026-09-02T21:27:44.794128+00:00",
+  "h3_resolution": 10,
+  "metadata_shards": [
+    {
+      "coverage_score": 0.28519999980926514,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a28308286cffff",
+      "latitude": 37.78577157082057,
+      "longitude": -122.41648622609759,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4916999936103821,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a28308290cffff",
+      "latitude": 37.78681745740522,
+      "longitude": -122.44464635713585,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.38280001282691956,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a28308290d7fff",
+      "latitude": 37.78632602050436,
+      "longitude": -122.44210861977213,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3984000086784363,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a28308290dffff",
+      "latitude": 37.787159934519345,
+      "longitude": -122.44316152426802,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4138999879360199,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a2830829287fff",
+      "latitude": 37.79049538560139,
+      "longitude": -122.44737323937156,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4916999936103821,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a2830829297fff",
+      "latitude": 37.790837901766075,
+      "longitude": -122.44588838918666,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.47620001435279846,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a28308292b7fff",
+      "latitude": 37.78966155357877,
+      "longitude": -122.44632029602884,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4916999936103821,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a2830829397fff",
+      "latitude": 37.787651337097216,
+      "longitude": -122.44569926965339,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4138999879360199,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082944ffff",
+      "latitude": 37.78735331284311,
+      "longitude": -122.43765397162551,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3984000086784363,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a283082945ffff",
+      "latitude": 37.787695711110274,
+      "longitude": -122.43616904075675,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3984000086784363,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a283082948ffff",
+      "latitude": 37.78788877706467,
+      "longitude": -122.43066119714872,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.429500013589859,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082949ffff",
+      "latitude": 37.78823109646669,
+      "longitude": -122.4291761683147,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.429500013589859,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a28308294c7fff",
+      "latitude": 37.78838045886953,
+      "longitude": -122.43319910679793,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.44510000944137573,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a28308294d7fff",
+      "latitude": 37.788722808359445,
+      "longitude": -122.43171410371069,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4138999879360199,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a28308294effff",
+      "latitude": 37.78803809311944,
+      "longitude": -122.43468408581374,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.43959999084472656,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a283082968ffff",
+      "latitude": 37.793726565688836,
+      "longitude": -122.43803174719936,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.48739999532699585,
+      "eligible_observation_count": 16,
+      "h3_cell": "8a283082969ffff",
+      "latitude": 37.79406898187906,
+      "longitude": -122.43654673012558,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 16,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3628999888896942,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a28308296d7fff",
+      "latitude": 37.79456045349824,
+      "longitude": -122.43908472179491,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.38280001282691956,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a2830829727fff",
+      "latitude": 37.78666846753907,
+      "longitude": -122.44062376113459,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.38280001282691956,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a283082972ffff",
+      "latitude": 37.787502395379924,
+      "longitude": -122.44167666731882,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.429500013589859,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a2830829737fff",
+      "latitude": 37.787010898319004,
+      "longitude": -122.43913887841859,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.47620001435279846,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a283082976ffff",
+      "latitude": 37.78882770105715,
+      "longitude": -122.44526736239699,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.44020000100135803,
+      "eligible_observation_count": 12,
+      "h3_cell": "8a283082a267fff",
+      "latitude": 37.79252966236954,
+      "longitude": -122.40584492506947,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 12,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5634999871253967,
+      "eligible_observation_count": 23,
+      "h3_cell": "8a283082a277fff",
+      "latitude": 37.7928717076146,
+      "longitude": -122.40435950967927,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 23,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.33180001378059387,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082a32ffff",
+      "latitude": 37.78885035910239,
+      "longitude": -122.40311872653383,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3628999888896942,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a283082a357fff",
+      "latitude": 37.790861054826365,
+      "longitude": -122.40373910734657,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.42410001158714294,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082a35ffff",
+      "latitude": 37.791695368844564,
+      "longitude": -122.40479201133795,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3785000145435333,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a283082a377fff",
+      "latitude": 37.78968470027692,
+      "longitude": -122.40417160939451,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.30070000886917114,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082aa87fff",
+      "latitude": 37.78600523162777,
+      "longitude": -122.4014455152503,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.43959999084472656,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a283082aa8ffff",
+      "latitude": 37.78683962044697,
+      "longitude": -122.40249836724007,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5634999871253967,
+      "eligible_observation_count": 18,
+      "h3_cell": "8a283082aad7fff",
+      "latitude": 37.78767398877583,
+      "longitude": -122.40355122897064,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 18,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.33180001378059387,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082b007fff",
+      "latitude": 37.79582410789148,
+      "longitude": -122.41958927845738,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082b00ffff",
+      "latitude": 37.79665818880397,
+      "longitude": -122.42064225203976,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.30070000886917114,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b017fff",
+      "latitude": 37.796166317488435,
+      "longitude": -122.41810399327494,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.44020000100135803,
+      "eligible_observation_count": 12,
+      "h3_cell": "8a283082b02ffff",
+      "latitude": 37.79548188202193,
+      "longitude": -122.42107453957934,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 12,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.25189998745918274,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a283082b047fff",
+      "latitude": 37.797149995691896,
+      "longitude": -122.42318049313853,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5198000073432922,
+      "eligible_observation_count": 14,
+      "h3_cell": "8a283082b04ffff",
+      "latitude": 37.79798402177865,
+      "longitude": -122.4242334845109,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 14,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.39410001039505005,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082b05ffff",
+      "latitude": 37.79832628913329,
+      "longitude": -122.422748228394,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.597000002861023,
+      "eligible_observation_count": 20,
+      "h3_cell": "8a283082b067fff",
+      "latitude": 37.7959736931369,
+      "longitude": -122.42361274688577,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 20,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.31630000472068787,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b06ffff",
+      "latitude": 37.79680772589444,
+      "longitude": -122.42466572685998,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3474000096321106,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082b077fff",
+      "latitude": 37.79631594910612,
+      "longitude": -122.42212751149447,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4406999945640564,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a283082b08ffff",
+      "latitude": 37.79851891215841,
+      "longitude": -122.41723931761769,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4916999936103821,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a283082b0a7fff",
+      "latitude": 37.79650851081174,
+      "longitude": -122.4166186840334,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.3935000002384186,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a283082b0affff",
+      "latitude": 37.7973426193812,
+      "longitude": -122.41767166094577,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4406999945640564,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a283082b0c7fff",
+      "latitude": 37.79901077502486,
+      "longitude": -122.41977764396655,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5328999757766724,
+      "eligible_observation_count": 17,
+      "h3_cell": "8a283082b0cffff",
+      "latitude": 37.79984482209789,
+      "longitude": -122.4208306500738,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 17,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.45570001006126404,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a283082b0d7fff",
+      "latitude": 37.799352993559665,
+      "longitude": -122.41829231565885,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.501800000667572,
+      "eligible_observation_count": 15,
+      "h3_cell": "8a283082b0dffff",
+      "latitude": 37.80018705446157,
+      "longitude": -122.41934532343213,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 15,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4251999855041504,
+      "eligible_observation_count": 12,
+      "h3_cell": "8a283082b0effff",
+      "latitude": 37.798668540215715,
+      "longitude": -122.42126294821205,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 12,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.28299999237060547,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b147fff",
+      "latitude": 37.79396332154345,
+      "longitude": -122.42299203078723,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.25189998745918274,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a283082b14ffff",
+      "latitude": 37.79479738146939,
+      "longitude": -122.4240449896361,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.28299999237060547,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b167fff",
+      "latitude": 37.792786994094946,
+      "longitude": -122.4234242739384,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3785000145435333,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a283082b16ffff",
+      "latitude": 37.79362106069046,
+      "longitude": -122.42447722138985,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.40959998965263367,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a283082b187fff",
+      "latitude": 37.79449806651421,
+      "longitude": -122.41599807197431,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.39410001039505005,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082b18ffff",
+      "latitude": 37.79533220224985,
+      "longitude": -122.41705102775849,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.40959998965263367,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a283082b1a7fff",
+      "latitude": 37.793321742169944,
+      "longitude": -122.41643041609606,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.26739999651908875,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b227fff",
+      "latitude": 37.800485977038804,
+      "longitude": -122.4273925169923,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.25189998745918274,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a283082b22ffff",
+      "latitude": 37.80131992112349,
+      "longitude": -122.42844554727228,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.32910001277923584,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082b237fff",
+      "latitude": 37.80082828587916,
+      "longitude": -122.42590726589026,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.0,
+      "eligible_observation_count": 0,
+      "h3_cell": "8a283082b25ffff",
+      "latitude": 37.80416399451861,
+      "longitude": -122.4301194520624,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3467999994754791,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082b317fff",
+      "latitude": 37.79881802736578,
+      "longitude": -122.42528648561107,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.33180001378059387,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082b337fff",
+      "latitude": 37.7976417381529,
+      "longitude": -122.42571871656145,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.28299999237060547,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b34ffff",
+      "latitude": 37.80063522697459,
+      "longitude": -122.43141597391006,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2363000065088272,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a283082b357fff",
+      "latitude": 37.80014365192771,
+      "longitude": -122.42887774402345,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.26739999651908875,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b35ffff",
+      "latitude": 37.80097758218381,
+      "longitude": -122.42993077262807,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.31299999356269836,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b38ffff",
+      "latitude": 37.80117057844768,
+      "longitude": -122.42442199071873,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4081000089645386,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a283082b3a7fff",
+      "latitude": 37.79916030854893,
+      "longitude": -122.42380123116469,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.26739999651908875,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b3affff",
+      "latitude": 37.799994307464424,
+      "longitude": -122.42485424366362,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082b407fff",
+      "latitude": 37.79821923328565,
+      "longitude": -122.40919177698878,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.501800000667572,
+      "eligible_observation_count": 15,
+      "h3_cell": "8a283082b427fff",
+      "latitude": 37.79704293696457,
+      "longitude": -122.4096242326874,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 15,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.30070000886917114,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b42ffff",
+      "latitude": 37.7978771213468,
+      "longitude": -122.41067720650459,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4867999851703644,
+      "eligible_observation_count": 15,
+      "h3_cell": "8a283082b437fff",
+      "latitude": 37.797385035074306,
+      "longitude": -122.40813880151595,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 15,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.578499972820282,
+      "eligible_observation_count": 21,
+      "h3_cell": "8a283082b527fff",
+      "latitude": 37.79385609875671,
+      "longitude": -122.4094361697888,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 21,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.30070000886917114,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b557fff",
+      "latitude": 37.79670082257568,
+      "longitude": -122.41110963980832,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082b55ffff",
+      "latitude": 37.79753499312891,
+      "longitude": -122.41216261196836,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082b577fff",
+      "latitude": 37.79552451468741,
+      "longitude": -122.41154206211151,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5324000120162964,
+      "eligible_observation_count": 16,
+      "h3_cell": "8a283082b587fff",
+      "latitude": 37.79689288436664,
+      "longitude": -122.40560037890836,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 16,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5023999810218811,
+      "eligible_observation_count": 16,
+      "h3_cell": "8a283082b58ffff",
+      "latitude": 37.79772711690379,
+      "longitude": -122.40665334629537,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 16,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.578499972820282,
+      "eligible_observation_count": 37,
+      "h3_cell": "8a283082b5affff",
+      "latitude": 37.79655081636632,
+      "longitude": -122.40708583578198,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 37,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.0,
+      "eligible_observation_count": 0,
+      "h3_cell": "8a283082b68ffff",
+      "latitude": 37.80675270627256,
+      "longitude": -122.41421260632123,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.0,
+      "eligible_observation_count": 0,
+      "h3_cell": "8a283082b6c7fff",
+      "latitude": 37.807244539580516,
+      "longitude": -122.41675116923324,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5335000157356262,
+      "eligible_observation_count": 24,
+      "h3_cell": "8a283082b70ffff",
+      "latitude": 37.80170553842217,
+      "longitude": -122.41742761879806,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 24,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5324000120162964,
+      "eligible_observation_count": 16,
+      "h3_cell": "8a283082b727fff",
+      "latitude": 37.79969519581901,
+      "longitude": -122.41680696329038,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 16,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5335000157356262,
+      "eligible_observation_count": 25,
+      "h3_cell": "8a283082b72ffff",
+      "latitude": 37.80052927054993,
+      "longitude": -122.4178599727282,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 25,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5634999871253967,
+      "eligible_observation_count": 38,
+      "h3_cell": "8a283082b747fff",
+      "latitude": 37.80219735851154,
+      "longitude": -122.41996602080127,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 38,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.6085000038146973,
+      "eligible_observation_count": 59,
+      "h3_cell": "8a283082b757fff",
+      "latitude": 37.80253958598201,
+      "longitude": -122.41848064936585,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 59,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5328999757766724,
+      "eligible_observation_count": 17,
+      "h3_cell": "8a283082b75ffff",
+      "latitude": 37.80337361304085,
+      "longitude": -122.4195336896663,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 17,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.33180001378059387,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082b767fff",
+      "latitude": 37.801021094863536,
+      "longitude": -122.42039834093698,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4706999957561493,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a283082b76ffff",
+      "latitude": 37.801855114764955,
+      "longitude": -122.42145136817282,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.39410001039505005,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082b777fff",
+      "latitude": 37.80136332478097,
+      "longitude": -122.4189129918987,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.26739999651908875,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b807fff",
+      "latitude": 37.78758972240421,
+      "longitude": -122.42261514007362,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5328999757766724,
+      "eligible_observation_count": 17,
+      "h3_cell": "8a283082b80ffff",
+      "latitude": 37.78842384999632,
+      "longitude": -122.4236680338814,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 17,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082b817fff",
+      "latitude": 37.787931949095835,
+      "longitude": -122.42113001164137,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2985000014305115,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082b81ffff",
+      "latitude": 37.78876609051499,
+      "longitude": -122.4221829071177,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.31630000472068787,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b827fff",
+      "latitude": 37.78641334518737,
+      "longitude": -122.42304736203407,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.31630000472068787,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b82ffff",
+      "latitude": 37.78724747944665,
+      "longitude": -122.42410024444595,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2985000014305115,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082b837fff",
+      "latitude": 37.78675557431808,
+      "longitude": -122.42156225599275,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.44510000944137573,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082b847fff",
+      "latitude": 37.788915686482326,
+      "longitude": -122.42620603844668,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.46059998869895935,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082b857fff",
+      "latitude": 37.78925795709378,
+      "longitude": -122.42472093741554,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.46059998869895935,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082b86ffff",
+      "latitude": 37.78857339960627,
+      "longitude": -122.42769111541352,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.46059998869895935,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082b887fff",
+      "latitude": 37.78945052275065,
+      "longitude": -122.41921258141181,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4138999879360199,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082b88ffff",
+      "latitude": 37.79028467132984,
+      "longitude": -122.42026548995042,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.6509000062942505,
+      "eligible_observation_count": 16,
+      "h3_cell": "8a283082b897fff",
+      "latitude": 37.78979271446546,
+      "longitude": -122.41772738247245,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 16,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.429500013589859,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b8affff",
+      "latitude": 37.78910831476679,
+      "longitude": -122.42069775629405,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2980000078678131,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b8c7fff",
+      "latitude": 37.79077656377538,
+      "longitude": -122.42280357976594,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3474000096321106,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082b8cffff",
+      "latitude": 37.79161065753644,
+      "longitude": -122.42385650609327,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2980000078678131,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082b8dffff",
+      "latitude": 37.7919529070026,
+      "longitude": -122.4223713362143,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.6509000062942505,
+      "eligible_observation_count": 16,
+      "h3_cell": "8a283082b8e7fff",
+      "latitude": 37.7896002114396,
+      "longitude": -122.42323581232151,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 16,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.3785000145435333,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a283082b8effff",
+      "latitude": 37.79043431186902,
+      "longitude": -122.42428872725218,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.6223000288009644,
+      "eligible_observation_count": 14,
+      "h3_cell": "8a283082b8f7fff",
+      "latitude": 37.78994244951863,
+      "longitude": -122.421750663166,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 14,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.30070000886917114,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a283082ba0ffff",
+      "latitude": 37.79426216925785,
+      "longitude": -122.43103856284169,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3628999888896942,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a283082ba1ffff",
+      "latitude": 37.79460450656779,
+      "longitude": -122.42955344778865,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.39410001039505005,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082ba47fff",
+      "latitude": 37.79475376547377,
+      "longitude": -122.4335766237466,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3474000096321106,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082ba57fff",
+      "latitude": 37.79509613287611,
+      "longitude": -122.43209153444424,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.40959998965263367,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a283082ba6ffff",
+      "latitude": 37.79441138180773,
+      "longitude": -122.43506168897417,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082ba77fff",
+      "latitude": 37.79391981568299,
+      "longitude": -122.43252365382291,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3628999888896942,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a283082ba87fff",
+      "latitude": 37.795289132388625,
+      "longitude": -122.4265831454725,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5695000290870667,
+      "eligible_observation_count": 23,
+      "h3_cell": "8a283082ba97fff",
+      "latitude": 37.79563142089739,
+      "longitude": -122.42509795821225,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 23,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.40959998965263367,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a283082baaffff",
+      "latitude": 37.79494682761175,
+      "longitude": -122.42806830866509,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3474000096321106,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082bab7fff",
+      "latitude": 37.79445510678857,
+      "longitude": -122.42553017856807,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.28519999980926514,
+      "eligible_observation_count": 3,
+      "h3_cell": "8a283082bae7fff",
+      "latitude": 37.79543848401366,
+      "longitude": -122.43060642106849,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 3,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.36730000376701355,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082bb27fff",
+      "latitude": 37.78906514158815,
+      "longitude": -122.43022907655336,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.0,
+      "eligible_observation_count": 0,
+      "h3_cell": "8a283082bb8ffff",
+      "latitude": 37.79293649018038,
+      "longitude": -122.42744753039973,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.33180001378059387,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082bb97fff",
+      "latitude": 37.79244473080121,
+      "longitude": -122.42490944214742,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4916999936103821,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a283082bc07fff",
+      "latitude": 37.789984967600844,
+      "longitude": -122.41221873586937,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5727999806404114,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082bc0ffff",
+      "latitude": 37.79081919198493,
+      "longitude": -122.41327164132557,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.2696000039577484,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a283082bc1ffff",
+      "latitude": 37.79116131861284,
+      "longitude": -122.41178634617171,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.429500013589859,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283082bc37fff",
+      "latitude": 37.78915072272323,
+      "longitude": -122.41116584014782,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.486299991607666,
+      "eligible_observation_count": 14,
+      "h3_cell": "8a283082bc47fff",
+      "latitude": 37.79131123914575,
+      "longitude": -122.4158098259575,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 14,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.578499972820282,
+      "eligible_observation_count": 31,
+      "h3_cell": "8a283082bc57fff",
+      "latitude": 37.791653395874896,
+      "longitude": -122.41432455651577,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 31,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3474000096321106,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082bc5ffff",
+      "latitude": 37.79248757927008,
+      "longitude": -122.41537748143948,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.46059998869895935,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082bc67fff",
+      "latitude": 37.790134889910156,
+      "longitude": -122.41624215947736,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5324000120162964,
+      "eligible_observation_count": 16,
+      "h3_cell": "8a283082bc6ffff",
+      "latitude": 37.79096906614448,
+      "longitude": -122.41729507134477,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 16,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4916999936103821,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a283082bc77fff",
+      "latitude": 37.790477049083684,
+      "longitude": -122.4147569124279,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5485000014305115,
+      "eligible_observation_count": 20,
+      "h3_cell": "8a283082bc87fff",
+      "latitude": 37.791845523044344,
+      "longitude": -122.4088156837151,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 20,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5485000014305115,
+      "eligible_observation_count": 27,
+      "h3_cell": "8a283082bc8ffff",
+      "latitude": 37.79267976841867,
+      "longitude": -122.40986860387831,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 27,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.39410001039505005,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082bc97fff",
+      "latitude": 37.79218760084577,
+      "longitude": -122.40733031641521,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5485000014305115,
+      "eligible_observation_count": 20,
+      "h3_cell": "8a283082bcaffff",
+      "latitude": 37.791503428966344,
+      "longitude": -122.41030102696773,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 20,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082bcc7fff",
+      "latitude": 37.79317187156389,
+      "longitude": -122.4124068737175,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5485000014305115,
+      "eligible_observation_count": 27,
+      "h3_cell": "8a283082bcd7fff",
+      "latitude": 37.79351399329847,
+      "longitude": -122.41092153377826,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 27,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082bcdffff",
+      "latitude": 37.79434819768312,
+      "longitude": -122.4119744734144,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.578499972820282,
+      "eligible_observation_count": 19,
+      "h3_cell": "8a283082bce7fff",
+      "latitude": 37.79199553633079,
+      "longitude": -122.41283926302108,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 19,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5335000157356262,
+      "eligible_observation_count": 18,
+      "h3_cell": "8a283082bcf7fff",
+      "latitude": 37.79233766051241,
+      "longitude": -122.41135394547479,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 18,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.46059998869895935,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a283082bd07fff",
+      "latitude": 37.786797980036084,
+      "longitude": -122.41203060933192,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.5073000192642212,
+      "eligible_observation_count": 10,
+      "h3_cell": "8a283082bd1ffff",
+      "latitude": 37.78797435593462,
+      "longitude": -122.41159823023918,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 10,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.36730000376701355,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082bd37fff",
+      "latitude": 37.78596370133639,
+      "longitude": -122.41097774612952,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4251999855041504,
+      "eligible_observation_count": 12,
+      "h3_cell": "8a283082bd4ffff",
+      "latitude": 37.788958531564404,
+      "longitude": -122.41667448199945,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 12,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.33180001378059387,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a283082bd67fff",
+      "latitude": 37.7869479540489,
+      "longitude": -122.41605391417626,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3628999888896942,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a283082bd6ffff",
+      "latitude": 37.78778216410956,
+      "longitude": -122.41710679352417,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.0,
+      "eligible_observation_count": 0,
+      "h3_cell": "8a2830876517fff",
+      "latitude": 37.804655492436,
+      "longitude": -122.43265776564084,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.0,
+      "eligible_observation_count": 0,
+      "h3_cell": "8a2830876537fff",
+      "latitude": 37.80347924993716,
+      "longitude": -122.43308991678578,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.429500013589859,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a283087681ffff",
+      "latitude": 37.79804453794212,
+      "longitude": -122.44731968214909,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.7081000208854675,
+      "eligible_observation_count": 21,
+      "h3_cell": "8a2830876887fff",
+      "latitude": 37.79872958502863,
+      "longitude": -122.44434974051296,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 21,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 3
+    },
+    {
+      "coverage_score": 0.48919999599456787,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a283087688ffff",
+      "latitude": 37.79956334982717,
+      "longitude": -122.4454027734006,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.7235999703407288,
+      "eligible_observation_count": 26,
+      "h3_cell": "8a2830876897fff",
+      "latitude": 37.79907208418287,
+      "longitude": -122.44286473356223,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 26,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 3
+    },
+    {
+      "coverage_score": 0.47620001435279846,
+      "eligible_observation_count": 8,
+      "h3_cell": "8a28308768affff",
+      "latitude": 37.79838706961468,
+      "longitude": -122.44583472337574,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 8,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3181000053882599,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a28308768c7fff",
+      "latitude": 37.800054551052895,
+      "longitude": -122.44794079547816,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.5669999718666077,
+      "eligible_observation_count": 18,
+      "h3_cell": "8a28308768d7fff",
+      "latitude": 37.800397094121806,
+      "longitude": -122.44645581600153,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 18,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.4081000089645386,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a28308768f7fff",
+      "latitude": 37.799220820585774,
+      "longitude": -122.44688775457085,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 2
+    },
+    {
+      "coverage_score": 0.26739999651908875,
+      "eligible_observation_count": 4,
+      "h3_cell": "8a2830876c07fff",
+      "latitude": 37.79926564346388,
+      "longitude": -122.43735653827163,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 4,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2363000065088272,
+      "eligible_observation_count": 2,
+      "h3_cell": "8a2830876c0ffff",
+      "latitude": 37.80009948407654,
+      "longitude": -122.43840956819598,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 2,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2985000014305115,
+      "eligible_observation_count": 6,
+      "h3_cell": "8a2830876c17fff",
+      "latitude": 37.79960806374047,
+      "longitude": -122.435871433299,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 6,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.6837999820709229,
+      "eligible_observation_count": 17,
+      "h3_cell": "8a2830876c2ffff",
+      "latitude": 37.79892320692314,
+      "longitude": -122.43884161916336,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 17,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 3
+    },
+    {
+      "coverage_score": 0.682699978351593,
+      "eligible_observation_count": 19,
+      "h3_cell": "8a2830876c67fff",
+      "latitude": 37.79941456707631,
+      "longitude": -122.44137970252486,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 19,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 3
+    },
+    {
+      "coverage_score": 0.6929000020027161,
+      "eligible_observation_count": 21,
+      "h3_cell": "8a2830876c77fff",
+      "latitude": 37.79975703370789,
+      "longitude": -122.43989464740231,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 21,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 3
+    },
+    {
+      "coverage_score": 0.28299999237060547,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a2830876ca7fff",
+      "latitude": 37.79995046775184,
+      "longitude": -122.43438630424693,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2980000078678131,
+      "eligible_observation_count": 5,
+      "h3_cell": "8a2830876cb7fff",
+      "latitude": 37.80029285549692,
+      "longitude": -122.43290115111682,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 5,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.3474000096321106,
+      "eligible_observation_count": 7,
+      "h3_cell": "8a2830876d0ffff",
+      "latitude": 37.796913066698195,
+      "longitude": -122.43822065201931,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 7,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.4406999945640564,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a2830876d2ffff",
+      "latitude": 37.795736764651956,
+      "longitude": -122.43865269240345,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.40959998965263367,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a2830876d57fff",
+      "latitude": 37.79774692065974,
+      "longitude": -122.43927365913743,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.2540999948978424,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a2830876d5ffff",
+      "latitude": 37.79858075411931,
+      "longitude": -122.44032667597281,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "panoramax"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    }
+  ],
+  "policies": {
+    "dedupe_key": "sha256 for owned captures; provider/provider_instance/provider_image_id for external imagery",
+    "git_pixel_policy": "metadata_and_derived_viewers_only",
+    "github_release_asset_limit_bytes": 2147483648,
+    "neighborhood_policy": "human label only; H3 cells are the physical shard boundary",
+    "raw_original_policy": "disabled_by_default",
+    "release_asset_max_bytes": 786432000,
+    "release_asset_target_bytes": 524288000,
+    "release_repo": "patstallone1-prog/Spatial-data-mapping",
+    "release_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/tag/sf-current"
+  },
+  "release_assets": [
+    {
+      "asset_name": "sf-r10-8a283082b247fff-tier1-p000.tar",
+      "bytes": 13113490,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b247fff-tier1-p000.tar",
+      "h3_cell": "8a283082b247fff",
+      "image_count": 24,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 543012,
+          "captured_at": "2026-09-01T17:45:00",
+          "lat": 37.80242222222222,
+          "lon": -122.43080277777779,
+          "path": "20260902T023431Z/images/016c9145c07247c4_099_IMG_4499 2.jpg",
+          "sha256": "016c9145c07247c4bb7655da86e599beb54ca62aa2fdbf942fd3c6678caac6cf",
+          "source_name": "099_IMG_4499 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 270623,
+          "captured_at": "2026-09-01T17:34:11",
+          "lat": 37.803013888888884,
+          "lon": -122.43006944444446,
+          "path": "20260902T023431Z/images/1014f2ff701f6b4f_017_IMG_4417 2.jpg",
+          "sha256": "1014f2ff701f6b4fcb91a3cd70a0f128ca24aff70f33ff60ceb7ce8a8b49c1e4",
+          "source_name": "017_IMG_4417 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 627829,
+          "captured_at": "2026-09-01T17:33:15",
+          "lat": 37.802569444444444,
+          "lon": -122.43020555555556,
+          "path": "20260902T023431Z/images/109772a172e85eb7_007_IMG_4406 2.jpg",
+          "sha256": "109772a172e85eb7bcc9bfe574a0469058f3b740f11e0ac4144d7d06684b12bb",
+          "source_name": "007_IMG_4406 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 462179,
+          "captured_at": "2026-09-01T17:34:37",
+          "lat": 37.80331666666667,
+          "lon": -122.4301138888889,
+          "path": "20260902T023431Z/images/182a513272f81652_021_IMG_4421 2.jpg",
+          "sha256": "182a513272f816520ceeb9ece5cbe5664dfbbdc21225a8aa16b9d7c512db1b4c",
+          "source_name": "021_IMG_4421 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 522280,
+          "captured_at": "2026-09-01T17:33:18",
+          "lat": 37.80262777777777,
+          "lon": -122.43015277777778,
+          "path": "20260902T023431Z/images/1879780f97fc9da6_009_IMG_4408 2.jpg",
+          "sha256": "1879780f97fc9da69b4bd75cae9d1fda8933dfc5bd5f0b7c118627cb1274b45e",
+          "source_name": "009_IMG_4408 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 475454,
+          "captured_at": "2026-09-01T17:33:43",
+          "lat": 37.80271666666666,
+          "lon": -122.43000833333333,
+          "path": "20260902T023431Z/images/22b1160bc6e6b111_014_IMG_4413 2.jpg",
+          "sha256": "22b1160bc6e6b111d636626308e7fe4aa85171794c802b8f893dcedca037a109",
+          "source_name": "014_IMG_4413 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 528467,
+          "captured_at": "2026-09-01T17:33:58",
+          "lat": 37.802861111111106,
+          "lon": -122.43004722222223,
+          "path": "20260902T023431Z/images/31ffe243f1fc9768_015_IMG_4414 2.jpg",
+          "sha256": "31ffe243f1fc9768fe9e2ed4a90105ec7daa2df5b2851c1ba2a23ad5186d97ad",
+          "source_name": "015_IMG_4414 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 585938,
+          "captured_at": "2026-09-01T17:33:12",
+          "lat": 37.802524999999996,
+          "lon": -122.4302888888889,
+          "path": "20260902T023431Z/images/4b121982450ff028_004_IMG_4403 2.jpg",
+          "sha256": "4b121982450ff02884745e145f6ccc829a0a3b6ab144e56a9ca2aa94ab9a6203",
+          "source_name": "004_IMG_4403 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 461641,
+          "captured_at": "2026-09-01T17:34:38",
+          "lat": 37.80333611111111,
+          "lon": -122.43013888888889,
+          "path": "20260902T023431Z/images/5b9c60eee68a6839_022_IMG_4422 2.jpg",
+          "sha256": "5b9c60eee68a6839577c0690785a17a694266aead12c98b147588fb3b0f2cab9",
+          "source_name": "022_IMG_4422 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 496028,
+          "captured_at": "2026-09-01T17:34:22",
+          "lat": 37.80311944444444,
+          "lon": -122.43003055555556,
+          "path": "20260902T023431Z/images/5ea7f783da2ba0cd_019_IMG_4419 2.jpg",
+          "sha256": "5ea7f783da2ba0cd494990311602d9a51bfd74580f4a6f8a3ed5ed8a60f9054b",
+          "source_name": "019_IMG_4419 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 703714,
+          "captured_at": "2026-09-01T17:45:06",
+          "lat": 37.802436111111106,
+          "lon": -122.43071111111112,
+          "path": "20260902T023431Z/images/630efdc6a46e4432_102_IMG_4502 2.jpg",
+          "sha256": "630efdc6a46e44329471fe3f0ec4d6a4aa80bcddbf7e7bbe732b17df857b7ad7",
+          "source_name": "102_IMG_4502 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 775100,
+          "captured_at": "2026-09-01T17:45:05",
+          "lat": 37.80243333333333,
+          "lon": -122.43073333333334,
+          "path": "20260902T023431Z/images/662d0e40037ee59e_101_IMG_4501 2.jpg",
+          "sha256": "662d0e40037ee59e8076bcec2341300fbaf8b42ef340975e54450105efe3e513",
+          "source_name": "101_IMG_4501 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 494511,
+          "captured_at": "2026-09-01T17:34:24",
+          "lat": 37.80314722222222,
+          "lon": -122.43005277777779,
+          "path": "20260902T023431Z/images/6fa7df62a0447618_020_IMG_4420 2.jpg",
+          "sha256": "6fa7df62a044761825ba7aecc04ad258f5e0460e304123e568e267d3171a7adb",
+          "source_name": "020_IMG_4420 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 484458,
+          "captured_at": "2026-09-01T17:33:41",
+          "lat": 37.80271111111111,
+          "lon": -122.43001666666667,
+          "path": "20260902T023431Z/images/754cc17cf3d130ae_013_IMG_4412 2.jpg",
+          "sha256": "754cc17cf3d130ae8c813c2caba34fb9e44f386adab8b4e2ee0e2556bc12cf46",
+          "source_name": "013_IMG_4412 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 626702,
+          "captured_at": "2026-09-01T17:33:14",
+          "lat": 37.80255555555555,
+          "lon": -122.43024444444445,
+          "path": "20260902T023431Z/images/7556a100f34e4440_006_IMG_4405 2.jpg",
+          "sha256": "7556a100f34e4440d2f51e19ec4d6db7f93c8e99ddc8f1529a191df554428d4c",
+          "source_name": "006_IMG_4405 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 557132,
+          "captured_at": "2026-09-01T17:45:02",
+          "lat": 37.80243055555555,
+          "lon": -122.43075555555556,
+          "path": "20260902T023431Z/images/8513a349e1750d54_100_IMG_4500 2.jpg",
+          "sha256": "8513a349e1750d546fab588627fb22287720b1a12dc1ef68f32bac9860798bb9",
+          "source_name": "100_IMG_4500 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 608072,
+          "captured_at": "2026-09-01T17:45:11",
+          "lat": 37.80242222222222,
+          "lon": -122.43064166666667,
+          "path": "20260902T023431Z/images/8d798b523e5dad65_104_IMG_4504 2.jpg",
+          "sha256": "8d798b523e5dad65a353335d204a0fc40028ec689ff60f22cd83d61152cb218c",
+          "source_name": "104_IMG_4504 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 558516,
+          "captured_at": "2026-09-01T17:34:00",
+          "lat": 37.802883333333334,
+          "lon": -122.43006111111112,
+          "path": "20260902T023431Z/images/995d3c870469b74c_016_IMG_4415 2.jpg",
+          "sha256": "995d3c870469b74c5b428b5fe893107fc8ba845b4852aae7f59760703b040cfe",
+          "source_name": "016_IMG_4415 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 589360,
+          "captured_at": "2026-09-01T17:33:16",
+          "lat": 37.80258055555555,
+          "lon": -122.430175,
+          "path": "20260902T023431Z/images/9aff8009428d53b3_008_IMG_4407 2.jpg",
+          "sha256": "9aff8009428d53b322329131eba6193f27440c969539eadda5070cdf3ba3ca44",
+          "source_name": "008_IMG_4407 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 443549,
+          "captured_at": "2026-09-01T17:33:39",
+          "lat": 37.802641666666666,
+          "lon": -122.43002222222222,
+          "path": "20260902T023431Z/images/a327d6884fde2eac_011_IMG_4410 2.jpg",
+          "sha256": "a327d6884fde2eac55964cc925b17709e07eef61a047aef0d75641d1ead5bf99",
+          "source_name": "011_IMG_4410 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 521918,
+          "captured_at": "2026-09-01T17:34:20",
+          "lat": 37.8031,
+          "lon": -122.43004722222223,
+          "path": "20260902T023431Z/images/a7ffd82d054770dd_018_IMG_4418 2.jpg",
+          "sha256": "a7ffd82d054770ddbb13a251443b19dce41e12347b1f9112499d1d6af1f37443",
+          "source_name": "018_IMG_4418 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 471036,
+          "captured_at": "2026-09-01T17:33:40",
+          "lat": 37.802677777777774,
+          "lon": -122.43002222222222,
+          "path": "20260902T023431Z/images/b43e65cf19ac7844_012_IMG_4411 2.jpg",
+          "sha256": "b43e65cf19ac78444f6186eab0c280e891bde5af15a6ec2b853f957d988527d1",
+          "source_name": "012_IMG_4411 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 717155,
+          "captured_at": "2026-09-01T17:45:08",
+          "lat": 37.80244166666667,
+          "lon": -122.43068055555555,
+          "path": "20260902T023431Z/images/baf5b79b5f6441c6_103_IMG_4503 2.jpg",
+          "sha256": "baf5b79b5f6441c6d5be00395d04698b8a218e60814cdecd514ab55553484e4c",
+          "source_name": "103_IMG_4503 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 588816,
+          "captured_at": "2026-09-01T17:33:13",
+          "lat": 37.80253888888888,
+          "lon": -122.43033611111112,
+          "path": "20260902T023431Z/images/fdc5d4d742af7b44_005_IMG_4404 2.jpg",
+          "sha256": "fdc5d4d742af7b441c9b0583e24c833cb2f07cc4044e3af4dcaa2313f17ea13b",
+          "source_name": "005_IMG_4404 2.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a283082b247fff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b247fff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    },
+    {
+      "asset_name": "sf-r10-8a283082b24ffff-tier1-p000.tar",
+      "bytes": 14625121,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b24ffff-tier1-p000.tar",
+      "h3_cell": "8a283082b24ffff",
+      "image_count": 21,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 801605,
+          "captured_at": "2026-09-01T17:41:14",
+          "lat": 37.80346944444444,
+          "lon": -122.43160277777778,
+          "path": "20260902T023431Z/images/0561ff8c50040f76_078_IMG_4478 2.jpg",
+          "sha256": "0561ff8c50040f76e862e36e333ce26aa51bd980618431629b465124fd7c612c",
+          "source_name": "078_IMG_4478 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 624893,
+          "captured_at": "2026-09-01T17:40:23",
+          "lat": 37.80396666666666,
+          "lon": -122.43165555555557,
+          "path": "20260902T023431Z/images/069cbc6573e3b778_069_IMG_4469 2.jpg",
+          "sha256": "069cbc6573e3b77850a284c7fcd70081ca80cc36a16e0ef8749cc90dc4582ef6",
+          "source_name": "069_IMG_4469 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 667610,
+          "captured_at": "2026-09-01T17:40:52",
+          "lat": 37.80356666666666,
+          "lon": -122.43163333333334,
+          "path": "20260902T023431Z/images/0b56e356809761b2_073_IMG_4473 2.jpg",
+          "sha256": "0b56e356809761b21a800f7ba286691195cc15ff616b99728db49f3a808d00ce",
+          "source_name": "073_IMG_4473 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 760095,
+          "captured_at": "2026-09-01T17:39:43",
+          "lat": 37.80446944444444,
+          "lon": -122.43179444444445,
+          "path": "20260902T023431Z/images/29e24af97ada8615_060_IMG_4460 2.jpg",
+          "sha256": "29e24af97ada8615f4a7a1e967bd464e5cb6b122ec7cfd06fa6c377853aa590c",
+          "source_name": "060_IMG_4460 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 613971,
+          "captured_at": "2026-09-01T17:39:53",
+          "lat": 37.80433333333333,
+          "lon": -122.43173333333334,
+          "path": "20260902T023431Z/images/2b81c5bfd43fcccd_063_IMG_4463 2.jpg",
+          "sha256": "2b81c5bfd43fcccd0c251e7331cf4acdd8e00f667e1e9eba2618af2ce8d1de3d",
+          "source_name": "063_IMG_4463 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 726261,
+          "captured_at": "2026-09-01T17:39:45",
+          "lat": 37.80443888888889,
+          "lon": -122.43177777777778,
+          "path": "20260902T023431Z/images/2c4b07130db371ba_061_IMG_4461 2.jpg",
+          "sha256": "2c4b07130db371bae112a132e7759627ce04a46d62c32cda4a0e4e2a62c2867b",
+          "source_name": "061_IMG_4461 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 605980,
+          "captured_at": "2026-09-01T17:39:51",
+          "lat": 37.80436666666667,
+          "lon": -122.43175555555555,
+          "path": "20260902T023431Z/images/38c94d2b85b520f0_062_IMG_4462 2.jpg",
+          "sha256": "38c94d2b85b520f077842d0dad35c6beec11c69e4a235978a54bf7f7433e64b9",
+          "source_name": "062_IMG_4462 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 666780,
+          "captured_at": "2026-09-01T17:40:42",
+          "lat": 37.8037,
+          "lon": -122.43164722222222,
+          "path": "20260902T023431Z/images/40860d6e327b2f79_072_IMG_4472 2.jpg",
+          "sha256": "40860d6e327b2f790576adfe628b491898c768576916c6a0314c55be19f38911",
+          "source_name": "072_IMG_4472 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 689599,
+          "captured_at": "2026-09-01T17:41:08",
+          "lat": 37.803488888888886,
+          "lon": -122.43160277777778,
+          "path": "20260902T023431Z/images/41f15fa2db8c6aaf_076_IMG_4476 2.jpg",
+          "sha256": "41f15fa2db8c6aaf1d7bbc52a754bd1d19d54c3932f35a7e96fd9993de21e190",
+          "source_name": "076_IMG_4476 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 729166,
+          "captured_at": "2026-09-01T17:40:01",
+          "lat": 37.804224999999995,
+          "lon": -122.43169444444445,
+          "path": "20260902T023431Z/images/55d14e08cd627c5f_065_IMG_4465 2.jpg",
+          "sha256": "55d14e08cd627c5fe40f26d3015199aa112e3ecaefe71cdb5b29a1d14be59903",
+          "source_name": "065_IMG_4465 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 660177,
+          "captured_at": "2026-09-01T17:40:11",
+          "lat": 37.80410277777777,
+          "lon": -122.43166388888889,
+          "path": "20260902T023431Z/images/60345cc7bdf5803a_067_IMG_4467 2.jpg",
+          "sha256": "60345cc7bdf5803a096bb59cd4a9c303c37b81fd67723b2e11ec8c036a69a0a3",
+          "source_name": "067_IMG_4467 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 660826,
+          "captured_at": "2026-09-01T17:41:08",
+          "lat": 37.803488888888886,
+          "lon": -122.43160277777778,
+          "path": "20260902T023431Z/images/84239e6c1c73c6fe_075_IMG_4475 2.jpg",
+          "sha256": "84239e6c1c73c6fe3d449da101fb6360f60278126014d7a582668e39926dd2e0",
+          "source_name": "075_IMG_4475 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 661796,
+          "captured_at": "2026-09-01T17:41:25",
+          "lat": 37.80346944444444,
+          "lon": -122.43160277777778,
+          "path": "20260902T023431Z/images/90df14a0cbbdd241_080_IMG_4480 2.jpg",
+          "sha256": "90df14a0cbbdd241e7463298c9a5814955bd862e51ec4a378a5e0317d075fc2a",
+          "source_name": "080_IMG_4480 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 776833,
+          "captured_at": "2026-09-01T17:40:18",
+          "lat": 37.80401666666666,
+          "lon": -122.43165555555557,
+          "path": "20260902T023431Z/images/a0005c71aa06e7fe_068_IMG_4468 2.jpg",
+          "sha256": "a0005c71aa06e7fe480f2d41ae3c3b18e441ceef4acfd58f6bee4c9e51a3fe11",
+          "source_name": "068_IMG_4468 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 640271,
+          "captured_at": "2026-09-01T17:40:25",
+          "lat": 37.80394444444444,
+          "lon": -122.43165555555557,
+          "path": "20260902T023431Z/images/a85f8197c439d910_070_IMG_4470 2.jpg",
+          "sha256": "a85f8197c439d9108c0795ac0a5220de4c198612c1d207b902479b93130d3d89",
+          "source_name": "070_IMG_4470 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 820993,
+          "captured_at": "2026-09-01T17:41:13",
+          "lat": 37.803466666666665,
+          "lon": -122.43160277777778,
+          "path": "20260902T023431Z/images/af80345b424139b6_077_IMG_4477 2.jpg",
+          "sha256": "af80345b424139b661652b586d6be8503d64244ac46909d25aeebe3351f375d3",
+          "source_name": "077_IMG_4477 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 677572,
+          "captured_at": "2026-09-01T17:39:59",
+          "lat": 37.80426111111111,
+          "lon": -122.43170833333333,
+          "path": "20260902T023431Z/images/afcdb4310d85588c_064_IMG_4464 2.jpg",
+          "sha256": "afcdb4310d85588cd8234711fc9e5a1ce68341a784d082f16e741f09a923ca3c",
+          "source_name": "064_IMG_4464 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 744032,
+          "captured_at": "2026-09-01T17:40:03",
+          "lat": 37.804205555555555,
+          "lon": -122.43168611111112,
+          "path": "20260902T023431Z/images/bc2cda25b18b1eb2_066_IMG_4466 2.jpg",
+          "sha256": "bc2cda25b18b1eb22561bc589e520532813de73e2a4997909bfbef40d36b0d6d",
+          "source_name": "066_IMG_4466 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 834143,
+          "captured_at": "2026-09-01T17:41:06",
+          "lat": 37.803486111111106,
+          "lon": -122.43160277777778,
+          "path": "20260902T023431Z/images/be76ab9442ee0d75_074_IMG_4474 2.jpg",
+          "sha256": "be76ab9442ee0d75cebb9cdb8d0a59bd4655b322e3d2aa3146c78a413ef54ce7",
+          "source_name": "074_IMG_4474 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 582533,
+          "captured_at": "2026-09-01T17:41:25",
+          "lat": 37.803475,
+          "lon": -122.43161666666667,
+          "path": "20260902T023431Z/images/be781bbc097295ce_079_IMG_4479 2.jpg",
+          "sha256": "be781bbc097295ce67846c9091c4f962c7ce3764e8526492072a58cf5616408e",
+          "source_name": "079_IMG_4479 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 679985,
+          "captured_at": "2026-09-01T17:40:31",
+          "lat": 37.803844444444444,
+          "lon": -122.43165555555557,
+          "path": "20260902T023431Z/images/f233b9edbd8fdb08_071_IMG_4471 2.jpg",
+          "sha256": "f233b9edbd8fdb0897115851f5fc1addb1bcec720b2c7a6f12235891afa58a41",
+          "source_name": "071_IMG_4471 2.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a283082b24ffff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b24ffff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    },
+    {
+      "asset_name": "sf-r10-8a283082b25ffff-tier1-p000.tar",
+      "bytes": 7805260,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b25ffff-tier1-p000.tar",
+      "h3_cell": "8a283082b25ffff",
+      "image_count": 10,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 870437,
+          "captured_at": "2026-09-01T17:35:55",
+          "lat": 37.80373055555555,
+          "lon": -122.43019166666667,
+          "path": "20260902T023431Z/images/18c74bc9554c0d72_027_IMG_4427 2.jpg",
+          "sha256": "18c74bc9554c0d72c859d3e829e0e7fec29adebbf81527f6b3c5c5cf5e849185",
+          "source_name": "027_IMG_4427 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 821580,
+          "captured_at": "2026-09-01T17:35:46",
+          "lat": 37.80362222222222,
+          "lon": -122.430175,
+          "path": "20260902T023431Z/images/4c28431703f23a40_025_IMG_4425 2.jpg",
+          "sha256": "4c28431703f23a403837ecb282f7da133b0143e8f4783e321133f79c10f18d3b",
+          "source_name": "025_IMG_4425 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 631171,
+          "captured_at": "2026-09-01T17:35:43",
+          "lat": 37.803599999999996,
+          "lon": -122.43015277777778,
+          "path": "20260902T023431Z/images/8e5320a7fd9adba3_024_IMG_4424 2.jpg",
+          "sha256": "8e5320a7fd9adba3f68d949b2148e90786f3dcd1bb0803655a048fb2beb2fb2f",
+          "source_name": "024_IMG_4424 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 807583,
+          "captured_at": "2026-09-01T17:36:41",
+          "lat": 37.80430555555555,
+          "lon": -122.4302888888889,
+          "path": "20260902T023431Z/images/9e074762dc01d213_032_IMG_4432 2.jpg",
+          "sha256": "9e074762dc01d213a8af5931c889b476d4ddf65f56af7ffafdc61220152b4f45",
+          "source_name": "032_IMG_4432 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 878443,
+          "captured_at": "2026-09-01T17:36:21",
+          "lat": 37.80406111111111,
+          "lon": -122.43016944444445,
+          "path": "20260902T023431Z/images/acdf5591f2a78954_030_IMG_4430 2.jpg",
+          "sha256": "acdf5591f2a789548526ba4832f19415ef97c43222cf64d36a618bd7130727ee",
+          "source_name": "030_IMG_4430 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 858253,
+          "captured_at": "2026-09-01T17:36:04",
+          "lat": 37.80383055555555,
+          "lon": -122.43020555555556,
+          "path": "20260902T023431Z/images/af1a6d88dccfb952_028_IMG_4428 2.jpg",
+          "sha256": "af1a6d88dccfb9520e25c7b089f1bacb4a190a7f04742e1931c8d7bf9b0e0e1b",
+          "source_name": "028_IMG_4428 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 795280,
+          "captured_at": "2026-09-01T17:36:23",
+          "lat": 37.804088888888884,
+          "lon": -122.43016944444445,
+          "path": "20260902T023431Z/images/b0417dc159112179_031_IMG_4431 2.jpg",
+          "sha256": "b0417dc1591121792c065244db0b1fe3479437fc6870d53327c4d7f6487b0337",
+          "source_name": "031_IMG_4431 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 610536,
+          "captured_at": "2026-09-01T17:35:42",
+          "lat": 37.80357222222222,
+          "lon": -122.43016944444445,
+          "path": "20260902T023431Z/images/b9ac44f9b5823196_023_IMG_4423 2.jpg",
+          "sha256": "b9ac44f9b5823196028fb3d0a34f05a1646e343ce776c90b3d654617be2c904f",
+          "source_name": "023_IMG_4423 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 736343,
+          "captured_at": "2026-09-01T17:35:54",
+          "lat": 37.80372222222222,
+          "lon": -122.43019166666667,
+          "path": "20260902T023431Z/images/e0ff6a01d77e7802_026_IMG_4426 2.jpg",
+          "sha256": "e0ff6a01d77e7802754b5313791b3dbd49e1e9d0929a99f85aa10c9623429bf7",
+          "source_name": "026_IMG_4426 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 795634,
+          "captured_at": "2026-09-01T17:36:19",
+          "lat": 37.80405,
+          "lon": -122.43018333333333,
+          "path": "20260902T023431Z/images/eca8a35c6aadcacc_029_IMG_4429 2.jpg",
+          "sha256": "eca8a35c6aadcaccc1367956274e21ac481409c001d33435347b0c90e08a7d01",
+          "source_name": "029_IMG_4429 2.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a283082b25ffff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b25ffff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    },
+    {
+      "asset_name": "sf-r10-8a283082b267fff-tier1-p000.tar",
+      "bytes": 5828179,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b267fff-tier1-p000.tar",
+      "h3_cell": "8a283082b267fff",
+      "image_count": 9,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 702230,
+          "captured_at": "2026-09-01T17:44:56",
+          "lat": 37.802411111111105,
+          "lon": -122.43085555555557,
+          "path": "20260902T023431Z/images/183b6de48c0ea14f_098_IMG_4498 2.jpg",
+          "sha256": "183b6de48c0ea14f9ef290c9dbfbfaa636d06f01c495f2e3e8fb6eafafe9a644",
+          "source_name": "098_IMG_4498 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 639054,
+          "captured_at": "2026-09-01T17:44:32",
+          "lat": 37.80237222222222,
+          "lon": -122.431275,
+          "path": "20260902T023431Z/images/51968b59e596b73a_093_IMG_4493 2.jpg",
+          "sha256": "51968b59e596b73a750e9024feb96c626a4884ecbc2e4f296446bc29e50fbfab",
+          "source_name": "093_IMG_4493 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 592722,
+          "captured_at": "2026-09-01T17:44:31",
+          "lat": 37.802369444444444,
+          "lon": -122.4312888888889,
+          "path": "20260902T023431Z/images/a114f67d0a6d6ed8_092_IMG_4492 2.jpg",
+          "sha256": "a114f67d0a6d6ed83b2c3c02f02dbc04da90123f2090b4390c65589ed777c9b5",
+          "source_name": "092_IMG_4492 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 555367,
+          "captured_at": "2026-08-31T18:15:52",
+          "lat": 37.80233055555555,
+          "lon": -122.43138055555556,
+          "path": "20260902T023431Z/images/c32061194e49cc06_105_IMG_4396.jpg",
+          "sha256": "c32061194e49cc06e61fd297867e444856586aca2498e95eba8c0a717e6cb02c",
+          "source_name": "105_IMG_4396.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 714068,
+          "captured_at": "2026-09-01T17:44:53",
+          "lat": 37.802411111111105,
+          "lon": -122.43088611111112,
+          "path": "20260902T023431Z/images/c5e7c2daae0355d1_096_IMG_4496 2.jpg",
+          "sha256": "c5e7c2daae0355d154683e1e323a2bd6ba407347df195aab193059b03ab4d872",
+          "source_name": "096_IMG_4496 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 723215,
+          "captured_at": "2026-09-01T17:44:51",
+          "lat": 37.802416666666666,
+          "lon": -122.43090000000001,
+          "path": "20260902T023431Z/images/dbf2418e62978171_095_IMG_4495 2.jpg",
+          "sha256": "dbf2418e629781710550265194d966abbf859cfd820160753331f3f0e1767d78",
+          "source_name": "095_IMG_4495 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 545374,
+          "captured_at": "2026-09-01T17:44:54",
+          "lat": 37.80240555555555,
+          "lon": -122.43086944444445,
+          "path": "20260902T023431Z/images/e53151301d2623fe_097_IMG_4497 2.jpg",
+          "sha256": "e53151301d2623feae8b743e934aa623812fae01c3790229dc6f74d0be2a43fb",
+          "source_name": "097_IMG_4497 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 762285,
+          "captured_at": "2026-09-01T17:44:28",
+          "lat": 37.80235277777778,
+          "lon": -122.43134444444445,
+          "path": "20260902T023431Z/images/ef387923116313fa_091_IMG_4491 2.jpg",
+          "sha256": "ef387923116313fa56dbe60b8549b20265f263b4ad0cc908a2b1a8c7d728197d",
+          "source_name": "091_IMG_4491 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 593864,
+          "captured_at": "2026-09-01T17:44:50",
+          "lat": 37.80242222222222,
+          "lon": -122.43090833333333,
+          "path": "20260902T023431Z/images/fb042a31cb188246_094_IMG_4494 2.jpg",
+          "sha256": "fb042a31cb18824678259ca0512eb5eaff32def45947eddbb052d6e2e1598df4",
+          "source_name": "094_IMG_4494 2.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a283082b267fff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b267fff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    },
+    {
+      "asset_name": "sf-r10-8a283082b26ffff-tier1-p000.tar",
+      "bytes": 9227956,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b26ffff-tier1-p000.tar",
+      "h3_cell": "8a283082b26ffff",
+      "image_count": 12,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 674405,
+          "captured_at": "2026-09-01T17:44:18",
+          "lat": 37.802324999999996,
+          "lon": -122.43154166666667,
+          "path": "20260902T023431Z/images/2d52011889585f59_087_IMG_4487 2.jpg",
+          "sha256": "2d52011889585f59670963f87646941403c1f1666c5356015f4a017b9c34f575",
+          "source_name": "087_IMG_4487 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 331649,
+          "captured_at": "2026-09-01T17:43:37",
+          "lat": 37.80276111111111,
+          "lon": -122.431725,
+          "path": "20260902T023431Z/images/2e6d6d0f2a1facba_084_IMG_4484 2.jpg",
+          "sha256": "2e6d6d0f2a1facbad58cae5613bbda5d87fd5def89e632d028be20353437d585",
+          "source_name": "084_IMG_4484 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 987250,
+          "captured_at": "2026-09-01T17:43:58",
+          "lat": 37.80246388888889,
+          "lon": -122.43163333333334,
+          "path": "20260902T023431Z/images/32efb36144fb7db5_085_IMG_4485 2.jpg",
+          "sha256": "32efb36144fb7db5b6ae116cc5a37a0a0600035faa83e68b1c619503007eb816",
+          "source_name": "085_IMG_4485 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 934885,
+          "captured_at": "2026-09-01T17:43:21",
+          "lat": 37.80288611111111,
+          "lon": -122.43185555555556,
+          "path": "20260902T023431Z/images/376634568f2e6cbd_082_IMG_4482 2.jpg",
+          "sha256": "376634568f2e6cbd1389361b16db84d6373610b7572a3f23a4e8972508cde1d3",
+          "source_name": "082_IMG_4482 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 761141,
+          "captured_at": "2026-09-01T17:44:19",
+          "lat": 37.802324999999996,
+          "lon": -122.43149444444445,
+          "path": "20260902T023431Z/images/4db8266f72744830_088_IMG_4488 2.jpg",
+          "sha256": "4db8266f72744830b144e6a200b0ecb6b68183838c61d183d2b7b900d81e7b66",
+          "source_name": "088_IMG_4488 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 983041,
+          "captured_at": "2026-09-01T17:43:20",
+          "lat": 37.80289722222222,
+          "lon": -122.43188611111111,
+          "path": "20260902T023431Z/images/52243abf8e4e71e8_081_IMG_4481 2.jpg",
+          "sha256": "52243abf8e4e71e80f5306c2b3cb9bce833b650449383b42294d3117ee4dbf32",
+          "source_name": "081_IMG_4481 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 570299,
+          "captured_at": "2026-09-01T17:44:24",
+          "lat": 37.80233055555555,
+          "lon": -122.43141111111112,
+          "path": "20260902T023431Z/images/6be25819fd2bf362_090_IMG_4490 2.jpg",
+          "sha256": "6be25819fd2bf3629c1429ec7da0427ba9f53e7d425457085d1b2d0b6b9e5489",
+          "source_name": "090_IMG_4490 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 705887,
+          "captured_at": "2026-09-01T17:44:22",
+          "lat": 37.80233888888888,
+          "lon": -122.43143333333335,
+          "path": "20260902T023431Z/images/6e29d82cd3586eca_089_IMG_4489 2.jpg",
+          "sha256": "6e29d82cd3586eca0b7a8ea3d9c151b3bebbb5de8811dccb09addd377d6f101b",
+          "source_name": "089_IMG_4489 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 839265,
+          "captured_at": "2026-09-01T17:43:24",
+          "lat": 37.802875,
+          "lon": -122.43184722222223,
+          "path": "20260902T023431Z/images/7319b3f6ed0b64fa_083_IMG_4483 2.jpg",
+          "sha256": "7319b3f6ed0b64fac39856ef2dbf101c91e4bd36d0aedcdd97e179144755efbe",
+          "source_name": "083_IMG_4483 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 682754,
+          "captured_at": "2026-08-31T18:17:09",
+          "lat": 37.802252777777774,
+          "lon": -122.43205277777778,
+          "path": "20260902T023431Z/images/7c2cee8f079e1a58_107_IMG_4398.jpg",
+          "sha256": "7c2cee8f079e1a580bc751bfacf845f23167b16ed7794883dd2f7182e6b07994",
+          "source_name": "107_IMG_4398.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 1007843,
+          "captured_at": "2026-09-01T17:44:01",
+          "lat": 37.80244166666667,
+          "lon": -122.43164166666668,
+          "path": "20260902T023431Z/images/b8ccb50317acb336_086_IMG_4486 2.jpg",
+          "sha256": "b8ccb50317acb33699afcd8d04f6bfc93e622be906783e80e342af21475fdae6",
+          "source_name": "086_IMG_4486 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 749537,
+          "captured_at": "2026-08-31T18:17:08",
+          "lat": 37.80227222222222,
+          "lon": -122.43205277777778,
+          "path": "20260902T023431Z/images/dc8eab952de4ede9_106_IMG_4397.jpg",
+          "sha256": "dc8eab952de4ede930dfa5a8e06e7921572be7b23838c8680ff90a1ca985cb45",
+          "source_name": "106_IMG_4397.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a283082b26ffff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b26ffff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    },
+    {
+      "asset_name": "sf-r10-8a283082b277fff-tier1-p000.tar",
+      "bytes": 616065,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b277fff-tier1-p000.tar",
+      "h3_cell": "8a283082b277fff",
+      "image_count": 1,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 616065,
+          "captured_at": "2026-09-01T17:33:35",
+          "lat": 37.80259722222222,
+          "lon": -122.42999166666667,
+          "path": "20260902T023431Z/images/7514623fc0206da3_010_IMG_4409 2.jpg",
+          "sha256": "7514623fc0206da3639f5ead61d156529e5c0c2bf0a79ff61d0e73c3337d2f37",
+          "source_name": "010_IMG_4409 2.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a283082b277fff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a283082b277fff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    },
+    {
+      "asset_name": "sf-r10-8a28308765a7fff-tier1-p000.tar",
+      "bytes": 21112140,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a28308765a7fff-tier1-p000.tar",
+      "h3_cell": "8a28308765a7fff",
+      "image_count": 27,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 786774,
+          "captured_at": "2026-09-01T17:39:22",
+          "lat": 37.80473055555555,
+          "lon": -122.43184722222223,
+          "path": "20260902T023431Z/images/135f03e326900140_054_IMG_4454 2.jpg",
+          "sha256": "135f03e3269001409e7baa0836af5f2edbc22b70722350285d220313ce5d330f",
+          "source_name": "054_IMG_4454 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 960473,
+          "captured_at": "2026-09-01T17:37:44",
+          "lat": 37.80475277777777,
+          "lon": -122.43108333333333,
+          "path": "20260902T023431Z/images/1630164a55157cf8_039_IMG_4439 2.jpg",
+          "sha256": "1630164a55157cf89f455494d422d05c84586c9d4bc379d134e210a2191aa6d5",
+          "source_name": "039_IMG_4439 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 923044,
+          "captured_at": "2026-09-01T17:37:55",
+          "lat": 37.804897222222216,
+          "lon": -122.43110555555556,
+          "path": "20260902T023431Z/images/19e3c5f10999043d_042_IMG_4442 2.jpg",
+          "sha256": "19e3c5f10999043df33d573deddf0680e8ad4787b3179b9792773d0f473164f8",
+          "source_name": "042_IMG_4442 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 856379,
+          "captured_at": "2026-09-01T17:39:23",
+          "lat": 37.80470277777778,
+          "lon": -122.43183888888889,
+          "path": "20260902T023431Z/images/30c8012031792708_055_IMG_4455 2.jpg",
+          "sha256": "30c8012031792708ca6c46e1622bde9b6c82cc1ae38005e1826cf27edb9584b9",
+          "source_name": "055_IMG_4455 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 592973,
+          "captured_at": "2026-09-01T17:39:37",
+          "lat": 37.804519444444445,
+          "lon": -122.43181666666668,
+          "path": "20260902T023431Z/images/360a25e9cc087cca_059_IMG_4459 2.jpg",
+          "sha256": "360a25e9cc087cca14156666af446490eec7373171acbace8bec7eab46540e6e",
+          "source_name": "059_IMG_4459 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 738062,
+          "captured_at": "2026-09-01T17:39:20",
+          "lat": 37.80475277777777,
+          "lon": -122.43186111111112,
+          "path": "20260902T023431Z/images/5179665e9b301530_053_IMG_4453 2.jpg",
+          "sha256": "5179665e9b3015300e11026e0dc27ebd2038f945d492165f4bbf5f60a410e612",
+          "source_name": "053_IMG_4453 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 989171,
+          "captured_at": "2026-09-01T17:37:43",
+          "lat": 37.80473611111111,
+          "lon": -122.43106944444445,
+          "path": "20260902T023431Z/images/5a9808616655e257_038_IMG_4438 2.jpg",
+          "sha256": "5a9808616655e2577327cc03e241686319f40eae6e1bae2e6376802587d690a4",
+          "source_name": "038_IMG_4438 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 806216,
+          "captured_at": "2026-09-01T17:37:22",
+          "lat": 37.8045,
+          "lon": -122.43093888888889,
+          "path": "20260902T023431Z/images/656f1b631744de91_035_IMG_4435 2.jpg",
+          "sha256": "656f1b631744de91e761c300e37d635a6d11c85308bcca89db72f8e09af0dcee",
+          "source_name": "035_IMG_4435 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 788485,
+          "captured_at": "2026-09-01T17:37:20",
+          "lat": 37.80448055555555,
+          "lon": -122.43090000000001,
+          "path": "20260902T023431Z/images/7b21de1752ffc9ff_034_IMG_4434 2.jpg",
+          "sha256": "7b21de1752ffc9ffa97c9241ef93ae4b97a654afd9308275d6eb9578da19d777",
+          "source_name": "034_IMG_4434 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 981998,
+          "captured_at": "2026-09-01T17:37:57",
+          "lat": 37.80490833333333,
+          "lon": -122.43110555555556,
+          "path": "20260902T023431Z/images/84aa8ed25677ea8e_043_IMG_4443 2.jpg",
+          "sha256": "84aa8ed25677ea8e6a7b683379ae57550f65c6f776d3556582d4038e929afcf0",
+          "source_name": "043_IMG_4443 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 632056,
+          "captured_at": "2026-09-01T17:38:41",
+          "lat": 37.80497222222222,
+          "lon": -122.43173888888889,
+          "path": "20260902T023431Z/images/94c2bbbd006ba359_047_IMG_4447 2.jpg",
+          "sha256": "94c2bbbd006ba359acfd38be67526a5af1e8f66fe7a6dd667e7e0ce37fa22305",
+          "source_name": "047_IMG_4447 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 752342,
+          "captured_at": "2026-09-01T17:38:54",
+          "lat": 37.80508888888889,
+          "lon": -122.43194444444445,
+          "path": "20260902T023431Z/images/a2cc7656b7412453_052_IMG_4452 2.jpg",
+          "sha256": "a2cc7656b74124532cf40ffd37012c1b22dab61be57a7610e5f4da65d88faa3c",
+          "source_name": "052_IMG_4452 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 757251,
+          "captured_at": "2026-09-01T17:37:28",
+          "lat": 37.80454722222222,
+          "lon": -122.43100833333334,
+          "path": "20260902T023431Z/images/a3273c5c28b160c3_037_IMG_4437 2.jpg",
+          "sha256": "a3273c5c28b160c3666828d0d8b80e6c77a702a0f03c68645766b1412a9ff137",
+          "source_name": "037_IMG_4437 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 481769,
+          "captured_at": "2026-09-01T17:38:10",
+          "lat": 37.80497222222222,
+          "lon": -122.43118333333334,
+          "path": "20260902T023431Z/images/ac99b06435a6697a_045_IMG_4445 2.jpg",
+          "sha256": "ac99b06435a6697ad61ddd7bc89ee37beb24eaca444795c6d79233d1c6dcd0da",
+          "source_name": "045_IMG_4445 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 1008405,
+          "captured_at": "2026-09-01T17:37:53",
+          "lat": 37.80485833333333,
+          "lon": -122.43111388888889,
+          "path": "20260902T023431Z/images/aed922fbd4d62aa7_041_IMG_4441 2.jpg",
+          "sha256": "aed922fbd4d62aa7b5f80bfd846b36931fe0a57fca405544a6048de56cd676a0",
+          "source_name": "041_IMG_4441 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 744074,
+          "captured_at": "2026-09-01T17:38:40",
+          "lat": 37.80495,
+          "lon": -122.43170833333333,
+          "path": "20260902T023431Z/images/b6e149fc20af2aab_046_IMG_4446 2.jpg",
+          "sha256": "b6e149fc20af2aab234287580248e74c7f1d97cf45fab0cdf68d950b223b2107",
+          "source_name": "046_IMG_4446 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 665387,
+          "captured_at": "2026-09-01T17:38:43",
+          "lat": 37.804988888888886,
+          "lon": -122.43177777777778,
+          "path": "20260902T023431Z/images/bd792665be027095_048_IMG_4448 2.jpg",
+          "sha256": "bd792665be0270954df8f124665c66d6cbfe52507ad9d0dab0d58a1fddcca8ee",
+          "source_name": "048_IMG_4448 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 496182,
+          "captured_at": "2026-09-01T17:38:08",
+          "lat": 37.80498055555555,
+          "lon": -122.43117500000001,
+          "path": "20260902T023431Z/images/bea1ccabb93539ff_044_IMG_4444 2.jpg",
+          "sha256": "bea1ccabb93539ff5b7e7231546e93aa95b0b8881d8dc9e1f1e1c2778196d41a",
+          "source_name": "044_IMG_4444 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 1022220,
+          "captured_at": "2026-09-01T17:37:49",
+          "lat": 37.80482222222222,
+          "lon": -122.43111388888889,
+          "path": "20260902T023431Z/images/c2d18e8965101a9b_040_IMG_4440 2.jpg",
+          "sha256": "c2d18e8965101a9bf02a4c811bb78509e39708e31a17f57c2a46e0a480fb255d",
+          "source_name": "040_IMG_4440 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 784547,
+          "captured_at": "2026-09-01T17:37:16",
+          "lat": 37.80445833333333,
+          "lon": -122.43085555555557,
+          "path": "20260902T023431Z/images/c60573f22143316c_033_IMG_4433 2.jpg",
+          "sha256": "c60573f22143316cee98adda5b64f95ff8348784cd8099759e8a3fa44912bdfa",
+          "source_name": "033_IMG_4433 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 782672,
+          "captured_at": "2026-09-01T17:39:28",
+          "lat": 37.80463888888889,
+          "lon": -122.431825,
+          "path": "20260902T023431Z/images/c6e3b55f3b76c7d4_057_IMG_4457 2.jpg",
+          "sha256": "c6e3b55f3b76c7d4e3a4e112039380ffba699adc1ac790354347f9f3156e7087",
+          "source_name": "057_IMG_4457 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 552901,
+          "captured_at": "2026-09-01T17:38:52",
+          "lat": 37.805077777777775,
+          "lon": -122.43188611111111,
+          "path": "20260902T023431Z/images/d08b3df5fb9c9dab_051_IMG_4451 2.jpg",
+          "sha256": "d08b3df5fb9c9dab5f53b4a15130669b103c538948b1763424152dd0e2cf36a0",
+          "source_name": "051_IMG_4451 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 818917,
+          "captured_at": "2026-09-01T17:39:33",
+          "lat": 37.80458333333333,
+          "lon": -122.431825,
+          "path": "20260902T023431Z/images/d4914985bc3cd8b4_058_IMG_4458 2.jpg",
+          "sha256": "d4914985bc3cd8b43dee042dfefa2f0ebf6b0b36ca8f181b07ac0d9389ca3d23",
+          "source_name": "058_IMG_4458 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 878157,
+          "captured_at": "2026-09-01T17:39:26",
+          "lat": 37.80466388888889,
+          "lon": -122.43183055555556,
+          "path": "20260902T023431Z/images/d7d8e422f06bb972_056_IMG_4456 2.jpg",
+          "sha256": "d7d8e422f06bb9722a58b6c694287a45d1c27db2b06cd319633377619e7de600",
+          "source_name": "056_IMG_4456 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 878725,
+          "captured_at": "2026-09-01T17:37:24",
+          "lat": 37.804519444444445,
+          "lon": -122.43096944444444,
+          "path": "20260902T023431Z/images/d8f9440f0a837991_036_IMG_4436 2.jpg",
+          "sha256": "d8f9440f0a8379919aece5b07649505d586202141c4c0dfc8817513596873e2a",
+          "source_name": "036_IMG_4436 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 773235,
+          "captured_at": "2026-09-01T17:38:50",
+          "lat": 37.80506944444444,
+          "lon": -122.43186944444444,
+          "path": "20260902T023431Z/images/ed6ce05b2f14d6f1_050_IMG_4450 2.jpg",
+          "sha256": "ed6ce05b2f14d6f1f0294b2f06f1af69bd779b28d90ec361d6403d908558a4b7",
+          "source_name": "050_IMG_4450 2.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 659725,
+          "captured_at": "2026-09-01T17:38:46",
+          "lat": 37.80500833333333,
+          "lon": -122.43180833333334,
+          "path": "20260902T023431Z/images/feb18375e49dd7fb_049_IMG_4449 2.jpg",
+          "sha256": "feb18375e49dd7fbffb218b8a86f30359576399b543851a4223d78c60fd09916",
+          "source_name": "049_IMG_4449 2.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a28308765a7fff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a28308765a7fff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    },
+    {
+      "asset_name": "sf-r10-8a2830876c9ffff-tier1-p000.tar",
+      "bytes": 907341,
+      "download_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a2830876c9ffff-tier1-p000.tar",
+      "h3_cell": "8a2830876c9ffff",
+      "image_count": 4,
+      "images": [
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 209590,
+          "captured_at": "2026-08-31T20:40:42",
+          "lat": 37.80193055555555,
+          "lon": -122.43404444444445,
+          "path": "20260902T023431Z/images/00d809b17514ba46_001_IMG_4400.jpg",
+          "sha256": "00d809b17514ba460c98aff5a73b4a990bb489a8687ecaf408c95da3bdde082f",
+          "source_name": "001_IMG_4400.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 219482,
+          "captured_at": "2026-08-31T20:40:43",
+          "lat": 37.80194722222222,
+          "lon": -122.43405277777778,
+          "path": "20260902T023431Z/images/43333fb82381be0d_002_IMG_4401.jpg",
+          "sha256": "43333fb82381be0d67bc9a88bdc189328fcaf6366da74089480de822fbde1f56",
+          "source_name": "002_IMG_4401.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 275138,
+          "captured_at": "2026-08-31T20:40:41",
+          "lat": 37.80191111111111,
+          "lon": -122.43403611111111,
+          "path": "20260902T023431Z/images/4466ebf44d980f24_108_IMG_4399.jpg",
+          "sha256": "4466ebf44d980f24af1a460fc8bfb4c3ad0f8f18c50072bc9c442e68f790cf3f",
+          "source_name": "108_IMG_4399.HEIC"
+        },
+        {
+          "batch": "20260902T023431Z",
+          "bytes": 203131,
+          "captured_at": "2026-08-31T20:40:44",
+          "lat": 37.80194722222222,
+          "lon": -122.43405277777778,
+          "path": "20260902T023431Z/images/7fbe30f62f7c7a47_003_IMG_4402.jpg",
+          "sha256": "7fbe30f62f7c7a474176b048d99e958f3dfc15a526045d741266d9d82a7487cc",
+          "source_name": "003_IMG_4402.HEIC"
+        }
+      ],
+      "max_asset_bytes": 786432000,
+      "part": 0,
+      "release_repo": "patstallone1-prog/Spatial-data-mapping",
+      "release_tag": "sf-current",
+      "sha256_manifest": "sf-r10-8a2830876c9ffff-tier1-p000.sha256",
+      "sha256_manifest_url": "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/sf-current/sf-r10-8a2830876c9ffff-tier1-p000.sha256",
+      "storage": "github_release_asset",
+      "target_asset_bytes": 524288000,
+      "tier": "tier1_kerbside_1440_jpeg"
+    }
+  ],
+  "repositories": {
+    "city_source_data": {
+      "name": "kerbside-data-sf",
+      "purpose": "metadata in Git plus bounded H3 image shards in GitHub Releases"
+    },
+    "compiled_world": {
+      "name": "kerbside-world",
+      "purpose": "derived geometry, facts, 3D tiles, and provenance pointers"
+    },
+    "core": {
+      "name": "Spatial-data-mapping",
+      "purpose": "code, tests, schemas, lightweight manifests, GitHub Pages viewers"
+    },
+    "dataset_registry": {
+      "name": "kerbside-datasets",
+      "purpose": "tiny city/version registry with hashes and latest pointers"
+    }
+  },
+  "schema_version": 1,
+  "summary": {
+    "external_pixel_bytes_committed": 0,
+    "metadata_shard_count": 171,
+    "release_asset_count": 8,
+    "release_image_count": 108,
+    "release_pixel_bytes": 73235552,
+    "release_pixel_megabytes": 69.843
+  },
+  "tiers": [
+    {
+      "contents": "provider ids, source locators, sequence links, GPS, camera metadata, license provenance",
+      "id": "tier0_metadata_only",
+      "stored_in": "git"
+    },
+    {
+      "contents": "downscaled Kerbside-owned mapping frames, sharded by H3 and target byte size",
+      "id": "tier1_kerbside_1440_jpeg",
+      "stored_in": "github_release_assets"
+    },
+    {
+      "contents": "optional selected raw/full-resolution originals; never created by default",
+      "id": "tier2_original_selects",
+      "stored_in": "github_release_assets"
+    },
+    {
+      "contents": "derived curb, sidewalk, building, mesh, confidence, and provenance facts",
+      "id": "compiled_world",
+      "stored_in": "world_repo_or_pages_artifact"
+    }
+  ]
+}

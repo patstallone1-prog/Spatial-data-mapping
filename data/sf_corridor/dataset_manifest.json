@@ -2,7 +2,7 @@
   "title": "SF street-imagery dense metadata catalog",
   "generated_at": "2026-09-02T18:26:39.018370+00:00",
   "region": "sf-corridor",
-  "storage_policy": "metadata-only, no raw provider imagery",
+ "storage_policy": "metadata in Git; owned capture pixels packed into GitHub Release assets; no raw provider imagery",
   "inputs": [
     "data/sf_corridor_panoramax_full",
     "data/sf_corridor_kartaview_probe"
@@ -12,6 +12,7 @@
     "sequences/external.parquet",
     "coverage/h3.parquet",
     "licenses/sources.json",
-    "stats/summary.json"
+ "stats/summary.json",
+ "storage/release_shards.json"
   ]
 }

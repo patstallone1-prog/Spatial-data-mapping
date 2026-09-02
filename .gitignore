@@ -13,5 +13,8 @@ build/
 .cache/kerbside/
 photos/
 data/captures/quarantine/
+data/captures/*/images/
+data/captures/*/raw/
+build/release_assets/
 graphify-out/20*/
 graphify-out/cache/ast/
