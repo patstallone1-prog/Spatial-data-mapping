@@ -28,14 +28,19 @@ from smc.imagery.region import Region, get_region
 from smc.imagery.schema import Observation, SequenceRecord
 
 
-def provider_by_name(name: str):
+def provider_by_name(
+    name: str,
+    *,
+    kartaview_discovery_step_m: float = 300.0,
+    kartaview_max_photo_pages: int | None = 12,
+):
     if name == "panoramax":
         return PanoramaxProvider(client=HttpClient(timeout_s=20, max_attempts=2))
     if name == "kartaview":
         return KartaViewProvider(
             client=HttpClient(timeout_s=8, max_attempts=1),
-            discovery_step_m=300,
-            max_photo_pages=12,
+            discovery_step_m=kartaview_discovery_step_m,
+            max_photo_pages=kartaview_max_photo_pages,
         )
     raise ValueError(f"unknown provider {name!r}")
 
@@ -54,10 +59,22 @@ def bounded_sequences(
             break
 
 
-def collect_provider(provider_name: str, region: Region, max_sequences: int | None) -> tuple[
+def collect_provider(
+    provider_name: str,
+    region: Region,
+    max_sequences: int | None,
+    *,
+    min_megapixels: float,
+    kartaview_discovery_step_m: float,
+    kartaview_max_photo_pages: int | None,
+) -> tuple[
     list[SequenceRecord], list[Observation], list[str]
 ]:
-    provider = provider_by_name(provider_name)
+    provider = provider_by_name(
+        provider_name,
+        kartaview_discovery_step_m=kartaview_discovery_step_m,
+        kartaview_max_photo_pages=kartaview_max_photo_pages,
+    )
     sequences: list[SequenceRecord] = []
     observations: list[Observation] = []
     errors: list[str] = []
@@ -72,7 +89,9 @@ def collect_provider(provider_name: str, region: Region, max_sequences: int | No
                     f"{observation.provider_sequence_id}/{observation.provider_image_id}"
                 )
                 observation.source_preview_locator = None
-                observations.append(mark_eligibility(observation, region))
+                observations.append(
+                    mark_eligibility(observation, region, min_megapixels=min_megapixels)
+                )
         except Exception as exc:  # noqa: BLE001 - external APIs fail in colorful ways.
             errors.append(f"{provider_name}:{sequence.provider_sequence_id}: {exc}")
     errors.extend(getattr(provider, "errors", []))
@@ -128,17 +147,48 @@ def main() -> int:
     parser.add_argument("--provider", action="append", choices=("panoramax", "kartaview"))
     parser.add_argument("--max-sequences", type=int, default=18)
     parser.add_argument("--h3-resolution", type=int, default=10)
+    parser.add_argument(
+        "--min-megapixels",
+        type=float,
+        default=2.0,
+        help=(
+            "Reject observations below this source-resolution floor. "
+            "The default stays above Meta DAT 1440x1080 delivery."
+        ),
+    )
+    parser.add_argument(
+        "--kartaview-discovery-step-m",
+        type=float,
+        default=300.0,
+        help="Grid spacing for KartaView nearby-photo sequence discovery.",
+    )
+    parser.add_argument(
+        "--kartaview-max-photo-pages",
+        type=int,
+        default=12,
+        help="Maximum KartaView photo pages per sequence; use 0 for every available page.",
+    )
     args = parser.parse_args()
 
     region = get_region(args.region)
     providers = args.provider or ["panoramax", "kartaview"]
     max_sequences = args.max_sequences if args.max_sequences > 0 else None
+    kartaview_max_photo_pages = (
+        args.kartaview_max_photo_pages if args.kartaview_max_photo_pages > 0 else None
+    )
 
     sequences: list[SequenceRecord] = []
     observations: list[Observation] = []
     errors: list[str] = []
     for provider_name in providers:
-        ps, po, pe = collect_provider(provider_name, region, max_sequences)
+        ps, po, pe = collect_provider(
+            provider_name,
+            region,
+            max_sequences,
+            min_megapixels=args.min_megapixels,
+            kartaview_discovery_step_m=args.kartaview_discovery_step_m,
+            kartaview_max_photo_pages=kartaview_max_photo_pages,
+        )
         sequences.extend(ps)
         observations.extend(po)
         errors.extend(pe)

@@ -25,10 +25,20 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--catalog", type=Path, default=Path("data/sf_corridor"))
     parser.add_argument("--osm-cache", type=Path, default=Path("data/sf_corridor/stats/osm_ways.json"))
-    parser.add_argument("--out", type=Path, default=Path("data/sf_corridor/depth"))
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Where to write the depth store. Defaults to <catalog>/depth.",
+    )
     parser.add_argument("--run-id", default="sf-corridor-depth-seed")
     parser.add_argument("--h3-resolution", type=int, default=10)
     args = parser.parse_args()
+
+    # Following the catalog rather than a fixed path: a run pointed at a scratch catalog that
+    # still wrote into the committed one would overwrite real artefacts with test output, and
+    # the two are indistinguishable afterwards.
+    out = args.out or args.catalog / "depth"
 
     observations = read_observation_rows(args.catalog)
     coverage = read_coverage_rows(args.catalog)
@@ -47,10 +57,10 @@ def main() -> int:
         run_id=args.run_id,
     )
 
-    write_depth_observations(args.out / "observations" / "depth_index.parquet", depth_rows)
-    write_surfaces(args.out / "surfaces" / "surface_measurements.parquet", surface_rows)
-    write_json(args.out / "runs" / f"{args.run_id}.json", summary)
-    write_json(args.out / "stats" / "summary.json", summary)
+    write_depth_observations(out / "observations" / "depth_index.parquet", depth_rows)
+    write_surfaces(out / "surfaces" / "surface_measurements.parquet", surface_rows)
+    write_json(out / "runs" / f"{args.run_id}.json", summary)
+    write_json(out / "stats" / "summary.json", summary)
 
     print(json.dumps(summary, indent=2))
     return 0

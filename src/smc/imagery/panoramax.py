@@ -23,7 +23,7 @@ box instead: a tile that returns exactly its limit is assumed to have been cut o
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from datetime import datetime
 
 from smc.imagery.base import ImageAsset, License, ObservationUnavailable
@@ -137,6 +137,42 @@ class PanoramaxProvider:
             record = self.get_sequence(collection_id)
             if record is not None:
                 yield record
+
+    def iter_region_observations(
+        self, region: Region, *, progress: Callable[[str], None] | None = None
+    ) -> Iterator[Observation]:
+        """Every frame inside the box, built from the search result itself.
+
+        ``/search`` returns whole STAC items -- geometry, EXIF, interior orientation, licence --
+        so the response that locates a frame already describes it. Going back to
+        ``/collections/{id}/items`` for the same frames would cost a page of requests per
+        sequence and drag in every frame outside the region on the way. Only the sequence
+        record is fetched separately, once per collection, and it is cached.
+        """
+        seen: set[str] = set()
+        kept = 0
+        for item in self._search(region.bbox):
+            image_id = _s(item.get("id"))
+            if not image_id or image_id in seen:
+                continue
+            seen.add(image_id)
+            coordinates = (item.get("geometry") or {}).get("coordinates") or []
+            if len(coordinates) < 2:
+                continue
+            lon, lat = _f(coordinates[0]), _f(coordinates[1])
+            if lat is None or lon is None or not region.bbox.contains(lat, lon):
+                continue
+            collection_id = _s(item.get("collection"))
+            sequence = self.get_sequence(collection_id) if collection_id else None
+            observation = self._to_observation(item, sequence)
+            if observation is None:
+                continue
+            kept += 1
+            if progress and kept % 500 == 0:
+                progress(f"panoramax: {kept} frames inside the box")
+            yield observation
+        if progress:
+            progress(f"panoramax: {kept} frames inside the box")
 
     def _search(self, bbox: BBox, depth: int = 0) -> Iterator[dict]:
         """Every item in a box, subdividing when a tile comes back full."""

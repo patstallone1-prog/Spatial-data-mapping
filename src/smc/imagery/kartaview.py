@@ -7,11 +7,14 @@ Three endpoints carry the whole provider, and they divide along exactly the line
 cares about:
 
 * ``POST /1.0/list/nearby-photos/`` answers "what is near here", which is how a bounding box gets
-  swept. It is used for discovery only -- to learn which sequences touch the region.
+  swept. It locates frames but does not describe them: the rows carry no width or height.
 * ``GET /2.0/sequence/{id}`` carries the camera: device name, focal length, field of view.
   These live on the sequence, not the frame, which is why sequences are fetched first.
-* ``GET /2.0/photo/?sequenceId={id}`` carries the frames, in order, with width, height, heading,
-  GPS accuracy and status.
+* ``GET /2.0/photo/`` carries the frames themselves -- width, height, heading, GPS accuracy and
+  status -- either a sequence at a time via ``?sequenceId=`` or a hundred known ids at a time
+  via ``?id=a,b,c``. Bounded-region work wants the second: a sequence is a whole drive, and
+  reading one whole to reach the block of it that crosses the region spends almost every
+  request on frames that are then discarded.
 
 One field is a trap worth naming. ``autoImgProcessingResult: "BLURRED"`` does not mean the
 photograph is out of focus -- it means the automatic face and number-plate blurring finished.
@@ -21,7 +24,10 @@ anonymised. The real quality fields are ``qualityLevel`` and ``qualityStatus``.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+import threading
+from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from smc.imagery.base import ImageAsset, License, ObservationUnavailable
@@ -57,6 +63,12 @@ _THUMB = "lth"
 #: ``/2.0/photo/`` rejects anything above this with a bare HTTP 400 -- no message saying why.
 #: The nearby-photos endpoint has no such ceiling, so the two are paged separately.
 MAX_PHOTO_PAGE_SIZE = 100
+
+#: ``/2.0/photo/?id=`` takes a comma-separated list and answers for all of them at once. It
+#: silently truncates to the same hundred rows as a page, so asking for more loses frames
+#: without saying so. A hundred at a time is the whole reason a region sweep is affordable:
+#: the resolution of ten thousand frames costs a hundred requests rather than ten thousand.
+MAX_PHOTO_ID_BATCH = 100
 
 
 def _f(value: object) -> float | None:
@@ -128,6 +140,7 @@ class KartaViewProvider:
         discovery_page_size: int = 500,
         discovery_step_m: float = 250.0,
         max_photo_pages: int | None = 25,
+        max_workers: int = 1,
     ) -> None:
         self._http = client or HttpClient()
         self._api = api.rstrip("/")
@@ -135,11 +148,45 @@ class KartaViewProvider:
         self._discovery_page_size = discovery_page_size
         self._step_m = discovery_step_m
         self._max_photo_pages = max_photo_pages
+        self._max_workers = max(1, max_workers)
         self._sequence_cache: dict[str, SequenceRecord | None] = {}
+        self._local = threading.local()
+        self._worker_clients: list[HttpClient] = []
+        self._lock = threading.Lock()
         #: Sweeps and sequences that could not be read in full. Surfaced by the audit rather
         #: than swallowed: a systematic API failure and an empty region look identical from the
         #: outside, and only one of them is a finding.
         self.errors: list[str] = []
+
+    @property
+    def _client(self) -> HttpClient:
+        """The client belonging to the calling thread.
+
+        A sweep of a few square miles is hundreds of requests that each wait on the network far
+        longer than they compute, so running several at once is most of the difference between
+        minutes and hours. HttpClient cannot be shared to do that: its rate limiter and its
+        counters are plain attributes, and concurrent use would corrupt both while quietly
+        defeating the minimum interval it exists to enforce. One client per thread keeps that
+        interval honest per connection, and the settings are copied so politeness is not
+        something a caller has to remember to re-specify.
+        """
+        if self._max_workers == 1:
+            return self._http
+        client = getattr(self._local, "client", None)
+        if client is None:
+            client = replace(self._http)
+            self._local.client = client
+            with self._lock:
+                self._worker_clients.append(client)
+        return client
+
+    def _record_error(self, message: str) -> None:
+        with self._lock:
+            self.errors.append(message)
+
+    @property
+    def request_count(self) -> int:
+        return self._http.requests_made + sum(c.requests_made for c in self._worker_clients)
 
     # -- discovery ---------------------------------------------------------------------------
 
@@ -162,11 +209,23 @@ class KartaViewProvider:
                     yield record
 
     def _sequence_ids_near(self, lat: float, lon: float, radius_m: float) -> set[str]:
-        found: set[str] = set()
+        return {
+            sequence_id
+            for row in self._photos_near(lat, lon, radius_m)
+            if (sequence_id := _s(row.get("sequence_id")))
+        }
+
+    def _photos_near(self, lat: float, lon: float, radius_m: float) -> list[dict]:
+        """Every nearby-photos row around one sample point.
+
+        The rows carry position, heading, sequence and capture time but no width or height, so
+        they locate frames without describing them. Resolution is bought separately.
+        """
+        rows: list[dict] = []
         page = 1
         while True:
             try:
-                payload = self._http.post_json(
+                payload = self._client.post_json(
                     f"{self._api}/1.0/list/nearby-photos/",
                     {
                         "lat": f"{lat:.6f}",
@@ -180,17 +239,161 @@ class KartaViewProvider:
                 # One blind spot in a sweep is a gap in coverage, not a reason to abandon the
                 # region -- but it is recorded, because an unreported gap becomes a claim about
                 # the street rather than about the request.
-                self.errors.append(f"sweep {lat:.5f},{lon:.5f} page {page}: {exc}")
+                self._record_error(f"sweep {lat:.5f},{lon:.5f} page {page}: {exc}")
                 break
             items = payload.get("currentPageItems") or []
-            for item in items:
-                sequence_id = _s(item.get("sequence_id"))
-                if sequence_id:
-                    found.add(sequence_id)
+            rows.extend(item for item in items if isinstance(item, dict))
             if len(items) < self._discovery_page_size:
                 break
             page += 1
+        return rows
+
+    # -- region sweep ------------------------------------------------------------------------
+
+    def iter_region_observations(
+        self, region: Region, *, progress: Callable[[str], None] | None = None
+    ) -> Iterator[Observation]:
+        """Every frame the archive holds inside the box.
+
+        Sequence-shaped ingestion reads a whole drive in order to reach the part of it that
+        crosses the region, and a KartaView drive routinely spans a city: nearly every request
+        is spent on frames that will be discarded, and a run gets cut off on time long before
+        the region is covered. Asking instead what is at each place returns the answer directly,
+        and the one thing that answer omits -- width and height -- is then bought a hundred
+        frames per request.
+        """
+        stubs = self._sweep(region, progress=progress)
+        if progress:
+            progress(f"kartaview: {len(stubs)} frames inside the box")
+
+        rows = self._photo_details(sorted(stubs), progress=progress)
+
+        # Ahead of the row loop rather than inside it. One request per distinct sequence, and a
+        # corridor touches hundreds; done lazily and one at a time this is by far the longest
+        # phase of a harvest, and every second of it is spent waiting on the network.
+        self._prefetch_sequences(
+            sorted({sid for row in rows if (sid := _s(row.get("sequenceId")))}), progress=progress
+        )
+
+        by_sequence: dict[str, list[Observation]] = {}
+        for row in rows:
+            sequence_id = _s(row.get("sequenceId")) or _s(stubs.get(_s(row.get("id")), {}).get("sequence_id"))
+            sequence = self.get_sequence(sequence_id) if sequence_id else None
+            observation = self._to_observation(row, sequence)
+            if observation is None:
+                continue
+            by_sequence.setdefault(sequence_id or "", []).append(observation)
+
+        for observations in by_sequence.values():
+            observations.sort(
+                key=lambda o: (
+                    o.provider_sequence_index is None,
+                    o.provider_sequence_index or 0,
+                    o.captured_at.timestamp() if o.captured_at else 0.0,
+                )
+            )
+            # The chain links in-region frames only. Where a drive leaves the box and comes
+            # back, consecutive links span that absence: this is the neighbour order of the
+            # catalogue, not of the original drive, and a consumer walking it is walking
+            # coverage rather than a trajectory.
+            for earlier, later in zip(observations, observations[1:]):
+                earlier.next_observation_id = later.observation_uid
+                later.previous_observation_id = earlier.observation_uid
+            yield from observations
+
+    def _prefetch_sequences(
+        self, sequence_ids: list[str], *, progress: Callable[[str], None] | None = None
+    ) -> None:
+        """Fill the sequence cache, several at a time where that is allowed."""
+        missing = [sid for sid in sequence_ids if sid not in self._sequence_cache]
+        if not missing:
+            return
+        if self._max_workers == 1:
+            results: object = (self.get_sequence(sid) for sid in missing)
+        else:
+            pool = ThreadPoolExecutor(max_workers=self._max_workers)
+            results = pool.map(self.get_sequence, missing)
+        for index, _ in enumerate(results, start=1):
+            if progress and (index % 50 == 0 or index == len(missing)):
+                progress(f"kartaview sequences {index}/{len(missing)}")
+        if self._max_workers > 1:
+            pool.shutdown()
+
+    def _sweep(
+        self, region: Region, *, progress: Callable[[str], None] | None = None
+    ) -> dict[str, dict]:
+        """Sample the box on a grid and keep every distinct frame that lands inside it.
+
+        The radius is four-fifths of the step so neighbouring samples overlap at the corners.
+        At exactly half the step, four adjacent samples leave a diamond-shaped hole between
+        them, and a street can run straight down one.
+        """
+        radius_m = self._step_m * 0.8
+        points = region.bbox.grid(self._step_m)
+        found: dict[str, dict] = {}
+
+        def keep(rows: list[dict]) -> None:
+            for row in rows:
+                photo_id = _s(row.get("id"))
+                if not photo_id or photo_id in found:
+                    continue
+                plat, plon = _f(row.get("lat")), _f(row.get("lng"))
+                if plat is None or plon is None or not region.bbox.contains(plat, plon):
+                    continue
+                found[photo_id] = row
+
+        if self._max_workers == 1:
+            results = (self._photos_near(lat, lon, radius_m) for lat, lon in points)
+        else:
+            pool = ThreadPoolExecutor(max_workers=self._max_workers)
+            results = pool.map(lambda point: self._photos_near(point[0], point[1], radius_m), points)
+
+        # Collected on this thread rather than in the workers, so the dictionary needs no lock
+        # and the sweep order stays the grid order regardless of which request finished first.
+        for index, rows in enumerate(results, start=1):
+            keep(rows)
+            if progress and (index % 25 == 0 or index == len(points)):
+                progress(f"kartaview sweep {index}/{len(points)} points, {len(found)} frames")
+        if self._max_workers > 1:
+            pool.shutdown()
         return found
+
+    def _photo_details(
+        self, image_ids: list[str], *, progress: Callable[[str], None] | None = None
+    ) -> list[dict]:
+        """Full photo rows for known ids, a hundred per request."""
+        batches = [
+            image_ids[start : start + MAX_PHOTO_ID_BATCH]
+            for start in range(0, len(image_ids), MAX_PHOTO_ID_BATCH)
+        ]
+
+        def fetch(batch: list[str]) -> list[dict]:
+            try:
+                payload = self._client.get_json(
+                    f"{self._api}/2.0/photo/", params={"id": ",".join(batch)}
+                )
+            except (TransientError, PermanentError) as exc:
+                self._record_error(f"photo details {batch[0]}..{batch[-1]}: {exc}")
+                return []
+            data = (payload.get("result") or {}).get("data") or []
+            return [row for row in data if isinstance(row, dict)]
+
+        if self._max_workers == 1:
+            results = (fetch(batch) for batch in batches)
+        else:
+            pool = ThreadPoolExecutor(max_workers=self._max_workers)
+            results = pool.map(fetch, batches)
+
+        rows: list[dict] = []
+        done = 0
+        for batch, batch_rows in zip(batches, results):
+            rows.extend(batch_rows)
+            done += len(batch)
+            if progress and (done % (MAX_PHOTO_ID_BATCH * 10) == 0 or done == len(image_ids)):
+                progress(f"kartaview details {done}/{len(image_ids)}")
+        if self._max_workers > 1:
+            pool.shutdown()
+        return rows
 
     # -- sequences ---------------------------------------------------------------------------
 
@@ -198,7 +401,7 @@ class KartaViewProvider:
         if sequence_id in self._sequence_cache:
             return self._sequence_cache[sequence_id]
         try:
-            payload = self._http.get_json(f"{self._api}/2.0/sequence/{sequence_id}")
+            payload = self._client.get_json(f"{self._api}/2.0/sequence/{sequence_id}")
         except (TransientError, PermanentError):
             self._sequence_cache[sequence_id] = None
             return None

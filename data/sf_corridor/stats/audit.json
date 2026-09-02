@@ -1,13 +1,13 @@
 {
   "ok": true,
-  "observations": 1628,
-  "sequences": 19,
-  "coverage_cells": 171,
+  "observations": 63356,
+  "sequences": 542,
+  "coverage_cells": 711,
   "providers": {
     "panoramax": 1379,
-    "kartaview": 249
+    "kartaview": 61977
   },
-  "eligible": 1619,
+  "eligible": 63347,
   "errors": [],
   "error_count": 0
 }
