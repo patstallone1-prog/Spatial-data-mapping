@@ -1,18 +1,30 @@
-{
-  "sources": [
-    [
-      "panoramax",
-      "api.panoramax.xyz",
-      "CC-BY-SA-4.0",
-      "https://creativecommons.org/licenses/by-sa/4.0/",
-      "\u00a9 motocultrice via osm-fr, CC-BY-SA-4.0"
-    ],
-    [
-      "panoramax",
-      "api.panoramax.xyz",
-      "CC-BY-SA-4.0",
-      "https://spdx.org/licenses/CC-BY-SA-4.0.html",
-      "\u00a9 LowestPotential via panoramax-us-nw, CC-BY-SA-4.0"
-    ]
-  ]
-}
+[
+  {
+    "provider": "kartaview",
+    "provider_instance": "openstreetcam.org",
+    "license_id": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attribution": "\u00a9 KartaView contributors, CC BY-SA 4.0"
+  },
+  {
+    "provider": "panoramax",
+    "provider_instance": "api.panoramax.xyz",
+    "license_id": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attribution": "\u00a9 motocultrice via osm-fr, CC-BY-SA-4.0"
+  },
+  {
+    "provider": "panoramax",
+    "provider_instance": "api.panoramax.xyz",
+    "license_id": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attribution": "\u00a9 p4n-pics via osm-fr, CC-BY-SA-4.0"
+  },
+  {
+    "provider": "panoramax",
+    "provider_instance": "api.panoramax.xyz",
+    "license_id": "CC-BY-SA-4.0",
+    "license_url": "https://spdx.org/licenses/CC-BY-SA-4.0.html",
+    "attribution": "\u00a9 LowestPotential via panoramax-us-nw, CC-BY-SA-4.0"
+  }
+]

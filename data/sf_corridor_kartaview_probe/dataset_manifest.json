@@ -1,0 +1,17 @@
+{
+  "name": "Kerbside SF corridor street-imagery metadata seed",
+  "generated_at": "2026-09-02T06:01:57.271897+00:00",
+  "region": "sf-corridor",
+  "providers": [
+    "kartaview"
+  ],
+  "normalization": "meta-pixel-budget, applied only during ephemeral pixel fetch",
+  "source_imagery_committed": false,
+  "files": [
+    "observations/external-000.parquet",
+    "sequences/external.parquet",
+    "coverage/h3.parquet",
+    "licenses/sources.json",
+    "stats/summary.json"
+  ]
+}

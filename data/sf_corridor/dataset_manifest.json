@@ -1,12 +1,12 @@
 {
-  "name": "Kerbside SF corridor street-imagery metadata seed",
-  "generated_at": "2026-09-02T05:19:10.376486+00:00",
+  "title": "SF street-imagery dense metadata catalog",
+  "generated_at": "2026-09-02T18:26:39.018370+00:00",
   "region": "sf-corridor",
-  "providers": [
-    "panoramax"
+  "storage_policy": "metadata-only, no raw provider imagery",
+  "inputs": [
+    "data/sf_corridor_panoramax_full",
+    "data/sf_corridor_kartaview_probe"
   ],
-  "normalization": "meta-pixel-budget, applied only during ephemeral pixel fetch",
-  "source_imagery_committed": false,
   "files": [
     "observations/external-000.parquet",
     "sequences/external.parquet",

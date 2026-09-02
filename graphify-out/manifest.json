@@ -1590,27 +1590,27 @@
     "semantic_hash": ""
   },
   "data/sf_corridor/dataset_manifest.json": {
-    "mtime": 1788326350.3765578,
-    "seen": 1788326815.392891,
-    "ast_hash": "eec7cabf857b9024dd7c1d032e04d826",
+    "mtime": 1788373599.0186145,
+    "seen": 1788373655.694072,
+    "ast_hash": "10304b3deeccf5c169a7419a6bc375b6",
     "semantic_hash": ""
   },
   "data/sf_corridor/licenses/sources.json": {
-    "mtime": 1788326350.3764544,
-    "seen": 1788326815.392892,
-    "ast_hash": "c0d76550ad203e63c1a88508af3a4e35",
+    "mtime": 1788373599.0186894,
+    "seen": 1788373655.6940732,
+    "ast_hash": "7549384a14c648ef5a618368c935c7b0",
     "semantic_hash": ""
   },
   "data/sf_corridor/stats/audit.json": {
-    "mtime": 1788327622.253731,
-    "seen": 1788327623.876361,
-    "ast_hash": "f8f6c3e9b8f4a321b7ad6fd6ab7e904b",
+    "mtime": 1788373599.5374846,
+    "seen": 1788373655.6940732,
+    "ast_hash": "4bee0b3abfd095d4de280e2d2c5b4a9f",
     "semantic_hash": ""
   },
   "data/sf_corridor/stats/summary.json": {
-    "mtime": 1788326350.3762367,
-    "seen": 1788326815.3928928,
-    "ast_hash": "a072e02c75212235b0a14b27f6bab00d",
+    "mtime": 1788373599.0183146,
+    "seen": 1788373655.6940742,
+    "ast_hash": "459b6f2cb53053212d4caf78ee71a451",
     "semantic_hash": ""
   },
   "docs/sw.js": {
@@ -1626,15 +1626,15 @@
     "semantic_hash": ""
   },
   "scripts/build_sf_corridor_3d.py": {
-    "mtime": 1788327566.288295,
-    "seen": 1788327623.876429,
-    "ast_hash": "e6c29c502f534e126242008044b784ed",
+    "mtime": 1788328486.9787102,
+    "seen": 1788373655.694121,
+    "ast_hash": "a6259b81efcdb2e081a2bac8aa9489d8",
     "semantic_hash": ""
   },
   "scripts/ingest_sf_corridor.py": {
-    "mtime": 1788326035.4589152,
-    "seen": 1788326815.392896,
-    "ast_hash": "d2c4ffcb0cece77b4539d4a47a8dd037",
+    "mtime": 1788328196.1429203,
+    "seen": 1788373655.694122,
+    "ast_hash": "a70533eb0686218a1e48f0cf8aa0f74e",
     "semantic_hash": ""
   },
   "scripts/update_sf_corridor.py": {
@@ -1680,9 +1680,9 @@
     "semantic_hash": ""
   },
   "src/smc/imagery/kartaview.py": {
-    "mtime": 1788323566.097077,
-    "seen": 1788326815.393406,
-    "ast_hash": "3c6962bbc9c8f6818c776ef47fba9529",
+    "mtime": 1788328184.4912546,
+    "seen": 1788373655.694744,
+    "ast_hash": "8a8a8adf8a907d22092f000ac0602787",
     "semantic_hash": ""
   },
   "src/smc/imagery/normalization.py": {
@@ -1758,9 +1758,9 @@
     "semantic_hash": ""
   },
   "docs/13-sf-corridor-3d-seed.md": {
-    "mtime": 1788326553.8128777,
-    "seen": 1788326815.394389,
-    "ast_hash": "dea0ea46a9edfad1036677b1e6ad8f1c",
+    "mtime": 1788329197.69372,
+    "seen": 1788373655.695922,
+    "ast_hash": "2fb1b801b2bc61e17afc7ba92d5e43a4",
     "semantic_hash": ""
   },
   "docs/app.html": {
@@ -1776,9 +1776,9 @@
     "semantic_hash": ""
   },
   "docs/sf-corridor-3d.html": {
-    "mtime": 1788327575.288024,
-    "seen": 1788327623.878345,
-    "ast_hash": "0e7702f372cafa7d1aa8b522dc5f5fd2",
+    "mtime": 1788373599.420756,
+    "seen": 1788373655.6959622,
+    "ast_hash": "2c58a4fbdeb236cab8ee81f02d8357bd",
     "semantic_hash": ""
   },
   "docs/apple-touch-icon.png": {
@@ -1803,6 +1803,48 @@
     "mtime": 1788322060.748149,
     "seen": 1788326815.3968909,
     "ast_hash": "63bbe96c1793fd0e46cbba9719bab815",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_kartaview_probe/dataset_manifest.json": {
+    "mtime": 1788328917.2721171,
+    "seen": 1788373655.6940749,
+    "ast_hash": "70235d0baad8430766e870a8d7f24913",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_kartaview_probe/licenses/sources.json": {
+    "mtime": 1788328917.2718854,
+    "seen": 1788373655.6940749,
+    "ast_hash": "3211ef8a042e9a4994e9670f4c5fa20b",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_kartaview_probe/stats/summary.json": {
+    "mtime": 1788328917.2717142,
+    "seen": 1788373655.6940758,
+    "ast_hash": "bff76f87a4ac5fc753575082fd7ac3a6",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_panoramax_full/dataset_manifest.json": {
+    "mtime": 1788373591.979231,
+    "seen": 1788373655.6940758,
+    "ast_hash": "582844dce904cc53a931e9edcbdaab5a",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_panoramax_full/licenses/sources.json": {
+    "mtime": 1788373591.9791417,
+    "seen": 1788373655.694077,
+    "ast_hash": "411fcf7662fea6f53849335e793d8ef0",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_panoramax_full/stats/summary.json": {
+    "mtime": 1788373591.9789095,
+    "seen": 1788373655.694078,
+    "ast_hash": "25ec29da6afc8457dd512082202ce156",
+    "semantic_hash": ""
+  },
+  "scripts/merge_sf_corridor_catalogs.py": {
+    "mtime": 1788373544.2179198,
+    "seen": 1788373655.694122,
+    "ast_hash": "31da2090b8d206795f4bce37e5a2603c",
     "semantic_hash": ""
   }
 }

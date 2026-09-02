@@ -1,16 +1,16 @@
-# Graph Report - spatial-mapping-crowdsource  (2026-09-01)
+# Graph Report - spatial-mapping-crowdsource  (2026-09-02)
 
 ## Corpus Check
-- 148 files · ~3,529,704 words
+- 155 files · ~4,729,597 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2298 nodes · 4543 edges · 124 communities (108 shown, 16 thin omitted)
+- 2314 nodes · 4593 edges · 118 communities (105 shown, 13 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 285 edges (avg confidence: 0.95)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `deeee393`
+- Built from commit: `6eab8a0e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,15 +19,15 @@
 - people.py
 - LocalFrameStore
 - StreetSegment
-- TestRetrieval
-- GlassesProfile
+- ReferenceFrame
+- build_sf_corridor_3d.py
 - PhotoJournal
-- Plane
+- split_kerb_planes
 - LocalPhotoJournal
 - distributions.py
 - CompressionProfile
 - TriggerEngine
-- RenderResult
+- photobank.py
 - TestKeylessAdapters
 - providers.py
 - kartaview.py
@@ -37,35 +37,35 @@
 - affine.py
 - measure_cross_section
 - world.py
-- WorldFact
+- pipeline.py
 - credentials.py
 - calibrate.py
 - 3. Layer C — Fusion engine
-- photobank.py
+- TriggerEngine
 - scenario.py
 - RigConfig
 - ConfidenceModel
-- test_capture_pipeline.py
+- encode_png
 - curate
 - MapillaryImagery
 - TestVaryingPace
 - geometry.py
 - daily.py
-- TestGeometryHelpers
-- capture.py
+- trigger.py
+- GnssSimulator
 - Camera-Only Fusion Mapping Network — Technical Re-Spec
 - run_batch
 - test_phone_pipeline.py
-- phone.py
+- TinyImageDescriptor
 - test_distributions.py
-- ImageryProvider
+- imagery/base.py
 - run_capture_set.py
 - Part B — Features still needing code
 - Capture Rig v1 (Vehicle) & the Simulation Stack
 - buildings.py
-- pipeline.py
-- ndarray
-- Settings
+- capture.py
+- Pose
+- phone.py
 - Mesh
 - build_corridor
 - TestFactsAndTruthAreDistinct
@@ -75,7 +75,7 @@
 - UploadQueue.kt
 - CoverageIndex
 - ._pipeline
-- test_anchoring.py
+- ransac_pnp
 - GlassesSession.kt
 - Suppression
 - Build Order — Concept to Production
@@ -83,8 +83,8 @@
 - imagery/panoramax.py
 - TestFullStack
 - TriggerEngine
-- Region
-- .anchor
+- SequenceRecord
+- AnchoringPipeline
 - BBox
 - manifest.json
 - Measurement Extraction, Street Overlay & Full-Stack Results
@@ -93,21 +93,21 @@
 - units.py
 - Kerbside
 - TestGeo
-- test_geometry.py
+- SidewalkSegment
 - Glasses System — Capture, Transfer, Accuracy
 - Supabase storage
-- project
+- pose.py
 - MotionState
 - Spatial Mapping Crowdsource
 - CARLA Harness
-- ingest_sf_corridor.py
+- main
 - UploadState
 - MegaLocDescriptor
 - cameraroll.py
 - extract.py
 - deploy.sh
 - CaptureSession
-- LevelChange
+- PhotoMeta
 - BatchScheduler
 - check_secrets.sh
 - make_icons.py
@@ -117,20 +117,14 @@
 - smc
 - The ultrawide result — 2026-08-30
 - HttpClient
-- Pose
-- verify_mesh_fidelity
-- coverage.py
+- .match
+- Observation
 - CLAUDE.md
-- pose.py
+- mapping/__init__.py
 - 20260902T023431Z/manifest.json
 - main
-- TestBaselineTrigger
 - OvertureClient
-- pose_at_station
 - 12 · Installing it, and what the shutter refuses
-- TriggerConfig
-- degrade
-- TestPose
 - sf_corridor/README.md
 - 13-sf-corridor-3d-seed.md
 - docs/sw.js
@@ -150,21 +144,21 @@
 10. `load_photo()` - 24 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `overpass_query()` --uses--> `BBox`  [INFERRED]
+  scripts/build_sf_corridor_3d.py → src/smc/imagery/region.py
+- `fetch_osm()` --uses--> `BBox`  [INFERRED]
+  scripts/build_sf_corridor_3d.py → src/smc/imagery/region.py
 - `provider_by_name()` --uses--> `HttpClient`  [INFERRED]
   scripts/ingest_sf_corridor.py → src/smc/imagery/http.py
 - `provider_by_name()` --uses--> `KartaViewProvider`  [INFERRED]
   scripts/ingest_sf_corridor.py → src/smc/imagery/kartaview.py
-- `bounded_sequences()` --uses--> `Region`  [INFERRED]
-  scripts/ingest_sf_corridor.py → src/smc/imagery/region.py
-- `collect_provider()` --uses--> `Region`  [INFERRED]
-  scripts/ingest_sf_corridor.py → src/smc/imagery/region.py
-- `summary()` --uses--> `Region`  [INFERRED]
-  scripts/ingest_sf_corridor.py → src/smc/imagery/region.py
+- `TestProviderSelection` --uses--> `AdapterUnavailable`  [INFERRED]
+  tests/test_adapters.py → src/smc/adapters/base.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (124 total, 16 thin omitted)
+## Communities (118 total, 13 thin omitted)
 
 ### Community 0 - "ScaleEstimator"
 Cohesion: 0.06
@@ -172,47 +166,51 @@ Nodes (35): disagreement_flag(), Flag a conflict between a measurement and a ref
 
 ### Community 1 - "people.py"
 Cohesion: 0.11
-Nodes (19): assess_people(), _cascade(), detect_people(), Detection, PeopleAssessment, PeopleConfig, _prepare(), ndarray (+11 more)
+Nodes (18): assess_people(), _cascade(), detect_people(), Detection, PeopleAssessment, PeopleConfig, _prepare(), ndarray (+10 more)
 
 ### Community 2 - "LocalFrameStore"
-Cohesion: 0.10
-Nodes (14): Capture ingest: the frame store and the simulated capture run., content_id(), FrameRecord, FrameStore, LocalFrameStore, datetime, Path, Protocol (+6 more)
+Cohesion: 0.08
+Nodes (20): Capture ingest: the frame store and the simulated capture run., content_id(), FrameRecord, FrameStore, LocalFrameStore, object_store_uri(), datetime, Path (+12 more)
 
 ### Community 3 - "StreetSegment"
 Cohesion: 0.06
-Nodes (22): Street-map overlay: putting captures and facts onto a flat map., corridor_street_map(), MapFrame, ndarray, Lateral offset of the kerb line from the centreline, signed by side. The hint…, A street-aligned basis: along the kerb, across the footway, up. Measurements…, ENU points into the street frame: +x along, +y across, +z up., Where a pose sits on the street network. (+14 more)
+Nodes (23): Street-map overlay: putting captures and facts onto a flat map., corridor_street_map(), MapFrame, ndarray, Overlaying captures onto a standard street map. The anchoring stack returns a…, Lateral offset of the kerb line from the centreline, signed by side. The hint…, A street-aligned basis: along the kerb, across the footway, up. Measurements…, ENU points into the street frame: +x along, +y across, +z up. (+15 more)
 
-### Community 5 - "GlassesProfile"
-Cohesion: 0.11
-Nodes (16): GlassesProfile, ndarray, Where a walking wearer's camera is, and where it points. A wearer looks roughly…, Delivered camera characteristics for Meta AI glasses via the DAT. ``fov_deg``…, What the hardware captures, for the ratio that matters., wearer_pose(), _intrinsics_for(), ndarray (+8 more)
+### Community 4 - "ReferenceFrame"
+Cohesion: 0.15
+Nodes (7): DescriptorIndex, Search radius that will contain the true position with high probability., An already-anchored frame, with the 3D structure it observed. ``points_world``…, Geographic prefilter, then cosine similarity over descriptors., ReferenceFrame, _IdentityMatcher, TestRetrieval
+
+### Community 5 - "build_sf_corridor_3d.py"
+Cohesion: 0.28
+Nodes (15): annotate_osm_features(), build_payload(), _building_height(), _cell_resolution(), _centroid(), district_bands(), _feature_is_covered(), fetch_osm() (+7 more)
 
 ### Community 6 - "PhotoJournal"
 Cohesion: 0.07
 Nodes (24): Assessor, BatchOutcome, COMPLETE, DEFERRED, EMPTY, FAILED, PARTIAL, BatchPolicy (+16 more)
 
-### Community 7 - "Plane"
+### Community 7 - "split_kerb_planes"
 Cohesion: 0.08
-Nodes (18): estimate_kerb_offset(), fit_plane_ransac(), perpendicular_extent(), Plane, ndarray, Find the lateral position of the kerb line by scanning for the largest height…, A plane as unit normal and offset: ``n . x + d = 0``., Extent of a point set along a horizontal axis: (span, low, high). Percentile-… (+10 more)
+Nodes (21): estimate_kerb_offset(), fit_plane_ransac(), perpendicular_extent(), Plane, ndarray, Plane fitting for the road and the walking surface. The two planes are the…, Find the lateral position of the kerb line by scanning for the largest height…, Find the road and walking surfaces, and the step between them. Splits laterally… (+13 more)
 
 ### Community 8 - "LocalPhotoJournal"
-Cohesion: 0.10
-Nodes (10): LocalPhotoJournal, datetime, Path, Store a frame. Idempotent: re-adding the same bytes replaces the row, not the…, Update metadata without touching pixels., Overwrite the pixels in place, keeping the identity. Used by compression. The…, Delete pixels and rows. The only method that removes data. Returns how many…, Check that rows and blobs agree. Cheap, and worth running before a send. (+2 more)
+Cohesion: 0.11
+Nodes (9): LocalPhotoJournal, Path, Store a frame. Idempotent: re-adding the same bytes replaces the row, not the…, Update metadata without touching pixels., Overwrite the pixels in place, keeping the identity. Used by compression. The…, Delete pixels and rows. The only method that removes data. Returns how many…, Check that rows and blobs agree. Cheap, and worth running before a send., Filesystem plus SQLite. The phone's working set. (+1 more)
 
 ### Community 9 - "distributions.py"
-Cohesion: 0.12
-Nodes (34): BlockFace, DrivewayApron, Obstruction, Hierarchical sampling of pedestrian right-of-way geometry. Sampling is…, Latent state shared by everything on one block face., Sample the latent state of one block face., Sample one run of sidewalk, conditioned on its block face., Displacement at panel joints, with root-heave clustering. Most joints are flat.… (+26 more)
+Cohesion: 0.10
+Nodes (36): BlockFace, DrivewayApron, LevelChange, Obstruction, Hierarchical sampling of pedestrian right-of-way geometry. Sampling is…, Latent state shared by everything on one block face., A vertical discontinuity. ``cause`` is retained so the exporter can explain a…, Sample the latent state of one block face. (+28 more)
 
 ### Community 10 - "CompressionProfile"
-Cohesion: 0.14
-Nodes (12): CompressionPlan, CompressionProfile, fits_budget(), frames_within_budget(), plan_compression(), Compression policy for the daily batch. No codec is written here and none…, Estimate the daily batch size before encoding any of it. Worth knowing in…, How many frames fit in a budget. Sets the curator's daily cap on a metered plan. (+4 more)
+Cohesion: 0.33
+Nodes (7): CompressionProfile, What to ask the platform encoder for., decode(), encode(), ndarray, Re-encode through Pillow, falling back if a format is unavailable. On a phone…, TestEncoding
 
 ### Community 11 - "TriggerEngine"
-Cohesion: 0.17
-Nodes (10): ctx(), CaptureContext, parametrize, Suppression, Position noise is metres; differencing fixes 0.05 s apart would be pure noise., The premise of the shared trigger: a vehicle interior is not worth uploading., A flat battery must short-circuit before anything expensive is evaluated., TestSuppression (+2 more)
+Cohesion: 0.12
+Nodes (18): MotionState, MotionState, Straight from the OS activity classifier — not reimplemented. iOS…, ctx(), CaptureContext, parametrize, Suppression, Tests for the capture trigger. (+10 more)
 
-### Community 12 - "RenderResult"
-Cohesion: 0.07
-Nodes (31): Software rendering — turning simulated geometry into actual images., corridor_triangles(), ndarray, A z-buffered triangle rasteriser. CARLA renders far better images than this,…, Rasterise triangles into an image, depth buffer and world-position buffer.…, Split triangles until no edge exceeds ``max_edge_m``. Necessary because the…, Subdivide a uniformly coloured batch, keeping colours aligned., Flatten a corridor's meshes into triangles plus per-triangle colours. A road… (+23 more)
+### Community 12 - "photobank.py"
+Cohesion: 0.09
+Nodes (29): bank_summary(), BankFrame, build_photo_bank(), datetime, A photo bank matching what a phone app actually receives from Meta glasses. The…, Walk a contributor down the corridor and bank what the glasses would deliver.…, A banked capture. ``render`` and the ``true_*`` fields are simulation-only and…, Software rendering — turning simulated geometry into actual images. (+21 more)
 
 ### Community 13 - "TestKeylessAdapters"
 Cohesion: 0.07
@@ -223,16 +221,16 @@ Cohesion: 0.09
 Nodes (20): AdapterUnavailable, AnchorImagerySource, LocalizationResult, MetricDepthSource, Protocol, RuntimeError, Provider-agnostic interfaces. Each capability is a Protocol with at least two…, Raised when an adapter is selected but its credential or dependency is missing. (+12 more)
 
 ### Community 15 - "kartaview.py"
-Cohesion: 0.11
-Nodes (24): ObservationUnavailable, RuntimeError, The provider no longer serves this observation's pixels., _f(), _i(), KartaViewProvider, _projection(), datetime (+16 more)
+Cohesion: 0.13
+Nodes (21): _f(), _i(), KartaViewProvider, _projection(), datetime, Observation, KartaView. KartaView (formerly OpenStreetCam) is the OpenStreetMap community's…, ``"LGE LG-H815"`` -> ``("LGE", "LG-H815")``. One token means model only. (+13 more)
 
 ### Community 16 - "ImageRef"
 Cohesion: 0.08
 Nodes (23): ImageRef, A street-level image available for anchoring., focal_px_from_interior(), PanoramaxImage, PanoramaxImagery, _parse_feature(), Any, datetime (+15 more)
 
 ### Community 17 - "FeatureConfig"
-Cohesion: 0.13
-Nodes (19): The same statistics on simulated frames, for comparison. Printed beside the…, _render_baseline(), detect(), FeatureConfig, Features, _geometric_filter(), _grayscale(), match_features() (+11 more)
+Cohesion: 0.12
+Nodes (20): The same statistics on simulated frames, for comparison. Printed beside the…, _render_baseline(), detect(), FeatureConfig, Features, _geometric_filter(), _grayscale(), match_features() (+12 more)
 
 ### Community 18 - "build_destination"
 Cohesion: 0.12
@@ -243,104 +241,104 @@ Cohesion: 0.16
 Nodes (17): AffineView, _compose(), default_views(), detect_multi_view(), _invert(), ndarray, Affine view simulation — bridging the vantage gap. The measured failure this…, Compose two 2x3 affines: apply ``first``, then ``second``. (+9 more)
 
 ### Community 20 - "measure_cross_section"
-Cohesion: 0.16
-Nodes (11): measure_cross_section(), MeasurementConfig, ndarray, Measure kerb and footway from the reconstructed points around one station.…, kerb_cloud(), ndarray, Tests for measurement extraction, street overlay, gait, and the photo bank., The arithmetic behind Tier C: a 1.5% rise over 1.6 m is inside the fit noise. (+3 more)
+Cohesion: 0.15
+Nodes (12): measure_cross_section(), MeasurementConfig, ndarray, Measure kerb and footway from the reconstructed points around one station.…, kerb_cloud(), ndarray, parametrize, Tests for measurement extraction, street overlay, gait, and the photo bank. (+4 more)
 
 ### Community 21 - "world.py"
-Cohesion: 0.14
-Nodes (16): curb_height_bucket(), Assemble a simulated corridor and its ground truth. This is the bridge between…, Bucket a continuous height. The graded quantity is the bucket, not the…, The world-facts model — the thing the product actually sells., FactClass, datetime, The served world-fact. Two rules from the re-spec are enforced here as…, Accuracy tier. Sets what may be claimed about a fact (re-spec 8.3). (+8 more)
-
-### Community 22 - "WorldFact"
 Cohesion: 0.13
-Nodes (9): BaseModel, model_validator, Record that this measurement disagrees with a reference, keeping the…, One assertion about one place, with everything needed to judge whether to trust…, WorldFact, PipelineResult, Score served facts against ground truth, per fact class. Matching is by class…, score() (+1 more)
+Nodes (17): Assemble a simulated corridor and its ground truth. This is the bridge between…, The world-facts model — the thing the product actually sells., FactClass, Provenance, The served world-fact. Two rules from the re-spec are enforced here as…, Accuracy tier. Sets what may be claimed about a fact (re-spec 8.3)., Tier, tier_for_class() (+9 more)
+
+### Community 22 - "pipeline.py"
+Cohesion: 0.11
+Nodes (17): BaseModel, model_validator, Record that this measurement disagrees with a reference, keeping the…, One assertion about one place, with everything needed to judge whether to trust…, WorldFact, FrameOutcome, _intrinsics_for(), PipelineResult (+9 more)
 
 ### Community 23 - "credentials.py"
 Cohesion: 0.11
 Nodes (13): Capability, check(), Credential, CredentialReport, providers_for(), Every external service this system can talk to, and what it needs to…, What an adapter provides. One capability, many possible providers., One secret or setting the operator has to supply. (+5 more)
 
 ### Community 24 - "calibrate.py"
-Cohesion: 0.10
-Nodes (33): discover(), evaluate_directory(), evaluate_pair(), group_by_position(), load_image(), main(), PairResult, ndarray (+25 more)
+Cohesion: 0.11
+Nodes (29): discover(), evaluate_directory(), evaluate_pair(), group_by_position(), load_image(), main(), PairResult, ndarray (+21 more)
 
 ### Community 25 - "3. Layer C — Fusion engine"
 Cohesion: 0.11
 Nodes (18): 0.1 The entire Google stack is off-limits for this business, 0.2 ODbL share-alike is survivable, but only by design, 0.3 The public segmentation datasets cannot train a commercial model, 0. Legal ground rules — read before choosing anything, 1. Layer A — Smart capture, 2. Layer B — Compression & upload, 3.1 Anchor reference data (replaces Google), 3.2 Image retrieval / place recognition (cross-contributor association, Step 4) (+10 more)
 
-### Community 26 - "photobank.py"
-Cohesion: 0.09
-Nodes (26): Realistic walking pace. Nobody walks at a constant speed. Real pedestrian pace…, Layer A — deciding when to open the shutter., CaptureContext, CaptureDecision, MotionState, The capture trigger. Never stream. Open the shutter only when a frame is likely…, Everything the trigger sees at one instant., Stateful evaluator. One per capture session. Ordering is load-bearing. Device-… (+18 more)
+### Community 26 - "TriggerEngine"
+Cohesion: 0.13
+Nodes (11): Layer A — deciding when to open the shutter., CaptureDecision, Stateful evaluator. One per capture session. Ordering is load-bearing. Device-…, Why frames were skipped, over the session. The field diagnostic., Dead-reckon distance from speed. Speed is used rather than successive GNSS…, Why a frame was not taken. Ordered by how early the check runs., Thresholds. Deliberately explicit — every one of these is a battery/coverage…, Suppression (+3 more)
 
 ### Community 27 - "scenario.py"
 Cohesion: 0.06
 Nodes (35): baseline_between_frames_m(), CaptureFrame, carla_available(), DriveConfig, plan_capture_stations(), Any, Path, CARLA runtime. ``carla`` is imported lazily and the module is usable without… (+27 more)
 
 ### Community 28 - "RigConfig"
-Cohesion: 0.14
-Nodes (16): contributor_pass(), ndarray, Drive a monocular contributor down the corridor, through the real capture…, Camera and driving parameters for a pass., Render once per station, reusing the flattened scene across the whole pass., Drive the RTK rig down the corridor at fixed spacing. Fixed spacing rather than…, _render_stations(), RigConfig (+8 more)
+Cohesion: 0.12
+Nodes (17): pose_at_station(), ndarray, Camera and driving parameters for a pass., The camera pose at a station along the corridor., RigConfig, corridor(), fixture, Tests for config, rendering, the frame store, seeding, and the end-to-end slice. (+9 more)
 
 ### Community 29 - "ConfidenceModel"
-Cohesion: 0.13
-Nodes (13): Provenance, ConfidenceModel, FusedValue, Observation, datetime, Confidence, corroboration, and freshness decay. The promotion rule from the re-…, Saturating in the number of independent contributors. Diminishing returns are…, One contributor's measurement of one fact. (+5 more)
+Cohesion: 0.16
+Nodes (9): ConfidenceModel, Observation, datetime, Saturating in the number of independent contributors. Diminishing returns are…, One contributor's measurement of one fact., Turns a set of observations into a confidence and a provenance., Observation, 40 frames from one wearer is one observer, not 40. (+1 more)
 
-### Community 30 - "test_capture_pipeline.py"
-Cohesion: 0.15
-Nodes (13): Runtime configuration, loaded from the environment and an optional local file.…, _chunk(), encode_png(), ndarray, Path, Minimal PNG writer. Written against zlib from the standard library rather than…, Encode an (H, W, 3) uint8 array as PNG bytes., write_png() (+5 more)
+### Community 30 - "encode_png"
+Cohesion: 0.13
+Nodes (14): _decode_png(), export_contact_sheet(), ndarray, Path, Tile a sample of the bank into one image, for eyeballing what was captured., Minimal decoder for the images this project writes (filter 0, 8-bit RGB)., _chunk(), encode_png() (+6 more)
 
 ### Community 31 - "curate"
-Cohesion: 0.09
-Nodes (28): assess(), Assessment, curate(), CurationConfig, CurationResult, dhash(), hamming(), ndarray (+20 more)
+Cohesion: 0.06
+Nodes (41): assess(), Assessment, curate(), CurationConfig, CurationResult, dhash(), hamming(), ndarray (+33 more)
 
 ### Community 32 - "MapillaryImagery"
 Cohesion: 0.17
 Nodes (11): build_anchor_imagery(), build_visual_positioning(), MapillaryImagery, ProviderChoice, Construct an anchor-imagery provider. ``allow_internal_only`` must be passed…, Mapillary API v4 — kept as a fallback, no longer the default. Imagery is CC BY-…, The query this adapter would issue. Separated so it can be asserted in tests., MonkeyPatch (+3 more)
 
 ### Community 33 - "TestVaryingPace"
-Cohesion: 0.14
-Nodes (11): GaitConfig, GaitSimulator, ndarray, Pedestrian pace parameters. Defaults are ordinary adult walking., Generates a speed trace for one walk., Advance and return the current speed., A full speed trace, for analysis and tests., parametrize (+3 more)
+Cohesion: 0.12
+Nodes (13): GaitConfig, GaitSimulator, ndarray, Realistic walking pace. Nobody walks at a constant speed. Real pedestrian pace…, Pedestrian pace parameters. Defaults are ordinary adult walking., Generates a speed trace for one walk., Advance and return the current speed., A full speed trace, for analysis and tests. (+5 more)
 
 ### Community 34 - "geometry.py"
-Cohesion: 0.10
-Nodes (16): CurbRamp, One run of sidewalk along a block face, with everything on it., Narrowest point — the number a wheelchair or robot actually has to fit through., A curb ramp with the geometry the robot API is asked to report., SidewalkSegment, build_segment_mesh(), cross_section_at(), CrossSection (+8 more)
+Cohesion: 0.08
+Nodes (18): CurbRamp, A curb ramp with the geometry the robot API is asked to report., build_dome_field(), cross_section_at(), CrossSection, Parametric geometry for sampled right-of-way features. CARLA cannot supply…, Truncated-dome detectable warning field. Domes are 0.9 in across and 0.2 in…, Lateral profile at one station, as (offset from kerb line, height) pairs.… (+10 more)
 
 ### Community 35 - "daily.py"
 Cohesion: 0.17
 Nodes (12): Row, BatchReport, The nightly batch, fully implemented. Assess, delete rejects immediately,…, Destination, Protocol, Where the nightly batch goes. Every destination must **confirm receipt**, not…, EntryState, JournalEntry (+4 more)
 
-### Community 36 - "TestGeometryHelpers"
+### Community 36 - "trigger.py"
 Cohesion: 0.16
-Nodes (10): baseline_for_depth_tolerance_m(), overlap_fraction(), perceptual_distance(), Normalised Hamming distance between two perceptual hashes. A hash rather than a…, Fraction of the frame footprint shared by consecutive captures. Multi-view…, Baseline needed to resolve depth at ``range_m`` to ``tolerance_m``. The same…, Capture rate needed to hold a minimum overlap. The inverse of…, required_capture_hz() (+2 more)
+Nodes (11): baseline_for_depth_tolerance_m(), overlap_fraction(), perceptual_distance(), The capture trigger. Never stream. Open the shutter only when a frame is likely…, Normalised Hamming distance between two perceptual hashes. A hash rather than a…, Fraction of the frame footprint shared by consecutive captures. Multi-view…, Baseline needed to resolve depth at ``range_m`` to ``tolerance_m``. The same…, Capture rate needed to hold a minimum overlap. The inverse of… (+3 more)
 
-### Community 37 - "capture.py"
-Cohesion: 0.10
-Nodes (17): Environment, GnssErrorModel, GnssSimulator, mean_horizontal_deviation(), mix_mean_deviation(), ndarray, GNSS error simulation. CARLA's built-in GNSS sensor applies independent…, Advance by ``dt_s`` and return the ENU error vector in metres. (+9 more)
+### Community 37 - "GnssSimulator"
+Cohesion: 0.11
+Nodes (15): Environment, GnssErrorModel, GnssSimulator, mean_horizontal_deviation(), mix_mean_deviation(), ndarray, GNSS error simulation. CARLA's built-in GNSS sensor applies independent…, Advance by ``dt_s`` and return the ENU error vector in metres. (+7 more)
 
 ### Community 38 - "Camera-Only Fusion Mapping Network — Technical Re-Spec"
 Cohesion: 0.11
 Nodes (18): 0. The one-paragraph version, 10. Deferred (bracketed for this version, not solved), 11. Competitive reality to build against, 1. What each layer does — and who builds it, 2. Layer A — Smart Capture ("aware software"), 3. Layer B — Compression & Upload (use the commodity, don't build it), 4. Layer C — The Fusion Engine (your only real IP), 5. Layer D — Distribution (+10 more)
 
 ### Community 39 - "run_batch"
-Cohesion: 0.25
-Nodes (10): BatchPolicy, Run one night's batch., run_batch(), DirectoryDestination, Path, Write to a folder — a synced drive, an external disk, a mount point. Confirmed…, Path, The journal is the only copy until the far end confirms. (+2 more)
+Cohesion: 0.16
+Nodes (15): BatchPolicy, next_window(), datetime, Run one night's batch., The next scheduled run after ``now``, in **local** time. The hour is local by…, run_batch(), DirectoryDestination, Path (+7 more)
 
 ### Community 40 - "test_phone_pipeline.py"
-Cohesion: 0.17
-Nodes (13): decode(), encode(), ndarray, Re-encode through Pillow, falling back if a format is unavailable. On a phone…, new_entry(), Build an entry for a payload, with the content hash as its identity., photo(), png_bytes() (+5 more)
+Cohesion: 0.21
+Nodes (10): new_entry(), datetime, Build an entry for a payload, with the content hash as its identity., photo(), png_bytes(), ndarray, Tests for the journal, the nightly batch, and the privacy filter., SQLite INTEGER is signed; a 64-bit perceptual hash is not. (+2 more)
 
-### Community 41 - "phone.py"
-Cohesion: 0.19
-Nodes (14): ImageFormat, Rough encoded size at the default quality. Conservative on purpose., next_window(), datetime, The next scheduled run after ``now``, in **local** time. The hour is local by…, _batch(), _ingest(), main() (+6 more)
+### Community 41 - "TinyImageDescriptor"
+Cohesion: 0.23
+Nodes (4): ndarray, Downsampled greyscale, mean-centred and L2-normalised. Mean-centring before…, TinyImageDescriptor, TestDescriptors
 
 ### Community 42 - "test_distributions.py"
 Cohesion: 0.07
 Nodes (13): _curb_fields(), _noncompliance_rate(), Tests for the right-of-way sampling model. These assert the properties the…, Tier C exists because these are rare and small. Both properties are asserted., Recall on 'no ramp here' is unmeasurable if the sim never omits one., The corroboration claim is untestable if a repeat pass sees different geometry., A high-quality block face must depart from the standard less often than a poor…, TestCorners (+5 more)
 
-### Community 43 - "ImageryProvider"
-Cohesion: 0.09
-Nodes (21): ImageAsset, ImageryProvider, License, Observation, Protocol, What a provider requires of anyone using its imagery. Kept per-observation…, A resolved, currently-valid way to fetch one observation's pixels., Metadata-first access to a street-imagery archive. (+13 more)
+### Community 43 - "imagery/base.py"
+Cohesion: 0.10
+Nodes (21): ImageAsset, ImageryProvider, License, Observation, Protocol, The provider interface. Everything above this line knows about observations and…, What a provider requires of anyone using its imagery. Kept per-observation…, A resolved, currently-valid way to fetch one observation's pixels. (+13 more)
 
 ### Community 44 - "run_capture_set.py"
-Cohesion: 0.22
-Nodes (17): cluster(), fetch_streets(), Frame, _input_paths_and_metadata(), load(), main(), match_within(), Path (+9 more)
+Cohesion: 0.12
+Nodes (25): DegradationConfig, DegradationReport, degrade(), estimated_fov_deg(), ndarray, Degrading a phone photograph to what the glasses would actually deliver. An…, Horizontal field of view from a 35 mm-equivalent focal length., Turn a phone photograph into what the glasses would have delivered. (+17 more)
 
 ### Community 45 - "Part B — Features still needing code"
 Cohesion: 0.12
@@ -354,33 +352,33 @@ Nodes (14): 1. Why vehicle-first is right — including an argument stronger tha
 Cohesion: 0.18
 Nodes (12): corridor_facades(), Facade, facade_triangles(), ndarray, Building facades along a corridor. Not scenery. The re-spec's Step 3 anchors a…, Every facade triangle in a corridor, with per-triangle colours., One building frontage along the block., Sample the frontages on one block face. Identity-seeded like everything else,… (+4 more)
 
-### Community 48 - "pipeline.py"
-Cohesion: 0.05
-Nodes (44): distance_m(), enu_to_geodetic(), gaussian_radius_m(), geodetic_to_enu(), haversine_m(), Origin, Local tangent-plane geodesy. The simulator works in metres on a flat local…, Great-circle distance over long ranges. Retained for distances where earth… (+36 more)
+### Community 48 - "capture.py"
+Cohesion: 0.08
+Nodes (31): distance_m(), enu_to_geodetic(), gaussian_radius_m(), geodetic_to_enu(), haversine_m(), Origin, Local tangent-plane geodesy. The simulator works in metres on a flat local…, Great-circle distance over long ranges. Retained for distances where earth… (+23 more)
 
-### Community 49 - "ndarray"
-Cohesion: 0.17
-Nodes (8): ndarray, Camera position in world coordinates. Not ``translation``., World points to camera frame. Accepts (N, 3)., Rodrigues formula. A zero vector gives identity rather than a division by zero., Inverse of :func:`rotation_from_rotvec`, stable at 0 and pi., rotation_from_rotvec(), rotvec_from_rotation(), TestRotation
+### Community 49 - "Pose"
+Cohesion: 0.09
+Nodes (14): Pose, ndarray, Camera position in world coordinates. Not ``translation``., World points to camera frame. Accepts (N, 3)., Gauss-Newton refinement of reprojection error, Huber-weighted. Huber rather…, Rodrigues formula. A zero vector gives identity rather than a division by zero., Inverse of :func:`rotation_from_rotvec`, stable at 0 and pi., World-to-camera rigid transform. (+6 more)
 
-### Community 50 - "Settings"
-Cohesion: 0.10
-Nodes (15): load_env_file(), Path, Read ``KEY=value`` lines into the environment. Returns what it set., Render a config value safely for logs., Everything the pipeline reads from the environment., redact(), Settings, object_store_uri() (+7 more)
+### Community 50 - "phone.py"
+Cohesion: 0.12
+Nodes (19): load_env_file(), Path, Runtime configuration, loaded from the environment and an optional local file.…, Read ``KEY=value`` lines into the environment. Returns what it set., Render a config value safely for logs., Everything the pipeline reads from the environment., redact(), Settings (+11 more)
 
 ### Community 51 - "Mesh"
-Cohesion: 0.18
-Nodes (11): Mesh, A triangle mesh in a local frame: +x along the kerb, +y into the sidewalk, +z…, main(), Generate a corridor: meshes for the renderer, ground truth for the checker.…, Path, Wavefront OBJ export. OBJ rather than a CARLA-native format on purpose: CARLA…, Write meshes to a single OBJ, one named group per mesh. OBJ vertex indices are…, write_obj() (+3 more)
+Cohesion: 0.10
+Nodes (20): build_segment_mesh(), measure_curb_height(), Mesh, Loft a segment's cross-sections into a triangle mesh., Recover curb height from mesh vertices — the inverse of the generator. Used by…, A triangle mesh in a local frame: +x along the kerb, +y into the sidewalk, +z…, main(), Generate a corridor: meshes for the renderer, ground truth for the checker.… (+12 more)
 
 ### Community 52 - "build_corridor"
 Cohesion: 0.12
 Nodes (13): build_corridor(), Corridor, CorridorSegment, export_ground_truth(), PlacedRamp, Lay out block faces along a corridor, with a corner at each block boundary., The exact answer key for the corridor., A simulated stretch of street with everything on it. (+5 more)
 
 ### Community 54 - "load_photo"
-Cohesion: 0.09
-Nodes (29): discover_photos(), load_photo(), _open(), PhotoMeta, ndarray, Path, Reading real photographs, including iPhone HEIC. Three things routinely go…, Load a photograph as RGB, with EXIF orientation applied.… (+21 more)
+Cohesion: 0.13
+Nodes (23): discover_photos(), load_photo(), _open(), ndarray, Path, Reading real photographs, including iPhone HEIC. Three things routinely go…, Load a photograph as RGB, with EXIF orientation applied.…, Pull the few EXIF fields that matter. Absent EXIF is normal, not an error. (+15 more)
 
 ### Community 55 - "seeding.py"
-Cohesion: 0.09
-Nodes (27): main(), Namespace, Generate seed data and run the end-to-end simulation. python -m smc.ingest seed…, _seed(), build_descriptor(), FrameDescriptor, ndarray, Protocol (+19 more)
+Cohesion: 0.06
+Nodes (37): GlassesProfile, Where a walking wearer's camera is, and where it points. A wearer looks roughly…, Delivered camera characteristics for Meta AI glasses via the DAT. ``fov_deg``…, What the hardware captures, for the ratio that matters., wearer_pose(), Spatial Mapping Crowdsource., build_descriptor(), FrameDescriptor (+29 more)
 
 ### Community 56 - "2. Published prior art — the numbers that reset the targets"
 Cohesion: 0.14
@@ -396,11 +394,11 @@ Nodes (6): CoverageCell, CoverageIndex, Server-pushed coverage state for one H3 
 
 ### Community 59 - "._pipeline"
 Cohesion: 0.36
-Nodes (3): A query cannot be better anchored than the references it stood on., Perceptual aliasing in repetitive streetscapes is the normal cause., TestAnchoringPipeline
+Nodes (4): AnchoringConfig, A query cannot be better anchored than the references it stood on., Perceptual aliasing in repetitive streetscapes is the normal cause., TestAnchoringPipeline
 
-### Community 60 - "test_anchoring.py"
-Cohesion: 0.20
-Nodes (8): Linear pose from >= 6 correspondences (Direct Linear Transform). Fast,…, solve_pnp_dlt(), _IdentityMatcher, ndarray, Tests for pose geometry, retrieval, and the anchoring pipeline. Pose recovery…, A refusal costs one unanchored frame; a wrong pose corrupts every fact from it., scene(), TestPnp
+### Community 60 - "ransac_pnp"
+Cohesion: 0.21
+Nodes (10): _iterations_needed(), ransac_pnp(), Linear pose from >= 6 correspondences (Direct Linear Transform). Fast,…, How many RANSAC samples are needed to see one all-inlier set, with…, Robust pose from noisy, partly wrong correspondences. Returns ``None`` rather…, solve_pnp_dlt(), ndarray, A refusal costs one unanchored frame; a wrong pose corrupts every fact from it. (+2 more)
 
 ### Community 61 - "GlassesSession.kt"
 Cohesion: 0.18
@@ -419,8 +417,8 @@ Cohesion: 0.10
 Nodes (15): audit(), BlockProfile, CurbHeightProfile, ProfileAudit, RampProfile, Sampling profiles for pedestrian right-of-way geometry. A simulation whose…, Sidewalk running surface: width, cross slope, condition, and joint displacement., Block-face level structure: construction era and build quality. (+7 more)
 
 ### Community 65 - "imagery/panoramax.py"
-Cohesion: 0.19
-Nodes (16): _f(), _i(), _link(), PanoramaxProvider, datetime, Observation, _rational(), Panoramax. Panoramax is street-level imagery run by IGN, the French national… (+8 more)
+Cohesion: 0.17
+Nodes (17): ObservationUnavailable, RuntimeError, The provider no longer serves this observation's pixels., _f(), _i(), _link(), PanoramaxProvider, datetime (+9 more)
 
 ### Community 66 - "TestFullStack"
 Cohesion: 0.15
@@ -430,17 +428,17 @@ Nodes (4): The rule most likely to be lost between layers. Checked at the far en
 Cohesion: 0.24
 Nodes (5): CaptureDecision, CaptureContext, Suppression, TriggerEngine, TriggerConfig
 
-### Community 68 - "Region"
-Cohesion: 0.12
-Nodes (16): The provider interface. Everything above this line knows about observations and…, exact_dedupe(), mark_eligibility(), Observation, Observation eligibility and deterministic lightweight deduplication., Quality tier from source pixels. Missing resolution stays reject-tier., Apply v1 source-quality gates without inventing missing provider facts., Collapse only definite duplicates: same provider instance and image id. (+8 more)
+### Community 68 - "SequenceRecord"
+Cohesion: 0.14
+Nodes (17): bounded_sequences(), collect_provider(), provider_by_name(), Observation, summary(), Sequences with any presence in the region. Metadata only -- no pixels., mark_eligibility(), Observation eligibility and deterministic lightweight deduplication. (+9 more)
 
-### Community 69 - ".anchor"
-Cohesion: 0.31
-Nodes (6): Anchor one capture, or return ``None`` if it cannot be anchored confidently.…, pose_covariance(), position_sigma_m(), 6x6 covariance of the pose parameters (rotvec, translation). Linearised at the…, Horizontal 1-sigma position uncertainty from a pose covariance. Uses the…, TestPoseUncertainty
+### Community 69 - "AnchoringPipeline"
+Cohesion: 0.17
+Nodes (10): AnchoringPipeline, FeatureMatcher, ndarray, Protocol, Anchor one capture, or return ``None`` if it cannot be anchored confidently.…, Inverse-variance combination of the references' own uncertainties. Not the…, Compass heading of the camera's optical axis, degrees clockwise from north. The…, Local feature matching between a query and a reference frame. Production… (+2 more)
 
 ### Community 70 - "BBox"
-Cohesion: 0.12
-Nodes (13): build_payload(), district_bands(), fetch_osm(), h3_boundary(), main(), overpass_query(), Any, Path (+5 more)
+Cohesion: 0.14
+Nodes (5): BBox, A latitude/longitude rectangle, in degrees., Width at the mid-latitude, which is what a person means by "how wide is it"., ``west,south,east,north`` — the order STAC and GeoJSON use., Sample points covering the box, spaced ``step_m`` apart. Providers that only…
 
 ### Community 71 - "manifest.json"
 Cohesion: 0.22
@@ -459,8 +457,8 @@ Cohesion: 0.22
 Nodes (8): 1. The vantage break — resolved, with a caveat that only photographs can close, 2. The oracle is no longer in any default path, 3. Learned retrieval — still not present, and here is what it needs, 4. Integrations, 5. Stale documentation — corrected, 6. GCS destination — implemented, 7. A bug found while fixing these, Production Review — 2026-08-23
 
 ### Community 75 - "units.py"
-Cohesion: 0.14
-Nodes (9): build_dome_field(), Truncated-dome detectable warning field. Domes are 0.9 in across and 0.2 in…, inches(), ratio_from_slope(), Unit conversion. Every accessibility standard this project is measured against…, Slope as a fraction (0.0833 for 1:12). Raises on a zero run., Slope fraction to the run of a 1:N ratio. 0.0833 -> 12.0., slope_from_ratio() (+1 more)
+Cohesion: 0.22
+Nodes (5): ratio_from_slope(), Unit conversion. Every accessibility standard this project is measured against…, Slope as a fraction (0.0833 for 1:12). Raises on a zero run., Slope fraction to the run of a 1:N ratio. 0.0833 -> 12.0., slope_from_ratio()
 
 ### Community 76 - "Kerbside"
 Cohesion: 0.22
@@ -470,9 +468,9 @@ Nodes (8): Documentation, Kerbside, Licence, Licensing discipline, Measured, not
 Cohesion: 0.22
 Nodes (3): The checker compares positions metres apart. There the metric must be exact., Documents why distance_m exists, so nobody 'simplifies' it back to haversine., TestGeo
 
-### Community 78 - "test_geometry.py"
-Cohesion: 0.16
-Nodes (7): ndarray, Stations along the segment, refined around every feature that needs resolution.…, station_grid(), parametrize, Tests for mesh construction and the corridor build. The central assertion is…, TestCurbBuckets, TestStationGrid
+### Community 78 - "SidewalkSegment"
+Cohesion: 0.14
+Nodes (9): One run of sidewalk along a block face, with everything on it., Narrowest point — the number a wheelchair or robot actually has to fit through., SidewalkSegment, cumulative_step_at(), ndarray, Stations along the segment, refined around every feature that needs resolution.…, Total vertical displacement accumulated by joint steps up to a station. Joint…, station_grid() (+1 more)
 
 ### Community 79 - "Glasses System — Capture, Transfer, Accuracy"
 Cohesion: 0.25
@@ -482,9 +480,9 @@ Nodes (7): 1. Capture (Layer A), 2. Transfer (Layer B), 3. Accuracy (the part th
 Cohesion: 0.25
 Nodes (7): One statement you need to run, Reading it back, Supabase storage, The bucket is write-only, deliberately, What lands in the bucket, Which key goes where, Worth adding later
 
-### Community 81 - "project"
-Cohesion: 0.32
-Nodes (6): project(), Project world points to pixels. Points behind the camera come back as NaN. NaN…, Per-correspondence pixel error. Points behind the camera get ``inf``., reprojection_errors(), Not a wrapped coordinate — a mirrored solution is how pose solvers go wrong., TestProjection
+### Community 81 - "pose.py"
+Cohesion: 0.16
+Nodes (14): The anchoring stack — Step 3 of the fusion engine. Rough GPS puts a capture on…, pose_covariance(), position_sigma_m(), project(), Camera pose geometry: projection, PnP, and robust estimation. This is the…, Project world points to pixels. Points behind the camera come back as NaN. NaN…, Per-correspondence pixel error. Points behind the camera get ``inf``., 6x6 covariance of the pose parameters (rotvec, translation). Linearised at the… (+6 more)
 
 ### Community 82 - "MotionState"
 Cohesion: 0.29
@@ -498,9 +496,9 @@ Nodes (6): Founding document, graphify, Layer boundaries (do not blur these), No
 Cohesion: 0.29
 Nodes (6): 1. The constraint that shaped the design, 2. What was built, 3. Four design decisions worth defending, 4. Findings the code produced, 5. What is still open, CARLA Harness
 
-### Community 85 - "ingest_sf_corridor.py"
-Cohesion: 0.21
-Nodes (18): Schema, bounded_sequences(), collect_provider(), main(), provider_by_name(), Observation, summary(), dataclass_rows() (+10 more)
+### Community 85 - "main"
+Cohesion: 0.16
+Nodes (24): Schema, main(), _dedupe_sequences(), _license_rows(), main(), _observation(), Path, _rows() (+16 more)
 
 ### Community 86 - "UploadState"
 Cohesion: 0.33
@@ -516,11 +514,15 @@ Nodes (13): _cell_for(), default_sources(), ingest(), IngestReport, photos_libra
 
 ### Community 89 - "extract.py"
 Cohesion: 0.11
-Nodes (18): utcnow(), CrossSection, KerbMeasurement, datetime, From a reconstruction to world-facts. This is the step between a solved pose…, Everything measurable at one place along the kerb., Serialise a measured cross-section into servable facts. Provenance is decided…, Whether the measurement sits clear of its bucket edges by more than its sigma. (+10 more)
+Nodes (16): datetime, utcnow(), CrossSection, KerbMeasurement, datetime, From a reconstruction to world-facts. This is the step between a solved pose…, Everything measurable at one place along the kerb., Serialise a measured cross-section into servable facts. Provenance is decided… (+8 more)
 
 ### Community 90 - "deploy.sh"
 Cohesion: 0.60
 Nodes (4): die(), PATH, say(), deploy.sh script
+
+### Community 92 - "PhotoMeta"
+Cohesion: 0.29
+Nodes (3): PhotoMeta, What a photograph tells us about the camera that took it., Pinhole focal length in pixels, from the 35 mm equivalent. ``focal_px =…
 
 ### Community 95 - "make_icons.py"
 Cohesion: 0.11
@@ -538,21 +540,17 @@ Nodes (4): Reproducing, The ultrawide result — 2026-08-30, What it does not se
 Cohesion: 0.18
 Nodes (10): HttpClient, PermanentError, Any, RuntimeError, A polite HTTP client for provider APIs. Both providers here are free public…, The request failed in a way that may succeed later: timeout, 5xx, rate limit., The request failed in a way that will not change: 404, malformed response., Retrying, rate-limited JSON client. (+2 more)
 
-### Community 104 - "Pose"
-Cohesion: 0.15
-Nodes (6): ContributorFrame, One stored contributor capture, with the truth kept separate for scoring., Compass heading of the camera's optical axis, degrees clockwise from north. The…, Pose, World-to-camera rigid transform., Camera at ``eye`` looking at ``target``, with +z as the optical axis. Building…
+### Community 104 - ".match"
+Cohesion: 0.40
+Nodes (3): ndarray, Return indices into ``query_keypoints`` and into the reference's points.…, Pixel coordinates the match indices refer to.
 
-### Community 105 - "verify_mesh_fidelity"
-Cohesion: 0.20
-Nodes (7): measure_curb_height(), Recover curb height from mesh vertices — the inverse of the generator. Used by…, FidelityReport, Whether the rendered geometry actually carries the sampled parameters., Recover curb height from the meshes and compare against what was sampled.…, verify_mesh_fidelity(), TestMeshFidelity
+### Community 106 - "Observation"
+Cohesion: 0.16
+Nodes (13): assign_cells(), build_coverage_rows(), _heading_diversity(), Any, datetime, Observation, H3 coverage summaries for the SF corridor imagery catalog., Attach H3 cell ids in place. (+5 more)
 
-### Community 106 - "coverage.py"
-Cohesion: 0.25
-Nodes (10): assign_cells(), build_coverage_rows(), _heading_diversity(), Any, datetime, Observation, H3 coverage summaries for the SF corridor imagery catalog., Attach H3 cell ids in place. (+2 more)
-
-### Community 108 - "pose.py"
-Cohesion: 0.24
-Nodes (8): _iterations_needed(), PnpResult, ransac_pnp(), Camera pose geometry: projection, PnP, and robust estimation. This is the…, Gauss-Newton refinement of reprojection error, Huber-weighted. Huber rather…, How many RANSAC samples are needed to see one all-inlier set, with…, Robust pose from noisy, partly wrong correspondences. Returns ``None`` rather…, refine_pose()
+### Community 108 - "mapping/__init__.py"
+Cohesion: 0.14
+Nodes (8): AnchorResult, Whether this pose is good enough to carry coarse geometry (re-spec 8.3 Tier B)., 3D mapping accuracy: anchoring, metric scale, and the confidence model., PnpResult, ndarray, Image retrieval — finding which captures show the same place. Step 4 of the…, Candidates near ``(lat, lon)``, ranked by descriptor similarity. ``radius_m``…, RetrievalHit
 
 ### Community 109 - "20260902T023431Z/manifest.json"
 Cohesion: 0.22
@@ -562,44 +560,28 @@ Nodes (8): count, created_at, max_width, mode, quality, records, skipped, source
 Cohesion: 0.29
 Nodes (10): _fetch(), main(), Path, Assemble the self-contained dataset the web map ships with. An Artifact runs…, Drop collinear vertices. Straight city blocks carry a lot of redundant nodes., Small JPEGs of the capture session, inlined as data URIs., road_query(), simplify() (+2 more)
 
-### Community 111 - "TestBaselineTrigger"
-Cohesion: 0.27
-Nodes (6): MotionState, Tests for the capture trigger., The correction that clock-triggering got wrong., The property triangulation needs: frame spacing should not swing with speed., run(), TestBaselineTrigger
-
 ### Community 112 - "OvertureClient"
 Cohesion: 0.22
 Nodes (5): OvertureClient, Overture Maps — building footprints and road centrelines. Free, no key.…, Whether output derived from this theme carries ODbL obligations., A DuckDB SQL query reading the theme directly from open data., Buildings are the useful anchor theme and the share-alike one. Easy to forget.
-
-### Community 113 - "pose_at_station"
-Cohesion: 0.31
-Nodes (4): pose_at_station(), The camera pose at a station along the corridor., Surface detail keyed on world position, so the same spot looks the same twice.…, TestRendering
 
 ### Community 114 - "12 · Installing it, and what the shutter refuses"
 Cohesion: 0.33
 Nodes (5): 12 · Installing it, and what the shutter refuses, A frame off the narrow lens, A frame with no position, The shutter refuses two things, What a "download" is here
 
-### Community 115 - "TriggerConfig"
-Cohesion: 0.33
-Nodes (3): Thresholds. Deliberately explicit — every one of these is a battery/coverage…, TriggerConfig, A real limit worth knowing: above ~16 m/s a 4 Hz cap cannot hold the 4 m…
-
-### Community 116 - "degrade"
-Cohesion: 0.33
-Nodes (4): DegradationReport, degrade(), ndarray, Turn a phone photograph into what the glasses would have delivered.
-
 ## Knowledge Gaps
 - **199 isolated node(s):** `EMPTY`, `COMPLETE`, `PARTIAL`, `DEFERRED`, `FAILED` (+194 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **13 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `intrinsics()` connect `seeding.py` to `capture.py`, `GlassesProfile`, `pose.py`, `pipeline.py`, `ndarray`, `load_photo`, `photobank.py`?**
-  _High betweenness centrality (0.035) - this node is a cross-community bridge._
-- **Why does `Pose` connect `Pose` to `GlassesProfile`, `capture.py`, `.anchor`, `pose.py`, `RenderResult`, `test_anchoring.py`, `pipeline.py`, `pose_at_station`, `ndarray`, `project`, `TestPose`, `seeding.py`, `photobank.py`, `._pipeline`, `RigConfig`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
-- **Why does `Settings` connect `Settings` to `phone.py`, `test_capture_pipeline.py`, `seeding.py`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `intrinsics()` connect `seeding.py` to `mapping/__init__.py`, `photobank.py`, `capture.py`, `pose.py`, `Pose`, `load_photo`, `pipeline.py`?**
+  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Why does `load_photo()` connect `load_photo` to `run_capture_set.py`, `main`, `calibrate.py`, `cameraroll.py`, `PhotoMeta`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `Settings` connect `phone.py` to `capture.py`?**
+  _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `LocalPhotoJournal` (e.g. with `ingest()` and `run_batch()`) actually correct?**
   _`LocalPhotoJournal` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 15 inferred relationships involving `Pose` (e.g. with `ContributorFrame` and `pose_at_station()`) actually correct?**

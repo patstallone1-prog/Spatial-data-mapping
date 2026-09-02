@@ -29,8 +29,49 @@ def overpass_query(bbox: BBox) -> str:
         "[out:json][timeout:60];("
         f'way["highway"~"^(primary|secondary|tertiary|residential|service|living_street|footway|pedestrian)$"]({area});'
         f'way["footway"~"^(sidewalk|crossing)$"]({area});'
+        f'way["building"]({area});'
         ");out geom;"
     )
+
+
+def _float_text(value: object) -> float | None:
+    if value is None:
+        return None
+    text = str(value).strip().lower().replace(",", ".")
+    if not text:
+        return None
+    if text.endswith("ft"):
+        try:
+            return float(text[:-2].strip()) * 0.3048
+        except ValueError:
+            return None
+    if text.endswith("m"):
+        text = text[:-1].strip()
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _building_height(tags: dict[str, Any]) -> tuple[float, str]:
+    height = _float_text(tags.get("height"))
+    if height is not None and 2.0 <= height <= 300.0:
+        return height, "osm_height"
+    levels = _float_text(tags.get("building:levels"))
+    if levels is not None and 1.0 <= levels <= 90.0:
+        return max(3.2, levels * 3.2), "osm_levels"
+    return 10.5, "inferred_default"
+
+
+def _is_closed(points: list[list[float]]) -> bool:
+    return len(points) >= 4 and points[0] == points[-1]
+
+
+def _centroid(points: list[list[float]]) -> list[float]:
+    ring = points[:-1] if _is_closed(points) else points
+    lon = sum(point[0] for point in ring) / len(ring)
+    lat = sum(point[1] for point in ring) / len(ring)
+    return [round(lon, PRECISION), round(lat, PRECISION)]
 
 
 def fetch_osm(bbox: BBox) -> list[dict[str, Any]]:
@@ -49,16 +90,38 @@ def fetch_osm(bbox: BBox) -> list[dict[str, Any]]:
         tags = element.get("tags") or {}
         if not geometry:
             continue
-        kind = "sidewalk" if tags.get("footway") == "sidewalk" else "crossing" if tags.get("footway") == "crossing" else "street"
+        points = [
+            [round(p["lon"], PRECISION), round(p["lat"], PRECISION)]
+            for p in geometry
+            if "lat" in p and "lon" in p
+        ]
+        if len(points) < 2:
+            continue
+        if tags.get("building") and _is_closed(points):
+            height, height_source = _building_height(tags)
+            ways.append(
+                {
+                    "kind": "building",
+                    "name": tags.get("name"),
+                    "height_m": round(height, 2),
+                    "height_source": height_source,
+                    "centroid": _centroid(points),
+                    "points": points,
+                }
+            )
+            continue
+        kind = (
+            "sidewalk"
+            if tags.get("footway") == "sidewalk"
+            else "crossing"
+            if tags.get("footway") == "crossing"
+            else "street"
+        )
         ways.append(
             {
                 "kind": kind,
                 "name": tags.get("name"),
-                "points": [
-                    [round(p["lon"], PRECISION), round(p["lat"], PRECISION)]
-                    for p in geometry
-                    if "lat" in p and "lon" in p
-                ],
+                "points": points,
             }
         )
     return ways
@@ -80,10 +143,56 @@ def h3_boundary(cell: str) -> list[list[float]]:
     return [[round(lon, PRECISION), round(lat, PRECISION)] for lat, lon in h3.cell_to_boundary(cell)]
 
 
+def _cell_resolution(cells: set[str]) -> int:
+    if not cells:
+        return 10
+    return h3.get_resolution(next(iter(cells)))
+
+
+def _feature_is_covered(feature: dict[str, Any], cells: set[str], resolution: int) -> bool:
+    if not cells:
+        return False
+    sample_points = list(feature.get("points") or [])
+    centroid = feature.get("centroid")
+    if centroid:
+        sample_points.append(centroid)
+    for lon, lat in sample_points[:: max(1, len(sample_points) // 8)]:
+        if h3.latlng_to_cell(lat, lon, resolution) in cells:
+            return True
+    return False
+
+
+def annotate_osm_features(
+    ways: list[dict[str, Any]], coverage: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    covered_cells = {
+        row["coverage_cell"]
+        for row in coverage
+        if row.get("eligible_observations", 0) > 0
+    }
+    resolution = _cell_resolution(covered_cells)
+    annotated = []
+    height_sources = Counter()
+    for feature in ways:
+        item = dict(feature)
+        item["covered"] = _feature_is_covered(item, covered_cells, resolution)
+        if item.get("kind") == "building":
+            height_sources[item.get("height_source") or "unknown"] += 1
+        annotated.append(item)
+    counts = Counter(item.get("kind") for item in annotated)
+    covered_counts = Counter(item.get("kind") for item in annotated if item.get("covered"))
+    return annotated, {
+        "features": dict(counts),
+        "covered_features": dict(covered_counts),
+        "building_height_sources": dict(height_sources),
+    }
+
+
 def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     observations = pq.read_table(root / "observations" / "external-000.parquet").to_pylist()
     coverage = pq.read_table(root / "coverage" / "h3.parquet").to_pylist()
     sequences = pq.read_table(root / "sequences" / "external.parquet").to_pylist()
+    ways, osm_summary = annotate_osm_features(ways, coverage)
     obs_by_sequence: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for obs in observations:
         obs_by_sequence[obs["sequence_uid"]].append(obs)
@@ -124,6 +233,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "sequences": len(sequences),
             "coverage_cells": len(coverage),
             "providers": dict(Counter(row["provider"] for row in observations)),
+            "osm": osm_summary,
         },
         "bbox": {
             "south": SF_CORRIDOR.bbox.south,
@@ -193,6 +303,8 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
     </div>
 <div class="legend">
 <span class="key"><span class="sw" style="background:#d6e7ea"></span>OSM street map</span>
+<span class="key"><span class="sw" style="background:#9fb4bb"></span>covered 3D buildings</span>
+<span class="key"><span class="sw" style="background:#ff4d8f"></span>curb bands</span>
 <span class="key"><span class="sw"></span>metadata observations</span>
 <span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
 <span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
@@ -201,6 +313,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
   </div>
 <div class="toolbar panel">
 <button data-layer="streets" aria-pressed="true">Streets</button>
+<button data-layer="mapped3d" aria-pressed="true">3D Artifact</button>
 <button data-layer="coverage" aria-pressed="true">Coverage</button>
 <button data-layer="observations" aria-pressed="true">Photos</button>
 <button data-layer="sequences" aria-pressed="true">Sequences</button>
@@ -208,7 +321,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
     <button id="reset">Reset</button>
   </div>
 </div>
-<div id="tip">Drag to orbit, wheel or pinch to zoom. Heights are coverage/metadata confidence, not fabricated building geometry.</div>
+<div id="tip">Drag to orbit, wheel or pinch to zoom. Uncovered blocks stay as the base map; covered blocks add OSM building massing and curb bands.</div>
 <script type="application/json" id="payload">__PAYLOAD__</script>
 <script type="module">
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
@@ -230,11 +343,12 @@ const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 50
 const root = new THREE.Group();
 scene.add(root);
 const groups = {
+  streets: new THREE.Group(),
+  mapped3d: new THREE.Group(),
   coverage: new THREE.Group(),
   observations: new THREE.Group(),
   sequences: new THREE.Group(),
   districts: new THREE.Group(),
-  streets: new THREE.Group(),
 };
 Object.values(groups).forEach((g) => root.add(g));
 
@@ -271,15 +385,17 @@ function line(points, color, opacity = 1, y = 2, widthHint = 1) {
   return obj;
 }
 
-function segmentRibbon(a, b, width, color, opacity, y) {
-  const [x1, z1] = [xy(a[0], a[1])[0], -xy(a[0], a[1])[1]];
-  const [x2, z2] = [xy(b[0], b[1])[0], -xy(b[0], b[1])[1]];
+function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4) {
+  const [x1, yy1] = xy(a[0], a[1]);
+  const [x2, yy2] = xy(b[0], b[1]);
+  const z1 = -yy1;
+  const z2 = -yy2;
   const dx = x2 - x1;
   const dz = z2 - z1;
   const length = Math.hypot(dx, dz);
   if (length < 0.8) return null;
   const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(length, 1.4, width),
+    new THREE.BoxGeometry(length, segmentHeight, width),
     new THREE.MeshStandardMaterial({ color, transparent: opacity < 1, opacity, roughness: 0.92, metalness: 0.02 })
   );
   mesh.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
@@ -287,10 +403,10 @@ function segmentRibbon(a, b, width, color, opacity, y) {
   return mesh;
 }
 
-function ribbon(points, width, color, opacity, y) {
+function ribbon(points, width, color, opacity, y, segmentHeight = 1.4) {
   const group = new THREE.Group();
   for (let i = 1; i < points.length; i += 1) {
-    const segment = segmentRibbon(points[i - 1], points[i], width, color, opacity, y);
+    const segment = segmentRibbon(points[i - 1], points[i], width, color, opacity, y, segmentHeight);
     if (segment) group.add(segment);
   }
   return group;
@@ -356,9 +472,59 @@ function longestMidpoint(points) {
   return best;
 }
 
+function footprintShape(points) {
+  if (!points || points.length < 4) return null;
+  const shape = new THREE.Shape();
+  points.forEach((point, index) => {
+    const [x, y] = xy(point[0], point[1]);
+    if (index === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  });
+  return shape;
+}
+
+function footprintMesh(points, color, opacity, y) {
+  const shape = footprintShape(points);
+  if (!shape) return null;
+  const geom = new THREE.ShapeGeometry(shape);
+  geom.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshStandardMaterial({ color, transparent: opacity < 1, opacity, roughness: 0.95, metalness: 0.02, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.y = y;
+  return mesh;
+}
+
+function buildingMesh(feature) {
+  const shape = footprintShape(feature.points);
+  if (!shape) return null;
+  const height = Math.max(4, Math.min(180, (feature.height_m || 10.5) * 1.8));
+  const geom = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false });
+  geom.rotateX(-Math.PI / 2);
+  const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels";
+  const mat = new THREE.MeshStandardMaterial({
+    color: measured ? 0xb8ccd0 : 0x728a91,
+    transparent: true,
+    opacity: measured ? 0.76 : 0.52,
+    roughness: 0.88,
+    metalness: 0.03,
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.userData = feature;
+  return mesh;
+}
+
 const streetNames = new Set();
 let streetLabelCount = 0;
 for (const way of DATA.ways) {
+  if (way.kind === "building") {
+    const base = footprintMesh(way.points, way.covered ? 0x2b4148 : 0x1b2a2f, way.covered ? 0.42 : 0.18, 1.8);
+    if (base) groups.streets.add(base);
+    if (way.covered) {
+      const building = buildingMesh(way);
+      if (building) groups.mapped3d.add(building);
+    }
+    continue;
+  }
   const isCrossing = way.kind === "crossing";
   const isSidewalk = way.kind === "sidewalk";
   const color = isCrossing ? 0xe0a84e : isSidewalk ? 0xb5c5c8 : 0xd6e7ea;
@@ -366,6 +532,9 @@ for (const way of DATA.ways) {
   const opacity = isCrossing ? 0.94 : isSidewalk ? 0.62 : 0.72;
   groups.streets.add(ribbon(way.points, widthMeters, color, opacity, isCrossing ? 6 : isSidewalk ? 4.5 : 3.2));
   groups.streets.add(line(way.points, color, isCrossing ? 1 : 0.72, isCrossing ? 8 : 6));
+  if (way.covered && (isCrossing || isSidewalk)) {
+    groups.mapped3d.add(ribbon(way.points, isCrossing ? 6.4 : 3.2, 0xff4d8f, isCrossing ? 0.92 : 0.68, 10.5, isCrossing ? 7.5 : 5.5));
+  }
   if (!isCrossing && !isSidewalk && way.name && !streetNames.has(way.name) && streetLabelCount < 90) {
     const midpoint = longestMidpoint(way.points);
     if (midpoint) {

@@ -32,7 +32,11 @@ def provider_by_name(name: str):
     if name == "panoramax":
         return PanoramaxProvider(client=HttpClient(timeout_s=20, max_attempts=2))
     if name == "kartaview":
-        return KartaViewProvider(client=HttpClient(timeout_s=8, max_attempts=1), discovery_step_m=400)
+        return KartaViewProvider(
+            client=HttpClient(timeout_s=8, max_attempts=1),
+            discovery_step_m=300,
+            max_photo_pages=12,
+        )
     raise ValueError(f"unknown provider {name!r}")
 
 

@@ -127,12 +127,14 @@ class KartaViewProvider:
         page_size: int = MAX_PHOTO_PAGE_SIZE,
         discovery_page_size: int = 500,
         discovery_step_m: float = 250.0,
+        max_photo_pages: int | None = 25,
     ) -> None:
         self._http = client or HttpClient()
         self._api = api.rstrip("/")
         self._page_size = min(page_size, MAX_PHOTO_PAGE_SIZE)
         self._discovery_page_size = discovery_page_size
         self._step_m = discovery_step_m
+        self._max_photo_pages = max_photo_pages
         self._sequence_cache: dict[str, SequenceRecord | None] = {}
         #: Sweeps and sequences that could not be read in full. Surfaced by the audit rather
         #: than swallowed: a systematic API failure and an empty region look identical from the
@@ -277,6 +279,11 @@ class KartaViewProvider:
             result = payload.get("result") or {}
             rows.extend(result.get("data") or [])
             if not result.get("hasMoreData"):
+                break
+            if self._max_photo_pages is not None and page >= self._max_photo_pages:
+                self.errors.append(
+                    f"sequence {sequence_id}: stopped after {self._max_photo_pages} photo pages"
+                )
                 break
             page += 1
 
