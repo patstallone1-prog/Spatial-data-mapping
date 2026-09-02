@@ -52,6 +52,7 @@ def archive(
     quality: int,
     include_raw: bool,
     include_unlabeled: bool,
+    require_gps: bool,
 ) -> dict[str, object]:
     batch = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out = destination / batch
@@ -87,6 +88,9 @@ def archive(
         )
         if not include_unlabeled and not is_capture_like:
             skipped.append({"file": path.name, "reason": "missing_capture_metadata"})
+            continue
+        if require_gps and (meta.lat is None or meta.lon is None):
+            skipped.append({"file": path.name, "reason": "missing_gps"})
             continue
 
         stem = f"{file_hash[:16]}_{path.stem}"
@@ -147,6 +151,11 @@ def main() -> int:
         action="store_true",
         help="include images with no camera, GPS, or capture-time metadata",
     )
+    parser.add_argument(
+        "--require-gps",
+        action="store_true",
+        help="skip photos that do not carry latitude and longitude",
+    )
     args = parser.parse_args()
 
     result = archive(
@@ -156,6 +165,7 @@ def main() -> int:
         quality=args.quality,
         include_raw=args.raw,
         include_unlabeled=args.include_unlabeled,
+        require_gps=args.require_gps,
     )
     print(
         f"archived {result['count']} photos to {result['batch']} "
