@@ -19,9 +19,10 @@
     --map-road: #ffffff;
     --map-road-line: #c3ccd6;
     --map-walk: #8fa3b5;
-    --map-cross: #c08a1f;
-    --map-cover: #d4176b;
-    --map-label: #56616e;
+      --map-cross: #c08a1f;
+      --map-cover: #d4176b;
+      --map-session: #2563eb;
+      --map-label: #56616e;
 
     --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
       "Helvetica Neue", Arial, sans-serif;
@@ -49,9 +50,10 @@
       --map-road: #29323d;
       --map-road-line: #39434f;
       --map-walk: #5d707f;
-      --map-cross: #b9862a;
-      --map-cover: #ff4d8f;
-      --map-label: #7d8a97;
+        --map-cross: #b9862a;
+        --map-cover: #ff4d8f;
+        --map-session: #60a5fa;
+        --map-label: #7d8a97;
     }
   }
 
@@ -74,9 +76,10 @@
     --map-road: #29323d;
     --map-road-line: #39434f;
     --map-walk: #5d707f;
-    --map-cross: #b9862a;
-    --map-cover: #ff4d8f;
-    --map-label: #7d8a97;
+      --map-cross: #b9862a;
+      --map-cover: #ff4d8f;
+      --map-session: #60a5fa;
+      --map-label: #7d8a97;
   }
 
   * { box-sizing: border-box; }
@@ -295,7 +298,7 @@
       <label class="layer"><input type="checkbox" id="l-cross" checked />
         <span class="swatch" style="background: var(--map-cross)"></span> Crossings</label>
       <label class="layer"><input type="checkbox" id="l-cover" checked />
-        <span class="swatch dot" style="background: var(--map-cover)"></span> Scanned</label>
+          <span class="swatch dot" style="background: var(--map-cover)"></span> Scanned + session</label>
     </div>
 
     <div class="zoombtns">
@@ -597,6 +600,18 @@
         ctx.fillStyle = css("--map-cover");
         ctx.fill();
       }
+      const sessionPoints = DATA.session?.points || [];
+      for (const c of sessionPoints) {
+        const [x, y] = project(c.lon, c.lat);
+        ctx.beginPath();
+        ctx.arc(x, y, r + 3, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(37, 99, 235, 0.18)";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = css("--map-session");
+        ctx.fill();
+      }
     }
 
     const [lon, lat] = [view.cx, view.cy];
@@ -666,10 +681,11 @@
   /* ---------- coverage figures ---------- */
   const sidewalks = DATA.pedestrian.filter((w) => w.k === "sidewalk").length;
   const crossings = DATA.pedestrian.filter((w) => w.k === "crossing").length;
+  const sessionPoints = DATA.session?.points || [];
   document.getElementById("s-walk").textContent = sidewalks.toLocaleString();
   document.getElementById("s-cross").textContent = crossings.toLocaleString();
-  document.getElementById("s-cover").textContent = DATA.coverage.length.toLocaleString();
-  const pct = DATA.coverage.length / Math.max(sidewalks, 1);
+  document.getElementById("s-cover").textContent = (DATA.coverage.length + sessionPoints.length).toLocaleString();
+  const pct = (DATA.coverage.length + sessionPoints.length) / Math.max(sidewalks, 1);
   document.getElementById("s-pct").textContent = pct < 0.01 ? "<1%" : `${Math.round(pct * 100)}%`;
 
   /* ---------- photo strip ---------- */

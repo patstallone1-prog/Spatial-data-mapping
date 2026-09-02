@@ -1,0 +1,1040 @@
+{
+  "created_at": "2026-09-02T01:15:16.525726+00:00",
+  "source": "/Users/elialbukerk/Downloads",
+  "mode": "jpeg_derived",
+  "max_width": 1440,
+  "quality": 82,
+  "count": 35,
+  "skipped": [
+    {
+      "file": "1769023997.6073341.jpg",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "Adobe Express - file.png",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "ChatGPT Image Aug 7, 2026, 01_36_18 PM.png",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "ChatGPT Image Aug 7, 2026, 01_37_21 PM (1).png",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "ChatGPT Image Aug 7, 2026, 01_37_21 PM (2).png",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "ChatGPT Image Aug 7, 2026, 01_37_57 PM.png",
+      "reason": "duplicate_in_batch"
+    },
+    {
+      "file": "ChatGPT Image Aug 7, 2026, 01_38_00 PM.png",
+      "reason": "duplicate_in_batch"
+    },
+    {
+      "file": "ChatGPT Image Dec 22, 2025, 09_26_14 PM.png",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "ChatGPT Image Jun 1, 2026, 10_08_35 PM.png",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "Dyslexia_Tutors_Logo.png",
+      "reason": "missing_capture_metadata"
+    },
+    {
+      "file": "IMG_3468 2.heic",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_3468.heic",
+      "reason": "duplicate_in_batch"
+    },
+    {
+      "file": "IMG_3476.jpg",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_3499.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_3502.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4403.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4404.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4405.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4406.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4407.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4408.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4409.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4410.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4411.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4412.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4413.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4414.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4415.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4416.PNG",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4417.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4418.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4419.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4420.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4421.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4422.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4423.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4424.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4425.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4426.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4427.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4428.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4429.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4430.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4431.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4432.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4433.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4434.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4435.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4436.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4437.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4438.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4439.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4440.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4441.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4442.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4443.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4444.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4445.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4446.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4447.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4448.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4449.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4450.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4451.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4452.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4453.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4454.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4455.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4456.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4457.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4458.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4459.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4460.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4461.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4462.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4463.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4464.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4465.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4466.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4467.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4468.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4469.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4470.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4471.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4472.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4473.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4474.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4475.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4476.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4477.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4478.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4479.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4480.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4481.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4482.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4483.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4484.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4485.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4486.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4487.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4488.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4489.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4490.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4491.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4492.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4493.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4494.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4495.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4496.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4497.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4498.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4499.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4500.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4501.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4502.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4503.HEIC",
+      "reason": "empty"
+    },
+    {
+      "file": "IMG_4504.HEIC",
+      "reason": "empty"
+    }
+  ],
+  "records": [
+    {
+      "source_name": "IMG_2946.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_2946.HEIC",
+      "sha256": "99be40bbdd22c72c9bcf3ac827f3acec94cda43aec598e5e32be46eec6d6a2c1",
+      "archived_image": "images/99be40bbdd22c72c_IMG_2946.jpg",
+      "raw": null,
+      "bytes_original": 2169175,
+      "bytes_archived": 557064,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-01-22T08:57:19"
+    },
+    {
+      "source_name": "IMG_2947.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_2947.HEIC",
+      "sha256": "a0535be96c2284ea7951143e7ba343af7e09caca560c2abe14074fd9cb46c306",
+      "archived_image": "images/a0535be96c2284ea_IMG_2947.jpg",
+      "raw": null,
+      "bytes_original": 1790818,
+      "bytes_archived": 430638,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-01-22T08:57:23"
+    },
+    {
+      "source_name": "IMG_3240.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3240.heic",
+      "sha256": "fec0aa3e562a691e7e395ec282a6e7f0590d30896ff8eeca4e3849347d02eb71",
+      "archived_image": "images/fec0aa3e562a691e_IMG_3240.jpg",
+      "raw": null,
+      "bytes_original": 70710,
+      "bytes_archived": 35963,
+      "width": 812,
+      "height": 669,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-03-17T10:19:17"
+    },
+    {
+      "source_name": "IMG_3291.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3291.heic",
+      "sha256": "651127ebd2695947c86684488766fbf94cb53bdf4be2e130f207bae83d1c5b3b",
+      "archived_image": "images/651127ebd2695947_IMG_3291.jpg",
+      "raw": null,
+      "bytes_original": 3333766,
+      "bytes_archived": 834875,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone XS",
+      "focal_35mm": 52.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2022-02-20T14:56:06"
+    },
+    {
+      "source_name": "IMG_3394.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3394.heic",
+      "sha256": "cf8db41b682874f8d85576bb7cc142c9e70f76b009ef104595082754677024f6",
+      "archived_image": "images/cf8db41b682874f8_IMG_3394.jpg",
+      "raw": null,
+      "bytes_original": 3503065,
+      "bytes_archived": 1256396,
+      "width": 1440,
+      "height": 2004,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:02:36"
+    },
+    {
+      "source_name": "IMG_3396.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3396.heic",
+      "sha256": "3b74efedc22a250a0a81aaaddbf8e0dc1a5baf44a8963f9e7a126d7654734ac7",
+      "archived_image": "images/3b74efedc22a250a_IMG_3396.jpg",
+      "raw": null,
+      "bytes_original": 1962478,
+      "bytes_archived": 418867,
+      "width": 1440,
+      "height": 1319,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:03:00"
+    },
+    {
+      "source_name": "IMG_3398.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3398.heic",
+      "sha256": "f90454f99aa9db4e163001b0d2c951d906e5fa4b0be7f42f465d20d87a6b7bda",
+      "archived_image": "images/f90454f99aa9db4e_IMG_3398.jpg",
+      "raw": null,
+      "bytes_original": 1005878,
+      "bytes_archived": 175828,
+      "width": 1440,
+      "height": 621,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:04:09"
+    },
+    {
+      "source_name": "IMG_3400.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3400.heic",
+      "sha256": "48e2391a434fcf64f4d96360fdcf49119fec0bf3c38743c7b0418cdb06859c4b",
+      "archived_image": "images/48e2391a434fcf64_IMG_3400.jpg",
+      "raw": null,
+      "bytes_original": 1368839,
+      "bytes_archived": 977623,
+      "width": 1440,
+      "height": 2891,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:04:37"
+    },
+    {
+      "source_name": "IMG_3401.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3401.HEIC",
+      "sha256": "3bcf64233f56aeed0285b6d50b5ace344515016218e2e86d96f02e4a69b76500",
+      "archived_image": "images/3bcf64233f56aeed_IMG_3401.jpg",
+      "raw": null,
+      "bytes_original": 1099670,
+      "bytes_archived": 181185,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:04:54"
+    },
+    {
+      "source_name": "IMG_3403.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3403.heic",
+      "sha256": "914e82ee98b57601444303462dd1f5e456936c2fb7042b41950b5afa7de01a20",
+      "archived_image": "images/914e82ee98b57601_IMG_3403.jpg",
+      "raw": null,
+      "bytes_original": 1462117,
+      "bytes_archived": 406157,
+      "width": 1440,
+      "height": 2340,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:05:47"
+    },
+    {
+      "source_name": "IMG_3404.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3404.heic",
+      "sha256": "df5fa41fcc0a5464b4454ab5b557dd7d73435eb207ddc5d37748c08181a6dbe8",
+      "archived_image": "images/df5fa41fcc0a5464_IMG_3404.jpg",
+      "raw": null,
+      "bytes_original": 474793,
+      "bytes_archived": 240778,
+      "width": 1440,
+      "height": 584,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:06:05"
+    },
+    {
+      "source_name": "IMG_3405.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3405.HEIC",
+      "sha256": "ee6e3132eba8605345dd47b3f70781a804329286f2fcde7df2ff9bfa89cdbb5b",
+      "archived_image": "images/ee6e3132eba86053_IMG_3405.jpg",
+      "raw": null,
+      "bytes_original": 4849418,
+      "bytes_archived": 1190263,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:07:25"
+    },
+    {
+      "source_name": "IMG_3406.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3406.heic",
+      "sha256": "a83565d5006d8bf961b2a1c0a05f42fb138c04a4c45cc6e312becbe827abe061",
+      "archived_image": "images/a83565d5006d8bf9_IMG_3406.jpg",
+      "raw": null,
+      "bytes_original": 293927,
+      "bytes_archived": 92629,
+      "width": 1440,
+      "height": 1052,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:08:39"
+    },
+    {
+      "source_name": "IMG_3407.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3407.HEIC",
+      "sha256": "0d490e46419ff6a6d8058e32761f7bb01d0f71eed9ddf868e4d49899dc740505",
+      "archived_image": "images/0d490e46419ff6a6_IMG_3407.jpg",
+      "raw": null,
+      "bytes_original": 922859,
+      "bytes_archived": 443171,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 119.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:10:42"
+    },
+    {
+      "source_name": "IMG_3409.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3409.heic",
+      "sha256": "e08e252e97d7a0bcc2d7a6855adb33ae848bea87bb8ab201cf08d986a878a0c9",
+      "archived_image": "images/e08e252e97d7a0bc_IMG_3409.jpg",
+      "raw": null,
+      "bytes_original": 320555,
+      "bytes_archived": 183683,
+      "width": 1440,
+      "height": 2327,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:11:28"
+    },
+    {
+      "source_name": "IMG_3410.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3410.heic",
+      "sha256": "754226b281e4dd818d8017e405764ace60dae2c58d2ffce549c8316650f23e25",
+      "archived_image": "images/754226b281e4dd81_IMG_3410.jpg",
+      "raw": null,
+      "bytes_original": 232961,
+      "bytes_archived": 179714,
+      "width": 541,
+      "height": 1501,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:12:56"
+    },
+    {
+      "source_name": "IMG_3411.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3411.heic",
+      "sha256": "e91d08f029a4bbc427d2e24425101ec27e73cf52a2943b1bd3bc84e21bb243ca",
+      "archived_image": "images/e91d08f029a4bbc4_IMG_3411.jpg",
+      "raw": null,
+      "bytes_original": 243124,
+      "bytes_archived": 51333,
+      "width": 1440,
+      "height": 366,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:13:35"
+    },
+    {
+      "source_name": "IMG_3414.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3414.heic",
+      "sha256": "15777481e08feffeb656f5342cd01716c6a6a21701bcad88baa8944287225364",
+      "archived_image": "images/15777481e08feffe_IMG_3414.jpg",
+      "raw": null,
+      "bytes_original": 477646,
+      "bytes_archived": 314259,
+      "width": 1137,
+      "height": 3279,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:18:33"
+    },
+    {
+      "source_name": "IMG_3417.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3417.HEIC",
+      "sha256": "ab051eb99c7f12c7fda4583c603d96cd454d39e475cac6966ab66af7d2c7d9dc",
+      "archived_image": "images/ab051eb99c7f12c7_IMG_3417.jpg",
+      "raw": null,
+      "bytes_original": 3781305,
+      "bytes_archived": 856949,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:21:17"
+    },
+    {
+      "source_name": "IMG_3422.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3422.HEIC",
+      "sha256": "057ac622d2b539ab6e6f9b350332bbccacbf995e3ea75f615a55d7eb91fca46a",
+      "archived_image": "images/057ac622d2b539ab_IMG_3422.jpg",
+      "raw": null,
+      "bytes_original": 1439525,
+      "bytes_archived": 243288,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:23:29"
+    },
+    {
+      "source_name": "IMG_3425.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3425.heic",
+      "sha256": "cd54039b91ff8ee08ca05d26beb1ca01f8bf61c6777de7910e0d1bce83ed6edb",
+      "archived_image": "images/cd54039b91ff8ee0_IMG_3425.jpg",
+      "raw": null,
+      "bytes_original": 455681,
+      "bytes_archived": 335482,
+      "width": 1009,
+      "height": 1709,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:25:59"
+    },
+    {
+      "source_name": "IMG_3426.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3426.heic",
+      "sha256": "5cf5f2ba1218fb65f9c3e0d89a84c40b91017b2bc705188c28be2a45bc943f04",
+      "archived_image": "images/5cf5f2ba1218fb65_IMG_3426.jpg",
+      "raw": null,
+      "bytes_original": 1475861,
+      "bytes_archived": 380499,
+      "width": 1440,
+      "height": 2007,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:28:07"
+    },
+    {
+      "source_name": "IMG_3429.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3429.HEIC",
+      "sha256": "211badb618a1fce9ba78be188f9909edd7a0e0060e462e3c13c5ec31d7e877ef",
+      "archived_image": "images/211badb618a1fce9_IMG_3429.jpg",
+      "raw": null,
+      "bytes_original": 4898012,
+      "bytes_archived": 1282545,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:33:43"
+    },
+    {
+      "source_name": "IMG_3433.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3433.HEIC",
+      "sha256": "207e68ece33d0a0f9393ba0b273928c331d0b32d3221b764d539afd18ca2949b",
+      "archived_image": "images/207e68ece33d0a0f_IMG_3433.jpg",
+      "raw": null,
+      "bytes_original": 734956,
+      "bytes_archived": 243864,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 102.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:43:56"
+    },
+    {
+      "source_name": "IMG_3435.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3435.heic",
+      "sha256": "849a542e6a2970ff34af3ffcf31952afb64d84339f2d3d7dcc8fc14215a58129",
+      "archived_image": "images/849a542e6a2970ff_IMG_3435.jpg",
+      "raw": null,
+      "bytes_original": 28308,
+      "bytes_archived": 16815,
+      "width": 346,
+      "height": 388,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:51:58"
+    },
+    {
+      "source_name": "IMG_3436.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3436.heic",
+      "sha256": "dcf80900398d7f4f615e3da9fe2cc813fc0f3444cce3c1da25d60b13eb78f3c1",
+      "archived_image": "images/dcf80900398d7f4f_IMG_3436.jpg",
+      "raw": null,
+      "bytes_original": 1085664,
+      "bytes_archived": 82173,
+      "width": 1440,
+      "height": 1773,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-13T12:56:44"
+    },
+    {
+      "source_name": "IMG_3455.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3455.heic",
+      "sha256": "891f850017dff4320068f498fdf71ec29d3864bc3ac351709a205e717029cc9b",
+      "archived_image": "images/891f850017dff432_IMG_3455.jpg",
+      "raw": null,
+      "bytes_original": 1333019,
+      "bytes_archived": 515314,
+      "width": 1440,
+      "height": 1059,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-16T10:56:48"
+    },
+    {
+      "source_name": "IMG_3468 3.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3468 3.heic",
+      "sha256": "6dc72d485dae152ae03800c2d92e831afe9f4e0e8a0249bf67701f9f8b10f04b",
+      "archived_image": "images/6dc72d485dae152a_IMG_3468 3.jpg",
+      "raw": null,
+      "bytes_original": 844543,
+      "bytes_archived": 426488,
+      "width": 1440,
+      "height": 1712,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-17T07:57:59"
+    },
+    {
+      "source_name": "IMG_3476 2.jpg",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3476 2.jpg",
+      "sha256": "63f84ca423c4a66a575d02dde531125e53e2a5806858765e8dd18316f7996908",
+      "archived_image": "images/63f84ca423c4a66a_IMG_3476 2.jpg",
+      "raw": null,
+      "bytes_original": 89819,
+      "bytes_archived": 54508,
+      "width": 874,
+      "height": 768,
+      "camera": "",
+      "focal_35mm": null,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-17T08:28:33"
+    },
+    {
+      "source_name": "IMG_3477.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3477.HEIC",
+      "sha256": "7e74e2e4669fdb951d23619f62dd995e568cc014261d41af69ccd0acd5c610b0",
+      "archived_image": "images/7e74e2e4669fdb95_IMG_3477.jpg",
+      "raw": null,
+      "bytes_original": 2265269,
+      "bytes_archived": 554568,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-17T09:59:11"
+    },
+    {
+      "source_name": "IMG_3499 2.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3499 2.HEIC",
+      "sha256": "158903af38ce3273c602e6b57fa78a563990b573390907a83047ce79d46be00d",
+      "archived_image": "images/158903af38ce3273_IMG_3499 2.jpg",
+      "raw": null,
+      "bytes_original": 1121939,
+      "bytes_archived": 118159,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-20T14:19:24"
+    },
+    {
+      "source_name": "IMG_3500.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3500.HEIC",
+      "sha256": "84a5ae7a1007f237d5ee790572718f0d260d318f7877a253ef27bc6c27cc69e4",
+      "archived_image": "images/84a5ae7a1007f237_IMG_3500.jpg",
+      "raw": null,
+      "bytes_original": 1839055,
+      "bytes_archived": 517168,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-21T11:55:01"
+    },
+    {
+      "source_name": "IMG_3501.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3501.HEIC",
+      "sha256": "4b9ae15e38afa4ab6b2b200759de530ba274cde73556396277a4249abd3b914a",
+      "archived_image": "images/4b9ae15e38afa4ab_IMG_3501.jpg",
+      "raw": null,
+      "bytes_original": 2422894,
+      "bytes_archived": 663932,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-21T11:56:26"
+    },
+    {
+      "source_name": "IMG_3502 2.HEIC",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3502 2.HEIC",
+      "sha256": "0e1d6419cc79fb2aaf397ec92b551a29d25da0acc6fc45b033ba97bc65d30344",
+      "archived_image": "images/0e1d6419cc79fb2a_IMG_3502 2.jpg",
+      "raw": null,
+      "bytes_original": 2121162,
+      "bytes_archived": 567606,
+      "width": 1440,
+      "height": 1920,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-21T11:57:58"
+    },
+    {
+      "source_name": "IMG_3505.heic",
+      "source_path": "/Users/elialbukerk/Downloads/IMG_3505.heic",
+      "sha256": "7ac2b8b093e4a5c8245f2745d2c4931fb34409fe80895e0b7e7016ebf53f6bce",
+      "archived_image": "images/7ac2b8b093e4a5c8_IMG_3505.jpg",
+      "raw": null,
+      "bytes_original": 660780,
+      "bytes_archived": 89268,
+      "width": 1440,
+      "height": 408,
+      "camera": "Apple iPhone 14",
+      "focal_35mm": 26.0,
+      "lat": null,
+      "lon": null,
+      "captured_at": "2026-04-21T12:03:33"
+    }
+  ]
+}
