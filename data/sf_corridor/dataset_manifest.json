@@ -1,6 +1,6 @@
 {
   "title": "SF street-imagery dense metadata catalog",
-  "generated_at": "2026-09-02T23:07:50.963352+00:00",
+  "generated_at": "2026-09-03T17:58:13.224370+00:00",
   "region": "sf-corridor",
   "storage_policy": "metadata in Git; owned capture pixels packed into GitHub Release assets; no raw provider imagery",
   "cv_depth_policy": "metric depth, segmentation, point-cloud artifacts are indexed separately from simulation surfaces; measured curb heights require metric-depth promotion",
@@ -20,6 +20,7 @@
   "files": [
     "README.md",
     "coverage/h3.parquet",
+    "depth/lidar/curb_sections.jsonl",
     "depth/observations/depth_index.parquet",
     "depth/runs/sf-corridor-depth-seed.json",
     "depth/stats/summary.json",

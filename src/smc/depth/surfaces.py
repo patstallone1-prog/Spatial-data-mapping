@@ -270,8 +270,15 @@ def measured_surface_rows_from_cross_section(
     provider_count: int,
     coverage_score: float | None = None,
     generated_at: datetime | None = None,
+    height_source: str = "metric_depth_planes",
 ) -> list[dict[str, Any]]:
-    """Promote one metric-depth cross section into measured simulation surfaces."""
+    """Promote one metric-depth cross section into measured simulation surfaces.
+
+    ``height_source`` names the sensor the planes were fitted to, because the error budget is
+    not the same for all of them: a photogrammetric reconstruction carries a scale uncertainty
+    that a ranging sensor does not, and a consumer weighing two measurements of the same kerb
+    has to be able to tell which is which.
+    """
 
     if not section.ok or section.kerb is None or section.sidewalk is None:
         return []
@@ -315,7 +322,7 @@ def measured_surface_rows_from_cross_section(
             "cross_slope_sigma": None,
             "facade_height_m": None,
             "facade_height_sigma_m": None,
-            "height_source": "metric_depth_planes",
+            "height_source": height_source,
         },
         {
             **base,
@@ -331,7 +338,7 @@ def measured_surface_rows_from_cross_section(
             "cross_slope_sigma": section.sidewalk.cross_slope_sigma,
             "facade_height_m": None,
             "facade_height_sigma_m": None,
-            "height_source": "metric_depth_planes",
+            "height_source": height_source,
         },
     ]
 

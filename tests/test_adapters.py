@@ -74,14 +74,23 @@ class TestProviderSelection:
         provider = build_anchor_imagery("panoramax")
         assert provider.requires_credential is False  # type: ignore[attr-defined]
 
-    def test_mapillary_needs_an_explicit_opt_in(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """It is a platform dependency, not a licensing upgrade: same CC BY-SA imagery."""
+    def test_mapillary_is_selectable_since_the_non_commercial_pivot(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The guard was about competitive exposure, which a non-commercial project does not have.
+
+        What it was never about is the licence: Mapillary imagery is CC BY-SA 4.0, the same
+        share-alike terms as Panoramax, so selecting it is a coverage decision.
+        """
         monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "x")
-        with pytest.raises(AdapterUnavailable, match="fallback, not the default"):
-            build_anchor_imagery("mapillary")
-        assert isinstance(
-            MapillaryImagery(allow_platform_dependency=True), MapillaryImagery
-        )
+        assert isinstance(build_anchor_imagery("mapillary"), MapillaryImagery)
+
+    def test_mapillary_can_still_be_refused_deliberately(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "x")
+        with pytest.raises(AdapterUnavailable, match="allow_platform_dependency=False"):
+            MapillaryImagery(allow_platform_dependency=False)
 
     def test_missing_credential_is_reported_clearly(
         self, monkeypatch: pytest.MonkeyPatch

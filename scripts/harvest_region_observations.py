@@ -42,6 +42,7 @@ from smc.imagery.coverage import assign_cells, build_coverage_rows  # noqa: E402
 from smc.imagery.filtering import META_DELIVERY_MEGAPIXELS, exact_dedupe, mark_eligibility  # noqa: E402
 from smc.imagery.http import HttpClient  # noqa: E402
 from smc.imagery.kartaview import KartaViewProvider  # noqa: E402
+from smc.imagery.mapillary import MapillaryProvider  # noqa: E402
 from smc.imagery.panoramax import PanoramaxProvider  # noqa: E402
 from smc.imagery.region import Region, get_region  # noqa: E402
 from smc.imagery.schema import Observation, SequenceRecord  # noqa: E402
@@ -52,6 +53,10 @@ def build_provider(name: str, *, kartaview_step_m: float, workers: int):
         # Generous timeout: a search tile at the top of the subdivision returns thousands of
         # whole STAC items, and cutting it short is what forces the needless subdividing below.
         return PanoramaxProvider(client=HttpClient(timeout_s=60, max_attempts=3))
+    if name == "mapillary":
+        # Larger pages than the others because a Mapillary page is a cursor step rather than a
+        # box split, so a bigger page means fewer round trips and no reconciliation.
+        return MapillaryProvider(client=HttpClient(timeout_s=60, max_attempts=3))
     if name == "kartaview":
         return KartaViewProvider(
             client=HttpClient(timeout_s=30, max_attempts=3),
@@ -94,7 +99,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", default="sf-corridor")
     parser.add_argument("--out", type=Path, default=Path("data/sf_corridor_dense"))
-    parser.add_argument("--provider", action="append", choices=("panoramax", "kartaview"))
+    parser.add_argument("--provider", action="append", choices=("panoramax", "kartaview", "mapillary"))
     parser.add_argument("--h3-resolution", type=int, default=10)
     parser.add_argument(
         "--min-megapixels",
@@ -129,7 +134,7 @@ def main() -> int:
             print(f"  {message}", flush=True)
 
     region = get_region(args.region)
-    providers = args.provider or ["panoramax", "kartaview"]
+    providers = args.provider or ["panoramax", "kartaview", "mapillary"]
 
     sequences: list[SequenceRecord] = []
     observations: list[Observation] = []

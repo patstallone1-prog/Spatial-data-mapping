@@ -125,3 +125,5 @@ no pixel dimensions for them, and an unverified resolution is not treated as a p
 The harvest is deliberately not inside `refresh_catalog.sh`. It takes half an hour and it leans
 on two volunteer-run APIs, so it stays something a person chooses to do rather than something a
 build script does on their behalf.
+
+Measuring those corridors, rather than counting them, is [17](17-measured-curbs-and-lidar.md).

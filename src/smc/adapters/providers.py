@@ -34,17 +34,20 @@ class PanoramaxProvider(PanoramaxImagery):
 
 
 class MapillaryImagery:
-    """Mapillary API v4 — kept as a fallback, no longer the default.
+    """Mapillary API v4 — a first-class source since the project went non-commercial.
 
-    Imagery is CC BY-SA 4.0, the same share-alike terms as Panoramax, so it offers no licensing
-    advantage. What it does carry is platform risk that Panoramax does not: it needs an account
-    and a token, it cannot be self-hosted, and it is operated by a company that also sells
-    wearable cameras — which is to say, by a potential competitor whose terms can change.
+    This was guarded for a long time, and the reason was never the licence: imagery is CC BY-SA
+    4.0, the same share-alike terms as Panoramax. It was platform risk. Mapillary needs an
+    account, cannot be self-hosted, and is run by a company that also sells wearable cameras —
+    a potential competitor whose terms can change under a product that depended on them.
 
-    Retained because its coverage is larger in some regions, and coverage is the one thing that
-    matters when a corridor has none. Selecting it is deliberate: it requires a token *and*
-    an explicit ``allow_platform_dependency=True``, so it can never become the default by
-    accident.
+    That calculation changed when the project accepted a non-commercial footing. Competitive
+    exposure is a commercial worry, and what is left is coverage, which Mapillary has more of
+    than either other source in most cities. The guard is gone; the token is still required,
+    because that part was never optional.
+
+    The catalogue-side client is :mod:`smc.imagery.mapillary`. This adapter remains for
+    point-radius anchor lookups, which is a different question from bounded-region ingestion.
     """
 
     name = "mapillary"
@@ -52,12 +55,13 @@ class MapillaryImagery:
     requires_credential = True
     BASE_URL = "https://graph.mapillary.com/images"
 
-    def __init__(self, *, allow_platform_dependency: bool = False) -> None:
+    def __init__(self, *, allow_platform_dependency: bool = True) -> None:
+        # The keyword is kept so callers that passed it still work, and so a deployment that
+        # wants the old caution back has somewhere to express it.
         if not allow_platform_dependency:
             raise AdapterUnavailable(
-                "Mapillary is a fallback, not the default: it needs an account and cannot be "
-                "self-hosted. Use panoramax, or pass allow_platform_dependency=True with a "
-                "reason (usually: Panoramax has no coverage in the target region)."
+                "Mapillary was selected with allow_platform_dependency=False. It needs an "
+                "account and cannot be self-hosted; use panoramax instead."
             )
         self._token = _require_env("MAPILLARY_ACCESS_TOKEN", "MapillaryImagery")
 
