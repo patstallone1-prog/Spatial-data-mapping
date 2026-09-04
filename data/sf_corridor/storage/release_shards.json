@@ -4,7 +4,7 @@
     "slug": "sf"
   },
   "dataset": "sf-corridor",
-  "generated_at": "2026-09-04T00:14:17.940718+00:00",
+  "generated_at": "2026-09-04T02:47:45.692326+00:00",
   "h3_resolution": 10,
   "metadata_shards": [
     {
@@ -1395,22 +1395,23 @@
       "unique_sequences": 8
     },
     {
-      "coverage_score": 0.8443999886512756,
-      "eligible_observation_count": 91,
+      "coverage_score": 0.8585000038146973,
+      "eligible_observation_count": 623,
       "h3_cell": "8a283082909ffff",
       "latitude": 37.7858345192017,
       "longitude": -122.43957086466457,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 91,
+      "observation_count": 623,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 37
     },
     {
       "coverage_score": 0.630299985408783,
@@ -1431,58 +1432,61 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.8781999945640564,
-      "eligible_observation_count": 84,
+      "coverage_score": 0.9136999845504761,
+      "eligible_observation_count": 126,
       "h3_cell": "8a28308290cffff",
       "latitude": 37.78681745740522,
       "longitude": -122.44464635713585,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 84,
+      "observation_count": 126,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 12
+      "unique_sequences": 17
     },
     {
-      "coverage_score": 0.8482000231742859,
-      "eligible_observation_count": 34,
+      "coverage_score": 0.8410000205039978,
+      "eligible_observation_count": 210,
       "h3_cell": "8a28308290d7fff",
       "latitude": 37.78632602050436,
       "longitude": -122.44210861977213,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 34,
+      "observation_count": 210,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 14
+      "unique_sequences": 34
     },
     {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 63,
+      "coverage_score": 0.8618000149726868,
+      "eligible_observation_count": 160,
       "h3_cell": "8a28308290dffff",
       "latitude": 37.787159934519345,
       "longitude": -122.44316152426802,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 63,
+      "observation_count": 160,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 40
     },
     {
       "coverage_score": 0.36399999260902405,
@@ -1503,22 +1507,23 @@
       "unique_sequences": 1
     },
     {
-      "coverage_score": 0.798799991607666,
-      "eligible_observation_count": 88,
+      "coverage_score": 0.848800003528595,
+      "eligible_observation_count": 89,
       "h3_cell": "8a2830829287fff",
       "latitude": 37.79049538560139,
       "longitude": -122.44737323937156,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 88,
+      "observation_count": 89,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 13
+      "unique_sequences": 14
     },
     {
       "coverage_score": 0.7713000178337097,
@@ -1539,22 +1544,23 @@
       "unique_sequences": 7
     },
     {
-      "coverage_score": 0.6672000288963318,
-      "eligible_observation_count": 17,
+      "coverage_score": 0.8549000024795532,
+      "eligible_observation_count": 143,
       "h3_cell": "8a283082929ffff",
       "latitude": 37.7916717271153,
       "longitude": -122.44694134393343,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 17,
+      "observation_count": 143,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 2
+      "unique_sequences": 13
     },
     {
       "coverage_score": 0.8137999773025513,
@@ -1575,40 +1581,42 @@
       "unique_sequences": 8
     },
     {
-      "coverage_score": 0.7907000184059143,
-      "eligible_observation_count": 28,
+      "coverage_score": 0.8651999831199646,
+      "eligible_observation_count": 62,
       "h3_cell": "8a28308292b7fff",
       "latitude": 37.78966155357877,
       "longitude": -122.44632029602884,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 28,
+      "observation_count": 62,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 5
+      "unique_sequences": 11
     },
     {
-      "coverage_score": 0.798799991607666,
-      "eligible_observation_count": 87,
+      "coverage_score": 0.869700014591217,
+      "eligible_observation_count": 265,
       "h3_cell": "8a2830829387fff",
       "latitude": 37.78730882990493,
       "longitude": -122.447184076746,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 87,
+      "observation_count": 265,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 22
     },
     {
       "coverage_score": 0.48539999127388,
@@ -1629,94 +1637,99 @@
       "unique_sequences": 3
     },
     {
-      "coverage_score": 0.7713000178337097,
-      "eligible_observation_count": 76,
+      "coverage_score": 0.8784999847412109,
+      "eligible_observation_count": 190,
       "h3_cell": "8a2830829397fff",
       "latitude": 37.787651337097216,
       "longitude": -122.44569926965339,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 76,
+      "observation_count": 190,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 11
+      "unique_sequences": 24
     },
     {
-      "coverage_score": 0.8137999773025513,
-      "eligible_observation_count": 82,
+      "coverage_score": 0.8593999743461609,
+      "eligible_observation_count": 84,
       "h3_cell": "8a283082939ffff",
       "latitude": 37.78848519629136,
       "longitude": -122.44675219188184,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 82,
+      "observation_count": 84,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 12
     },
     {
-      "coverage_score": 0.6754999756813049,
-      "eligible_observation_count": 12,
+      "coverage_score": 0.8313000202178955,
+      "eligible_observation_count": 18,
       "h3_cell": "8a28308293a7fff",
       "latitude": 37.7861324544206,
       "longitude": -122.44761595062167,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 12,
+      "observation_count": 18,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 10
     },
     {
-      "coverage_score": 0.8438000082969666,
-      "eligible_observation_count": 64,
+      "coverage_score": 0.8802000284194946,
+      "eligible_observation_count": 162,
       "h3_cell": "8a28308293b7fff",
       "latitude": 37.78647496403862,
       "longitude": -122.44613116592087,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 64,
+      "observation_count": 162,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 13
+      "unique_sequences": 18
     },
     {
-      "coverage_score": 0.5637000203132629,
-      "eligible_observation_count": 9,
+      "coverage_score": 0.8603000044822693,
+      "eligible_observation_count": 296,
       "h3_cell": "8a283082940ffff",
       "latitude": 37.78602771098354,
       "longitude": -122.43406324742945,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 9,
+      "observation_count": 296,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 19
     },
     {
       "coverage_score": 0.41499999165534973,
@@ -1737,112 +1750,118 @@
       "unique_sequences": 2
     },
     {
-      "coverage_score": 0.7547000050544739,
-      "eligible_observation_count": 18,
+      "coverage_score": 0.8349999785423279,
+      "eligible_observation_count": 44,
       "h3_cell": "8a283082941ffff",
       "latitude": 37.786370065340186,
       "longitude": -122.43257828912505,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 18,
+      "observation_count": 44,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 15
     },
     {
-      "coverage_score": 0.798799991607666,
-      "eligible_observation_count": 86,
+      "coverage_score": 0.8712999820709229,
+      "eligible_observation_count": 452,
       "h3_cell": "8a2830829447fff",
       "latitude": 37.78651933685377,
       "longitude": -122.43660107178552,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 86,
+      "observation_count": 452,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 12
+      "unique_sequences": 35
     },
     {
-      "coverage_score": 0.8331999778747559,
-      "eligible_observation_count": 48,
+      "coverage_score": 0.8755999803543091,
+      "eligible_observation_count": 184,
       "h3_cell": "8a283082944ffff",
       "latitude": 37.78735331284311,
       "longitude": -122.43765397162551,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 48,
+      "observation_count": 184,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 11
+      "unique_sequences": 34
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 131,
+      "coverage_score": 0.8568999767303467,
+      "eligible_observation_count": 488,
       "h3_cell": "8a2830829457fff",
       "latitude": 37.78686172129478,
       "longitude": -122.43511613923404,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 131,
+      "observation_count": 488,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 16
+      "unique_sequences": 38
     },
     {
-      "coverage_score": 0.8331999778747559,
-      "eligible_observation_count": 44,
+      "coverage_score": 0.9031999707221985,
+      "eligible_observation_count": 64,
       "h3_cell": "8a283082945ffff",
       "latitude": 37.787695711110274,
       "longitude": -122.43616904075675,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 44,
+      "observation_count": 64,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 19
     },
     {
-      "coverage_score": 0.8169000148773193,
-      "eligible_observation_count": 78,
+      "coverage_score": 0.8476999998092651,
+      "eligible_observation_count": 129,
       "h3_cell": "8a283082946ffff",
       "latitude": 37.78617693615571,
       "longitude": -122.43808598026283,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 78,
+      "observation_count": 129,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 12
+      "unique_sequences": 24
     },
     {
       "coverage_score": 0.5636000037193298,
@@ -1863,76 +1882,80 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.798799991607666,
-      "eligible_observation_count": 64,
+      "coverage_score": 0.8831999897956848,
+      "eligible_observation_count": 144,
       "h3_cell": "8a2830829487fff",
       "latitude": 37.78705472527439,
       "longitude": -122.42960830030817,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 64,
+      "observation_count": 144,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 16
+      "unique_sequences": 26
     },
     {
-      "coverage_score": 0.8562999963760376,
-      "eligible_observation_count": 142,
+      "coverage_score": 0.8888999819755554,
+      "eligible_observation_count": 246,
       "h3_cell": "8a283082948ffff",
       "latitude": 37.78788877706467,
       "longitude": -122.43066119714872,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 142,
+      "observation_count": 246,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 30
+      "unique_sequences": 57
     },
     {
-      "coverage_score": 0.798799991607666,
-      "eligible_observation_count": 104,
+      "coverage_score": 0.8583999872207642,
+      "eligible_observation_count": 553,
       "h3_cell": "8a2830829497fff",
       "latitude": 37.787397030849796,
       "longitude": -122.42812326979849,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 104,
+      "observation_count": 553,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 48
     },
     {
-      "coverage_score": 0.8751000165939331,
-      "eligible_observation_count": 142,
+      "coverage_score": 0.887499988079071,
+      "eligible_observation_count": 368,
       "h3_cell": "8a283082949ffff",
       "latitude": 37.78823109646669,
       "longitude": -122.4291761683147,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 142,
+      "observation_count": 368,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 28
+      "unique_sequences": 59
     },
     {
       "coverage_score": 0.8019000291824341,
@@ -1953,256 +1976,270 @@
       "unique_sequences": 14
     },
     {
-      "coverage_score": 0.7713000178337097,
-      "eligible_observation_count": 30,
+      "coverage_score": 0.862500011920929,
+      "eligible_observation_count": 201,
       "h3_cell": "8a28308294b7fff",
       "latitude": 37.7862206529892,
       "longitude": -122.4285554131896,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 30,
+      "observation_count": 201,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
-      ],
-      "storage": "git_parquet",
-      "tier": "tier0_metadata_only",
-      "unique_sequences": 6
-    },
-    {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 98,
-      "h3_cell": "8a28308294c7fff",
-      "latitude": 37.78838045886953,
-      "longitude": -122.43319910679793,
-      "metadata_files": [
-        "observations/external-000.parquet"
-      ],
-      "observation_count": 98,
-      "pixel_policy": "source_locator_only",
-      "providers": [
-        "kartaview"
-      ],
-      "storage": "git_parquet",
-      "tier": "tier0_metadata_only",
-      "unique_sequences": 18
-    },
-    {
-      "coverage_score": 0.7713000178337097,
-      "eligible_observation_count": 63,
-      "h3_cell": "8a28308294cffff",
-      "latitude": 37.78921445584157,
-      "longitude": -122.43425202140135,
-      "metadata_files": [
-        "observations/external-000.parquet"
-      ],
-      "observation_count": 63,
-      "pixel_policy": "source_locator_only",
-      "providers": [
-        "kartaview"
-      ],
-      "storage": "git_parquet",
-      "tier": "tier0_metadata_only",
-      "unique_sequences": 9
-    },
-    {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 160,
-      "h3_cell": "8a28308294d7fff",
-      "latitude": 37.788722808359445,
-      "longitude": -122.43171410371069,
-      "metadata_files": [
-        "observations/external-000.parquet"
-      ],
-      "observation_count": 160,
-      "pixel_policy": "source_locator_only",
-      "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
       "unique_sequences": 26
     },
     {
-      "coverage_score": 0.8162999749183655,
-      "eligible_observation_count": 128,
-      "h3_cell": "8a28308294dffff",
-      "latitude": 37.78955681915813,
-      "longitude": -122.43276701999345,
+      "coverage_score": 0.8802000284194946,
+      "eligible_observation_count": 278,
+      "h3_cell": "8a28308294c7fff",
+      "latitude": 37.78838045886953,
+      "longitude": -122.43319910679793,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 128,
+      "observation_count": 278,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 18
+      "unique_sequences": 43
     },
     {
-      "coverage_score": 0.8169000148773193,
-      "eligible_observation_count": 85,
-      "h3_cell": "8a28308294e7fff",
-      "latitude": 37.78720408947764,
-      "longitude": -122.43363118260982,
+      "coverage_score": 0.8248000144958496,
+      "eligible_observation_count": 124,
+      "h3_cell": "8a28308294cffff",
+      "latitude": 37.78921445584157,
+      "longitude": -122.43425202140135,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 85,
+      "observation_count": 124,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
       "unique_sequences": 13
     },
     {
-      "coverage_score": 0.8781999945640564,
-      "eligible_observation_count": 111,
+      "coverage_score": 0.8776000142097473,
+      "eligible_observation_count": 540,
+      "h3_cell": "8a28308294d7fff",
+      "latitude": 37.788722808359445,
+      "longitude": -122.43171410371069,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 540,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 65
+    },
+    {
+      "coverage_score": 0.8756999969482422,
+      "eligible_observation_count": 308,
+      "h3_cell": "8a28308294dffff",
+      "latitude": 37.78955681915813,
+      "longitude": -122.43276701999345,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 308,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 39
+    },
+    {
+      "coverage_score": 0.8661999702453613,
+      "eligible_observation_count": 433,
+      "h3_cell": "8a28308294e7fff",
+      "latitude": 37.78720408947764,
+      "longitude": -122.43363118260982,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 433,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 39
+    },
+    {
+      "coverage_score": 0.9243000149726868,
+      "eligible_observation_count": 112,
       "h3_cell": "8a28308294effff",
       "latitude": 37.78803809311944,
       "longitude": -122.43468408581374,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 111,
+      "observation_count": 112,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 18
     },
     {
-      "coverage_score": 0.8562999963760376,
-      "eligible_observation_count": 109,
+      "coverage_score": 0.9075000286102295,
+      "eligible_observation_count": 128,
       "h3_cell": "8a28308294f7fff",
       "latitude": 37.7875464414013,
       "longitude": -122.43214620191424,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 109,
+      "observation_count": 128,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 23
+      "unique_sequences": 28
     },
     {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 33,
+      "coverage_score": 0.8465999960899353,
+      "eligible_observation_count": 103,
       "h3_cell": "8a2830829607fff",
       "latitude": 37.79103146540313,
       "longitude": -122.44038074401715,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 33,
+      "observation_count": 103,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 10
     },
     {
-      "coverage_score": 0.8587999939918518,
-      "eligible_observation_count": 119,
+      "coverage_score": 0.8948000073432922,
+      "eligible_observation_count": 241,
       "h3_cell": "8a283082960ffff",
       "latitude": 37.791865352731044,
       "longitude": -122.44143369412174,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 119,
+      "observation_count": 241,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 11
+      "unique_sequences": 21
     },
     {
-      "coverage_score": 0.7353000044822693,
-      "eligible_observation_count": 22,
+      "coverage_score": 0.816100001335144,
+      "eligible_observation_count": 207,
       "h3_cell": "8a2830829617fff",
       "latitude": 37.79137390271818,
       "longitude": -122.4388957958101,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 22,
+      "observation_count": 207,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 15
     },
     {
-      "coverage_score": 0.7353000044822693,
-      "eligible_observation_count": 26,
+      "coverage_score": 0.8529000282287598,
+      "eligible_observation_count": 289,
       "h3_cell": "8a283082961ffff",
       "latitude": 37.79220780387273,
       "longitude": -122.4399487476014,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 26,
+      "observation_count": 289,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 18
     },
     {
-      "coverage_score": 0.8309000134468079,
-      "eligible_observation_count": 68,
+      "coverage_score": 0.8528000116348267,
+      "eligible_observation_count": 536,
       "h3_cell": "8a2830829627fff",
       "latitude": 37.78985511783039,
       "longitude": -122.44081272944172,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 68,
+      "observation_count": 536,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 26
     },
     {
-      "coverage_score": 0.42719998955726624,
-      "eligible_observation_count": 3,
+      "coverage_score": 0.7432000041007996,
+      "eligible_observation_count": 63,
       "h3_cell": "8a283082962ffff",
       "latitude": 37.79068901183057,
       "longitude": -122.44186566814398,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 3,
+      "observation_count": 63,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 2
+      "unique_sequences": 5
     },
     {
       "coverage_score": 0.6327000260353088,
@@ -2241,22 +2278,23 @@
       "unique_sequences": 1
     },
     {
-      "coverage_score": 0.3483999967575073,
-      "eligible_observation_count": 2,
+      "coverage_score": 0.5458999872207642,
+      "eligible_observation_count": 10,
       "h3_cell": "8a2830829657fff",
       "latitude": 37.79269921955965,
       "longitude": -122.44248665394097,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 2,
+      "observation_count": 10,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 3
     },
     {
       "coverage_score": 0.4417000114917755,
@@ -2293,6 +2331,24 @@
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
       "unique_sequences": 5
+    },
+    {
+      "coverage_score": 0.6546000242233276,
+      "eligible_observation_count": 21,
+      "h3_cell": "8a283082966ffff",
+      "latitude": 37.79201424085219,
+      "longitude": -122.44545647135486,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 21,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 4
     },
     {
       "coverage_score": 0.7353000044822693,
@@ -2405,22 +2461,23 @@
       "unique_sequences": 1
     },
     {
-      "coverage_score": 0.6992999911308289,
-      "eligible_observation_count": 25,
+      "coverage_score": 0.833899974822998,
+      "eligible_observation_count": 44,
       "h3_cell": "8a28308296affff",
       "latitude": 37.79255023875598,
       "longitude": -122.43846377700075,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 25,
+      "observation_count": 44,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 6
     },
     {
       "coverage_score": 0.8313000202178955,
@@ -2441,185 +2498,195 @@
       "unique_sequences": 6
     },
     {
-      "coverage_score": 0.7328000068664551,
-      "eligible_observation_count": 22,
+      "coverage_score": 0.870199978351593,
+      "eligible_observation_count": 104,
       "h3_cell": "8a28308296c7fff",
       "latitude": 37.794218007220515,
       "longitude": -122.44056971310374,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 22,
+      "observation_count": 104,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 9
     },
     {
-      "coverage_score": 0.843500018119812,
-      "eligible_observation_count": 82,
+      "coverage_score": 0.864300012588501,
+      "eligible_observation_count": 366,
       "h3_cell": "8a28308296cffff",
       "latitude": 37.7950518607025,
       "longitude": -122.44162269572911,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 82,
+      "observation_count": 366,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 24
     },
     {
-      "coverage_score": 0.7590000033378601,
-      "eligible_observation_count": 22,
+      "coverage_score": 0.8323000073432922,
+      "eligible_observation_count": 103,
       "h3_cell": "8a28308296d7fff",
       "latitude": 37.79456045349824,
       "longitude": -122.43908472179491,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 22,
+      "observation_count": 103,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 17
     },
     {
-      "coverage_score": 0.7612000107765198,
-      "eligible_observation_count": 27,
+      "coverage_score": 0.8690999746322632,
+      "eligible_observation_count": 45,
       "h3_cell": "8a28308296dffff",
       "latitude": 37.79539432080735,
       "longitude": -122.44013770610728,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 27,
+      "observation_count": 45,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 8
     },
     {
-      "coverage_score": 0.8781999945640564,
-      "eligible_observation_count": 83,
+      "coverage_score": 0.8791000247001648,
+      "eligible_observation_count": 266,
       "h3_cell": "8a28308296e7fff",
       "latitude": 37.793041684528056,
       "longitude": -122.44100170910846,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 83,
+      "observation_count": 266,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 28
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 69,
+      "coverage_score": 0.90829998254776,
+      "eligible_observation_count": 76,
       "h3_cell": "8a28308296effff",
       "latitude": 37.79387554468352,
       "longitude": -122.44205468033067,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 69,
+      "observation_count": 76,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 14
     },
     {
-      "coverage_score": 0.7688000202178955,
-      "eligible_observation_count": 46,
+      "coverage_score": 0.8338000178337097,
+      "eligible_observation_count": 49,
       "h3_cell": "8a28308296f7fff",
       "latitude": 37.79338413323815,
       "longitude": -122.43951674019412,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 46,
+      "observation_count": 49,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 5
+      "unique_sequences": 7
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 98,
+      "coverage_score": 0.899399995803833,
+      "eligible_observation_count": 121,
       "h3_cell": "8a2830829707fff",
       "latitude": 37.787844839985844,
       "longitude": -122.44019178628966,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 98,
+      "observation_count": 121,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 13
+      "unique_sequences": 21
     },
     {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 48,
+      "coverage_score": 0.8306999802589417,
+      "eligible_observation_count": 234,
       "h3_cell": "8a283082970ffff",
       "latitude": 37.78867876115563,
       "longitude": -122.44124470387548,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 48,
+      "observation_count": 234,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 23
     },
     {
-      "coverage_score": 0.7562999725341797,
-      "eligible_observation_count": 56,
+      "coverage_score": 0.8371000289916992,
+      "eligible_observation_count": 133,
       "h3_cell": "8a2830829717fff",
       "latitude": 37.78818726833604,
       "longitude": -122.43870688118193,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 56,
+      "observation_count": 133,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 20
     },
     {
       "coverage_score": 0.7353000044822693,
@@ -2640,76 +2707,80 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.9057000279426575,
-      "eligible_observation_count": 114,
+      "coverage_score": 0.8810999989509583,
+      "eligible_observation_count": 442,
       "h3_cell": "8a2830829727fff",
       "latitude": 37.78666846753907,
       "longitude": -122.44062376113459,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 114,
+      "observation_count": 442,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 24
+      "unique_sequences": 61
     },
     {
-      "coverage_score": 0.8781999945640564,
-      "eligible_observation_count": 66,
+      "coverage_score": 0.9041000008583069,
+      "eligible_observation_count": 109,
       "h3_cell": "8a283082972ffff",
       "latitude": 37.787502395379924,
       "longitude": -122.44167666731882,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 66,
+      "observation_count": 109,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 16
+      "unique_sequences": 33
     },
     {
-      "coverage_score": 0.8482000231742859,
-      "eligible_observation_count": 58,
+      "coverage_score": 0.902899980545044,
+      "eligible_observation_count": 71,
       "h3_cell": "8a2830829737fff",
       "latitude": 37.787010898319004,
       "longitude": -122.43913887841859,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 58,
+      "observation_count": 71,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 13
+      "unique_sequences": 19
     },
     {
-      "coverage_score": 0.7353000044822693,
-      "eligible_observation_count": 25,
+      "coverage_score": 0.824999988079071,
+      "eligible_observation_count": 124,
       "h3_cell": "8a2830829747fff",
       "latitude": 37.78917018956965,
       "longitude": -122.44378250882772,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 25,
+      "observation_count": 124,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 15
     },
     {
       "coverage_score": 0.7186999917030334,
@@ -2730,22 +2801,23 @@
       "unique_sequences": 3
     },
     {
-      "coverage_score": 0.45730000734329224,
-      "eligible_observation_count": 9,
+      "coverage_score": 0.7871999740600586,
+      "eligible_observation_count": 239,
       "h3_cell": "8a2830829757fff",
       "latitude": 37.78951266182775,
       "longitude": -122.44229763117552,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 9,
+      "observation_count": 239,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 15
     },
     {
       "coverage_score": 0.36399999260902405,
@@ -2766,58 +2838,61 @@
       "unique_sequences": 1
     },
     {
-      "coverage_score": 0.786300003528595,
-      "eligible_observation_count": 57,
+      "coverage_score": 0.8392999768257141,
+      "eligible_observation_count": 188,
       "h3_cell": "8a2830829767fff",
       "latitude": 37.78799382803715,
       "longitude": -122.4442144384765,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 57,
+      "observation_count": 188,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 23
     },
     {
-      "coverage_score": 0.7713000178337097,
-      "eligible_observation_count": 41,
+      "coverage_score": 0.8511000275611877,
+      "eligible_observation_count": 105,
       "h3_cell": "8a283082976ffff",
       "latitude": 37.78882770105715,
       "longitude": -122.44526736239699,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 41,
+      "observation_count": 105,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 17
     },
     {
-      "coverage_score": 0.8012999892234802,
-      "eligible_observation_count": 27,
+      "coverage_score": 0.8637999892234802,
+      "eligible_observation_count": 299,
       "h3_cell": "8a2830829777fff",
       "latitude": 37.788336302723636,
       "longitude": -122.44272958321676,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 27,
+      "observation_count": 299,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 30
     },
     {
       "coverage_score": 0.7713000178337097,
@@ -2892,22 +2967,23 @@
       "unique_sequences": 8
     },
     {
-      "coverage_score": 0.8057000041007996,
-      "eligible_observation_count": 52,
+      "coverage_score": 0.8593999743461609,
+      "eligible_observation_count": 243,
       "h3_cell": "8a28308297a7fff",
       "latitude": 37.788529680429455,
       "longitude": -122.437221951997,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 52,
+      "observation_count": 243,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 8
+      "unique_sequences": 24
     },
     {
       "coverage_score": 0.7353000044822693,
@@ -2928,22 +3004,23 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.8507000207901001,
-      "eligible_observation_count": 107,
+      "coverage_score": 0.8776999711990356,
+      "eligible_observation_count": 370,
       "h3_cell": "8a28308297b7fff",
       "latitude": 37.788872076264994,
       "longitude": -122.43573699873633,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 107,
+      "observation_count": 370,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 12
+      "unique_sequences": 30
     },
     {
       "coverage_score": 0.8482000231742859,
@@ -4662,40 +4739,78 @@
       "unique_sequences": 8
     },
     {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 112,
+      "coverage_score": 0.29820001125335693,
+      "eligible_observation_count": 1,
+      "h3_cell": "8a283082aa47fff",
+      "latitude": 37.78547147835392,
+      "longitude": -122.4084396356625,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 1,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.9038000106811523,
+      "eligible_observation_count": 420,
       "h3_cell": "8a283082aa4ffff",
       "latitude": 37.78630579137223,
       "longitude": -122.40949249078577,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 112,
+      "observation_count": 420,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 15
+      "unique_sequences": 43
     },
     {
-      "coverage_score": 0.8549000024795532,
-      "eligible_observation_count": 90,
+      "coverage_score": 0.8112000226974487,
+      "eligible_observation_count": 251,
+      "h3_cell": "8a283082aa57fff",
+      "latitude": 37.78581353828941,
+      "longitude": -122.40695435461923,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 251,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 13
+    },
+    {
+      "coverage_score": 0.8490999937057495,
+      "eligible_observation_count": 1986,
       "h3_cell": "8a283082aa5ffff",
       "latitude": 37.78664786513516,
       "longitude": -122.40800721139658,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 90,
+      "observation_count": 1986,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 57
     },
     {
       "coverage_score": 0.9153000116348267,
@@ -4790,40 +4905,42 @@
       "unique_sequences": 10
     },
     {
-      "coverage_score": 0.8331999778747559,
-      "eligible_observation_count": 105,
+      "coverage_score": 0.861299991607666,
+      "eligible_observation_count": 119,
       "h3_cell": "8a283082aac7fff",
       "latitude": 37.78733196383805,
       "longitude": -122.4050365804876,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 105,
+      "observation_count": 119,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 12
+      "unique_sequences": 14
     },
     {
-      "coverage_score": 0.8137999773025513,
-      "eligible_observation_count": 142,
+      "coverage_score": 0.8913000226020813,
+      "eligible_observation_count": 150,
       "h3_cell": "8a283082aacffff",
       "latitude": 37.78816629784808,
       "longitude": -122.40608945030769,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 142,
+      "observation_count": 150,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 14
+      "unique_sequences": 16
     },
     {
       "coverage_score": 0.8956000208854675,
@@ -4863,40 +4980,42 @@
       "unique_sequences": 12
     },
     {
-      "coverage_score": 0.5587999820709229,
-      "eligible_observation_count": 11,
+      "coverage_score": 0.840399980545044,
+      "eligible_observation_count": 200,
       "h3_cell": "8a283082aae7fff",
       "latitude": 37.786155581950794,
       "longitude": -122.40546904953347,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 11,
+      "observation_count": 200,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 2
+      "unique_sequences": 14
     },
     {
-      "coverage_score": 0.8057000041007996,
-      "eligible_observation_count": 51,
+      "coverage_score": 0.8432999849319458,
+      "eligible_observation_count": 1326,
       "h3_cell": "8a283082aaeffff",
       "latitude": 37.78698992262412,
       "longitude": -122.40652190796338,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 51,
+      "observation_count": 1326,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 11
+      "unique_sequences": 53
     },
     {
       "coverage_score": 0.8553000092506409,
@@ -4918,23 +5037,24 @@
       "unique_sequences": 20
     },
     {
-      "coverage_score": 0.859499990940094,
-      "eligible_observation_count": 88,
+      "coverage_score": 0.8651999831199646,
+      "eligible_observation_count": 819,
       "h3_cell": "8a283082b00ffff",
       "latitude": 37.79665818880397,
       "longitude": -122.42064225203976,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 88,
+      "observation_count": 819,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 51
     },
     {
       "coverage_score": 0.8546000123023987,
@@ -4956,59 +5076,62 @@
       "unique_sequences": 15
     },
     {
-      "coverage_score": 0.7502999901771545,
-      "eligible_observation_count": 29,
+      "coverage_score": 0.8245999813079834,
+      "eligible_observation_count": 110,
       "h3_cell": "8a283082b01ffff",
       "latitude": 37.797000412229345,
       "longitude": -122.41915696852305,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 29,
+      "observation_count": 110,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 26
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 81,
+      "coverage_score": 0.8762999773025513,
+      "eligible_observation_count": 88,
       "h3_cell": "8a283082b027fff",
       "latitude": 37.79464779443992,
       "longitude": -122.4200215773937,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 81,
+      "observation_count": 88,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 11
     },
     {
-      "coverage_score": 0.8409000039100647,
-      "eligible_observation_count": 94,
+      "coverage_score": 0.8622000217437744,
+      "eligible_observation_count": 241,
       "h3_cell": "8a283082b02ffff",
       "latitude": 37.79548188202193,
       "longitude": -122.42107453957934,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 94,
+      "observation_count": 241,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 60
     },
     {
       "coverage_score": 0.786300003528595,
@@ -5029,60 +5152,63 @@
       "unique_sequences": 5
     },
     {
-      "coverage_score": 0.8873999714851379,
-      "eligible_observation_count": 123,
+      "coverage_score": 0.9139999747276306,
+      "eligible_observation_count": 134,
       "h3_cell": "8a283082b047fff",
       "latitude": 37.797149995691896,
       "longitude": -122.42318049313853,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 123,
+      "observation_count": 134,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 23
+      "unique_sequences": 30
     },
     {
-      "coverage_score": 0.9049000144004822,
-      "eligible_observation_count": 161,
+      "coverage_score": 0.90420001745224,
+      "eligible_observation_count": 197,
       "h3_cell": "8a283082b04ffff",
       "latitude": 37.79798402177865,
       "longitude": -122.4242334845109,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 161,
+      "observation_count": 197,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 28
+      "unique_sequences": 50
     },
     {
-      "coverage_score": 0.786300003528595,
-      "eligible_observation_count": 38,
+      "coverage_score": 0.8611999750137329,
+      "eligible_observation_count": 100,
       "h3_cell": "8a283082b057fff",
       "latitude": 37.797492249218095,
       "longitude": -122.42169523535217,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 38,
+      "observation_count": 100,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 6
+      "unique_sequences": 30
     },
     {
       "coverage_score": 0.8047000169754028,
@@ -5104,23 +5230,24 @@
       "unique_sequences": 9
     },
     {
-      "coverage_score": 0.9078999757766724,
-      "eligible_observation_count": 295,
+      "coverage_score": 0.8823999762535095,
+      "eligible_observation_count": 1032,
       "h3_cell": "8a283082b067fff",
       "latitude": 37.7959736931369,
       "longitude": -122.42361274688577,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 295,
+      "observation_count": 1032,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 34
+      "unique_sequences": 108
     },
     {
       "coverage_score": 0.8810999989509583,
@@ -5142,23 +5269,24 @@
       "unique_sequences": 21
     },
     {
-      "coverage_score": 0.853600025177002,
-      "eligible_observation_count": 146,
+      "coverage_score": 0.8736000061035156,
+      "eligible_observation_count": 925,
       "h3_cell": "8a283082b077fff",
       "latitude": 37.79631594910612,
       "longitude": -122.42212751149447,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 146,
+      "observation_count": 925,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 99
     },
     {
       "coverage_score": 0.7353000044822693,
@@ -5366,22 +5494,23 @@
       "unique_sequences": 5
     },
     {
-      "coverage_score": 0.7547000050544739,
-      "eligible_observation_count": 29,
+      "coverage_score": 0.8080000281333923,
+      "eligible_observation_count": 118,
       "h3_cell": "8a283082b0e7fff",
       "latitude": 37.797834486471956,
       "longitude": -122.42020995350231,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 29,
+      "observation_count": 118,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 24
     },
     {
       "coverage_score": 0.801800012588501,
@@ -5421,40 +5550,42 @@
       "unique_sequences": 2
     },
     {
-      "coverage_score": 0.8587999939918518,
-      "eligible_observation_count": 109,
+      "coverage_score": 0.9088000059127808,
+      "eligible_observation_count": 128,
       "h3_cell": "8a283082b107fff",
       "latitude": 37.792637357127894,
       "longitude": -122.41940092427284,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 109,
+      "observation_count": 128,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 18
     },
     {
-      "coverage_score": 0.645799994468689,
-      "eligible_observation_count": 11,
+      "coverage_score": 0.8321999907493591,
+      "eligible_observation_count": 91,
       "h3_cell": "8a283082b10ffff",
       "latitude": 37.793471471875776,
       "longitude": -122.42045386533232,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 11,
+      "observation_count": 91,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 18
     },
     {
       "coverage_score": 0.7186999917030334,
@@ -5511,22 +5642,23 @@
       "unique_sequences": 10
     },
     {
-      "coverage_score": 0.7928000092506409,
-      "eligible_observation_count": 39,
+      "coverage_score": 0.891700029373169,
+      "eligible_observation_count": 86,
       "h3_cell": "8a283082b12ffff",
       "latitude": 37.79229514020012,
       "longitude": -122.42088614227367,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 39,
+      "observation_count": 86,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 12
     },
     {
       "coverage_score": 0.720300018787384,
@@ -5547,134 +5679,141 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.8863999843597412,
-      "eligible_observation_count": 164,
+      "coverage_score": 0.896399974822998,
+      "eligible_observation_count": 672,
       "h3_cell": "8a283082b147fff",
       "latitude": 37.79396332154345,
       "longitude": -122.42299203078723,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 164,
+      "observation_count": 672,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 22
+      "unique_sequences": 66
     },
     {
       "coverage_score": 0.8844000101089478,
-      "eligible_observation_count": 70,
+      "eligible_observation_count": 91,
       "h3_cell": "8a283082b14ffff",
       "latitude": 37.79479738146939,
       "longitude": -122.4240449896361,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 70,
+      "observation_count": 91,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 29
     },
     {
-      "coverage_score": 0.7928000092506409,
-      "eligible_observation_count": 39,
+      "coverage_score": 0.8888000249862671,
+      "eligible_observation_count": 51,
       "h3_cell": "8a283082b157fff",
       "latitude": 37.79430556612696,
       "longitude": -122.42150681612137,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 39,
+      "observation_count": 51,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
-      ],
-      "storage": "git_parquet",
-      "tier": "tier0_metadata_only",
-      "unique_sequences": 4
-    },
-    {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 66,
-      "h3_cell": "8a283082b15ffff",
-      "latitude": 37.79513963988089,
-      "longitude": -122.42255977663937,
-      "metadata_files": [
-        "observations/external-000.parquet"
-      ],
-      "observation_count": 66,
-      "pixel_policy": "source_locator_only",
-      "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
       "unique_sequences": 13
     },
     {
-      "coverage_score": 0.9013000130653381,
-      "eligible_observation_count": 162,
+      "coverage_score": 0.8787999749183655,
+      "eligible_observation_count": 68,
+      "h3_cell": "8a283082b15ffff",
+      "latitude": 37.79513963988089,
+      "longitude": -122.42255977663937,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 68,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "kartaview",
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 14
+    },
+    {
+      "coverage_score": 0.8888000249862671,
+      "eligible_observation_count": 208,
       "h3_cell": "8a283082b167fff",
       "latitude": 37.792786994094946,
       "longitude": -122.4234242739384,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 162,
+      "observation_count": 208,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 23
+      "unique_sequences": 31
     },
     {
-      "coverage_score": 0.8797000050544739,
-      "eligible_observation_count": 158,
+      "coverage_score": 0.9031999707221985,
+      "eligible_observation_count": 288,
       "h3_cell": "8a283082b16ffff",
       "latitude": 37.79362106069046,
       "longitude": -122.42447722138985,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 158,
+      "observation_count": 288,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 23
+      "unique_sequences": 45
     },
     {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 53,
+      "coverage_score": 0.8690000176429749,
+      "eligible_observation_count": 244,
       "h3_cell": "8a283082b177fff",
       "latitude": 37.79312924112016,
       "longitude": -122.42193908166624,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 53,
+      "observation_count": 244,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 5
+      "unique_sequences": 30
     },
     {
       "coverage_score": 0.8126000165939331,
@@ -8213,23 +8352,24 @@
       "unique_sequences": 3
     },
     {
-      "coverage_score": 0.6725000143051147,
-      "eligible_observation_count": 18,
+      "coverage_score": 0.7263000011444092,
+      "eligible_observation_count": 19,
       "h3_cell": "8a283082b767fff",
       "latitude": 37.801021094863536,
       "longitude": -122.42039834093698,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 18,
+      "observation_count": 19,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 2
+      "unique_sequences": 3
     },
     {
       "coverage_score": 0.7016000151634216,
@@ -8396,263 +8536,277 @@
       "unique_sequences": 9
     },
     {
-      "coverage_score": 0.8446000218391418,
-      "eligible_observation_count": 132,
+      "coverage_score": 0.8682000041007996,
+      "eligible_observation_count": 314,
       "h3_cell": "8a283082b807fff",
       "latitude": 37.78758972240421,
       "longitude": -122.42261514007362,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 132,
+      "observation_count": 314,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 16
+      "unique_sequences": 37
     },
     {
-      "coverage_score": 0.9125000238418579,
-      "eligible_observation_count": 434,
+      "coverage_score": 0.9067999720573425,
+      "eligible_observation_count": 493,
       "h3_cell": "8a283082b80ffff",
       "latitude": 37.78842384999632,
       "longitude": -122.4236680338814,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 434,
+      "observation_count": 493,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 44
+      "unique_sequences": 59
     },
     {
-      "coverage_score": 0.917900025844574,
-      "eligible_observation_count": 190,
+      "coverage_score": 0.8820000290870667,
+      "eligible_observation_count": 578,
       "h3_cell": "8a283082b817fff",
       "latitude": 37.787931949095835,
       "longitude": -122.42113001164137,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 190,
+      "observation_count": 578,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 32
+      "unique_sequences": 58
     },
     {
-      "coverage_score": 0.9039000272750854,
-      "eligible_observation_count": 401,
+      "coverage_score": 0.8899000287055969,
+      "eligible_observation_count": 698,
       "h3_cell": "8a283082b81ffff",
       "latitude": 37.78876609051499,
       "longitude": -122.4221829071177,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 401,
+      "observation_count": 698,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 40
+      "unique_sequences": 73
     },
     {
-      "coverage_score": 0.8876000046730042,
-      "eligible_observation_count": 215,
+      "coverage_score": 0.8672999739646912,
+      "eligible_observation_count": 473,
       "h3_cell": "8a283082b827fff",
       "latitude": 37.78641334518737,
       "longitude": -122.42304736203407,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 215,
+      "observation_count": 473,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 29
+      "unique_sequences": 64
     },
     {
-      "coverage_score": 0.8841999769210815,
-      "eligible_observation_count": 176,
+      "coverage_score": 0.8712000250816345,
+      "eligible_observation_count": 623,
       "h3_cell": "8a283082b82ffff",
       "latitude": 37.78724747944665,
       "longitude": -122.42410024444595,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 176,
+      "observation_count": 623,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 33
+      "unique_sequences": 74
     },
     {
-      "coverage_score": 0.902999997138977,
-      "eligible_observation_count": 289,
+      "coverage_score": 0.8964999914169312,
+      "eligible_observation_count": 511,
       "h3_cell": "8a283082b837fff",
       "latitude": 37.78675557431808,
       "longitude": -122.42156225599275,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 289,
+      "observation_count": 511,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 27
+      "unique_sequences": 57
     },
     {
-      "coverage_score": 0.8931999802589417,
-      "eligible_observation_count": 152,
+      "coverage_score": 0.8889999985694885,
+      "eligible_observation_count": 392,
       "h3_cell": "8a283082b847fff",
       "latitude": 37.788915686482326,
       "longitude": -122.42620603844668,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 152,
+      "observation_count": 392,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 27
+      "unique_sequences": 51
     },
     {
-      "coverage_score": 0.786300003528595,
-      "eligible_observation_count": 142,
+      "coverage_score": 0.8535000085830688,
+      "eligible_observation_count": 345,
       "h3_cell": "8a283082b84ffff",
       "latitude": 37.78974975925753,
       "longitude": -122.42725895003437,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 142,
+      "observation_count": 345,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 16
+      "unique_sequences": 34
     },
     {
-      "coverage_score": 0.8781999945640564,
-      "eligible_observation_count": 178,
+      "coverage_score": 0.926800012588501,
+      "eligible_observation_count": 230,
       "h3_cell": "8a283082b857fff",
       "latitude": 37.78925795709378,
       "longitude": -122.42472093741554,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 178,
+      "observation_count": 230,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 26
+      "unique_sequences": 39
     },
     {
-      "coverage_score": 0.8012999892234802,
-      "eligible_observation_count": 207,
+      "coverage_score": 0.8835999965667725,
+      "eligible_observation_count": 706,
       "h3_cell": "8a283082b85ffff",
       "latitude": 37.79009204369607,
       "longitude": -122.42577385067545,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 207,
+      "observation_count": 706,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 24
+      "unique_sequences": 53
     },
     {
-      "coverage_score": 0.8137999773025513,
-      "eligible_observation_count": 121,
+      "coverage_score": 0.8909000158309937,
+      "eligible_observation_count": 170,
       "h3_cell": "8a283082b867fff",
       "latitude": 37.78773932016264,
       "longitude": -122.4266382152232,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 121,
+      "observation_count": 170,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 14
+      "unique_sequences": 19
     },
     {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 133,
+      "coverage_score": 0.9057999849319458,
+      "eligible_observation_count": 233,
       "h3_cell": "8a283082b86ffff",
       "latitude": 37.78857339960627,
       "longitude": -122.42769111541352,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 133,
+      "observation_count": 233,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 22
+      "unique_sequences": 34
     },
     {
-      "coverage_score": 0.8587999939918518,
-      "eligible_observation_count": 266,
+      "coverage_score": 0.8858000040054321,
+      "eligible_observation_count": 631,
       "h3_cell": "8a283082b877fff",
       "latitude": 37.788081593211835,
       "longitude": -122.42515313658369,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 266,
+      "observation_count": 631,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 28
+      "unique_sequences": 61
     },
     {
       "coverage_score": 0.8562999963760376,
@@ -8673,22 +8827,23 @@
       "unique_sequences": 37
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 197,
+      "coverage_score": 0.8820000290870667,
+      "eligible_observation_count": 535,
       "h3_cell": "8a283082b88ffff",
       "latitude": 37.79028467132984,
       "longitude": -122.42026548995042,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 197,
+      "observation_count": 536,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 24
+      "unique_sequences": 61
     },
     {
       "coverage_score": 0.916700005531311,
@@ -8728,22 +8883,23 @@
       "unique_sequences": 22
     },
     {
-      "coverage_score": 0.8562999963760376,
-      "eligible_observation_count": 190,
+      "coverage_score": 0.8991000056266785,
+      "eligible_observation_count": 204,
       "h3_cell": "8a283082b8a7fff",
       "latitude": 37.78827415952046,
       "longitude": -122.41964485915065,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 190,
+      "observation_count": 204,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 32
+      "unique_sequences": 43
     },
     {
       "coverage_score": 0.8712999820709229,
@@ -8782,136 +8938,143 @@
       "unique_sequences": 36
     },
     {
-      "coverage_score": 0.90420001745224,
-      "eligible_observation_count": 389,
+      "coverage_score": 0.9041000008583069,
+      "eligible_observation_count": 491,
       "h3_cell": "8a283082b8c7fff",
       "latitude": 37.79077656377538,
       "longitude": -122.42280357976594,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 389,
+      "observation_count": 491,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 38
+      "unique_sequences": 54
     },
     {
-      "coverage_score": 0.8677999973297119,
-      "eligible_observation_count": 188,
+      "coverage_score": 0.8434000015258789,
+      "eligible_observation_count": 761,
       "h3_cell": "8a283082b8cffff",
       "latitude": 37.79161065753644,
       "longitude": -122.42385650609327,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 188,
+      "observation_count": 764,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 22
+      "unique_sequences": 72
     },
     {
-      "coverage_score": 0.8137999773025513,
-      "eligible_observation_count": 80,
+      "coverage_score": 0.8830999732017517,
+      "eligible_observation_count": 256,
       "h3_cell": "8a283082b8d7fff",
       "latitude": 37.79111879941403,
       "longitude": -122.42131840821813,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 80,
+      "observation_count": 260,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 14
+      "unique_sequences": 39
     },
     {
-      "coverage_score": 0.9014999866485596,
-      "eligible_observation_count": 168,
+      "coverage_score": 0.9104999899864197,
+      "eligible_observation_count": 173,
       "h3_cell": "8a283082b8dffff",
       "latitude": 37.7919529070026,
       "longitude": -122.4223713362143,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 168,
+      "observation_count": 173,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 23
+      "unique_sequences": 25
     },
     {
-      "coverage_score": 0.9171000123023987,
-      "eligible_observation_count": 780,
+      "coverage_score": 0.9045000076293945,
+      "eligible_observation_count": 1128,
       "h3_cell": "8a283082b8e7fff",
       "latitude": 37.7896002114396,
       "longitude": -122.42323581232151,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 780,
+      "observation_count": 1128,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 34
+      "unique_sequences": 64
     },
     {
-      "coverage_score": 0.9025999903678894,
-      "eligible_observation_count": 1221,
+      "coverage_score": 0.8978000283241272,
+      "eligible_observation_count": 1637,
       "h3_cell": "8a283082b8effff",
       "latitude": 37.79043431186902,
       "longitude": -122.42428872725218,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 1221,
+      "observation_count": 1637,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 29
+      "unique_sequences": 79
     },
     {
-      "coverage_score": 0.90420001745224,
-      "eligible_observation_count": 300,
+      "coverage_score": 0.8970999717712402,
+      "eligible_observation_count": 635,
       "h3_cell": "8a283082b8f7fff",
       "latitude": 37.78994244951863,
       "longitude": -122.421750663166,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 300,
+      "observation_count": 639,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 42
+      "unique_sequences": 65
     },
     {
       "coverage_score": 0.8288000226020813,
@@ -8950,22 +9113,23 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.7696999907493591,
-      "eligible_observation_count": 21,
+      "coverage_score": 0.8603000044822693,
+      "eligible_observation_count": 93,
       "h3_cell": "8a283082b94ffff",
       "latitude": 37.786562944738066,
       "longitude": -122.42707038100538,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 21,
+      "observation_count": 93,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 19
     },
     {
       "coverage_score": 0.8162999749183655,
@@ -8986,58 +9150,61 @@
       "unique_sequences": 17
     },
     {
-      "coverage_score": 0.8162999749183655,
-      "eligible_observation_count": 116,
+      "coverage_score": 0.8791000247001648,
+      "eligible_observation_count": 538,
       "h3_cell": "8a283082b95ffff",
       "latitude": 37.78690522022424,
       "longitude": -122.42558532475701,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 116,
+      "observation_count": 538,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 19
+      "unique_sequences": 42
     },
     {
-      "coverage_score": 0.8181999921798706,
-      "eligible_observation_count": 76,
+      "coverage_score": 0.8385999798774719,
+      "eligible_observation_count": 152,
       "h3_cell": "8a283082b987fff",
       "latitude": 37.786263604776266,
       "longitude": -122.41902424987336,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 76,
+      "observation_count": 164,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 15
+      "unique_sequences": 23
     },
     {
-      "coverage_score": 0.8206999897956848,
-      "eligible_observation_count": 134,
+      "coverage_score": 0.8762000203132629,
+      "eligible_observation_count": 141,
       "h3_cell": "8a283082b98ffff",
       "latitude": 37.787097787182724,
       "longitude": -122.42007712589309,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 134,
+      "observation_count": 141,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 16
+      "unique_sequences": 19
     },
     {
       "coverage_score": 0.8457000255584717,
@@ -9076,22 +9243,23 @@
       "unique_sequences": 25
     },
     {
-      "coverage_score": 0.630299985408783,
-      "eligible_observation_count": 10,
+      "coverage_score": 0.7752000093460083,
+      "eligible_observation_count": 49,
       "h3_cell": "8a283082b9affff",
       "latitude": 37.785921405738506,
       "longitude": -122.42050938163943,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 10,
+      "observation_count": 52,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 9
     },
     {
       "coverage_score": 0.644599974155426,
@@ -9130,41 +9298,43 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.8125,
-      "eligible_observation_count": 34,
+      "coverage_score": 0.8134999871253967,
+      "eligible_observation_count": 36,
       "h3_cell": "8a283082ba0ffff",
       "latitude": 37.79426216925785,
       "longitude": -122.43103856284169,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 34,
+      "observation_count": 36,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 8
     },
     {
-      "coverage_score": 0.5393999814987183,
-      "eligible_observation_count": 11,
+      "coverage_score": 0.8445000052452087,
+      "eligible_observation_count": 122,
       "h3_cell": "8a283082ba17fff",
       "latitude": 37.79377050862317,
       "longitude": -122.42850048423219,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 11,
+      "observation_count": 122,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 2
+      "unique_sequences": 13
     },
     {
       "coverage_score": 0.8140000104904175,
@@ -9222,41 +9392,43 @@
       "unique_sequences": 2
     },
     {
-      "coverage_score": 0.6837000250816345,
-      "eligible_observation_count": 17,
+      "coverage_score": 0.8108000159263611,
+      "eligible_observation_count": 44,
       "h3_cell": "8a283082ba37fff",
       "latitude": 37.79259418052542,
       "longitude": -122.42893264880419,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 17,
+      "observation_count": 44,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 11
     },
     {
-      "coverage_score": 0.885699987411499,
-      "eligible_observation_count": 64,
+      "coverage_score": 0.8813999891281128,
+      "eligible_observation_count": 107,
       "h3_cell": "8a283082ba47fff",
       "latitude": 37.79475376547377,
       "longitude": -122.4335766237466,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 64,
+      "observation_count": 107,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 17
     },
     {
       "coverage_score": 0.6992999911308289,
@@ -9277,41 +9449,43 @@
       "unique_sequences": 3
     },
     {
-      "coverage_score": 0.8464000225067139,
-      "eligible_observation_count": 58,
+      "coverage_score": 0.8830999732017517,
+      "eligible_observation_count": 151,
       "h3_cell": "8a283082ba57fff",
       "latitude": 37.79509613287611,
       "longitude": -122.43209153444424,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 58,
+      "observation_count": 151,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 8
+      "unique_sequences": 18
     },
     {
-      "coverage_score": 0.8632000088691711,
-      "eligible_observation_count": 41,
+      "coverage_score": 0.888700008392334,
+      "eligible_observation_count": 181,
       "h3_cell": "8a283082ba5ffff",
       "latitude": 37.79593007599493,
       "longitude": -122.43314451576852,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 41,
+      "observation_count": 181,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 21
     },
     {
       "coverage_score": 0.786300003528595,
@@ -9370,96 +9544,101 @@
       "unique_sequences": 8
     },
     {
-      "coverage_score": 0.847100019454956,
-      "eligible_observation_count": 90,
+      "coverage_score": 0.8693000078201294,
+      "eligible_observation_count": 195,
       "h3_cell": "8a283082ba87fff",
       "latitude": 37.795289132388625,
       "longitude": -122.4265831454725,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 90,
+      "observation_count": 195,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 21
+      "unique_sequences": 32
     },
     {
-      "coverage_score": 0.7353000044822693,
-      "eligible_observation_count": 24,
+      "coverage_score": 0.8452000021934509,
+      "eligible_observation_count": 276,
       "h3_cell": "8a283082ba8ffff",
       "latitude": 37.79612313749009,
       "longitude": -122.42763612210253,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 24,
+      "observation_count": 276,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 20
     },
     {
-      "coverage_score": 0.8871999979019165,
-      "eligible_observation_count": 222,
+      "coverage_score": 0.8779000043869019,
+      "eligible_observation_count": 253,
       "h3_cell": "8a283082ba97fff",
       "latitude": 37.79563142089739,
       "longitude": -122.42509795821225,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 222,
+      "observation_count": 253,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 27
+      "unique_sequences": 34
     },
     {
-      "coverage_score": 0.786300003528595,
-      "eligible_observation_count": 25,
+      "coverage_score": 0.839900016784668,
+      "eligible_observation_count": 103,
       "h3_cell": "8a283082ba9ffff",
       "latitude": 37.79646543982681,
       "longitude": -122.42615093651513,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 25,
+      "observation_count": 103,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 8
+      "unique_sequences": 18
     },
     {
-      "coverage_score": 0.6843000054359436,
-      "eligible_observation_count": 20,
+      "coverage_score": 0.8082000017166138,
+      "eligible_observation_count": 25,
       "h3_cell": "8a283082baa7fff",
       "latitude": 37.79411281583947,
       "longitude": -122.42701534343392,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 20,
+      "observation_count": 25,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 5
     },
     {
       "coverage_score": 0.792900025844574,
@@ -9481,23 +9660,24 @@
       "unique_sequences": 7
     },
     {
-      "coverage_score": 0.8964999914169312,
-      "eligible_observation_count": 107,
+      "coverage_score": 0.8626999855041504,
+      "eligible_observation_count": 533,
       "h3_cell": "8a283082bab7fff",
       "latitude": 37.79445510678857,
       "longitude": -122.42553017856807,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 107,
+      "observation_count": 536,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 21
+      "unique_sequences": 50
     },
     {
       "coverage_score": 0.8632000088691711,
@@ -9591,22 +9771,23 @@
       "unique_sequences": 8
     },
     {
-      "coverage_score": 0.8137999773025513,
-      "eligible_observation_count": 65,
+      "coverage_score": 0.861299991607666,
+      "eligible_observation_count": 66,
       "h3_cell": "8a283082baeffff",
       "latitude": 37.796272440960145,
       "longitude": -122.43165940407121,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 65,
+      "observation_count": 66,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 11
+      "unique_sequences": 12
     },
     {
       "coverage_score": 0.5088000297546387,
@@ -9627,22 +9808,23 @@
       "unique_sequences": 2
     },
     {
-      "coverage_score": 0.7353000044822693,
-      "eligible_observation_count": 33,
+      "coverage_score": 0.829200029373169,
+      "eligible_observation_count": 35,
       "h3_cell": "8a283082bb07fff",
       "latitude": 37.790241497006825,
       "longitude": -122.42979694496442,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 33,
+      "observation_count": 35,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 6
     },
     {
       "coverage_score": 0.7713000178337097,
@@ -9663,22 +9845,23 @@
       "unique_sequences": 5
     },
     {
-      "coverage_score": 0.6843000054359436,
-      "eligible_observation_count": 23,
+      "coverage_score": 0.788100004196167,
+      "eligible_observation_count": 298,
       "h3_cell": "8a283082bb17fff",
       "latitude": 37.79058381153682,
       "longitude": -122.42831187134617,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 23,
+      "observation_count": 298,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 14
     },
     {
       "coverage_score": 0.5195000171661377,
@@ -9699,22 +9882,23 @@
       "unique_sequences": 1
     },
     {
-      "coverage_score": 0.8137999773025513,
-      "eligible_observation_count": 99,
+      "coverage_score": 0.8827999830245972,
+      "eligible_observation_count": 191,
       "h3_cell": "8a283082bb27fff",
       "latitude": 37.78906514158815,
       "longitude": -122.43022907655336,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 99,
+      "observation_count": 191,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 24
+      "unique_sequences": 37
     },
     {
       "coverage_score": 0.786300003528595,
@@ -9735,58 +9919,61 @@
       "unique_sequences": 13
     },
     {
-      "coverage_score": 0.8012999892234802,
-      "eligible_observation_count": 104,
+      "coverage_score": 0.8331999778747559,
+      "eligible_observation_count": 420,
       "h3_cell": "8a283082bb37fff",
       "latitude": 37.78940745855454,
       "longitude": -122.42874402532749,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 104,
+      "observation_count": 420,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 13
+      "unique_sequences": 35
     },
     {
-      "coverage_score": 0.8162999749183655,
-      "eligible_observation_count": 62,
+      "coverage_score": 0.8799999952316284,
+      "eligible_observation_count": 82,
       "h3_cell": "8a283082bb47fff",
       "latitude": 37.79156715397389,
       "longitude": -122.43338785959864,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 62,
+      "observation_count": 82,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 11
+      "unique_sequences": 13
     },
     {
-      "coverage_score": 0.786300003528595,
-      "eligible_observation_count": 49,
+      "coverage_score": 0.8335999846458435,
+      "eligible_observation_count": 85,
       "h3_cell": "8a283082bb4ffff",
       "latitude": 37.79240111710759,
       "longitude": -122.43444080672153,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 49,
+      "observation_count": 85,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 5
+      "unique_sequences": 10
     },
     {
       "coverage_score": 0.8012999892234802,
@@ -9807,22 +9994,23 @@
       "unique_sequences": 6
     },
     {
-      "coverage_score": 0.8012999892234802,
-      "eligible_observation_count": 50,
+      "coverage_score": 0.888700008392334,
+      "eligible_observation_count": 97,
       "h3_cell": "8a283082bb5ffff",
       "latitude": 37.79274348938188,
       "longitude": -122.43295576220758,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 50,
+      "observation_count": 97,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 6
+      "unique_sequences": 12
     },
     {
       "coverage_score": 0.8206999897956848,
@@ -9843,22 +10031,23 @@
       "unique_sequences": 10
     },
     {
-      "coverage_score": 0.786300003528595,
-      "eligible_observation_count": 44,
+      "coverage_score": 0.847599983215332,
+      "eligible_observation_count": 144,
       "h3_cell": "8a283082bb6ffff",
       "latitude": 37.79122477926474,
       "longitude": -122.43487288171912,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 44,
+      "observation_count": 144,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 15
     },
     {
       "coverage_score": 0.8657000064849854,
@@ -9879,60 +10068,63 @@
       "unique_sequences": 14
     },
     {
-      "coverage_score": 0.8184999823570251,
-      "eligible_observation_count": 64,
+      "coverage_score": 0.8873000144958496,
+      "eligible_observation_count": 107,
       "h3_cell": "8a283082bb87fff",
       "latitude": 37.79210245124003,
       "longitude": -122.42639458629188,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 64,
+      "observation_count": 107,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 13
+      "unique_sequences": 24
     },
     {
-      "coverage_score": 0.5148000121116638,
-      "eligible_observation_count": 11,
+      "coverage_score": 0.8486999869346619,
+      "eligible_observation_count": 360,
       "h3_cell": "8a283082bb8ffff",
       "latitude": 37.79293649018038,
       "longitude": -122.42744753039973,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 13,
+      "observation_count": 362,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 22
     },
     {
-      "coverage_score": 0.8705999851226807,
-      "eligible_observation_count": 152,
+      "coverage_score": 0.8884000182151794,
+      "eligible_observation_count": 677,
       "h3_cell": "8a283082bb97fff",
       "latitude": 37.79244473080121,
       "longitude": -122.42490944214742,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 152,
+      "observation_count": 679,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 23
+      "unique_sequences": 60
     },
     {
       "coverage_score": 0.8012999892234802,
@@ -9971,40 +10163,42 @@
       "unique_sequences": 5
     },
     {
-      "coverage_score": 0.3328000009059906,
-      "eligible_observation_count": 1,
+      "coverage_score": 0.6837000250816345,
+      "eligible_observation_count": 12,
       "h3_cell": "8a283082bbaffff",
       "latitude": 37.79176015541246,
       "longitude": -122.42787970637039,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 1,
+      "observation_count": 12,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 6
     },
     {
-      "coverage_score": 0.8012999892234802,
-      "eligible_observation_count": 79,
+      "coverage_score": 0.8603000044822693,
+      "eligible_observation_count": 155,
       "h3_cell": "8a283082bbb7fff",
       "latitude": 37.79126839180271,
       "longitude": -122.42534165190918,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 79,
+      "observation_count": 155,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 14
+      "unique_sequences": 25
     },
     {
       "coverage_score": 0.8562999963760376,
@@ -10081,22 +10275,23 @@
       "unique_sequences": 29
     },
     {
-      "coverage_score": 0.8057000041007996,
-      "eligible_observation_count": 113,
+      "coverage_score": 0.8855000138282776,
+      "eligible_observation_count": 208,
       "h3_cell": "8a283082bc27fff",
       "latitude": 37.788808607477506,
       "longitude": -122.41265111456818,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 113,
+      "observation_count": 208,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 13
+      "unique_sequences": 25
     },
     {
       "coverage_score": 0.8744000196456909,
@@ -10526,148 +10721,156 @@
       "unique_sequences": 15
     },
     {
-      "coverage_score": 0.7713000178337097,
-      "eligible_observation_count": 214,
+      "coverage_score": 0.9243999719619751,
+      "eligible_observation_count": 645,
       "h3_cell": "8a283082bd07fff",
       "latitude": 37.786797980036084,
       "longitude": -122.41203060933192,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 214,
+      "observation_count": 645,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 20
+      "unique_sequences": 58
     },
     {
-      "coverage_score": 0.8356999754905701,
-      "eligible_observation_count": 183,
+      "coverage_score": 0.885699987411499,
+      "eligible_observation_count": 184,
       "h3_cell": "8a283082bd0ffff",
       "latitude": 37.78763223824392,
       "longitude": -122.41308348226849,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 183,
+      "observation_count": 184,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 23
+      "unique_sequences": 24
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 191,
+      "coverage_score": 0.9061999917030334,
+      "eligible_observation_count": 395,
       "h3_cell": "8a283082bd17fff",
       "latitude": 37.787140083899324,
       "longitude": -122.41054535564483,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 191,
+      "observation_count": 395,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 36
     },
     {
-      "coverage_score": 0.8356999754905701,
-      "eligible_observation_count": 197,
+      "coverage_score": 0.8981999754905701,
+      "eligible_observation_count": 198,
       "h3_cell": "8a283082bd1ffff",
       "latitude": 37.78797435593462,
       "longitude": -122.41159823023918,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 197,
+      "observation_count": 198,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 18
+      "unique_sequences": 19
     },
     {
-      "coverage_score": 0.36730000376701355,
-      "eligible_observation_count": 1,
+      "coverage_score": 0.7839999794960022,
+      "eligible_observation_count": 10,
       "h3_cell": "8a283082bd27fff",
       "latitude": 37.78562159502874,
       "longitude": -122.41246297742644,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 1,
+      "observation_count": 10,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 7
     },
     {
-      "coverage_score": 0.8356999754905701,
-      "eligible_observation_count": 195,
+      "coverage_score": 0.8654000163078308,
+      "eligible_observation_count": 520,
       "h3_cell": "8a283082bd2ffff",
       "latitude": 37.786455859901174,
       "longitude": -122.41351583897071,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 195,
+      "observation_count": 520,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 22
+      "unique_sequences": 40
     },
     {
-      "coverage_score": 0.8032000064849854,
-      "eligible_observation_count": 60,
+      "coverage_score": 0.8657000064849854,
+      "eligible_observation_count": 63,
       "h3_cell": "8a283082bd37fff",
       "latitude": 37.78596370133639,
       "longitude": -122.41097774612952,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 60,
+      "observation_count": 63,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 14
+      "unique_sequences": 16
     },
     {
-      "coverage_score": 0.8206999897956848,
-      "eligible_observation_count": 202,
+      "coverage_score": 0.8831999897956848,
+      "eligible_observation_count": 205,
       "h3_cell": "8a283082bd47fff",
       "latitude": 37.78812432816961,
       "longitude": -122.41562159125777,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 202,
+      "observation_count": 205,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 19
     },
     {
       "coverage_score": 0.9016000032424927,
@@ -10689,22 +10892,23 @@
       "unique_sequences": 36
     },
     {
-      "coverage_score": 0.8657000064849854,
-      "eligible_observation_count": 147,
+      "coverage_score": 0.9337000250816345,
+      "eligible_observation_count": 229,
       "h3_cell": "8a283082bd57fff",
       "latitude": 37.78846647595928,
       "longitude": -122.41413636493864,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 147,
+      "observation_count": 229,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 17
+      "unique_sequences": 28
     },
     {
       "coverage_score": 0.8562999963760376,
@@ -10853,22 +11057,23 @@
       "unique_sequences": 24
     },
     {
-      "coverage_score": 0.8562999963760376,
-      "eligible_observation_count": 194,
+      "coverage_score": 0.8788999915122986,
+      "eligible_observation_count": 670,
       "h3_cell": "8a283082bda7fff",
       "latitude": 37.78748217148978,
       "longitude": -122.40906007791084,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 194,
+      "observation_count": 670,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 15
+      "unique_sequences": 52
     },
     {
       "coverage_score": 0.8057000041007996,
@@ -10889,22 +11094,23 @@
       "unique_sequences": 13
     },
     {
-      "coverage_score": 0.8712999820709229,
-      "eligible_observation_count": 166,
+      "coverage_score": 0.8597999811172485,
+      "eligible_observation_count": 677,
       "h3_cell": "8a283082bdb7fff",
       "latitude": 37.787824242806394,
       "longitude": -122.40757477613131,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 166,
+      "observation_count": 677,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 15
+      "unique_sequences": 34
     },
     {
       "coverage_score": 0.8413000106811523,
@@ -11719,76 +11925,98 @@
       "unique_sequences": 3
     },
     {
-      "coverage_score": 0.3950999975204468,
-      "eligible_observation_count": 5,
+      "coverage_score": 0.7838000059127808,
+      "eligible_observation_count": 41,
       "h3_cell": "8a2830876807fff",
       "latitude": 37.79686824619189,
       "longitude": -122.44775159873663,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 5,
+      "observation_count": 41,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 9
     },
     {
-      "coverage_score": 0.7960000038146973,
-      "eligible_observation_count": 14,
+      "coverage_score": 0.8245999813079834,
+      "eligible_observation_count": 48,
       "h3_cell": "8a2830876817fff",
       "latitude": 37.79721078029488,
       "longitude": -122.4462666623597,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 14,
+      "observation_count": 48,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 10
     },
     {
-      "coverage_score": 0.8482000231742859,
-      "eligible_observation_count": 46,
+      "coverage_score": 0.8953999876976013,
+      "eligible_observation_count": 123,
       "h3_cell": "8a283087681ffff",
       "latitude": 37.79804453794212,
       "longitude": -122.44731968214909,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 46,
+      "observation_count": 123,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 6
+      "unique_sequences": 14
     },
     {
-      "coverage_score": 0.36340001225471497,
-      "eligible_observation_count": 2,
+      "coverage_score": 0.4706999957561493,
+      "eligible_observation_count": 13,
+      "h3_cell": "8a2830876827fff",
+      "latitude": 37.795691945336195,
+      "longitude": -122.44818350433383,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 13,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 1
+    },
+    {
+      "coverage_score": 0.8741000294685364,
+      "eligible_observation_count": 95,
       "h3_cell": "8a2830876837fff",
       "latitude": 37.79603448186887,
       "longitude": -122.44669859035282,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 2,
+      "observation_count": 95,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 16
     },
     {
       "coverage_score": 0.9117000102996826,
@@ -11995,40 +12223,60 @@
       "unique_sequences": 7
     },
     {
-      "coverage_score": 0.45730000734329224,
-      "eligible_observation_count": 9,
+      "coverage_score": 0.7648000121116638,
+      "eligible_observation_count": 43,
+      "h3_cell": "8a283087691ffff",
+      "latitude": 37.79485817433773,
+      "longitude": -122.44713050735548,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 43,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 11
+    },
+    {
+      "coverage_score": 0.8406000137329102,
+      "eligible_observation_count": 333,
       "h3_cell": "8a2830876937fff",
       "latitude": 37.7928480595277,
       "longitude": -122.44650943750584,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 9,
+      "observation_count": 333,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 12
     },
     {
-      "coverage_score": 0.7889000177383423,
-      "eligible_observation_count": 16,
+      "coverage_score": 0.8414999842643738,
+      "eligible_observation_count": 100,
       "h3_cell": "8a2830876987fff",
       "latitude": 37.79554320349251,
       "longitude": -122.44416065191832,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 16,
+      "observation_count": 100,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 9
     },
     {
       "coverage_score": 0.4262000024318695,
@@ -12049,22 +12297,23 @@
       "unique_sequences": 1
     },
     {
-      "coverage_score": 0.828499972820282,
-      "eligible_observation_count": 68,
+      "coverage_score": 0.8989999890327454,
+      "eligible_observation_count": 98,
       "h3_cell": "8a2830876997fff",
       "latitude": 37.79588569368354,
       "longitude": -122.44267568806953,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 68,
+      "observation_count": 98,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 9
+      "unique_sequences": 16
     },
     {
       "coverage_score": 0.7928000092506409,
@@ -12085,22 +12334,59 @@
       "unique_sequences": 4
     },
     {
-      "coverage_score": 0.628600001335144,
-      "eligible_observation_count": 14,
+      "coverage_score": 0.5946000218391418,
+      "eligible_observation_count": 11,
+      "h3_cell": "8a28308769a7fff",
+      "latitude": 37.794366891716486,
+      "longitude": -122.44459260272107,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 11,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 5
+    },
+    {
+      "coverage_score": 0.5349000096321106,
+      "eligible_observation_count": 9,
+      "h3_cell": "8a28308769affff",
+      "latitude": 37.79520069704355,
+      "longitude": -122.44564559168077,
+      "metadata_files": [
+        "observations/external-000.parquet"
+      ],
+      "observation_count": 9,
+      "pixel_policy": "source_locator_only",
+      "providers": [
+        "mapillary"
+      ],
+      "storage": "git_parquet",
+      "tier": "tier0_metadata_only",
+      "unique_sequences": 4
+    },
+    {
+      "coverage_score": 0.8256999850273132,
+      "eligible_observation_count": 127,
       "h3_cell": "8a28308769b7fff",
       "latitude": 37.79470938433854,
       "longitude": -122.4431076612675,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 14,
+      "observation_count": 127,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 2
+      "unique_sequences": 9
     },
     {
       "coverage_score": 0.8885999917984009,
@@ -12579,23 +12865,24 @@
       "unique_sequences": 8
     },
     {
-      "coverage_score": 0.7552000284194946,
-      "eligible_observation_count": 20,
+      "coverage_score": 0.8449000120162964,
+      "eligible_observation_count": 49,
       "h3_cell": "8a2830876d0ffff",
       "latitude": 37.796913066698195,
       "longitude": -122.43822065201931,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 20,
+      "observation_count": 49,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 9
     },
     {
       "coverage_score": 0.8137999773025513,
@@ -12634,41 +12921,43 @@
       "unique_sequences": 7
     },
     {
-      "coverage_score": 0.7164999842643738,
-      "eligible_observation_count": 20,
+      "coverage_score": 0.7932999730110168,
+      "eligible_observation_count": 197,
       "h3_cell": "8a2830876d27fff",
       "latitude": 37.79490288351562,
       "longitude": -122.43759970640556,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 20,
+      "observation_count": 197,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 15
     },
     {
-      "coverage_score": 0.814300000667572,
-      "eligible_observation_count": 37,
+      "coverage_score": 0.8629000186920166,
+      "eligible_observation_count": 214,
       "h3_cell": "8a2830876d2ffff",
       "latitude": 37.795736764651956,
       "longitude": -122.43865269240345,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 37,
+      "observation_count": 214,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 13
     },
     {
       "coverage_score": 0.8162999749183655,
@@ -12689,22 +12978,23 @@
       "unique_sequences": 7
     },
     {
-      "coverage_score": 0.7441999912261963,
-      "eligible_observation_count": 40,
+      "coverage_score": 0.8202000260353088,
+      "eligible_observation_count": 42,
       "h3_cell": "8a2830876d47fff",
       "latitude": 37.797404465421494,
       "longitude": -122.44075869355055,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 40,
+      "observation_count": 42,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 3
+      "unique_sequences": 4
     },
     {
       "coverage_score": 0.8587999939918518,
@@ -12725,23 +13015,24 @@
       "unique_sequences": 9
     },
     {
-      "coverage_score": 0.8032000064849854,
-      "eligible_observation_count": 40,
+      "coverage_score": 0.8664000034332275,
+      "eligible_observation_count": 185,
       "h3_cell": "8a2830876d57fff",
       "latitude": 37.79774692065974,
       "longitude": -122.43927365913743,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 40,
+      "observation_count": 185,
       "pixel_policy": "source_locator_only",
       "providers": [
         "kartaview",
+        "mapillary",
         "panoramax"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 4
+      "unique_sequences": 20
     },
     {
       "coverage_score": 0.8282999992370605,
@@ -12763,22 +13054,23 @@
       "unique_sequences": 6
     },
     {
-      "coverage_score": 0.47200000286102295,
-      "eligible_observation_count": 9,
+      "coverage_score": 0.5860999822616577,
+      "eligible_observation_count": 10,
       "h3_cell": "8a2830876d67fff",
       "latitude": 37.796228167615524,
       "longitude": -122.44119070013585,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 9,
+      "observation_count": 10,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 1
+      "unique_sequences": 2
     },
     {
       "coverage_score": 0.8585000038146973,
@@ -12799,22 +13091,23 @@
       "unique_sequences": 9
     },
     {
-      "coverage_score": 0.557699978351593,
-      "eligible_observation_count": 9,
+      "coverage_score": 0.8173999786376953,
+      "eligible_observation_count": 42,
       "h3_cell": "8a2830876d77fff",
       "latitude": 37.79657062528745,
       "longitude": -122.43970568811862,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 9,
+      "observation_count": 42,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 2
+      "unique_sequences": 7
     },
     {
       "coverage_score": 0.8438000082969666,
@@ -12889,58 +13182,61 @@
       "unique_sequences": 3
     },
     {
-      "coverage_score": 0.8438000082969666,
-      "eligible_observation_count": 78,
+      "coverage_score": 0.9194999933242798,
+      "eligible_observation_count": 94,
       "h3_cell": "8a2830876da7fff",
       "latitude": 37.79676399861372,
       "longitude": -122.43419750681399,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 78,
+      "observation_count": 94,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 11
+      "unique_sequences": 16
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 88,
+      "coverage_score": 0.8913000226020813,
+      "eligible_observation_count": 89,
       "h3_cell": "8a2830876daffff",
       "latitude": 37.79759790073187,
       "longitude": -122.43525050758002,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 88,
+      "observation_count": 89,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 7
+      "unique_sequences": 8
     },
     {
-      "coverage_score": 0.8288000226020813,
-      "eligible_observation_count": 89,
+      "coverage_score": 0.8906999826431274,
+      "eligible_observation_count": 135,
       "h3_cell": "8a2830876db7fff",
       "latitude": 37.797106377406685,
       "longitude": -122.43271239679619,
       "metadata_files": [
         "observations/external-000.parquet"
       ],
-      "observation_count": 89,
+      "observation_count": 135,
       "pixel_policy": "source_locator_only",
       "providers": [
-        "kartaview"
+        "kartaview",
+        "mapillary"
       ],
       "storage": "git_parquet",
       "tier": "tier0_metadata_only",
-      "unique_sequences": 10
+      "unique_sequences": 20
     }
   ],
   "policies": {
@@ -14201,7 +14497,7 @@
   "schema_version": 1,
   "summary": {
     "external_pixel_bytes_committed": 0,
-    "metadata_shard_count": 711,
+    "metadata_shard_count": 718,
     "release_asset_count": 8,
     "release_image_count": 108,
     "release_pixel_bytes": 73235552,

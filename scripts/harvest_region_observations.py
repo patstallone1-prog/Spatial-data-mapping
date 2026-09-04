@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import asdict, fields as dataclass_fields
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -66,6 +67,53 @@ def build_provider(name: str, *, kartaview_step_m: float, workers: int):
     raise ValueError(f"unknown provider {name!r}")
 
 
+#: Observations are appended to a journal this often. A corridor harvest runs for tens of
+#: minutes against a service that can drop a connection at any point, and a run that keeps
+#: everything in memory until the last line turns any interruption into total loss -- which is
+#: exactly what happened twice here before this existed. The journal is JSON Lines because it can
+#: be appended to and flushed; parquet cannot.
+CHECKPOINT_EVERY = 2000
+
+
+def _journal_path(out: Path) -> Path:
+    return out / "observations" / "journal.jsonl"
+
+
+def _write_journal(handle, observations: list[Observation]) -> None:
+    for observation in observations:
+        handle.write(json.dumps(asdict(observation), default=str) + "\n")
+    handle.flush()
+
+
+def read_journal(out: Path) -> list[Observation]:
+    """Whatever a previous run got as far as writing."""
+    path = _journal_path(out)
+    if not path.exists():
+        return []
+    # Datetimes go out through json's ``default=str`` and come back as strings, so they have to
+    # be parsed or every downstream consumer that does date arithmetic fails on a str. Which
+    # fields those are is taken from the dataclass rather than listed here, so a new timestamp
+    # field cannot quietly arrive without being handled.
+    fields = {f.name: f.type for f in dataclass_fields(Observation)}
+    stamps = {name for name, kind in fields.items() if "datetime" in str(kind)}
+
+    def revive(name: str, value):
+        if name in stamps and isinstance(value, str) and value:
+            try:
+                return datetime.fromisoformat(value)
+            except ValueError:
+                return None
+        return value
+
+    rows = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        raw = json.loads(line)
+        rows.append(Observation(**{k: revive(k, v) for k, v in raw.items() if k in fields}))
+    return rows
+
+
 def collect(
     provider_name: str,
     region: Region,
@@ -74,9 +122,11 @@ def collect(
     kartaview_step_m: float,
     workers: int,
     progress,
+    journal=None,
 ) -> tuple[list[SequenceRecord], list[Observation], list[str]]:
     provider = build_provider(provider_name, kartaview_step_m=kartaview_step_m, workers=workers)
     observations: list[Observation] = []
+    unsaved: list[Observation] = []
 
     for observation in provider.iter_region_observations(region, progress=progress):
         # The catalogue stores where a frame lives, not a URL that expires. Provider CDN links
@@ -87,6 +137,14 @@ def collect(
         )
         observation.source_preview_locator = None
         observations.append(mark_eligibility(observation, region, min_megapixels=min_megapixels))
+        if journal is not None:
+            unsaved.append(observations[-1])
+            if len(unsaved) >= CHECKPOINT_EVERY:
+                _write_journal(journal, unsaved)
+                progress(f"{provider_name}: journalled {len(observations)} frames")
+                unsaved = []
+    if journal is not None and unsaved:
+        _write_journal(journal, unsaved)
 
     cache = getattr(provider, "_collection_cache", None)
     if cache is None:
@@ -126,6 +184,14 @@ def main() -> int:
             "minimum interval still holds per connection."
         ),
     )
+    parser.add_argument(
+        "--from-journal",
+        action="store_true",
+        help=(
+            "Skip the crawl and build the catalog from whatever the journal already holds. "
+            "For finishing a harvest that was interrupted, without re-fetching it."
+        ),
+    )
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
@@ -134,21 +200,28 @@ def main() -> int:
             print(f"  {message}", flush=True)
 
     region = get_region(args.region)
+    out = args.out
     providers = args.provider or ["panoramax", "kartaview", "mapillary"]
 
     sequences: list[SequenceRecord] = []
     observations: list[Observation] = []
     errors: list[str] = []
     for provider_name in providers:
+        if args.from_journal:
+            break
         print(f"{provider_name}: sweeping {region.name}", flush=True)
-        ps, po, pe = collect(
-            provider_name,
-            region,
-            min_megapixels=args.min_megapixels,
-            kartaview_step_m=args.kartaview_step_m,
-            workers=args.workers,
-            progress=progress,
-        )
+        journal_path = _journal_path(out)
+        journal_path.parent.mkdir(parents=True, exist_ok=True)
+        with journal_path.open("a") as journal:
+            ps, po, pe = collect(
+                provider_name,
+                region,
+                min_megapixels=args.min_megapixels,
+                kartaview_step_m=args.kartaview_step_m,
+                workers=args.workers,
+                progress=progress,
+                journal=journal,
+            )
         kept = sum(1 for o in po if o.eligible)
         print(
             f"{provider_name}: {len(ps)} sequences, {len(po)} in-region frames, {kept} eligible",
@@ -158,11 +231,18 @@ def main() -> int:
         observations.extend(po)
         errors.extend(pe)
 
+    # Anything a previous run journalled joins the fresh rows before deduplication, so an
+    # interrupted harvest contributes what it did reach rather than being thrown away. The
+    # dedupe is by provider image id, so a frame seen in both passes collapses to one row.
+    recovered = read_journal(out)
+    if recovered:
+        print(f"recovered {len(recovered)} observations from an earlier run's journal", flush=True)
+        observations = recovered + observations
+
     observations = exact_dedupe(observations)
     assign_cells(observations, resolution=args.h3_resolution)
     coverage_rows = build_coverage_rows(observations)
 
-    out = args.out
     write_observations(out / "observations" / "external-000.parquet", observations)
     write_sequences(out / "sequences" / "external.parquet", sequences)
     write_coverage(out / "coverage" / "h3.parquet", coverage_rows)

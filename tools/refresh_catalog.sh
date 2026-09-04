@@ -11,9 +11,10 @@ PY=python3
 
 PANORAMAX=${PANORAMAX_CATALOG:-data/sf_corridor_panoramax_dense}
 KARTAVIEW=${KARTAVIEW_CATALOG:-data/sf_corridor_kartaview_dense}
+MAPILLARY=${MAPILLARY_CATALOG:-data/sf_corridor_mapillary_dense}
 CATALOG=${CATALOG:-data/sf_corridor}
 
-for input in "$PANORAMAX" "$KARTAVIEW"; do
+for input in "$PANORAMAX" "$KARTAVIEW" "$MAPILLARY"; do
   [ -f "$input/observations/external-000.parquet" ] || {
     echo "missing harvest: $input" >&2
     exit 1
@@ -21,7 +22,7 @@ for input in "$PANORAMAX" "$KARTAVIEW"; do
 done
 
 echo "== merging provider catalogues"
-$PY scripts/merge_sf_corridor_catalogs.py "$PANORAMAX" "$KARTAVIEW" --out "$CATALOG" > /dev/null
+$PY scripts/merge_sf_corridor_catalogs.py "$PANORAMAX" "$KARTAVIEW" "$MAPILLARY" --out "$CATALOG" > /dev/null
 
 echo "== auditing"
 $PY scripts/audit_sf_corridor.py "$CATALOG"
@@ -36,4 +37,4 @@ echo "== 3D corridor map"
 $PY scripts/build_sf_corridor_3d.py --catalog "$CATALOG" --reuse-osm
 
 echo "== manifest"
-$PY scripts/write_dataset_manifest.py --catalog "$CATALOG" --input "$PANORAMAX" --input "$KARTAVIEW"
+$PY scripts/write_dataset_manifest.py --catalog "$CATALOG" --input "$PANORAMAX" --input "$KARTAVIEW" --input "$MAPILLARY"

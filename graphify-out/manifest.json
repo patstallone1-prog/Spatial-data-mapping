@@ -732,32 +732,32 @@
     "semantic_hash": ""
   },
   "data/sf_corridor/dataset_manifest.json": {
-    "mtime": 1788480858.9669614,
-    "seen": 1788480861.422285,
-    "ast_hash": "812287a872dd9ac95334a182f215a584",
+    "mtime": 1788490066.88359,
+    "seen": 1788490154.316597,
+    "ast_hash": "c4083b929359d64bb0a03699238260c9",
     "semantic_hash": ""
   },
   "data/sf_corridor/licenses/sources.json": {
-    "mtime": 1788480853.8111072,
-    "seen": 1788480861.422287,
-    "ast_hash": "7549384a14c648ef5a618368c935c7b0",
+    "mtime": 1788490060.2303772,
+    "seen": 1788490154.3165991,
+    "ast_hash": "96cc67659b5ef13f187566e0d8bbe6e4",
     "semantic_hash": ""
   },
   "data/sf_corridor/stats/audit.json": {
-    "mtime": 1788480854.4314876,
-    "seen": 1788480861.422288,
-    "ast_hash": "f0b7c437d3ac754fdbd23820794c8a9e",
+    "mtime": 1788490061.1241763,
+    "seen": 1788490154.3165991,
+    "ast_hash": "54735a7dbedd559da3874b1b57a9da19",
     "semantic_hash": ""
   },
   "data/sf_corridor/stats/summary.json": {
-    "mtime": 1788480853.8106856,
-    "seen": 1788480861.422288,
-    "ast_hash": "255a67557c2d2cc0fcedfca0fb146682",
+    "mtime": 1788490060.230005,
+    "seen": 1788490154.3166,
+    "ast_hash": "425eec52614c8a2a05e8afb6322a1d2b",
     "semantic_hash": ""
   },
   "docs/sw.js": {
-    "mtime": 1788480859.1527941,
-    "seen": 1788480861.4224682,
+    "mtime": 1788490152.3284974,
+    "seen": 1788490154.3167748,
     "ast_hash": "b2176a2a2ac519ed3a04243028a7c20b",
     "semantic_hash": ""
   },
@@ -906,44 +906,44 @@
     "semantic_hash": ""
   },
   "docs/app.html": {
-    "mtime": 1788480859.143093,
-    "seen": 1788480861.424636,
+    "mtime": 1788490152.3189363,
+    "seen": 1788490154.318763,
     "ast_hash": "ff3887fd2616f436a8c97b968caf2cee",
     "semantic_hash": ""
   },
   "docs/index.html": {
-    "mtime": 1788480859.1433108,
-    "seen": 1788480861.424649,
+    "mtime": 1788490152.3191338,
+    "seen": 1788490154.318775,
     "ast_hash": "e3659fee00050a8fc278641902ee4ed5",
     "semantic_hash": ""
   },
   "docs/sf-corridor-3d.html": {
-    "mtime": 1788480858.9180613,
-    "seen": 1788480861.424649,
-    "ast_hash": "d9a57d4c3e70e12e9f20d3b061bb8dba",
+    "mtime": 1788490066.8399107,
+    "seen": 1788490154.3187761,
+    "ast_hash": "580a485b6f653835900a932a32fcf6e9",
     "semantic_hash": ""
   },
   "docs/apple-touch-icon.png": {
-    "mtime": 1788480859.1516476,
-    "seen": 1788480861.4247,
+    "mtime": 1788490152.3273811,
+    "seen": 1788490154.3188229,
     "ast_hash": "c6d5cc8a85f4716e6da004faf7068ccb",
     "semantic_hash": ""
   },
   "docs/icon-192.png": {
-    "mtime": 1788480859.1462579,
-    "seen": 1788480861.424701,
+    "mtime": 1788490152.3218217,
+    "seen": 1788490154.3188229,
     "ast_hash": "3a6e7b985a2fd69f5df0ba4417dfaacc",
     "semantic_hash": ""
   },
   "docs/icon-512.png": {
-    "mtime": 1788480859.1492295,
-    "seen": 1788480861.424701,
+    "mtime": 1788490152.324701,
+    "seen": 1788490154.318824,
     "ast_hash": "c341e2da07dd10cb4336cf4f949498ed",
     "semantic_hash": ""
   },
   "docs/icon-maskable-512.png": {
-    "mtime": 1788480859.1510868,
-    "seen": 1788480861.424702,
+    "mtime": 1788490152.326516,
+    "seen": 1788490154.318824,
     "ast_hash": "63bbe96c1793fd0e46cbba9719bab815",
     "semantic_hash": ""
   },
@@ -990,9 +990,9 @@
     "semantic_hash": ""
   },
   "data/sf_corridor/storage/release_shards.json": {
-    "mtime": 1788480857.9460003,
-    "seen": 1788480861.422289,
-    "ast_hash": "9124e9db37da432b87acb90a045aa5cf",
+    "mtime": 1788490065.6972706,
+    "seen": 1788490154.3166,
+    "ast_hash": "9408591cff612a36937eeb94f1d7e3d1",
     "semantic_hash": ""
   },
   "scripts/build_storage_manifest.py": {
@@ -1044,15 +1044,15 @@
     "semantic_hash": ""
   },
   "data/sf_corridor/depth/runs/sf-corridor-depth-seed.json": {
-    "mtime": 1788480856.636837,
-    "seen": 1788480861.422286,
-    "ast_hash": "74b12e643ac5f439318c2f885b9a3408",
+    "mtime": 1788490063.9233742,
+    "seen": 1788490154.316598,
+    "ast_hash": "80020254ab0dad5ffe4dd6f1576b415f",
     "semantic_hash": ""
   },
   "data/sf_corridor/depth/stats/summary.json": {
-    "mtime": 1788480856.636967,
-    "seen": 1788480861.422287,
-    "ast_hash": "74b12e643ac5f439318c2f885b9a3408",
+    "mtime": 1788490063.9234807,
+    "seen": 1788490154.316598,
+    "ast_hash": "80020254ab0dad5ffe4dd6f1576b415f",
     "semantic_hash": ""
   },
   "scripts/build_cv_depth_store.py": {
@@ -1128,9 +1128,9 @@
     "semantic_hash": ""
   },
   "scripts/harvest_region_observations.py": {
-    "mtime": 1788456610.4495356,
-    "seen": 1788458303.9239109,
-    "ast_hash": "3c8108f3ac1d309b1b70a62addc8b202",
+    "mtime": 1788490034.7774034,
+    "seen": 1788490154.316843,
+    "ast_hash": "5a7c5a5adb6eeb065b01131e3338b439",
     "semantic_hash": ""
   },
   "scripts/write_dataset_manifest.py": {
@@ -1140,9 +1140,9 @@
     "semantic_hash": ""
   },
   "tools/refresh_catalog.sh": {
-    "mtime": 1788389796.9202836,
-    "seen": 1788390531.954931,
-    "ast_hash": "d6e488496bb964c157694f1e6382fb51",
+    "mtime": 1788490055.5252976,
+    "seen": 1788490154.318493,
+    "ast_hash": "2a0e2cfb1b6ecfecbfb670149245fe24",
     "semantic_hash": ""
   },
   "docs/16-dense-observation-sweep.md": {
@@ -1200,9 +1200,9 @@
     "semantic_hash": ""
   },
   "src/smc/imagery/mapillary.py": {
-    "mtime": 1788456649.3346596,
-    "seen": 1788458303.9245539,
-    "ast_hash": "4ff3924d356e614ca4e45d82b4574c57",
+    "mtime": 1788483458.620509,
+    "seen": 1788490154.3174899,
+    "ast_hash": "1411a784b4297d8fba0b03257c6c7a93",
     "semantic_hash": ""
   },
   "tests/test_mapillary_provider.py": {
@@ -1239,6 +1239,36 @@
     "mtime": 1788480023.0568864,
     "seen": 1788480861.424432,
     "ast_hash": "401e5309ca5559056228e3321acf1c48",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_mapillary_dense/dataset_manifest.json": {
+    "mtime": 1788490036.8370428,
+    "seen": 1788490154.316681,
+    "ast_hash": "abb066086043d113361770736b6cf13a",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_mapillary_dense/licenses/sources.json": {
+    "mtime": 1788490036.8369071,
+    "seen": 1788490154.316681,
+    "ast_hash": "fff646ced98566a67fafca2b3e957be0",
+    "semantic_hash": ""
+  },
+  "data/sf_corridor_mapillary_dense/stats/summary.json": {
+    "mtime": 1788490036.8332016,
+    "seen": 1788490154.316682,
+    "ast_hash": "13d7e6309dc38f6b69e786adf62e1892",
+    "semantic_hash": ""
+  },
+  "scripts/extract_waymo_curbs.py": {
+    "mtime": 1788489908.4971871,
+    "seen": 1788490154.316842,
+    "ast_hash": "842745c571e76d74ac95921bc659c6e2",
+    "semantic_hash": ""
+  },
+  "src/smc/lidar/waymo_points.py": {
+    "mtime": 1788487547.29205,
+    "seen": 1788490154.3177521,
+    "ast_hash": "deb30e1986e84bab5a67e1b868ad5052",
     "semantic_hash": ""
   }
 }

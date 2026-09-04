@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-04T00:14:13.787810+00:00",
+  "generated_at": "2026-09-04T02:47:40.194264+00:00",
   "region": {
     "name": "sf-corridor",
     "description": "Marina, Cow Hollow, Russian Hill, North Beach, Chinatown, Financial District",
@@ -12,26 +12,27 @@
     "area_sq_mi": 4.92
   },
   "sequences": 542,
-  "observations": 63356,
-  "eligible_observations": 63347,
-  "coverage_cells": 711,
+  "observations": 92834,
+  "eligible_observations": 92793,
+  "coverage_cells": 718,
   "providers": {
     "panoramax": 1379,
-    "kartaview": 61977
+    "kartaview": 61977,
+    "mapillary": 29478
   },
   "resolution_tiers": {
-    "A": 3005,
-    "B": 19587,
-    "reject": 9,
-    "C": 40755
+    "A": 6693,
+    "B": 30693,
+    "reject": 41,
+    "C": 55407
   },
   "projection_types": {
-    "spherical": 1215,
-    "unknown": 164,
-    "perspective": 61977
+    "spherical": 14053,
+    "unknown": 176,
+    "perspective": 78605
   },
   "licenses": {
-    "CC-BY-SA-4.0": 63356
+    "CC-BY-SA-4.0": 92834
   },
   "top_coverage_cells": [
     {
@@ -69,6 +70,74 @@
       "coverage_score": 0.9415
     },
     {
+      "coverage_cell": "8a283082bd57fff",
+      "latitude": 37.78846647595928,
+      "longitude": -122.41413636493864,
+      "total_observations": 229,
+      "eligible_observations": 229,
+      "unique_sequences": 28,
+      "unique_providers": 2,
+      "newest_capture": "2025-08-22 09:12:41+00:00",
+      "oldest_capture": "2015-11-16 11:49:04+00:00",
+      "median_source_megapixels": 7.990272045135498,
+      "perspective_image_count": 201,
+      "spherical_image_count": 28,
+      "heading_diversity": 1.0,
+      "temporal_diversity": 1.0,
+      "coverage_score": 0.9337
+    },
+    {
+      "coverage_cell": "8a283082b857fff",
+      "latitude": 37.78925795709378,
+      "longitude": -122.42472093741554,
+      "total_observations": 230,
+      "eligible_observations": 230,
+      "unique_sequences": 39,
+      "unique_providers": 2,
+      "newest_capture": "2025-08-21 07:01:35.144000+00:00",
+      "oldest_capture": "2015-02-28 18:52:22+00:00",
+      "median_source_megapixels": 7.990272045135498,
+      "perspective_image_count": 192,
+      "spherical_image_count": 38,
+      "heading_diversity": 1.0,
+      "temporal_diversity": 1.0,
+      "coverage_score": 0.9268
+    },
+    {
+      "coverage_cell": "8a283082bd07fff",
+      "latitude": 37.786797980036084,
+      "longitude": -122.41203060933192,
+      "total_observations": 645,
+      "eligible_observations": 645,
+      "unique_sequences": 58,
+      "unique_providers": 2,
+      "newest_capture": "2025-09-13 04:55:03.550000+00:00",
+      "oldest_capture": "2015-08-16 08:13:06+00:00",
+      "median_source_megapixels": 7.990272045135498,
+      "perspective_image_count": 529,
+      "spherical_image_count": 116,
+      "heading_diversity": 1.0,
+      "temporal_diversity": 1.0,
+      "coverage_score": 0.9244
+    },
+    {
+      "coverage_cell": "8a28308294effff",
+      "latitude": 37.78803809311944,
+      "longitude": -122.43468408581374,
+      "total_observations": 112,
+      "eligible_observations": 112,
+      "unique_sequences": 18,
+      "unique_providers": 2,
+      "newest_capture": "2025-08-21 07:03:37.001000+00:00",
+      "oldest_capture": "2016-04-13 17:52:53+00:00",
+      "median_source_megapixels": 7.990272045135498,
+      "perspective_image_count": 111,
+      "spherical_image_count": 1,
+      "heading_diversity": 0.875,
+      "temporal_diversity": 0.75,
+      "coverage_score": 0.9243
+    },
+    {
       "coverage_cell": "8a283082bc0ffff",
       "latitude": 37.79081919198493,
       "longitude": -122.41327164132557,
@@ -103,38 +172,21 @@
       "coverage_score": 0.9207
     },
     {
-      "coverage_cell": "8a283082b817fff",
-      "latitude": 37.787931949095835,
-      "longitude": -122.42113001164137,
-      "total_observations": 190,
-      "eligible_observations": 190,
-      "unique_sequences": 32,
+      "coverage_cell": "8a2830876da7fff",
+      "latitude": 37.79676399861372,
+      "longitude": -122.43419750681399,
+      "total_observations": 94,
+      "eligible_observations": 94,
+      "unique_sequences": 16,
       "unique_providers": 2,
-      "newest_capture": "2026-07-17 21:58:36+00:00",
-      "oldest_capture": "2016-03-19 23:50:47+00:00",
-      "median_source_megapixels": 5.038847923278809,
-      "perspective_image_count": 189,
-      "spherical_image_count": 1,
-      "heading_diversity": 1.0,
+      "newest_capture": "2022-06-08 18:51:24.368000+00:00",
+      "oldest_capture": "2015-08-08 14:07:02+00:00",
+      "median_source_megapixels": 7.990272045135498,
+      "perspective_image_count": 83,
+      "spherical_image_count": 11,
+      "heading_diversity": 0.875,
       "temporal_diversity": 1.0,
-      "coverage_score": 0.9179
-    },
-    {
-      "coverage_cell": "8a283082b8e7fff",
-      "latitude": 37.7896002114396,
-      "longitude": -122.42323581232151,
-      "total_observations": 780,
-      "eligible_observations": 780,
-      "unique_sequences": 34,
-      "unique_providers": 2,
-      "newest_capture": "2026-07-18 02:37:42+00:00",
-      "oldest_capture": "2016-04-13 17:50:39+00:00",
-      "median_source_megapixels": 5.038847923278809,
-      "perspective_image_count": 772,
-      "spherical_image_count": 8,
-      "heading_diversity": 1.0,
-      "temporal_diversity": 1.0,
-      "coverage_score": 0.9171
+      "coverage_score": 0.9195
     },
     {
       "coverage_cell": "8a283082b897fff",
@@ -152,57 +204,6 @@
       "heading_diversity": 0.875,
       "temporal_diversity": 0.75,
       "coverage_score": 0.9167
-    },
-    {
-      "coverage_cell": "8a283082b42ffff",
-      "latitude": 37.7978771213468,
-      "longitude": -122.41067720650459,
-      "total_observations": 187,
-      "eligible_observations": 187,
-      "unique_sequences": 24,
-      "unique_providers": 2,
-      "newest_capture": "2026-07-17 21:59:10+00:00",
-      "oldest_capture": "2016-05-03 20:09:59+00:00",
-      "median_source_megapixels": 5.038847923278809,
-      "perspective_image_count": 183,
-      "spherical_image_count": 4,
-      "heading_diversity": 1.0,
-      "temporal_diversity": 1.0,
-      "coverage_score": 0.9154
-    },
-    {
-      "coverage_cell": "8a283082aa87fff",
-      "latitude": 37.78600523162777,
-      "longitude": -122.4014455152503,
-      "total_observations": 186,
-      "eligible_observations": 186,
-      "unique_sequences": 26,
-      "unique_providers": 2,
-      "newest_capture": "2026-07-17 02:40:30+00:00",
-      "oldest_capture": "2016-04-13 18:54:51+00:00",
-      "median_source_megapixels": 5.038847923278809,
-      "perspective_image_count": 182,
-      "spherical_image_count": 4,
-      "heading_diversity": 1.0,
-      "temporal_diversity": 1.0,
-      "coverage_score": 0.9153
-    },
-    {
-      "coverage_cell": "8a283082b80ffff",
-      "latitude": 37.78842384999632,
-      "longitude": -122.4236680338814,
-      "total_observations": 434,
-      "eligible_observations": 434,
-      "unique_sequences": 44,
-      "unique_providers": 2,
-      "newest_capture": "2026-07-18 02:37:26+00:00",
-      "oldest_capture": "2016-04-20 20:38:06+00:00",
-      "median_source_megapixels": 5.038847923278809,
-      "perspective_image_count": 417,
-      "spherical_image_count": 17,
-      "heading_diversity": 1.0,
-      "temporal_diversity": 1.0,
-      "coverage_score": 0.9125
     }
   ],
   "errors": [],

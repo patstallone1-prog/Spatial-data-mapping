@@ -7,6 +7,13 @@
     "attribution": "\u00a9 KartaView contributors, CC BY-SA 4.0"
   },
   {
+    "provider": "mapillary",
+    "provider_instance": "mapillary.com",
+    "license_id": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attribution": "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+  },
+  {
     "provider": "panoramax",
     "provider_instance": "api.panoramax.xyz",
     "license_id": "CC-BY-SA-4.0",
