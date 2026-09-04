@@ -201,3 +201,65 @@ planner in `smc.storage.release_shards` already exists for that. It is not this 
 The journal records every footway attempted, including those where no kerb resolved. That matters
 for the same reason the rest of this does: a footway missing from the measured set because the
 sensor could not see its kerb has to be distinguishable from one nobody has looked at yet.
+
+## Waymo, via the mirror
+
+The operator directed that Waymo be taken from the public Hugging Face mirror rather than from
+Waymo's own bucket. That decision and its licence consequences are recorded separately, in
+`data/waymo_sf/PROVENANCE.md`, because it is the kind of thing that should leave a record rather
+than be reconstructed later from a download log. The short version: it changes reachability, not
+rights, and the inherited non-commercial restriction on any model trained from this data applies
+whichever route the bytes took.
+
+The mirror is v1.4.3 — the TFRecord release, not the v2 Parquet one the earlier code targeted —
+so the reader was rewritten. It needs neither TensorFlow nor the `waymo-open-dataset` package:
+
+- A TFRecord is an 8-byte length, a CRC, the payload, another CRC. Records can be sliced out of
+  an HTTP range request with no reader library.
+- The `.proto` files are Apache-2.0 and are fetched and compiled on demand by
+  `scripts/build_waymo_protos.py` into gitignored `build/`. Generated code is a build artefact;
+  vendoring it invites the compiled and source copies to drift.
+- `Frame.context` is field 1, so it lands at the front of the serialised message. A segment's
+  location reads out of a **64 KB prefix** rather than the ~5 MB first record or the ~1 GB file.
+
+That last point is what made the survey affordable. Scanning all 2,030 segments for location cost
+about 130 MB instead of two terabytes:
+
+```
+location_other  947
+location_sf     651
+location_phx    431
+```
+
+**651 San Francisco segments**, written to `data/waymo_sf/sf_segments.json`.
+
+Decoding is proven end to end on an SF segment — TOP lidar, 64 beams × 2,650 azimuths, 151,239
+returns of 169,600, ranges 2.4–75.0 m, sensor 2.18 m above the vehicle origin. What is *not* yet
+built is the range-image-to-point-cloud conversion and the curb extraction on top of it. That is
+stated rather than implied, because the useful thing about this whole exercise is that its
+numbers came off a sensor and are labelled as such.
+
+One caveat carries over from the v2 analysis and is worth repeating: **poses are segment-local**.
+Waymo adds no rows to the corridor map. Its value is that it sees a kerb side-on from 2.18 m
+rather than from an aircraft, which is the right geometry for checking whether 118 mm measured
+from above is right.
+
+Note also that 3D semantic labels — the `TYPE_CURB` class that makes this attractive — exist only
+on a subset of frames, not on every frame of every segment. The first SF frame sampled has none.
+Curb extraction will therefore be geometric on most frames, with the labelled subset serving as
+ground truth for it.
+
+## Mapillary is still waiting on a token
+
+The provider is written, tested and wired into the harvester, but it has not run. `.env.local`
+carries `# MAPILLARY_ACCESS_TOKEN=` — commented out and empty. Direct tests of the alternatives:
+
+```
+graph.mapillary.com/images   500  "Invalid OAuth 2.0 Access Token"
+tiles.mapillary.com          403
+```
+
+Mapillary's 41 public GitHub repositories are software — the SDK, `mapillary_tools`,
+`mapillary-js`, `exif-js` — and their own `api-demo` ships no key. There is no keyless route to
+the imagery. The token itself is self-serve and takes about a minute; it is not an approval
+process like Waymo's, and that distinction was worth drawing more carefully than it first was.

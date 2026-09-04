@@ -4,26 +4,26 @@
     "needs_depth": 63347
   },
   "exact_curb_heights_available": true,
-  "generated_at": "2026-09-03T21:02:06.421681+00:00",
-  "inferred_or_seed_surface_count": 24569,
-  "measured_curb_height_count": 2835,
-  "measured_surface_count": 5670,
+  "generated_at": "2026-09-04T00:14:15.735722+00:00",
+  "inferred_or_seed_surface_count": 23979,
+  "measured_curb_height_count": 4146,
+  "measured_surface_count": 8292,
   "note": "Storage is ready for metric CV/depth outputs. Current curb/sidewalk rows are simulation seeds or depth backlog, not exact measured curb heights.",
   "observations_total": 63356,
-  "requires_cv_depth_count": 12121,
+  "requires_cv_depth_count": 11531,
   "run_id": "sf-corridor-depth-seed",
   "schema_version": 1,
-  "simulation_ready_surface_count": 30239,
+  "simulation_ready_surface_count": 32271,
   "surface_provenance": {
-    "inferred": 19279,
-    "measured": 5670,
+    "inferred": 18689,
+    "measured": 8292,
     "needs_depth": 5290
   },
-  "surface_rows": 30239,
+  "surface_rows": 32271,
   "surface_types": {
     "crossing_surface": 2517,
-    "curb_edge": 6132,
+    "curb_edge": 6853,
     "facade_surface": 15982,
-    "sidewalk_surface": 5608
+    "sidewalk_surface": 6919
   }
 }
