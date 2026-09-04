@@ -61,12 +61,20 @@ FIELDS = (
     "quality_score,creator,exif_orientation,thumb_original_url"
 )
 
-#: The API caps a page well below this but accepts it, and returns a cursor when there is more.
-PAGE_LIMIT = 2000
+#: Measured, not guessed. At 2000 the API answers a corridor-sized box with
+#: ``"Please reduce the amount of data you're asking for"`` -- an HTTP 500 that is really a
+#: quota on the response, not a fault. At 1000 it answers.
+PAGE_LIMIT = 1000
 
-#: A box returning a full page is assumed to be truncated and is split. Six levels is a 64-fold
-#: reduction per axis, which takes a city corridor down to roughly a block.
-MAX_SUBDIVISION_DEPTH = 6
+#: A box returning a full page is assumed to be truncated and is split. Nine levels takes a
+#: corridor down to a few metres, which is far more than any real coverage needs; the limit is
+#: there so a pathological box terminates rather than recursing forever.
+MAX_SUBDIVISION_DEPTH = 9
+
+#: Boxes are split this many times before the first request. The corridor is refused outright at
+#: full size and at a half and a quarter of it, so starting whole means three guaranteed failures
+#: and three rounds of backoff before any data arrives.
+INITIAL_SPLITS = 3
 
 
 class MapillaryCredentialMissing(RuntimeError):
@@ -156,6 +164,31 @@ class MapillaryProvider:
 
     # -- search -------------------------------------------------------------------------------
 
+    @staticmethod
+    def _grid(bbox: BBox, splits: int) -> list[BBox]:
+        """The box halved on both axes ``splits`` times."""
+        boxes = [bbox]
+        for _ in range(splits):
+            out: list[BBox] = []
+            for box in boxes:
+                mid_lat = (box.south + box.north) / 2.0
+                mid_lon = (box.west + box.east) / 2.0
+                out.extend(
+                    (
+                        BBox(box.south, box.west, mid_lat, mid_lon),
+                        BBox(box.south, mid_lon, mid_lat, box.east),
+                        BBox(mid_lat, box.west, box.north, mid_lon),
+                        BBox(mid_lat, mid_lon, box.north, box.east),
+                    )
+                )
+            boxes = out
+        return boxes
+
+    def _region_images(self, bbox: BBox) -> Iterator[dict]:
+        """Every image in a region, starting from boxes small enough to be answered."""
+        for box in self._grid(bbox, INITIAL_SPLITS):
+            yield from self._images(box, INITIAL_SPLITS)
+
     def _images(self, bbox: BBox, depth: int = 0) -> Iterator[dict]:
         """Every image in a box, subdividing when a box comes back full.
 
@@ -176,10 +209,18 @@ class MapillaryProvider:
             )
         )
         seen_here = 0
+        refused = False
         while url:
             try:
                 payload = self._http.get_json(url)
             except (TransientError, PermanentError) as exc:
+                # A refusal is usually the response-size quota rather than a real failure, and
+                # the remedy for that is a smaller box -- so it falls through to the split below
+                # instead of abandoning the area. Recording it and giving up here was how an
+                # earlier version reported a densely-covered downtown as empty.
+                if depth < MAX_SUBDIVISION_DEPTH:
+                    refused = True
+                    break
                 self.errors.append(f"images {bbox.as_stac()}: {exc}")
                 return
             data = payload.get("data") or []
@@ -188,12 +229,18 @@ class MapillaryProvider:
             following = ((payload.get("paging") or {}).get("next")) or None
             url = _s(following)
 
-        if seen_here < self._page_limit or depth >= MAX_SUBDIVISION_DEPTH:
-            if seen_here >= self._page_limit:
-                self.errors.append(
-                    f"images {bbox.as_stac()}: still full at maximum subdivision; "
-                    f"coverage here may be incomplete"
-                )
+        if not refused:
+            # A completed cursor walk has already returned every frame in this box -- that is
+            # what the cursor is for. Splitting anyway, on the theory that a large result means a
+            # truncated one, re-requests the same area four times over at every level and turns a
+            # dense downtown box into thousands of redundant requests. Only a refusal, where the
+            # server declined to answer at all, means anything is still unseen.
+            return
+        if depth >= MAX_SUBDIVISION_DEPTH:
+            self.errors.append(
+                f"images {bbox.as_stac()}: refused even at maximum subdivision; "
+                f"coverage here may be incomplete"
+            )
             return
 
         mid_lat = (bbox.south + bbox.north) / 2.0
@@ -214,7 +261,7 @@ class MapillaryProvider:
         self.require_credential()
         seen: set[str] = set()
         kept = 0
-        for row in self._images(region.bbox):
+        for row in self._region_images(region.bbox):
             image_id = _s(row.get("id"))
             if not image_id or image_id in seen:
                 continue
