@@ -9,11 +9,18 @@ ABSOLUTE_MIN_MEGAPIXELS = 2.0
 PREFERRED_MEGAPIXELS = 6.0
 META_CLASS_MEGAPIXELS = 12.0
 
-#: What the Meta glasses hand an application: 1440x1080, about 1.56 MP. It is the floor for a
-#: reference frame, because an archive image smaller than this cannot be reduced to match what a
-#: wearer's camera delivers -- it is already smaller, and upscaling it would invent detail the
-#: photograph never held.
+#: What the Meta glasses hand an application: 1440x1080, about 1.56 MP.
 META_DELIVERY_MEGAPIXELS = 1440 * 1080 / 1e6
+
+#: The working floor, deliberately set a tenth below what the glasses deliver.
+#:
+#: The strict reading is that an archive image smaller than the glasses' own frame cannot be
+#: reduced to match it, so it can never serve as a reference. That is true at the margin and
+#: false in practice: a frame at 1.4 MP against a 1.56 MP query is a 5% linear shortfall, which
+#: is well inside the scale range feature matching already tolerates, and rejecting it costs
+#: real coverage for a difference no downstream step can detect. Coverage is the scarcer
+#: resource here -- 96% of lidar-measured kerbs still have no photograph beside them.
+INGEST_MIN_MEGAPIXELS = META_DELIVERY_MEGAPIXELS * 0.9
 
 
 def resolution_tier(megapixels: float | None) -> str:

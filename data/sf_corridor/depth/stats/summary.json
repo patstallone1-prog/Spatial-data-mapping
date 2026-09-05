@@ -1,15 +1,15 @@
 {
-  "depth_observation_rows": 92793,
+  "depth_observation_rows": 170972,
   "depth_status": {
-    "needs_depth": 92793
+    "needs_depth": 170972
   },
   "exact_curb_heights_available": true,
-  "generated_at": "2026-09-04T02:47:42.682816+00:00",
+  "generated_at": "2026-09-05T15:48:32.396919+00:00",
   "inferred_or_seed_surface_count": 22398,
   "measured_curb_height_count": 9376,
   "measured_surface_count": 18752,
   "note": "Storage is ready for metric CV/depth outputs. Current curb/sidewalk rows are simulation seeds or depth backlog, not exact measured curb heights.",
-  "observations_total": 92834,
+  "observations_total": 171027,
   "requires_cv_depth_count": 9950,
   "run_id": "sf-corridor-depth-seed",
   "schema_version": 1,

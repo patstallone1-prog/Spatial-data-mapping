@@ -18,3 +18,10 @@ data/captures/*/raw/
 build/release_assets/
 graphify-out/20*/
 graphify-out/cache/ast/
+
+# Harvest working files. The journal is a crash-recovery log written every 250 frames so an
+# interrupted crawl resumes rather than starting again; the parquet beside it is the actual
+# catalogue. Mapillary's reached 171 MB, over GitHub's file limit, and versioning a recovery
+# log is not what it is for.
+**/observations/journal.jsonl
+**/observations/boxes_done.txt

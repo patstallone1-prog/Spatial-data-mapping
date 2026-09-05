@@ -40,10 +40,15 @@ from smc.imagery.catalog import (  # noqa: E402
     write_sequences,
 )
 from smc.imagery.coverage import assign_cells, build_coverage_rows  # noqa: E402
-from smc.imagery.filtering import META_DELIVERY_MEGAPIXELS, exact_dedupe, mark_eligibility  # noqa: E402
+from smc.imagery.filtering import (  # noqa: E402
+    INGEST_MIN_MEGAPIXELS,
+    exact_dedupe,
+    mark_eligibility,
+)
 from smc.imagery.http import HttpClient  # noqa: E402
 from smc.imagery.kartaview import KartaViewProvider  # noqa: E402
 from smc.imagery.mapillary import MapillaryProvider  # noqa: E402
+from smc.imagery.pandaset import PandaSetProvider  # noqa: E402
 from smc.imagery.panoramax import PanoramaxProvider  # noqa: E402
 from smc.imagery.region import Region, get_region  # noqa: E402
 from smc.imagery.schema import Observation, SequenceRecord  # noqa: E402
@@ -54,6 +59,10 @@ def build_provider(name: str, *, kartaview_step_m: float, workers: int):
         # Generous timeout: a search tile at the top of the subdivision returns thousands of
         # whole STAC items, and cutting it short is what forces the needless subdividing below.
         return PanoramaxProvider(client=HttpClient(timeout_s=60, max_attempts=3))
+    if name == "pandaset":
+        # Not a service: one 44.5 GB archive read in place over range requests, so there is no
+        # rate to limit and no client to configure.
+        return PandaSetProvider()
     if name == "mapillary":
         # Larger pages than the others because a Mapillary page is a cursor step rather than a
         # box split, so a bigger page means fewer round trips and no reconciliation.
@@ -67,16 +76,20 @@ def build_provider(name: str, *, kartaview_step_m: float, workers: int):
     raise ValueError(f"unknown provider {name!r}")
 
 
-#: Observations are appended to a journal this often. A corridor harvest runs for tens of
-#: minutes against a service that can drop a connection at any point, and a run that keeps
-#: everything in memory until the last line turns any interruption into total loss -- which is
-#: exactly what happened twice here before this existed. The journal is JSON Lines because it can
-#: be appended to and flushed; parquet cannot.
-CHECKPOINT_EVERY = 2000
+#: Observations are appended to a journal this often. A corridor harvest runs for hours against
+#: a service that throttles and drops connections, and a run holding everything in memory until
+#: the last line turns any interruption into total loss -- which happened three times here before
+#: this existed. Small batches because the cost of a flush is nothing and the cost of losing one
+#: is an hour. JSON Lines because it can be appended and flushed; parquet cannot.
+CHECKPOINT_EVERY = 250
 
 
 def _journal_path(out: Path) -> Path:
     return out / "observations" / "journal.jsonl"
+
+
+def _boxes_path(out: Path) -> Path:
+    return out / "observations" / "boxes_done.txt"
 
 
 def _write_journal(handle, observations: list[Observation]) -> None:
@@ -123,8 +136,20 @@ def collect(
     workers: int,
     progress,
     journal=None,
+    boxes_done: Path | None = None,
 ) -> tuple[list[SequenceRecord], list[Observation], list[str]]:
     provider = build_provider(provider_name, kartaview_step_m=kartaview_step_m, workers=workers)
+    if boxes_done is not None and hasattr(provider, "completed_boxes"):
+        provider.completed_boxes = set(boxes_done.read_text().splitlines()) if boxes_done.exists() else set()
+        handle = boxes_done.open("a")
+
+        def remember(key: str) -> None:
+            handle.write(key + "\n")
+            handle.flush()
+
+        provider.on_box_done = remember
+        if provider.completed_boxes:
+            progress(f"{provider_name}: skipping {len(provider.completed_boxes)} boxes done earlier")
     observations: list[Observation] = []
     unsaved: list[Observation] = []
 
@@ -146,9 +171,15 @@ def collect(
     if journal is not None and unsaved:
         _write_journal(journal, unsaved)
 
-    cache = getattr(provider, "_collection_cache", None)
-    if cache is None:
-        cache = getattr(provider, "_sequence_cache", {})
+    # Each provider names its sequence cache differently. Probing a fixed pair of names meant
+    # PandaSet's sequences were silently reported as zero -- the observations were all there, but
+    # the summary said the catalogue had no sequences at all.
+    cache: dict = {}
+    for attribute in ("_collection_cache", "_sequence_cache", "_sequences"):
+        found = getattr(provider, attribute, None)
+        if found:
+            cache = found
+            break
     sequences = [record for record in cache.values() if record is not None]
     return sequences, observations, list(getattr(provider, "errors", []))
 
@@ -157,16 +188,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", default="sf-corridor")
     parser.add_argument("--out", type=Path, default=Path("data/sf_corridor_dense"))
-    parser.add_argument("--provider", action="append", choices=("panoramax", "kartaview", "mapillary"))
+    parser.add_argument("--provider", action="append", choices=("panoramax", "kartaview", "mapillary", "pandaset"))
     parser.add_argument("--h3-resolution", type=int, default=10)
     parser.add_argument(
         "--min-megapixels",
         type=float,
-        default=META_DELIVERY_MEGAPIXELS,
+        default=INGEST_MIN_MEGAPIXELS,
         help=(
-            "Reject observations below this source resolution. The default is what the Meta "
-            "glasses themselves deliver, 1440x1080; anything smaller cannot be reduced to match "
-            "a wearer's frame because it is already smaller."
+            "Reject observations below this source resolution, in megapixels. The default sits "
+            "a tenth below the glasses' own 1440x1080 delivery: a 5% linear shortfall is inside "
+            "what feature matching tolerates, and coverage is scarcer than pixels here."
         ),
     )
     parser.add_argument(
@@ -221,6 +252,7 @@ def main() -> int:
                 workers=args.workers,
                 progress=progress,
                 journal=journal,
+                boxes_done=_boxes_path(out),
             )
         kept = sum(1 for o in po if o.eligible)
         print(

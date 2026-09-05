@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from smc.imagery.catalog import write_coverage, write_json, write_observations, write_sequences
 from smc.imagery.coverage import assign_cells, build_coverage_rows
-from smc.imagery.filtering import exact_dedupe
+from smc.imagery.filtering import INGEST_MIN_MEGAPIXELS, exact_dedupe, mark_eligibility
 from smc.imagery.region import get_region
 from smc.imagery.schema import Observation, SequenceRecord
 
@@ -113,6 +113,8 @@ def main() -> int:
     parser.add_argument("--region", default="sf-corridor")
     parser.add_argument("--out", type=Path, default=Path("data/sf_corridor"))
     parser.add_argument("--h3-resolution", type=int, default=10)
+    parser.add_argument("--min-megapixels", type=float, default=INGEST_MIN_MEGAPIXELS,
+                        help="Resolution floor applied uniformly to every provider at merge time.")
     args = parser.parse_args()
 
     region = get_region(args.region)
@@ -145,6 +147,13 @@ def main() -> int:
                 row.get("attribution"),
             )
             source_rows[key] = row
+
+    # Eligibility is re-decided here rather than inherited from whenever each provider was
+    # harvested. The floor is a policy about the catalogue as a whole, and a catalogue whose rows
+    # were judged against different thresholds on different days cannot be reasoned about --
+    # lowering the floor would silently apply to whatever was crawled next and to nothing else.
+    for observation in observations:
+        mark_eligibility(observation, region, min_megapixels=args.min_megapixels)
 
     observations = exact_dedupe(observations)
     assign_cells(observations, resolution=args.h3_resolution)

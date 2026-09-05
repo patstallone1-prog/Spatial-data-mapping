@@ -1,22 +1,24 @@
 {
   "title": "SF street-imagery dense metadata catalog",
-  "generated_at": "2026-09-04T02:47:46.883386+00:00",
+  "generated_at": "2026-09-05T15:48:44.123822+00:00",
   "region": "sf-corridor",
   "storage_policy": "metadata in Git; owned capture pixels packed into GitHub Release assets; no raw provider imagery",
   "cv_depth_policy": "metric depth, segmentation, point-cloud artifacts are indexed separately from simulation surfaces; measured curb heights require metric-depth promotion",
   "inputs": [
     "data/sf_corridor_panoramax_dense",
     "data/sf_corridor_kartaview_dense",
-    "data/sf_corridor_mapillary_dense"
+    "data/sf_corridor_mapillary_dense",
+    "data/sf_corridor_pandaset"
   ],
-  "observations": 92834,
-  "eligible_observations": 92793,
+  "observations": 171027,
+  "eligible_observations": 170972,
   "sequences": 542,
-  "coverage_cells": 718,
+  "coverage_cells": 721,
   "providers": {
     "panoramax": 1379,
     "kartaview": 61977,
-    "mapillary": 29478
+    "mapillary": 92389,
+    "pandaset": 15282
   },
   "minimum_megapixels": null,
   "files": [

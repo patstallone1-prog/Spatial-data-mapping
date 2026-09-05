@@ -1,0 +1,19 @@
+{
+  "name": "Kerbside dense street-imagery metadata sweep",
+  "generated_at": "2026-09-05T15:39:03.140871+00:00",
+  "region": "sf-corridor",
+  "providers": [
+    "pandaset"
+  ],
+  "discovery": "place-shaped: every frame the providers report inside the box",
+  "minimum_megapixels": 1.39968,
+  "normalization": "meta-pixel-budget, applied only during ephemeral pixel fetch",
+  "source_imagery_committed": false,
+  "files": [
+    "observations/external-000.parquet",
+    "sequences/external.parquet",
+    "coverage/h3.parquet",
+    "licenses/sources.json",
+    "stats/summary.json"
+  ]
+}

@@ -150,6 +150,9 @@ class MapillaryProvider:
         self._token = token or os.environ.get(TOKEN_ENV) or ""
         self._sequences: dict[str, SequenceRecord] = {}
         self.errors: list[str] = []
+        #: Boxes a previous run finished, and a hook to record each one as it completes.
+        self.completed_boxes: set[str] = set()
+        self.on_box_done: Callable[[str], None] | None = None
 
     @property
     def has_credential(self) -> bool:
@@ -185,9 +188,21 @@ class MapillaryProvider:
         return boxes
 
     def _region_images(self, bbox: BBox) -> Iterator[dict]:
-        """Every image in a region, starting from boxes small enough to be answered."""
-        for box in self._grid(bbox, INITIAL_SPLITS):
+        """Every image in a region, starting from boxes small enough to be answered.
+
+        Boxes are reported as they finish so a caller can record them. Without that, a run
+        interrupted after two hours restarts at the first box and re-crawls everything it already
+        had -- and against a service that throttles, re-crawling is not merely wasteful, it is
+        the thing most likely to get the resumed run throttled in turn.
+        """
+        for index, box in enumerate(self._grid(bbox, INITIAL_SPLITS)):
+            key = f"{index}:{box.as_stac()}"
+            if key in self.completed_boxes:
+                continue
             yield from self._images(box, INITIAL_SPLITS)
+            self.completed_boxes.add(key)
+            if self.on_box_done is not None:
+                self.on_box_done(key)
 
     def _images(self, bbox: BBox, depth: int = 0) -> Iterator[dict]:
         """Every image in a box, subdividing when a box comes back full.
