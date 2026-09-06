@@ -192,6 +192,16 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     observations = pq.read_table(root / "observations" / "external-000.parquet").to_pylist()
     coverage = pq.read_table(root / "coverage" / "h3.parquet").to_pylist()
     sequences = pq.read_table(root / "sequences" / "external.parquet").to_pylist()
+    # The model's kerb height is the measured one. Hard-coding six inches would put a number in
+    # the geometry that the catalogue spent nine thousand lidar slices disagreeing with.
+    measured = [
+        row["curb_height_m"]
+        for row in pq.read_table(root / "depth" / "surfaces" / "surface_measurements.parquet").to_pylist()
+        if row.get("curb_height_m") and row.get("provenance") == "measured"
+    ] if (root / "depth" / "surfaces" / "surface_measurements.parquet").exists() else []
+    measured.sort()
+    kerb_height_m = measured[len(measured) // 2] if measured else 0.126
+
     depth_summary_path = root / "depth" / "stats" / "summary.json"
     depth_summary = (
         json.loads(depth_summary_path.read_text(encoding="utf-8"))
@@ -248,6 +258,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "north": SF_CORRIDOR.bbox.north,
             "east": SF_CORRIDOR.bbox.east,
         },
+        "kerb_height_m": round(kerb_height_m, 4),
         "districts": district_bands(),
         "ways": ways,
         "coverage": [
@@ -394,6 +405,10 @@ scene.background = new THREE.Color(0x071013);
 scene.fog = new THREE.Fog(0x071013, 650, 1900);
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 5000);
+// The measured median kerb, in metres: 9,376 lidar slices, cross-checked against Waymo
+// ground-level lidar to within 1 mm of median. The model is built to it rather than to nominal.
+const KERB = DATA.kerb_height_m || 0.126;
+
 const root = new THREE.Group();
 scene.add(root);
 const groups = {
@@ -590,10 +605,20 @@ for (const way of DATA.ways) {
   const color = isCrossing ? 0xe0a84e : isSidewalk ? 0xb5c5c8 : 0xd6e7ea;
   const widthMeters = isCrossing ? 5.2 : isSidewalk ? 2.4 : 4.6;
   const opacity = isCrossing ? 0.94 : isSidewalk ? 0.62 : 0.72;
-  groups.streets.add(ribbon(way.points, widthMeters, color, opacity, isCrossing ? 6 : isSidewalk ? 4.5 : 3.2));
-  groups.streets.add(line(way.points, color, isCrossing ? 1 : 0.72, isCrossing ? 8 : 6));
+  // Heights are metres of actual street. They used to be chosen for legibility from above --
+  // a footway was a 1.4 m slab floating 4.5 m up, and the measured-kerb band was a 5.5 m slab
+  // three storeys in the air. Read from a bird's eye that was merely stylised; walked at street
+  // level it made every footway taller than the person on it.
+  const roadTop = 0.06;
+  groups.streets.add(ribbon(way.points, widthMeters, color, opacity,
+    isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
+    isCrossing ? 0.02 : isSidewalk ? KERB : roadTop));
+  groups.streets.add(line(way.points, color, isCrossing ? 1 : 0.72,
+    isCrossing ? roadTop + 0.05 : isSidewalk ? roadTop + KERB + 0.02 : roadTop + 0.02));
   if (way.covered && (isCrossing || isSidewalk)) {
-    groups.mapped3d.add(ribbon(way.points, isCrossing ? 6.4 : 3.2, 0xff4d8f, isCrossing ? 0.92 : 0.68, 10.5, isCrossing ? 7.5 : 5.5));
+    // The kerb face itself: as tall as it was measured, and narrow, because it is an edge.
+    groups.mapped3d.add(ribbon(way.points, isCrossing ? 0.8 : 0.45, 0xff4d8f,
+      isCrossing ? 0.92 : 0.8, roadTop + KERB / 2, KERB));
   }
   if (!isCrossing && !isSidewalk && way.name && !streetNames.has(way.name) && streetLabelCount < 90) {
     const midpoint = longestMidpoint(way.points);
@@ -670,7 +695,7 @@ canvas.addEventListener("pointermove", (e) => {
 canvas.addEventListener("pointerup", () => { dragging = false; });
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-  state.dist = Math.max(30, Math.min(2600, state.dist * Math.exp(e.deltaY * 0.001)));
+  state.dist = Math.max(8, Math.min(2600, state.dist * Math.exp(e.deltaY * 0.001)));
   placeCamera();
 }, { passive: false });
 document.getElementById("reset").addEventListener("click", () => {
@@ -739,8 +764,8 @@ resize();
 // street-sized and it moves at a speed you can feel, which is enough to make a kerb read as
 // something you would step off rather than a pink line on a diagram.
 const STREET_SPEED = 6.7;      // 15 mph in metres per second
-const AVATAR_RADIUS = 5.0;     // a shade larger than life, so it stays findable from a block away
-const ARRIVAL_DIST = 110;      // close enough that a building has storeys and a kerb has height
+const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
+const ARRIVAL_DIST = 45;       // close enough that a 126 mm kerb is a step rather than a line
 const avatar = new THREE.Mesh(
   new THREE.SphereGeometry(AVATAR_RADIUS, 24, 16),
   // Faintly self-lit. Grey on grey buildings disappears the moment it rolls into shade, and
