@@ -239,8 +239,12 @@ def decode_navsatfix(payload: bytes) -> dict | None:
     """
     try:
         stamp, offset = _header(payload)
-        status, service = struct.unpack_from("<hH", payload, offset)
-        offset += 4
+        # NavSatStatus is int8 status then uint16 service -- three bytes, not four. ROS packs
+        # without padding, so reading the status as int16 shifts every field after it by one
+        # byte: latitude came back as 1e191 and the altitude as -1.8e168, which is at least a
+        # failure loud enough to notice.
+        status, service = struct.unpack_from("<bH", payload, offset)
+        offset += 3
         latitude, longitude, altitude = struct.unpack_from("<ddd", payload, offset)
     except (struct.error, IndexError):
         return None
