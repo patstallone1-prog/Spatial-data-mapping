@@ -29,6 +29,7 @@ from smc.imagery.base import ImageAsset, License, ObservationUnavailable
 from smc.imagery.http import HttpClient, PermanentError, TransientError
 from smc.imagery.region import BBox, Region
 from smc.imagery.schema import (
+    METADATA_VERSION,
     AVAILABLE,
     PROJECTION_PERSPECTIVE,
     PROJECTION_SPHERICAL,
@@ -331,17 +332,21 @@ class MapillaryProvider:
         if not image_id:
             return None
 
-        # The structure-from-motion position is normally better than the raw GPS, and where it
-        # exists it is the one worth keeping. Which was used is recorded, because a catalogue
-        # that mixes the two without saying so cannot be reasoned about later.
+        # The structure-from-motion position is normally better than the raw GPS, so it is the
+        # one carried in latitude/longitude -- but both are kept. Keeping only the chosen one
+        # discarded the GPS fix on every frame Mapillary had solved, and how far a solved pose
+        # sits from the fix it was solved from is the single most useful thing either of them
+        # can tell us about how much to trust the other.
         computed = _point(row.get("computed_geometry"))
         raw = _point(row.get("geometry"))
-        position, source = (
+        position, position_source = (
             (computed, "mapillary:sfm") if computed else (raw, "mapillary:gps")
         )
         if position is None:
             return None
         lat, lon = position
+        computed_heading = _f(row.get("computed_compass_angle"))
+        raw_heading = _f(row.get("compass_angle"))
 
         width, height = _i(row.get("width")), _i(row.get("height"))
         megapixels = (width * height / 1e6) if width and height else None
@@ -373,7 +378,16 @@ class MapillaryProvider:
             latitude=lat,
             longitude=lon,
             altitude=_f(row.get("computed_altitude")) or _f(row.get("altitude")),
-            heading_deg=_f(row.get("computed_compass_angle")) or _f(row.get("compass_angle")),
+            heading_deg=computed_heading if computed_heading is not None else raw_heading,
+            raw_latitude=raw[0] if raw else None,
+            raw_longitude=raw[1] if raw else None,
+            raw_heading_deg=raw_heading,
+            computed_latitude=computed[0] if computed else None,
+            computed_longitude=computed[1] if computed else None,
+            computed_heading_deg=computed_heading,
+            position_source=position_source,
+            heading_source=("mapillary:sfm" if computed_heading is not None
+                            else "mapillary:gps" if raw_heading is not None else None),
             original_width=width,
             original_height=height,
             original_megapixels=megapixels,
@@ -387,8 +401,11 @@ class MapillaryProvider:
             attribution=LICENSE.attribution,
             contributor_identifier=_s((row.get("creator") or {}).get("id")),
             availability_status=AVAILABLE,
-            estimated_heading=_f(row.get("computed_compass_angle")),
-            provider_metadata_version=source,
+            estimated_heading=computed_heading,
+            # The normalisation schema version, which is what this field means. The
+            # coordinate provenance it used to carry now lives in position_source, where
+            # something can actually look for it.
+            provider_metadata_version=METADATA_VERSION,
             first_seen_at=now,
             last_seen_at=now,
         )

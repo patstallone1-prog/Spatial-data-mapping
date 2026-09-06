@@ -107,6 +107,28 @@ class Observation:
     horizontal_fov: float | None = None
     vertical_fov: float | None = None
 
+    # --- both of the provider's positions, not just the one we picked -------------------
+    #
+    # ``latitude``/``longitude``/``heading_deg`` above hold whichever pose we judged best, which
+    # for Mapillary means its structure-from-motion result wherever one exists. Keeping only
+    # that threw the other away: 300,393 frames in this corridor have an SfM position and no
+    # recoverable GPS fix, so nothing downstream can ask how far the two disagreed, and the
+    # disagreement is exactly what calibrating a pose refinement against them would need.
+    #
+    # A provider that publishes only one pose leaves the other pair null. That is a fact about
+    # the provider, and a null says it plainly.
+    raw_latitude: float | None = None
+    raw_longitude: float | None = None
+    raw_heading_deg: float | None = None
+    computed_latitude: float | None = None
+    computed_longitude: float | None = None
+    computed_heading_deg: float | None = None
+    #: Where the chosen position and heading came from, e.g. ``mapillary:sfm``, ``gps``.
+    #: This used to be smuggled through ``provider_metadata_version``, which is the version of
+    #: the normalisation schema and says nothing about coordinates.
+    position_source: str | None = None
+    heading_source: str | None = None
+
     # --- provider's own judgement -------------------------------------------------------
     quality_score: float | None = None
     quality_status: str | None = None
@@ -238,6 +260,14 @@ OBSERVATION_SCHEMA = pa.schema(
         ("attribution", pa.string()),
         ("contributor_identifier", pa.string()),
         ("ingested_at", _TS),
+        ("raw_latitude", pa.float64()),
+        ("raw_longitude", pa.float64()),
+        ("raw_heading_deg", pa.float32()),
+        ("computed_latitude", pa.float64()),
+        ("computed_longitude", pa.float64()),
+        ("computed_heading_deg", pa.float32()),
+        ("position_source", pa.string()),
+        ("heading_source", pa.string()),
         ("provider_metadata_version", pa.string()),
         ("eligible", pa.bool_()),
         ("rejection_reason", pa.string()),

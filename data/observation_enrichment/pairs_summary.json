@@ -1,0 +1,13 @@
+{
+ "frames_paired": 368035,
+ "frames_on_no_street": 18589,
+ "with_a_geometry_partner": 339011,
+ "with_a_cross_provider_partner": 129332,
+ "with_a_temporal_partner": 362393,
+ "median_geometry_score": 0.916,
+ "median_best_parallax_deg": 14.29,
+ "median_candidates": 39,
+ "frames_with_a_1_to_3m_neighbour": 318834,
+ "temporal_over_a_year": 269376,
+ "temporal_over_five_years": 215266
+}

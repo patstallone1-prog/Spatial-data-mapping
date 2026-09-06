@@ -247,7 +247,8 @@ class PandaSetProvider:
             availability_status=AVAILABLE,
             # The heading is derived from the pose quaternion rather than measured by a compass,
             # and a consumer treating the two as interchangeable would be wrong about its errors.
-            provider_metadata_version="pandaset:pose-quaternion",
+            position_source="pandaset:ego_pose",
+            heading_source="pandaset:ego_pose",
             first_seen_at=now,
             last_seen_at=now,
         )

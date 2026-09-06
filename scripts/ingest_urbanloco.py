@@ -166,7 +166,8 @@ def main() -> int:
                 license_url=LICENSE.url,
                 attribution=LICENSE.attribution,
                 availability_status=AVAILABLE,
-                provider_metadata_version="urbanloco:navsatfix+span-cpt",
+                position_source="urbanloco:navsatfix",
+                heading_source="urbanloco:navsatfix",
                 first_seen_at=now,
                 last_seen_at=now,
             )

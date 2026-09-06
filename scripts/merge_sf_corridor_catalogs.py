@@ -26,7 +26,7 @@ from smc.imagery.filtering import (
     mark_redundant,
 )
 from smc.imagery.region import get_region
-from smc.imagery.schema import Observation, SequenceRecord
+from smc.imagery.schema import METADATA_VERSION, Observation, SequenceRecord
 
 
 OBS_FIELDS = {field.name for field in fields(Observation)}
@@ -46,6 +46,44 @@ def _observation(row: dict) -> Observation:
 
 def _sequence(row: dict) -> SequenceRecord:
     return SequenceRecord(**{key: row.get(key) for key in SEQ_FIELDS})
+
+
+#: Values that were written into ``provider_metadata_version`` when it was being used to carry
+#: where a pose came from. That field means the version of the normalisation schema; the pose
+#: provenance now has ``position_source`` to live in.
+_POSE_PROVENANCE_PREFIXES = ("mapillary:", "pandaset:", "urbanloco:")
+
+
+def _migrate_pose_provenance(observation: Observation) -> Observation:
+    """Recover what the old rows can still say about where their pose came from.
+
+    Rows harvested before the split kept only the position that was chosen and recorded which
+    kind it was by overloading the schema-version field. That is enough to say, for each row,
+    whether the coordinates in it are a raw fix or a solved one -- so the coordinates are copied
+    into the matching slot and the provenance moved to the field that means it.
+
+    What cannot be recovered is the *other* position. Where Mapillary solved a pose, the GPS fix
+    it solved from was never stored, and no amount of rearranging brings it back; those rows
+    keep a null raw position until they are crawled again. Saying so is the point of having the
+    column at all.
+    """
+    version = observation.provider_metadata_version or ""
+    if observation.position_source is None and version.startswith(_POSE_PROVENANCE_PREFIXES):
+        observation.position_source = version
+        observation.heading_source = version
+        observation.provider_metadata_version = METADATA_VERSION
+    solved = (observation.position_source or "").endswith(("sfm", "pose-quaternion"))
+    if observation.position_source and observation.raw_latitude is None \
+            and observation.computed_latitude is None:
+        if solved:
+            observation.computed_latitude = observation.latitude
+            observation.computed_longitude = observation.longitude
+            observation.computed_heading_deg = observation.heading_deg
+        else:
+            observation.raw_latitude = observation.latitude
+            observation.raw_longitude = observation.longitude
+            observation.raw_heading_deg = observation.heading_deg
+    return observation
 
 
 def _dedupe_sequences(sequences: list[SequenceRecord]) -> list[SequenceRecord]:
@@ -161,6 +199,7 @@ def main() -> int:
     # were judged against different thresholds on different days cannot be reasoned about --
     # lowering the floor would silently apply to whatever was crawled next and to nothing else.
     for observation in observations:
+        _migrate_pose_provenance(observation)
         mark_eligibility(observation, region, min_megapixels=args.min_megapixels)
 
     observations = exact_dedupe(observations)

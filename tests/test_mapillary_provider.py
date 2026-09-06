@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import unittest
 
+from smc.imagery.schema import METADATA_VERSION
 from smc.imagery.mapillary import MapillaryCredentialMissing, MapillaryProvider
 from smc.imagery.region import SF_CORRIDOR
 from smc.imagery.schema import PROJECTION_PERSPECTIVE, PROJECTION_SPHERICAL
@@ -51,14 +52,32 @@ class TestMapillaryParsing(unittest.TestCase):
         assert observation is not None
         self.assertAlmostEqual(observation.latitude, 37.7991)
         self.assertAlmostEqual(observation.longitude, -122.4201)
-        self.assertEqual(observation.provider_metadata_version, "mapillary:sfm")
+        self.assertEqual(observation.position_source, "mapillary:sfm")
+        # Not smuggled through the normalisation schema version, which means something else.
+        self.assertEqual(observation.provider_metadata_version, METADATA_VERSION)
+
+    def test_the_gps_fix_survives_the_solved_pose(self) -> None:
+        # Keeping only the chosen position threw away the fix on every solved frame, and how
+        # far the two disagree is what says whether either can be trusted.
+        observation = self.provider._to_observation(IMAGE)
+        assert observation is not None
+        self.assertAlmostEqual(observation.computed_latitude, 37.7991)
+        self.assertAlmostEqual(observation.raw_latitude, 37.7990)
+        self.assertNotAlmostEqual(observation.raw_latitude, observation.computed_latitude)
 
     def test_raw_gps_is_used_when_there_is_no_computed_position(self) -> None:
         row = {k: v for k, v in IMAGE.items() if k != "computed_geometry"}
         observation = self.provider._to_observation(row)
         assert observation is not None
         self.assertAlmostEqual(observation.latitude, 37.7990)
-        self.assertEqual(observation.provider_metadata_version, "mapillary:gps")
+        self.assertEqual(observation.position_source, "mapillary:gps")
+        self.assertIsNone(observation.computed_latitude)
+
+    def test_headings_are_kept_apart_the_same_way(self) -> None:
+        observation = self.provider._to_observation(IMAGE)
+        assert observation is not None
+        self.assertEqual(observation.heading_deg, observation.computed_heading_deg)
+        self.assertIsNotNone(observation.raw_heading_deg)
 
     def test_a_frame_with_no_position_at_all_is_dropped(self) -> None:
         row = {k: v for k, v in IMAGE.items() if k not in ("geometry", "computed_geometry")}
