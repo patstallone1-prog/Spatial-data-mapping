@@ -87,7 +87,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
     </div>
   </div>
 </div>
-<div id="tip">Drag to orbit, wheel or pinch to zoom. Uncovered blocks stay as the base map; covered blocks add OSM building massing and curb bands. CV/depth rows are stored for simulation, but exact curb heights require metric depth promotion.</div>
+<div id="tip"><b>Click anywhere to go there</b> &mdash; the grey sphere is you, and arriving brings the camera down to street level. Arrow keys walk it at 15&nbsp;mph, relative to the way you are facing. Drag to orbit, wheel or pinch to zoom. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
 <!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
      eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
      its previous version. Fetched, the page is a few kilobytes, the data changes independently,
@@ -125,9 +125,11 @@ const groups = {
   districts: new THREE.Group(),
   gaps: new THREE.Group(),
 };
-// Off by default: the map's job on opening is to show what is known, and a screen of red over
-// everything unvisited reads as failure rather than as a work list.
-groups.gaps.visible = false;
+// What opens is the city: streets, buildings, districts. The survey layers -- where photographs
+// were taken, which cells are covered, which sequences ran, which ways are missing -- are all
+// about the state of the dataset rather than about the place, and starting with them lit turns
+// a map of San Francisco into a progress chart. They are one click away and they stay.
+for (const off of ["coverage", "observations", "sequences", "gaps"]) groups[off].visible = false;
 Object.values(groups).forEach((g) => root.add(g));
 
 const bbox = DATA.bbox;
@@ -388,11 +390,15 @@ canvas.addEventListener("pointermove", (e) => {
 canvas.addEventListener("pointerup", () => { dragging = false; });
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-  state.dist = Math.max(220, Math.min(2600, state.dist * Math.exp(e.deltaY * 0.001)));
+  state.dist = Math.max(30, Math.min(2600, state.dist * Math.exp(e.deltaY * 0.001)));
   placeCamera();
 }, { passive: false });
 document.getElementById("reset").addEventListener("click", () => {
   Object.assign(state, { yaw: -0.45, pitch: 0.95, dist: 1180 });
+  if (typeof avatar !== "undefined") {
+    avatar.position.set(0, AVATAR_RADIUS, 0);
+    state.target.copy(avatar.position);
+  }
   placeCamera();
 });
 
@@ -429,6 +435,9 @@ document.getElementById("reset").addEventListener("click", () => {
 }
 
 document.querySelectorAll("button[data-layer]").forEach((button) => {
+  // The control reads its state from the scene rather than from the markup, so a layer's
+  // default can be changed in one place without the buttons quietly disagreeing with it.
+  button.setAttribute("aria-pressed", String(groups[button.dataset.layer].visible));
   button.addEventListener("click", () => {
     const layer = button.dataset.layer;
     groups[layer].visible = !groups[layer].visible;
@@ -443,8 +452,87 @@ function resize() {
 }
 addEventListener("resize", resize);
 resize();
-function animate() {
+// ---- a body to move through the city with ----
+//
+// Orbiting a model tells you its shape; walking it tells you its scale. The sphere is the
+// cheapest possible stand-in for a person -- no shadow, no model, no physics -- but it is
+// street-sized and it moves at a speed you can feel, which is enough to make a kerb read as
+// something you would step off rather than a pink line on a diagram.
+const STREET_SPEED = 6.7;      // 15 mph in metres per second
+const AVATAR_RADIUS = 5.0;     // a shade larger than life, so it stays findable from a block away
+const ARRIVAL_DIST = 110;      // close enough that a building has storeys and a kerb has height
+const avatar = new THREE.Mesh(
+  new THREE.SphereGeometry(AVATAR_RADIUS, 24, 16),
+  // Faintly self-lit. Grey on grey buildings disappears the moment it rolls into shade, and
+  // losing the thing you are steering is worse than it being slightly unrealistic.
+  new THREE.MeshStandardMaterial({
+    color: 0xc9d4d8, roughness: 0.5, metalness: 0.04, emissive: 0x2a3438,
+  })
+);
+avatar.position.set(0, AVATAR_RADIUS, 0);
+root.add(avatar);
+state.target.copy(avatar.position);
+placeCamera();
+
+const held = new Set();
+const ARROWS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+addEventListener("keydown", (e) => {
+  if (!ARROWS.has(e.key)) return;
+  held.add(e.key);
+  e.preventDefault();   // otherwise the arrows scroll the page out from under the canvas
+});
+addEventListener("keyup", (e) => held.delete(e.key));
+addEventListener("blur", () => held.clear());   // a key held while tabbing away would stick
+
+// Click to go there. The ray is cast at the ground rather than at the geometry, so clicking a
+// rooftop puts you on the street beneath it instead of on the roof.
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const ray = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let pressedAt = [0, 0];
+canvas.addEventListener("pointerdown", (e) => { pressedAt = [e.clientX, e.clientY]; });
+canvas.addEventListener("pointerup", (e) => {
+  // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
+  if (Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
+  pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(pointer, camera);
+  const landing = new THREE.Vector3();
+  if (!ray.ray.intersectPlane(groundPlane, landing)) return;
+  avatar.position.set(landing.x, AVATAR_RADIUS, landing.z);
+  state.target.copy(avatar.position);
+  // Arriving always closes the distance. Clicking a far-off block from a wide view should land
+  // you in it, not leave you looking at it from the same height.
+  state.dist = Math.min(state.dist, ARRIVAL_DIST);
+  placeCamera();
+});
+
+let previous = performance.now();
+function stepAvatar(now) {
+  const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
+  previous = now;                                       // with a huge delta and would teleport
+  if (!held.size) return;
+  // Forward is where the camera looks, so the arrows mean what they appear to mean however the
+  // view has been orbited.
+  const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw)).negate();
+  const rightward = new THREE.Vector3(forward.z, 0, -forward.x);
+  const move = new THREE.Vector3();
+  if (held.has("ArrowUp")) move.add(forward);
+  if (held.has("ArrowDown")) move.sub(forward);
+  if (held.has("ArrowRight")) move.add(rightward);
+  if (held.has("ArrowLeft")) move.sub(rightward);
+  if (!move.lengthSq()) return;
+  move.normalize().multiplyScalar(STREET_SPEED * dt);
+  avatar.position.add(move);
+  // Roll it the distance it travelled, about the axis across its direction of travel.
+  const axis = new THREE.Vector3(move.z, 0, -move.x).normalize();
+  avatar.rotateOnWorldAxis(axis, move.length() / AVATAR_RADIUS);
+  state.target.copy(avatar.position);
+  placeCamera();
+}
+
+function animate(now) {
   requestAnimationFrame(animate);
+  stepAvatar(now || performance.now());
   renderer.render(scene, camera);
 }
 animate();
