@@ -127,6 +127,38 @@ def fetch_osm(bbox: BBox) -> list[dict[str, Any]]:
     return ways
 
 
+def street_intersections(ways: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Named street crossings, for searching by the way people actually describe a place.
+
+    OpenStreetMap splits a way where another meets it, so two streets that cross share a node.
+    Hashing the vertices and looking for coordinates used by more than one name finds the
+    junctions without any geometric intersection test -- and without inventing crossings where
+    a bridge merely passes over a road, which share no node and correctly do not appear.
+    """
+    at: dict[tuple[float, float], set[str]] = defaultdict(set)
+    for way in ways:
+        name = way.get("name")
+        if way.get("kind") != "street" or not name:
+            continue
+        for lon, lat in way.get("points") or []:
+            at[(round(float(lon), 6), round(float(lat), 6))].add(name)
+
+    seen: set[tuple[str, str]] = set()
+    out: list[dict[str, Any]] = []
+    for (lon, lat), names in at.items():
+        if len(names) < 2:
+            continue
+        ordered = sorted(names)
+        for i, first in enumerate(ordered):
+            for second in ordered[i + 1 :]:
+                if (first, second) in seen:
+                    continue
+                seen.add((first, second))
+                out.append({"a": first, "b": second, "lon": lon, "lat": lat})
+    out.sort(key=lambda row: (row["a"], row["b"]))
+    return out
+
+
 def district_bands() -> list[dict[str, Any]]:
     south, north = SF_CORRIDOR.bbox.south, SF_CORRIDOR.bbox.north
     return [
@@ -259,6 +291,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "east": SF_CORRIDOR.bbox.east,
         },
         "kerb_height_m": round(kerb_height_m, 4),
+        "intersections": street_intersections(ways),
         "districts": district_bands(),
         "ways": ways,
         "coverage": [
@@ -301,7 +334,16 @@ HTML = """<!doctype html>
 body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; }
 #scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; }
 .hud { position:fixed; top:14px; left:14px; bottom:14px; width:min(340px, calc(100vw - 28px)); display:flex; flex-direction:column; gap:10px; pointer-events:none; }
-.hud .panel { overflow:auto; }
+/* The panel takes the column it is given rather than shrinking to its contents, so the
+   sections breathe instead of being packed against the title. */
+.hud .panel { flex:1; overflow:auto; padding:16px; display:flex; flex-direction:column; gap:2px; }
+.hud[data-open="false"] .panel { flex:0 0 auto; padding:12px 16px; }
+#find { width:100%; padding:9px 10px; border-radius:7px; border:1px solid var(--line);
+        background:rgba(7,16,19,.75); color:var(--ink); font:inherit; }
+#find::placeholder { color:var(--muted); }
+#hits { list-style:none; margin:6px 0 0; padding:0; max-height:190px; overflow:auto; }
+#hits li { padding:7px 9px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--muted); }
+#hits li:hover, #hits li[aria-selected=true] { background:rgba(255,77,143,.16); color:var(--ink); }
 /* Collapsing targets the sections themselves rather than one wrapper. The wrapper closes
    where the original panel did, which left the layer groups outside it and folding hid
    only the statistics. */
@@ -337,6 +379,11 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <button id="fold" aria-expanded="true" aria-controls="hud" title="Collapse">&minus;</button>
     </div>
     <div class="collapsible">
+    <div class="group" style="margin-top:4px">
+      <h2>Go to a corner</h2>
+      <input id="find" type="search" autocomplete="off" placeholder="Columbus &amp; Broadway" />
+      <ul id="hits"></ul>
+    </div>
     <div class="meta">
       <div class="stat"><b id="obs">0</b><span>observations</span></div>
       <div class="stat"><b id="eligible">0</b><span>eligible</span></div>
@@ -726,6 +773,67 @@ document.getElementById("reset").addEventListener("click", () => {
   }
 }
 
+// ---- search by corner ----
+//
+// People say where they are by naming two streets, so that is what the field takes. Matching is
+// per-word across both names, which lets "market 4th" and "4th & market" find the same corner
+// without the searcher having to guess the order or the ampersand.
+{
+  const field = document.getElementById("find");
+  const hits = document.getElementById("hits");
+  const corners = DATA.intersections || [];
+  let selected = -1;
+  let showing = [];
+
+  function search(query) {
+    const words = query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    if (!words.length) return [];
+    return corners
+      .filter((c) => {
+        const hay = `${c.a} ${c.b}`.toLowerCase();
+        return words.every((w) => hay.includes(w));
+      })
+      .slice(0, 8);
+  }
+
+  function paint() {
+    hits.replaceChildren();
+    showing.forEach((corner, index) => {
+      const item = document.createElement("li");
+      item.textContent = `${corner.a} & ${corner.b}`;
+      item.setAttribute("aria-selected", String(index === selected));
+      item.addEventListener("click", () => travelTo(corner));
+      hits.append(item);
+    });
+  }
+
+  function travelTo(corner) {
+    const [x, y] = xy(corner.lon, corner.lat);
+    // A named corner is a destination, so this behaves like the two-finger gesture: it moves
+    // the sphere and closes the distance rather than only turning the camera.
+    goTo(new THREE.Vector3(x, 0, -y), { travel: true });
+    field.value = `${corner.a} & ${corner.b}`;
+    showing = [];
+    selected = -1;
+    paint();
+  }
+
+  field.addEventListener("input", () => {
+    showing = search(field.value);
+    selected = showing.length ? 0 : -1;
+    paint();
+  });
+  field.addEventListener("keydown", (e) => {
+    if (!showing.length) return;
+    if (e.key === "ArrowDown") { selected = (selected + 1) % showing.length; paint(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { selected = (selected - 1 + showing.length) % showing.length; paint(); e.preventDefault(); }
+    else if (e.key === "Enter") { travelTo(showing[Math.max(selected, 0)]); e.preventDefault(); }
+    // Arrow keys inside the field steer the list, not the sphere; the walker's handler is on
+    // the window and would otherwise start it moving while somebody is choosing a corner.
+    e.stopPropagation();
+  });
+}
+
 // ---- the sidebar folds, because on a phone it otherwise covers the map it describes ----
 {
   const hud = document.getElementById("hud");
@@ -763,7 +871,12 @@ resize();
 // cheapest possible stand-in for a person -- no shadow, no model, no physics -- but it is
 // street-sized and it moves at a speed you can feel, which is enough to make a kerb read as
 // something you would step off rather than a pink line on a diagram.
-const STREET_SPEED = 6.7;      // 15 mph in metres per second
+const STREET_SPEED = 8.94;     // 20 mph in metres per second, at street level
+// Above that the speed scales with how far the camera has pulled back, so the sphere always
+// crosses the screen at the same rate. Walking a block at 20 mph is right when you are standing
+// in it; from two thousand metres up the same 20 mph is a stationary dot, and crossing the
+// corridor would take four minutes. What stays constant is the apparent speed, not the metric.
+const SPEED_REFERENCE_DIST = 45;
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
 const ARRIVAL_DIST = 45;       // close enough that a 126 mm kerb is a step rather than a line
 const avatar = new THREE.Mesh(
@@ -771,7 +884,7 @@ const avatar = new THREE.Mesh(
   // Faintly self-lit. Grey on grey buildings disappears the moment it rolls into shade, and
   // losing the thing you are steering is worse than it being slightly unrealistic.
   new THREE.MeshStandardMaterial({
-    color: 0xc9d4d8, roughness: 0.5, metalness: 0.04, emissive: 0x2a3438,
+    color: 0x4fd18b, roughness: 0.45, metalness: 0.05, emissive: 0x12452c,
   })
 );
 avatar.position.set(0, AVATAR_RADIUS, 0);
@@ -783,6 +896,8 @@ const held = new Set();
 const ARROWS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 addEventListener("keydown", (e) => {
   if (!ARROWS.has(e.key)) return;
+  // Typing in a field is not steering. Without this, choosing a corner walks the sphere away.
+  if (e.target instanceof HTMLInputElement) return;
   held.add(e.key);
   e.preventDefault();   // otherwise the arrows scroll the page out from under the canvas
 });
@@ -796,19 +911,38 @@ const ray = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let pressedAt = [0, 0];
 canvas.addEventListener("pointerdown", (e) => { pressedAt = [e.clientX, e.clientY]; });
+
+function groundAt(clientX, clientY) {
+  pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(pointer, camera);
+  const landing = new THREE.Vector3();
+  return ray.ray.intersectPlane(groundPlane, landing) ? landing : null;
+}
+
+// One finger looks, two fingers travel. Panning the focus without moving the sphere is how you
+// survey a block you have not decided to walk to yet; committing to it should be the deliberate
+// gesture, not the one you make by accident while orbiting.
+function goTo(landing, { travel }) {
+  if (!landing) return;
+  if (travel) {
+    avatar.position.set(landing.x, AVATAR_RADIUS, landing.z);
+    state.dist = Math.min(state.dist, ARRIVAL_DIST);
+  }
+  state.target.set(landing.x, travel ? AVATAR_RADIUS : 0, landing.z);
+  placeCamera();
+}
+
 canvas.addEventListener("pointerup", (e) => {
   // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
   if (Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
-  pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  ray.setFromCamera(pointer, camera);
-  const landing = new THREE.Vector3();
-  if (!ray.ray.intersectPlane(groundPlane, landing)) return;
-  avatar.position.set(landing.x, AVATAR_RADIUS, landing.z);
-  state.target.copy(avatar.position);
-  // Arriving always closes the distance. Clicking a far-off block from a wide view should land
-  // you in it, not leave you looking at it from the same height.
-  state.dist = Math.min(state.dist, ARRIVAL_DIST);
-  placeCamera();
+  if (e.button === 2) return;   // handled on contextmenu, which fires first on a two-finger tap
+  goTo(groundAt(e.clientX, e.clientY), { travel: false });
+});
+
+canvas.addEventListener("contextmenu", (e) => {
+  // A two-finger tap on a trackpad, or a right click. Both arrive here.
+  e.preventDefault();
+  goTo(groundAt(e.clientX, e.clientY), { travel: true });
 });
 
 let previous = performance.now();
@@ -826,7 +960,8 @@ function stepAvatar(now) {
   if (held.has("ArrowRight")) move.add(rightward);
   if (held.has("ArrowLeft")) move.sub(rightward);
   if (!move.lengthSq()) return;
-  move.normalize().multiplyScalar(STREET_SPEED * dt);
+  const scaled = STREET_SPEED * Math.max(1, state.dist / SPEED_REFERENCE_DIST);
+  move.normalize().multiplyScalar(scaled * dt);
   avatar.position.add(move);
   // Roll it the distance it travelled, about the axis across its direction of travel.
   const axis = new THREE.Vector3(move.z, 0, -move.x).normalize();
