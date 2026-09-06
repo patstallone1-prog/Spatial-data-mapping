@@ -264,6 +264,15 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             }
             for row in coverage
         ],
+        # A gap is a mapped street or footway whose ground nobody has photographed. It is
+        # computed from the same cells the coverage layer uses, so the two cannot disagree: a
+        # way is a gap exactly when none of the cells it passes through holds an eligible
+        # observation. This is the layer that says where to send someone next.
+        "gaps": [
+            {"points": way["points"], "kind": way.get("kind"), "name": way.get("name")}
+            for way in ways
+            if way.get("kind") in ("street", "sidewalk", "crossing") and not way.get("covered")
+        ],
         "observations": sample_observations,
         "sequence_paths": sequence_paths[:260],
     }
@@ -280,7 +289,17 @@ HTML = """<!doctype html>
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; }
 #scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; }
-.hud { position:fixed; top:14px; left:14px; right:14px; display:grid; grid-template-columns:minmax(220px, 380px) 1fr; gap:12px; pointer-events:none; }
+.hud { position:fixed; top:14px; left:14px; bottom:14px; width:min(340px, calc(100vw - 28px)); display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+.hud .panel { overflow:auto; }
+/* Collapsing targets the sections themselves rather than one wrapper. The wrapper closes
+   where the original panel did, which left the layer groups outside it and folding hid
+   only the statistics. */
+.hud[data-open="false"] .collapsible, .hud[data-open="false"] .group { display:none; }
+.bar { pointer-events:auto; display:flex; align-items:center; gap:8px; }
+.bar h1 { flex:1; margin:0; }
+#fold { padding:6px 10px; line-height:1; }
+.group { margin-top:12px; }
+.group > h2 { margin:0 0 7px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; }
 .panel { pointer-events:auto; background:rgba(16,25,30,.88); border:1px solid var(--line); border-radius:8px; padding:12px; backdrop-filter:blur(14px); box-shadow:0 12px 30px rgba(0,0,0,.22); }
 h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-spacing:0; }
 .meta { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
@@ -290,18 +309,23 @@ h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-sp
 .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
 .key { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
 .sw { width:10px; height:10px; border-radius:50%; background:var(--pink); }
-.toolbar { justify-self:end; max-width:620px; display:flex; flex-wrap:wrap; justify-content:flex-end; align-content:flex-start; gap:8px; align-items:center; }
+.toolbar { display:flex; flex-wrap:wrap; gap:7px; }
+.toolbar button { padding:8px 10px; font-size:13px; }
 button { color:var(--ink); background:rgba(16,25,30,.9); border:1px solid var(--line); border-radius:7px; padding:10px 12px; font:inherit; cursor:pointer; }
 button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgba(255,77,143,.20); }
 #tip { position:fixed; left:14px; bottom:14px; width:min(520px, calc(100vw - 28px)); color:var(--muted); font-size:12px; }
-@media (max-width: 760px) { .hud { grid-template-columns:1fr; } .toolbar { justify-self:stretch; justify-content:flex-start; } .toolbar button { padding:9px 10px; } .meta { grid-template-columns:repeat(2, 1fr); } }
+@media (max-width: 760px) { .hud { width:calc(100vw - 28px); bottom:auto; max-height:70vh; } .meta { grid-template-columns:repeat(2, 1fr); } }
 </style>
 </head>
 <body>
 <canvas id="scene"></canvas>
-<div class="hud">
+<div class="hud" id="hud" data-open="true">
   <div class="panel">
-    <h1>Kerbside SF Corridor 3D</h1>
+    <div class="bar">
+      <h1>Kerbside SF Corridor 3D</h1>
+      <button id="fold" aria-expanded="true" aria-controls="hud" title="Collapse">&minus;</button>
+    </div>
+    <div class="collapsible">
     <div class="meta">
       <div class="stat"><b id="obs">0</b><span>observations</span></div>
       <div class="stat"><b id="eligible">0</b><span>eligible</span></div>
@@ -321,22 +345,40 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <span class="key"><span class="sw" style="background:var(--cyan)"></span>sequence paths</span>
     </div>
   </div>
-<div class="toolbar panel">
-<button data-layer="streets" aria-pressed="true">Streets</button>
-<button data-layer="mapped3d" aria-pressed="true">3D Artifact</button>
-<button data-layer="coverage" aria-pressed="true">Coverage</button>
-<button data-layer="observations" aria-pressed="true">Photos</button>
-<button data-layer="sequences" aria-pressed="true">Sequences</button>
-    <button data-layer="districts" aria-pressed="true">Districts</button>
-    <button id="reset">Reset</button>
+    <div class="group">
+      <h2>Layers</h2>
+      <div class="toolbar">
+        <button data-layer="streets" aria-pressed="true">Streets</button>
+        <button data-layer="mapped3d" aria-pressed="true">3D Artifact</button>
+        <button data-layer="coverage" aria-pressed="true">Coverage</button>
+        <button data-layer="observations" aria-pressed="true">Photos</button>
+        <button data-layer="sequences" aria-pressed="true">Sequences</button>
+        <button data-layer="districts" aria-pressed="true">Districts</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>Where coverage is missing</h2>
+      <div class="toolbar">
+        <button data-layer="gaps" aria-pressed="false">Show gaps</button>
+        <button id="reset">Reset view</button>
+      </div>
+      <p id="gapnote" style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.45"></p>
+    </div>
+    </div>
   </div>
 </div>
 <div id="tip">Drag to orbit, wheel or pinch to zoom. Uncovered blocks stay as the base map; covered blocks add OSM building massing and curb bands. CV/depth rows are stored for simulation, but exact curb heights require metric depth promotion.</div>
-<script type="application/json" id="payload">__PAYLOAD__</script>
+<!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
+     eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
+     its previous version. Fetched, the page is a few kilobytes, the data changes independently,
+     and browsers cache it between visits. -->
 <script type="module">
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
-const DATA = JSON.parse(document.getElementById("payload").textContent);
+const DATA = await fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
+  if (!r.ok) throw new Error(`payload ${r.status}`);
+  return r.json();
+});
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
 document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleString();
@@ -361,7 +403,11 @@ const groups = {
   observations: new THREE.Group(),
   sequences: new THREE.Group(),
   districts: new THREE.Group(),
+  gaps: new THREE.Group(),
 };
+// Off by default: the map's job on opening is to show what is known, and a screen of red over
+// everything unvisited reads as failure rather than as a work list.
+groups.gaps.visible = false;
 Object.values(groups).forEach((g) => root.add(g));
 
 const bbox = DATA.bbox;
@@ -630,6 +676,38 @@ document.getElementById("reset").addEventListener("click", () => {
   placeCamera();
 });
 
+// ---- gaps: mapped ways nobody has photographed ----
+{
+  const material = new THREE.LineBasicMaterial({ color: 0xff5a3c, transparent: true, opacity: 0.85 });
+  let metres = 0;
+  for (const gap of DATA.gaps || []) {
+    const points = gap.points.map(([lon, lat]) => v3(lon, lat, 1.5));
+    if (points.length < 2) continue;
+    for (let i = 1; i < points.length; i += 1) metres += points[i].distanceTo(points[i - 1]);
+    groups.gaps.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+  }
+  const note = document.getElementById("gapnote");
+  if (note) {
+    const total = (DATA.gaps || []).length;
+    note.textContent = total
+      ? `${total.toLocaleString()} mapped ways, about ${(metres / 1000).toFixed(1)} km, have no eligible photograph over them.`
+      : "Every mapped way in the region has at least one eligible photograph over it.";
+  }
+}
+
+// ---- the sidebar folds, because on a phone it otherwise covers the map it describes ----
+{
+  const hud = document.getElementById("hud");
+  const fold = document.getElementById("fold");
+  fold.addEventListener("click", () => {
+    const open = hud.dataset.open !== "false";
+    hud.dataset.open = String(!open);
+    fold.setAttribute("aria-expanded", String(!open));
+    fold.innerHTML = open ? "&plus;" : "&minus;";
+    fold.title = open ? "Expand" : "Collapse";
+  });
+}
+
 document.querySelectorAll("button[data-layer]").forEach((button) => {
   button.addEventListener("click", () => {
     const layer = button.dataset.layer;
@@ -673,11 +751,17 @@ def main() -> int:
 
     payload = build_payload(args.catalog, ways)
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    # Data beside the page rather than inside it. The page is then a few kilobytes that rarely
+    # change, and the payload is one file the browser caches -- where inlining rewrote ten
+    # megabytes of undedupable HTML into the repository on every single build.
+    data_path = args.out.with_suffix(".json")
+    data_path.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     args.out.write_text(
-        HTML.replace("__PAYLOAD__", json.dumps(payload, separators=(",", ":"), default=str)),
+        HTML,
         encoding="utf-8",
     )
-    print(f"{args.out} -> {args.out.stat().st_size / 1e6:.2f} MB")
+    print(f"{args.out} -> {args.out.stat().st_size / 1e3:.1f} kB page")
+    print(f"{data_path} -> {data_path.stat().st_size / 1e6:.2f} MB payload")
     print(json.dumps(payload["summary"], indent=2))
     return 0
 
