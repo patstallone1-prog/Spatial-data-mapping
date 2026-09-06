@@ -1034,7 +1034,11 @@ for (const way of DATA.ways) {
   // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
   // It does not belong on a crossing either -- a crosswalk has bars painted across it and no
   // line down its middle, and the bars are now real paint rather than a coloured slab.
-  if (!isSidewalk && !isCrossing) {
+  // A yellow centreline separates opposing traffic, so a one-way street does not have one.
+  // Drawing it on every roadway put the marking on 784 segments of this corridor that do not
+  // carry it -- and a yellow line specifically tells a driver there is traffic coming the
+  // other way.
+  if (!isSidewalk && !isCrossing && !way.oneway) {
     // Broken yellow, at the real stripe and gap. It was a continuous thread of pale yellow at
     // 45 per cent, which is not a marking any street has.
     groups.streets.add(dashedLine(way.points, 0xf0c33c, 0.92, roadTop + 0.02));

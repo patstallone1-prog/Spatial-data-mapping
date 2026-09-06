@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pyarrow.parquet as pq
 
+from smc.imagery.filtering import INGEST_MIN_MEGAPIXELS
 from smc.imagery.region import SF_CORRIDOR
 
 
@@ -36,8 +37,12 @@ def main() -> int:
             errors.append(f"CDN URL persisted in source_locator: {row['observation_uid']}")
         if row["source_preview_locator"] and row["source_preview_locator"].startswith("http"):
             errors.append(f"CDN URL persisted in source_preview_locator: {row['observation_uid']}")
-        if row["original_megapixels"] and row["original_megapixels"] < 2 and row["eligible"]:
-            errors.append(f"sub-2MP eligible: {row['observation_uid']}")
+        if (row["original_megapixels"]
+                and row["original_megapixels"] < INGEST_MIN_MEGAPIXELS
+                and row["eligible"]):
+            errors.append(f"below the ingest floor yet eligible: {row['observation_uid']}")
+        if row["eligible"] and row["resolution_tier"] == "reject":
+            errors.append(f"eligible but reject-tier: {row['observation_uid']}")
         if not row["license_id"]:
             errors.append(f"missing license: {row['observation_uid']}")
 

@@ -348,6 +348,117 @@ def acceptance_index(rows) -> dict[str, dict]:
     return index
 
 
+def _feet_inches(feet, inches) -> float | None:
+    """Feet and inches to metres, or None when the record left the dimension blank.
+
+    Zero is blank here, not a measurement: the table records a great many blocks whose sidewalk
+    width nobody filled in, and a zero-foot sidewalk is not a thing San Francisco has.
+    """
+    f, i = _f(feet) or 0.0, _f(inches) or 0.0
+    total = f + i / 12.0
+    return feet_to_m(total) if total > 0 else None
+
+
+#: Cross-street values that name no street and so cannot key a block.
+_NOT_A_CROSS_STREET = {"", "MID BLOCK", "MIDBLOCK", "END", "NONE", "DEAD END"}
+
+
+def _block_key(street: str, street_type: str, a: str, b: str) -> str | None:
+    """A block of street between two named cross streets, keyed independently of direction.
+
+    The two cross streets are sorted rather than kept in the order the source happened to list
+    them. One table runs a block from Drumm to Davis and another runs the same block from Davis
+    to Drumm, and keeping the given order would make them different places.
+    """
+    ends = sorted(x for x in (a.strip().upper(), b.strip().upper())
+                  if x not in _NOT_A_CROSS_STREET)
+    if len(ends) != 2:
+        return None
+    name = f"{street.strip().upper()} {street_type.strip().upper()}".strip()
+    if not name:
+        return None
+    return "sfblock:" + "|".join([name, *ends])
+
+
+def block_key(row: dict) -> str | None:
+    """Block identity for a street-width record.
+
+    The obvious key would be CNN, and almost none of these rows have one: 114 of 12,190
+    right-of-way records in this corridor carry a CNN and the rest are null. What every row does
+    carry is the street it is on and the two streets it runs between, which is how a surveyor
+    would have named the block in the first place -- so that is the key.
+    """
+    return _block_key(str(row.get("STREETNAME") or ""), str(row.get("STREETTYPE") or ""),
+                      str(row.get("FROMSTREET") or ""), str(row.get("TOSTREET") or ""))
+
+
+def block_key_for_centreline(row: dict) -> str | None:
+    """The same key, built from a row of the street centreline network."""
+    return _block_key(str(row.get("street") or ""), str(row.get("st_type") or ""),
+                      str(row.get("f_st") or ""), str(row.get("t_st") or ""))
+
+
+def street_width_facts(rows, document) -> list[OfficialGeometryFact]:
+    """Right-of-way and sidewalk dimensions from SFMTA's street-width table.
+
+    These are the strongest dimensional records available without opening a scanned sheet: feet
+    and inches, an OFFICIAL flag, and the filename of the sheet the number came off. A row
+    marked anything other than Official keeps its value and loses its status, because an
+    unofficial dimension is still evidence and should not be quietly promoted.
+    """
+    facts: list[OfficialGeometryFact] = []
+    seen: set = set()
+    for row in rows:
+        props = row.get("properties", row)
+        swid = props.get("SWID")
+        # The table carries exact duplicates under different OBJECTIDs.
+        fingerprint = (swid, props.get("ROWFEET"), props.get("ROWINCHES"),
+                       props.get("SIDEWALKFEET"), props.get("SIDE"))
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+
+        cnn = props.get("CNN")
+        feature = segment_id(cnn) if cnn else block_key(props)
+        if feature is None:
+            continue
+        official = str(props.get("OFFICIAL") or "").strip().lower() == "official"
+        status = DocumentStatus.RECORDED if official else DocumentStatus.UNKNOWN
+        side = _SIDES.get(str(props.get("SIDE", "")).strip().lower(), 0)
+        sheet = props.get("FILENAME") or None
+        flags = () if official else ("not_marked_official",)
+        if not cnn:
+            flags = flags + ("keyed_by_block_not_cnn",)
+
+        row_m = _feet_inches(props.get("ROWFEET"), props.get("ROWINCHES"))
+        if row_m and ROW_RANGE_M[0] <= row_m <= ROW_RANGE_M[1]:
+            facts.append(OfficialGeometryFact(
+                feature_id=feature, fact_class=OfficialFactClass.RIGHT_OF_WAY_WIDTH,
+                value=round(row_m, 4), unit="m", document_id=document.document_id,
+                document_status=status, side=0, source_label="ROW",
+                page_or_sheet=sheet,
+                # Recorded to the inch, so the record's own precision is an inch. Whether the
+                # street matches its record is a separate question, and the one worth asking.
+                horizontal_sigma_m=round(feet_to_m(1.0 / 12.0), 4),
+                source_value=round((_f(props.get("ROWFEET")) or 0.0)
+                                   + (_f(props.get("ROWINCHES")) or 0.0) / 12.0, 4),
+                source_unit="ft", flags=flags,
+            ))
+
+        walk_m = _feet_inches(props.get("SIDEWALKFEET"), props.get("SIDEWALKINCHES"))
+        if walk_m and SIDEWALK_RANGE_FT[0] <= walk_m / feet_to_m(1.0) <= SIDEWALK_RANGE_FT[1]:
+            facts.append(OfficialGeometryFact(
+                feature_id=feature, fact_class=OfficialFactClass.SIDEWALK_WIDTH,
+                value=round(walk_m, 4), unit="m", document_id=document.document_id,
+                document_status=status, side=side, source_label="SIDEWALK",
+                page_or_sheet=sheet, horizontal_sigma_m=round(feet_to_m(1.0 / 12.0), 4),
+                source_value=round((_f(props.get("SIDEWALKFEET")) or 0.0)
+                                   + (_f(props.get("SIDEWALKINCHES")) or 0.0) / 12.0, 4),
+                source_unit="ft", flags=flags,
+            ))
+    return facts
+
+
 EXTRACTORS = {
     "sidewalk_widths": sidewalk_facts,
     "right_of_way": right_of_way_facts,

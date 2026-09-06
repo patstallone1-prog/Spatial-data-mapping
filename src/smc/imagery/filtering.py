@@ -25,10 +25,17 @@ META_DELIVERY_MEGAPIXELS = 1440 * 1080 / 1e6
 INGEST_MIN_MEGAPIXELS = META_DELIVERY_MEGAPIXELS * 0.9
 
 
-def resolution_tier(megapixels: float | None) -> str:
-    """Quality tier from source pixels. Missing resolution stays reject-tier."""
+def resolution_tier(megapixels: float | None,
+                    *, floor: float = INGEST_MIN_MEGAPIXELS) -> str:
+    """Quality tier from source pixels. Missing resolution stays reject-tier.
 
-    if megapixels is None or megapixels < ABSOLUTE_MIN_MEGAPIXELS:
+    The floor tracks the catalogue's own ingest floor rather than a separate constant. When the
+    floor was lowered to a tenth below what the glasses deliver, this ladder was left at two
+    megapixels, so a frame the catalogue accepted came out labelled ``reject`` -- eligible and
+    rejected at once. The audit then flagged it, correctly, as a contradiction.
+    """
+
+    if megapixels is None or megapixels < floor:
         return TIER_REJECT
     if megapixels >= META_CLASS_MEGAPIXELS:
         return TIER_A
@@ -42,7 +49,7 @@ def mark_eligibility(
 ) -> Observation:
     """Apply v1 source-quality gates without inventing missing provider facts."""
 
-    tier = resolution_tier(observation.original_megapixels)
+    tier = resolution_tier(observation.original_megapixels, floor=min_megapixels)
     observation.resolution_tier = tier
     reasons: list[str] = []
     if not region.bbox.contains(observation.latitude, observation.longitude):

@@ -42,3 +42,11 @@ build/facade-cache/
 # Raw DataSF responses. Reproducible cache keyed by dataset and query; the derived tables
 # under data/sf_public_works/ are what belongs in the repository.
 build/sf_public_works/
+
+# The observation enrichment sidecar. Twenty-seven megabytes of derived join, rebuildable
+# in two minutes from the catalogue and the official geometry that are committed; the summary
+# beside it is small and is kept.
+data/observation_enrichment/*.parquet
+
+# Raw SFMTA ArcGIS responses. Reproducible cache keyed by layer and query.
+build/sfmta/

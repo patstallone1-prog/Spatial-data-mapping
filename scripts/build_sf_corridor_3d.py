@@ -409,6 +409,9 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
         return {"available": False}
 
     segments = {row["feature_id"]: row for row in json.loads(segments_path.read_text())}
+    # Carriageway measured across the city's own curb lines, and which streets are one-way.
+    attributes_path = OFFICIAL / "street_attributes.json"
+    attributes = json.loads(attributes_path.read_text()) if attributes_path.exists() else {}
     frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0,
                        (bbox["west"] + bbox["east"]) / 2.0)
     index = CentrelineIndex.from_centrelines(json.loads(centrelines_path.read_text()), frame)
@@ -450,20 +453,38 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
         if record.get("accepted_on"):
             way["accepted_on"] = record["accepted_on"]
 
-        # A right of way runs property line to property line, so the carriageway is what is
-        # left after both footways. Where the survey did not measure the footway, it is taken
-        # as a share of the right of way rather than as a fixed three metres: on a six-metre
-        # alley a fixed three would leave no roadway at all, and clamping the roadway back up
-        # would make it wider than the right of way containing it.
+        attribute = attributes.get(feature) or {}
+        if attribute.get("oneway"):
+            way["oneway"] = attribute["oneway"]
+            counts["one-way"] += 1
+
+        # The carriageway, in order of how directly it was measured.
+        #
+        # First choice is the distance between the city's two mapped curb faces, read every two
+        # metres along the street. That is the width itself rather than an inference from it,
+        # and it carries the bulb-outs and turning pockets that no single number can.
+        #
+        # Second choice is the right of way with both footways taken out of it. Where the survey
+        # never measured the footway it is taken as a share of the right of way rather than a
+        # fixed three metres: on a six-metre alley a fixed three would leave no roadway at all,
+        # and clamping the roadway back up would make it wider than the right of way holding it.
         row_m = record.get("right_of_way_m")
-        if row_m:
+        if attribute.get("road_m"):
+            way["road_m"] = attribute["road_m"]
+            way["road_source"] = "curb_geometry"
+            way["road_varies_m"] = round(attribute["road_p90_m"] - attribute["road_p10_m"], 2)
+            counts["carriageway from curb lines"] += 1
+        elif row_m:
             walk = way.get("walk_m") or min(3.0, row_m * 0.18)
             way["road_m"] = round(max(2.5, row_m - 2.0 * walk), 3)
+            way["road_source"] = "row_minus_footways"
+            counts["carriageway from right of way"] += 1
             if not way.get("walk_m"):
                 way["walk_fallback_m"] = round(walk, 3)
 
     return {"available": True, "counts": dict(counts),
             "segments": len(segments),
+            "curb_measured_segments": sum(1 for a in attributes.values() if "road_m" in a),
             "distinct_curb_heights": len({w["kerb_m"] for w in ways if w.get("kerb_m")})}
 
 
@@ -1503,7 +1524,11 @@ for (const way of DATA.ways) {
   // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
   // It does not belong on a crossing either -- a crosswalk has bars painted across it and no
   // line down its middle, and the bars are now real paint rather than a coloured slab.
-  if (!isSidewalk && !isCrossing) {
+  // A yellow centreline separates opposing traffic, so a one-way street does not have one.
+  // Drawing it on every roadway put the marking on 784 segments of this corridor that do not
+  // carry it -- and a yellow line specifically tells a driver there is traffic coming the
+  // other way.
+  if (!isSidewalk && !isCrossing && !way.oneway) {
     // Broken yellow, at the real stripe and gap. It was a continuous thread of pale yellow at
     // 45 per cent, which is not a marking any street has.
     groups.streets.add(dashedLine(way.points, 0xf0c33c, 0.92, roadTop + 0.02));
