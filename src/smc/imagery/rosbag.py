@@ -213,3 +213,62 @@ class RemoteBag:
             if conn_id not in conn_ids:
                 continue
             yield conn_id, struct.unpack("<Q", header["time"])[0], data
+
+
+# -- message payloads --------------------------------------------------------------------------
+#
+# ROS 1 serialises little-endian with no padding and no schema in the message itself, so a reader
+# has to know the field order from the .msg definition. Only the two shapes this project needs are
+# implemented, and each stops as soon as it has what it came for -- a NavSatFix carries a nine
+# element covariance matrix after the coordinates, and decoding it would be work spent on nothing.
+
+
+def _header(payload: bytes, offset: int = 0) -> tuple[float, int]:
+    """std_msgs/Header: seq, stamp, frame_id. Returns the stamp in seconds and the new offset."""
+    seq, secs, nsecs, frame_len = struct.unpack_from("<IIII", payload, offset)
+    offset += 16 + frame_len
+    return secs + nsecs * 1e-9, offset
+
+
+def decode_navsatfix(payload: bytes) -> dict | None:
+    """sensor_msgs/NavSatFix -> latitude, longitude, altitude, and the fix status.
+
+    ``status`` is worth keeping rather than discarding: -1 means the receiver had no fix, and a
+    row carrying latitude 0 with no fix would otherwise be read as a position in the Gulf of
+    Guinea rather than as a gap in the record.
+    """
+    try:
+        stamp, offset = _header(payload)
+        status, service = struct.unpack_from("<hH", payload, offset)
+        offset += 4
+        latitude, longitude, altitude = struct.unpack_from("<ddd", payload, offset)
+    except (struct.error, IndexError):
+        return None
+    if status < 0:
+        return None
+    return {
+        "t": stamp,
+        "lat": latitude,
+        "lon": longitude,
+        "alt": altitude,
+        "status": status,
+        "service": service,
+    }
+
+
+def decode_compressed_image(payload: bytes) -> dict | None:
+    """sensor_msgs/CompressedImage -> the encoded bytes and their format."""
+    try:
+        stamp, offset = _header(payload)
+        (format_len,) = struct.unpack_from("<I", payload, offset)
+        offset += 4
+        image_format = payload[offset : offset + format_len].decode("utf-8", "replace")
+        offset += format_len
+        (data_len,) = struct.unpack_from("<I", payload, offset)
+        offset += 4
+    except (struct.error, IndexError):
+        return None
+    data = payload[offset : offset + data_len]
+    if len(data) != data_len:
+        return None
+    return {"t": stamp, "format": image_format, "data": data}

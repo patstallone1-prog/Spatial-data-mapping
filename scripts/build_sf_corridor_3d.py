@@ -445,13 +445,22 @@ document.getElementById("surfaces").textContent = (DATA.summary.cv_depth.surface
 document.getElementById("measured").textContent = (DATA.summary.cv_depth.measured_curb_height_count || 0).toLocaleString();
 
 const canvas = document.getElementById("scene");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+// A logarithmic depth buffer, because this scene spans five orders of magnitude: a 126 mm kerb
+// has to stay distinct from the road it sits on while a two-kilometre corridor is on screen. With
+// the ordinary buffer, precision falls with the square of distance -- at a thousand metres it is
+// about 0.6 m, and street markings separated by two centimetres flickered in and out as the
+// depth test picked a different winner each frame.
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: true, alpha: false, logarithmicDepthBuffer: true,
+});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x071013);
 scene.fog = new THREE.Fog(0x071013, 650, 1900);
 
-const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 5000);
+// The near plane is the other half of the depth problem: precision scales with it, and 0.1 m
+// bought nothing since the camera never comes closer than a few metres to anything.
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.5, 6000);
 // The measured median kerb, in metres: 9,376 lidar slices, cross-checked against Waymo
 // ground-level lidar to within 1 mm of median. The model is built to it rather than to nominal.
 const KERB = DATA.kerb_height_m || 0.126;
@@ -501,7 +510,10 @@ root.add(ground);
 
 function line(points, color, opacity = 1, y = 2, widthHint = 1) {
   const geom = new THREE.BufferGeometry().setFromPoints(points.map((p) => v3(p[0], p[1], y)));
-  const mat = new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity });
+  const mat = new THREE.LineBasicMaterial({
+    color, transparent: opacity < 1, opacity,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+  });
   const obj = new THREE.Line(geom, mat);
   obj.userData.widthHint = widthHint;
   return obj;
