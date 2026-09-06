@@ -20,8 +20,10 @@ from __future__ import annotations
 import bz2
 import http.client
 import io
+import random
 import struct
 import threading
+import time
 import urllib.request
 from dataclasses import dataclass, field
 
@@ -88,8 +90,24 @@ class RangedReader:
         # The redirect target is deliberately not kept. Dropbox hands out a signed, short-lived
         # CDN link per request, so reusing the one a HEAD resolved to earns a 403 on the first
         # range read. Every request re-follows from the share URL instead.
-        request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(request, timeout=60) as response:
+        # Retried, because this runs once per worker thread and a refused HEAD used to take the
+        # whole worker down with it. Measured: serially 25 of 25 chunks read cleanly; at twelve
+        # workers 7,795 of 8,207 failed, and the difference was entirely here.
+        response = None
+        for attempt in range(4):
+            if attempt:
+                time.sleep(1.5 * attempt + random.uniform(0, 0.8))
+            try:
+                request = urllib.request.Request(
+                    url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"}
+                )
+                response = urllib.request.urlopen(request, timeout=60)
+                break
+            except (urllib.error.HTTPError, urllib.error.URLError, OSError,
+                    http.client.HTTPException):
+                if attempt == 3:
+                    raise
+        with response:
             length = response.headers.get("Content-Length")
             if not length:
                 raise RosbagError(f"{url}: no length; cannot seek")

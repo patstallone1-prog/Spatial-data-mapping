@@ -411,6 +411,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
         <button data-layer="coverage" aria-pressed="true">Coverage</button>
         <button data-layer="observations" aria-pressed="true">Photos</button>
         <button data-layer="sequences" aria-pressed="true">Sequences</button>
+        <button data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
         <button data-layer="districts" aria-pressed="true">Districts</button>
       </div>
     </div>
@@ -474,13 +475,14 @@ const groups = {
   observations: new THREE.Group(),
   sequences: new THREE.Group(),
   districts: new THREE.Group(),
+  kerbs: new THREE.Group(),
   gaps: new THREE.Group(),
 };
 // What opens is the city: streets, buildings, districts. The survey layers -- where photographs
 // were taken, which cells are covered, which sequences ran, which ways are missing -- are all
 // about the state of the dataset rather than about the place, and starting with them lit turns
 // a map of San Francisco into a progress chart. They are one click away and they stay.
-for (const off of ["coverage", "observations", "sequences", "gaps"]) groups[off].visible = false;
+for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs"]) groups[off].visible = false;
 Object.values(groups).forEach((g) => root.add(g));
 
 const bbox = DATA.bbox;
@@ -990,12 +992,21 @@ for (const way of DATA.ways) {
     isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
     isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
     isCrossing ? null : isSidewalk ? "walk" : "road"));
-  groups.streets.add(line(way.points, color, isCrossing ? 1 : 0.72,
-    isCrossing ? roadTop + 0.05 : isSidewalk ? roadTop + KERB + 0.02 : roadTop + 0.02));
+  // A centreline belongs on a roadway, not on a footway: drawn on everything it read as a
+  // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
+  if (!isSidewalk) {
+    groups.streets.add(line(way.points, isCrossing ? color : 0xf2f2f2, isCrossing ? 1 : 0.5,
+      isCrossing ? roadTop + 0.05 : roadTop + 0.02));
+  }
   if (way.covered && (isCrossing || isSidewalk)) {
-    // The kerb face itself: as tall as it was measured, and narrow, because it is an edge.
-    groups.mapped3d.add(ribbon(way.points, isCrossing ? 0.8 : 0.45, 0xff4d8f,
-      isCrossing ? 0.92 : 0.8, roadTop + KERB / 2, KERB));
+    // The measured kerb, marked. This sat at exactly the footway's own height and thickness --
+    // two coplanar boxes occupying the same volume, which no depth buffer can order, so it
+    // strobed pink against grey every frame. It now caps the kerb rather than sharing it.
+    //
+    // It is also survey data rather than street, so it belongs with the other layers that
+    // describe the dataset and is off until asked for.
+    groups.kerbs.add(ribbon(way.points, isCrossing ? 0.8 : 0.45, 0xff4d8f,
+      0.95, roadTop + KERB + 0.03, 0.05));
   }
   if (!isCrossing && !isSidewalk && way.name && !streetNames.has(way.name) && streetLabelCount < 90) {
     const midpoint = longestMidpoint(way.points);

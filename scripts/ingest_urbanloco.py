@@ -96,8 +96,10 @@ def main() -> int:
     ap.add_argument("--h3-resolution", type=int, default=10)
     ap.add_argument("--budget-mb", type=float, default=2500.0,
                     help="stop after pulling this much of the bag")
-    ap.add_argument("--workers", type=int, default=12,
-                    help="Concurrent range reads. The pass is latency-bound, not bandwidth-bound.")
+    ap.add_argument("--workers", type=int, default=4,
+                    help=("Concurrent range reads. The pass is latency-bound, but this host "
+                          "refuses heavy concurrency: at twelve workers 95% of chunks failed "
+                          "to read, and serially none did. Four is what it tolerates."))
     ap.add_argument("--everywhere", action="store_true",
                     help="keep frames anywhere in the region, not only in thin cells")
     args = ap.parse_args()
