@@ -519,7 +519,7 @@ function line(points, color, opacity = 1, y = 2, widthHint = 1) {
   return obj;
 }
 
-function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4) {
+function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surface = null) {
   const [x1, yy1] = xy(a[0], a[1]);
   const [x2, yy2] = xy(b[0], b[1]);
   const z1 = -yy1;
@@ -530,17 +530,20 @@ function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4) {
   if (length < 0.8) return null;
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(length, segmentHeight, width),
-    new THREE.MeshStandardMaterial({ color, transparent: opacity < 1, opacity, roughness: 0.92, metalness: 0.02 })
+    new THREE.MeshStandardMaterial({
+      color, transparent: opacity < 1, opacity, roughness: 0.92, metalness: 0.02,
+      map: surface === "walk" ? CONCRETE : surface === "road" ? ASPHALT : null,
+    })
   );
   mesh.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
   mesh.rotation.y = Math.atan2(-dz, dx);
   return mesh;
 }
 
-function ribbon(points, width, color, opacity, y, segmentHeight = 1.4) {
+function ribbon(points, width, color, opacity, y, segmentHeight = 1.4, surface = null) {
   const group = new THREE.Group();
   for (let i = 1; i < points.length; i += 1) {
-    const segment = segmentRibbon(points[i - 1], points[i], width, color, opacity, y, segmentHeight);
+    const segment = segmentRibbon(points[i - 1], points[i], width, color, opacity, y, segmentHeight, surface);
     if (segment) group.add(segment);
   }
   return group;
@@ -606,6 +609,87 @@ function longestMidpoint(points) {
   return best;
 }
 
+// ---- materials ----
+//
+// Textures are drawn into a canvas rather than shipped as images: the page is served from a
+// repository where every megabyte of binary is a megabyte in every future clone, and a facade
+// that is a grid of windows costs a few lines of code and nothing on disk.
+
+function noiseTexture(base, speck, size = 128, density = 0.28) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = speck;
+  for (let i = 0; i < size * size * density; i += 1) {
+    ctx.globalAlpha = 0.05 + Math.random() * 0.25;
+    ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+function facadeTexture() {
+  // One storey tall and one bay wide, tiled. Windows are lit at random so a street of identical
+  // extrusions stops reading as identical.
+  const w = 64, h = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#8d9ea4";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(0,0,0,0.16)";
+  ctx.fillRect(0, h - 6, w, 6);                      // the floor line between storeys
+  for (const x of [10, 36]) {
+    const lit = Math.random() < 0.22;
+    ctx.fillStyle = lit ? "rgba(255,226,170,0.85)" : "rgba(24,38,44,0.9)";
+    ctx.fillRect(x, 12, 18, 34);
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.strokeRect(x + 0.5, 12.5, 17, 33);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+const FACADE_TEXTURE = facadeTexture();
+const ASPHALT = noiseTexture("#2b3338", "#0b1114", 128, 0.35);
+const CONCRETE = noiseTexture("#9aa8ab", "#7b8a8e", 128, 0.22);
+ASPHALT.repeat.set(6, 6);
+CONCRETE.repeat.set(4, 4);
+
+//: Storey height and bay width in metres, so one tile of the facade covers one real storey.
+const STOREY_M = 3.2;
+const BAY_M = 4.0;
+
+// ExtrudeGeometry's default UVs come from the footprint's own coordinates, which stretches a
+// facade by however large the building is in world space. This maps side walls to
+// (distance along the wall, height) instead, so windows stay the same size on every building.
+const FACADE_UV = {
+  generateTopUV(geometry, vertices, a, b, c) {
+    // Roofs carry no map, so these only need to exist and be finite.
+    return [
+      new THREE.Vector2(vertices[a * 3] / 20, vertices[a * 3 + 1] / 20),
+      new THREE.Vector2(vertices[b * 3] / 20, vertices[b * 3 + 1] / 20),
+      new THREE.Vector2(vertices[c * 3] / 20, vertices[c * 3 + 1] / 20),
+    ];
+  },
+  generateSideWallUV(geometry, vertices, a, b, c, d) {
+    const ax = vertices[a * 3], ay = vertices[a * 3 + 1], az = vertices[a * 3 + 2];
+    const bx = vertices[b * 3], by = vertices[b * 3 + 1], bz = vertices[b * 3 + 2];
+    const cz = vertices[c * 3 + 2], dz = vertices[d * 3 + 2];
+    const run = Math.hypot(bx - ax, by - ay) / BAY_M;
+    return [
+      new THREE.Vector2(0, az / STOREY_M),
+      new THREE.Vector2(run, bz / STOREY_M),
+      new THREE.Vector2(run, cz / STOREY_M),
+      new THREE.Vector2(0, dz / STOREY_M),
+    ];
+  },
+};
+
 function footprintShape(points) {
   if (!points || points.length < 4) return null;
   const shape = new THREE.Shape();
@@ -631,18 +715,27 @@ function footprintMesh(points, color, opacity, y) {
 function buildingMesh(feature) {
   const shape = footprintShape(feature.points);
   if (!shape) return null;
-  const height = Math.max(4, Math.min(180, (feature.height_m || 10.5) * 1.8));
-  const geom = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false });
+  // No exaggeration. This was multiplied by 1.8 to make massing read from a bird's eye, which
+  // put every building eighty per cent taller than OpenStreetMap says it is -- fine as a
+  // diagram, wrong the moment somebody walks down the street beside it.
+  const height = Math.max(3, Math.min(260, feature.height_m || 10.5));
+  const geom = new THREE.ExtrudeGeometry(shape, {
+    depth: height, bevelEnabled: false, UVGenerator: FACADE_UV,
+  });
   geom.rotateX(-Math.PI / 2);
   const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels";
-  const mat = new THREE.MeshStandardMaterial({
-    color: measured ? 0xb8ccd0 : 0x728a91,
-    transparent: true,
-    opacity: measured ? 0.76 : 0.52,
-    roughness: 0.88,
-    metalness: 0.03,
+  const tint = measured ? 0xb8ccd0 : 0x728a91;
+  const opacity = measured ? 0.76 : 0.52;
+  // ExtrudeGeometry emits two material groups: the caps first, then the walls. Giving both the
+  // facade map put a grid of windows across every rooftop -- which reads, from above, as though
+  // the city were tiled in glass.
+  const roof = new THREE.MeshStandardMaterial({
+    color: tint, transparent: true, opacity, roughness: 0.95, metalness: 0.02,
   });
-  const mesh = new THREE.Mesh(geom, mat);
+  const walls = new THREE.MeshStandardMaterial({
+    map: FACADE_TEXTURE, color: tint, transparent: true, opacity, roughness: 0.88, metalness: 0.03,
+  });
+  const mesh = new THREE.Mesh(geom, [roof, walls]);
   mesh.userData = feature;
   return mesh;
 }
@@ -671,7 +764,8 @@ for (const way of DATA.ways) {
   const roadTop = 0.06;
   groups.streets.add(ribbon(way.points, widthMeters, color, opacity,
     isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
-    isCrossing ? 0.02 : isSidewalk ? KERB : roadTop));
+    isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
+    isCrossing ? null : isSidewalk ? "walk" : "road"));
   groups.streets.add(line(way.points, color, isCrossing ? 1 : 0.72,
     isCrossing ? roadTop + 0.05 : isSidewalk ? roadTop + KERB + 0.02 : roadTop + 0.02));
   if (way.covered && (isCrossing || isSidewalk)) {
