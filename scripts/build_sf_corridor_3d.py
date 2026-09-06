@@ -611,6 +611,15 @@ const renderer = new THREE.WebGLRenderer({
   canvas, antialias: true, alpha: false, logarithmicDepthBuffer: true,
 });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// Without tone mapping the renderer clips: anything the lights push past 1.0 lands on pure
+// white and everything above that threshold flattens into the same colour. With a bright sky
+// and a bright sun that was most of the ground, which is why making the carriageway texture
+// darker changed almost nothing on screen -- the surface was already saturated and the extra
+// darkness was being clipped away before it could be seen. Filmic tone mapping rolls the
+// highlights off instead, so the difference between a near-black road and a mid-grey footway
+// survives to the pixel.
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x071013);
 scene.fog = new THREE.Fog(0x071013, 650, 1900);
@@ -682,9 +691,11 @@ function skyEnvironment(renderer) {
 }
 
 scene.environment = skyEnvironment(renderer);
-const amb = new THREE.HemisphereLight(0xb7f5ff, 0x071013, 1.7);
+// Turned down with the tone mapper in place: the old pair were set to be bright enough to read
+// through the clipping, and left as they were they simply saturate a wider part of the scene.
+const amb = new THREE.HemisphereLight(0xb7f5ff, 0x071013, 1.15);
 scene.add(amb);
-const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+const sun = new THREE.DirectionalLight(0xfff4e2, 2.0);
 sun.position.set(-420, 700, 300);
 scene.add(sun);
 
@@ -778,6 +789,28 @@ function ribbon(points, width, color, opacity, y, segmentHeight = 1.4, surface =
     if (segment) group.add(segment);
   }
   return group;
+}
+
+//: A broken centreline in the United States is a ten-foot stripe with a thirty-foot gap. The
+//: numbers matter: at any other ratio it stops reading as a road marking and starts reading as
+//: a dotted line somebody drew on a map.
+const DASH_M = 3.05;
+const GAP_M = 9.14;
+
+function dashedLine(points, color, opacity, y) {
+  const vertices = points.map((p) => v3(p[0], p[1], y));
+  const geom = new THREE.BufferGeometry().setFromPoints(vertices);
+  const mat = new THREE.LineDashedMaterial({
+    color, transparent: opacity < 1, opacity,
+    dashSize: DASH_M, gapSize: GAP_M,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+  });
+  const obj = new THREE.Line(geom, mat);
+  // LineDashedMaterial dashes by distance along the line, and that distance is not computed
+  // for you. Without this every dashed line renders solid, which is exactly what it looks like
+  // when it silently fails.
+  obj.computeLineDistances();
+  return obj;
 }
 
 function labelSprite(text, color = "#edf5f5", scale = 90) {
@@ -1030,7 +1063,7 @@ function roadTexture() {
   const ctx = canvas.getContext("2d");
   // The scene carries a bright hemisphere light, so a mid-grey here comes out looking like
   // pavement. The carriageway has to start near-black to read as a road beside a footway.
-  ctx.fillStyle = "#151719";
+  ctx.fillStyle = "#0e1012";
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < size * size * 0.5; i += 1) {
     const shade = random(i * 7);
@@ -1070,14 +1103,25 @@ function crossingTexture() {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, size, size);
   // The tile is one bar and one gap across v, which runs across the width of the crossing.
-  ctx.fillStyle = "rgba(236, 238, 233, 0.92)";
-  ctx.fillRect(0, 0, size, size * 0.5);
-  // Worn paint. A crosswalk that has had a year of traffic over it is not a clean rectangle.
-  for (let i = 0; i < size * size * 0.16; i += 1) {
-    const x = random(i * 3) * size;
-    const y = random(i * 5) * size * 0.5;
-    ctx.fillStyle = random(i * 9) < 0.6 ? "rgba(35,38,41,0.30)" : "rgba(255,255,255,0.20)";
-    ctx.fillRect(x, y, 1, 1);
+  // The bar itself. Thermoplastic goes down bright and stays brighter than the road for years,
+  // so it is nearly white rather than the dull cream it was.
+  ctx.fillStyle = "rgba(244, 245, 240, 0.97)";
+  ctx.fillRect(0, 1, size, size * 0.5 - 2);
+  // Wear, concentrated where tyres cross it rather than sprayed evenly over the paint. A bar
+  // that is uniformly speckled reads as dirty card; a bar worn in two tracks reads as a road
+  // marking that has had a year of traffic over it.
+  for (const track of [0.22, 0.7]) {
+    for (let i = 0; i < size * 6; i += 1) {
+      const x = (track + (random(i * 11) - 0.5) * 0.20) * size;
+      const y = 1 + random(i * 5) * (size * 0.5 - 2);
+      ctx.fillStyle = random(i * 9) < 0.72 ? "rgba(24,26,28,0.30)" : "rgba(255,255,255,0.16)";
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  // Softened edges: paint sprayed against a screed does not end on a pixel.
+  for (let i = 0; i < size * 2; i += 1) {
+    ctx.fillStyle = "rgba(244,245,240,0.35)";
+    ctx.fillRect(random(i * 3) * size, random(i * 7) < 0.5 ? 0 : size * 0.5 - 1, 1, 1);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -1090,34 +1134,52 @@ const CROSSING = crossingTexture();
 const CROSSING_PERIOD_M = 1.2;
 
 function sidewalkTexture() {
-  // Scored concrete. San Francisco pours its footways in squares of about five feet, and the
-  // joints between them are most of what tells you, at a glance, that you are looking at a
-  // pavement rather than at a grey strip.
-  const size = 96;
+  // Scored concrete, as San Francisco actually pours it: a mid grey rather than a pale one,
+  // with exposed aggregate speckle at two scales, the fine parallel striations a broom leaves
+  // across a fresh slab, and a scored joint every five feet. The joints are most of what tells
+  // you at a glance that you are looking at a pavement and not at a grey strip; the grain is
+  // what stops it looking like painted card.
+  const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  // Pale. Footway concrete cures to a light warm grey and the whole point of it is that it
-  // reads lighter than the carriageway it sits beside.
-  ctx.fillStyle = "#b7bcb6";
+  ctx.fillStyle = "#696d65";
   ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < size * size * 0.34; i += 1) {
-    const shade = random(i);
-    ctx.fillStyle = shade < 0.45 ? "rgba(0,0,0,0.11)"
-      : shade < 0.8 ? "rgba(255,255,255,0.14)" : "rgba(120,116,108,0.16)";
+
+  // Coarse aggregate: the stones in the mix, a few pixels across.
+  for (let i = 0; i < size * size * 0.02; i += 1) {
+    const shade = random(i * 13);
+    ctx.fillStyle = shade < 0.56 ? "rgba(44,46,42,0.34)" : "rgba(166,168,158,0.22)";
+    const r = 1 + random(i * 17) * 1.8;
+    ctx.beginPath();
+    ctx.arc(random(i * 3) * size, random(i * 5) * size, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Fine grain over the whole slab.
+  for (let i = 0; i < size * size * 0.5; i += 1) {
+    const shade = random(i * 7);
+    ctx.fillStyle = shade < 0.5 ? "rgba(0,0,0,0.20)"
+      : shade < 0.85 ? "rgba(255,255,255,0.075)" : "rgba(104,96,84,0.16)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
   }
-  // Staining along the joints, where water sits.
-  ctx.fillStyle = "rgba(90,92,88,0.12)";
-  ctx.fillRect(0, 0, size, 4);
-  ctx.fillRect(0, 0, 4, size);
+  // Broom finish: shallow parallel striations across the slab, which is what a finisher leaves
+  // and what gives real pavement its direction under raking light.
+  for (let y = 0; y < size; y += 2) {
+    ctx.fillStyle = random(y * 29) < 0.5 ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.04)";
+    ctx.fillRect(0, y, size, 1);
+  }
+  // Staining along the joints, where water sits and dirt collects.
+  ctx.fillStyle = "rgba(58,60,56,0.20)";
+  ctx.fillRect(0, 0, size, 6);
+  ctx.fillRect(0, 0, 6, size);
   // The score itself: a groove, so a dark line with a bright lip below it.
-  ctx.strokeStyle = "rgba(60,62,60,0.55)";
-  ctx.lineWidth = 2.2;
-  ctx.strokeRect(1.1, 1.1, size - 2.2, size - 2.2);   // one slab per tile
-  ctx.strokeStyle = "rgba(255,255,255,0.22)";
-  ctx.lineWidth = 1.0;
-  ctx.strokeRect(3.0, 3.0, size - 6.0, size - 6.0);
+  ctx.strokeStyle = "rgba(38,40,38,0.62)";
+  ctx.lineWidth = 3.0;
+  ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
+  ctx.strokeStyle = "rgba(200,202,194,0.14)";
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(4.0, 4.0, size - 8, size - 8);
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   return texture;
@@ -1173,7 +1235,12 @@ function footprintMesh(points, color, opacity, y) {
   if (!shape) return null;
   const geom = new THREE.ShapeGeometry(shape);
   geom.rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshStandardMaterial({ color, transparent: opacity < 1, opacity, roughness: 0.95, metalness: 0.02, side: THREE.DoubleSide });
+  // No depth writing: this is a flat translucent plate the size of a building footprint, and
+  // with depth on it hid whatever stood behind it.
+  const mat = new THREE.MeshStandardMaterial({
+    color, transparent: opacity < 1, opacity, roughness: 0.95, metalness: 0.02,
+    side: THREE.DoubleSide, depthWrite: opacity >= 1,
+  });
   const mesh = new THREE.Mesh(geom, mat);
   mesh.position.y = y;
   return mesh;
@@ -1195,19 +1262,31 @@ function buildingMesh(feature) {
   const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
   const material = pickMaterial(seed, height);
   const palette = material.colours;
-  const tint = palette[Math.floor(random(seed + 11) * palette.length)];
-  // A building whose height was measured is drawn solid; an inferred default stays translucent,
-  // so the difference between what is known and what is assumed survives the prettier textures.
-  // Higher than it was. A translucent building reads as scaffolding; the distinction between a
-  // measured height and an inferred one is still there, just no longer at the cost of the city
-  // looking like a wireframe.
-  const opacity = measured ? 1.0 : 0.82;
+  let tint = palette[Math.floor(random(seed + 11) * palette.length)];
+  // Solid, both of them. Transparency was carrying a meaning -- an inferred height was drawn
+  // see-through so it could not be mistaken for a measured one -- and it was paying far too much
+  // for it. A translucent building shows the buildings behind it through its own roof, puts
+  // itself in the depth-sorted transparent queue where it fights with everything else in there,
+  // and reads as scaffolding rather than as a building.
+  //
+  // The distinction survives without it: a building whose height nobody has recorded is drawn
+  // desaturated, so a street of assumptions is visibly greyer than a street of measurements
+  // while both are things you cannot see through.
+  const opacity = 1.0;
   // ExtrudeGeometry emits two material groups: the caps first, then the walls. Giving both the
   // facade map put a grid of windows across every rooftop -- which reads, from above, as though
   // the city were tiled in glass.
   // The roof takes the wall's colour, darkened. A fixed grey top on a coloured building looked
   // like a lid set on something else, and from above -- which is most of how this map is read --
   // the roof is the building.
+  if (!measured) {
+    // Pulled most of the way to its own grey. Still a coloured building, visibly less certain.
+    const colour = new THREE.Color(tint);
+    const hsl = {};
+    colour.getHSL(hsl);
+    colour.setHSL(hsl.h, hsl.s * 0.35, hsl.l * 0.92);
+    tint = colour.getHex();
+  }
   const roofTint = new THREE.Color(tint).multiplyScalar(0.68);
   const roof = new THREE.MeshStandardMaterial({
     color: roofTint, transparent: opacity < 1, opacity,
@@ -1381,7 +1460,10 @@ const streetNames = new Set();
 let streetLabelCount = 0;
 for (const way of DATA.ways) {
   if (way.kind === "building") {
-    const base = footprintMesh(way.points, way.covered ? 0x2b4148 : 0x1b2a2f, way.covered ? 0.42 : 0.18, 1.8);
+    // On the ground, where a footprint is. At 1.8 m it was a plate floating at head height
+    // through the middle of every building.
+    const base = footprintMesh(way.points, way.covered ? 0x2b4148 : 0x1b2a2f,
+                               way.covered ? 0.42 : 0.18, 0.04);
     if (base) groups.streets.add(base);
     if (way.covered) {
       const building = buildingMesh(way);
@@ -1422,7 +1504,9 @@ for (const way of DATA.ways) {
   // It does not belong on a crossing either -- a crosswalk has bars painted across it and no
   // line down its middle, and the bars are now real paint rather than a coloured slab.
   if (!isSidewalk && !isCrossing) {
-    groups.streets.add(line(way.points, 0xd8b24a, 0.45, roadTop + 0.02));
+    // Broken yellow, at the real stripe and gap. It was a continuous thread of pale yellow at
+    // 45 per cent, which is not a marking any street has.
+    groups.streets.add(dashedLine(way.points, 0xf0c33c, 0.92, roadTop + 0.02));
   }
   if (way.covered && (isCrossing || isSidewalk)) {
     // The measured kerb, marked. This sat at exactly the footway's own height and thickness --
@@ -1448,11 +1532,27 @@ const districtColors = [0x1d4d58, 0x355038, 0x4a3e61, 0x5a4930, 0x533749, 0x2947
 DATA.districts.forEach((d, i) => {
   const [x1, y1] = xy(d.west, d.north);
   const [x2, y2] = xy(d.east, d.south);
+  // A district is a label for a part of the city, not a thing standing in it. This used to be
+  // a six-metre-tall translucent box covering a whole neighbourhood, and it was eating the
+  // bottoms of buildings: a transparent mesh still writes depth by default, and the transparent
+  // queue is sorted by object rather than by fragment, so wherever a district sorted in front
+  // of a building the building's lowest six metres failed the depth test and vanished. What was
+  // left was the top of a tower hanging in the air with nothing under it -- which looked like a
+  // geometry bug in the buildings and was nothing of the kind.
+  //
+  // It is now a tint on the ground, under the roadway, writing no depth at all.
   const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(Math.abs(x2 - x1), 6, Math.abs(y1 - y2)),
-    new THREE.MeshStandardMaterial({ color: districtColors[i % districtColors.length], transparent: true, opacity: 0.2, roughness: 0.9 })
+    new THREE.PlaneGeometry(Math.abs(x2 - x1), Math.abs(y1 - y2)),
+    new THREE.MeshBasicMaterial({
+      color: districtColors[i % districtColors.length],
+      // Faint. As a six-metre box at 0.2 this was a tinted volume you looked through; as a
+      // ground plane the same opacity is a sheet of colour over a dark background, and the
+      // block interiors came out mint green.
+      transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide,
+    })
   );
-  mesh.position.set((x1 + x2) / 2, 3, -(y1 + y2) / 2);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set((x1 + x2) / 2, -0.08, -(y1 + y2) / 2);
   groups.districts.add(mesh);
   labelAt(d.name, (d.west + d.east) / 2, (d.south + d.north) / 2, 54, groups.districts, "#ffffff", 145);
 });
