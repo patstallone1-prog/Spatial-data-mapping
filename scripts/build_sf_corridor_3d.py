@@ -491,6 +491,31 @@ const metersPerLon = metersPerLat * Math.cos(midLat * Math.PI / 180);
 function xy(lon, lat) { return [(lon - midLon) * metersPerLon, (lat - midLat) * metersPerLat]; }
 function v3(lon, lat, z = 0) { const [x, y] = xy(lon, lat); return new THREE.Vector3(x, z, -y); }
 
+// A procedural sky, generated once into an environment map. Without one, a metallic material
+// reflects nothing and renders black -- which is why "make it look like glass" is really "give
+// it something to be a mirror of".
+function skyEnvironment(renderer) {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const sky = ctx.createLinearGradient(0, 0, 0, size);
+  sky.addColorStop(0.0, "#0a1620");
+  sky.addColorStop(0.45, "#38566a");
+  sky.addColorStop(0.52, "#8fa9b8");
+  sky.addColorStop(1.0, "#141c20");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environment = pmrem.fromEquirectangular(texture).texture;
+  pmrem.dispose();
+  texture.dispose();
+  return environment;
+}
+
+scene.environment = skyEnvironment(renderer);
 const amb = new THREE.HemisphereLight(0xb7f5ff, 0x071013, 1.7);
 scene.add(amb);
 const sun = new THREE.DirectionalLight(0xffffff, 2.2);
@@ -653,23 +678,36 @@ function noiseTexture(base, speck, size = 128, density = 0.28) {
 // downtown towers. These shares are approximate and are meant to make a street look inhabited
 // rather than to describe any particular building -- nothing downstream measures them, and the
 // provenance of a colour is "invented" wherever anyone asks.
+// Every colour here is chosen to sit away from the ambient grey of the ground and the sky. A
+// building painted the same value as the air around it reads as wireframe -- the eye takes it
+// for the absence of a surface rather than the presence of one.
 const MATERIALS = [
-  { name: "stucco",   share: 0.46, grit: 0.10,
-    colours: [0xd8cfc0, 0xe3dccb, 0xcbc3b2, 0xd6c8a8, 0xe6e0d2, 0xc9bfae] },
-  { name: "concrete", share: 0.24, grit: 0.20,
-    colours: [0xb4b8b6, 0xa2a8a7, 0xc2c5c1, 0x9aa0a0] },
-  { name: "brick",    share: 0.18, grit: 0.26,
-    colours: [0x9c5540, 0x8a4a38, 0xa9614a, 0x7d4433, 0xb06b52] },
-  { name: "glass",    share: 0.12, grit: 0.04,
-    colours: [0x7f97a4, 0x6d8896, 0x8fa6b2, 0x5f7b8a] },
+  { name: "stucco",   share: 0.40, grit: 0.10, rough: 0.92, metal: 0.02,
+    colours: [0xe4d9c2, 0xd9c9a8, 0xcdbfa4, 0xe8dfd0, 0xc8b89c,
+              0xb9c4a8,   // pale sage
+              0xa8b5a0] },
+  { name: "painted",  share: 0.16, grit: 0.14, rough: 0.85, metal: 0.03,
+    colours: [0x3f5670,   // dark blue
+              0x2f4858, 0x4a6b5a,   // green
+              0x6b5744,   // brown
+              0x7a4b42, 0x54606b] },
+  { name: "concrete", share: 0.18, grit: 0.22, rough: 0.95, metal: 0.02,
+    colours: [0xc6cac6, 0xaab0ae, 0x8d9694, 0xd2d6d1] },
+  { name: "brick",    share: 0.14, grit: 0.26, rough: 0.94, metal: 0.02,
+    colours: [0x9c5540, 0x8a4a38, 0xa9614a, 0x7d4433, 0xb06b52, 0x6f4a3c] },
+  { name: "glass",    share: 0.07, grit: 0.03, rough: 0.06, metal: 0.85,
+    colours: [0x8fb2c4, 0x7aa0b6, 0xa3c2d0, 0x6d93aa] },
+  { name: "metal",    share: 0.05, grit: 0.06, rough: 0.24, metal: 0.95,
+    colours: [0xb9c3c8, 0x9aa6ad, 0xc9d2d6, 0x8d989f] },
 ];
 
 function pickMaterial(seed, height) {
   // Tall buildings are not stucco and short ones are not curtain wall, so the draw is nudged by
   // height before the shares are applied.
   const weights = MATERIALS.map((m) => {
-    if (height > 45) return m.name === "glass" || m.name === "concrete" ? m.share * 3 : m.share * 0.25;
-    if (height < 12) return m.name === "glass" ? m.share * 0.15 : m.share;
+    const modern = m.name === "glass" || m.name === "metal" || m.name === "concrete";
+    if (height > 45) return modern ? m.share * 3.5 : m.share * 0.2;
+    if (height < 12) return m.name === "glass" || m.name === "metal" ? m.share * 0.12 : m.share;
     return m.share;
   });
   const total = weights.reduce((a, b) => a + b, 0);
@@ -739,13 +777,34 @@ function facadeFor(material, seed) {
 
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.fillRect(0, h - 5, w, 5);                     // the line between storeys
-  if (material.name !== "glass") {
-    for (const x of [10, 36]) {
-      const lit = random(seed + x) < 0.18;
-      ctx.fillStyle = lit ? "rgba(255,226,170,0.8)" : "rgba(22,34,40,0.88)";
+  if (material.name !== "glass" && material.name !== "metal") {
+    // A window is not a dark rectangle. It is a recess with a frame, a sill catching light from
+    // above, and a pane that is darker at the top than the bottom because it reflects sky at a
+    // grazing angle and room at a steep one. Those three details are most of the realism.
+    for (const x of [9, 35]) {
+      const lit = random(seed + x) < 0.16;
+      ctx.fillStyle = "rgba(0,0,0,0.30)";
+      ctx.fillRect(x - 2, 10, 22, 36);                        // the reveal
+      const pane = ctx.createLinearGradient(0, 12, 0, 44);
+      if (lit) {
+        pane.addColorStop(0, "rgba(255,224,168,0.92)");
+        pane.addColorStop(1, "rgba(214,168,96,0.80)");
+      } else {
+        pane.addColorStop(0, "rgba(120,150,168,0.85)");       // sky at the top
+        pane.addColorStop(0.5, "rgba(38,54,64,0.92)");
+        pane.addColorStop(1, "rgba(20,30,36,0.95)");          // room at the bottom
+      }
+      ctx.fillStyle = pane;
       ctx.fillRect(x, 12, 18, 32);
-      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.fillStyle = "rgba(255,255,255,0.30)";
+      ctx.fillRect(x - 2, 45, 22, 2);                         // the sill
+      ctx.strokeStyle = "rgba(255,255,255,0.16)";
+      ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, 12.5, 17, 31);
+      ctx.beginPath();                                        // the glazing bar
+      ctx.moveTo(x + 9, 12); ctx.lineTo(x + 9, 44);
+      ctx.strokeStyle = "rgba(255,255,255,0.10)";
+      ctx.stroke();
     }
   }
 
@@ -870,20 +929,31 @@ function buildingMesh(feature) {
   const tint = palette[Math.floor(random(seed + 11) * palette.length)];
   // A building whose height was measured is drawn solid; an inferred default stays translucent,
   // so the difference between what is known and what is assumed survives the prettier textures.
-  const opacity = measured ? 0.95 : 0.55;
+  // Higher than it was. A translucent building reads as scaffolding; the distinction between a
+  // measured height and an inferred one is still there, just no longer at the cost of the city
+  // looking like a wireframe.
+  const opacity = measured ? 1.0 : 0.82;
   // ExtrudeGeometry emits two material groups: the caps first, then the walls. Giving both the
   // facade map put a grid of windows across every rooftop -- which reads, from above, as though
   // the city were tiled in glass.
+  // The roof takes the wall's colour, darkened. A fixed grey top on a coloured building looked
+  // like a lid set on something else, and from above -- which is most of how this map is read --
+  // the roof is the building.
+  const roofTint = new THREE.Color(tint).multiplyScalar(0.68);
   const roof = new THREE.MeshStandardMaterial({
-    color: 0x6f7a7d, transparent: opacity < 1, opacity, roughness: 0.97, metalness: 0.02,
+    color: roofTint, transparent: opacity < 1, opacity,
+    roughness: 0.97, metalness: material.name === "metal" ? 0.5 : 0.03,
   });
   const walls = new THREE.MeshStandardMaterial({
     map: facadeTextureFor(material, seed),
     color: tint,
     transparent: opacity < 1,
     opacity,
-    roughness: material.name === "glass" ? 0.3 : 0.9,
-    metalness: material.name === "glass" ? 0.35 : 0.03,
+    roughness: material.rough,
+    metalness: material.metal,
+    // Glass and metal are mirrors of the sky, so they need something to reflect. The tint alone
+    // gives a flat blue rectangle; the environment map is what makes it read as a window.
+    envMapIntensity: material.name === "glass" ? 1.6 : material.name === "metal" ? 1.1 : 0.35,
   });
   const mesh = new THREE.Mesh(geom, [roof, walls]);
   mesh.userData = feature;
@@ -904,9 +974,13 @@ for (const way of DATA.ways) {
   }
   const isCrossing = way.kind === "crossing";
   const isSidewalk = way.kind === "sidewalk";
-  const color = isCrossing ? 0xe0a84e : isSidewalk ? 0xffffff : 0xffffff;
-  const widthMeters = isCrossing ? 5.2 : isSidewalk ? 2.4 : 4.6;
-  const opacity = isCrossing ? 0.94 : isSidewalk ? 0.62 : 0.72;
+  const color = isCrossing ? 0xe0a84e : 0xffffff;
+  // Footways in this corridor run three to four and a half metres; 2.4 was a diagram width.
+  const widthMeters = isCrossing ? 5.2 : isSidewalk ? 3.6 : 8.0;
+  // Opaque, because these are surfaces rather than overlays. Once the kerb was built at its
+  // measured 126 mm the old 0.62 made the footway a faint film on dark ground and it read as
+  // missing -- the geometry was right and the material was still drawn like a diagram.
+  const opacity = 1.0;
   // Heights are metres of actual street. They used to be chosen for legibility from above --
   // a footway was a 1.4 m slab floating 4.5 m up, and the measured-kerb band was a 5.5 m slab
   // three storeys in the air. Read from a bird's eye that was merely stylised; walked at street

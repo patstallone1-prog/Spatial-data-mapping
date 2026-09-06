@@ -120,6 +120,56 @@ def main() -> int:
 
     times: list[float] = []
     fixes: list[dict] = []
+    observations: list[Observation] = []
+    seen: set[str] = set()
+    now = datetime.now(UTC)
+
+    def place(when: float, conn_id: int, frame_key: str) -> bool:
+        """Turn one frame into an observation, if a position and a thin cell justify it."""
+        fix = nearest_fix(times, fixes, when)
+        if fix is None:
+            return False
+        lat, lon = fix["lat"], fix["lon"]
+        if not region.bbox.contains(lat, lon):
+            return True
+        cell = h3.latlng_to_cell(lat, lon, args.h3_resolution)
+        if not args.everywhere and thin and cell not in thin:
+            return True
+        image_id = f"{args.sequence}/{cameras[conn_id]}/{frame_key}"
+        if image_id in seen:
+            return True
+        seen.add(image_id)
+        observations.append(
+            Observation(
+                observation_uid=observation_uid("urbanloco", INSTANCE, image_id),
+                provider="urbanloco",
+                provider_instance=INSTANCE,
+                provider_image_id=image_id,
+                provider_sequence_id=args.sequence,
+                sequence_uid=sequence_uid("urbanloco", INSTANCE, args.sequence),
+                provider_sequence_index=len(observations),
+                captured_at=datetime.fromtimestamp(when, tz=UTC),
+                latitude=lat,
+                longitude=lon,
+                altitude=fix.get("alt"),
+                # RTK-corrected GNSS fused with an IMU, quoted at about five centimetres --
+                # one to two orders better than every other provider in this catalogue.
+                gps_accuracy_m=0.05,
+                original_width=IMAGE_WIDTH,
+                original_height=IMAGE_HEIGHT,
+                original_megapixels=IMAGE_WIDTH * IMAGE_HEIGHT / 1e6,
+                projection_type=PROJECTION_PERSPECTIVE,
+                camera_model=cameras[conn_id],
+                license_id=LICENSE.identifier,
+                license_url=LICENSE.url,
+                attribution=LICENSE.attribution,
+                availability_status=AVAILABLE,
+                provider_metadata_version="urbanloco:navsatfix+span-cpt",
+                first_seen_at=now,
+                last_seen_at=now,
+            )
+        )
+        return True
     # ---- pass one: the trajectory, read message by message ----
     #
     # The chunks are uncompressed, so a hundred-byte fix can be fetched without pulling the
@@ -184,6 +234,7 @@ def main() -> int:
     # cell that has measured kerbs and almost no photographs are worth fetching. The rest are
     # skipped without being read, which is the whole point of addressing messages individually.
     wanted_frames: list[tuple[float, int, str]] = []
+    failures: list[str] = []
     camera_chunks = [i for i, c in enumerate(bag.chunks) if any(c.counts.get(k, 0) for k in cameras)]
     print(f"{len(camera_chunks)} chunks carry camera frames", flush=True)
 
@@ -192,7 +243,11 @@ def main() -> int:
         following = positions[i + 1] if i + 1 < len(positions) else chunk.position + 2_000_000
         try:
             index = read_chunk_index(bag, chunk, following)
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            # Counted rather than swallowed. A bare `return []` here hid however many chunks
+            # were failing behind a plausible-looking total, and a low yield read as a data
+            # property rather than as an error.
+            failures.append(f"{type(exc).__name__}")
             return []
         out = []
         for conn_id in cameras:
@@ -207,7 +262,8 @@ def main() -> int:
             if done % 400 == 0:
                 print(f"  frame index {done}/{len(camera_chunks)}, {len(wanted_frames)} frames, "
                       f"{bag.bytes_read/1e6:.1f} MB", flush=True)
-    print(f"{len(wanted_frames)} camera frames indexed in {time.time()-started:.0f}s", flush=True)
+    print(f"{len(wanted_frames)} camera frames indexed in {time.time()-started:.0f}s"
+          f"{f', {len(failures)} chunks unreadable' if failures else ''}", flush=True)
 
     for when, conn_id, key in sorted(wanted_frames):
         place(when, conn_id, key)
