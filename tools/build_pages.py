@@ -47,7 +47,16 @@ def main() -> None:
     # The cache name carries a digest of what is being served. Without it a phone that has
     # already installed the app keeps opening the previous build from its own cache, which looks
     # exactly like a deploy that silently did not happen.
-    version = hashlib.blake2b((app + landing).encode(), digest_size=8).hexdigest()
+    # Everything served, not only the two pages built here. The digest used to cover app.html
+    # and the landing page alone, so a deploy that changed nothing but the 3D map's data left
+    # the version identical, the old cache alive, and the new payload unreachable on any device
+    # that had opened the site before.
+    digest = hashlib.blake2b(digest_size=8)
+    digest.update((app + landing).encode())
+    for extra in sorted(OUT.glob("sf-corridor-3d.*")):
+        digest.update(extra.name.encode())
+        digest.update(str(extra.stat().st_size).encode())
+    version = digest.hexdigest()
     sw = (ROOT / "tools/pwa/sw.js").read_text().replace("__VERSION__", version)
     (OUT / "sw.js").write_text(sw)
 

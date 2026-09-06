@@ -42,8 +42,14 @@ h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-sp
 .toolbar button { padding:8px 10px; font-size:13px; }
 button { color:var(--ink); background:rgba(16,25,30,.9); border:1px solid var(--line); border-radius:7px; padding:10px 12px; font:inherit; cursor:pointer; }
 button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgba(255,77,143,.20); }
-#tip { position:fixed; left:14px; bottom:14px; width:min(520px, calc(100vw - 28px)); color:var(--muted); font-size:12px; }
-@media (max-width: 760px) { .hud { width:calc(100vw - 28px); bottom:auto; max-height:70vh; } .meta { grid-template-columns:repeat(2, 1fr); } }
+/* Clear of the sidebar, which takes the whole left column when it is open. The tip used to
+   start at the same 14px and simply print itself over the panel's lower half. */
+#tip { position:fixed; left:368px; bottom:14px; width:min(520px, calc(100vw - 382px)); color:var(--muted); font-size:12px; }
+@media (max-width: 760px) {
+  .hud { width:calc(100vw - 28px); bottom:auto; max-height:70vh; }
+  .meta { grid-template-columns:repeat(2, 1fr); }
+  #tip { left:14px; width:calc(100vw - 28px); }
+}
 </style>
 </head>
 <body>
@@ -88,6 +94,8 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
         <button data-layer="observations" aria-pressed="true">Photos</button>
         <button data-layer="sequences" aria-pressed="true">Sequences</button>
         <button data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
+        <button data-layer="facades" aria-pressed="true">Photo facades</button>
+        <button data-layer="chunks" aria-pressed="false">Chunks</button>
         <button data-layer="districts" aria-pressed="true">Districts</button>
       </div>
     </div>
@@ -98,6 +106,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
         <button id="reset">Reset view</button>
       </div>
       <p id="gapnote" style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.45"></p>
+      <p id="facadenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
     </div>
   </div>
@@ -152,13 +161,17 @@ const groups = {
   sequences: new THREE.Group(),
   districts: new THREE.Group(),
   kerbs: new THREE.Group(),
+  facades: new THREE.Group(),
+  chunks: new THREE.Group(),
   gaps: new THREE.Group(),
 };
 // What opens is the city: streets, buildings, districts. The survey layers -- where photographs
 // were taken, which cells are covered, which sequences ran, which ways are missing -- are all
 // about the state of the dataset rather than about the place, and starting with them lit turns
 // a map of San Francisco into a progress chart. They are one click away and they stay.
-for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs"]) groups[off].visible = false;
+for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs", "chunks"]) {
+  groups[off].visible = false;
+}
 Object.values(groups).forEach((g) => root.add(g));
 
 const bbox = DATA.bbox;
@@ -222,17 +235,36 @@ function line(points, color, opacity = 1, y = 2, widthHint = 1) {
   return obj;
 }
 
-const SLAB_CACHE = new Map();
-function slabMap(length, width) {
-  // Bucketed to the nearest metre, so a few dozen textures cover thousands of segments.
-  const key = `${Math.round(length)}x${Math.round(width)}`;
-  if (!SLAB_CACHE.has(key)) {
-    const map = SIDEWALK.clone();
+const TILE_CACHE = new Map();
+function tiledMap(base, name, repeatU, repeatV) {
+  // A box's UVs run 0..1 per face, so one shared texture would stretch its pattern by however
+  // long that stretch of road happens to be -- five-foot slabs on a short segment and ribbons
+  // on a long one. Each distinct repeat gets a clone, bucketed to the nearest whole tile so a
+  // few dozen textures cover thousands of segments. The clone shares the image; only the
+  // repeat differs, so this costs almost nothing.
+  const u = Math.max(1, Math.round(repeatU));
+  const v = Math.max(1, Math.round(repeatV));
+  const key = `${name}:${u}x${v}`;
+  if (!TILE_CACHE.has(key)) {
+    const map = base.clone();
     map.needsUpdate = true;
-    map.repeat.set(Math.max(1, length / SLAB_M), Math.max(1, width / SLAB_M));
-    SLAB_CACHE.set(key, map);
+    map.repeat.set(u, v);
+    TILE_CACHE.set(key, map);
   }
-  return SLAB_CACHE.get(key);
+  return TILE_CACHE.get(key);
+}
+
+function surfaceMap(surface, length, width) {
+  if (surface === "walk") return tiledMap(SIDEWALK, "walk", length / SLAB_M, width / SLAB_M);
+  if (surface === "road") {
+    return tiledMap(ROAD, "road", length / ROAD_SLAB_M, width / ROAD_SLAB_M);
+  }
+  if (surface === "crossing") {
+    // The bars run the length of the crossing -- the way people walk -- so the pattern is
+    // constant along the way and repeats across its width.
+    return tiledMap(CROSSING, "crossing", 1, width / CROSSING_PERIOD_M);
+  }
+  return null;
 }
 
 function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surface = null) {
@@ -244,15 +276,19 @@ function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surf
   const dz = z2 - z1;
   const length = Math.hypot(dx, dz);
   if (length < 0.8) return null;
+  const map = surfaceMap(surface, length, width);
+  // A crossing is paint on a road, not a slab: its texture carries its own transparency so the
+  // carriageway shows between the bars, and it must not write depth or it hides the road it
+  // is painted on.
+  const painted = surface === "crossing";
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(length, segmentHeight, width),
     new THREE.MeshStandardMaterial({
-      color, transparent: opacity < 1, opacity, roughness: 0.92, metalness: 0.02,
-      // The footway map is cloned per segment so its slabs stay 1.52 m whatever the segment's
-      // length. A box's UVs run 0..1 per face, so a shared texture would stretch the scoring by
-      // however long that stretch of pavement happens to be -- squares on a short run, ribbons
-      // on a long one. The clone shares the image; only the repeat differs.
-      map: surface === "walk" ? slabMap(length, width) : surface === "road" ? ASPHALT : null,
+      color, opacity, roughness: surface === "road" ? 0.86 : 0.94,
+      metalness: 0.02,
+      transparent: opacity < 1 || painted,
+      alphaTest: painted ? 0.35 : 0,
+      map,
     })
   );
   mesh.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
@@ -507,26 +543,106 @@ function facadeTextureFor(material, seed) {
 }
 
 const FACADE_TEXTURE = facadeTexture();
-const ASPHALT = noiseTexture("#15191c", "#05080a", 128, 0.42);
-ASPHALT.repeat.set(8, 8);
+
+function roadTexture() {
+  // Carriageway. San Francisco lays a lot of its streets in concrete and saw-cuts contraction
+  // joints into them on a grid of a few metres, and those cuts are most of what stops a road
+  // reading as a flat charcoal ribbon. The surface itself is dark -- much darker than the
+  // footway beside it, which is the contrast that tells you where the kerb is from above.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  // The scene carries a bright hemisphere light, so a mid-grey here comes out looking like
+  // pavement. The carriageway has to start near-black to read as a road beside a footway.
+  ctx.fillStyle = "#151719";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size * 0.5; i += 1) {
+    const shade = random(i * 7);
+    ctx.fillStyle = shade < 0.6 ? "rgba(0,0,0,0.34)"
+      : shade < 0.92 ? "rgba(255,255,255,0.035)" : "rgba(150,160,165,0.07)";
+    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
+  }
+  // Patches, where the road has been dug up and made good. Every San Francisco street has them.
+  for (let i = 0; i < 3; i += 1) {
+    ctx.fillStyle = random(i * 31) < 0.6 ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.03)";
+    ctx.fillRect(random(i * 11) * size, random(i * 13) * size,
+                 20 + random(i * 17) * 44, 14 + random(i * 19) * 30);
+  }
+  // The cut itself: a dark line with a pale lip where the saw broke the surface.
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 2.0;
+  ctx.strokeRect(1, 1, size - 2, size - 2);
+  ctx.strokeStyle = "rgba(190,196,200,0.10)";
+  ctx.lineWidth = 1.0;
+  ctx.strokeRect(2.6, 2.6, size - 5.2, size - 5.2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+const ROAD = roadTexture();
+//: Spacing of the saw cuts, in metres. Four and a half is a common bay for a concrete street.
+const ROAD_SLAB_M = 4.5;
+
+function crossingTexture() {
+  // Continental bars: the ladder pattern, painted parallel to the way people walk, which is
+  // along the length of the crossing way. The paint is drawn on transparency so the road
+  // surface shows between the bars rather than the crossing being one solid amber slab.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  // The tile is one bar and one gap across v, which runs across the width of the crossing.
+  ctx.fillStyle = "rgba(236, 238, 233, 0.92)";
+  ctx.fillRect(0, 0, size, size * 0.5);
+  // Worn paint. A crosswalk that has had a year of traffic over it is not a clean rectangle.
+  for (let i = 0; i < size * size * 0.16; i += 1) {
+    const x = random(i * 3) * size;
+    const y = random(i * 5) * size * 0.5;
+    ctx.fillStyle = random(i * 9) < 0.6 ? "rgba(35,38,41,0.30)" : "rgba(255,255,255,0.20)";
+    ctx.fillRect(x, y, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const CROSSING = crossingTexture();
+//: One bar plus one gap, in metres. Continental bars run about 600 mm with a matching space.
+const CROSSING_PERIOD_M = 1.2;
 
 function sidewalkTexture() {
   // Scored concrete. San Francisco pours its footways in squares of about five feet, and the
   // joints between them are most of what tells you, at a glance, that you are looking at a
   // pavement rather than at a grey strip.
-  const size = 64;
+  const size = 96;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#9fa8a6";
+  // Pale. Footway concrete cures to a light warm grey and the whole point of it is that it
+  // reads lighter than the carriageway it sits beside.
+  ctx.fillStyle = "#b7bcb6";
   ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < size * size * 0.30; i += 1) {
-    ctx.fillStyle = random(i) < 0.5 ? "rgba(0,0,0,0.13)" : "rgba(255,255,255,0.10)";
+  for (let i = 0; i < size * size * 0.34; i += 1) {
+    const shade = random(i);
+    ctx.fillStyle = shade < 0.45 ? "rgba(0,0,0,0.11)"
+      : shade < 0.8 ? "rgba(255,255,255,0.14)" : "rgba(120,116,108,0.16)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
   }
-  ctx.strokeStyle = "rgba(0,0,0,0.34)";
-  ctx.lineWidth = 1.4;
-  ctx.strokeRect(0.7, 0.7, size - 1.4, size - 1.4);   // one slab per tile
+  // Staining along the joints, where water sits.
+  ctx.fillStyle = "rgba(90,92,88,0.12)";
+  ctx.fillRect(0, 0, size, 4);
+  ctx.fillRect(0, 0, 4, size);
+  // The score itself: a groove, so a dark line with a bright lip below it.
+  ctx.strokeStyle = "rgba(60,62,60,0.55)";
+  ctx.lineWidth = 2.2;
+  ctx.strokeRect(1.1, 1.1, size - 2.2, size - 2.2);   // one slab per tile
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1.0;
+  ctx.strokeRect(3.0, 3.0, size - 6.0, size - 6.0);
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   return texture;
@@ -638,6 +754,101 @@ function buildingMesh(feature) {
   return mesh;
 }
 
+// ---- photographed facades ----
+//
+// One chunk of the city wears its own photographs. Every other building is dressed in a
+// procedural texture -- a window grid drawn into a canvas, coloured from San Francisco's
+// building stock by percentage -- which makes a street look inhabited and describes no
+// particular building. These walls are the other thing: the frames that actually looked at
+// them, rectified onto the plane of the wall and merged.
+//
+// A panel is hung rather than the building's own facade being replaced. The cameras stood in
+// the street, so they saw the lower storeys and not the parapet, and a panel that stops where
+// the photographs stopped is honest about that in a way that stretching one to the roofline
+// would not be. It also means a wall that failed the agreement check simply keeps what it had.
+const FACADES = DATA.facades || { chunks: [], walls: [] };
+const facadeLoader = new THREE.TextureLoader();
+//: Clear of the wall behind it. Coplanar with the extrusion, the two would fight for every
+//: pixel and flicker, which is the same bug the kerb bands had.
+const FACADE_STANDOFF_M = 0.06;
+
+function facadePanel(wall) {
+  const [ax, ay] = xy(wall.a[0], wall.a[1]);
+  const [bx, by] = xy(wall.b[0], wall.b[1]);
+  const length = Math.hypot(bx - ax, by - ay);
+  if (!(length > 0.5) || !(wall.h > 0.5)) return null;
+
+  const bearing = wall.n * Math.PI / 180;
+  const nx = Math.sin(bearing);
+  const nz = -Math.cos(bearing);
+
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xffffff, roughness: 0.86, metalness: 0.03,
+    // Until its photograph arrives the panel is invisible rather than white: a grid of blank
+    // rectangles standing off the buildings is worse than the buildings alone.
+    transparent: true, opacity: 0,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(length, wall.h), material);
+  mesh.position.set((ax + bx) / 2 + nx * FACADE_STANDOFF_M, wall.h / 2,
+                    -(ay + by) / 2 + nz * FACADE_STANDOFF_M);
+  // A plane faces +z; rotating by pi minus the bearing turns it to face the way the wall does.
+  mesh.rotation.y = Math.PI - bearing;
+  mesh.userData.facade = wall;
+  return mesh;
+}
+
+const facadePanels = [];
+for (const wall of FACADES.walls) {
+  const panel = facadePanel(wall);
+  if (panel) {
+    groups.facades.add(panel);
+    facadePanels.push(panel);
+  }
+}
+
+// Textures are fetched after the city is on screen and a few at a time. Two hundred and twenty
+// JPEGs is several megabytes, and blocking the first frame on them would trade the whole map
+// for one block of it.
+async function loadFacadeTextures() {
+  const queue = facadePanels.slice();
+  const worker = async () => {
+    while (queue.length) {
+      const panel = queue.pop();
+      const wall = panel.userData.facade;
+      try {
+        const texture = await facadeLoader.loadAsync(`facades/${wall.c}/${wall.t}`);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        panel.material.map = texture;
+        panel.material.opacity = 1;
+        panel.material.needsUpdate = true;
+      } catch (err) {
+        panel.visible = false;
+      }
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+}
+requestAnimationFrame(() => { loadFacadeTextures(); });
+
+// The grid the facade work is done in: 250 m squares, the one that has been photographed
+// picked out from the ones that have not. A square with a lot of buildings and a lot of frames
+// and no textures is simply the next one to run.
+for (const chunk of FACADES.grid || []) {
+  const corners = [[chunk.w, chunk.s], [chunk.e, chunk.s], [chunk.e, chunk.n],
+                   [chunk.w, chunk.n], [chunk.w, chunk.s]];
+  const done = chunk.d === 1;
+  const material = new THREE.LineBasicMaterial({
+    color: done ? 0x6ff0b4 : 0x4d6b78,
+    transparent: true,
+    // Readiness is how photographable the square is; the faint ones are the ones with nothing
+    // standing in them or nobody driving through them.
+    opacity: done ? 0.95 : Math.min(0.5, 0.10 + chunk.r / 900),
+  });
+  const points = corners.map(([lon, lat]) => v3(lon, lat, 3));
+  groups.chunks.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+}
+
 const streetNames = new Set();
 let streetLabelCount = 0;
 for (const way of DATA.ways) {
@@ -652,7 +863,9 @@ for (const way of DATA.ways) {
   }
   const isCrossing = way.kind === "crossing";
   const isSidewalk = way.kind === "sidewalk";
-  const color = isCrossing ? 0xe0a84e : 0xffffff;
+  // White for everything: the value now comes from the texture, and tinting a photograph of
+  // concrete amber to say "this is a crossing" was a legend, not a street.
+  const color = 0xffffff;
   // Footways in this corridor run three to four and a half metres; 2.4 was a diagram width.
   const widthMeters = isCrossing ? 5.2 : isSidewalk ? 3.6 : 8.0;
   // Opaque, because these are surfaces rather than overlays. Once the kerb was built at its
@@ -667,12 +880,13 @@ for (const way of DATA.ways) {
   groups.streets.add(ribbon(way.points, widthMeters, color, opacity,
     isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
     isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
-    isCrossing ? null : isSidewalk ? "walk" : "road"));
+    isCrossing ? "crossing" : isSidewalk ? "walk" : "road"));
   // A centreline belongs on a roadway, not on a footway: drawn on everything it read as a
   // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
-  if (!isSidewalk) {
-    groups.streets.add(line(way.points, isCrossing ? color : 0xf2f2f2, isCrossing ? 1 : 0.5,
-      isCrossing ? roadTop + 0.05 : roadTop + 0.02));
+  // It does not belong on a crossing either -- a crosswalk has bars painted across it and no
+  // line down its middle, and the bars are now real paint rather than a coloured slab.
+  if (!isSidewalk && !isCrossing) {
+    groups.streets.add(line(way.points, 0xd8b24a, 0.45, roadTop + 0.02));
   }
   if (way.covered && (isCrossing || isSidewalk)) {
     // The measured kerb, marked. This sat at exactly the footway's own height and thickness --
@@ -787,6 +1001,23 @@ document.getElementById("reset").addEventListener("click", () => {
     note.textContent = total
       ? `${total.toLocaleString()} mapped ways, about ${(metres / 1000).toFixed(1)} km, have no eligible photograph over them.`
       : "Every mapped way in the region has at least one eligible photograph over it.";
+  }
+}
+
+// The facade credit. These walls are other people's photographs, taken under CC BY-SA 4.0,
+// and that licence is a condition rather than a courtesy: it wants the source named wherever
+// the work is shown. It also happens to be the honest caption for the layer -- one chunk of
+// this city is photographs and the rest of it is a guess about what the buildings look like.
+{
+  const note = document.getElementById("facadenote");
+  const chunk = (FACADES.chunks || [])[0];
+  if (note && chunk) {
+    const licences = Object.keys(chunk.licenses || {}).join(", ") || "CC BY-SA 4.0";
+    note.innerHTML =
+      `<b>Photo facades</b> — chunk ${chunk.key}, ${chunk.textured} of ${chunk.attempted} walls ` +
+      `across ${chunk.buildings} buildings, rectified from street-level frames and merged. ` +
+      `Every other building wears a procedural texture. Imagery by Mapillary and KartaView ` +
+      `contributors, ${licences}. Turn on <b>Chunks</b> for the grid and which square is next.`;
   }
 }
 
