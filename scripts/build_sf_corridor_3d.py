@@ -224,8 +224,11 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     observations = pq.read_table(root / "observations" / "external-000.parquet").to_pylist()
     coverage = pq.read_table(root / "coverage" / "h3.parquet").to_pylist()
     sequences = pq.read_table(root / "sequences" / "external.parquet").to_pylist()
-    # The model's kerb height is the measured one. Hard-coding six inches would put a number in
-    # the geometry that the catalogue spent nine thousand lidar slices disagreeing with.
+    # A fallback, and only that. This used to be *the* kerb height: one median taken over every
+    # measurement in the corridor and built into every kerb in the model, which is how nine
+    # thousand lidar slices became a single number. Each way now carries its own measured height
+    # where we have one (see annotate_official); this is what a way without one falls back to,
+    # and it is deliberately still the measured median rather than the nominal six inches.
     measured = [
         row["curb_height_m"]
         for row in pq.read_table(root / "depth" / "surfaces" / "surface_measurements.parquet").to_pylist()
@@ -241,6 +244,10 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
         else {}
     )
     ways, osm_summary = annotate_osm_features(ways, coverage)
+    official_summary = annotate_official(ways, {
+        "south": SF_CORRIDOR.bbox.south, "west": SF_CORRIDOR.bbox.west,
+        "north": SF_CORRIDOR.bbox.north, "east": SF_CORRIDOR.bbox.east,
+    })
     obs_by_sequence: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for obs in observations:
         obs_by_sequence[obs["sequence_uid"]].append(obs)
@@ -291,6 +298,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "east": SF_CORRIDOR.bbox.east,
         },
         "kerb_height_m": round(kerb_height_m, 4),
+        "official": official_summary,
         "facades": photo_facades(),
         "intersections": street_intersections(ways),
         "districts": district_bands(),
@@ -371,6 +379,92 @@ def photo_facades() -> dict:
             for c in grid["chunks"]
         ],
     }
+
+
+OFFICIAL = Path(__file__).resolve().parents[1] / "data" / "sf_public_works"
+
+
+def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
+    """Hang San Francisco's own recorded geometry on the ways we drew from OpenStreetMap.
+
+    Everything the city publishes is keyed to a CNN, so each way is matched to the centreline
+    it runs along and inherits that segment's recorded right of way, its surveyed footway width
+    and -- from our own lidar rather than from any record, because no record carries one -- the
+    curb height measured on that block.
+
+    The last of those is the point of the exercise. The model used to take one median curb
+    height, 126 mm, and build every kerb in San Francisco to it, which threw away nine thousand
+    measurements to keep one number. A kerb outside a 1920s apartment block and a kerb at a
+    rebuilt corner are not the same height and there was no way to tell from the model.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    from smc.facades.geometry import LocalFrame
+    from smc.official.join import CentrelineIndex
+
+    segments_path = OFFICIAL / "segments.json"
+    centrelines_path = OFFICIAL / "centrelines.json"
+    if not (segments_path.exists() and centrelines_path.exists()):
+        return {"available": False}
+
+    segments = {row["feature_id"]: row for row in json.loads(segments_path.read_text())}
+    frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0,
+                       (bbox["west"] + bbox["east"]) / 2.0)
+    index = CentrelineIndex.from_centrelines(json.loads(centrelines_path.read_text()), frame)
+
+    counts = Counter()
+    for way in ways:
+        if way.get("kind") not in ("street", "sidewalk", "crossing"):
+            continue
+        placed = index.locate_way(way["points"])
+        if placed is None:
+            counts["unmatched"] += 1
+            continue
+        feature, side, distance = placed
+        record = segments.get(feature)
+        if record is None:
+            counts["no record"] += 1
+            continue
+        way["cnn"] = feature
+        way["cnn_name"] = record.get("name") or None
+        counts["matched"] += 1
+
+        if record.get("right_of_way_m"):
+            way["row_m"] = record["right_of_way_m"]
+            counts["with right of way"] += 1
+        # The survey records a side where it knows one and "both" otherwise; a footway takes
+        # the width for its own side of the street, never the other one's.
+        walks = record.get("sidewalk_m") or {}
+        width = walks.get(str(side)) or walks.get("0")
+        if width:
+            way["walk_m"] = width
+            counts["with surveyed footway"] += 1
+        if record.get("sidewalk_standard_m"):
+            way["walk_standard_m"] = record["sidewalk_standard_m"]
+        if record.get("curb_height_m"):
+            way["kerb_m"] = record["curb_height_m"]
+            way["kerb_n"] = record.get("curb_height_n")
+            way["kerb_sigma_m"] = record.get("curb_height_sigma_m")
+            counts["with measured curb"] += 1
+        if record.get("accepted_on"):
+            way["accepted_on"] = record["accepted_on"]
+
+        # A right of way runs property line to property line, so the carriageway is what is
+        # left after both footways. Where the survey did not measure the footway, it is taken
+        # as a share of the right of way rather than as a fixed three metres: on a six-metre
+        # alley a fixed three would leave no roadway at all, and clamping the roadway back up
+        # would make it wider than the right of way containing it.
+        row_m = record.get("right_of_way_m")
+        if row_m:
+            walk = way.get("walk_m") or min(3.0, row_m * 0.18)
+            way["road_m"] = round(max(2.5, row_m - 2.0 * walk), 3)
+            if not way.get("walk_m"):
+                way["walk_fallback_m"] = round(walk, 3)
+
+    return {"available": True, "counts": dict(counts),
+            "segments": len(segments),
+            "distinct_curb_heights": len({w["kerb_m"] for w in ways if w.get("kerb_m")})}
 
 
 HTML = """<!doctype html>
@@ -470,6 +564,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
         <button data-layer="sequences" aria-pressed="true">Sequences</button>
         <button data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
         <button data-layer="facades" aria-pressed="true">Photo facades</button>
+        <button data-layer="official" aria-pressed="false">Official geometry</button>
         <button data-layer="chunks" aria-pressed="false">Chunks</button>
         <button data-layer="districts" aria-pressed="true">Districts</button>
       </div>
@@ -482,6 +577,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       </div>
       <p id="gapnote" style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.45"></p>
       <p id="facadenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
+      <p id="officialnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
     </div>
   </div>
@@ -524,7 +620,9 @@ scene.fog = new THREE.Fog(0x071013, 650, 1900);
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.5, 6000);
 // The measured median kerb, in metres: 9,376 lidar slices, cross-checked against Waymo
 // ground-level lidar to within 1 mm of median. The model is built to it rather than to nominal.
-const KERB = DATA.kerb_height_m || 0.126;
+//: What a way falls back to when nothing has measured its kerb. Not a standard six inches --
+//: the median of everything the lidar did measure in this corridor.
+const KERB_FALLBACK = DATA.kerb_height_m || 0.126;
 
 const root = new THREE.Group();
 scene.add(root);
@@ -537,6 +635,7 @@ const groups = {
   districts: new THREE.Group(),
   kerbs: new THREE.Group(),
   facades: new THREE.Group(),
+  official: new THREE.Group(),
   chunks: new THREE.Group(),
   gaps: new THREE.Group(),
 };
@@ -544,7 +643,8 @@ const groups = {
 // were taken, which cells are covered, which sequences ran, which ways are missing -- are all
 // about the state of the dataset rather than about the place, and starting with them lit turns
 // a map of San Francisco into a progress chart. They are one click away and they stay.
-for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs", "chunks"]) {
+for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs", "chunks",
+                   "official"]) {
   groups[off].visible = false;
 }
 Object.values(groups).forEach((g) => root.add(g));
@@ -1206,6 +1306,59 @@ async function loadFacadeTextures() {
 }
 requestAnimationFrame(() => { loadFacadeTextures(); });
 
+// ---- what the city recorded ----
+//
+// Curb lines and curb ramps as San Francisco holds them, drawn over the reconstruction so the
+// two can be compared by eye. This is not a prettier version of the streets layer: it is a
+// different claim about the same ground, from a different source, and where the two disagree
+// that is worth being able to see.
+(async () => {
+  let official;
+  try {
+    official = await fetch("sf-corridor-official.json", { cache: "no-cache" }).then((r) => r.json());
+  } catch (err) {
+    return;
+  }
+  for (const line of official.curb_lines || []) {
+    const points = line.p.map(([lon, lat]) => v3(lon, lat, 0.16));
+    if (points.length < 2) continue;
+    groups.official.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({ color: 0x7fd4ff, transparent: true, opacity: 0.9 })));
+  }
+  // Ramps the inventory has flagged are drawn apart from the rest. A ramp whose lip the city
+  // has already recorded as too high is exactly where a measured kerb height is worth checking.
+  const plain = [];
+  const flagged = [];
+  for (const ramp of official.curb_ramps || []) {
+    (ramp.f && ramp.f.length ? flagged : plain).push(v3(ramp.p[0], ramp.p[1], 0.2));
+  }
+  for (const [points, colour, size] of [[plain, 0x7fd4ff, 1.6], [flagged, 0xffb454, 2.4]]) {
+    if (!points.length) continue;
+    groups.official.add(new THREE.Points(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.PointsMaterial({ color: colour, size, sizeAttenuation: true })));
+  }
+  const note = document.getElementById("officialnote");
+  const summary = (official.summary || {}).by_class || {};
+  const walk = summary.sidewalk_width;
+  if (note) {
+    const counts = (DATA.official || {}).counts || {};
+    note.innerHTML =
+      `<b>Official geometry</b> — ${(counts["with right of way"] || 0).toLocaleString()} ways ` +
+      `carry San Francisco's recorded right of way and ` +
+      `${(counts["with surveyed footway"] || 0).toLocaleString()} its 2014 footway survey. ` +
+      `Curb heights are ours: no city record publishes one, so ` +
+      `${(counts["with measured curb"] || 0).toLocaleString()} ways use the lidar measured on ` +
+      `that block and the rest fall back to the corridor median. ` +
+      (walk ? `Against the city survey our footway widths run ` +
+              `${walk.bias_m >= 0 ? "+" : ""}${walk.bias_m.toFixed(2)} m on average ` +
+              `(median ${walk.median_error_m >= 0 ? "+" : ""}${walk.median_error_m.toFixed(2)} m, ` +
+              `n=${walk.n.toLocaleString()}). ` : "") +
+      `The right-of-way layer is a 2014 analysis the city says is not at engineering accuracy.`;
+  }
+})();
+
 // The grid the facade work is done in: 250 m squares, the one that has been photographed
 // picked out from the ones that have not. A square with a lot of buildings and a lot of frames
 // and no textures is simply the next one to run.
@@ -1241,8 +1394,16 @@ for (const way of DATA.ways) {
   // White for everything: the value now comes from the texture, and tinting a photograph of
   // concrete amber to say "this is a crossing" was a legend, not a street.
   const color = 0xffffff;
-  // Footways in this corridor run three to four and a half metres; 2.4 was a diagram width.
-  const widthMeters = isCrossing ? 5.2 : isSidewalk ? 3.6 : 8.0;
+  // Widths from San Francisco's own records where it has them: the surveyed footway width for
+  // this segment and side, and the carriageway left over after both footways are taken out of
+  // the recorded right of way. Every street used to be eight metres wide and every footway
+  // 3.6, which made Grant Avenue and Van Ness the same street.
+  const widthMeters = isCrossing ? 5.2
+    : isSidewalk ? (way.walk_m || way.walk_fallback_m || 3.6)
+    : (way.road_m || 8.0);
+  // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
+  // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
+  const KERB = way.kerb_m || KERB_FALLBACK;
   // Opaque, because these are surfaces rather than overlays. Once the kerb was built at its
   // measured 126 mm the old 0.62 made the footway a faint film on dark ground and it read as
   // missing -- the geometry was right and the material was still drawn like a diagram.

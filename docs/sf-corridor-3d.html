@@ -95,6 +95,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
         <button data-layer="sequences" aria-pressed="true">Sequences</button>
         <button data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
         <button data-layer="facades" aria-pressed="true">Photo facades</button>
+        <button data-layer="official" aria-pressed="false">Official geometry</button>
         <button data-layer="chunks" aria-pressed="false">Chunks</button>
         <button data-layer="districts" aria-pressed="true">Districts</button>
       </div>
@@ -107,6 +108,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       </div>
       <p id="gapnote" style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.45"></p>
       <p id="facadenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
+      <p id="officialnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
     </div>
   </div>
@@ -149,7 +151,9 @@ scene.fog = new THREE.Fog(0x071013, 650, 1900);
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.5, 6000);
 // The measured median kerb, in metres: 9,376 lidar slices, cross-checked against Waymo
 // ground-level lidar to within 1 mm of median. The model is built to it rather than to nominal.
-const KERB = DATA.kerb_height_m || 0.126;
+//: What a way falls back to when nothing has measured its kerb. Not a standard six inches --
+//: the median of everything the lidar did measure in this corridor.
+const KERB_FALLBACK = DATA.kerb_height_m || 0.126;
 
 const root = new THREE.Group();
 scene.add(root);
@@ -162,6 +166,7 @@ const groups = {
   districts: new THREE.Group(),
   kerbs: new THREE.Group(),
   facades: new THREE.Group(),
+  official: new THREE.Group(),
   chunks: new THREE.Group(),
   gaps: new THREE.Group(),
 };
@@ -169,7 +174,8 @@ const groups = {
 // were taken, which cells are covered, which sequences ran, which ways are missing -- are all
 // about the state of the dataset rather than about the place, and starting with them lit turns
 // a map of San Francisco into a progress chart. They are one click away and they stay.
-for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs", "chunks"]) {
+for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs", "chunks",
+                   "official"]) {
   groups[off].visible = false;
 }
 Object.values(groups).forEach((g) => root.add(g));
@@ -831,6 +837,59 @@ async function loadFacadeTextures() {
 }
 requestAnimationFrame(() => { loadFacadeTextures(); });
 
+// ---- what the city recorded ----
+//
+// Curb lines and curb ramps as San Francisco holds them, drawn over the reconstruction so the
+// two can be compared by eye. This is not a prettier version of the streets layer: it is a
+// different claim about the same ground, from a different source, and where the two disagree
+// that is worth being able to see.
+(async () => {
+  let official;
+  try {
+    official = await fetch("sf-corridor-official.json", { cache: "no-cache" }).then((r) => r.json());
+  } catch (err) {
+    return;
+  }
+  for (const line of official.curb_lines || []) {
+    const points = line.p.map(([lon, lat]) => v3(lon, lat, 0.16));
+    if (points.length < 2) continue;
+    groups.official.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({ color: 0x7fd4ff, transparent: true, opacity: 0.9 })));
+  }
+  // Ramps the inventory has flagged are drawn apart from the rest. A ramp whose lip the city
+  // has already recorded as too high is exactly where a measured kerb height is worth checking.
+  const plain = [];
+  const flagged = [];
+  for (const ramp of official.curb_ramps || []) {
+    (ramp.f && ramp.f.length ? flagged : plain).push(v3(ramp.p[0], ramp.p[1], 0.2));
+  }
+  for (const [points, colour, size] of [[plain, 0x7fd4ff, 1.6], [flagged, 0xffb454, 2.4]]) {
+    if (!points.length) continue;
+    groups.official.add(new THREE.Points(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.PointsMaterial({ color: colour, size, sizeAttenuation: true })));
+  }
+  const note = document.getElementById("officialnote");
+  const summary = (official.summary || {}).by_class || {};
+  const walk = summary.sidewalk_width;
+  if (note) {
+    const counts = (DATA.official || {}).counts || {};
+    note.innerHTML =
+      `<b>Official geometry</b> — ${(counts["with right of way"] || 0).toLocaleString()} ways ` +
+      `carry San Francisco's recorded right of way and ` +
+      `${(counts["with surveyed footway"] || 0).toLocaleString()} its 2014 footway survey. ` +
+      `Curb heights are ours: no city record publishes one, so ` +
+      `${(counts["with measured curb"] || 0).toLocaleString()} ways use the lidar measured on ` +
+      `that block and the rest fall back to the corridor median. ` +
+      (walk ? `Against the city survey our footway widths run ` +
+              `${walk.bias_m >= 0 ? "+" : ""}${walk.bias_m.toFixed(2)} m on average ` +
+              `(median ${walk.median_error_m >= 0 ? "+" : ""}${walk.median_error_m.toFixed(2)} m, ` +
+              `n=${walk.n.toLocaleString()}). ` : "") +
+      `The right-of-way layer is a 2014 analysis the city says is not at engineering accuracy.`;
+  }
+})();
+
 // The grid the facade work is done in: 250 m squares, the one that has been photographed
 // picked out from the ones that have not. A square with a lot of buildings and a lot of frames
 // and no textures is simply the next one to run.
@@ -866,8 +925,16 @@ for (const way of DATA.ways) {
   // White for everything: the value now comes from the texture, and tinting a photograph of
   // concrete amber to say "this is a crossing" was a legend, not a street.
   const color = 0xffffff;
-  // Footways in this corridor run three to four and a half metres; 2.4 was a diagram width.
-  const widthMeters = isCrossing ? 5.2 : isSidewalk ? 3.6 : 8.0;
+  // Widths from San Francisco's own records where it has them: the surveyed footway width for
+  // this segment and side, and the carriageway left over after both footways are taken out of
+  // the recorded right of way. Every street used to be eight metres wide and every footway
+  // 3.6, which made Grant Avenue and Van Ness the same street.
+  const widthMeters = isCrossing ? 5.2
+    : isSidewalk ? (way.walk_m || way.walk_fallback_m || 3.6)
+    : (way.road_m || 8.0);
+  // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
+  // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
+  const KERB = way.kerb_m || KERB_FALLBACK;
   // Opaque, because these are surfaces rather than overlays. Once the kerb was built at its
   // measured 126 mm the old 0.62 made the footway a faint film on dark ground and it read as
   // missing -- the geometry was right and the material was still drawn like a diagram.

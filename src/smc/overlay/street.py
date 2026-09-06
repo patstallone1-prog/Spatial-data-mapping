@@ -35,6 +35,26 @@ from smc import geo
 
 
 @dataclass(frozen=True, slots=True)
+class StreetGeometrySample:
+    """The cross-section of a street at one station along it.
+
+    Every field is optional because real records are patchy: San Francisco has a recorded
+    right-of-way width for most segments, a surveyed footway width for about half of them, and
+    a published curb height for none of them at all. A missing value has to stay missing rather
+    than fall back to a default, or the default becomes indistinguishable from a measurement.
+    """
+
+    station_m: float
+    roadway_width_m: float | None = None
+    sidewalk_left_m: float | None = None
+    sidewalk_right_m: float | None = None
+    curb_height_left_m: float | None = None
+    curb_height_right_m: float | None = None
+    #: Which official or observed facts this sample came from.
+    source_fact_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class StreetSegment:
     """A street centreline as a polyline in a local ENU frame.
 
@@ -45,15 +65,22 @@ class StreetSegment:
     segment_id: str
     #: (N, 2) east/north vertices in metres.
     vertices: np.ndarray
-    #: Carriageway width, kerb to kerb.
+    #: Carriageway width, kerb to kerb, where nothing better is known. Streets are not this
+    #: width -- streets are not any one width -- and a segment carrying a ``profile`` should be
+    #: asked through :meth:`roadway_width_at` instead.
     roadway_width_m: float = 9.0
     name: str = ""
+    #: Cross-sections along the segment, in station order. Empty means "we only have the
+    #: default", which is a thing worth being able to tell.
+    profile: tuple[StreetGeometrySample, ...] = ()
 
     def __post_init__(self) -> None:
         vertices = np.asarray(self.vertices, dtype=np.float64).reshape(-1, 2)
         if len(vertices) < 2:
             raise ValueError("a street segment needs at least two vertices")
         object.__setattr__(self, "vertices", vertices)
+        object.__setattr__(self, "profile",
+                           tuple(sorted(self.profile, key=lambda s: s.station_m)))
 
     @property
     def length_m(self) -> float:
@@ -106,16 +133,57 @@ class StreetSegment:
         direction = self.vertices[-1] - self.vertices[-2]
         return self.vertices[-1], direction / max(float(np.linalg.norm(direction)), 1e-9)
 
-    def kerb_offset(self, side: int) -> float:
+    def _nearest_sample(self, station_m: float, attribute: str) -> float | None:
+        """The closest sample along the segment that actually carries ``attribute``.
+
+        Nearest rather than interpolated. These come from records that describe a whole block,
+        not from a continuous survey, so interpolating between two of them would invent a
+        gradual taper where the truth is a step at a corner -- and would put a number halfway
+        between two measurements at a station where neither applies.
+        """
+        best, best_distance = None, math.inf
+        for sample in self.profile:
+            value = getattr(sample, attribute)
+            if value is None:
+                continue
+            distance = abs(sample.station_m - station_m)
+            if distance < best_distance:
+                best, best_distance = value, distance
+        return best
+
+    def roadway_width_at(self, station_m: float) -> float:
+        """Carriageway width at a station, falling back to the segment default."""
+        found = self._nearest_sample(station_m, "roadway_width_m")
+        return self.roadway_width_m if found is None else found
+
+    def sidewalk_width_at(self, station_m: float, side: int) -> float | None:
+        if side not in (-1, 1):
+            raise ValueError("side must be -1 (right) or +1 (left)")
+        return self._nearest_sample(
+            station_m, "sidewalk_left_m" if side > 0 else "sidewalk_right_m")
+
+    def curb_height_at(self, station_m: float, side: int) -> float | None:
+        """Curb height at a station, or None -- which is the honest answer nearly everywhere.
+
+        No official record in San Francisco publishes one. Anything here came from our own
+        measurements, and where we have not measured, saying so beats returning six inches.
+        """
+        if side not in (-1, 1):
+            raise ValueError("side must be -1 (right) or +1 (left)")
+        return self._nearest_sample(
+            station_m, "curb_height_left_m" if side > 0 else "curb_height_right_m")
+
+    def kerb_offset(self, side: int, station_m: float = 0.0) -> float:
         """Lateral offset of the kerb line from the centreline, signed by side.
 
         The hint measurement needs. Half the carriageway is a coarse answer and a good one:
         being right to a few tens of centimetres removes the ambiguity that actually breaks
-        plane fitting, which is which surface is which.
+        plane fitting, which is which surface is which. Where the city has recorded a width for
+        this stretch, that half is a surveyed half rather than a guessed one.
         """
         if side not in (-1, 1):
             raise ValueError("side must be -1 (right) or +1 (left)")
-        return side * self.roadway_width_m / 2.0
+        return side * self.roadway_width_at(station_m) / 2.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,8 +246,12 @@ class SnapResult:
         earlier version subtracted the observer's own lateral offset, which produced negative
         hints for a camera standing outside the carriageway and would have split the point
         cloud on the wrong side.
+
+        It is a property of the street *here*, though. A segment that widens for a turning
+        pocket has a kerb further out at that end, and asking at the station gets the recorded
+        width for this stretch rather than one number for the whole block.
         """
-        return self.segment.roadway_width_m / 2.0
+        return self.segment.roadway_width_at(self.station_m) / 2.0
 
 
 class StreetMap:

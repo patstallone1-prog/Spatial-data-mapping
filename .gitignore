@@ -38,3 +38,7 @@ data/sf_corridor/
 # Source frames fetched to build facades. Gigabytes of other people's JPEGs, rebuildable
 # from the catalogue at any time, and none of it belongs in a clone.
 build/facade-cache/
+
+# Raw DataSF responses. Reproducible cache keyed by dataset and query; the derived tables
+# under data/sf_public_works/ are what belongs in the repository.
+build/sf_public_works/
