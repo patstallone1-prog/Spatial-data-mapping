@@ -519,6 +519,19 @@ function line(points, color, opacity = 1, y = 2, widthHint = 1) {
   return obj;
 }
 
+const SLAB_CACHE = new Map();
+function slabMap(length, width) {
+  // Bucketed to the nearest metre, so a few dozen textures cover thousands of segments.
+  const key = `${Math.round(length)}x${Math.round(width)}`;
+  if (!SLAB_CACHE.has(key)) {
+    const map = SIDEWALK.clone();
+    map.needsUpdate = true;
+    map.repeat.set(Math.max(1, length / SLAB_M), Math.max(1, width / SLAB_M));
+    SLAB_CACHE.set(key, map);
+  }
+  return SLAB_CACHE.get(key);
+}
+
 function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surface = null) {
   const [x1, yy1] = xy(a[0], a[1]);
   const [x2, yy2] = xy(b[0], b[1]);
@@ -532,7 +545,11 @@ function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surf
     new THREE.BoxGeometry(length, segmentHeight, width),
     new THREE.MeshStandardMaterial({
       color, transparent: opacity < 1, opacity, roughness: 0.92, metalness: 0.02,
-      map: surface === "walk" ? CONCRETE : surface === "road" ? ASPHALT : null,
+      // The footway map is cloned per segment so its slabs stay 1.52 m whatever the segment's
+      // length. A box's UVs run 0..1 per face, so a shared texture would stretch the scoring by
+      // however long that stretch of pavement happens to be -- squares on a short run, ribbons
+      // on a long one. The clone shares the image; only the repeat differs.
+      map: surface === "walk" ? slabMap(length, width) : surface === "road" ? ASPHALT : null,
     })
   );
   mesh.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
@@ -631,6 +648,47 @@ function noiseTexture(base, speck, size = 128, density = 0.28) {
   return texture;
 }
 
+// San Francisco's building stock, roughly. Wood-frame and stucco dominate the residential
+// blocks, concrete the mid-century infill, brick the older commercial streets, and glass the
+// downtown towers. These shares are approximate and are meant to make a street look inhabited
+// rather than to describe any particular building -- nothing downstream measures them, and the
+// provenance of a colour is "invented" wherever anyone asks.
+const MATERIALS = [
+  { name: "stucco",   share: 0.46, grit: 0.10,
+    colours: [0xd8cfc0, 0xe3dccb, 0xcbc3b2, 0xd6c8a8, 0xe6e0d2, 0xc9bfae] },
+  { name: "concrete", share: 0.24, grit: 0.20,
+    colours: [0xb4b8b6, 0xa2a8a7, 0xc2c5c1, 0x9aa0a0] },
+  { name: "brick",    share: 0.18, grit: 0.26,
+    colours: [0x9c5540, 0x8a4a38, 0xa9614a, 0x7d4433, 0xb06b52] },
+  { name: "glass",    share: 0.12, grit: 0.04,
+    colours: [0x7f97a4, 0x6d8896, 0x8fa6b2, 0x5f7b8a] },
+];
+
+function pickMaterial(seed, height) {
+  // Tall buildings are not stucco and short ones are not curtain wall, so the draw is nudged by
+  // height before the shares are applied.
+  const weights = MATERIALS.map((m) => {
+    if (height > 45) return m.name === "glass" || m.name === "concrete" ? m.share * 3 : m.share * 0.25;
+    if (height < 12) return m.name === "glass" ? m.share * 0.15 : m.share;
+    return m.share;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  let roll = random(seed) * total;
+  for (let i = 0; i < MATERIALS.length; i += 1) {
+    roll -= weights[i];
+    if (roll <= 0) return MATERIALS[i];
+  }
+  return MATERIALS[0];
+}
+
+// A stable pseudo-random from an integer, so a building keeps its colour between reloads. Math
+// .random would repaint the city on every refresh, which reads as flicker rather than variety.
+function random(seed) {
+  let x = Math.imul(seed ^ 0x9e3779b9, 0x85ebca6b);
+  x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+  return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+}
+
 function facadeTexture() {
   // One storey tall and one bay wide, tiled. Windows are lit at random so a street of identical
   // extrusions stops reading as identical.
@@ -654,11 +712,92 @@ function facadeTexture() {
   return texture;
 }
 
+function facadeFor(material, seed) {
+  // One canvas per material, not per building: a few hundred buildings share four textures, and
+  // the variation between them comes from the tint rather than from redrawing the windows.
+  const w = 64, h = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, w, h);
+
+  if (material.name === "brick") {
+    // Courses, offset every other row. Coarse at this scale, but it is the pattern the eye
+    // reads as brick from across a street.
+    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    for (let y = 0; y < h; y += 4) {
+      ctx.fillRect(0, y, w, 1);
+      const offset = (y / 4) % 2 ? 4 : 0;
+      for (let x = offset; x < w; x += 8) ctx.fillRect(x, y, 1, 4);
+    }
+  } else if (material.name === "glass") {
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    for (let x = 0; x < w; x += 8) ctx.fillRect(x, 0, 1, h);
+    for (let y = 0; y < h; y += 16) ctx.fillRect(0, y, w, 2);
+  }
+
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(0, h - 5, w, 5);                     // the line between storeys
+  if (material.name !== "glass") {
+    for (const x of [10, 36]) {
+      const lit = random(seed + x) < 0.18;
+      ctx.fillStyle = lit ? "rgba(255,226,170,0.8)" : "rgba(22,34,40,0.88)";
+      ctx.fillRect(x, 12, 18, 32);
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.strokeRect(x + 0.5, 12.5, 17, 31);
+    }
+  }
+
+  // Grit. Weathering, soot and patching, which is most of what separates a real wall from a
+  // flat fill at this distance.
+  for (let i = 0; i < w * h * material.grit; i += 1) {
+    ctx.fillStyle = random(seed + i) < 0.5 ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.13)";
+    ctx.fillRect(random(seed + i * 3) * w, random(seed + i * 7) * h, 1, 1);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+const FACADE_CACHE = new Map();
+function facadeTextureFor(material, seed) {
+  // Four variants per material is enough to break up a terrace without four hundred textures.
+  const key = `${material.name}-${Math.floor(random(seed) * 4)}`;
+  if (!FACADE_CACHE.has(key)) FACADE_CACHE.set(key, facadeFor(material, seed));
+  return FACADE_CACHE.get(key);
+}
+
 const FACADE_TEXTURE = facadeTexture();
-const ASPHALT = noiseTexture("#2b3338", "#0b1114", 128, 0.35);
-const CONCRETE = noiseTexture("#9aa8ab", "#7b8a8e", 128, 0.22);
-ASPHALT.repeat.set(6, 6);
-CONCRETE.repeat.set(4, 4);
+const ASPHALT = noiseTexture("#15191c", "#05080a", 128, 0.42);
+ASPHALT.repeat.set(8, 8);
+
+function sidewalkTexture() {
+  // Scored concrete. San Francisco pours its footways in squares of about five feet, and the
+  // joints between them are most of what tells you, at a glance, that you are looking at a
+  // pavement rather than at a grey strip.
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#9fa8a6";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size * 0.30; i += 1) {
+    ctx.fillStyle = random(i) < 0.5 ? "rgba(0,0,0,0.13)" : "rgba(255,255,255,0.10)";
+    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
+  }
+  ctx.strokeStyle = "rgba(0,0,0,0.34)";
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(0.7, 0.7, size - 1.4, size - 1.4);   // one slab per tile
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+const SIDEWALK = sidewalkTexture();
+//: One scored square, in metres. Five feet is the usual San Francisco pour.
+const SLAB_M = 1.52;
 
 //: Storey height and bay width in metres, so one tile of the facade covers one real storey.
 const STOREY_M = 3.2;
@@ -724,16 +863,27 @@ function buildingMesh(feature) {
   });
   geom.rotateX(-Math.PI / 2);
   const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels";
-  const tint = measured ? 0xb8ccd0 : 0x728a91;
-  const opacity = measured ? 0.76 : 0.52;
+  // Seeded from the footprint, so a building keeps its material and colour between reloads.
+  const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
+  const material = pickMaterial(seed, height);
+  const palette = material.colours;
+  const tint = palette[Math.floor(random(seed + 11) * palette.length)];
+  // A building whose height was measured is drawn solid; an inferred default stays translucent,
+  // so the difference between what is known and what is assumed survives the prettier textures.
+  const opacity = measured ? 0.95 : 0.55;
   // ExtrudeGeometry emits two material groups: the caps first, then the walls. Giving both the
   // facade map put a grid of windows across every rooftop -- which reads, from above, as though
   // the city were tiled in glass.
   const roof = new THREE.MeshStandardMaterial({
-    color: tint, transparent: true, opacity, roughness: 0.95, metalness: 0.02,
+    color: 0x6f7a7d, transparent: opacity < 1, opacity, roughness: 0.97, metalness: 0.02,
   });
   const walls = new THREE.MeshStandardMaterial({
-    map: FACADE_TEXTURE, color: tint, transparent: true, opacity, roughness: 0.88, metalness: 0.03,
+    map: facadeTextureFor(material, seed),
+    color: tint,
+    transparent: opacity < 1,
+    opacity,
+    roughness: material.name === "glass" ? 0.3 : 0.9,
+    metalness: material.name === "glass" ? 0.35 : 0.03,
   });
   const mesh = new THREE.Mesh(geom, [roof, walls]);
   mesh.userData = feature;
@@ -754,7 +904,7 @@ for (const way of DATA.ways) {
   }
   const isCrossing = way.kind === "crossing";
   const isSidewalk = way.kind === "sidewalk";
-  const color = isCrossing ? 0xe0a84e : isSidewalk ? 0xb5c5c8 : 0xd6e7ea;
+  const color = isCrossing ? 0xe0a84e : isSidewalk ? 0xffffff : 0xffffff;
   const widthMeters = isCrossing ? 5.2 : isSidewalk ? 2.4 : 4.6;
   const opacity = isCrossing ? 0.94 : isSidewalk ? 0.62 : 0.72;
   // Heights are metres of actual street. They used to be chosen for legibility from above --

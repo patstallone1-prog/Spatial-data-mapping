@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06T00:04:42.236002+00:00",
+  "generated_at": "2026-09-06T06:15:58.299249+00:00",
   "region": {
     "name": "sf-corridor",
     "description": "Marina, Cow Hollow, Russian Hill, North Beach, Chinatown, Financial District",
@@ -12,25 +12,25 @@
     "area_sq_mi": 4.92
   },
   "sequences": 0,
-  "observations": 162639,
-  "eligible_observations": 162593,
-  "coverage_cells": 338,
+  "observations": 194639,
+  "eligible_observations": 194593,
+  "coverage_cells": 366,
   "providers": {
-    "mapillary": 162639
+    "mapillary": 194639
   },
   "resolution_tiers": {
-    "A": 14587,
-    "B": 35622,
-    "C": 112384,
+    "A": 16813,
+    "B": 41235,
+    "C": 136545,
     "reject": 46
   },
   "projection_types": {
-    "spherical": 44428,
-    "perspective": 118150,
-    "unknown": 61
+    "spherical": 51236,
+    "perspective": 143320,
+    "unknown": 83
   },
   "licenses": {
-    "CC-BY-SA-4.0": 162639
+    "CC-BY-SA-4.0": 194639
   },
   "top_coverage_cells": [
     {
@@ -119,23 +119,6 @@
       "coverage_score": 0.8702
     },
     {
-      "coverage_cell": "8a283082b037fff",
-      "latitude": 37.79499000648125,
-      "longitude": -122.41853631460559,
-      "total_observations": 48,
-      "eligible_observations": 48,
-      "unique_sequences": 15,
-      "unique_providers": 1,
-      "newest_capture": "2025-08-20 09:55:34+00:00",
-      "oldest_capture": "2015-02-28 22:01:35+00:00",
-      "median_source_megapixels": 14.246496,
-      "perspective_image_count": 24,
-      "spherical_image_count": 24,
-      "heading_diversity": 0.875,
-      "temporal_diversity": 1.0,
-      "coverage_score": 0.87
-    },
-    {
       "coverage_cell": "8a283082b1affff",
       "latitude": 37.79415588457387,
       "longitude": -122.41748336048498,
@@ -151,6 +134,23 @@
       "heading_diversity": 1.0,
       "temporal_diversity": 1.0,
       "coverage_score": 0.8692
+    },
+    {
+      "coverage_cell": "8a283082b037fff",
+      "latitude": 37.79499000648125,
+      "longitude": -122.41853631460559,
+      "total_observations": 69,
+      "eligible_observations": 69,
+      "unique_sequences": 15,
+      "unique_providers": 1,
+      "newest_capture": "2025-08-20 09:55:34+00:00",
+      "oldest_capture": "2015-02-28 22:01:35+00:00",
+      "median_source_megapixels": 16.5888,
+      "perspective_image_count": 34,
+      "spherical_image_count": 35,
+      "heading_diversity": 0.875,
+      "temporal_diversity": 1.0,
+      "coverage_score": 0.8688
     },
     {
       "coverage_cell": "8a283082bd57fff",
@@ -170,6 +170,23 @@
       "coverage_score": 0.866
     },
     {
+      "coverage_cell": "8a283082b54ffff",
+      "latitude": 37.79719284863306,
+      "longitude": -122.41364799337869,
+      "total_observations": 220,
+      "eligible_observations": 220,
+      "unique_sequences": 13,
+      "unique_providers": 1,
+      "newest_capture": "2025-08-20 08:01:05.715000+00:00",
+      "oldest_capture": "2016-05-06 14:28:57.959000+00:00",
+      "median_source_megapixels": 14.450688,
+      "perspective_image_count": 82,
+      "spherical_image_count": 133,
+      "heading_diversity": 1.0,
+      "temporal_diversity": 1.0,
+      "coverage_score": 0.8646
+    },
+    {
       "coverage_cell": "8a283082bd07fff",
       "latitude": 37.786797980036084,
       "longitude": -122.41203060933192,
@@ -185,23 +202,6 @@
       "heading_diversity": 0.875,
       "temporal_diversity": 1.0,
       "coverage_score": 0.8637
-    },
-    {
-      "coverage_cell": "8a283082b867fff",
-      "latitude": 37.78773932016264,
-      "longitude": -122.4266382152232,
-      "total_observations": 355,
-      "eligible_observations": 355,
-      "unique_sequences": 20,
-      "unique_providers": 1,
-      "newest_capture": "2025-08-21 07:06:22.428000+00:00",
-      "oldest_capture": "2015-07-25 23:44:36.776000+00:00",
-      "median_source_megapixels": 7.990272,
-      "perspective_image_count": 221,
-      "spherical_image_count": 134,
-      "heading_diversity": 1.0,
-      "temporal_diversity": 1.0,
-      "coverage_score": 0.8578
     }
   ],
   "errors": [],

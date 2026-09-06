@@ -18,7 +18,13 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from smc.imagery.catalog import write_coverage, write_json, write_observations, write_sequences
 from smc.imagery.coverage import assign_cells, build_coverage_rows
-from smc.imagery.filtering import INGEST_MIN_MEGAPIXELS, exact_dedupe, mark_eligibility
+from smc.imagery.filtering import (
+    SAME_VIEW_LIMIT,
+    INGEST_MIN_MEGAPIXELS,
+    exact_dedupe,
+    mark_eligibility,
+    mark_redundant,
+)
 from smc.imagery.region import get_region
 from smc.imagery.schema import Observation, SequenceRecord
 
@@ -113,6 +119,8 @@ def main() -> int:
     parser.add_argument("--region", default="sf-corridor")
     parser.add_argument("--out", type=Path, default=Path("data/sf_corridor"))
     parser.add_argument("--h3-resolution", type=int, default=10)
+    parser.add_argument("--saturation", type=int, default=SAME_VIEW_LIMIT,
+                        help="How many frames one spot facing one way may keep.")
     parser.add_argument("--min-megapixels", type=float, default=INGEST_MIN_MEGAPIXELS,
                         help="Resolution floor applied uniformly to every provider at merge time.")
     args = parser.parse_args()
@@ -157,6 +165,11 @@ def main() -> int:
 
     observations = exact_dedupe(observations)
     assign_cells(observations, resolution=args.h3_resolution)
+    # Redundancy is judged after cells are assigned and across every provider at once, because
+    # "this place is already covered" is a statement about the place, not about who photographed
+    # it. Doing it per provider would let four sources each add their own thousand frames.
+    redundant = mark_redundant(observations, limit=args.saturation)
+    print(f"marked {redundant} redundant frames", file=sys.stderr)
     coverage_rows = build_coverage_rows(observations)
     sequences = _dedupe_sequences(sequences)
 

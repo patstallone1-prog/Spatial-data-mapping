@@ -19,7 +19,9 @@ from __future__ import annotations
 import argparse
 import bisect
 import json
+import time
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -33,7 +35,12 @@ from smc.imagery.catalog import write_coverage, write_json, write_observations, 
 from smc.imagery.coverage import assign_cells, build_coverage_rows  # noqa: E402
 from smc.imagery.filtering import INGEST_MIN_MEGAPIXELS, exact_dedupe, mark_eligibility  # noqa: E402
 from smc.imagery.region import get_region  # noqa: E402
-from smc.imagery.rosbag import RemoteBag, decode_compressed_image, decode_navsatfix  # noqa: E402
+from smc.imagery.rosbag import (  # noqa: E402
+    RemoteBag,
+    decode_navsatfix,
+    read_chunk_index,
+    read_message,
+)
 from smc.imagery.schema import (  # noqa: E402
     AVAILABLE,
     PROJECTION_PERSPECTIVE,
@@ -89,6 +96,8 @@ def main() -> int:
     ap.add_argument("--h3-resolution", type=int, default=10)
     ap.add_argument("--budget-mb", type=float, default=2500.0,
                     help="stop after pulling this much of the bag")
+    ap.add_argument("--workers", type=int, default=12,
+                    help="Concurrent range reads. The pass is latency-bound, not bandwidth-bound.")
     ap.add_argument("--everywhere", action="store_true",
                     help="keep frames anywhere in the region, not only in thin cells")
     args = ap.parse_args()
@@ -97,7 +106,7 @@ def main() -> int:
     thin = {row["cell"] for row in json.loads(args.thin_cells.read_text())} if args.thin_cells.exists() else set()
     print(f"{len(thin)} thin cells to fill", flush=True)
 
-    bag = RemoteBag(args.bag)
+    bag = RemoteBag(args.bag, max_workers=args.workers)
     cameras = {
         c.conn_id: c.topic.split("/")[-3]
         for c in bag.connections.values()
@@ -111,90 +120,96 @@ def main() -> int:
 
     times: list[float] = []
     fixes: list[dict] = []
-    pending: list[tuple[float, int, str]] = []   # frames seen before their fix arrived
-    observations: list[Observation] = []
-    seen: set[str] = set()
-    now = datetime.now(UTC)
+    # ---- pass one: the trajectory, read message by message ----
+    #
+    # The chunks are uncompressed, so a hundred-byte fix can be fetched without pulling the
+    # 1.3 MB of interleaved lidar and camera bytes wrapped around it. Measured on this bag that
+    # is 5 MB instead of 5,751 MB. What it costs instead is round trips -- the share link
+    # redirects and the signed address cannot be reused -- so the reads are made concurrently.
+    positions = [c.position for c in bag.chunks]
+    carrying = [i for i, c in enumerate(bag.chunks) if c.counts.get(position, 0)]
+    print(f"{len(carrying)} of {len(bag.chunks)} chunks carry a position fix", flush=True)
 
-    def place(when: float, conn_id: int, frame_key: str) -> bool:
-        fix = nearest_fix(times, fixes, when)
-        if fix is None:
-            return False
-        lat, lon = fix["lat"], fix["lon"]
-        if not region.bbox.contains(lat, lon):
-            return True
-        cell = h3.latlng_to_cell(lat, lon, args.h3_resolution)
-        if not args.everywhere and thin and cell not in thin:
-            return True
-        image_id = f"{args.sequence}/{cameras[conn_id]}/{frame_key}"
-        if image_id in seen:
-            return True
-        seen.add(image_id)
-        observations.append(
-            Observation(
-                observation_uid=observation_uid("urbanloco", INSTANCE, image_id),
-                provider="urbanloco",
-                provider_instance=INSTANCE,
-                provider_image_id=image_id,
-                provider_sequence_id=args.sequence,
-                sequence_uid=sequence_uid("urbanloco", INSTANCE, args.sequence),
-                provider_sequence_index=len(observations),
-                captured_at=datetime.fromtimestamp(when, tz=UTC),
-                latitude=lat,
-                longitude=lon,
-                altitude=fix.get("alt"),
-                # RTK-corrected GNSS fused with an IMU. Quoted at about five centimetres, which
-                # is one to two orders better than every other provider here.
-                gps_accuracy_m=0.05,
-                original_width=IMAGE_WIDTH,
-                original_height=IMAGE_HEIGHT,
-                original_megapixels=IMAGE_WIDTH * IMAGE_HEIGHT / 1e6,
-                projection_type=PROJECTION_PERSPECTIVE,
-                camera_model=cameras[conn_id],
-                license_id=LICENSE.identifier,
-                license_url=LICENSE.url,
-                attribution=LICENSE.attribution,
-                availability_status=AVAILABLE,
-                provider_metadata_version="urbanloco:navsatfix+span-cpt",
-                first_seen_at=now,
-                last_seen_at=now,
-            )
-        )
-        return True
-
-    budget = args.budget_mb * 1e6
-    for index, chunk in enumerate(bag.chunks, start=1):
-        if not chunk.carries(wanted):
-            continue
-        if bag.bytes_read > budget:
-            print(f"  byte budget reached at chunk {index}", flush=True)
-            break
+    def fixes_in(i: int) -> list[dict]:
+        chunk = bag.chunks[i]
+        following = positions[i + 1] if i + 1 < len(positions) else chunk.position + 2_000_000
         try:
-            for conn_id, stamp, payload in bag.messages(chunk, wanted):
-                if conn_id == position:
-                    fix = decode_navsatfix(payload)
-                    if fix:
-                        times.append(fix["t"])
-                        fixes.append(fix)
-                else:
-                    frame = decode_compressed_image(payload)
-                    if frame:
-                        pending.append((frame["t"], conn_id, f"{stamp}"))
-        except Exception as exc:  # noqa: BLE001 - one unreadable chunk must not end the pass
-            print(f"  chunk {index}: {type(exc).__name__}", flush=True)
-            continue
-        # Frames are matched once their surrounding fixes exist, so a frame that arrived just
-        # before its position is not silently dropped.
-        still: list[tuple[float, int, str]] = []
-        for when, conn_id, key in pending:
-            if not place(when, conn_id, key):
-                still.append((when, conn_id, key))
-        pending = still
-        if index % 200 == 0:
-            print(f"  chunk {index}/{len(bag.chunks)}: {len(fixes)} fixes, "
-                  f"{len(observations)} kept, {bag.bytes_read/1e6:.0f} MB", flush=True)
+            index = read_chunk_index(bag, chunk, following)
+        except Exception:  # noqa: BLE001 - one unreadable chunk is a gap, not a failure
+            return []
+        out = []
+        for _, offset in index.entries.get(position, []):
+            payload = read_message(bag, index, offset, hint=384)
+            if payload:
+                fix = decode_navsatfix(payload)
+                if fix:
+                    out.append(fix)
+        return out
 
-    for when, conn_id, key in pending:
+    # The trajectory is journalled as it arrives. An hour of reads against a CDN will meet at
+    # least one truncated response or dropped connection, and starting again from nothing each
+    # time is how this pass never finishes.
+    cache = args.out / "trajectory.jsonl"
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    done_chunks: set[int] = set()
+    if cache.exists():
+        for line in cache.read_text().splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            done_chunks.add(row["chunk"])
+            fixes.extend(row["fixes"])
+        print(f"  resumed {len(fixes)} fixes from {len(done_chunks)} chunks read earlier", flush=True)
+    remaining = [i for i in carrying if i not in done_chunks]
+
+    started = time.time()
+    with cache.open("a") as journal, ThreadPoolExecutor(max_workers=args.workers) as pool:
+        for done, (i, batch) in enumerate(zip(remaining, pool.map(fixes_in, remaining)), start=1):
+            fixes.extend(batch)
+            journal.write(json.dumps({"chunk": i, "fixes": batch}) + "\n")
+            if done % 200 == 0:
+                journal.flush()
+                print(f"  trajectory {done}/{len(remaining)} chunks, {len(fixes)} fixes, "
+                      f"{bag.bytes_read/1e6:.1f} MB, {time.time()-started:.0f}s", flush=True)
+    fixes.sort(key=lambda f: f["t"])
+    times.extend(f["t"] for f in fixes)
+    print(f"trajectory: {len(fixes)} fixes in {time.time()-started:.0f}s, "
+          f"{bag.bytes_read/1e6:.1f} MB", flush=True)
+    if not fixes:
+        sys.exit("no positions decoded; nothing can be placed")
+
+    # ---- pass two: only the frames standing in a thin cell ----
+    #
+    # Every camera message in the bag is indexed, but only those whose nearest fix falls in a
+    # cell that has measured kerbs and almost no photographs are worth fetching. The rest are
+    # skipped without being read, which is the whole point of addressing messages individually.
+    wanted_frames: list[tuple[float, int, str]] = []
+    camera_chunks = [i for i, c in enumerate(bag.chunks) if any(c.counts.get(k, 0) for k in cameras)]
+    print(f"{len(camera_chunks)} chunks carry camera frames", flush=True)
+
+    def frames_in(i: int) -> list[tuple[float, int, str]]:
+        chunk = bag.chunks[i]
+        following = positions[i + 1] if i + 1 < len(positions) else chunk.position + 2_000_000
+        try:
+            index = read_chunk_index(bag, chunk, following)
+        except Exception:  # noqa: BLE001
+            return []
+        out = []
+        for conn_id in cameras:
+            for when_ns, _ in index.entries.get(conn_id, []):
+                out.append((when_ns / 1e9, conn_id, f"{when_ns}"))
+        return out
+
+    started = time.time()
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        for done, batch in enumerate(pool.map(frames_in, camera_chunks), start=1):
+            wanted_frames.extend(batch)
+            if done % 400 == 0:
+                print(f"  frame index {done}/{len(camera_chunks)}, {len(wanted_frames)} frames, "
+                      f"{bag.bytes_read/1e6:.1f} MB", flush=True)
+    print(f"{len(wanted_frames)} camera frames indexed in {time.time()-started:.0f}s", flush=True)
+
+    for when, conn_id, key in sorted(wanted_frames):
         place(when, conn_id, key)
 
     for observation in observations:

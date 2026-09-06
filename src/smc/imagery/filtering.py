@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from smc.imagery.region import Region
 from smc.imagery.schema import TIER_A, TIER_B, TIER_C, TIER_REJECT, Observation
 
@@ -71,3 +73,66 @@ def exact_dedupe(observations: list[Observation]) -> list[Observation]:
         seen.add(key)
         out.append(obs)
     return out
+
+
+#: How near two frames must be, in metres, before they are candidates for being the same shot.
+#:
+#: This is set from what the measurement pipeline needs, not from what looks tidy. Consecutive
+#: frames in these sequences sit about two metres apart, and triangulation wants baselines of one
+#: to three metres -- so a filter that thinned to one frame per eight metres would delete
+#: precisely the stereo partners the kerb measurement depends on. At three metres, a moving
+#: camera keeps every frame it takes and only a stationary one repeats a bucket.
+REDUNDANCY_SPACING_M = 3.0
+
+#: Compass buckets. Two frames from the same spot facing opposite ways are not duplicates.
+HEADING_BUCKETS = 8
+
+#: How many frames one three-metre spot, facing one way, may keep. Generous on purpose: a
+#: vehicle waiting at a light, or six cameras firing together on one rig, should not each be
+#: treated as new coverage -- but nor should a second pass down the same street in another
+#: season be thrown away. This drops the genuinely repeated frame and little else.
+SAME_VIEW_LIMIT = 6
+
+_METRES_PER_DEGREE_LAT = 111_320.0
+
+
+def _viewpoint(observation: Observation) -> tuple:
+    """A place and a direction, coarse enough that near-identical frames collide."""
+    latitude = observation.latitude or 0.0
+    step_lat = REDUNDANCY_SPACING_M / _METRES_PER_DEGREE_LAT
+    step_lon = step_lat / max(math.cos(math.radians(latitude)), 1e-6)
+    heading = observation.heading_deg
+    octant = int((heading % 360) / (360 / HEADING_BUCKETS)) if heading is not None else -1
+    return (
+        round(latitude / step_lat),
+        round((observation.longitude or 0.0) / step_lon),
+        octant,
+    )
+
+
+def mark_redundant(observations: list[Observation], *, limit: int = SAME_VIEW_LIMIT) -> int:
+    """Flag the fourth and later photograph of the same spot facing the same way.
+
+    Coverage is not a count, but neither is it a cell. A cell holding a thousand frames from one
+    drive knows less about a street than one holding twenty from six, and judging that at cell
+    scale is too blunt: it discards the mid-block frame precisely where only the corners are
+    known. So redundancy is judged at eight metres and one compass octant -- close enough that
+    the frames really are of the same thing.
+
+    Nothing is deleted. Rows stay in the catalogue marked ``redundant``, because the fact that a
+    place was photographed a thousand times is itself worth knowing, and a later pass asking a
+    different question should not have to crawl again to discover it.
+    """
+    seen: dict[tuple, int] = {}
+    marked = 0
+    for observation in observations:
+        if not observation.eligible:
+            continue
+        key = _viewpoint(observation)
+        count = seen.get(key, 0) + 1
+        seen[key] = count
+        if count > limit:
+            observation.eligible = False
+            observation.rejection_reason = "redundant_viewpoint"
+            marked += 1
+    return marked

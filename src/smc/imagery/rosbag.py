@@ -18,8 +18,10 @@ type: 0x03 the bag header, 0x05 a chunk, 0x07 a connection, 0x06 a chunk's index
 from __future__ import annotations
 
 import bz2
+import http.client
 import io
 import struct
+import threading
 import urllib.request
 from dataclasses import dataclass, field
 
@@ -80,6 +82,9 @@ class RangedReader:
         self.url = url
         self.timeout = timeout
         self.bytes_read = 0
+        self.requests = 0
+        self._resolved: str | None = None
+        self._reusable = True
         # The redirect target is deliberately not kept. Dropbox hands out a signed, short-lived
         # CDN link per request, so reusing the one a HEAD resolved to earns a 403 on the first
         # range read. Every request re-follows from the share URL instead.
@@ -92,32 +97,95 @@ class RangedReader:
             if response.headers.get("Accept-Ranges") != "bytes":
                 raise RosbagError(f"{url}: no range support")
 
+    def _resolve(self) -> str:
+        """The CDN address the share link currently points at."""
+        request = urllib.request.Request(
+            self.url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return response.geturl()
+
     def read(self, start: int, length: int) -> bytes:
+        """Bytes from the file, following the share link's redirect at most once per address.
+
+        The signed CDN link is cached rather than re-followed per request. Addressing individual
+        messages means thousands of small reads, and at two round trips each the redirect, not
+        the payload, becomes the cost of the run. The link does expire, so a refusal drops the
+        cached address and resolves again -- which is the same failure that made caching look
+        wrong the first time it was tried.
+        """
         if length <= 0 or start >= self.size:
             return b""
         end = min(start + length, self.size) - 1
-        request = urllib.request.Request(
-            self.url, headers={"Range": f"bytes={start}-{end}", "User-Agent": "Mozilla/5.0"}
-        )
-        with urllib.request.urlopen(request, timeout=self.timeout) as response:
-            data = response.read()
-        self.bytes_read += len(data)
-        return data
+        for attempt in range(3):
+            target = self.url
+            if self._reusable:
+                if self._resolved is None:
+                    self._resolved = self._resolve()
+                target = self._resolved
+            request = urllib.request.Request(
+                target, headers={"Range": f"bytes={start}-{end}", "User-Agent": "Mozilla/5.0"}
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    data = response.read()
+            except urllib.error.HTTPError as exc:
+                if exc.code in (401, 403, 410):
+                    # This host signs a link per request and refuses a second read of the same
+                    # address. Measured rather than assumed: caching was tried, it failed on the
+                    # very next read, and going back through the share URL works. Caching is
+                    # abandoned for the rest of the run rather than retried on every read.
+                    self._resolved = None
+                    self._reusable = False
+                    continue
+                raise
+            except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException):
+                # IncompleteRead is an HTTPException rather than an OSError, so it slipped past
+                # an earlier version of this list and ended a twenty-minute pass on one truncated
+                # response. Over thousands of reads against a CDN, a short read is routine.
+                if attempt == 2:
+                    raise
+                continue
+            self.bytes_read += len(data)
+            self.requests += 1
+            return data
+        return b""
 
 
 class RemoteBag:
     """A ROS bag read in place."""
 
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, *, max_workers: int = 1) -> None:
         self.reader = RangedReader(url)
+        #: Reading a message costs two round trips -- the share link redirects, and the signed
+        #: address it hands back cannot be reused -- so the trajectory pass is bound by latency
+        #: rather than by bytes. Serially it is four hours a bag for five megabytes of fixes.
+        #: Each worker gets its own reader, because they count bytes and cache a resolution.
+        self.max_workers = max(1, max_workers)
+        self._local = threading.local()
+        self._readers: list[RangedReader] = []
+        self._lock = threading.Lock()
         self.connections: dict[int, Connection] = {}
         self.chunks: list[ChunkInfo] = []
         self._index_pos = 0
         self._read_index()
 
     @property
+    def worker_reader(self) -> RangedReader:
+        """This thread's reader."""
+        if self.max_workers == 1:
+            return self.reader
+        found = getattr(self._local, "reader", None)
+        if found is None:
+            found = RangedReader(self.reader.url, timeout=self.reader.timeout)
+            self._local.reader = found
+            with self._lock:
+                self._readers.append(found)
+        return found
+
+    @property
     def bytes_read(self) -> int:
-        return self.reader.bytes_read
+        return self.reader.bytes_read + sum(r.bytes_read for r in self._readers)
 
     def _record_at(self, offset: int, blob: bytes, base: int) -> tuple[dict, bytes, int]:
         """One record starting at ``offset`` within ``blob`` which begins at file ``base``."""
@@ -276,3 +344,97 @@ def decode_compressed_image(payload: bytes) -> dict | None:
     if len(data) != data_len:
         return None
     return {"t": stamp, "format": image_format, "data": data}
+
+
+# -- addressing single messages ----------------------------------------------------------------
+#
+# A bag stores, after each chunk, one index record per connection listing every message in that
+# chunk as (timestamp, offset). When the chunk is uncompressed -- which UrbanLoco's are -- those
+# offsets are direct file positions, so a single message can be fetched without touching the rest
+# of the chunk it sits in.
+#
+# That distinction decides whether this dataset is usable at all. Reading chunks whole to collect
+# positions pulled 227 MB for the first 2% of a bag, because a chunk is 1.3 MB of interleaved
+# lidar and camera bytes wrapped around the hundred-byte fix being looked for. Addressing
+# messages individually turns the trajectory into a few megabytes.
+
+OP_INDEX_DATA = 0x04
+
+
+def _chunk_data_start(reader: "RangedReader", position: int) -> tuple[int, int]:
+    """Where a chunk's payload begins, and where it ends."""
+    head = reader.read(position, 256)
+    (header_len,) = struct.unpack_from("<I", head, 0)
+    after = 4 + header_len
+    (data_len,) = struct.unpack_from("<I", head, after)
+    start = position + after + 4
+    return start, start + data_len
+
+
+class MessageIndex:
+    """Every message in one chunk, by connection, with the offset to fetch it from."""
+
+    __slots__ = ("data_start", "entries")
+
+    def __init__(self, data_start: int, entries: dict[int, list[tuple[int, int]]]) -> None:
+        self.data_start = data_start
+        self.entries = entries
+
+
+def read_chunk_index(bag: "RemoteBag", chunk: ChunkInfo, next_position: int) -> MessageIndex:
+    """The index records that follow one chunk."""
+    reader = bag.worker_reader
+    data_start, data_end = _chunk_data_start(reader, chunk.position)
+    span = max(0, next_position - data_end)
+    entries: dict[int, list[tuple[int, int]]] = {}
+    if span:
+        blob = reader.read(data_end, span)
+        offset = 0
+        while offset + 8 < len(blob):
+            try:
+                (header_len,) = struct.unpack_from("<I", blob, offset)
+                header = parse_header(blob[offset + 4 : offset + 4 + header_len])
+                after = offset + 4 + header_len
+                (payload_len,) = struct.unpack_from("<I", blob, after)
+                payload = blob[after + 4 : after + 4 + payload_len]
+                offset = after + 4 + payload_len
+            except (struct.error, IndexError):
+                break
+            if header.get("op", b"\x00")[0] != OP_INDEX_DATA:
+                continue
+            conn_id = struct.unpack("<I", header["conn"])[0]
+            count = struct.unpack("<I", header["count"])[0]
+            found = entries.setdefault(conn_id, [])
+            for i in range(count):
+                try:
+                    secs, nsecs, at = struct.unpack_from("<III", payload, i * 12)
+                except struct.error:
+                    break
+                found.append((secs * 1_000_000_000 + nsecs, at))
+    return MessageIndex(data_start, entries)
+
+
+def read_message(bag: "RemoteBag", index: MessageIndex, offset: int, hint: int = 4096) -> bytes | None:
+    """One message's payload, fetched on its own.
+
+    ``hint`` is how much to ask for before the record's own length is known. A position fix is a
+    hundred bytes and a compressed frame is most of a megabyte, so a short first read covers the
+    common case and only images need the second.
+    """
+    reader = bag.worker_reader
+    position = index.data_start + offset
+    blob = reader.read(position, hint)
+    if len(blob) < 8:
+        return None
+    try:
+        (header_len,) = struct.unpack_from("<I", blob, 0)
+        after = 4 + header_len
+        (data_len,) = struct.unpack_from("<I", blob, after)
+    except struct.error:
+        return None
+    end = after + 4 + data_len
+    if end > len(blob):
+        blob = reader.read(position, end)
+        if len(blob) < end:
+            return None
+    return blob[after + 4 : end]
