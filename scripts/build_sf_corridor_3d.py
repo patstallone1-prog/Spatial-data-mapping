@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import urllib.parse
 import urllib.request
@@ -382,6 +383,10 @@ def photo_facades() -> dict:
 
 
 OFFICIAL = Path(__file__).resolve().parents[1] / "data" / "sf_public_works"
+#: How near an inventory point has to be to the middle of a crossing way to be that crossing.
+#: Generous enough for the offset between where the city drops the point and where OSM draws
+#: the way, tight enough not to reach the next arm of the intersection.
+CROSSWALK_MATCH_M = 14.0
 
 
 def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
@@ -412,6 +417,14 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     # Carriageway measured across the city's own curb lines, and which streets are one-way.
     attributes_path = OFFICIAL / "street_attributes.json"
     attributes = json.loads(attributes_path.read_text()) if attributes_path.exists() else {}
+    # The city's inventory of which crossings are continental. Everything else that is marked
+    # is two transverse lines, and the model has been painting ladders on all of them.
+    crosswalks_path = OFFICIAL / "crosswalks.json"
+    crosswalks = json.loads(crosswalks_path.read_text()) if crosswalks_path.exists() else []
+    crosswalk_cells: dict[tuple[int, int], list[dict]] = defaultdict(list)
+    for crosswalk in crosswalks:
+        lon, lat = crosswalk["p"]
+        crosswalk_cells[(int(lon * 2000), int(lat * 2000))].append(crosswalk)
     frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0,
                        (bbox["west"] + bbox["east"]) / 2.0)
     index = CentrelineIndex.from_centrelines(json.loads(centrelines_path.read_text()), frame)
@@ -481,6 +494,34 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             counts["carriageway from right of way"] += 1
             if not way.get("walk_m"):
                 way["walk_fallback_m"] = round(walk, 3)
+
+    # -- which crossings are continental ----------------------------------------------------
+    #
+    # One inventory point marks one crossing, so the assignment has to be one to one. Matching
+    # every crossing within reach of any point instead marked 2,383 of 2,517 as continental,
+    # because a four-armed intersection with one ladder crossing has three other crossings
+    # standing twenty metres from the same point.
+    crossings = [w for w in ways if w.get("kind") == "crossing" and w.get("points")]
+    claimed: set[int] = set()
+    for crosswalk in crosswalks:
+        lon, lat = crosswalk["p"]
+        best, best_distance = None, CROSSWALK_MATCH_M
+        for i, way in enumerate(crossings):
+            if i in claimed:
+                continue
+            centre = way["points"][len(way["points"]) // 2]
+            metres = math.hypot((centre[0] - lon) * 88_000.0, (centre[1] - lat) * 111_320.0)
+            if metres < best_distance:
+                best, best_distance = i, metres
+        if best is None:
+            counts["crosswalk matched no crossing"] += 1
+            continue
+        claimed.add(best)
+        crossings[best]["continental"] = True
+        if crosswalk.get("year"):
+            crossings[best]["crosswalk_year"] = crosswalk["year"]
+    counts["continental crossing"] = len(claimed)
+    counts["plain crossing"] = len(crossings) - len(claimed)
 
     return {"available": True, "counts": dict(counts),
             "segments": len(segments),
@@ -771,6 +812,8 @@ function surfaceMap(surface, length, width) {
     // constant along the way and repeats across its width.
     return tiledMap(CROSSING, "crossing", 1, width / CROSSING_PERIOD_M);
   }
+  // One pair of lines for the whole crossing, not one pair per metre.
+  if (surface === "crossing_edges") return tiledMap(CROSSING_EDGES, "crossing_edges", 1, 1);
   return null;
 }
 
@@ -787,7 +830,7 @@ function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surf
   // A crossing is paint on a road, not a slab: its texture carries its own transparency so the
   // carriageway shows between the bars, and it must not write depth or it hides the road it
   // is painted on.
-  const painted = surface === "crossing";
+  const painted = surface === "crossing" || surface === "crossing_edges";
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(length, segmentHeight, width),
     new THREE.MeshStandardMaterial({
@@ -1149,6 +1192,33 @@ function crossingTexture() {
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
+
+function crossingEdgeTexture() {
+  // A marked crossing that is not continental is two lines across the road and bare asphalt
+  // between them. Painting ladder bars on those was inventing a marking the street does not
+  // have -- and continental crossings are the minority: the city's inventory lists 1,415 of
+  // them against 2,517 crossings in this corridor.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  const bar = size * 0.085;
+  ctx.fillStyle = "rgba(244, 245, 240, 0.96)";
+  ctx.fillRect(0, 0, size, bar);
+  ctx.fillRect(0, size - bar, size, bar);
+  for (let i = 0; i < size * 4; i += 1) {
+    const y = random(i * 5) < 0.5 ? random(i * 3) * bar : size - bar + random(i * 3) * bar;
+    ctx.fillStyle = random(i * 9) < 0.7 ? "rgba(24,26,28,0.28)" : "rgba(255,255,255,0.14)";
+    ctx.fillRect(random(i * 7) * size, y, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const CROSSING_EDGES = crossingEdgeTexture();
 
 const CROSSING = crossingTexture();
 //: One bar plus one gap, in metres. Continental bars run about 600 mm with a matching space.
@@ -1519,7 +1589,8 @@ for (const way of DATA.ways) {
   groups.streets.add(ribbon(way.points, widthMeters, color, opacity,
     isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
     isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
-    isCrossing ? "crossing" : isSidewalk ? "walk" : "road"));
+    isCrossing ? (way.continental ? "crossing" : "crossing_edges")
+      : isSidewalk ? "walk" : "road"));
   // A centreline belongs on a roadway, not on a footway: drawn on everything it read as a
   // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
   // It does not belong on a crossing either -- a crosswalk has bars painted across it and no

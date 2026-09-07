@@ -145,6 +145,35 @@ def width_profile(
     return samples
 
 
+#: Fewest stations a profile needs before its median means anything. Eight at two metres apart
+#: is sixteen metres of street.
+MIN_PROFILE_SAMPLES = 8
+#: How much a carriageway may vary along one block before the profile is more likely to have
+#: picked up a cross street's kerbs than to have found a real bulb-out. Macondray Lane came out
+#: as a 7.9 m carriageway varying by 17.5 m, which is not a lane widening -- it is the profile
+#: reading the kerbs of the street it crosses.
+MAX_PROFILE_SPREAD_M = 4.0
+MAX_PROFILE_SPREAD_FRACTION = 0.6
+
+
+def profile_is_reliable(summary: dict) -> tuple[bool, str | None]:
+    """Whether a width profile describes one street rather than two.
+
+    A profile that fails this is not corrected -- there is nothing to correct it to. It is
+    declined, and the segment falls back to the right of way with its footways taken out, which
+    is a worse measurement honestly obtained.
+    """
+    if not summary.get("n"):
+        return False, "no usable samples"
+    if summary["n"] < MIN_PROFILE_SAMPLES:
+        return False, "too few stations to trust a median"
+    spread = summary["p90_m"] - summary["p10_m"]
+    allowed = max(MAX_PROFILE_SPREAD_M, MAX_PROFILE_SPREAD_FRACTION * summary["median_m"])
+    if spread > allowed:
+        return False, "varies more than one street plausibly can"
+    return True, None
+
+
 def summarise(samples: list[Sample]) -> dict:
     """The profile reduced to numbers worth storing beside a street.
 

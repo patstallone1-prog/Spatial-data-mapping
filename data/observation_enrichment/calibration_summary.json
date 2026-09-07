@@ -1,0 +1,10 @@
+{
+ "frames": 15282,
+ "calibrations": 15282,
+ "with_intrinsics": 15282,
+ "with_pose": 15282,
+ "with_lidar_frame": 15282,
+ "pitch_deg_median": -0.009,
+ "pitch_deg_p95": 6.501,
+ "abs_roll_deg_median": 1.248
+}

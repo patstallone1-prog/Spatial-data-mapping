@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 from smc.imagery.archive import RangedHttpFile
 from smc.imagery.base import ImageAsset, License, ObservationUnavailable
 from smc.imagery.region import Region
+from smc.imagery.calibration import SensorCalibration, camera_angles, quaternion_to_matrix
 from smc.imagery.schema import (
     AVAILABLE,
     PROJECTION_PERSPECTIVE,
@@ -66,18 +67,12 @@ CAMERAS = (
 IMAGE_WIDTH, IMAGE_HEIGHT = 1920, 1080
 
 
-def _quaternion_heading(heading: dict) -> float | None:
-    """Compass bearing from the pose quaternion, degrees clockwise from north.
-
-    PandaSet's world frame is east-north-up, so the yaw extracted here is measured
-    anticlockwise from east and has to be turned into a bearing.
-    """
+def _number(value) -> float | None:
+    """A float, or None where the archive left the field out or wrote something else."""
     try:
-        w, x, y, z = (float(heading[k]) for k in ("w", "x", "y", "z"))
-    except (KeyError, TypeError, ValueError):
+        return float(value)
+    except (TypeError, ValueError):
         return None
-    yaw = math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
-    return (90.0 - math.degrees(yaw)) % 360.0
 
 
 class PandaSetProvider:
@@ -91,6 +86,9 @@ class PandaSetProvider:
         self._file: RangedHttpFile | None = None
         self._zip: zipfile.ZipFile | None = None
         self._sequences: dict[str, SequenceRecord] = {}
+        #: Measured geometry per frame, which the observation schema has no room for and which
+        #: is the whole reason these frames are worth more than their two megapixels.
+        self.calibrations: list[SensorCalibration] = []
         self.errors: list[str] = []
 
     @property
@@ -220,8 +218,40 @@ class PandaSetProvider:
                 stamp = None
         focal = float(intrinsics.get("fx") or 0.0) or None
         now = datetime.now(timezone.utc)
+
+        # The pose and the intrinsics were being read and dropped: a measured six-degree-of-
+        # freedom pose reduced to a compass bearing, and four intrinsic parameters reduced to
+        # one focal length. Both are kept now, and the pitch and roll that were sitting in the
+        # quaternion all along come out with them.
+        rotation = quaternion_to_matrix(
+            *(float((pose.get("heading") or {}).get(k, 0.0)) for k in ("w", "x", "y", "z")))
+        heading, pitch, roll = camera_angles(rotation)
+        position = pose.get("position") or {}
+        uid = observation_uid(self.name, self.instance, image_id)
+        self.calibrations.append(SensorCalibration(
+            observation_uid=uid, provider=self.name,
+            fx=_number(intrinsics.get("fx")), fy=_number(intrinsics.get("fy")),
+            cx=_number(intrinsics.get("cx")), cy=_number(intrinsics.get("cy")),
+            position_x=_number(position.get("x")), position_y=_number(position.get("y")),
+            position_z=_number(position.get("z")),
+            quaternion_w=_number((pose.get("heading") or {}).get("w")),
+            quaternion_x=_number((pose.get("heading") or {}).get("x")),
+            quaternion_y=_number((pose.get("heading") or {}).get("y")),
+            quaternion_z=_number((pose.get("heading") or {}).get("z")),
+            yaw_deg=heading, pitch_deg=pitch, roll_deg=roll,
+            # The point cloud for this sweep. Every camera on the vehicle shares it.
+            lidar_frame_id=f"{sequence}/lidar/{index:02d}",
+            world_frame="pandaset",
+        ))
+        # A field of view the frame actually has, rather than a null. Two arctangents from the
+        # measured focal length and the sensor width, which is exactly the number the facade
+        # rectifier had to assume for every other provider.
+        hfov = (math.degrees(2.0 * math.atan(IMAGE_WIDTH / (2.0 * focal)))
+                if focal else None)
+        vfov = (math.degrees(2.0 * math.atan(IMAGE_HEIGHT / (2.0 * (_number(intrinsics.get("fy")) or focal))))
+                if focal else None)
         return Observation(
-            observation_uid=observation_uid(self.name, self.instance, image_id),
+            observation_uid=uid,
             provider=self.name,
             provider_instance=self.instance,
             provider_image_id=image_id,
@@ -232,7 +262,11 @@ class PandaSetProvider:
             latitude=lat,
             longitude=lon,
             altitude=float(fix["height"]) if fix.get("height") is not None else None,
-            heading_deg=_quaternion_heading(pose.get("heading") or {}),
+            heading_deg=heading,
+            pitch_deg=pitch,
+            roll_deg=roll,
+            horizontal_fov=hfov,
+            vertical_fov=vfov,
             original_width=IMAGE_WIDTH,
             original_height=IMAGE_HEIGHT,
             original_megapixels=IMAGE_WIDTH * IMAGE_HEIGHT / 1e6,

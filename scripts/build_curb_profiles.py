@@ -18,21 +18,19 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
-import statistics
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-import numpy as np  # noqa: E402
 
 from smc.facades.geometry import LocalFrame  # noqa: E402
 from smc.official.curbs import (  # noqa: E402
     curb_role,
     densify,
+    profile_is_reliable,
     summarise,
     width_profile,
 )
@@ -205,6 +203,33 @@ def main() -> int:
             oneway[segment_id(cnn)] = str(row["properties"].get("DIRECTION") or "").strip()
     progress(f"{len(oneway)} one-way segments")
 
+    # -- continental crosswalks -------------------------------------------------------------
+    #
+    # Not every marked crossing is a ladder of bars. San Francisco keeps an inventory of the
+    # ones that are, with the year each was installed, and the model has been painting
+    # continental bars on all 2,517 crossings in the corridor including the ones that are two
+    # transverse lines and nothing else.
+    crosswalk_rows, crosswalk_doc = fetch(LAYERS["crosswalks"], bbox=CORRIDOR, cache_dir=CACHE,
+                                          refresh=args.refresh, progress=progress)
+    crosswalks = []
+    for row in crosswalk_rows:
+        geometry = row.get("geometry") or {}
+        coordinates = geometry.get("coordinates")
+        props = row["properties"]
+        if not coordinates:
+            lon, lat = props.get("LONGITUDE"), props.get("LATITUDE")
+            coordinates = [lon, lat] if lon and lat else None
+        if not coordinates:
+            continue
+        crosswalks.append({
+            "p": [round(float(coordinates[0]), 6), round(float(coordinates[1]), 6)],
+            "cnn": props.get("CNN"),
+            "year": props.get("YR_INSTALL"),
+            "street": props.get("STREETNAME"),
+            "cross": props.get("CROSS_STRE"),
+        })
+    progress(f"{len(crosswalks)} continental crosswalks")
+
     def spread(key_a: str, key_b: str) -> dict | None:
         pairs = [(c[key_a], c[key_b]) for c in comparisons
                  if c.get(key_a) is not None and c.get(key_b) is not None]
@@ -217,8 +242,10 @@ def main() -> int:
 
     report = {
         "scope": "corridor" if args.all else CHUNK["key"],
-        "documents": [curb_doc.document_id, width_doc.document_id],
+        "documents": [curb_doc.document_id, width_doc.document_id,
+                      crosswalk_doc.document_id],
         "oneway_segments": len(oneway),
+        "continental_crosswalks": len(crosswalks),
         "segments_with_both_curb_faces": len(both),
         "segments_with_profile": len(profiles),
         "varies_by_over_1m": sum(
@@ -230,11 +257,18 @@ def main() -> int:
     }
 
     OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "crosswalks.json").write_text(json.dumps(crosswalks, separators=(",", ":")))
     if args.all:
         # What the reconstruction needs, per segment, in one small file.
         attributes = {}
+        declined = Counter()
         for feature, profile in profiles.items():
             summary = profile["summary"]
+            reliable, why = profile_is_reliable(summary)
+            if not reliable:
+                declined[why] += 1
+                attributes[feature] = {"road_declined": why}
+                continue
             attributes[feature] = {
                 "road_m": summary["median_m"],
                 "road_p10_m": summary["p10_m"],
@@ -242,12 +276,21 @@ def main() -> int:
                 "road_n": summary["n"],
                 "road_source": "curb_geometry",
             }
+        progress(f"profiles declined: {dict(declined)}")
         for feature, direction in oneway.items():
             attributes.setdefault(feature, {})["oneway"] = direction or True
         for feature, value in row_by_feature.items():
             attributes.setdefault(feature, {})["record_row_m"] = round(value, 3)
             if feature in sheets:
                 attributes[feature]["record_sheet"] = sheets[feature]
+        # The record's own footway width, where it filled one in. This is a third and entirely
+        # separate opinion about the same pavement -- feet and inches off a sheet, against a
+        # 2014 consultant survey and against our lidar -- and three sources can be triangulated
+        # where two can only disagree.
+        for feature, values in walk_by_feature.items():
+            if values:
+                attributes.setdefault(feature, {})["record_sidewalk_m"] = round(
+                    sorted(values)[len(values) // 2], 3)
         (OUT / "street_attributes.json").write_text(
             json.dumps(attributes, separators=(",", ":")))
         progress(f"wrote street_attributes.json: {len(attributes)} segments")

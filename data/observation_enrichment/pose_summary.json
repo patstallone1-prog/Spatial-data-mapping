@@ -1,0 +1,17 @@
+{
+ "frames_refined": 368035,
+ "frames_moved": 86656,
+ "moved_median_m": 1.075,
+ "moved_p90_m": 7.856,
+ "outside_right_of_way": 40593,
+ "smoothed": 45858,
+ "left_alone_wrong_street": 3887,
+ "validation": {
+  "injected_sigma_m": 3.0,
+  "n": 368035,
+  "error_before_median_m": 2.184,
+  "error_after_median_m": 1.281,
+  "error_before_mean_m": 2.749,
+  "error_after_mean_m": 1.729
+ }
+}

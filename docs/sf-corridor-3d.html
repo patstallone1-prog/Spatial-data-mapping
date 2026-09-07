@@ -281,6 +281,8 @@ function surfaceMap(surface, length, width) {
     // constant along the way and repeats across its width.
     return tiledMap(CROSSING, "crossing", 1, width / CROSSING_PERIOD_M);
   }
+  // One pair of lines for the whole crossing, not one pair per metre.
+  if (surface === "crossing_edges") return tiledMap(CROSSING_EDGES, "crossing_edges", 1, 1);
   return null;
 }
 
@@ -297,7 +299,7 @@ function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surf
   // A crossing is paint on a road, not a slab: its texture carries its own transparency so the
   // carriageway shows between the bars, and it must not write depth or it hides the road it
   // is painted on.
-  const painted = surface === "crossing";
+  const painted = surface === "crossing" || surface === "crossing_edges";
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(length, segmentHeight, width),
     new THREE.MeshStandardMaterial({
@@ -659,6 +661,33 @@ function crossingTexture() {
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
+
+function crossingEdgeTexture() {
+  // A marked crossing that is not continental is two lines across the road and bare asphalt
+  // between them. Painting ladder bars on those was inventing a marking the street does not
+  // have -- and continental crossings are the minority: the city's inventory lists 1,415 of
+  // them against 2,517 crossings in this corridor.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  const bar = size * 0.085;
+  ctx.fillStyle = "rgba(244, 245, 240, 0.96)";
+  ctx.fillRect(0, 0, size, bar);
+  ctx.fillRect(0, size - bar, size, bar);
+  for (let i = 0; i < size * 4; i += 1) {
+    const y = random(i * 5) < 0.5 ? random(i * 3) * bar : size - bar + random(i * 3) * bar;
+    ctx.fillStyle = random(i * 9) < 0.7 ? "rgba(24,26,28,0.28)" : "rgba(255,255,255,0.14)";
+    ctx.fillRect(random(i * 7) * size, y, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const CROSSING_EDGES = crossingEdgeTexture();
 
 const CROSSING = crossingTexture();
 //: One bar plus one gap, in metres. Continental bars run about 600 mm with a matching space.
@@ -1029,7 +1058,8 @@ for (const way of DATA.ways) {
   groups.streets.add(ribbon(way.points, widthMeters, color, opacity,
     isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
     isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
-    isCrossing ? "crossing" : isSidewalk ? "walk" : "road"));
+    isCrossing ? (way.continental ? "crossing" : "crossing_edges")
+      : isSidewalk ? "walk" : "road"));
   // A centreline belongs on a roadway, not on a footway: drawn on everything it read as a
   // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
   // It does not belong on a crossing either -- a crosswalk has bars painted across it and no
