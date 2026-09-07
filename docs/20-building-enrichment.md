@@ -25,3 +25,14 @@ Example:
 The renderer currently has scalable archetypes for `gas_station`, `park`, `mini_golf`, and
 `parking`, and shows building/place metadata when clicking an enriched building. Other classes
 still fall back to ordinary extruded massing until their archetype models are added.
+
+Height priority is conservative:
+
+1. DataSF lidar median height (`datasf_lidar_median_height`).
+2. Explicit OSM `height`.
+3. Overture `height`.
+4. OSM or Overture floor/level estimates.
+5. Renderer default height, flagged as `inferred_default`.
+
+Google Places is not used for building height. It can name businesses and place types,
+but it does not provide roof height or measured geometry.
