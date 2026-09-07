@@ -53,7 +53,7 @@ class MapillaryImagery:
     """
 
     name = "mapillary"
-    commercial_safe = True
+    commercial_safe = False
     requires_credential = True
     BASE_URL = "https://graph.mapillary.com/images"
 

@@ -108,7 +108,7 @@ Run `python -m smc.adapters check`. Four are required before anything runs:
 
 | Variable | Service | Why |
 |---|---|---|
-| `MAPILLARY_ACCESS_TOKEN` | Mapillary API v4 | Anchor imagery. Free, commercial-safe |
+| `MAPILLARY_ACCESS_TOKEN` | Mapillary API v4 | Anchor imagery. Experimental/non-commercial coverage source |
 | `HUGGINGFACE_TOKEN` | Hugging Face | DA3METRIC-LARGE, SAM 3, MegaLoc, VGGT-1B-Commercial |
 | `SMC_DATABASE_URL` | Postgres + PostGIS | The facts store |
 | `SMC_OBJECT_STORE_URL` | GCS or S3 | Transient imagery |

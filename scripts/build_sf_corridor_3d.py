@@ -20,9 +20,17 @@ sys.path.insert(0, str(ROOT / "src"))
 import h3
 import pyarrow.parquet as pq
 
+from smc.buildings.enrichment import (
+    ADDRESS_KEYS,
+    BUSINESS_KEYS,
+    building_id,
+    merge_building_enrichment,
+    normalize_osm_building,
+)
 from smc.imagery.region import SF_CORRIDOR, BBox
 
 PRECISION = 6
+BUILDING_ENRICHMENT = ROOT / "data" / "sf_building_enrichment" / "buildings.json"
 
 
 def overpass_query(bbox: BBox) -> str:
@@ -135,17 +143,27 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
         if len(points) < 2:
             continue
         if tags.get("building") and _is_closed(points):
+            osm_id = element.get("id")
+            kept_tags = {
+                key: tags[key]
+                for key in (*ADDRESS_KEYS, *BUSINESS_KEYS)
+                if tags.get(key) not in (None, "")
+            }
             height, height_source = _building_height(tags)
-            ways.append(
-                {
-                    "kind": "building",
-                    "name": tags.get("name"),
-                    "height_m": round(height, 2),
-                    "height_source": height_source,
-                    "centroid": _centroid(points),
-                    "points": points,
-                }
-            )
+            building = {
+                "kind": "building",
+                "name": tags.get("name"),
+                "height_m": round(height, 2),
+                "height_source": height_source,
+                "centroid": _centroid(points),
+                "points": points,
+            }
+            if osm_id is not None:
+                building["osm_id"] = osm_id
+                building["building_id"] = f"osm:way:{osm_id}"
+            if kept_tags:
+                building["tags"] = kept_tags
+            ways.append(building)
             continue
         highway = tags.get("highway")
         if tags.get("footway") == "sidewalk":
@@ -298,6 +316,33 @@ def annotate_osm_features(
     }
 
 
+def annotate_building_enrichment(ways: list[dict[str, Any]]) -> dict[str, Any]:
+    building_index = 0
+    for way in ways:
+        if way.get("kind") != "building":
+            continue
+        way["building_id"] = building_id(way, building_index)
+        if way.get("tags"):
+            seeded = normalize_osm_building(way, building_index)
+            for key in ("address", "building_osm", "land_use", "osm_types", "archetype"):
+                if seeded.get(key) not in (None, "", [], {}) and not way.get(key):
+                    way[key] = seeded[key]
+        building_index += 1
+
+    summary: dict[str, Any] = {
+        "available": BUILDING_ENRICHMENT.exists(),
+        "buildings": building_index,
+        "matched": 0,
+    }
+    if not BUILDING_ENRICHMENT.exists():
+        return summary
+    enrichment = json.loads(BUILDING_ENRICHMENT.read_text(encoding="utf-8"))
+    counts = merge_building_enrichment(ways, enrichment)
+    summary.update(counts)
+    summary["source"] = str(BUILDING_ENRICHMENT.relative_to(ROOT))
+    return summary
+
+
 def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     observations = pq.read_table(root / "observations" / "external-000.parquet").to_pylist()
     coverage = pq.read_table(root / "coverage" / "h3.parquet").to_pylist()
@@ -322,6 +367,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
         else {}
     )
     ways, osm_summary = annotate_osm_features(ways, coverage)
+    building_summary = annotate_building_enrichment(ways)
     official_summary = annotate_official(ways, {
         "south": SF_CORRIDOR.bbox.south, "west": SF_CORRIDOR.bbox.west,
         "north": SF_CORRIDOR.bbox.north, "east": SF_CORRIDOR.bbox.east,
@@ -368,6 +414,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "providers": dict(Counter(row["provider"] for row in observations)),
             "osm": osm_summary,
             "cv_depth": depth_summary,
+            "building_enrichment": building_summary,
         },
         "bbox": {
             "south": SF_CORRIDOR.bbox.south,
@@ -2231,6 +2278,114 @@ function footprintMesh(points, color, opacity, y) {
   return mesh;
 }
 
+function footprintMetrics(points) {
+  const shape = footprintShape(points);
+  if (!shape) return null;
+  const local = points.map((p) => xy(p[0], p[1]));
+  const xs = local.map((p) => p[0]);
+  const ys = local.map((p) => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  return {
+    shape,
+    x: (minX + maxX) / 2,
+    z: -(minY + maxY) / 2,
+    width: Math.max(4, maxX - minX),
+    depth: Math.max(4, maxY - minY),
+  };
+}
+
+function placeSlab(metrics, color, y = 0.075) {
+  const geometry = new THREE.ShapeGeometry(metrics.shape);
+  geometry.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    color, roughness: 0.92, metalness: 0.02,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -3,
+  }));
+  mesh.position.y = y;
+  return mesh;
+}
+
+function boxPart(group, x, y, z, w, h, d, color, roughness = 0.82) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color, roughness, metalness: 0.04 })
+  );
+  mesh.position.set(x, y + h / 2, z);
+  group.add(mesh);
+  return mesh;
+}
+
+function gasStationMesh(feature, seed) {
+  const metrics = footprintMetrics(feature.points);
+  if (!metrics) return null;
+  const group = new THREE.Group();
+  group.add(placeSlab(metrics, 0x171b1d, 0.07));
+  const canopyW = Math.min(metrics.width * 0.72, 28);
+  const canopyD = Math.min(metrics.depth * 0.46, 18);
+  boxPart(group, metrics.x, 4.8, metrics.z, canopyW, 0.45, canopyD, 0xf1f0e8, 0.55);
+  for (const sx of [-0.32, 0.32]) {
+    for (const sz of [-0.28, 0.28]) {
+      boxPart(group, metrics.x + sx * canopyW, 0, metrics.z + sz * canopyD, 0.34, 4.8, 0.34, 0xd8d2c5);
+    }
+  }
+  for (const sx of [-0.22, 0.22]) {
+    boxPart(group, metrics.x + sx * canopyW, 0, metrics.z, 1.0, 1.4, 0.72, 0xe8eef0, 0.48);
+  }
+  boxPart(group, metrics.x - metrics.width * 0.24, 0, metrics.z + metrics.depth * 0.26,
+          Math.max(4, metrics.width * 0.22), 3.2, Math.max(3, metrics.depth * 0.18), 0xb8a07f);
+  group.userData = feature;
+  return group;
+}
+
+function parkMesh(feature, seed) {
+  const metrics = footprintMetrics(feature.points);
+  if (!metrics) return null;
+  const group = new THREE.Group();
+  group.add(placeSlab(metrics, feature.archetype === "mini_golf" ? 0x477f45 : 0x365f3b, 0.065));
+  const count = Math.max(4, Math.min(18, Math.floor((metrics.width * metrics.depth) / 180)));
+  for (let i = 0; i < count; i += 1) {
+    const x = metrics.x + (random(seed + i * 17) - 0.5) * metrics.width * 0.75;
+    const z = metrics.z + (random(seed + i * 31) - 0.5) * metrics.depth * 0.75;
+    boxPart(group, x, 0, z, 0.25, 1.1, 0.25, 0x5c432f);
+    const crown = new THREE.Mesh(
+      new THREE.ConeGeometry(1.0 + random(seed + i) * 0.8, 3.0 + random(seed + i * 3) * 2.2, 8),
+      new THREE.MeshStandardMaterial({ color: 0x4f8a55, roughness: 0.96 })
+    );
+    crown.position.set(x, 3.0, z);
+    group.add(crown);
+  }
+  if (feature.archetype === "mini_golf") {
+    for (let i = 0; i < 5; i += 1) {
+      boxPart(group, metrics.x + (i - 2) * metrics.width * 0.12, 0.08,
+              metrics.z + Math.sin(i) * metrics.depth * 0.16, 1.8, 0.25, 0.55, 0xf1e5aa, 0.76);
+    }
+  }
+  group.userData = feature;
+  return group;
+}
+
+function parkingMesh(feature, seed) {
+  const metrics = footprintMetrics(feature.points);
+  if (!metrics) return null;
+  const group = new THREE.Group();
+  group.add(placeSlab(metrics, 0x15191b, 0.068));
+  const rows = Math.max(2, Math.min(9, Math.floor(metrics.width / 4)));
+  for (let i = 0; i < rows; i += 1) {
+    const x = metrics.x - metrics.width * 0.38 + (i + 0.5) * metrics.width * 0.76 / rows;
+    boxPart(group, x, 0.09, metrics.z, 0.09, 0.04, metrics.depth * 0.72, 0xf0f2ea, 0.5);
+  }
+  group.userData = feature;
+  return group;
+}
+
+function placeArchetypeMesh(feature, seed) {
+  if (feature.archetype === "gas_station") return gasStationMesh(feature, seed);
+  if (feature.archetype === "park" || feature.archetype === "mini_golf") return parkMesh(feature, seed);
+  if (feature.archetype === "parking") return parkingMesh(feature, seed);
+  return null;
+}
+
 function buildingMesh(feature) {
   const shape = footprintShape(feature.points);
   if (!shape) return null;
@@ -2238,13 +2393,16 @@ function buildingMesh(feature) {
   // put every building eighty per cent taller than OpenStreetMap says it is -- fine as a
   // diagram, wrong the moment somebody walks down the street beside it.
   const height = Math.max(3, Math.min(260, feature.height_m || 10.5));
+  // Seeded from the footprint, so a building keeps its material and colour between reloads.
+  const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
+  const archetype = placeArchetypeMesh(feature, seed);
+  if (archetype) return archetype;
   const geom = new THREE.ExtrudeGeometry(shape, {
     depth: height, bevelEnabled: false, UVGenerator: FACADE_UV,
   });
   geom.rotateX(-Math.PI / 2);
-  const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels";
-  // Seeded from the footprint, so a building keeps its material and colour between reloads.
-  const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
+  const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
+    || feature.height_source === "overture_height";
   const material = pickMaterial(seed, height);
   const palette = material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
@@ -2881,6 +3039,40 @@ const ray = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let pressedAt = [0, 0];
 canvas.addEventListener("pointerdown", (e) => { pressedAt = [e.clientX, e.clientY]; });
+const tip = document.getElementById("tip");
+
+function featureSummary(feature) {
+  if (!feature) return null;
+  const place = feature.place || (feature.google_places || [])[0] || {};
+  const address = feature.address || {};
+  const parcel = feature.parcel || {};
+  const zoning = feature.zoning || {};
+  const title = place.name || feature.name || address.formatted || "Building";
+  const lines = [
+    `<b>${title}</b>`,
+    address.formatted || place.formatted_address || "",
+    feature.archetype ? `Type: ${feature.archetype.replaceAll("_", " ")}` : "",
+    place.primary_type ? `Business: ${place.primary_type.replaceAll("_", " ")}` : "",
+    feature.land_use || zoning.district ? `Land use: ${feature.land_use || zoning.district}` : "",
+    parcel.blklot ? `Parcel: ${parcel.blklot}` : "",
+    feature.sources ? `Sources: ${feature.sources.join(", ")}` : "",
+  ].filter(Boolean);
+  return lines.join("<br>");
+}
+
+function pickedFeature(clientX, clientY) {
+  pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(pointer, camera);
+  const hits = ray.intersectObjects(groups.mapped3d.children, true);
+  for (const hit of hits) {
+    let node = hit.object;
+    while (node) {
+      if (node.userData && node.userData.kind === "building") return node.userData;
+      node = node.parent;
+    }
+  }
+  return null;
+}
 
 function groundAt(clientX, clientY) {
   pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
@@ -2906,6 +3098,12 @@ canvas.addEventListener("pointerup", (e) => {
   // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
   if (Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
   if (e.button === 2) return;   // handled on contextmenu, which fires first on a two-finger tap
+  const feature = pickedFeature(e.clientX, e.clientY);
+  const summary = featureSummary(feature);
+  if (summary && tip) {
+    tip.innerHTML = summary;
+    return;
+  }
   goTo(groundAt(e.clientX, e.clientY), { travel: false });
 });
 

@@ -33,6 +33,12 @@ data source anywhere in the ingest or training path.** This also means the stron
 prior art (UrbanVGGT, RampNet — both built on Street View) proves *technical* feasibility but
 its *data pipeline* cannot be copied commercially.
 
+**Non-commercial experiment exception, added 2026-09-07:** Google Places and Geocoding may be
+used as refreshable UI metadata for this research viewer when every field keeps source,
+fetch time, expiry, and a warning that it must not be promoted into permanent measured
+geometry. Place IDs are the durable join key; names, formatted addresses, business types,
+and other Google fields are cache-limited hints for display and archetype selection.
+
 ### 0.2 ODbL share-alike is survivable, but only by design
 
 OSM and the Overture buildings/transportation themes are ODbL. The critical distinction:

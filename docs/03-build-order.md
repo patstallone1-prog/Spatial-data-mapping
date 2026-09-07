@@ -19,7 +19,7 @@ tests, migrations, observability, and a defined failure mode.
 
 **Build and validate the entire fusion engine before writing a line of capture app.**
 
-Mapillary provides free, commercially-usable, street-level imagery with pose metadata across most
+Mapillary provides broad experimental street-level imagery with pose metadata across most
 dense corridors. That means Layer C can be built, measured against municipal ground truth, and
 pushed through the Tier A and Tier B gates **with zero contributors**. The cold-start problem
 applies only to *freshness and coverage*, which is a growth problem — not to *engine correctness*,

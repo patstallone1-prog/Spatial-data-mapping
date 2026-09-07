@@ -1,0 +1,28 @@
+{
+ "archetypes": {
+  "civic": 33,
+  "generic": 12095,
+  "hotel": 75,
+  "industrial": 18,
+  "office": 1948,
+  "park": 6,
+  "parking": 3,
+  "residential": 1515,
+  "restaurant": 8,
+  "retail": 256,
+  "school": 27
+ },
+ "buildings": 15984,
+ "datasf_parcel_matches": 15668,
+ "generated_at": "2026-09-07T14:57:25.119668Z",
+ "google_places_errors": [
+  "HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"Quota exceeded for quota metric 'SearchNearbyRequest' and limit 'SearchNearbyRequest per day' of service 'places"
+ ],
+ "google_places_requests": 0,
+ "google_policy": "Google Places fields in this file are refreshable non-commercial metadata. Do not promote them into permanent measured geometry; retain place_id as the durable key.",
+ "overture_error": null,
+ "overture_matches": 4950,
+ "parcel_cache": "build/sf_public_works/acdm-wktn-f709fc93c45f6862.json",
+ "with_address": 15115,
+ "with_place": 0
+}

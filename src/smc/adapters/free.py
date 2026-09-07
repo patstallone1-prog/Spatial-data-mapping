@@ -199,7 +199,7 @@ class OvertureClient:
     ODBL_THEMES = frozenset({"buildings", "transportation"})
     PERMISSIVE_THEMES = frozenset({"places", "divisions", "addresses", "base"})
 
-    def __init__(self, release: str = "2026-07-23.0") -> None:
+    def __init__(self, release: str = "2026-08-19.0") -> None:
         self._release = release
 
     def theme_path(self, theme: str, type_name: str) -> str:

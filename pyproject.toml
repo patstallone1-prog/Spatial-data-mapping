@@ -18,6 +18,8 @@ dependencies = [
     "pillow-heif>=0.16",
     "h3>=4.0",
     "pyarrow>=15.0",
+    "duckdb>=1.1",
+    "laspy>=2.5",
 ]
 
 [project.optional-dependencies]

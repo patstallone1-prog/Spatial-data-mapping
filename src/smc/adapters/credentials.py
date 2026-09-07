@@ -148,11 +148,11 @@ CREDENTIALS: tuple[Credential, ...] = (
         capability=Capability.ANCHOR_IMAGERY,
         purpose=(
             "Fallback anchor imagery, behind Panoramax. Needed only where Panoramax has no "
-            "coverage. Requires an explicit opt-in as well as this token."
+        "coverage. Experimental/non-commercial only; requires explicit opt-in as well as this token."
         ),
         where_to_get="mapillary.com/dashboard/developers -> register an application",
-        commercial_safe=True,
-        free_tier="Free for all uses. 60k/min entity, 10k/min search, 50k/day tiles",
+    commercial_safe=False,
+    free_tier="Free tier with API limits. Treat as experimental/non-commercial in this project.",
         required=False,
     ),
     Credential(

@@ -77,7 +77,7 @@ class TestProviderSelection:
         provider = build_anchor_imagery("panoramax")
         assert provider.requires_credential is False  # type: ignore[attr-defined]
 
-    def test_mapillary_is_selectable_since_the_non_commercial_pivot(
+    def test_mapillary_is_selectable_for_non_commercial_experiments(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The guard was about competitive exposure, which a non-commercial project does not have.
@@ -86,7 +86,10 @@ class TestProviderSelection:
         share-alike terms as Panoramax, so selecting it is a coverage decision.
         """
         monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "x")
-        assert isinstance(build_anchor_imagery("mapillary"), MapillaryImagery)
+        with pytest.warns(RestrictedSourceWarning, match="source restrictions"):
+            provider = build_anchor_imagery("mapillary")
+        assert isinstance(provider, MapillaryImagery)
+        assert provider.commercial_safe is False
 
     def test_mapillary_can_still_be_refused_deliberately(
         self, monkeypatch: pytest.MonkeyPatch

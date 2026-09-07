@@ -15,7 +15,7 @@ Part A.
 
 | Variable | Service | Credential type | Where |
 |---|---|---|---|
-| `MAPILLARY_ACCESS_TOKEN` | Mapillary API v4 | **OAuth app token** | mapillary.com/dashboard/developers → register an application. Free for all uses including commercial. 60k/min entity, 50k/day tiles |
+| `MAPILLARY_ACCESS_TOKEN` | Mapillary API v4 | **OAuth app token** | mapillary.com/dashboard/developers → register an application. Experimental/non-commercial use in this project; API limits apply |
 | `HUGGINGFACE_TOKEN` | Hugging Face Hub | **Access token** | huggingface.co/settings/tokens → read scope. Pulls DA3METRIC-LARGE, SAM 3, MegaLoc, ALIKED, LightGlue |
 | `SMC_DATABASE_URL` | Postgres + PostGIS | **Connection string** — no signup if self-hosted | `postgresql://user:pass@host:5432/smc`. Cloud SQL, Supabase, or local |
 | `SMC_OBJECT_STORE_URL` | GCS or S3 | **Bucket URL** — signup only if not already on a cloud | `gs://bucket` or `s3://bucket` |

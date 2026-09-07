@@ -33,3 +33,14 @@ def test_lane_centerline_respects_both_official_and_osm_oneway_flags() -> None:
     assert "const oneway = Boolean(way.oneway || way.osm_oneway);" in source
     assert "const opposing = !oneway" in source
     assert "if (!isSidewalk && !isCrossing && !isPath && !way.oneway)" not in source
+
+
+def test_building_enrichment_drives_place_archetypes_and_click_info() -> None:
+    source = _source()
+    assert "const archetype = placeArchetypeMesh(feature, seed);" in source
+    assert 'feature.archetype === "gas_station"' in source
+    assert 'feature.archetype === "park" || feature.archetype === "mini_golf"' in source
+    assert 'feature.archetype === "parking"' in source
+    assert "function featureSummary(feature)" in source
+    assert "feature.address || {}" in source
+    assert "Business: ${place.primary_type.replaceAll" in source
