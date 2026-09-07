@@ -386,7 +386,7 @@ OFFICIAL = Path(__file__).resolve().parents[1] / "data" / "sf_public_works"
 #: How near an inventory point has to be to the middle of a crossing way to be that crossing.
 #: Generous enough for the offset between where the city drops the point and where OSM draws
 #: the way, tight enough not to reach the next arm of the intersection.
-CROSSWALK_MATCH_M = 14.0
+CROSSWALK_MATCH_M = 20.0
 #: How far behind a dropped kerb the building it serves may stand. A footway and a small
 #: setback; beyond this the cut serves a yard or a lot rather than a garage.
 GARAGE_REACH_M = 22.0
@@ -546,26 +546,100 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     # because a four-armed intersection with one ladder crossing has three other crossings
     # standing twenty metres from the same point.
     crossings = [w for w in ways if w.get("kind") == "crossing" and w.get("points")]
-    claimed: set[int] = set()
-    for crosswalk in crosswalks:
+    crossing_cells: dict[tuple[int, int], list[int]] = defaultdict(list)
+    for i, way in enumerate(crossings):
+        centre = way["points"][len(way["points"]) // 2]
+        crossing_cells[(int(centre[0] * 2000), int(centre[1] * 2000))].append(i)
+
+    # Every plausible pairing, then the closest ones first. Walking the inventory in its own
+    # order and giving each point its nearest free crossing let an early point take a crossing
+    # that a later one was almost on top of, and 623 points ended up matching nothing.
+    candidates = []
+    for c, crosswalk in enumerate(crosswalks):
         lon, lat = crosswalk["p"]
-        best, best_distance = None, CROSSWALK_MATCH_M
-        for i, way in enumerate(crossings):
-            if i in claimed:
-                continue
-            centre = way["points"][len(way["points"]) // 2]
-            metres = math.hypot((centre[0] - lon) * 88_000.0, (centre[1] - lat) * 111_320.0)
-            if metres < best_distance:
-                best, best_distance = i, metres
-        if best is None:
-            counts["crosswalk matched no crossing"] += 1
+        key = (int(lon * 2000), int(lat * 2000))
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for i in crossing_cells.get((key[0] + dx, key[1] + dy), ()):
+                    centre = crossings[i]["points"][len(crossings[i]["points"]) // 2]
+                    metres = math.hypot((centre[0] - lon) * 88_000.0,
+                                        (centre[1] - lat) * 111_320.0)
+                    if metres <= CROSSWALK_MATCH_M:
+                        candidates.append((metres, c, i))
+    candidates.sort()
+    claimed: set[int] = set()
+    used_points: set[int] = set()
+    for _metres, c, i in candidates:
+        if i in claimed or c in used_points:
             continue
-        claimed.add(best)
-        crossings[best]["continental"] = True
-        if crosswalk.get("year"):
-            crossings[best]["crosswalk_year"] = crosswalk["year"]
+        claimed.add(i)
+        used_points.add(c)
+        crossings[i]["continental"] = True
+        if crosswalks[c].get("year"):
+            crossings[i]["crosswalk_year"] = crosswalks[c]["year"]
+    counts["crosswalk matched no crossing"] = len(crosswalks) - len(used_points)
     counts["continental crossing"] = len(claimed)
     counts["plain crossing"] = len(crossings) - len(claimed)
+
+    # -- which sides of a street actually have room for a footway ---------------------------
+    #
+    # A footway derived from the centreline appears on both sides of every roadway, and on a
+    # divided street OpenStreetMap draws each direction as its own way -- so the inner footway
+    # of one carriageway lands in the middle of the other, and a boulevard came out with a
+    # strip of pavement running down it where the centre line should be.
+    #
+    # A side is dropped when the ground it would occupy is inside some *other* street's
+    # carriageway. Nothing else can tell the difference: the two ways are both roads, both
+    # legitimate, and only their geometry says one of them is already paved.
+    street_grid: dict[tuple[int, int], list[tuple]] = defaultdict(list)
+    roadways = [w for w in ways if w.get("kind") == "street" and w.get("points")]
+    for way in roadways:
+        half = (way.get("road_m") or 8.0) / 2.0
+        for lon, lat in way["points"]:
+            street_grid[(int(lon * 2500), int(lat * 2500))].append((id(way), lon, lat, half))
+
+    dropped_sides = 0
+    for way in roadways:
+        half = (way.get("road_m") or 8.0) / 2.0
+        walk = way.get("walk_m") or way.get("walk_fallback_m") or 3.0
+        offset = half + walk / 2.0
+        keep = []
+        points = way["points"]
+        samples = points[:: max(1, len(points) // 4)] or points
+        for side in (1, -1):
+            blocked = 0
+            for i, (lon, lat) in enumerate(samples):
+                nxt = samples[min(i + 1, len(samples) - 1)]
+                dx = (nxt[0] - lon) * 88_000.0
+                dy = (nxt[1] - lat) * 111_320.0
+                length = math.hypot(dx, dy)
+                if length < 1e-6:
+                    continue
+                # A point out on the footway, in degrees.
+                px = lon + side * (-dy / length) * offset / (88_000.0)
+                py = lat + side * (dx / length) * offset / 111_320.0
+                cell = (int(px * 2500), int(py * 2500))
+                for ddx in (-1, 0, 1):
+                    for ddy in (-1, 0, 1):
+                        for other_id, olon, olat, ohalf in street_grid.get(
+                                (cell[0] + ddx, cell[1] + ddy), ()):
+                            if other_id == id(way):
+                                continue
+                            metres = math.hypot((olon - px) * 88_000.0,
+                                                (olat - py) * 111_320.0)
+                            if metres < ohalf + 1.0:
+                                blocked += 1
+                                break
+                        else:
+                            continue
+                        break
+            if blocked * 2 <= len(samples):
+                keep.append(side)
+            else:
+                dropped_sides += 1
+        if len(keep) < 2:
+            way["walk_sides"] = keep
+    counts["footway sides inside another roadway"] = dropped_sides
 
     # -- curb cuts, and the garages behind them ----------------------------------------------
     #
@@ -929,7 +1003,8 @@ function tiledMap(base, name, repeatU, repeatV) {
 function surfaceMap(surface, length, width) {
   if (surface === "walk") return tiledMap(SIDEWALK, "walk", length / SLAB_M, width / SLAB_M);
   if (surface === "road") {
-    return tiledMap(ROAD, "road", length / ROAD_SLAB_M, width / ROAD_SLAB_M);
+    // Bucketed coarsely: the grain has no structure, so all this decides is how fine it looks.
+    return tiledMap(ROAD, "road", Math.round(length / 8), Math.round(width / 8));
   }
   if (surface === "crossing") {
     // The bars run the length of the crossing -- the way people walk -- so the pattern is
@@ -1408,37 +1483,28 @@ function facadeTextureFor(material, seed) {
 const FACADE_TEXTURE = facadeTexture();
 
 function roadTexture() {
-  // Carriageway. San Francisco lays a lot of its streets in concrete and saw-cuts contraction
-  // joints into them on a grid of a few metres, and those cuts are most of what stops a road
-  // reading as a flat charcoal ribbon. The surface itself is dark -- much darker than the
-  // footway beside it, which is the contrast that tells you where the kerb is from above.
+  // Asphalt, and nothing else.
+  //
+  // This used to carry saw-cut joints at a four-and-a-half metre grid with a pale lip along
+  // each one, and made-good patches scattered through it. Both are real things a San Francisco
+  // street has, and both were a mistake here: the joints tiled with the texture rather than
+  // with the road, so every segment showed the same grid in the same place and the carriageway
+  // read as a floor of grey squares with a lighter edge on each. A road seen from above is
+  // near enough uniform, and uniform is what it should be.
   const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  // The scene carries a bright hemisphere light, so a mid-grey here comes out looking like
-  // pavement. The carriageway has to start near-black to read as a road beside a footway.
-  ctx.fillStyle = "#0e1012";
+  ctx.fillStyle = "#101214";
   ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < size * size * 0.5; i += 1) {
+  // Grain only, at a single pixel, so there is texture at walking distance and nothing that
+  // resolves into a pattern from above.
+  for (let i = 0; i < size * size * 0.55; i += 1) {
     const shade = random(i * 7);
-    ctx.fillStyle = shade < 0.6 ? "rgba(0,0,0,0.34)"
-      : shade < 0.92 ? "rgba(255,255,255,0.035)" : "rgba(150,160,165,0.07)";
+    ctx.fillStyle = shade < 0.62 ? "rgba(0,0,0,0.30)"
+      : shade < 0.94 ? "rgba(255,255,255,0.030)" : "rgba(140,150,155,0.055)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
   }
-  // Patches, where the road has been dug up and made good. Every San Francisco street has them.
-  for (let i = 0; i < 3; i += 1) {
-    ctx.fillStyle = random(i * 31) < 0.6 ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.03)";
-    ctx.fillRect(random(i * 11) * size, random(i * 13) * size,
-                 20 + random(i * 17) * 44, 14 + random(i * 19) * 30);
-  }
-  // The cut itself: a dark line with a pale lip where the saw broke the surface.
-  ctx.strokeStyle = "rgba(0,0,0,0.55)";
-  ctx.lineWidth = 2.0;
-  ctx.strokeRect(1, 1, size - 2, size - 2);
-  ctx.strokeStyle = "rgba(190,196,200,0.10)";
-  ctx.lineWidth = 1.0;
-  ctx.strokeRect(2.6, 2.6, size - 5.2, size - 5.2);
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   return texture;
@@ -1610,6 +1676,9 @@ function garageTextureFor(variant, tint) {
 //: apron is wider at the gutter than at the back of the footway.
 const APRON_FLARE_M = 0.85;
 
+//: The top of the footway, which is where anything laid on the pavement has to sit.
+function roadSurfaceTop() { return 0.06 + KERB_FALLBACK; }
+
 function apronSlab(opening) {
   if (!opening.cp) return null;
   const [kx, ky] = xy(opening.cp[0], opening.cp[1]);
@@ -1647,7 +1716,10 @@ function apronSlab(opening) {
   // normal points instead, laying fourteen thousand slabs of pavement out across the
   // carriageway until the roads disappeared under them.
   const bearing = (opening.n || 0) * Math.PI / 180;
-  mesh.position.set(kx, KERB_FALLBACK * 0.55, -ky);
+  // On top of the footway, not in it. At half a kerb height the slab sat inside the pavement
+  // slab -- which spans from just above the road to the top of the kerb -- so every apron was
+  // buried and the garages appeared to have no crossing at all.
+  mesh.position.set(kx, roadSurfaceTop() + 0.012, -ky);
   mesh.rotation.y = Math.PI - bearing;
   return mesh;
 }
@@ -1684,8 +1756,10 @@ function garagePanel(opening, tint) {
 }
 
 const CROSSING = crossingTexture();
-//: One bar plus one gap, in metres. Continental bars run about 600 mm with a matching space.
-const CROSSING_PERIOD_M = 1.2;
+//: One bar plus one gap, in metres. San Francisco's continental bars run about 430 mm with a
+//: matching space, which over a crossing band gives four or five of them. At 1.2 m the band
+//: held only three and they read as long lines across the road rather than as a ladder.
+const CROSSING_PERIOD_M = 0.86;
 
 function sidewalkTexture() {
   // Scored concrete, as San Francisco actually pours it: a mid grey rather than a pale one,
@@ -2049,7 +2123,9 @@ for (const way of DATA.ways) {
   // this segment and side, and the carriageway left over after both footways are taken out of
   // the recorded right of way. Every street used to be eight metres wide and every footway
   // 3.6, which made Grant Avenue and Van Ness the same street.
-  const widthMeters = isCrossing ? 5.2
+  // A San Francisco crosswalk band is about twelve feet, not seventeen. The extra width made
+  // the bars sparse and the whole marking read as a couple of stripes.
+  const widthMeters = isCrossing ? 3.7
     : isSidewalk ? (way.walk_m || way.walk_fallback_m || 3.6)
     : (way.road_m || 8.0);
   // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
@@ -2067,15 +2143,21 @@ for (const way of DATA.ways) {
   groups.streets.add(ribbon(way.points, widthMeters, color, opacity,
     isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
     isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
-    isCrossing ? (way.continental ? "crossing" : "crossing_edges")
-      : isSidewalk ? "walk" : "road"));
+    // Continental unless we positively know otherwise. San Francisco has been converting its
+    // marked crossings to ladders for years, and the inventory is demonstrably incomplete --
+    // 598 of its points sit near no mapped crossing at all, which is the two datasets
+    // disagreeing about where a crossing is rather than evidence that one is plain. The
+    // ``continental`` flag still records the 817 the city confirms.
+    isCrossing ? "crossing" : isSidewalk ? "walk" : "road"));
   // The footways, laid from the kerb outward on both sides. Drawn a centimetre below the
   // mapped sidewalk ways so that where OpenStreetMap has one the two do not fight, and so
   // that where it has none there is still pavement rather than a hole.
   if (!isSidewalk && !isCrossing) {
     const walk = way.walk_m || way.walk_fallback_m || 3.0;
     const inner = widthMeters / 2;
-    for (const side of [1, -1]) {
+    // Both sides unless one of them is inside another street's carriageway, which happens
+    // wherever a divided road is drawn as two ways.
+    for (const side of (way.walk_sides !== undefined ? way.walk_sides : [1, -1])) {
       groups.streets.add(ribbon(
         trimWay(offsetWay(way.points, side * (inner + walk / 2)), inner + 1.5),
         walk, color, opacity, roadTop + KERB / 2 - 0.015, KERB, "walk"));
@@ -2090,9 +2172,14 @@ for (const way of DATA.ways) {
   // carry it -- and a yellow line specifically tells a driver there is traffic coming the
   // other way.
   if (!isSidewalk && !isCrossing && !way.oneway) {
-    // Broken yellow, at the real stripe and gap. It was a continuous thread of pale yellow at
-    // 45 per cent, which is not a marking any street has.
-    groups.streets.add(dashedLine(way.points, 0xf0c33c, 0.92, roadTop + 0.02));
+    // A double solid yellow, which is what San Francisco paints down the middle of a two-way
+    // street. A broken line means overtaking is allowed and is the exception here, not the
+    // rule -- and drawn as one dashed thread it read as a dotted line on a map rather than as
+    // a road marking.
+    for (const side of [1, -1]) {
+      groups.streets.add(line(offsetWay(way.points, side * 0.18), 0xf0c33c, 0.95,
+                              roadTop + 0.02));
+    }
   }
   if (way.covered && (isCrossing || isSidewalk)) {
     // The measured kerb, marked. This sat at exactly the footway's own height and thickness --
@@ -2112,6 +2199,24 @@ for (const way of DATA.ways) {
       labelAt(way.name, midpoint[0], midpoint[1], 28, groups.streets, "#d6e7ea", 78);
     }
   }
+}
+
+// Ground. Everything that is not a road, a footway or a building stands on something -- back
+// yards, light wells, car parks, the middle of a block -- and none of it is mapped. Without a
+// surface under them those became holes onto the background, which reads as black voids
+// punched through the city. A dark neutral says "ground we have not described" rather than
+// "nothing is here".
+{
+  const [x1, y1] = xy(bbox.west, bbox.north);
+  const [x2, y2] = xy(bbox.east, bbox.south);
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(Math.abs(x2 - x1) * 1.1, Math.abs(y1 - y2) * 1.1),
+    new THREE.MeshStandardMaterial({ color: 0x23262a, roughness: 1.0, metalness: 0.0 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  // Below the district tint, which is itself below the roadway.
+  ground.position.set((x1 + x2) / 2, -0.14, -(y1 + y2) / 2);
+  groups.streets.add(ground);
 }
 
 const districtColors = [0x1d4d58, 0x355038, 0x4a3e61, 0x5a4930, 0x533749, 0x29475f];
