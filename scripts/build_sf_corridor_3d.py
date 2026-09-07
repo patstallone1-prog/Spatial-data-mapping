@@ -392,6 +392,29 @@ CROSSWALK_MATCH_M = 14.0
 GARAGE_REACH_M = 22.0
 
 
+def _outward_bearing(ring, a, b) -> float:
+    """Compass bearing of the outward normal of the wall from ``a`` to ``b``.
+
+    The side of a wall that faces the street is not something the pair of endpoints can settle
+    on its own: it depends on which way round the footprint was wound. Getting it wrong turns a
+    garage door to face into the building, and a plane seen edge-on from the street reads as a
+    grey slab standing on the pavement -- which is exactly what it did.
+    """
+    total = 0.0
+    for i in range(len(ring)):
+        x1, y1 = ring[i]
+        x2, y2 = ring[(i + 1) % len(ring)]
+        total += (x1 * y2 - x2 * y1)
+    winding = 1.0 if total > 0 else -1.0
+    dx = (b[0] - a[0]) * 88_000.0
+    dy = (b[1] - a[1]) * 111_320.0
+    length = math.hypot(dx, dy)
+    if length < 1e-9:
+        return 0.0
+    nx, ny = (dy / length) * winding, (-dx / length) * winding
+    return math.degrees(math.atan2(nx, ny)) % 360.0
+
+
 def _project_fraction(a, b, point) -> float:
     """Where along a wall a point falls, 0 at ``a`` and 1 at ``b``."""
     ax = (b[0] - a[0]) * 88_000.0
@@ -477,8 +500,6 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
         if width:
             way["walk_m"] = width
             counts["with surveyed footway"] += 1
-        if record.get("sidewalk_standard_m"):
-            way["walk_standard_m"] = record["sidewalk_standard_m"]
         if record.get("curb_height_m"):
             way["kerb_m"] = record["curb_height_m"]
             way["kerb_n"] = record.get("curb_height_n")
@@ -503,6 +524,8 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
         # fixed three metres: on a six-metre alley a fixed three would leave no roadway at all,
         # and clamping the roadway back up would make it wider than the right of way holding it.
         row_m = record.get("right_of_way_m")
+        if attribute.get("record_row_m"):
+            row_m = attribute["record_row_m"]
         if attribute.get("road_m"):
             way["road_m"] = attribute["road_m"]
             way["road_source"] = "curb_geometry"
@@ -612,6 +635,13 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             "b": [round(b[0], 7), round(b[1], 7)],
             "t": round(_project_fraction(a, b, centre), 4),
             "w": round(width, 2),
+            "n": round(_outward_bearing(way["points"], a, b), 1),
+            # Where the kerb was actually cut, so the apron can be laid between there and the
+            # door rather than guessed at from the door alone.
+            "cp": [round(centre[0], 7), round(centre[1], 7)],
+            # A seed so a building keeps the same door between reloads, and two garages on one
+            # building do not both get the same one.
+            "s": (index * 31 + int(centre[0] * 1e5)) % 100000,
         })
         garages += 1
     counts["garage openings"] = garages
@@ -940,6 +970,79 @@ function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surf
   return mesh;
 }
 
+function offsetWay(points, metres) {
+  // The same polyline, shifted sideways. Positive is to the left of travel.
+  //
+  // The footway used to be drawn on whatever centreline OpenStreetMap gave its sidewalk ways,
+  // which is not tied to the road at all. Once the carriageway came from the mapped kerbs it
+  // was narrower than the right of way it had been derived from, and a strip of bare ground
+  // opened between the two along most of the corridor -- black, where the pavement should be.
+  // Deriving the footway from the kerb instead means there is nothing for a gap to open in.
+  if (points.length < 2) return points;
+  const out = [];
+  for (let i = 0; i < points.length; i += 1) {
+    const before = points[Math.max(0, i - 1)];
+    const after = points[Math.min(points.length - 1, i + 1)];
+    const [bx, by] = xy(before[0], before[1]);
+    const [ax, ay] = xy(after[0], after[1]);
+    const dx = ax - bx;
+    const dy = ay - by;
+    const length = Math.hypot(dx, dy);
+    if (length < 1e-6) { out.push(points[i]); continue; }
+    const nx = -dy / length;
+    const ny = dx / length;
+    // Back to degrees, at this latitude.
+    out.push([
+      points[i][0] + (nx * metres) / (111320 * Math.cos(points[i][1] * Math.PI / 180)),
+      points[i][1] + (ny * metres) / 111320,
+    ]);
+  }
+  return out;
+}
+
+function trimWay(points, metres) {
+  // The same way with both ends pulled back.
+  //
+  // A footway derived from the centreline runs the full length of its street, intersections
+  // included -- so at every crossroads four of them ran out over the carriageway and, sitting
+  // a kerb's height above it, buried the road in pavement. Stopping short of the corner is
+  // also what a real footway does: the kerb turns the corner rather than crossing it.
+  if (points.length < 2) return points;
+  let total = 0;
+  const spans = [];
+  for (let i = 1; i < points.length; i += 1) {
+    const [x1, y1] = xy(points[i - 1][0], points[i - 1][1]);
+    const [x2, y2] = xy(points[i][0], points[i][1]);
+    const span = Math.hypot(x2 - x1, y2 - y1);
+    spans.push(span);
+    total += span;
+  }
+  const cut = Math.min(metres, total / 3);
+  if (!(cut > 0.2)) return points;
+
+  const walk = (from, direction) => {
+    let remaining = cut;
+    let i = from;
+    while (i >= 0 && i < spans.length) {
+      const span = spans[i];
+      if (span >= remaining) {
+        const t = direction > 0 ? remaining / span : 1 - remaining / span;
+        const a = points[i];
+        const b = points[i + 1];
+        return [i + (direction > 0 ? 0 : 1),
+                [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]];
+      }
+      remaining -= span;
+      i += direction;
+    }
+    return null;
+  };
+  const head = walk(0, 1);
+  const tail = walk(spans.length - 1, -1);
+  if (!head || !tail || head[0] >= tail[0]) return points;
+  return [head[1], ...points.slice(head[0] + 1, tail[0]), tail[1]];
+}
+
 function ribbon(points, width, color, opacity, y, segmentHeight = 1.4, surface = null) {
   const group = new THREE.Group();
   for (let i = 1; i < points.length; i += 1) {
@@ -1130,9 +1233,124 @@ function facadeTexture() {
   return texture;
 }
 
-function facadeFor(material, seed) {
-  // One canvas per material, not per building: a few hundred buildings share four textures, and
-  // the variation between them comes from the tint rather than from redrawing the windows.
+// A window is not a dark rectangle. It is a recess with a frame, a sill catching light from
+// above, and a pane darker at the top than the bottom -- sky reflected at a grazing angle,
+// room seen at a steep one. Those three details are most of what makes a facade read.
+function pane(ctx, x, y, w, h, lit, seed, options = {}) {
+  ctx.fillStyle = "rgba(0,0,0,0.30)";
+  ctx.fillRect(x - 2, y - 2, w + 4, h + 4);                  // the reveal
+  const glass = ctx.createLinearGradient(0, y, 0, y + h);
+  if (lit) {
+    glass.addColorStop(0, "rgba(255,224,168,0.92)");
+    glass.addColorStop(1, "rgba(214,168,96,0.80)");
+  } else {
+    glass.addColorStop(0, "rgba(120,150,168,0.85)");
+    glass.addColorStop(0.5, "rgba(38,54,64,0.92)");
+    glass.addColorStop(1, "rgba(20,30,36,0.95)");
+  }
+  ctx.fillStyle = glass;
+  if (options.arched) {
+    // A round head. Drawn as a rectangle capped with a half-disc rather than as a path, which
+    // keeps it crisp at sixty-four pixels.
+    ctx.fillRect(x, y + w / 2, w, h - w / 2);
+    ctx.beginPath();
+    ctx.arc(x + w / 2, y + w / 2, w / 2, Math.PI, 0);
+    ctx.fill();
+  } else {
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.30)";
+  ctx.fillRect(x - 2, y + h, w + 4, 2);                      // the sill
+  ctx.strokeStyle = "rgba(255,255,255,0.16)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
+  for (const bar of options.bars || []) {
+    ctx.beginPath();
+    if (bar.vertical) { ctx.moveTo(x + w * bar.at, y); ctx.lineTo(x + w * bar.at, y + h); }
+    else { ctx.moveTo(x, y + h * bar.at); ctx.lineTo(x + w, y + h * bar.at); }
+    ctx.stroke();
+  }
+}
+
+//: A dozen ways a San Francisco facade arranges its openings. The city is bay windows, sash
+//: pairs and the odd punched warehouse wall, and drawing every building with the same two
+//: sash windows made a street of identical houses -- which is the one thing San Francisco's
+//: streets are not.
+const WINDOW_STYLES = [
+  function pairSash(ctx, seed) {
+    for (const x of [9, 35]) {
+      pane(ctx, x, 12, 18, 32, random(seed + x) < 0.16, seed,
+           { bars: [{ vertical: false, at: 0.5 }] });
+    }
+  },
+  function singleWide(ctx, seed) {
+    pane(ctx, 8, 14, 46, 28, random(seed + 3) < 0.18, seed,
+         { bars: [{ vertical: true, at: 0.5 }] });
+  },
+  function triple(ctx, seed) {
+    for (const x of [7, 25, 43]) pane(ctx, x, 14, 13, 30, random(seed + x) < 0.14, seed);
+  },
+  function bayWindow(ctx, seed) {
+    // The city's signature. The returns either side are shaded, which is what gives it depth.
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.fillRect(6, 8, 50, 40);
+    pane(ctx, 20, 12, 24, 32, random(seed + 5) < 0.2, seed);
+    pane(ctx, 9, 14, 9, 28, random(seed + 9) < 0.12, seed);
+    pane(ctx, 46, 14, 9, 28, random(seed + 13) < 0.12, seed);
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillRect(5, 47, 54, 3);                              // the bay's own sill course
+  },
+  function arched(ctx, seed) {
+    for (const x of [10, 36]) {
+      pane(ctx, x, 12, 18, 32, random(seed + x) < 0.15, seed, { arched: true });
+    }
+  },
+  function tallNarrow(ctx, seed) {
+    for (const x of [12, 38]) pane(ctx, x, 8, 14, 42, random(seed + x) < 0.16, seed);
+  },
+  function squarePair(ctx, seed) {
+    for (const x of [12, 38]) pane(ctx, x, 16, 16, 16, random(seed + x) < 0.2, seed);
+  },
+  function frenchDoors(ctx, seed) {
+    pane(ctx, 14, 8, 36, 40, random(seed + 7) < 0.22, seed,
+         { bars: [{ vertical: true, at: 0.5 }, { vertical: false, at: 0.35 }] });
+    ctx.strokeStyle = "rgba(255,255,255,0.34)";              // the balcony rail
+    ctx.lineWidth = 1;
+    for (let x = 12; x < 52; x += 4) {
+      ctx.beginPath(); ctx.moveTo(x, 34); ctx.lineTo(x, 50); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(11, 34); ctx.lineTo(53, 34); ctx.stroke();
+  },
+  function gridFour(ctx, seed) {
+    for (const x of [10, 36]) {
+      for (const y of [10, 30]) pane(ctx, x, y, 18, 16, random(seed + x + y) < 0.14, seed);
+    }
+  },
+  function punched(ctx, seed) {
+    pane(ctx, 24, 18, 16, 18, random(seed + 11) < 0.1, seed);
+  },
+  function oriel(ctx, seed) {
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(8, 6, 48, 44);
+    pane(ctx, 12, 12, 40, 30, random(seed + 17) < 0.2, seed,
+         { bars: [{ vertical: true, at: 0.33 }, { vertical: true, at: 0.66 }] });
+    ctx.fillStyle = "rgba(255,255,255,0.26)";
+    ctx.fillRect(7, 5, 50, 3);                               // the cornice over it
+  },
+  function shuttered(ctx, seed) {
+    for (const x of [11, 37]) {
+      pane(ctx, x, 13, 16, 30, random(seed + x) < 0.13, seed);
+      ctx.fillStyle = "rgba(0,0,0,0.24)";                    // shutters folded back
+      ctx.fillRect(x - 5, 12, 4, 32);
+      ctx.fillRect(x + 17, 12, 4, 32);
+    }
+  },
+];
+
+function facadeFor(material, seed, style) {
+  // One canvas per material and window arrangement, not per building. A few hundred buildings
+  // share a few dozen textures, and the rest of the variation comes from the tint.
   const w = 64, h = 64;
   const canvas = document.createElement("canvas");
   canvas.width = w; canvas.height = h;
@@ -1158,34 +1376,7 @@ function facadeFor(material, seed) {
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.fillRect(0, h - 5, w, 5);                     // the line between storeys
   if (material.name !== "glass" && material.name !== "metal") {
-    // A window is not a dark rectangle. It is a recess with a frame, a sill catching light from
-    // above, and a pane that is darker at the top than the bottom because it reflects sky at a
-    // grazing angle and room at a steep one. Those three details are most of the realism.
-    for (const x of [9, 35]) {
-      const lit = random(seed + x) < 0.16;
-      ctx.fillStyle = "rgba(0,0,0,0.30)";
-      ctx.fillRect(x - 2, 10, 22, 36);                        // the reveal
-      const pane = ctx.createLinearGradient(0, 12, 0, 44);
-      if (lit) {
-        pane.addColorStop(0, "rgba(255,224,168,0.92)");
-        pane.addColorStop(1, "rgba(214,168,96,0.80)");
-      } else {
-        pane.addColorStop(0, "rgba(120,150,168,0.85)");       // sky at the top
-        pane.addColorStop(0.5, "rgba(38,54,64,0.92)");
-        pane.addColorStop(1, "rgba(20,30,36,0.95)");          // room at the bottom
-      }
-      ctx.fillStyle = pane;
-      ctx.fillRect(x, 12, 18, 32);
-      ctx.fillStyle = "rgba(255,255,255,0.30)";
-      ctx.fillRect(x - 2, 45, 22, 2);                         // the sill
-      ctx.strokeStyle = "rgba(255,255,255,0.16)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 0.5, 12.5, 17, 31);
-      ctx.beginPath();                                        // the glazing bar
-      ctx.moveTo(x + 9, 12); ctx.lineTo(x + 9, 44);
-      ctx.strokeStyle = "rgba(255,255,255,0.10)";
-      ctx.stroke();
-    }
+    WINDOW_STYLES[style % WINDOW_STYLES.length](ctx, seed);
   }
 
   // Grit. Weathering, soot and patching, which is most of what separates a real wall from a
@@ -1202,9 +1393,15 @@ function facadeFor(material, seed) {
 
 const FACADE_CACHE = new Map();
 function facadeTextureFor(material, seed) {
-  // Four variants per material is enough to break up a terrace without four hundred textures.
-  const key = `${material.name}-${Math.floor(random(seed) * 4)}`;
-  if (!FACADE_CACHE.has(key)) FACADE_CACHE.set(key, facadeFor(material, seed));
+  // Twelve window arrangements times three lighting draws per material: enough that a terrace
+  // of forty houses has no two the same next to each other, and few enough that the whole city
+  // shares a few dozen canvases.
+  const style = Math.floor(random(seed + 3) * WINDOW_STYLES.length);
+  const variant = Math.floor(random(seed) * 3);
+  const key = `${material.name}-${style}-${variant}`;
+  if (!FACADE_CACHE.has(key)) {
+    FACADE_CACHE.set(key, facadeFor(material, seed + variant * 977, style));
+  }
   return FACADE_CACHE.get(key);
 }
 
@@ -1314,62 +1511,175 @@ function crossingEdgeTexture() {
 
 const CROSSING_EDGES = crossingEdgeTexture();
 
-function garageTexture() {
-  // A roller shutter: horizontal ribs, which is what most of San Francisco's ground-floor
-  // garages are, and what makes an opening read as a door rather than as a hole.
-  const size = 128;
+//: Six ways San Francisco closes a ground-floor garage. Drawn in the building's own colour --
+//: a door is part of the house and is nearly always painted to match it -- with white banding
+//: on the configurations that carry it.
+const GARAGE_STYLES = 6;
+//: A roller door's clear height. San Francisco's ground-floor garages sit just under three
+//: metres; the city records the width of every cut but not its height.
+const GARAGE_HEIGHT_M = 2.7;
+
+function garageTexture(variant, base) {
+  const size = 64;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#4a4f52";
+  ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
-  for (let y = 0; y < size; y += 8) {
-    ctx.fillStyle = "rgba(0,0,0,0.34)";
-    ctx.fillRect(0, y, size, 2);
-    ctx.fillStyle = "rgba(255,255,255,0.10)";
-    ctx.fillRect(0, y + 2, size, 1);
+  const shadow = "rgba(0,0,0,0.34)";
+  const lip = "rgba(255,255,255,0.12)";
+  const paint = "rgba(248,248,244,0.92)";
+
+  if (variant === 0) {                                  // roller shutter
+    for (let y = 0; y < size; y += 4) {
+      ctx.fillStyle = shadow; ctx.fillRect(0, y, size, 1);
+      ctx.fillStyle = lip; ctx.fillRect(0, y + 1, size, 1);
+    }
+  } else if (variant === 1 || variant === 2) {          // sectional panels, 2 x 4
+    for (let row = 0; row < 4; row += 1) {
+      for (let col = 0; col < 2; col += 1) {
+        const x = 4 + col * 28, y = 3 + row * 15;
+        ctx.fillStyle = shadow; ctx.fillRect(x, y, 24, 12);
+        ctx.fillStyle = base; ctx.fillRect(x + 2, y + 2, 20, 8);
+        ctx.fillStyle = lip; ctx.fillRect(x + 2, y + 2, 20, 1);
+      }
+    }
+    if (variant === 2) {                                // banded
+      ctx.fillStyle = paint;
+      ctx.fillRect(0, 17, size, 3);
+      ctx.fillRect(0, 47, size, 3);
+    }
+  } else if (variant === 3) {                           // flush, one broad stripe
+    ctx.fillStyle = paint;
+    ctx.fillRect(0, size * 0.42, size, size * 0.16);
+    ctx.fillStyle = shadow;
+    ctx.fillRect(0, size * 0.42 - 1, size, 1);
+    ctx.fillRect(0, size * 0.58, size, 1);
+  } else if (variant === 4) {                           // board and batten, vertical
+    for (let x = 0; x < size; x += 6) {
+      ctx.fillStyle = shadow; ctx.fillRect(x, 0, 1, size);
+      ctx.fillStyle = lip; ctx.fillRect(x + 1, 0, 1, size);
+    }
+  } else {                                              // shutter with a light row
+    for (let y = 0; y < size; y += 4) {
+      ctx.fillStyle = shadow; ctx.fillRect(0, y, size, 1);
+    }
+    for (let x = 6; x < size - 6; x += 14) {
+      ctx.fillStyle = "rgba(40,54,62,0.90)";
+      ctx.fillRect(x, 8, 10, 7);
+      ctx.fillStyle = lip;
+      ctx.strokeStyle = lip; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, 8.5, 9, 6);
+    }
+    ctx.fillStyle = paint;
+    ctx.fillRect(0, 20, size, 2);
   }
-  for (let i = 0; i < size * 8; i += 1) {
-    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.06)";
+
+  // The frame, and a handle-height rail. Both are what stop a door reading as a flat panel.
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, size - 2, size - 2);
+  for (let i = 0; i < size * 6; i += 1) {
+    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.06)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
   }
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 
-const GARAGE = garageTexture();
-//: A roller door's clear height. San Francisco's ground-floor garages sit just under three
-//: metres; the city records the width of each cut but not its height.
-const GARAGE_HEIGHT_M = 2.7;
+const GARAGE_CACHE = new Map();
+function garageTextureFor(variant, tint) {
+  // Keyed on the colour quantised to three levels a channel. A door painted the house's exact
+  // shade and a door two per cent off it are the same door; twenty-seven buckets times six
+  // designs is a few dozen canvases for fourteen thousand garages.
+  const colour = new THREE.Color(tint);
+  const bucket = [colour.r, colour.g, colour.b].map((v) => Math.round(v * 2) / 2);
+  const key = `${variant}-${bucket.join(",")}`;
+  if (!GARAGE_CACHE.has(key)) {
+    const hex = "#" + bucket.map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("");
+    GARAGE_CACHE.set(key, garageTexture(variant, hex));
+  }
+  return GARAGE_CACHE.get(key);
+}
 
-function garagePanel(way, opening) {
+//: How far the dropped kerb flares either side of the driveway itself. A cut is not a
+//: rectangle taken out of the kerb: it runs down over a wing at each end, which is why a real
+//: apron is wider at the gutter than at the back of the footway.
+const APRON_FLARE_M = 0.85;
+
+function apronSlab(opening) {
+  if (!opening.cp) return null;
+  const [kx, ky] = xy(opening.cp[0], opening.cp[1]);
+  const [ax, ay] = xy(opening.a[0], opening.a[1]);
+  const [bx, by] = xy(opening.b[0], opening.b[1]);
+  const wallX = (ax + bx) / 2;
+  const wallY = (ay + by) / 2;
+  // How far back from the kerb the apron runs. Bounded by the footway rather than by the
+  // distance to the wall's midpoint, which on a long frontage is most of the block.
+  const depth = Math.min(6.0, Math.max(1.5, Math.hypot(wallX - kx, wallY - ky)));
+  if (depth > 12.0) return null;
+  const width = Math.max(2.2, opening.w);
+
+  // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own
+  // width where it meets the property line.
+  const shape = new THREE.Shape();
+  shape.moveTo(-width / 2 - APRON_FLARE_M, 0);
+  shape.lineTo(width / 2 + APRON_FLARE_M, 0);
+  shape.lineTo(width / 2, depth);
+  shape.lineTo(-width / 2, depth);
+  shape.closePath();
+  const geometry = new THREE.ShapeGeometry(shape);
+  geometry.rotateX(-Math.PI / 2);
+
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    map: tiledMap(SIDEWALK, "apron", Math.max(1, Math.round(width / SLAB_M)),
+                  Math.max(1, Math.round(depth / SLAB_M))),
+    color: 0xf0f0f0, roughness: 0.94, metalness: 0.02,
+    // The apron is poured against the footway rather than as part of it, so it sits a
+    // millimetre proud and needs to win the depth test cleanly.
+    polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6,
+  }));
+  // Laid from the kerb back toward the door. The outward bearing points at the street, so the
+  // apron has to run the other way -- and rotating by minus the bearing sent it the way the
+  // normal points instead, laying fourteen thousand slabs of pavement out across the
+  // carriageway until the roads disappeared under them.
+  const bearing = (opening.n || 0) * Math.PI / 180;
+  mesh.position.set(kx, KERB_FALLBACK * 0.55, -ky);
+  mesh.rotation.y = Math.PI - bearing;
+  return mesh;
+}
+
+function garagePanel(opening, tint) {
   const [ax, ay] = xy(opening.a[0], opening.a[1]);
   const [bx, by] = xy(opening.b[0], opening.b[1]);
   const length = Math.hypot(bx - ax, by - ay);
   if (!(length > 0.5)) return null;
+  const width = Math.min(opening.w, length * 0.9);
   const dx = (bx - ax) / length;
   const dy = (by - ay) / length;
   // Where along the wall the dropped kerb points, kept far enough from either end that the
   // opening does not run off the corner of the building.
-  const half = Math.min(opening.w, length * 0.9) / 2;
-  const t = Math.min(Math.max(opening.t * length, half), length - half);
+  const half = width / 2;
+  const t = Math.min(Math.max(opening.t * length, half), Math.max(half, length - half));
   const cx = ax + dx * t;
   const cy = ay + dy * t;
 
-  const map = GARAGE.clone();
-  map.needsUpdate = true;
-  map.repeat.set(Math.max(1, opening.w / 2.4), 1);
+  const bearing = (opening.n || 0) * Math.PI / 180;
+  const nx = Math.sin(bearing);
+  const nz = -Math.cos(bearing);
+  const map = garageTextureFor(opening.s % GARAGE_STYLES, tint);
   const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(Math.min(opening.w, length * 0.9), GARAGE_HEIGHT_M),
-    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.72, metalness: 0.28 })
+    new THREE.PlaneGeometry(width, GARAGE_HEIGHT_M),
+    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.66, metalness: 0.20 })
   );
-  // Just proud of the facade, so it does not fight the wall behind it for pixels.
-  const nx = -dy;
-  const ny = dx;
-  mesh.position.set(cx + nx * 0.06, GARAGE_HEIGHT_M / 2, -(cy + ny * 0.06));
-  mesh.rotation.y = Math.atan2(nx, ny) + Math.PI / 2;
+  mesh.position.set(cx + nx * 0.07, GARAGE_HEIGHT_M / 2, -cy + nz * 0.07);
+  // A plane faces +z, so pi minus the bearing turns it to face the way the wall does. It was
+  // atan2(nx, ny) + pi/2, which is ninety degrees out: every door stood side-on to its own
+  // building, and read from the street as a grey slab planted on the pavement.
+  mesh.rotation.y = Math.PI - bearing;
   return mesh;
 }
 
@@ -1721,8 +2031,11 @@ for (const way of DATA.ways) {
       // A dropped kerb outside means a way in. The city records 14,130 of these against
       // buildings in this corridor, with the width of each.
       for (const opening of way.garages || []) {
-        const panel = garagePanel(way, opening);
+        const panel = garagePanel(opening, way.colour !== undefined
+          ? new THREE.Color(way.colour).getHex() : 0x9aa0a4);
         if (panel) groups.mapped3d.add(panel);
+        const apron = apronSlab(opening);
+        if (apron) groups.streets.add(apron);
       }
     }
     continue;
@@ -1756,6 +2069,18 @@ for (const way of DATA.ways) {
     isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
     isCrossing ? (way.continental ? "crossing" : "crossing_edges")
       : isSidewalk ? "walk" : "road"));
+  // The footways, laid from the kerb outward on both sides. Drawn a centimetre below the
+  // mapped sidewalk ways so that where OpenStreetMap has one the two do not fight, and so
+  // that where it has none there is still pavement rather than a hole.
+  if (!isSidewalk && !isCrossing) {
+    const walk = way.walk_m || way.walk_fallback_m || 3.0;
+    const inner = widthMeters / 2;
+    for (const side of [1, -1]) {
+      groups.streets.add(ribbon(
+        trimWay(offsetWay(way.points, side * (inner + walk / 2)), inner + 1.5),
+        walk, color, opacity, roadTop + KERB / 2 - 0.015, KERB, "walk"));
+    }
+  }
   // A centreline belongs on a roadway, not on a footway: drawn on everything it read as a
   // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
   // It does not belong on a crossing either -- a crosswalk has bars painted across it and no
