@@ -18,6 +18,7 @@ from typing import Any
 
 GOOGLE_PLACES_CACHE_DAYS = 30
 SMALL_SINGLE_TENANT_AREA_M2 = 900.0
+INPUT_HEIGHT_SOURCES = {"osm_height", "osm_levels", "inferred_default", "osm_or_renderer_height"}
 
 ADDRESS_KEYS = (
     "addr:housenumber",
@@ -338,6 +339,8 @@ def normalize_osm_building(feature: Mapping[str, Any], index: int | None = None)
         "centroid": feature.get("centroid") or building_centroid(feature.get("points") or []),
         "area_m2": round(building_area_m2(feature.get("points") or []), 1),
     }
+    if feature.get("points"):
+        row["points"] = feature["points"]
     if feature.get("osm_id"):
         row["osm_id"] = feature["osm_id"]
     if feature.get("name"):
@@ -352,7 +355,7 @@ def normalize_osm_building(feature: Mapping[str, Any], index: int | None = None)
         row["building_osm"] = str(building)
     if land_use:
         row["land_use"] = str(land_use)
-    if feature.get("height_m") is not None:
+    if feature.get("height_m") is not None and feature.get("height_source") in INPUT_HEIGHT_SOURCES:
         row["height_m"] = float(feature["height_m"])
         row["height_source"] = str(feature.get("height_source") or "osm_or_renderer_height")
     if tags.get("building:levels") is not None:

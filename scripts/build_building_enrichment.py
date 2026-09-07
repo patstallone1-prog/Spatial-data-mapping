@@ -303,21 +303,21 @@ def building_height_index(footprints: list[dict[str, Any]]) -> dict[tuple[int, i
         rings = geojson_rings(footprint.get("shape") or {})
         if not rings:
             continue
-        ring = rings[0]
-        if len(ring) < 3:
-            continue
-        west, south, east, north = ring_bbox(ring)
-        centroid = building_centroid(ring)
-        item = {
-            "row": footprint,
-            "ring": ring,
-            "bbox": (west, south, east, north),
-            "centroid": (float(centroid[0]), float(centroid[1])),
-            "height_m": height,
-        }
-        for ix in range(int(west * PARCEL_GRID), int(east * PARCEL_GRID) + 1):
-            for iy in range(int(south * PARCEL_GRID), int(north * PARCEL_GRID) + 1):
-                cells[(ix, iy)].append(item)
+        for ring in rings:
+            if len(ring) < 3:
+                continue
+            west, south, east, north = ring_bbox(ring)
+            centroid = building_centroid(ring)
+            item = {
+                "row": footprint,
+                "ring": ring,
+                "bbox": (west, south, east, north),
+                "centroid": (float(centroid[0]), float(centroid[1])),
+                "height_m": height,
+            }
+            for ix in range(int(west * PARCEL_GRID), int(east * PARCEL_GRID) + 1):
+                for iy in range(int(south * PARCEL_GRID), int(north * PARCEL_GRID) + 1):
+                    cells[(ix, iy)].append(item)
     return cells
 
 
@@ -331,6 +331,11 @@ def attach_datasf_building_heights(
         if lon is None or lat is None:
             continue
         lon_f, lat_f = float(lon), float(lat)
+        points = row.get("points") or []
+        samples = [(lon_f, lat_f)]
+        if len(points) >= 3:
+            step = max(1, len(points) // 12)
+            samples.extend((float(point[0]), float(point[1])) for point in points[::step])
         cell = (int(lon_f * PARCEL_GRID), int(lat_f * PARCEL_GRID))
         candidates = []
         for ix in range(cell[0] - 1, cell[0] + 2):
@@ -344,7 +349,17 @@ def attach_datasf_building_heights(
         for candidate in candidates:
             west, south, east, north = candidate["bbox"]
             metres = distance_m((lon_f, lat_f), candidate["centroid"])
+            candidate_lon, candidate_lat = candidate["centroid"]
             if west <= lon_f <= east and south <= lat_f <= north and point_in_ring(lon_f, lat_f, candidate["ring"]):
+                containing.append((metres, candidate))
+            elif any(
+                west <= sample_lon <= east
+                and south <= sample_lat <= north
+                and point_in_ring(sample_lon, sample_lat, candidate["ring"])
+                for sample_lon, sample_lat in samples[1:]
+            ):
+                containing.append((metres, candidate))
+            elif points and point_in_ring(candidate_lon, candidate_lat, points):
                 containing.append((metres, candidate))
             elif metres <= 8.0:
                 nearby.append((metres, candidate))
@@ -364,7 +379,7 @@ def attach_datasf_building_heights(
             "area_id": source_row.get("area_id"),
             "height_m": round(height_m, 2),
             "height_method": "lidar_median",
-            "match": "centroid_inside" if containing else "centroid_nearest",
+            "match": "footprint_intersects" if containing else "centroid_nearest",
             "match_distance_m": round(metres, 2),
             "hgt_cells50cm": _float(source_row.get("hgt_cells50cm")),
             "hgt_min_m": round(min_cm / 100.0, 2) if min_cm is not None else None,
@@ -575,7 +590,13 @@ def attach_overture(records: list[dict[str, Any]], *, limit: int, release: str) 
         if metres > 12.0:
             continue
         row["overture"] = fact
-        if fact.get("height_m") and not row.get("height_m"):
+        if fact.get("height_m") and row.get("height_source") in (
+            None,
+            "",
+            "inferred_default",
+            "osm_levels",
+            "osm_or_renderer_height",
+        ):
             row["height_m"] = fact["height_m"]
             row["height_source"] = "overture_height"
         if fact.get("num_floors") and not row.get("building_levels"):

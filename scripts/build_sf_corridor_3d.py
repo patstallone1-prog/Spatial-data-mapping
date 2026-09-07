@@ -64,6 +64,45 @@ def overpass_query(bbox: BBox) -> str:
     )
 
 
+def _sidewalk_sides(tags: dict) -> list[int] | None:
+    """Which sides of a street OpenStreetMap says carry a footway.
+
+    ``+1`` is left of the direction of travel and ``-1`` is right, matching the convention the
+    rest of the codebase uses. Returns None when the tags say nothing, so the geometric guess
+    still applies there rather than a silent "no footways".
+    """
+    both = tags.get("sidewalk:both")
+    left = tags.get("sidewalk:left")
+    right = tags.get("sidewalk:right")
+    plain = tags.get("sidewalk")
+
+    if both in ("yes", "separate"):
+        return [1, -1]
+    if both == "no":
+        return []
+    sides: list[int] = []
+    stated = False
+    if left is not None:
+        stated = True
+        if left not in ("no", "none"):
+            sides.append(1)
+    if right is not None:
+        stated = True
+        if right not in ("no", "none"):
+            sides.append(-1)
+    if stated:
+        return sides
+    if plain in ("both", "yes"):
+        return [1, -1]
+    if plain == "left":
+        return [1]
+    if plain == "right":
+        return [-1]
+    if plain in ("no", "none"):
+        return []
+    return None
+
+
 def _int_text(value: object) -> int | None:
     try:
         found = int(str(value).strip().split(";")[0])
@@ -235,6 +274,58 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
             width = _float_text(tags.get("width"))
             if width and 2.0 <= width <= 60.0:
                 feature["osm_width_m"] = round(width, 2)
+
+            # Which lanes turn where. 225 ways in this corridor say so and none of it was being
+            # read, so every junction was drawn as though every lane went straight on.
+            for key, field in (("turn:lanes", "turn"),
+                               ("turn:lanes:forward", "turn_fwd"),
+                               ("turn:lanes:backward", "turn_back")):
+                if tags.get(key):
+                    feature[field] = tags[key]
+
+            # Whether this street has a footway, per side, according to the people who mapped
+            # it. Nine hundred ways say so outright and another thousand say so per side. The
+            # model had been deriving it geometrically -- offset from the centreline and drop
+            # the side if it lands in another carriageway -- which is a decent guess and is
+            # beaten by a statement.
+            walk = _sidewalk_sides(tags)
+            if walk is not None:
+                feature["osm_walk_sides"] = walk
+
+            # Bike lanes are lane markings too, and 678 ways carry one.
+            for key, field in (("cycleway", "cycleway"), ("cycleway:both", "cycleway_both"),
+                               ("cycleway:left", "cycleway_left"),
+                               ("cycleway:right", "cycleway_right")):
+                if tags.get(key) and tags[key] not in ("no", "none"):
+                    feature[field] = tags[key]
+
+            # Vertical separation. A way on a layer above or below is a bridge deck or a tunnel
+            # bore, and drawing it flat on the ground puts it through whatever it passes.
+            layer = _int_text(tags.get("layer"))
+            if layer:
+                feature["layer"] = layer
+            if tags.get("tunnel") not in (None, "no"):
+                feature["tunnel"] = True
+            if tags.get("bridge") not in (None, "no"):
+                feature["bridge"] = True
+
+            # A service road is an alley, a driveway or a parking aisle, and none of them is a
+            # street with two footways and a centreline.
+            if tags.get("service"):
+                feature["service"] = tags["service"]
+            speed = _int_text((tags.get("maxspeed") or "").split()[0]
+                              if tags.get("maxspeed") else None)
+            if speed:
+                feature["maxspeed_mph"] = speed
+        if kind == "crossing":
+            # What kind of crossing it is, which the accessibility side of this project cares
+            # about more than the rendering does.
+            if tags.get("crossing:signals") not in (None, "no"):
+                feature["signals"] = True
+            if tags.get("crossing:island") not in (None, "no"):
+                feature["island"] = True
+            if tags.get("tactile_paving") not in (None, "no"):
+                feature["tactile"] = tags.get("tactile_paving")
         ways.append(feature)
     return ways
 
@@ -373,6 +464,14 @@ def annotate_building_enrichment(ways: list[dict[str, Any]]) -> dict[str, Any]:
     enrichment = json.loads(BUILDING_ENRICHMENT.read_text(encoding="utf-8"))
     counts = merge_building_enrichment(ways, enrichment)
     summary.update(counts)
+    height_sources = Counter(
+        str(way.get("height_source") or "missing") for way in ways if way.get("kind") == "building"
+    )
+    summary["final_with_height"] = sum(
+        1 for way in ways if way.get("kind") == "building" and way.get("height_m")
+    )
+    summary["final_height_sources"] = dict(height_sources)
+    summary["inferred_default_heights"] = height_sources.get("inferred_default", 0)
     summary["source"] = str(BUILDING_ENRICHMENT.relative_to(ROOT))
     return summary
 
@@ -841,7 +940,15 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
                 keep.append(side)
             else:
                 dropped_sides += 1
-        if len(keep) < 2:
+        stated = way.get("osm_walk_sides")
+        if stated is not None:
+            # Somebody surveyed this street. Where they say a side has no footway, believe them
+            # over a geometric guess -- and where they say it has one, still drop it if it
+            # would land inside another carriageway, because that is a fact about the drawing
+            # rather than about the street.
+            keep = [side for side in stated if side in keep]
+            way["walk_sides"] = keep
+        elif len(keep) < 2:
             way["walk_sides"] = keep
     counts["footway sides inside another roadway"] = dropped_sides
 
@@ -1446,6 +1553,74 @@ function trimWay(points, metres) {
   const tail = walk(spans.length - 1, -1);
   if (!head || !tail || head[0] >= tail[0]) return points;
   return [head[1], ...points.slice(head[0] + 1, tail[0]), tail[1]];
+}
+
+function arrowTexture(kind) {
+  // A lane arrow, drawn once per kind. Painted arrows in California are long and narrow -- the
+  // standard is about 2.3 m of arrow in a lane 3 m wide -- so the canvas is tall rather than
+  // square and the plane it lands on keeps that ratio.
+  const w = 64;
+  const h = 160;
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(242, 243, 238, 0.95)";
+  ctx.strokeStyle = "rgba(242, 243, 238, 0.95)";
+  ctx.lineWidth = 9;
+  ctx.lineCap = "butt";
+  const stemTop = kind === "through" ? 34 : 62;
+  ctx.beginPath(); ctx.moveTo(w / 2, h - 12); ctx.lineTo(w / 2, stemTop); ctx.stroke();
+  const head = (x, y, dir) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 17 * dir, y + 20);
+    ctx.lineTo(x + 17 * dir, y + 20);
+    ctx.closePath();
+    ctx.fill();
+  };
+  if (kind === "through" || kind === "through_left" || kind === "through_right") {
+    head(w / 2, 14, 1);
+  }
+  if (kind === "left" || kind === "through_left") {
+    ctx.beginPath(); ctx.moveTo(w / 2, 62); ctx.lineTo(14, 62); ctx.stroke();
+    ctx.save(); ctx.translate(10, 62); ctx.rotate(-Math.PI / 2); head(0, 0, 1); ctx.restore();
+  }
+  if (kind === "right" || kind === "through_right") {
+    ctx.beginPath(); ctx.moveTo(w / 2, 62); ctx.lineTo(w - 14, 62); ctx.stroke();
+    ctx.save(); ctx.translate(w - 10, 62); ctx.rotate(Math.PI / 2); head(0, 0, 1); ctx.restore();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+// Named for what it holds rather than "arrows": the keyboard handler further down already owns
+// that word, and two `const ARROWS` in one script is a syntax error that takes the whole page.
+const LANE_ARROW_TEXTURES = {};
+function arrowFor(kind) {
+  if (!LANE_ARROW_TEXTURES[kind]) LANE_ARROW_TEXTURES[kind] = arrowTexture(kind);
+  return LANE_ARROW_TEXTURES[kind];
+}
+
+//: What a turn:lanes token means, reduced to the arrows this draws.
+function arrowKind(token) {
+  const parts = String(token || "").split(";").filter(Boolean);
+  const has = (n) => parts.some((p) => p.includes(n));
+  const straight = has("through") || parts.length === 0 || parts.includes("");
+  if (has("left") && straight) return "through_left";
+  if (has("right") && straight) return "through_right";
+  if (has("left")) return "left";
+  if (has("right")) return "right";
+  if (straight) return "through";
+  return null;
+}
+
+//: Where each lane's centre sits, as an offset from the street's own centreline.
+function laneOffsets(roadWidth, count) {
+  const out = [];
+  for (let i = 0; i < count; i += 1) out.push((i + 0.5 - count / 2) * (roadWidth / count));
+  return out;
 }
 
 //: A broken centreline in the United States is a ten-foot stripe with a thirty-foot gap. The
@@ -2832,6 +3007,38 @@ for (const way of DATA.ways) {
       }
     }
   }
+  // Turn arrows, at the end of the way -- which is where the junction is and where they are
+  // painted. 224 ways in this corridor say which lane turns where.
+  const turns = way.turn || way.turn_fwd;
+  if (turns && way.road_m && !isSidewalk && !isCrossing) {
+    const tokens = String(turns).split("|");
+    const offsets = laneOffsets(way.road_m, tokens.length);
+    const laneWidth = way.road_m / tokens.length;
+    for (let i = 0; i < tokens.length; i += 1) {
+      const kind = arrowKind(tokens[i]);
+      if (!kind) continue;
+      const lane = trimWay(offsetWay(way.points, offsets[i]), 6.0);
+      if (!lane || lane.length < 2) continue;
+      const tail = lane[lane.length - 1];
+      const before = lane[lane.length - 2];
+      const [x1, y1] = xy(before[0], before[1]);
+      const [x2, y2] = xy(tail[0], tail[1]);
+      const bearing = Math.atan2(x2 - x1, -(y2 - y1));
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(Math.min(laneWidth * 0.6, 1.9), 2.6),
+        new THREE.MeshStandardMaterial({
+          map: arrowFor(kind), transparent: true, alphaTest: 0.35,
+          roughness: 0.9, metalness: 0.02,
+          polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -10,
+        })
+      );
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.rotation.z = -bearing;
+      mesh.position.set(x2, roadTop + 0.02, -y2);
+      groups.streets.add(mesh);
+    }
+  }
+
   if (way.covered && (isCrossing || isSidewalk)) {
     // The measured kerb, marked. This sat at exactly the footway's own height and thickness --
     // two coplanar boxes occupying the same volume, which no depth buffer can order, so it

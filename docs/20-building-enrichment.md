@@ -8,6 +8,8 @@ The layer is deliberately source-separated:
 - OSM tags seed stable building IDs, addresses, building tags, and simple business hints.
 - DataSF parcel records add parcel IDs, address ranges, zoning, planning district, and
   neighborhood for every matched footprint.
+- DataSF building footprints (`ynuv-fyni`) add lidar-derived median heights
+  (`hgt_median_m`) when the city footprint safely matches the renderer footprint.
 - Overture buildings can add height/floor/building-part hints when DuckDB is installed.
 - Google Places can add business names, formatted addresses, primary place type, and place IDs,
   but only behind an explicit request limit. Those fields carry `expires_at`; keep the place ID

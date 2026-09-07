@@ -508,6 +508,74 @@ function trimWay(points, metres) {
   return [head[1], ...points.slice(head[0] + 1, tail[0]), tail[1]];
 }
 
+function arrowTexture(kind) {
+  // A lane arrow, drawn once per kind. Painted arrows in California are long and narrow -- the
+  // standard is about 2.3 m of arrow in a lane 3 m wide -- so the canvas is tall rather than
+  // square and the plane it lands on keeps that ratio.
+  const w = 64;
+  const h = 160;
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(242, 243, 238, 0.95)";
+  ctx.strokeStyle = "rgba(242, 243, 238, 0.95)";
+  ctx.lineWidth = 9;
+  ctx.lineCap = "butt";
+  const stemTop = kind === "through" ? 34 : 62;
+  ctx.beginPath(); ctx.moveTo(w / 2, h - 12); ctx.lineTo(w / 2, stemTop); ctx.stroke();
+  const head = (x, y, dir) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 17 * dir, y + 20);
+    ctx.lineTo(x + 17 * dir, y + 20);
+    ctx.closePath();
+    ctx.fill();
+  };
+  if (kind === "through" || kind === "through_left" || kind === "through_right") {
+    head(w / 2, 14, 1);
+  }
+  if (kind === "left" || kind === "through_left") {
+    ctx.beginPath(); ctx.moveTo(w / 2, 62); ctx.lineTo(14, 62); ctx.stroke();
+    ctx.save(); ctx.translate(10, 62); ctx.rotate(-Math.PI / 2); head(0, 0, 1); ctx.restore();
+  }
+  if (kind === "right" || kind === "through_right") {
+    ctx.beginPath(); ctx.moveTo(w / 2, 62); ctx.lineTo(w - 14, 62); ctx.stroke();
+    ctx.save(); ctx.translate(w - 10, 62); ctx.rotate(Math.PI / 2); head(0, 0, 1); ctx.restore();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+// Named for what it holds rather than "arrows": the keyboard handler further down already owns
+// that word, and two `const ARROWS` in one script is a syntax error that takes the whole page.
+const LANE_ARROW_TEXTURES = {};
+function arrowFor(kind) {
+  if (!LANE_ARROW_TEXTURES[kind]) LANE_ARROW_TEXTURES[kind] = arrowTexture(kind);
+  return LANE_ARROW_TEXTURES[kind];
+}
+
+//: What a turn:lanes token means, reduced to the arrows this draws.
+function arrowKind(token) {
+  const parts = String(token || "").split(";").filter(Boolean);
+  const has = (n) => parts.some((p) => p.includes(n));
+  const straight = has("through") || parts.length === 0 || parts.includes("");
+  if (has("left") && straight) return "through_left";
+  if (has("right") && straight) return "through_right";
+  if (has("left")) return "left";
+  if (has("right")) return "right";
+  if (straight) return "through";
+  return null;
+}
+
+//: Where each lane's centre sits, as an offset from the street's own centreline.
+function laneOffsets(roadWidth, count) {
+  const out = [];
+  for (let i = 0; i < count; i += 1) out.push((i + 0.5 - count / 2) * (roadWidth / count));
+  return out;
+}
+
 //: A broken centreline in the United States is a ten-foot stripe with a thirty-foot gap. The
 //: numbers matter: at any other ratio it stops reading as a road marking and starts reading as
 //: a dotted line somebody drew on a map.
@@ -1892,6 +1960,38 @@ for (const way of DATA.ways) {
       }
     }
   }
+  // Turn arrows, at the end of the way -- which is where the junction is and where they are
+  // painted. 224 ways in this corridor say which lane turns where.
+  const turns = way.turn || way.turn_fwd;
+  if (turns && way.road_m && !isSidewalk && !isCrossing) {
+    const tokens = String(turns).split("|");
+    const offsets = laneOffsets(way.road_m, tokens.length);
+    const laneWidth = way.road_m / tokens.length;
+    for (let i = 0; i < tokens.length; i += 1) {
+      const kind = arrowKind(tokens[i]);
+      if (!kind) continue;
+      const lane = trimWay(offsetWay(way.points, offsets[i]), 6.0);
+      if (!lane || lane.length < 2) continue;
+      const tail = lane[lane.length - 1];
+      const before = lane[lane.length - 2];
+      const [x1, y1] = xy(before[0], before[1]);
+      const [x2, y2] = xy(tail[0], tail[1]);
+      const bearing = Math.atan2(x2 - x1, -(y2 - y1));
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(Math.min(laneWidth * 0.6, 1.9), 2.6),
+        new THREE.MeshStandardMaterial({
+          map: arrowFor(kind), transparent: true, alphaTest: 0.35,
+          roughness: 0.9, metalness: 0.02,
+          polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -10,
+        })
+      );
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.rotation.z = -bearing;
+      mesh.position.set(x2, roadTop + 0.02, -y2);
+      groups.streets.add(mesh);
+    }
+  }
+
   if (way.covered && (isCrossing || isSidewalk)) {
     // The measured kerb, marked. This sat at exactly the footway's own height and thickness --
     // two coplanar boxes occupying the same volume, which no depth buffer can order, so it
