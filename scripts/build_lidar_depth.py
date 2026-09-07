@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -108,9 +109,20 @@ def main() -> int:
     refused = missing = 0
     for n, sweep in enumerate(sweeps, start=1):
         sequence, _, index = sweep.split("/")
-        try:
-            raw = provider.archive.read(f"pandaset/{sequence}/lidar/{index}.pkl.gz")
-        except KeyError:
+        raw = None
+        for attempt in range(4):
+            try:
+                raw = provider.archive.read(f"pandaset/{sequence}/lidar/{index}.pkl.gz")
+                break
+            except KeyError:
+                break
+            except (OSError, TimeoutError) as exc:
+                # Eleven gigabytes of HTTP range reads against a mirror: one of them will
+                # eventually time out, and an unretried read ended a two-hour run at sweep 100.
+                if attempt == 3:
+                    progress(f"  gave up on {sweep}: {exc}")
+                time.sleep(2 ** attempt)
+        if raw is None:
             missing += 1
             continue
         try:

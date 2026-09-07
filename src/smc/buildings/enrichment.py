@@ -55,8 +55,29 @@ ARCHETYPE_TYPES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("retail", ("store", "supermarket", "pharmacy", "bank", "shop", "retail")),
     ("office", ("office", "commercial")),
     ("industrial", ("industrial", "warehouse")),
-    ("residential", ("apartments", "house", "residential", "detached", "terrace")),
+    ("residential", ("apartments", "house", "residential", "detached", "terrace",
+                     "semidetached_house", "dormitory", "bungalow", "hut", "cabin")),
 )
+
+#: OpenStreetMap building values that describe a *shape* rather than a use. They were being
+#: returned as archetypes in their own right, so the renderer was asked to draw a "ship", a
+#: "tent" and an "urban_pioneer" -- none of which is a kind of building it knows how to be.
+STRUCTURE_ONLY = frozenset({
+    "roof", "shed", "carport", "garage", "garages", "hangar", "greenhouse", "ship", "tent",
+    "grandstand", "pavilion", "service", "bridge", "toilets", "container", "kiosk",
+    "transformer_tower", "water_tower", "silo", "storage_tank", "urban_pioneer", "construction",
+})
+
+#: Values that are a use, but one of the archetypes already covers it.
+STRUCTURE_ALIASES = {
+    "train_station": "civic",
+    "terminal": "civic",
+    "transportation": "civic",
+    "museum": "civic",
+    "public": "civic",
+    "hostel": "hotel",
+    "mixed_use": "office",
+}
 
 WHOLE_PLACE_ARCHETYPES = {
     "gas_station",
@@ -189,7 +210,13 @@ def archetype_for(
             return archetype
     if building in (None, "", "yes"):
         return "generic"
-    return str(building).lower().replace(" ", "_")
+    value = str(building).lower().replace(" ", "_")
+    if value in STRUCTURE_ALIASES:
+        return STRUCTURE_ALIASES[value]
+    # Anything left is either a shape rather than a use, or a value nothing downstream knows
+    # how to draw. Both are generic: inventing an archetype from an unrecognised tag gives the
+    # renderer a type it has no rule for, which is worse than admitting we do not know.
+    return "generic"
 
 
 def _tokens(value: str | None) -> set[str]:
@@ -325,6 +352,14 @@ def normalize_osm_building(feature: Mapping[str, Any], index: int | None = None)
         row["building_osm"] = str(building)
     if land_use:
         row["land_use"] = str(land_use)
+    if feature.get("height_m") is not None:
+        row["height_m"] = float(feature["height_m"])
+        row["height_source"] = str(feature.get("height_source") or "osm_or_renderer_height")
+    if tags.get("building:levels") is not None:
+        try:
+            row["building_levels"] = float(tags["building:levels"])
+        except (TypeError, ValueError):
+            pass
     row["archetype"] = archetype_for(
         place_types=place_types,
         land_use=str(land_use) if land_use else None,
@@ -368,7 +403,7 @@ def merge_building_enrichment(
     """Attach enrichment rows to building ways in-place."""
     by_id = {str(row.get("building_id")): row for row in enrichment_rows if row.get("building_id")}
     by_osm = {str(row.get("osm_id")): row for row in enrichment_rows if row.get("osm_id")}
-    counts = {"matched": 0, "address": 0, "place": 0, "archetype": 0, "land_use": 0}
+    counts = {"matched": 0, "address": 0, "place": 0, "archetype": 0, "land_use": 0, "height": 0}
     building_index = 0
     for way in ways:
         if way.get("kind") != "building":
@@ -390,6 +425,11 @@ def merge_building_enrichment(
             "google_places",
             "place",
             "archetype",
+            "datasf_building_height",
+            "height_m",
+            "height_source",
+            "height_confidence",
+            "building_levels",
         ):
             if row.get(key) not in (None, "", [], {}):
                 way[key] = row[key]
@@ -401,4 +441,6 @@ def merge_building_enrichment(
             counts["archetype"] += 1
         if row.get("land_use") or row.get("zoning"):
             counts["land_use"] += 1
+        if row.get("height_m"):
+            counts["height"] += 1
     return counts

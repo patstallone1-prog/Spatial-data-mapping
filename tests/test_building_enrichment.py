@@ -117,18 +117,24 @@ def test_merge_enrichment_attaches_place_address_and_land_use() -> None:
             {
                 "building_id": "osm:way:9",
                 "address": {"formatted": "1 Test Ave"},
-                "land_use": "Neighborhood Commercial",
-                "place": {"name": "Test Cafe", "primary_type": "cafe"},
-                "archetype": "restaurant",
-            }
-        ],
-    )
+            "land_use": "Neighborhood Commercial",
+            "place": {"name": "Test Cafe", "primary_type": "cafe"},
+            "archetype": "restaurant",
+            "height_m": 18.4,
+            "height_source": "datasf_lidar_median_height",
+            "height_confidence": 0.9,
+        }
+    ],
+)
 
     assert counts["matched"] == 1
     assert counts["address"] == 1
     assert ways[1]["address"]["formatted"] == "1 Test Ave"
     assert ways[1]["place"]["name"] == "Test Cafe"
     assert ways[1]["archetype"] == "restaurant"
+    assert ways[1]["height_m"] == 18.4
+    assert ways[1]["height_source"] == "datasf_lidar_median_height"
+    assert counts["height"] == 1
 
 
 def test_geometry_helpers_are_stable_for_closed_rings() -> None:

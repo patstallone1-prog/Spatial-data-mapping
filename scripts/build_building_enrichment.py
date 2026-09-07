@@ -16,6 +16,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
@@ -39,6 +40,8 @@ from smc.official.crs import geojson_rings  # noqa: E402
 
 DEFAULT_OUT = ROOT / "data" / "sf_building_enrichment" / "buildings.json"
 DEFAULT_SUMMARY = ROOT / "data" / "sf_building_enrichment" / "summary.json"
+DATASF_BUILDING_HEIGHT_CACHE = ROOT / "build" / "sf_building_heights"
+DATASF_BUILDING_HEIGHT_ID = "ynuv-fyni"
 PARCEL_GRID = 2200
 USER_AGENT = "spatial-mapping-crowdsource/building-enrichment"
 
@@ -64,15 +67,75 @@ def ring_bbox(ring: list[tuple[float, float]]) -> tuple[float, float, float, flo
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def _contains(ring: list, lon: float, lat: float) -> bool:
+    """Ray casting. Whether a point falls inside a footprint."""
+    inside = False
+    n = len(ring)
+    for i in range(n):
+        x1, y1 = ring[i]
+        x2, y2 = ring[(i + 1) % n]
+        if (y1 > lat) != (y2 > lat):
+            x = x1 + (lat - y1) * (x2 - x1) / ((y2 - y1) or 1e-12)
+            if x > lon:
+                inside = not inside
+    return inside
+
+
+def attach_pois(buildings: list[dict], pois: list[dict]) -> int:
+    """Fold each point of interest into the building it stands in.
+
+    A restaurant in OpenStreetMap is nearly always a node inside a building rather than a tag
+    on the building, so a classifier reading only the footprint's own tags sees a plain
+    ``building=yes`` and calls it generic. This is where the difference between twelve thousand
+    generic buildings and a city with restaurants in it comes from.
+
+    Where several points fall in one building the tags accumulate; the archetype rules pick the
+    most specific of them, so a cafe inside a hotel does not stop it being a hotel.
+    """
+    cells: dict[tuple[int, int], list[int]] = {}
+    for index, building in enumerate(buildings):
+        for lon, lat in building.get("points", ()):
+            cells.setdefault((int(lon * 3000), int(lat * 3000)), []).append(index)
+
+    attached = 0
+    for poi in pois:
+        point = poi.get("point")
+        if not point:
+            continue
+        lon, lat = point
+        key = (int(lon * 3000), int(lat * 3000))
+        seen: set[int] = set()
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                seen.update(cells.get((key[0] + dx, key[1] + dy), ()))
+        for index in seen:
+            building = buildings[index]
+            if _contains(building.get("points") or [], lon, lat):
+                tags = building.setdefault("tags", {})
+                for key_name, value in (poi.get("tags") or {}).items():
+                    tags.setdefault(key_name, value)
+                if poi.get("name"):
+                    tags.setdefault("poi_name", poi["name"])
+                attached += 1
+                break
+    return attached
+
+
 def load_buildings(page_json: Path) -> list[dict[str, Any]]:
     payload = json.loads(page_json.read_text(encoding="utf-8"))
     buildings = []
+    pois = []
     for way in payload.get("ways", []):
+        if way.get("kind") == "poi":
+            pois.append(way)
+            continue
         if way.get("kind") != "building":
             continue
         item = dict(way)
         item["building_id"] = building_id(item, len(buildings))
         buildings.append(item)
+    attached = attach_pois(buildings, pois)
+    print(f"{len(pois)} points of interest, {attached} landed inside a building", flush=True)
     return buildings
 
 
@@ -86,6 +149,74 @@ def load_parcels(cache_path: Path | None) -> list[dict[str, Any]]:
         return []
     payload = json.loads(cache_path.read_text(encoding="utf-8"))
     return list(payload.get("rows", []))
+
+
+def fetch_datasf_building_heights(*, cache_dir: Path, refresh: bool = False) -> tuple[list[dict[str, Any]], Path]:
+    """Fetch San Francisco lidar-derived building footprint heights for the corridor."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    bbox = SF_CORRIDOR.bbox
+    cache_path = cache_dir / f"{DATASF_BUILDING_HEIGHT_ID}-{bbox.west:.4f}-{bbox.south:.4f}-{bbox.east:.4f}-{bbox.north:.4f}.json"
+    if cache_path.exists() and not refresh:
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+        return list(payload.get("rows", [])), cache_path
+
+    rows: list[dict[str, Any]] = []
+    endpoint = f"https://data.sfgov.org/resource/{DATASF_BUILDING_HEIGHT_ID}.json"
+    where = f"within_box(shape,{bbox.north},{bbox.west},{bbox.south},{bbox.east})"
+    columns = ",".join(
+        [
+            "sf16_bldgid",
+            "area_id",
+            "mblr",
+            "hgt_median_m",
+            "gnd_min_m",
+            "median_1st_m",
+            "peak_1st_m",
+            "hgt_cells50cm",
+            "hgt_mincm",
+            "hgt_maxcm",
+            "hgt_meancm",
+            "hgt_stdcm",
+            "shape",
+            "data_as_of",
+            "data_loaded_at",
+        ]
+    )
+    offset = 0
+    page = 5000
+    while True:
+        params = urllib.parse.urlencode(
+            {"$select": columns, "$where": where, "$limit": page, "$offset": offset}
+        )
+        request = urllib.request.Request(
+            f"{endpoint}?{params}",
+            headers={"User-Agent": USER_AGENT},
+        )
+        with urllib.request.urlopen(request, timeout=120) as response:
+            chunk = json.loads(response.read().decode("utf-8"))
+        rows.extend(chunk)
+        if len(chunk) < page:
+            break
+        offset += page
+
+    cache_path.write_text(
+        json.dumps(
+            {
+                "source": f"datasf:{DATASF_BUILDING_HEIGHT_ID}",
+                "bbox": {
+                    "south": bbox.south,
+                    "west": bbox.west,
+                    "north": bbox.north,
+                    "east": bbox.east,
+                },
+                "rows": rows,
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return rows, cache_path
 
 
 def parcel_index(parcels: list[dict[str, Any]]) -> dict[tuple[int, int], list[dict[str, Any]]]:
@@ -150,6 +281,104 @@ def attach_parcels(records: list[dict[str, Any]], parcels: list[dict[str, Any]])
             row["sources"] = sorted(sources)
             matched += 1
             break
+    return matched
+
+
+def _float(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return number
+
+
+def building_height_index(footprints: list[dict[str, Any]]) -> dict[tuple[int, int], list[dict[str, Any]]]:
+    cells: dict[tuple[int, int], list[dict[str, Any]]] = defaultdict(list)
+    for footprint in footprints:
+        height = _float(footprint.get("hgt_median_m"))
+        if height is None or not (1.5 <= height <= 400.0):
+            continue
+        rings = geojson_rings(footprint.get("shape") or {})
+        if not rings:
+            continue
+        ring = rings[0]
+        if len(ring) < 3:
+            continue
+        west, south, east, north = ring_bbox(ring)
+        centroid = building_centroid(ring)
+        item = {
+            "row": footprint,
+            "ring": ring,
+            "bbox": (west, south, east, north),
+            "centroid": (float(centroid[0]), float(centroid[1])),
+            "height_m": height,
+        }
+        for ix in range(int(west * PARCEL_GRID), int(east * PARCEL_GRID) + 1):
+            for iy in range(int(south * PARCEL_GRID), int(north * PARCEL_GRID) + 1):
+                cells[(ix, iy)].append(item)
+    return cells
+
+
+def attach_datasf_building_heights(
+    records: list[dict[str, Any]], footprints: list[dict[str, Any]]
+) -> int:
+    index = building_height_index(footprints)
+    matched = 0
+    for row in records:
+        lon, lat = row.get("centroid") or [None, None]
+        if lon is None or lat is None:
+            continue
+        lon_f, lat_f = float(lon), float(lat)
+        cell = (int(lon_f * PARCEL_GRID), int(lat_f * PARCEL_GRID))
+        candidates = []
+        for ix in range(cell[0] - 1, cell[0] + 2):
+            for iy in range(cell[1] - 1, cell[1] + 2):
+                candidates.extend(index.get((ix, iy), []))
+        if not candidates:
+            continue
+
+        containing = []
+        nearby = []
+        for candidate in candidates:
+            west, south, east, north = candidate["bbox"]
+            metres = distance_m((lon_f, lat_f), candidate["centroid"])
+            if west <= lon_f <= east and south <= lat_f <= north and point_in_ring(lon_f, lat_f, candidate["ring"]):
+                containing.append((metres, candidate))
+            elif metres <= 8.0:
+                nearby.append((metres, candidate))
+        matches = containing or nearby
+        if not matches:
+            continue
+        metres, candidate = min(matches, key=lambda item: item[0])
+        source_row = candidate["row"]
+        height_m = float(candidate["height_m"])
+        min_cm = _float(source_row.get("hgt_mincm"))
+        max_cm = _float(source_row.get("hgt_maxcm"))
+        row["datasf_building_height"] = {
+            "provider": "datasf",
+            "dataset": DATASF_BUILDING_HEIGHT_ID,
+            "source": "datasf:ynuv-fyni",
+            "sf16_bldgid": source_row.get("sf16_bldgid"),
+            "area_id": source_row.get("area_id"),
+            "height_m": round(height_m, 2),
+            "height_method": "lidar_median",
+            "match": "centroid_inside" if containing else "centroid_nearest",
+            "match_distance_m": round(metres, 2),
+            "hgt_cells50cm": _float(source_row.get("hgt_cells50cm")),
+            "hgt_min_m": round(min_cm / 100.0, 2) if min_cm is not None else None,
+            "hgt_max_m": round(max_cm / 100.0, 2) if max_cm is not None else None,
+            "data_as_of": source_row.get("data_as_of"),
+            "data_loaded_at": source_row.get("data_loaded_at"),
+        }
+        row["height_m"] = round(height_m, 2)
+        row["height_source"] = "datasf_lidar_median_height"
+        row["height_confidence"] = 0.9 if containing else 0.78
+        sources = set(row.get("sources") or [])
+        sources.add("datasf_building_heights")
+        row["sources"] = sorted(sources)
+        matched += 1
     return matched
 
 
@@ -382,18 +611,20 @@ def compact(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "parcel",
                 "zoning",
                 "land_use",
-                "building_osm",
-                "osm_types",
-                "overture",
-                "google_places",
-                "place",
-                "archetype",
-                "sources",
-                "height_m",
-                "height_source",
-                "building_levels",
-            }
+            "building_osm",
+            "osm_types",
+            "datasf_building_height",
+            "overture",
+            "google_places",
+            "place",
+            "archetype",
+            "sources",
+            "height_m",
+            "height_source",
+            "height_confidence",
+            "building_levels",
         }
+    }
         keep.append(slim)
     return keep
 
@@ -418,6 +649,7 @@ def main() -> int:
     parser.add_argument("--google-sleep-s", type=float, default=0.05)
     parser.add_argument("--overture-limit", type=int, default=0)
     parser.add_argument("--overture-release", default="2026-08-19.0")
+    parser.add_argument("--refresh-building-heights", action="store_true")
     args = parser.parse_args()
 
     buildings = load_buildings(args.page_json)
@@ -426,6 +658,11 @@ def main() -> int:
     parcel_cache = args.parcel_cache or default_parcel_cache()
     parcels = load_parcels(parcel_cache)
     parcel_matches = attach_parcels(records, parcels)
+    building_height_rows, building_height_cache = fetch_datasf_building_heights(
+        cache_dir=DATASF_BUILDING_HEIGHT_CACHE,
+        refresh=args.refresh_building_heights,
+    )
+    building_height_matches = attach_datasf_building_heights(records, building_height_rows)
 
     overture_matches, overture_error = attach_overture(
         records, limit=args.overture_limit, release=args.overture_release
@@ -445,17 +682,23 @@ def main() -> int:
     args.out.write_text(json.dumps(output, indent=1, sort_keys=True) + "\n", encoding="utf-8")
 
     counter = Counter(row.get("archetype") or "generic" for row in output)
+    height_counter = Counter(row.get("height_source") or "missing" for row in output)
     summary = {
         "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "buildings": len(output),
         "parcel_cache": display_path(parcel_cache),
         "datasf_parcel_matches": parcel_matches,
+        "datasf_building_height_cache": display_path(building_height_cache),
+        "datasf_building_height_rows": len(building_height_rows),
+        "datasf_building_height_matches": building_height_matches,
         "overture_matches": overture_matches,
         "overture_error": overture_error,
         "google_places_requests": google_requests,
         "google_places_errors": google_errors,
         "with_address": sum(1 for row in output if row.get("address")),
         "with_place": sum(1 for row in output if row.get("place")),
+        "with_height": sum(1 for row in output if row.get("height_m")),
+        "height_sources": dict(height_counter),
         "archetypes": dict(counter),
         "google_policy": (
             "Google Places fields in this file are refreshable non-commercial metadata. "

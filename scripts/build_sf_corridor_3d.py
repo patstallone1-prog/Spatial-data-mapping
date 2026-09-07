@@ -45,6 +45,21 @@ def overpass_query(bbox: BBox) -> str:
         f'secondary_link|tertiary_link|footway|pedestrian|steps)$"]({area});'
         f'way["footway"~"^(sidewalk|crossing)$"]({area});'
         f'way["building"]({area});'
+        # Water. Nothing else in the query covers the bay, the lagoon or Aquatic Park, so the
+        # whole northern edge of the corridor was drawn as ground and read as a hole.
+        f'way["natural"="water"]({area});'
+        f'way["waterway"="riverbank"]({area});'
+        f'relation["natural"="water"]({area});'
+        # What things are. A building's own tags say more than its footprint does, and in a
+        # city this densely mapped most of the answer is already here: amenity for restaurants
+        # and fuel stations, shop for retail, tourism for hotels. The points matter as much as
+        # the ways -- a restaurant is usually a node inside a building rather than the building.
+        f'node["amenity"]({area});'
+        f'node["shop"]({area});'
+        f'node["tourism"]({area});'
+        f'way["amenity"]({area});'
+        f'way["shop"]({area});'
+        f'way["tourism"]({area});'
         ");out geom;"
     )
 
@@ -134,6 +149,20 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
         geometry = element.get("geometry") or []
         tags = element.get("tags") or {}
         if not geometry:
+            # A node. Most of what tells you what a building *is* arrives this way -- a
+            # restaurant is a point inside a building far more often than it is the building --
+            # and skipping everything without geometry threw all of it away.
+            if element.get("type") == "node" and "lat" in element and "lon" in element:
+                kept = {k: tags[k] for k in (*ADDRESS_KEYS, *BUSINESS_KEYS)
+                        if tags.get(k) not in (None, "")}
+                if kept:
+                    ways.append({
+                        "kind": "poi",
+                        "name": tags.get("name"),
+                        "point": [round(element["lon"], PRECISION),
+                                  round(element["lat"], PRECISION)],
+                        "tags": kept,
+                    })
             continue
         points = [
             [round(p["lon"], PRECISION), round(p["lat"], PRECISION)]
@@ -141,6 +170,11 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
             if "lat" in p and "lon" in p
         ]
         if len(points) < 2:
+            continue
+        if (tags.get("natural") == "water" or tags.get("waterway") == "riverbank"
+                or tags.get("landuse") == "reservoir"):
+            if _is_closed(points):
+                ways.append({"kind": "water", "name": tags.get("name"), "points": points})
             continue
         if tags.get("building") and _is_closed(points):
             osm_id = element.get("id")
@@ -1546,7 +1580,47 @@ const MATERIALS = [
     colours: [0xb9c3c8, 0x9aa6ad, 0xc9d2d6, 0x8d989f] },
 ];
 
-function pickMaterial(seed, height) {
+// What each kind of building is usually made of, and what colour it usually is.
+//
+// Every building used to be drawn from one distribution -- San Francisco's building stock as a
+// whole -- so a filling station, a school and a block of flats were all equally likely to come
+// out as brick. Now 4,765 of them know what they are, from their own OpenStreetMap tags and
+// from the 5,491 points of interest that sit inside them, and a known type picks from its own
+// materials rather than from the city's average.
+const ARCHETYPE_STYLE = {
+  residential: { materials: ["stucco", "painted", "brick"],
+                 colours: [0xd8cdbc, 0xc9d3cc, 0xe0d6c4, 0xbfc9d2, 0xd6c3bb, 0xcfd8d0] },
+  office:      { materials: ["glass", "concrete", "metal"],
+                 colours: [0x9fb0bd, 0x8f9aa4, 0xa8b4bc, 0x7f8d99] },
+  hotel:       { materials: ["concrete", "brick", "stucco"],
+                 colours: [0xc4b7a6, 0xb9a898, 0xcfc4b4] },
+  retail:      { materials: ["brick", "stucco", "painted"],
+                 colours: [0xb08a72, 0xc9b7a4, 0xbfa98f] },
+  restaurant:  { materials: ["brick", "painted", "stucco"],
+                 colours: [0xb5806a, 0xc4a184, 0xa8836b] },
+  civic:       { materials: ["concrete", "stucco"],
+                 colours: [0xd2ccbe, 0xc3bfb4, 0xdad4c6] },
+  school:      { materials: ["brick", "concrete"],
+                 colours: [0xa8705c, 0xb98a70, 0xc0b3a2] },
+  industrial:  { materials: ["metal", "concrete"],
+                 colours: [0x9aa0a2, 0x8b9294, 0xa6aaa8] },
+  parking:     { materials: ["concrete"], colours: [0xa9a9a6, 0x9b9b98] },
+  gas_station: { materials: ["metal", "painted"], colours: [0xe4e4e2, 0xd8d2c8] },
+  park:        { materials: ["stucco"], colours: [0x8fa882, 0x9db58f] },
+};
+
+//: Types whose real buildings are low, whatever a default height would say. A filling station
+//: drawn at the 10.5 m default is a three-storey filling station.
+const ARCHETYPE_MAX_HEIGHT = { gas_station: 6.0, parking: 16.0, park: 4.0 };
+
+function pickMaterial(seed, height, archetype) {
+  const style = ARCHETYPE_STYLE[archetype];
+  if (style) {
+    const allowed = MATERIALS.filter((m) => style.materials.includes(m.name));
+    if (allowed.length) {
+      return allowed[Math.floor(random(seed + 3) * allowed.length) % allowed.length];
+    }
+  }
   // Tall buildings are not stucco and short ones are not curtain wall, so the draw is nudged by
   // height before the shares are applied.
   const weights = MATERIALS.map((m) => {
@@ -2392,7 +2466,13 @@ function buildingMesh(feature) {
   // No exaggeration. This was multiplied by 1.8 to make massing read from a bird's eye, which
   // put every building eighty per cent taller than OpenStreetMap says it is -- fine as a
   // diagram, wrong the moment somebody walks down the street beside it.
-  const height = Math.max(3, Math.min(260, feature.height_m || 10.5));
+  let height = Math.max(3, Math.min(260, feature.height_m || 10.5));
+  // A default height on a building whose type has a real one is worse than no default. Only
+  // the inferred heights are capped; a measured one is left exactly as recorded.
+  const cap = ARCHETYPE_MAX_HEIGHT[feature.archetype];
+  if (cap && feature.height_source !== "osm_height" && feature.height_source !== "osm_levels") {
+    height = Math.min(height, cap);
+  }
   // Seeded from the footprint, so a building keeps its material and colour between reloads.
   const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
   const archetype = placeArchetypeMesh(feature, seed);
@@ -2403,8 +2483,9 @@ function buildingMesh(feature) {
   geom.rotateX(-Math.PI / 2);
   const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
     || feature.height_source === "overture_height";
-  const material = pickMaterial(seed, height);
-  const palette = material.colours;
+  const material = pickMaterial(seed, height, feature.archetype);
+  const style = ARCHETYPE_STYLE[feature.archetype];
+  const palette = style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
   // which is a statement about San Francisco's building stock and not about this building.
   let tint = feature.colour !== undefined
@@ -2608,6 +2689,23 @@ for (const chunk of FACADES.grid || []) {
 const streetNames = new Set();
 let streetLabelCount = 0;
 for (const way of DATA.ways) {
+  if (way.kind === "water") {
+    // The bay, the lagoon and Aquatic Park. Nothing in the query reached them before, so the
+    // whole northern edge of the corridor was drawn as ground.
+    const shape = footprintShape(way.points);
+    if (shape) {
+      const geom = new THREE.ShapeGeometry(shape);
+      geom.rotateX(-Math.PI / 2);
+      const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+        color: 0x1d4a6b, roughness: 0.28, metalness: 0.12,
+        envMapIntensity: 0.9, side: THREE.DoubleSide,
+      }));
+      mesh.position.y = -0.10;
+      groups.streets.add(mesh);
+    }
+    continue;
+  }
+  if (way.kind === "poi") continue;
   if (way.kind === "building") {
     // On the ground, where a footprint is. At 1.8 m it was a plate floating at head height
     // through the middle of every building.
