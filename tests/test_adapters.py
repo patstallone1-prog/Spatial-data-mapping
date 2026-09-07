@@ -7,6 +7,7 @@ import pytest
 from smc.adapters.base import AdapterUnavailable
 from smc.adapters.credentials import CREDENTIALS, Capability, check, providers_for
 from smc.adapters.providers import (
+    RestrictedSourceWarning,
     ArCoreGeospatial,
     MapillaryImagery,
     StreetViewImagery,
@@ -60,15 +61,17 @@ class TestCredentialRegistry:
 
 
 class TestProviderSelection:
-    def test_unsafe_provider_requires_an_explicit_opt_in(
+    def test_a_restricted_provider_warns_rather_than_refusing(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        # It used to refuse outright. The restriction is real -- no tracing geometry, no
+        # caching -- but it is a constraint on what the output may be used for, not a reason
+        # the provider cannot be built at all.
         monkeypatch.setenv("GOOGLE_MAPS_API_KEY", "x")
-        with pytest.raises(AdapterUnavailable, match="not commercial-safe"):
-            build_anchor_imagery("street_view")
-        assert isinstance(
-            build_anchor_imagery("street_view", allow_internal_only=True), StreetViewImagery
-        )
+        with pytest.warns(RestrictedSourceWarning, match="source restrictions"):
+            provider = build_anchor_imagery("street_view")
+        assert isinstance(provider, StreetViewImagery)
+        assert provider.commercial_safe is False, "the label has to survive"
 
     def test_default_provider_needs_no_credential(self) -> None:
         provider = build_anchor_imagery("panoramax")
@@ -105,7 +108,7 @@ class TestProviderSelection:
 
     def test_arcore_is_gated_the_same_way(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("GOOGLE_ARCORE_API_KEY", "x")
-        with pytest.raises(AdapterUnavailable, match="not commercial-safe"):
+        with pytest.warns(RestrictedSourceWarning, match="source restrictions"):
             build_visual_positioning("arcore_geospatial")
         assert isinstance(
             build_visual_positioning("arcore_geospatial", allow_internal_only=True),

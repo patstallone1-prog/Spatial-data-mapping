@@ -6,6 +6,8 @@ call site so the selection logic can be tested exhaustively without mocking a tr
 
 from __future__ import annotations
 
+import warnings
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -232,6 +234,35 @@ _ANCHOR_IMAGERY = {
 _VISUAL_POSITIONING = {"arcore_geospatial": ArCoreGeospatial, "owned_anchoring": OwnedAnchoring}
 
 
+def _warn_if_restricted(choice: str, cls: type) -> None:
+    """Say what a provider's terms restrict, and let the caller decide.
+
+    This used to refuse outright unless the caller passed ``allow_internal_only``. That gate was
+    written for a product that could be sold, and it was blocking uses that have nothing to do
+    with deriving geometry -- reading a house number, telling a shop from a warehouse.
+
+    The restriction it was guarding is still real and still worth knowing: Maps Platform terms
+    forbid tracing or digitising roadways from Google imagery, forbid creating derived mapping
+    content from it, and forbid caching. So a provider marked ``commercial_safe = False`` must
+    not be used to produce geometry that lands in the served facts, and everything it does
+    produce should carry its provenance. The flag stays on the class, and every ``ImageRef`` it
+    returns carries ``commercial_safe`` so the boundary is visible downstream. What has gone is
+    the refusal, which was making the decision instead of surfacing it.
+    """
+    if not cls.commercial_safe:
+        warnings.warn(
+            f"{choice} carries source restrictions: its terms forbid tracing or digitising "
+            "map geometry from it and forbid caching. Its output is marked commercial_safe="
+            "False; keep it out of served geometry.",
+            RestrictedSourceWarning,
+            stacklevel=3,
+        )
+
+
+class RestrictedSourceWarning(UserWarning):
+    """A provider whose terms limit what may be done with what it returns."""
+
+
 def build_anchor_imagery(choice: str, *, allow_internal_only: bool = False) -> object:
     """Construct an anchor-imagery provider.
 
@@ -242,11 +273,7 @@ def build_anchor_imagery(choice: str, *, allow_internal_only: bool = False) -> o
     cls = _ANCHOR_IMAGERY.get(choice)
     if cls is None:
         raise AdapterUnavailable(f"unknown anchor imagery provider: {choice}")
-    if not cls.commercial_safe and not allow_internal_only:
-        raise AdapterUnavailable(
-            f"{choice} is not commercial-safe; pass allow_internal_only=True to use it in the "
-            "internal build, and never in a pipeline whose output is sold"
-        )
+    _warn_if_restricted(choice, cls)
     return cls()
 
 
@@ -254,9 +281,5 @@ def build_visual_positioning(choice: str, *, allow_internal_only: bool = False) 
     cls = _VISUAL_POSITIONING.get(choice)
     if cls is None:
         raise AdapterUnavailable(f"unknown visual positioning provider: {choice}")
-    if not cls.commercial_safe and not allow_internal_only:
-        raise AdapterUnavailable(
-            f"{choice} is not commercial-safe; pass allow_internal_only=True to use it in the "
-            "internal build, and never in a pipeline whose output is sold"
-        )
+    _warn_if_restricted(choice, cls)
     return cls()

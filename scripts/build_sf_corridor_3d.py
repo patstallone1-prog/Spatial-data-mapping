@@ -492,6 +492,52 @@ def _outward_bearing(ring, a, b) -> float:
     return math.degrees(math.atan2(nx, ny)) % 360.0
 
 
+def _apron_anchor(index, segments, attributes, cut) -> dict:
+    """The kerb point beside a curb cut, and the bearing pointing away from the road.
+
+    Returns nothing at all when the cut cannot be placed on a street. A missing anchor means
+    the renderer draws no apron, which is the right answer: an apron whose direction is a guess
+    is the thing that ended up lying across the carriageway.
+    """
+    placed = index.locate_full(cut[0], cut[1])
+    if placed is None:
+        return {}
+    feature, station, side, _distance = placed
+    vertices = index.segments.get(feature)
+    if vertices is None or len(vertices) < 2:
+        return {}
+    attribute = attributes.get(feature) or {}
+    record = segments.get(feature) or {}
+    road = attribute.get("road_m")
+    if not road:
+        row = attribute.get("record_row_m") or record.get("right_of_way_m")
+        road = max(3.0, row - 6.0) if row else 8.0
+
+    # Walk the centreline to the station to get the local direction, then step out to the kerb.
+    travelled = 0.0
+    point = direction = None
+    for start, end in zip(vertices[:-1], vertices[1:]):
+        span = math.hypot(end[0] - start[0], end[1] - start[1])
+        if span < 1e-9:
+            continue
+        if travelled + span >= station:
+            t = (station - travelled) / span
+            point = (start[0] + (end[0] - start[0]) * t, start[1] + (end[1] - start[1]) * t)
+            direction = ((end[0] - start[0]) / span, (end[1] - start[1]) / span)
+            break
+        travelled += span
+    if point is None:
+        return {}
+    # Left of travel is (-dy, dx); the side the cut is on decides the sign.
+    nx, ny = -direction[1] * side, direction[0] * side
+    kerb = (point[0] + nx * road / 2.0, point[1] + ny * road / 2.0)
+    lon, lat = index.frame.to_lonlat(kerb[0], kerb[1])
+    return {
+        "kp": [round(lon, 7), round(lat, 7)],
+        "on": round(math.degrees(math.atan2(nx, ny)) % 360, 1),
+    }
+
+
 def _project_fraction(a, b, point) -> float:
     """Where along a wall a point falls, 0 at ``a`` and 1 at ``b``."""
     ax = (b[0] - a[0]) * 88_000.0
@@ -739,14 +785,14 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     counts["colour still invented"] = covered_index - counts["colour from a photograph"]
 
     walls_index: dict[tuple[int, int], list[tuple]] = defaultdict(list)
-    for index, way in enumerate(ways):
+    for way_index, way in enumerate(ways):
         if way.get("kind") != "building" or not way.get("covered"):
             continue
         points = way["points"]
         for i in range(len(points) - 1):
             a, b = points[i], points[i + 1]
             mid = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
-            walls_index[(int(mid[0] * 3000), int(mid[1] * 3000))].append((index, a, b, mid))
+            walls_index[(int(mid[0] * 3000), int(mid[1] * 3000))].append((way_index, a, b, mid))
 
     garages = 0
     unmatched_cuts = 0
@@ -759,7 +805,7 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 for candidate in walls_index.get((key[0] + dx, key[1] + dy), ()):
-                    _index, a, b, mid = candidate
+                    _way_index, a, b, mid = candidate
                     metres = math.hypot((mid[0] - centre[0]) * 88_000.0,
                                         (mid[1] - centre[1]) * 111_320.0)
                     if metres > GARAGE_REACH_M:
@@ -776,8 +822,8 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
         if chosen is None:
             unmatched_cuts += 1
             continue
-        _metres, (index, a, b, mid) = chosen
-        way = ways[index]
+        _metres, (way_index, a, b, mid) = chosen
+        way = ways[way_index]
         # Placed at the point of the wall nearest the cut, and no wider than the wall it is in.
         length = math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
         width = min(needed, max(2.0, length * 0.9))
@@ -792,10 +838,14 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             "cp": [round(centre[0], 7), round(centre[1], 7)],
             # A seed so a building keeps the same door between reloads, and two garages on one
             # building do not both get the same one.
-            "s": (index * 31 + int(centre[0] * 1e5)) % 100000,
+            "s": (way_index * 31 + int(centre[0] * 1e5)) % 100000,
             # How wide the footway is here, so the apron stops at the property line.
             "walk": round(float((attributes.get(feature) or {}).get("record_sidewalk_m")
                                 or (record.get("sidewalk_m") or {}).get("0") or 3.0), 2),
+            # Where the kerb is, and which way is away from the road, measured on the street
+            # the cut belongs to. Aiming the apron at the building instead let it set off
+            # across the carriageway whenever the matched wall sat at an angle to the kerb.
+            **_apron_anchor(index, segments, attributes, centre),
         })
         garages += 1
     counts["garage openings"] = garages
@@ -1869,23 +1919,73 @@ const APRON_FLARE_M = 0.85;
 //: The top of the footway, which is where anything laid on the pavement has to sit.
 function roadSurfaceTop() { return 0.06 + KERB_FALLBACK; }
 
-function apronSlab(opening) {
-  if (!opening.cp) return null;
-  const [kx, ky] = xy(opening.cp[0], opening.cp[1]);
-  const [ax, ay] = xy(opening.a[0], opening.a[1]);
-  const [bx, by] = xy(opening.b[0], opening.b[1]);
-  const wallX = (ax + bx) / 2;
-  const wallY = (ay + by) / 2;
-  // How far back from the kerb the apron runs. Bounded by the footway rather than by the
-  // distance to the wall's midpoint, which on a long frontage is most of the block.
-  // No further back than the pavement it crosses: an apron is the ramp over the footway, not
-  // a driveway up to the house.
-  const walk = opening.walk || 3.0;
-  const depth = Math.min(walk + 0.6, Math.max(1.2, Math.hypot(wallX - kx, wallY - ky)));
-  const width = Math.max(2.2, opening.w);
+// ---- keeping things where they belong ----
+//
+// A rule the renderer did not have. Pavement belongs on the footway and paint belongs on the
+// carriageway, and nothing was checking: an apron aimed by the wrong bearing laid concrete
+// across an intersection, and it read as sidewalk squares scattered over the road. Every
+// street's centreline and half-width goes into a grid once, and anything meant for the
+// pavement asks before it is placed.
+const CARRIAGEWAY_CELL = 30;
+const carriagewayGrid = new Map();
+for (const way of DATA.ways) {
+  if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+  const half = (way.road_m || 8.0) / 2;
+  for (let i = 1; i < way.points.length; i += 1) {
+    const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+    const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+    const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / CARRIAGEWAY_CELL));
+    for (let k = 0; k <= steps; k += 1) {
+      const x = ax + (bx - ax) * (k / steps);
+      const z = -(ay + (by - ay) * (k / steps));
+      const key = `${Math.floor(x / CARRIAGEWAY_CELL)}:${Math.floor(z / CARRIAGEWAY_CELL)}`;
+      let bucket = carriagewayGrid.get(key);
+      if (!bucket) carriagewayGrid.set(key, bucket = []);
+      bucket.push([x, z, half]);
+    }
+  }
+}
 
-  // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own
-  // width where it meets the property line.
+function insideCarriageway(x, z, slack = 0.4) {
+  const cx = Math.floor(x / CARRIAGEWAY_CELL);
+  const cz = Math.floor(z / CARRIAGEWAY_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [px, pz, half] of bucket) {
+        if (Math.hypot(x - px, z - pz) < half - slack) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function apronSlab(opening) {
+  // The ramp over the footway at a dropped kerb. It starts at the kerb and runs directly away
+  // from the road, because that is what a driveway does -- and because the alternative, aiming
+  // it at whichever wall the garage was matched to, sent it wherever that wall happened to
+  // face. Without a kerb anchor there is no defensible direction and none is drawn.
+  if (!opening.kp || opening.on === undefined) return null;
+  const [kx, ky] = xy(opening.kp[0], opening.kp[1]);
+  const bearing = opening.on * Math.PI / 180;
+  const depth = Math.max(1.2, Math.min(opening.walk || 3.0, 6.0));
+  const width = Math.max(2.2, opening.w || 3.5);
+
+  // The rule, applied. If a corner of this slab would land in a carriageway then something
+  // upstream is wrong about this cut, and a missing apron is better than one lying in a road.
+  const ox = Math.sin(bearing);
+  const oz = -Math.cos(bearing);
+  for (const along of [0.35, 1.0]) {
+    for (const sign of [-1, 1]) {
+      const x = kx + ox * depth * along + -oz * sign * (width / 2 + APRON_FLARE_M);
+      const z = -ky + oz * depth * along + ox * sign * (width / 2 + APRON_FLARE_M);
+      if (insideCarriageway(x, z)) return null;
+    }
+  }
+
+  // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own width
+  // where it meets the property line.
   const shape = new THREE.Shape();
   shape.moveTo(-width / 2 - APRON_FLARE_M, 0);
   shape.lineTo(width / 2 + APRON_FLARE_M, 0);
@@ -1898,21 +1998,12 @@ function apronSlab(opening) {
   const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
     map: tiledMap(SIDEWALK, "apron", Math.max(1, Math.round(width / SLAB_M)),
                   Math.max(1, Math.round(depth / SLAB_M))),
-    // The same concrete as the pavement it is poured into, and flush with it. Brightened and
-    // raised a centimetre, every one of the fourteen thousand read as a separate pale tile
-    // floating over the street rather than as the ramp it is.
+    // The same concrete as the pavement it is poured into, and flush with it.
     color: 0xffffff, roughness: 0.94, metalness: 0.02,
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
   }));
-  // Laid from the kerb back toward the door. The outward bearing points at the street, so the
-  // apron has to run the other way -- and rotating by minus the bearing sent it the way the
-  // normal points instead, laying fourteen thousand slabs of pavement out across the
-  // carriageway until the roads disappeared under them.
-  const bearing = (opening.n || 0) * Math.PI / 180;
-  // On top of the footway, not in it. At half a kerb height the slab sat inside the pavement
-  // slab -- which spans from just above the road to the top of the kerb -- so every apron was
-  // buried and the garages appeared to have no crossing at all.
   mesh.position.set(kx, roadSurfaceTop() - 0.001, -ky);
+  // The shape runs toward +z before rotation, so this turns it onto the outward bearing.
   mesh.rotation.y = Math.PI - bearing;
   return mesh;
 }

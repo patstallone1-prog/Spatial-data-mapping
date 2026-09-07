@@ -1060,23 +1060,73 @@ const APRON_FLARE_M = 0.85;
 //: The top of the footway, which is where anything laid on the pavement has to sit.
 function roadSurfaceTop() { return 0.06 + KERB_FALLBACK; }
 
-function apronSlab(opening) {
-  if (!opening.cp) return null;
-  const [kx, ky] = xy(opening.cp[0], opening.cp[1]);
-  const [ax, ay] = xy(opening.a[0], opening.a[1]);
-  const [bx, by] = xy(opening.b[0], opening.b[1]);
-  const wallX = (ax + bx) / 2;
-  const wallY = (ay + by) / 2;
-  // How far back from the kerb the apron runs. Bounded by the footway rather than by the
-  // distance to the wall's midpoint, which on a long frontage is most of the block.
-  // No further back than the pavement it crosses: an apron is the ramp over the footway, not
-  // a driveway up to the house.
-  const walk = opening.walk || 3.0;
-  const depth = Math.min(walk + 0.6, Math.max(1.2, Math.hypot(wallX - kx, wallY - ky)));
-  const width = Math.max(2.2, opening.w);
+// ---- keeping things where they belong ----
+//
+// A rule the renderer did not have. Pavement belongs on the footway and paint belongs on the
+// carriageway, and nothing was checking: an apron aimed by the wrong bearing laid concrete
+// across an intersection, and it read as sidewalk squares scattered over the road. Every
+// street's centreline and half-width goes into a grid once, and anything meant for the
+// pavement asks before it is placed.
+const CARRIAGEWAY_CELL = 30;
+const carriagewayGrid = new Map();
+for (const way of DATA.ways) {
+  if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+  const half = (way.road_m || 8.0) / 2;
+  for (let i = 1; i < way.points.length; i += 1) {
+    const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+    const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+    const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / CARRIAGEWAY_CELL));
+    for (let k = 0; k <= steps; k += 1) {
+      const x = ax + (bx - ax) * (k / steps);
+      const z = -(ay + (by - ay) * (k / steps));
+      const key = `${Math.floor(x / CARRIAGEWAY_CELL)}:${Math.floor(z / CARRIAGEWAY_CELL)}`;
+      let bucket = carriagewayGrid.get(key);
+      if (!bucket) carriagewayGrid.set(key, bucket = []);
+      bucket.push([x, z, half]);
+    }
+  }
+}
 
-  // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own
-  // width where it meets the property line.
+function insideCarriageway(x, z, slack = 0.4) {
+  const cx = Math.floor(x / CARRIAGEWAY_CELL);
+  const cz = Math.floor(z / CARRIAGEWAY_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [px, pz, half] of bucket) {
+        if (Math.hypot(x - px, z - pz) < half - slack) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function apronSlab(opening) {
+  // The ramp over the footway at a dropped kerb. It starts at the kerb and runs directly away
+  // from the road, because that is what a driveway does -- and because the alternative, aiming
+  // it at whichever wall the garage was matched to, sent it wherever that wall happened to
+  // face. Without a kerb anchor there is no defensible direction and none is drawn.
+  if (!opening.kp || opening.on === undefined) return null;
+  const [kx, ky] = xy(opening.kp[0], opening.kp[1]);
+  const bearing = opening.on * Math.PI / 180;
+  const depth = Math.max(1.2, Math.min(opening.walk || 3.0, 6.0));
+  const width = Math.max(2.2, opening.w || 3.5);
+
+  // The rule, applied. If a corner of this slab would land in a carriageway then something
+  // upstream is wrong about this cut, and a missing apron is better than one lying in a road.
+  const ox = Math.sin(bearing);
+  const oz = -Math.cos(bearing);
+  for (const along of [0.35, 1.0]) {
+    for (const sign of [-1, 1]) {
+      const x = kx + ox * depth * along + -oz * sign * (width / 2 + APRON_FLARE_M);
+      const z = -ky + oz * depth * along + ox * sign * (width / 2 + APRON_FLARE_M);
+      if (insideCarriageway(x, z)) return null;
+    }
+  }
+
+  // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own width
+  // where it meets the property line.
   const shape = new THREE.Shape();
   shape.moveTo(-width / 2 - APRON_FLARE_M, 0);
   shape.lineTo(width / 2 + APRON_FLARE_M, 0);
@@ -1089,21 +1139,12 @@ function apronSlab(opening) {
   const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
     map: tiledMap(SIDEWALK, "apron", Math.max(1, Math.round(width / SLAB_M)),
                   Math.max(1, Math.round(depth / SLAB_M))),
-    // The same concrete as the pavement it is poured into, and flush with it. Brightened and
-    // raised a centimetre, every one of the fourteen thousand read as a separate pale tile
-    // floating over the street rather than as the ramp it is.
+    // The same concrete as the pavement it is poured into, and flush with it.
     color: 0xffffff, roughness: 0.94, metalness: 0.02,
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
   }));
-  // Laid from the kerb back toward the door. The outward bearing points at the street, so the
-  // apron has to run the other way -- and rotating by minus the bearing sent it the way the
-  // normal points instead, laying fourteen thousand slabs of pavement out across the
-  // carriageway until the roads disappeared under them.
-  const bearing = (opening.n || 0) * Math.PI / 180;
-  // On top of the footway, not in it. At half a kerb height the slab sat inside the pavement
-  // slab -- which spans from just above the road to the top of the kerb -- so every apron was
-  // buried and the garages appeared to have no crossing at all.
   mesh.position.set(kx, roadSurfaceTop() - 0.001, -ky);
+  // The shape runs toward +z before rotation, so this turns it onto the outward bearing.
   mesh.rotation.y = Math.PI - bearing;
   return mesh;
 }
