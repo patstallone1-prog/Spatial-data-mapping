@@ -45,12 +45,15 @@ PARTS = ROOT / "build" / "building-colours"
 
 #: Frames fetched per building. Two is enough for a median colour and a disagreement between
 #: them; a third buys very little and costs a third more of the only expensive step.
-FRAMES_PER_BUILDING = 2
+FRAMES_PER_BUILDING = 3
 #: A wall sampled from fewer pixels than this is a smear of whatever is beside it.
 MIN_WALL_PIXELS = 400
-#: How far apart two samples of one building may be, in 0-255 channel terms, before the pair is
-#: reporting two different things -- one of them probably the van in front of it.
-MAX_SAMPLE_SPREAD = 46.0
+#: How far apart samples of one building may be before they are not describing one building at
+#: all. This used to be 46, which threw away two thirds of them -- because the two best views
+#: of a building are often of *different walls*, and a painted shopfront beside a plain flank
+#: differs by far more than that while both are perfectly correct. The spread is kept as a
+#: confidence now and only a genuinely wild disagreement is refused.
+MAX_SAMPLE_SPREAD = 96.0
 
 
 def dominant_colour(patch: np.ndarray, mask: np.ndarray) -> tuple[float, float, float] | None:
@@ -140,12 +143,18 @@ def main() -> int:
         if not best:
             continue
         best.sort(key=lambda item: -item[0])
+        # The best view of each of a few different walls, rather than the two best views
+        # overall. Taking the two best overall usually took two looks at the same prominent
+        # frontage, and where it did not it took one of the front and one of the side and then
+        # called the building inconsistent.
         chosen: list[tuple[int, object]] = []
         seen_frames: set[int] = set()
+        seen_walls: set[int] = set()
         for _score, i, wall in best:
-            if i in seen_frames:
+            if i in seen_frames or wall.wall_index in seen_walls:
                 continue
             seen_frames.add(i)
+            seen_walls.add(wall.wall_index)
             chosen.append((i, wall))
             if len(chosen) >= FRAMES_PER_BUILDING:
                 break
