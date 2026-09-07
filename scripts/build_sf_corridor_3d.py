@@ -7,6 +7,7 @@ import argparse
 import json
 import math
 import sys
+import time
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
@@ -28,11 +29,24 @@ def overpass_query(bbox: BBox) -> str:
     area = f"{bbox.south},{bbox.west},{bbox.north},{bbox.east}"
     return (
         "[out:json][timeout:60];("
-        f'way["highway"~"^(primary|secondary|tertiary|residential|service|living_street|footway|pedestrian)$"]({area});'
+        # Every class of road, not a subset. Leaving out motorway, trunk, unclassified and the
+        # link roads meant the Embarcadero, the bridge approaches and every slip road were
+        # never fetched at all -- so nothing was drawn there and those blocks came out black.
+        f'way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|'
+        f'service|living_street|road|busway|motorway_link|trunk_link|primary_link|'
+        f'secondary_link|tertiary_link|footway|pedestrian|steps)$"]({area});'
         f'way["footway"~"^(sidewalk|crossing)$"]({area});'
         f'way["building"]({area});'
         ");out geom;"
     )
+
+
+def _int_text(value: object) -> int | None:
+    try:
+        found = int(str(value).strip().split(";")[0])
+    except (TypeError, ValueError):
+        return None
+    return found if 1 <= found <= 12 else None
 
 
 def _float_text(value: object) -> float | None:
@@ -75,16 +89,38 @@ def _centroid(points: list[list[float]]) -> list[float]:
     return [round(lon, PRECISION), round(lat, PRECISION)]
 
 
-def fetch_osm(bbox: BBox) -> list[dict[str, Any]]:
-    url = "https://overpass-api.de/api/interpreter?" + urllib.parse.urlencode(
-        {"data": overpass_query(bbox)}
-    )
-    request = urllib.request.Request(
-        url,
-        headers={"User-Agent": "Kerbside/0.1 SF corridor 3D viewer"},
-    )
-    with urllib.request.urlopen(request, timeout=90) as response:
-        data = json.loads(response.read().decode("utf-8"))
+#: Overpass answers a corridor-sized query in about a minute and refuses it outright when it
+#: is busy. A 504 from it is a queue, not a fault, and giving up on the first one meant a build
+#: quietly fell back to whatever was in the cache -- so a change to how ways are classified
+#: appeared to do nothing at all.
+OVERPASS_MIRRORS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.osm.ch/api/interpreter",
+)
+
+
+def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
+    query = overpass_query(bbox)
+    data = None
+    last: Exception | None = None
+    for attempt in range(attempts):
+        for mirror in OVERPASS_MIRRORS:
+            url = mirror + "?" + urllib.parse.urlencode({"data": query})
+            request = urllib.request.Request(
+                url, headers={"User-Agent": "Kerbside/0.1 SF corridor 3D viewer"})
+            try:
+                with urllib.request.urlopen(request, timeout=180) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                break
+            except Exception as exc:  # noqa: BLE001 - any failure means try the next mirror
+                last = exc
+                print(f"  overpass {mirror.split('/')[2]}: {exc}", file=sys.stderr)
+        if data is not None:
+            break
+        time.sleep(5 * (attempt + 1))
+    if data is None:
+        raise RuntimeError(f"every Overpass mirror refused the query: {last}")
     ways = []
     for element in data.get("elements", []):
         geometry = element.get("geometry") or []
@@ -111,20 +147,61 @@ def fetch_osm(bbox: BBox) -> list[dict[str, Any]]:
                 }
             )
             continue
-        kind = (
-            "sidewalk"
-            if tags.get("footway") == "sidewalk"
-            else "crossing"
-            if tags.get("footway") == "crossing"
-            else "street"
-        )
-        ways.append(
-            {
-                "kind": kind,
-                "name": tags.get("name"),
-                "points": points,
-            }
-        )
+        highway = tags.get("highway")
+        if tags.get("footway") == "sidewalk":
+            kind = "sidewalk"
+        elif tags.get("footway") == "crossing":
+            kind = "crossing"
+        elif highway in PATH_HIGHWAYS:
+            # Fetched because they are part of the walkable network, but they are not roads.
+            # Classed as streets they were drawn with a carriageway, a centreline and a footway
+            # down either side, which is a strange thing to do to a flight of steps.
+            kind = "path"
+        else:
+            kind = "street"
+        feature = {
+            "kind": kind,
+            "name": tags.get("name"),
+            "points": points,
+        }
+        if kind == "street":
+            feature["highway"] = tags.get("highway")
+            # How the roadway is divided, as OpenStreetMap has it. This is the current answer
+            # -- SFMTA's own lane counts came off a 2010 travel model -- and it is the only
+            # source that distinguishes the directions.
+            lanes = _int_text(tags.get("lanes"))
+            forward = _int_text(tags.get("lanes:forward"))
+            backward = _int_text(tags.get("lanes:backward"))
+            if lanes:
+                feature["lanes"] = lanes
+            if forward:
+                feature["lanes_fwd"] = forward
+            if backward:
+                feature["lanes_back"] = backward
+            if tags.get("oneway") in ("yes", "-1", "true", "1"):
+                feature["osm_oneway"] = tags["oneway"]
+            width = _float_text(tags.get("width"))
+            if width and 2.0 <= width <= 60.0:
+                feature["osm_width_m"] = round(width, 2)
+        ways.append(feature)
+    return ways
+
+
+#: Ways fetched for the walking network that are not roads.
+PATH_HIGHWAYS = frozenset({"footway", "steps", "pedestrian", "path"})
+
+
+def reclassify(ways: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Re-derive ``kind`` from the tags the cache already holds.
+
+    The cache stores ways after classification, so changing how a way is classified used to
+    need a fresh Overpass fetch -- and Overpass refuses a corridor-sized query often enough
+    that the change would silently do nothing instead. The highway tag is in the cache, so the
+    classification can be redone from it.
+    """
+    for way in ways:
+        if way.get("kind") == "street" and way.get("highway") in PATH_HIGHWAYS:
+            way["kind"] = "path"
     return ways
 
 
@@ -716,6 +793,9 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             # A seed so a building keeps the same door between reloads, and two garages on one
             # building do not both get the same one.
             "s": (index * 31 + int(centre[0] * 1e5)) % 100000,
+            # How wide the footway is here, so the apron stops at the property line.
+            "walk": round(float((attributes.get(feature) or {}).get("record_sidewalk_m")
+                                or (record.get("sidewalk_m") or {}).get("0") or 3.0), 2),
         })
         garages += 1
     counts["garage openings"] = garages
@@ -1000,48 +1080,157 @@ function tiledMap(base, name, repeatU, repeatV) {
   return TILE_CACHE.get(key);
 }
 
-function surfaceMap(surface, length, width) {
-  if (surface === "walk") return tiledMap(SIDEWALK, "walk", length / SLAB_M, width / SLAB_M);
-  if (surface === "road") {
-    // Bucketed coarsely: the grain has no structure, so all this decides is how fine it looks.
-    return tiledMap(ROAD, "road", Math.round(length / 8), Math.round(width / 8));
-  }
-  if (surface === "crossing") {
-    // The bars run the length of the crossing -- the way people walk -- so the pattern is
-    // constant along the way and repeats across its width.
-    return tiledMap(CROSSING, "crossing", 1, width / CROSSING_PERIOD_M);
-  }
-  // One pair of lines for the whole crossing, not one pair per metre.
-  if (surface === "crossing_edges") return tiledMap(CROSSING_EDGES, "crossing_edges", 1, 1);
+//: How many metres of ground one repeat of each surface covers. With the pattern carried in
+//: the vertex UVs rather than in a cloned texture, a footway's slabs stay 1.52 m whatever the
+//: shape of the run.
+function surfaceScale(surface, width) {
+  if (surface === "walk") return [SLAB_M, SLAB_M];
+  if (surface === "road") return [8.0, 8.0];
+  // A crossing's bars are constant along the way and repeat across its width, so the along
+  // axis gets one repeat over the whole thing however long it is.
+  if (surface === "crossing") return [1e6, CROSSING_PERIOD_M];
+  if (surface === "crossing_edges") return [1e6, width];
+  return [4.0, 4.0];
+}
+
+function surfaceBase(surface) {
+  if (surface === "walk") return SIDEWALK;
+  if (surface === "road") return ROAD;
+  if (surface === "crossing") return CROSSING;
+  if (surface === "crossing_edges") return CROSSING_EDGES;
   return null;
 }
 
-function segmentRibbon(a, b, width, color, opacity, y, segmentHeight = 1.4, surface = null) {
-  const [x1, yy1] = xy(a[0], a[1]);
-  const [x2, yy2] = xy(b[0], b[1]);
-  const z1 = -yy1;
-  const z2 = -yy2;
-  const dx = x2 - x1;
-  const dz = z2 - z1;
-  const length = Math.hypot(dx, dz);
-  if (length < 0.8) return null;
-  const map = surfaceMap(surface, length, width);
-  // A crossing is paint on a road, not a slab: its texture carries its own transparency so the
-  // carriageway shows between the bars, and it must not write depth or it hides the road it
-  // is painted on.
+//: A mitre longer than this would spike out of a hairpin, so the join is cut off instead.
+const MAX_MITRE = 2.6;
+
+function mitredEdges(points, width) {
+  // The two edges of a band following a polyline, joined at each vertex rather than butted.
+  //
+  // Every surface in this model used to be a chain of separate boxes, one per segment, each
+  // rotated to its own bearing. On a straight run that is invisible. On a curve the boxes
+  // splay apart like a fan and leave wedges of ground between them, and around a corner they
+  // scatter -- which is what all the loose pavement squares were. A band with mitred joins has
+  // no seams to open because it is one surface.
+  const half = width / 2;
+  const path = [];
+  for (const point of points) {
+    const [x, y] = xy(point[0], point[1]);
+    const last = path[path.length - 1];
+    if (!last || Math.hypot(x - last[0], -y - last[1]) > 0.05) path.push([x, -y]);
+  }
+  if (path.length < 2) return null;
+
+  const left = [];
+  const right = [];
+  const distances = [0];
+  for (let i = 0; i < path.length; i += 1) {
+    const previous = path[Math.max(0, i - 1)];
+    const next = path[Math.min(path.length - 1, i + 1)];
+    // Both directions point *along* the way. Taking the incoming one reversed made the two
+    // cancel on a straight run, so the bisector was a zero vector, normalising it produced
+    // whatever the floating point gave back, and the band exploded into shards.
+    const inDir = i === 0 ? null : norm(path[i], previous);
+    const outDir = i === path.length - 1 ? null : norm(next, path[i]);
+    const a = inDir || outDir;
+    const b = outDir || inDir;
+    // The mitre bisects the turn; dividing by the cosine of half the turn keeps the band's
+    // width constant through it instead of pinching.
+    let mx = a[1] + b[1];
+    let mz = -(a[0] + b[0]);
+    const length = Math.hypot(mx, mz);
+    if (length < 1e-6) {
+      // A hairpin folded back on itself: there is no bisector. Use the outgoing normal.
+      mx = b[1]; mz = -b[0];
+    } else {
+      mx /= length; mz /= length;
+    }
+    const cosine = Math.max(0.38, mx * a[1] + mz * -a[0]);
+    const scale = Math.min(MAX_MITRE, 1 / cosine) * half;
+    left.push([path[i][0] + mx * scale, path[i][1] + mz * scale]);
+    right.push([path[i][0] - mx * scale, path[i][1] - mz * scale]);
+    if (i > 0) {
+      distances.push(distances[i - 1] +
+        Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
+    }
+  }
+  return { path, left, right, distances };
+}
+
+function norm(to, from) {
+  const dx = to[0] - from[0];
+  const dz = to[1] - from[1];
+  const length = Math.hypot(dx, dz) || 1;
+  return [dx / length, dz / length];
+}
+
+function ribbon(points, width, color, opacity, y, thickness = 1.4, surface = null) {
+  const edges = mitredEdges(points, width);
+  if (!edges) return new THREE.Group();
+  const { left, right, distances } = edges;
+  const [scaleU, scaleV] = surfaceScale(surface, width);
+  const top = y + thickness / 2;
+  const bottom = y - thickness / 2;
+
+  const position = [];
+  const uv = [];
+  const index = [];
+  const push = (x, z, height, u, v) => {
+    position.push(x, height, z);
+    uv.push(u, v);
+    return position.length / 3 - 1;
+  };
+
+  // The running surface.
+  const topRow = [];
+  for (let i = 0; i < left.length; i += 1) {
+    const u = distances[i] / scaleU;
+    topRow.push([
+      push(left[i][0], left[i][1], top, u, 0),
+      push(right[i][0], right[i][1], top, u, width / scaleV),
+    ]);
+  }
+  for (let i = 1; i < topRow.length; i += 1) {
+    const [al, ar] = topRow[i - 1];
+    const [bl, br] = topRow[i];
+    index.push(al, bl, ar, ar, bl, br);
+  }
+
+  // The two faces of the band's own thickness, which is what a kerb is.
+  if (thickness > 0.05) {
+    for (const [side, sign] of [[left, 1], [right, -1]]) {
+      const rows = [];
+      for (let i = 0; i < side.length; i += 1) {
+        const u = distances[i] / scaleU;
+        rows.push([
+          push(side[i][0], side[i][1], top, u, 0),
+          push(side[i][0], side[i][1], bottom, u, thickness / scaleV),
+        ]);
+      }
+      for (let i = 1; i < rows.length; i += 1) {
+        const [at, ab] = rows[i - 1];
+        const [bt, bb] = rows[i];
+        if (sign > 0) index.push(at, ab, bt, bt, ab, bb);
+        else index.push(at, bt, ab, ab, bt, bb);
+      }
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+
   const painted = surface === "crossing" || surface === "crossing_edges";
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(length, segmentHeight, width),
-    new THREE.MeshStandardMaterial({
-      color, opacity, roughness: surface === "road" ? 0.86 : 0.94,
-      metalness: 0.02,
-      transparent: opacity < 1 || painted,
-      alphaTest: painted ? 0.35 : 0,
-      map,
-    })
-  );
-  mesh.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
-  mesh.rotation.y = Math.atan2(-dz, dx);
+  const base = surfaceBase(surface);
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    color, opacity, roughness: surface === "road" ? 0.86 : 0.94, metalness: 0.02,
+    transparent: opacity < 1 || painted,
+    alphaTest: painted ? 0.35 : 0,
+    map: base,
+    side: THREE.DoubleSide,
+  }));
   return mesh;
 }
 
@@ -1073,6 +1262,16 @@ function offsetWay(points, metres) {
     ]);
   }
   return out;
+}
+
+function wayLength(points) {
+  let total = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    const [x1, y1] = xy(points[i - 1][0], points[i - 1][1]);
+    const [x2, y2] = xy(points[i][0], points[i][1]);
+    total += Math.hypot(x2 - x1, y2 - y1);
+  }
+  return total;
 }
 
 function trimWay(points, metres) {
@@ -1116,15 +1315,6 @@ function trimWay(points, metres) {
   const tail = walk(spans.length - 1, -1);
   if (!head || !tail || head[0] >= tail[0]) return points;
   return [head[1], ...points.slice(head[0] + 1, tail[0]), tail[1]];
-}
-
-function ribbon(points, width, color, opacity, y, segmentHeight = 1.4, surface = null) {
-  const group = new THREE.Group();
-  for (let i = 1; i < points.length; i += 1) {
-    const segment = segmentRibbon(points[i - 1], points[i], width, color, opacity, y, segmentHeight, surface);
-    if (segment) group.add(segment);
-  }
-  return group;
 }
 
 //: A broken centreline in the United States is a ten-foot stripe with a thirty-foot gap. The
@@ -1688,8 +1878,10 @@ function apronSlab(opening) {
   const wallY = (ay + by) / 2;
   // How far back from the kerb the apron runs. Bounded by the footway rather than by the
   // distance to the wall's midpoint, which on a long frontage is most of the block.
-  const depth = Math.min(6.0, Math.max(1.5, Math.hypot(wallX - kx, wallY - ky)));
-  if (depth > 12.0) return null;
+  // No further back than the pavement it crosses: an apron is the ramp over the footway, not
+  // a driveway up to the house.
+  const walk = opening.walk || 3.0;
+  const depth = Math.min(walk + 0.6, Math.max(1.2, Math.hypot(wallX - kx, wallY - ky)));
   const width = Math.max(2.2, opening.w);
 
   // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own
@@ -1706,10 +1898,11 @@ function apronSlab(opening) {
   const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
     map: tiledMap(SIDEWALK, "apron", Math.max(1, Math.round(width / SLAB_M)),
                   Math.max(1, Math.round(depth / SLAB_M))),
-    color: 0xf0f0f0, roughness: 0.94, metalness: 0.02,
-    // The apron is poured against the footway rather than as part of it, so it sits a
-    // millimetre proud and needs to win the depth test cleanly.
-    polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6,
+    // The same concrete as the pavement it is poured into, and flush with it. Brightened and
+    // raised a centimetre, every one of the fourteen thousand read as a separate pale tile
+    // floating over the street rather than as the ramp it is.
+    color: 0xffffff, roughness: 0.94, metalness: 0.02,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
   }));
   // Laid from the kerb back toward the door. The outward bearing points at the street, so the
   // apron has to run the other way -- and rotating by minus the bearing sent it the way the
@@ -1719,7 +1912,7 @@ function apronSlab(opening) {
   // On top of the footway, not in it. At half a kerb height the slab sat inside the pavement
   // slab -- which spans from just above the road to the top of the kerb -- so every apron was
   // buried and the garages appeared to have no crossing at all.
-  mesh.position.set(kx, roadSurfaceTop() + 0.012, -ky);
+  mesh.position.set(kx, roadSurfaceTop() - 0.001, -ky);
   mesh.rotation.y = Math.PI - bearing;
   return mesh;
 }
@@ -2114,7 +2307,11 @@ for (const way of DATA.ways) {
     }
     continue;
   }
+  const isPath = way.kind === "path";
   const isCrossing = way.kind === "crossing";
+  // A few OpenStreetMap ways tagged as crossings run the length of a block -- a path across a
+  // plaza, a mis-tagged footway. Painted as ladders they laid bars clear across the scene.
+  if (isCrossing && wayLength(way.points) > 40) continue;
   const isSidewalk = way.kind === "sidewalk";
   // White for everything: the value now comes from the texture, and tinting a photograph of
   // concrete amber to say "this is a crossing" was a legend, not a street.
@@ -2127,6 +2324,7 @@ for (const way of DATA.ways) {
   // the bars sparse and the whole marking read as a couple of stripes.
   const widthMeters = isCrossing ? 3.7
     : isSidewalk ? (way.walk_m || way.walk_fallback_m || 3.6)
+    : isPath ? 2.4
     : (way.road_m || 8.0);
   // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
   // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
@@ -2141,18 +2339,18 @@ for (const way of DATA.ways) {
   // level it made every footway taller than the person on it.
   const roadTop = 0.06;
   groups.streets.add(ribbon(way.points, widthMeters, color, opacity,
-    isCrossing ? roadTop + 0.02 : isSidewalk ? roadTop + KERB / 2 : roadTop / 2,
-    isCrossing ? 0.02 : isSidewalk ? KERB : roadTop,
+    isCrossing ? roadTop + 0.02 : (isSidewalk || isPath) ? roadTop + KERB / 2 : roadTop / 2,
+    isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop,
     // Continental unless we positively know otherwise. San Francisco has been converting its
     // marked crossings to ladders for years, and the inventory is demonstrably incomplete --
     // 598 of its points sit near no mapped crossing at all, which is the two datasets
     // disagreeing about where a crossing is rather than evidence that one is plain. The
     // ``continental`` flag still records the 817 the city confirms.
-    isCrossing ? "crossing" : isSidewalk ? "walk" : "road"));
+    isCrossing ? "crossing" : (isSidewalk || isPath) ? "walk" : "road"));
   // The footways, laid from the kerb outward on both sides. Drawn a centimetre below the
   // mapped sidewalk ways so that where OpenStreetMap has one the two do not fight, and so
   // that where it has none there is still pavement rather than a hole.
-  if (!isSidewalk && !isCrossing) {
+  if (!isSidewalk && !isCrossing && !isPath) {
     const walk = way.walk_m || way.walk_fallback_m || 3.0;
     const inner = widthMeters / 2;
     // Both sides unless one of them is inside another street's carriageway, which happens
@@ -2171,7 +2369,26 @@ for (const way of DATA.ways) {
   // Drawing it on every roadway put the marking on 784 segments of this corridor that do not
   // carry it -- and a yellow line specifically tells a driver there is traffic coming the
   // other way.
-  if (!isSidewalk && !isCrossing && !way.oneway) {
+  // Lane dividers, from OpenStreetMap's own count. White and broken between lanes running the
+  // same way; the yellow is reserved for the line that separates opposing traffic.
+  if (!isSidewalk && !isCrossing && !isPath) {
+    const road = way.road_m || 8.0;
+    const oneway = Boolean(way.oneway || way.osm_oneway);
+    const forward = way.lanes_fwd || (oneway ? way.lanes : Math.floor((way.lanes || 0) / 2));
+    const backward = way.lanes_back || (oneway ? 0 : Math.floor((way.lanes || 0) / 2));
+    const total = oneway ? (forward || 0) : (forward || 0) + (backward || 0);
+    if (total >= 2) {
+      const laneWidth = road / total;
+      for (let i = 1; i < total; i += 1) {
+        // The middle of a two-way street is the yellow line, drawn separately.
+        if (!oneway && i === backward) continue;
+        const offset = road / 2 - i * laneWidth;
+        groups.streets.add(dashedLine(offsetWay(way.points, offset), 0xdfe3e0, 0.7,
+                                      roadTop + 0.015));
+      }
+    }
+  }
+  if (!isSidewalk && !isCrossing && !isPath && !way.oneway) {
     // A double solid yellow, which is what San Francisco paints down the middle of a two-way
     // street. A broken line means overtaking is allowed and is the exception here, not the
     // rule -- and drawn as one dashed thread it read as a dotted line on a map rather than as
@@ -2566,7 +2783,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.reuse_osm and args.osm_cache.exists():
-        ways = json.loads(args.osm_cache.read_text(encoding="utf-8"))
+        ways = reclassify(json.loads(args.osm_cache.read_text(encoding="utf-8")))
     else:
         ways = fetch_osm(SF_CORRIDOR.bbox)
         args.osm_cache.parent.mkdir(parents=True, exist_ok=True)
