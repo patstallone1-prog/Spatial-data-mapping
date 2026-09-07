@@ -50,3 +50,9 @@ data/observation_enrichment/*.parquet
 
 # Raw SFMTA ArcGIS responses. Reproducible cache keyed by layer and query.
 build/sfmta/
+
+# Checkpoint parts for the building colour sampler; the merged file beside it is the output.
+build/building-colours/
+
+# Checkpoint parts for the semantic pass; compacted into semantics-000.parquet when it ends.
+data/observation_enrichment/semantics-parts/

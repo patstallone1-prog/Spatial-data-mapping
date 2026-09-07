@@ -387,6 +387,21 @@ OFFICIAL = Path(__file__).resolve().parents[1] / "data" / "sf_public_works"
 #: Generous enough for the offset between where the city drops the point and where OSM draws
 #: the way, tight enough not to reach the next arm of the intersection.
 CROSSWALK_MATCH_M = 14.0
+#: How far behind a dropped kerb the building it serves may stand. A footway and a small
+#: setback; beyond this the cut serves a yard or a lot rather than a garage.
+GARAGE_REACH_M = 22.0
+
+
+def _project_fraction(a, b, point) -> float:
+    """Where along a wall a point falls, 0 at ``a`` and 1 at ``b``."""
+    ax = (b[0] - a[0]) * 88_000.0
+    ay = (b[1] - a[1]) * 111_320.0
+    length_squared = ax * ax + ay * ay
+    if length_squared < 1e-9:
+        return 0.5
+    px = (point[0] - a[0]) * 88_000.0
+    py = (point[1] - a[1]) * 111_320.0
+    return max(0.0, min(1.0, (px * ax + py * ay) / length_squared))
 
 
 def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
@@ -421,6 +436,12 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     # is two transverse lines, and the model has been painting ladders on all of them.
     crosswalks_path = OFFICIAL / "crosswalks.json"
     crosswalks = json.loads(crosswalks_path.read_text()) if crosswalks_path.exists() else []
+    cuts_path = OFFICIAL / "curb_cuts.json"
+    curb_cuts = json.loads(cuts_path.read_text()) if cuts_path.exists() else []
+    # Colours sampled off photographs of each building, keyed by its index among the covered
+    # buildings -- which is how the sampler enumerated them.
+    colours_path = OFFICIAL / "building_colours.json"
+    colours = json.loads(colours_path.read_text()) if colours_path.exists() else {}
     crosswalk_cells: dict[tuple[int, int], list[dict]] = defaultdict(list)
     for crosswalk in crosswalks:
         lon, lat = crosswalk["p"]
@@ -522,6 +543,79 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             crossings[best]["crosswalk_year"] = crosswalk["year"]
     counts["continental crossing"] = len(claimed)
     counts["plain crossing"] = len(crossings) - len(claimed)
+
+    # -- curb cuts, and the garages behind them ----------------------------------------------
+    #
+    # A dropped kerb exists because something drives across the footway there, and the thing it
+    # drives into is the building on the other side. The model has been drawing those buildings
+    # with a solid ground floor and an unbroken kerb in front of them.
+    #
+    # The width is the city's own: a 13 ft cut is one car and a 26 ft cut is a pair of doors,
+    # so the opening is sized rather than assumed.
+    covered_index = 0
+    for way in ways:
+        if way.get("kind") != "building" or not way.get("covered"):
+            continue
+        sampled = colours.get(str(covered_index))
+        covered_index += 1
+        if sampled:
+            way["colour"] = sampled["c"]
+            way["colour_views"] = sampled["n"]
+            counts["colour from a photograph"] += 1
+    counts["colour still invented"] = covered_index - counts["colour from a photograph"]
+
+    walls_index: dict[tuple[int, int], list[tuple]] = defaultdict(list)
+    for index, way in enumerate(ways):
+        if way.get("kind") != "building" or not way.get("covered"):
+            continue
+        points = way["points"]
+        for i in range(len(points) - 1):
+            a, b = points[i], points[i + 1]
+            mid = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+            walls_index[(int(mid[0] * 3000), int(mid[1] * 3000))].append((index, a, b, mid))
+
+    garages = 0
+    unmatched_cuts = 0
+    for cut in curb_cuts:
+        points = cut["p"]
+        centre = points[len(points) // 2]
+        key = (int(centre[0] * 3000), int(centre[1] * 3000))
+        needed = cut.get("m") or 3.5
+        best = roomy = None
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for candidate in walls_index.get((key[0] + dx, key[1] + dy), ()):
+                    _index, a, b, mid = candidate
+                    metres = math.hypot((mid[0] - centre[0]) * 88_000.0,
+                                        (mid[1] - centre[1]) * 111_320.0)
+                    if metres > GARAGE_REACH_M:
+                        continue
+                    if best is None or metres < best[0]:
+                        best = (metres, candidate)
+                    # A frontage wide enough to hold the opening. Taking the nearest wall alone
+                    # put doors on chamfered corners two metres long, which then clamped the
+                    # opening down to something narrower than the kerb the city cut for it.
+                    length = math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
+                    if length >= max(2.5, needed * 0.9) and (roomy is None or metres < roomy[0]):
+                        roomy = (metres, candidate)
+        chosen = roomy or best
+        if chosen is None:
+            unmatched_cuts += 1
+            continue
+        _metres, (index, a, b, mid) = chosen
+        way = ways[index]
+        # Placed at the point of the wall nearest the cut, and no wider than the wall it is in.
+        length = math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
+        width = min(needed, max(2.0, length * 0.9))
+        way.setdefault("garages", []).append({
+            "a": [round(a[0], 7), round(a[1], 7)],
+            "b": [round(b[0], 7), round(b[1], 7)],
+            "t": round(_project_fraction(a, b, centre), 4),
+            "w": round(width, 2),
+        })
+        garages += 1
+    counts["garage openings"] = garages
+    counts["curb cuts with no building"] = unmatched_cuts
 
     return {"available": True, "counts": dict(counts),
             "segments": len(segments),
@@ -1220,6 +1314,65 @@ function crossingEdgeTexture() {
 
 const CROSSING_EDGES = crossingEdgeTexture();
 
+function garageTexture() {
+  // A roller shutter: horizontal ribs, which is what most of San Francisco's ground-floor
+  // garages are, and what makes an opening read as a door rather than as a hole.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#4a4f52";
+  ctx.fillRect(0, 0, size, size);
+  for (let y = 0; y < size; y += 8) {
+    ctx.fillStyle = "rgba(0,0,0,0.34)";
+    ctx.fillRect(0, y, size, 2);
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fillRect(0, y + 2, size, 1);
+  }
+  for (let i = 0; i < size * 8; i += 1) {
+    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.06)";
+    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const GARAGE = garageTexture();
+//: A roller door's clear height. San Francisco's ground-floor garages sit just under three
+//: metres; the city records the width of each cut but not its height.
+const GARAGE_HEIGHT_M = 2.7;
+
+function garagePanel(way, opening) {
+  const [ax, ay] = xy(opening.a[0], opening.a[1]);
+  const [bx, by] = xy(opening.b[0], opening.b[1]);
+  const length = Math.hypot(bx - ax, by - ay);
+  if (!(length > 0.5)) return null;
+  const dx = (bx - ax) / length;
+  const dy = (by - ay) / length;
+  // Where along the wall the dropped kerb points, kept far enough from either end that the
+  // opening does not run off the corner of the building.
+  const half = Math.min(opening.w, length * 0.9) / 2;
+  const t = Math.min(Math.max(opening.t * length, half), length - half);
+  const cx = ax + dx * t;
+  const cy = ay + dy * t;
+
+  const map = GARAGE.clone();
+  map.needsUpdate = true;
+  map.repeat.set(Math.max(1, opening.w / 2.4), 1);
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(Math.min(opening.w, length * 0.9), GARAGE_HEIGHT_M),
+    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.72, metalness: 0.28 })
+  );
+  // Just proud of the facade, so it does not fight the wall behind it for pixels.
+  const nx = -dy;
+  const ny = dx;
+  mesh.position.set(cx + nx * 0.06, GARAGE_HEIGHT_M / 2, -(cy + ny * 0.06));
+  mesh.rotation.y = Math.atan2(nx, ny) + Math.PI / 2;
+  return mesh;
+}
+
 const CROSSING = crossingTexture();
 //: One bar plus one gap, in metres. Continental bars run about 600 mm with a matching space.
 const CROSSING_PERIOD_M = 1.2;
@@ -1353,7 +1506,12 @@ function buildingMesh(feature) {
   const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
   const material = pickMaterial(seed, height);
   const palette = material.colours;
-  let tint = palette[Math.floor(random(seed + 11) * palette.length)];
+  // A colour taken off a photograph of this building, where one was. Otherwise the palette,
+  // which is a statement about San Francisco's building stock and not about this building.
+  let tint = feature.colour !== undefined
+    ? new THREE.Color(feature.colour).getHex()
+    : palette[Math.floor(random(seed + 11) * palette.length)];
+  const sampled = feature.colour !== undefined;
   // Solid, both of them. Transparency was carrying a meaning -- an inferred height was drawn
   // see-through so it could not be mistaken for a measured one -- and it was paying far too much
   // for it. A translucent building shows the buildings behind it through its own roof, puts
@@ -1370,8 +1528,9 @@ function buildingMesh(feature) {
   // The roof takes the wall's colour, darkened. A fixed grey top on a coloured building looked
   // like a lid set on something else, and from above -- which is most of how this map is read --
   // the roof is the building.
+  // Desaturation marks an inferred *height*, which is a separate question from where the
+  // colour came from -- a sampled colour on a guessed height is still a guessed height.
   if (!measured) {
-    // Pulled most of the way to its own grey. Still a coloured building, visibly less certain.
     const colour = new THREE.Color(tint);
     const hsl = {};
     colour.getHSL(hsl);
@@ -1559,6 +1718,12 @@ for (const way of DATA.ways) {
     if (way.covered) {
       const building = buildingMesh(way);
       if (building) groups.mapped3d.add(building);
+      // A dropped kerb outside means a way in. The city records 14,130 of these against
+      // buildings in this corridor, with the width of each.
+      for (const opening of way.garages || []) {
+        const panel = garagePanel(way, opening);
+        if (panel) groups.mapped3d.add(panel);
+      }
     }
     continue;
   }

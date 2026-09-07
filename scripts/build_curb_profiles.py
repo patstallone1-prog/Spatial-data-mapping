@@ -75,10 +75,79 @@ def main() -> int:
     index = CentrelineIndex.from_centrelines(json.loads(CENTRELINES.read_text()), frame)
     progress(f"{len(index.segments)} centrelines")
 
+    # Every network call this script makes happens here, before anything is computed from
+    # any of it. Fetching further down meant a report assembled halfway through referred to a
+    # document that had not been fetched yet -- three times.
     curbs, curb_doc = fetch(LAYERS["curbs"], bbox=CORRIDOR, cache_dir=CACHE,
                             refresh=args.refresh, progress=progress)
     widths, width_doc = fetch(LAYERS["street_widths"], cache_dir=CACHE,
                               refresh=args.refresh, progress=progress)
+
+    # -- curb cuts ---------------------------------------------------------------------------
+    #
+    # Where the kerb is dropped for a driveway or a garage. San Francisco records each as a
+    # curb zone with a policy, a length and a position along the block face, so a 13 ft cut is
+    # one car and a 26 ft cut is a pair of doors -- and the building behind it has an opening
+    # in its ground floor that the model has been drawing as solid wall.
+    cut_rows, cut_doc = fetch(LAYERS["curb_cuts"], bbox=CORRIDOR, cache_dir=CACHE,
+                              refresh=args.refresh, progress=progress)
+    cuts = []
+    for row in cut_rows:
+        geometry = row.get("geometry") or {}
+        coordinates = geometry.get("coordinates") or []
+        if geometry.get("type") != "LineString" or len(coordinates) < 2:
+            continue
+        props = row["properties"]
+        length_ft = props.get("LENGTH_FT")
+        cuts.append({
+            "p": [[round(float(c[0]), 6), round(float(c[1]), 6)] for c in coordinates],
+            "m": round(float(length_ft) * 0.3048, 2) if length_ft else None,
+            "cnn": props.get("STREET_CNN"),
+            "side": props.get("SIDE_OF_STREET"),
+            "street": props.get("STREET_NAME"),
+        })
+    progress(f"{len(cuts)} curb cuts")
+
+    # -- one-way designations, which decide whether a street gets a centreline at all ------
+    #
+    # A one-way street has no centreline. Drawing a broken yellow line down every roadway put a
+    # marking on hundreds of streets that do not have one, and a yellow centreline specifically
+    # means two-way traffic to anyone reading it.
+    oneway_rows, oneway_doc = fetch(LAYERS["oneway"], bbox=CORRIDOR, cache_dir=CACHE,
+                                    refresh=args.refresh, progress=progress)
+    oneway: dict[str, str] = {}
+    for row in oneway_rows:
+        cnn = row["properties"].get("CNN")
+        if cnn:
+            oneway[segment_id(cnn)] = str(row["properties"].get("DIRECTION") or "").strip()
+    progress(f"{len(oneway)} one-way segments")
+
+    # -- continental crosswalks -------------------------------------------------------------
+    #
+    # Not every marked crossing is a ladder of bars. San Francisco keeps an inventory of the
+    # ones that are, with the year each was installed, and the model has been painting
+    # continental bars on all 2,517 crossings in the corridor including the ones that are two
+    # transverse lines and nothing else.
+    crosswalk_rows, crosswalk_doc = fetch(LAYERS["crosswalks"], bbox=CORRIDOR, cache_dir=CACHE,
+                                          refresh=args.refresh, progress=progress)
+    crosswalks = []
+    for row in crosswalk_rows:
+        geometry = row.get("geometry") or {}
+        coordinates = geometry.get("coordinates")
+        props = row["properties"]
+        if not coordinates:
+            lon, lat = props.get("LONGITUDE"), props.get("LATITUDE")
+            coordinates = [lon, lat] if lon and lat else None
+        if not coordinates:
+            continue
+        crosswalks.append({
+            "p": [round(float(coordinates[0]), 6), round(float(coordinates[1]), 6)],
+            "cnn": props.get("CNN"),
+            "year": props.get("YR_INSTALL"),
+            "street": props.get("STREETNAME"),
+            "cross": props.get("CROSS_STRE"),
+        })
+    progress(f"{len(crosswalks)} continental crosswalks")
 
     # -- assign every block-face curb to the street it belongs to --------------------------
     by_segment: dict[str, dict[int, list]] = defaultdict(lambda: {1: [], -1: []})
@@ -189,47 +258,6 @@ def main() -> int:
             "current_model_row_m": round(current, 3) if current else None,
         })
 
-    # -- one-way designations, which decide whether a street gets a centreline at all ------
-    #
-    # A one-way street has no centreline. Drawing a broken yellow line down every roadway put a
-    # marking on hundreds of streets that do not have one, and a yellow centreline specifically
-    # means two-way traffic to anyone reading it.
-    oneway_rows, oneway_doc = fetch(LAYERS["oneway"], bbox=CORRIDOR, cache_dir=CACHE,
-                                    refresh=args.refresh, progress=progress)
-    oneway: dict[str, str] = {}
-    for row in oneway_rows:
-        cnn = row["properties"].get("CNN")
-        if cnn:
-            oneway[segment_id(cnn)] = str(row["properties"].get("DIRECTION") or "").strip()
-    progress(f"{len(oneway)} one-way segments")
-
-    # -- continental crosswalks -------------------------------------------------------------
-    #
-    # Not every marked crossing is a ladder of bars. San Francisco keeps an inventory of the
-    # ones that are, with the year each was installed, and the model has been painting
-    # continental bars on all 2,517 crossings in the corridor including the ones that are two
-    # transverse lines and nothing else.
-    crosswalk_rows, crosswalk_doc = fetch(LAYERS["crosswalks"], bbox=CORRIDOR, cache_dir=CACHE,
-                                          refresh=args.refresh, progress=progress)
-    crosswalks = []
-    for row in crosswalk_rows:
-        geometry = row.get("geometry") or {}
-        coordinates = geometry.get("coordinates")
-        props = row["properties"]
-        if not coordinates:
-            lon, lat = props.get("LONGITUDE"), props.get("LATITUDE")
-            coordinates = [lon, lat] if lon and lat else None
-        if not coordinates:
-            continue
-        crosswalks.append({
-            "p": [round(float(coordinates[0]), 6), round(float(coordinates[1]), 6)],
-            "cnn": props.get("CNN"),
-            "year": props.get("YR_INSTALL"),
-            "street": props.get("STREETNAME"),
-            "cross": props.get("CROSS_STRE"),
-        })
-    progress(f"{len(crosswalks)} continental crosswalks")
-
     def spread(key_a: str, key_b: str) -> dict | None:
         pairs = [(c[key_a], c[key_b]) for c in comparisons
                  if c.get(key_a) is not None and c.get(key_b) is not None]
@@ -243,9 +271,10 @@ def main() -> int:
     report = {
         "scope": "corridor" if args.all else CHUNK["key"],
         "documents": [curb_doc.document_id, width_doc.document_id,
-                      crosswalk_doc.document_id],
+                      crosswalk_doc.document_id, cut_doc.document_id],
         "oneway_segments": len(oneway),
         "continental_crosswalks": len(crosswalks),
+        "curb_cuts": len(cuts),
         "segments_with_both_curb_faces": len(both),
         "segments_with_profile": len(profiles),
         "varies_by_over_1m": sum(
@@ -257,6 +286,7 @@ def main() -> int:
     }
 
     OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "curb_cuts.json").write_text(json.dumps(cuts, separators=(",", ":")))
     (OUT / "crosswalks.json").write_text(json.dumps(crosswalks, separators=(",", ":")))
     if args.all:
         # What the reconstruction needs, per segment, in one small file.

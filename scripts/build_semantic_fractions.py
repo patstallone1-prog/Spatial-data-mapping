@@ -43,6 +43,45 @@ OUT = ROOT / "data" / "observation_enrichment"
 MODEL = "nvidia/segformer-b0-finetuned-cityscapes-1024-1024"
 USER_AGENT = "spatial-mapping-crowdsource/semantics (+non-commercial research)"
 
+PARTS = OUT / "semantics-parts"
+
+
+def already_done() -> set[str]:
+    """Observations a previous run already segmented, from the part files it left behind.
+
+    The parts are the journal. A separate list of finished ids could disagree with the data --
+    written after a crash, or before -- whereas a part file that exists contains exactly the
+    rows it claims.
+    """
+    done: set[str] = set()
+    if not PARTS.exists():
+        return done
+    for part in sorted(PARTS.glob("*.parquet")):
+        try:
+            done.update(pq.read_table(part, columns=["observation_uid"])
+                        .column("observation_uid").to_pylist())
+        except Exception:
+            # A part cut off mid-write has no footer and cannot be read. It is the only one
+            # that can be damaged, and dropping it costs at most one checkpoint of work.
+            part.unlink()
+    return done
+
+
+def compact() -> int:
+    """Merge the parts into one file and remove them."""
+    parts = sorted(PARTS.glob("*.parquet"))
+    if not parts:
+        print("nothing to compact")
+        return 0
+    tables = [pq.read_table(part) for part in parts]
+    merged = pa.concat_tables(tables)
+    pq.write_table(merged, OUT / "semantics-000.parquet", compression="zstd")
+    for part in parts:
+        part.unlink()
+    print(f"compacted {len(parts)} parts into semantics-000.parquet: {merged.num_rows} rows")
+    return 0
+
+
 SCHEMA = pa.schema(
     [("observation_uid", pa.string()), ("provider", pa.string())]
     + [(name, pa.float32()) for name in GROUPS]
@@ -67,10 +106,18 @@ def fetch_bytes(provider: str, sequence: str, image_id: str) -> bytes | None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--sample", type=int, default=4000)
+    ap.add_argument("--sample", type=int, default=4000,
+                    help="frames per provider stratum; 0 means every eligible frame")
     ap.add_argument("--workers", type=int, default=16)
     ap.add_argument("--seed", type=int, default=11)
+    ap.add_argument("--checkpoint", type=int, default=250,
+                    help="rows per part file, so an interrupted run loses at most this many")
+    ap.add_argument("--compact", action="store_true",
+                    help="merge the part files into one and delete them")
     args = ap.parse_args()
+
+    if args.compact:
+        return compact()
 
     def progress(message: str) -> None:
         print(message, flush=True)
@@ -91,13 +138,26 @@ def main() -> int:
             by_provider.setdefault(provider, []).append(i)
     rng = random.Random(args.seed)
     picked: list[int] = []
-    share = args.sample // max(1, len(by_provider))
-    for provider, members in sorted(by_provider.items()):
-        take = min(share, len(members))
-        picked.extend(rng.sample(members, take))
-        progress(f"  {provider}: {take} of {len(members)}")
+    if args.sample:
+        share = args.sample // max(1, len(by_provider))
+        for provider, members in sorted(by_provider.items()):
+            take = min(share, len(members))
+            picked.extend(rng.sample(members, take))
+            progress(f"  {provider}: {take} of {len(members)}")
+    else:
+        for provider, members in sorted(by_provider.items()):
+            picked.extend(members)
+            progress(f"  {provider}: all {len(members)}")
     rng.shuffle(picked)
-    progress(f"{len(picked)} frames sampled")
+
+    done = already_done()
+    if done:
+        before = len(picked)
+        picked = [i for i in picked if rows["observation_uid"][i] not in done]
+        progress(f"resuming: {len(done)} already segmented, {before - len(picked)} skipped")
+    progress(f"{len(picked)} frames to do")
+    if not picked:
+        return compact()
 
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     processor = SegformerImageProcessor.from_pretrained(MODEL)
@@ -122,7 +182,27 @@ def main() -> int:
     for thread in threads:
         thread.start()
 
+    PARTS.mkdir(parents=True, exist_ok=True)
     out: dict[str, list] = {name: [] for name in SCHEMA.names}
+    totals: dict[str, list] = {name: [] for name in SCHEMA.names}
+    part_number = len(list(PARTS.glob("*.parquet")))
+
+    def flush() -> None:
+        """Write what is in hand as its own complete file.
+
+        Complete is the point: a part with a footer can be read back, and a run that dies
+        between checkpoints loses only the rows since the last one rather than all of them.
+        """
+        nonlocal part_number
+        if not out["observation_uid"]:
+            return
+        pq.write_table(pa.table(out, schema=SCHEMA),
+                       PARTS / f"part-{part_number:05d}.parquet", compression="zstd")
+        part_number += 1
+        for name in SCHEMA.names:
+            totals[name].extend(out[name])
+            out[name].clear()
+
     started = time.perf_counter()
     for done in range(1, len(picked) + 1):
         i, blob = work.get()
@@ -151,14 +231,15 @@ def main() -> int:
             out[name].append(shares[name])
         for name in ("facade_value", "road_value", "kerb_value", "occlusion"):
             out[name].append(scores[name])
+        if len(out["observation_uid"]) >= args.checkpoint:
+            flush()
         if done % 250 == 0:
             rate = done / (time.perf_counter() - started)
             progress(f"  {done}/{len(picked)} at {rate:.1f}/s "
-                     f"({counters['failed']} fetch failures)")
+                     f"({counters['failed']} fetch failures, {part_number} parts)")
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    pq.write_table(pa.table(out, schema=SCHEMA), OUT / "semantics-sample.parquet",
-                   compression="zstd")
+    flush()
+    out = totals
 
     elapsed = time.perf_counter() - started
     n = len(out["observation_uid"])
@@ -181,7 +262,8 @@ def main() -> int:
         "no_sidewalk_visible_share": round(
             sum(1 for v in out["sidewalk"] if v < 0.01) / n, 3) if n else None,
     }
-    (OUT / "semantics_sample_summary.json").write_text(json.dumps(summary, indent=1))
+    name = "semantics_sample_summary.json" if args.sample else "semantics_summary.json"
+    (OUT / name).write_text(json.dumps(summary, indent=1))
     print(json.dumps(summary, indent=1))
     return 0
 

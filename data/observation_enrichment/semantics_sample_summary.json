@@ -1,26 +1,26 @@
 {
- "sampled": 3999,
- "segmented": 3884,
- "fetch_failures": 115,
- "elapsed_s": 955.9,
- "frames_per_second": 4.06,
- "projected_hours_for_386624": 26.4,
+ "sampled": 3,
+ "segmented": 0,
+ "fetch_failures": 3,
+ "elapsed_s": 3.1,
+ "frames_per_second": 0.0,
+ "projected_hours_for_386624": null,
  "median_fractions": {
-  "road": 0.21,
-  "sidewalk": 0.004,
-  "facade": 0.454,
-  "vegetation": 0.073,
-  "sky": 0.062,
-  "vehicle_occlusion": 0.075,
-  "person_occlusion": 0.005,
-  "furniture": 0.003
+  "road": null,
+  "sidewalk": null,
+  "facade": null,
+  "vegetation": null,
+  "sky": null,
+  "vehicle_occlusion": null,
+  "person_occlusion": null,
+  "furniture": null
  },
  "median_values": {
-  "facade_value": 0.648,
-  "road_value": 0.397,
-  "kerb_value": 0.022,
-  "occlusion": 0.095
+  "facade_value": null,
+  "road_value": null,
+  "kerb_value": null,
+  "occlusion": null
  },
- "heavily_occluded_share": 0.065,
- "no_sidewalk_visible_share": 0.654
+ "heavily_occluded_share": null,
+ "no_sidewalk_visible_share": null
 }

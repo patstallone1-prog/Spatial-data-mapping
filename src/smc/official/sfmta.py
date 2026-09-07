@@ -44,6 +44,9 @@ class Layer:
     #: Tables have no geometry and cannot be filtered spatially; they come back whole.
     spatial: bool = True
     methodology: str = ""
+    #: Server-side filter. Some layers are a whole city of records with one category worth
+    #: having, and fetching the rest to throw it away is rude as well as slow.
+    where: str = "1=1"
 
 
 LAYERS: dict[str, Layer] = {
@@ -72,6 +75,14 @@ LAYERS: dict[str, Layer] = {
         "oneway", "Traffic/traffic/MapServer/5", "MTA.oneway_streets", "oneway",
         DocumentStatus.RECORDED, True,
         "One-way designations with the MTA Board motion that set them.",
+    ),
+    "curb_cuts": Layer(
+        "curb_cuts", "Parking/digitalcurb/MapServer/1", "MTA.curb_zones (Curb Cuts)",
+        "curb_cut", DocumentStatus.EXISTING_SURVEY, True,
+        "Curb zones whose primary policy is Curb Cuts: the stretches of kerb dropped for a "
+        "driveway or a garage entrance, with the length of each and its position along the "
+        "block face.",
+        where="CZ_PRIMARY_CURB_POLICY='Curb Cuts'",
     ),
     "crosswalks": Layer(
         "crosswalks", "Traffic/traffic/MapServer/19", "MTA.continentalcrosswalks",
@@ -118,8 +129,8 @@ def fetch(
     a geometry of ``None``. Results are cached by layer and query, so a rerun costs nothing and
     a build stays reproducible.
     """
-    where = "1=1"
-    key_source = f"{layer.path}|{bbox if layer.spatial else None}"
+    where = layer.where
+    key_source = f"{layer.path}|{where}|{bbox if layer.spatial else None}"
     key = hashlib.blake2b(key_source.encode(), digest_size=8).hexdigest()
     cache_path = cache_dir / f"{layer.key}-{key}.json"
     base = f"{ROOT}/{layer.path}/query"

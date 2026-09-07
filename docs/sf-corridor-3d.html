@@ -689,6 +689,65 @@ function crossingEdgeTexture() {
 
 const CROSSING_EDGES = crossingEdgeTexture();
 
+function garageTexture() {
+  // A roller shutter: horizontal ribs, which is what most of San Francisco's ground-floor
+  // garages are, and what makes an opening read as a door rather than as a hole.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#4a4f52";
+  ctx.fillRect(0, 0, size, size);
+  for (let y = 0; y < size; y += 8) {
+    ctx.fillStyle = "rgba(0,0,0,0.34)";
+    ctx.fillRect(0, y, size, 2);
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fillRect(0, y + 2, size, 1);
+  }
+  for (let i = 0; i < size * 8; i += 1) {
+    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.06)";
+    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const GARAGE = garageTexture();
+//: A roller door's clear height. San Francisco's ground-floor garages sit just under three
+//: metres; the city records the width of each cut but not its height.
+const GARAGE_HEIGHT_M = 2.7;
+
+function garagePanel(way, opening) {
+  const [ax, ay] = xy(opening.a[0], opening.a[1]);
+  const [bx, by] = xy(opening.b[0], opening.b[1]);
+  const length = Math.hypot(bx - ax, by - ay);
+  if (!(length > 0.5)) return null;
+  const dx = (bx - ax) / length;
+  const dy = (by - ay) / length;
+  // Where along the wall the dropped kerb points, kept far enough from either end that the
+  // opening does not run off the corner of the building.
+  const half = Math.min(opening.w, length * 0.9) / 2;
+  const t = Math.min(Math.max(opening.t * length, half), length - half);
+  const cx = ax + dx * t;
+  const cy = ay + dy * t;
+
+  const map = GARAGE.clone();
+  map.needsUpdate = true;
+  map.repeat.set(Math.max(1, opening.w / 2.4), 1);
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(Math.min(opening.w, length * 0.9), GARAGE_HEIGHT_M),
+    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.72, metalness: 0.28 })
+  );
+  // Just proud of the facade, so it does not fight the wall behind it for pixels.
+  const nx = -dy;
+  const ny = dx;
+  mesh.position.set(cx + nx * 0.06, GARAGE_HEIGHT_M / 2, -(cy + ny * 0.06));
+  mesh.rotation.y = Math.atan2(nx, ny) + Math.PI / 2;
+  return mesh;
+}
+
 const CROSSING = crossingTexture();
 //: One bar plus one gap, in metres. Continental bars run about 600 mm with a matching space.
 const CROSSING_PERIOD_M = 1.2;
@@ -822,7 +881,12 @@ function buildingMesh(feature) {
   const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
   const material = pickMaterial(seed, height);
   const palette = material.colours;
-  let tint = palette[Math.floor(random(seed + 11) * palette.length)];
+  // A colour taken off a photograph of this building, where one was. Otherwise the palette,
+  // which is a statement about San Francisco's building stock and not about this building.
+  let tint = feature.colour !== undefined
+    ? new THREE.Color(feature.colour).getHex()
+    : palette[Math.floor(random(seed + 11) * palette.length)];
+  const sampled = feature.colour !== undefined;
   // Solid, both of them. Transparency was carrying a meaning -- an inferred height was drawn
   // see-through so it could not be mistaken for a measured one -- and it was paying far too much
   // for it. A translucent building shows the buildings behind it through its own roof, puts
@@ -839,8 +903,9 @@ function buildingMesh(feature) {
   // The roof takes the wall's colour, darkened. A fixed grey top on a coloured building looked
   // like a lid set on something else, and from above -- which is most of how this map is read --
   // the roof is the building.
+  // Desaturation marks an inferred *height*, which is a separate question from where the
+  // colour came from -- a sampled colour on a guessed height is still a guessed height.
   if (!measured) {
-    // Pulled most of the way to its own grey. Still a coloured building, visibly less certain.
     const colour = new THREE.Color(tint);
     const hsl = {};
     colour.getHSL(hsl);
@@ -1028,6 +1093,12 @@ for (const way of DATA.ways) {
     if (way.covered) {
       const building = buildingMesh(way);
       if (building) groups.mapped3d.add(building);
+      // A dropped kerb outside means a way in. The city records 14,130 of these against
+      // buildings in this corridor, with the width of each.
+      for (const opening of way.garages || []) {
+        const panel = garagePanel(way, opening);
+        if (panel) groups.mapped3d.add(panel);
+      }
     }
     continue;
   }
