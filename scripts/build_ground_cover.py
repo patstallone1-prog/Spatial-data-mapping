@@ -30,6 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from smc.ground.courts import layout_courts, oriented_rect, resolve_sport  # noqa: E402
 from smc.ground.cover import Lattice  # noqa: E402
 from smc.ground.exclusion import RoadMask  # noqa: E402
 from smc.official.crs import geojson_rings  # noqa: E402
@@ -66,6 +67,76 @@ def fetch(dataset: str, where: str, columns: str, cache_name: str,
             break
     path.write_text(json.dumps(rows, separators=(",", ":")))
     return rows
+
+
+#: San Francisco's Recreation and Parks dataset is the definitive record of the parks San
+#: Francisco owns, and only those. Fort Mason is the Golden Gate National Recreation Area, which
+#: is federal, so it is not in the city's file and rendered as a hole -- the largest green space
+#: in the corridor, missing because of who owns it. OpenStreetMap does not care who owns it.
+OSM_GREEN = (
+    'way["leisure"~"^(park|garden|recreation_ground|dog_park|golf_course|common)$"]',
+    'relation["leisure"~"^(park|garden|recreation_ground|common)$"]',
+    'way["landuse"~"^(grass|village_green|recreation_ground|forest|cemetery|meadow)$"]',
+    'way["natural"~"^(wood|scrub|grassland|heath)$"]',
+)
+#: The courts and the fields. Every one of these is a real court somebody plays on; the count and
+#: the bearing come out of the polygon rather than out of a guess.
+OSM_PITCHES = (
+    'way["leisure"="pitch"]',
+    'way["leisure"="track"]["sport"]',
+)
+
+OVERPASS_MIRRORS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.osm.ch/api/interpreter",
+)
+
+
+def fetch_overpass(selectors: tuple[str, ...], cache_name: str, progress) -> list[dict]:
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path = CACHE / f"{cache_name}.json"
+    if path.exists():
+        rows = json.loads(path.read_text())
+        progress(f"{cache_name}: {len(rows)} elements from cache")
+        return rows
+    area = (f"{CORRIDOR['south']},{CORRIDOR['west']},"
+            f"{CORRIDOR['north']},{CORRIDOR['east']}")
+    body = "".join(f"{selector}({area});" for selector in selectors)
+    query = f"[out:json][timeout:120];({body});out geom;"
+    last: Exception | None = None
+    for mirror in OVERPASS_MIRRORS:
+        url = mirror + "?" + urllib.parse.urlencode({"data": query})
+        request = urllib.request.Request(
+            url, headers={"User-Agent": "Kerbside/0.1 ground cover"})
+        try:
+            with urllib.request.urlopen(request, timeout=240) as response:
+                elements = json.loads(response.read().decode("utf-8")).get("elements", [])
+            path.write_text(json.dumps(elements, separators=(",", ":")))
+            progress(f"{cache_name}: {len(elements)} elements")
+            return elements
+        except Exception as exc:  # noqa: BLE001 - any failure means try the next mirror
+            last = exc
+            print(f"  overpass {mirror.split('/')[2]}: {exc}", file=sys.stderr)
+    progress(f"{cache_name}: every Overpass mirror refused ({last}); continuing without it")
+    return []
+
+
+def osm_rings(element: dict) -> list[list]:
+    """Closed rings from an Overpass element, ways and multipolygon relations alike."""
+    geometry = element.get("geometry")
+    if geometry:
+        ring = [[p["lon"], p["lat"]] for p in geometry if "lon" in p and "lat" in p]
+        return [ring] if len(ring) >= 4 else []
+    rings = []
+    for member in element.get("members") or []:
+        if member.get("role") not in ("outer", "", None):
+            continue
+        geom = member.get("geometry") or []
+        ring = [[p["lon"], p["lat"]] for p in geom if "lon" in p and "lat" in p]
+        if len(ring) >= 4:
+            rings.append(ring)
+    return rings
 
 
 def simplify(ring: list, tolerance_m: float = SIMPLIFY_M) -> list:
@@ -110,6 +181,20 @@ def main() -> int:
     payload = json.loads(args.page.read_text())
     bbox = payload["bbox"]
 
+    # The same flat local frame the viewer lays the world out in, so a bearing measured here is
+    # the bearing drawn there. Over three kilometres of San Francisco the error in treating
+    # latitude as flat is centimetres, and a court is squared to its own polygon either way.
+    mid_lat = (bbox["south"] + bbox["north"]) / 2
+    mid_lon = (bbox["west"] + bbox["east"]) / 2
+    m_per_lat = 111_320.0
+    m_per_lon = m_per_lat * math.cos(math.radians(mid_lat))
+
+    def to_metres(lon: float, lat: float) -> tuple[float, float]:
+        return (lon - mid_lon) * m_per_lon, (lat - mid_lat) * m_per_lat
+
+    def to_lonlat(x: float, y: float) -> tuple[float, float]:
+        return mid_lon + x / m_per_lon, mid_lat + y / m_per_lat
+
     # -- what is already described ------------------------------------------------------------
     lattice = Lattice(bbox)
     for way in payload["ways"]:
@@ -144,9 +229,61 @@ def main() -> int:
             if len(ring) >= 4:
                 parks.append({"n": row.get("map_park_n"),
                               "p": [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]})
-    progress(f"{len(parks)} park rings")
+    progress(f"{len(parks)} park rings from Recreation and Parks")
     for park in parks:
         lattice.stamp_polygon(park["p"])
+
+    # -- the parks the city does not own -------------------------------------------------------
+    #
+    # Anything still bare after the city's own parks are drawn. Fort Mason is the case that
+    # forced this: it is the biggest green space in the corridor and it was a black rectangle,
+    # because it belongs to the National Park Service and so appears in no San Francisco dataset.
+    # The bare-ground test is what keeps this from double-drawing the parks already placed.
+    osm_green = 0
+    for element in fetch_overpass(OSM_GREEN, "osm_green", progress):
+        name = (element.get("tags") or {}).get("name")
+        for ring in osm_rings(element):
+            if count_bare(lattice, ring) < MIN_YARD_CELLS * 4:
+                continue
+            if road.share_inside(ring) > 0.35:
+                continue
+            simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
+            parks.append({"n": name, "p": simplified})
+            lattice.stamp_polygon(simplified)
+            osm_green += 1
+    progress(f"{osm_green} further green rings from OpenStreetMap "
+             f"({len(parks)} parks in total)")
+
+    # -- courts and fields ---------------------------------------------------------------------
+    courts, pitches = [], []
+    by_sport: dict[str, int] = {}
+    for element in fetch_overpass(OSM_PITCHES, "osm_pitches", progress):
+        tags = element.get("tags") or {}
+        sport = resolve_sport(tags.get("sport"))
+        if sport is None:
+            continue
+        for ring in osm_rings(element):
+            metric = [to_metres(lon, lat) for lon, lat in ring]
+            rect = oriented_rect(metric)
+            if rect is None:
+                continue
+            placed = layout_courts(sport, rect)
+            if not placed:
+                continue
+            for kind, court in placed:
+                lon, lat = to_lonlat(court.cx, court.cy)
+                courts.append({"s": kind, "c": [round(lon, 6), round(lat, 6)],
+                               # Bearing of the court's long axis, measured in the same local
+                               # metric frame the renderer lays the world out in.
+                               "a": round(court.angle, 5),
+                               "l": round(court.length, 2), "w": round(court.width, 2)})
+            pitches.append({"s": placed[0][0], "n": tags.get("name"),
+                            "p": [[round(x, 6), round(y, 6)] for x, y in ring]})
+            lattice.stamp_polygon(ring)
+            for kind, _ in placed:
+                by_sport[kind] = by_sport.get(kind, 0) + 1
+    progress(f"{len(courts)} courts across {len(pitches)} pitches: "
+             + ", ".join(f"{n} {s}" for s, n in sorted(by_sport.items())))
 
     # -- yards ---------------------------------------------------------------------------------
     #
@@ -214,7 +351,8 @@ def main() -> int:
     progress(f"{len(trees)} street trees ({moved_trees} nudged clear of the roadway, "
              f"{dropped_trees} dropped)")
 
-    OUT.write_text(json.dumps({"parks": parks, "yards": yards, "trees": trees},
+    OUT.write_text(json.dumps({"parks": parks, "yards": yards, "trees": trees,
+                               "courts": courts, "pitches": pitches},
                               separators=(",", ":")))
     progress(f"wrote {OUT.name}: described after ground cover {lattice.grid.mean():.1%}")
     return 0

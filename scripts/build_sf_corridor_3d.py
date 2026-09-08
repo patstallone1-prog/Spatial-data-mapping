@@ -3313,22 +3313,34 @@ for (const way of DATA.ways) {
 //
 // Everything here is merged or instanced. Thirty-three thousand separate meshes is thirty-three
 // thousand draw calls and no frame rate; merged, it is four.
+// The stack between the base plane (0) and the top of the carriageway (0.06). Everything on the
+// ground goes in here, in the order a survey would find it: earth, then the surface laid on it,
+// then the paint on that surface.
+const PARK_Y = 0.020;
+const YARD_Y = 0.016;
+const COURT_Y = 0.028;
+const COURT_LINE_Y = 0.040;
+
 function grassTexture() {
   const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#52713f";
+  ctx.fillStyle = "#3b5230";
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < size * size * 0.7; i += 1) {
     const shade = random(i * 7);
-    ctx.fillStyle = shade < 0.4 ? "rgba(44,62,34,0.45)"
-      : shade < 0.78 ? "rgba(118,150,86,0.45)" : "rgba(160,182,112,0.32)";
+    ctx.fillStyle = shade < 0.4 ? "rgba(31,44,24,0.45)"
+      : shade < 0.78 ? "rgba(86,110,62,0.45)" : "rgba(114,131,80,0.32)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, random(i * 11) < 0.5 ? 2 : 1);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(24, 24);
+  // The ground meshes carry their own UVs at one tile per eight metres. Repeating twenty-four
+  // times on top of that is a tile every thirty centimetres, which minifies to a flat wash --
+  // which is why a park read as a sheet of pale green rather than as grass.
+  texture.repeat.set(2, 2);
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -3339,7 +3351,7 @@ function yardTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#5c5a55";
+  ctx.fillStyle = "#45433f";
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < size * size * 0.6; i += 1) {
     const shade = random(i * 13);
@@ -3351,7 +3363,8 @@ function yardTexture() {
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(20, 20);
+  texture.repeat.set(2, 2);
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -3382,7 +3395,16 @@ function ringGeometry(rings, y) {
       uvs.push(pos.getX(i) / 8, pos.getY(i) / 8);
     }
     const index = geom.getIndex();
-    if (index) for (let i = 0; i < index.count; i += 1) indices.push(base + index.getX(i));
+    if (index) {
+      for (let i = 0; i < index.count; i += 1) indices.push(base + index.getX(i));
+    } else {
+      // A non-indexed geometry lists its triangles as consecutive vertices. Only handling the
+      // indexed case meant every ring contributed vertices and no faces, the merged geometry
+      // came out with an empty index, and the whole thing returned null -- so the parks and
+      // the gardens were built, found to be empty, and silently dropped. Which is why Moscone
+      // and every yard were still black holes after the ground cover said it had filled them.
+      for (let i = 0; i < pos.count; i += 1) indices.push(base + i);
+    }
     geom.dispose();
   }
   if (!indices.length) return null;
@@ -3423,6 +3445,493 @@ function treeVariant(kind) {
   return group;
 }
 
+// ---- courts and fields ----
+//
+// A tennis court is not a green rectangle. It is 23.77 by 10.97 metres of doubles court with the
+// singles lines 1.37 inside that, service lines 6.40 from the net, a centre service line, a net
+// that sags from 1.07 at the posts to 0.914 in the middle, and, in a city, a chainlink fence
+// round the lot. Every one of those numbers is published by the sport, and every one of them is
+// the same scale as the kerb heights and lane widths the rest of this model is drawn to, so the
+// courts are drawn from the rulebook rather than from a sketch of one.
+//
+// What comes from the map is where they are, which way they face and how many there are: the
+// pitch polygon gives a bearing and two dimensions, and the count is that rectangle divided by
+// the size of a court. Moscone has the courts Moscone has.
+//
+// The colours are stated darker than the paint is. This scene carries a hemisphere light at
+// 1.15 and a sun at 2.0 over ACES tone mapping, which is about two and a half stops of gain on
+// a flat diffuse surface: a true court green of 0x41805f came out of it as pale cyan, closer to
+// concrete than to acrylic. These are the colours that land right after the light, not before.
+const COURT_STYLE = {
+  tennis:     { surround: 0x1d3a2c, play: 0x28503b, line: 0.05, net: 1.07, netMid: 0.914,
+                fence: 3.66 },
+  pickleball: { surround: 0x1d3a2c, play: 0x1a4362, line: 0.05, net: 0.914, netMid: 0.86,
+                fence: 3.05 },
+  basketball: { surround: 0x25282c, play: 0x213e4c, line: 0.05, fence: 3.05 },
+  basketball_half: { surround: 0x25282c, play: 0x213e4c, line: 0.05, fence: 3.05 },
+  basketball_hoop: { surround: 0x25282c, play: 0x282c31, line: 0.05, fence: 3.05, bleed: 0.0 },
+  volleyball: { surround: 0x25282c, play: 0x61492b, line: 0.05, net: 2.43, netMid: 2.43,
+                fence: 3.05 },
+  soccer:     { surround: null,     play: null,     line: 0.12 },
+};
+
+function courtSurface(color) {
+  // Acrylic over asphalt: an even, slightly speckled colour. The speckle is what stops a flat
+  // fill reading as a decal rather than as a surface somebody laid.
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#" + color.toString(16).padStart(6, "0");
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size * 0.35; i += 1) {
+    ctx.fillStyle = random(i * 3) < 0.5 ? "rgba(0,0,0,0.16)" : "rgba(255,255,255,0.10)";
+    ctx.fillRect(random(i * 5) * size, random(i * 7) * size, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(6, 6);
+  return texture;
+}
+
+function chainlinkTexture() {
+  // Diamond mesh on a transparent ground, one 0.6 m tile. Drawn as lines rather than as a
+  // greyed-out plane so that it thins out at a distance the way real fencing does.
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  ctx.strokeStyle = "rgba(196,204,208,1)";
+  ctx.lineWidth = 1.4;
+  for (let i = -size; i < size * 2; i += 11) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + size, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i + size, 0); ctx.lineTo(i, size); ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+function netTexture() {
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  ctx.strokeStyle = "rgba(28,30,32,0.92)";
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i <= size; i += 6) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+  }
+  // The white band along the top of a tennis net, which is the part you actually see.
+  ctx.fillStyle = "rgba(240,242,238,0.96)";
+  ctx.fillRect(0, 0, size, 7);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+// A painter that works in one court's own coordinates: du along the length from the centre, dv
+// across the width. Everything below is written in the units the rulebook uses.
+function courtPainter(court, sink) {
+  const [cx, cy] = xy(court.c[0], court.c[1]);
+  const cz = -cy;
+  const ca = Math.cos(court.a), sa = Math.sin(court.a);
+  // The bearing was measured in the (east, north) frame the ground cover works in; here north
+  // is -z, so the along-length axis picks up the sign flip and the across axis follows from it.
+  const ux = ca, uz = -sa;
+  const vx = -sa, vz = -ca;
+  return {
+    at(du, dv) { return [cx + ux * du + vx * dv, cz + uz * du + vz * dv]; },
+    // A painted rectangle: `along` metres down the court, `across` metres over it.
+    patch(du, dv, along, across, y) {
+      const hl = along / 2, hw = across / 2;
+      const corners = [[-hl, -hw], [hl, -hw], [hl, hw], [-hl, hw]]
+        .map(([a, b]) => this.at(du + a, dv + b));
+      const base = sink.positions.length / 3;
+      for (const [x, z] of corners) { sink.positions.push(x, y, z); sink.uvs.push(x / 4, z / 4); }
+      sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    },
+    line(du, dv, along, across, width, y) {
+      // A marking is a rectangle of paint. Along-court lines are `width` wide across, and
+      // across-court lines are `width` wide along, which is how they meet square at the corners.
+      if (along > across) this.patch(du, dv, along, width, y);
+      else this.patch(du, dv, width, across, y);
+    },
+    arc(du, dv, radius, from, to, width, y, steps = 40) {
+      // Circles are the one thing on a court that is not a rectangle, so they are drawn as a
+      // ring of short rectangles -- enough of them that a nine metre centre circle reads round.
+      const span = to - from;
+      for (let i = 0; i < steps; i += 1) {
+        const t0 = from + (span * i) / steps;
+        const t1 = from + (span * (i + 1)) / steps;
+        const a0 = [du + Math.cos(t0) * radius, dv + Math.sin(t0) * radius];
+        const a1 = [du + Math.cos(t1) * radius, dv + Math.sin(t1) * radius];
+        const mid = [(a0[0] + a1[0]) / 2, (a0[1] + a1[1]) / 2];
+        const len = Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) * 1.25;
+        const theta = Math.atan2(a1[1] - a0[1], a1[0] - a0[0]);
+        const c = Math.cos(theta), s = Math.sin(theta);
+        const corners = [[-len / 2, -width / 2], [len / 2, -width / 2],
+                         [len / 2, width / 2], [-len / 2, width / 2]]
+          .map(([a, b]) => this.at(mid[0] + a * c - b * s, mid[1] + a * s + b * c));
+        const base = sink.positions.length / 3;
+        for (const [x, z] of corners) { sink.positions.push(x, y, z); sink.uvs.push(x / 4, z / 4); }
+        sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      }
+    },
+  };
+}
+
+function markCourt(court, paint) {
+  const style = COURT_STYLE[court.s];
+  const w = style.line;
+  const y = COURT_LINE_Y;
+  const L = court.l, W = court.w;
+  if (court.s === "tennis") {
+    // ITF: doubles 23.77 x 10.97, singles sidelines 1.37 in, service lines 6.40 from the net.
+    paint.line(0, -W / 2, L, w, w, y);
+    paint.line(0, W / 2, L, w, w, y);
+    paint.line(0, -W / 2 + 1.37, L, w, w, y);
+    paint.line(0, W / 2 - 1.37, L, w, w, y);
+    paint.line(-L / 2, 0, w, W, w, y);
+    paint.line(L / 2, 0, w, W, w, y);
+    paint.line(-6.40, 0, w, W - 2.74, w, y);
+    paint.line(6.40, 0, w, W - 2.74, w, y);
+    paint.line(0, 0, 12.80, w, w, y);              // centre service line
+    paint.line(-L / 2 + 0.05, 0, 0.10, w, w, y);   // centre marks on the baselines
+    paint.line(L / 2 - 0.05, 0, 0.10, w, w, y);
+  } else if (court.s === "pickleball") {
+    // USA Pickleball: 44 x 20 feet, non-volley zone 7 feet either side of the net.
+    paint.line(0, -W / 2, L, w, w, y);
+    paint.line(0, W / 2, L, w, w, y);
+    paint.line(-L / 2, 0, w, W, w, y);
+    paint.line(L / 2, 0, w, W, w, y);
+    paint.line(-2.13, 0, w, W, w, y);              // kitchen lines
+    paint.line(2.13, 0, w, W, w, y);
+    paint.line(-(2.13 + (L / 2 - 2.13) / 2), 0, L / 2 - 2.13, w, w, y);
+    paint.line(2.13 + (L / 2 - 2.13) / 2, 0, L / 2 - 2.13, w, w, y);
+  } else if (court.s === "basketball") {
+    // The key is 5.79 by 4.88, the restricted circle 1.80, the arc 6.75 from the basket with
+    // 0.90 straight in the corners -- the FIBA figures, which is what a public court is built to.
+    paint.line(0, -W / 2, L, w, w, y);
+    paint.line(0, W / 2, L, w, w, y);
+    paint.line(-L / 2, 0, w, W, w, y);
+    paint.line(L / 2, 0, w, W, w, y);
+    paint.line(0, 0, w, W, w, y);                  // halfway line
+    paint.arc(0, 0, 1.80, 0, Math.PI * 2, w, y);
+    for (const end of [-1, 1]) {
+      const baseline = end * L / 2;
+      const key = baseline - end * 5.79 / 2;
+      paint.line(key, -4.88 / 2, 5.79, w, w, y);
+      paint.line(key, 4.88 / 2, 5.79, w, w, y);
+      paint.line(baseline - end * 5.79, 0, w, 4.88, w, y);
+      paint.arc(baseline - end * 5.79, 0, 1.80, 0, Math.PI * 2, w, y, 28);
+      // The three point line: 0.90 from each sideline until the arc meets it.
+      const hoop = baseline - end * 1.575;
+      const straight = W / 2 - 0.90;
+      const reach = Math.sqrt(Math.max(0, 6.75 * 6.75 - straight * straight));
+      for (const side of [-1, 1]) {
+        const from = baseline;
+        const to = hoop - end * reach;
+        paint.line((from + to) / 2, side * straight, Math.abs(to - from), w, w, y);
+      }
+      const half = Math.acos(Math.min(1, straight / 6.75));
+      paint.arc(hoop, 0, 6.75, end > 0 ? Math.PI - half : -half,
+                end > 0 ? Math.PI + half : half, w, y, 34);
+    }
+  } else if (court.s === "basketball_half") {
+    // One basket, one key, one arc, and a line across the top where the full court would carry
+    // on. The dimensions are the full court's; it is only the second half that is missing.
+    paint.line(0, -W / 2, L, w, w, y);
+    paint.line(0, W / 2, L, w, w, y);
+    paint.line(-L / 2, 0, w, W, w, y);
+    paint.line(L / 2, 0, w, W, w, y);
+    const baseline = -L / 2;
+    paint.line(baseline + 5.79 / 2, -4.88 / 2, 5.79, w, w, y);
+    paint.line(baseline + 5.79 / 2, 4.88 / 2, 5.79, w, w, y);
+    paint.line(baseline + 5.79, 0, w, 4.88, w, y);
+    paint.arc(baseline + 5.79, 0, 1.80, 0, Math.PI * 2, w, y, 28);
+    const hoop = baseline + 1.575;
+    const straight = W / 2 - 0.90;
+    const reach = Math.sqrt(Math.max(0, 6.75 * 6.75 - straight * straight));
+    for (const side of [-1, 1]) {
+      paint.line((baseline + hoop + reach) / 2, side * straight,
+                 Math.abs(hoop + reach - baseline), w, w, y);
+    }
+    const half = Math.acos(Math.min(1, straight / 6.75));
+    paint.arc(hoop, 0, 6.75, -half, half, w, y, 34);
+  } else if (court.s === "volleyball") {
+    paint.line(0, -W / 2, L, w, w, y);
+    paint.line(0, W / 2, L, w, w, y);
+    paint.line(-L / 2, 0, w, W, w, y);
+    paint.line(L / 2, 0, w, W, w, y);
+    paint.line(-3.0, 0, w, W, w, y);               // attack lines
+    paint.line(3.0, 0, w, W, w, y);
+  } else if (court.s === "soccer") {
+    // The laws give ranges rather than one size, so the penalty area and the circle are fixed
+    // (16.5 and 9.15 are not negotiable) and the pitch itself takes the size of the ground.
+    paint.line(0, -W / 2, L, w, w, y);
+    paint.line(0, W / 2, L, w, w, y);
+    paint.line(-L / 2, 0, w, W, w, y);
+    paint.line(L / 2, 0, w, W, w, y);
+    paint.line(0, 0, w, W, w, y);
+    // On a full pitch these are the laws' own figures. On a small-sided one they are scaled to
+    // the ground, because a 9.15 metre centre circle on a twelve metre pitch would cross both
+    // touchlines -- and most of the soccer in this corridor is played small-sided.
+    const circle = Math.min(9.15, W * 0.16 + 1.0);
+    paint.arc(0, 0, circle, 0, Math.PI * 2, w, y, 48);
+    paint.patch(0, 0, 0.30, 0.30, y);
+    for (const end of [-1, 1]) {
+      const baseline = end * L / 2;
+      const penalty = Math.min(16.5, L / 2 - 2);
+      const penaltyW = Math.min(40.32, W - 2);
+      const goalArea = Math.min(5.5, penalty / 2);
+      const goalW = Math.min(18.32, penaltyW / 2);
+      paint.line(baseline - end * penalty / 2, -penaltyW / 2, penalty, w, w, y);
+      paint.line(baseline - end * penalty / 2, penaltyW / 2, penalty, w, w, y);
+      paint.line(baseline - end * penalty, 0, w, penaltyW, w, y);
+      paint.line(baseline - end * goalArea / 2, -goalW / 2, goalArea, w, w, y);
+      paint.line(baseline - end * goalArea / 2, goalW / 2, goalArea, w, w, y);
+      paint.line(baseline - end * goalArea, 0, w, goalW, w, y);
+      paint.patch(baseline - end * Math.min(11.0, penalty * 0.66), 0, 0.30, 0.30, y);
+    }
+  }
+}
+
+function buildCourts(ground) {
+  const courts = ground.courts || [];
+  const pitches = ground.pitches || [];
+  if (!courts.length && !pitches.length) return;
+
+  // The ground each pitch stands on, one merged mesh per sport: asphalt round the hard courts,
+  // grass under the fields.
+  const bySport = new Map();
+  for (const pitch of pitches) {
+    if (!bySport.has(pitch.s)) bySport.set(pitch.s, []);
+    bySport.get(pitch.s).push(pitch.p);
+  }
+  for (const [sport, rings] of bySport) {
+    const style = COURT_STYLE[sport];
+    if (!style) continue;
+    const geom = ringGeometry(rings, COURT_Y);
+    if (!geom) continue;
+    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+      map: style.surround === null ? grassTexture() : courtSurface(style.surround),
+      color: 0xffffff, roughness: 0.94, metalness: 0.0, side: THREE.DoubleSide,
+    })));
+  }
+
+  // The playing surfaces, then the paint. Two merged meshes for the whole city.
+  const surfaces = new Map();
+  const lines = { positions: [], uvs: [], indices: [] };
+  const netQuads = [];
+  const posts = [];
+  const hoops = [];
+  for (const court of courts) {
+    const style = COURT_STYLE[court.s];
+    if (!style) continue;
+    const paint = courtPainter(court, lines);
+    if (style.play !== null) {
+      if (!surfaces.has(court.s)) surfaces.set(court.s, { positions: [], uvs: [], indices: [] });
+      const surface = courtPainter(court, surfaces.get(court.s));
+      // The coloured surface runs a little past the outside of the lines, as it is laid.
+      const bleed = style.bleed === undefined ? 1.2 : style.bleed;
+      surface.patch(0, 0, court.l + bleed, court.w + bleed, COURT_Y + 0.002);
+    }
+    markCourt(court, paint);
+
+    if (style.net) {
+      const a = paint.at(0, -court.w / 2 - 0.4);
+      const b = paint.at(0, court.w / 2 + 0.4);
+      netQuads.push([a, b, style.net, style.netMid]);
+      posts.push([a, style.net], [b, style.net]);
+    }
+    const ends = court.s === "basketball" ? [-1, 1]
+      : (court.s === "basketball_half" || court.s === "basketball_hoop") ? [-1] : [];
+    for (const end of ends) {
+      hoops.push({ at: paint.at(end * (court.l / 2 - 1.2), 0),
+                   face: paint.at(end * (court.l / 2 - 1.2) + end * 1.0, 0) });
+    }
+  }
+
+  for (const [sport, sink] of surfaces) {
+    if (!sink.indices.length) continue;
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
+    geom.setIndex(sink.indices);
+    geom.computeVertexNormals();
+    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+      map: courtSurface(COURT_STYLE[sport].play), color: 0xffffff,
+      roughness: 0.72, metalness: 0.02, side: THREE.DoubleSide,
+    })));
+  }
+  if (lines.indices.length) {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(lines.positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(lines.uvs, 2));
+    geom.setIndex(lines.indices);
+    geom.computeVertexNormals();
+    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+      color: 0xf1f3ef, roughness: 0.82, metalness: 0.0, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+    })));
+  }
+
+  // Nets. A tennis net is not a flat sheet -- it is 1.07 at the posts and 0.914 in the middle,
+  // and that sag is most of what makes it look like a net rather than a wall.
+  if (netQuads.length) {
+    const positions = [];
+    const uvs = [];
+    const indices = [];
+    for (const [a, b, high, mid] of netQuads) {
+      const span = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const steps = 10;
+      for (let i = 0; i <= steps; i += 1) {
+        const t = i / steps;
+        const x = a[0] + (b[0] - a[0]) * t;
+        const z = a[1] + (b[1] - a[1]) * t;
+        const top = high + (mid - high) * Math.sin(Math.PI * t);
+        positions.push(x, COURT_Y, z, x, COURT_Y + top, z);
+        uvs.push(t * span / 1.2, 0, t * span / 1.2, top / 1.2);
+      }
+      const base = positions.length / 3 - (steps + 1) * 2;
+      for (let i = 0; i < steps; i += 1) {
+        const p = base + i * 2;
+        indices.push(p, p + 1, p + 3, p, p + 3, p + 2);
+      }
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geom.setIndex(indices);
+    geom.computeVertexNormals();
+    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+      map: netTexture(), transparent: true, alphaTest: 0.28, side: THREE.DoubleSide,
+      roughness: 0.9, metalness: 0.0,
+    })));
+  }
+  if (posts.length) {
+    const post = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.05, 0.055, 1, 6),
+      new THREE.MeshStandardMaterial({ color: 0x2b3033, roughness: 0.6, metalness: 0.35 }),
+      posts.length);
+    const dummy = new THREE.Object3D();
+    posts.forEach(([at, height], i) => {
+      dummy.position.set(at[0], COURT_Y + height / 2, at[1]);
+      dummy.scale.set(1, height, 1);
+      dummy.updateMatrix();
+      post.setMatrixAt(i, dummy.matrix);
+    });
+    post.instanceMatrix.needsUpdate = true;
+    groups.ground.add(post);
+  }
+
+  // Backboards and rims. A hoop is 3.05 up and the board is 1.80 by 1.05, which is the one
+  // dimension on a basketball court a bystander could check by eye.
+  if (hoops.length) {
+    const board = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(1.80, 1.05, 0.06),
+      new THREE.MeshStandardMaterial({ color: 0xdfe4e2, roughness: 0.35, metalness: 0.1 }),
+      hoops.length);
+    const rim = new THREE.InstancedMesh(
+      new THREE.TorusGeometry(0.2286, 0.02, 6, 14),
+      new THREE.MeshStandardMaterial({ color: 0xc0562a, roughness: 0.5, metalness: 0.4 }),
+      hoops.length);
+    const pole = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.07, 0.09, 1, 6),
+      new THREE.MeshStandardMaterial({ color: 0x2b3033, roughness: 0.6, metalness: 0.4 }),
+      hoops.length);
+    const dummy = new THREE.Object3D();
+    hoops.forEach((hoop, i) => {
+      const [x, z] = hoop.at;
+      const heading = Math.atan2(hoop.face[0] - x, hoop.face[1] - z);
+      dummy.position.set(x, COURT_Y + 3.05 + 0.30, z);
+      dummy.rotation.set(0, heading, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      board.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(x - Math.sin(heading) * 0.4, COURT_Y + 3.05,
+                         z - Math.cos(heading) * 0.4);
+      dummy.rotation.set(Math.PI / 2, 0, 0);
+      dummy.updateMatrix();
+      rim.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(x + Math.sin(heading) * 0.6, COURT_Y + 1.75,
+                         z + Math.cos(heading) * 0.6);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 3.5, 1);
+      dummy.updateMatrix();
+      pole.setMatrixAt(i, dummy.matrix);
+    });
+    for (const mesh of [board, rim, pole]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      groups.ground.add(mesh);
+    }
+  }
+
+  // The fence. Public courts in San Francisco are fenced, and the fence is most of their
+  // silhouette from the street -- a court without one reads as a painted car park.
+  const fencePositions = [];
+  const fenceUvs = [];
+  const fenceIndices = [];
+  const fencePosts = [];
+  for (const pitch of pitches) {
+    const style = COURT_STYLE[pitch.s];
+    if (!style || !style.fence) continue;
+    const ring = pitch.p;
+    for (let i = 0; i < ring.length - 1; i += 1) {
+      const [ax, ay] = xy(ring[i][0], ring[i][1]);
+      const [bx, by] = xy(ring[i + 1][0], ring[i + 1][1]);
+      const az = -ay, bz = -by;
+      const span = Math.hypot(bx - ax, bz - az);
+      if (span < 0.4) continue;
+      if (insideCarriageway(ax, az, -1.0) || insideCarriageway(bx, bz, -1.0)) continue;
+      const base = fencePositions.length / 3;
+      const h = style.fence;
+      fencePositions.push(ax, COURT_Y, az, ax, COURT_Y + h, az,
+                          bx, COURT_Y, bz, bx, COURT_Y + h, bz);
+      fenceUvs.push(0, 0, 0, h / 0.6, span / 0.6, 0, span / 0.6, h / 0.6);
+      fenceIndices.push(base, base + 2, base + 3, base, base + 3, base + 1);
+      for (let d = 0; d < span; d += 3.0) {
+        const t = d / span;
+        fencePosts.push([ax + (bx - ax) * t, az + (bz - az) * t, h]);
+      }
+    }
+  }
+  if (fenceIndices.length) {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(fencePositions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(fenceUvs, 2));
+    geom.setIndex(fenceIndices);
+    geom.computeVertexNormals();
+    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+      // Wire, not sheeting. The threshold is deliberately above what a minified mipmap of a
+      // diamond mesh averages out to, so the fence thins away with distance instead of
+      // resolving into the solid grey panel it first came out as.
+      map: chainlinkTexture(), alphaTest: 0.55, side: THREE.DoubleSide,
+      roughness: 0.55, metalness: 0.45, color: 0xc6ced2,
+    })));
+  }
+  if (fencePosts.length) {
+    const post = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.035, 0.04, 1, 5),
+      new THREE.MeshStandardMaterial({ color: 0x8d9498, roughness: 0.5, metalness: 0.55 }),
+      fencePosts.length);
+    const dummy = new THREE.Object3D();
+    fencePosts.forEach(([x, z, h], i) => {
+      dummy.position.set(x, COURT_Y + h / 2, z);
+      dummy.scale.set(1, h, 1);
+      dummy.updateMatrix();
+      post.setMatrixAt(i, dummy.matrix);
+    });
+    post.instanceMatrix.needsUpdate = true;
+    groups.ground.add(post);
+  }
+}
+
 (async () => {
   let ground;
   try {
@@ -3431,7 +3940,13 @@ function treeVariant(kind) {
     return;
   }
 
-  const parkGeom = ringGeometry((ground.parks || []).map((p) => p.p), -0.06);
+  // Height matters more than it looks. There is a base plane at y=0 spanning the whole bbox in
+  // near-black (0x0c171b) -- it is what the unmapped ground reads as. Parks and yards were being
+  // laid at y=-0.06 and y=-0.07, underneath it, so every one of them was built, merged, added to
+  // the scene and then covered over by the very plane it was there to replace. That is what
+  // Moscone and Fort Mason were: not missing polygons, buried ones. They belong between the base
+  // plane and the top of the roadway (0.06), so they cover the black without climbing the kerb.
+  const parkGeom = ringGeometry((ground.parks || []).map((p) => p.p), PARK_Y);
   if (parkGeom) {
     groups.ground.add(new THREE.Mesh(parkGeom, new THREE.MeshStandardMaterial({
       map: grassTexture(), color: 0xffffff, roughness: 0.97, metalness: 0.0,
@@ -3439,7 +3954,7 @@ function treeVariant(kind) {
     })));
   }
 
-  const yardGeom = ringGeometry((ground.yards || []).map((y) => y.p), -0.07);
+  const yardGeom = ringGeometry((ground.yards || []).map((y) => y.p), YARD_Y);
   if (yardGeom) {
     groups.ground.add(new THREE.Mesh(yardGeom, new THREE.MeshStandardMaterial({
       map: yardTexture(), color: 0xffffff, roughness: 0.98, metalness: 0.0,
@@ -3500,6 +4015,8 @@ function treeVariant(kind) {
       groups.ground.add(mesh);
     }
   }
+
+  buildCourts(ground);
 })();
 
 const districtColors = [0x1d4d58, 0x355038, 0x4a3e61, 0x5a4930, 0x533749, 0x29475f];
