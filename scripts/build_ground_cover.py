@@ -5,12 +5,16 @@ A third of this corridor has no surface on it at all. Some of that is parks, whi
 Francisco maps; most of it is the ground between a house and its property line, which the city
 also maps, as parcels. Neither needed inventing.
 
-Three things come out of this:
+Five things come out of this:
 
-  parks   the Recreation and Parks polygons, which become grass
-  yards   the parcels that still have bare ground in them once the building is drawn, which
-          become garden with a fence along the boundaries that do not face a street
-  trees   the street tree inventory, with the species and trunk diameter of each
+  parks    the Recreation and Parks polygons plus OpenStreetMap's green space, which become
+           grass -- the second of those is how Fort Mason gets drawn, since it is federal land
+           and so appears in no San Francisco dataset
+  yards    the parcels that still have bare ground in them once the building is drawn
+  fences   the parcel boundaries that are actually fences: not the street frontage, not the
+           ones running along a wall, and one per shared boundary rather than one each
+  courts   the sports pitches, with the number of courts in each measured from the polygon
+  trees    the street tree inventory, with the species and trunk diameter of each
 
 The trees are the part that would otherwise have been invented. Scattering five procedural
 variants at random would have looked like a city; twenty-seven thousand real positions with a
@@ -25,6 +29,7 @@ import math
 import sys
 import urllib.parse
 import urllib.request
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,6 +47,28 @@ CORRIDOR = {"south": 37.786, "west": -122.4475, "north": 37.8095, "east": -122.3
 
 #: A parcel with less bare ground than this is already described by what stands on it.
 MIN_YARD_CELLS = 12         # 48 square metres at the two-metre lattice
+#: A sliver smaller than this gets left to the base ground plane. It is usually a survey
+#: mismatch or a light well too small to read, and drawing it as a distinct thing creates noise.
+MIN_SERVICE_YARD_CELLS = 4  # 16 square metres
+#: Below this building-to-street setback, the space reads as paved frontage/stoop rather than
+#: a lawn. It is intentionally forgiving so real front gardens survive.
+MIN_FRONT_LAWN_DEPTH_M = 2.4
+#: A large parcel remainder gets the fenced-backyard treatment. Smaller street-facing
+#: remainders are front lawns or paved frontages.
+MIN_BACKYARD_CELLS = 28     # 112 square metres
+#: The garden fences San Francisco actually has, weighted the way the city is: mostly
+#: redwood board, a good share of chainlink, some picket and the occasional low stucco wall.
+#: One is chosen per block, so that a block's back fences match each other rather than forming a
+#: patchwork no builder ever put up.
+FENCE_KINDS = (
+    ("board", 1.83), ("board", 1.83), ("board", 1.83), ("board", 1.83),
+    ("board", 1.83), ("board", 1.83), ("board", 1.83), ("board", 1.83),
+    ("board_tall", 2.13), ("board_tall", 2.13), ("board_tall", 2.13),
+    ("picket", 1.07), ("picket", 1.07), ("picket", 1.07),
+    ("chainlink", 1.52), ("chainlink", 1.52), ("chainlink", 1.52), ("chainlink", 1.52),
+    ("wall", 1.22), ("wall", 1.22),
+)
+
 #: Ring simplification, in metres. Parcel boundaries are surveyed to the inch and nothing here
 #: needs that; without it the payload carries forty thousand rings at full precision.
 SIMPLIFY_M = 1.2
@@ -285,6 +312,58 @@ def main() -> int:
     progress(f"{len(courts)} courts across {len(pitches)} pitches: "
              + ", ".join(f"{n} {s}" for s, n in sorted(by_sport.items())))
 
+    street_band = Lattice(bbox, cell_m=1.0)
+    footprints = Lattice(bbox, cell_m=1.0)
+    for way in payload["ways"]:
+        points = way.get("points")
+        if not points:
+            continue
+        kind = way.get("kind")
+        if kind == "street":
+            width = way.get("road_m") or 8.0
+            walk = way.get("walk_m") or way.get("walk_fallback_m") or 3.0
+            street_band.stamp_polyline(points, width + 2 * walk)
+        elif kind in ("sidewalk", "path", "crossing"):
+            street_band.stamp_polyline(points, 3.6)
+        elif kind == "building":
+            footprints.stamp_polygon(points)
+
+    def hit(grid: Lattice, x: float, y: float) -> bool:
+        row, col = grid.to_cell(x, y)
+        if 0 <= row < grid.height and 0 <= col < grid.width:
+            return bool(grid.grid[row, col])
+        return False
+
+    def front_setback_depth(ring: list) -> float | None:
+        """Smallest street-facing parcel edge to building distance, in metres."""
+        metric = [to_metres(lon, lat) for lon, lat in ring]
+        if len(metric) < 3:
+            return None
+        area = sum(metric[i][0] * metric[(i + 1) % len(metric)][1]
+                   - metric[(i + 1) % len(metric)][0] * metric[i][1]
+                   for i in range(len(metric)))
+        turn = 1.0 if area > 0 else -1.0
+        depths = []
+        for i in range(len(ring) - 1):
+            (ax, ay), (bx, by) = metric[i], metric[i + 1]
+            span = math.hypot(bx - ax, by - ay)
+            if span < 2.0:
+                continue
+            nx, ny = turn * (by - ay) / span, turn * -(bx - ax) / span
+            samples = [(ax + (bx - ax) * t, ay + (by - ay) * t) for t in (0.33, 0.5, 0.67)]
+            faces_street = sum(hit(street_band, x + nx * 1.0, y + ny * 1.0)
+                               or hit(street_band, x + nx * 3.0, y + ny * 3.0)
+                               or hit(street_band, x + nx * 5.0, y + ny * 5.0)
+                               for x, y in samples) >= 2
+            if not faces_street:
+                continue
+            for x, y in samples:
+                for depth in (1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.5, 7.0, 9.0, 12.0):
+                    if hit(footprints, x - nx * depth, y - ny * depth):
+                        depths.append(depth)
+                        break
+        return min(depths) if depths else None
+
     # -- yards ---------------------------------------------------------------------------------
     #
     # Every parcel, but only the ones that still have bare ground in them after everything else
@@ -294,12 +373,26 @@ def main() -> int:
     parcel_rows = fetch("acdm-wktn", f"{box.replace('the_geom', 'shape')} AND active=true",
                         "mapblklot,shape", "parcels", progress)
     yards = []
+    lawns = []
+    front_walks = []
+    service_yards = []
+    backyards = []
+    kept_rings: list[tuple[str, list]] = []
+    # One row per lot, not one per unit. A condominium building is a row in this file for every
+    # unit in it, and every one of those rows carries the same lot polygon -- 37,244 rows over
+    # 14,920 lots. Left alone that drew one parcel forty times, and made every edge of it look
+    # like a boundary the neighbour had already fenced.
+    seen_lots: set[str] = set()
     for row in parcel_rows:
+        lot = str(row.get("mapblklot") or "")
+        if lot in seen_lots:
+            continue
+        seen_lots.add(lot)
         for ring in geojson_rings(row.get("shape") or {}):
             if len(ring) < 4:
                 continue
             bare = count_bare(lattice, ring)
-            if bare < MIN_YARD_CELLS:
+            if bare < MIN_SERVICE_YARD_CELLS:
                 continue
             # A parcel ring that is mostly carriageway is not a garden. It is a parcel whose
             # boundary runs into the street, or one the road mask disagrees with, and either
@@ -307,12 +400,91 @@ def main() -> int:
             if road.share_inside(ring) > 0.35:
                 dropped_yards += 1
                 continue
-            yards.append({"id": row.get("mapblklot"),
-                          "p": [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]})
-    progress(f"{len(yards)} parcels with bare ground worth drawing "
-             f"({dropped_yards} dropped for lying in the road)")
-    for yard in yards:
+            blklot = str(row.get("mapblklot") or "")
+            simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
+            item = {"id": blklot, "p": simplified}
+            setback = front_setback_depth(ring)
+            if setback is not None and setback < MIN_FRONT_LAWN_DEPTH_M:
+                front_walks.append(item)
+            elif bare < MIN_YARD_CELLS:
+                service_yards.append(item)
+            elif setback is not None and bare < MIN_BACKYARD_CELLS:
+                lawns.append(item)
+                yards.append(item)
+            else:
+                backyards.append(item)
+                yards.append(item)
+                # The fence is worked out from the surveyed ring, not the simplified one. Two
+                # neighbours share a boundary to the inch in the city's file and to nothing at all
+                # once each has been thinned independently, and a shared boundary that no longer
+                # matches is a boundary that gets fenced twice.
+                kept_rings.append((blklot, ring))
+    progress(f"{len(yards)} grass parcel remainders, {len(front_walks)} shallow frontages, "
+             f"{len(service_yards)} neutral slivers ({dropped_yards} dropped for lying in the road)")
+    for yard in [*yards, *front_walks, *service_yards]:
         lattice.stamp_polygon(yard["p"])
+
+    # -- fences ---------------------------------------------------------------------------------
+    #
+    # A property line is not a fence. Three quarters of one is: the part that faces the street is
+    # open, the part that runs along a wall is the wall, and the part between two neighbours is
+    # one fence rather than two. So each surveyed edge is classified before anything is drawn.
+    #
+    #   street facing   a point stepped out from the edge lands in the roadway or its footway
+    #   along a wall    a building footprint sits against the edge, on either side of it
+    #   shared          the neighbour's ring carries the same two endpoints, so it is already done
+    #
+    # The kind of fence is chosen per block rather than per lot. A block was laid out at one time
+    # by one builder and its back fences match; picking per lot gives a patchwork nobody built.
+    fences: dict[str, list[float]] = {}
+    seen_edges: set[tuple] = set()
+    counts = {"street": 0, "wall": 0, "shared": 0, "drawn": 0}
+    for blklot, ring in kept_rings:
+        kind, height = FENCE_KINDS[zlib.crc32(blklot[:4].encode()) % len(FENCE_KINDS)]
+        metric = [to_metres(lon, lat) for lon, lat in ring]
+        # Which way is out. The sign of the ring's area says whether its interior lies left or
+        # right of the direction of travel, and the outward normal follows from that.
+        area = sum(metric[i][0] * metric[(i + 1) % len(metric)][1]
+                   - metric[(i + 1) % len(metric)][0] * metric[i][1]
+                   for i in range(len(metric)))
+        # Shoelace positive is counter-clockwise, and a counter-clockwise ring keeps its
+        # interior on the left, so the outward normal is the right-hand one. Getting this
+        # backwards points every probe into the lot instead of out of it, and the street test
+        # then finds a street almost nowhere.
+        turn = 1.0 if area > 0 else -1.0
+        for i in range(len(ring) - 1):
+            a, b = ring[i], ring[i + 1]
+            key = tuple(sorted(((round(a[0], 6), round(a[1], 6)),
+                                (round(b[0], 6), round(b[1], 6)))))
+            if key in seen_edges:
+                counts["shared"] += 1
+                continue
+            seen_edges.add(key)
+            (ax, ay), (bx, by) = metric[i], metric[i + 1]
+            span = math.hypot(bx - ax, by - ay)
+            # A garden fence does not run further than a block face. Anything longer is an
+            # institutional lot -- a pier, a school, a park boundary -- where the property line
+            # is real but a redwood back fence along it is not. Sixty-two edges, and one of them
+            # was four hundred metres of it.
+            if span < 0.6 or span > 80.0:
+                continue
+            nx, ny = turn * (by - ay) / span, turn * -(bx - ax) / span
+            samples = [(ax + (bx - ax) * t, ay + (by - ay) * t) for t in (0.25, 0.5, 0.75)]
+            if sum(hit(street_band, x + nx * 1.0, y + ny * 1.0)
+                   or hit(street_band, x + nx * 2.5, y + ny * 2.5) for x, y in samples) >= 2:
+                counts["street"] += 1
+                continue
+            if sum(hit(footprints, x + nx * 0.8, y + ny * 0.8)
+                   or hit(footprints, x - nx * 0.8, y - ny * 0.8) for x, y in samples) >= 2:
+                counts["wall"] += 1
+                continue
+            fences.setdefault(kind, []).extend(
+                (round(ax, 2), round(ay, 2), round(bx, 2), round(by, 2)))
+            counts["drawn"] += 1
+    progress(f"{counts['drawn']} fence runs on inner property lines "
+             f"({counts['street']} street frontages, {counts['wall']} along a wall, "
+             f"{counts['shared']} already fenced by the neighbour); "
+             + ", ".join(f"{k} {len(v) // 4}" for k, v in sorted(fences.items())))
 
     # -- trees ---------------------------------------------------------------------------------
     dropped_trees = moved_trees = 0
@@ -351,8 +523,10 @@ def main() -> int:
     progress(f"{len(trees)} street trees ({moved_trees} nudged clear of the roadway, "
              f"{dropped_trees} dropped)")
 
-    OUT.write_text(json.dumps({"parks": parks, "yards": yards, "trees": trees,
-                               "courts": courts, "pitches": pitches},
+    OUT.write_text(json.dumps({"parks": parks, "yards": yards, "lawns": lawns,
+                               "front_walks": front_walks, "service_yards": service_yards,
+                               "backyards": backyards, "trees": trees,
+                               "courts": courts, "pitches": pitches, "fences": fences},
                               separators=(",", ":")))
     progress(f"wrote {OUT.name}: described after ground cover {lattice.grid.mean():.1%}")
     return 0
@@ -370,8 +544,25 @@ def count_bare(lattice: Lattice, ring: list) -> int:
     max_col = min(lattice.width - 1, max_col + 1)
     if max_row < min_row or max_col < min_col:
         return 0
+    rows = np.arange(min_row, max_row + 1)
+    cols = np.arange(min_col, max_col + 1)
+    ys = lattice.origin[1] + (rows + 0.5) * lattice.cell_m
+    xs = lattice.origin[0] + (cols + 0.5) * lattice.cell_m
+    gx, gy = np.meshgrid(xs, ys)
+
+    inside = np.zeros(gx.shape, dtype=bool)
+    n = len(local)
+    for i in range(n):
+        x1, y1 = local[i]
+        x2, y2 = local[(i + 1) % n]
+        if y1 == y2:
+            continue
+        crosses = (y1 > gy) != (y2 > gy)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            cut = x1 + (gy - y1) * (x2 - x1) / (y2 - y1)
+        inside ^= crosses & (cut > gx)
     window = lattice.grid[min_row:max_row + 1, min_col:max_col + 1]
-    return int((~window).sum())
+    return int((inside & ~window).sum())
 
 
 #: Five kinds of tree, because five shapes is enough to stop a street looking cloned and San

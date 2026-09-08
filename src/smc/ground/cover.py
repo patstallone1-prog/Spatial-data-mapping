@@ -76,7 +76,7 @@ class Lattice:
         if len(points) < 2 or width_m <= 0:
             return 0
         local = np.array([self.to_xy(lon, lat) for lon, lat in points])
-        before = int(self.grid.sum())
+        added = 0
         half = width_m / 2.0
         for a, b in zip(local[:-1], local[1:]):
             length = float(np.hypot(*(b - a)))
@@ -86,12 +86,11 @@ class Lattice:
             normal = np.array([-direction[1], direction[0]])
             corners = np.array([a + normal * half, b + normal * half,
                                 b - normal * half, a - normal * half])
-            self._fill(corners)
-        return int(self.grid.sum()) - before
+            added += self._fill(corners)
+        return added
 
     def _fill(self, local: np.ndarray) -> int:
         """Even-odd fill of a convex-or-not polygon given in local metres."""
-        before = int(self.grid.sum())
         min_row, min_col = self.to_cell(local[:, 0].min(), local[:, 1].min())
         max_row, max_col = self.to_cell(local[:, 0].max(), local[:, 1].max())
         min_row = max(0, min_row); min_col = max(0, min_col)
@@ -116,5 +115,7 @@ class Lattice:
             with np.errstate(divide="ignore", invalid="ignore"):
                 cut = x1 + (gy - y1) * (x2 - x1) / (y2 - y1)
             inside ^= crosses & (cut > gx)
-        self.grid[min_row:max_row + 1, min_col:max_col + 1] |= inside
-        return int(self.grid.sum()) - before
+        window = self.grid[min_row:max_row + 1, min_col:max_col + 1]
+        before = int(window.sum())
+        window |= inside
+        return int(window.sum()) - before

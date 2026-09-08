@@ -44,6 +44,11 @@ button { color:var(--ink); background:rgba(16,25,30,.9); border:1px solid var(--
 button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgba(255,77,143,.20); }
 /* Clear of the sidebar, which takes the whole left column when it is open. The tip used to
    start at the same 14px and simply print itself over the panel's lower half. */
+#addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:8px;
+  background:rgba(12,20,24,.94); border:1px solid var(--line); color:var(--ink);
+  font-size:12px; line-height:1.45; box-shadow:0 14px 34px rgba(0,0,0,.4); pointer-events:none; }
+#addr b { font-size:13px; }
+#addr .sub { color:var(--muted); }
 #tip { position:fixed; left:368px; bottom:14px; width:min(520px, calc(100vw - 382px)); color:var(--muted); font-size:12px; }
 @media (max-width: 760px) {
   .hud { width:calc(100vw - 28px); bottom:auto; max-height:70vh; }
@@ -62,8 +67,8 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
     </div>
     <div class="collapsible">
     <div class="group" style="margin-top:4px">
-      <h2>Go to a corner</h2>
-      <input id="find" type="search" autocomplete="off" placeholder="Columbus &amp; Broadway" />
+      <h2>Go to a corner or address</h2>
+      <input id="find" type="search" autocomplete="off" placeholder="Columbus &amp; Broadway, or 600 Montgomery" />
       <ul id="hits"></ul>
     </div>
     <div class="meta">
@@ -114,6 +119,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
     </div>
   </div>
 </div>
+<div id="addr" hidden></div>
 <div id="tip"><b>Click anywhere to go there</b> &mdash; the grey sphere is you, and arriving brings the camera down to street level. Arrow keys walk it at 15&nbsp;mph, relative to the way you are facing. Drag to orbit, wheel or pinch to zoom. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
 <!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
      eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
@@ -525,6 +531,14 @@ function trimWay(points, metres) {
   return [head[1], ...points.slice(head[0] + 1, tail[0]), tail[1]];
 }
 
+function trimWalkwayForCorners(points, width) {
+  // Explicit sidewalk/path ways often run right into the mapped junction node. The road at the
+  // corner is already drawn there, and letting concrete ribbons meet over that same point is
+  // what creates the messy checkerboard overlap. Pulling only the walkable ribbons back leaves
+  // crossings to bridge the gap, including the synthetic alley-mouth crossings below.
+  return trimWay(points, Math.max(1.0, Math.min(3.0, width * 0.65)));
+}
+
 function arrowTexture(kind) {
   // A lane arrow, drawn once per kind. Painted arrows in California are long and narrow -- the
   // standard is about 2.3 m of arrow in a lane 3 m wide -- so the canvas is tall rather than
@@ -854,6 +868,27 @@ function pane(ctx, x, y, w, h, lit, seed, options = {}) {
   }
 }
 
+function trimCourse(ctx, seed, material) {
+  // Cornices, belt courses and narrow vertical trim are cheap pixels that make a flat wall read
+  // like a built facade. They are intentionally darker/lighter overlays so the building's own
+  // sampled colour still drives the facade.
+  if (material.name === "glass" || material.name === "metal") return;
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  ctx.fillRect(0, 3, 64, 2);
+  ctx.fillRect(0, 54, 64, 1);
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(0, 6, 64, 1);
+  ctx.fillRect(0, 58, 64, 2);
+  if (random(seed + 41) < 0.55) {
+    ctx.fillStyle = "rgba(255,255,255,0.13)";
+    for (const x of [3, 60]) ctx.fillRect(x, 0, 1, 64);
+  }
+  if (random(seed + 47) < 0.34) {
+    ctx.fillStyle = "rgba(0,0,0,0.12)";
+    for (let y = 14; y < 58; y += 16) ctx.fillRect(0, y, 64, 1);
+  }
+}
+
 //: A dozen ways a San Francisco facade arranges its openings. The city is bay windows, sash
 //: pairs and the odd punched warehouse wall, and drawing every building with the same two
 //: sash windows made a street of identical houses -- which is the one thing San Francisco's
@@ -958,6 +993,7 @@ function facadeFor(material, seed, style) {
   ctx.fillRect(0, h - 5, w, 5);                     // the line between storeys
   if (material.name !== "glass" && material.name !== "metal") {
     WINDOW_STYLES[style % WINDOW_STYLES.length](ctx, seed);
+    trimCourse(ctx, seed, material);
   }
 
   // Grit. Weathering, soot and patching, which is most of what separates a real wall from a
@@ -984,6 +1020,202 @@ function facadeTextureFor(material, seed) {
     FACADE_CACHE.set(key, facadeFor(material, seed + variant * 977, style));
   }
   return FACADE_CACHE.get(key);
+}
+
+function roofTexture(seed, base, archetype) {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#" + base.toString(16).padStart(6, "0");
+  ctx.fillRect(0, 0, size, size);
+
+  // Tar/gravel and patching: from above, this is the difference between a roof and a flat lid.
+  for (let i = 0; i < size * size * 0.16; i += 1) {
+    ctx.fillStyle = random(seed + i * 19) < 0.5 ? "rgba(0,0,0,0.16)" : "rgba(255,255,255,0.10)";
+    ctx.fillRect(random(seed + i * 23) * size, random(seed + i * 29) * size, 1, 1);
+  }
+  ctx.strokeStyle = "rgba(0,0,0,0.22)";
+  ctx.lineWidth = 1;
+  for (let x = 16 + Math.floor(random(seed + 3) * 12); x < size; x += 28) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 8, size); ctx.stroke();
+  }
+
+  if (archetype === "residential" || archetype === "generic") {
+    if (random(seed + 71) < 0.38) {
+      // Solar modules, dark blue-black with thin metal mullions.
+      const x0 = 12 + Math.floor(random(seed + 72) * 36);
+      const y0 = 14 + Math.floor(random(seed + 73) * 42);
+      ctx.fillStyle = "rgba(12,28,42,0.92)";
+      ctx.fillRect(x0, y0, 50, 28);
+      ctx.strokeStyle = "rgba(125,154,170,0.58)";
+      for (let x = x0 + 10; x < x0 + 50; x += 10) { ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + 28); ctx.stroke(); }
+      for (let y = y0 + 9; y < y0 + 28; y += 9) { ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + 50, y); ctx.stroke(); }
+    } else if (random(seed + 81) < 0.28) {
+      // Roof deck: plank field, pale parapet, a couple of planters.
+      ctx.fillStyle = "rgba(126,96,68,0.58)";
+      ctx.fillRect(18, 18, 54, 34);
+      ctx.strokeStyle = "rgba(60,45,34,0.42)";
+      for (let y = 22; y < 52; y += 6) { ctx.beginPath(); ctx.moveTo(18, y); ctx.lineTo(72, y); ctx.stroke(); }
+      ctx.strokeStyle = "rgba(230,226,214,0.70)";
+      ctx.strokeRect(17.5, 17.5, 55, 35);
+      ctx.fillStyle = "rgba(55,92,50,0.72)";
+      ctx.fillRect(23, 23, 8, 5);
+      ctx.fillRect(58, 42, 8, 5);
+    }
+  } else if (archetype === "office" || archetype === "hotel" || archetype === "industrial") {
+    ctx.fillStyle = "rgba(35,39,40,0.35)";
+    for (let i = 0; i < 3; i += 1) {
+      const x = 18 + random(seed + i * 5) * 72;
+      const y = 16 + random(seed + i * 7) * 74;
+      ctx.fillRect(x, y, 15, 10);
+      ctx.fillStyle = "rgba(255,255,255,0.16)";
+      ctx.fillRect(x + 2, y + 2, 11, 2);
+      ctx.fillStyle = "rgba(35,39,40,0.35)";
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2.5, 2.5);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const ROOF_CACHE = new Map();
+function roofTextureFor(tint, seed, archetype) {
+  const colour = new THREE.Color(tint).multiplyScalar(0.80);
+  const hsl = {};
+  colour.getHSL(hsl);
+  if (hsl.l < 0.22) colour.setHSL(hsl.h, hsl.s, 0.22);
+  const bucket = colour.getHex();
+  const key = `${archetype || "generic"}-${bucket}-${Math.floor(random(seed + 13) * 4)}`;
+  if (!ROOF_CACHE.has(key)) ROOF_CACHE.set(key, roofTexture(seed, bucket, archetype));
+  return ROOF_CACHE.get(key);
+}
+
+function southWindowTexture(seed) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "rgba(0,0,0,0.16)";
+  for (let y = 14; y < 112; y += 34) {
+    ctx.fillRect(0, y - 7, 128, 2);
+    for (let x = 12; x < 118; x += 28) {
+      const lit = random(seed + x * 3 + y * 7) < 0.18;
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.fillRect(x - 3, y - 3, 20, 26);
+      const glass = ctx.createLinearGradient(0, y, 0, y + 22);
+      glass.addColorStop(0, lit ? "rgba(255,228,176,0.82)" : "rgba(94,128,148,0.76)");
+      glass.addColorStop(1, lit ? "rgba(202,148,82,0.74)" : "rgba(20,32,38,0.88)");
+      ctx.fillStyle = glass;
+      ctx.fillRect(x, y, 14, 20);
+      ctx.strokeStyle = "rgba(255,255,255,0.24)";
+      ctx.strokeRect(x - 1.5, y - 1.5, 17, 23);
+      ctx.fillStyle = "rgba(255,255,255,0.28)";
+      ctx.fillRect(x - 2, y + 21, 18, 2);
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 1);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const SOUTH_WINDOW_CACHE = new Map();
+function southWindowTextureFor(seed) {
+  const key = Math.floor(random(seed + 211) * 8);
+  if (!SOUTH_WINDOW_CACHE.has(key)) SOUTH_WINDOW_CACHE.set(key, southWindowTexture(seed + key * 313));
+  return SOUTH_WINDOW_CACHE.get(key);
+}
+
+function entryTexture(seed, archetype) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "rgba(0,0,0,0.20)";
+  ctx.fillRect(0, 118, 128, 6);
+
+  if (archetype === "retail" || archetype === "restaurant") {
+    const awning = archetype === "restaurant"
+      ? (random(seed + 5) < 0.5 ? "#9b2f24" : "#1f6b55")
+      : (random(seed + 5) < 0.5 ? "#264f7f" : "#b48a35");
+    ctx.fillStyle = "rgba(18,22,24,0.82)";
+    ctx.fillRect(8, 36, 112, 70);
+    const glass = ctx.createLinearGradient(0, 42, 0, 108);
+    glass.addColorStop(0, "rgba(116,154,172,0.88)");
+    glass.addColorStop(1, "rgba(18,28,34,0.96)");
+    ctx.fillStyle = glass;
+    ctx.fillRect(13, 42, 42, 58);
+    ctx.fillRect(73, 42, 42, 58);
+    ctx.fillStyle = "rgba(36,28,22,0.95)";
+    ctx.fillRect(57, 43, 14, 60);
+    ctx.fillStyle = "rgba(255,232,160,0.74)";
+    ctx.fillRect(62, 69, 3, 3);
+    ctx.fillStyle = awning;
+    ctx.fillRect(4, 20, 120, 18);
+    ctx.fillStyle = "rgba(255,255,255,0.72)";
+    ctx.font = "bold 13px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(archetype === "restaurant" ? "CAFE" : "SHOP", 64, 34);
+    ctx.fillStyle = "rgba(255,255,255,0.34)";
+    for (let x = 12; x < 120; x += 18) ctx.fillRect(x, 20, 8, 18);
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.strokeRect(12.5, 41.5, 103, 59);
+  } else if (archetype === "office" || archetype === "hotel") {
+    const glass = ctx.createLinearGradient(0, 18, 0, 112);
+    glass.addColorStop(0, "rgba(155,188,202,0.88)");
+    glass.addColorStop(1, "rgba(32,48,58,0.95)");
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.fillRect(16, 17, 96, 94);
+    ctx.fillStyle = glass;
+    ctx.fillRect(20, 20, 88, 88);
+    ctx.fillStyle = "rgba(255,255,255,0.52)";
+    ctx.fillRect(62, 20, 3, 88);
+    ctx.fillRect(20, 55, 88, 2);
+    ctx.fillStyle = "rgba(20,24,26,0.88)";
+    ctx.fillRect(49, 70, 30, 38);
+    if (archetype === "hotel") {
+      ctx.fillStyle = "rgba(255,255,255,0.76)";
+      ctx.font = "bold 12px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("HOTEL", 64, 36);
+    }
+  } else {
+    const paint = random(seed + 7) < 0.5 ? "#244a61" : random(seed + 9) < 0.5 ? "#7a3d35" : "#315b43";
+    ctx.fillStyle = "rgba(0,0,0,0.24)";
+    ctx.fillRect(44, 26, 40, 86);
+    ctx.fillStyle = paint;
+    ctx.fillRect(48, 30, 32, 82);
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillRect(50, 32, 28, 2);
+    ctx.fillStyle = "rgba(45,32,22,0.92)";
+    ctx.fillRect(51, 66, 26, 44);
+    ctx.fillStyle = "rgba(238,220,166,0.78)";
+    ctx.fillRect(70, 79, 3, 3);
+    ctx.fillStyle = "rgba(120,154,170,0.78)";
+    ctx.fillRect(52, 36, 24, 20);
+    ctx.strokeStyle = "rgba(255,255,255,0.30)";
+    ctx.strokeRect(51.5, 35.5, 25, 21);
+    ctx.fillStyle = "rgba(0,0,0,0.34)";
+    ctx.fillRect(34, 112, 60, 5);
+    ctx.fillStyle = "rgba(185,180,166,0.78)";
+    ctx.fillRect(38, 104, 52, 8);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const ENTRY_CACHE = new Map();
+function entryTextureFor(seed, archetype) {
+  const key = `${archetype || "generic"}-${Math.floor(random(seed + 331) * 10)}`;
+  if (!ENTRY_CACHE.has(key)) ENTRY_CACHE.set(key, entryTexture(seed + key.length * 41, archetype));
+  return ENTRY_CACHE.get(key);
 }
 
 const FACADE_TEXTURE = facadeTexture();
@@ -1570,6 +1802,39 @@ function footprintMetrics(points) {
   };
 }
 
+function footprintWalls(points) {
+  if (!points || points.length < 3) return [];
+  const local = points.map((p) => {
+    const [x, y] = xy(p[0], p[1]);
+    return [x, -y];
+  });
+  const sameEnds = Math.hypot(local[0][0] - local[local.length - 1][0],
+                              local[0][1] - local[local.length - 1][1]) < 0.05;
+  const ring = sameEnds ? local.slice(0, -1) : local;
+  const centroid = ring.reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0])
+    .map((v) => v / ring.length);
+  const walls = [];
+  for (let i = 0; i < ring.length; i += 1) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    const dx = b[0] - a[0];
+    const dz = b[1] - a[1];
+    const span = Math.hypot(dx, dz);
+    if (span < 3.0) continue;
+    let nx = -dz / span;
+    let nz = dx / span;
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    if ((mid[0] - centroid[0]) * nx + (mid[1] - centroid[1]) * nz < 0) {
+      nx = -nx; nz = -nz;
+    }
+    const baseYaw = Math.atan2(-dz, dx);
+    const leftNx = -dz / span, leftNz = dx / span;
+    const yaw = (nx * leftNx + nz * leftNz) > 0.5 ? baseYaw : baseYaw + Math.PI;
+    walls.push({ x: mid[0], z: mid[1], span, nx, nz, yaw });
+  }
+  return walls;
+}
+
 function placeSlab(metrics, color, y = 0.075) {
   const geometry = new THREE.ShapeGeometry(metrics.shape);
   geometry.rotateX(-Math.PI / 2);
@@ -1591,24 +1856,201 @@ function boxPart(group, x, y, z, w, h, d, color, roughness = 0.82) {
   return mesh;
 }
 
+function rotatedBoxPart(group, x, y, z, w, h, d, color, roughness = 0.82, rotationY = 0) {
+  const mesh = boxPart(group, x, y, z, w, h, d, color, roughness);
+  mesh.rotation.y = rotationY;
+  return mesh;
+}
+
+function planePart(group, x, y, z, w, h, map, rotationY = 0) {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshStandardMaterial({
+      map, color: 0xffffff, transparent: true, alphaTest: 0.22,
+      roughness: 0.62, metalness: 0.04, side: THREE.DoubleSide,
+    })
+  );
+  mesh.position.set(x, y + h / 2, z);
+  mesh.rotation.y = rotationY;
+  group.add(mesh);
+  return mesh;
+}
+
+function wallPoint(wall, along = 0, out = 0) {
+  const tx = Math.cos(wall.yaw);
+  const tz = -Math.sin(wall.yaw);
+  return {
+    x: wall.x + tx * along + wall.nx * out,
+    z: wall.z + tz * along + wall.nz * out,
+  };
+}
+
+function bestFacadeWall(feature, preferSouth = false) {
+  const walls = footprintWalls(feature.points).filter((wall) => wall.span > 4.2);
+  if (!walls.length) return null;
+  const scored = walls.map((wall) => {
+    const south = Math.max(0, wall.nz);
+    const widthScore = wall.span;
+    const southScore = preferSouth ? south * 18 : south * 3;
+    return { wall, score: widthScore + southScore };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0].wall;
+}
+
+function gasPriceTexture(seed) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 96; canvas.height = 160;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "rgba(238,240,236,0.98)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const brand = random(seed + 4) < 0.5 ? "#d94732" : "#2368a2";
+  ctx.fillStyle = brand;
+  ctx.fillRect(0, 0, canvas.width, 34);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 22px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("GAS", 48, 24);
+  ctx.fillStyle = "#101417";
+  ctx.font = "11px system-ui, sans-serif";
+  for (const [i, label] of ["REG", "MID", "PREM"].entries()) {
+    const y = 55 + i * 33;
+    const dollars = 4 + Math.floor(random(seed + i * 17) * 2);
+    const cents = 19 + Math.floor(random(seed + i * 23) * 70);
+    ctx.fillText(label, 24, y);
+    ctx.font = "bold 21px ui-monospace, monospace";
+    ctx.textAlign = "right";
+    ctx.fillText(`${dollars}.${String(cents).padStart(2, "0")}`, 86, y + 2);
+    ctx.textAlign = "center";
+    ctx.font = "11px system-ui, sans-serif";
+    ctx.strokeStyle = "rgba(0,0,0,0.18)";
+    ctx.beginPath(); ctx.moveTo(10, y + 11); ctx.lineTo(86, y + 11); ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(0,0,0,0.42)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, 93, 157);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const GAS_PRICE_CACHE = new Map();
+function gasPriceTextureFor(seed) {
+  const key = Math.floor(random(seed + 17) * 12);
+  if (!GAS_PRICE_CACHE.has(key)) GAS_PRICE_CACHE.set(key, gasPriceTexture(seed + key * 101));
+  return GAS_PRICE_CACHE.get(key);
+}
+
+function pumpIsland(group, x, z, brand) {
+  boxPart(group, x, 0.08, z, 3.8, 0.22, 1.35, 0x2a2e30, 0.72);
+  for (const side of [-1, 1]) {
+    boxPart(group, x + side * 0.85, 0.30, z, 0.56, 1.45, 0.42, 0xe9eceb, 0.48);
+    boxPart(group, x + side * 0.85, 1.60, z, 0.62, 0.18, 0.46, brand, 0.42);
+    const hose = new THREE.Mesh(
+      new THREE.TorusGeometry(0.28, 0.018, 6, 18, Math.PI * 1.15),
+      new THREE.MeshStandardMaterial({ color: 0x171a1c, roughness: 0.78, metalness: 0.18 })
+    );
+    hose.position.set(x + side * 1.17, 1.0, z + 0.25);
+    hose.rotation.set(Math.PI / 2, 0, side > 0 ? 0.35 : -0.35);
+    group.add(hose);
+  }
+  for (const sx of [-1.75, 1.75]) {
+    for (const sz of [-0.75, 0.75]) {
+      boxPart(group, x + sx, 0, z + sz, 0.18, 0.72, 0.18, 0xd8b12f, 0.58);
+    }
+  }
+}
+
+function balconyPart(group, wall, y, seed) {
+  const width = Math.min(3.4, Math.max(2.0, wall.span * 0.24));
+  const depth = 0.72;
+  const along = (random(seed + 19) - 0.5) * wall.span * 0.28;
+  const center = wallPoint(wall, along, depth / 2 + 0.12);
+  rotatedBoxPart(group, center.x, y, center.z, width, 0.12, depth, 0x6a7478, 0.66, wall.yaw);
+  const front = wallPoint(wall, along, depth + 0.18);
+  const tx = Math.cos(wall.yaw);
+  const tz = -Math.sin(wall.yaw);
+  rotatedBoxPart(group, front.x, y + 0.12, front.z, width, 0.58, 0.055, 0xd4d0c2, 0.54, wall.yaw);
+  for (const side of [-1, 1]) {
+    rotatedBoxPart(group,
+      center.x + tx * side * width / 2 + wall.nx * depth * 0.48,
+      y + 0.12,
+      center.z + tz * side * width / 2 + wall.nz * depth * 0.48,
+      0.055, 0.50, depth, 0xd4d0c2, 0.54, wall.yaw);
+  }
+}
+
+function addGroundFacadeDetail(group, feature, seed, height) {
+  const shopfront = feature.archetype === "retail" || feature.archetype === "restaurant"
+    || feature.archetype === "office" || feature.archetype === "hotel";
+  const residential = feature.archetype === "residential" || feature.archetype === "generic";
+  if (!shopfront && !residential) return;
+  const wall = bestFacadeWall(feature, shopfront ? false : true);
+  if (!wall) return;
+  const panelW = shopfront ? Math.min(wall.span * 0.86, 18) : Math.min(wall.span * 0.62, 7.2);
+  const panelH = shopfront ? Math.min(4.2, Math.max(3.1, height * 0.34)) : Math.min(3.35, height - 0.3);
+  const anchor = wallPoint(wall, 0, 0.11);
+  planePart(group, anchor.x, 0.06, anchor.z, panelW, panelH,
+            entryTextureFor(seed, feature.archetype), wall.yaw);
+}
+
+function addSouthFacadeDetail(group, feature, seed, height) {
+  if (!(feature.archetype === "residential" || feature.archetype === "generic")) return;
+  if (height < 6) return;
+  const candidates = footprintWalls(feature.points)
+    .filter((wall) => wall.nz > 0.38 && wall.span > 5.5)
+    .sort((a, b) => b.span - a.span);
+  const wall = candidates[0];
+  if (!wall) return;
+  const panelW = Math.min(wall.span * 0.82, 22);
+  const panelH = Math.min(height - 1.8, Math.max(STOREY_M * 1.6, Math.floor(height / STOREY_M) * STOREY_M));
+  const x = wall.x + wall.nx * 0.09;
+  const z = wall.z + wall.nz * 0.09;
+  planePart(group, x, 1.2, z, panelW, panelH, southWindowTextureFor(seed), wall.yaw);
+  if (height > 7.5 && random(seed + 701) < 0.34) {
+    balconyPart(group, wall, Math.min(height - 1.1, STOREY_M * 1.2), seed);
+  }
+}
+
 function gasStationMesh(feature, seed) {
   const metrics = footprintMetrics(feature.points);
   if (!metrics) return null;
   const group = new THREE.Group();
   group.add(placeSlab(metrics, 0x171b1d, 0.07));
+  const brand = random(seed + 4) < 0.5 ? 0xd94732 : 0x2368a2;
   const canopyW = Math.min(metrics.width * 0.72, 28);
   const canopyD = Math.min(metrics.depth * 0.46, 18);
   boxPart(group, metrics.x, 4.8, metrics.z, canopyW, 0.45, canopyD, 0xf1f0e8, 0.55);
+  boxPart(group, metrics.x, 5.05, metrics.z - canopyD / 2 - 0.04, canopyW, 0.22, 0.18, brand, 0.42);
+  boxPart(group, metrics.x, 5.05, metrics.z + canopyD / 2 + 0.04, canopyW, 0.22, 0.18, brand, 0.42);
+  for (const sx of [-0.25, 0.25]) {
+    for (const sz of [-0.25, 0.25]) {
+      boxPart(group, metrics.x + sx * canopyW, 4.56, metrics.z + sz * canopyD,
+              1.8, 0.035, 0.75, 0xfff3be, 0.34);
+    }
+  }
   for (const sx of [-0.32, 0.32]) {
     for (const sz of [-0.28, 0.28]) {
       boxPart(group, metrics.x + sx * canopyW, 0, metrics.z + sz * canopyD, 0.34, 4.8, 0.34, 0xd8d2c5);
     }
   }
-  for (const sx of [-0.22, 0.22]) {
-    boxPart(group, metrics.x + sx * canopyW, 0, metrics.z, 1.0, 1.4, 0.72, 0xe8eef0, 0.48);
+  for (const sx of [-0.24, 0.24]) {
+    pumpIsland(group, metrics.x + sx * canopyW, metrics.z, brand);
   }
   boxPart(group, metrics.x - metrics.width * 0.24, 0, metrics.z + metrics.depth * 0.26,
           Math.max(4, metrics.width * 0.22), 3.2, Math.max(3, metrics.depth * 0.18), 0xb8a07f);
+  boxPart(group, metrics.x - metrics.width * 0.24, 0.02, metrics.z + metrics.depth * 0.16,
+          Math.max(2.6, metrics.width * 0.13), 2.25, 0.12, 0x34464f, 0.58);
+  boxPart(group, metrics.x + metrics.width * 0.18, 0, metrics.z + metrics.depth * 0.31,
+          1.1, 1.35, 0.55, 0x4d6872, 0.46);
+  boxPart(group, metrics.x + metrics.width * 0.18, 1.34, metrics.z + metrics.depth * 0.31,
+          1.2, 0.20, 0.60, brand, 0.42);
+  const signMap = gasPriceTextureFor(seed);
+  const signX = metrics.x + metrics.width * 0.42;
+  const signZ = metrics.z - metrics.depth * 0.40;
+  boxPart(group, signX, 0, signZ, 0.22, 4.8, 0.22, 0x2b3033, 0.58);
+  planePart(group, signX, 1.0, signZ - 0.13, 2.35, 3.25, signMap, 0);
+  planePart(group, signX + 0.13, 1.0, signZ, 2.35, 3.25, signMap, Math.PI / 2);
   group.userData = feature;
   return group;
 }
@@ -1728,7 +2170,8 @@ function buildingMesh(feature) {
     if (hsl.l < 0.22) roofTint.setHSL(hsl.h, hsl.s, 0.22);
   }
   const roof = new THREE.MeshStandardMaterial({
-    color: roofTint, transparent: opacity < 1, opacity,
+    map: roofTextureFor(tint, seed, feature.archetype),
+    color: 0xffffff, transparent: opacity < 1, opacity,
     roughness: 0.97, metalness: material.name === "metal" ? 0.5 : 0.03,
   });
   const walls = new THREE.MeshStandardMaterial({
@@ -1744,7 +2187,12 @@ function buildingMesh(feature) {
   });
   const mesh = new THREE.Mesh(geom, [roof, walls]);
   mesh.userData = feature;
-  return mesh;
+  const group = new THREE.Group();
+  group.add(mesh);
+  addGroundFacadeDetail(group, feature, seed, height);
+  addSouthFacadeDetail(group, feature, seed, height);
+  group.userData = feature;
+  return group;
 }
 
 // ---- photographed facades ----
@@ -1951,11 +2399,12 @@ for (const way of DATA.ways) {
   // 3.6, which made Grant Avenue and Van Ness the same street.
   // A San Francisco crosswalk band is about twelve feet, not seventeen. The extra width made
   // the bars sparse and the whole marking read as a couple of stripes.
-  const widthMeters = isCrossing ? 3.7
+  const widthMeters = isCrossing ? (way.crossing_m || 3.7)
     : isSidewalk ? renderedWalkWidth(way, 3.6)
     : isPath ? 2.4
     : renderedRoadWidth(way);
   const renderPoints = densifyWay(way.points);
+  const surfacePoints = (isSidewalk || isPath) ? trimWalkwayForCorners(renderPoints, widthMeters) : renderPoints;
   // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
   // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
   const KERB = way.kerb_m || KERB_FALLBACK;
@@ -1971,16 +2420,17 @@ for (const way of DATA.ways) {
   const surfaceY = isCrossing ? roadTop + 0.02
     : (isSidewalk || isPath) ? roadTop + KERB / 2 : roadTop / 2;
   const surfaceThickness = isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop;
-  const surfaceKind = isCrossing ? "crossing" : (isSidewalk || isPath) ? "walk" : "road";
+  const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossing" : "crossing_edges")
+    : (isSidewalk || isPath) ? "walk" : "road";
     // Continental unless we positively know otherwise. San Francisco has been converting its
     // marked crossings to ladders for years, and the inventory is demonstrably incomplete --
     // 598 of its points sit near no mapped crossing at all, which is the two datasets
     // disagreeing about where a crossing is rather than evidence that one is plain. The
     // ``continental`` flag still records the 817 the city confirms.
   if (isSidewalk || isPath) {
-    addPavementRibbon(renderPoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind);
+    addPavementRibbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind);
   } else {
-    groups.streets.add(ribbon(renderPoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind));
+    groups.streets.add(ribbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind));
   }
   // The footways, laid from the kerb outward on both sides. Drawn a centimetre below the
   // mapped sidewalk ways so that where OpenStreetMap has one the two do not fight, and so
@@ -2157,30 +2607,6 @@ function grassTexture() {
   return texture;
 }
 
-function yardTexture() {
-  // Back gardens are not lawn from end to end -- they are a mix of planting, paving and the
-  // things people keep outside -- so this is a duller, browner ground than a park.
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#45433f";
-  ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < size * size * 0.6; i += 1) {
-    const shade = random(i * 13);
-    // Grey, with just enough brown in it to read as ground rather than as more pavement.
-    // These are yards, light wells and service strips, not lawns.
-    ctx.fillStyle = shade < 0.35 ? "rgba(44,42,38,0.40)"
-      : shade < 0.7 ? "rgba(122,118,108,0.34)" : "rgba(146,132,110,0.26)";
-    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2, 2);
-  texture.anisotropy = 8;
-  return texture;
-}
-
 function ringGeometry(rings, y) {
   // One geometry for every ring handed in, triangulated by ear clipping through THREE.Shape.
   const positions = [];
@@ -2256,6 +2682,165 @@ function treeVariant(kind) {
   if (kind === "broad" || kind === "street") canopy.scale.set(1, 0.82, 1);
   group.add(canopy);
   return group;
+}
+
+// ---- garden fences ----
+//
+// The city surveys every property line, so the fences do not have to be guessed at -- but a
+// property line is not a fence. Three quarters of one is. The part facing the street is open,
+// the part running along a wall is the wall, and the boundary between two neighbours carries one
+// fence rather than one each. Which edges survive those three tests is decided in the build,
+// against the road band and the building footprints, so what arrives here is already only the
+// inner lines. The kind is chosen per block: a block was laid out at one time by one builder,
+// and its back fences match.
+const FENCE_STYLE = {
+  // Heights are the ones the build stamped on them, and the colours are stated well down from
+  // the real thing for the same reason the court palette is -- this scene runs about two and a
+  // half stops hot on a flat diffuse surface.
+  board:      { h: 1.83, tile: 1.5, colour: 0x3a2b20, kind: "board" },
+  board_tall: { h: 2.13, tile: 1.5, colour: 0x33302a, kind: "board" },
+  picket:     { h: 1.07, tile: 1.2, colour: 0x8f9490, kind: "picket" },
+  chainlink:  { h: 1.52, tile: 0.6, colour: 0xc6ced2, kind: "chainlink" },
+  wall:       { h: 1.22, tile: 2.0, colour: 0x4a463f, kind: "wall" },
+};
+
+function boardTexture(colour) {
+  // Vertical redwood boards about fifteen centimetres wide, with a dark line where they meet
+  // and a rail shadow across the middle. The variation between boards is the whole trick: a
+  // flat brown plane reads as a wall, and a fence is a row of separate pieces of wood.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#" + colour.toString(16).padStart(6, "0");
+  ctx.fillRect(0, 0, size, size);
+  const boards = 10;                                  // 1.5 m of fence, so 15 cm boards
+  for (let i = 0; i < boards; i += 1) {
+    const x = (i * size) / boards;
+    const shade = (random(i * 13) - 0.5) * 0.28;
+    ctx.fillStyle = shade > 0 ? `rgba(255,240,220,${shade})` : `rgba(0,0,0,${-shade})`;
+    ctx.fillRect(x, 0, size / boards - 1, size);
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(x + size / boards - 1, 0, 1, size);   // the gap between two boards
+    for (let g = 0; g < 14; g += 1) {                 // grain
+      ctx.fillStyle = random(i * 31 + g) < 0.5 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.06)";
+      ctx.fillRect(x + random(i * 7 + g) * (size / boards), random(i * 11 + g) * size,
+                   1, 6 + random(g) * 22);
+    }
+  }
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  ctx.fillRect(0, size * 0.52, size, 3);              // the horizontal rail behind the boards
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+function picketTexture(colour) {
+  // Nine centimetre pickets with five centimetre gaps, on a 1.2 m tile, and the gaps are gaps:
+  // you can see the garden through a picket fence, which is most of what makes it one.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  const pitch = size * 0.14 / 1.2 * 1.2;              // 14 cm centres over a 1.2 m tile
+  const wide = pitch * 0.64;
+  const paint = "#" + colour.toString(16).padStart(6, "0");
+  for (let x = 0; x < size; x += pitch) {
+    ctx.fillStyle = paint;
+    // Pickets stop short of the top of the tile so the fence has a profile, not a straight edge.
+    ctx.fillRect(x, size * 0.06, wide, size);
+    ctx.fillStyle = "rgba(0,0,0,0.14)";
+    ctx.fillRect(x + wide - 1, size * 0.06, 1, size);
+  }
+  ctx.fillStyle = paint;
+  ctx.fillRect(0, size * 0.30, size, size * 0.07);    // top rail
+  ctx.fillRect(0, size * 0.78, size, size * 0.07);    // bottom rail
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+function wallTexture(colour) {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#" + colour.toString(16).padStart(6, "0");
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size * 0.5; i += 1) {
+    ctx.fillStyle = random(i * 5) < 0.5 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.07)";
+    ctx.fillRect(random(i * 3) * size, random(i * 7) * size, 1, 1);
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.10)";
+  ctx.fillRect(0, 0, size, 4);                        // the coping along the top
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+function fenceMaterial(style) {
+  const shared = { side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0 };
+  if (style.kind === "chainlink") {
+    return new THREE.MeshStandardMaterial({
+      ...shared, map: chainlinkTexture(), color: style.colour,
+      alphaTest: 0.55, roughness: 0.55, metalness: 0.45,
+    });
+  }
+  if (style.kind === "picket") {
+    return new THREE.MeshStandardMaterial({
+      ...shared, map: picketTexture(style.colour), color: 0xffffff, alphaTest: 0.5,
+    });
+  }
+  if (style.kind === "wall") {
+    return new THREE.MeshStandardMaterial({
+      ...shared, map: wallTexture(style.colour), color: 0xffffff, roughness: 0.95,
+    });
+  }
+  return new THREE.MeshStandardMaterial({
+    ...shared, map: boardTexture(style.colour), color: 0xffffff, roughness: 0.94,
+  });
+}
+
+function buildFences(ground) {
+  // Segments arrive as flat metres in the same frame the world is laid out in, grouped by the
+  // kind their block was assigned. One merged mesh per kind, so five draw calls for the city.
+  const fences = ground.fences || {};
+  for (const kind of Object.keys(fences)) {
+    const style = FENCE_STYLE[kind];
+    const flat = fences[kind];
+    if (!style || !flat || !flat.length) continue;
+    const positions = [];
+    const uvs = [];
+    const indices = [];
+    for (let i = 0; i + 3 < flat.length; i += 4) {
+      const ax = flat[i], az = -flat[i + 1];
+      const bx = flat[i + 2], bz = -flat[i + 3];
+      const span = Math.hypot(bx - ax, bz - az);
+      if (span < 0.4) continue;
+      // A last check against the one authority on where the road is. The build already tested
+      // these against the road band, and this costs nothing, and between the two of them a
+      // fence across a carriageway cannot survive.
+      if (insideCarriageway(ax, az, -1.0) || insideCarriageway(bx, bz, -1.0)) continue;
+      const base = positions.length / 3;
+      const top = YARD_Y + style.h;
+      positions.push(ax, YARD_Y, az, ax, top, az, bx, YARD_Y, bz, bx, top, bz);
+      const u = span / style.tile;
+      const v = style.h / style.tile;
+      uvs.push(0, 0, 0, v, u, 0, u, v);
+      indices.push(base, base + 2, base + 3, base, base + 3, base + 1);
+    }
+    if (!indices.length) continue;
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geom.setIndex(indices);
+    geom.computeVertexNormals();
+    groups.ground.add(new THREE.Mesh(geom, fenceMaterial(style)));
+  }
 }
 
 // ---- courts and fields ----
@@ -2767,37 +3352,34 @@ function buildCourts(ground) {
     })));
   }
 
-  const yardGeom = ringGeometry((ground.yards || []).map((y) => y.p), YARD_Y);
+  const classifiedGround = ground.lawns || ground.backyards || ground.front_walks || ground.service_yards;
+  const grassRings = classifiedGround
+    ? [...(ground.lawns || []), ...(ground.backyards || [])]
+    : (ground.yards || []);
+  const yardGeom = ringGeometry(grassRings.map((y) => y.p), YARD_Y);
   if (yardGeom) {
     groups.ground.add(new THREE.Mesh(yardGeom, new THREE.MeshStandardMaterial({
-      map: yardTexture(), color: 0xffffff, roughness: 0.98, metalness: 0.0,
+      map: grassTexture(), color: 0xffffff, roughness: 0.98, metalness: 0.0,
       side: THREE.DoubleSide,
     })));
   }
 
-  // The fences: every parcel boundary, as one set of line segments. A boundary that runs along
-  // a street is a frontage rather than a fence, so those are dropped -- which is also what
-  // stops a fence being drawn across the pavement.
-  const fence = [];
-  for (const yard of ground.yards || []) {
-    const ring = yard.p;
-    for (let i = 0; i < ring.length; i += 1) {
-      const a = ring[i];
-      const b = ring[(i + 1) % ring.length];
-      const [ax, ay] = xy(a[0], a[1]);
-      const [bx, by] = xy(b[0], b[1]);
-      if (insideCarriageway(ax, -ay, -1.5) || insideCarriageway(bx, -by, -1.5)) continue;
-      fence.push(ax, 0.0, -ay, ax, 1.5, -ay);
-      fence.push(ax, 1.5, -ay, bx, 1.5, -by);
-    }
-  }
-  if (fence.length) {
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.Float32BufferAttribute(fence, 3));
-    groups.ground.add(new THREE.LineSegments(geom, new THREE.LineBasicMaterial({
-      color: 0x4b4136, transparent: true, opacity: 0.55,
+  const frontWalkGeom = ringGeometry((ground.front_walks || []).map((y) => y.p), YARD_Y + 0.004);
+  if (frontWalkGeom) {
+    groups.ground.add(new THREE.Mesh(frontWalkGeom, new THREE.MeshStandardMaterial({
+      map: SIDEWALK, color: 0xffffff, roughness: 0.96, metalness: 0.0,
+      side: THREE.DoubleSide,
     })));
   }
+
+  const serviceGeom = ringGeometry((ground.service_yards || []).map((y) => y.p), YARD_Y + 0.002);
+  if (serviceGeom) {
+    groups.ground.add(new THREE.Mesh(serviceGeom, new THREE.MeshStandardMaterial({
+      color: 0x3d403d, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide,
+    })));
+  }
+
+  buildFences(ground);
 
   // Trees, one instanced mesh per variant. The trunk diameter the city recorded sets the size:
   // a three inch stem is a sapling and a thirty inch one has a crown over the roadway.
@@ -2961,46 +3543,80 @@ document.getElementById("reset").addEventListener("click", () => {
   }
 }
 
-// ---- search by corner ----
+// ---- search by corner or address ----
 //
-// People say where they are by naming two streets, so that is what the field takes. Matching is
-// per-word across both names, which lets "market 4th" and "4th & market" find the same corner
-// without the searcher having to guess the order or the ampersand.
+// People say where they are two ways: by naming two streets, or by giving a number and a street.
+// The field takes both. Matching is per-word, which lets "market 4th" and "4th & market" find
+// the same corner without the searcher having to guess the order or the ampersand, and lets
+// "600 montgomery" find the building whether or not they typed "Street".
+//
+// A query that opens with a house number is asking for an address and gets addresses first;
+// everything else leads with corners. That one rule is the whole ranking, and it is right nearly
+// every time because nobody types a number when they mean a junction.
 {
   const field = document.getElementById("find");
   const hits = document.getElementById("hits");
-  const corners = DATA.intersections || [];
+  const corners = (DATA.intersections || []).map((c) => ({
+    label: `${c.a} & ${c.b}`, hay: `${c.a} ${c.b}`.toLowerCase(),
+    lon: c.lon, lat: c.lat,
+  }));
+  // Built once from the footprints rather than shipped a second time: the address is already on
+  // the building, and so is the centroid to travel to.
+  const addresses = [];
+  for (const way of DATA.ways) {
+    if (way.kind !== "building" || !way.centroid) continue;
+    const address = way.address || {};
+    const label = address.formatted
+      || [address.house_number, address.street].filter(Boolean).join(" ");
+    if (!label) continue;
+    addresses.push({
+      label, hay: `${label} ${way.name || ""}`.toLowerCase(),
+      lon: way.centroid[0], lat: way.centroid[1],
+    });
+  }
   let selected = -1;
   let showing = [];
+
+  function match(list, words, limit) {
+    const found = [];
+    for (const entry of list) {
+      if (words.every((w) => entry.hay.includes(w))) {
+        found.push(entry);
+        if (found.length >= limit) break;
+      }
+    }
+    return found;
+  }
 
   function search(query) {
     const words = query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
     if (!words.length) return [];
-    return corners
-      .filter((c) => {
-        const hay = `${c.a} ${c.b}`.toLowerCase();
-        return words.every((w) => hay.includes(w));
-      })
-      .slice(0, 8);
+    const numbered = /^\d/.test(words[0]);
+    const first = numbered ? match(addresses, words, 8) : match(corners, words, 8);
+    if (first.length >= 8) return first;
+    const second = numbered
+      ? match(corners, words, 8 - first.length)
+      : match(addresses, words, 8 - first.length);
+    return first.concat(second);
   }
 
   function paint() {
     hits.replaceChildren();
-    showing.forEach((corner, index) => {
+    showing.forEach((place, index) => {
       const item = document.createElement("li");
-      item.textContent = `${corner.a} & ${corner.b}`;
+      item.textContent = place.label;
       item.setAttribute("aria-selected", String(index === selected));
-      item.addEventListener("click", () => travelTo(corner));
+      item.addEventListener("click", () => travelTo(place));
       hits.append(item);
     });
   }
 
-  function travelTo(corner) {
-    const [x, y] = xy(corner.lon, corner.lat);
-    // A named corner is a destination, so this behaves like the two-finger gesture: it moves
+  function travelTo(place) {
+    const [x, y] = xy(place.lon, place.lat);
+    // A named place is a destination, so this behaves like the two-finger gesture: it moves
     // the sphere and closes the distance rather than only turning the camera.
     goTo(new THREE.Vector3(x, 0, -y), { travel: true });
-    field.value = `${corner.a} & ${corner.b}`;
+    field.value = place.label;
     showing = [];
     selected = -1;
     paint();
@@ -3167,11 +3783,47 @@ canvas.addEventListener("pointerup", (e) => {
   goTo(groundAt(e.clientX, e.clientY), { travel: false });
 });
 
+// The address, where the building is. Every footprint carries the parcel it stands on and the
+// address the city has for it, so this is a lookup rather than a guess -- 15,673 of the 15,984
+// buildings have one.
+const addrBox = document.getElementById("addr");
+
+function hideAddress() { if (addrBox) addrBox.hidden = true; }
+
+function showAddress(feature, clientX, clientY) {
+  if (!addrBox) return false;
+  const address = feature.address || {};
+  const parcel = feature.parcel || {};
+  const line = address.formatted
+    || [address.house_number, address.street].filter(Boolean).join(" ");
+  if (!line && !feature.name) return false;
+  const rest = [
+    feature.name && line ? feature.name : "",
+    parcel.blklot ? `Parcel ${parcel.blklot}` : "",
+    parcel.analysis_neighborhood || "",
+  ].filter(Boolean);
+  addrBox.innerHTML = `<b>${line || feature.name}</b>`
+    + (rest.length ? `<br><span class="sub">${rest.join(" &middot; ")}</span>` : "");
+  addrBox.hidden = false;
+  // Placed after it is measurable, and kept inside the window rather than half off the edge.
+  const box = addrBox.getBoundingClientRect();
+  addrBox.style.left = `${Math.min(clientX + 12, innerWidth - box.width - 12)}px`;
+  addrBox.style.top = `${Math.min(clientY + 12, innerHeight - box.height - 12)}px`;
+  return true;
+}
+
 canvas.addEventListener("contextmenu", (e) => {
-  // A two-finger tap on a trackpad, or a right click. Both arrive here.
+  // A two-finger tap on a trackpad, or a right click. Both arrive here. On a building it asks
+  // what the building is; on the ground it still travels, which is the gesture that was here
+  // first and the one the help text describes.
   e.preventDefault();
+  const feature = pickedFeature(e.clientX, e.clientY);
+  if (feature && showAddress(feature, e.clientX, e.clientY)) return;
+  hideAddress();
   goTo(groundAt(e.clientX, e.clientY), { travel: true });
 });
+canvas.addEventListener("pointerdown", hideAddress);
+addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
 
 let previous = performance.now();
 function stepAvatar(now) {
