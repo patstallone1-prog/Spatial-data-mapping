@@ -95,6 +95,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
         <button data-layer="sequences" aria-pressed="true">Sequences</button>
         <button data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
         <button data-layer="facades" aria-pressed="true">Photo facades</button>
+        <button data-layer="ground" aria-pressed="true">Ground &amp; trees</button>
         <button data-layer="official" aria-pressed="false">Official geometry</button>
         <button data-layer="chunks" aria-pressed="false">Chunks</button>
         <button data-layer="districts" aria-pressed="true">Districts</button>
@@ -175,6 +176,7 @@ const groups = {
   districts: new THREE.Group(),
   kerbs: new THREE.Group(),
   facades: new THREE.Group(),
+  ground: new THREE.Group(),
   official: new THREE.Group(),
   chunks: new THREE.Group(),
   gaps: new THREE.Group(),
@@ -1702,7 +1704,15 @@ function buildingMesh(feature) {
     colour.setHSL(hsl.h, hsl.s * 0.35, hsl.l * 0.92);
     tint = colour.getHex();
   }
-  const roofTint = new THREE.Color(tint).multiplyScalar(0.68);
+  // Darkened, but with a floor. At a flat 0.68 a dark wall gave a roof near enough to black
+  // that whole blocks read as holes in the city from above -- which is exactly what a hole
+  // looks like, and sent me hunting for missing ground that was never missing.
+  const roofTint = new THREE.Color(tint).multiplyScalar(0.80);
+  {
+    const hsl = {};
+    roofTint.getHSL(hsl);
+    if (hsl.l < 0.22) roofTint.setHSL(hsl.h, hsl.s, 0.22);
+  }
   const roof = new THREE.MeshStandardMaterial({
     color: roofTint, transparent: opacity < 1, opacity,
     roughness: 0.97, metalness: material.name === "metal" ? 0.5 : 0.03,
@@ -2087,6 +2097,207 @@ for (const way of DATA.ways) {
   ground.position.set((x1 + x2) / 2, -0.14, -(y1 + y2) / 2);
   groups.streets.add(ground);
 }
+
+// ---- what is on the ground ----
+//
+// A third of this corridor had nothing drawn on it: back gardens, light wells, car parks, the
+// middles of blocks, and the parks. It rendered as holes onto the background, which is where
+// the black patches came from.
+//
+// None of it needed inventing. San Francisco maps its parks, and it maps every parcel, so the
+// ground between a house and its property line is a polygon the city already holds. The trees
+// are the part that would otherwise have been made up -- five procedural variants scattered at
+// random would have looked like a city, while twenty-seven thousand real positions with a
+// species and a trunk diameter each is this city.
+//
+// Everything here is merged or instanced. Thirty-three thousand separate meshes is thirty-three
+// thousand draw calls and no frame rate; merged, it is four.
+function grassTexture() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#52713f";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size * 0.7; i += 1) {
+    const shade = random(i * 7);
+    ctx.fillStyle = shade < 0.4 ? "rgba(44,62,34,0.45)"
+      : shade < 0.78 ? "rgba(118,150,86,0.45)" : "rgba(160,182,112,0.32)";
+    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, random(i * 11) < 0.5 ? 2 : 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(24, 24);
+  return texture;
+}
+
+function yardTexture() {
+  // Back gardens are not lawn from end to end -- they are a mix of planting, paving and the
+  // things people keep outside -- so this is a duller, browner ground than a park.
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#61604f";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size * 0.6; i += 1) {
+    const shade = random(i * 13);
+    ctx.fillStyle = shade < 0.35 ? "rgba(46,48,36,0.40)"
+      : shade < 0.7 ? "rgba(112,120,84,0.38)" : "rgba(150,142,116,0.30)";
+    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(20, 20);
+  return texture;
+}
+
+function ringGeometry(rings, y) {
+  // One geometry for every ring handed in, triangulated by ear clipping through THREE.Shape.
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  for (const ring of rings) {
+    const shape = new THREE.Shape();
+    let started = false;
+    for (const [lon, lat] of ring) {
+      const [x, z] = xy(lon, lat);
+      if (!started) { shape.moveTo(x, z); started = true; } else shape.lineTo(x, z);
+    }
+    if (!started) continue;
+    let geom;
+    try {
+      geom = new THREE.ShapeGeometry(shape);
+    } catch (err) {
+      continue;                        // a self-intersecting ring; skip it rather than throw
+    }
+    const base = positions.length / 3;
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i += 1) {
+      // ShapeGeometry lays the shape in XY; this is a ground plane, so its y becomes -z.
+      positions.push(pos.getX(i), y, -pos.getY(i));
+      uvs.push(pos.getX(i) / 8, pos.getY(i) / 8);
+    }
+    const index = geom.getIndex();
+    if (index) for (let i = 0; i < index.count; i += 1) indices.push(base + index.getX(i));
+    geom.dispose();
+  }
+  if (!indices.length) return null;
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  merged.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  merged.setIndex(indices);
+  merged.computeVertexNormals();
+  return merged;
+}
+
+function treeVariant(kind) {
+  // Five shapes, because five is enough to stop a street looking cloned. Each is a trunk and a
+  // crown; the crown's proportions are what tells a palm from a plane tree at a distance.
+  const group = new THREE.Group();
+  const trunkHeight = kind === "palm" ? 0.78 : kind === "columnar" ? 0.32 : 0.36;
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.055, 0.085, trunkHeight, 6),
+    new THREE.MeshStandardMaterial({ color: 0x4a3f33, roughness: 0.95 })
+  );
+  trunk.position.y = trunkHeight / 2;
+  group.add(trunk);
+
+  const leaf = new THREE.MeshStandardMaterial({
+    color: kind === "conifer" ? 0x2c4630 : kind === "palm" ? 0x3f6136 : 0x3a5a30,
+    roughness: 0.92, metalness: 0.0,
+  });
+  let crown;
+  if (kind === "conifer") crown = new THREE.ConeGeometry(0.30, 0.86, 7);
+  else if (kind === "palm") crown = new THREE.ConeGeometry(0.42, 0.30, 6, 1, true);
+  else if (kind === "columnar") crown = new THREE.CylinderGeometry(0.22, 0.16, 0.82, 6);
+  else if (kind === "broad") crown = new THREE.SphereGeometry(0.40, 8, 6);
+  else crown = new THREE.SphereGeometry(0.33, 7, 5);
+  const canopy = new THREE.Mesh(crown, leaf);
+  canopy.position.y = trunkHeight + (kind === "conifer" ? 0.40 : kind === "palm" ? 0.12 : 0.34);
+  if (kind === "broad" || kind === "street") canopy.scale.set(1, 0.82, 1);
+  group.add(canopy);
+  return group;
+}
+
+(async () => {
+  let ground;
+  try {
+    ground = await fetch("sf-corridor-ground.json", { cache: "no-cache" }).then((r) => r.json());
+  } catch (err) {
+    return;
+  }
+
+  const parkGeom = ringGeometry((ground.parks || []).map((p) => p.p), -0.06);
+  if (parkGeom) {
+    groups.ground.add(new THREE.Mesh(parkGeom, new THREE.MeshStandardMaterial({
+      map: grassTexture(), color: 0xffffff, roughness: 0.97, metalness: 0.0,
+      side: THREE.DoubleSide,
+    })));
+  }
+
+  const yardGeom = ringGeometry((ground.yards || []).map((y) => y.p), -0.07);
+  if (yardGeom) {
+    groups.ground.add(new THREE.Mesh(yardGeom, new THREE.MeshStandardMaterial({
+      map: yardTexture(), color: 0xffffff, roughness: 0.98, metalness: 0.0,
+      side: THREE.DoubleSide,
+    })));
+  }
+
+  // The fences: every parcel boundary, as one set of line segments. A boundary that runs along
+  // a street is a frontage rather than a fence, so those are dropped -- which is also what
+  // stops a fence being drawn across the pavement.
+  const fence = [];
+  for (const yard of ground.yards || []) {
+    const ring = yard.p;
+    for (let i = 0; i < ring.length; i += 1) {
+      const a = ring[i];
+      const b = ring[(i + 1) % ring.length];
+      const [ax, ay] = xy(a[0], a[1]);
+      const [bx, by] = xy(b[0], b[1]);
+      if (insideCarriageway(ax, -ay, -1.5) || insideCarriageway(bx, -by, -1.5)) continue;
+      fence.push(ax, 0.0, -ay, ax, 1.5, -ay);
+      fence.push(ax, 1.5, -ay, bx, 1.5, -by);
+    }
+  }
+  if (fence.length) {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(fence, 3));
+    groups.ground.add(new THREE.LineSegments(geom, new THREE.LineBasicMaterial({
+      color: 0x4b4136, transparent: true, opacity: 0.55,
+    })));
+  }
+
+  // Trees, one instanced mesh per variant. The trunk diameter the city recorded sets the size:
+  // a three inch stem is a sapling and a thirty inch one has a crown over the roadway.
+  const byVariant = new Map();
+  for (const tree of ground.trees || []) {
+    if (!byVariant.has(tree.v)) byVariant.set(tree.v, []);
+    byVariant.get(tree.v).push(tree);
+  }
+  const dummy = new THREE.Object3D();
+  for (const [kind, list] of byVariant) {
+    const proto = treeVariant(kind);
+    for (const part of proto.children) {
+      const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length);
+      for (let i = 0; i < list.length; i += 1) {
+        const tree = list[i];
+        const [x, y] = xy(tree.p[0], tree.p[1]);
+        // Height from the trunk: roughly a foot of tree per inch of diameter, which is the
+        // rule of thumb an arborist would use and is close enough for a canopy.
+        const scale = Math.max(2.2, Math.min(16.0, tree.d * 0.42));
+        dummy.position.set(x, 0, -y);
+        dummy.scale.setScalar(scale);
+        dummy.position.y = part.position.y * scale;
+        dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      groups.ground.add(mesh);
+    }
+  }
+})();
 
 const districtColors = [0x1d4d58, 0x355038, 0x4a3e61, 0x5a4930, 0x533749, 0x29475f];
 DATA.districts.forEach((d, i) => {
