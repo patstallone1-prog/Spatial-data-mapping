@@ -86,6 +86,42 @@ def test_renderer_densifies_curved_road_markings() -> None:
     assert "paintedLine(offsetWay(renderPoints, offset), MARK_W" in source
 
 
+def test_narrow_pavement_uses_long_tiles_without_widening_geometry() -> None:
+    source = _source()
+
+    assert 'const NARROW_SIDEWALK = sidewalkTexture("narrow");' in source
+    assert 'if (surface === "walk_narrow") return [NARROW_SLAB_M, width];' in source
+    assert 'if (surface === "walk_narrow") return NARROW_SIDEWALK;' in source
+    assert 'widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk"' in source
+    assert "addPavementRibbon(surfacePoints, widthMeters" in source
+
+
+def test_bike_lanes_follow_osm_cycleway_tags_and_keep_edge_lines() -> None:
+    source = _source()
+
+    assert "function cyclewaySides(way)" in source
+    assert "way.cycleway_left" in source
+    assert "way.cycleway_right" in source
+    assert "way.cycleway_both" in source
+    assert "function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop)" in source
+    assert "const BIKE_EDGE_W_M = 0.18;" in source
+    assert "ribbon(offsetWay(lanePoints, laneCentre), BIKE_LANE_M, 0xffffff, 1.0" in source
+    assert "paintedLine(offsetWay(linePoints, outerOffset), BIKE_EDGE_W_M" in source
+    assert "paintedLine(offsetWay(linePoints, innerOffset), BIKE_EDGE_W_M" in source
+
+
+def test_beaches_and_extended_bay_water_are_rendered() -> None:
+    source = _source()
+
+    assert 'way["natural"="beach"]' in source
+    assert 'relation["natural"="beach"]' in source
+    assert "COASTAL_BAND_M = 1400.0" in source
+    assert '"kind": "beach"' in source
+    assert "function sandTexture()" in source
+    assert "const SAND = sandTexture();" in source
+    assert 'way.kind === "beach"' in source
+
+
 def test_lane_centerline_respects_both_official_and_osm_oneway_flags() -> None:
     source = _source()
 
