@@ -1,13 +1,15 @@
 {
- "parts": 742,
- "frames_segmented": 185500,
+ "parts": 1051,
+ "parts_readable": 1051,
+ "parts_mid_write": 0,
+ "frames_segmented": 262750,
  "median": {
   "sidewalk": 0.0063,
-  "road": 0.2018,
-  "facade": 0.472,
-  "occlusion": 0.087,
-  "kerb_value": 0.0356
+  "road": 0.2014,
+  "facade": 0.4722,
+  "occlusion": 0.0872,
+  "kerb_value": 0.0357
  },
- "no_sidewalk_visible_share": 0.583,
- "heavily_occluded_share": 0.074
+ "heavily_occluded_share": 0.074,
+ "no_sidewalk_visible_share": 0.583
 }
