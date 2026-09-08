@@ -23,8 +23,28 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
 
     assert "function pavementRunsOutsideCarriageway(points, width)" in source
     assert "distanceToSegmentSquared(x, z, ax, az, bx, bz)" in source
-    assert "addPavementRibbon(way.points, widthMeters" in source
-    assert "addPavementRibbon(\n        trimWay(offsetWay" in source
+    assert "const edge = Math.max(0.2, width / 2 - 0.12);" in source
+    assert "insideCarriageway(x + nx * edge, z + nz * edge, 0.12)" in source
+    assert "addPavementRibbon(renderPoints, widthMeters" in source
+    assert "trimWay(offsetWay(renderPoints, side * (inner + walk / 2))" in source
+
+
+def test_renderer_clamps_wide_right_of_way_fallbacks() -> None:
+    source = _source()
+
+    assert "function renderedRoadWidth(way)" in source
+    assert 'const sourceCap = way.road_source === "curb_geometry" ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;' in source
+    assert "const half = renderedRoadWidth(way) / 2;" in source
+    assert "const road = widthMeters;" in source
+
+
+def test_renderer_densifies_curved_road_markings() -> None:
+    source = _source()
+
+    assert "function densifyWay(points, maxSpan = 5.0)" in source
+    assert "const renderPoints = densifyWay(way.points);" in source
+    assert "groups.streets.add(ribbon(renderPoints, widthMeters" in source
+    assert "dashedLine(offsetWay(renderPoints, offset)" in source
 
 
 def test_lane_centerline_respects_both_official_and_osm_oneway_flags() -> None:

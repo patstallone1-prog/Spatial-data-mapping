@@ -1512,6 +1512,21 @@ function wayLength(points) {
   return total;
 }
 
+function densifyWay(points, maxSpan = 5.0) {
+  if (!points || points.length < 2) return points || [];
+  const out = [points[0]];
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1];
+    const b = points[i];
+    const [ax, ay] = xy(a[0], a[1]);
+    const [bx, by] = xy(b[0], b[1]);
+    const length = Math.hypot(bx - ax, by - ay);
+    const steps = Math.max(1, Math.ceil(length / maxSpan));
+    for (let k = 1; k <= steps; k += 1) out.push(lerpLonLat(a, b, k / steps));
+  }
+  return out;
+}
+
 function trimWay(points, metres) {
   // The same way with both ends pulled back.
   //
@@ -2224,6 +2239,36 @@ function roadSurfaceTop() { return 0.06 + KERB_FALLBACK; }
 // pavement asks before it is placed.
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
+const MIN_RENDER_ROAD_M = 2.8;
+const MAX_RENDER_ROAD_M = 24.0;
+const MAX_INFERRED_ROAD_M = 16.5;
+const MIN_RENDER_WALK_M = 0.9;
+const MAX_RENDER_WALK_M = 5.5;
+
+function laneCountForWay(way) {
+  const oneway = Boolean(way.oneway || way.osm_oneway);
+  const tagged = way.lanes || 0;
+  const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
+  const backward = way.lanes_back || (oneway ? 0 : Math.floor(tagged / 2));
+  return oneway ? (forward || tagged || 0)
+    : (way.lanes_fwd || way.lanes_back ? (forward || 0) + (backward || 0) : tagged);
+}
+
+function renderedRoadWidth(way) {
+  // Keep official width metadata intact, but render one OSM way as one carriageway.
+  // Broad right-of-way fallbacks and divided street matches otherwise turn a single mapped
+  // way into a plaza-wide slab, which is what covers sidewalks/streets at curved junctions.
+  const raw = way.road_m || 8.0;
+  const lanes = laneCountForWay(way);
+  const laneCap = lanes ? Math.max(4.2, lanes * 3.35 + 1.4) : MAX_INFERRED_ROAD_M;
+  const sourceCap = way.road_source === "curb_geometry" ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;
+  return Math.max(MIN_RENDER_ROAD_M, Math.min(raw, laneCap, sourceCap));
+}
+
+function renderedWalkWidth(way, fallback = 3.0) {
+  const raw = way.walk_m || way.walk_fallback_m || fallback;
+  return Math.max(MIN_RENDER_WALK_M, Math.min(raw, MAX_RENDER_WALK_M));
+}
 
 function addCarriagewaySegment(ax, az, bx, bz, half) {
   const minX = Math.floor((Math.min(ax, bx) - half) / CARRIAGEWAY_CELL);
@@ -2242,7 +2287,7 @@ function addCarriagewaySegment(ax, az, bx, bz, half) {
 
 for (const way of DATA.ways) {
   if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
-  const half = (way.road_m || 8.0) / 2;
+  const half = renderedRoadWidth(way) / 2;
   for (let i = 1; i < way.points.length; i += 1) {
     const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
     const [bx, by] = xy(way.points[i][0], way.points[i][1]);
@@ -2289,11 +2334,14 @@ function lerpLonLat(a, b, t) {
 
 function pavementRunsOutsideCarriageway(points, width) {
   // Sidewalks and paths are solid concrete, not overlays. If any run of their centreline falls
-  // inside a carriageway, split it out before a ribbon can be built over the street.
+  // inside a carriageway, split it out before a ribbon can be built over the street. The guard
+  // samples both ribbon edges too, because a wide walk can have a clean centreline while its
+  // inner edge still slides over asphalt around curves and mitred junctions.
   if (!points || points.length < 2) return [];
   const runs = [];
   let run = [];
   const guard = Math.max(0.45, Math.min(1.15, width / 2 - 0.2));
+  const edge = Math.max(0.2, width / 2 - 0.12);
   const finish = () => {
     if (run.length >= 2 && wayLength(run) > 0.9) runs.push(run);
     run = [];
@@ -2309,7 +2357,16 @@ function pavementRunsOutsideCarriageway(points, width) {
     for (let k = i === 1 ? 0 : 1; k <= steps; k += 1) {
       const point = lerpLonLat(a, b, k / steps);
       const [x, y] = xy(point[0], point[1]);
-      if (insideCarriageway(x, -y, -guard)) {
+      const z = -y;
+      const dx = bx - ax;
+      const dz = ay - by;
+      const span = Math.hypot(dx, dz) || 1;
+      const nx = -dz / span;
+      const nz = dx / span;
+      const overlaps = insideCarriageway(x, z, -guard)
+        || insideCarriageway(x + nx * edge, z + nz * edge, 0.12)
+        || insideCarriageway(x - nx * edge, z - nz * edge, 0.12);
+      if (overlaps) {
         finish();
       } else {
         const last = run[run.length - 1];
@@ -2918,9 +2975,10 @@ for (const way of DATA.ways) {
   // A San Francisco crosswalk band is about twelve feet, not seventeen. The extra width made
   // the bars sparse and the whole marking read as a couple of stripes.
   const widthMeters = isCrossing ? 3.7
-    : isSidewalk ? (way.walk_m || way.walk_fallback_m || 3.6)
+    : isSidewalk ? renderedWalkWidth(way, 3.6)
     : isPath ? 2.4
-    : (way.road_m || 8.0);
+    : renderedRoadWidth(way);
+  const renderPoints = densifyWay(way.points);
   // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
   // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
   const KERB = way.kerb_m || KERB_FALLBACK;
@@ -2943,21 +3001,21 @@ for (const way of DATA.ways) {
     // disagreeing about where a crossing is rather than evidence that one is plain. The
     // ``continental`` flag still records the 817 the city confirms.
   if (isSidewalk || isPath) {
-    addPavementRibbon(way.points, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind);
+    addPavementRibbon(renderPoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind);
   } else {
-    groups.streets.add(ribbon(way.points, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind));
+    groups.streets.add(ribbon(renderPoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind));
   }
   // The footways, laid from the kerb outward on both sides. Drawn a centimetre below the
   // mapped sidewalk ways so that where OpenStreetMap has one the two do not fight, and so
   // that where it has none there is still pavement rather than a hole.
   if (!isSidewalk && !isCrossing && !isPath) {
-    const walk = way.walk_m || way.walk_fallback_m || 3.0;
+    const walk = renderedWalkWidth(way, 3.0);
     const inner = widthMeters / 2;
     // Both sides unless one of them is inside another street's carriageway, which happens
     // wherever a divided road is drawn as two ways.
     for (const side of (way.walk_sides !== undefined ? way.walk_sides : [1, -1])) {
       addPavementRibbon(
-        trimWay(offsetWay(way.points, side * (inner + walk / 2)), inner + 1.5),
+        trimWay(offsetWay(renderPoints, side * (inner + walk / 2)), Math.max(2.0, inner + walk * 0.7)),
         walk, color, opacity, roadTop + KERB / 2 - 0.015, KERB, "walk");
     }
   }
@@ -2972,7 +3030,7 @@ for (const way of DATA.ways) {
   // Lane dividers, from OpenStreetMap's own count. White and broken between lanes running the
   // same way; the yellow is reserved for the line that separates opposing traffic.
   if (!isSidewalk && !isCrossing && !isPath) {
-    const road = way.road_m || 8.0;
+    const road = widthMeters;
     const oneway = Boolean(way.oneway || way.osm_oneway);
     const tagged = way.lanes || 0;
     const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
@@ -2991,7 +3049,7 @@ for (const way of DATA.ways) {
           if (opposing && i === (backward || Math.floor(total / 2))) continue;
           const offset = road / 2 - i * laneWidth;
           if (Math.abs(offset) >= road / 2 - 0.35) continue;
-          groups.streets.add(dashedLine(offsetWay(way.points, offset), 0xdfe3e0, 0.7,
+          groups.streets.add(dashedLine(offsetWay(renderPoints, offset), 0xdfe3e0, 0.7,
                                         roadTop + 0.015));
         }
       }
@@ -3002,7 +3060,7 @@ for (const way of DATA.ways) {
       // rule -- and drawn as one dashed thread it read as a dotted line on a map rather than as
       // a road marking.
       for (const side of [1, -1]) {
-        groups.streets.add(line(offsetWay(way.points, side * 0.18), 0xf0c33c, 0.95,
+        groups.streets.add(line(offsetWay(renderPoints, side * 0.18), 0xf0c33c, 0.95,
                                 roadTop + 0.02));
       }
     }
@@ -3017,7 +3075,7 @@ for (const way of DATA.ways) {
     for (let i = 0; i < tokens.length; i += 1) {
       const kind = arrowKind(tokens[i]);
       if (!kind) continue;
-      const lane = trimWay(offsetWay(way.points, offsets[i]), 6.0);
+      const lane = trimWay(offsetWay(renderPoints, offsets[i]), 6.0);
       if (!lane || lane.length < 2) continue;
       const tail = lane[lane.length - 1];
       const before = lane[lane.length - 2];
@@ -3046,7 +3104,7 @@ for (const way of DATA.ways) {
     //
     // It is also survey data rather than street, so it belongs with the other layers that
     // describe the dataset and is off until asked for.
-    groups.kerbs.add(ribbon(way.points, isCrossing ? 0.8 : 0.45, 0xff4d8f,
+    groups.kerbs.add(ribbon(renderPoints, isCrossing ? 0.8 : 0.45, 0xff4d8f,
       0.95, roadTop + KERB + 0.03, 0.05));
   }
   if (!isCrossing && !isSidewalk && way.name && !streetNames.has(way.name) && streetLabelCount < 90) {
