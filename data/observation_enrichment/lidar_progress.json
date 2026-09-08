@@ -1,7 +1,7 @@
 {
- "sweeps_done": 2300,
+ "sweeps_done": 2500,
  "sweeps_total": 2547,
- "frames_with_depth": 13764,
+ "frames_with_depth": 14964,
  "sweeps_abandoned": 6,
  "checkpointed": false,
  "note": "the lidar pass writes lidar_depth-000.parquet once, at the end; an interrupted run leaves no partial data behind"

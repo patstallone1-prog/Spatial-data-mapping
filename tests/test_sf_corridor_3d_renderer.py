@@ -29,7 +29,12 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     assert "function pavementRunsOutsideCarriageway(points, width)" in source
     assert "distanceToSegmentSquared(x, z, ax, az, bx, bz)" in source
     assert "const edge = Math.max(0.2, width / 2 - 0.12);" in source
-    assert "insideCarriageway(x + nx * edge, z + nz * edge, 0.12)" in source
+    # What the guard may not do is widen the carriageway before testing it -- see
+    # tests/test_corridor_geometry_rules.py, which runs this rule instead of reading it. The
+    # literal that used to be asserted here was the bug: it inflated the road by up to 1.15 m
+    # and deleted 63 of the 201 km of mapped footway in the corridor.
+    assert "const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);" in source
+    assert "(innerEdge && outerEdge)" in source
     assert "function trimWalkwayForCorners(points, width)" in source
     assert "addPavementRibbon(surfacePoints, widthMeters" in source
     assert "trimWay(offsetWay(renderPoints, side * (inner + walk / 2))" in source
@@ -76,7 +81,9 @@ def test_renderer_densifies_curved_road_markings() -> None:
     assert "function densifyWay(points, maxSpan = 5.0)" in source
     assert "const renderPoints = densifyWay(way.points);" in source
     assert "groups.streets.add(ribbon(surfacePoints, widthMeters" in source
-    assert "dashedLine(offsetWay(renderPoints, offset)" in source
+    # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
+    # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
+    assert "paintedLine(offsetWay(renderPoints, offset), MARK_W" in source
 
 
 def test_lane_centerline_respects_both_official_and_osm_oneway_flags() -> None:
@@ -101,10 +108,14 @@ def test_facade_renderer_adds_roof_material_detail() -> None:
     source = _source()
 
     assert "function roofTexture(seed, base, archetype)" in source
-    assert 'archetype === "residential" || archetype === "generic"' in source
-    assert "Solar modules" in source
-    assert "Roof deck" in source
     assert "map: roofTextureFor(tint, seed, feature.archetype)" in source
+    # The surface, and only the surface. Roof furniture used to be painted into this texture,
+    # which repeats 2.5 times across every roof -- so one solar array became six copies of
+    # itself at arbitrary size, clipped at the tile edges. What stands on a roof is geometry
+    # now; see test_corridor_geometry_rules for the rules it is placed by.
+    assert "Solar modules" not in source
+    assert "function addRoofFurniture(group, feature, seed, height, areaM2)" in source
+    assert "addRoofFurniture(group, feature, seed, height, areaM2);" in source
 
 
 def test_facade_renderer_adds_south_facing_window_detail() -> None:

@@ -166,6 +166,31 @@ def osm_rings(element: dict) -> list[list]:
     return rings
 
 
+def off_the_road(ring: list, road: RoadMask) -> tuple[list, int]:
+    """The same ring with no corner left standing on the carriageway.
+
+    Every corner inside the roadway is moved to the nearest ground that is not, which is the
+    same rule and the same index the street trees are placed by. A corner too far inside to be
+    a survey discrepancy has nowhere sensible to go and is left where it is -- the caller has
+    already refused any ring that is mostly road, so what reaches here is an edge overlapping a
+    kerb line rather than a lot in the middle of a street.
+    """
+    out = []
+    moved = 0
+    for lon, lat in ring:
+        if road.is_road(lon, lat):
+            placed = road.clear_of_road(lon, lat)
+            if placed is not None and placed != (lon, lat):
+                out.append([placed[0], placed[1]])
+                moved += 1
+                continue
+        out.append([lon, lat])
+    # A ring is closed, and moving its first corner without moving its last opens it.
+    if len(out) > 2 and ring[0] == ring[-1]:
+        out[-1] = list(out[0])
+    return out, moved
+
+
 def simplify(ring: list, tolerance_m: float = SIMPLIFY_M) -> list:
     """Douglas-Peucker on a lon/lat ring, with the tolerance given in metres."""
     if len(ring) < 4:
@@ -254,6 +279,7 @@ def main() -> int:
     for row in park_rows:
         for ring in geojson_rings(row.get("the_geom") or {}):
             if len(ring) >= 4:
+                ring, _ = off_the_road(ring, road)
                 parks.append({"n": row.get("map_park_n"),
                               "p": [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]})
     progress(f"{len(parks)} park rings from Recreation and Parks")
@@ -274,6 +300,7 @@ def main() -> int:
                 continue
             if road.share_inside(ring) > 0.35:
                 continue
+            ring, _ = off_the_road(ring, road)
             simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
             parks.append({"n": name, "p": simplified})
             lattice.stamp_polygon(simplified)
@@ -304,8 +331,9 @@ def main() -> int:
                                # metric frame the renderer lays the world out in.
                                "a": round(court.angle, 5),
                                "l": round(court.length, 2), "w": round(court.width, 2)})
+            fenced, _ = off_the_road(ring, road)
             pitches.append({"s": placed[0][0], "n": tags.get("name"),
-                            "p": [[round(x, 6), round(y, 6)] for x, y in ring]})
+                            "p": [[round(x, 6), round(y, 6)] for x, y in fenced]})
             lattice.stamp_polygon(ring)
             for kind, _ in placed:
                 by_sport[kind] = by_sport.get(kind, 0) + 1
@@ -373,6 +401,7 @@ def main() -> int:
     parcel_rows = fetch("acdm-wktn", f"{box.replace('the_geom', 'shape')} AND active=true",
                         "mapblklot,shape", "parcels", progress)
     yards = []
+    nudged_vertices = 0
     lawns = []
     front_walks = []
     service_yards = []
@@ -400,6 +429,15 @@ def main() -> int:
             if road.share_inside(ring) > 0.35:
                 dropped_yards += 1
                 continue
+            # And a parcel that is only partly in the carriageway is not allowed to keep the
+            # part that is. A lot is surveyed to its property line, which in this city is
+            # commonly a metre or two inside the kerb; a third of a lot may lie under the road
+            # and still pass the test above. Drawn as it comes, that is the slab of pavement in
+            # the middle of the street -- and with the front frontages textured as pavement it
+            # is a slab that looks exactly like a footway somebody laid on the tarmac. So the
+            # ring is pulled off the carriageway rather than drawn across it.
+            ring, moved = off_the_road(ring, road)
+            nudged_vertices += moved
             blklot = str(row.get("mapblklot") or "")
             simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
             item = {"id": blklot, "p": simplified}
@@ -420,7 +458,8 @@ def main() -> int:
                 # matches is a boundary that gets fenced twice.
                 kept_rings.append((blklot, ring))
     progress(f"{len(yards)} grass parcel remainders, {len(front_walks)} shallow frontages, "
-             f"{len(service_yards)} neutral slivers ({dropped_yards} dropped for lying in the road)")
+             f"{len(service_yards)} neutral slivers ({dropped_yards} dropped for lying in the "
+             f"road, {nudged_vertices} corners pulled off it)")
     for yard in [*yards, *front_walks, *service_yards]:
         lattice.stamp_polygon(yard["p"])
 
@@ -438,7 +477,7 @@ def main() -> int:
     # by one builder and its back fences match; picking per lot gives a patchwork nobody built.
     fences: dict[str, list[float]] = {}
     seen_edges: set[tuple] = set()
-    counts = {"street": 0, "wall": 0, "shared": 0, "drawn": 0}
+    counts = {"street": 0, "wall": 0, "shared": 0, "crosses": 0, "drawn": 0}
     for blklot, ring in kept_rings:
         kind, height = FENCE_KINDS[zlib.crc32(blklot[:4].encode()) % len(FENCE_KINDS)]
         metric = [to_metres(lon, lat) for lon, lat in ring]
@@ -474,6 +513,14 @@ def main() -> int:
                    or hit(street_band, x + nx * 2.5, y + ny * 2.5) for x, y in samples) >= 2:
                 counts["street"] += 1
                 continue
+            # And a boundary that crosses a street is not a fence at all. A long run can have
+            # both of its ends on somebody's lawn and pass clean through the roadway in between,
+            # which the three samples above will miss whenever the crossing falls between them.
+            steps = max(2, int(span // 2.0))
+            if any(hit(road.lattice, ax + (bx - ax) * (c / steps), ay + (by - ay) * (c / steps))
+                   for c in range(steps + 1)):
+                counts["crosses"] = counts.get("crosses", 0) + 1
+                continue
             if sum(hit(footprints, x + nx * 0.8, y + ny * 0.8)
                    or hit(footprints, x - nx * 0.8, y - ny * 0.8) for x, y in samples) >= 2:
                 counts["wall"] += 1
@@ -483,7 +530,8 @@ def main() -> int:
             counts["drawn"] += 1
     progress(f"{counts['drawn']} fence runs on inner property lines "
              f"({counts['street']} street frontages, {counts['wall']} along a wall, "
-             f"{counts['shared']} already fenced by the neighbour); "
+             f"{counts['shared']} already fenced by the neighbour, "
+             f"{counts['crosses']} crossing a roadway); "
              + ", ".join(f"{k} {len(v) // 4}" for k, v in sorted(fences.items())))
 
     # -- trees ---------------------------------------------------------------------------------

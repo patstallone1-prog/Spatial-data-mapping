@@ -46,7 +46,16 @@ build/sf_public_works/
 # The observation enrichment sidecar. Twenty-seven megabytes of derived join, rebuildable
 # in two minutes from the catalogue and the official geometry that are committed; the summary
 # beside it is small and is kept.
-data/observation_enrichment/*.parquet
+#
+# Named rather than globbed. The glob also caught the lidar depth table, which is 891 kB and is
+# the output of an eleven hour run over 2,547 sweeps -- the one file here that is expensive to
+# make and cheap to store, and it was being left out of every commit for the sake of a rule
+# written about the two big ones.
+data/observation_enrichment/enrichment-000.parquet
+data/observation_enrichment/pairs-000.parquet
+data/observation_enrichment/pose-000.parquet
+data/observation_enrichment/semantics-sample.parquet
+data/observation_enrichment/semantics-000.parquet
 
 # Raw SFMTA ArcGIS responses. Reproducible cache keyed by layer and query.
 build/sfmta/
