@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import http.client
 import sys
 import time
 from collections import defaultdict
@@ -116,7 +117,10 @@ def main() -> int:
                 break
             except KeyError:
                 break
-            except (OSError, TimeoutError) as exc:
+            except (OSError, TimeoutError, http.client.HTTPException) as exc:
+                # IncompleteRead is an HTTPException, not an OSError, so a retry list built
+                # from OSError alone lets it through and ends the run -- which is exactly how
+                # this died the first time and again at sweep 900.
                 # Eleven gigabytes of HTTP range reads against a mirror: one of them will
                 # eventually time out, and an unretried read ended a two-hour run at sweep 100.
                 if attempt == 3:

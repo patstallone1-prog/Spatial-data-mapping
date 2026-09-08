@@ -31,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from smc.ground.cover import Lattice  # noqa: E402
+from smc.ground.exclusion import RoadMask  # noqa: E402
 from smc.official.crs import geojson_rings  # noqa: E402
 
 PAGE = ROOT / "docs" / "sf-corridor-3d.json"
@@ -126,6 +127,12 @@ def main() -> int:
             lattice.stamp_polyline(points, 3.6)
     progress(f"described before ground cover: {lattice.grid.mean():.1%}")
 
+    # One authority on where the roadway is. Everything below is tested against it before it is
+    # written, so the file that ships cannot contain a tree in the carriageway or a garden over
+    # the tarmac -- which is a different thing from the renderer refusing to draw one.
+    road = RoadMask(payload["ways"], bbox)
+    progress(f"road mask: {road.grid.mean():.1%} of the corridor is carriageway")
+
     box = (f"within_box(the_geom, {CORRIDOR['north']}, {CORRIDOR['west']}, "
            f"{CORRIDOR['south']}, {CORRIDOR['east']})")
 
@@ -146,6 +153,7 @@ def main() -> int:
     # Every parcel, but only the ones that still have bare ground in them after everything else
     # is drawn. A parcel entirely under its own building adds nothing and would double the
     # payload for it.
+    dropped_yards = 0
     parcel_rows = fetch("acdm-wktn", f"{box.replace('the_geom', 'shape')} AND active=true",
                         "mapblklot,shape", "parcels", progress)
     yards = []
@@ -156,13 +164,21 @@ def main() -> int:
             bare = count_bare(lattice, ring)
             if bare < MIN_YARD_CELLS:
                 continue
+            # A parcel ring that is mostly carriageway is not a garden. It is a parcel whose
+            # boundary runs into the street, or one the road mask disagrees with, and either
+            # way drawing it lays ground over the road.
+            if road.share_inside(ring) > 0.35:
+                dropped_yards += 1
+                continue
             yards.append({"id": row.get("mapblklot"),
                           "p": [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]})
-    progress(f"{len(yards)} parcels with bare ground worth drawing")
+    progress(f"{len(yards)} parcels with bare ground worth drawing "
+             f"({dropped_yards} dropped for lying in the road)")
     for yard in yards:
         lattice.stamp_polygon(yard["p"])
 
     # -- trees ---------------------------------------------------------------------------------
+    dropped_trees = moved_trees = 0
     tree_rows = fetch(
         "tkzw-k3nq",
         f"latitude between {CORRIDOR['south']} and {CORRIDOR['north']} "
@@ -179,12 +195,24 @@ def main() -> int:
             dbh = float(row.get("dbh") or 0)
         except (TypeError, ValueError):
             dbh = 0.0
+        # A street tree stands in the footway. Where the recorded position lands in the
+        # carriageway it is the width that is wrong rather than the tree, so it is pushed to
+        # the nearest ground that is not road -- and dropped only when the nearest such ground
+        # is further away than a placement error can explain.
+        placed = road.clear_of_road(lon, lat)
+        if placed is None:
+            dropped_trees += 1
+            continue
+        if placed != (lon, lat):
+            moved_trees += 1
+        lon, lat = placed
         trees.append({"p": [round(lon, 6), round(lat, 6)],
                       "v": species_variant(species),
                       # Trunk diameter in inches drives the canopy: a 3 inch stem is a sapling
                       # and a 30 inch one is a street tree with a crown over the roadway.
                       "d": round(min(48.0, max(1.0, dbh)), 1)})
-    progress(f"{len(trees)} street trees")
+    progress(f"{len(trees)} street trees ({moved_trees} nudged clear of the roadway, "
+             f"{dropped_trees} dropped)")
 
     OUT.write_text(json.dumps({"parks": parks, "yards": yards, "trees": trees},
                               separators=(",", ":")))

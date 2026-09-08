@@ -1180,7 +1180,7 @@ function garageTextureFor(variant, tint) {
 //: How far the dropped kerb flares either side of the driveway itself. A cut is not a
 //: rectangle taken out of the kerb: it runs down over a wing at each end, which is why a real
 //: apron is wider at the gutter than at the back of the footway.
-const APRON_FLARE_M = 0.85;
+const APRON_FLARE_M = 0.35;
 
 //: The top of the footway, which is where anything laid on the pavement has to sit.
 function roadSurfaceTop() { return 0.06 + KERB_FALLBACK; }
@@ -1343,50 +1343,64 @@ function addPavementRibbon(points, width, color, opacity, y, thickness, surface)
 }
 
 function apronSlab(opening) {
-  // The ramp over the footway at a dropped kerb. It starts at the kerb and runs directly away
-  // from the road, because that is what a driveway does -- and because the alternative, aiming
-  // it at whichever wall the garage was matched to, sent it wherever that wall happened to
-  // face. Without a kerb anchor there is no defensible direction and none is drawn.
+  // The ramp at a dropped kerb.
+  //
+  // A driveway apron is not a slab laid on the pavement: it is the pavement itself falling
+  // from footway level to road level over about a metre, which is why the kerb "drops" there
+  // rather than stopping. Drawn flat it read as an extra square of sidewalk sitting in the
+  // street -- the right shape in the wrong plane. Drawn as the ramp it is, with the kerb face
+  // sloping instead of stepping, it reads as something a car drives over.
   if (!opening.kp || opening.on === undefined) return null;
   const [kx, ky] = xy(opening.kp[0], opening.kp[1]);
   const bearing = opening.on * Math.PI / 180;
-  const depth = Math.max(1.2, Math.min(opening.walk || 3.0, 6.0));
+  const depth = Math.max(1.0, Math.min(opening.walk || 3.0, 5.0));
   const width = Math.max(2.2, opening.w || 3.5);
 
-  // The rule, applied. If a corner of this slab would land in a carriageway then something
-  // upstream is wrong about this cut, and a missing apron is better than one lying in a road.
   const ox = Math.sin(bearing);
   const oz = -Math.cos(bearing);
-  for (const along of [0.35, 1.0]) {
+  const px = -oz;
+  const pz = ox;
+
+  const top = roadSurfaceTop();
+  // Three rows: the gutter, where the ramp meets the road; the top of the slope; and the back
+  // of the apron at the property line. Only the first is at road level.
+  const rows = [
+    { at: 0.0, y: 0.062, half: width / 2 },
+    { at: Math.min(1.0, depth * 0.45), y: top, half: width / 2 + APRON_FLARE_M },
+    { at: depth, y: top, half: width / 2 },
+  ];
+
+  const positions = [];
+  const uvs = [];
+  const index = [];
+  for (const row of rows) {
     for (const sign of [-1, 1]) {
-      const x = kx + ox * depth * along + -oz * sign * (width / 2 + APRON_FLARE_M);
-      const z = -ky + oz * depth * along + ox * sign * (width / 2 + APRON_FLARE_M);
-      if (insideCarriageway(x, z)) return null;
+      const x = kx + ox * row.at + px * sign * row.half;
+      const z = -ky + oz * row.at + pz * sign * row.half;
+      // The rule, applied to every corner: a ramp with a corner in the carriageway means
+      // something upstream is wrong about this cut, and none is better than one in the road.
+      if (insideCarriageway(x, z, 0.2)) return null;
+      positions.push(x, row.y, z);
+      uvs.push(sign > 0 ? width / SLAB_M : 0, row.at / SLAB_M);
     }
   }
+  for (let r = 1; r < rows.length; r += 1) {
+    const a = (r - 1) * 2;
+    const b = r * 2;
+    index.push(a, b, a + 1, a + 1, b, b + 1);
+  }
 
-  // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own width
-  // where it meets the property line.
-  const shape = new THREE.Shape();
-  shape.moveTo(-width / 2 - APRON_FLARE_M, 0);
-  shape.lineTo(width / 2 + APRON_FLARE_M, 0);
-  shape.lineTo(width / 2, depth);
-  shape.lineTo(-width / 2, depth);
-  shape.closePath();
-  const geometry = new THREE.ShapeGeometry(shape);
-  geometry.rotateX(-Math.PI / 2);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
 
-  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-    map: tiledMap(SIDEWALK, "apron", Math.max(1, Math.round(width / SLAB_M)),
-                  Math.max(1, Math.round(depth / SLAB_M))),
-    // The same concrete as the pavement it is poured into, and flush with it.
-    color: 0xffffff, roughness: 0.94, metalness: 0.02,
+  return new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    map: SIDEWALK, color: 0xffffff, roughness: 0.94, metalness: 0.02,
+    side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
   }));
-  mesh.position.set(kx, roadSurfaceTop() - 0.001, -ky);
-  // The shape runs toward +z before rotation, so this turns it onto the outward bearing.
-  mesh.rotation.y = Math.PI - bearing;
-  return mesh;
 }
 
 function garagePanel(opening, tint) {
@@ -2138,12 +2152,14 @@ function yardTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#61604f";
+  ctx.fillStyle = "#5c5a55";
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < size * size * 0.6; i += 1) {
     const shade = random(i * 13);
-    ctx.fillStyle = shade < 0.35 ? "rgba(46,48,36,0.40)"
-      : shade < 0.7 ? "rgba(112,120,84,0.38)" : "rgba(150,142,116,0.30)";
+    // Grey, with just enough brown in it to read as ground rather than as more pavement.
+    // These are yards, light wells and service strips, not lawns.
+    ctx.fillStyle = shade < 0.35 ? "rgba(44,42,38,0.40)"
+      : shade < 0.7 ? "rgba(122,118,108,0.34)" : "rgba(146,132,110,0.26)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
   }
   const texture = new THREE.CanvasTexture(canvas);

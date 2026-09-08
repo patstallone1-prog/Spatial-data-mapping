@@ -50,6 +50,10 @@ def overpass_query(bbox: BBox) -> str:
         f'way["natural"="water"]({area});'
         f'way["waterway"="riverbank"]({area});'
         f'relation["natural"="water"]({area});'
+        # The bay is not tagged as water. OpenStreetMap maps an ocean edge as a coastline way
+        # with land on its right and water on its left, and that convention is the only thing
+        # that says which side is wet.
+        f'way["natural"="coastline"]({area});'
         # What things are. A building's own tags say more than its footprint does, and in a
         # city this densely mapped most of the answer is already here: amenity for restaurants
         # and fuel stations, shop for retail, tourism for hotels. The points matter as much as
@@ -101,6 +105,92 @@ def _sidewalk_sides(tags: dict) -> list[int] | None:
     if plain in ("no", "none"):
         return []
     return None
+
+
+#: How far out to sea the water is drawn. Far enough to reach the edge of anything anybody
+#: will look at from the shore, and no further -- this is a band along the coast rather than an
+#: attempt at the whole bay.
+COASTAL_BAND_M = 600.0
+
+
+def _coastline_water(points: list[list[float]]) -> list[list[float]] | None:
+    """A strip of water on the seaward side of a coastline way.
+
+    OpenStreetMap's convention is that a coastline runs with the land on its right and the
+    water on its left, so the wet side is decided by the way's own direction rather than by
+    guessing which way is out. The polygon is the coastline itself plus the same line pushed
+    six hundred metres to port, closed at both ends.
+    """
+    if len(points) < 2:
+        return None
+    scale_lon = 88_000.0
+    scale_lat = 111_320.0
+    offset: list[list[float]] = []
+    for i, (lon, lat) in enumerate(points):
+        nxt = points[min(i + 1, len(points) - 1)]
+        prv = points[max(i - 1, 0)]
+        dx = (nxt[0] - prv[0]) * scale_lon
+        dy = (nxt[1] - prv[1]) * scale_lat
+        length = math.hypot(dx, dy)
+        if length < 1e-6:
+            continue
+        # Left of travel is (-dy, dx).
+        offset.append([lon + (-dy / length) * COASTAL_BAND_M / scale_lon,
+                       lat + (dx / length) * COASTAL_BAND_M / scale_lat])
+    if len(offset) < 2:
+        return None
+    return points + offset[::-1]
+
+
+def _relation_rings(element: dict, bbox: BBox) -> list[list[list[float]]]:
+    """Closed outer rings of a multipolygon relation, clipped to what is worth keeping.
+
+    Outer members arrive as separate ways that have to be strung end to end, and for something
+    the size of San Francisco Bay the result runs to tens of thousands of points most of which
+    are nowhere near this corridor. Rings entirely outside the region are dropped and the rest
+    are thinned, because a coastline drawn to the metre costs megabytes and looks identical.
+    """
+    chains: list[list[list[float]]] = []
+    for member in element.get("members") or []:
+        if member.get("role") not in (None, "", "outer"):
+            continue
+        points = [[round(p["lon"], PRECISION), round(p["lat"], PRECISION)]
+                  for p in (member.get("geometry") or []) if "lat" in p and "lon" in p]
+        if len(points) >= 2:
+            chains.append(points)
+    if not chains:
+        return []
+
+    rings: list[list[list[float]]] = []
+    pending = chains[:]
+    current = pending.pop(0)
+    while pending:
+        joined = False
+        for i, chain in enumerate(pending):
+            if current[-1] == chain[0]:
+                current = current + chain[1:]; pending.pop(i); joined = True; break
+            if current[-1] == chain[-1]:
+                current = current + chain[::-1][1:]; pending.pop(i); joined = True; break
+        if not joined or current[0] == current[-1]:
+            rings.append(current)
+            current = pending.pop(0) if pending else []
+            if not current:
+                break
+    if current:
+        rings.append(current)
+
+    out = []
+    for ring in rings:
+        if len(ring) < 4:
+            continue
+        inside = [p for p in ring
+                  if bbox.west - 0.02 <= p[0] <= bbox.east + 0.02
+                  and bbox.south - 0.02 <= p[1] <= bbox.north + 0.02]
+        if len(inside) < 3:
+            continue
+        step = max(1, len(ring) // 4000)
+        out.append(ring[::step])
+    return out
 
 
 def _int_text(value: object) -> int | None:
@@ -187,6 +277,16 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
     for element in data.get("elements", []):
         geometry = element.get("geometry") or []
         tags = element.get("tags") or {}
+
+        # A relation. The bay is one, and so is every other body of water big enough to be
+        # split across several ways -- which is why water came out as seven small ponds and
+        # the whole northern edge of the corridor was drawn as ground.
+        if element.get("type") == "relation" and not geometry:
+            if tags.get("natural") == "water" or tags.get("waterway") == "riverbank":
+                for ring in _relation_rings(element, bbox):
+                    ways.append({"kind": "water", "name": tags.get("name"), "points": ring})
+            continue
+
         if not geometry:
             # A node. Most of what tells you what a building *is* arrives this way -- a
             # restaurant is a point inside a building far more often than it is the building --
@@ -209,6 +309,11 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
             if "lat" in p and "lon" in p
         ]
         if len(points) < 2:
+            continue
+        if tags.get("natural") == "coastline":
+            band = _coastline_water(points)
+            if band:
+                ways.append({"kind": "water", "name": tags.get("name"), "points": band})
             continue
         if (tags.get("natural") == "water" or tags.get("waterway") == "riverbank"
                 or tags.get("landuse") == "reservoir"):
@@ -694,7 +799,7 @@ def _outward_bearing(ring, a, b) -> float:
     return math.degrees(math.atan2(nx, ny)) % 360.0
 
 
-def _apron_anchor(index, segments, attributes, cut) -> dict:
+def _apron_anchor(index, segments, attributes, cut, road_mask=None) -> dict:
     """The kerb point beside a curb cut, and the bearing pointing away from the road.
 
     Returns nothing at all when the cut cannot be placed on a street. A missing anchor means
@@ -734,6 +839,15 @@ def _apron_anchor(index, segments, attributes, cut) -> dict:
     nx, ny = -direction[1] * side, direction[0] * side
     kerb = (point[0] + nx * road / 2.0, point[1] + ny * road / 2.0)
     lon, lat = index.frame.to_lonlat(kerb[0], kerb[1])
+    # The kerb of the street this cut belongs to can still land inside a *different* street's
+    # carriageway -- which is what put two and a half thousand aprons in the middle of
+    # intersections. The road mask is the authority; a cut whose kerb cannot be got clear of
+    # the roadway gets no apron at all.
+    if road_mask is not None:
+        placed = road_mask.clear_of_road(lon, lat)
+        if placed is None:
+            return {}
+        lon, lat = placed
     return {
         "kp": [round(lon, 7), round(lat, 7)],
         "on": round(math.degrees(math.atan2(nx, ny)) % 360, 1),
@@ -982,6 +1096,10 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     #
     # The width is the city's own: a 13 ft cut is one car and a 26 ft cut is a pair of doors,
     # so the opening is sized rather than assumed.
+    # Built once and shared: the same authority the ground cover uses.
+    from smc.ground.exclusion import RoadMask
+    road_mask = RoadMask(ways, bbox)
+
     covered_index = 0
     for way in ways:
         if way.get("kind") != "building" or not way.get("covered"):
@@ -1055,7 +1173,7 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             # Where the kerb is, and which way is away from the road, measured on the street
             # the cut belongs to. Aiming the apron at the building instead let it set off
             # across the carriageway whenever the matched wall sat at an angle to the kerb.
-            **_apron_anchor(index, segments, attributes, centre),
+            **_apron_anchor(index, segments, attributes, centre, road_mask),
         })
         garages += 1
     counts["garage openings"] = garages
@@ -2249,7 +2367,7 @@ function garageTextureFor(variant, tint) {
 //: How far the dropped kerb flares either side of the driveway itself. A cut is not a
 //: rectangle taken out of the kerb: it runs down over a wing at each end, which is why a real
 //: apron is wider at the gutter than at the back of the footway.
-const APRON_FLARE_M = 0.85;
+const APRON_FLARE_M = 0.35;
 
 //: The top of the footway, which is where anything laid on the pavement has to sit.
 function roadSurfaceTop() { return 0.06 + KERB_FALLBACK; }
@@ -2412,50 +2530,64 @@ function addPavementRibbon(points, width, color, opacity, y, thickness, surface)
 }
 
 function apronSlab(opening) {
-  // The ramp over the footway at a dropped kerb. It starts at the kerb and runs directly away
-  // from the road, because that is what a driveway does -- and because the alternative, aiming
-  // it at whichever wall the garage was matched to, sent it wherever that wall happened to
-  // face. Without a kerb anchor there is no defensible direction and none is drawn.
+  // The ramp at a dropped kerb.
+  //
+  // A driveway apron is not a slab laid on the pavement: it is the pavement itself falling
+  // from footway level to road level over about a metre, which is why the kerb "drops" there
+  // rather than stopping. Drawn flat it read as an extra square of sidewalk sitting in the
+  // street -- the right shape in the wrong plane. Drawn as the ramp it is, with the kerb face
+  // sloping instead of stepping, it reads as something a car drives over.
   if (!opening.kp || opening.on === undefined) return null;
   const [kx, ky] = xy(opening.kp[0], opening.kp[1]);
   const bearing = opening.on * Math.PI / 180;
-  const depth = Math.max(1.2, Math.min(opening.walk || 3.0, 6.0));
+  const depth = Math.max(1.0, Math.min(opening.walk || 3.0, 5.0));
   const width = Math.max(2.2, opening.w || 3.5);
 
-  // The rule, applied. If a corner of this slab would land in a carriageway then something
-  // upstream is wrong about this cut, and a missing apron is better than one lying in a road.
   const ox = Math.sin(bearing);
   const oz = -Math.cos(bearing);
-  for (const along of [0.35, 1.0]) {
+  const px = -oz;
+  const pz = ox;
+
+  const top = roadSurfaceTop();
+  // Three rows: the gutter, where the ramp meets the road; the top of the slope; and the back
+  // of the apron at the property line. Only the first is at road level.
+  const rows = [
+    { at: 0.0, y: 0.062, half: width / 2 },
+    { at: Math.min(1.0, depth * 0.45), y: top, half: width / 2 + APRON_FLARE_M },
+    { at: depth, y: top, half: width / 2 },
+  ];
+
+  const positions = [];
+  const uvs = [];
+  const index = [];
+  for (const row of rows) {
     for (const sign of [-1, 1]) {
-      const x = kx + ox * depth * along + -oz * sign * (width / 2 + APRON_FLARE_M);
-      const z = -ky + oz * depth * along + ox * sign * (width / 2 + APRON_FLARE_M);
-      if (insideCarriageway(x, z)) return null;
+      const x = kx + ox * row.at + px * sign * row.half;
+      const z = -ky + oz * row.at + pz * sign * row.half;
+      // The rule, applied to every corner: a ramp with a corner in the carriageway means
+      // something upstream is wrong about this cut, and none is better than one in the road.
+      if (insideCarriageway(x, z, 0.2)) return null;
+      positions.push(x, row.y, z);
+      uvs.push(sign > 0 ? width / SLAB_M : 0, row.at / SLAB_M);
     }
   }
+  for (let r = 1; r < rows.length; r += 1) {
+    const a = (r - 1) * 2;
+    const b = r * 2;
+    index.push(a, b, a + 1, a + 1, b, b + 1);
+  }
 
-  // A trapezoid: the full cut plus its wings at the kerb, tapering to the driveway's own width
-  // where it meets the property line.
-  const shape = new THREE.Shape();
-  shape.moveTo(-width / 2 - APRON_FLARE_M, 0);
-  shape.lineTo(width / 2 + APRON_FLARE_M, 0);
-  shape.lineTo(width / 2, depth);
-  shape.lineTo(-width / 2, depth);
-  shape.closePath();
-  const geometry = new THREE.ShapeGeometry(shape);
-  geometry.rotateX(-Math.PI / 2);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
 
-  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-    map: tiledMap(SIDEWALK, "apron", Math.max(1, Math.round(width / SLAB_M)),
-                  Math.max(1, Math.round(depth / SLAB_M))),
-    // The same concrete as the pavement it is poured into, and flush with it.
-    color: 0xffffff, roughness: 0.94, metalness: 0.02,
+  return new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    map: SIDEWALK, color: 0xffffff, roughness: 0.94, metalness: 0.02,
+    side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
   }));
-  mesh.position.set(kx, roadSurfaceTop() - 0.001, -ky);
-  // The shape runs toward +z before rotation, so this turns it onto the outward bearing.
-  mesh.rotation.y = Math.PI - bearing;
-  return mesh;
 }
 
 function garagePanel(opening, tint) {
@@ -3207,12 +3339,14 @@ function yardTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#61604f";
+  ctx.fillStyle = "#5c5a55";
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < size * size * 0.6; i += 1) {
     const shade = random(i * 13);
-    ctx.fillStyle = shade < 0.35 ? "rgba(46,48,36,0.40)"
-      : shade < 0.7 ? "rgba(112,120,84,0.38)" : "rgba(150,142,116,0.30)";
+    // Grey, with just enough brown in it to read as ground rather than as more pavement.
+    // These are yards, light wells and service strips, not lawns.
+    ctx.fillStyle = shade < 0.35 ? "rgba(44,42,38,0.40)"
+      : shade < 0.7 ? "rgba(122,118,108,0.34)" : "rgba(146,132,110,0.26)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
   }
   const texture = new THREE.CanvasTexture(canvas);

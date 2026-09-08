@@ -1,0 +1,13 @@
+{
+ "parts": 742,
+ "frames_segmented": 185500,
+ "median": {
+  "sidewalk": 0.0063,
+  "road": 0.2018,
+  "facade": 0.472,
+  "occlusion": 0.087,
+  "kerb_value": 0.0356
+ },
+ "no_sidewalk_visible_share": 0.583,
+ "heavily_occluded_share": 0.074
+}
