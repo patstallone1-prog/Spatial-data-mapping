@@ -47,7 +47,10 @@ FUNCTIONS = (
     "renderedWalkWidth",
     "lerpLonLat",
     "wayLength",
+    "trimWay",
     "pavementRunsOutsideCarriageway",
+    "mappedWalkNear",
+    "walkSidesToDraw",
 )
 
 
@@ -100,6 +103,29 @@ const MIN_RENDER_WALK_M = 0.9;
 const MAX_RENDER_WALK_M = 5.5;
 
 __FUNCTIONS__
+
+const MAPPED_WALK_CELL = 40;
+const mappedWalkGrid = new Map();
+const MAPPED_WALK_REACH_M = 11.0;
+for (const way of DATA.ways) {
+  if ((way.kind !== "sidewalk" && way.kind !== "path") || !way.points || way.points.length < 2) continue;
+  for (let i = 1; i < way.points.length; i += 1) {
+    const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+    const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+    const segment = [ax, -ay, bx, -by];
+    const x0 = Math.floor(Math.min(ax, bx) / MAPPED_WALK_CELL);
+    const x1 = Math.floor(Math.max(ax, bx) / MAPPED_WALK_CELL);
+    const z0 = Math.floor(Math.min(-ay, -by) / MAPPED_WALK_CELL);
+    const z1 = Math.floor(Math.max(-ay, -by) / MAPPED_WALK_CELL);
+    for (let ix = x0 - 1; ix <= x1 + 1; ix += 1)
+      for (let iz = z0 - 1; iz <= z1 + 1; iz += 1) {
+        const key = `${ix}:${iz}`;
+        let bucket = mappedWalkGrid.get(key);
+        if (!bucket) mappedWalkGrid.set(key, bucket = []);
+        bucket.push(segment);
+      }
+  }
+}
 
 clampRoadWidthsToNeighbours(DATA.ways);
 for (const way of DATA.ways) {
@@ -198,14 +224,25 @@ for (const way of DATA.ways) {
   if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
   if (wayLength(way.points) < 12) continue;
   const road = renderedRoadWidth(way);
-  const walk = renderedWalkWidth(way, 3.0);
+  const walk = renderedWalkWidth(way, 4.0);
   const inner = road / 2;
-  for (const side of (way.walk_sides !== undefined ? way.walk_sides : [1, -1])) {
+  for (const side of walkSidesToDraw(way, way.points, inner)) {
     sides += 1;
-    const centre = offsetWay(way.points, side * (inner + walk / 2));
-    const runs = pavementRunsOutsideCarriageway(centre, walk);
-    const kept = runs.reduce((sum, run) => sum + wayLength(run), 0);
-    if (kept < wayLength(centre) * 0.25) {
+    // The same width ladder the renderer walks: the inner edge stays on the kerb and the strip
+    // narrows until it fits, so a side counts as bare only when even a quarter-width strip at
+    // the kerb is inside somebody else's carriageway.
+    let kept = 0;
+    let asked = 0;
+    for (const share of [1.0, 1.0, 0.72, 0.52, 0.36, 0.24]) {
+      const width = Math.max(MIN_RENDER_WALK_M * 0.55, walk * share);
+      const centre = offsetWay(way.points, side * (inner + width / 2));
+      asked = wayLength(centre);
+      const back = Math.min(Math.max(1.2, inner + width * 0.7), asked * 0.32);
+      const runs = pavementRunsOutsideCarriageway(trimWay(centre, back), width);
+      kept = runs.reduce((sum, run) => sum + wayLength(run), 0);
+      if (kept >= asked * 0.55) break;
+    }
+    if (kept < asked * 0.25) {
       sidesBare += 1;
       if (bareExamples.length < 10) {
         bareExamples.push({ street: way.name || way.osm_id, side,

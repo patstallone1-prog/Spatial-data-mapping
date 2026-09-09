@@ -416,3 +416,58 @@ def test_awnings_and_signs_do_not_cost_a_draw_call_each() -> None:
     assert "const SIGN_ATLAS_PX = 2048;" in js
     body = _extract("awningMaterial", js)
     assert "vertexColors: true" in body
+
+
+def test_no_sidewalk_is_believed_only_where_one_is_mapped_instead() -> None:
+    """988 street ways carry `sidewalk=no`, and the renderer believed every one of them.
+
+    41.6 km -- 13.2% of the corridor's street network -- was drawn with no footway on either
+    side, Polk Street and Sacramento Street among them. What the tag usually means on a street
+    like those is that the pavement is mapped as its own way, which is what `sidewalk=separate`
+    is for and what a great many mappers write `no` for instead. It is worth believing only when
+    a mapped footway is actually standing there.
+    """
+    js = _page_js()
+    body = _extract("walkSidesToDraw", js)
+    assert "if (stated === undefined) return [1, -1];" in body
+    assert "mappedWalkNear" in body, "the tag is taken on trust"
+    # A side the tag excludes is still drawn when nothing is mapped along it.
+    assert "if (!sampled || covered < sampled * 0.5) drawn.push(side);" in body
+
+
+def test_a_footway_narrows_to_fit_rather_than_vanishing() -> None:
+    js = _page_js()
+    body = _extract("addKerbsidePavement", js)
+    assert "WALK_FALLBACK_WIDTHS_M" in body
+    # The inner edge stays on the kerb at every width, so a narrower try is the same pavement
+    # with less of it rather than a pavement somewhere else.
+    assert "offsetWay(renderPoints, side * (inner + width / 2))" in body
+    # And the end trim cannot eat a short way whole.
+    assert "wanted * 0.32" in body
+
+
+def test_a_tree_pit_needs_pavement_under_the_tree_not_near_it() -> None:
+    """A pit is a hole cut in a footway. On a lawn it is a hole in the grass."""
+    js = _page_js()
+    stamp = _extract("stampPaved", js)
+    # The ribbon's real footprint, walked along and across, rather than a square dilation.
+    assert "const along =" in stamp and "const across =" in stamp
+    assert "pavedGrid.set(key, top)" in stamp, "the pavement's height is not recorded"
+    assert "const PAVED_CELL = 1.5;" in js
+    # And the pit sits on the pavement it is cut into, whatever that pavement's kerb height is.
+    assert "const top = pavementTopAt(tx, tz);" in js
+    assert "if (top === undefined) continue;" in js
+    assert "top + PIT_LIFT_M" in js
+
+
+def test_the_sun_in_the_sky_is_the_sun_that_lights_the_city() -> None:
+    js = _page_js()
+    assert "const SUN_AZIMUTH_DEG" in js and "const SUN_ELEVATION_DEG" in js
+    assert "sun.position.copy(sunDirection()).multiplyScalar(900);" in js
+    sky = _extract("skyTexture", js)
+    # The disc is placed from the same two angles the light is.
+    assert "SUN_AZIMUTH_DEG / 360" in sky
+    assert "SUN_ELEVATION_DEG / 180" in sky
+    # Sky, sun, glow and cirrus, and the sky is the background rather than a flat colour.
+    assert "scene.background = SKY;" in js
+    assert "cirrus" in sky.lower() or "wisp" in sky.lower()

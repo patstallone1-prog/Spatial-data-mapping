@@ -37,7 +37,15 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     assert "(innerEdge && outerEdge)" in source
     assert "function trimWalkwayForCorners(points, width)" in source
     assert "addPavementRibbon(surfacePoints, widthMeters" in source
-    assert "trimWay(offsetWay(renderPoints, side * (inner + walk / 2))" in source
+    # The kerbside footway is laid by addKerbsidePavement now, which pins the inner edge to the
+    # kerb and narrows the strip until it fits rather than dropping it. Dropping it left 13% of
+    # the street network with bare ground between the kerb and the buildings.
+    assert "function addKerbsidePavement(" in source
+    assert "addKerbsidePavement(renderPoints, side, inner, walk" in source
+    assert "WALK_FALLBACK_WIDTHS_M" in source
+    # And `sidewalk=no` is believed only where a footway is really mapped in its place.
+    assert "function walkSidesToDraw(way, renderPoints, inner)" in source
+    assert "mappedWalkNear(x, -y)" in source
 
 
 def test_alley_mouth_crossings_bridge_sidewalk_cuts() -> None:
@@ -202,3 +210,30 @@ def test_gas_station_renderer_has_pumps_and_price_sign() -> None:
     assert "metrics.x + metrics.width * 0.18" in source
     assert "planePart(group, signX, 1.0, signZ - 0.13" in source
     assert "Business: ${place.primary_type.replaceAll" in source
+
+
+def test_renderer_defers_optional_survey_layers_until_opened() -> None:
+    source = _source()
+
+    assert "const lazyLayerBuilders = new Map();" in source
+    assert "function registerLazyLayer(layer, builder)" in source
+    assert "function ensureLazyLayer(layer)" in source
+    assert 'registerLazyLayer("official", async () => {' in source
+    assert 'registerLazyLayer("chunks", () => {' in source
+    assert 'registerLazyLayer("coverage", () => {' in source
+    assert 'registerLazyLayer("observations", () => {' in source
+    assert 'registerLazyLayer("sequences", () => {' in source
+    assert "if (opening) ensureLazyLayer(layer);" in source
+
+
+def test_facade_textures_are_prioritized_and_frame_budgeted() -> None:
+    source = _source()
+
+    assert "const FACADE_TEXTURE_CONCURRENCY = 3;" in source
+    assert "const FACADE_TEXTURE_YIELD_EVERY = 8;" in source
+    assert "function facadeLoadPriority(panel)" in source
+    assert "facadePanels.slice().sort((a, b) => facadeLoadPriority(a) - facadeLoadPriority(b))" in source
+    assert "await loadFacadeTexture(queue.shift());" in source
+    assert "if (loaded % FACADE_TEXTURE_YIELD_EVERY === 0) await nextFrame();" in source
+    assert "Array.from(" in source
+    assert "Promise.all([worker(), worker(), worker(), worker()])" not in source
