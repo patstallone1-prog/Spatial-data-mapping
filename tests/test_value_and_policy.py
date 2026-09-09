@@ -134,3 +134,35 @@ def test_a_face_nobody_has_photographed_ranks_above_every_photographed_one() -> 
                      kerb_headings=(45.0, 135.0))
         _, gain_seen, _ = marginal_value(seen)
         assert gain_empty >= gain_seen
+
+
+# ---------------------------------------------------------------- A9
+
+
+def test_a_bay_with_a_neighbourhood_in_it_is_not_a_bay() -> None:
+    """The rule that decides which side of a coastline is wet.
+
+    OpenStreetMap's convention is land to starboard. Every one of the seven coastline ways in
+    this corridor needed drawing the other way, and taking the convention on trust put a 1.4 km
+    band of water over North Beach -- six of the fourteen water polygons covered dry land.
+
+    Counting buildings alone is the wrong test and rejected Aquatic Park, which is a cove with a
+    maritime museum and two boathouses on its shore. Density is the test that separates them.
+    """
+    from scripts.build_sf_corridor_3d import covers_the_city
+
+    # A square kilometre with a city block's worth of buildings scattered through it.
+    city = [[-122.410, 37.795], [-122.399, 37.795], [-122.399, 37.804], [-122.410, 37.804]]
+    dense = [(-122.410 + 0.0004 * i, 37.795 + 0.0003 * j)
+             for i in range(24) for j in range(24)]
+    assert covers_the_city(city, dense)
+
+    # The same polygon with a handful of buildings on one edge, as a cove has.
+    shore = [(-122.4098, 37.7952), (-122.4094, 37.7951), (-122.4090, 37.7952),
+             (-122.4086, 37.7951), (-122.4082, 37.7952), (-122.4078, 37.7951)]
+    assert not covers_the_city(city, shore)
+
+    # And a sliver with a few buildings in it is still wrong, however small its area.
+    sliver = [[-122.4100, 37.7950], [-122.4096, 37.7950],
+              [-122.4096, 37.7952], [-122.4100, 37.7952]]
+    assert covers_the_city(sliver, [(-122.4098, 37.7951)] * 6)

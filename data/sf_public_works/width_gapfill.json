@@ -1,0 +1,144 @@
+{
+ "release": "2026-08-19.0",
+ "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+ "note": "Reference only. Overture transportation is OpenStreetMap and carries ODbL; these widths fill gaps and are never merged into a measured value.",
+ "finding": "Overture cannot gap-fill carriageway width in this corridor. Of 8,298 road segments it publishes here, 19 carry a width at all, and all but one of those are footways, steps or paths -- OpenStreetMap's `width` tag is simply not applied to San Francisco's roadways. The widths it does carry are footway widths, which is what A4 disagrees about, so they are kept and labelled as such. A9's first half was planned as a last resort and this is what a last resort looks like when it is checked.",
+ "summary": {
+  "overture_segments_with_a_width": 19,
+  "of_which_carriageway": 1,
+  "by_class": {
+   "footway": 12,
+   "steps": 5,
+   "path": 1,
+   "service": 1
+  },
+  "matched": 10,
+  "gap_filled": 10,
+  "corroborates_within_0_5m": 0,
+  "disagrees": 0
+ },
+ "gap_fill": [
+  {
+   "segment_id": "sfcnn:11252000",
+   "overture_id": "1699b92e-c317-42d7-af2e-e393ae081d05",
+   "name": null,
+   "overture_width_m": 1.85,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:11253000",
+   "overture_id": "947d049c-2bab-4efc-9865-fb6b8cf47141",
+   "name": null,
+   "overture_width_m": 3.35,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:11256000",
+   "overture_id": "b63d68a3-1488-4df0-9c54-f1b72ae36303",
+   "name": "Goldberg Lane",
+   "overture_width_m": 1.0,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:12479000",
+   "overture_id": "95f0633c-62ad-43f3-add5-102e25c2ad17",
+   "name": null,
+   "overture_width_m": 1.5,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:12980000",
+   "overture_id": "f80329d2-0a42-4230-9611-95dccbf63e3d",
+   "name": "Goldberg Lane",
+   "overture_width_m": 1.0,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:12981000",
+   "overture_id": "5b630065-778f-45b9-b58d-9cec7907512f",
+   "name": "Goldberg Lane",
+   "overture_width_m": 1.0,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:4365000",
+   "overture_id": "7e1966eb-96a8-4914-9ae4-a551401853a8",
+   "name": "Cooper Alley",
+   "overture_width_m": 1.7,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "carriageway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:5769002",
+   "overture_id": "36a345c9-3d2e-4a1d-b51a-5d56977d70bd",
+   "name": "Larkin Street",
+   "overture_width_m": 1.0,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:6507000",
+   "overture_id": "7ed0257a-8cf5-4e10-9e11-b0ec2456331d",
+   "name": null,
+   "overture_width_m": 1.0,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  },
+  {
+   "segment_id": "sfcnn:6507002",
+   "overture_id": "c12b626b-8b80-4275-adfe-3eb87877da7b",
+   "name": null,
+   "overture_width_m": 1.0,
+   "overture_spread_m": 0.0,
+   "existing_width_m": null,
+   "existing_source": null,
+   "licence": "ODbL-1.0 (Overture transportation derives from OpenStreetMap)",
+   "carries": "footway",
+   "use": "gap_fill"
+  }
+ ],
+ "corroborates": [],
+ "disagrees": []
+}

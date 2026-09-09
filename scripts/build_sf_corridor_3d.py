@@ -109,13 +109,25 @@ def _sidewalk_sides(tags: dict) -> list[int] | None:
     return None
 
 
-#: How far out to sea the water is drawn. Far enough to reach the edge of anything anybody
-#: will look at from the shore, and no further -- this is a band along the coast rather than an
-#: attempt at the whole bay.
-COASTAL_BAND_M = 1400.0
+#: How far out to sea the water is drawn -- far enough to meet the bay disc the renderer lays
+#: beyond the corridor, so that there is no dark seam between the two.
+#:
+#: It was 600 m, then 1,400, on the reasoning that a band is safer than an attempt at the whole
+#: bay. It was safer because the side it was drawn on was a guess: a band on the wrong side of
+#: the line puts that much water over the city, which is what six of the fourteen water polygons
+#: were doing. Now that the side is checked against the buildings and a band with a
+#: neighbourhood in it is refused, a wrong one cannot ship, and the band can be as long as it
+#: needs to be.
+COASTAL_BAND_M = 9000.0
+
+#: Lengths to try, longest first. A band that covers buildings at nine kilometres may be clean at
+#: five hundred metres, and five hundred metres of water at the water's edge is worth far more
+#: than nothing at all.
+COASTAL_REACHES = (9000.0, 4000.0, 1600.0, 700.0, 300.0, 120.0)
 
 
-def _coastline_water(points: list[list[float]]) -> list[list[float]] | None:
+def _coastline_water(points: list[list[float]], *, port: bool = True,
+                     reach: float | None = None) -> list[list[float]] | None:
     """A strip of water on the seaward side of a coastline way.
 
     OpenStreetMap's convention is that a coastline runs with the land on its right and the
@@ -136,12 +148,78 @@ def _coastline_water(points: list[list[float]]) -> list[list[float]] | None:
         length = math.hypot(dx, dy)
         if length < 1e-6:
             continue
-        # Left of travel is (-dy, dx).
-        offset.append([lon + (-dy / length) * COASTAL_BAND_M / scale_lon,
-                       lat + (dx / length) * COASTAL_BAND_M / scale_lat])
+        # Left of travel is (-dy, dx). The convention says the water is to port, and the
+        # convention is what is checked against the buildings by the caller.
+        side = 1.0 if port else -1.0
+        out = COASTAL_BAND_M if reach is None else reach
+        offset.append([lon + side * (-dy / length) * out / scale_lon,
+                       lat + side * (dx / length) * out / scale_lat])
     if len(offset) < 2:
         return None
     return points + offset[::-1]
+
+
+def _ring_contains(ring: list[list[float]], lon: float, lat: float) -> bool:
+    inside = False
+    j = len(ring) - 1
+    for i in range(len(ring)):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if (yi > lat) != (yj > lat) and lon < (xj - xi) * (lat - yi) / ((yj - yi) or 1e-12) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def _ring_area_km2(ring: list[list[float]]) -> float:
+    if len(ring) < 3:
+        return 0.0
+    lat0 = sum(p[1] for p in ring) / len(ring)
+    scale_lat = 111_320.0
+    scale_lon = scale_lat * math.cos(math.radians(lat0))
+    twice = 0.0
+    for i in range(len(ring)):
+        x1, y1 = ring[i][0] * scale_lon, ring[i][1] * scale_lat
+        x2, y2 = (ring[(i + 1) % len(ring)][0] * scale_lon,
+                  ring[(i + 1) % len(ring)][1] * scale_lat)
+        twice += x1 * y2 - x2 * y1
+    return abs(twice) / 2 / 1e6
+
+
+#: Buildings per square kilometre above which a polygon claiming to be water is not water.
+#:
+#: A count alone is the wrong test and it rejected Aquatic Park: that is a cove with a maritime
+#: museum and two boathouses on its shore, so it contains more than a handful of buildings and
+#: was refused, leaving a wedge of bare ground where the water should be. What separates a cove
+#: from a band drawn over the city is not how many buildings are inside it but how densely --
+#: this corridor runs to about two thousand per square kilometre, and a bay runs to a few.
+MAX_BUILDINGS_PER_KM2 = 120.0
+
+
+def dry_land_in(ring: list[list[float]], landmarks: list[tuple[float, float]]) -> int:
+    """How many buildings stand inside a polygon that claims to be water."""
+    return sum(1 for lon, lat in landmarks if _ring_contains(ring, lon, lat))
+
+
+#: However sparse it works out, this many buildings inside a body of water is not a shoreline.
+#: Density alone is not enough once the bands run nine kilometres out to meet the bay: such a
+#: band covers eighteen square kilometres, so a few hundred buildings in it still reads as
+#: twenty per square kilometre and passes. Both tests, and a polygon has to satisfy neither.
+MAX_BUILDINGS_INSIDE = 40
+
+
+def covers_the_city(ring: list[list[float]], landmarks: list[tuple[float, float]]) -> bool:
+    """Whether a polygon claiming to be water has a neighbourhood inside it."""
+    inside = dry_land_in(ring, landmarks)
+    if inside <= 4:
+        # A few buildings on a shoreline is a shoreline, whatever the polygon's size.
+        return False
+    if inside > MAX_BUILDINGS_INSIDE:
+        return True
+    area = _ring_area_km2(ring)
+    if area <= 0:
+        return True
+    return inside / area > MAX_BUILDINGS_PER_KM2
 
 
 def _relation_rings(element: dict, bbox: BBox) -> list[list[list[float]]]:
@@ -276,6 +354,9 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
     if data is None:
         raise RuntimeError(f"every Overpass mirror refused the query: {last}")
     ways = []
+    # Coastlines cannot be turned into water until the buildings are known, because which side
+    # of one is wet is decided by which side has no buildings on it.
+    deferred_coastlines: list[tuple[str | None, list[list[float]]]] = []
     for element in data.get("elements", []):
         geometry = element.get("geometry") or []
         tags = element.get("tags") or {}
@@ -316,9 +397,17 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
         if len(points) < 2:
             continue
         if tags.get("natural") == "coastline":
-            band = _coastline_water(points)
-            if band:
-                ways.append({"kind": "water", "name": tags.get("name"), "points": band})
+            # Which side of the line is wet, checked rather than assumed.
+            #
+            # OpenStreetMap's convention is land to starboard, water to port, and the convention
+            # is right often enough that it is worth starting from -- but a way drawn the other
+            # way round puts a 1.4 km band of bay over the city, and six of the fourteen water
+            # polygons in this corridor were doing exactly that: blue showing between the
+            # buildings for half of North Beach.
+            #
+            # A bay with houses in it is not a bay. The buildings are the test, they are already
+            # in hand, and they settle it without any guessing about which way is out to sea.
+            deferred_coastlines.append((tags.get("name"), points))
             continue
         if tags.get("natural") == "beach" and _is_closed(points):
             ways.append({"kind": "beach", "name": tags.get("name"), "points": points})
@@ -440,7 +529,71 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
             if tags.get("tactile_paving") not in (None, "no"):
                 feature["tactile"] = tags.get("tactile_paving")
         ways.append(feature)
+
+    # Now the coastlines, with the buildings in hand to say which side of each is dry.
+    landmarks: list[tuple[float, float]] = []
+    for way in ways:
+        if way.get("kind") != "building" or not way.get("points"):
+            continue
+        ring = way["points"]
+        landmarks.append((sum(p[0] for p in ring) / len(ring),
+                          sum(p[1] for p in ring) / len(ring)))
+    flipped = dropped = shortened = 0
+    for name, points in deferred_coastlines:
+        # The longest band, on whichever side, that does not cover the city.
+        #
+        # Dropping a coastline outright because its full-length band overlaps buildings throws
+        # away the shoreline as well as the mistake, and the result is a dark seam between the
+        # quay and the bay -- which is the thing this is all for. A short clean band still draws
+        # the water at the water's edge, and the disc beyond the corridor covers the rest.
+        chosen = None
+        for reach in COASTAL_REACHES:
+            for port in (True, False):
+                band = _coastline_water(points, port=port, reach=reach)
+                if not band:
+                    continue
+                if not covers_the_city(band, landmarks):
+                    chosen = (band, port, reach)
+                    break
+            if chosen:
+                break
+        if chosen is None:
+            dropped += 1
+            continue
+        band, port, reach = chosen
+        if not port:
+            flipped += 1
+        if reach < COASTAL_BAND_M:
+            shortened += 1
+        ways.append({"kind": "water", "name": name, "points": band})
+    if deferred_coastlines:
+        print(f"  coastline water: {len(deferred_coastlines) - dropped} bands "
+              f"({flipped} drawn to starboard, {shortened} shortened to clear the city, "
+              f"{dropped} dropped)", file=sys.stderr)
     return ways
+
+
+def drop_water_over_land(ways: list[dict]) -> list[dict]:
+    """Refuse any water polygon with a neighbourhood inside it."""
+    landmarks = []
+    for way in ways:
+        if way.get("kind") != "building" or not way.get("points"):
+            continue
+        ring = way["points"]
+        landmarks.append((sum(p[0] for p in ring) / len(ring),
+                          sum(p[1] for p in ring) / len(ring)))
+    if not landmarks:
+        return ways
+    kept, dropped = [], 0
+    for way in ways:
+        if way.get("kind") == "water" and way.get("points"):
+            if covers_the_city(way["points"], landmarks):
+                dropped += 1
+                continue
+        kept.append(way)
+    if dropped:
+        print(f"  dropped {dropped} water polygons drawn over buildings", file=sys.stderr)
+    return kept
 
 
 #: Ways fetched for the walking network that are not roads.
@@ -1444,8 +1597,14 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.95;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x071013);
-scene.fog = new THREE.Fog(0x071013, 650, 1900);
+// Haze, not ink. The fog took everything past 1,900 m to 0x071013, which is near black, so the
+// bay and the far side of the city faded into the same darkness whatever was drawn there --
+// extending the water would have bought nothing while the air past two blocks was opaque. It
+// now clears to a pale marine haze at a distance you could actually see across on a good day
+// in this city, which is most of what makes the water read as water.
+const HORIZON = new THREE.Color(0x8fa8b4);
+scene.background = HORIZON;
+scene.fog = new THREE.Fog(HORIZON, 2400, 16000);
 
 // The near plane is the other half of the depth problem: precision scales with it, and 0.1 m
 // bought nothing since the camera never comes closer than a few metres to anything.
@@ -1527,12 +1686,82 @@ const [westX, northY] = xy(bbox.west, bbox.north);
 const [eastX, southY] = xy(bbox.east, bbox.south);
 const width = eastX - westX;
 const depth = northY - southY;
+//: The stack at the bottom of the world, in metres. The bay is under the land, the land is
+//: under everything, and both are under the roadway at 0.06. Water and the beaches used to sit
+//: at -0.10 and -0.075, which is beneath the land plane at zero: the bay was drawn, every frame,
+//: and then covered over by the very plane it was there to replace. It is the same mistake the
+//: parks were buried by, and it is why the north edge of the corridor read as an expanse of
+//: black rather than as water.
+//
+// The gaps between them are centimetres rather than millimetres, and deliberately so. At four
+// millimetres apart the bay disc and the land plane above it z-fought across the whole city --
+// a disc fifty kilometres wide has a very coarse depth gradient across a screen, and the water
+// came up through the streets in patches. Depth precision is the constraint here, not headroom:
+// there is a clear twenty-five centimetres before the roadway at 0.06.
+const BAY_Y = -0.16;
+const PENINSULA_Y = -0.14;
+const LAND_Y = -0.12;
+const WATER_Y = -0.05;
+const BEACH_Y = -0.02;
+
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(width, depth, 1, 1),
-  new THREE.MeshStandardMaterial({ color: 0x0c171b, roughness: 0.96, metalness: 0.02 })
+  // Not near-black any more. This plane is what shows wherever nothing has been mapped, and at
+  // 0x0c171b that was indistinguishable from a hole in the world -- a wedge of it beside Aquatic
+  // Park read as a void rather than as ground nobody has surveyed. Unmapped ground should look
+  // like ground.
+  new THREE.MeshStandardMaterial({ color: 0x44584a, roughness: 0.98, metalness: 0.0 })
 );
 ground.rotation.x = -Math.PI / 2;
+ground.position.y = LAND_Y;
 root.add(ground);
+
+// ---- the bay ----
+//
+// San Francisco is a peninsula with water on three sides, and this corridor is its waterfront.
+// Beyond the mapped strip there was nothing at all: the ground plane stops at the bounding box
+// and everything past it was background colour, which from the Embarcadero looking east is a
+// void where the bay is.
+//
+// So: a disc of water round the city, and a plate of land inside it for the city to stand on.
+// The disc is centred on San Francisco rather than on this corridor, because the corridor is
+// off to one corner of it and a circle centred here would put the Pacific in the Mission. It is
+// coarse -- a real coastline it is not -- but at three kilometres and beyond, which is where
+// any of it is visible from, a coarse bay is the difference between a horizon and a hole.
+const CITY = { lon: -122.4375, lat: 37.7575 };
+//: Where the plate of land sits. Not on the city's centre: a square centred there reaches five
+//: and a half kilometres north, which is past the shoreline, and the corner that sticks out into
+//: the bay is a dark band between the quays and the water -- the exact seam this was meant to
+//: close. Pushed south-west, its north edge lands just inside the waterfront and the coastline
+//: bands take over from there.
+const LAND_CENTRE = { lon: -122.4460, lat: 37.7490 };
+//: Far enough that you would have to leave the city to see the end of it.
+const BAY_RADIUS_M = 26000.0;
+//: The peninsula, roughly. Eleven kilometres square covers San Francisco proper with a margin.
+const LAND_SPAN_M = 11600.0;
+{
+  const [cx, cy] = xy(CITY.lon, CITY.lat);
+  const bay = new THREE.Mesh(
+    new THREE.CircleGeometry(BAY_RADIUS_M, 96),
+    new THREE.MeshStandardMaterial({
+      color: 0x2c6187, roughness: 0.62, metalness: 0.04, envMapIntensity: 0.5,
+    })
+  );
+  bay.rotation.x = -Math.PI / 2;
+  bay.position.set(cx, BAY_Y, -cy);
+  root.add(bay);
+
+  // The land the city sits on, over the middle of the bay. Without it the disc would put water
+  // through the Mission and the Sunset, which are the wrong side of the coast from here.
+  const [lx, ly] = xy(LAND_CENTRE.lon, LAND_CENTRE.lat);
+  const land = new THREE.Mesh(
+    new THREE.PlaneGeometry(LAND_SPAN_M, LAND_SPAN_M, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x3d5142, roughness: 1.0, metalness: 0.0 })
+  );
+  land.rotation.x = -Math.PI / 2;
+  land.position.set(lx, PENINSULA_Y, -ly);
+  root.add(land);
+}
 
 function line(points, color, opacity = 1, y = 2, widthHint = 1) {
   const geom = new THREE.BufferGeometry().setFromPoints(points.map((p) => v3(p[0], p[1], y)));
@@ -3345,20 +3574,88 @@ function bikeLaneTexture() {
 }
 
 function sandTexture() {
-  const size = 128;
+  // Sand is grains, and grains are not one colour. Dry beach sand is quartz and feldspar with
+  // dark magnetite and green olivine through it, so what the eye reads as "sand" is a fine
+  // salt-and-pepper of half a dozen minerals over a pale ground -- and San Francisco's beaches
+  // are the dark end of that, being largely granitic outwash.
+  //
+  // It was 35% coverage of single pixels in three colours, which averages to a flat tan card.
+  // This is four mineral passes at different grain sizes over an uneven, wind-worked ground.
+  const size = 256;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#b8a77d";
+  ctx.fillStyle = "#b3a179";
   ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < size * size * 0.35; i += 1) {
-    const shade = random(i * 23);
-    ctx.fillStyle = shade < 0.45 ? "rgba(83,72,49,0.15)"
-      : shade < 0.82 ? "rgba(238,222,172,0.20)" : "rgba(150,129,82,0.18)";
-    ctx.fillRect(random(i * 5) * size, random(i * 11) * size, 1, 1);
+
+  // The ground the grains lie on: damp patches, dry crests, and the shadow in the troughs of
+  // the ripples the wind leaves. Without this the surface is flat however fine the grain is.
+  for (let i = 0; i < 120; i += 1) {
+    const r = 14 + random(i * 31) * 54;
+    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(126,110,80,0.22)" : "rgba(214,199,163,0.20)";
+    ctx.beginPath();
+    ctx.arc(random(i * 3) * size, random(i * 5) * size, r, 0, Math.PI * 2);
+    ctx.fill();
   }
+  // Wind ripples: long shallow bands, a few centimetres apart, at a consistent angle.
+  ctx.save();
+  ctx.translate(size / 2, size / 2);
+  ctx.rotate(0.5);
+  for (let y = -size; y < size; y += 9) {
+    ctx.fillStyle = "rgba(120,104,74,0.13)";
+    ctx.fillRect(-size, y, size * 2, 3);
+    ctx.fillStyle = "rgba(226,212,178,0.11)";
+    ctx.fillRect(-size, y + 3, size * 2, 2);
+  }
+  ctx.restore();
+
+  // The minerals, coarsest and darkest first. Quartz is most of it and is nearly white; the
+  // dark specks are what stop a beach reading as a sheet of card.
+  const grains = [
+    ["rgba(52,44,32,0.55)", 1400, 1.6],     // magnetite, the black sand in the streaks
+    ["rgba(122,96,58,0.45)", 5200, 1.3],    // feldspar
+    ["rgba(198,176,132,0.40)", 9000, 1.1],  // the bulk of it
+    ["rgba(243,236,214,0.42)", 5200, 1.0],  // quartz, catching the light
+    ["rgba(96,120,84,0.28)", 900, 1.2],     // olivine, sparse and green
+  ];
+  let n = 0;
+  for (const [colour, count, radius] of grains) {
+    ctx.fillStyle = colour;
+    for (let i = 0; i < count; i += 1) {
+      n += 1;
+      const x = random(n * 2.7) * size;
+      const y = random(n * 4.3) * size;
+      const r = radius * (0.6 + random(n * 6.1) * 0.8);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // And the dark streaks the tide leaves along the high-water line, where the heavy minerals
+  // concentrate. They are the one thing on a beach that is not uniform at any scale.
+  for (let i = 0; i < 5; i += 1) {
+    ctx.strokeStyle = "rgba(64,54,40,0.20)";
+    ctx.lineWidth = 3 + random(i * 13) * 7;
+    ctx.beginPath();
+    let x = -10;
+    let y = random(i * 17) * size;
+    ctx.moveTo(x, y);
+    while (x < size + 10) {
+      x += 24;
+      y += (random(x + i * 3) - 0.5) * 14;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  // A beach is drawn from a ShapeGeometry, whose UVs are the footprint's own metres. A repeat
+  // of six therefore lays a tile every sixteen centimetres, which minifies to a flat tan card
+  // however finely the grains are drawn -- the same mistake the grass made. One third gives a
+  // three metre tile, which is the scale the ripples and the tide streaks are drawn at.
+  texture.repeat.set(1 / 3, 1 / 3);
+  texture.anisotropy = 8;
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
@@ -4563,7 +4860,7 @@ for (const way of DATA.ways) {
  map: SAND, color: 0xffffff, roughness: 0.96, metalness: 0.0,
  side: THREE.DoubleSide,
  }));
- mesh.position.y = -0.075;
+ mesh.position.y = BEACH_Y;
  groups.ground.add(mesh);
  }
  continue;
@@ -4575,11 +4872,15 @@ for (const way of DATA.ways) {
     if (shape) {
       const geom = new THREE.ShapeGeometry(shape);
       geom.rotateX(-Math.PI / 2);
+      // Flat and matte rather than polished. At 0.28 roughness the near water went almost black
+      // whenever it was seen at a grazing angle with the sun off to one side -- which from a
+      // quay is most of the time -- so the cove read as a hole while the far bay read as water.
+      // A rougher, lighter surface loses the mirror and keeps the colour from every angle.
       const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
-        color: 0x1d4a6b, roughness: 0.28, metalness: 0.12,
-        envMapIntensity: 0.9, side: THREE.DoubleSide,
+        color: 0x2c6187, roughness: 0.62, metalness: 0.04,
+        envMapIntensity: 0.5, side: THREE.DoubleSide,
       }));
-      mesh.position.y = -0.10;
+      mesh.position.y = WATER_Y;
       groups.streets.add(mesh);
     }
     continue;
@@ -4788,18 +5089,9 @@ walk <= NARROW_WALK_M ? "walk_narrow" : "walk");
 // surface under them those became holes onto the background, which reads as black voids
 // punched through the city. A dark neutral says "ground we have not described" rather than
 // "nothing is here".
-{
-  const [x1, y1] = xy(bbox.west, bbox.north);
-  const [x2, y2] = xy(bbox.east, bbox.south);
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(Math.abs(x2 - x1) * 1.1, Math.abs(y1 - y2) * 1.1),
-    new THREE.MeshStandardMaterial({ color: 0x23262a, roughness: 1.0, metalness: 0.0 })
-  );
-  ground.rotation.x = -Math.PI / 2;
-  // Below the district tint, which is itself below the roadway.
-  ground.position.set((x1 + x2) / 2, -0.14, -(y1 + y2) / 2);
-  groups.streets.add(ground);
-}
+// Removed: a second full-bbox plate sat a centimetre above the first and did the same job in a
+// different colour. Two backdrops is one too many, and this was the one showing through Aquatic
+// Park as a dark wedge over the cove.
 
 // ---- what is on the ground ----
 //
@@ -4834,14 +5126,14 @@ function grassTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#2c3d21";
+  ctx.fillStyle = "#2ba12f";
   ctx.fillRect(0, 0, size, size);
 
   // Patchiness first: the underlying unevenness of a lawn, so the blades are not scattered over
   // a uniform ground.
   for (let i = 0; i < 90; i += 1) {
     const r = 12 + random(i * 17) * 46;
-    ctx.fillStyle = random(i * 5) < 0.5 ? "rgba(20,29,15,0.42)" : "rgba(64,84,42,0.30)";
+    ctx.fillStyle = random(i * 5) < 0.5 ? "rgba(26,104,30,0.38)" : "rgba(96,190,92,0.26)";
     ctx.beginPath();
     ctx.arc(random(i * 3) * size, random(i * 7) * size, r, 0, Math.PI * 2);
     ctx.fill();
@@ -4849,11 +5141,14 @@ function grassTexture() {
 
   // The blades. Four passes from dark to light so the field has depth rather than one tone of
   // speckle; each blade is a stroke two to five pixels long leaning a random way.
+  // Blades over the lighter ground, still dark-to-light so the field keeps its depth. They are
+  // pitched around the new base rather than the old one: strokes mixed for a very dark green
+  // read as dirt once the ground under them is bright.
   const passes = [
-    ["rgba(18,26,13,0.85)", 5200, 2.4],
-    ["rgba(46,64,30,0.80)", 4600, 2.2],
-    ["rgba(74,100,45,0.72)", 3200, 2.0],
-    ["rgba(112,138,66,0.55)", 1500, 1.8],
+    ["rgba(16,72,20,0.88)", 7000, 3.4],
+    ["rgba(34,116,36,0.80)", 6000, 3.0],
+    ["rgba(72,178,70,0.70)", 4000, 2.6],
+    ["rgba(140,214,120,0.55)", 2000, 2.2],
   ];
   let n = 0;
   for (const [colour, count, len] of passes) {
@@ -4876,7 +5171,10 @@ function grassTexture() {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   // The ground meshes carry their own UVs at one tile per eight metres. A tile of this is about
   // a metre and a half of lawn, which is the scale the blades are drawn at.
-  texture.repeat.set(5, 5);
+  // A tile every four metres rather than every metre and a half. At the tighter spacing the
+  // blades were finer than a pixel from any height worth looking from, so what was left was the
+  // repeat itself: a flat green field with a visible grid in it.
+  texture.repeat.set(2, 2);
   texture.anisotropy = 8;
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
@@ -6488,6 +6786,10 @@ def main() -> int:
 
     if args.reuse_osm and args.osm_cache.exists():
         ways = reclassify(json.loads(args.osm_cache.read_text(encoding="utf-8")))
+        # The cache holds coastline bands that were already offset to one side, so which side
+        # cannot be re-derived from them. What can still be checked is the result, and the same
+        # rule applies: a bay with houses in it is not a bay.
+        ways = drop_water_over_land(ways)
     else:
         ways = fetch_osm(SF_CORRIDOR.bbox)
         args.osm_cache.parent.mkdir(parents=True, exist_ok=True)

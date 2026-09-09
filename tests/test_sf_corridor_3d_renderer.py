@@ -118,7 +118,17 @@ def test_beaches_and_extended_bay_water_are_rendered() -> None:
 
     assert 'way["natural"="beach"]' in source
     assert 'relation["natural"="beach"]' in source
-    assert "COASTAL_BAND_M = 1400.0" in source
+    # The band reaches the bay disc rather than stopping at a fixed distance, and which side of
+    # the coastline is wet is checked against the buildings rather than taken on convention:
+    # every one of this corridor's seven coastlines needed drawing to starboard, and the ones
+    # taken on trust put 1.4 km of water over North Beach.
+    assert "COASTAL_BAND_M = 9000.0" in source
+    assert "def covers_the_city(" in source
+    assert "MAX_BUILDINGS_PER_KM2" in source
+    # Water and beaches sit above the plane they used to be buried under.
+    assert "const WATER_Y" in source and "const BEACH_Y" in source
+    assert "mesh.position.y = WATER_Y;" in source
+    assert "mesh.position.y = BEACH_Y;" in source
     assert '"kind": "beach"' in source
     assert "function sandTexture()" in source
     assert "const SAND = sandTexture();" in source
