@@ -80,7 +80,10 @@ def test_renderer_densifies_curved_road_markings() -> None:
 
     assert "function densifyWay(points, maxSpan = 5.0)" in source
     assert "const renderPoints = densifyWay(way.points);" in source
-    assert "groups.streets.add(ribbon(surfacePoints, widthMeters" in source
+    # The ribbon is merged by material rather than added on its own: 53,383 street meshes
+    # were 53,383 draw calls a frame. Same geometry, one call per surface class.
+    assert "addMerged(`ribbon:${surfaceKind}" in source
+    assert "ribbon(surfacePoints, widthMeters" in source
     # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
     assert "paintedLine(offsetWay(renderPoints, offset), MARK_W" in source
@@ -144,7 +147,7 @@ def test_facade_renderer_adds_roof_material_detail() -> None:
     source = _source()
 
     assert "function roofTexture(seed, base, archetype)" in source
-    assert "map: roofTextureFor(tint, seed, feature.archetype)" in source
+    assert "roofTextureFor(tint, seed, feature.archetype)" in source
     # The surface, and only the surface. Roof furniture used to be painted into this texture,
     # which repeats 2.5 times across every roof -- so one solar array became six copies of
     # itself at arbitrary size, clipped at the tile edges. What stands on a roof is geometry

@@ -1,0 +1,26 @@
+{
+ "sampled": 217730,
+ "segmented": 211267,
+ "fetch_failures": 6463,
+ "elapsed_s": 35936.6,
+ "frames_per_second": 5.88,
+ "projected_hours_for_386624": 18.3,
+ "median_fractions": {
+  "road": 0.201,
+  "sidewalk": 0.006,
+  "facade": 0.473,
+  "vegetation": 0.055,
+  "sky": 0.044,
+  "vehicle_occlusion": 0.061,
+  "person_occlusion": 0.006,
+  "furniture": 0.004
+ },
+ "median_values": {
+  "facade_value": 0.677,
+  "road_value": 0.386,
+  "kerb_value": 0.036,
+  "occlusion": 0.087
+ },
+ "heavily_occluded_share": 0.074,
+ "no_sidewalk_visible_share": 0.583
+}

@@ -55,7 +55,9 @@ data/observation_enrichment/enrichment-000.parquet
 data/observation_enrichment/pairs-000.parquet
 data/observation_enrichment/pose-000.parquet
 data/observation_enrichment/semantics-sample.parquet
-data/observation_enrichment/semantics-000.parquet
+# semantics-000.parquet was here too. It is 14.7 MB and it is ten hours of a GPU: 319,017
+# frames segmented, and the one input B8's ranking cannot be recomputed without. The two big
+# joins below stay out because they rebuild in two minutes; this does not.
 
 # Raw SFMTA ArcGIS responses. Reproducible cache keyed by layer and query.
 build/sfmta/

@@ -1,0 +1,27 @@
+{
+ "block_faces": 4694,
+ "faces_with_no_frames": 690,
+ "faces_never_seeing_their_own_kerb": 1094,
+ "faces_measurable_now": 2896,
+ "readiness_weights": {
+  "kerb_view": 0.34,
+  "geometry": 0.26,
+  "pose": 0.18,
+  "along": 0.14,
+  "angles": 0.08
+ },
+ "need": {
+  "kerb_view": 1528,
+  "along": 1185,
+  "no photograph at all": 690,
+  "geometry": 645,
+  "pose": 441,
+  "angles": 205
+ },
+ "against_the_density_target": {
+  "faces_with_12_or_more_frames": 2762,
+  "of_those_still_not_measurable": 85,
+  "faces_under_12_frames_already_measurable": 309,
+  "top_200_by_marginal_value_that_already_have_12_frames": 33
+ }
+}

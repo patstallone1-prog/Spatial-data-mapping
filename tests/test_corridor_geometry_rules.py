@@ -348,4 +348,5 @@ def test_a_shed_is_not_drawn_as_a_house() -> None:
     # And the consequences: a canopy is not drawn, an outbuilding is capped and plain.
     assert 'if (kind === "canopy") return null;' in js
     assert "OUTBUILDING_MAX_M" in js
-    assert "walls.map = outbuildingTexture(seed);" in js
+    assert "outbuildingTexture(seed)" in js
+    assert 'kind === "outbuilding" ? outbuildingRoofTexture(seed)' in js

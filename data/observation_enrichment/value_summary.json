@@ -1,0 +1,62 @@
+{
+ "observations": 386624,
+ "weights": {
+  "sees_kerb": 0.26,
+  "has_geometry": 0.2,
+  "pose_trust": 0.14,
+  "sees_facade": 0.11,
+  "unoccluded": 0.09,
+  "placed": 0.07,
+  "sees_road": 0.05,
+  "metric_truth": 0.05,
+  "resolution": 0.03
+ },
+ "component_coverage": {
+  "sees_kerb": 319017,
+  "has_geometry": 368035,
+  "pose_trust": 368035,
+  "sees_facade": 319017,
+  "unoccluded": 319017,
+  "placed": 368035,
+  "sees_road": 319017,
+  "metric_truth": 15246,
+  "resolution": 386624
+ },
+ "value_percentiles": {
+  "p10": 0.0,
+  "p25": 0.3811,
+  "p50": 0.508,
+  "p75": 0.561,
+  "p90": 0.6028,
+  "p99": 0.7518
+ },
+ "limiting_factor": {
+  "sees_kerb": 370656,
+  "has_geometry": 8040,
+  "pose_trust": 7124,
+  "sees_facade": 804
+ },
+ "by_resolution_tier": {
+  "A": {
+   "n": 59110,
+   "median_value": 0.4912
+  },
+  "B": {
+   "n": 85249,
+   "median_value": 0.5217
+  },
+  "C": {
+   "n": 242193,
+   "median_value": 0.5048
+  },
+  "reject": {
+   "n": 72,
+   "median_value": 0.0
+  }
+ },
+ "top_one_percent_by_tier": {
+  "C": 3606,
+  "B": 180,
+  "A": 80
+ }
+}
