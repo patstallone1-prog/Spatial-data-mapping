@@ -122,7 +122,11 @@ def test_beaches_and_extended_bay_water_are_rendered() -> None:
     # the coastline is wet is checked against the buildings rather than taken on convention:
     # every one of this corridor's seven coastlines needed drawing to starboard, and the ones
     # taken on trust put 1.4 km of water over North Beach.
-    assert "COASTAL_BAND_M = 9000.0" in source
+    # Two kilometres: far enough to reach past the corridor from any shoreline in it, and no
+    # further. At nine the band ran clear across the city and, sitting above the land plane
+    # though below the roadway, showed through every gap as blue patches on the kerb ramps.
+    assert "COASTAL_BAND_M = 2000.0" in source
+    assert "MAX_BUILDINGS_INSIDE" in source
     assert "def covers_the_city(" in source
     assert "MAX_BUILDINGS_PER_KM2" in source
     # Water and beaches sit above the plane they used to be buried under.

@@ -350,3 +350,69 @@ def test_a_shed_is_not_drawn_as_a_house() -> None:
     assert "OUTBUILDING_MAX_M" in js
     assert "outbuildingTexture(seed)" in js
     assert 'kind === "outbuilding" ? outbuildingRoofTexture(seed)' in js
+
+
+def test_every_awning_kind_exists_and_the_flat_board_is_the_common_one() -> None:
+    """Five kinds, and the one San Francisco actually has most of is not an awning at all.
+
+    A `board` is a painted or cut-letter sign fixed flat to the wall above the glass. It is the
+    commonest thing on a shopfront here by a wide margin, and a set of awning types that leaves
+    it out gets the street wrong however good the canvas looks.
+    """
+    js = _page_js()
+    for kind in ("board", "straight", "dome", "shed", "retractable"):
+        assert f'"{kind}"' in js, kind
+    for builder in ("buildBoard", "buildSloped", "buildDome", "buildShed"):
+        assert f"function {builder}(" in js, builder
+    # Every trade's mix has to be a distribution, and board has to lead in most of them.
+    table = js[js.index("const AWNING_MIX = {"):js.index("};", js.index("const AWNING_MIX = {"))]
+    rows = re.findall(r"(\w+):\s*\{([^}]*)\}", table)
+    assert len(rows) >= 12, len(rows)
+    leads = 0
+    for trade, body in rows:
+        shares = {k: float(v) for k, v in re.findall(r"(\w+):\s*([0-9.]+)", body)}
+        assert abs(sum(shares.values()) - 1.0) < 1e-6, (trade, shares)
+        if max(shares, key=shares.get) == "board":
+            leads += 1
+    assert leads > len(rows) * 0.7, f"the flat board leads in only {leads} of {len(rows)} trades"
+
+
+def test_a_long_shop_name_is_set_smaller_rather_than_overflowing() -> None:
+    js = _page_js()
+    body = _extract("signSlot", js)
+    assert "SIGN_MAX_PX" in body and "SIGN_MIN_SCALE" in body
+    assert "scale = Math.max(SIGN_MIN_SCALE, scale * 0.9)" in body, "the name is never shrunk"
+    # And the measurement respects the trade's letter spacing, or a tracked sign overflows.
+    assert "measureTracked(ctx, text, style.track * scale)" in body
+
+
+def test_the_name_curves_with_a_dome_awning() -> None:
+    """Flat text in front of a curved awning reads as a sticker. The sign is laid on the same
+    arc the canvas is, one strip per arc segment, so it curves because the awning curves."""
+    js = _page_js()
+    body = _extract("buildDome", js)
+    assert "const arc = [];" in body
+    # The sign strips walk the same arc array the canvas does.
+    assert "for (let i = from; i < to; i += 1)" in body
+    assert "slot.v0 + (slot.v1 - slot.v0)" in body
+
+
+def test_the_underside_of_an_awning_is_shaded_rather_than_flat() -> None:
+    js = _page_js()
+    assert "function underTones(colour)" in js
+    for builder in ("buildSloped", "buildShed"):
+        body = _extract(builder, js)
+        assert "[lip, lip, deep, deep]" in body, builder
+    dome = _extract("buildDome", js)
+    assert "deep.clone().lerp(lip, shade)" in dome
+
+
+def test_awnings_and_signs_do_not_cost_a_draw_call_each() -> None:
+    """Two thousand seven hundred signs, each with different words on it, and still a handful of
+    meshes: the words go into a shared atlas and the awning's colour goes on its vertices."""
+    js = _page_js()
+    assert "function emitShopfronts()" in js
+    assert "emitShopfronts();" in js
+    assert "const SIGN_ATLAS_PX = 2048;" in js
+    body = _extract("awningMaterial", js)
+    assert "vertexColors: true" in body

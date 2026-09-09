@@ -109,8 +109,17 @@ def _sidewalk_sides(tags: dict) -> list[int] | None:
     return None
 
 
-#: How far out to sea the water is drawn -- far enough to meet the bay disc the renderer lays
-#: beyond the corridor, so that there is no dark seam between the two.
+#: How far out to sea the water is drawn.
+#:
+#: Nine kilometres was too far. A band that long runs from the shoreline clear across the city,
+#: and although it sits below the roadway and the pavement it sits *above* the land plane -- so
+#: it showed through every gap between them, as blue patches on the kerb ramps and in the middle
+#: of the street. It passed the building test because eighteen square kilometres makes even a
+#: few hundred buildings look sparse.
+#:
+#: Two kilometres reaches past the far edge of the corridor from any shoreline in it, which is
+#: all it has to do: the bay disc laid beyond the bounding box carries the water from there to
+#: the horizon.
 #:
 #: It was 600 m, then 1,400, on the reasoning that a band is safer than an attempt at the whole
 #: bay. It was safer because the side it was drawn on was a guess: a band on the wrong side of
@@ -118,12 +127,12 @@ def _sidewalk_sides(tags: dict) -> list[int] | None:
 #: were doing. Now that the side is checked against the buildings and a band with a
 #: neighbourhood in it is refused, a wrong one cannot ship, and the band can be as long as it
 #: needs to be.
-COASTAL_BAND_M = 9000.0
+COASTAL_BAND_M = 2000.0
 
 #: Lengths to try, longest first. A band that covers buildings at nine kilometres may be clean at
 #: five hundred metres, and five hundred metres of water at the water's edge is worth far more
 #: than nothing at all.
-COASTAL_REACHES = (9000.0, 4000.0, 1600.0, 700.0, 300.0, 120.0)
+COASTAL_REACHES = (2000.0, 1200.0, 700.0, 300.0, 120.0)
 
 
 def _coastline_water(points: list[list[float]], *, port: bool = True,
@@ -571,6 +580,147 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
               f"({flipped} drawn to starboard, {shortened} shortened to clear the city, "
               f"{dropped} dropped)", file=sys.stderr)
     return ways
+
+
+#: What a shopfront sells, from what OpenStreetMap calls it. The vocabulary is deliberately
+#: short: it exists to choose an awning and a typeface, not to catalogue retail. Order matters --
+#: the first rule that matches wins, so `cuisine=pizza` is caught before `amenity=fast_food`.
+TRADE_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("pizza", "cuisine", ("pizza",)),
+    ("pizza", "shop", ("pizza",)),
+    ("cafe", "amenity", ("cafe", "coffee_shop")),
+    ("cafe", "shop", ("coffee",)),
+    ("bakery", "shop", ("bakery", "pastry", "confectionery")),
+    ("bar", "amenity", ("bar", "pub", "nightclub", "biergarten")),
+    ("restaurant", "amenity", ("restaurant", "fast_food", "food_court", "ice_cream")),
+    ("grocery", "shop", ("supermarket", "greengrocer", "butcher", "seafood", "deli",
+                         "farm", "health_food")),
+    ("convenience", "shop", ("convenience", "kiosk", "newsagent", "tobacco", "alcohol",
+                             "wine", "beverages")),
+    ("clothing", "shop", ("clothes", "boutique", "shoes", "bag", "jewelry", "fashion",
+                          "tailor", "fabric", "leather")),
+    ("books", "shop", ("books", "stationery", "art", "music", "musical_instrument")),
+    ("salon", "shop", ("hairdresser", "beauty", "massage", "cosmetics", "nail")),
+    ("salon", "amenity", ("spa",)),
+    ("pharmacy", "amenity", ("pharmacy", "doctors", "dentist", "clinic", "veterinary")),
+    ("pharmacy", "shop", ("chemist", "optician", "medical_supply", "hearing_aids")),
+    ("bank", "amenity", ("bank", "bureau_de_change", "atm", "post_office")),
+    ("laundry", "shop", ("laundry", "dry_cleaning")),
+    ("hardware", "shop", ("hardware", "doityourself", "paint", "electrical", "trade",
+                          "car_repair", "bicycle", "locksmith")),
+    ("florist", "shop", ("florist", "garden_centre")),
+    ("hotel", "tourism", ("hotel", "hostel", "guest_house", "motel")),
+)
+
+#: A tag that says "a business is here" without saying which. Anything with one of these and a
+#: name is a shopfront of some kind, and gets the generic treatment.
+GENERIC_TRADE_KEYS = ("shop", "amenity", "craft", "office", "tourism")
+
+#: Nothing behind a shopfront: these are amenities that occupy a point rather than a unit, and
+#: putting an awning with "Bench" written on it over a doorway is worse than nothing.
+NOT_A_SHOPFRONT = frozenset({
+    "bench", "waste_basket", "recycling", "bicycle_parking", "parking", "parking_entrance",
+    "parking_space", "drinking_water", "fountain", "toilets", "shelter", "telephone",
+    "clock", "post_box", "charging_station", "car_sharing", "taxi", "bus_station",
+    "vending_machine", "atm", "fire_hydrant", "grit_bin", "hunting_stand", "shower",
+    "bicycle_repair_station", "public_bookcase", "letter_box", "smoking_area",
+})
+
+#: How many shopfronts one building is allowed to show. A block-long building on Columbus can
+#: hold a dozen businesses, but its street wall can only carry so many signs before they stop
+#: being legible, and four is about what fits.
+MAX_SHOPFRONTS = 4
+
+
+def trade_of(tags: dict) -> str | None:
+    """Which trade a set of OpenStreetMap tags describes, if any."""
+    for trade, key, values in TRADE_RULES:
+        value = str(tags.get(key) or "").lower()
+        if not value:
+            continue
+        # cuisine is a semicolon list; the others are single values in practice.
+        parts = {p.strip() for p in value.replace(",", ";").split(";")}
+        if parts & set(values):
+            return trade
+    for key in GENERIC_TRADE_KEYS:
+        value = str(tags.get(key) or "").lower()
+        if value and value not in NOT_A_SHOPFRONT and value not in ("yes", "no"):
+            return "shop"
+    return None
+
+
+def attach_shopfronts(ways: list[dict]) -> int:
+    """Give every building the businesses standing inside it.
+
+    A shop is a point in OpenStreetMap far more often than it is a building: 3,163 of this
+    corridor's points of interest carry a name, against 169 of its retail and restaurant
+    footprints. Left as points they are invisible -- the renderer skips them -- and the shopfront
+    on the building they are inside has nothing to write on it.
+
+    So they are folded in here, where the building rings are in hand, and the payload carries the
+    result rather than the points: a name and a trade per shopfront, which is what a sign needs.
+    """
+    buildings = [w for w in ways if w.get("kind") == "building" and w.get("points")]
+    if not buildings:
+        return 0
+    lat0 = buildings[0]["points"][0][1]
+    m_lat = 111_320.0
+    m_lon = m_lat * math.cos(math.radians(lat0))
+    cell = 60.0
+    grid: dict[tuple[int, int], list[dict]] = defaultdict(list)
+    for building in buildings:
+        ring = building["points"]
+        xs = [p[0] * m_lon for p in ring]
+        ys = [p[1] * m_lat for p in ring]
+        building["_box"] = (min(xs), max(xs), min(ys), max(ys))
+        for ix in range(int(min(xs) / cell), int(max(xs) / cell) + 1):
+            for iy in range(int(min(ys) / cell), int(max(ys) / cell) + 1):
+                grid[(ix, iy)].append(building)
+
+    attached = 0
+    for way in ways:
+        if way.get("kind") != "poi":
+            continue
+        point = way.get("point")
+        tags = way.get("tags") or {}
+        name = way.get("name")
+        if not point or not name:
+            continue
+        trade = trade_of(tags)
+        if trade is None:
+            continue
+        x, y = point[0] * m_lon, point[1] * m_lat
+        for building in grid.get((int(x / cell), int(y / cell)), ()):
+            box = building["_box"]
+            if not (box[0] <= x <= box[1] and box[2] <= y <= box[3]):
+                continue
+            if not _ring_contains(building["points"], point[0], point[1]):
+                continue
+            shops = building.setdefault("shops", [])
+            if len(shops) >= MAX_SHOPFRONTS:
+                break
+            if any(s["n"] == name for s in shops):
+                break
+            shops.append({"n": name, "t": trade})
+            attached += 1
+            break
+
+    # A building that is itself the business -- Safeway, a named restaurant footprint -- gets its
+    # own name as a shopfront when no point of interest supplied one.
+    for building in buildings:
+        building.pop("_box", None)
+        if building.get("shops"):
+            continue
+        name = building.get("name")
+        if not name:
+            continue
+        trade = trade_of(building.get("tags") or {})
+        if trade is None and building.get("archetype") in ("retail", "restaurant"):
+            trade = "shop"
+        if trade:
+            building["shops"] = [{"n": name, "t": trade}]
+            attached += 1
+    return attached
 
 
 def drop_water_over_land(ways: list[dict]) -> list[dict]:
@@ -1710,7 +1860,11 @@ const ground = new THREE.Mesh(
   // 0x0c171b that was indistinguishable from a hole in the world -- a wedge of it beside Aquatic
   // Park read as a void rather than as ground nobody has surveyed. Unmapped ground should look
   // like ground.
-  new THREE.MeshStandardMaterial({ color: 0x44584a, roughness: 0.98, metalness: 0.0 })
+  // Neutral, not green. Near-black read as a hole and a green read as lawn -- both are wrong
+  // for a strip of street nobody has surveyed, and the second is worse because it looks like an
+  // answer. A dry grey-brown is what unmapped ground should look like: present, and not claiming
+  // to be anything.
+  new THREE.MeshStandardMaterial({ color: 0x4a4a45, roughness: 0.99, metalness: 0.0 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = LAND_Y;
@@ -3985,6 +4139,537 @@ function balconyPart(group, wall, y, seed) {
   }
 }
 
+// ---- shopfronts ----
+//
+// Two thousand seven hundred and twenty eight businesses in this corridor, each with a name and
+// a trade, and until now not one of them had its name anywhere. A shop is a point in
+// OpenStreetMap far more often than it is a building, so the names were folded onto the
+// buildings in the build; what is left is to write them where a shop writes them.
+//
+// Which is above the door, on a sign band or on an awning, and in San Francisco it is far more
+// often a flat board fixed to the wall than a canvas awning -- the awning is the exception on
+// these streets, not the rule. The proportions below are estimates and are labelled as such:
+// nobody publishes a census of awnings. They are pitched at what the trade actually does, which
+// is the part that is not guesswork. A bank puts its name on a board in cut letters; a cafe
+// puts it on a valance; a corner store has a dome awning over the door with the same name
+// printed on the skirt.
+
+//: How the name is set, by trade. A hairdresser's sign and a hardware store's sign are not the
+//: same object and never have been: one is a script with a lot of air round it and the other is
+//: as much bold condensed capital as will fit in the space.
+const TRADE_TYPE = {
+  restaurant:  { font: '600 34px Georgia, "Times New Roman", serif', caps: false, track: 0.5 },
+  pizza:       { font: '700 34px Georgia, serif', caps: true, track: 1.5 },
+  cafe:        { font: 'italic 600 34px Georgia, serif', caps: false, track: 0.5 },
+  bakery:      { font: 'italic 600 34px "Palatino Linotype", Georgia, serif', caps: false, track: 0.5 },
+  bar:         { font: '700 32px "Trebuchet MS", Verdana, sans-serif', caps: true, track: 2.5 },
+  grocery:     { font: '800 32px "Arial Narrow", Arial, sans-serif', caps: true, track: 1 },
+  convenience: { font: '800 32px "Arial Narrow", Arial, sans-serif', caps: true, track: 1 },
+  clothing:    { font: '300 28px "Helvetica Neue", Arial, sans-serif', caps: true, track: 7 },
+  books:       { font: '500 32px Georgia, serif', caps: false, track: 1 },
+  salon:       { font: 'italic 600 36px "Brush Script MT", "Segoe Script", cursive', caps: false, track: 0 },
+  pharmacy:    { font: '700 32px Arial, Helvetica, sans-serif', caps: true, track: 1 },
+  bank:        { font: '500 30px Georgia, serif', caps: true, track: 4 },
+  laundry:     { font: '700 30px Arial, Helvetica, sans-serif', caps: true, track: 2.5 },
+  hardware:    { font: '800 30px Arial, Helvetica, sans-serif', caps: true, track: 1 },
+  florist:     { font: 'italic 500 34px Georgia, serif', caps: false, track: 0.5 },
+  hotel:       { font: '400 32px Georgia, serif', caps: true, track: 6 },
+  shop:        { font: '600 32px "Helvetica Neue", Arial, sans-serif', caps: true, track: 2 },
+};
+
+//: Which awning each trade puts up, as a share. `board` is the flat sign fixed against the wall
+//: with no canvas at all, and it is the most common thing on a San Francisco shopfront by a wide
+//: margin -- the others are the ones people picture. Estimates, per the note above.
+const AWNING_MIX = {
+  restaurant:  { board: 0.42, straight: 0.24, dome: 0.12, shed: 0.14, retractable: 0.08 },
+  pizza:       { board: 0.40, straight: 0.22, dome: 0.20, shed: 0.10, retractable: 0.08 },
+  cafe:        { board: 0.36, straight: 0.26, dome: 0.14, shed: 0.10, retractable: 0.14 },
+  bakery:      { board: 0.40, straight: 0.24, dome: 0.16, shed: 0.10, retractable: 0.10 },
+  bar:         { board: 0.62, straight: 0.14, dome: 0.08, shed: 0.12, retractable: 0.04 },
+  grocery:     { board: 0.50, straight: 0.20, dome: 0.14, shed: 0.12, retractable: 0.04 },
+  convenience: { board: 0.46, straight: 0.16, dome: 0.24, shed: 0.10, retractable: 0.04 },
+  clothing:    { board: 0.66, straight: 0.10, dome: 0.06, shed: 0.14, retractable: 0.04 },
+  books:       { board: 0.70, straight: 0.10, dome: 0.06, shed: 0.10, retractable: 0.04 },
+  salon:       { board: 0.48, straight: 0.16, dome: 0.22, shed: 0.08, retractable: 0.06 },
+  pharmacy:    { board: 0.74, straight: 0.10, dome: 0.06, shed: 0.08, retractable: 0.02 },
+  bank:        { board: 0.88, straight: 0.04, dome: 0.02, shed: 0.06, retractable: 0.00 },
+  laundry:     { board: 0.66, straight: 0.12, dome: 0.10, shed: 0.10, retractable: 0.02 },
+  hardware:    { board: 0.72, straight: 0.10, dome: 0.06, shed: 0.10, retractable: 0.02 },
+  florist:     { board: 0.42, straight: 0.20, dome: 0.22, shed: 0.08, retractable: 0.08 },
+  hotel:       { board: 0.52, straight: 0.12, dome: 0.10, shed: 0.24, retractable: 0.02 },
+  shop:        { board: 0.60, straight: 0.14, dome: 0.10, shed: 0.12, retractable: 0.04 },
+};
+
+//: The name is drawn once into a shared canvas and every sign takes a rectangle of it, so that
+//: two thousand seven hundred signs are a handful of textures rather than two thousand seven
+//: hundred. 2048 is the largest size that is safe everywhere.
+const SIGN_ATLAS_PX = 2048;
+//: Row height in the atlas. Names are packed along a row and wrapped to the next, so a short
+//: name costs a short rectangle rather than a whole cell.
+const SIGN_ROW_PX = 46;
+const SIGN_PAD_PX = 5;
+//: Slots are at most this wide. Anything that will not fit is set smaller until it does, which
+//: is what a signwriter does with a long name on a fixed board.
+const SIGN_MAX_PX = 460;
+const SIGN_MIN_SCALE = 0.42;
+
+const signAtlases = [];
+
+function newSignAtlas() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = SIGN_ATLAS_PX;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, SIGN_ATLAS_PX, SIGN_ATLAS_PX);
+  ctx.textBaseline = "middle";
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  const atlas = { canvas, ctx, texture, x: SIGN_PAD_PX, y: SIGN_PAD_PX, index: signAtlases.length };
+  signAtlases.push(atlas);
+  return atlas;
+}
+
+function drawTracked(ctx, text, x, y, track) {
+  // Letter spacing, by hand: canvas has no tracking, and a fashion sign without it is not a
+  // fashion sign. Returns the width drawn.
+  if (!track) {
+    ctx.fillText(text, x, y);
+    return ctx.measureText(text).width;
+  }
+  let at = x;
+  for (const letter of text) {
+    ctx.fillText(letter, at, y);
+    at += ctx.measureText(letter).width + track;
+  }
+  return at - x - track;
+}
+
+function measureTracked(ctx, text, track) {
+  if (!track) return ctx.measureText(text).width;
+  let width = 0;
+  for (const letter of text) width += ctx.measureText(letter).width + track;
+  return Math.max(0, width - track);
+}
+
+const SIGN_SLOTS = new Map();
+
+function signSlot(name, trade) {
+  const key = `${trade}|${name}`;
+  const cached = SIGN_SLOTS.get(key);
+  if (cached) return cached;
+
+  const style = TRADE_TYPE[trade] || TRADE_TYPE.shop;
+  const text = style.caps ? name.toUpperCase() : name;
+  let atlas = signAtlases[signAtlases.length - 1] || newSignAtlas();
+  const ctx = atlas.ctx;
+
+  // Set it at the trade's own size, then shrink until it fits the board. A long name in a small
+  // face is what a signwriter does; a long name overflowing the board is what nobody does.
+  const base = /(\d+)px/.exec(style.font);
+  const basePx = base ? Number(base[1]) : 32;
+  let scale = 1.0;
+  let width = 0;
+  for (let attempt = 0; attempt < 14; attempt += 1) {
+    ctx.font = style.font.replace(/(\d+)px/, `${Math.max(12, Math.round(basePx * scale))}px`);
+    width = measureTracked(ctx, text, style.track * scale) + SIGN_PAD_PX * 2;
+    if (width <= SIGN_MAX_PX || scale <= SIGN_MIN_SCALE) break;
+    scale = Math.max(SIGN_MIN_SCALE, scale * 0.9);
+  }
+  width = Math.min(SIGN_MAX_PX, Math.ceil(width));
+
+  if (atlas.x + width > SIGN_ATLAS_PX - SIGN_PAD_PX) {
+    atlas.x = SIGN_PAD_PX;
+    atlas.y += SIGN_ROW_PX;
+  }
+  if (atlas.y + SIGN_ROW_PX > SIGN_ATLAS_PX - SIGN_PAD_PX) {
+    atlas = newSignAtlas();
+  }
+  const ax = atlas.x;
+  const ay = atlas.y;
+  const c = atlas.ctx;
+  c.font = ctx.font;
+  c.textBaseline = "middle";
+  // Painted letters, with the faint shadow a raised letter throws on the board behind it.
+  c.fillStyle = "rgba(0,0,0,0.34)";
+  drawTracked(c, text, ax + SIGN_PAD_PX + 1.2, ay + SIGN_ROW_PX / 2 + 1.4, style.track * scale);
+  c.fillStyle = "rgba(250,248,242,0.97)";
+  drawTracked(c, text, ax + SIGN_PAD_PX, ay + SIGN_ROW_PX / 2, style.track * scale);
+  atlas.texture.needsUpdate = true;
+  atlas.x += width + SIGN_PAD_PX;
+
+  const slot = {
+    atlas,
+    u0: ax / SIGN_ATLAS_PX,
+    u1: (ax + width) / SIGN_ATLAS_PX,
+    // Canvas y runs down and texture v runs up.
+    v0: 1 - (ay + SIGN_ROW_PX) / SIGN_ATLAS_PX,
+    v1: 1 - ay / SIGN_ATLAS_PX,
+    aspect: width / SIGN_ROW_PX,
+  };
+  SIGN_SLOTS.set(key, slot);
+  return slot;
+}
+
+const SIGN_MATERIALS = new Map();
+
+function signMaterial(atlas) {
+  if (!SIGN_MATERIALS.has(atlas.index)) {
+    SIGN_MATERIALS.set(atlas.index, new THREE.MeshStandardMaterial({
+      map: atlas.texture, transparent: true, alphaTest: 0.22, side: THREE.DoubleSide,
+      roughness: 0.72, metalness: 0.0, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12,
+    }));
+  }
+  return SIGN_MATERIALS.get(atlas.index);
+}
+
+//: Awning colours are the building's own, lightened. A shopfront is painted to go with the
+//: building it is cut into, and the awning is a shade up from the wall rather than a colour of
+//: its own.
+function awningColour(tint) {
+  const colour = new THREE.Color(tint);
+  const hsl = {};
+  colour.getHSL(hsl);
+  // Lighter than the wall, and with a floor. A proportional lift alone is not enough on this
+  // city's stock: the walls are stated dark to survive the exposure, so a fifth again of very
+  // little is still very little, and every awning came out near black against a near black
+  // building. Canvas is dyed, not stained -- it is lighter than the masonry it hangs off
+  // whatever the masonry is -- so the floor is what makes it read as an awning at all.
+  const lifted = Math.max(hsl.l * 1.35 + 0.12, 0.34);
+  colour.setHSL(hsl.h, Math.min(0.85, hsl.s * 1.35 + 0.08), Math.min(0.72, lifted));
+  return colour;
+}
+
+function pickAwning(trade, seed) {
+  const mix = AWNING_MIX[trade] || AWNING_MIX.shop;
+  let roll = random(seed * 1.7 + 97.3);
+  for (const kind of ["board", "straight", "dome", "shed", "retractable"]) {
+    roll -= mix[kind] || 0;
+    if (roll <= 0) return kind;
+  }
+  return "board";
+}
+
+//: The awning parts, collected like everything else: one mesh per kind for the whole city, with
+//: the store's colour on the vertices.
+const AWNING_MATERIALS = {};
+
+function awningMaterial(kind) {
+  if (!AWNING_MATERIALS[kind]) {
+    AWNING_MATERIALS[kind] = new THREE.MeshStandardMaterial({
+      color: 0xffffff, vertexColors: true, side: THREE.DoubleSide,
+      roughness: kind === "board" ? 0.72 : 0.88, metalness: kind === "board" ? 0.12 : 0.0,
+    });
+  }
+  return AWNING_MATERIALS[kind];
+}
+
+function awningQuad(sink, corners, colours) {
+  const base = sink.positions.length / 3;
+  for (let i = 0; i < 4; i += 1) {
+    sink.positions.push(corners[i][0], corners[i][1], corners[i][2]);
+    const c = colours[i] || colours[0];
+    sink.colours.push(c.r, c.g, c.b);
+    sink.uvs.push(0, 0);
+  }
+  sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+
+function newSink() {
+  return { positions: [], colours: [], uvs: [], indices: [] };
+}
+
+function flushSink(sink, material, surface) {
+  if (!sink.indices.length) return null;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(sink.colours, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
+  geometry.setIndex(sink.indices);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.userData.surface = surface;
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
+const AWNING_SINKS = {};
+const SIGN_SINKS = new Map();
+
+function awningSink(kind) {
+  if (!AWNING_SINKS[kind]) AWNING_SINKS[kind] = newSink();
+  return AWNING_SINKS[kind];
+}
+
+function signSink(atlas) {
+  if (!SIGN_SINKS.has(atlas.index)) SIGN_SINKS.set(atlas.index, newSink());
+  return SIGN_SINKS.get(atlas.index);
+}
+
+function addSignFace(atlas, corners, slot) {
+  // Corners run bottom-left, bottom-right, top-right, top-left as the sign is read.
+  const sink = signSink(atlas);
+  const base = sink.positions.length / 3;
+  const uv = [[slot.u0, slot.v0], [slot.u1, slot.v0], [slot.u1, slot.v1], [slot.u0, slot.v1]];
+  for (let i = 0; i < 4; i += 1) {
+    sink.positions.push(corners[i][0], corners[i][1], corners[i][2]);
+    sink.uvs.push(uv[i][0], uv[i][1]);
+    sink.colours.push(1, 1, 1);
+  }
+  sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+
+// The five. One of them -- the board -- is not an awning at all, and it is the one San Francisco
+// actually has most of: a painted or cut-letter sign fixed flat to the wall above the glass.
+//
+// Each is built in the wall's own frame: `along` runs left to right across the shopfront, `out`
+// is away from the wall, `up` is up. The wall hands over a point and two directions and the
+// shapes below never have to think about which way the building faces.
+function shopFrame(wall, centreAlong) {
+  const ax = Math.cos(wall.yaw);
+  const az = -Math.sin(wall.yaw);
+  const ox = wall.nx;
+  const oz = wall.nz;
+  const cx = wall.x + ax * centreAlong;
+  const cz = wall.z + az * centreAlong;
+  return (along, out, up) => [cx + ax * along + ox * out, up, cz + az * along + oz * out];
+}
+
+//: The underside of an awning is not one flat tone. It is darkest where it meets the wall and
+//: lifts towards the front edge, where the sky gets under it -- which is the whole difference
+//: between an awning and a box.
+function underTones(colour) {
+  const deep = colour.clone().multiplyScalar(0.30);
+  const lip = colour.clone().multiplyScalar(0.62);
+  return { deep, lip };
+}
+
+function buildBoard(sink, at, width, colour, slot, atlas) {
+  // A sign board on the wall: a shallow box, its face carrying the name.
+  const top = 4.35;
+  const tall = Math.min(1.05, Math.max(0.62, width * 0.13));
+  const bottom = top - tall;
+  const out = 0.14;
+  const half = width / 2;
+  const face = colour.clone().multiplyScalar(0.94);
+  const edge = colour.clone().multiplyScalar(0.66);
+  // Face.
+  awningQuad(sink, [at(-half, out, bottom), at(half, out, bottom),
+                    at(half, out, top), at(-half, out, top)], [face]);
+  // The four returns to the wall, so it reads as a board with depth rather than a decal.
+  awningQuad(sink, [at(-half, 0, top), at(half, 0, top),
+                    at(half, out, top), at(-half, out, top)], [edge]);
+  awningQuad(sink, [at(-half, out, bottom), at(half, out, bottom),
+                    at(half, 0, bottom), at(-half, 0, bottom)],
+             [edge.clone().multiplyScalar(0.7)]);
+  for (const side of [-1, 1]) {
+    awningQuad(sink, [at(side * half, 0, bottom), at(side * half, out, bottom),
+                      at(side * half, out, top), at(side * half, 0, top)], [edge]);
+  }
+  const inset = 0.05;
+  const signH = Math.min(tall - 0.20, 0.62);
+  const signW = Math.min(width - 0.3, signH * slot.aspect);
+  const mid = (top + bottom) / 2;
+  addSignFace(atlas, [
+    at(-signW / 2, out + inset, mid - signH / 2), at(signW / 2, out + inset, mid - signH / 2),
+    at(signW / 2, out + inset, mid + signH / 2), at(-signW / 2, out + inset, mid + signH / 2),
+  ], slot);
+}
+
+function buildSloped(sink, at, width, colour, slot, atlas, scalloped) {
+  // The classic canvas awning: a sheet from the wall out and down, with a valance hanging from
+  // its front edge. The name goes on the valance, which is where it goes in life.
+  const wallTop = 4.25;
+  const frontTop = 3.35;
+  const reach = Math.min(1.75, Math.max(1.05, width * 0.16));
+  const valance = 0.42;
+  const half = width / 2;
+  const { deep, lip } = underTones(colour);
+  const sheet = colour.clone();
+
+  awningQuad(sink, [at(-half, 0, wallTop), at(half, 0, wallTop),
+                    at(half, reach, frontTop), at(-half, reach, frontTop)], [sheet]);
+  // Underside, shaded from the wall outward.
+  awningQuad(sink, [at(-half, reach, frontTop - 0.012), at(half, reach, frontTop - 0.012),
+                    at(half, 0, wallTop - 0.012), at(-half, 0, wallTop - 0.012)],
+             [lip, lip, deep, deep]);
+  // The two triangular cheeks.
+  for (const side of [-1, 1]) {
+    awningQuad(sink, [at(side * half, 0, wallTop), at(side * half, reach, frontTop),
+                      at(side * half, reach, frontTop - valance), at(side * half, 0, wallTop)],
+               [colour.clone().multiplyScalar(0.80)]);
+  }
+  if (!scalloped) {
+    awningQuad(sink, [at(-half, reach, frontTop - valance), at(half, reach, frontTop - valance),
+                      at(half, reach, frontTop), at(-half, reach, frontTop)], [sheet]);
+  } else {
+    // A scalloped skirt, cut as geometry rather than faked with a texture: each bay is a
+    // half-round, and the round is what says "retractable" at a glance.
+    const bays = Math.max(3, Math.round(width / 0.55));
+    const bayW = width / bays;
+    for (let i = 0; i < bays; i += 1) {
+      const left = -half + i * bayW;
+      const steps = 5;
+      for (let k = 0; k < steps; k += 1) {
+        const t0 = k / steps;
+        const t1 = (k + 1) / steps;
+        const x0 = left + bayW * t0;
+        const x1 = left + bayW * t1;
+        const d0 = valance * Math.sin(Math.PI * t0) * 0.85 + valance * 0.15;
+        const d1 = valance * Math.sin(Math.PI * t1) * 0.85 + valance * 0.15;
+        awningQuad(sink, [at(x0, reach, frontTop - d0), at(x1, reach, frontTop - d1),
+                          at(x1, reach, frontTop), at(x0, reach, frontTop)], [sheet]);
+      }
+    }
+  }
+  const signH = Math.min(valance - 0.14, 0.30);
+  const signW = Math.min(width - 0.24, signH * slot.aspect);
+  const mid = frontTop - valance * 0.52;
+  addSignFace(atlas, [
+    at(-signW / 2, reach + 0.03, mid - signH / 2), at(signW / 2, reach + 0.03, mid - signH / 2),
+    at(signW / 2, reach + 0.03, mid + signH / 2), at(-signW / 2, reach + 0.03, mid + signH / 2),
+  ], slot);
+}
+
+function buildDome(sink, at, width, colour, slot, atlas) {
+  // A quarter-round dome over the door, and the name curved round it -- which comes free from
+  // laying the sign on the same arc as the canvas rather than on a flat plane in front of it.
+  const top = 4.15;
+  const radius = Math.min(1.30, Math.max(0.85, width * 0.16));
+  const half = Math.min(width, 3.4) / 2;
+  const { deep, lip } = underTones(colour);
+  const sheet = colour.clone();
+  const steps = 9;
+  const arc = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const t = (i / steps) * (Math.PI / 2);
+    arc.push([Math.sin(t) * radius, top - (1 - Math.cos(t)) * radius]);
+  }
+  for (let i = 1; i < arc.length; i += 1) {
+    const [o0, u0] = arc[i - 1];
+    const [o1, u1] = arc[i];
+    awningQuad(sink, [at(-half, o0, u0), at(half, o0, u0), at(half, o1, u1), at(-half, o1, u1)],
+               [sheet]);
+    const shade = i / (arc.length - 1);
+    const tone = deep.clone().lerp(lip, shade);
+    awningQuad(sink, [at(half, o0 - 0.012, u0), at(-half, o0 - 0.012, u0),
+                      at(-half, o1 - 0.012, u1), at(half, o1 - 0.012, u1)], [tone]);
+  }
+  // The two round cheeks, as fans.
+  for (const side of [-1, 1]) {
+    for (let i = 1; i < arc.length; i += 1) {
+      const base = sink.positions.length / 3;
+      const p = [at(side * half, 0, top), at(side * half, arc[i - 1][0], arc[i - 1][1]),
+                 at(side * half, arc[i][0], arc[i][1])];
+      const tone = colour.clone().multiplyScalar(0.78);
+      for (const point of p) {
+        sink.positions.push(point[0], point[1], point[2]);
+        sink.colours.push(tone.r, tone.g, tone.b);
+        sink.uvs.push(0, 0);
+      }
+      sink.indices.push(base, base + 1, base + 2);
+    }
+  }
+  // The name, following the arc across its lower half where a dome awning carries it.
+  const signSteps = 6;
+  const from = Math.floor(steps * 0.45);
+  const to = Math.min(steps, from + signSteps);
+  const signH = Math.min(width - 0.3, 2.9);
+  const halfSign = Math.min(half - 0.12, (signH / 2));
+  const sink2 = signSink(atlas);
+  for (let i = from; i < to; i += 1) {
+    const t0 = (i - from) / (to - from);
+    const t1 = (i + 1 - from) / (to - from);
+    const [o0, u0] = arc[i];
+    const [o1, u1] = arc[i + 1];
+    const base = sink2.positions.length / 3;
+    const pts = [at(-halfSign, o1 + 0.02, u1), at(halfSign, o1 + 0.02, u1),
+                 at(halfSign, o0 + 0.02, u0), at(-halfSign, o0 + 0.02, u0)];
+    const v0 = slot.v0 + (slot.v1 - slot.v0) * (1 - t1);
+    const v1 = slot.v0 + (slot.v1 - slot.v0) * (1 - t0);
+    const uv = [[slot.u0, v0], [slot.u1, v0], [slot.u1, v1], [slot.u0, v1]];
+    for (let k = 0; k < 4; k += 1) {
+      sink2.positions.push(pts[k][0], pts[k][1], pts[k][2]);
+      sink2.uvs.push(uv[k][0], uv[k][1]);
+      sink2.colours.push(1, 1, 1);
+    }
+    sink2.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+}
+
+function buildShed(sink, at, width, colour, slot, atlas) {
+  // A fixed canopy: flat on top, a deep fascia at the front carrying the name, closed at the
+  // sides. The one that reads as joinery rather than as canvas.
+  const top = 4.30;
+  const reach = Math.min(1.55, Math.max(1.0, width * 0.15));
+  const fascia = 0.58;
+  const half = width / 2;
+  const { deep, lip } = underTones(colour);
+  const sheet = colour.clone();
+  const face = colour.clone().multiplyScalar(0.97);
+
+  awningQuad(sink, [at(-half, 0, top), at(half, 0, top),
+                    at(half, reach, top), at(-half, reach, top)], [sheet]);
+  awningQuad(sink, [at(-half, reach, top), at(half, reach, top),
+                    at(half, reach, top - fascia), at(-half, reach, top - fascia)], [face]);
+  awningQuad(sink, [at(-half, reach, top - fascia - 0.012), at(half, reach, top - fascia - 0.012),
+                    at(half, 0, top - fascia - 0.012), at(-half, 0, top - fascia - 0.012)],
+             [lip, lip, deep, deep]);
+  for (const side of [-1, 1]) {
+    awningQuad(sink, [at(side * half, 0, top), at(side * half, reach, top),
+                      at(side * half, reach, top - fascia), at(side * half, 0, top - fascia)],
+               [colour.clone().multiplyScalar(0.80)]);
+  }
+  const signH = Math.min(fascia - 0.16, 0.40);
+  const signW = Math.min(width - 0.26, signH * slot.aspect);
+  const mid = top - fascia * 0.5;
+  addSignFace(atlas, [
+    at(-signW / 2, reach + 0.03, mid - signH / 2), at(signW / 2, reach + 0.03, mid - signH / 2),
+    at(signW / 2, reach + 0.03, mid + signH / 2), at(-signW / 2, reach + 0.03, mid + signH / 2),
+  ], slot);
+}
+
+function addShopfronts(feature, seed, height, tint) {
+  const shops = feature.shops;
+  if (!shops || !shops.length) return;
+  // Only where a shopfront can be: a ground floor with room above the glass for a sign.
+  if (height < 4.8) return;
+  const wall = bestFacadeWall(feature, false);
+  if (!wall || wall.span < 4.0) return;
+
+  // Several businesses share a street wall by dividing it, which is what a block of shops is.
+  const fit = Math.max(1, Math.min(shops.length, Math.floor(wall.span / 5.0)));
+  const share = wall.span / fit;
+  const colour = awningColour(tint);
+  for (let i = 0; i < fit; i += 1) {
+    const shop = shops[i];
+    if (!shop || !shop.n) continue;
+    const centre = -wall.span / 2 + share * (i + 0.5);
+    const width = Math.min(share * 0.82, 7.5);
+    if (width < 2.2) continue;
+    const at = shopFrame(wall, centre);
+    const trade = shop.t || "shop";
+    const kind = pickAwning(trade, seed + i * 31.7);
+    const slot = signSlot(shop.n, trade);
+    const sink = awningSink(kind);
+    if (kind === "board") buildBoard(sink, at, width, colour, slot, slot.atlas);
+    else if (kind === "dome") buildDome(sink, at, width, colour, slot, slot.atlas);
+    else if (kind === "shed") buildShed(sink, at, width, colour, slot, slot.atlas);
+    else buildSloped(sink, at, width, colour, slot, slot.atlas, kind === "retractable");
+  }
+}
+
+function emitShopfronts() {
+  for (const kind of Object.keys(AWNING_SINKS)) {
+    const mesh = flushSink(AWNING_SINKS[kind], awningMaterial(kind), `awning:${kind}`);
+    if (mesh) groups.mapped3d.add(mesh);
+  }
+  for (const [index, sink] of SIGN_SINKS) {
+    const mesh = flushSink(sink, signMaterial(signAtlases[index]), "sign");
+    if (mesh) groups.mapped3d.add(mesh);
+  }
+}
+
 function addGroundFacadeDetail(group, feature, seed, height) {
   const shopfront = feature.archetype === "retail" || feature.archetype === "restaurant"
     || feature.archetype === "office" || feature.archetype === "hotel";
@@ -4692,6 +5377,7 @@ function buildingMesh(feature) {
     addGroundFacadeDetail(group, feature, seed, height);
     addSouthFacadeDetail(group, feature, seed, height);
     addRoofFurniture(group, feature, seed, height, areaM2);
+    addShopfronts(feature, seed, height, tint);
   }
   group.userData = feature;
   // The building itself is merged, so this group holds only whatever detail stayed separate.
@@ -4972,7 +5658,12 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
   // mapped sidewalk ways so that where OpenStreetMap has one the two do not fight, and so
   // that where it has none there is still pavement rather than a hole.
   if (!isSidewalk && !isCrossing && !isPath) {
-    const walk = renderedWalkWidth(way, 3.0);
+    // Three metres was too narrow a fallback, and clamping the carriageways to the room they
+    // have made it show: a narrower road leaves a wider strip between the kerb and the building
+    // line, and a three metre footway no longer reached across it. San Francisco's minimum
+    // sidewalk is ten feet and its commercial streets are commonly twelve to fifteen, so four
+    // is both closer to the city and enough to meet the building.
+    const walk = renderedWalkWidth(way, 4.0);
     const inner = widthMeters / 2;
     // Both sides unless one of them is inside another street's carriageway, which happens
     // wherever a divided road is drawn as two ways.
@@ -6036,6 +6727,8 @@ function buildCourts(ground) {
 
 // Everything collected off the roofs while the buildings were being built, in nine meshes.
 emitRoofParts();
+// And every awning and every sign, in one mesh per awning kind and one per name atlas.
+emitShopfronts();
 // And every street surface, marking and piece of facade detail, by material. The detail is
 // merged into the same group the buildings are in so that it sits under the same layer toggle.
 // Streets keep their own layer, so the surfaces and markings flush there and the facade
@@ -6735,7 +7428,7 @@ PAGE_FIELDS = {
     "google_places", "height_m", "height_source", "kerb_m", "kind", "land_use", "lanes",
     "lanes_back", "lanes_fwd", "name", "oneway", "osm_id", "osm_oneway", "parcel", "place",
     "points", "road_m", "road_source", "sources", "tags", "turn", "turn_back", "turn_fwd",
-    "walk_fallback_m", "walk_m", "walk_sides", "zoning",
+    "shops", "walk_fallback_m", "walk_m", "walk_sides", "zoning",
 }
 
 #: The parts of the nested records the page opens. A parcel record carries six fields and the
@@ -6794,6 +7487,11 @@ def main() -> int:
         ways = fetch_osm(SF_CORRIDOR.bbox)
         args.osm_cache.parent.mkdir(parents=True, exist_ok=True)
         args.osm_cache.write_text(json.dumps(ways, indent=2) + "\n", encoding="utf-8")
+
+    # Businesses are points; shopfronts belong to buildings. This is where the two meet, and it
+    # runs before the payload is assembled so the archetype work can see the result.
+    shopfronts = attach_shopfronts(ways)
+    print(f"  shopfronts attached to buildings: {shopfronts}", file=sys.stderr)
 
     payload = build_payload(args.catalog, ways)
     args.out.parent.mkdir(parents=True, exist_ok=True)
