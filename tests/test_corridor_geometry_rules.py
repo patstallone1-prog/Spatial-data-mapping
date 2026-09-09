@@ -471,3 +471,336 @@ def test_the_sun_in_the_sky_is_the_sun_that_lights_the_city() -> None:
     # Sky, sun, glow and cirrus, and the sky is the background rather than a flat colour.
     assert "scene.background = SKY;" in js
     assert "cirrus" in sky.lower() or "wisp" in sky.lower()
+
+
+# ---------------------------------------------------------------- bike lanes
+
+
+#: The lane rules, and everything they lean on.
+BIKE_FUNCTIONS = (
+    "distanceToSegmentSquared",
+    "insideCarriageway",
+    "addCarriagewaySegment",
+    "crosswiseCarriagewayAt",
+    "lerpLonLat",
+    "wayLength",
+    "densifyWay",
+    "offsetWay",
+    "trimWay",
+    "trimWayEnds",
+    "cyclewayIsLane",
+    "cyclewaySides",
+    "laneCountForWay",
+    "nominalRoadWidth",
+    "renderedRoadWidth",
+    "bikeLaneOffset",
+    "indexBikeLaneEnds",
+    "bikeLaneEndsAt",
+    "dashRuns",
+    "bikeLaneZones",
+)
+
+BIKE_PREAMBLE = PREAMBLE + """
+const MIN_RENDER_ROAD_M = 2.8;
+const MAX_RENDER_ROAD_M = 24.0;
+const MAX_INFERRED_ROAD_M = 16.5;
+const BIKE_LANE_M = 1.75;
+const BIKE_JOIN_M = 2.5;
+const BIKE_END_TRIM_M = 2.0;
+const BIKE_CROSS_ANGLE_DEG = 25.0;
+const BIKE_MIXING_M = 7.6;
+const bikeJoinGrid = new Map();
+const BIKE_AREA_CELL = 4.0;
+const bikeAreaGrid = new Map();
+"""
+
+
+def _run_bike(js_body: str) -> dict:
+    js = _page_js()
+    parts = [BIKE_PREAMBLE]
+    parts += [_extract(name, js) for name in BIKE_FUNCTIONS]
+    parts += [_extract("stampBikeLane", js), _extract("insideBikeLane", js)]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+#: One street carrying one lane, delivered the way OpenStreetMap delivers it: in pieces. Howard
+#: Street is twenty ways over a kilometre and every one of them carries the same
+#: cycleway:right=track, which is the situation this is a small copy of.
+SPLIT_STREET = """
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+function pieces(count, spanM) {
+  const out = [];
+  for (let i = 0; i < count; i += 1) {
+    const a = i * spanM;
+    out.push({ kind: "street", name: "Test Street", road_m: 14.0,
+               cycleway_right: "lane",
+               points: [asLonLat(a, 0), asLonLat(a + spanM / 2, 0), asLonLat(a + spanM, 0)] });
+  }
+  return out;
+}
+"""
+
+
+def test_a_lane_split_into_pieces_is_still_one_lane() -> None:
+    """The gap at every join, which is what "the bike lane cuts out randomly" was.
+
+    Each way used to be pulled back from both of its own ends so as not to run out into a
+    crossroads. Most of those ends are not crossroads -- they are where the tagging changed, or
+    where a mapper stopped -- so the trim opened a hole in the middle of a continuous lane, once
+    per split, and the holes appeared wherever OpenStreetMap happened to have divided the street.
+    """
+    result = _run_bike(SPLIT_STREET + """
+    const ways = pieces(10, 40);            // 400 m of lane in ten forty-metre ways
+    indexBikeLaneEnds(ways);
+    let drawn = 0;
+    let mapped = 0;
+    for (const way of ways) {
+      const offset = bikeLaneOffset(renderedRoadWidth(way));
+      const centre = offsetWay(way.points, -offset);
+      mapped += wayLength(centre);
+      const [sx, sy] = xy(centre[0][0], centre[0][1]);
+      const [ex, ey] = xy(centre[centre.length - 1][0], centre[centre.length - 1][1]);
+      const cutStart = bikeLaneEndsAt(sx, -sy) > 1 ? 0 : BIKE_END_TRIM_M;
+      const cutEnd = bikeLaneEndsAt(ex, -ey) > 1 ? 0 : BIKE_END_TRIM_M;
+      drawn += wayLength(trimWayEnds(centre, cutStart, cutEnd));
+    }
+    console.log(JSON.stringify({ mapped: +mapped.toFixed(1), drawn: +drawn.toFixed(1) }));
+    """)
+    # Only the two ends of the whole run are ends. The eighteen interior way-ends are joins, and
+    # a join is a fact about the data rather than anything on the ground.
+    assert result["mapped"] > 395
+    assert result["drawn"] >= result["mapped"] - 2 * 2.0 - 0.5
+
+
+def test_only_a_lane_that_really_stops_is_pulled_back() -> None:
+    """The other half of the same rule: a lane that ends must not run into the crossroads."""
+    result = _run_bike(SPLIT_STREET + """
+    const ways = pieces(1, 60);
+    indexBikeLaneEnds(ways);
+    const way = ways[0];
+    const centre = offsetWay(way.points, -bikeLaneOffset(renderedRoadWidth(way)));
+    const [sx, sy] = xy(centre[0][0], centre[0][1]);
+    console.log(JSON.stringify({
+      endsHere: bikeLaneEndsAt(sx, -sy),
+      mapped: +wayLength(centre).toFixed(1),
+      drawn: +wayLength(trimWayEnds(centre, BIKE_END_TRIM_M, BIKE_END_TRIM_M)).toFixed(1),
+    }));
+    """)
+    assert result["endsHere"] == 1          # nothing else reaches it, so it is a real end
+    assert abs(result["mapped"] - result["drawn"] - 2 * 2.0) < 0.6
+
+
+def test_a_street_crossing_the_lane_is_a_crossing_and_a_bend_is_not() -> None:
+    """Where the green stops, and why it is not simply "wherever a road is".
+
+    A lane is inside its own carriageway for every metre of its length, so insideCarriageway
+    cannot find a junction. What marks one is a carriageway lying across the lane rather than
+    along it -- and a street that merely bends is still the same street.
+    """
+    result = _run_bike("""
+    const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+    // East-west street, and one north-south street crossing it at x = 100.
+    for (let x = -200; x < 300; x += 20) addCarriagewaySegment(x, 0, x + 20, 0, 7.0);
+    for (let z = -200; z < 200; z += 20) addCarriagewaySegment(100, z, 100, z + 20, 6.0);
+    const along = 0;                                   // bearing of the east-west street
+    console.log(JSON.stringify({
+      atTheJunction: crosswiseCarriagewayAt(100, 5.0, along, 0.2),
+      midBlock: crosswiseCarriagewayAt(40, 5.0, along, 0.2),
+      farSide: crosswiseCarriagewayAt(160, 5.0, along, 0.2),
+      // The same point asked about by the crossing street itself: its own carriageway runs
+      // along it, and the east-west one runs across it, so this is a junction for it too.
+      askedTheOtherWay: crosswiseCarriagewayAt(100, 5.0, Math.PI / 2, 0.2),
+    }));
+    """)
+    assert result["atTheJunction"] is True
+    assert result["midBlock"] is False
+    assert result["farSide"] is False
+    assert result["askedTheOtherWay"] is True
+
+
+def test_the_lane_is_lane_then_mixing_then_crossing_through_a_junction() -> None:
+    """The three treatments, in the order a rider meets them.
+
+    Solid lines down the block; the line between the lane and the traffic broken for the
+    twenty-five feet in which right-turning traffic has to cross it; no lines at all across the
+    mouth of the junction, where the lane has no priority and San Francisco paints a crossbike.
+    """
+    result = _run_bike("""
+    const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+    for (let x = -200; x < 300; x += 20) addCarriagewaySegment(x, 0, x + 20, 0, 7.0);
+    for (let z = -200; z < 200; z += 20) addCarriagewaySegment(100, z, 100, z + 20, 6.0);
+    const lane = [];
+    for (let x = 0; x <= 200; x += 2) lane.push(asLonLat(x, 5.0));
+    const runs = bikeLaneZones(lane);
+    const metres = { lane: 0, mixing: 0, crossing: 0 };
+    for (const run of runs) metres[run.label] += wayLength(run.points);
+    console.log(JSON.stringify({
+      order: runs.map((r) => r.label),
+      metres: Object.fromEntries(Object.entries(metres).map(([k, v]) => [k, Math.round(v)])),
+    }));
+    """)
+    # Ordinary lane, then a mixing zone, the junction, another mixing zone, ordinary lane.
+    assert result["order"] == ["lane", "mixing", "crossing", "mixing", "lane"]
+    # The crossing is about as wide as the street it crosses, and each mixing zone is the
+    # MUTCD's twenty-five feet.
+    assert 8 <= result["metres"]["crossing"] <= 16
+    assert 6 <= result["metres"]["mixing"] / 2 <= 10
+
+
+def test_a_dashed_marking_is_cut_at_the_pattern_not_sampled_by_it() -> None:
+    """Why the crossbike came out as bare asphalt with one stray block in it.
+
+    The lane is densified every two metres and a crossbike is 0.9 m of paint to 0.9 m of road.
+    Keeping or dropping whole segments against that cycle aliases: segment after segment landed
+    in a gap. Cut at the pattern, half the run is painted whatever the samples happen to be.
+    """
+    result = _run_bike("""
+    const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+    const out = {};
+    for (const step of [2.0, 5.0, 0.5]) {
+      const pts = [];
+      for (let x = 0; x <= 40; x += step) pts.push(asLonLat(x, 0));
+      const runs = dashRuns(pts, 0.9, 0.9);
+      out[String(step)] = {
+        painted: +runs.reduce((s, r) => s + wayLength(r), 0).toFixed(2),
+        blocks: runs.length,
+        longest: +Math.max(...runs.map((r) => wayLength(r))).toFixed(2),
+      };
+    }
+    console.log(JSON.stringify(out));
+    """)
+    for step, got in result.items():
+        # Half the forty metres, however the polyline was sampled.
+        assert abs(got["painted"] - 20.0) < 1.2, (step, got)
+        # And no block is longer than the mark it is meant to be.
+        assert got["longest"] <= 0.95, (step, got)
+
+
+def test_nothing_else_is_laid_inside_a_bike_lane() -> None:
+    """The tree pit rule. A pit belongs to the footway and a lane belongs to the carriageway."""
+    result = _run_bike(SPLIT_STREET + """
+    const ways = pieces(1, 100);
+    indexBikeLaneEnds(ways);
+    const way = ways[0];
+    const offset = bikeLaneOffset(renderedRoadWidth(way));
+    console.log(JSON.stringify({
+      onTheLane: insideBikeLane(50, offset, 0.15),
+      justOutside: insideBikeLane(50, offset + BIKE_LANE_M, 0.15),
+      onThePavement: insideBikeLane(50, 9.5, 0.15),
+      elsewhere: insideBikeLane(50, -40, 0.15),
+    }));
+    """)
+    assert result["onTheLane"] is True
+    assert result["justOutside"] is False
+    assert result["onThePavement"] is False
+    assert result["elsewhere"] is False
+
+
+# ---------------------------------------------------------------- the ground stack
+
+
+def test_no_two_ground_layers_share_a_plane() -> None:
+    """The glitch at the swimming pool, as a rule rather than as a picture.
+
+    The paved frontage went in at ``YARD_Y + 0.004`` and PARK_Y was 0.020, so the two were the
+    same number and neither file said so. Wherever a parcel and a park overlapped -- Joe DiMaggio
+    Playground is one lot, laid over the whole block -- two large flat polygons occupied one
+    plane and the depth buffer chose between them per pixel: green tearing through grey in
+    stripes, across a playground, with nothing in either source to point at.
+    """
+    js = _page_js()
+    stack = dict(re.findall(r"^const ([A-Z_]+_Y) = ([0-9.]+);", js, re.M))
+    for name in ("YARD_Y", "SERVICE_YARD_Y", "PARK_Y", "FRONT_WALK_Y", "COURT_Y",
+                 "COURT_LINE_Y"):
+        assert name in stack, f"{name} is not declared as its own height"
+    heights = {name: float(value) for name, value in stack.items()}
+    assert len(set(heights.values())) == len(heights), (
+        f"two ground layers share a height: {sorted(heights.items(), key=lambda kv: kv[1])}")
+    # Every one of them is under the carriageway's own top, and separated enough to resolve.
+    ordered = sorted(heights.values())
+    assert ordered[-1] < 0.06
+    assert min(b - a for a, b in zip(ordered, ordered[1:])) >= 0.002
+    # And the page checks it too, at load, rather than trusting this test to be run.
+    assert "const GROUND_STACK = {" in js
+    assert "are both at" in js
+
+
+def test_a_tree_pit_is_square_to_the_pavement_it_is_cut_into() -> None:
+    """A pit is an opening left in the paving, and paving is laid square to the kerb.
+
+    Each was being turned by up to five degrees at random, which reads as a brown square dropped
+    on the pavement rather than as a hole in it -- and the pit next to it was turned differently.
+    """
+    js = _page_js()
+    assert "const pavedBearing = new Map();" in js
+    assert "function pavementBearingAt(x, z)" in js
+    assert "const bearing = pavementBearingAt(tx, tz);" in js
+    # No random turn left anywhere in the pit block.
+    pit = js[js.index("// ---- tree pits ----"):js.index("// Trees, one instanced mesh per")]
+    assert "random(" not in pit, "the pit is still being turned by a die roll"
+    # And the whole pit is tested against the roadway, not only the tree in the middle of it.
+    assert "for (const [cx, cz] of corners)" in pit
+    assert "insideBikeLane(cx, cz" in pit
+
+
+def test_a_sampled_facade_colour_is_lifted_off_the_floor_but_not_repainted() -> None:
+    """What a street photograph measures about a wall is its hue, not its exposure."""
+    js = _page_js()
+    body = "\n".join([
+        "const THREE = { Color: class { constructor(hex) { this.set(hex); }",
+        "  set(hex) { this.r = ((hex >> 16) & 255) / 255; this.g = ((hex >> 8) & 255) / 255;",
+        "             this.b = (hex & 255) / 255; return this; }",
+        "  getHex() { const c = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));",
+        "             return (c(this.r) << 16) | (c(this.g) << 8) | c(this.b); }",
+        "  getHSL(out) { const max = Math.max(this.r, this.g, this.b),"
+        "                      min = Math.min(this.r, this.g, this.b);",
+        "    const l = (max + min) / 2; let h = 0, s = 0;",
+        "    if (max !== min) { const d = max - min;",
+        "      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);",
+        "      if (max === this.r) h = ((this.g - this.b) / d + (this.g < this.b ? 6 : 0)) / 6;",
+        "      else if (max === this.g) h = ((this.b - this.r) / d + 2) / 6;",
+        "      else h = ((this.r - this.g) / d + 4) / 6; }",
+        "    out.h = h; out.s = s; out.l = l; return out; }",
+        "  setHSL(h, s, l) { const f = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1;",
+        "      if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q;",
+        "      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };",
+        "    if (s === 0) { this.r = this.g = this.b = l; return this; }",
+        "    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;",
+        "    this.r = f(p, q, h + 1/3); this.g = f(p, q, h); this.b = f(p, q, h - 1/3);",
+        "    return this; } } };",
+        _extract("liftSampledColour", js),
+        re.search(r"const SAMPLED_LIGHTNESS_FLOOR = [0-9.]+;", js).group(0),
+        """
+        const lightness = (hex) => { const c = new THREE.Color(hex); const o = {};
+                                     c.getHSL(o); return o; };
+        const before = ["#000000", "#52625b", "#8a7f6c", "#e8e0d2"];
+        console.log(JSON.stringify(before.map((hex) => {
+          const was = lightness(parseInt(hex.slice(1), 16));
+          const now = lightness(liftSampledColour(parseInt(hex.slice(1), 16)));
+          return { l0: +was.l.toFixed(3), l1: +now.l.toFixed(3),
+                   h0: +was.h.toFixed(3), h1: +now.h.toFixed(3),
+                   s0: +was.s.toFixed(3), s1: +now.s.toFixed(3) };
+        })));
+        """,
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", body],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    black, dark, mid, pale = json.loads(out.stdout)
+    # Nothing in this city is black.
+    assert black["l1"] >= 0.33
+    # The dark end is lifted...
+    assert dark["l1"] > dark["l0"] + 0.05
+    # ...and what the photograph agreed was pale is left exactly as it was.
+    assert abs(pale["l1"] - pale["l0"]) < 1e-6
+    assert abs(mid["l1"] - mid["l0"]) < 0.06 or mid["l1"] > mid["l0"]
+    # The hue and the saturation are the measurement, and they survive. The tolerance is a
+    # quantisation step: the colour goes out as eight bits per channel and comes back through
+    # HSL, which moves a hue by up to a degree on its own.
+    for entry in (dark, mid, pale):
+        assert abs(entry["h1"] - entry["h0"]) < 0.01
+        assert abs(entry["s1"] - entry["s0"]) < 0.02

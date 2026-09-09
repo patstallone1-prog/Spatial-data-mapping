@@ -50,6 +50,42 @@ CHUNK_LAYER = ROOT / "docs" / "sf-corridor-chunks.json"
 TEXTURE_ROOT = ROOT / "docs" / "facades"
 CACHE = ROOT / "build" / "facade-cache"
 
+#: How much disk the image cache may hold. It is a cache and nothing else -- every frame in it
+#: can be fetched again from the provider -- but an unbounded one filled the disk mid-run and
+#: killed a colour sample that was two thirds of the way through. Sampling the corridor's twelve
+#: thousand buildings pulls roughly six frames each at about 1.2 MB, which is sixty gigabytes if
+#: nothing is ever evicted. The budget keeps the recently-used end, which is where the locality
+#: is: neighbouring buildings share frames, and the walk through them is spatial.
+CACHE_BUDGET_BYTES = int(float(os.environ.get("FACADE_CACHE_BUDGET_GB", "6")) * 1024 ** 3)
+
+#: Sweeping means stat-ing every file, so it is done every so many writes rather than every one.
+_SWEEP_EVERY = 400
+_writes_since_sweep = 0
+
+
+def _evict_to_budget() -> None:
+    """Drop the least recently modified frames until the cache is inside its budget."""
+    files = []
+    total = 0
+    for path in CACHE.rglob("*.jpg"):
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        files.append((stat.st_mtime, stat.st_size, path))
+        total += stat.st_size
+    if total <= CACHE_BUDGET_BYTES:
+        return
+    files.sort()
+    for _, size, path in files:
+        if total <= CACHE_BUDGET_BYTES:
+            break
+        try:
+            path.unlink()
+        except OSError:
+            continue
+        total -= size
+
 USER_AGENT = "spatial-mapping-crowdsource/facades (+non-commercial research)"
 
 #: A wall the cameras saw less than this much of is not worth a texture -- what comes back is
@@ -173,9 +209,16 @@ def fetch_image(provider_name: str, sequence_id: str, image_id: str) -> np.ndarr
     """
     cache_path = CACHE / provider_name / f"{image_id}.jpg"
     if cache_path.exists():
-        data = np.frombuffer(cache_path.read_bytes(), dtype=np.uint8)
-        image = cv2.imdecode(data, cv2.IMREAD_COLOR)
-        return image
+        # A cached file is not automatically a cached image. A full disk leaves zero-byte and
+        # half-written files behind, and cv2.imdecode raises on an empty buffer rather than
+        # returning None -- which ended a run that was two thirds of the way through the city.
+        # An unreadable one is simply not cached: drop it and fetch it again.
+        blob = cache_path.read_bytes()
+        if blob:
+            image = cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if image is not None:
+                return image
+        cache_path.unlink(missing_ok=True)
     url = resolve_url(provider_name, sequence_id, image_id)
     if not url:
         return None
@@ -186,7 +229,19 @@ def fetch_image(provider_name: str, sequence_id: str, image_id: str) -> np.ndarr
     except Exception:
         return None
     cache_path.parent.mkdir(parents=True, exist_ok=True)
-    cache_path.write_bytes(blob)
+    try:
+        cache_path.write_bytes(blob)
+    except OSError:
+        # A full disk must not end the run: the cache is an optimisation, and the pixels are
+        # already in hand. Sweep, and carry on whether or not the sweep found anything.
+        cache_path.unlink(missing_ok=True)
+        _evict_to_budget()
+    else:
+        global _writes_since_sweep
+        _writes_since_sweep += 1
+        if _writes_since_sweep >= _SWEEP_EVERY:
+            _writes_since_sweep = 0
+            _evict_to_budget()
     return cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_COLOR)
 
 

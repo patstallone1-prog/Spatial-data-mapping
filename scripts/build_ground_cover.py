@@ -56,6 +56,13 @@ MIN_FRONT_LAWN_DEPTH_M = 2.4
 #: A large parcel remainder gets the fenced-backyard treatment. Smaller street-facing
 #: remainders are front lawns or paved frontages.
 MIN_BACKYARD_CELLS = 28     # 112 square metres
+#: Above this share of a parcel standing on mapped green, the parcel is the park rather than a
+#: garden inside it. Institutional lots -- playgrounds, schools, the grounds of a library -- are
+#: surveyed as one big polygon and would otherwise be paved over the top of the grass.
+MAX_PARCEL_ON_GREEN = 0.55
+#: Shorter than this and a fence is a stub, not a fence: the leftover between a wall and a
+#: corner, or a survey step of a few centimetres.
+MIN_FENCE_RUN_M = 1.2
 #: The garden fences San Francisco actually has, weighted the way the city is: mostly
 #: redwood board, a good share of chainlink, some picket and the occasional low stucco wall.
 #: One is chosen per block, so that a block's back fences match each other rather than forming a
@@ -249,6 +256,14 @@ def main() -> int:
 
     # -- what is already described ------------------------------------------------------------
     lattice = Lattice(bbox)
+    # Green on its own, alongside the lattice that holds everything. A parcel standing on a park
+    # is not a garden and is not a paved frontage -- it is the park, already drawn. Joe DiMaggio
+    # Playground is one lot, 0075002, and it arrived here as an eleven-and-a-half thousand square
+    # metre "shallow frontage" laid flat over the whole block: grey paving across a playground,
+    # at the same height as the grass under it, the two tearing through each other in stripes.
+    # The combined lattice could not catch it, because a parcel that large has enough left over
+    # round the edges of what covers it to clear any absolute threshold.
+    green = Lattice(bbox)
     for way in payload["ways"]:
         points = way.get("points")
         if not points:
@@ -285,6 +300,7 @@ def main() -> int:
     progress(f"{len(parks)} park rings from Recreation and Parks")
     for park in parks:
         lattice.stamp_polygon(park["p"])
+        green.stamp_polygon(park["p"])
 
     # -- the parks the city does not own -------------------------------------------------------
     #
@@ -304,6 +320,7 @@ def main() -> int:
             simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
             parks.append({"n": name, "p": simplified})
             lattice.stamp_polygon(simplified)
+            green.stamp_polygon(simplified)
             osm_green += 1
     progress(f"{osm_green} further green rings from OpenStreetMap "
              f"({len(parks)} parks in total)")
@@ -335,6 +352,7 @@ def main() -> int:
             pitches.append({"s": placed[0][0], "n": tags.get("name"),
                             "p": [[round(x, 6), round(y, 6)] for x, y in fenced]})
             lattice.stamp_polygon(ring)
+            green.stamp_polygon(ring)
             for kind, _ in placed:
                 by_sport[kind] = by_sport.get(kind, 0) + 1
     progress(f"{len(courts)} courts across {len(pitches)} pitches: "
@@ -362,8 +380,16 @@ def main() -> int:
             return bool(grid.grid[row, col])
         return False
 
-    def front_setback_depth(ring: list) -> float | None:
-        """Smallest street-facing parcel edge to building distance, in metres."""
+    def front_setback(ring: list) -> tuple[float, tuple, tuple] | None:
+        """The shallowest street-facing edge to building distance, and the edge it was measured
+        from, in metres.
+
+        The edge comes back with the depth because the fence pass needs it. A lot is one polygon
+        but two gardens: the strip between the pavement and the front of the house, which in this
+        city is open to the street and to the neighbours, and the ground behind the house, which
+        is fenced. Only the second is a back garden, and without knowing where the front of the
+        house is there is no way to tell one end of a side boundary from the other.
+        """
         metric = [to_metres(lon, lat) for lon, lat in ring]
         if len(metric) < 3:
             return None
@@ -371,7 +397,7 @@ def main() -> int:
                    - metric[(i + 1) % len(metric)][0] * metric[i][1]
                    for i in range(len(metric)))
         turn = 1.0 if area > 0 else -1.0
-        depths = []
+        found: list[tuple[float, tuple, tuple]] = []
         for i in range(len(ring) - 1):
             (ax, ay), (bx, by) = metric[i], metric[i + 1]
             span = math.hypot(bx - ax, by - ay)
@@ -388,9 +414,13 @@ def main() -> int:
             for x, y in samples:
                 for depth in (1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.5, 7.0, 9.0, 12.0):
                     if hit(footprints, x - nx * depth, y - ny * depth):
-                        depths.append(depth)
+                        found.append((depth, (ax, ay), (bx, by)))
                         break
-        return min(depths) if depths else None
+        return min(found, key=lambda entry: entry[0]) if found else None
+
+    def front_setback_depth(ring: list) -> float | None:
+        found = front_setback(ring)
+        return None if found is None else found[0]
 
     # -- yards ---------------------------------------------------------------------------------
     #
@@ -398,6 +428,7 @@ def main() -> int:
     # is drawn. A parcel entirely under its own building adds nothing and would double the
     # payload for it.
     dropped_yards = 0
+    dropped_on_green = 0
     parcel_rows = fetch("acdm-wktn", f"{box.replace('the_geom', 'shape')} AND active=true",
                         "mapblklot,shape", "parcels", progress)
     yards = []
@@ -406,7 +437,7 @@ def main() -> int:
     front_walks = []
     service_yards = []
     backyards = []
-    kept_rings: list[tuple[str, list]] = []
+    kept_rings: list[tuple[str, list, tuple | None]] = []
     # One row per lot, not one per unit. A condominium building is a row in this file for every
     # unit in it, and every one of those rows carries the same lot polygon -- 37,244 rows over
     # 14,920 lots. Left alone that drew one parcel forty times, and made every edge of it look
@@ -422,6 +453,10 @@ def main() -> int:
                 continue
             bare = count_bare(lattice, ring)
             if bare < MIN_SERVICE_YARD_CELLS:
+                continue
+            # And a parcel that is mostly park is the park.
+            if share_covered(green, ring) > MAX_PARCEL_ON_GREEN:
+                dropped_on_green += 1
                 continue
             # A parcel ring that is mostly carriageway is not a garden. It is a parcel whose
             # boundary runs into the street, or one the road mask disagrees with, and either
@@ -441,7 +476,8 @@ def main() -> int:
             blklot = str(row.get("mapblklot") or "")
             simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
             item = {"id": blklot, "p": simplified}
-            setback = front_setback_depth(ring)
+            front = front_setback(ring)
+            setback = None if front is None else front[0]
             if setback is not None and setback < MIN_FRONT_LAWN_DEPTH_M:
                 front_walks.append(item)
             elif bare < MIN_YARD_CELLS:
@@ -449,6 +485,18 @@ def main() -> int:
             elif setback is not None and bare < MIN_BACKYARD_CELLS:
                 lawns.append(item)
                 yards.append(item)
+                # A fence still belongs behind the house. A San Francisco lot is twenty-five feet
+                # by a hundred, the house covers most of it, and what is left is a front garden
+                # of a few metres and a back garden of seventy or eighty square metres -- which
+                # is under MIN_BACKYARD_CELLS, so the whole lot was being called a front lawn and
+                # left open. That is the typical lot in this city, not the exception, and it left
+                # whole block interiors as one unbroken lawn with no boundaries in them at all.
+                #
+                # The classification above decides what is drawn, and grass is grass either way.
+                # What is fenced is decided per edge, and the front of the house is where the
+                # fencing starts -- so the same ring goes to the fence pass, which cuts each
+                # boundary at the building line and leaves the front garden open.
+                kept_rings.append((blklot, ring, front))
             else:
                 backyards.append(item)
                 yards.append(item)
@@ -456,10 +504,11 @@ def main() -> int:
                 # neighbours share a boundary to the inch in the city's file and to nothing at all
                 # once each has been thinned independently, and a shared boundary that no longer
                 # matches is a boundary that gets fenced twice.
-                kept_rings.append((blklot, ring))
+                kept_rings.append((blklot, ring, front))
     progress(f"{len(yards)} grass parcel remainders, {len(front_walks)} shallow frontages, "
              f"{len(service_yards)} neutral slivers ({dropped_yards} dropped for lying in the "
-             f"road, {nudged_vertices} corners pulled off it)")
+             f"road, {dropped_on_green} for standing on a park, "
+             f"{nudged_vertices} corners pulled off it)")
     for yard in [*yards, *front_walks, *service_yards]:
         lattice.stamp_polygon(yard["p"])
 
@@ -477,9 +526,31 @@ def main() -> int:
     # by one builder and its back fences match; picking per lot gives a patchwork nobody built.
     fences: dict[str, list[float]] = {}
     seen_edges: set[tuple] = set()
-    counts = {"street": 0, "wall": 0, "shared": 0, "crosses": 0, "drawn": 0}
-    for blklot, ring in kept_rings:
+    counts = {"street": 0, "wall": 0, "shared": 0, "crosses": 0, "front": 0, "drawn": 0}
+    for blklot, ring, front in kept_rings:
         kind, height = FENCE_KINDS[zlib.crc32(blklot[:4].encode()) % len(FENCE_KINDS)]
+        # Where the front garden ends. Everything within the building's own setback of the
+        # street-facing boundary is front garden: open to the pavement, open to the neighbours,
+        # and in this city almost never fenced. The street-facing edge itself was already being
+        # dropped, but the two side boundaries were not, so each lot was getting a pair of six
+        # foot redwood fences running from the front of the house out to the kerb -- across the
+        # part of the garden that is grass and nothing else.
+        front_line = None
+        if front is not None:
+            depth, (fax, fay), (fbx, fby) = front
+            front_span = math.hypot(fbx - fax, fby - fay)
+            if front_span > 1e-6:
+                front_line = (fax, fay, (fbx - fax) / front_span, (fby - fay) / front_span,
+                              max(depth, MIN_FRONT_LAWN_DEPTH_M))
+
+        def behind_the_house(x: float, y: float) -> bool:
+            """Is this point past the front of the building, measured off the street boundary?"""
+            if front_line is None:
+                return True
+            fax, fay, ux, uy, depth = front_line
+            # Distance from the frontage line, ignoring which way along it the point lies.
+            return abs((x - fax) * -uy + (y - fay) * ux) >= depth
+
         metric = [to_metres(lon, lat) for lon, lat in ring]
         # Which way is out. The sign of the ring's area says whether its interior lies left or
         # right of the direction of travel, and the outward normal follows from that.
@@ -521,13 +592,52 @@ def main() -> int:
                    for c in range(steps + 1)):
                 counts["crosses"] = counts.get("crosses", 0) + 1
                 continue
-            if sum(hit(footprints, x + nx * 0.8, y + ny * 0.8)
-                   or hit(footprints, x - nx * 0.8, y - ny * 0.8) for x, y in samples) >= 2:
+
+            # What is left is walked rather than judged whole.
+            #
+            # A side boundary is one edge in the survey and three different things along its
+            # length: the neighbour's wall where the two houses stand against it, open front
+            # garden nearest the street, and a fence for the back garden behind. Deciding it
+            # whole -- a footprint within 0.8 m at two of three sample points and the entire
+            # edge was called a wall -- threw away the fence with the wall. On the standard lot
+            # in this city the house covers the front two thirds of the boundary, so two of the
+            # three samples land on it, and the eighty square metres of back garden behind it
+            # came out unfenced. Whole block interiors were one unbroken lawn because of it.
+            def against_a_wall(x: float, y: float) -> bool:
+                return bool(hit(footprints, x + nx * 0.8, y + ny * 0.8)
+                            or hit(footprints, x - nx * 0.8, y - ny * 0.8))
+
+            def flush(piece: list) -> None:
+                if len(piece) < 2:
+                    return
+                length = math.hypot(piece[-1][0] - piece[0][0], piece[-1][1] - piece[0][1])
+                if length < MIN_FENCE_RUN_M:
+                    return
+                fences.setdefault(kind, []).extend(
+                    (round(piece[0][0], 2), round(piece[0][1], 2),
+                     round(piece[-1][0], 2), round(piece[-1][1], 2)))
+                counts["drawn"] += 1
+
+            steps = max(2, int(span // 0.5))
+            piece: list[tuple[float, float]] = []
+            wall_m = front_m = 0.0
+            for c in range(steps + 1):
+                t = c / steps
+                x, y = ax + (bx - ax) * t, ay + (by - ay) * t
+                if against_a_wall(x, y):
+                    wall_m += span / steps
+                elif not behind_the_house(x, y):
+                    front_m += span / steps
+                else:
+                    piece.append((x, y))
+                    continue
+                flush(piece)
+                piece = []
+            flush(piece)
+            if wall_m > 0.5:
                 counts["wall"] += 1
-                continue
-            fences.setdefault(kind, []).extend(
-                (round(ax, 2), round(ay, 2), round(bx, 2), round(by, 2)))
-            counts["drawn"] += 1
+            if front_m > 0.5:
+                counts["front"] += 1
     progress(f"{counts['drawn']} fence runs on inner property lines "
              f"({counts['street']} street frontages, {counts['wall']} along a wall, "
              f"{counts['shared']} already fenced by the neighbour, "
@@ -578,6 +688,48 @@ def main() -> int:
                               separators=(",", ":")))
     progress(f"wrote {OUT.name}: described after ground cover {lattice.grid.mean():.1%}")
     return 0
+
+
+def cells_inside(lattice: Lattice, ring: list):
+    """The lattice window under a ring, and a mask of which of its cells the ring contains."""
+    import numpy as np
+
+    local = np.array([lattice.to_xy(lon, lat) for lon, lat in ring])
+    min_row, min_col = lattice.to_cell(local[:, 0].min(), local[:, 1].min())
+    max_row, max_col = lattice.to_cell(local[:, 0].max(), local[:, 1].max())
+    min_row = max(0, min_row); min_col = max(0, min_col)
+    max_row = min(lattice.height - 1, max_row + 1)
+    max_col = min(lattice.width - 1, max_col + 1)
+    if max_row < min_row or max_col < min_col:
+        return None, None
+    rows = np.arange(min_row, max_row + 1)
+    cols = np.arange(min_col, max_col + 1)
+    ys = lattice.origin[1] + (rows + 0.5) * lattice.cell_m
+    xs = lattice.origin[0] + (cols + 0.5) * lattice.cell_m
+    gx, gy = np.meshgrid(xs, ys)
+    inside = np.zeros(gx.shape, dtype=bool)
+    n = len(local)
+    for i in range(n):
+        x1, y1 = local[i]
+        x2, y2 = local[(i + 1) % n]
+        if y1 == y2:
+            continue
+        crosses = (y1 > gy) != (y2 > gy)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            cut = x1 + (gy - y1) * (x2 - x1) / (y2 - y1)
+        inside ^= crosses & (cut > gx)
+    return inside, lattice.grid[min_row:max_row + 1, min_col:max_col + 1]
+
+
+def share_covered(lattice: Lattice, ring: list) -> float:
+    """How much of a ring's interior this lattice has already claimed."""
+    inside, window = cells_inside(lattice, ring)
+    if inside is None:
+        return 0.0
+    total = int(inside.sum())
+    if total == 0:
+        return 0.0
+    return float((inside & window).sum()) / total
 
 
 def count_bare(lattice: Lattice, ring: list) -> int:

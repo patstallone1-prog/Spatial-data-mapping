@@ -64,7 +64,7 @@ def test_ground_cover_classifies_small_frontage_and_backyard_remainders() -> Non
 
     assert "MIN_FRONT_LAWN_DEPTH_M = 2.4" in ground
     assert "MIN_BACKYARD_CELLS = 28" in ground
-    assert "def front_setback_depth(ring: list)" in ground
+    assert "def front_setback(ring: list)" in ground
     assert '"front_walks": front_walks' in ground
     assert '"service_yards": service_yards' in ground
     assert '"backyards": backyards' in ground
@@ -107,7 +107,14 @@ def test_narrow_pavement_uses_long_tiles_without_widening_geometry() -> None:
     assert "addPavementRibbon(surfacePoints, widthMeters" in source
 
 
-def test_bike_lanes_follow_osm_cycleway_tags_and_keep_edge_lines() -> None:
+def test_bike_lanes_follow_osm_cycleway_tags() -> None:
+    """Which sides carry a lane is read from the tags, and only the tags.
+
+    What the lane then *does* -- whether it survives an OSM way split, where its lines go, where
+    the green stops -- is not a question about the source text and is asked of the running rules
+    in tests/test_corridor_geometry_rules.py instead. The assertion that used to live here was
+    the literal of one merge call, and it broke the moment the call was fixed.
+    """
     source = _source()
 
     assert "function cyclewaySides(way)" in source
@@ -116,9 +123,10 @@ def test_bike_lanes_follow_osm_cycleway_tags_and_keep_edge_lines() -> None:
     assert "way.cycleway_both" in source
     assert "function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop)" in source
     assert "const BIKE_EDGE_W_M = 0.18;" in source
-    assert "ribbon(offsetWay(lanePoints, laneCentre), BIKE_LANE_M, 0xffffff, 1.0" in source
-    assert "paintedLine(offsetWay(linePoints, outerOffset), BIKE_EDGE_W_M" in source
-    assert "paintedLine(offsetWay(linePoints, innerOffset), BIKE_EDGE_W_M" in source
+    # Both edges come off the lane's own centre, so they hug it however wide the street is,
+    # and neither is conditional on the green.
+    assert "offsetWay(run.points, side * (BIKE_LANE_M / 2))" in source
+    assert "offsetWay(run.points, -side * (BIKE_LANE_M / 2))" in source
 
 
 def test_beaches_and_extended_bay_water_are_rendered() -> None:
@@ -237,3 +245,69 @@ def test_facade_textures_are_prioritized_and_frame_budgeted() -> None:
     assert "if (loaded % FACADE_TEXTURE_YIELD_EVERY === 0) await nextFrame();" in source
     assert "Array.from(" in source
     assert "Promise.all([worker(), worker(), worker(), worker()])" not in source
+
+
+def test_grass_texture_has_cached_realistic_variants() -> None:
+    source = _source()
+
+    assert "const GRASS_TEXTURES = new Map();" in source
+    assert 'function grassTexture(kind = "yard")' in source
+    assert "if (GRASS_TEXTURES.has(kind)) return GRASS_TEXTURES.get(kind);" in source
+    assert "const size = 384;" in source
+    assert "straw/dirt flecks" in source
+    assert "Low, soft mowing direction" in source
+    assert 'map: grassTexture("park")' in source
+    assert 'map: grassTexture("yard")' in source
+
+
+def test_named_buildings_get_plaque_signage_without_duplicate_shop_names() -> None:
+    source = _source()
+
+    assert "function cleanName(text)" in source
+    assert "function buildingNameTrade(feature)" in source
+    assert "function addBuildingNamePlaque(group, feature, seed, height, tint)" in source
+    assert "if (shops.some((shop) => cleanName(shop.n) === clean)) return;" in source
+    assert "const slot = signSlot(name, trade);" in source
+    assert 'const sink = awningSink("board");' in source
+    assert "addSignFace(slot.atlas" in source
+    assert "addBuildingNamePlaque(group, feature, seed, height, tint);" in source
+
+
+def test_a_boundary_is_fenced_only_where_it_is_a_fence() -> None:
+    """A side property line is one edge in the survey and three things on the ground.
+
+    Nearest the street it is open front garden. Where the two houses stand against it, it is the
+    neighbour's wall. Behind them it is a fence. Deciding the edge whole -- a footprint within
+    0.8 m at two of three sample points and the entire boundary was called a wall -- threw the
+    fence away with the wall, and on the standard lot in this city the house covers the front two
+    thirds of the boundary, so that is the usual case rather than the odd one. Whole block
+    interiors came out as a single unbroken lawn because of it.
+    """
+    ground = _ground_source()
+
+    # The three tests are asked of each point along the boundary, in one walk.
+    assert "def against_a_wall(x: float, y: float) -> bool:" in ground
+    assert "def behind_the_house(x: float, y: float) -> bool:" in ground
+    assert "for c in range(steps + 1):" in ground
+    assert "if against_a_wall(x, y):" in ground
+    assert "elif not behind_the_house(x, y):" in ground
+    # Neither may drop the whole edge any more.
+    assert 'counts["wall"] += 1\n                continue' not in ground
+    # A front garden is grass and nothing else: the front-facing edge is still dropped whole,
+    # and the side boundaries are cut back to the front of the house.
+    assert "MIN_FRONT_LAWN_DEPTH_M)" in ground
+    assert "MIN_FENCE_RUN_M" in ground
+    # And the lots whose remainder is small enough to be called a lawn still contribute their
+    # rear boundaries -- that is the ordinary San Francisco lot, not an edge case.
+    assert ground.count("kept_rings.append((blklot, ring, front))") == 2
+
+
+def test_a_parcel_standing_on_a_park_is_the_park() -> None:
+    """Joe DiMaggio Playground arrived as an 11,568 square metre "shallow frontage"."""
+    ground = _ground_source()
+
+    assert "MAX_PARCEL_ON_GREEN" in ground
+    assert "def share_covered(lattice: Lattice, ring: list) -> float:" in ground
+    assert "green = Lattice(bbox)" in ground
+    assert "green.stamp_polygon(park[\"p\"])" in ground
+    assert "if share_covered(green, ring) > MAX_PARCEL_ON_GREEN:" in ground
