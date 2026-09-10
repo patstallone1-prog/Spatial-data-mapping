@@ -439,9 +439,11 @@ def test_a_footway_narrows_to_fit_rather_than_vanishing() -> None:
     js = _page_js()
     body = _extract("addKerbsidePavement", js)
     assert "WALK_FALLBACK_WIDTHS_M" in body
-    # The inner edge stays on the kerb at every width, so a narrower try is the same pavement
-    # with less of it rather than a pavement somewhere else.
-    assert "offsetWay(renderPoints, side * (inner + width / 2))" in body
+    # The inner edge stays on the kerb at every width, so a narrower stretch is the same pavement
+    # with less of it rather than a pavement somewhere else. Asserted of the geometry rather than
+    # of the source text: the literal that used to be checked here survived a rewrite that
+    # changed what the function does, and would have gone on passing if the property had broken.
+    assert "(inner + width / 2)" in body
     # And the end trim cannot eat a short way whole.
     assert "wanted * 0.32" in body
 
@@ -747,60 +749,364 @@ def test_a_tree_pit_is_square_to_the_pavement_it_is_cut_into() -> None:
     assert "insideBikeLane(cx, cz" in pit
 
 
+
+
+#: A stand-in for THREE.Color that behaves the way the page's does.
+#:
+#: This matters more than it looks. three.js runs with colour management on, so a Color holds
+#: linear-light channels and ``getHSL`` answers in linear unless it is told which space to use --
+#: and linear lightness is nothing like sRGB lightness: #3f5670 is 0.34 in one and 0.11 in the
+#: other. The first version of this shim was plain sRGB, so it agreed with a lift that was
+#: reading linear lightness against an sRGB floor and pronounced it correct. A test whose stand-in
+#: is easier than the real thing tests the stand-in.
+THREE_COLOR_SHIM = """
+const SRGBColorSpace = "srgb";
+const LinearSRGBColorSpace = "srgb-linear";
+const toLinear = (v) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+const toSRGB = (v) => (v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055);
+class Color {
+  constructor(hex) { if (hex !== undefined) this.setHex(hex); }
+  setHex(hex) {
+    this.r = toLinear(((hex >> 16) & 255) / 255);
+    this.g = toLinear(((hex >> 8) & 255) / 255);
+    this.b = toLinear((hex & 255) / 255);
+    return this;
+  }
+  getHex() {
+    const c = (v) => Math.max(0, Math.min(255, Math.round(toSRGB(v) * 255)));
+    return (c(this.r) << 16) | (c(this.g) << 8) | c(this.b);
+  }
+  _channels(space) {
+    return space === SRGBColorSpace
+      ? [toSRGB(this.r), toSRGB(this.g), toSRGB(this.b)]
+      : [this.r, this.g, this.b];
+  }
+  getHSL(out, space = LinearSRGBColorSpace) {
+    const [r, g, b] = this._channels(space);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0, s = 0;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+    out.h = h; out.s = s; out.l = l;
+    return out;
+  }
+  setHSL(h, s, l, space = LinearSRGBColorSpace) {
+    const f = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = f(p, q, h + 1 / 3); g = f(p, q, h); b = f(p, q, h - 1 / 3);
+    }
+    if (space === SRGBColorSpace) { r = toLinear(r); g = toLinear(g); b = toLinear(b); }
+    this.r = r; this.g = g; this.b = b;
+    return this;
+  }
+}
+const THREE = { Color, SRGBColorSpace, LinearSRGBColorSpace };
+"""
+
+
+def _run_colour(js_body: str, *names: str) -> dict:
+    js = _page_js()
+    parts = [THREE_COLOR_SHIM]
+    parts += [_extract(name, js) for name in names]
+    for constant in ("SAMPLED_LIGHTNESS_FLOOR", "ROOF_LIGHTNESS_FLOOR"):
+        found = re.search(rf"const {constant} = [0-9.]+;", js)
+        assert found, f"{constant} is gone"
+        parts.append(found.group(0))
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
 def test_a_sampled_facade_colour_is_lifted_off_the_floor_but_not_repainted() -> None:
-    """What a street photograph measures about a wall is its hue, not its exposure."""
+    """What a street photograph measures about a wall is its hue, not its exposure.
+
+    Street-level frames are exposed for the sky above the street, so facades come back dark: of
+    the 3,518 colours sampled off this corridor's own photographs, 1,135 were under 0.30
+    lightness and the darkest was zero. The lift moves only that end, and only the lightness.
+    """
+    result = _run_colour("""
+      const lightness = (hex) => { const o = {}; new THREE.Color(hex).getHSL(o, THREE.SRGBColorSpace); return o; };
+      const out = {};
+      for (const [name, hex] of [["black", 0x000000], ["dark", 0x52625b],
+                                 ["mid", 0x8a7f6c], ["pale", 0xe8e0d2]]) {
+        const was = lightness(hex);
+        const now = lightness(liftSampledColour(hex));
+        out[name] = { l0: +was.l.toFixed(3), l1: +now.l.toFixed(3),
+                      h0: +was.h.toFixed(3), h1: +now.h.toFixed(3),
+                      s0: +was.s.toFixed(3), s1: +now.s.toFixed(3) };
+      }
+      console.log(JSON.stringify(out));
+    """, "liftSampledColour")
+    # Nothing in this city is black, and the floor is a floor in the space it is written in.
+    assert result["black"]["l1"] >= 0.33
+    # The dark end is lifted...
+    assert result["dark"]["l1"] > result["dark"]["l0"] + 0.05
+    # ...and what the photographs agree is pale is left exactly as it was. This is the assertion
+    # the linear-space version could not have passed: reading a linear lightness against an sRGB
+    # floor lifted even a pale wall.
+    assert abs(result["pale"]["l1"] - result["pale"]["l0"]) < 1e-3
+    assert result["mid"]["l1"] >= result["mid"]["l0"] - 1e-3
+    # Hue and saturation are the measurement and survive. The tolerance is one 8-bit step.
+    for name in ("dark", "mid", "pale"):
+        assert abs(result[name]["h1"] - result[name]["h0"]) < 0.01, name
+        assert abs(result[name]["s1"] - result[name]["s0"]) < 0.02, name
+
+
+def test_the_lift_is_done_in_srgb_and_says_so() -> None:
+    """The colour space is not optional here, and leaving it out is silent.
+
+    getHSL and setHSL both default to the working space, which is linear. A floor of 0.34 read
+    against linear lightness is sRGB 0.62: it does not stop dark walls going black, it repaints
+    pale ones. Nothing errors and nothing looks obviously wrong until a whole city is grey.
+    """
+    js = _page_js()
+    for name in ("liftSampledColour",):
+        body = _extract(name, js)
+        assert "THREE.SRGBColorSpace" in body, f"{name} does not name a colour space"
+        assert body.count("THREE.SRGBColorSpace") >= 2, f"{name} names it for only one of get/set"
+    # And the two places that darken a building for a roof or for a guessed height.
+    mesh = _extract("buildingMesh", js)
+    for fragment in ("colour.getHSL(hsl, THREE.SRGBColorSpace)",
+                     "roofTint.getHSL(hsl, THREE.SRGBColorSpace)"):
+        assert fragment in mesh, fragment
+
+
+def test_a_roof_is_darker_than_its_walls_and_never_a_hole() -> None:
+    result = _run_colour("""
+      const hsl = (c) => { const o = {}; c.getHSL(o, THREE.SRGBColorSpace); return o; };
+      const roofOf = (hex) => {
+        const roofTint = new THREE.Color(hex);
+        const o = hsl(roofTint);
+        roofTint.setHSL(o.h, o.s, Math.max(ROOF_LIGHTNESS_FLOOR, o.l * 0.86), THREE.SRGBColorSpace);
+        return roofTint;
+      };
+      const out = {};
+      for (const [name, hex] of [["pale", 0xe4d9c2], ["mid", 0x9c5540], ["dark", 0x2f4858]]) {
+        out[name] = { wall: +hsl(new THREE.Color(hex)).l.toFixed(3),
+                      roof: +hsl(roofOf(hex)).l.toFixed(3) };
+      }
+      console.log(JSON.stringify(out));
+    """)
+    for name in ("pale", "mid"):
+        assert result[name]["roof"] < result[name]["wall"], name
+    # No roof, however dark the wall under it, goes below the floor.
+    for name in result:
+        assert result[name]["roof"] >= 0.30 - 1e-6, (name, result[name])
+    # And a pale roof is not dragged up to the same grey as a dark one, which is what a floor
+    # written in the wrong space did: every roof in the city arrived at mid grey together.
+    assert result["pale"]["roof"] > result["dark"]["roof"] + 0.15
+
+
+def test_a_house_the_city_has_an_address_for_is_not_a_garden_shed() -> None:
+    """"We had to infer the height" is not evidence of an outbuilding.
+
+    The standard San Francisco lot is twenty-five feet by a hundred, so the house on it covers
+    well under the 150 m2 floor this used to fall through. 348 footprints reached the inferred
+    branch and were called outbuildings; 318 had a street address, 326 a city land use and 16 a
+    shop inside. They were drawn with the dark tar-paper shed roof that goes with a shed, and
+    from above a house wearing one reads as a hole in the block.
+    """
     js = _page_js()
     body = "\n".join([
-        "const THREE = { Color: class { constructor(hex) { this.set(hex); }",
-        "  set(hex) { this.r = ((hex >> 16) & 255) / 255; this.g = ((hex >> 8) & 255) / 255;",
-        "             this.b = (hex & 255) / 255; return this; }",
-        "  getHex() { const c = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));",
-        "             return (c(this.r) << 16) | (c(this.g) << 8) | c(this.b); }",
-        "  getHSL(out) { const max = Math.max(this.r, this.g, this.b),"
-        "                      min = Math.min(this.r, this.g, this.b);",
-        "    const l = (max + min) / 2; let h = 0, s = 0;",
-        "    if (max !== min) { const d = max - min;",
-        "      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);",
-        "      if (max === this.r) h = ((this.g - this.b) / d + (this.g < this.b ? 6 : 0)) / 6;",
-        "      else if (max === this.g) h = ((this.b - this.r) / d + 2) / 6;",
-        "      else h = ((this.r - this.g) / d + 4) / 6; }",
-        "    out.h = h; out.s = s; out.l = l; return out; }",
-        "  setHSL(h, s, l) { const f = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1;",
-        "      if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q;",
-        "      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };",
-        "    if (s === 0) { this.r = this.g = this.b = l; return this; }",
-        "    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;",
-        "    this.r = f(p, q, h + 1/3); this.g = f(p, q, h); this.b = f(p, q, h - 1/3);",
-        "    return this; } } };",
-        _extract("liftSampledColour", js),
-        re.search(r"const SAMPLED_LIGHTNESS_FLOOR = [0-9.]+;", js).group(0),
+        "const CANOPY_TAGS = new Set(['roof', 'canopy', 'carport']);",
+        "const OUTBUILDING_TAGS = new Set(['shed', 'garage', 'hut', 'cabin', 'outbuilding']);",
+        re.search(r"const SLENDER_LIMIT = [0-9.]+;", js).group(0),
+        _extract("structureClass", js),
         """
-        const lightness = (hex) => { const c = new THREE.Color(hex); const o = {};
-                                     c.getHSL(o); return o; };
-        const before = ["#000000", "#52625b", "#8a7f6c", "#e8e0d2"];
-        console.log(JSON.stringify(before.map((hex) => {
-          const was = lightness(parseInt(hex.slice(1), 16));
-          const now = lightness(liftSampledColour(parseInt(hex.slice(1), 16)));
-          return { l0: +was.l.toFixed(3), l1: +now.l.toFixed(3),
-                   h0: +was.h.toFixed(3), h1: +now.h.toFixed(3),
-                   s0: +was.s.toFixed(3), s1: +now.s.toFixed(3) };
-        })));
+        const house = { tags: { building: 'yes' }, height_source: 'inferred_default',
+                        height_m: 10.5, address: { formatted: '2048 Larkin St' },
+                        land_use: 'RESIDENTIAL- HOUSE, THREE FAMILY' };
+        const shop = { tags: { building: 'yes' }, height_source: 'inferred_default',
+                       height_m: 9.0, shops: [{ n: 'a shop', t: 'shop' }] };
+        const nothing = { tags: { building: 'yes' }, height_source: 'inferred_default',
+                          height_m: 3.0 };
+        const taggedShed = { tags: { building: 'shed' }, height_source: 'osm_height',
+                             height_m: 3.0, address: { formatted: '1 Somewhere' } };
+        const canopy = { tags: { building: 'roof' }, height_source: 'osm_height', height_m: 4.0 };
+        console.log(JSON.stringify({
+          house: structureClass(house, 84),
+          shop: structureClass(shop, 90),
+          nothing: structureClass(nothing, 84),
+          taggedShed: structureClass(taggedShed, 12),
+          canopy: structureClass(canopy, 40),
+          bigAnonymous: structureClass({ tags: {}, height_source: 'inferred_default' }, 400),
+        }));
         """,
     ])
     out = subprocess.run([NODE, "--input-type=module", "-e", body],
                          capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stderr
-    black, dark, mid, pale = json.loads(out.stdout)
-    # Nothing in this city is black.
-    assert black["l1"] >= 0.33
-    # The dark end is lifted...
-    assert dark["l1"] > dark["l0"] + 0.05
-    # ...and what the photograph agreed was pale is left exactly as it was.
-    assert abs(pale["l1"] - pale["l0"]) < 1e-6
-    assert abs(mid["l1"] - mid["l0"]) < 0.06 or mid["l1"] > mid["l0"]
-    # The hue and the saturation are the measurement, and they survive. The tolerance is a
-    # quantisation step: the colour goes out as eight bits per channel and comes back through
-    # HSL, which moves a hue by up to a degree on its own.
-    for entry in (dark, mid, pale):
-        assert abs(entry["h1"] - entry["h0"]) < 0.01
-        assert abs(entry["s1"] - entry["s0"]) < 0.02
+    got = json.loads(out.stdout)
+    assert got["house"] == "building"
+    assert got["shop"] == "building"
+    assert got["bigAnonymous"] == "building"
+    # A footprint the city has no record of, small and with a guessed height, still reads as an
+    # outbuilding -- the rule adds evidence, it does not remove the fallback.
+    assert got["nothing"] == "outbuilding"
+    # And an explicit OpenStreetMap tag still wins over an address, because somebody looked.
+    assert got["taggedShed"] == "outbuilding"
+    assert got["canopy"] == "canopy"
+
+
+def test_an_outbuilding_roof_is_dark_but_not_a_hole() -> None:
+    js = _page_js()
+    body = _extract("outbuildingRoofTexture", js)
+    fills = re.findall(r'ctx\.fillStyle = key\.endsWith\("0"\) \? "(#[0-9a-f]{6})" : "(#[0-9a-f]{6})"',
+                       body)
+    assert fills, "the shed roof no longer names its two colours"
+    for hexes in fills[0]:
+        r, g, b = (int(hexes[i:i + 2], 16) / 255 for i in (1, 3, 5))
+        lightness = (max(r, g, b) + min(r, g, b)) / 2
+        assert lightness >= 0.30, f"{hexes} is dark enough to read as a hole from above"
+        assert lightness <= 0.55, f"{hexes} is too pale for a shed roof"
+
+
+# ---------------------------------------------------------------- pavement, laid once
+
+
+PAVEMENT_FUNCTIONS = (
+    "distanceToSegmentSquared",
+    "insideCarriageway",
+    "addCarriagewaySegment",
+    "lerpLonLat",
+    "wayLength",
+    "offsetWay",
+    "trimWay",
+    "pavementRunsOutsideCarriageway",
+    "addKerbsidePavement",
+)
+
+PAVEMENT_PREAMBLE = PREAMBLE + """
+const MIN_RENDER_WALK_M = 0.9;
+const NARROW_WALK_M = 1.6;
+const WALK_ENOUGH = 0.55;
+const WALK_FALLBACK_WIDTHS_M = [0.72, 0.52, 0.36, 0.24];
+// The ribbon is not built; what it was asked to build is recorded instead.
+const LAID = [];
+function addPavementRibbon(points, width) {
+  LAID.push({ width, points, length: wayLength(points) });
+  return wayLength(points);
+}
+"""
+
+
+def _run_pavement(js_body: str) -> dict:
+    js = _page_js()
+    parts = [PAVEMENT_PREAMBLE]
+    parts += [_extract(name, js) for name in PAVEMENT_FUNCTIONS]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+#: A street whose pavement has room for only part of its length: an avenue runs alongside it and
+#: its carriageway reaches far enough across that a full-width pavement's own centreline would
+#: stand on it. An alley beside an avenue is the ordinary case the width ladder exists for.
+#: Side 1 is to the left of travel, which for a west-to-east spine is negative z here.
+PINCHED_STREET = """
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+const ROAD_W = 10.0;
+for (let x = -200; x < 200; x += 10) addCarriagewaySegment(x, 0, x + 10, 0, ROAD_W / 2);
+for (let x = -60; x < 60; x += 10) addCarriagewaySegment(x, -9.25, x + 10, -9.25, 2.75);
+const spine = [];
+for (let x = -160; x <= 160; x += 10) spine.push(asLonLat(x, 0));
+"""
+
+
+def test_only_one_width_of_pavement_is_ever_laid_on_a_side() -> None:
+    """The regression that broke the pavement into mismatched tiles.
+
+    The ladder used to lay a ribbon at every width it tried and return only when one of them
+    covered enough of the side; every width before that one had already been drawn. A narrow
+    strip fits everywhere a wide one does and more, so each narrower pass re-covered the ground
+    the wider passes had just covered -- up to five slabs of different widths stacked in the same
+    plane, each with its own tile origin, fighting for depth. Nineteen per cent of the paved
+    ground in the corridor carried more than one slab.
+
+    Trying a width and committing to one are different things, and this is the difference.
+    """
+    result = _run_pavement(PINCHED_STREET + """
+    addKerbsidePavement(spine, 1, ROAD_W / 2, 4.0, 0xffffff, 1.0, 0.12, 0.12);
+    console.log(JSON.stringify({
+      ribbons: LAID.length,
+      widths: [...new Set(LAID.map((r) => +r.width.toFixed(3)))],
+      coveredM: +LAID.reduce((s, r) => s + r.length, 0).toFixed(1),
+    }));
+    """)
+    assert len(result["widths"]) == 1, result
+    assert result["ribbons"] >= 1
+
+
+def test_a_pinch_does_not_end_the_pavement() -> None:
+    """The other regression, from the other direction: 237 kerb sides came out bare because the
+    strip was laid at one width and dropped wherever it did not fit."""
+    result = _run_pavement(PINCHED_STREET + """
+    const laid = addKerbsidePavement(spine, 1, ROAD_W / 2, 4.0, 0xffffff, 1.0, 0.12, 0.12);
+    console.log(JSON.stringify({ laid: Math.round(laid), asked: Math.round(wayLength(spine)),
+                                 width: +LAID[0].width.toFixed(2) }));
+    """)
+    assert result["laid"] > 0, result
+    # Something is laid along most of the side, at some width.
+    assert result["laid"] > result["asked"] * 0.5, result
+
+
+def test_the_width_kept_is_the_one_that_covers_the_most_ground() -> None:
+    """Not the one that reaches furthest along the street.
+
+    A one-metre strip running the whole block covers less pavement than a four-metre one over two
+    thirds of it. Comparing by length picked the sliver against the kerb and left the rest of the
+    way to the building line bare, which is the black along the shopfronts under another name.
+    """
+    js = _page_js()
+    body = _extract("addKerbsidePavement", js)
+    assert "covers * width > best.covers * best.width" in body
+    # And the ribbon is laid outside the loop that measures the ladder, once.
+    ladder = body[body.index("for (const share of"):]
+    assert "addPavementRibbon" not in ladder[:ladder.index("if (!best")], (
+        "a ribbon is still being laid while the widths are only being tried")
+
+
+def test_the_inner_edge_of_the_pavement_sits_on_the_kerb() -> None:
+    """A narrower pavement is the same pavement with less of it, not one somewhere else."""
+    result = _run_pavement(PINCHED_STREET + """
+    addKerbsidePavement(spine, 1, ROAD_W / 2, 4.0, 0xffffff, 1.0, 0.12, 0.12);
+    const inner = LAID.map((r) => {
+      const zs = r.points.map((p) => -p[1] * metersPerLat);
+      const mid = zs.reduce((a, b) => a + b, 0) / zs.length;
+      // The pavement is on the negative-z side, so its inner edge is half a width back toward
+      // the street, which is the +z direction.
+      return +(mid + r.width / 2).toFixed(2);
+    });
+    console.log(JSON.stringify({ innerEdges: inner, kerb: -ROAD_W / 2 }));
+    """)
+    for edge in result["innerEdges"]:
+        assert abs(edge - result["kerb"]) < 0.35, result
+
+
+def test_mapped_footways_are_laid_before_any_is_derived_from_a_kerb() -> None:
+    """So that what is already on the ground is on the ground before anything asks about it."""
+    js = _page_js()
+    assert "const DRAW_ORDER = DATA.ways.slice().sort(" in js
+    order = js[js.index("const DRAW_ORDER"):js.index("for (const way of DRAW_ORDER)")]
+    assert '"sidewalk"' in order and '"path"' in order

@@ -63,6 +63,9 @@ MAX_PARCEL_ON_GREEN = 0.55
 #: Shorter than this and a fence is a stub, not a fence: the leftover between a wall and a
 #: corner, or a survey step of a few centimetres.
 MIN_FENCE_RUN_M = 1.2
+#: The smallest paved frontage worth drawing. Below this it is a survey sliver between a wall and
+#: a kerb, not a forecourt, and ten thousand of them is ten thousand rings in the payload.
+MIN_FRONT_WALK_M2 = 6.0
 #: The garden fences San Francisco actually has, weighted the way the city is: mostly
 #: redwood board, a good share of chainlink, some picket and the occasional low stucco wall.
 #: One is chosen per block, so that a block's back fences match each other rather than forming a
@@ -196,6 +199,67 @@ def off_the_road(ring: list, road: RoadMask) -> tuple[list, int]:
     if len(out) > 2 and ring[0] == ring[-1]:
         out[-1] = list(out[0])
     return out, moved
+
+
+def ring_area_m2(ring: list, to_metres) -> float:
+    pts = [to_metres(lon, lat) for lon, lat in ring]
+    if len(pts) < 3:
+        return 0.0
+    return abs(sum(pts[i][0] * pts[(i + 1) % len(pts)][1]
+                   - pts[(i + 1) % len(pts)][0] * pts[i][1]
+                   for i in range(len(pts)))) / 2.0
+
+
+def split_at_frontage(ring: list, a, b, depth: float, to_metres, to_lonlat):
+    """A parcel cut into the strip along its street frontage and everything behind it.
+
+    Sutherland-Hodgman against one line: the frontage edge pushed ``depth`` metres into the lot.
+    Both halves come back as lon/lat rings, either of which may be empty -- a lot entirely inside
+    the strip has no behind, and a frontage the building already covers has no strip.
+    """
+    if len(ring) < 4:
+        return None, ring
+    metric = [to_metres(lon, lat) for lon, lat in ring]
+    # a and b arrive in metres: front_setback measures in the same local frame it returns.
+    (ax, ay), (bx, by) = a, b
+    span = math.hypot(bx - ax, by - ay)
+    if span < 1e-6:
+        return None, ring
+    ux, uy = (bx - ax) / span, (by - ay) / span
+    # Perpendicular distance from the frontage line, signed so that the lot's own centroid is
+    # positive: the parcel lies wholly on one side of its own boundary edge.
+    def side(x: float, y: float) -> float:
+        return (x - ax) * -uy + (y - ay) * ux
+    cx = sum(x for x, _ in metric) / len(metric)
+    cy = sum(y for _, y in metric) / len(metric)
+    sign = 1.0 if side(cx, cy) >= 0 else -1.0
+
+    def depth_of(point) -> float:
+        return sign * side(point[0], point[1])
+
+    def clip(keep_near: bool) -> list:
+        out: list = []
+        # The ring is closed, so the last point repeats the first; walk the distinct ones.
+        pts = metric[:-1] if metric[0] == metric[-1] else metric
+        n = len(pts)
+        for i in range(n):
+            cur = pts[i]
+            nxt = pts[(i + 1) % n]
+            dc = depth_of(cur) - depth
+            dn = depth_of(nxt) - depth
+            inside_c = dc <= 0 if keep_near else dc >= 0
+            inside_n = dn <= 0 if keep_near else dn >= 0
+            if inside_c:
+                out.append(cur)
+            if inside_c != inside_n and abs(dc - dn) > 1e-9:
+                t = dc / (dc - dn)
+                out.append((cur[0] + (nxt[0] - cur[0]) * t, cur[1] + (nxt[1] - cur[1]) * t))
+        if len(out) < 3:
+            return []
+        out.append(out[0])
+        return [list(to_lonlat(x, y)) for x, y in out]
+
+    return clip(True), clip(False)
 
 
 def simplify(ring: list, tolerance_m: float = SIMPLIFY_M) -> list:
@@ -429,6 +493,7 @@ def main() -> int:
     # payload for it.
     dropped_yards = 0
     dropped_on_green = 0
+    split_frontages = 0
     parcel_rows = fetch("acdm-wktn", f"{box.replace('the_geom', 'shape')} AND active=true",
                         "mapblklot,shape", "parcels", progress)
     yards = []
@@ -474,13 +539,43 @@ def main() -> int:
             ring, moved = off_the_road(ring, road)
             nudged_vertices += moved
             blklot = str(row.get("mapblklot") or "")
-            simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
-            item = {"id": blklot, "p": simplified}
             front = front_setback(ring)
             setback = None if front is None else front[0]
+
+            # A frontage is the strip between the front of the building and the pavement, and
+            # that is all it is. This used to read the setback at one edge and then apply the
+            # verdict to the whole lot: a building standing on its own front property line --
+            # which in this city is most of them, bay windows and all -- made the entire parcel
+            # "shallow paved frontage", back garden included. 10,050 of the 11,900 classified
+            # parcels came out that way, 84% of them, and drawn edge to edge they tiled whole
+            # block interiors into one pale grey plane with the houses sitting on it.
+            #
+            # So the strip is cut off the lot and paved, and what is behind it is classified on
+            # its own. Same error as the fences had, and the same shape of fix: a measurement
+            # taken at one edge describes that edge, not the parcel.
             if setback is not None and setback < MIN_FRONT_LAWN_DEPTH_M:
-                front_walks.append(item)
-            elif bare < MIN_YARD_CELLS:
+                strip, ring = split_at_frontage(ring, front[1], front[2], setback,
+                                                to_metres, to_lonlat)
+                # Most of these come back empty or as a sliver: the setback is measured to the
+                # first thing the probe hits, and where the building stands on the property line
+                # there is no frontage to pave. A strip too small to stand on is not paving.
+                if strip and len(strip) >= 4 and ring_area_m2(strip, to_metres) >= MIN_FRONT_WALK_M2:
+                    front_walks.append({"id": blklot,
+                                        "p": [[round(x, 6), round(y, 6)]
+                                              for x, y in simplify(strip)]})
+                    split_frontages += 1
+                if not ring or len(ring) < 4:
+                    continue
+                # What is left is a different piece of ground from the one that was measured.
+                bare = count_bare(lattice, ring)
+                if bare < MIN_SERVICE_YARD_CELLS:
+                    continue
+                # The house is on the front line, so nothing behind it is front garden any more.
+                front = None
+                setback = None
+            simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
+            item = {"id": blklot, "p": simplified}
+            if bare < MIN_YARD_CELLS:
                 service_yards.append(item)
             elif setback is not None and bare < MIN_BACKYARD_CELLS:
                 lawns.append(item)
@@ -508,6 +603,7 @@ def main() -> int:
     progress(f"{len(yards)} grass parcel remainders, {len(front_walks)} shallow frontages, "
              f"{len(service_yards)} neutral slivers ({dropped_yards} dropped for lying in the "
              f"road, {dropped_on_green} for standing on a park, "
+             f"{split_frontages} cut off the front of their lot, "
              f"{nudged_vertices} corners pulled off it)")
     for yard in [*yards, *front_walks, *service_yards]:
         lattice.stamp_polygon(yard["p"])

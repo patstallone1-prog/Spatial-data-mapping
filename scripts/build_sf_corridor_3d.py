@@ -3063,6 +3063,10 @@ const ARCHETYPE_MAX_HEIGHT = { gas_station: 6.0, parking: 16.0, park: 4.0 };
 //: they are read as albedo rather than as pixels.
 const SAMPLED_LIGHTNESS_FLOOR = 0.34;
 
+//: And the floor under a roof, which is darker than its walls but is still a surface in daylight.
+//: Both are sRGB lightness.
+const ROOF_LIGHTNESS_FLOOR = 0.30;
+
 function liftSampledColour(hex) {
   // What a photograph of a facade measures is the facade's colour multiplied by how the camera
   // was exposed, and a street-level frame is exposed for the sky above the street. So the hue
@@ -3076,9 +3080,17 @@ function liftSampledColour(hex) {
   // Only the underexposed end is moved. A building the photographs agree is pale stays pale.
   const colour = new THREE.Color(hex);
   const hsl = {};
-  colour.getHSL(hsl);
+  // In sRGB, which is the space the numbers mean something in.
+  //
+  // three.js has colour management on, so Color.r/g/b are linear-light and getHSL returns a
+  // linear lightness unless it is told otherwise. The two are not close: #3f5670 is 0.34 in
+  // sRGB and 0.11 in linear. Written without the colour space, this floor of 0.34 was being
+  // applied to linear lightness -- which is sRGB 0.62 -- so every sampled building it touched
+  // came out far paler than intended, and the check that ought to have caught that could not,
+  // because the stand-in Color in the test was an sRGB one.
+  colour.getHSL(hsl, THREE.SRGBColorSpace);
   const lifted = Math.max(hsl.l, SAMPLED_LIGHTNESS_FLOOR + 0.30 * hsl.l);
-  colour.setHSL(hsl.h, hsl.s, Math.min(0.94, lifted));
+  colour.setHSL(hsl.h, hsl.s, Math.min(0.94, lifted), THREE.SRGBColorSpace);
   return colour.getHex();
 }
 
@@ -4087,10 +4099,14 @@ for (const way of DATA.ways) {
   }
 }
 
-function mappedWalkNear(x, z) {
+function mappedWalkNear(x, z, reach = MAPPED_WALK_REACH_M) {
+  // Two questions share this index and they want different distances. "Does OpenStreetMap map a
+  // footway along this side of the street, so that `sidewalk=no` can be believed?" is a question
+  // about the side and wants the default eleven metres. "Is this exact spot already under a
+  // mapped footway's slab?" is a question about the ground and wants about half a pavement.
   const ix = Math.floor(x / MAPPED_WALK_CELL);
   const iz = Math.floor(z / MAPPED_WALK_CELL);
-  const limit = MAPPED_WALK_REACH_M * MAPPED_WALK_REACH_M;
+  const limit = reach * reach;
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = mappedWalkGrid.get(`${ix + dx}:${iz + dz}`);
@@ -4128,18 +4144,29 @@ function walkSidesToDraw(way, renderPoints, inner) {
 }
 
 function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y, thickness) {
-  // Pavement on one side of one street, at the widest width that fits.
+  // Pavement on one side of one street, at the widest width that fits -- chosen first, laid once.
   //
-  // This used to lay it at one width and drop whatever did not survive, which left 237 of the
-  // corridor's 4,890 kerb sides with no pavement at all -- bare ground between the kerb and the
+  // Two bugs have lived here, from opposite directions.
+  //
+  // The first laid it at one width and dropped whatever did not survive, which left 237 of the
+  // corridor's kerb sides with no pavement at all: bare ground between the kerb and the
   // buildings, which is the black strip along the shopfronts. Almost none of those sides had no
   // room; they had less room than four metres, because the neighbouring carriageway starts
-  // sooner than four metres away. An alley beside an avenue is the common case.
+  // sooner than that. An alley beside an avenue is the common case.
   //
-  // So the width gives way rather than the pavement. The inner edge is pinned to the kerb and
-  // the outer edge comes in until the strip fits, which is what the pavement does in the street.
+  // The fix for that walked a ladder of widths and returned at the first one that covered enough
+  // of the side -- but it laid a ribbon at every width it tried on the way there. A narrow strip
+  // fits everywhere a wide one does and more, so each narrower pass re-covered the ground the
+  // wider ones had just covered: up to five slabs of different widths stacked in the same plane,
+  // each with its own tile origin, fighting for depth. Nineteen per cent of the paved ground in
+  // the corridor carried more than one slab. That is what a pavement broken into mismatched
+  // tiles with torn edges is.
+  //
+  // Both come from the same confusion between trying a width and committing to it. So the widths
+  // are now measured before anything is drawn, and only the one that is kept is laid.
   const wanted = wayLength(renderPoints);
   if (!(wanted > 0)) return 0;
+  let best = null;
   for (const share of [1.0, ...WALK_FALLBACK_WIDTHS_M]) {
     const width = Math.max(MIN_RENDER_WALK_M * 0.55, walk * share);
     const centre = offsetWay(renderPoints, side * (inner + width / 2));
@@ -4150,14 +4177,23 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y,
     // third of the run from either end, which leaves a stub with a short pavement rather than
     // with none.
     const back = Math.min(Math.max(1.2, inner + width * 0.7), wanted * 0.32);
-    const trimmed = trimWay(centre, back);
-    const laid = addPavementRibbon(trimmed, width, color, opacity, y, thickness,
-                                   width <= NARROW_WALK_M ? "walk_narrow" : "walk");
-    if (laid >= wanted * WALK_ENOUGH) return laid;
-    // Nothing usable at this width; the ribbons already added are the partial cover, and the
-    // next width down will lay the rest of the face beside them.
+    const runs = pavementRunsOutsideCarriageway(trimWay(centre, back), width);
+    const covers = runs.reduce((sum, run) => sum + wayLength(run), 0);
+    // Compared by the ground each would cover, not by how far along the street it reaches. A
+    // one-metre strip that runs the whole block covers less pavement than a four-metre one over
+    // two thirds of it, and picking by length chose the first: the sliver against the kerb, with
+    // the rest of the way to the building line left bare.
+    if (!best || covers * width > best.covers * best.width) best = { width, runs, covers };
+    // Enough of the side is covered at this width; nothing narrower will be an improvement.
+    if (covers >= wanted * WALK_ENOUGH) break;
   }
-  return 0;
+  if (!best || !best.runs.length) return 0;
+  let laid = 0;
+  for (const run of best.runs) {
+    laid += addPavementRibbon(run, best.width, color, opacity, y, thickness,
+                              best.width <= NARROW_WALK_M ? "walk_narrow" : "walk");
+  }
+  return laid;
 }
 
 function apronSlab(opening) {
@@ -4576,6 +4612,21 @@ function structureClass(feature, areaM2) {
   const tag = (feature.tags || {}).building;
   if (CANOPY_TAGS.has(tag)) return "canopy";
   if (OUTBUILDING_TAGS.has(tag)) return "outbuilding";
+  // The city's own records outrank every guess below.
+  //
+  // A garden shed has no street address, no land-use classification and no business in it. San
+  // Francisco assigns all three, and a footprint that carries one is a building whatever its
+  // size or however its height was arrived at.
+  //
+  // Without this, "we had to infer the height" was being read as evidence of a shed: 348
+  // footprints fell into that branch and 318 of them had a street address, 326 a land use and
+  // 16 a shop inside. The standard lot in this city is twenty-five feet by a hundred, so the
+  // house on it covers well under the 150 m2 floor -- three-family houses on Larkin Street were
+  // being drawn as garden outbuildings, with the dark tar-paper shed roof that goes with one,
+  // and from above a house painted in shed roof reads as a hole in the block.
+  if (feature.address || feature.land_use || (feature.shops && feature.shops.length)) {
+    return "building";
+  }
   // A height OpenStreetMap states is a statement about this building and is believed. A lidar
   // median over a forty square metre footprint in a dense block is a measurement of whatever
   // was tallest in the cell, which is usually the building next door.
@@ -5920,7 +5971,10 @@ function outbuildingRoofTexture(seed) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = key.endsWith("0") ? "#3b3a36" : "#4a4b46";
+  // Weathered asphalt shingle and rolled roofing, not tar. At #3b3a36 this was sRGB 0.23 and,
+  // under the tone mapping, every roof wearing it read as a hole in the block rather than as a
+  // dark roof.
+  ctx.fillStyle = key.endsWith("0") ? "#5d5b54" : "#6b6a63";
   ctx.fillRect(0, 0, size, size);
   for (let y = 0; y < size; y += 6) {
     ctx.fillStyle = "rgba(0,0,0,0.16)";
@@ -5997,18 +6051,24 @@ function buildingMesh(feature) {
   if (!measured) {
     const colour = new THREE.Color(tint);
     const hsl = {};
-    colour.getHSL(hsl);
-    colour.setHSL(hsl.h, hsl.s * 0.35, hsl.l * 0.92);
+    colour.getHSL(hsl, THREE.SRGBColorSpace);
+    colour.setHSL(hsl.h, hsl.s * 0.35, hsl.l * 0.92, THREE.SRGBColorSpace);
     tint = colour.getHex();
   }
   // Darkened, but with a floor. At a flat 0.68 a dark wall gave a roof near enough to black
   // that whole blocks read as holes in the city from above -- which is exactly what a hole
   // looks like, and sent me hunting for missing ground that was never missing.
-  const roofTint = new THREE.Color(tint).multiplyScalar(0.80);
+  // A roof is the same building seen from above and a little darker for it. Both the darkening
+  // and its floor are done in sRGB: multiplyScalar works on linear channels, where 0.80 is a
+  // far smaller step than it looks, and the floor of 0.22 was being read as a linear lightness,
+  // which is sRGB 0.50 -- so a dark roof was not being stopped from going black, it was being
+  // pushed up to mid grey, and every roof in the city ended up the same pale tone.
+  const roofTint = new THREE.Color(tint);
   {
     const hsl = {};
-    roofTint.getHSL(hsl);
-    if (hsl.l < 0.22) roofTint.setHSL(hsl.h, hsl.s, 0.22);
+    roofTint.getHSL(hsl, THREE.SRGBColorSpace);
+    roofTint.setHSL(hsl.h, hsl.s, Math.max(ROOF_LIGHTNESS_FLOOR, hsl.l * 0.86),
+                    THREE.SRGBColorSpace);
   }
   const roof = new THREE.MeshStandardMaterial({
     map: kind === "outbuilding" ? outbuildingRoofTexture(seed)
@@ -6259,7 +6319,24 @@ for (const chunk of FACADES.grid || []) {
 
 const streetNames = new Set();
 let streetLabelCount = 0;
-for (const way of DATA.ways) {
+// Mapped footways first, then everything else.
+//
+// Pavement comes from two places: the footways OpenStreetMap maps, and the pavement derived from
+// each street's own kerb for the blocks it does not map. Drawn in payload order the two
+// interleave, so a street laid its derived pavement before the mapped footway beside it existed,
+// and both ended up on the ground: two slabs of different widths, with different tile origins,
+// a centimetre apart in the same plane. Over a fifth of the paved ground in the corridor was
+// doubled that way, and doubled pavement is what "broken tiles" looks like from above.
+//
+// With the mapped ones laid first, every derived station can ask whether the ground under it is
+// already paved -- which is a question pavedGrid can answer, because laying pavement is what
+// stamps it. Nothing else in this loop depends on the order: the meshes are merged by material
+// and separated by height, not by when they were added.
+const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
+  const rank = (w) => (w.kind === "sidewalk" || w.kind === "path" ? 0 : 1);
+  return rank(a) - rank(b);
+});
+for (const way of DRAW_ORDER) {
  if (way.kind === "beach") {
  const shape = footprintShape(way.points);
  if (shape) {

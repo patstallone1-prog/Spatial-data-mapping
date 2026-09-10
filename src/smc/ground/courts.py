@@ -90,6 +90,11 @@ SPORT_ALIASES = {
 #: tennis court on a twelve metre square is worse than drawing nothing.
 MIN_FIT = 0.62
 
+#: The strip of surface left between a court's outermost line and the edge of its slab. Outdoor
+#: courts in a city are built tight -- this is the paint's own margin, not a run-off zone -- but
+#: it must not be nothing, or the sideline sits exactly on the fence line.
+RUN_OFF_M = 0.8
+
 
 def resolve_sport(tag: str | None) -> str | None:
     if not tag:
@@ -202,7 +207,14 @@ def layout_courts(sport: str, rect: Rect) -> list[tuple[str, Rect]]:
     # Two ways round: courts running along the pitch's long axis, or across it. A row of tennis
     # courts is nearly always shoulder to shoulder across the short axis, but a long thin pitch
     # can be either, so both are tried and the one that fits more courts wins.
+    # Scored (how close to regulation, how many), and in that order. Counting alone was the
+    # right rule while every court came out regulation-sized whatever the ground was; now that a
+    # court is cut to fit, counting alone would take two squeezed courts over one proper one --
+    # a forty by twenty-four metre slab holds one basketball court, not two at four-fifths size.
+    # A court is a built thing at a known size, so the layout that keeps it nearest that size
+    # wins, and the count only separates layouts that are equally close.
     best: list[Rect] = []
+    best_score = (0.0, 0)
     for turned in (False, True):
         span_l = rect.width if turned else rect.length
         span_w = rect.length if turned else rect.width
@@ -216,6 +228,27 @@ def layout_courts(sport: str, rect: Rect) -> list[tuple[str, Rect]]:
             continue
         step_l = span_l / rows
         step_w = span_w / cols
+        # A court is never bigger than the ground it is painted on.
+        #
+        # This used to hand back spec.play_l by spec.play_w whatever the polygon measured, and
+        # the only thing standing between a small slab and a regulation court was MIN_FIT -- so
+        # any pitch down to 62% of full size got a full-size court laid over it. Helen Wills
+        # Playground is 25.6 m of basketball court and was given the NBA's 28.65: three metres
+        # of court, both keys and both baskets, hanging outside the polygon. The fence follows
+        # the polygon, because that is where the fence is, so it ran across the court in front
+        # of each hoop.
+        #
+        # Undersized outdoor courts are the normal case in this city rather than the exception,
+        # so the court is scaled to the ground instead of being refused. Both dimensions take
+        # the same factor: a court with its length cut and its width kept is not a smaller court,
+        # it is a wrongly proportioned one, and the key and the arc stop matching the baseline.
+        room_l = max(0.0, step_l - RUN_OFF_M)
+        room_w = max(0.0, step_w - RUN_OFF_M)
+        fit = min(1.0, room_l / spec.play_l, room_w / spec.play_w)
+        if fit < MIN_FIT:
+            continue
+        play_l = spec.play_l * fit
+        play_w = spec.play_w * fit
         angle = rect.angle + (math.pi / 2 if turned else 0.0)
         ux, uy = math.cos(angle), math.sin(angle)
         vx, vy = -uy, ux
@@ -226,8 +259,10 @@ def layout_courts(sport: str, rect: Rect) -> list[tuple[str, Rect]]:
                 dv = (c + 0.5) * step_w - span_w / 2
                 courts.append(Rect(rect.cx + ux * du + vx * dv,
                                    rect.cy + uy * du + vy * dv,
-                                   angle, spec.play_l, spec.play_w))
-        if len(courts) > len(best):
+                                   angle, play_l, play_w))
+        score = (round(fit, 6), len(courts))
+        if score > best_score:
+            best_score = score
             best = courts
     if not best and sport in FALLBACK:
         return layout_courts(FALLBACK[sport], rect)
