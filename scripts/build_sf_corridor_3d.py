@@ -1708,13 +1708,14 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
   </div>
 </div>
 <div id="addr" hidden></div>
-<div id="tip"><b>Click anywhere to go there</b> &mdash; the grey sphere is you, and arriving brings the camera down to street level. Arrow keys walk it at 15&nbsp;mph, relative to the way you are facing. Drag to orbit, wheel or pinch to zoom. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
+<div id="tip"><b>Click anywhere to go there</b> &mdash; the walker is you, and arriving brings the camera down to street level. Arrow keys walk it at 15&nbsp;mph, relative to the way you are facing. Drag to orbit, wheel or pinch to zoom. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
 <!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
      eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
      its previous version. Fetched, the page is a few kilobytes, the data changes independently,
      and browsers cache it between visits. -->
 <script type="module">
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import * as THREE from "https://esm.sh/three@0.160.0";
+import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 const DATA = await fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
   if (!r.ok) throw new Error(`payload ${r.status}`);
@@ -7886,28 +7887,178 @@ addEventListener("resize", resize);
 resize();
 // ---- a body to move through the city with ----
 //
-// Orbiting a model tells you its shape; walking it tells you its scale. The sphere is the
-// cheapest possible stand-in for a person -- no shadow, no model, no physics -- but it is
-// street-sized and it moves at a speed you can feel, which is enough to make a kerb read as
-// something you would step off rather than a pink line on a diagram.
+// Orbiting a model tells you its shape; walking it tells you its scale. A simple person is
+// still cheap enough to keep the map self-contained, but reads as a body rather than as a
+// marker: shoulders, feet, head height, gait and facing all make the kerb scale easier to feel.
 const STREET_SPEED = 8.94;     // 20 mph in metres per second, at street level
-// Above that the speed scales with how far the camera has pulled back, so the sphere always
+// Above that the speed scales with how far the camera has pulled back, so the walker always
 // crosses the screen at the same rate. Walking a block at 20 mph is right when you are standing
 // in it; from two thousand metres up the same 20 mph is a stationary dot, and crossing the
 // corridor would take four minutes. What stays constant is the apparent speed, not the metric.
 const SPEED_REFERENCE_DIST = 45;
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
+const AVATAR_HEIGHT = 1.78;
 const ARRIVAL_DIST = 45;       // close enough that a 126 mm kerb is a step rather than a line
-const avatar = new THREE.Mesh(
-  new THREE.SphereGeometry(AVATAR_RADIUS, 24, 16),
-  // Faintly self-lit. Grey on grey buildings disappears the moment it rolls into shade, and
-  // losing the thing you are steering is worse than it being slightly unrealistic.
-  new THREE.MeshStandardMaterial({
-    color: 0x4fd18b, roughness: 0.45, metalness: 0.05, emissive: 0x12452c,
-  })
-);
+const DEMO_CHARACTER_URL = "https://threejs.org/examples/models/gltf/Soldier.glb";
+const DEMO_CHARACTER_SOURCE = "Three.js Soldier.glb demo avatar with skinned idle/walk/run clips";
+let avatarMixer = null;
+let avatarActions = {};
+let avatarActiveAction = null;
+function avatarMaterial(color, roughness = 0.72, metalness = 0.02) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+}
+function addAvatarBox(parent, name, x, y, z, w, h, d, color, roughness = 0.72) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), avatarMaterial(color, roughness));
+  mesh.name = name;
+  mesh.position.set(x, y, z);
+  parent.add(mesh);
+  return mesh;
+}
+function addAvatarSphere(parent, name, x, y, z, r, color, roughness = 0.72) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), avatarMaterial(color, roughness));
+  mesh.name = name;
+  mesh.position.set(x, y, z);
+  parent.add(mesh);
+  return mesh;
+}
+function addAvatarCylinder(parent, name, x, y, z, radiusTop, radiusBottom, h, color, roughness = 0.72) {
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radiusTop, radiusBottom, h, 18),
+    avatarMaterial(color, roughness)
+  );
+  mesh.name = name;
+  mesh.position.set(x, y, z);
+  parent.add(mesh);
+  return mesh;
+}
+function addAvatarLimb(parent, name, x, y, z, length, radius, color) {
+  const pivot = new THREE.Group();
+  pivot.name = name;
+  pivot.position.set(x, y, z);
+  const limb = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius * 0.82, length, 12),
+    avatarMaterial(color, 0.78)
+  );
+  limb.position.y = -length / 2;
+  pivot.add(limb);
+  parent.add(pivot);
+  return pivot;
+}
+function buildCharacterAvatar() {
+  const rig = new THREE.Group();
+  rig.name = "walking-character-avatar";
+  const skin = 0xc28a68;
+  const skinShadow = 0x8f6046;
+  const jacket = 0x293946;
+  const jacketTrim = 0x111820;
+  const denim = 0x263b5c;
+  const shoe = 0x1b1c1f;
+  const shoeSole = 0x2f3438;
+  const shirt = 0xd6ddd4;
+  const hair = 0x2d2119;
+  const eye = 0x12161a;
+
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.36, 32),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false })
+  );
+  shadow.name = "contact-shadow";
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = -0.888;
+  rig.add(shadow);
+
+  addAvatarCylinder(rig, "neck", 0, 0.49, -0.01, 0.065, 0.072, 0.14, skinShadow, 0.66);
+  addAvatarBox(rig, "torso", 0, 0.13, 0, 0.40, 0.66, 0.22, jacket, 0.82);
+  addAvatarBox(rig, "shoulders", 0, 0.40, 0, 0.54, 0.12, 0.24, jacket, 0.82);
+  addAvatarBox(rig, "shirt", 0, 0.12, -0.119, 0.22, 0.55, 0.018, shirt, 0.86);
+  addAvatarBox(rig, "left-lapel", -0.09, 0.22, -0.132, 0.04, 0.46, 0.016, jacketTrim, 0.84);
+  addAvatarBox(rig, "right-lapel", 0.09, 0.22, -0.132, 0.04, 0.46, 0.016, jacketTrim, 0.84);
+  addAvatarBox(rig, "zipper", 0, 0.12, -0.144, 0.018, 0.54, 0.012, 0xe2e7df, 0.52);
+  addAvatarBox(rig, "hips", 0, -0.25, 0.01, 0.36, 0.18, 0.20, denim, 0.80);
+  addAvatarSphere(rig, "head", 0, 0.68, -0.01, 0.17, skin, 0.62).scale.set(0.90, 1.06, 0.88);
+  addAvatarSphere(rig, "hair", 0, 0.79, 0.01, 0.178, hair, 0.88).scale.set(0.96, 0.38, 0.88);
+  addAvatarBox(rig, "hairline", 0, 0.735, -0.143, 0.22, 0.055, 0.035, hair, 0.88);
+  addAvatarBox(rig, "left-eye", -0.055, 0.695, -0.158, 0.032, 0.018, 0.012, eye, 0.48);
+  addAvatarBox(rig, "right-eye", 0.055, 0.695, -0.158, 0.032, 0.018, 0.012, eye, 0.48);
+  addAvatarBox(rig, "nose", 0, 0.665, -0.174, 0.036, 0.040, 0.050, skinShadow, 0.62);
+  addAvatarBox(rig, "mouth", 0, 0.617, -0.163, 0.070, 0.014, 0.012, 0x4d2a25, 0.58);
+  addAvatarSphere(rig, "left-ear", -0.150, 0.675, -0.002, 0.035, skinShadow, 0.64).scale.set(0.42, 0.72, 0.28);
+  addAvatarSphere(rig, "right-ear", 0.150, 0.675, -0.002, 0.035, skinShadow, 0.64).scale.set(0.42, 0.72, 0.28);
+  addAvatarBox(rig, "backpack", 0, 0.13, 0.142, 0.33, 0.52, 0.12, 0x22302f, 0.9);
+  addAvatarBox(rig, "left-strap", -0.17, 0.18, -0.139, 0.035, 0.58, 0.012, 0x1a2425, 0.9);
+  addAvatarBox(rig, "right-strap", 0.17, 0.18, -0.139, 0.035, 0.58, 0.012, 0x1a2425, 0.9);
+
+  rig.userData.leftArm = addAvatarLimb(rig, "left-arm", -0.285, 0.39, -0.005, 0.58, 0.046, jacket);
+  rig.userData.rightArm = addAvatarLimb(rig, "right-arm", 0.285, 0.39, -0.005, 0.58, 0.046, jacket);
+  rig.userData.leftHand = addAvatarSphere(rig.userData.leftArm, "left-hand", 0, -0.62, -0.01, 0.058, skin, 0.62);
+  rig.userData.rightHand = addAvatarSphere(rig.userData.rightArm, "right-hand", 0, -0.62, -0.01, 0.058, skin, 0.62);
+  rig.userData.leftLeg = addAvatarLimb(rig, "left-leg", -0.115, -0.31, 0, 0.64, 0.057, denim);
+  rig.userData.rightLeg = addAvatarLimb(rig, "right-leg", 0.115, -0.31, 0, 0.64, 0.057, denim);
+  rig.userData.leftFoot = addAvatarBox(rig.userData.leftLeg, "left-foot", 0, -0.66, -0.060, 0.14, 0.075, 0.27, shoe, 0.66);
+  rig.userData.rightFoot = addAvatarBox(rig.userData.rightLeg, "right-foot", 0, -0.66, -0.060, 0.14, 0.075, 0.27, shoe, 0.66);
+  addAvatarBox(rig.userData.leftLeg, "left-sole", 0, -0.704, -0.060, 0.15, 0.018, 0.28, shoeSole, 0.60);
+  addAvatarBox(rig.userData.rightLeg, "right-sole", 0, -0.704, -0.060, 0.15, 0.018, 0.28, shoeSole, 0.60);
+  rig.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+    }
+  });
+  rig.userData.walkPhase = 0;
+  return rig;
+}
+const avatar = buildCharacterAvatar();
 avatar.position.set(0, AVATAR_RADIUS, 0);
 root.add(avatar);
+function setAvatarAction(name) {
+  const next = avatarActions[name] || avatarActions.Walk || avatarActions.Run || avatarActions.Idle;
+  if (!next || next === avatarActiveAction) return;
+  next.reset().fadeIn(0.18).play();
+  if (avatarActiveAction) avatarActiveAction.fadeOut(0.18);
+  avatarActiveAction = next;
+}
+function fitDemoCharacter(model) {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const scale = size.y > 0 ? AVATAR_HEIGHT / size.y : 1;
+  model.scale.setScalar(scale);
+  const fitted = new THREE.Box3().setFromObject(model);
+  model.position.y = -AVATAR_RADIUS - fitted.min.y;
+  model.rotation.y = Math.PI;
+}
+function loadDemoCharacterAvatar(rig) {
+  const loader = new GLTFLoader();
+  loader.setCrossOrigin("anonymous");
+  loader.load(DEMO_CHARACTER_URL, (gltf) => {
+    const model = gltf.scene;
+    model.name = "imported-realistic-demo-character";
+    model.traverse((node) => {
+      if (!node.isMesh) return;
+      node.castShadow = true;
+      node.receiveShadow = true;
+      if (node.material) node.material.roughness = Math.max(node.material.roughness || 0, 0.62);
+    });
+    fitDemoCharacter(model);
+    for (const child of rig.children) {
+      if (child.name !== "contact-shadow") child.visible = false;
+    }
+    rig.add(model);
+    avatarMixer = new THREE.AnimationMixer(model);
+    avatarActions = {};
+    for (const clip of gltf.animations || []) {
+      avatarActions[clip.name] = avatarMixer.clipAction(clip);
+    }
+    rig.userData.demoCharacterLoaded = true;
+    rig.userData.demoCharacterSource = DEMO_CHARACTER_SOURCE;
+    rig.userData.motionBridge = "Unreal target: ARDY/MotionBricks policy output retargeted to this avatar rig.";
+    setAvatarAction("Idle");
+  }, undefined, (error) => {
+    console.warn("Demo character failed to load; keeping procedural walker.", error);
+    rig.userData.demoCharacterLoaded = false;
+    rig.userData.demoCharacterSource = "procedural fallback";
+  });
+}
+loadDemoCharacterAvatar(avatar);
 state.target.copy(avatar.position);
 placeCamera();
 
@@ -8092,10 +8243,34 @@ canvas.addEventListener("pointerdown", hideAddress);
 addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
 
 let previous = performance.now();
+function animateAvatar(distance, direction, moving) {
+  if (moving && direction.lengthSq()) {
+    avatar.rotation.y = Math.atan2(direction.x, direction.z);
+    avatar.userData.walkPhase += distance * 4.8;
+  }
+  const swing = moving ? Math.sin(avatar.userData.walkPhase) : 0;
+  const lift = moving ? Math.abs(Math.sin(avatar.userData.walkPhase * 2)) * 0.045 : 0;
+  avatar.position.y = AVATAR_RADIUS + lift;
+  avatar.userData.leftLeg.rotation.x = swing * 0.58;
+  avatar.userData.rightLeg.rotation.x = -swing * 0.58;
+  avatar.userData.leftArm.rotation.x = -swing * 0.48;
+  avatar.userData.rightArm.rotation.x = swing * 0.48;
+  avatar.userData.leftArm.rotation.z = 0.10;
+  avatar.userData.rightArm.rotation.z = -0.10;
+  setAvatarAction(moving ? "Run" : "Idle");
+}
+function updateAvatarMixer(dt) {
+  if (!avatarMixer) return;
+  avatarMixer.update(dt);
+}
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
-  if (!held.size) return;
+  if (!held.size) {
+    animateAvatar(0, new THREE.Vector3(), false);
+    updateAvatarMixer(dt);
+    return;
+  }
   // Forward is where the camera looks, so the arrows mean what they appear to mean however the
   // view has been orbited.
   const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw)).negate();
@@ -8109,9 +8284,8 @@ function stepAvatar(now) {
   const scaled = STREET_SPEED * Math.max(1, state.dist / SPEED_REFERENCE_DIST);
   move.normalize().multiplyScalar(scaled * dt);
   avatar.position.add(move);
-  // Roll it the distance it travelled, about the axis across its direction of travel.
-  const axis = new THREE.Vector3(move.z, 0, -move.x).normalize();
-  avatar.rotateOnWorldAxis(axis, move.length() / AVATAR_RADIUS);
+  animateAvatar(move.length(), move, true);
+  updateAvatarMixer(dt);
   state.target.copy(avatar.position);
   placeCamera();
 }

@@ -273,6 +273,29 @@ def test_named_buildings_get_plaque_signage_without_duplicate_shop_names() -> No
     assert "addBuildingNamePlaque(group, feature, seed, height, tint);" in source
 
 
+def test_avatar_is_a_humanoid_walker_not_the_old_marker_sphere() -> None:
+    source = _source()
+
+    assert 'the walker is you' in source
+    assert "GLTFLoader" in source
+    assert "https://threejs.org/examples/models/gltf/Soldier.glb" in source
+    assert "function buildCharacterAvatar()" in source
+    assert 'rig.name = "walking-character-avatar";' in source
+    assert 'model.name = "imported-realistic-demo-character";' in source
+    assert 'avatarMixer = new THREE.AnimationMixer(model);' in source
+    assert 'setAvatarAction(moving ? "Run" : "Idle");' in source
+    assert 'shadow.name = "contact-shadow";' in source
+    assert 'addAvatarBox(rig, "left-eye"' in source
+    assert 'addAvatarBox(rig, "left-lapel"' in source
+    assert 'addAvatarBox(rig, "left-strap"' in source
+    assert "addAvatarLimb(rig, \"left-leg\"" in source
+    assert "addAvatarLimb(rig, \"right-arm\"" in source
+    assert "function animateAvatar(distance, direction, moving)" in source
+    assert "avatar.rotation.y = Math.atan2(direction.x, direction.z);" in source
+    assert "avatar.userData.walkPhase += distance * 4.8;" in source
+    assert "avatar.rotateOnWorldAxis(axis, move.length() / AVATAR_RADIUS)" not in source
+
+
 def test_a_boundary_is_fenced_only_where_it_is_a_fence() -> None:
     """A side property line is one edge in the survey and three things on the ground.
 
