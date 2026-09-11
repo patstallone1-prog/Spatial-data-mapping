@@ -45,12 +45,20 @@ FUNCTIONS = (
     "renderedRoadWidth",
     "clampRoadWidthsToNeighbours",
     "renderedWalkWidth",
+    "offsetWay",
     "lerpLonLat",
     "wayLength",
     "trimWay",
+    "trimWayEnds",
+    "densifyWay",
     "pavementRunsOutsideCarriageway",
     "mappedWalkNear",
     "walkSidesToDraw",
+    "indexStreetEnds",
+    "streetCarriesOn",
+    "kerbsideTrims",
+    "walkFitsAt",
+    "addKerbsidePavement",
 )
 
 
@@ -101,8 +109,20 @@ const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
 const MIN_RENDER_WALK_M = 0.9;
 const MAX_RENDER_WALK_M = 5.5;
+const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
+const WALK_WIDTH_RUN_M = 6.0;
+const NARROW_WALK_M = 1.15;
+const STREET_JOIN_M = 3.0;
+const STREET_JOIN_DEG = 34.0;
+const streetEndGrid = new Map();
 
 __FUNCTIONS__
+
+function addPavementRibbon(points, width, color, opacity, y, thickness, surface) {
+  let laid = 0;
+  for (const run of pavementRunsOutsideCarriageway(points, width)) laid += wayLength(run);
+  return laid;
+}
 
 const MAPPED_WALK_CELL = 40;
 const mappedWalkGrid = new Map();
@@ -128,13 +148,14 @@ for (const way of DATA.ways) {
 }
 
 clampRoadWidthsToNeighbours(DATA.ways);
+indexStreetEnds(DATA.ways);
 for (const way of DATA.ways) {
   if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
   const half = renderedRoadWidth(way) / 2;
   for (let i = 1; i < way.points.length; i += 1) {
     const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
     const [bx, by] = xy(way.points[i][0], way.points[i][1]);
-    addCarriagewaySegment(ax, -ay, bx, -by, half);
+    addCarriagewaySegment(ax, -ay, bx, -by, half, way);
   }
 }
 
@@ -228,21 +249,11 @@ for (const way of DATA.ways) {
   const inner = road / 2;
   for (const side of walkSidesToDraw(way, way.points, inner)) {
     sides += 1;
-    // The same width ladder the renderer walks: the inner edge stays on the kerb and the strip
-    // narrows until it fits, so a side counts as bare only when even a quarter-width strip at
-    // the kerb is inside somebody else's carriageway.
-    let kept = 0;
-    let asked = 0;
-    for (const share of [1.0, 1.0, 0.72, 0.52, 0.36, 0.24]) {
-      const width = Math.max(MIN_RENDER_WALK_M * 0.55, walk * share);
-      const centre = offsetWay(way.points, side * (inner + width / 2));
-      asked = wayLength(centre);
-      const back = Math.min(Math.max(1.2, inner + width * 0.7), asked * 0.32);
-      const runs = pavementRunsOutsideCarriageway(trimWay(centre, back), width);
-      kept = runs.reduce((sum, run) => sum + wayLength(run), 0);
-      if (kept >= asked * 0.55) break;
-    }
-    if (kept < asked * 0.25) {
+    // Use the renderer's current run-based placement, not the old width-ladder approximation.
+    // This keeps the audit from reporting black kerbs that the page no longer draws.
+    const wanted = wayLength(way.points);
+    const kept = addKerbsidePavement(way.points, side, inner, walk, 0, 1, 0, 0.1);
+    if (kept < wanted * 0.25) {
       sidesBare += 1;
       if (bareExamples.length < 10) {
         bareExamples.push({ street: way.name || way.osm_id, side,

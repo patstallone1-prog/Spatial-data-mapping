@@ -23,6 +23,27 @@ def test_continental_crosswalk_bars_repeat_along_walking_direction() -> None:
     assert "ctx.fillRect(0, 1, size, size * 0.5 - 2);" not in source
 
 
+def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
+    source = _source()
+
+    assert "function crossingLandingCorners(endpoint, intoCrossing, crossingWidth)" in source
+    assert "function addCrossingLandingPads(points, crossingWidth, y)" in source
+    assert "CROSSING_LANDING_DEPTH_M = 2.35" in source
+    assert "CROSSING_LANDING_FLARE_M = 2.20" in source
+    assert 'addMerged("crossing:landing", mesh, "walk");' in source
+    assert "insideCarriageway(x, z, 0.0)" in source
+    assert "addCrossingLandingPads(surfacePoints, widthMeters, roadTop + KERB + 0.002);" in source
+    assert "function tactileWarningTexture()" in source
+    assert "Truncated-dome warning tile" in source
+    assert 'ctx.fillStyle = "#d8aa24";' in source
+    assert "const TACTILE_PAD_DEPTH_M = 0.72;" in source
+    assert "function tactilePadCorners(endpoint, intoCrossing, crossingWidth)" in source
+    assert "insideCarriageway(cx, cz, 0.10)" in source
+    assert 'mesh.userData.surface = "tactile_warning";' in source
+    assert 'addMerged("crossing:tactile", mesh, "tactile_warning");' in source
+    assert "addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.006);" in source
+
+
 def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     source = _source()
 
@@ -87,6 +108,10 @@ def test_renderer_densifies_curved_road_markings() -> None:
     source = _source()
 
     assert "function densifyWay(points, maxSpan = 5.0)" in source
+    assert "function addIntersectionRoadPads(ways, intersections, roadTop)" in source
+    assert "addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);" in source
+    assert "node.half * 2.2 + 8.0" in source
+    assert 'addMerged("road:junction", mesh, "road");' in source
     assert "const renderPoints = densifyWay(way.points);" in source
     # The ribbon is merged by material rather than added on its own: 53,383 street meshes
     # were 53,383 draw calls a frame. Same geometry, one call per surface class.
@@ -127,6 +152,9 @@ def test_bike_lanes_follow_osm_cycleway_tags() -> None:
     # and neither is conditional on the green.
     assert "offsetWay(run.points, side * (BIKE_LANE_M / 2))" in source
     assert "offsetWay(run.points, -side * (BIKE_LANE_M / 2))" in source
+    assert "function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0, ownWay = null)" in source
+    assert "if (ownWay && source === ownWay) continue;" in source
+    assert "bikeLaneZones(lane, way)" in source
 
 
 def test_beaches_and_extended_bay_water_are_rendered() -> None:
@@ -251,13 +279,19 @@ def test_grass_texture_has_cached_realistic_variants() -> None:
     source = _source()
 
     assert "const GRASS_TEXTURES = new Map();" in source
-    assert 'function grassTexture(kind = "yard")' in source
-    assert "if (GRASS_TEXTURES.has(kind)) return GRASS_TEXTURES.get(kind);" in source
+    assert 'function grassTexture(kind = "yard", variant = 0)' in source
+    assert "const key = `${kind}:${variant}`;" in source
+    assert "if (GRASS_TEXTURES.has(key)) return GRASS_TEXTURES.get(key);" in source
     assert "const size = 384;" in source
+    assert "const parkPalettes = [" in source
+    assert "const yardPalettes = [" in source
     assert "straw/dirt flecks" in source
     assert "Low, soft mowing direction" in source
-    assert 'map: grassTexture("park")' in source
-    assert 'map: grassTexture("yard")' in source
+    assert "function grassVariantForRing(ring, count)" in source
+    assert "const parkVariants = 4;" in source
+    assert "const yardVariants = 5;" in source
+    assert 'map: grassTexture("park", variant)' in source
+    assert 'map: grassTexture("yard", variant)' in source
 
 
 def test_named_buildings_get_plaque_signage_without_duplicate_shop_names() -> None:
@@ -278,6 +312,7 @@ def test_avatar_is_a_humanoid_walker_not_the_old_marker_sphere() -> None:
 
     assert 'the walker is you' in source
     assert "GLTFLoader" in source
+    assert "const AVATAR_HEIGHT = 2.13;" in source
     assert "https://threejs.org/examples/models/gltf/Soldier.glb" in source
     assert "function buildCharacterAvatar()" in source
     assert 'rig.name = "walking-character-avatar";' in source
@@ -294,6 +329,16 @@ def test_avatar_is_a_humanoid_walker_not_the_old_marker_sphere() -> None:
     assert "avatar.rotation.y = Math.atan2(direction.x, direction.z);" in source
     assert "avatar.userData.walkPhase += distance * 4.8;" in source
     assert "avatar.rotateOnWorldAxis(axis, move.length() / AVATAR_RADIUS)" not in source
+
+
+def test_tree_scale_is_capped_below_multistory_buildings() -> None:
+    source = _source()
+
+    assert 'const maxScale = kind === "palm" ? 5.6' in source
+    assert 'kind === "columnar" ? 6.2' in source
+    assert 'kind === "conifer" ? 7.0 : 7.4' in source
+    assert "const scale = Math.max(2.2, Math.min(maxScale, tree.d * 0.34));" in source
+    assert "Math.min(16.0, tree.d * 0.42)" not in source
 
 
 def test_a_boundary_is_fenced_only_where_it_is_a_fence() -> None:

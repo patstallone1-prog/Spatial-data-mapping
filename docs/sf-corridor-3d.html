@@ -1160,7 +1160,7 @@ function trimWayEnds(points, cutStart, cutEnd) {
   return out.length >= 2 ? out : points;
 }
 
-function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0) {
+function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0, ownWay = null) {
   // Is this point standing in a street that crosses the one it belongs to? insideCarriageway
   // cannot answer it: a lane is inside its own carriageway everywhere along its length. What
   // separates a junction from the rest of the block is that the carriageway covering the point
@@ -1172,7 +1172,8 @@ function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
       if (!bucket) continue;
-      for (const [ax, az, bx, bz, half, other] of bucket) {
+      for (const [ax, az, bx, bz, half, other, source] of bucket) {
+        if (ownWay && source === ownWay) continue;
         if (other === undefined) continue;
         let difference = Math.abs(other - bearing) % Math.PI;
         if (difference > Math.PI / 2) difference = Math.PI - difference;
@@ -1223,7 +1224,7 @@ function dashRuns(points, markM, gapM) {
   return runs.filter((run) => run.length >= 2);
 }
 
-function bikeLaneZones(lane) {
+function bikeLaneZones(lane, ownWay = null) {
   // Every sample along the lane labelled crossing, mixing or lane, and then gathered into runs.
   const labels = [];
   const spans = [0];
@@ -1234,7 +1235,7 @@ function bikeLaneZones(lane) {
     const [bx, by] = xy(before[0], before[1]);
     const [ax, ay] = xy(after[0], after[1]);
     const bearing = Math.atan2(-ay + by, ax - bx);
-    labels.push(crosswiseCarriagewayAt(x, -y, bearing, 0.2) ? "crossing" : "lane");
+    labels.push(crosswiseCarriagewayAt(x, -y, bearing, 0.2, ownWay) ? "crossing" : "lane");
     if (i) {
       const [px, py] = xy(lane[i - 1][0], lane[i - 1][1]);
       spans.push(spans[i - 1] + Math.hypot(x - px, y - py));
@@ -1281,7 +1282,7 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
     const lane = densifyWay(trimWayEnds(centre, cutStart, cutEnd), 2.0);
     if (lane.length < 2) continue;
 
-    for (const run of bikeLaneZones(lane)) {
+    for (const run of bikeLaneZones(lane, way)) {
       if (run.label === "crossing") {
         // No lane lines across a junction -- the lane has no priority there and painting its
         // edges through would say it did. San Francisco marks the gap with a crossbike instead.
@@ -1308,6 +1309,87 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
       if (outer) addMerged("bike:edge", outer, "marking");
       if (inner) addMerged("bike:edge", inner, "marking");
     }
+  }
+}
+
+function addIntersectionRoadPads(ways, intersections, roadTop) {
+  // Street ribbons are good for blocks and bends, but at a large junction each street owns only
+  // its strip. The shared asphalt fan between those strips can fall back to the ground plane,
+  // which reads as random black/grey patches through turns. A low asphalt cap at real street
+  // junction nodes fills that shared road surface while staying under all crosswalk, bike-lane
+  // paint, tactile pads, medians and sidewalks.
+  const nodes = new Map();
+  const widthByName = new Map();
+  const touch = (point, names, ids, bearings, half) => {
+    const key = `${point[0].toFixed(6)}:${point[1].toFixed(6)}`;
+    let node = nodes.get(key);
+    if (!node) nodes.set(key, node = { point, names: new Set(), ids: new Set(), bearings: [], half: 0 });
+    for (const name of names) node.names.add(name || "");
+    for (const id of ids) node.ids.add(id);
+    for (const bearing of bearings) node.bearings.push(bearing);
+    node.half = Math.max(node.half, half);
+  };
+  const add = (point, way, bearing, half) => {
+    touch(point, [way.name || ""], [way.osm_id || `${point[0]}:${point[1]}:${bearing.toFixed(3)}`],
+          [bearing], half);
+  };
+  for (const way of ways) {
+    if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+    const half = renderedRoadWidth(way) / 2;
+    if (way.name) widthByName.set(way.name, Math.max(widthByName.get(way.name) || 0, half));
+    for (let i = 0; i < way.points.length; i += 1) {
+      if (i > 0) {
+        const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+        const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+        add(way.points[i], way, Math.atan2(-by + ay, bx - ax), half);
+      }
+      if (i < way.points.length - 1) {
+        const [ax, ay] = xy(way.points[i][0], way.points[i][1]);
+        const [bx, by] = xy(way.points[i + 1][0], way.points[i + 1][1]);
+        add(way.points[i], way, Math.atan2(-by + ay, bx - ax), half);
+      }
+    }
+  }
+  for (const crossing of intersections || []) {
+    if (crossing.lon === undefined || crossing.lat === undefined) continue;
+    const a = crossing.a || "";
+    const b = crossing.b || "";
+    const half = Math.max(6.0, widthByName.get(a) || 0, widthByName.get(b) || 0);
+    touch([crossing.lon, crossing.lat], [a, b], [`intersection:${a}`, `intersection:${b}`],
+          [], half);
+  }
+  const angleBetween = (a, b) => {
+    let diff = Math.abs(a - b) % Math.PI;
+    if (diff > Math.PI / 2) diff = Math.PI - diff;
+    return diff;
+  };
+  for (const node of nodes.values()) {
+    const named = [...node.names].filter(Boolean);
+    let turn = 0;
+    for (let i = 0; i < node.bearings.length; i += 1) {
+      for (let j = i + 1; j < node.bearings.length; j += 1) {
+        turn = Math.max(turn, angleBetween(node.bearings[i], node.bearings[j]));
+      }
+    }
+    if (node.ids.size < 2 || (named.length < 2 && turn < Math.PI / 5)) continue;
+    const [x, y] = xy(node.point[0], node.point[1]);
+    const radius = Math.max(10.0, Math.min(34.0, node.half * 2.2 + 8.0));
+    const geometry = new THREE.CircleGeometry(radius, 36);
+    geometry.rotateX(-Math.PI / 2);
+    const uv = [];
+    const pos = geometry.attributes.position;
+    for (let i = 0; i < pos.count; i += 1) {
+      uv.push(pos.getX(i) / ROAD_SLAB_M, pos.getZ(i) / ROAD_SLAB_M);
+    }
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+      map: ROAD, color: 0xffffff, roughness: 0.86, metalness: 0.02,
+      side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 4,
+      polygonOffsetUnits: 8,
+    }));
+    mesh.position.set(x, roadTop + 0.001, -y);
+    mesh.userData.surface = "road";
+    addMerged("road:junction", mesh, "road");
   }
 }
 
@@ -2265,7 +2347,7 @@ function renderedWalkWidth(way, fallback = 3.0) {
   return Math.max(MIN_RENDER_WALK_M, Math.min(raw, MAX_RENDER_WALK_M));
 }
 
-function addCarriagewaySegment(ax, az, bx, bz, half) {
+function addCarriagewaySegment(ax, az, bx, bz, half, source = null) {
   // The bearing rides along with the segment. Asking whether a point is on a roadway is not the
   // same question as asking whether it is in a junction: a bike lane is inside its own
   // carriageway for its whole length, and what marks the crossroads is a carriageway lying
@@ -2280,7 +2362,7 @@ function addCarriagewaySegment(ax, az, bx, bz, half) {
       const key = `${ix}:${iz}`;
       let bucket = carriagewayGrid.get(key);
       if (!bucket) carriagewayGrid.set(key, bucket = []);
-      bucket.push([ax, az, bx, bz, half, bearing]);
+      bucket.push([ax, az, bx, bz, half, bearing, source]);
     }
   }
 }
@@ -2293,7 +2375,7 @@ for (const way of DATA.ways) {
   for (let i = 1; i < way.points.length; i += 1) {
     const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
     const [bx, by] = xy(way.points[i][0], way.points[i][1]);
-    addCarriagewaySegment(ax, -ay, bx, -by, half);
+    addCarriagewaySegment(ax, -ay, bx, -by, half, way);
   }
 }
 
@@ -2470,6 +2552,9 @@ function addPavementRibbon(points, width, color, opacity, y, thickness, surface)
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 //: Below this share of the block face surviving, the width is too wide for the room there is.
 const WALK_ENOUGH = 0.55;
+//: A stretch of pavement holds its width for at least this far before changing it. Without it
+//: the strip steps in and out every couple of metres wherever the carriageway guard flickers.
+const WALK_WIDTH_RUN_M = 6.0;
 
 // ---- where OpenStreetMap says there is no pavement ----
 //
@@ -2555,57 +2640,182 @@ function walkSidesToDraw(way, renderPoints, inner) {
   return drawn;
 }
 
+//: Two street ways whose ends meet within this and run within STREET_JOIN_DEG of each other are
+//: one street carrying on, not a junction.
+const STREET_JOIN_M = 3.0;
+const STREET_JOIN_DEG = 34.0;
+const streetEndGrid = new Map();
+
+function indexStreetEnds(ways) {
+  // OpenStreetMap splits a street wherever its tagging changes, not only where it meets another
+  // street. Those splits are invisible on the ground, and pulling the pavement back from both
+  // sides of one puts a gap in the middle of a block.
+  streetEndGrid.clear();
+  for (const way of ways) {
+    if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+    const n = way.points.length;
+    for (const [end, next] of [[0, 1], [n - 1, n - 2]]) {
+      const [ex, ey] = xy(way.points[end][0], way.points[end][1]);
+      const [nx2, ny2] = xy(way.points[next][0], way.points[next][1]);
+      // The bearing of the way as it leaves this end, so a stem meeting a crossbar is not read
+      // as the crossbar carrying on.
+      const bearing = Math.atan2(-ny2 + ey, nx2 - ex);
+      const key = `${Math.floor(ex / STREET_JOIN_M)}:${Math.floor(-ey / STREET_JOIN_M)}`;
+      let bucket = streetEndGrid.get(key);
+      if (!bucket) streetEndGrid.set(key, bucket = []);
+      bucket.push([ex, -ey, bearing, way]);
+    }
+  }
+}
+
+function streetCarriesOn(way, x, z, bearing) {
+  // Is there another street way leaving this same point in the opposite direction -- that is,
+  // continuing the line this one is on?
+  const cx = Math.floor(x / STREET_JOIN_M);
+  const cz = Math.floor(z / STREET_JOIN_M);
+  const limit = (STREET_JOIN_DEG * Math.PI) / 180;
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = streetEndGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [ex, ez, other, otherWay] of bucket) {
+        if (otherWay === way) continue;
+        if (Math.hypot(ex - x, ez - z) > STREET_JOIN_M) continue;
+        // The other way leaves this point heading roughly back the way we came from, which is
+        // what "the same street carrying on" looks like from the join.
+        let turn = Math.abs(((other - bearing + Math.PI) % (2 * Math.PI)) - Math.PI);
+        if (turn > Math.PI) turn = 2 * Math.PI - turn;
+        if (Math.abs(Math.PI - turn) < limit) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function kerbsideTrims(renderPoints, back) {
+  // How far to pull the pavement back from each end of this way: the full trim where the street
+  // really stops at a junction, and nothing where it simply carries on into the next way.
+  const n = renderPoints.length;
+  const [sx, sy] = xy(renderPoints[0][0], renderPoints[0][1]);
+  const [s2x, s2y] = xy(renderPoints[1][0], renderPoints[1][1]);
+  const [ex, ey] = xy(renderPoints[n - 1][0], renderPoints[n - 1][1]);
+  const [e2x, e2y] = xy(renderPoints[n - 2][0], renderPoints[n - 2][1]);
+  const startBearing = Math.atan2(-s2y + sy, s2x - sx);
+  const endBearing = Math.atan2(-e2y + ey, e2x - ex);
+  return [
+    streetCarriesOn(null, sx, -sy, startBearing) ? 0 : back,
+    streetCarriesOn(null, ex, -ey, endBearing) ? 0 : back,
+  ];
+}
+
 function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y, thickness) {
-  // Pavement on one side of one street, at the widest width that fits -- chosen first, laid once.
+  // Pavement on one side of one street: the widest strip that fits at each point along it,
+  // gathered into stretches, and each stretch laid once.
   //
-  // Two bugs have lived here, from opposite directions.
+  // Three bugs have lived here, and they pull in different directions.
   //
-  // The first laid it at one width and dropped whatever did not survive, which left 237 of the
-  // corridor's kerb sides with no pavement at all: bare ground between the kerb and the
-  // buildings, which is the black strip along the shopfronts. Almost none of those sides had no
-  // room; they had less room than four metres, because the neighbouring carriageway starts
-  // sooner than that. An alley beside an avenue is the common case.
+  // It was first laid at one width and dropped wherever it did not survive, which left 237 kerb
+  // sides with no pavement at all -- bare ground between the kerb and the buildings, which is
+  // the black strip along the shopfronts. Almost none of those sides had no room; they had less
+  // room than four metres, because the neighbouring carriageway starts sooner than that.
   //
-  // The fix for that walked a ladder of widths and returned at the first one that covered enough
-  // of the side -- but it laid a ribbon at every width it tried on the way there. A narrow strip
-  // fits everywhere a wide one does and more, so each narrower pass re-covered the ground the
-  // wider ones had just covered: up to five slabs of different widths stacked in the same plane,
-  // each with its own tile origin, fighting for depth. Nineteen per cent of the paved ground in
-  // the corridor carried more than one slab. That is what a pavement broken into mismatched
-  // tiles with torn edges is.
+  // Then a ladder of widths was tried and a ribbon laid at every one of them, returning at the
+  // first that covered enough. A narrow strip fits everywhere a wide one does and more, so the
+  // narrow passes re-covered the ground the wide ones had just covered: up to five slabs in one
+  // plane, each with its own tile origin, over a fifth of the paved ground in the corridor.
   //
-  // Both come from the same confusion between trying a width and committing to it. So the widths
-  // are now measured before anything is drawn, and only the one that is kept is laid.
+  // Then one width was chosen for the whole side, which stopped the stacking and reintroduced
+  // the holes: wherever that width was clipped away by a neighbouring carriageway the side got
+  // nothing, and a third of the corridor's kerb ended up with less than a metre of pavement.
+  //
+  // The width is a property of the place, not of the side. Each point takes the widest strip
+  // that fits there, which is the same thing the ladder was reaching for, and the run of points
+  // that agree is laid as one ribbon -- so every point is covered by exactly one.
   const wanted = wayLength(renderPoints);
   if (!(wanted > 0)) return 0;
-  let best = null;
-  for (const share of [1.0, ...WALK_FALLBACK_WIDTHS_M]) {
-    const width = Math.max(MIN_RENDER_WALK_M * 0.55, walk * share);
-    const centre = offsetWay(renderPoints, side * (inner + width / 2));
-    // The ends are trimmed back so a footway does not run out across the junction it meets.
-    // How far back cannot be a fixed distance: `inner + 0.7w` is over seven metres on an
-    // ordinary street, and on the thirteen metre stubs between two junctions that is more than
-    // the whole way -- so the trim took all of it and the side came out bare. It is capped at a
-    // third of the run from either end, which leaves a stub with a short pavement rather than
-    // with none.
-    const back = Math.min(Math.max(1.2, inner + width * 0.7), wanted * 0.32);
-    const runs = pavementRunsOutsideCarriageway(trimWay(centre, back), width);
-    const covers = runs.reduce((sum, run) => sum + wayLength(run), 0);
-    // Compared by the ground each would cover, not by how far along the street it reaches. A
-    // one-metre strip that runs the whole block covers less pavement than a four-metre one over
-    // two thirds of it, and picking by length chose the first: the sliver against the kerb, with
-    // the rest of the way to the building line left bare.
-    if (!best || covers * width > best.covers * best.width) best = { width, runs, covers };
-    // Enough of the side is covered at this width; nothing narrower will be an improvement.
-    if (covers >= wanted * WALK_ENOUGH) break;
+  const widths = WALK_FALLBACK_WIDTHS_M.map(
+    (share) => Math.max(MIN_RENDER_WALK_M * 0.55, walk * share));
+
+  // Trimmed only where the street really ends. `inner + 0.7w` is over seven metres on an
+  // ordinary street, and OpenStreetMap splits a street wherever its tagging changes -- so
+  // trimming both ends of every way put a fifteen metre hole in the middle of a block at every
+  // invisible split. Where the street carries on, so does the pavement.
+  const back = Math.min(Math.max(1.2, inner + widths[0] * 0.7), wanted * 0.32);
+  const [cutStart, cutEnd] = kerbsideTrims(renderPoints, back);
+  const spine = densifyWay(trimWayEnds(renderPoints, cutStart, cutEnd), 2.0);
+  if (spine.length < 2) return 0;
+
+  const chosen = [];
+  for (let i = 0; i < spine.length; i += 1) {
+    const before = spine[Math.max(0, i - 1)];
+    const after = spine[Math.min(spine.length - 1, i + 1)];
+    const [bx, by] = xy(before[0], before[1]);
+    const [ax, ay] = xy(after[0], after[1]);
+    const dx = ax - bx;
+    const dz = by - ay;
+    const span = Math.hypot(dx, dz) || 1;
+    const nx = -dz / span;
+    const nz = dx / span;
+    let pick = -1;
+    for (let w = 0; w < widths.length; w += 1) {
+      const centre = offsetWay([before, spine[i], after], side * (inner + widths[w] / 2))[1];
+      const [cx, cy] = xy(centre[0], centre[1]);
+      if (walkFitsAt(cx, -cy, nx, nz, widths[w])) { pick = w; break; }
+    }
+    chosen.push(pick);
   }
-  if (!best || !best.runs.length) return 0;
+
+  // A width is held for a few metres before it changes. Without that the strip steps in and out
+  // wherever the guard flickers, and a kerb built of two-metre pieces at five widths is its own
+  // kind of mess. A stretch with no width at all is left alone: that is a real obstruction.
+  const stationM = [0];
+  for (let i = 1; i < spine.length; i += 1) {
+    const [ax, ay] = xy(spine[i - 1][0], spine[i - 1][1]);
+    const [bx, by] = xy(spine[i][0], spine[i][1]);
+    stationM.push(stationM[i - 1] + Math.hypot(bx - ax, by - ay));
+  }
+  for (let i = 1; i < chosen.length; i += 1) {
+    if (chosen[i] === chosen[i - 1] || chosen[i] < 0 || chosen[i - 1] < 0) continue;
+    let j = i;
+    while (j < chosen.length && chosen[j] === chosen[i]) j += 1;
+    if (stationM[Math.min(j, chosen.length - 1)] - stationM[i] < WALK_WIDTH_RUN_M) {
+      for (let k = i; k < j; k += 1) chosen[k] = chosen[i - 1];
+    }
+  }
+
   let laid = 0;
-  for (const run of best.runs) {
-    laid += addPavementRibbon(run, best.width, color, opacity, y, thickness,
-                              best.width <= NARROW_WALK_M ? "walk_narrow" : "walk");
+  const emit = (from, to) => {
+    const pick = chosen[from];
+    if (pick < 0 || to <= from) return;
+    // One station of overlap with the next stretch, so a change of width is a step in the kerb
+    // rather than a gap in the pavement.
+    const stretch = spine.slice(from, Math.min(to + 2, spine.length));
+    if (stretch.length < 2) return;
+    const width = widths[pick];
+    laid += addPavementRibbon(offsetWay(stretch, side * (inner + width / 2)), width,
+                              color, opacity, y, thickness,
+                              width <= NARROW_WALK_M ? "walk_narrow" : "walk");
+  };
+  let start = 0;
+  for (let i = 1; i < chosen.length; i += 1) {
+    if (chosen[i] !== chosen[start]) {
+      emit(start, i - 1);
+      start = i;
+    }
   }
+  emit(start, chosen.length - 1);
   return laid;
+}
+
+function walkFitsAt(x, z, nx, nz, width) {
+  // The same question pavementRunsOutsideCarriageway asks, at a single station: is a strip of
+  // this width, with its inner edge on the kerb, off the roadway here? One edge inside the kerb
+  // line is the normal condition of a pavement that abuts a street and is not a reason to
+  // delete it; the middle of the strip being on the carriageway is.
+  const edge = Math.max(0.2, width / 2 - 0.12);
+  const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
+  const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
+  return !(insideCarriageway(x, z, 0.30) || (innerEdge && outerEdge));
 }
 
 function apronSlab(opening) {
@@ -2705,6 +2915,209 @@ const CROSSING = crossingTexture();
 //: matching space, which over a crossing band gives four or five of them. At 1.2 m the band
 //: held only three and they read as long lines across the road rather than as a ladder.
 const CROSSING_PERIOD_M = 0.86;
+
+function tactileWarningTexture() {
+  // Truncated-dome warning tile: the yellow pad at the sidewalk side of a curb ramp. It is not
+  // a painted road marking; it sits on the footway where a pedestrian is about to step into the
+  // crossing, and the capped domes need to read as raised even from a shallow camera angle.
+  const size = 192;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#d8aa24";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size * 0.010; i += 1) {
+    const shade = random(i * 19);
+    ctx.fillStyle = shade < 0.55 ? "rgba(95,75,17,0.16)" : "rgba(255,238,128,0.15)";
+    ctx.fillRect(random(i * 7) * size, random(i * 11) * size, 1.2, 1.2);
+  }
+  const pitch = 24;
+  const radius = 6.2;
+  for (let y = 12; y < size; y += pitch) {
+    for (let x = 12; x < size; x += pitch) {
+      const dome = ctx.createRadialGradient(x - 2.0, y - 2.4, 1.0, x, y, radius + 3.0);
+      dome.addColorStop(0.00, "rgba(255,238,108,0.95)");
+      dome.addColorStop(0.42, "rgba(225,174,36,0.98)");
+      dome.addColorStop(0.74, "rgba(142,105,22,0.78)");
+      dome.addColorStop(1.00, "rgba(84,62,18,0.18)");
+      ctx.fillStyle = dome;
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,226,83,0.98)";
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,247,155,0.30)";
+      ctx.beginPath();
+      ctx.arc(x - 2.1, y - 2.3, radius * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.strokeStyle = "rgba(92,68,14,0.34)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, size - 2, size - 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const TACTILE_WARNING = tactileWarningTexture();
+const TACTILE_PAD_DEPTH_M = 0.72;
+const TACTILE_PAD_SETBACK_M = 0.18;
+const TACTILE_PAD_MIN_W_M = 1.35;
+const TACTILE_PAD_MAX_W_M = 3.20;
+const CROSSING_LANDING_DEPTH_M = 2.35;
+const CROSSING_LANDING_FLARE_M = 2.20;
+
+function tactilePadCorners(endpoint, intoCrossing, crossingWidth) {
+  const [ex, ey] = xy(endpoint[0], endpoint[1]);
+  const [ix, iy] = xy(intoCrossing[0], intoCrossing[1]);
+  const ez = -ey;
+  const iz = -iy;
+  const dx = ix - ex;
+  const dz = iz - ez;
+  const len = Math.hypot(dx, dz);
+  if (!(len > 0.5)) return null;
+  const outX = -dx / len;
+  const outZ = -dz / len;
+  const acrossX = -outZ;
+  const acrossZ = outX;
+  const width = Math.max(TACTILE_PAD_MIN_W_M, Math.min(TACTILE_PAD_MAX_W_M, crossingWidth));
+  const depth = TACTILE_PAD_DEPTH_M;
+  let cx = ex + outX * (depth / 2 + TACTILE_PAD_SETBACK_M);
+  let cz = ez + outZ * (depth / 2 + TACTILE_PAD_SETBACK_M);
+  const cornersAt = () => [
+    [cx - acrossX * width / 2 - outX * depth / 2, cz - acrossZ * width / 2 - outZ * depth / 2],
+    [cx + acrossX * width / 2 - outX * depth / 2, cz + acrossZ * width / 2 - outZ * depth / 2],
+    [cx + acrossX * width / 2 + outX * depth / 2, cz + acrossZ * width / 2 + outZ * depth / 2],
+    [cx - acrossX * width / 2 + outX * depth / 2, cz - acrossZ * width / 2 + outZ * depth / 2],
+  ];
+  for (let step = 0; step < 8; step += 1) {
+    const corners = cornersAt();
+    if (!insideCarriageway(cx, cz, 0.10)
+        && !corners.some(([x, z]) => insideCarriageway(x, z, -0.05))) {
+      return { corners, width, depth };
+    }
+    cx += outX * 0.25;
+    cz += outZ * 0.25;
+  }
+  return null;
+}
+
+function crossingLandingCorners(endpoint, intoCrossing, crossingWidth) {
+  // Concrete landing behind a crosswalk. At big junctions the street ribbons and the clipped
+  // sidewalk ribbons are both right to stay out of each other's way, but that leaves the small
+  // triangular/rectangular curb-ramp landing black. This pad fills only the sidewalk-side area
+  // behind the crossing, and refuses to draw if any corner is still in a carriageway.
+  const [ex, ey] = xy(endpoint[0], endpoint[1]);
+  const [ix, iy] = xy(intoCrossing[0], intoCrossing[1]);
+  const ez = -ey;
+  const iz = -iy;
+  const dx = ix - ex;
+  const dz = iz - ez;
+  const len = Math.hypot(dx, dz);
+  if (!(len > 0.5)) return null;
+  const outX = -dx / len;
+  const outZ = -dz / len;
+  const acrossX = -outZ;
+  const acrossZ = outX;
+  const width = Math.max(2.2, Math.min(7.4, crossingWidth + CROSSING_LANDING_FLARE_M));
+  const depth = CROSSING_LANDING_DEPTH_M;
+  let cx = ex + outX * (depth / 2 + 0.05);
+  let cz = ez + outZ * (depth / 2 + 0.05);
+  const cornersAt = () => [
+    [cx - acrossX * width / 2 - outX * depth / 2, cz - acrossZ * width / 2 - outZ * depth / 2],
+    [cx + acrossX * width / 2 - outX * depth / 2, cz + acrossZ * width / 2 - outZ * depth / 2],
+    [cx + acrossX * width / 2 + outX * depth / 2, cz + acrossZ * width / 2 + outZ * depth / 2],
+    [cx - acrossX * width / 2 + outX * depth / 2, cz - acrossZ * width / 2 + outZ * depth / 2],
+  ];
+  for (let step = 0; step < 8; step += 1) {
+    const corners = cornersAt();
+    if (!insideCarriageway(cx, cz, 0.08)
+        && !corners.some(([x, z]) => insideCarriageway(x, z, 0.0))) {
+      return { corners, width, depth };
+    }
+    cx += outX * 0.22;
+    cz += outZ * 0.22;
+  }
+  return null;
+}
+
+function addCrossingLandingPad(endpoint, intoCrossing, crossingWidth, y) {
+  const pad = crossingLandingCorners(endpoint, intoCrossing, crossingWidth);
+  if (!pad) return false;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute([
+    pad.corners[0][0], y, pad.corners[0][1],
+    pad.corners[1][0], y, pad.corners[1][1],
+    pad.corners[2][0], y, pad.corners[2][1],
+    pad.corners[3][0], y, pad.corners[3][1],
+  ], 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute([
+    0, 0,
+    pad.width / SLAB_M, 0,
+    pad.width / SLAB_M, pad.depth / SLAB_M,
+    0, pad.depth / SLAB_M,
+  ], 2));
+  geometry.setIndex([0, 1, 2, 0, 2, 3]);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    map: SIDEWALK, color: 0xffffff, roughness: 0.94, metalness: 0.0,
+    side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -5,
+    polygonOffsetUnits: -10,
+  }));
+  mesh.userData.surface = "walk";
+  addMerged("crossing:landing", mesh, "walk");
+  return true;
+}
+
+function addCrossingLandingPads(points, crossingWidth, y) {
+  if (!points || points.length < 2) return 0;
+  let added = 0;
+  if (addCrossingLandingPad(points[0], points[1], crossingWidth, y)) added += 1;
+  if (addCrossingLandingPad(points[points.length - 1], points[points.length - 2],
+                            crossingWidth, y)) added += 1;
+  return added;
+}
+
+function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
+  const pad = tactilePadCorners(endpoint, intoCrossing, crossingWidth);
+  if (!pad) return false;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute([
+    pad.corners[0][0], y, pad.corners[0][1],
+    pad.corners[1][0], y, pad.corners[1][1],
+    pad.corners[2][0], y, pad.corners[2][1],
+    pad.corners[3][0], y, pad.corners[3][1],
+  ], 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute([
+    0, 0,
+    pad.width / 0.30, 0,
+    pad.width / 0.30, pad.depth / 0.30,
+    0, pad.depth / 0.30,
+  ], 2));
+  geometry.setIndex([0, 1, 2, 0, 2, 3]);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    map: TACTILE_WARNING, color: 0xffffff, roughness: 0.86, metalness: 0.0,
+    side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -6,
+    polygonOffsetUnits: -12,
+  }));
+  mesh.userData.surface = "tactile_warning";
+  addMerged("crossing:tactile", mesh, "tactile_warning");
+  return true;
+}
+
+function addCrossingTactilePads(points, crossingWidth, y) {
+  if (!points || points.length < 2) return 0;
+  let added = 0;
+  if (addTactileWarningPad(points[0], points[1], crossingWidth, y)) added += 1;
+  if (addTactileWarningPad(points[points.length - 1], points[points.length - 2],
+                           crossingWidth, y)) added += 1;
+  return added;
+}
 
 function sidewalkTexture(variant = "square") {
   // Scored concrete, as San Francisco actually pours it: a mid grey rather than a pale one,
@@ -2906,6 +3319,10 @@ const BIKE_EDGE_W_M = 0.18;
 // the lane centre it keys on is measured from the carriageway edge, and after BIKE_LANE_M is
 // declared, which is why it is here rather than beside the carriageway grid it reads.
 indexBikeLaneEnds(DATA.ways);
+
+// And which street ends are junctions rather than splits in the tagging, so the pavement is
+// pulled back from the first and carries straight through the second.
+indexStreetEnds(DATA.ways);
 
 //: Storey height and bay width in metres, so one tile of the facade covers one real storey.
 const STOREY_M = 3.2;
@@ -3373,12 +3790,12 @@ function signSlot(name, trade) {
 
   // Set it at the trade's own size, then shrink until it fits the board. A long name in a small
   // face is what a signwriter does; a long name overflowing the board is what nobody does.
-  const base = /(\d+)px/.exec(style.font);
+  const base = RegExp("(\\d+)px").exec(style.font);
   const basePx = base ? Number(base[1]) : 32;
   let scale = 1.0;
   let width = 0;
   for (let attempt = 0; attempt < 14; attempt += 1) {
-    ctx.font = style.font.replace(/(\d+)px/, `${Math.max(12, Math.round(basePx * scale))}px`);
+    ctx.font = style.font.replace(RegExp("(\\d+)px"), `${Math.max(12, Math.round(basePx * scale))}px`);
     width = measureTracked(ctx, text, style.track * scale) + SIGN_PAD_PX * 2;
     if (width <= SIGN_MAX_PX || scale <= SIGN_MIN_SCALE) break;
     scale = Math.max(SIGN_MIN_SCALE, scale * 0.9);
@@ -4744,6 +5161,9 @@ let streetLabelCount = 0;
 // already paved -- which is a question pavedGrid can answer, because laying pavement is what
 // stamps it. Nothing else in this loop depends on the order: the meshes are merged by material
 // and separated by height, not by when they were added.
+const ROAD_TOP_M = 0.06;
+addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);
+
 const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
   const rank = (w) => (w.kind === "sidewalk" || w.kind === "path" ? 0 : 1);
   return rank(a) - rank(b);
@@ -4845,7 +5265,7 @@ for (const way of DRAW_ORDER) {
   // a footway was a 1.4 m slab floating 4.5 m up, and the measured-kerb band was a 5.5 m slab
   // three storeys in the air. Read from a bird's eye that was merely stylised; walked at street
   // level it made every footway taller than the person on it.
-  const roadTop = 0.06;
+  const roadTop = ROAD_TOP_M;
   const surfaceY = isCrossing ? roadTop + 0.02
     : (isSidewalk || isPath) ? roadTop + KERB / 2 : roadTop / 2;
   const surfaceThickness = isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop;
@@ -4859,10 +5279,14 @@ const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossi
   if (isSidewalk || isPath) {
     addPavementRibbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind);
 } else {
-addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
-            ribbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind),
-            surfaceKind);
-}
+    addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
+              ribbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind),
+              surfaceKind);
+    if (isCrossing) {
+      addCrossingLandingPads(surfacePoints, widthMeters, roadTop + KERB + 0.002);
+      addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.006);
+    }
+  }
 if (!isSidewalk && !isCrossing && !isPath) {
 addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
 }
@@ -5093,8 +5517,9 @@ function soilTexture() {
 }
 
 const GRASS_TEXTURES = new Map();
-function grassTexture(kind = "yard") {
-  if (GRASS_TEXTURES.has(kind)) return GRASS_TEXTURES.get(kind);
+function grassTexture(kind = "yard", variant = 0) {
+  const key = `${kind}:${variant}`;
+  if (GRASS_TEXTURES.has(key)) return GRASS_TEXTURES.get(key);
   // Strands, not a wash. This was a field of single pixels at 40% opacity over a flat green,
   // tiled every four metres, and single pixels at low opacity average out -- from anything
   // further than a few metres it was one continuous sheet of pale green with no grain in it at
@@ -5105,9 +5530,23 @@ function grassTexture(kind = "yard") {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  const base = kind === "park" ? "#36a846" : "#2f9738";
-  const dark = kind === "park" ? "rgba(20,92,29,0.42)" : "rgba(21,80,24,0.46)";
-  const light = kind === "park" ? "rgba(111,202,100,0.30)" : "rgba(92,178,78,0.26)";
+  const parkPalettes = [
+    ["#36a846", "rgba(20,92,29,0.42)", "rgba(111,202,100,0.30)", "rgba(210,239,170,0.08)"],
+    ["#2f9741", "rgba(18,83,33,0.45)", "rgba(135,211,103,0.26)", "rgba(232,238,164,0.06)"],
+    ["#409d35", "rgba(27,86,28,0.38)", "rgba(154,213,118,0.24)", "rgba(196,232,151,0.07)"],
+    ["#2d8f4a", "rgba(17,74,45,0.40)", "rgba(102,192,128,0.22)", "rgba(213,234,180,0.055)"],
+  ];
+  const yardPalettes = [
+    ["#2f9738", "rgba(21,80,24,0.46)", "rgba(92,178,78,0.26)", "rgba(220,231,150,0.055)"],
+    ["#3a8d35", "rgba(31,78,25,0.44)", "rgba(126,180,79,0.23)", "rgba(213,211,136,0.05)"],
+    ["#287f3d", "rgba(17,68,32,0.48)", "rgba(83,158,89,0.25)", "rgba(200,225,158,0.055)"],
+    ["#468d31", "rgba(45,76,22,0.40)", "rgba(145,180,73,0.22)", "rgba(226,219,145,0.05)"],
+    ["#2f8850", "rgba(22,76,48,0.42)", "rgba(86,166,117,0.22)", "rgba(194,229,176,0.055)"],
+  ];
+  const palettes = kind === "park" ? parkPalettes : yardPalettes;
+  const palette = palettes[Math.abs(variant) % palettes.length];
+  const [base, dark, light, mow] = palette;
+  const seed = (variant + 1) * 997 + kind.length * 131;
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
 
@@ -5115,19 +5554,34 @@ function grassTexture(kind = "yard") {
   // a uniform ground. A few straw/dirt flecks keep small residential yards from reading as
   // bright carpet; parks are cleaner and a touch lighter.
   for (let i = 0; i < 130; i += 1) {
-    const r = 10 + random(i * 17 + kind.length) * 54;
-    ctx.fillStyle = random(i * 5) < 0.55 ? dark : light;
+    const r = 8 + random(seed + i * 17) * (variant % 2 ? 72 : 48);
+    ctx.fillStyle = random(seed + i * 5) < 0.55 ? dark : light;
     ctx.beginPath();
-    ctx.arc(random(i * 3) * size, random(i * 7) * size, r, 0, Math.PI * 2);
+    ctx.arc(random(seed + i * 3) * size, random(seed + i * 7) * size, r, 0, Math.PI * 2);
     ctx.fill();
   }
   for (let i = 0; i < (kind === "park" ? 260 : 520); i += 1) {
-    const x = random(i * 19.1 + 11) * size;
-    const y = random(i * 23.7 + 5) * size;
-    const w = 0.5 + random(i * 3.2) * 1.8;
-    const h = 0.5 + random(i * 4.6) * 1.6;
-    ctx.fillStyle = random(i * 13.7) < 0.55 ? "rgba(117,92,48,0.20)" : "rgba(221,204,125,0.13)";
+    const x = random(seed + i * 19.1 + 11) * size;
+    const y = random(seed + i * 23.7 + 5) * size;
+    const w = 0.5 + random(seed + i * 3.2) * 1.8;
+    const h = 0.5 + random(seed + i * 4.6) * 1.6;
+    ctx.fillStyle = random(seed + i * 13.7) < 0.55 ? "rgba(117,92,48,0.20)" : "rgba(221,204,125,0.13)";
     ctx.fillRect(x, y, w, h);
+  }
+
+  for (let i = 0; i < 38; i += 1) {
+    const x = random(seed + i * 31.7) * size;
+    const y = random(seed + i * 41.3) * size;
+    const rx = 14 + random(seed + i * 2.1) * 42;
+    const ry = 4 + random(seed + i * 5.9) * 12;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((random(seed + i * 9.7) - 0.5) * Math.PI);
+    ctx.fillStyle = random(seed + i * 12.1) < 0.5 ? "rgba(236,214,132,0.075)" : "rgba(16,64,24,0.10)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   // The blades. Four passes from dark to light so the field has depth rather than one tone of
@@ -5147,12 +5601,12 @@ function grassTexture(kind = "yard") {
     ctx.lineWidth = 1;
     for (let i = 0; i < count; i += 1) {
       n += 1;
-      const x = random(n * 3.1) * size;
-      const y = random(n * 5.7) * size;
+      const x = random(seed + n * 3.1) * size;
+      const y = random(seed + n * 5.7) * size;
       const sweep = kind === "park" ? 0.95 : 1.6;
-      const angle = (random(n * 7.3) - 0.5) * sweep - Math.PI / 2;
-      const l = len + random(n * 11.9) * len;
-      ctx.globalAlpha = 0.65 + random(n * 2.6) * opacityJitter * 0.35;
+      const angle = (random(seed + n * 7.3) - 0.5) * sweep - Math.PI / 2 + (variant - 2) * 0.12;
+      const l = len + random(seed + n * 11.9) * len;
+      ctx.globalAlpha = 0.65 + random(seed + n * 2.6) * opacityJitter * 0.35;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x + Math.cos(angle) * l, y + Math.sin(angle) * l);
@@ -5162,12 +5616,14 @@ function grassTexture(kind = "yard") {
   ctx.globalAlpha = 1;
   // Low, soft mowing direction, not stripes. It breaks repetition over large parks without
   // declaring an exact maintenance pattern the source data does not know.
-  ctx.strokeStyle = kind === "park" ? "rgba(210,239,170,0.08)" : "rgba(220,231,150,0.055)";
-  ctx.lineWidth = 2;
-  for (let i = -size; i < size * 2; i += 34) {
+  ctx.strokeStyle = mow;
+  ctx.lineWidth = variant % 3 === 0 ? 2 : 1.35;
+  const mowStep = 28 + (variant % 5) * 9;
+  const mowLean = 0.25 + (variant % 4) * 0.13;
+  for (let i = -size; i < size * 2; i += mowStep) {
     ctx.beginPath();
     ctx.moveTo(i, 0);
-    ctx.lineTo(i + size * 0.42, size);
+    ctx.lineTo(i + size * mowLean, size);
     ctx.stroke();
   }
 
@@ -5181,8 +5637,20 @@ function grassTexture(kind = "yard") {
   texture.repeat.set(2, 2);
   texture.anisotropy = 8;
   texture.colorSpace = THREE.SRGBColorSpace;
-  GRASS_TEXTURES.set(kind, texture);
+  GRASS_TEXTURES.set(key, texture);
   return texture;
+}
+
+function grassVariantForRing(ring, count) {
+  if (!ring || !ring.length || count <= 1) return 0;
+  let sx = 0;
+  let sy = 0;
+  for (const point of ring) {
+    sx += point[0] || 0;
+    sy += point[1] || 0;
+  }
+  const seed = Math.abs(Math.sin(sx * 1289.17 + sy * 2371.31 + ring.length * 19.7));
+  return Math.floor(seed * count) % count;
 }
 
 function ringGeometry(rings, y, clipToRoad = true) {
@@ -5969,24 +6437,36 @@ function buildCourts(ground) {
   // the scene and then covered over by the very plane it was there to replace. That is what
   // Moscone and Fort Mason were: not missing polygons, buried ones. They belong between the base
   // plane and the top of the roadway (0.06), so they cover the black without climbing the kerb.
-  const parkGeom = ringGeometry((ground.parks || []).map((p) => p.p), PARK_Y);
-  if (parkGeom) {
-    addGround(new THREE.Mesh(parkGeom, new THREE.MeshStandardMaterial({
-      map: grassTexture("park"), color: 0xffffff, roughness: 0.97, metalness: 0.0,
-      side: THREE.DoubleSide,
-    })), "park");
+  const parkVariants = 4;
+  for (let variant = 0; variant < parkVariants; variant += 1) {
+    const rings = (ground.parks || [])
+      .filter((p) => grassVariantForRing(p.p, parkVariants) === variant)
+      .map((p) => p.p);
+    const parkGeom = ringGeometry(rings, PARK_Y);
+    if (parkGeom) {
+      addGround(new THREE.Mesh(parkGeom, new THREE.MeshStandardMaterial({
+        map: grassTexture("park", variant), color: 0xffffff, roughness: 0.97, metalness: 0.0,
+        side: THREE.DoubleSide,
+      })), "park");
+    }
   }
 
   const classifiedGround = ground.lawns || ground.backyards || ground.front_walks || ground.service_yards;
   const grassRings = classifiedGround
     ? [...(ground.lawns || []), ...(ground.backyards || [])]
     : (ground.yards || []);
-  const yardGeom = ringGeometry(grassRings.map((y) => y.p), YARD_Y);
-  if (yardGeom) {
-    addGround(new THREE.Mesh(yardGeom, new THREE.MeshStandardMaterial({
-      map: grassTexture("yard"), color: 0xffffff, roughness: 0.98, metalness: 0.0,
-      side: THREE.DoubleSide,
-    })), "yard");
+  const yardVariants = 5;
+  for (let variant = 0; variant < yardVariants; variant += 1) {
+    const rings = grassRings
+      .filter((y) => grassVariantForRing(y.p, yardVariants) === variant)
+      .map((y) => y.p);
+    const yardGeom = ringGeometry(rings, YARD_Y);
+    if (yardGeom) {
+      addGround(new THREE.Mesh(yardGeom, new THREE.MeshStandardMaterial({
+        map: grassTexture("yard", variant), color: 0xffffff, roughness: 0.98, metalness: 0.0,
+        side: THREE.DoubleSide,
+      })), "yard");
+    }
   }
 
   const frontWalkGeom = ringGeometry((ground.front_walks || []).map((y) => y.p), FRONT_WALK_Y);
@@ -6082,7 +6562,8 @@ function buildCourts(ground) {
         const [x, y] = xy(tree.p[0], tree.p[1]);
         // Height from the trunk: roughly a foot of tree per inch of diameter, which is the
         // rule of thumb an arborist would use and is close enough for a canopy.
-        const scale = Math.max(2.2, Math.min(16.0, tree.d * 0.42));
+      const maxScale = kind === "palm" ? 5.6 : kind === "columnar" ? 6.2 : kind === "conifer" ? 7.0 : 7.4;
+      const scale = Math.max(2.2, Math.min(maxScale, tree.d * 0.34));
         dummy.position.set(x, 0, -y);
         dummy.scale.setScalar(scale);
         dummy.position.y = part.position.y * scale;
@@ -6386,7 +6867,7 @@ const STREET_SPEED = 8.94;     // 20 mph in metres per second, at street level
 // corridor would take four minutes. What stays constant is the apparent speed, not the metric.
 const SPEED_REFERENCE_DIST = 45;
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
-const AVATAR_HEIGHT = 1.78;
+const AVATAR_HEIGHT = 2.13;    // just over human height: about seven feet for the demo avatar
 const ARRIVAL_DIST = 45;       // close enough that a 126 mm kerb is a step rather than a line
 const DEMO_CHARACTER_URL = "https://threejs.org/examples/models/gltf/Soldier.glb";
 const DEMO_CHARACTER_SOURCE = "Three.js Soldier.glb demo avatar with skinned idle/walk/run clips";

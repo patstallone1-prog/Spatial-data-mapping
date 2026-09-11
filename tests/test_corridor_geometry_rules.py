@@ -653,6 +653,29 @@ def test_the_lane_is_lane_then_mixing_then_crossing_through_a_junction() -> None
     assert 6 <= result["metres"]["mixing"] / 2 <= 10
 
 
+def test_a_lane_rounding_a_same_street_bend_is_not_a_crossbike() -> None:
+    """A sharp curve is not an intersection with itself.
+
+    The crossing detector reads carriageway angle, which is right at real intersections but
+    wrong at bends unless the street's own carriageway is ignored. Otherwise the green lane
+    breaks into crossbike dashes at exactly the corners where it should curve continuously.
+    """
+    result = _run_bike("""
+    const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+    const way = { kind: "street", road_m: 14.0, cycleway_right: "lane",
+      points: [asLonLat(0, 0), asLonLat(60, 0), asLonLat(60, 60)] };
+    for (let i = 1; i < way.points.length; i += 1) {
+      const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+      const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+      addCarriagewaySegment(ax, -ay, bx, -by, 7.0, way);
+    }
+    const lane = densifyWay(offsetWay(way.points, -bikeLaneOffset(renderedRoadWidth(way))), 2.0);
+    const runs = bikeLaneZones(lane, way);
+    console.log(JSON.stringify({ order: runs.map((r) => r.label) }));
+    """)
+    assert result["order"] == ["lane"], result
+
+
 def test_a_dashed_marking_is_cut_at_the_pattern_not_sampled_by_it() -> None:
     """Why the crossbike came out as bare asphalt with one stray block in it.
 
@@ -991,7 +1014,12 @@ PAVEMENT_FUNCTIONS = (
     "wayLength",
     "offsetWay",
     "trimWay",
+    "trimWayEnds",
+    "densifyWay",
     "pavementRunsOutsideCarriageway",
+    "walkFitsAt",
+    "streetCarriesOn",
+    "kerbsideTrims",
     "addKerbsidePavement",
 )
 
@@ -999,7 +1027,11 @@ PAVEMENT_PREAMBLE = PREAMBLE + """
 const MIN_RENDER_WALK_M = 0.9;
 const NARROW_WALK_M = 1.6;
 const WALK_ENOUGH = 0.55;
-const WALK_FALLBACK_WIDTHS_M = [0.72, 0.52, 0.36, 0.24];
+const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
+const WALK_WIDTH_RUN_M = 6.0;
+const STREET_JOIN_M = 3.0;
+const STREET_JOIN_DEG = 34.0;
+const streetEndGrid = new Map();
 // The ribbon is not built; what it was asked to build is recorded instead.
 const LAID = [];
 function addPavementRibbon(points, width) {
@@ -1034,7 +1066,7 @@ for (let x = -160; x <= 160; x += 10) spine.push(asLonLat(x, 0));
 """
 
 
-def test_only_one_width_of_pavement_is_ever_laid_on_a_side() -> None:
+def test_pavement_width_changes_are_stable_runs_not_stacked_tiles() -> None:
     """The regression that broke the pavement into mismatched tiles.
 
     The ladder used to lay a ribbon at every width it tried and return only when one of them
@@ -1045,17 +1077,22 @@ def test_only_one_width_of_pavement_is_ever_laid_on_a_side() -> None:
     ground in the corridor carried more than one slab.
 
     Trying a width and committing to one are different things, and this is the difference.
+    The current renderer may change width along a side when geometry pinches, but each change
+    must be a stable run and the inner edge must stay on the kerb.
     """
     result = _run_pavement(PINCHED_STREET + """
     addKerbsidePavement(spine, 1, ROAD_W / 2, 4.0, 0xffffff, 1.0, 0.12, 0.12);
     console.log(JSON.stringify({
       ribbons: LAID.length,
       widths: [...new Set(LAID.map((r) => +r.width.toFixed(3)))],
+      lengths: LAID.map((r) => +r.length.toFixed(1)),
       coveredM: +LAID.reduce((s, r) => s + r.length, 0).toFixed(1),
     }));
     """)
-    assert len(result["widths"]) == 1, result
+    assert result["ribbons"] == len(result["lengths"]), result
     assert result["ribbons"] >= 1
+    assert all(length >= 6.0 for length in result["lengths"]), result
+    assert result["coveredM"] > 280, result
 
 
 def test_a_pinch_does_not_end_the_pavement() -> None:
@@ -1072,7 +1109,7 @@ def test_a_pinch_does_not_end_the_pavement() -> None:
 
 
 def test_the_width_kept_is_the_one_that_covers_the_most_ground() -> None:
-    """Not the one that reaches furthest along the street.
+    """Width is chosen from geometry before anything is drawn.
 
     A one-metre strip running the whole block covers less pavement than a four-metre one over two
     thirds of it. Comparing by length picked the sliver against the kerb and left the rest of the
@@ -1080,11 +1117,11 @@ def test_the_width_kept_is_the_one_that_covers_the_most_ground() -> None:
     """
     js = _page_js()
     body = _extract("addKerbsidePavement", js)
-    assert "covers * width > best.covers * best.width" in body
-    # And the ribbon is laid outside the loop that measures the ladder, once.
-    ladder = body[body.index("for (const share of"):]
-    assert "addPavementRibbon" not in ladder[:ladder.index("if (!best")], (
-        "a ribbon is still being laid while the widths are only being tried")
+    assert "const chosen = [];" in body
+    assert "walkFitsAt(cx, -cy, nx, nz, widths[w])" in body
+    assert "const emit = (from, to) => {" in body
+    assert body.index("const chosen = [];") < body.index("let laid = 0;")
+    assert body.index("let laid = 0;") < body.index("addPavementRibbon(")
 
 
 def test_the_inner_edge_of_the_pavement_sits_on_the_kerb() -> None:
