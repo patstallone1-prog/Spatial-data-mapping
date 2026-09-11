@@ -44,6 +44,15 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert "addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.006);" in source
 
 
+def test_crosswalks_dedupe_same_direction_overlaps_only() -> None:
+    source = _source()
+
+    assert "const crossingDrawGrid = new Map();" in source
+    assert "function shouldDrawCrossing(points, width)" in source
+    assert "crossingBearingDifference(other.bearing, pose.bearing)" in source
+    assert "if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters)) continue;" in source
+
+
 def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     source = _source()
 
@@ -119,7 +128,8 @@ def test_renderer_densifies_curved_road_markings() -> None:
     assert "ribbon(surfacePoints, widthMeters" in source
     # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
-    assert "paintedLine(offsetWay(renderPoints, offset), MARK_W" in source
+    assert "const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);" in source
+    assert "paintedLine(offsetWay(markingPoints, offset), MARK_W" in source
 
 
 def test_narrow_pavement_uses_long_tiles_without_widening_geometry() -> None:
@@ -148,6 +158,8 @@ def test_bike_lanes_follow_osm_cycleway_tags() -> None:
     assert "way.cycleway_both" in source
     assert "function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop)" in source
     assert "const BIKE_EDGE_W_M = 0.18;" in source
+    assert "function bikeCrossingBreakAt(x, z, bearing, slack = 0.0, ownWay = null)" in source
+    assert "labels.push(bikeCrossingBreakAt(x, -y, bearing, 0.2, ownWay)" in source
     # Both edges come off the lane's own centre, so they hug it however wide the street is,
     # and neither is conditional on the green.
     assert "offsetWay(run.points, side * (BIKE_LANE_M / 2))" in source

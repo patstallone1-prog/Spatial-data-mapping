@@ -2436,6 +2436,59 @@ function trimWalkwayForCorners(points, width) {
   return trimWay(points, Math.max(1.0, Math.min(3.0, width * 0.65)));
 }
 
+const CROSSING_DEDUPE_CELL_M = 4.0;
+const CROSSING_DEDUPE_ANGLE_DEG = 12.0;
+const crossingDrawGrid = new Map();
+
+function crossingDrawPose(points) {
+  if (!points || points.length < 2) return null;
+  const a = points[0];
+  const b = points[points.length - 1];
+  const [ax, ay] = xy(a[0], a[1]);
+  const [bx, by] = xy(b[0], b[1]);
+  const az = -ay;
+  const bz = -by;
+  const length = Math.hypot(bx - ax, bz - az);
+  if (!(length > 1.0)) return null;
+  return {
+    x: (ax + bx) / 2,
+    z: (az + bz) / 2,
+    bearing: Math.atan2(bz - az, bx - ax),
+    length,
+  };
+}
+
+function crossingBearingDifference(a, b) {
+  let diff = Math.abs(a - b) % Math.PI;
+  if (diff > Math.PI / 2) diff = Math.PI - diff;
+  return diff;
+}
+
+function shouldDrawCrossing(points, width) {
+  const pose = crossingDrawPose(points);
+  if (!pose) return false;
+  const cx = Math.floor(pose.x / CROSSING_DEDUPE_CELL_M);
+  const cz = Math.floor(pose.z / CROSSING_DEDUPE_CELL_M);
+  const angleLimit = (CROSSING_DEDUPE_ANGLE_DEG * Math.PI) / 180;
+  const distanceLimit = Math.max(1.4, Math.min(3.4, (width || 3.7) * 0.75));
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = crossingDrawGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const other of bucket) {
+        if (Math.hypot(other.x - pose.x, other.z - pose.z) > distanceLimit) continue;
+        if (crossingBearingDifference(other.bearing, pose.bearing) > angleLimit) continue;
+        return false;
+      }
+    }
+  }
+  const key = `${cx}:${cz}`;
+  let bucket = crossingDrawGrid.get(key);
+  if (!bucket) crossingDrawGrid.set(key, bucket = []);
+  bucket.push(pose);
+  return true;
+}
+
 function arrowTexture(kind) {
   // A lane arrow, drawn once per kind. Painted arrows in California are long and narrow -- the
   // standard is about 2.3 m of arrow in a lane 3 m wide -- so the canvas is tall rather than
@@ -2774,6 +2827,41 @@ function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0, ownWay = null) {
   return false;
 }
 
+function bikeCrossingBreakAt(x, z, bearing, slack = 0.0, ownWay = null) {
+  // A cross street is not always a place where the bike lane stops. At a four-way junction the
+  // lane breaks at the end of the block and restarts on the far side; at a T-junction the side
+  // street usually turns across a continuous bike lane. Treat it as a break only when the
+  // crosswise carriageway has arms on both sides of the lane.
+  const cx = Math.floor(x / CARRIAGEWAY_CELL);
+  const cz = Math.floor(z / CARRIAGEWAY_CELL);
+  const limitAngle = (BIKE_CROSS_ANGLE_DEG * Math.PI) / 180;
+  let before = false;
+  let after = false;
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [ax, az, bx, bz, half, other, source] of bucket) {
+        if (ownWay && source === ownWay) continue;
+        if (other === undefined) continue;
+        let difference = Math.abs(other - bearing) % Math.PI;
+        if (difference > Math.PI / 2) difference = Math.PI - difference;
+        if (difference < limitAngle) continue;
+        const limit = Math.max(0, half - slack);
+        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) >= limit * limit) continue;
+        const ux = Math.cos(other);
+        const uz = Math.sin(other);
+        const a = (ax - x) * ux + (az - z) * uz;
+        const b = (bx - x) * ux + (bz - z) * uz;
+        const arm = Math.max(1.8, Math.min(4.2, half * 0.45));
+        if (a < -arm || b < -arm) before = true;
+        if (a > arm || b > arm) after = true;
+      }
+    }
+  }
+  return before && after;
+}
+
 function dashRuns(points, markM, gapM) {
   // The same polyline as a series of painted blocks, cut at the pattern rather than sampled by
   // it. Testing whole segments against the cycle -- which is what this did -- aliases as soon as
@@ -2823,7 +2911,7 @@ function bikeLaneZones(lane, ownWay = null) {
     const [bx, by] = xy(before[0], before[1]);
     const [ax, ay] = xy(after[0], after[1]);
     const bearing = Math.atan2(-ay + by, ax - bx);
-    labels.push(crosswiseCarriagewayAt(x, -y, bearing, 0.2, ownWay) ? "crossing" : "lane");
+    labels.push(bikeCrossingBreakAt(x, -y, bearing, 0.2, ownWay) ? "crossing" : "lane");
     if (i) {
       const [px, py] = xy(lane[i - 1][0], lane[i - 1][1]);
       spans.push(spans[i - 1] + Math.hypot(x - px, y - py));
@@ -4232,6 +4320,7 @@ function walkSidesToDraw(way, renderPoints, inner) {
 //: one street carrying on, not a junction.
 const STREET_JOIN_M = 3.0;
 const STREET_JOIN_DEG = 34.0;
+const LANE_TRANSITION_TRIM_M = 9.0;
 const streetEndGrid = new Map();
 
 function indexStreetEnds(ways) {
@@ -4256,12 +4345,13 @@ function indexStreetEnds(ways) {
   }
 }
 
-function streetCarriesOn(way, x, z, bearing) {
+function streetContinuationsAt(way, x, z, bearing) {
   // Is there another street way leaving this same point in the opposite direction -- that is,
   // continuing the line this one is on?
   const cx = Math.floor(x / STREET_JOIN_M);
   const cz = Math.floor(z / STREET_JOIN_M);
   const limit = (STREET_JOIN_DEG * Math.PI) / 180;
+  const matches = [];
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = streetEndGrid.get(`${cx + dx}:${cz + dz}`);
@@ -4273,11 +4363,15 @@ function streetCarriesOn(way, x, z, bearing) {
         // what "the same street carrying on" looks like from the join.
         let turn = Math.abs(((other - bearing + Math.PI) % (2 * Math.PI)) - Math.PI);
         if (turn > Math.PI) turn = 2 * Math.PI - turn;
-        if (Math.abs(Math.PI - turn) < limit) return true;
+        if (Math.abs(Math.PI - turn) < limit) matches.push(otherWay);
       }
     }
   }
-  return false;
+  return matches;
+}
+
+function streetCarriesOn(way, x, z, bearing) {
+  return streetContinuationsAt(way, x, z, bearing).length > 0;
 }
 
 function kerbsideTrims(renderPoints, back) {
@@ -4293,6 +4387,48 @@ function kerbsideTrims(renderPoints, back) {
   return [
     streetCarriesOn(null, sx, -sy, startBearing) ? 0 : back,
     streetCarriesOn(null, ex, -ey, endBearing) ? 0 : back,
+  ];
+}
+
+function laneMarkingProfile(way, road = renderedRoadWidth(way)) {
+  const oneway = Boolean(way.oneway || way.osm_oneway);
+  const tagged = way.lanes || 0;
+  const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
+  const backward = way.lanes_back || (oneway ? 0 : Math.floor(tagged / 2));
+  const explicitTotal = oneway ? (forward || tagged || 0)
+    : (way.lanes_fwd || way.lanes_back ? (forward || 0) + (backward || 0) : tagged);
+  const inferredTotal = explicitTotal ? 0
+    : road >= 13.8 ? 4 : road >= 9.0 ? 2 : road >= 6.2 && oneway ? 2 : 1;
+  const total = explicitTotal || inferredTotal;
+  const opposing = !oneway && (explicitTotal ? total >= 2 : road >= 5.6);
+  return { oneway, total, forward, backward, opposing, road };
+}
+
+function laneMarkingProfileChanged(a, b) {
+  if (!a || !b) return false;
+  return a.oneway !== b.oneway
+    || a.total !== b.total
+    || a.forward !== b.forward
+    || a.backward !== b.backward
+    || a.opposing !== b.opposing
+    || Math.abs(a.road - b.road) > 1.1;
+}
+
+function laneMarkingTrims(way, renderPoints, roadWidth) {
+  if (!way || !renderPoints || renderPoints.length < 2) return [0, 0];
+  const n = renderPoints.length;
+  const [sx, sy] = xy(renderPoints[0][0], renderPoints[0][1]);
+  const [s2x, s2y] = xy(renderPoints[1][0], renderPoints[1][1]);
+  const [ex, ey] = xy(renderPoints[n - 1][0], renderPoints[n - 1][1]);
+  const [e2x, e2y] = xy(renderPoints[n - 2][0], renderPoints[n - 2][1]);
+  const startBearing = Math.atan2(-s2y + sy, s2x - sx);
+  const endBearing = Math.atan2(-e2y + ey, e2x - ex);
+  const here = laneMarkingProfile(way, roadWidth);
+  const needsTransition = (x, z, bearing) => streetContinuationsAt(way, x, z, bearing).some(
+    (other) => laneMarkingProfileChanged(here, laneMarkingProfile(other)));
+  return [
+    needsTransition(sx, -sy, startBearing) ? LANE_TRANSITION_TRIM_M : 0,
+    needsTransition(ex, -ey, endBearing) ? LANE_TRANSITION_TRIM_M : 0,
   ];
 }
 
@@ -6858,7 +6994,8 @@ for (const way of DRAW_ORDER) {
     : (isSidewalk || isPath) ? roadTop + KERB / 2 : roadTop / 2;
   const surfaceThickness = isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop;
 const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossing" : "crossing_edges")
-: (isSidewalk || isPath) ? (widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk") : "road";
+  : (isSidewalk || isPath) ? (widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk") : "road";
+  if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters)) continue;
     // Continental unless we positively know otherwise. San Francisco has been converting its
     // marked crossings to ladders for years, and the inventory is demonstrably incomplete --
     // 598 of its points sit near no mapped crossing at all, which is the two datasets
@@ -6908,6 +7045,8 @@ addKerbsidePavement(renderPoints, side, inner, walk, color, opacity,
   // same way; the yellow is reserved for the line that separates opposing traffic.
   if (!isSidewalk && !isCrossing && !isPath) {
     const road = widthMeters;
+    const [markCutStart, markCutEnd] = laneMarkingTrims(way, renderPoints, road);
+    const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);
     const oneway = Boolean(way.oneway || way.osm_oneway);
     const tagged = way.lanes || 0;
     const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
@@ -6920,26 +7059,26 @@ addKerbsidePavement(renderPoints, side, inner, walk, color, opacity,
     const opposing = !oneway && (explicitTotal ? total >= 2 : road >= 5.6);
     if (total >= 2) {
       const laneWidth = road / total;
-      if (laneWidth >= 2.6) {
+      if (laneWidth >= 2.6 && markingPoints.length >= 2) {
         for (let i = 1; i < total; i += 1) {
           // The middle of a two-way street is the yellow line, drawn separately.
           if (opposing && i === (backward || Math.floor(total / 2))) continue;
           const offset = road / 2 - i * laneWidth;
           if (Math.abs(offset) >= road / 2 - 0.35) continue;
-          const divider = paintedLine(offsetWay(renderPoints, offset), MARK_W, 0xdfe3e0,
+          const divider = paintedLine(offsetWay(markingPoints, offset), MARK_W, 0xdfe3e0,
                                       roadTop + 0.015, { dash: true });
           if (divider) addMerged("marking:lane", divider, "marking");
         }
       }
     }
-    if (opposing) {
+    if (opposing && markingPoints.length >= 2) {
       // A double solid yellow, which is what San Francisco paints down the middle of a two-way
       // street. A broken line means overtaking is allowed and is the exception here, not the
       // rule -- and drawn as one dashed thread it read as a dotted line on a map rather than as
       // a road marking.
       const apart = (MARK_W + DOUBLE_GAP_M) / 2;
       for (const side of [1, -1]) {
-        const yellow = paintedLine(offsetWay(renderPoints, side * apart), MARK_W, 0xd8a92e,
+        const yellow = paintedLine(offsetWay(markingPoints, side * apart), MARK_W, 0xd8a92e,
                                    roadTop + 0.02);
         if (yellow) addMerged("marking:centre", yellow, "marking");
       }

@@ -208,9 +208,9 @@ def test_lane_markings_are_painted_with_a_width() -> None:
     marking = _extract("paintedLine", js)
     assert "mitredEdges(points, width)" in marking, "the marking has no width"
     assert "new THREE.Mesh(" in marking, "the marking is not geometry"
-    # The centre line and the lane lines both go through it.
-    assert "paintedLine(offsetWay(renderPoints, side * apart), MARK_W" in js
-    assert "paintedLine(offsetWay(renderPoints, offset), MARK_W" in js
+    # The centre line and lane lines both go through it, with transition pullbacks.
+    assert "paintedLine(offsetWay(markingPoints, side * apart), MARK_W" in js
+    assert "paintedLine(offsetWay(markingPoints, offset), MARK_W" in js
     # Four inches, which is what the MUTCD says and what San Francisco paints.
     assert re.search(r"const MARK_W = 0\.10\d?;", js)
 
@@ -484,6 +484,7 @@ BIKE_FUNCTIONS = (
     "insideCarriageway",
     "addCarriagewaySegment",
     "crosswiseCarriagewayAt",
+    "bikeCrossingBreakAt",
     "lerpLonLat",
     "wayLength",
     "densifyWay",
@@ -651,6 +652,25 @@ def test_the_lane_is_lane_then_mixing_then_crossing_through_a_junction() -> None
     # MUTCD's twenty-five feet.
     assert 8 <= result["metres"]["crossing"] <= 16
     assert 6 <= result["metres"]["mixing"] / 2 <= 10
+
+
+def test_a_t_junction_keeps_the_bike_lane_continuous() -> None:
+    """A side street turning through the lane is not the same as a four-way crossing.
+
+    At a four-way junction the bike lane breaks at the end of the block. At a T-junction the
+    tagged lane usually carries through and turning cars cross it, so a one-sided cross street
+    must not turn the lane into crossbike dashes.
+    """
+    result = _run_bike("""
+    const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+    for (let x = -100; x < 220; x += 20) addCarriagewaySegment(x, 0, x + 20, 0, 7.0);
+    for (let z = 5; z < 180; z += 20) addCarriagewaySegment(100, z, 100, z + 20, 6.0);
+    const lane = [];
+    for (let x = 0; x <= 200; x += 2) lane.push(asLonLat(x, 5.0));
+    const runs = bikeLaneZones(lane);
+    console.log(JSON.stringify({ order: runs.map((r) => r.label) }));
+    """)
+    assert result["order"] == ["lane"]
 
 
 def test_a_lane_rounding_a_same_street_bend_is_not_a_crossbike() -> None:
@@ -1018,6 +1038,7 @@ PAVEMENT_FUNCTIONS = (
     "densifyWay",
     "pavementRunsOutsideCarriageway",
     "walkFitsAt",
+    "streetContinuationsAt",
     "streetCarriesOn",
     "kerbsideTrims",
     "addKerbsidePavement",
