@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -996,6 +997,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     )
     ways, osm_summary = annotate_osm_features(ways, coverage)
     ground_summary = publish_ground_cover()
+    furniture_summary = publish_street_furniture()
     building_summary = annotate_building_enrichment(ways)
     official_summary = annotate_official(ways, {
         "south": SF_CORRIDOR.bbox.south, "west": SF_CORRIDOR.bbox.west,
@@ -1055,6 +1057,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "osm": osm_summary,
             "cv_depth": depth_summary,
             "building_enrichment": building_summary,
+            "street_furniture": furniture_summary,
         },
         "bbox": {
             "south": SF_CORRIDOR.bbox.south,
@@ -1101,6 +1104,7 @@ GROUND_COVER = Path(__file__).resolve().parents[1] / "data" / "sf_public_works" 
 
 
 GROUND_VIEWER = Path(__file__).resolve().parents[1] / "docs" / "sf-corridor-ground.json"
+FURNITURE_VIEWER = Path(__file__).resolve().parents[1] / "docs" / "sf-corridor-furniture.json"
 
 
 def publish_ground_cover() -> dict:
@@ -1115,6 +1119,24 @@ def publish_ground_cover() -> dict:
     data = json.loads(GROUND_COVER.read_text())
     GROUND_VIEWER.write_text(json.dumps(data, separators=(",", ":")))
     return {key: len(value) for key, value in data.items()}
+
+
+def publish_street_furniture() -> dict:
+    """Build the optional street-furniture sidecar without embedding it in the map payload."""
+    script = ROOT / "scripts" / "build_street_furniture.py"
+    if not script.exists():
+        return {"available": False, "reason": "missing build_street_furniture.py"}
+    try:
+        subprocess.run([sys.executable, str(script), "--out", str(FURNITURE_VIEWER)], check=True)
+    except Exception as exc:  # noqa: BLE001
+        return {"available": False, "reason": str(exc)}
+    if not FURNITURE_VIEWER.exists():
+        return {"available": False, "reason": "sf-corridor-furniture.json was not written"}
+    data = json.loads(FURNITURE_VIEWER.read_text(encoding="utf-8"))
+    summary = dict(data.get("summary") or {})
+    summary["available"] = True
+    summary["source"] = str(FURNITURE_VIEWER.relative_to(ROOT))
+    return summary
 
 
 FACADE_ROOT = Path(__file__).resolve().parents[1] / "docs" / "facades"
@@ -1689,6 +1711,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
         <button data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
         <button data-layer="facades" aria-pressed="true">Photo facades</button>
         <button data-layer="ground" aria-pressed="true">Ground &amp; trees</button>
+        <button data-layer="furniture" aria-pressed="false">Street furniture</button>
         <button data-layer="official" aria-pressed="false">Official geometry</button>
         <button data-layer="chunks" aria-pressed="false">Chunks</button>
         <button data-layer="districts" aria-pressed="true">Districts</button>
@@ -1703,6 +1726,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <p id="gapnote" style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.45"></p>
       <p id="facadenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
       <p id="officialnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
+      <p id="furniturenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
     </div>
   </div>
@@ -1780,6 +1804,7 @@ const groups = {
   kerbs: new THREE.Group(),
   facades: new THREE.Group(),
   ground: new THREE.Group(),
+  furniture: new THREE.Group(),
   official: new THREE.Group(),
   chunks: new THREE.Group(),
   gaps: new THREE.Group(),
@@ -1789,7 +1814,7 @@ const groups = {
 // about the state of the dataset rather than about the place, and starting with them lit turns
 // a map of San Francisco into a progress chart. They are one click away and they stay.
 for (const off of ["coverage", "observations", "sequences", "gaps", "kerbs", "chunks",
-                   "official"]) {
+                   "furniture", "official"]) {
   groups[off].visible = false;
 }
 Object.values(groups).forEach((g) => root.add(g));
@@ -8551,6 +8576,137 @@ DATA.districts.forEach((d, i) => {
   mesh.position.set((x1 + x2) / 2, -0.08, -(y1 + y2) / 2);
   groups.districts.add(mesh);
   labelAt(d.name, (d.west + d.east) / 2, (d.south + d.north) / 2, 54, groups.districts, "#ffffff", 145);
+});
+
+const FURNITURE_POST_H_M = 2.7;
+const FURNITURE_PANEL_BOTTOM_M = 2.05;
+const MUNI_SHELTER_LENGTH_M = 4.0;
+const MUNI_SHELTER_DEPTH_M = 1.45;
+const MUNI_SHELTER_HEIGHT_M = 2.6;
+
+function furnitureAnchor(item) {
+  if (!item || !item.p || item.p.length < 2) return null;
+  const [x, y] = xy(item.p[0], item.p[1]);
+  const z = -y;
+  if (insideBikeLane(x, z, 0.15) || insideCarriageway(x, z, 0.25)) return null;
+  const top = pavementTopAt(x, z);
+  return { x, z, y: top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top };
+}
+
+function furnitureBearing(item, index) {
+  if (Number.isFinite(item.bearing)) return item.bearing * Math.PI / 180;
+  return random(index * 97 + String(item.id || "").length * 13) * Math.PI * 2;
+}
+
+function panelMaterial(color, opacity = 1) {
+  return new THREE.MeshStandardMaterial({
+    color, roughness: 0.62, metalness: 0.08, side: THREE.DoubleSide,
+    transparent: opacity < 1, opacity,
+  });
+}
+
+function addInstancedFurniturePanels(records, width, height, color, name, yBottom = FURNITURE_PANEL_BOTTOM_M) {
+  const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (!anchors.length) return 0;
+  const mesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(width, height),
+    panelMaterial(color),
+    anchors.length);
+  const dummy = new THREE.Object3D();
+  anchors.forEach((row, i) => {
+    dummy.position.set(row.anchor.x, row.anchor.y + yBottom + height / 2, row.anchor.z);
+    dummy.rotation.set(0, furnitureBearing(row.item, row.index), 0);
+    dummy.scale.set(1, 1, 1);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.userData.surface = name;
+  groups.furniture.add(mesh);
+  return anchors.length;
+}
+
+function addStreetFurniturePosts(records) {
+  const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (!anchors.length) return 0;
+  const mesh = new THREE.InstancedMesh(
+    new THREE.CylinderGeometry(0.026, 0.032, 1, 6),
+    new THREE.MeshStandardMaterial({ color: 0x9aa1a3, roughness: 0.48, metalness: 0.54 }),
+    anchors.length);
+  const dummy = new THREE.Object3D();
+  anchors.forEach((row, i) => {
+    dummy.position.set(row.anchor.x, row.anchor.y + FURNITURE_POST_H_M / 2, row.anchor.z);
+    dummy.rotation.set(0, furnitureBearing(row.item, row.index), 0);
+    dummy.scale.set(1, FURNITURE_POST_H_M, 1);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  groups.furniture.add(mesh);
+  return anchors.length;
+}
+
+function addMuniShelters(records) {
+  let added = 0;
+  for (let i = 0; i < records.length; i += 1) {
+    const item = records[i];
+    const anchor = furnitureAnchor(item);
+    if (!anchor) continue;
+    const group = new THREE.Group();
+    const yaw = furnitureBearing(item, i);
+    group.position.set(anchor.x, anchor.y, anchor.z);
+    group.rotation.y = yaw;
+    boxPart(group, 0, MUNI_SHELTER_HEIGHT_M, 0, MUNI_SHELTER_LENGTH_M, 0.12, MUNI_SHELTER_DEPTH_M, 0xcfd8dc, 0.42);
+    boxPart(group, -MUNI_SHELTER_LENGTH_M / 2 + 0.15, MUNI_SHELTER_HEIGHT_M / 2, -MUNI_SHELTER_DEPTH_M / 2, 0.08, MUNI_SHELTER_HEIGHT_M, 0.08, 0x9aa1a3, 0.46);
+    boxPart(group, MUNI_SHELTER_LENGTH_M / 2 - 0.15, MUNI_SHELTER_HEIGHT_M / 2, -MUNI_SHELTER_DEPTH_M / 2, 0.08, MUNI_SHELTER_HEIGHT_M, 0.08, 0x9aa1a3, 0.46);
+    boxPart(group, -MUNI_SHELTER_LENGTH_M / 2 + 0.5, 1.2, MUNI_SHELTER_DEPTH_M / 2 + 0.012, 1.2, 1.8, 0.035, 0xffffff, 0.35);
+    boxPart(group, 0.3, 0.45, 0.25, 2.6, 0.16, 0.42, 0x546068, 0.66);
+    group.userData = { source: item.source, provenance: item.provenance, spec: item.spec };
+    groups.furniture.add(group);
+    added += 1;
+  }
+  return added;
+}
+
+function renderStreetFurniture(furniture) {
+  const inferred = furniture.inferred || {};
+  const signs = inferred.street_signs || [];
+  const stops = inferred.bus_stops || [];
+  const shelters = inferred.shelters || [];
+  const ads = inferred.ad_panels || [];
+  const posts = signs.concat(stops, ads);
+  const placed = {
+    posts: addStreetFurniturePosts(posts),
+    stop_signs: addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "stop"), 0.72, 0.72, 0xb52127, "furniture:stop"),
+    yield_signs: addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "yield"), 0.86, 0.74, 0xf9fbf8, "furniture:yield"),
+    generic_signs: addInstancedFurniturePanels(signs.filter((s) => !["stop", "yield"].includes(s.sign_kind)), 0.44, 0.62, 0xf3f5ef, "furniture:generic"),
+    bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25),
+    ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55),
+    shelters: addMuniShelters(shelters),
+  };
+  const note = document.getElementById("furniturenote");
+  if (note) {
+    const counts = furniture.summary?.inferred_counts || {};
+    note.innerHTML = `<b>Street furniture</b> — ${Number(counts.street_signs || 0).toLocaleString()} inferred OSM sign anchors, `
+      + `${Number(counts.bus_stops || 0).toLocaleString()} bus stop anchors, `
+      + `${Number(counts.shelters || 0).toLocaleString()} shelter tags, `
+      + `${Number(counts.ad_panels || 0).toLocaleString()} blank ad panels. `
+      + `Geometry-based arrays are separate and currently ${Number((furniture.summary?.geometry_based_counts?.street_signs) || 0).toLocaleString()} signs.`;
+    note.userData = placed;
+  }
+}
+
+registerLazyLayer("furniture", async () => {
+  let furniture;
+  try {
+    furniture = await fetch("sf-corridor-furniture.json", { cache: "no-cache" }).then((r) => r.json());
+  } catch (err) {
+    console.warn("Could not load street furniture", err);
+    return;
+  }
+  renderStreetFurniture(furniture);
 });
 
 registerLazyLayer("coverage", () => {

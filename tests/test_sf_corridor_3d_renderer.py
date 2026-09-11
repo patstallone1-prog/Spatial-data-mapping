@@ -290,6 +290,11 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert "function ensureLazyLayer(layer)" in source
     assert 'registerLazyLayer("official", async () => {' in source
     assert 'registerLazyLayer("chunks", () => {' in source
+    assert 'registerLazyLayer("furniture", async () => {' in source
+    assert 'fetch("sf-corridor-furniture.json", { cache: "no-cache" })' in source
+    assert '<button data-layer="furniture" aria-pressed="false">Street furniture</button>' in source
+    assert 'furniture:blank_ad' in source
+    assert "Geometry-based arrays are separate" in source
     assert 'registerLazyLayer("coverage", () => {' in source
     assert 'registerLazyLayer("observations", () => {' in source
     assert 'registerLazyLayer("sequences", () => {' in source
