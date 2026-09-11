@@ -71,6 +71,7 @@ def _extract(name: str, js: str) -> str:
 #: breaks the test loudly instead of silently skipping the thing it was meant to check.
 CARRIAGEWAY_FUNCTIONS = (
     "distanceToSegmentSquared",
+    "insideCrossingArea",
     "insideCarriageway",
     "addCarriagewaySegment",
     "lerpLonLat",
@@ -82,6 +83,8 @@ CARRIAGEWAY_FUNCTIONS = (
 PREAMBLE = """
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
+const CROSSING_AREA_CELL_M = 8.0;
+const crossingAreaGrid = new Map();
 const metersPerLat = 111320;
 const metersPerLon = 88000;
 function xy(lon, lat) { return [lon * metersPerLon, lat * metersPerLat]; }
@@ -1028,6 +1031,7 @@ def test_an_outbuilding_roof_is_dark_but_not_a_hole() -> None:
 
 PAVEMENT_FUNCTIONS = (
     "distanceToSegmentSquared",
+    "insideCrossingArea",
     "insideCarriageway",
     "addCarriagewaySegment",
     "lerpLonLat",

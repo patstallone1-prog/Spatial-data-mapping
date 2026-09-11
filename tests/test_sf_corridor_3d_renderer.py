@@ -41,7 +41,9 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert "insideCarriageway(cx, cz, 0.10)" in source
     assert 'mesh.userData.surface = "tactile_warning";' in source
     assert 'addMerged("crossing:tactile", mesh, "tactile_warning");' in source
-    assert "addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.006);" in source
+    assert "polygonOffsetFactor: -10" in source
+    assert "polygonOffsetUnits: -20" in source
+    assert "addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);" in source
 
 
 def test_crosswalks_dedupe_same_direction_overlaps_only() -> None:
@@ -73,6 +75,14 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     # kerb and narrows the strip until it fits rather than dropping it. Dropping it left 13% of
     # the street network with bare ground between the kerb and the buildings.
     assert "function addKerbsidePavement(" in source
+    assert "function addCrossingAreaSegment(points, width)" in source
+    assert "function insideCrossingArea(x, z, slack = 0.08)" in source
+    assert "addCrossingAreaSegment(way.points, way.crossing_m || 3.7)" in source
+    assert "insideCrossingArea(x, z, 0.10)" in source
+    assert "function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color, opacity)" in source
+    assert "PROPERTY_LINE_PAVEMENT_Y = 0.012" in source
+    assert '"walk_underlay"' in source
+    assert "addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color, opacity);" in source
     assert "addKerbsidePavement(renderPoints, side, inner, walk" in source
     assert "WALK_FALLBACK_WIDTHS_M" in source
     # And `sidewalk=no` is believed only where a footway is really mapped in its place.

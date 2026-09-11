@@ -476,6 +476,7 @@ function tiledMap(base, name, repeatU, repeatV) {
 //: shape of the run.
 function surfaceScale(surface, width) {
   if (surface === "walk") return [SLAB_M, SLAB_M];
+  if (surface === "walk_underlay") return [SLAB_M, SLAB_M];
   if (surface === "walk_narrow") return [NARROW_SLAB_M, width];
   if (surface === "bike") return [5.5, BIKE_LANE_M];
   if (surface === "road") return [8.0, 8.0];
@@ -488,6 +489,7 @@ function surfaceScale(surface, width) {
 
 function surfaceBase(surface) {
   if (surface === "walk") return SIDEWALK;
+  if (surface === "walk_underlay") return SIDEWALK;
   if (surface === "walk_narrow") return NARROW_SIDEWALK;
   if (surface === "bike") return BIKE_LANE;
   if (surface === "road") return ROAD;
@@ -855,6 +857,47 @@ function crossingRectanglePoints(points) {
   // endpoint to curb endpoint; the texture still supplies the bars.
   if (!points || points.length < 2) return points || [];
   return [points[0], points[points.length - 1]];
+}
+
+const CROSSING_AREA_CELL_M = 8.0;
+const crossingAreaGrid = new Map();
+
+function addCrossingAreaSegment(points, width) {
+  const rect = crossingRectanglePoints(points);
+  if (!rect || rect.length < 2) return;
+  const [ax, ay] = xy(rect[0][0], rect[0][1]);
+  const [bx, by] = xy(rect[1][0], rect[1][1]);
+  const az = -ay;
+  const bz = -by;
+  const half = Math.max(1.0, (width || 3.7) / 2);
+  const x0 = Math.floor((Math.min(ax, bx) - half) / CROSSING_AREA_CELL_M);
+  const x1 = Math.floor((Math.max(ax, bx) + half) / CROSSING_AREA_CELL_M);
+  const z0 = Math.floor((Math.min(az, bz) - half) / CROSSING_AREA_CELL_M);
+  const z1 = Math.floor((Math.max(az, bz) + half) / CROSSING_AREA_CELL_M);
+  for (let ix = x0; ix <= x1; ix += 1) {
+    for (let iz = z0; iz <= z1; iz += 1) {
+      const key = `${ix}:${iz}`;
+      let bucket = crossingAreaGrid.get(key);
+      if (!bucket) crossingAreaGrid.set(key, bucket = []);
+      bucket.push([ax, az, bx, bz, half]);
+    }
+  }
+}
+
+function insideCrossingArea(x, z, slack = 0.08) {
+  const cx = Math.floor(x / CROSSING_AREA_CELL_M);
+  const cz = Math.floor(z / CROSSING_AREA_CELL_M);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = crossingAreaGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [ax, az, bx, bz, half] of bucket) {
+        const limit = Math.max(0.1, half + slack);
+        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
+      }
+    }
+  }
+  return false;
 }
 
 const CROSSING_DEDUPE_CELL_M = 4.0;
@@ -2557,7 +2600,9 @@ function pavementRunsOutsideCarriageway(points, width) {
       // that abuts a street, and is not a reason to delete it.
       const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
       const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
-      const overlaps = insideCarriageway(x, z, 0.30) || (innerEdge && outerEdge);
+      const overlaps = insideCrossingArea(x, z, 0.10)
+        || insideCarriageway(x, z, 0.30)
+        || (innerEdge && outerEdge);
       if (overlaps) {
         finish();
       } else {
@@ -2652,6 +2697,12 @@ const WALK_ENOUGH = 0.55;
 //: A stretch of pavement holds its width for at least this far before changing it. Without it
 //: the strip steps in and out every couple of metres wherever the carriageway guard flickers.
 const WALK_WIDTH_RUN_M = 6.0;
+//: A low visual pavement backstop from kerb toward the property line. It sits below grass and
+//: front-yard surfaces, so lawns still win, but exposed slivers become concrete instead of the
+//: black base plane.
+const PROPERTY_LINE_PAVEMENT_WIDTH_M = 8.6;
+const PROPERTY_LINE_PAVEMENT_Y = 0.012;
+const PROPERTY_LINE_PAVEMENT_THICKNESS_M = 0.004;
 
 // ---- where OpenStreetMap says there is no pavement ----
 //
@@ -3067,6 +3118,26 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y,
   return laid;
 }
 
+function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color, opacity) {
+  const wanted = wayLength(renderPoints);
+  if (!(wanted > 0)) return 0;
+  const width = Math.max(PROPERTY_LINE_PAVEMENT_WIDTH_M, walk);
+  const back = Math.min(Math.max(1.6, inner + 2.4), wanted * 0.32);
+  const [cutStart, cutEnd] = kerbsideTrims(renderPoints, back);
+  const spine = densifyWay(trimWayEnds(renderPoints, cutStart, cutEnd), 2.0);
+  if (spine.length < 2) return 0;
+  let laid = 0;
+  const centre = offsetWay(spine, side * (inner + width / 2));
+  for (const run of pavementRunsOutsideCarriageway(centre, width)) {
+    addMerged("walk:property-underlay",
+              ribbon(run, width, color, opacity, PROPERTY_LINE_PAVEMENT_Y,
+                     PROPERTY_LINE_PAVEMENT_THICKNESS_M, "walk_underlay"),
+              "walk_underlay");
+    laid += wayLength(run);
+  }
+  return laid;
+}
+
 function walkFitsAt(x, z, nx, nz, width) {
   // The same question pavementRunsOutsideCarriageway asks, at a single station: is a strip of
   // this width, with its inner edge on the kerb, off the roadway here? One edge inside the kerb
@@ -3075,7 +3146,9 @@ function walkFitsAt(x, z, nx, nz, width) {
   const edge = Math.max(0.2, width / 2 - 0.12);
   const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
   const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
-  return !(insideCarriageway(x, z, 0.30) || (innerEdge && outerEdge));
+  return !(insideCrossingArea(x, z, 0.10)
+    || insideCarriageway(x, z, 0.30)
+    || (innerEdge && outerEdge));
 }
 
 function apronSlab(opening) {
@@ -3362,8 +3435,8 @@ function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   geometry.computeVertexNormals();
   const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
     map: TACTILE_WARNING, color: 0xffffff, roughness: 0.86, metalness: 0.0,
-    side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -6,
-    polygonOffsetUnits: -12,
+    side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -10,
+    polygonOffsetUnits: -20,
   }));
   mesh.userData.surface = "tactile_warning";
   addMerged("crossing:tactile", mesh, "tactile_warning");
@@ -5422,6 +5495,11 @@ let streetLabelCount = 0;
 // stamps it. Nothing else in this loop depends on the order: the meshes are merged by material
 // and separated by height, not by when they were added.
 const ROAD_TOP_M = 0.06;
+for (const way of DATA.ways) {
+  if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
+  if (wayLength(way.points) > 40) continue;
+  addCrossingAreaSegment(way.points, way.crossing_m || 3.7);
+}
 addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);
 
 const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
@@ -5546,7 +5624,7 @@ const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossi
               surfaceKind);
     if (isCrossing) {
       addCrossingLandingPads(surfacePoints, widthMeters, roadTop + KERB + 0.002);
-      addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.006);
+      addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);
     }
   }
 if (!isSidewalk && !isCrossing && !isPath) {
@@ -5566,10 +5644,11 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     // Both sides unless one of them is inside another street's carriageway, which happens
     // wherever a divided road is drawn as two ways.
     for (const side of walkSidesToDraw(way, renderPoints, inner)) {
-addKerbsidePavement(renderPoints, side, inner, walk, color, opacity,
-                        roadTop + KERB / 2 - 0.015, KERB);
-}
-}
+      addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color, opacity);
+      addKerbsidePavement(renderPoints, side, inner, walk, color, opacity,
+                          roadTop + KERB / 2 - 0.015, KERB);
+    }
+  }
   // A centreline belongs on a roadway, not on a footway: drawn on everything it read as a
   // white thread stitched over the whole city, and on a 3.6 m pavement it was simply wrong.
   // It does not belong on a crossing either -- a crosswalk has bars painted across it and no
