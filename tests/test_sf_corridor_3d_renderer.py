@@ -1,9 +1,11 @@
+import json
+import runpy
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
 GROUND_SOURCE = ROOT / "scripts" / "build_ground_cover.py"
+PAGE_DATA = ROOT / "docs" / "sf-corridor-3d.json"
 
 
 def _source() -> str:
@@ -12,6 +14,51 @@ def _source() -> str:
 
 def _ground_source() -> str:
     return GROUND_SOURCE.read_text(encoding="utf-8")
+
+
+def test_osm_dividers_require_explicit_physical_geometry() -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    query = namespace["overpass_query"](namespace["SF_CORRIDOR"].bbox)
+    classify = namespace["physical_divider_feature"]
+    triangle = [[-122.42, 37.79], [-122.41998, 37.79004],
+                [-122.41996, 37.79], [-122.42, 37.79]]
+    skinny = [[-122.42, 37.79], [-122.419, 37.79], [-122.419, 37.79001],
+              [-122.42, 37.79001], [-122.42, 37.79]]
+
+    assert 'way["traffic_calming"="island"]' in query
+    assert 'way["barrier"="kerb"]["kerb"="raised"]' in query
+    assert 'way["separation:left"]' not in query
+    assert classify({"traffic_calming": "island", "surface": "concrete"}, triangle, 7) == {
+        "kind": "divider", "name": None, "points": triangle,
+        "divider_source": "traffic_calming_island", "divider_surface": "concrete",
+        "osm_id": 7,
+    }
+    assert classify({"barrier": "kerb", "kerb": "raised"}, skinny, 8) is not None
+    assert classify({"barrier": "kerb", "kerb": "raised"}, skinny[:-1], 9) is None
+    assert classify({"divider": "solid_line", "surface": "paint"}, triangle, 10) is None
+
+
+def test_divider_block_tile_handles_strips_and_tapered_osm_rings() -> None:
+    source = _source()
+    assert "function dividerBlockTexture()" in source
+    assert "const DIVIDER_TILE_M = 1.2;" in source
+    assert "function dividerBlockMesh(feature, roadTop)" in source
+    assert "new THREE.ExtrudeGeometry(shape" in source
+    assert "bevelSize: 0.035" in source
+    assert 'mesh.userData.surface = "divider_block";' in source
+    assert 'addMerged("divider:block", divider, "divider_block");' in source
+    assert "feature.divider_width_m" in source
+    assert "dividerFootprintIsRoadborne(way)" in source
+
+
+def test_deployed_payload_contains_only_explicit_physical_dividers() -> None:
+    payload = json.loads(PAGE_DATA.read_text(encoding="utf-8"))
+    dividers = [way for way in payload["ways"] if way.get("kind") == "divider"]
+    assert len(dividers) == 21
+    assert {way["divider_source"] for way in dividers} == {
+        "traffic_calming_island", "raised_kerb",
+    }
+    assert all(way["points"][0] == way["points"][-1] for way in dividers)
 
 
 def test_continental_crosswalk_bars_repeat_along_walking_direction() -> None:
@@ -146,8 +193,8 @@ def test_renderer_densifies_curved_road_markings() -> None:
 
     assert "function densifyWay(points, maxSpan = 5.0)" in source
     assert "function addIntersectionRoadPads(ways, intersections, roadTop)" in source
-    assert "function addCarriagewayDisk(x, z, radius)" in source
-    assert "addCarriagewayDisk(x, -y, radius);" in source
+    assert "function addCarriagewayDisk(x, z, radius)" not in source
+    assert "addCarriagewayDisk(x, -y, radius);" not in source
     assert "addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);" in source
     assert "node.half * 2.2 + 8.0" in source
     assert 'addMerged("road:junction", mesh, "road");' in source

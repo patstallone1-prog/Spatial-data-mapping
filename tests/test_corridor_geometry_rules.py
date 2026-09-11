@@ -18,6 +18,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import textwrap
 from pathlib import Path
 
@@ -75,7 +76,6 @@ CARRIAGEWAY_FUNCTIONS = (
     "insideCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
-    "addCarriagewayDisk",
     "lerpLonLat",
     "wayLength",
     "pavementRunsOutsideCarriageway",
@@ -85,7 +85,6 @@ CARRIAGEWAY_FUNCTIONS = (
 PREAMBLE = """
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
-const carriagewayDiskGrid = new Map();
 const CROSSING_AREA_CELL_M = 8.0;
 const crossingAreaGrid = new Map();
 const metersPerLat = 111320;
@@ -111,17 +110,19 @@ def _run_crossing(js_body: str) -> dict:
     js = _page_js()
     functions = (
         "distanceToSegmentSquared",
+        "insideCrossingArea",
         "insideCarriageway",
+        "pavementSurroundedByStreet",
         "addCarriagewaySegment",
-        "addCarriagewayDisk",
         "lerpLonLat",
         "wayLength",
+        "trimWayEnds",
         "lonLatFromXZ",
         "intersectionWalkwayCutback",
-        "axisStraightCrossingPoints",
         "crossingRoadSpanPoints",
         "crossingRectanglePoints",
         "sidewalkCrossingReplacementSpans",
+        "trimWalkwayForCorners",
     )
     parts = [PREAMBLE]
     parts += [_extract(name, js) for name in functions]
@@ -218,10 +219,10 @@ def test_crosswalk_geometry_is_straight_and_clipped_to_curbs() -> None:
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
 addCarriagewaySegment(-30, 0, 30, 0, 5);
 const crossing = [
-  asLonLat(0, 18),
-  asLonLat(4, 8),
-  asLonLat(-3, -8),
-  asLonLat(0, -18),
+  asLonLat(-20, 12),
+  asLonLat(0, 8),
+  asLonLat(0, -8),
+  asLonLat(20, -12),
 ];
 const clipped = crossingRectanglePoints(crossing);
 const pts = clipped.map(([lon, lat]) => {
@@ -249,21 +250,36 @@ console.log(JSON.stringify({ count: clipped.length }));
     assert result["count"] == 0, result
 
 
-def test_crosswalk_geometry_snaps_to_horizontal_or_vertical_span() -> None:
+def test_crosswalk_geometry_uses_the_local_kerb_bearing_not_global_axes() -> None:
     result = _run_crossing("""
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
-addCarriagewaySegment(-30, 0, 30, 0, 5);
-const crossing = [asLonLat(-3, 18), asLonLat(7, -18)];
+// A street rotated thirty degrees from the map axes, with a deliberately skewed OSM crossing.
+const angle = Math.PI / 6;
+const along = [Math.cos(angle), Math.sin(angle)];
+const normal = [-along[1], along[0]];
+addCarriagewaySegment(-along[0] * 30, -along[1] * 30,
+                       along[0] * 30,  along[1] * 30, 5);
+const crossing = [
+  asLonLat(normal[0] * -18 - along[0] * 3, normal[1] * -18 - along[1] * 3),
+  asLonLat(normal[0] * 18 + along[0] * 7, normal[1] * 18 + along[1] * 7),
+];
 const clipped = crossingRectanglePoints(crossing);
 const pts = clipped.map(([lon, lat]) => {
   const [x, y] = xy(lon, lat);
   return [+x.toFixed(2), +(-y).toFixed(2)];
 });
-console.log(JSON.stringify({ count: clipped.length, pts, len: +wayLength(clipped).toFixed(2) }));
+const vx = pts[1][0] - pts[0][0];
+const vz = pts[1][1] - pts[0][1];
+console.log(JSON.stringify({
+  count: clipped.length,
+  pts,
+  len: +wayLength(clipped).toFixed(2),
+  parallelToRoad: +Math.abs(vx * along[0] + vz * along[1]).toFixed(3),
+}));
 """)
 
     assert result["count"] == 2, result
-    assert abs(result["pts"][0][0] - result["pts"][1][0]) < 0.05, result
+    assert result["parallelToRoad"] < 0.05, result
     assert 9.6 <= result["len"] <= 10.4, result
 
 
@@ -324,20 +340,55 @@ console.log(JSON.stringify({
     assert result["runs"] == 0, result
 
 
-def test_sidewalk_tile_on_intersection_road_pad_is_removed() -> None:
-    result = _run("""
-const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
-addCarriagewayDisk(0, 0, 8.0);
-const island = [asLonLat(-3, 0), asLonLat(3, 0)];
-const runs = pavementRunsOutsideCarriageway(island, 2.0);
-console.log(JSON.stringify({
-  inside: insideCarriageway(0, 0, 0.30),
-  runs: runs.length,
-}));
-""")
+def test_visual_intersection_pad_does_not_redefine_carriageway_geometry() -> None:
+    """The asphalt fill is a render backstop, not a circular synthetic kerb."""
+    js = _page_js()
+    pad = _extract("addIntersectionRoadPads", js)
+    guard = _extract("insideCarriageway", js)
+    assert "addCarriagewayDisk" not in pad
+    assert "carriagewayDisk" not in guard
 
-    assert result["inside"] is True, result
-    assert result["runs"] == 0, result
+
+def test_midblock_sidewalk_way_ends_are_not_cut_back() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
+const sidewalk = [asLonLat(-20, 8), asLonLat(20, 8)];
+const trimmed = trimWalkwayForCorners(sidewalk, 3.6);
+console.log(JSON.stringify({ before: +wayLength(sidewalk).toFixed(2),
+                             after: +wayLength(trimmed).toFixed(2) }));
+""")
+    assert result["after"] == result["before"], result
+
+
+def test_only_the_sidewalk_end_touching_a_crossing_is_cut_back() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
+// The first endpoint is in a pre-indexed crosswalk band; the far endpoint is an ordinary split.
+crossingAreaGrid.set('0:0', [[0, -5, 0, 5, 2]]);
+const sidewalk = [asLonLat(0, 6), asLonLat(0, 26)];
+const trimmed = trimWalkwayForCorners(sidewalk, 3.6);
+console.log(JSON.stringify({ before: +wayLength(sidewalk).toFixed(2),
+                             after: +wayLength(trimmed).toFixed(2) }));
+""")
+    assert 12.5 <= result["after"] <= 13.5, result
+
+
+def test_corridor_wide_geometry_audit_runs_and_keeps_crosswalks_and_footways() -> None:
+    """Keep the executable audit in lockstep with the renderer it is meant to protect."""
+    out = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "audit_corridor_render.py")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert out.returncode == 0, out.stderr
+    report = json.loads(out.stdout)
+    assert report["crosswalk"]["rendered"] > 2500, report["crosswalk"]
+    assert report["crosswalk"]["attachedShare"] > 0.98, report["crosswalk"]
+    assert report["footway"]["keptShare"] > 0.90, report["footway"]
 
 
 def test_ground_cover_is_clipped_off_the_carriageway() -> None:
@@ -1192,7 +1243,6 @@ PAVEMENT_FUNCTIONS = (
     "insideCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
-    "addCarriagewayDisk",
     "lerpLonLat",
     "wayLength",
     "offsetWay",

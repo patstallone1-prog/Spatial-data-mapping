@@ -22,7 +22,6 @@ and it answers the question the screenshots were being used to answer.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import shutil
 import subprocess
@@ -38,8 +37,11 @@ GROUND_DATA = ROOT / "docs" / "sf-corridor-ground.json"
 #: rather than quietly measuring nothing.
 FUNCTIONS = (
     "distanceToSegmentSquared",
+    "insideCrossingArea",
     "insideCarriageway",
+    "pavementSurroundedByStreet",
     "addCarriagewaySegment",
+    "dividerFootprintIsRoadborne",
     "laneCountForWay",
     "nominalRoadWidth",
     "renderedRoadWidth",
@@ -51,10 +53,16 @@ FUNCTIONS = (
     "trimWay",
     "trimWayEnds",
     "densifyWay",
+    "lonLatFromXZ",
+    "crossingRoadSpanPoints",
+    "crossingRectanglePoints",
+    "addCrossingAreaSegment",
     "pavementRunsOutsideCarriageway",
     "mappedWalkNear",
+    "sideBlockedByCarriageway",
     "walkSidesToDraw",
     "indexStreetEnds",
+    "streetContinuationsAt",
     "streetCarriesOn",
     "kerbsideTrims",
     "walkFitsAt",
@@ -98,6 +106,8 @@ const GROUND = JSON.parse(require('fs').readFileSync(process.env.GROUND_JSON, 'u
 
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
+const CROSSING_AREA_CELL_M = 8.0;
+const crossingAreaGrid = new Map();
 const bbox = DATA.bbox;
 const midLat = (bbox.south + bbox.north) / 2;
 const midLon = (bbox.west + bbox.east) / 2;
@@ -110,6 +120,7 @@ const MAX_INFERRED_ROAD_M = 16.5;
 const MIN_RENDER_WALK_M = 0.9;
 const MAX_RENDER_WALK_M = 5.5;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
+const WALK_ENOUGH = 0.55;
 const WALK_WIDTH_RUN_M = 6.0;
 const NARROW_WALK_M = 1.15;
 const STREET_JOIN_M = 3.0;
@@ -157,6 +168,53 @@ for (const way of DATA.ways) {
     const [bx, by] = xy(way.points[i][0], way.points[i][1]);
     addCarriagewaySegment(ax, -ay, bx, -by, half, way);
   }
+}
+
+// -- OSM physical dividers, distinct from the lane-paint pass -------------------------------
+let dividerMapped = 0;
+let dividerRendered = 0;
+const dividerBySource = {};
+for (const way of DATA.ways) {
+  if (way.kind !== "divider" || !way.points || way.points.length < 4) continue;
+  dividerMapped += 1;
+  dividerBySource[way.divider_source] = (dividerBySource[way.divider_source] || 0) + 1;
+  if (dividerFootprintIsRoadborne(way)) dividerRendered += 1;
+}
+
+// -- crosswalks attached to the local kerbs -------------------------------------------------
+let crossingWays = 0;
+let crossingRendered = 0;
+let crossingKerbAttached = 0;
+let crossingUnionBoundary = 0;
+let crossingLengthM = 0;
+for (const way of DATA.ways) {
+  if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
+  if (wayLength(way.points) > 40) continue;
+  crossingWays += 1;
+  const span = crossingRectanglePoints(way.points);
+  if (!span || span.length < 2) continue;
+  crossingRendered += 1;
+  crossingLengthM += wayLength(span);
+  const [ax, ay] = xy(span[0][0], span[0][1]);
+  const [bx, by] = xy(span[1][0], span[1][1]);
+  const az = -ay;
+  const bz = -by;
+  const dx = bx - ax;
+  const dz = bz - az;
+  const length = Math.hypot(dx, dz) || 1;
+  const ux = dx / length;
+  const uz = dz / length;
+  const inset = 0.25;
+  const aInside = insideCarriageway(ax + ux * inset, az + uz * inset, 0.0);
+  const aOutside = insideCarriageway(ax - ux * inset, az - uz * inset, 0.0);
+  const bInside = insideCarriageway(bx - ux * inset, bz - uz * inset, 0.0);
+  const bOutside = insideCarriageway(bx + ux * inset, bz + uz * inset, 0.0);
+  // The inset on both ends must be on the selected carriageway. The outset may still be in the
+  // *other* street at a four-way junction, so report that stronger union-boundary check
+  // separately rather than mislabelling a correct corner crossing as detached.
+  if (aInside && bInside) crossingKerbAttached += 1;
+  if (aInside && bInside && !aOutside && !bOutside) crossingUnionBoundary += 1;
+  addCrossingAreaSegment(span, way.crossing_m || 3.7);
 }
 
 // -- ground cover standing on the roadway ---------------------------------------------------
@@ -268,6 +326,16 @@ console.log(JSON.stringify({
               share: +(sidesBare / sides).toFixed(3), examples: bareExamples },
   groundOnCarriageway: layers,
   fences: { runs: fenceRuns, crossingRoad: fenceOnRoad },
+  divider: { mapped: dividerMapped, rendered: dividerRendered, bySource: dividerBySource },
+  crosswalk: {
+    ways: crossingWays,
+    rendered: crossingRendered,
+    kerbAttached: crossingKerbAttached,
+    attachedShare: +(crossingKerbAttached / Math.max(crossingRendered, 1)).toFixed(3),
+    unionBoundary: crossingUnionBoundary,
+    unionBoundaryShare: +(crossingUnionBoundary / Math.max(crossingRendered, 1)).toFixed(3),
+    meanLengthM: +(crossingLengthM / Math.max(crossingRendered, 1)).toFixed(2),
+  },
   footway: {
     ways: walkWays,
     askedKm: +(askedM / 1000).toFixed(2),
