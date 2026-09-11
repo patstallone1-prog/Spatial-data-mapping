@@ -75,6 +75,7 @@ CARRIAGEWAY_FUNCTIONS = (
     "insideCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
+    "addCarriagewayDisk",
     "lerpLonLat",
     "wayLength",
     "pavementRunsOutsideCarriageway",
@@ -84,10 +85,13 @@ CARRIAGEWAY_FUNCTIONS = (
 PREAMBLE = """
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
+const carriagewayDiskGrid = new Map();
 const CROSSING_AREA_CELL_M = 8.0;
 const crossingAreaGrid = new Map();
 const metersPerLat = 111320;
 const metersPerLon = 88000;
+const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
+const SIDEWALK_INTERSECTION_CUT_MAX_M = 10.5;
 function xy(lon, lat) { return [lon * metersPerLon, lat * metersPerLat]; }
 """
 
@@ -109,11 +113,15 @@ def _run_crossing(js_body: str) -> dict:
         "distanceToSegmentSquared",
         "insideCarriageway",
         "addCarriagewaySegment",
+        "addCarriagewayDisk",
         "lerpLonLat",
         "wayLength",
         "lonLatFromXZ",
+        "intersectionWalkwayCutback",
+        "axisStraightCrossingPoints",
         "crossingRoadSpanPoints",
         "crossingRectanglePoints",
+        "sidewalkCrossingReplacementSpans",
     )
     parts = [PREAMBLE]
     parts += [_extract(name, js) for name in functions]
@@ -241,6 +249,63 @@ console.log(JSON.stringify({ count: clipped.length }));
     assert result["count"] == 0, result
 
 
+def test_crosswalk_geometry_snaps_to_horizontal_or_vertical_span() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
+const crossing = [asLonLat(-3, 18), asLonLat(7, -18)];
+const clipped = crossingRectanglePoints(crossing);
+const pts = clipped.map(([lon, lat]) => {
+  const [x, y] = xy(lon, lat);
+  return [+x.toFixed(2), +(-y).toFixed(2)];
+});
+console.log(JSON.stringify({ count: clipped.length, pts, len: +wayLength(clipped).toFixed(2) }));
+""")
+
+    assert result["count"] == 2, result
+    assert abs(result["pts"][0][0] - result["pts"][1][0]) < 0.05, result
+    assert 9.6 <= result["len"] <= 10.4, result
+
+
+def test_sidewalk_crossing_replacement_spans_are_direct_curb_to_curb() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
+const sidewalk = [
+  asLonLat(0, 14),
+  asLonLat(3, 6),
+  asLonLat(-2, -6),
+  asLonLat(0, -14),
+];
+const spans = sidewalkCrossingReplacementSpans(sidewalk, 3.7);
+const pts = spans[0].map(([lon, lat]) => {
+  const [x, y] = xy(lon, lat);
+  return [+x.toFixed(2), +(-y).toFixed(2)];
+});
+console.log(JSON.stringify({
+  spans: spans.length,
+  pts,
+  len: +wayLength(spans[0]).toFixed(2),
+}));
+""")
+
+    assert result["spans"] == 1, result
+    assert abs(result["pts"][0][0] - result["pts"][1][0]) < 0.05, result
+    assert 9.6 <= result["len"] <= 10.4, result
+
+
+def test_intersection_sidewalk_cutback_is_property_edge_plus_three_metres() -> None:
+    result = _run_crossing("""
+console.log(JSON.stringify({
+  standard: +intersectionWalkwayCutback(3.6).toFixed(1),
+  narrow: +intersectionWalkwayCutback(1.2).toFixed(1),
+  capped: +intersectionWalkwayCutback(12.0).toFixed(1),
+}));
+""")
+
+    assert result == {"standard": 6.6, "narrow": 4.2, "capped": 10.5}
+
+
 def test_sidewalk_tile_surrounded_by_street_on_three_sides_is_removed() -> None:
     result = _run("""
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
@@ -256,6 +321,22 @@ console.log(JSON.stringify({
 """)
 
     assert result["surrounded"] is True, result
+    assert result["runs"] == 0, result
+
+
+def test_sidewalk_tile_on_intersection_road_pad_is_removed() -> None:
+    result = _run("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewayDisk(0, 0, 8.0);
+const island = [asLonLat(-3, 0), asLonLat(3, 0)];
+const runs = pavementRunsOutsideCarriageway(island, 2.0);
+console.log(JSON.stringify({
+  inside: insideCarriageway(0, 0, 0.30),
+  runs: runs.length,
+}));
+""")
+
+    assert result["inside"] is True, result
     assert result["runs"] == 0, result
 
 
@@ -1111,6 +1192,7 @@ PAVEMENT_FUNCTIONS = (
     "insideCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
+    "addCarriagewayDisk",
     "lerpLonLat",
     "wayLength",
     "offsetWay",

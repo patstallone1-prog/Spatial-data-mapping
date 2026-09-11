@@ -32,7 +32,7 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert "CROSSING_LANDING_FLARE_M = 2.20" in source
     assert 'addMerged("crossing:landing", mesh, "walk");' in source
     assert "insideCarriageway(x, z, 0.0)" in source
-    assert "addCrossingLandingPads(surfacePoints, widthMeters, roadTop + KERB + 0.002);" in source
+    assert "addCrossingLandingPads(surfacePoints, widthMeters, roadTop + KERB + 0.002);" not in source
     assert "function tactileWarningTexture()" in source
     assert "Truncated-dome warning tile" in source
     assert 'ctx.fillStyle = "#d8aa24";' in source
@@ -132,6 +132,8 @@ def test_renderer_densifies_curved_road_markings() -> None:
 
     assert "function densifyWay(points, maxSpan = 5.0)" in source
     assert "function addIntersectionRoadPads(ways, intersections, roadTop)" in source
+    assert "function addCarriagewayDisk(x, z, radius)" in source
+    assert "addCarriagewayDisk(x, -y, radius);" in source
     assert "addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);" in source
     assert "node.half * 2.2 + 8.0" in source
     assert 'addMerged("road:junction", mesh, "road");' in source

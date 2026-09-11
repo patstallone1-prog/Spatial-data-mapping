@@ -850,7 +850,7 @@ function trimWalkwayForCorners(points, width) {
   // corner is already drawn there, and letting concrete ribbons meet over that same point is
   // what creates the messy checkerboard overlap. Pulling only the walkable ribbons back leaves
   // crossings to bridge the gap, including the synthetic alley-mouth crossings below.
-  return trimWay(points, Math.max(1.0, Math.min(3.0, width * 0.65)));
+  return trimWay(points, intersectionWalkwayCutback(width));
 }
 
 function lonLatFromXZ(x, z) {
@@ -859,14 +859,42 @@ function lonLatFromXZ(x, z) {
   return [x / metersPerLon + originLon, -z / metersPerLat + originLat];
 }
 
+const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
+const SIDEWALK_INTERSECTION_CUT_MAX_M = 10.5;
+
+function intersectionWalkwayCutback(width) {
+  return Math.max(3.0, Math.min(SIDEWALK_INTERSECTION_CUT_MAX_M,
+    (width || 3.6) + SIDEWALK_INTERSECTION_CUT_EXTRA_M));
+}
+
+function axisStraightCrossingPoints(points) {
+  if (!points || points.length < 2) return points || [];
+  const a = points[0];
+  const b = points[points.length - 1];
+  const [ax, ay] = xy(a[0], a[1]);
+  const [bx, by] = xy(b[0], b[1]);
+  const az = -ay;
+  const bz = -by;
+  const dx = bx - ax;
+  const dz = bz - az;
+  if (!(Math.hypot(dx, dz) > 1.2)) return [a, b];
+  if (Math.abs(dx) >= Math.abs(dz)) {
+    const z = (az + bz) / 2;
+    return [lonLatFromXZ(ax, z), lonLatFromXZ(bx, z)];
+  }
+  const x = (ax + bx) / 2;
+  return [lonLatFromXZ(x, az), lonLatFromXZ(x, bz)];
+}
+
 function crossingRoadSpanPoints(points) {
   // A crosswalk is the direct chord between two kerbs. OSM crossing ways often include doglegs
   // and sidewalk connector nodes so the pedestrian graph joins up; drawing those bends paints
   // curved, non-parallel crosswalk edges and lets the marking run onto the sidewalk. Sample the
   // direct chord and keep only the curb-to-curb part that actually crosses carriageway.
   if (!points || points.length < 2) return null;
-  const a = points[0];
-  const b = points[points.length - 1];
+  const straight = axisStraightCrossingPoints(points);
+  const a = straight[0];
+  const b = straight[straight.length - 1];
   const [ax, ay] = xy(a[0], a[1]);
   const [bx, by] = xy(b[0], b[1]);
   const az = -ay;
@@ -912,6 +940,45 @@ function crossingRectanglePoints(points) {
   const clipped = crossingRoadSpanPoints(points);
   if (clipped) return clipped;
   return [];
+}
+
+function sidewalkCrossingReplacementSpans(points, width) {
+  if (!points || points.length < 2) return [];
+  const samples = [];
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1];
+    const b = points[i];
+    const [ax, ay] = xy(a[0], a[1]);
+    const [bx, by] = xy(b[0], b[1]);
+    const length = Math.hypot(bx - ax, by - ay);
+    const steps = Math.max(1, Math.ceil(length / 1.0));
+    for (let k = i === 1 ? 0 : 1; k <= steps; k += 1) {
+      const point = lerpLonLat(a, b, k / steps);
+      const [x, y] = xy(point[0], point[1]);
+      samples.push({ point, x, z: -y, onRoad: insideCarriageway(x, -y, 0.0) });
+    }
+  }
+  const spans = [];
+  let start = -1;
+  const finish = (end) => {
+    if (start < 0) return;
+    const before = samples[start - 1];
+    const after = samples[end + 1];
+    if (before && after) {
+      const clipped = crossingRoadSpanPoints([before.point, after.point]);
+      if (clipped) spans.push(clipped);
+    }
+    start = -1;
+  };
+  for (let i = 0; i < samples.length; i += 1) {
+    if (samples[i].onRoad) {
+      if (start < 0) start = i;
+    } else {
+      finish(i - 1);
+    }
+  }
+  finish(samples.length - 1);
+  return spans;
 }
 
 const CROSSING_AREA_CELL_M = 8.0;
@@ -1569,6 +1636,7 @@ function addIntersectionRoadPads(ways, intersections, roadTop) {
     if (node.ids.size < 2 || (named.length < 2 && turn < Math.PI / 5)) continue;
     const [x, y] = xy(node.point[0], node.point[1]);
     const radius = Math.max(10.0, Math.min(34.0, node.half * 2.2 + 8.0));
+    addCarriagewayDisk(x, -y, radius);
     const geometry = new THREE.CircleGeometry(radius, 36);
     geometry.rotateX(-Math.PI / 2);
     const uv = [];
@@ -2420,6 +2488,7 @@ function roadSurfaceTop() { return 0.06 + KERB_FALLBACK; }
 // pavement asks before it is placed.
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
+const carriagewayDiskGrid = new Map();
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
@@ -2562,6 +2631,21 @@ function addCarriagewaySegment(ax, az, bx, bz, half, source = null) {
   }
 }
 
+function addCarriagewayDisk(x, z, radius) {
+  const minX = Math.floor((x - radius) / CARRIAGEWAY_CELL);
+  const maxX = Math.floor((x + radius) / CARRIAGEWAY_CELL);
+  const minZ = Math.floor((z - radius) / CARRIAGEWAY_CELL);
+  const maxZ = Math.floor((z + radius) / CARRIAGEWAY_CELL);
+  for (let ix = minX; ix <= maxX; ix += 1) {
+    for (let iz = minZ; iz <= maxZ; iz += 1) {
+      const key = `${ix}:${iz}`;
+      let bucket = carriagewayDiskGrid.get(key);
+      if (!bucket) carriagewayDiskGrid.set(key, bucket = []);
+      bucket.push([x, z, radius]);
+    }
+  }
+}
+
 clampRoadWidthsToNeighbours(DATA.ways);
 
 for (const way of DATA.ways) {
@@ -2597,10 +2681,18 @@ function insideCarriageway(x, z, slack = 0.4) {
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
-      if (!bucket) continue;
-      for (const [ax, az, bx, bz, half] of bucket) {
-        const limit = Math.max(0, half - slack);
-        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
+      if (bucket) {
+        for (const [ax, az, bx, bz, half] of bucket) {
+          const limit = Math.max(0, half - slack);
+          if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
+        }
+      }
+      const disks = carriagewayDiskGrid.get(`${cx + dx}:${cz + dz}`);
+      if (disks) {
+        for (const [ix, iz, radius] of disks) {
+          const limit = Math.max(0, radius - slack);
+          if (Math.hypot(x - ix, z - iz) < limit) return true;
+        }
       }
     }
   }
@@ -3517,6 +3609,20 @@ function addCrossingTactilePads(points, crossingWidth, y) {
   if (addTactileWarningPad(points[0], points[1], crossingWidth, y)) added += 1;
   if (addTactileWarningPad(points[points.length - 1], points[points.length - 2],
                            crossingWidth, y)) added += 1;
+  return added;
+}
+
+function addSidewalkCrossingReplacements(points, y) {
+  const crossingWidth = 3.7;
+  let added = 0;
+  for (const span of sidewalkCrossingReplacementSpans(points, crossingWidth)) {
+    if (!shouldDrawCrossing(span, crossingWidth)) continue;
+    addCrossingAreaSegment(span, crossingWidth);
+    addMerged("ribbon:sidewalk-crossing-replacement",
+      ribbon(span, crossingWidth, 0xffffff, 1.0, y, 0.02, "crossing_edges"),
+      "crossing_edges");
+    added += 1;
+  }
   return added;
 }
 
@@ -5683,16 +5789,16 @@ const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossi
     // marked crossings to ladders for years, and the inventory is demonstrably incomplete --
     // 598 of its points sit near no mapped crossing at all, which is the two datasets
     // disagreeing about where a crossing is rather than evidence that one is plain. The
-    // ``continental`` flag still records the 817 the city confirms.
+  // ``continental`` flag still records the 817 the city confirms.
   if (isSidewalk || isPath) {
+    addSidewalkCrossingReplacements(renderPoints, roadTop + 0.024);
     addPavementRibbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind);
-} else {
+  } else {
     addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
               ribbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind),
               surfaceKind);
     if (isCrossing) {
-      addCrossingLandingPads(surfacePoints, widthMeters, roadTop + KERB + 0.002);
-      addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);
+    addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);
     }
   }
 if (!isSidewalk && !isCrossing && !isPath) {
