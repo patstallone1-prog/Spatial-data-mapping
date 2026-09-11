@@ -848,6 +848,15 @@ function trimWalkwayForCorners(points, width) {
   return trimWay(points, Math.max(1.0, Math.min(3.0, width * 0.65)));
 }
 
+function crossingRectanglePoints(points) {
+  // A marked crosswalk is a rectangle across the road. OSM crossing ways sometimes carry an
+  // extra centre node or a tiny dogleg to connect footway topology, and feeding that polyline
+  // into a wide ribbon mitres the bend into a plus-shaped slab. Paint the crossing from curb
+  // endpoint to curb endpoint; the texture still supplies the bars.
+  if (!points || points.length < 2) return points || [];
+  return [points[0], points[points.length - 1]];
+}
+
 const CROSSING_DEDUPE_CELL_M = 4.0;
 const CROSSING_DEDUPE_ANGLE_DEG = 12.0;
 const crossingDrawGrid = new Map();
@@ -2704,12 +2713,34 @@ function mappedWalkNear(x, z, reach = MAPPED_WALK_REACH_M) {
   return false;
 }
 
+function sideBlockedByCarriageway(renderPoints, side, inner) {
+  // Fallback pavement belongs outside the street, not in the slot between two divided
+  // carriageways. Sample just beyond the kerb line: if that strip is inside some other
+  // carriageway, drawing sidewalk tiles there makes the middle of the road look paved.
+  const probe = inner + 1.8;
+  let sampled = 0;
+  let blocked = 0;
+  for (let i = 0; i < renderPoints.length; i += Math.max(1, Math.floor(renderPoints.length / 7))) {
+    const centre = offsetWay([renderPoints[Math.max(0, i - 1)], renderPoints[i],
+                              renderPoints[Math.min(renderPoints.length - 1, i + 1)]],
+                             side * probe)[1];
+    const [x, y] = xy(centre[0], centre[1]);
+    sampled += 1;
+    if (insideCarriageway(x, -y, 0.15)) blocked += 1;
+  }
+  return sampled > 0 && blocked >= sampled * 0.45;
+}
+
 function walkSidesToDraw(way, renderPoints, inner) {
   // Both sides unless OpenStreetMap says otherwise and the ground agrees with it.
   const stated = way.walk_sides;
-  if (stated === undefined) return [1, -1];
   const drawn = [];
   for (const side of [1, -1]) {
+    if (sideBlockedByCarriageway(renderPoints, side, inner)) continue;
+    if (stated === undefined) {
+      drawn.push(side);
+      continue;
+    }
     if (stated.includes(side)) {
       drawn.push(side);
       continue;
@@ -2733,6 +2764,7 @@ function walkSidesToDraw(way, renderPoints, inner) {
 const STREET_JOIN_M = 3.0;
 const STREET_JOIN_DEG = 34.0;
 const LANE_TRANSITION_TRIM_M = 9.0;
+const LANE_TRANSITION_MAX_SHIFT_M = 3.4;
 const streetEndGrid = new Map();
 
 function indexStreetEnds(ways) {
@@ -2826,7 +2858,14 @@ function laneMarkingProfileChanged(a, b) {
     || Math.abs(a.road - b.road) > 1.1;
 }
 
-function laneMarkingTrims(way, renderPoints, roadWidth) {
+function laneTransitionCandidate(way, here, other) {
+  if (!other) return false;
+  if (way && other && way.name && other.name && way.name !== other.name) return false;
+  const profile = laneMarkingProfile(other);
+  return laneMarkingProfileChanged(here, profile);
+}
+
+function laneMarkingTransitions(way, renderPoints, roadWidth) {
   if (!way || !renderPoints || renderPoints.length < 2) return [0, 0];
   const n = renderPoints.length;
   const [sx, sy] = xy(renderPoints[0][0], renderPoints[0][1]);
@@ -2836,12 +2875,97 @@ function laneMarkingTrims(way, renderPoints, roadWidth) {
   const startBearing = Math.atan2(-s2y + sy, s2x - sx);
   const endBearing = Math.atan2(-e2y + ey, e2x - ex);
   const here = laneMarkingProfile(way, roadWidth);
-  const needsTransition = (x, z, bearing) => streetContinuationsAt(way, x, z, bearing).some(
-    (other) => laneMarkingProfileChanged(here, laneMarkingProfile(other)));
   return [
-    needsTransition(sx, -sy, startBearing) ? LANE_TRANSITION_TRIM_M : 0,
-    needsTransition(ex, -ey, endBearing) ? LANE_TRANSITION_TRIM_M : 0,
+    streetContinuationsAt(way, sx, -sy, startBearing).find(
+      (other) => laneTransitionCandidate(way, here, other)) || null,
+    streetContinuationsAt(way, ex, -ey, endBearing).find(
+      (other) => laneTransitionCandidate(way, here, other)) || null,
   ];
+}
+
+function laneMarkingTrims(way, renderPoints, roadWidth) {
+  const [start, end] = laneMarkingTransitions(way, renderPoints, roadWidth);
+  return [
+    start ? LANE_TRANSITION_TRIM_M : 0,
+    end ? LANE_TRANSITION_TRIM_M : 0,
+  ];
+}
+
+function laneMarkingPaints(profile) {
+  const marks = [];
+  if (!profile) return marks;
+  const laneWidth = profile.total ? profile.road / profile.total : 0;
+  if (profile.total >= 2 && laneWidth >= 2.6) {
+    for (let i = 1; i < profile.total; i += 1) {
+      if (profile.opposing && i === (profile.backward || Math.floor(profile.total / 2))) continue;
+      const offset = profile.road / 2 - i * laneWidth;
+      if (Math.abs(offset) < profile.road / 2 - 0.35) {
+        marks.push({ offset, color: 0xdfe3e0, kind: "lane", y: 0.015 });
+      }
+    }
+  }
+  if (profile.opposing) {
+    const apart = (MARK_W + DOUBLE_GAP_M) / 2;
+    marks.push({ offset: apart, color: 0xd8a92e, kind: "centre", y: 0.02 });
+    marks.push({ offset: -apart, color: 0xd8a92e, kind: "centre", y: 0.02 });
+  }
+  return marks;
+}
+
+function nearestTransitionPaint(mark, paints) {
+  let best = null;
+  let bestDelta = Infinity;
+  for (const candidate of paints) {
+    if (candidate.kind !== mark.kind) continue;
+    const delta = Math.abs(candidate.offset - mark.offset);
+    if (delta < bestDelta) {
+      best = candidate;
+      bestDelta = delta;
+    }
+  }
+  return best;
+}
+
+function transitionPaintPoints(points, cut, currentOffset, otherOffset, atStart) {
+  if (!points || points.length < 2 || !(cut > 0.5)) return null;
+  if (atStart) {
+    const trimmed = trimWayEnds(points, cut, 0);
+    if (!trimmed || trimmed.length < 2) return null;
+    const base = [points[0], trimmed[0]];
+    return [offsetWay(base, otherOffset)[0], offsetWay(base, currentOffset)[1]];
+  }
+  const trimmed = trimWayEnds(points, 0, cut);
+  if (!trimmed || trimmed.length < 2) return null;
+  const base = [trimmed[trimmed.length - 1], points[points.length - 1]];
+  return [offsetWay(base, currentOffset)[0], offsetWay(base, otherOffset)[1]];
+}
+
+function addLaneTransitionMarkings(way, renderPoints, roadWidth, roadTop) {
+  const [startOther, endOther] = laneMarkingTransitions(way, renderPoints, roadWidth);
+  if (!startOther && !endOther) return;
+  const here = laneMarkingProfile(way, roadWidth);
+  const herePaints = laneMarkingPaints(here);
+  if (!herePaints.length) return;
+  for (const [other, atStart] of [[startOther, true], [endOther, false]]) {
+    if (!other) continue;
+    const otherProfile = laneMarkingProfile(other);
+    if (here.oneway !== otherProfile.oneway || here.opposing !== otherProfile.opposing) continue;
+    if (Math.abs(here.total - otherProfile.total) > 1) continue;
+    const otherPaints = laneMarkingPaints(otherProfile);
+    if (!otherPaints.length) continue;
+    for (const mark of herePaints) {
+      if (mark.kind === "centre") continue;
+      const otherMark = nearestTransitionPaint(mark, otherPaints);
+      if (!otherMark) continue;
+      if (Math.abs(otherMark.offset - mark.offset) < 0.25) continue;
+      if (Math.abs(otherMark.offset - mark.offset) > LANE_TRANSITION_MAX_SHIFT_M) continue;
+      const points = transitionPaintPoints(
+        renderPoints, LANE_TRANSITION_TRIM_M, mark.offset, otherMark.offset, atStart);
+      if (!points || points.length < 2) continue;
+      const taper = paintedLine(points, MARK_W, mark.color, roadTop + mark.y);
+      if (taper) addMerged(`marking:transition:${mark.kind}`, taper, "marking");
+    }
+  }
 }
 
 function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y, thickness) {
@@ -5389,7 +5513,8 @@ for (const way of DRAW_ORDER) {
     : isPath ? 2.4
     : renderedRoadWidth(way);
   const renderPoints = densifyWay(way.points);
-  const surfacePoints = (isSidewalk || isPath) ? trimWalkwayForCorners(renderPoints, widthMeters) : renderPoints;
+ const surfacePoints = isCrossing ? crossingRectanglePoints(renderPoints)
+ : (isSidewalk || isPath) ? trimWalkwayForCorners(renderPoints, widthMeters) : renderPoints;
   // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
   // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
   const KERB = way.kerb_m || KERB_FALLBACK;
@@ -5495,6 +5620,7 @@ addKerbsidePavement(renderPoints, side, inner, walk, color, opacity,
         if (yellow) addMerged("marking:centre", yellow, "marking");
       }
     }
+    addLaneTransitionMarkings(way, renderPoints, road, roadTop);
   }
   // Turn arrows, at the end of the way -- which is where the junction is and where they are
   // painted. 224 ways in this corridor say which lane turns where.

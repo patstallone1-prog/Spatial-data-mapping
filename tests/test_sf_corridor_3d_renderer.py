@@ -47,6 +47,8 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
 def test_crosswalks_dedupe_same_direction_overlaps_only() -> None:
     source = _source()
 
+    assert "function crossingRectanglePoints(points)" in source
+    assert "const surfacePoints = isCrossing ? crossingRectanglePoints(renderPoints)" in source
     assert "const crossingDrawGrid = new Map();" in source
     assert "function shouldDrawCrossing(points, width)" in source
     assert "crossingBearingDifference(other.bearing, pose.bearing)" in source
@@ -74,6 +76,8 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     assert "addKerbsidePavement(renderPoints, side, inner, walk" in source
     assert "WALK_FALLBACK_WIDTHS_M" in source
     # And `sidewalk=no` is believed only where a footway is really mapped in its place.
+    assert "function sideBlockedByCarriageway(renderPoints, side, inner)" in source
+    assert "drawing sidewalk tiles there makes the middle of the road look paved" in source
     assert "function walkSidesToDraw(way, renderPoints, inner)" in source
     assert "mappedWalkNear(x, -y)" in source
 
@@ -130,6 +134,14 @@ def test_renderer_densifies_curved_road_markings() -> None:
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
     assert "const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);" in source
     assert "paintedLine(offsetWay(markingPoints, offset), MARK_W" in source
+    assert "function addLaneTransitionMarkings(way, renderPoints, roadWidth, roadTop)" in source
+    assert "const LANE_TRANSITION_MAX_SHIFT_M = 3.4;" in source
+    assert "function laneTransitionCandidate(way, here, other)" in source
+    assert "way.name && other.name && way.name !== other.name" in source
+    assert "here.oneway !== otherProfile.oneway || here.opposing !== otherProfile.opposing" in source
+    assert 'if (mark.kind === "centre") continue;' in source
+    assert "transitionPaintPoints(" in source
+    assert 'addMerged(`marking:transition:${mark.kind}`, taper, "marking");' in source
 
 
 def test_narrow_pavement_uses_long_tiles_without_widening_geometry() -> None:

@@ -429,7 +429,7 @@ def test_no_sidewalk_is_believed_only_where_one_is_mapped_instead() -> None:
     """
     js = _page_js()
     body = _extract("walkSidesToDraw", js)
-    assert "if (stated === undefined) return [1, -1];" in body
+    assert "sideBlockedByCarriageway(renderPoints, side, inner)" in body
     assert "mappedWalkNear" in body, "the tag is taken on trust"
     # A side the tag excludes is still drawn when nothing is mapped along it.
     assert "if (!sampled || covered < sampled * 0.5) drawn.push(side);" in body
