@@ -73,6 +73,7 @@ CARRIAGEWAY_FUNCTIONS = (
     "distanceToSegmentSquared",
     "insideCrossingArea",
     "insideCarriageway",
+    "pavementSurroundedByStreet",
     "addCarriagewaySegment",
     "lerpLonLat",
     "wayLength",
@@ -95,6 +96,27 @@ def _run(js_body: str) -> dict:
     js = _page_js()
     parts = [PREAMBLE]
     parts += [_extract(name, js) for name in CARRIAGEWAY_FUNCTIONS]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+def _run_crossing(js_body: str) -> dict:
+    js = _page_js()
+    functions = (
+        "distanceToSegmentSquared",
+        "insideCarriageway",
+        "addCarriagewaySegment",
+        "lerpLonLat",
+        "wayLength",
+        "lonLatFromXZ",
+        "crossingRoadSpanPoints",
+        "crossingRectanglePoints",
+    )
+    parts = [PREAMBLE]
+    parts += [_extract(name, js) for name in functions]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
                          capture_output=True, text=True, timeout=120)
@@ -181,6 +203,60 @@ def test_the_carriageway_guard_never_widens_the_road() -> None:
     for call in calls:
         slack = call.rsplit(",", 1)[-1].strip(" )\n")
         assert not slack.startswith("-"), f"guard widens the carriageway: {call}"
+
+
+def test_crosswalk_geometry_is_straight_and_clipped_to_curbs() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
+const crossing = [
+  asLonLat(0, 18),
+  asLonLat(4, 8),
+  asLonLat(-3, -8),
+  asLonLat(0, -18),
+];
+const clipped = crossingRectanglePoints(crossing);
+const pts = clipped.map(([lon, lat]) => {
+  const [x, y] = xy(lon, lat);
+  return [+x.toFixed(2), +(-y).toFixed(2)];
+});
+console.log(JSON.stringify({ count: clipped.length, pts, len: +wayLength(clipped).toFixed(2) }));
+""")
+
+    assert result["count"] == 2, result
+    assert abs(result["pts"][0][0]) < 0.15, result
+    assert abs(result["pts"][1][0]) < 0.15, result
+    assert 9.6 <= result["len"] <= 10.4, result
+
+
+def test_crosswalk_geometry_does_not_draw_where_no_carriageway_is_crossed() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
+const sidewalkConnector = [asLonLat(-10, 11), asLonLat(10, 11)];
+const clipped = crossingRectanglePoints(sidewalkConnector);
+console.log(JSON.stringify({ count: clipped.length }));
+""")
+
+    assert result["count"] == 0, result
+
+
+def test_sidewalk_tile_surrounded_by_street_on_three_sides_is_removed() -> None:
+    result = _run("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-5, -3, 5, -3, 1.1);
+addCarriagewaySegment(-5, 3, 5, 3, 1.1);
+addCarriagewaySegment(3, -5, 3, 5, 1.1);
+const island = [asLonLat(-1, 0), asLonLat(1, 0)];
+const runs = pavementRunsOutsideCarriageway(island, 2.0);
+console.log(JSON.stringify({
+  surrounded: pavementSurroundedByStreet(0, 0, 2.0),
+  runs: runs.length,
+}));
+""")
+
+    assert result["surrounded"] is True, result
+    assert result["runs"] == 0, result
 
 
 def test_ground_cover_is_clipped_off_the_carriageway() -> None:
@@ -1033,6 +1109,7 @@ PAVEMENT_FUNCTIONS = (
     "distanceToSegmentSquared",
     "insideCrossingArea",
     "insideCarriageway",
+    "pavementSurroundedByStreet",
     "addCarriagewaySegment",
     "lerpLonLat",
     "wayLength",
@@ -1116,8 +1193,9 @@ def test_pavement_width_changes_are_stable_runs_not_stacked_tiles() -> None:
     """)
     assert result["ribbons"] == len(result["lengths"]), result
     assert result["ribbons"] >= 1
+    assert len(result["widths"]) == 1, result
     assert all(length >= 6.0 for length in result["lengths"]), result
-    assert result["coveredM"] > 280, result
+    assert result["coveredM"] > 160, result
 
 
 def test_a_pinch_does_not_end_the_pavement() -> None:
@@ -1142,10 +1220,13 @@ def test_the_width_kept_is_the_one_that_covers_the_most_ground() -> None:
     """
     js = _page_js()
     body = _extract("addKerbsidePavement", js)
-    assert "const chosen = [];" in body
-    assert "walkFitsAt(cx, -cy, nx, nz, widths[w])" in body
+    assert "const fits = widths.map(() => []);" in body
+    assert "fits[w].push(walkFitsAt(cx, -cy, nx, nz, widths[w]));" in body
+    assert "if (coverage >= WALK_ENOUGH)" in body
+    assert "const chosen = fits[pick].map((ok) => ok ? pick : -1);" in body
     assert "const emit = (from, to) => {" in body
-    assert body.index("const chosen = [];") < body.index("let laid = 0;")
+    assert body.index("const fits = widths.map(() => []);") < body.index("let laid = 0;")
+    assert body.index("const chosen = fits[pick].map((ok) => ok ? pick : -1);") < body.index("let laid = 0;")
     assert body.index("let laid = 0;") < body.index("addPavementRibbon(")
 
 

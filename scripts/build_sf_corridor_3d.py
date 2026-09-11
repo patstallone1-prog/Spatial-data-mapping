@@ -2463,13 +2463,65 @@ function trimWalkwayForCorners(points, width) {
   return trimWay(points, Math.max(1.0, Math.min(3.0, width * 0.65)));
 }
 
+function lonLatFromXZ(x, z) {
+  const originLon = typeof midLon === "number" ? midLon : 0;
+  const originLat = typeof midLat === "number" ? midLat : 0;
+  return [x / metersPerLon + originLon, -z / metersPerLat + originLat];
+}
+
+function crossingRoadSpanPoints(points) {
+  // A crosswalk is the direct chord between two kerbs. OSM crossing ways often include doglegs
+  // and sidewalk connector nodes so the pedestrian graph joins up; drawing those bends paints
+  // curved, non-parallel crosswalk edges and lets the marking run onto the sidewalk. Sample the
+  // direct chord and keep only the curb-to-curb part that actually crosses carriageway.
+  if (!points || points.length < 2) return null;
+  const a = points[0];
+  const b = points[points.length - 1];
+  const [ax, ay] = xy(a[0], a[1]);
+  const [bx, by] = xy(b[0], b[1]);
+  const az = -ay;
+  const bz = -by;
+  const length = Math.hypot(bx - ax, bz - az);
+  if (!(length > 1.2)) return null;
+  const steps = Math.max(12, Math.ceil(length / 0.65));
+  let first = -1;
+  let last = -1;
+  const onRoad = (t) => insideCarriageway(ax + (bx - ax) * t, az + (bz - az) * t, 0.0);
+  for (let i = 0; i <= steps; i += 1) {
+    if (!onRoad(i / steps)) continue;
+    if (first < 0) first = i;
+    last = i;
+  }
+  if (first < 0 || last < 0) return null;
+  const refine = (outside, inside) => {
+    let lo = Math.max(0, Math.min(outside, inside));
+    let hi = Math.min(1, Math.max(outside, inside));
+    for (let i = 0; i < 9; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (onRoad(mid) === onRoad(inside)) {
+        if (inside < outside) lo = mid; else hi = mid;
+      } else if (inside < outside) {
+        hi = mid;
+      } else {
+        lo = mid;
+      }
+    }
+    return inside < outside ? lo : hi;
+  };
+  const start = first > 0 ? refine((first - 1) / steps, first / steps) : 0;
+  const end = last < steps ? refine((last + 1) / steps, last / steps) : 1;
+  const span = Math.abs(end - start) * length;
+  if (span < 2.4 || span > 42) return null;
+  return [
+    lonLatFromXZ(ax + (bx - ax) * start, az + (bz - az) * start),
+    lonLatFromXZ(ax + (bx - ax) * end, az + (bz - az) * end),
+  ];
+}
+
 function crossingRectanglePoints(points) {
-  // A marked crosswalk is a rectangle across the road. OSM crossing ways sometimes carry an
-  // extra centre node or a tiny dogleg to connect footway topology, and feeding that polyline
-  // into a wide ribbon mitres the bend into a plus-shaped slab. Paint the crossing from curb
-  // endpoint to curb endpoint; the texture still supplies the bars.
-  if (!points || points.length < 2) return points || [];
-  return [points[0], points[points.length - 1]];
+  const clipped = crossingRoadSpanPoints(points);
+  if (clipped) return clipped;
+  return [];
 }
 
 const CROSSING_AREA_CELL_M = 8.0;
@@ -4165,6 +4217,16 @@ function insideCarriageway(x, z, slack = 0.4) {
   return false;
 }
 
+function pavementSurroundedByStreet(x, z, width) {
+  const reach = Math.max(0.85, Math.min(2.4, width));
+  let sides = 0;
+  if (insideCarriageway(x + reach, z, 0.0)) sides += 1;
+  if (insideCarriageway(x - reach, z, 0.0)) sides += 1;
+  if (insideCarriageway(x, z + reach, 0.0)) sides += 1;
+  if (insideCarriageway(x, z - reach, 0.0)) sides += 1;
+  return sides >= 3;
+}
+
 function lerpLonLat(a, b, t) {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 }
@@ -4215,7 +4277,8 @@ function pavementRunsOutsideCarriageway(points, width) {
       const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
       const overlaps = insideCrossingArea(x, z, 0.10)
         || insideCarriageway(x, z, 0.30)
-        || (innerEdge && outerEdge);
+        || (innerEdge && outerEdge)
+        || pavementSurroundedByStreet(x, z, width);
       if (overlaps) {
         finish();
       } else {
@@ -4669,7 +4732,7 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y,
   const spine = densifyWay(trimWayEnds(renderPoints, cutStart, cutEnd), 2.0);
   if (spine.length < 2) return 0;
 
-  const chosen = [];
+  const fits = widths.map(() => []);
   for (let i = 0; i < spine.length; i += 1) {
     const before = spine[Math.max(0, i - 1)];
     const after = spine[Math.min(spine.length - 1, i + 1)];
@@ -4680,32 +4743,33 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y,
     const span = Math.hypot(dx, dz) || 1;
     const nx = -dz / span;
     const nz = dx / span;
-    let pick = -1;
     for (let w = 0; w < widths.length; w += 1) {
       const centre = offsetWay([before, spine[i], after], side * (inner + widths[w] / 2))[1];
       const [cx, cy] = xy(centre[0], centre[1]);
-      if (walkFitsAt(cx, -cy, nx, nz, widths[w])) { pick = w; break; }
+      fits[w].push(walkFitsAt(cx, -cy, nx, nz, widths[w]));
     }
-    chosen.push(pick);
   }
 
-  // A width is held for a few metres before it changes. Without that the strip steps in and out
-  // wherever the guard flickers, and a kerb built of two-metre pieces at five widths is its own
-  // kind of mess. A stretch with no width at all is left alone: that is a real obstruction.
-  const stationM = [0];
-  for (let i = 1; i < spine.length; i += 1) {
-    const [ax, ay] = xy(spine[i - 1][0], spine[i - 1][1]);
-    const [bx, by] = xy(spine[i][0], spine[i][1]);
-    stationM.push(stationM[i - 1] + Math.hypot(bx - ax, by - ay));
-  }
-  for (let i = 1; i < chosen.length; i += 1) {
-    if (chosen[i] === chosen[i - 1] || chosen[i] < 0 || chosen[i - 1] < 0) continue;
-    let j = i;
-    while (j < chosen.length && chosen[j] === chosen[i]) j += 1;
-    if (stationM[Math.min(j, chosen.length - 1)] - stationM[i] < WALK_WIDTH_RUN_M) {
-      for (let k = i; k < j; k += 1) chosen[k] = chosen[i - 1];
+  // One side of one block has one sidewalk width. Changing width mid-block produces exactly
+  // the stray concrete islands seen at big intersections: two correct-looking slabs with a
+  // wrong transition between them. Choose the widest width that covers enough of the side; if
+  // none reaches the threshold, choose the width with the most coverage. Any remaining sliver
+  // is handled by the low property-line underlay, not by changing sidewalk width.
+  let pick = -1;
+  let bestCoverage = -1;
+  for (let w = 0; w < widths.length; w += 1) {
+    const coverage = fits[w].filter(Boolean).length / Math.max(1, fits[w].length);
+    if (coverage > bestCoverage) {
+      bestCoverage = coverage;
+      pick = w;
+    }
+    if (coverage >= WALK_ENOUGH) {
+      pick = w;
+      break;
     }
   }
+  if (pick < 0 || bestCoverage <= 0) return 0;
+  const chosen = fits[pick].map((ok) => ok ? pick : -1);
 
   let laid = 0;
   const emit = (from, to) => {
@@ -4761,7 +4825,8 @@ function walkFitsAt(x, z, nx, nz, width) {
   const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
   return !(insideCrossingArea(x, z, 0.10)
     || insideCarriageway(x, z, 0.30)
-    || (innerEdge && outerEdge));
+    || (innerEdge && outerEdge)
+    || pavementSurroundedByStreet(x, z, width));
 }
 
 function apronSlab(opening) {
