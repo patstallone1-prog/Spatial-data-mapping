@@ -7231,30 +7231,202 @@ function addMuniShelters(records) {
   return added;
 }
 
+function stopSignShapeGeometry() {
+  const shape = new THREE.Shape();
+  const radius = 0.43;
+  for (let i = 0; i < 8; i += 1) {
+    const a = Math.PI / 8 + i * Math.PI / 4;
+    const x = Math.cos(a) * radius;
+    const y = Math.sin(a) * radius;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  const geometry = new THREE.ShapeGeometry(shape);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+const STOP_SIGN_GEOMETRY = stopSignShapeGeometry();
+
+function addOfficialStopSigns(records) {
+  const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (!anchors.length) return 0;
+  const faces = new THREE.InstancedMesh(
+    STOP_SIGN_GEOMETRY,
+    new THREE.MeshStandardMaterial({
+      color: 0xb52127,
+      roughness: 0.58,
+      metalness: 0.02,
+      side: THREE.FrontSide,
+    }),
+    anchors.length,
+  );
+  const backs = new THREE.InstancedMesh(
+    STOP_SIGN_GEOMETRY,
+    new THREE.MeshStandardMaterial({
+      color: 0x7b8082,
+      roughness: 0.72,
+      metalness: 0.18,
+      side: THREE.FrontSide,
+    }),
+    anchors.length,
+  );
+  const poles = new THREE.InstancedMesh(
+    new THREE.CylinderGeometry(0.026, 0.032, 1, 6),
+    new THREE.MeshStandardMaterial({ color: 0x9aa1a3, roughness: 0.48, metalness: 0.54 }),
+    anchors.length,
+  );
+  const dummy = new THREE.Object3D();
+  anchors.forEach((row, i) => {
+    const yaw = furnitureBearing(row.item, row.index);
+    dummy.position.set(row.anchor.x, row.anchor.y + FURNITURE_PANEL_BOTTOM_M + 0.43, row.anchor.z);
+    dummy.rotation.set(0, yaw, 0);
+    dummy.scale.set(1, 1, 1);
+    dummy.updateMatrix();
+    faces.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(row.anchor.x, row.anchor.y + FURNITURE_PANEL_BOTTOM_M + 0.43, row.anchor.z);
+    dummy.rotation.set(0, yaw + Math.PI, 0);
+    dummy.updateMatrix();
+    backs.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(row.anchor.x, row.anchor.y + FURNITURE_POST_H_M / 2, row.anchor.z);
+    dummy.rotation.set(0, yaw, 0);
+    dummy.scale.set(1, FURNITURE_POST_H_M, 1);
+    dummy.updateMatrix();
+    poles.setMatrixAt(i, dummy.matrix);
+  });
+  faces.instanceMatrix.needsUpdate = true;
+  backs.instanceMatrix.needsUpdate = true;
+  poles.instanceMatrix.needsUpdate = true;
+  faces.userData.surface = "furniture:official_stop_front";
+  backs.userData.surface = "furniture:official_stop_back";
+  poles.userData.surface = "furniture:official_stop_post";
+  groups.furniture.add(faces);
+  groups.furniture.add(backs);
+  groups.furniture.add(poles);
+  return anchors.length;
+}
+
+function curbZoneColor(record) {
+  const colors = {
+    red: 0xd92d2d,
+    yellow: 0xe3ba22,
+    white: 0xf4f1e7,
+    green: 0x24945a,
+    blue: 0x2878d8,
+  };
+  return colors[record.curb_color] || null;
+}
+
+function addOfficialCurbZoneBands(records) {
+  let added = 0;
+  const buckets = new Map();
+  const materialByColor = new Map();
+  const materialFor = (color) => {
+    if (!materialByColor.has(color)) {
+      materialByColor.set(color, new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.86,
+        metalness: 0.0,
+        side: THREE.DoubleSide,
+        polygonOffset: true,
+        polygonOffsetFactor: -8,
+        polygonOffsetUnits: -16,
+      }));
+    }
+    return materialByColor.get(color);
+  };
+  const bandWidth = 0.34;
+  const y = roadSurfaceTop() + 0.026;
+  const bucketFor = (colorName, color) => {
+    const key = `${colorName}:${color}`;
+    if (!buckets.has(key)) buckets.set(key, { colorName, color, positions: [], index: [] });
+    return buckets.get(key);
+  };
+  for (const record of records) {
+    const color = curbZoneColor(record);
+    if (!color || !Array.isArray(record.lines)) continue;
+    const bucket = bucketFor(record.curb_color, color);
+    for (const coords of record.lines) {
+      if (!Array.isArray(coords) || coords.length < 2) continue;
+      for (let i = 1; i < coords.length; i += 1) {
+        const a = coords[i - 1];
+        const b = coords[i];
+        if (!a || !b) continue;
+        const [ax, ay] = xy(a[0], a[1]);
+        const [bx, by] = xy(b[0], b[1]);
+        const az = -ay;
+        const bz = -by;
+        const dx = bx - ax;
+        const dz = bz - az;
+        const len = Math.hypot(dx, dz);
+        if (!(len > 0.35)) continue;
+        const px = -dz / len * bandWidth / 2;
+        const pz = dx / len * bandWidth / 2;
+        const base = bucket.positions.length / 3;
+        bucket.positions.push(
+          ax + px, y, az + pz,
+          ax - px, y, az - pz,
+          bx - px, y, bz - pz,
+          bx + px, y, bz + pz,
+        );
+        bucket.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+        added += 1;
+      }
+    }
+  }
+  for (const bucket of buckets.values()) {
+    if (!bucket.positions.length) continue;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(bucket.positions, 3));
+    geometry.setIndex(bucket.index);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, materialFor(bucket.color));
+    mesh.userData = {
+      surface: `official_curb_zone:${bucket.colorName}`,
+      source: "sfmta_curb_zones",
+      provenance: "official_digital_curb_policy_polyline",
+    };
+    groups.furniture.add(mesh);
+  }
+  return added;
+}
+
 function renderStreetFurniture(furniture) {
   const inferred = furniture.inferred || {};
-  const signs = inferred.street_signs || [];
+  const official = furniture.geometry_based || {};
+  const officialSigns = official.street_signs || [];
+  const officialStops = officialSigns.filter((s) => s.sign_kind === "stop");
+  const officialOtherSigns = officialSigns.filter((s) => s.sign_kind !== "stop");
+  const signs = officialSigns.length ? [] : (inferred.street_signs || []);
   const stops = inferred.bus_stops || [];
   const shelters = inferred.shelters || [];
   const ads = inferred.ad_panels || [];
-  const posts = signs.concat(stops, ads);
+  const posts = officialOtherSigns.concat(signs, stops, ads);
   const placed = {
     posts: addStreetFurniturePosts(posts),
-    stop_signs: addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "stop"), 0.72, 0.72, 0xb52127, "furniture:stop"),
+    official_stop_signs: addOfficialStopSigns(officialStops),
+    stop_signs: officialStops.length ? 0 : addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "stop"), 0.72, 0.72, 0xb52127, "furniture:stop"),
     yield_signs: addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "yield"), 0.86, 0.74, 0xf9fbf8, "furniture:yield"),
-    generic_signs: addInstancedFurniturePanels(signs.filter((s) => !["stop", "yield"].includes(s.sign_kind)), 0.44, 0.62, 0xf3f5ef, "furniture:generic"),
+    official_signs: addInstancedFurniturePanels(officialOtherSigns, 0.44, 0.62, 0xf3f5ef, "furniture:official_sign"),
+    generic_signs: officialOtherSigns.length ? 0 : addInstancedFurniturePanels(signs.filter((s) => !["stop", "yield"].includes(s.sign_kind)), 0.44, 0.62, 0xf3f5ef, "furniture:generic"),
     bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25),
     ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55),
     shelters: addMuniShelters(shelters),
+    curb_zone_bands: addOfficialCurbZoneBands(official.curb_zones || []),
   };
   const note = document.getElementById("furniturenote");
   if (note) {
     const counts = furniture.summary?.inferred_counts || {};
+    const officialCounts = furniture.summary?.geometry_based_counts || {};
     note.innerHTML = `<b>Street furniture</b> — ${Number(counts.street_signs || 0).toLocaleString()} inferred OSM sign anchors, `
       + `${Number(counts.bus_stops || 0).toLocaleString()} bus stop anchors, `
       + `${Number(counts.shelters || 0).toLocaleString()} shelter tags, `
       + `${Number(counts.ad_panels || 0).toLocaleString()} blank ad panels. `
-      + `Geometry-based arrays are separate and currently ${Number((furniture.summary?.geometry_based_counts?.street_signs) || 0).toLocaleString()} signs.`;
+      + `Official geometry: ${Number(officialCounts.street_signs || 0).toLocaleString()} signs, `
+      + `${Number(officialCounts.traffic_signals || 0).toLocaleString()} signals, `
+      + `${Number(officialCounts.curb_zones || 0).toLocaleString()} curb policy bands.`;
     note.userData = placed;
   }
 }

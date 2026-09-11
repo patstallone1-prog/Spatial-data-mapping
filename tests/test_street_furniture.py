@@ -75,3 +75,65 @@ def test_muni_stop_specs_keep_official_dimensions_separate_from_shelter_mesh() -
     assert specs["official_geometry"]["transit_island_min_length_m"] == 45.72
     assert specs["official_geometry"]["transit_island_height_m"] == [0.152, 0.203]
     assert specs["inferred_shelter_mesh"]["provenance"] == "inferred_standard_mesh_from_osm_shelter_tag"
+
+
+def test_official_stop_signs_are_geometry_based_with_orientation_provenance() -> None:
+    module = _module()
+
+    records = module.records_from_official({
+        "sfmta_stop_signs": [{
+            "type": "Feature",
+            "properties": {
+                "OBJECTID": 11,
+                "STREET": "PIERCE",
+                "X_STREET": "GREENWICH",
+                "ST_FACING": "NB",
+                "DIRECTION": "NW",
+                "CNN": "26963000",
+            },
+            "geometry": {"type": "Point", "coordinates": [-122.4391562, 37.7985333]},
+        }]
+    })
+
+    sign = records["street_signs"][0]
+    assert sign["source"] == "sfmta_stop_signs"
+    assert sign["provenance"] == "official_mtab_stop_sign_inventory"
+    assert sign["geometry_basis"] == "official_asset_point"
+    assert sign["sign_kind"] == "stop"
+    assert sign["bearing"] == 180.0
+    assert sign["face_policy"] == "single_sided_from_approach_heading"
+
+
+def test_zero_degree_official_sign_bearing_does_not_fall_back_to_corner() -> None:
+    module = _module()
+
+    assert module.first_bearing("SB", "NW") == 0.0
+
+
+def test_official_curb_zone_lines_keep_color_policy_and_geometry() -> None:
+    module = _module()
+
+    records = module.records_from_official({
+        "sfmta_curb_zones": [{
+            "type": "Feature",
+            "properties": {
+                "OBJECTID": 9,
+                "CURB_ZONE_ID": "cz-9",
+                "POLICY_CATEGORY": "Commercial Loading",
+                "POLICY_SUPER_CATEGORY": "Commercial Loading",
+                "LABEL": "Commercial Loading",
+                "LENGTH_FT": 40,
+                "STREET_NAME": "PINE ST",
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[-122.4169, 37.7900], [-122.4168, 37.7901]],
+            },
+        }]
+    })
+
+    zone = records["curb_zones"][0]
+    assert zone["source"] == "sfmta_curb_zones"
+    assert zone["curb_color"] == "yellow"
+    assert zone["lines"] == [[[-122.4169, 37.79], [-122.4168, 37.7901]]]
+    assert zone["geometry_basis"] == "official_digital_curb_polyline"

@@ -46,6 +46,20 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert "addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);" in source
 
 
+def test_official_signs_and_curb_zone_bands_render_from_geometry_based_sidecar() -> None:
+    source = _source()
+
+    assert "const official = furniture.geometry_based || {};" in source
+    assert "const officialStops = officialSigns.filter((s) => s.sign_kind === \"stop\");" in source
+    assert "function addOfficialStopSigns(records)" in source
+    assert "STOP_SIGN_GEOMETRY" in source
+    assert "side: THREE.FrontSide" in source
+    assert "function addOfficialCurbZoneBands(records)" in source
+    assert "const buckets = new Map();" in source
+    assert "surface: `official_curb_zone:${bucket.colorName}`" in source
+    assert "curb_zone_bands: addOfficialCurbZoneBands(official.curb_zones || [])" in source
+
+
 def test_crosswalks_dedupe_same_direction_overlaps_only() -> None:
     source = _source()
 
@@ -296,7 +310,7 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert 'fetch("sf-corridor-furniture.json", { cache: "no-cache" })' in source
     assert '<button data-layer="furniture" aria-pressed="false">Street furniture</button>' in source
     assert 'furniture:blank_ad' in source
-    assert "Geometry-based arrays are separate" in source
+    assert "Official geometry:" in source
     assert 'registerLazyLayer("coverage", () => {' in source
     assert 'registerLazyLayer("observations", () => {' in source
     assert 'registerLazyLayer("sequences", () => {' in source
