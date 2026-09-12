@@ -207,7 +207,7 @@ def test_renderer_densifies_curved_road_markings() -> None:
     # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
     assert "const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);" in source
-    assert "paintedLine(offsetWay(markingPoints, offset), MARK_W" in source
+    assert "paintedLine(offsetWay(run, offset), MARK_W" in source
     assert "function addLaneTransitionMarkings(way, renderPoints, roadWidth, roadTop)" in source
     assert "const LANE_TRANSITION_MAX_SHIFT_M = 3.4;" in source
     assert "function laneTransitionCandidate(way, here, other)" in source

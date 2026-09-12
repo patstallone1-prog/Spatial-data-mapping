@@ -472,8 +472,11 @@ def test_lane_markings_are_painted_with_a_width() -> None:
     assert "mitredEdges(points, width)" in marking, "the marking has no width"
     assert "new THREE.Mesh(" in marking, "the marking is not geometry"
     # The centre line and lane lines both go through it, with transition pullbacks.
-    assert "paintedLine(offsetWay(markingPoints, side * apart), MARK_W" in js
-    assert "paintedLine(offsetWay(markingPoints, offset), MARK_W" in js
+    assert "paintedLine(offsetWay(run, side * apart), MARK_W" in js
+    # Offset from the way's own centreline and painted with a width -- asserted of the call
+    # that survives, not of a literal. The markings are now emitted per junction-clear run, so
+    # the polyline handed to paintedLine is a run rather than the whole way.
+    assert "paintedLine(offsetWay(run, offset), MARK_W" in js
     # Four inches, which is what the MUTCD says and what San Francisco paints.
     assert re.search(r"const MARK_W = 0\.10\d?;", js)
 
@@ -1436,3 +1439,62 @@ def test_mapped_footways_are_laid_before_any_is_derived_from_a_kerb() -> None:
     assert "const DRAW_ORDER = DATA.ways.slice().sort(" in js
     order = js[js.index("const DRAW_ORDER"):js.index("for (const way of DRAW_ORDER)")]
     assert '"sidewalk"' in order and '"path"' in order
+
+
+def test_lane_markings_stop_at_every_junction_not_only_at_a_way_s_ends() -> None:
+    """Paint is not carried through a crossroads.
+
+    Lane lines and centrelines are painted between junctions, never across them -- a driver reads
+    the empty box as the place where the lanes give way to each other. This used to be handled by
+    trimming the two ends of each OpenStreetMap way, which misses every junction in the middle of
+    one, and OpenStreetMap splits a street where its tagging changes rather than where it meets
+    another street. Gough Street runs through Green as a single way, so two double yellows met at
+    right angles in the middle of the box.
+
+    The test that stood here asserted the exact text of one paintedLine call. It passed happily
+    while the markings crossed each other, because the literal was still in the file.
+    """
+    js = _page_js()
+    body = _extract("markingRunsClearOfJunctions", js)
+    # Every point is asked whether a street crosses there, not just the two ends.
+    assert "crosswiseCarriagewayAt(" in body
+    assert "for (let i = 0; i < dense.length; i += 1)" in body
+    # And the paint stops short of the junction rather than at its edge, leaving room for the
+    # crosswalk and the stop bar.
+    assert "JUNCTION_CLEAR_M" in body
+    clear = re.search(r"const JUNCTION_CLEAR_M = ([0-9.]+);", js)
+    assert clear and 3.0 <= float(clear.group(1)) <= 8.0
+    # The lane dividers, the centreline and the transition tapers all go through it.
+    for caller in ("paintedLine(offsetWay(run, offset), MARK_W",
+                   "paintedLine(offsetWay(run, side * apart), MARK_W",
+                   "for (const run of markingRunsClearOfJunctions(points, way))"):
+        assert caller in js, caller
+
+
+def test_street_furniture_faces_the_road_rather_than_a_die_roll() -> None:
+    """A shelter with its back to the kerb is not a shelter.
+
+    Every one of the corridor's 19 shelters, 616 bus stop flags and 375 bearingless stop signs
+    arrives without a stated bearing. They used to be spun to a random angle over the full circle.
+    """
+    js = _page_js()
+    body = _extract("furnitureBearing", js)
+    assert "random(" not in body, "furniture is still being pointed by a die roll"
+    assert "nearestKerbAt(" in body
+    # A stated bearing is a measurement and still wins.
+    assert "Number.isFinite(item.bearing)" in body
+
+
+def test_curb_paint_is_snapped_to_the_kerb_the_model_drew() -> None:
+    """SFMTA digitises against its own centrelines; this model derives kerbs from measured curb
+    geometry. Drawn where the published line falls, a red zone lands in the traffic lanes."""
+    js = _page_js()
+    snap = _extract("nearestKerbAt", js)
+    # A candidate that is still inside a roadway is not a kerb, whatever it is nearest to.
+    assert "insideCarriageway(kerbX, kerbZ" in snap
+    # And a kerb running crosswise to the policy line is a different kerb.
+    assert "CURB_ALIGN_DEG" in snap
+    runs = _extract("kerbRunsFor", js)
+    assert "CURB_RUN_BREAK_M" in runs
+    # The bus box breaks where the kerb turns, because a bus zone does not wrap a corner.
+    assert "kerbRunsFor(record, BUS_ZONE_MAX_TURN_DEG)" in js

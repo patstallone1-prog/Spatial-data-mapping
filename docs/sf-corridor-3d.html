@@ -3174,12 +3174,168 @@ function laneMarkingTransitions(way, renderPoints, roadWidth) {
   ];
 }
 
+//: A stop bar sits about a metre back from the crosswalk, and the crosswalk starts at the kerb
+//: line of the street being crossed. This is the setback from that kerb line.
+const JUNCTION_MARK_SETBACK_M = 1.6;
+
+function junctionReachAt(x, z, bearing) {
+  // How far back from a street's end the junction mouth reaches: the half-width of the widest
+  // carriageway crossing it here. Zero where nothing crosses.
+  const cx = Math.floor(x / CARRIAGEWAY_CELL);
+  const cz = Math.floor(z / CARRIAGEWAY_CELL);
+  const limit = (BIKE_CROSS_ANGLE_DEG * Math.PI) / 180;
+  let reach = 0;
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [ax, az, bx, bz, half, other] of bucket) {
+        if (other === undefined) continue;
+        let difference = Math.abs(other - bearing) % Math.PI;
+        if (difference > Math.PI / 2) difference = Math.PI - difference;
+        if (difference < limit) continue;            // runs along this street, not across it
+        const slack = half + 2.0;
+        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) > slack * slack) continue;
+        if (half > reach) reach = half;
+      }
+    }
+  }
+  return reach;
+}
+
 function laneMarkingTrims(way, renderPoints, roadWidth) {
+  // Lane lines stop at the junction. They are painted between the crossroads, not through them:
+  // a driver reads the empty box as the place where the lanes give way to each other.
+  //
+  // This only ever trimmed where the lane count changed, so every centreline and lane divider
+  // in the corridor ran straight out into the crossroads and met the markings of the street it
+  // was crossing, at right angles, in the middle of the box. Austin and Gough had four of them
+  // meeting in a cross.
   const [start, end] = laneMarkingTransitions(way, renderPoints, roadWidth);
-  return [
+  const trims = [
     start ? LANE_TRANSITION_TRIM_M : 0,
     end ? LANE_TRANSITION_TRIM_M : 0,
   ];
+  const n = renderPoints.length;
+  if (n < 2) return trims;
+  const ends = [
+    { at: 0, next: 1, slot: 0 },
+    { at: n - 1, next: n - 2, slot: 1 },
+  ];
+  for (const { at, next, slot } of ends) {
+    const [ex, ey] = xy(renderPoints[at][0], renderPoints[at][1]);
+    const [nx2, ny2] = xy(renderPoints[next][0], renderPoints[next][1]);
+    const bearing = Math.atan2(-ny2 + ey, nx2 - ex);
+    // Whether the street carries on is the wrong question for paint. At a crossroads it does
+    // carry on -- Gough runs straight through Austin -- and the markings must still stop, because
+    // what matters is that something crosses here. Asking only whether something crosses gets
+    // both cases right: a way merely split mid-block has nothing crossing it and keeps its lines.
+    const reach = junctionReachAt(ex, -ey, bearing);
+    if (reach > 0) trims[slot] = Math.max(trims[slot], reach + JUNCTION_MARK_SETBACK_M);
+  }
+  return trims;
+}
+
+//: Paint stops this far short of the roadway it crosses -- room for the crosswalk and the stop
+//: bar in front of it.
+const JUNCTION_CLEAR_M = 4.6;
+
+//: The mapped intersection nodes, each with the reach of the junction around it. A carriageway
+//: test alone leaves the middle of a wide crossroads uncovered -- neither street's own roadway
+//: extends to the far side of the box -- and a dashed lane line survives out there as a short
+//: fragment at an angle nothing else on the road shares.
+const INTERSECTION_CELL = 40;
+const intersectionGrid = new Map();
+
+function indexIntersections(nodes) {
+  intersectionGrid.clear();
+  for (const node of nodes || []) {
+    if (!Number.isFinite(node.lon) || !Number.isFinite(node.lat)) continue;
+    const [x, y] = xy(node.lon, node.lat);
+    const z = -y;
+    // How big this junction is: the widest carriageway that reaches it.
+    let half = 0;
+    const cx = Math.floor(x / CARRIAGEWAY_CELL);
+    const cz = Math.floor(z / CARRIAGEWAY_CELL);
+    for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dz = -1; dz <= 1; dz += 1) {
+        const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+        if (!bucket) continue;
+        for (const [ax, az, bx, bz, wide] of bucket) {
+          const slack = wide + 2.0;
+          if (distanceToSegmentSquared(x, z, ax, az, bx, bz) > slack * slack) continue;
+          if (wide > half) half = wide;
+        }
+      }
+    }
+    if (!(half > 0)) continue;
+    const radius = half + JUNCTION_CLEAR_M;
+    const key = `${Math.floor(x / INTERSECTION_CELL)}:${Math.floor(z / INTERSECTION_CELL)}`;
+    let bucket = intersectionGrid.get(key);
+    if (!bucket) intersectionGrid.set(key, bucket = []);
+    bucket.push([x, z, radius]);
+  }
+}
+
+function insideIntersection(x, z) {
+  const cx = Math.floor(x / INTERSECTION_CELL);
+  const cz = Math.floor(z / INTERSECTION_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = intersectionGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [ix, iz, radius] of bucket) {
+        if ((x - ix) * (x - ix) + (z - iz) * (z - iz) < radius * radius) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function markingRunsClearOfJunctions(points, way) {
+  // A lane line broken wherever it passes through another street.
+  //
+  // Trimming the ends of the way is not enough, and that is what this used to do. OpenStreetMap
+  // splits a street where its tagging changes, not where it meets another one, so a single way
+  // runs through several crossroads -- and its centreline ran through all of them. Two double
+  // yellows crossing each other at right angles in the middle of Gough and Green is what that
+  // looks like. Asking every point whether a street crosses it there catches the junctions in
+  // the middle of a way as well as the ones at its ends.
+  const dense = densifyWay(points, 2.0);
+  if (dense.length < 2) return [];
+  const blocked = [];
+  const station = [0];
+  for (let i = 0; i < dense.length; i += 1) {
+    const before = dense[Math.max(0, i - 1)];
+    const after = dense[Math.min(dense.length - 1, i + 1)];
+    const [x, y] = xy(dense[i][0], dense[i][1]);
+    const [bx, by] = xy(before[0], before[1]);
+    const [ax, ay] = xy(after[0], after[1]);
+    const bearing = Math.atan2(-ay + by, ax - bx);
+    blocked.push(crosswiseCarriagewayAt(x, -y, bearing, 0.2, way) || insideIntersection(x, -y));
+    if (i) {
+      const [px, py] = xy(dense[i - 1][0], dense[i - 1][1]);
+      station.push(station[i - 1] + Math.hypot(x - px, y - py));
+    }
+  }
+  // The paint stops short of the junction, not at its edge: the crosswalk and the stop bar in
+  // front of it take the last few metres.
+  const clear = blocked.slice();
+  for (let i = 0; i < blocked.length; i += 1) {
+    if (!blocked[i]) continue;
+    for (let j = 0; j < blocked.length; j += 1) {
+      if (Math.abs(station[j] - station[i]) <= JUNCTION_CLEAR_M) clear[j] = true;
+    }
+  }
+  const runs = [];
+  let run = [];
+  const flush = () => { if (run.length >= 2) runs.push(run); run = []; };
+  for (let i = 0; i < dense.length; i += 1) {
+    if (clear[i]) flush();
+    else run.push(dense[i]);
+  }
+  flush();
+  return runs.filter((r) => wayLength(r) > 2.0);
 }
 
 function laneMarkingPaints(profile) {
@@ -3253,8 +3409,14 @@ function addLaneTransitionMarkings(way, renderPoints, roadWidth, roadTop) {
       const points = transitionPaintPoints(
         renderPoints, LANE_TRANSITION_TRIM_M, mark.offset, otherMark.offset, atStart);
       if (!points || points.length < 2) continue;
-      const taper = paintedLine(points, MARK_W, mark.color, roadTop + mark.y);
-      if (taper) addMerged(`marking:transition:${mark.kind}`, taper, "marking");
+      // A taper is painted on the approach to the junction, never across it. It is drawn at the
+      // end of a way, which is where junctions are, so without this the diagonal ran out into
+      // the box and crossed the stop bar of the street it was meeting -- a line at an angle
+      // nothing else on the road shares, which is exactly what reads as a stray mark.
+      for (const run of markingRunsClearOfJunctions(points, way)) {
+        const taper = paintedLine(run, MARK_W, mark.color, roadTop + mark.y);
+        if (taper) addMerged(`marking:transition:${mark.kind}`, taper, "marking");
+      }
     }
   }
 }
@@ -3921,6 +4083,9 @@ indexBikeLaneEnds(DATA.ways);
 // And which street ends are junctions rather than splits in the tagging, so the pavement is
 // pulled back from the first and carries straight through the second.
 indexStreetEnds(DATA.ways);
+
+// The junction boxes themselves, so no paint is carried across one.
+indexIntersections(DATA.intersections);
 
 //: Storey height and bay width in metres, so one tile of the facade covers one real storey.
 const STOREY_M = 3.2;
@@ -6006,6 +6171,7 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     const road = widthMeters;
     const [markCutStart, markCutEnd] = laneMarkingTrims(way, renderPoints, road);
     const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);
+    const markingRuns = markingRunsClearOfJunctions(markingPoints, way);
     const oneway = Boolean(way.oneway || way.osm_oneway);
     const tagged = way.lanes || 0;
     const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
@@ -6024,9 +6190,11 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
           if (opposing && i === (backward || Math.floor(total / 2))) continue;
           const offset = road / 2 - i * laneWidth;
           if (Math.abs(offset) >= road / 2 - 0.35) continue;
-          const divider = paintedLine(offsetWay(markingPoints, offset), MARK_W, 0xdfe3e0,
-                                      roadTop + 0.015, { dash: true });
-          if (divider) addMerged("marking:lane", divider, "marking");
+          for (const run of markingRuns) {
+            const divider = paintedLine(offsetWay(run, offset), MARK_W, 0xdfe3e0,
+                                        roadTop + 0.015, { dash: true });
+            if (divider) addMerged("marking:lane", divider, "marking");
+          }
         }
       }
     }
@@ -6037,9 +6205,11 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
       // a road marking.
       const apart = (MARK_W + DOUBLE_GAP_M) / 2;
       for (const side of [1, -1]) {
-        const yellow = paintedLine(offsetWay(markingPoints, side * apart), MARK_W, 0xd8a92e,
-                                   roadTop + 0.02);
-        if (yellow) addMerged("marking:centre", yellow, "marking");
+        for (const run of markingRuns) {
+          const yellow = paintedLine(offsetWay(run, side * apart), MARK_W, 0xd8a92e,
+                                     roadTop + 0.02);
+          if (yellow) addMerged("marking:centre", yellow, "marking");
+        }
       }
     }
     addLaneTransitionMarkings(way, renderPoints, road, roadTop);
@@ -7314,6 +7484,132 @@ const MUNI_SHELTER_LENGTH_M = 4.0;
 const MUNI_SHELTER_DEPTH_M = 1.45;
 const MUNI_SHELTER_HEIGHT_M = 2.6;
 
+//: How far a published curb-policy line may sit from this model's own kerb and still be taken to
+//: describe it. Beyond this the line belongs to a street this model does not draw.
+const CURB_SNAP_REACH_M = 14.0;
+//: A jump further than this between consecutive snapped points means the policy line has left
+//: this kerb for another one, not that it has bent.
+const CURB_RUN_BREAK_M = 8.0;
+//: Sampling step along a policy line before snapping. Finer than the kerb's own curvature.
+const CURB_SAMPLE_M = 1.5;
+//: The paint on a kerb is the top of the kerb and its face. This is the top.
+const CURB_BAND_W_M = 0.16;
+
+//: A kerb running more than this away from the policy line's own direction is a different kerb.
+const CURB_ALIGN_DEG = 38.0;
+
+function nearestKerbAt(x, z, reach = CURB_SNAP_REACH_M, alongX = null, alongZ = null) {
+  // The closest point on a carriageway edge, and the way out of the road from there.
+  //
+  // SFMTA digitises its curb policy against its own centrelines. This model derives its kerbs
+  // from measured curb geometry clamped to the room between neighbouring streets. The two are
+  // close and never equal, so a policy line drawn where its own data puts it lands in the middle
+  // of the roadway on one block and out on the pavement on the next -- which is exactly what red
+  // zones floating in traffic looked like. Snapped to the kerb this model actually drew, it
+  // lands on the kerb.
+  const cx = Math.floor(x / CARRIAGEWAY_CELL);
+  const cz = Math.floor(z / CARRIAGEWAY_CELL);
+  const span = Math.max(1, Math.ceil(reach / CARRIAGEWAY_CELL));
+  let best = null;
+  for (let dx = -span; dx <= span; dx += 1) {
+    for (let dz = -span; dz <= span; dz += 1) {
+      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [ax, az, bx, bz, half] of bucket) {
+        const ux = bx - ax;
+        const uz = bz - az;
+        const lengthSquared = ux * ux + uz * uz;
+        if (lengthSquared < 1e-9) continue;
+        const t = Math.max(0, Math.min(1, ((x - ax) * ux + (z - az) * uz) / lengthSquared));
+        const px = ax + ux * t;
+        const pz = az + uz * t;
+        const ox = x - px;
+        const oz = z - pz;
+        const away = Math.hypot(ox, oz);
+        if (away < 1e-6) continue;                 // on the centreline: no side to be on
+        const gap = Math.abs(away - half);
+        if (gap > reach || (best && gap >= best.gap)) continue;
+        const run = Math.sqrt(lengthSquared);
+        // A kerb only describes this policy line if it runs the same way the line does. Without
+        // that, consecutive samples near a corner snap alternately to the two streets meeting
+        // there and the band comes out as a fan of triangles instead of a strip along one kerb.
+        if (alongX !== null) {
+          const dot = Math.abs((ux / run) * alongX + (uz / run) * alongZ);
+          if (dot < Math.cos((CURB_ALIGN_DEG * Math.PI) / 180)) continue;
+        }
+        const nx = ox / away;
+        const nz = oz / away;
+        const kerbX = px + nx * half;
+        const kerbZ = pz + nz * half;
+        // A kerb is where a roadway stops. Where streets overlap -- an alley meeting an avenue,
+        // a tunnel portal under a surface street -- the nearest carriageway edge can be the
+        // alley's, and the alley's edge lies in the middle of the avenue. Snapping to it put
+        // red zones and transit boxes out in the traffic lanes of Stockton Street. If the
+        // candidate is still inside a roadway it is not a kerb, whatever it is nearest to.
+        if (insideCarriageway(kerbX, kerbZ, 0.30)) continue;
+        best = {
+          gap,
+          x: kerbX, z: kerbZ,                      // the kerb itself
+          nx, nz,                                  // out of the road
+          ax: ux / run, az: uz / run,              // along the street
+          half,
+        };
+      }
+    }
+  }
+  return best;
+}
+
+function kerbRunsFor(record, maxTurnDeg = null) {
+  // A policy record's lines, resampled and snapped onto this model's kerb, broken wherever the
+  // snap jumps to a different street.
+  //
+  // `maxTurnDeg` breaks the run where the kerb turns. A thin band of paint follows a kerb round
+  // a corner quite happily, but anything offset far into the road cannot: offset three metres
+  // inward, the two sides of a corner converge and cross, and the strip comes out as a fan of
+  // wedges with its far edge collapsed to nothing. A bus zone is a straight stretch of kerb in
+  // any case -- no bus loads passengers round a corner -- so breaking there is right twice over.
+  const runs = [];
+  const turnLimit = maxTurnDeg === null ? null : Math.cos((maxTurnDeg * Math.PI) / 180);
+  for (const coords of record.lines || []) {
+    if (!Array.isArray(coords) || coords.length < 2) continue;
+    let run = [];
+    const flush = () => { if (run.length >= 2) runs.push(run); run = []; };
+    for (let i = 1; i < coords.length; i += 1) {
+      const a = coords[i - 1];
+      const b = coords[i];
+      if (!a || !b) continue;
+      const [ax, ay] = xy(a[0], a[1]);
+      const [bx, by] = xy(b[0], b[1]);
+      const az = -ay;
+      const bz = -by;
+      const span = Math.hypot(bx - ax, bz - az);
+      if (span < 1e-6) continue;
+      const lineX = (bx - ax) / span;
+      const lineZ = (bz - az) / span;
+      const steps = Math.max(1, Math.ceil(span / CURB_SAMPLE_M));
+      for (let step = i === 1 ? 0 : 1; step <= steps; step += 1) {
+        const t = step / steps;
+        const snap = nearestKerbAt(ax + (bx - ax) * t, az + (bz - az) * t,
+                                   CURB_SNAP_REACH_M, lineX, lineZ);
+        if (!snap) { flush(); continue; }
+        const last = run[run.length - 1];
+        if (last) {
+          // A jump to another kerb, or a reversal of the side we are painting, ends the run.
+          const moved = Math.hypot(snap.x - last.x, snap.z - last.z);
+          const sameSide = snap.nx * last.nx + snap.nz * last.nz > 0.2;
+          const turned = turnLimit !== null
+            && snap.nx * last.nx + snap.nz * last.nz < turnLimit;
+          if (moved > CURB_RUN_BREAK_M || !sameSide || turned) flush();
+        }
+        run.push(snap);
+      }
+    }
+    flush();
+  }
+  return runs;
+}
+
 function furnitureAnchor(item) {
   if (!item || !item.p || item.p.length < 2) return null;
   const [x, y] = xy(item.p[0], item.p[1]);
@@ -7323,9 +7619,21 @@ function furnitureAnchor(item) {
   return { x, z, y: top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top };
 }
 
-function furnitureBearing(item, index) {
+function furnitureBearing(item, index, anchor = null) {
+  // A stated bearing is a measurement and is used as it stands.
   if (Number.isFinite(item.bearing)) return item.bearing * Math.PI / 180;
-  return random(index * 97 + String(item.id || "").length * 13) * Math.PI * 2;
+  // Otherwise it faces the road, because that is what street furniture does. This used to be a
+  // random draw over the full circle: every one of the corridor's 19 shelters, 616 bus stop
+  // flags and 375 bearingless stop signs pointed somewhere arbitrary, and a shelter with its
+  // back to the kerb is not a shelter.
+  const spot = anchor || furnitureAnchor(item);
+  if (spot) {
+    const kerb = nearestKerbAt(spot.x, spot.z);
+    // The face looks back across the kerb into the roadway, so its normal is the inward one.
+    if (kerb) return Math.atan2(-kerb.nx, -kerb.nz);
+  }
+  // Nothing near enough to face. Square to the world beats a spin of the wheel.
+  return 0;
 }
 
 function panelMaterial(color, opacity = 1) {
@@ -7346,7 +7654,7 @@ function addInstancedFurniturePanels(records, width, height, color, name, yBotto
   const dummy = new THREE.Object3D();
   anchors.forEach((row, i) => {
     dummy.position.set(row.anchor.x, row.anchor.y + yBottom + height / 2, row.anchor.z);
-    dummy.rotation.set(0, furnitureBearing(row.item, row.index), 0);
+    dummy.rotation.set(0, furnitureBearing(row.item, row.index, row.anchor), 0);
     dummy.scale.set(1, 1, 1);
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
@@ -7368,7 +7676,7 @@ function addStreetFurniturePosts(records) {
   const dummy = new THREE.Object3D();
   anchors.forEach((row, i) => {
     dummy.position.set(row.anchor.x, row.anchor.y + FURNITURE_POST_H_M / 2, row.anchor.z);
-    dummy.rotation.set(0, furnitureBearing(row.item, row.index), 0);
+    dummy.rotation.set(0, furnitureBearing(row.item, row.index, row.anchor), 0);
     dummy.scale.set(1, FURNITURE_POST_H_M, 1);
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
@@ -7385,7 +7693,7 @@ function addMuniShelters(records) {
     const anchor = furnitureAnchor(item);
     if (!anchor) continue;
     const group = new THREE.Group();
-    const yaw = furnitureBearing(item, i);
+    const yaw = furnitureBearing(item, i, anchor);
     group.position.set(anchor.x, anchor.y, anchor.z);
     group.rotation.y = yaw;
     boxPart(group, 0, MUNI_SHELTER_HEIGHT_M, 0, MUNI_SHELTER_LENGTH_M, 0.12, MUNI_SHELTER_DEPTH_M, 0xcfd8dc, 0.42);
@@ -7449,7 +7757,7 @@ function addOfficialStopSigns(records) {
   );
   const dummy = new THREE.Object3D();
   anchors.forEach((row, i) => {
-    const yaw = furnitureBearing(row.item, row.index);
+    const yaw = furnitureBearing(row.item, row.index, row.anchor);
     dummy.position.set(row.anchor.x, row.anchor.y + FURNITURE_PANEL_BOTTOM_M + 0.43, row.anchor.z);
     dummy.rotation.set(0, yaw, 0);
     dummy.scale.set(1, 1, 1);
@@ -7489,56 +7797,61 @@ function curbZoneColor(record) {
 }
 
 function addOfficialCurbZoneBands(records) {
-  let added = 0;
+  // Kerb paint, on the kerb.
+  //
+  // San Francisco paints the top of the kerb and its face, for the length of the zone, and the
+  // colour is the policy: red no stopping, yellow commercial loading, white passenger loading,
+  // green short-term, blue accessible. This drew the published policy line flat on the roadway
+  // wherever that line happened to fall, which is not where this model's kerbs are -- so bands
+  // ended up out in traffic and up on the pavement. Now each one is snapped to the kerb and
+  // painted the way kerb paint is painted: a band over the top and a face down to the road.
   const buckets = new Map();
-  const materialByColor = new Map();
+  const materials = new Map();
   const materialFor = (color) => {
-    if (!materialByColor.has(color)) {
-      materialByColor.set(color, new THREE.MeshStandardMaterial({
-        color,
-        roughness: 0.86,
-        metalness: 0.0,
-        side: THREE.DoubleSide,
-        polygonOffset: true,
-        polygonOffsetFactor: -8,
-        polygonOffsetUnits: -16,
+    if (!materials.has(color)) {
+      materials.set(color, new THREE.MeshStandardMaterial({
+        color, roughness: 0.84, metalness: 0.0, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -16,
       }));
     }
-    return materialByColor.get(color);
+    return materials.get(color);
   };
-  const bandWidth = 0.34;
-  const y = roadSurfaceTop() + 0.026;
   const bucketFor = (colorName, color) => {
     const key = `${colorName}:${color}`;
     if (!buckets.has(key)) buckets.set(key, { colorName, color, positions: [], index: [] });
     return buckets.get(key);
   };
+  const top = roadSurfaceTop() + 0.004;
+  const face = ROAD_TOP_M + 0.004;
+  let added = 0;
+  let unplaced = 0;
   for (const record of records) {
     const color = curbZoneColor(record);
     if (!color || !Array.isArray(record.lines)) continue;
     const bucket = bucketFor(record.curb_color, color);
-    for (const coords of record.lines) {
-      if (!Array.isArray(coords) || coords.length < 2) continue;
-      for (let i = 1; i < coords.length; i += 1) {
-        const a = coords[i - 1];
-        const b = coords[i];
-        if (!a || !b) continue;
-        const [ax, ay] = xy(a[0], a[1]);
-        const [bx, by] = xy(b[0], b[1]);
-        const az = -ay;
-        const bz = -by;
-        const dx = bx - ax;
-        const dz = bz - az;
-        const len = Math.hypot(dx, dz);
-        if (!(len > 0.35)) continue;
-        const px = -dz / len * bandWidth / 2;
-        const pz = dx / len * bandWidth / 2;
-        const base = bucket.positions.length / 3;
+    const runs = kerbRunsFor(record);
+    if (!runs.length) { unplaced += 1; continue; }
+    for (const run of runs) {
+      for (let i = 1; i < run.length; i += 1) {
+        const a = run[i - 1];
+        const b = run[i];
+        if (Math.hypot(b.x - a.x, b.z - a.z) < 0.05) continue;
+        // Over the top of the kerb, inward from its edge onto the pavement.
+        let base = bucket.positions.length / 3;
         bucket.positions.push(
-          ax + px, y, az + pz,
-          ax - px, y, az - pz,
-          bx - px, y, bz - pz,
-          bx + px, y, bz + pz,
+          a.x, top, a.z,
+          a.x + a.nx * CURB_BAND_W_M, top, a.z + a.nz * CURB_BAND_W_M,
+          b.x + b.nx * CURB_BAND_W_M, top, b.z + b.nz * CURB_BAND_W_M,
+          b.x, top, b.z,
+        );
+        bucket.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+        // And down the face of the kerb to the gutter, which is the part you see from a car.
+        base = bucket.positions.length / 3;
+        bucket.positions.push(
+          a.x, face, a.z,
+          a.x, top, a.z,
+          b.x, top, b.z,
+          b.x, face, b.z,
         );
         bucket.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
         added += 1;
@@ -7555,11 +7868,107 @@ function addOfficialCurbZoneBands(records) {
     mesh.userData = {
       surface: `official_curb_zone:${bucket.colorName}`,
       source: "sfmta_curb_zones",
-      provenance: "official_digital_curb_policy_polyline",
+      provenance: "official_digital_curb_policy_polyline_snapped_to_rendered_kerb",
     };
     groups.furniture.add(mesh);
   }
-  return added;
+  return { segments: added, unplaced };
+}
+
+//: The curb lane a bus pulls into. Three metres is the lane, and the paint covers it.
+const BUS_ZONE_WIDTH_M = 3.0;
+//: The white edge SFMTA outlines a transit zone with.
+const BUS_ZONE_BORDER_M = 0.12;
+//: Below the lane lines, above the asphalt: the box is a surface treatment and the markings are
+//: painted over it.
+const BUS_ZONE_Y = ROAD_TOP_M + 0.006;
+const BUS_ZONE_BORDER_Y = ROAD_TOP_M + 0.010;
+//: Where the kerb turns more than this, the zone ends. Twenty degrees is a bend in a street;
+//: more than that is a corner, and a bus zone does not wrap one.
+const BUS_ZONE_MAX_TURN_DEG = 20.0;
+
+function addBusZonePaint(records) {
+  // The red box in the roadway at a bus zone.
+  //
+  // The curb beside it is already red -- every one of these carries curb_color red and is drawn
+  // by the band pass above. What was missing is the part in the road: San Francisco marks its
+  // transit stops with the curb lane itself in transit red, edged in white, so a driver can see
+  // the zone from behind rather than having to read the kerb.
+  const fill = { positions: [], index: [] };
+  const border = { positions: [], index: [] };
+  let zones = 0;
+  const quad = (sink, ax, az, bx, bz, cx, cz, dx, dz, y) => {
+    const base = sink.positions.length / 3;
+    sink.positions.push(ax, y, az, bx, y, bz, cx, y, cz, dx, y, dz);
+    sink.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  for (const record of records) {
+    const runs = kerbRunsFor(record, BUS_ZONE_MAX_TURN_DEG);
+    if (!runs.length) continue;
+    for (const run of runs) {
+      if (run.length < 2) continue;
+      zones += 1;
+      for (let i = 1; i < run.length; i += 1) {
+        const a = run[i - 1];
+        const b = run[i];
+        if (Math.hypot(b.x - a.x, b.z - a.z) < 0.05) continue;
+        // Belt and braces: if the far edge has still converged, the quad is a wedge, not a
+        // stretch of lane, and a wedge of red paint in the road is worse than a short gap.
+        const farA = [a.x - a.nx * BUS_ZONE_WIDTH_M, a.z - a.nz * BUS_ZONE_WIDTH_M];
+        const farB = [b.x - b.nx * BUS_ZONE_WIDTH_M, b.z - b.nz * BUS_ZONE_WIDTH_M];
+        const near = Math.hypot(b.x - a.x, b.z - a.z);
+        if (Math.hypot(farB[0] - farA[0], farB[1] - farA[1]) < near * 0.55) continue;
+        // Into the road from the kerb: the inward normal is the way a bus is parked.
+        const ain = BUS_ZONE_WIDTH_M;
+        quad(fill,
+          a.x, a.z,
+          b.x, b.z,
+          b.x - b.nx * ain, b.z - b.nz * ain,
+          a.x - a.nx * ain, a.z - a.nz * ain, BUS_ZONE_Y);
+        // The white edge, on the traffic side only -- the kerb side is the kerb.
+        const o = ain, w = BUS_ZONE_BORDER_M;
+        quad(border,
+          a.x - a.nx * o, a.z - a.nz * o,
+          b.x - b.nx * o, b.z - b.nz * o,
+          b.x - b.nx * (o - w), b.z - b.nz * (o - w),
+          a.x - a.nx * (o - w), a.z - a.nz * (o - w), BUS_ZONE_BORDER_Y);
+      }
+    }
+  }
+  const emit = (sink, color, name, roughness) => {
+    if (!sink.positions.length) return;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+    geometry.setIndex(sink.index);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+      color, roughness, metalness: 0.0, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -10,
+    }));
+    mesh.userData = { surface: name, source: "sfmta_curb_zones",
+                      provenance: "official_transit_vehicle_loading_zone" };
+    groups.furniture.add(mesh);
+  };
+  emit(fill, 0x8c2f2a, "bus_zone:fill", 0.9);
+  emit(border, 0xf2f5ef, "bus_zone:border", 0.82);
+  return zones;
+}
+
+//: Two mapped shelters closer than this are one shelter that somebody mapped twice, or the two
+//: halves of one structure. Shorter than a shelter is long, so a genuine pair at opposite kerbs
+//: of a wide street both survive.
+const SHELTER_CLUSTER_M = 15.0;
+
+function dedupeByDistance(records, metres) {
+  const kept = [];
+  for (const item of records) {
+    if (!item || !item.p || item.p.length < 2) continue;
+    const [x, y] = xy(item.p[0], item.p[1]);
+    const z = -y;
+    if (kept.some((other) => Math.hypot(other.x - x, other.z - z) < metres)) continue;
+    kept.push({ x, z, item });
+  }
+  return kept.map((row) => row.item);
 }
 
 function renderStreetFurniture(furniture) {
@@ -7570,7 +7979,13 @@ function renderStreetFurniture(furniture) {
   const officialOtherSigns = officialSigns.filter((s) => s.sign_kind !== "stop");
   const signs = officialSigns.length ? [] : (inferred.street_signs || []);
   const stops = inferred.bus_stops || [];
-  const shelters = inferred.shelters || [];
+  // One shelter to a stop.
+  //
+  // A bus moves through an intersection two to four ways and each direction has its own stop,
+  // but the shelter is built for one of them -- the others are a flag on a pole and paint on the
+  // road. OpenStreetMap maps the structures individually, so two nodes twelve metres apart on
+  // the same corner arrived as two shelters standing inside each other.
+  const shelters = dedupeByDistance(inferred.shelters || [], SHELTER_CLUSTER_M);
   const ads = inferred.ad_panels || [];
   const posts = officialOtherSigns.concat(signs, stops, ads);
   const placed = {
@@ -7584,6 +7999,8 @@ function renderStreetFurniture(furniture) {
     ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55),
     shelters: addMuniShelters(shelters),
     curb_zone_bands: addOfficialCurbZoneBands(official.curb_zones || []),
+    bus_zone_paint: addBusZonePaint((official.curb_zones || [])
+      .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
   };
   const note = document.getElementById("furniturenote");
   if (note) {
@@ -7595,7 +8012,8 @@ function renderStreetFurniture(furniture) {
       + `${Number(counts.ad_panels || 0).toLocaleString()} blank ad panels. `
       + `Official geometry: ${Number(officialCounts.street_signs || 0).toLocaleString()} signs, `
       + `${Number(officialCounts.traffic_signals || 0).toLocaleString()} signals, `
-      + `${Number(officialCounts.curb_zones || 0).toLocaleString()} curb policy bands.`;
+      + `${Number(officialCounts.curb_zones || 0).toLocaleString()} curb policy bands, `
+      + `${Number(placed.bus_zone_paint || 0).toLocaleString()} transit zones painted.`;
     note.userData = placed;
   }
 }
