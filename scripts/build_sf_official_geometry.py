@@ -31,6 +31,7 @@ import numpy as np  # noqa: E402
 
 from smc.facades.geometry import LocalFrame  # noqa: E402
 from smc.official.crs import geojson_points  # noqa: E402
+from smc.official.curbs import curb_role  # noqa: E402
 from smc.official.datasf import DATASETS, fetch  # noqa: E402
 from smc.official.extract import (  # noqa: E402
     EXTRACTORS,
@@ -40,8 +41,10 @@ from smc.official.extract import (  # noqa: E402
 from smc.official.join import CentrelineIndex  # noqa: E402
 from smc.official.reconcile import compare_widths  # noqa: E402
 from smc.official.schema import OfficialFactClass  # noqa: E402
+from smc.official.sfmta import LAYERS as SFMTA_LAYERS, fetch as sfmta_fetch  # noqa: E402
 
 CACHE = ROOT / "build" / "sf_public_works"
+SFMTA_CACHE = ROOT / "build" / "sfmta"
 OUT = ROOT / "data" / "sf_public_works"
 VIEWER = ROOT / "docs" / "sf-corridor-official.json"
 LIDAR = ROOT / "data" / "sf_corridor" / "depth" / "lidar" / "curb_sections.jsonl"
@@ -101,17 +104,63 @@ def load_lidar() -> list[dict]:
     return rows
 
 
+def viewer_curb_geometry(rows: list[dict], frame: LocalFrame) -> list[dict]:
+    """Compact SFMTA curb boundaries for both rendering and crossing geometry.
+
+    The smaller DataSF basemap extract omits most curb returns and bulb-outs.  Keep the
+    publisher's role on every line so road-edge intersections can ignore refuge-island curbs,
+    while the crossing painter can use those island curbs to split a crossing into two legs.
+    """
+    geometry = []
+    for row in rows:
+        feature = row.get("geometry") or {}
+        points = feature.get("coordinates") or []
+        if feature.get("type") != "LineString" or len(points) < 2:
+            continue
+        thinned = simplify([(float(x), float(y)) for x, y in points], 0.10, frame)
+        geometry.append({
+            "c": "curb",
+            "r": curb_role((row.get("properties") or {}).get("CURB2_TYPE")),
+            "p": [[round(x, 6), round(y, 6)] for x, y in thinned],
+        })
+    return geometry
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--refresh", action="store_true", help="re-fetch instead of using the cache")
     ap.add_argument("--chunk", help="restrict the comparison to one facade chunk key")
+    ap.add_argument(
+        "--curbs-only",
+        action="store_true",
+        help="refresh the viewer's SFMTA curb geometry without rebuilding every official fact",
+    )
     args = ap.parse_args()
 
     def progress(message: str) -> None:
         print(message, flush=True)
 
     CACHE.mkdir(parents=True, exist_ok=True)
+    SFMTA_CACHE.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
+
+    frame = LocalFrame((CORRIDOR["south"] + CORRIDOR["north"]) / 2,
+                       (CORRIDOR["west"] + CORRIDOR["east"]) / 2)
+    curb_rows, curb_document = sfmta_fetch(
+        SFMTA_LAYERS["curbs"], bbox=CORRIDOR, cache_dir=SFMTA_CACHE,
+        refresh=args.refresh, progress=progress,
+    )
+    geometry = viewer_curb_geometry(curb_rows, frame)
+    progress(f"SFMTA curb linework: {len(curb_rows)} rows thinned to {len(geometry)} lines")
+    if args.curbs_only:
+        payload = json.loads(VIEWER.read_text()) if VIEWER.exists() else {}
+        generated_from = list(payload.get("generated_from") or [])
+        generated_from = [item for item in generated_from if not item.startswith("sfmta:curbs:")]
+        generated_from.append(curb_document.document_id)
+        payload.update({"generated_from": generated_from, "curb_lines": geometry})
+        VIEWER.write_text(json.dumps(payload, separators=(",", ":")))
+        progress(f"wrote {VIEWER.name}: {len(geometry)} SFMTA curb lines")
+        return 0
 
     # Streets first: the right-of-way widths cannot be measured without knowing which way each
     # street runs, and that comes from the centreline network.
@@ -144,8 +193,6 @@ def main() -> int:
     accepted = acceptance_index(rows_by_name.get("street_acceptance", []))
     progress(f"{len(facts)} official facts, {len(accepted)} segments with an acceptance record")
 
-    frame = LocalFrame((CORRIDOR["south"] + CORRIDOR["north"]) / 2,
-                       (CORRIDOR["west"] + CORRIDOR["east"]) / 2)
     index = CentrelineIndex.from_rows(rows_by_name.get("streets", []), frame)
     progress(f"{len(index.segments)} centrelines indexed")
 
@@ -243,16 +290,8 @@ def main() -> int:
     }, indent=1, default=str))
 
     # -- what the viewer needs --------------------------------------------------------------
-    geometry = []
-    raw_vertices = 0
-    for fact in facts:
-        if fact.fact_class != OfficialFactClass.CURB_LINE or len(fact.geometry) < 2:
-            continue
-        raw_vertices += len(fact.geometry)
-        thinned = simplify(list(fact.geometry), 0.1, frame)
-        geometry.append({"c": "curb", "p": [[round(x, 6), round(y, 6)] for x, y in thinned]})
     kept = sum(len(g["p"]) for g in geometry)
-    progress(f"curb linework: {raw_vertices} vertices thinned to {kept}")
+    progress(f"curb linework: {len(curb_rows)} SFMTA lines, {kept} retained vertices")
     ramps = [
         {"p": [round(f.geometry[0][0], 6), round(f.geometry[0][1], 6)],
          "f": list(f.flags)}
@@ -262,7 +301,7 @@ def main() -> int:
     # attached to each way at build time, so shipping it again here doubled the download for
     # nothing; the curb linework and the ramps are the part that has no other home.
     VIEWER.write_text(json.dumps({
-        "generated_from": [d.document_id for d in documents],
+        "generated_from": [d.document_id for d in documents] + [curb_document.document_id],
         "summary": summary,
         "curb_lines": geometry,
         "curb_ramps": ramps,

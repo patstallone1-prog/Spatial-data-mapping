@@ -66,6 +66,8 @@ def test_continental_crosswalk_bars_repeat_along_walking_direction() -> None:
 
     assert 'if (surface === "crossing") return [CROSSING_PERIOD_M, width];' in source
     assert "ctx.fillRect(1, 0, size * 0.5 - 2, size);" in source
+    assert "function crossingStripePhase(length)" in source
+    assert 'const phaseU = surface === "crossing"' in source
     assert 'if (surface === "crossing") return [1e6, CROSSING_PERIOD_M];' not in source
     assert "ctx.fillRect(0, 1, size, size * 0.5 - 2);" not in source
 
@@ -88,6 +90,8 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert "insideCarriageway(cx, cz, 0.10)" in source
     assert 'mesh.userData.surface = "tactile_warning";' in source
     assert 'addMerged("crossing:tactile", mesh, "tactile_warning");' in source
+    assert "function addCrossingAsphaltBackstop(points, crossingWidth, roadTop)" in source
+    assert 'addMerged("road:crossing-backstop"' in source
     assert "polygonOffsetFactor: -10" in source
     assert "polygonOffsetUnits: -20" in source
     assert "addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);" in source
@@ -121,7 +125,7 @@ def test_crosswalks_dedupe_same_direction_overlaps_only() -> None:
 def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     source = _source()
 
-    assert "function pavementRunsOutsideCarriageway(points, width)" in source
+    assert "function pavementRunsOutsideCarriageway(points, width, discardDetached = false)" in source
     assert "distanceToSegmentSquared(x, z, ax, az, bx, bz)" in source
     assert "const edge = Math.max(0.2, width / 2 - 0.12);" in source
     # What the guard may not do is widen the carriageway before testing it -- see
@@ -136,10 +140,8 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     # kerb and narrows the strip until it fits rather than dropping it. Dropping it left 13% of
     # the street network with bare ground between the kerb and the buildings.
     assert "function addKerbsidePavement(" in source
-    assert "function addCrossingAreaSegment(points, width)" in source
-    assert "function insideCrossingArea(x, z, slack = 0.08)" in source
-    assert "addCrossingAreaSegment(way.points, way.crossing_m || 3.7)" in source
-    assert "insideCrossingArea(x, z, 0.10)" in source
+    assert "addCrossingAreaSegment" not in source
+    assert "insideCrossingArea" not in source
     assert "function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color, opacity)" in source
     assert "PROPERTY_LINE_PAVEMENT_Y = 0.012" in source
     assert '"walk_underlay"' in source
@@ -192,17 +194,16 @@ def test_renderer_densifies_curved_road_markings() -> None:
     source = _source()
 
     assert "function densifyWay(points, maxSpan = 5.0)" in source
-    assert "function addIntersectionRoadPads(ways, intersections, roadTop)" in source
+    assert "function addIntersectionRoadPads(" not in source
     assert "function addCarriagewayDisk(x, z, radius)" not in source
     assert "addCarriagewayDisk(x, -y, radius);" not in source
-    assert "addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);" in source
-    assert "node.half * 2.2 + 8.0" in source
-    assert 'addMerged("road:junction", mesh, "road");' in source
+    assert "addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);" not in source
     assert "const renderPoints = densifyWay(way.points);" in source
     # The ribbon is merged by material rather than added on its own: 53,383 street meshes
     # were 53,383 draw calls a frame. Same geometry, one call per surface class.
     assert "addMerged(`ribbon:${surfaceKind}" in source
-    assert "ribbon(surfacePoints, widthMeters" in source
+    assert "const paintRuns = isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints];" in source
+    assert "ribbon(paintRun, widthMeters" in source
     # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
     assert "const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);" in source
@@ -351,7 +352,9 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert "const lazyLayerBuilders = new Map();" in source
     assert "function registerLazyLayer(layer, builder)" in source
     assert "function ensureLazyLayer(layer)" in source
-    assert 'registerLazyLayer("official", async () => {' in source
+    assert "const [DATA, OFFICIAL_GEOMETRY] = await Promise.all([" in source
+    assert 'fetch("sf-corridor-official.json", { cache: "no-cache" })' in source
+    assert 'registerLazyLayer("official", () => {' in source
     assert 'registerLazyLayer("chunks", () => {' in source
     assert 'registerLazyLayer("furniture", async () => {' in source
     assert 'fetch("sf-corridor-furniture.json", { cache: "no-cache" })' in source

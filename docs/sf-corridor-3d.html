@@ -131,10 +131,18 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
 import * as THREE from "https://esm.sh/three@0.160.0";
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-const DATA = await fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
-  if (!r.ok) throw new Error(`payload ${r.status}`);
-  return r.json();
-});
+// Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
+// overlay.  Load the compact official sidecar before laying out crossings; a network failure
+// still leaves the renderer's local-road-width fallback available.
+const [DATA, OFFICIAL_GEOMETRY] = await Promise.all([
+  fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
+    if (!r.ok) throw new Error(`payload ${r.status}`);
+    return r.json();
+  }),
+  fetch("sf-corridor-official.json", { cache: "no-cache" })
+    .then((r) => r.ok ? r.json() : { curb_lines: [], curb_ramps: [] })
+    .catch(() => ({ curb_lines: [], curb_ramps: [] })),
+]);
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
 document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleString();
@@ -566,11 +574,23 @@ function norm(to, from) {
   return [dx / length, dz / length];
 }
 
+function crossingStripePhase(length) {
+  // Fit a whole number of 430 mm bars plus 430 mm gaps, then divide the leftover equally
+  // between both curb faces.  Starting every ribbon at texture-u zero clipped a full bar at
+  // one curb and left a gap at the other, making a geometrically centred crossing look crooked.
+  const bars = Math.max(1, Math.floor(length / CROSSING_PERIOD_M + 0.5));
+  const paintedSequence = (bars - 0.5) * CROSSING_PERIOD_M;
+  const margin = Math.max(0, (length - paintedSequence) / 2);
+  return (1 - margin / CROSSING_PERIOD_M) % 1;
+}
+
 function ribbon(points, width, color, opacity, y, thickness = 1.4, surface = null) {
   const edges = mitredEdges(points, width);
   if (!edges) return new THREE.Group();
   const { left, right, distances } = edges;
   const [scaleU, scaleV] = surfaceScale(surface, width);
+  const phaseU = surface === "crossing"
+    ? crossingStripePhase(distances[distances.length - 1] || 0) : 0;
   const top = y + thickness / 2;
   const bottom = y - thickness / 2;
 
@@ -586,7 +606,7 @@ function ribbon(points, width, color, opacity, y, thickness = 1.4, surface = nul
   // The running surface.
   const topRow = [];
   for (let i = 0; i < left.length; i += 1) {
-    const u = distances[i] / scaleU;
+    const u = distances[i] / scaleU + phaseU;
     topRow.push([
       push(left[i][0], left[i][1], top, u, 0),
       push(right[i][0], right[i][1], top, u, width / scaleV),
@@ -603,7 +623,7 @@ function ribbon(points, width, color, opacity, y, thickness = 1.4, surface = nul
     for (const [side, sign] of [[left, 1], [right, -1]]) {
       const rows = [];
       for (let i = 0; i < side.length; i += 1) {
-        const u = distances[i] / scaleU;
+        const u = distances[i] / scaleU + phaseU;
         rows.push([
           push(side[i][0], side[i][1], top, u, 0),
           push(side[i][0], side[i][1], bottom, u, thickness / scaleV),
@@ -848,24 +868,10 @@ function trimWay(points, metres) {
 }
 
 function trimWalkwayForCorners(points, width) {
-  // Explicit sidewalk/path ways often run right into the mapped junction node. The road at the
-  // corner is already drawn there, and letting concrete ribbons meet over that same point is
-  // what creates the messy checkerboard overlap. Pulling only the walkable ribbons back leaves
-  // crossings to bridge the gap, including the synthetic alley-mouth crossings below. Do not
-  // pull back every OSM way end, though: ways are also split for tagging and editing reasons,
-  // and treating those invisible joins as intersections cuts an otherwise continuous pavement
-  // into isolated chunks.
-  if (!points || points.length < 2) return points || [];
-  const touchesJunction = (point) => {
-    const [x, y] = xy(point[0], point[1]);
-    return insideCrossingArea(x, -y, Math.max(0.12, width / 2))
-      || insideCarriageway(x, -y, 0.0)
-      || pavementSurroundedByStreet(x, -y, width);
-  };
-  const cut = intersectionWalkwayCutback(width);
-  return trimWayEnds(points,
-                     touchesJunction(points[0]) ? cut : 0,
-                     touchesJunction(points[points.length - 1]) ? cut : 0);
+  // Crosswalks now end on surveyed curb faces, so they no longer need a circular exclusion
+  // zone carved out of the sidewalk.  Keep the mapped walkway continuous here; the exact
+  // carriageway-overlap pass below clips only the part that is genuinely on asphalt.
+  return points || [];
 }
 
 function lonLatFromXZ(x, z) {
@@ -882,12 +888,136 @@ function intersectionWalkwayCutback(width) {
     (width || 3.6) + SIDEWALK_INTERSECTION_CUT_EXTRA_M));
 }
 
+const OFFICIAL_CURB_CELL_M = 20.0;
+const officialCurbGrid = new Map();
+const officialIslandCurbGrid = new Map();
+
+function addOfficialCurbGridSegment(grid, ax, az, bx, bz) {
+  const x0 = Math.floor(Math.min(ax, bx) / OFFICIAL_CURB_CELL_M);
+  const x1 = Math.floor(Math.max(ax, bx) / OFFICIAL_CURB_CELL_M);
+  const z0 = Math.floor(Math.min(az, bz) / OFFICIAL_CURB_CELL_M);
+  const z1 = Math.floor(Math.max(az, bz) / OFFICIAL_CURB_CELL_M);
+  for (let ix = x0; ix <= x1; ix += 1) {
+    for (let iz = z0; iz <= z1; iz += 1) {
+      const key = `${ix}:${iz}`;
+      let bucket = grid.get(key);
+      if (!bucket) grid.set(key, bucket = []);
+      bucket.push([ax, az, bx, bz]);
+    }
+  }
+}
+
+function indexOfficialCurbGeometry(lines) {
+  officialCurbGrid.clear();
+  officialIslandCurbGrid.clear();
+  for (const line of lines || []) {
+    if (!line.p || line.p.length < 2) continue;
+    const grid = line.r === "island" ? officialIslandCurbGrid : officialCurbGrid;
+    for (let i = 1; i < line.p.length; i += 1) {
+      const [ax, ay] = xy(line.p[i - 1][0], line.p[i - 1][1]);
+      const [bx, by] = xy(line.p[i][0], line.p[i][1]);
+      if (Math.hypot(bx - ax, by - ay) < 0.04) continue;
+      addOfficialCurbGridSegment(grid, ax, -ay, bx, -by);
+    }
+  }
+}
+
+function rayCurbIntersections(x, z, dx, dz, reach, grid) {
+  const x0 = Math.floor((x - reach) / OFFICIAL_CURB_CELL_M);
+  const x1 = Math.floor((x + reach) / OFFICIAL_CURB_CELL_M);
+  const z0 = Math.floor((z - reach) / OFFICIAL_CURB_CELL_M);
+  const z1 = Math.floor((z + reach) / OFFICIAL_CURB_CELL_M);
+  const hits = [];
+  const seen = new Set();
+  for (let ix = x0; ix <= x1; ix += 1) {
+    for (let iz = z0; iz <= z1; iz += 1) {
+      const bucket = grid.get(`${ix}:${iz}`);
+      if (!bucket) continue;
+      for (const segment of bucket) {
+        const key = segment.join(":");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const [ax, az, bx, bz] = segment;
+        const sx = bx - ax;
+        const sz = bz - az;
+        const denominator = dx * sz - dz * sx;
+        if (Math.abs(denominator) < 1e-6) continue;
+        const qx = ax - x;
+        const qz = az - z;
+        const alongRay = (qx * sz - qz * sx) / denominator;
+        const alongCurb = (qx * dz - qz * dx) / denominator;
+        if (alongCurb < -0.015 || alongCurb > 1.015 || Math.abs(alongRay) > reach) continue;
+        hits.push(alongRay);
+      }
+    }
+  }
+  hits.sort((a, b) => a - b);
+  return hits.filter((value, i) => i === 0 || Math.abs(value - hits[i - 1]) > 0.18);
+}
+
+function officialCurbCrossingSpan(x, z, dx, dz, expectedHalfWidth) {
+  if (!officialCurbGrid.size) return null;
+  const reach = Math.min(32.0, Math.max(12.0, expectedHalfWidth * 2.8));
+  const hits = rayCurbIntersections(x, z, dx, dz, reach, officialCurbGrid);
+  const negative = hits.filter((value) => value < -0.45).pop();
+  const positive = hits.find((value) => value > 0.45);
+  if (negative === undefined || positive === undefined) return null;
+  const span = positive - negative;
+  // Reject a curb pair from the wrong road arm.  The wide upper bound still permits Van Ness
+  // and divided streets; the ratio check catches a nearby alley curb paired with a far block.
+  if (span < 2.4 || span > 42.0 || -negative > positive * 3.4 || positive > -negative * 3.4) {
+    return null;
+  }
+  const points = [
+    lonLatFromXZ(x + dx * negative, z + dz * negative),
+    lonLatFromXZ(x + dx * positive, z + dz * positive),
+  ];
+  points.provenance = "sfmta_curbs";
+  return points;
+}
+
+function crossingPaintLegs(points) {
+  if (!points || points.length < 2 || !officialIslandCurbGrid.size) return [points];
+  const [ax, ay] = xy(points[0][0], points[0][1]);
+  const [bx, by] = xy(points[points.length - 1][0], points[points.length - 1][1]);
+  const az = -ay;
+  const bz = -by;
+  const length = Math.hypot(bx - ax, bz - az);
+  if (!(length > 2.4)) return [points];
+  const dx = (bx - ax) / length;
+  const dz = (bz - az) / length;
+  const hits = rayCurbIntersections(ax, az, dx, dz, length + 0.5, officialIslandCurbGrid)
+    .filter((value) => value > 0.35 && value < length - 0.35);
+  if (hits.length < 2) return [points];
+  const legs = [];
+  let cursor = 0;
+  for (let i = 0; i + 1 < hits.length; i += 2) {
+    const before = Math.max(0, hits[i] - 0.10);
+    const after = Math.min(length, hits[i + 1] + 0.10);
+    if (before - cursor > 0.7) {
+      legs.push([
+        lonLatFromXZ(ax + dx * cursor, az + dz * cursor),
+        lonLatFromXZ(ax + dx * before, az + dz * before),
+      ]);
+    }
+    cursor = Math.max(cursor, after);
+  }
+  if (length - cursor > 0.7) {
+    legs.push([
+      lonLatFromXZ(ax + dx * cursor, az + dz * cursor),
+      points[points.length - 1],
+    ]);
+  }
+  return legs.length ? legs : [points];
+}
+
+indexOfficialCurbGeometry(OFFICIAL_GEOMETRY.curb_lines || []);
+
 function crossingRoadSpanPoints(points) {
-  // A crosswalk is the local normal of the street it crosses, from one kerb to the other. OSM
-  // crossing ways often include doglegs and sidewalk connector nodes, so their endpoints are a
-  // useful direction hint but are not kerb geometry. Find the nearby carriageway segment most
-  // nearly perpendicular to that hint and use its own bearing and half-width. This works on the
-  // rotated San Francisco grid and on diagonal streets; snapping to global x/z axes does not.
+  // OSM supplies the pedestrian desire line; SFMTA supplies the physical curb boundaries.  The
+  // segment actually traversing asphalt is used as a ray through the paired curb faces, retaining
+  // real skew and terminating on bulb-outs/curb returns.  The local road normal remains the
+  // fallback when the official survey is absent or cannot produce a credible pair.
   if (!points || points.length < 2) return null;
   let a = points[0];
   let b = points[points.length - 1];
@@ -976,10 +1106,14 @@ function crossingRoadSpanPoints(points) {
     best.nx *= -1;
     best.nz *= -1;
   }
-  return [
+  const curbSpan = officialCurbCrossingSpan(best.x, best.z, ux, uz, best.half);
+  if (curbSpan) return curbSpan;
+  const fallback = [
     lonLatFromXZ(best.x - best.nx * best.half, best.z - best.nz * best.half),
     lonLatFromXZ(best.x + best.nx * best.half, best.z + best.nz * best.half),
   ];
+  fallback.provenance = "road_width_fallback";
+  return fallback;
 }
 
 function crossingRectanglePoints(points) {
@@ -1025,47 +1159,6 @@ function sidewalkCrossingReplacementSpans(points, width) {
   }
   finish(samples.length - 1);
   return spans;
-}
-
-const CROSSING_AREA_CELL_M = 8.0;
-const crossingAreaGrid = new Map();
-
-function addCrossingAreaSegment(points, width) {
-  const rect = crossingRectanglePoints(points);
-  if (!rect || rect.length < 2) return;
-  const [ax, ay] = xy(rect[0][0], rect[0][1]);
-  const [bx, by] = xy(rect[1][0], rect[1][1]);
-  const az = -ay;
-  const bz = -by;
-  const half = Math.max(1.0, (width || 3.7) / 2);
-  const x0 = Math.floor((Math.min(ax, bx) - half) / CROSSING_AREA_CELL_M);
-  const x1 = Math.floor((Math.max(ax, bx) + half) / CROSSING_AREA_CELL_M);
-  const z0 = Math.floor((Math.min(az, bz) - half) / CROSSING_AREA_CELL_M);
-  const z1 = Math.floor((Math.max(az, bz) + half) / CROSSING_AREA_CELL_M);
-  for (let ix = x0; ix <= x1; ix += 1) {
-    for (let iz = z0; iz <= z1; iz += 1) {
-      const key = `${ix}:${iz}`;
-      let bucket = crossingAreaGrid.get(key);
-      if (!bucket) crossingAreaGrid.set(key, bucket = []);
-      bucket.push([ax, az, bx, bz, half]);
-    }
-  }
-}
-
-function insideCrossingArea(x, z, slack = 0.08) {
-  const cx = Math.floor(x / CROSSING_AREA_CELL_M);
-  const cz = Math.floor(z / CROSSING_AREA_CELL_M);
-  for (let dx = -1; dx <= 1; dx += 1) {
-    for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = crossingAreaGrid.get(`${cx + dx}:${cz + dz}`);
-      if (!bucket) continue;
-      for (const [ax, az, bx, bz, half] of bucket) {
-        const limit = Math.max(0.1, half + slack);
-        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
-      }
-    }
-  }
-  return false;
 }
 
 const CROSSING_DEDUPE_CELL_M = 4.0;
@@ -1617,90 +1710,6 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
       if (outer) addMerged("bike:edge", outer, "marking");
       if (inner) addMerged("bike:edge", inner, "marking");
     }
-  }
-}
-
-function addIntersectionRoadPads(ways, intersections, roadTop) {
-  // Street ribbons are good for blocks and bends, but at a large junction each street owns only
-  // its strip. The shared asphalt fan between those strips can fall back to the ground plane,
-  // which reads as random black/grey patches through turns. A low asphalt cap at real street
-  // junction nodes fills that shared road surface while staying under all crosswalk, bike-lane
-  // paint, tactile pads, medians and sidewalks.
-  const nodes = new Map();
-  const widthByName = new Map();
-  const touch = (point, names, ids, bearings, half) => {
-    const key = `${point[0].toFixed(6)}:${point[1].toFixed(6)}`;
-    let node = nodes.get(key);
-    if (!node) nodes.set(key, node = { point, names: new Set(), ids: new Set(), bearings: [], half: 0 });
-    for (const name of names) node.names.add(name || "");
-    for (const id of ids) node.ids.add(id);
-    for (const bearing of bearings) node.bearings.push(bearing);
-    node.half = Math.max(node.half, half);
-  };
-  const add = (point, way, bearing, half) => {
-    touch(point, [way.name || ""], [way.osm_id || `${point[0]}:${point[1]}:${bearing.toFixed(3)}`],
-          [bearing], half);
-  };
-  for (const way of ways) {
-    if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
-    const half = renderedRoadWidth(way) / 2;
-    if (way.name) widthByName.set(way.name, Math.max(widthByName.get(way.name) || 0, half));
-    for (let i = 0; i < way.points.length; i += 1) {
-      if (i > 0) {
-        const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
-        const [bx, by] = xy(way.points[i][0], way.points[i][1]);
-        add(way.points[i], way, Math.atan2(-by + ay, bx - ax), half);
-      }
-      if (i < way.points.length - 1) {
-        const [ax, ay] = xy(way.points[i][0], way.points[i][1]);
-        const [bx, by] = xy(way.points[i + 1][0], way.points[i + 1][1]);
-        add(way.points[i], way, Math.atan2(-by + ay, bx - ax), half);
-      }
-    }
-  }
-  for (const crossing of intersections || []) {
-    if (crossing.lon === undefined || crossing.lat === undefined) continue;
-    const a = crossing.a || "";
-    const b = crossing.b || "";
-    const half = Math.max(6.0, widthByName.get(a) || 0, widthByName.get(b) || 0);
-    touch([crossing.lon, crossing.lat], [a, b], [`intersection:${a}`, `intersection:${b}`],
-          [], half);
-  }
-  const angleBetween = (a, b) => {
-    let diff = Math.abs(a - b) % Math.PI;
-    if (diff > Math.PI / 2) diff = Math.PI - diff;
-    return diff;
-  };
-  for (const node of nodes.values()) {
-    const named = [...node.names].filter(Boolean);
-    let turn = 0;
-    for (let i = 0; i < node.bearings.length; i += 1) {
-      for (let j = i + 1; j < node.bearings.length; j += 1) {
-        turn = Math.max(turn, angleBetween(node.bearings[i], node.bearings[j]));
-      }
-    }
-    if (node.ids.size < 2 || (named.length < 2 && turn < Math.PI / 5)) continue;
-    const [x, y] = xy(node.point[0], node.point[1]);
-    const radius = Math.max(10.0, Math.min(34.0, node.half * 2.2 + 8.0));
-    // This disk only hides cracks between rendered road ribbons. It is deliberately absent from
-    // carriagewayGrid: a circular paint backstop is not surveyed kerb geometry, and treating it
-    // as one stretches crosswalks to the circle and erases the real sidewalks around it.
-    const geometry = new THREE.CircleGeometry(radius, 36);
-    geometry.rotateX(-Math.PI / 2);
-    const uv = [];
-    const pos = geometry.attributes.position;
-    for (let i = 0; i < pos.count; i += 1) {
-      uv.push(pos.getX(i) / ROAD_SLAB_M, pos.getZ(i) / ROAD_SLAB_M);
-    }
-    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-      map: ROAD, color: 0xffffff, roughness: 0.86, metalness: 0.02,
-      side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 4,
-      polygonOffsetUnits: 8,
-    }));
-    mesh.position.set(x, roadTop + 0.001, -y);
-    mesh.userData.surface = "road";
-    addMerged("road:junction", mesh, "road");
   }
 }
 
@@ -2772,7 +2781,7 @@ function lerpLonLat(a, b, t) {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 }
 
-function pavementRunsOutsideCarriageway(points, width) {
+function pavementRunsOutsideCarriageway(points, width, discardDetached = false) {
   // Sidewalks and paths are solid concrete, not overlays. If any run of their centreline falls
   // inside a carriageway, split it out before a ribbon can be built over the street. The guard
   // samples both ribbon edges too, because a wide walk can have a clean centreline while its
@@ -2780,6 +2789,8 @@ function pavementRunsOutsideCarriageway(points, width) {
   if (!points || points.length < 2) return [];
   const runs = [];
   let run = [];
+  let runStartsAfterOverlap = false;
+  let afterOverlap = false;
   // What "in the carriageway" means for a footway. It means the footway overlaps the road, and
   // the test for that is the footway's own edges -- not its centreline pushed outward.
   //
@@ -2790,9 +2801,16 @@ function pavementRunsOutsideCarriageway(points, width) {
   // the 201 km of mapped footway in this corridor and erased 420 sidewalk ways outright, which
   // is what the black gaps along the kerb were. The geometry was right and the guard deleted it.
   const edge = Math.max(0.2, width / 2 - 0.12);
-  const finish = () => {
-    if (run.length >= 2 && wayLength(run) > 0.9) runs.push(run);
+  const minimumRun = Math.max(0.9, Math.min(4.2, width * 1.15));
+  const finish = (endedByOverlap = false) => {
+    // A remnant shorter than roughly its own width is a detached slab, not a usable run of
+    // sidewalk.  These were the isolated squares left between two crossing/intersection cuts.
+    const runLength = run.length >= 2 ? wayLength(run) : 0;
+    const detachedRemnant = discardDetached
+      && (runStartsAfterOverlap || endedByOverlap) && runLength < 8.0;
+    if (run.length >= 2 && runLength > minimumRun && !detachedRemnant) runs.push(run);
     run = [];
+    runStartsAfterOverlap = false;
   };
 
   for (let i = 1; i < points.length; i += 1) {
@@ -2816,14 +2834,18 @@ function pavementRunsOutsideCarriageway(points, width) {
       // that abuts a street, and is not a reason to delete it.
       const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
       const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
-      const overlaps = insideCrossingArea(x, z, 0.10)
-        || insideCarriageway(x, z, 0.30)
-        || (innerEdge && outerEdge)
+    const overlaps = insideCarriageway(x, z, 0.30)
+      || (innerEdge && outerEdge)
         || pavementSurroundedByStreet(x, z, width);
-      if (overlaps) {
-        finish();
-      } else {
-        const last = run[run.length - 1];
+    if (overlaps) {
+      finish(true);
+      afterOverlap = true;
+    } else {
+      if (!run.length) {
+        runStartsAfterOverlap = afterOverlap;
+        afterOverlap = false;
+      }
+      const last = run[run.length - 1];
         if (!last || Math.hypot((last[0] - point[0]) * metersPerLon,
                                 (last[1] - point[1]) * metersPerLat) > 0.05) {
           run.push(point);
@@ -2831,7 +2853,7 @@ function pavementRunsOutsideCarriageway(points, width) {
       }
     }
   }
-  finish();
+  finish(false);
   return runs;
 }
 
@@ -2894,9 +2916,10 @@ function pavementBearingAt(x, z) {
   return pavedBearing.get(`${Math.floor(x / PAVED_CELL)}:${Math.floor(z / PAVED_CELL)}`);
 }
 
-function addPavementRibbon(points, width, color, opacity, y, thickness, surface) {
+function addPavementRibbon(points, width, color, opacity, y, thickness, surface,
+                           discardDetached = false) {
   let laid = 0;
-  for (const run of pavementRunsOutsideCarriageway(points, width)) {
+  for (const run of pavementRunsOutsideCarriageway(points, width, discardDetached)) {
     stampPaved(run, width, y + thickness / 2);
     addMerged(`walk:${surface}:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`,
               ribbon(run, width, color, opacity, y, thickness, surface), surface);
@@ -3364,8 +3387,7 @@ function walkFitsAt(x, z, nx, nz, width) {
   const edge = Math.max(0.2, width / 2 - 0.12);
   const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
   const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
-  return !(insideCrossingArea(x, z, 0.10)
-    || insideCarriageway(x, z, 0.30)
+  return !(insideCarriageway(x, z, 0.30)
     || (innerEdge && outerEdge)
     || pavementSurroundedByStreet(x, z, width));
 }
@@ -3634,6 +3656,17 @@ function addCrossingLandingPads(points, crossingWidth, y) {
   return added;
 }
 
+function addCrossingAsphaltBackstop(points, crossingWidth, roadTop) {
+  // Surveyed curb faces can sit beyond the older constant-width road ribbon, especially at
+  // flared corners and divided roads.  Crosswalk paint is transparent; give its exact span an
+  // asphalt bed so a more accurate endpoint can never expose neutral unmapped ground below.
+  if (!points || points.length < 2) return false;
+  addMerged("road:crossing-backstop",
+            ribbon(points, Math.max(2.4, crossingWidth + 0.35), 0xffffff, 1.0,
+                   roadTop / 2, roadTop, "road"), "road");
+  return true;
+}
+
 function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   const pad = tactilePadCorners(endpoint, intoCrossing, crossingWidth);
   if (!pad) return false;
@@ -3676,7 +3709,6 @@ function addSidewalkCrossingReplacements(points, y) {
   let added = 0;
   for (const span of sidewalkCrossingReplacementSpans(points, crossingWidth)) {
     if (!shouldDrawCrossing(span, crossingWidth)) continue;
-    addCrossingAreaSegment(span, crossingWidth);
     addMerged("ribbon:sidewalk-crossing-replacement",
       ribbon(span, crossingWidth, 0xffffff, 1.0, y, 0.02, "crossing_edges"),
       "crossing_edges");
@@ -5716,13 +5748,8 @@ requestAnimationFrame(() => { loadFacadeTextures(); });
 // two can be compared by eye. This is not a prettier version of the streets layer: it is a
 // different claim about the same ground, from a different source, and where the two disagree
 // that is worth being able to see.
-registerLazyLayer("official", async () => {
-  let official;
-  try {
-    official = await fetch("sf-corridor-official.json", { cache: "no-cache" }).then((r) => r.json());
-  } catch (err) {
-    return;
-  }
+registerLazyLayer("official", () => {
+  const official = OFFICIAL_GEOMETRY;
   for (const line of official.curb_lines || []) {
     const points = line.p.map(([lon, lat]) => v3(lon, lat, 0.16));
     if (points.length < 2) continue;
@@ -5802,10 +5829,11 @@ const ROAD_TOP_M = 0.06;
 for (const way of DATA.ways) {
   if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
   if (wayLength(way.points) > 40) continue;
-  addCrossingAreaSegment(way.points, way.crossing_m || 3.7);
+  const span = crossingRectanglePoints(way.points);
+  if (!span || span.length < 2) continue;
+  const crossingWidth = way.crossing_m || 3.7;
+  addCrossingAsphaltBackstop(span, crossingWidth, ROAD_TOP_M);
 }
-addIntersectionRoadPads(DATA.ways, DATA.intersections, ROAD_TOP_M);
-
 const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
   const rank = (w) => w.kind === "divider" ? 2
     : (w.kind === "sidewalk" || w.kind === "path" ? 0 : 1);
@@ -5929,11 +5957,15 @@ const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossi
   // ``continental`` flag still records the 817 the city confirms.
   if (isSidewalk || isPath) {
     addSidewalkCrossingReplacements(renderPoints, roadTop + 0.024);
-    addPavementRibbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind);
+    addPavementRibbon(surfacePoints, widthMeters, color, opacity,
+                      surfaceY, surfaceThickness, surfaceKind, true);
   } else {
-    addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
-              ribbon(surfacePoints, widthMeters, color, opacity, surfaceY, surfaceThickness, surfaceKind),
-              surfaceKind);
+    const paintRuns = isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints];
+    for (const paintRun of paintRuns) {
+      addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
+                ribbon(paintRun, widthMeters, color, opacity,
+                       surfaceY, surfaceThickness, surfaceKind), surfaceKind);
+    }
     if (isCrossing) {
     addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);
     }

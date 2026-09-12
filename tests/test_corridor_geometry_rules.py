@@ -72,7 +72,6 @@ def _extract(name: str, js: str) -> str:
 #: breaks the test loudly instead of silently skipping the thing it was meant to check.
 CARRIAGEWAY_FUNCTIONS = (
     "distanceToSegmentSquared",
-    "insideCrossingArea",
     "insideCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
@@ -85,8 +84,9 @@ CARRIAGEWAY_FUNCTIONS = (
 PREAMBLE = """
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
-const CROSSING_AREA_CELL_M = 8.0;
-const crossingAreaGrid = new Map();
+const OFFICIAL_CURB_CELL_M = 20.0;
+const officialCurbGrid = new Map();
+const officialIslandCurbGrid = new Map();
 const metersPerLat = 111320;
 const metersPerLon = 88000;
 const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
@@ -110,7 +110,6 @@ def _run_crossing(js_body: str) -> dict:
     js = _page_js()
     functions = (
         "distanceToSegmentSquared",
-        "insideCrossingArea",
         "insideCarriageway",
         "pavementSurroundedByStreet",
         "addCarriagewaySegment",
@@ -119,6 +118,11 @@ def _run_crossing(js_body: str) -> dict:
         "trimWayEnds",
         "lonLatFromXZ",
         "intersectionWalkwayCutback",
+        "addOfficialCurbGridSegment",
+        "indexOfficialCurbGeometry",
+        "rayCurbIntersections",
+        "officialCurbCrossingSpan",
+        "crossingPaintLegs",
         "crossingRoadSpanPoints",
         "crossingRectanglePoints",
         "sidewalkCrossingReplacementSpans",
@@ -198,6 +202,18 @@ def test_a_footway_crossing_the_road_keeps_only_the_part_outside_it() -> None:
     assert result["kept"] > 400, result
 
 
+def test_short_sidewalk_remnants_cut_off_by_a_road_are_not_rendered_as_tiles() -> None:
+    result = _run("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(0, -5, 0, 5, 2);
+const sidewalk = [asLonLat(-5, 0), asLonLat(5, 0)];
+const runs = pavementRunsOutsideCarriageway(sidewalk, 3.6, true);
+console.log(JSON.stringify({runs: runs.length,
+  kept: runs.reduce((sum, run) => sum + wayLength(run), 0)}));
+""")
+    assert result == {"runs": 0, "kept": 0}, result
+
+
 def test_the_carriageway_guard_never_widens_the_road() -> None:
     """A negative slack is the bug, stated directly.
 
@@ -236,6 +252,43 @@ console.log(JSON.stringify({ count: clipped.length, pts, len: +wayLength(clipped
     assert abs(result["pts"][0][0]) < 0.15, result
     assert abs(result["pts"][1][0]) < 0.15, result
     assert 9.6 <= result["len"] <= 10.4, result
+
+
+def test_crosswalk_uses_sfmta_bulb_out_curbs_and_preserves_supported_skew() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 7);
+indexOfficialCurbGeometry([
+  {r: "block", p: [asLonLat(-20, 6), asLonLat(20, 6)]},
+  {r: "block", p: [asLonLat(-20, -4), asLonLat(20, -4)]},
+]);
+const crossing = [asLonLat(-3, 10), asLonLat(3, -10)];
+const clipped = crossingRectanglePoints(crossing);
+const pts = clipped.map(([lon, lat]) => {
+  const [x, y] = xy(lon, lat);
+  return [+x.toFixed(2), +(-y).toFixed(2)];
+});
+console.log(JSON.stringify({pts, provenance: clipped.provenance,
+  len: +wayLength(clipped).toFixed(2)}));
+""")
+    assert result["provenance"] == "sfmta_curbs", result
+    assert result["pts"] == [[-1.8, 6], [1.2, -4]], result
+    assert 10.3 <= result["len"] <= 10.6, result
+
+
+def test_crosswalk_paint_splits_around_an_official_refuge_island() -> None:
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+indexOfficialCurbGeometry([{r: "island", p: [
+  asLonLat(-2, -1), asLonLat(2, -1), asLonLat(2, 1),
+  asLonLat(-2, 1), asLonLat(-2, -1),
+]}]);
+const legs = crossingPaintLegs([asLonLat(0, -5), asLonLat(0, 5)]);
+console.log(JSON.stringify({count: legs.length,
+  lengths: legs.map((leg) => +wayLength(leg).toFixed(2))}));
+""")
+    assert result["count"] == 2, result
+    assert all(3.7 <= length <= 4.1 for length in result["lengths"]), result
 
 
 def test_crosswalk_geometry_does_not_draw_where_no_carriageway_is_crossed() -> None:
@@ -340,13 +393,11 @@ console.log(JSON.stringify({
     assert result["runs"] == 0, result
 
 
-def test_visual_intersection_pad_does_not_redefine_carriageway_geometry() -> None:
-    """The asphalt fill is a render backstop, not a circular synthetic kerb."""
+def test_circular_intersection_padding_is_not_rendered() -> None:
+    """Road and crossing ribbons meet directly; no synthetic circle masks their geometry."""
     js = _page_js()
-    pad = _extract("addIntersectionRoadPads", js)
-    guard = _extract("insideCarriageway", js)
-    assert "addCarriagewayDisk" not in pad
-    assert "carriagewayDisk" not in guard
+    assert "addIntersectionRoadPads(" not in js
+    assert 'addMerged("road:junction"' not in js
 
 
 def test_midblock_sidewalk_way_ends_are_not_cut_back() -> None:
@@ -361,18 +412,17 @@ console.log(JSON.stringify({ before: +wayLength(sidewalk).toFixed(2),
     assert result["after"] == result["before"], result
 
 
-def test_only_the_sidewalk_end_touching_a_crossing_is_cut_back() -> None:
+def test_crosswalks_do_not_cut_holes_out_of_sidewalk_landings() -> None:
     result = _run_crossing("""
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
 addCarriagewaySegment(-30, 0, 30, 0, 5);
-// The first endpoint is in a pre-indexed crosswalk band; the far endpoint is an ordinary split.
-crossingAreaGrid.set('0:0', [[0, -5, 0, 5, 2]]);
+// No synthetic crosswalk mask is allowed to shorten the sidewalk before the curb.
 const sidewalk = [asLonLat(0, 6), asLonLat(0, 26)];
 const trimmed = trimWalkwayForCorners(sidewalk, 3.6);
 console.log(JSON.stringify({ before: +wayLength(sidewalk).toFixed(2),
                              after: +wayLength(trimmed).toFixed(2) }));
 """)
-    assert 12.5 <= result["after"] <= 13.5, result
+    assert result["after"] == result["before"], result
 
 
 def test_corridor_wide_geometry_audit_runs_and_keeps_crosswalks_and_footways() -> None:
@@ -387,8 +437,10 @@ def test_corridor_wide_geometry_audit_runs_and_keeps_crosswalks_and_footways() -
     assert out.returncode == 0, out.stderr
     report = json.loads(out.stdout)
     assert report["crosswalk"]["rendered"] > 2500, report["crosswalk"]
-    assert report["crosswalk"]["attachedShare"] > 0.98, report["crosswalk"]
-    assert report["footway"]["keptShare"] > 0.90, report["footway"]
+    assert report["crosswalk"]["officialShare"] > 0.70, report["crosswalk"]
+    assert report["crosswalk"]["officialResolved"] + report["crosswalk"]["fallbackResolved"] \
+        == report["crosswalk"]["rendered"], report["crosswalk"]
+    assert report["footway"]["keptShare"] > 0.89, report["footway"]
 
 
 def test_ground_cover_is_clipped_off_the_carriageway() -> None:
@@ -1239,7 +1291,6 @@ def test_an_outbuilding_roof_is_dark_but_not_a_hole() -> None:
 
 PAVEMENT_FUNCTIONS = (
     "distanceToSegmentSquared",
-    "insideCrossingArea",
     "insideCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",

@@ -32,12 +32,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
 PAGE_DATA = ROOT / "docs" / "sf-corridor-3d.json"
 GROUND_DATA = ROOT / "docs" / "sf-corridor-ground.json"
+OFFICIAL_DATA = ROOT / "docs" / "sf-corridor-official.json"
 
 #: The rules, by name, exactly as the page defines them. Anything renamed fails loudly here
 #: rather than quietly measuring nothing.
 FUNCTIONS = (
     "distanceToSegmentSquared",
-    "insideCrossingArea",
     "insideCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
@@ -54,9 +54,13 @@ FUNCTIONS = (
     "trimWayEnds",
     "densifyWay",
     "lonLatFromXZ",
+    "addOfficialCurbGridSegment",
+    "indexOfficialCurbGeometry",
+    "rayCurbIntersections",
+    "officialCurbCrossingSpan",
+    "crossingPaintLegs",
     "crossingRoadSpanPoints",
     "crossingRectanglePoints",
-    "addCrossingAreaSegment",
     "pavementRunsOutsideCarriageway",
     "mappedWalkNear",
     "sideBlockedByCarriageway",
@@ -103,11 +107,13 @@ def extract(name: str, js: str) -> str:
 DRIVER = """
 const DATA = JSON.parse(require('fs').readFileSync(process.env.PAGE_JSON, 'utf8'));
 const GROUND = JSON.parse(require('fs').readFileSync(process.env.GROUND_JSON, 'utf8'));
+const OFFICIAL = JSON.parse(require('fs').readFileSync(process.env.OFFICIAL_JSON, 'utf8'));
 
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
-const CROSSING_AREA_CELL_M = 8.0;
-const crossingAreaGrid = new Map();
+const OFFICIAL_CURB_CELL_M = 20.0;
+const officialCurbGrid = new Map();
+const officialIslandCurbGrid = new Map();
 const bbox = DATA.bbox;
 const midLat = (bbox.south + bbox.north) / 2;
 const midLon = (bbox.west + bbox.east) / 2;
@@ -160,6 +166,7 @@ for (const way of DATA.ways) {
 
 clampRoadWidthsToNeighbours(DATA.ways);
 indexStreetEnds(DATA.ways);
+indexOfficialCurbGeometry(OFFICIAL.curb_lines || []);
 for (const way of DATA.ways) {
   if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
   const half = renderedRoadWidth(way) / 2;
@@ -187,6 +194,10 @@ let crossingRendered = 0;
 let crossingKerbAttached = 0;
 let crossingUnionBoundary = 0;
 let crossingLengthM = 0;
+let crossingOfficial = 0;
+let crossingFallback = 0;
+let crossingSplitForIslands = 0;
+const crossingSplitExamples = [];
 for (const way of DATA.ways) {
   if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
   if (wayLength(way.points) > 40) continue;
@@ -194,6 +205,16 @@ for (const way of DATA.ways) {
   const span = crossingRectanglePoints(way.points);
   if (!span || span.length < 2) continue;
   crossingRendered += 1;
+  if (span.provenance === "sfmta_curbs") crossingOfficial += 1;
+  if (span.provenance === "road_width_fallback") crossingFallback += 1;
+  if (crossingPaintLegs(span).length > 1) {
+    crossingSplitForIslands += 1;
+    if (crossingSplitExamples.length < 6) {
+      crossingSplitExamples.push({osmId: way.osm_id,
+        at: [+((span[0][0] + span[1][0]) / 2).toFixed(6),
+             +((span[0][1] + span[1][1]) / 2).toFixed(6)]});
+    }
+  }
   crossingLengthM += wayLength(span);
   const [ax, ay] = xy(span[0][0], span[0][1]);
   const [bx, by] = xy(span[1][0], span[1][1]);
@@ -214,7 +235,6 @@ for (const way of DATA.ways) {
   // separately rather than mislabelling a correct corner crossing as detached.
   if (aInside && bInside) crossingKerbAttached += 1;
   if (aInside && bInside && !aOutside && !bOutside) crossingUnionBoundary += 1;
-  addCrossingAreaSegment(span, way.crossing_m || 3.7);
 }
 
 // -- ground cover standing on the roadway ---------------------------------------------------
@@ -334,6 +354,11 @@ console.log(JSON.stringify({
     attachedShare: +(crossingKerbAttached / Math.max(crossingRendered, 1)).toFixed(3),
     unionBoundary: crossingUnionBoundary,
     unionBoundaryShare: +(crossingUnionBoundary / Math.max(crossingRendered, 1)).toFixed(3),
+    officialResolved: crossingOfficial,
+    officialShare: +(crossingOfficial / Math.max(crossingRendered, 1)).toFixed(3),
+    fallbackResolved: crossingFallback,
+    splitForIslands: crossingSplitForIslands,
+    splitExamples: crossingSplitExamples,
     meanLengthM: +(crossingLengthM / Math.max(crossingRendered, 1)).toFixed(2),
   },
   footway: {
@@ -351,6 +376,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--page", type=Path, default=PAGE_DATA)
     ap.add_argument("--ground", type=Path, default=GROUND_DATA)
+    ap.add_argument("--official", type=Path, default=OFFICIAL_DATA)
     args = ap.parse_args()
 
     node = shutil.which("node")
@@ -363,7 +389,8 @@ def main() -> int:
                             "\n".join(extract(name, js) for name in FUNCTIONS))
     out = subprocess.run([node, "-e", driver], capture_output=True, text=True, timeout=900,
                          env={**os.environ, "PAGE_JSON": str(args.page),
-                              "GROUND_JSON": str(args.ground)})
+                              "GROUND_JSON": str(args.ground),
+                              "OFFICIAL_JSON": str(args.official)})
     if out.returncode != 0:
         print(out.stderr, file=sys.stderr)
         return 1
