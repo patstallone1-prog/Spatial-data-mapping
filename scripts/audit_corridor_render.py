@@ -63,11 +63,13 @@ FUNCTIONS = (
     "crossingRectanglePoints",
     "pavementRunsOutsideCarriageway",
     "mappedWalkNear",
-    "sideBlockedByCarriageway",
+    "kerbsideBlockedAt",
+    "isUnmarkedService",
     "walkSidesToDraw",
     "indexStreetEnds",
     "streetContinuationsAt",
     "streetCarriesOn",
+    "cornerLegAt",
     "kerbsideTrims",
     "walkFitsAt",
     "addKerbsidePavement",
@@ -123,8 +125,12 @@ function xy(lon, lat) { return [(lon - midLon) * metersPerLon, (lat - midLat) * 
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
+const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
+const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
 const MIN_RENDER_WALK_M = 0.9;
 const MAX_RENDER_WALK_M = 5.5;
+const KERBSIDE_BLOCK_PROBE_M = 1.8;
+const KERB_LIP_M = 0.1016;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 const WALK_ENOUGH = 0.55;
 const WALK_WIDTH_RUN_M = 6.0;
@@ -132,6 +138,11 @@ const NARROW_WALK_M = 1.15;
 const STREET_JOIN_M = 3.0;
 const STREET_JOIN_DEG = 34.0;
 const streetEndGrid = new Map();
+const CORNER_JOIN_M = 1.0;
+const CORNER_CELL_M = 4.0;
+const cornerLegGrid = new Map();
+const pavementCornerCuts = new Map();
+const pavementCornerLaid = new Map();
 
 __FUNCTIONS__
 

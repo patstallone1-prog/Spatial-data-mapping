@@ -85,7 +85,10 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert "function tactileWarningTexture()" in source
     assert "Truncated-dome warning tile" in source
     assert 'ctx.fillStyle = "#d8aa24";' in source
-    assert "const TACTILE_PAD_DEPTH_M = 0.72;" in source
+    assert "const TACTILE_PAD_DEPTH_M = 0.61;" in source   # 24 in: ADA's detectable-warning depth
+    # And the pad is the front of a ramp, not a yellow stripe on its own.
+    assert "const CURB_RAMP_DEPTH_M" in source
+    assert 'addMerged("crossing:ramp", ramp, "curb_ramp");' in source
     assert "function tactilePadCorners(endpoint, intoCrossing, crossingWidth)" in source
     assert "insideCarriageway(cx, cz, 0.10)" in source
     assert 'mesh.userData.surface = "tactile_warning";' in source
@@ -106,8 +109,11 @@ def test_official_signs_and_curb_zone_bands_render_from_geometry_based_sidecar()
     assert "STOP_SIGN_GEOMETRY" in source
     assert "side: THREE.FrontSide" in source
     assert "function addOfficialCurbZoneBands(records)" in source
-    assert "const buckets = new Map();" in source
-    assert "surface: `official_curb_zone:${bucket.colorName}`" in source
+    # The paint is vertex colour on the kerb tile, not a band laid over it.
+    assert 'o.userData.surface === "kerb"' in source
+    assert "col.setXYZ(i, best[4], best[5], best[6]);" in source
+    # No separate band surface any more: the kerb tile carries the colour.
+    assert "official_curb_zone:${bucket.colorName}" not in source
     assert "curb_zone_bands: addOfficialCurbZoneBands(official.curb_zones || [])" in source
 
 
@@ -149,8 +155,8 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     assert "addKerbsidePavement(renderPoints, side, inner, walk" in source
     assert "WALK_FALLBACK_WIDTHS_M" in source
     # And `sidewalk=no` is believed only where a footway is really mapped in its place.
-    assert "function sideBlockedByCarriageway(renderPoints, side, inner)" in source
-    assert "drawing sidewalk tiles there makes the middle of the road look paved" in source
+    assert "function kerbsideBlockedAt(before, here, after, side, inner)" in source
+    assert "function sideBlockedByCarriageway" not in source
     assert "function walkSidesToDraw(way, renderPoints, inner)" in source
     assert "mappedWalkNear(x, -y)" in source
 
@@ -163,6 +169,53 @@ def test_alley_mouth_crossings_bridge_sidewalk_cuts() -> None:
     assert '"alley_mouth": True' in source
     assert 'const widthMeters = isCrossing ? (way.crossing_m || 3.7)' in source
     assert '((way.continental || way.alley_mouth) ? "crossing" : "crossing_edges")' in source
+
+
+def test_a_way_without_a_highway_tag_is_not_a_street() -> None:
+    """The amenity/shop/tourism ways are fetched for what they say a place is, not as roads.
+
+    Left to the classifier's ``else``, 867 of them were streets: 659 nameless parking spaces
+    drawn as five metre carriageways two and a half metres apart across the Marina Green car
+    park, and plazas, school grounds and bicycle racks with a centreline down each.
+    """
+    source = _source()
+    namespace = runpy.run_path(str(SOURCE))
+    body = source.split("def fetch_osm(", 1)[1].split("\ndef ", 1)[0]
+    assert 'if not highway and tags.get("footway") not in ("sidewalk", "crossing"):' in body
+    assert '"kind": "poi", "name": tags.get("name"),' in body
+
+    cached = [
+        {"kind": "street", "name": "Ghirardelli Square", "highway": None,
+         "points": [[-122.4237, 37.8061], [-122.4223, 37.8063], [-122.4237, 37.8061]]},
+        {"kind": "street", "name": "Beach Street", "highway": "residential",
+         "points": [[-122.4237, 37.8061], [-122.4223, 37.8063]]},
+        {"kind": "street", "name": None, "highway": "steps",
+         "points": [[-122.4237, 37.8061], [-122.4223, 37.8063]]},
+    ]
+    kinds = [w["kind"] for w in namespace["reclassify"](cached)]
+    assert kinds == ["street", "path"]
+
+
+def test_parking_aisles_on_a_mapped_lot_are_the_lot() -> None:
+    """An aisle drawn over a lot is the lot's surface, not an eight metre street on top of it."""
+    namespace = runpy.run_path(str(SOURCE))
+    fold = namespace["fold_parking_aisles_into_lots"]
+    lot = {"kind": "parking_lot", "points": [[-122.44, 37.80], [-122.439, 37.80],
+                                             [-122.439, 37.8006], [-122.44, 37.8006],
+                                             [-122.44, 37.80]]}
+    inside = {"kind": "street", "service": "parking_aisle",
+              "points": [[-122.4398, 37.8002], [-122.4392, 37.8002]]}
+    outside = {"kind": "street", "service": "parking_aisle",
+               "points": [[-122.4398, 37.8012], [-122.4392, 37.8012]]}
+    driveway = {"kind": "street", "service": "driveway",
+                "points": [[-122.4398, 37.8003], [-122.4392, 37.8003]]}
+    ways = [lot, inside, outside, driveway]
+
+    assert fold(ways) == 1
+    assert inside["kind"] == "parking_aisle"
+    assert outside["kind"] == "street"
+    assert driveway["kind"] == "street", "only aisles fold; a driveway over a lot is a driveway"
+    assert '"service",' in _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
 
 
 def test_ground_cover_classifies_small_frontage_and_backyard_remainders() -> None:
@@ -417,7 +470,7 @@ def test_avatar_is_a_humanoid_walker_not_the_old_marker_sphere() -> None:
 
     assert 'the walker is you' in source
     assert "GLTFLoader" in source
-    assert "const AVATAR_HEIGHT = 2.13;" in source
+    assert "const AVATAR_HEIGHT = 2.1336;" in source   # seven feet, to the millimetre
     assert "https://threejs.org/examples/models/gltf/Soldier.glb" in source
     assert "function buildCharacterAvatar()" in source
     assert 'rig.name = "walking-character-avatar";' in source

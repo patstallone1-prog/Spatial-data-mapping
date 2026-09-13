@@ -505,6 +505,7 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     const MIN_RENDER_ROAD_M = 2.8;
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
+    const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     """]
     parts += [_extract(name, js) for name in functions]
     parts.append("""
@@ -520,12 +521,20 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
                         points: [at(-200, 400), at(200, 400)] };
     const service = { kind: "street", road_m: 4.0,
                       points: [at(-200, 407), at(200, 407)] };
-    const ways = [avenue, alley, boulevard, service];
+    // A driveway and a lone parking aisle with nothing measured: neither gets the street
+    // default of eight metres.
+    const driveway = { kind: "street", service: "driveway",
+                       points: [at(-200, 800), at(200, 800)] };
+    const aisle = { kind: "street", service: "parking_aisle",
+                    points: [at(-200, 1200), at(200, 1200)] };
+    const ways = [avenue, alley, boulevard, service, driveway, aisle];
     clampRoadWidthsToNeighbours(ways);
     console.log(JSON.stringify({
       avenue: +renderedRoadWidth(avenue).toFixed(2),
       alley: +renderedRoadWidth(alley).toFixed(2),
       boulevard: +renderedRoadWidth(boulevard).toFixed(2),
+      driveway: +renderedRoadWidth(driveway).toFixed(2),
+      aisle: +renderedRoadWidth(aisle).toFixed(2),
     }));
     """)
     out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
@@ -541,6 +550,9 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     assert widths["alley"] <= 4.0 + 0.01, widths
     # Four stated lanes keep room for four stated lanes even with something seven metres away.
     assert widths["boulevard"] >= 12.0, widths
+    # A driveway is one car wide and an aisle two; neither is an eight metre street.
+    assert widths["driveway"] <= 3.4 + 0.01, widths
+    assert widths["aisle"] <= 6.0 + 0.01, widths
 
 
 def test_roof_furniture_is_geometry_at_real_sizes() -> None:
@@ -695,10 +707,18 @@ def test_no_sidewalk_is_believed_only_where_one_is_mapped_instead() -> None:
     """
     js = _page_js()
     body = _extract("walkSidesToDraw", js)
-    assert "sideBlockedByCarriageway(renderPoints, side, inner)" in body
+    # The blanket side rejection is gone. It sampled seven points and dropped the whole side if
+    # three were blocked, so a side beside a median for half a block lost its pavement for all of
+    # it. Whether the ground beyond a kerb is roadway is asked of each station now, in the two
+    # pavement passes, where it belongs.
+    assert "sideBlockedByCarriageway" not in body
+    assert "kerbsideBlockedAt(before, spine[i], after, side, inner)" in js
     assert "mappedWalkNear" in body, "the tag is taken on trust"
     # A side the tag excludes is still drawn when nothing is mapped along it.
     assert "if (!sampled || covered < sampled * 0.5) drawn.push(side);" in body
+    # A driveway or a parking aisle has no footway of its own, and no paint down its middle.
+    assert "if (isUnmarkedService(way)) return drawn;" in body
+    assert "if (!isSidewalk && !isCrossing && !isPath && !isUnmarkedService(way)) {" in js
 
 
 def test_a_footway_narrows_to_fit_rather_than_vanishing() -> None:
@@ -709,7 +729,9 @@ def test_a_footway_narrows_to_fit_rather_than_vanishing() -> None:
     # with less of it rather than a pavement somewhere else. Asserted of the geometry rather than
     # of the source text: the literal that used to be checked here survived a rewrite that
     # changed what the function does, and would have gone on passing if the property had broken.
-    assert "(inner + width / 2)" in body
+    # The kerb's own four-inch tile sits at the kerb; the pavement proper starts behind it.
+    assert "(inner + KERB_LIP_M / 2)" in body
+    assert "(inner + KERB_LIP_M + inset / 2)" in body
     # And the end trim cannot eat a short way whole.
     assert "wanted * 0.32" in body
 
@@ -773,6 +795,7 @@ BIKE_PREAMBLE = PREAMBLE + """
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
+const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 const BIKE_LANE_M = 1.75;
 const BIKE_JOIN_M = 2.5;
 const BIKE_END_TRIM_M = 2.0;
@@ -1305,8 +1328,10 @@ PAVEMENT_FUNCTIONS = (
     "densifyWay",
     "pavementRunsOutsideCarriageway",
     "walkFitsAt",
+    "kerbsideBlockedAt",
     "streetContinuationsAt",
     "streetCarriesOn",
+    "cornerLegAt",
     "kerbsideTrims",
     "addKerbsidePavement",
 )
@@ -1317,9 +1342,16 @@ const NARROW_WALK_M = 1.6;
 const WALK_ENOUGH = 0.55;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 const WALK_WIDTH_RUN_M = 6.0;
+const KERB_LIP_M = 0.1016;
+const KERBSIDE_BLOCK_PROBE_M = 1.8;
 const STREET_JOIN_M = 3.0;
 const STREET_JOIN_DEG = 34.0;
 const streetEndGrid = new Map();
+const CORNER_JOIN_M = 1.0;
+const CORNER_CELL_M = 4.0;
+const cornerLegGrid = new Map();
+const pavementCornerCuts = new Map();
+const pavementCornerLaid = new Map();
 // The ribbon is not built; what it was asked to build is recorded instead.
 const LAID = [];
 function addPavementRibbon(points, width) {
@@ -1372,7 +1404,8 @@ def test_pavement_width_changes_are_stable_runs_not_stacked_tiles() -> None:
     addKerbsidePavement(spine, 1, ROAD_W / 2, 4.0, 0xffffff, 1.0, 0.12, 0.12);
     console.log(JSON.stringify({
       ribbons: LAID.length,
-      widths: [...new Set(LAID.map((r) => +r.width.toFixed(3)))],
+      widths: [...new Set(LAID.filter((r) => r.width > KERB_LIP_M + 0.01)
+                              .map((r) => +r.width.toFixed(3)))],
       lengths: LAID.map((r) => +r.length.toFixed(1)),
       coveredM: +LAID.reduce((s, r) => s + r.length, 0).toFixed(1),
     }));
@@ -1407,7 +1440,8 @@ def test_the_width_kept_is_the_one_that_covers_the_most_ground() -> None:
     js = _page_js()
     body = _extract("addKerbsidePavement", js)
     assert "const fits = widths.map(() => []);" in body
-    assert "fits[w].push(walkFitsAt(cx, -cy, nx, nz, widths[w]));" in body
+    # Each station is also asked whether the ground beyond its kerb is another carriageway.
+    assert "fits[w].push(!blocked && walkFitsAt(cx, -cy, nx, nz, widths[w]));" in body
     assert "if (coverage >= WALK_ENOUGH)" in body
     assert "const chosen = fits[pick].map((ok) => ok ? pick : -1);" in body
     assert "const emit = (from, to) => {" in body
@@ -1498,3 +1532,159 @@ def test_curb_paint_is_snapped_to_the_kerb_the_model_drew() -> None:
     assert "CURB_RUN_BREAK_M" in runs
     # The bus box breaks where the kerb turns, because a bus zone does not wrap a corner.
     assert "kerbRunsFor(record, BUS_ZONE_MAX_TURN_DEG)" in js
+
+
+# ---------------------------------------------------------------- the corners
+
+
+CORNER_FUNCTIONS = (
+    *PAVEMENT_FUNCTIONS,
+    "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "renderedWalkWidth",
+    "isUnmarkedService", "cornerLegsAt", "cornerNeighbour", "cornerFrame", "cornerCutFor",
+    "reconcilePavementCorners", "indexPavementCorners", "cornerQuad",
+)
+
+CORNER_PREAMBLE = PAVEMENT_PREAMBLE + """
+const MIN_RENDER_ROAD_M = 2.8;
+const MAX_RENDER_ROAD_M = 24.0;
+const MAX_INFERRED_ROAD_M = 16.5;
+const MAX_RENDER_WALK_M = 6.0;
+const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
+const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
+const CORNER_MIN_DEG = 20;
+const CORNER_MAX_DEG = 150;
+const cornerLegs = [];
+"""
+
+
+def _run_corners(js_body: str) -> dict:
+    js = _page_js()
+    parts = [CORNER_PREAMBLE]
+    parts += [_extract(name, js) for name in CORNER_FUNCTIONS]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+#: A crossroads: an east-west street 10 m wide with 4 m footways and a north-south street 8 m
+#: wide with 3 m footways, each split at the junction node the way OpenStreetMap splits them.
+CROSSROADS = """
+const asLonLat = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
+const west  = { kind: "street", name: "Post Street", road_m: 10, walk_m: 4,
+                points: [asLonLat(-100, 0), asLonLat(0, 0)] };
+const east  = { kind: "street", name: "Post Street", road_m: 10, walk_m: 4,
+                points: [asLonLat(0, 0), asLonLat(100, 0)] };
+const south = { kind: "street", name: "Hyde Street", road_m: 8, walk_m: 3,
+                points: [asLonLat(0, -100), asLonLat(0, 0)] };
+const north = { kind: "street", name: "Hyde Street", road_m: 8, walk_m: 3,
+                points: [asLonLat(0, 0), asLonLat(0, 100)] };
+const ways = [west, east, south, north];
+for (const w of ways) w._renderRoadM = w.road_m;
+const valid = indexPavementCorners(ways);
+"""
+
+
+def test_a_crossroads_cuts_each_pavement_where_the_crossing_pavement_ends() -> None:
+    """The corner square is bounded by the two kerbs and the two pavements' starts.
+
+    A pavement was pulled back from the junction by seven tenths of its own width past the
+    other street's kerb. Both pavements at a corner did that, so the square between the kerbs
+    had nothing on it and the small square beyond it had both. The cut is now where the other
+    pavement's outer edge is: for the east-west street, half the north-south road plus its
+    footway -- 4 + 3 = 7 m -- and 5 + 4 = 9 m the other way round.
+    """
+    result = _run_corners(CROSSROADS + """
+    const legs = cornerLegs.map((leg) => ({
+      name: leg.way.name, x: +leg.x.toFixed(1), y: +leg.y.toFixed(1),
+      cuts: [1, -1].map((side) => {
+        const c = pavementCornerCuts.get(`${leg.id}:${side}`);
+        return c ? { cut: +c.cut.toFixed(2), valid: c.valid, tK: +c.tK.toFixed(2),
+                     with: c.B.way.name } : null;
+      }),
+    }));
+    // And the trim the pavement pass asks for, per side, at the junction end of the west leg.
+    const back = 99;
+    const trims = [1, -1].map((side) =>
+      kerbsideTrims(west.points, back, side).map((v) => +v.toFixed(2)));
+    const quad = cornerQuad(cornerLegs.find((leg) => leg.way === east && leg.end === 0), 1);
+    console.log(JSON.stringify({ valid, legs, trims, quad: quad && {
+      K: quad.K.map((v) => +v.toFixed(2)), A1: quad.A1.map((v) => +v.toFixed(2)),
+      C: quad.C.map((v) => +v.toFixed(2)), B1: quad.B1.map((v) => +v.toFixed(2)) } }));
+    """)
+    assert result["valid"] == 8, result
+    for leg in result["legs"]:
+        if leg["x"] != 0 or leg["y"] != 0:
+            # The dead ends have no corners.
+            assert leg["cuts"] == [None, None], leg
+            continue
+        for corner in leg["cuts"]:
+            assert corner is not None and corner["valid"], (leg, corner)
+            if leg["name"] == "Post Street":
+                assert corner["with"] == "Hyde Street"
+                assert abs(corner["cut"] - 7.0) < 0.01, corner
+                assert abs(corner["tK"] - 4.0) < 0.01, corner
+            else:
+                assert corner["with"] == "Post Street"
+                assert abs(corner["cut"] - 9.0) < 0.01, corner
+                assert abs(corner["tK"] - 5.0) < 0.01, corner
+    # The west leg's far end is the junction; its near end is a dead end and keeps the flat
+    # pull-back. Both sides ask and both get the corner's own cut.
+    assert result["trims"] == [[99, 7.0], [99, 7.0]], result["trims"]
+    # The corner piece for the east leg's left (north) side: kerb corner at (4, 5) inset by the
+    # kerb tile, its own cut on the kerb line at x = 7, the cut lines meeting at (7, 9), and
+    # Hyde's cut on Hyde's kerb line at y = 9.
+    quad = result["quad"]
+    assert quad is not None
+    assert abs(quad["K"][0] - 4.1) < 0.02 and abs(quad["K"][1] - 5.1) < 0.02, quad
+    assert abs(quad["A1"][0] - 7.0) < 0.02 and abs(quad["A1"][1] - 5.1) < 0.02, quad
+    assert abs(quad["C"][0] - 7.0) < 0.02 and abs(quad["C"][1] - 9.0) < 0.02, quad
+    assert abs(quad["B1"][0] - 4.1) < 0.02 and abs(quad["B1"][1] - 9.0) < 0.02, quad
+
+
+def test_a_stub_between_two_junctions_shares_itself_between_its_corners() -> None:
+    """A way too short for the corners at both ends gives them what it has, kerb corners first."""
+    result = _run_corners("""
+    const asLonLat = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
+    // A 9 m stub of an east-west street between two north-south streets 8 m wide, and its
+    // continuations beyond them.
+    const mk = (name, a, b, road, walk) => ({ kind: "street", name, road_m: road, walk_m: walk,
+      points: [asLonLat(...a), asLonLat(...b)], _renderRoadM: road });
+    const ways = [
+      mk("Stub", [0, 0], [9, 0], 10, 4),
+      mk("Stub", [-100, 0], [0, 0], 10, 4), mk("Stub", [9, 0], [109, 0], 10, 4),
+      mk("Left", [0, -100], [0, 0], 8, 3), mk("Left", [0, 0], [0, 100], 8, 3),
+      mk("Right", [9, -100], [9, 0], 8, 3), mk("Right", [9, 0], [9, 100], 8, 3),
+    ];
+    const valid = indexPavementCorners(ways);
+    const stub = cornerLegs.filter((leg) => leg.way === ways[0]);
+    const cuts = stub.map((leg) => [1, -1].map((side) => {
+      const c = pavementCornerCuts.get(`${leg.id}:${side}`);
+      return c ? [+c.cut.toFixed(2), c.valid] : null;
+    }));
+    console.log(JSON.stringify({ valid, cuts }));
+    """)
+    # Each end wanted 7 m; the stub is 9. Both keep their kerb corner (4 m) and share the rest.
+    for end in result["cuts"]:
+        for corner in end:
+            assert corner is not None, result
+            assert 4.3 <= corner[0] <= 4.7, result
+    assert result["cuts"][0][0][0] + result["cuts"][1][1][0] <= 9.0 + 0.01, result
+
+
+def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
+    js = _page_js()
+    assert "indexPavementCorners(DATA.ways);" in js
+    assert "const cornersLaid = addPavementCorners();" in js
+    body = _extract("addPavementCorners", js)
+    # The slab merges with the pavements it joins, and its kerb is the pavements' kerb tile.
+    assert ('addMerged(`walk:walk:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`, '
+            'mesh, "walk");') in body
+    assert ('KERB_LIP_M,\n                        mine.color, mine.opacity, y, thickness, '
+            '"kerb");') in body
+    # A piece on the road is not laid.
+    assert "insideCarriageway(sx, -sy, 0.15)" in body
+    # Two legs of one street forking are not a corner.
+    neighbour = _extract("cornerNeighbour", js)
+    assert "if (leg.way.name && best.way.name === leg.way.name) return null;" in neighbour
