@@ -2623,8 +2623,14 @@ function nominalRoadWidth(way) {
   // way into a plaza-wide slab, which is what covers sidewalks/streets at curved junctions.
   const raw = way.road_m || 8.0;
   const lanes = laneCountForWay(way);
-  const laneCap = lanes ? Math.max(4.2, lanes * 3.35 + 1.4) : MAX_INFERRED_ROAD_M;
-  const sourceCap = way.road_source === "curb_geometry" ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;
+  // The lane cap reins in a width that was inferred from the right of way. A width measured
+  // between the mapped kerbs is not that: Grant Avenue through Chinatown is 7.36 m kerb to
+  // kerb and tagged lanes=1, because the other four metres are parked cars, and capped to one
+  // lane it was drawn 4.75 m wide -- with the pavement laid from that kerb reaching a metre
+  // and a third into the roadway, past the ends of the crossings, as a tongue at every corner.
+  const measured = way.road_source === "curb_geometry";
+  const laneCap = lanes && !measured ? Math.max(4.2, lanes * 3.35 + 1.4) : MAX_RENDER_ROAD_M;
+  const sourceCap = measured ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;
   // A driveway or a parking aisle has no right of way of its own to fall back on: the eight
   // metre default is a street's, and drawn that wide beside a house it is the front garden.
   const serviceCap = SERVICE_ROAD_M[way.service] || Infinity;
@@ -2775,6 +2781,95 @@ function addCarriagewaySegment(ax, az, bx, bz, half, source = null) {
   }
 }
 
+// ---- the street where the city's kerbs say it is ----
+//
+// OpenStreetMap's centreline is a line somebody drew down the middle of the road as they saw
+// it, and along Grant Avenue through Chinatown it runs 1.75 m west of the middle of the road
+// the city surveyed. Everything laid from that line -- the carriageway, the kerb, the pavement,
+// the corners -- was 1.75 m west of where it stands, so the pavement corner on one side stood
+// in the roadway past the end of the crossing, as a tongue, and on the other the road ran
+// under the pavement. The crossings were right, because they were already read off the city's
+// curb lines. Now the street is too: each way is moved sideways to the middle of the official
+// kerbs it runs between, by one offset for the whole way (the median of its stations, which a
+// street that is straight relative to its kerbs has), and where the kerbs were only inferred
+// the width becomes the measured one.
+//: Stations this far from a way's end are not asked: the ray would cross a curb return.
+const RECENTRE_END_MARGIN_M = 8.0;
+const RECENTRE_STATION_M = 4.0;
+//: The stations have to agree: above this spread they are not one street between two kerbs.
+const RECENTRE_MAX_SPREAD_M = 0.5;
+//: And a move this large is not a recentring, it is a different street.
+const RECENTRE_MAX_SHIFT_M = 4.0;
+const RECENTRE_MIN_SHIFT_M = 0.12;
+
+function officialKerbOffsetsAt(x, z, nx, nz, road) {
+  // The kerb on each side, as signed distances along the left normal, or null.
+  const reach = Math.min(30, road * 1.3 + 5);
+  const hits = rayCurbIntersections(x, z, nx, nz, reach, officialCurbGrid);
+  const negative = hits.filter((v) => v < -1.2).pop();
+  const positive = hits.find((v) => v > 1.2);
+  if (negative === undefined || positive === undefined) return null;
+  const span = positive - negative;
+  // The pair has to be this street's own two kerbs: a plausible width, roughly balanced.
+  if (span < 3.0 || span > 30.0 || -negative > positive * 3.0 || positive > -negative * 3.0) {
+    return null;
+  }
+  return { offset: (positive + negative) / 2, span };
+}
+
+function recentreStreetsOnOfficialKerbs(ways) {
+  if (!officialCurbGrid.size) return { moved: 0, widened: 0 };
+  let moved = 0;
+  let widened = 0;
+  for (const way of ways) {
+    if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+    if (isUnmarkedService(way)) continue;
+    const road = way.road_m || 8.0;
+    const dense = densifyWay(way.points, RECENTRE_STATION_M);
+    const length = wayLength(way.points);
+    if (length < RECENTRE_END_MARGIN_M * 2 + RECENTRE_STATION_M) continue;
+    const offsets = [];
+    const spans = [];
+    let along = 0;
+    for (let i = 1; i < dense.length - 1; i += 1) {
+      const [px, py] = xy(dense[i - 1][0], dense[i - 1][1]);
+      const [x, y] = xy(dense[i][0], dense[i][1]);
+      const [qx, qy] = xy(dense[i + 1][0], dense[i + 1][1]);
+      along += Math.hypot(x - px, y - py);
+      if (along < RECENTRE_END_MARGIN_M || along > length - RECENTRE_END_MARGIN_M) continue;
+      const dx = qx - px;
+      const dz = -(qy - py);
+      const span = Math.hypot(dx, dz) || 1;
+      // The left normal, in the x/z frame the kerb grid is indexed in.
+      const found = officialKerbOffsetsAt(x, -y, dz / span, -dx / span, road);
+      if (!found) continue;
+      offsets.push(found.offset);
+      spans.push(found.span);
+    }
+    if (offsets.length < 3) continue;
+    const sorted = offsets.slice().sort((p, q) => p - q);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const spread = sorted[Math.floor(sorted.length * 0.75)] - sorted[Math.floor(sorted.length * 0.25)];
+    if (spread > RECENTRE_MAX_SPREAD_M || Math.abs(median) > RECENTRE_MAX_SHIFT_M) continue;
+    // Where the way stood, kept for the junction it shares with the ways that meet it there.
+    way._node = [way.points[0].slice(), way.points[way.points.length - 1].slice()];
+    if (Math.abs(median) >= RECENTRE_MIN_SHIFT_M) {
+      way.points = offsetWay(way.points, median);
+      way.recentred_m = +median.toFixed(3);
+      moved += 1;
+    }
+    if (way.road_source !== "curb_geometry") {
+      const widths = spans.slice().sort((p, q) => p - q);
+      way.road_m = +widths[Math.floor(widths.length / 2)].toFixed(3);
+      way.road_source = "official_curbs";
+      widened += 1;
+    }
+  }
+  return { moved, widened };
+}
+
+const recentred = recentreStreetsOnOfficialKerbs(DATA.ways);
+
 clampRoadWidthsToNeighbours(DATA.ways);
 
 for (const way of DATA.ways) {
@@ -2889,6 +2984,7 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
       const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
       const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
     const overlaps = insideCarriageway(x, z, 0.30)
+      || insideJunctionBox(x, z)
       || (innerEdge && outerEdge)
         || pavementSurroundedByStreet(x, z, width);
     if (overlaps) {
@@ -3087,7 +3183,7 @@ function walkSidesToDraw(way, renderPoints, inner) {
   // Both sides unless OpenStreetMap says otherwise and the ground agrees with it.
   const stated = way.walk_sides;
   const drawn = [];
-  if (isUnmarkedService(way)) return drawn;
+  if (isUnmarkedService(way) || way._junctionInternal) return drawn;
   for (const side of [1, -1]) {
     if (stated === undefined) {
       drawn.push(side);
@@ -3188,18 +3284,19 @@ function kerbsideTrims(renderPoints, back, side = 0) {
   const [e2x, e2y] = xy(renderPoints[n - 2][0], renderPoints[n - 2][1]);
   const startBearing = Math.atan2(-s2y + sy, s2x - sx);
   const endBearing = Math.atan2(-e2y + ey, e2x - ex);
-  const cornerCut = (x, y, dx, dy, awaySide) => {
-    if (!awaySide) return undefined;
-    const leg = cornerLegAt(x, y, dx, dy);
+  const cut = (x, y, dx, dy, bearing, awaySide) => {
+    const leg = awaySide ? cornerLegAt(x, y, dx, dy) : null;
     const corner = leg && pavementCornerCuts.get(`${leg.id}:${awaySide}`);
-    return corner && corner.valid ? corner.cut : undefined;
+    if (corner && corner.valid) return corner.cut;
+    if (streetCarriesOn(null, x, -y, bearing)) return 0;
+    // No corner to meet and no street to carry on into, but a junction box to stay out of.
+    if (leg && leg.boxExit > 0) return Math.max(back, leg.boxExit + 0.5);
+    return back;
   };
-  const start = cornerCut(sx, sy, s2x - sx, s2y - sy, side);
-  // Leaving the far end the way runs backwards, so the pavement on its left is on the right.
-  const end = cornerCut(ex, ey, e2x - ex, e2y - ey, -side);
   return [
-    start !== undefined ? start : (streetCarriesOn(null, sx, -sy, startBearing) ? 0 : back),
-    end !== undefined ? end : (streetCarriesOn(null, ex, -ey, endBearing) ? 0 : back),
+    cut(sx, sy, s2x - sx, s2y - sy, startBearing, side),
+    // Leaving the far end the way runs backwards, so the pavement on its left is on the right.
+    cut(ex, ey, e2x - ex, e2y - ey, endBearing, -side),
   ];
 }
 
@@ -3229,6 +3326,10 @@ const CORNER_JOIN_M = 1.0;
 const CORNER_MIN_DEG = 20;
 const CORNER_MAX_DEG = 150;
 const CORNER_CELL_M = 4.0;
+//: Nodes this close are one junction. The Embarcadero's crossing with Broadway is drawn as
+//: connector ways eleven to fifteen metres long between the nodes on its two carriageways,
+//: and the junction -- its box, and the ways that are only its connectors -- is the whole of it.
+const JUNCTION_CLUSTER_M = 16.0;
 const cornerLegGrid = new Map();
 const cornerLegs = [];
 //: `${leg.id}:${side}` -> { cut, corner geometry } for the pavement on that side of that leg,
@@ -3239,7 +3340,8 @@ const pavementCornerCuts = new Map();
 const pavementCornerLaid = new Map();
 
 function cornerLegAt(x, y, dx, dy) {
-  // The indexed leg leaving this point in this direction, if any.
+  // The indexed leg leaving this point in this direction, if any. The grid is keyed by the
+  // node the way stood on, which a recentred way's end is within RECENTRE_MAX_SHIFT_M of.
   const span = Math.hypot(dx, dy) || 1;
   const ux = dx / span;
   const uy = dy / span;
@@ -3247,8 +3349,8 @@ function cornerLegAt(x, y, dx, dy) {
   const cy = Math.floor(y / CORNER_CELL_M);
   let best = null;
   let bestScore = -1;
-  for (let ix = cx - 1; ix <= cx + 1; ix += 1) {
-    for (let iy = cy - 1; iy <= cy + 1; iy += 1) {
+  for (let ix = cx - 2; ix <= cx + 2; ix += 1) {
+    for (let iy = cy - 2; iy <= cy + 2; iy += 1) {
       const bucket = cornerLegGrid.get(`${ix}:${iy}`);
       if (!bucket) continue;
       for (const leg of bucket) {
@@ -3262,8 +3364,9 @@ function cornerLegAt(x, y, dx, dy) {
 }
 
 function cornerLegsAt(leg) {
-  const cx = Math.floor(leg.x / CORNER_CELL_M);
-  const cy = Math.floor(leg.y / CORNER_CELL_M);
+  // The other legs of this leg's junction: the ways that shared its node.
+  const cx = Math.floor(leg.nx / CORNER_CELL_M);
+  const cy = Math.floor(leg.ny / CORNER_CELL_M);
   const out = [];
   for (let ix = cx - 1; ix <= cx + 1; ix += 1) {
     for (let iy = cy - 1; iy <= cy + 1; iy += 1) {
@@ -3271,7 +3374,7 @@ function cornerLegsAt(leg) {
       if (!bucket) continue;
       for (const other of bucket) {
         if (other === leg) continue;
-        if (Math.hypot(other.x - leg.x, other.y - leg.y) <= CORNER_JOIN_M) out.push(other);
+        if (Math.hypot(other.nx - leg.nx, other.ny - leg.ny) <= CORNER_JOIN_M) out.push(other);
       }
     }
   }
@@ -3283,6 +3386,7 @@ function cornerNeighbour(leg, side) {
   let best = null;
   let bestTurn = Infinity;
   for (const other of cornerLegsAt(leg)) {
+    if (other.way._junctionInternal) continue;
     let turn = other.bearing - leg.bearing;
     turn = ((turn % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     if (side < 0) turn = (2 * Math.PI - turn) % (2 * Math.PI);
@@ -3307,20 +3411,25 @@ function cornerFrame(A, B, side) {
   const nb = [s * b[1], -s * b[0]];
   const den = a[0] * b[1] - a[1] * b[0];
   if (Math.abs(den) < 1e-6) return null;
+  // Each leg measures from its own end: the two are the same node unless one of the ways was
+  // recentred onto the city's kerbs, and then they stand a metre or two apart.
   const P = [A.x, A.y];
+  const Q = [B.x, B.y];
+  const qx = Q[0] - P[0];
+  const qy = Q[1] - P[1];
   // Where the line `offA` out from A's centreline meets the line `offB` out from B's, as the
-  // distances along each leg from the junction.
+  // distances along each leg from its end.
   const meet = (offA, offB) => {
-    const rx = nb[0] * offB - na[0] * offA;
-    const ry = nb[1] * offB - na[1] * offA;
+    const rx = qx + nb[0] * offB - na[0] * offA;
+    const ry = qy + nb[1] * offB - na[1] * offA;
     return [(rx * b[1] - ry * b[0]) / den, (rx * a[1] - ry * a[0]) / den];
   };
   const alongA = (t, off) => [P[0] + a[0] * t + na[0] * off, P[1] + a[1] * t + na[1] * off];
-  const alongB = (u, off) => [P[0] + b[0] * u + nb[0] * off, P[1] + b[1] * u + nb[1] * off];
+  const alongB = (u, off) => [Q[0] + b[0] * u + nb[0] * off, Q[1] + b[1] * u + nb[1] * off];
   // Where A's cut line (across A at `cutA`) meets B's, as the offsets out from each centreline.
   const meetCuts = (cutA, cutB) => {
-    const r2x = b[0] * cutB - a[0] * cutA;
-    const r2y = b[1] * cutB - a[1] * cutA;
+    const r2x = qx + b[0] * cutB - a[0] * cutA;
+    const r2y = qy + b[1] * cutB - a[1] * cutA;
     const d2 = na[0] * nb[1] - na[1] * nb[0];
     if (Math.abs(d2) < 1e-6) return null;
     return [(r2x * nb[1] - r2y * nb[0]) / d2, (r2x * na[1] - r2y * na[0]) / d2];
@@ -3417,8 +3526,13 @@ function indexPavementCorners(ways) {
       const [nx2, ny2] = xy(way.points[next][0], way.points[next][1]);
       const span = Math.hypot(nx2 - ex, ny2 - ey);
       if (span < 1e-6) continue;
+      // A way moved onto the city's kerbs no longer ends on the node it shares with the
+      // streets that meet it; the junction is still where the node was.
+      const node = way._node ? xy(way._node[end === 0 ? 0 : 1][0], way._node[end === 0 ? 0 : 1][1])
+        : [ex, ey];
       const leg = {
-        id: cornerLegs.length, x: ex, y: ey, dx: (nx2 - ex) / span, dy: (ny2 - ey) / span,
+        id: cornerLegs.length, x: ex, y: ey, nx: node[0], ny: node[1],
+        dx: (nx2 - ex) / span, dy: (ny2 - ey) / span,
         bearing: Math.atan2(ny2 - ey, nx2 - ex), inner, walk, length, way, end, far: null,
       };
       // The leg at the other end of the same way, so a short way can share itself out.
@@ -3427,19 +3541,109 @@ function indexPavementCorners(ways) {
         if (start && start.way === way && start.end === 0) { start.far = leg; leg.far = start; }
       }
       cornerLegs.push(leg);
-      const key = `${Math.floor(ex / CORNER_CELL_M)}:${Math.floor(ey / CORNER_CELL_M)}`;
+      const key = `${Math.floor(node[0] / CORNER_CELL_M)}:${Math.floor(node[1] / CORNER_CELL_M)}`;
       let bucket = cornerLegGrid.get(key);
       if (!bucket) cornerLegGrid.set(key, bucket = []);
       bucket.push(leg);
     }
   }
+  // A way that runs from one node of a junction to another node of the same junction is the
+  // junction, not a street: the connectors OpenStreetMap draws across the Embarcadero's
+  // median between its two carriageways. They were getting a pavement down each side, laid
+  // in the middle of the crossroads, and a corner piece where they met the carriageways.
   for (const leg of cornerLegs) {
+    if (leg.end !== 0 || !leg.far) continue;
+    if (leg.length > JUNCTION_CLUSTER_M) continue;
+    if (Math.hypot(leg.far.nx - leg.nx, leg.far.ny - leg.ny) > JUNCTION_CLUSTER_M) continue;
+    if (cornerLegsAt(leg).length < 2 || cornerLegsAt(leg.far).length < 2) continue;
+    leg.way._junctionInternal = true;
+  }
+  // The box of each junction, and where each leg leaves it. A pavement with no corner to
+  // meet -- its neighbour round the junction is one of those connectors -- starts where its
+  // street leaves the box rather than a fixed pull-back from its node, which on the
+  // Embarcadero's median left a strip of pavement standing in the crossroads.
+  junctionBoxHulls.length = 0;
+  junctionBoxGrid.clear();
+  for (const legs of junctionClusters()) {
+    if (legs.length < 3) continue;
+    const hull = junctionBoxHull(legs);
+    if (hull.length < 3) continue;
+    junctionBoxHulls.push(hull);
+    indexJunctionBox(hull);
+    for (const leg of legs) {
+      let t = 0;
+      const limit = Math.min(leg.length, 60);
+      while (t < limit && pointInRing(leg.x + leg.dx * t, leg.y + leg.dy * t, hull)) t += 0.5;
+      leg.boxExit = t;
+    }
+  }
+  for (const leg of cornerLegs) {
+    if (leg.way._junctionInternal) continue;
     for (const side of [1, -1]) {
       const corner = cornerCutFor(leg, side);
       if (corner) pavementCornerCuts.set(`${leg.id}:${side}`, corner);
     }
   }
   return reconcilePavementCorners();
+}
+
+const junctionBoxHulls = [];
+const JUNCTION_BOX_CELL_M = 30;
+const junctionBoxGrid = new Map();
+
+function indexJunctionBox(hull) {
+  const xs = hull.map((q) => q[0]);
+  const ys = hull.map((q) => q[1]);
+  const x0 = Math.floor(Math.min(...xs) / JUNCTION_BOX_CELL_M);
+  const x1 = Math.floor(Math.max(...xs) / JUNCTION_BOX_CELL_M);
+  const y0 = Math.floor(Math.min(...ys) / JUNCTION_BOX_CELL_M);
+  const y1 = Math.floor(Math.max(...ys) / JUNCTION_BOX_CELL_M);
+  for (let ix = x0; ix <= x1; ix += 1) {
+    for (let iy = y0; iy <= y1; iy += 1) {
+      const key = `${ix}:${iy}`;
+      let bucket = junctionBoxGrid.get(key);
+      if (!bucket) junctionBoxGrid.set(key, bucket = []);
+      bucket.push(hull);
+    }
+  }
+}
+
+function insideJunctionBox(x, z) {
+  // Is this point (in the x/z frame) inside a junction's box? The box is roadway whatever the
+  // ways through it say: the Embarcadero's carriageways carry on through their junction with
+  // Broadway, and their median-side pavements carried on with them, into the crossroads.
+  const y = -z;
+  const bucket = junctionBoxGrid.get(
+    `${Math.floor(x / JUNCTION_BOX_CELL_M)}:${Math.floor(y / JUNCTION_BOX_CELL_M)}`);
+  if (!bucket) return false;
+  for (const hull of bucket) if (pointInRing(x, y, hull)) return true;
+  return false;
+}
+
+function pointInRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function junctionBoxHull(legs) {
+  // Each leg's carriageway across its mouth, from its end to as far in as the widest leg
+  // crossing it reaches.
+  const widest = Math.max(...legs.map((l) => l.inner));
+  const points = [];
+  for (const l of legs) {
+    const reach = Math.min(widest, l.length * 0.5);
+    for (const t of [0, reach]) {
+      for (const side of [1, -1]) {
+        points.push([l.x + l.dx * t - side * l.dy * l.inner, l.y + l.dy * t + side * l.dx * l.inner]);
+      }
+    }
+  }
+  return convexHull(points);
 }
 
 function cornerQuad(leg, side) {
@@ -3467,6 +3671,81 @@ function cornerQuad(leg, side) {
   const kerb = [frame.alongA(cutA, leg.inner + lip / 2), frame.alongA(tk2, leg.inner + lip / 2),
                 frame.alongB(cutB, B.inner + lip / 2)];
   return { K, A1, C, B1, kerb, frame, cutA, vC };
+}
+
+// ---- the junction box ----
+//
+// A junction is drawn as the ends of the ways that meet at it, and where they meet cleanly at
+// one node the box is covered by their overlap. Where they do not -- the Embarcadero's
+// junctions, drawn by OpenStreetMap as six ways ending on three nodes, or any junction whose
+// ways were moved onto the city's kerbs -- the box has pockets in it that no ribbon reaches,
+// and the low concrete underlay showed through them as pale slabs in the middle of the road.
+// The box is its own piece of asphalt: the hull of every leg's carriageway across its mouth,
+// a shade under the ribbons so it never fights them and shows only where they are not.
+const JUNCTION_BOX_DROP_M = 0.004;
+
+function junctionClusters() {
+  // Every leg's node, merged with the nodes within JUNCTION_CLUSTER_M of it.
+  const parent = cornerLegs.map((_, i) => i);
+  const find = (i) => {
+    while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; }
+    return i;
+  };
+  const cell = JUNCTION_CLUSTER_M;
+  const grid = new Map();
+  for (const leg of cornerLegs) {
+    const key = `${Math.floor(leg.nx / cell)}:${Math.floor(leg.ny / cell)}`;
+    let bucket = grid.get(key);
+    if (!bucket) grid.set(key, bucket = []);
+    bucket.push(leg);
+  }
+  for (const leg of cornerLegs) {
+    const cx = Math.floor(leg.nx / cell);
+    const cy = Math.floor(leg.ny / cell);
+    for (let ix = cx - 1; ix <= cx + 1; ix += 1) {
+      for (let iy = cy - 1; iy <= cy + 1; iy += 1) {
+        for (const other of grid.get(`${ix}:${iy}`) || []) {
+          if (other.id <= leg.id) continue;
+          if (Math.hypot(other.nx - leg.nx, other.ny - leg.ny) <= JUNCTION_CLUSTER_M) {
+            parent[find(other.id)] = find(leg.id);
+          }
+        }
+      }
+    }
+  }
+  const clusters = new Map();
+  for (const leg of cornerLegs) {
+    const root = find(leg.id);
+    let members = clusters.get(root);
+    if (!members) clusters.set(root, members = []);
+    members.push(leg);
+  }
+  return [...clusters.values()];
+}
+
+function addJunctionBoxes() {
+  let laid = 0;
+  const top = ROAD_TOP_M - JUNCTION_BOX_DROP_M;
+  for (const hull of junctionBoxHulls) {
+    const position = [];
+    const uv = [];
+    const index = [];
+    for (const [x, y] of hull) {
+      position.push(x, top, -y);
+      uv.push(x / 8.0, -y / 8.0);
+    }
+    for (let i = 1; i + 1 < hull.length; i += 1) index.push(0, i + 1, i);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    geometry.setIndex(index);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, surfaceMaterial("road", 0xffffff, 1.0));
+    mesh.userData.surface = "road";
+    addMerged("junction:box", mesh, "road");
+    laid += 1;
+  }
+  return laid;
 }
 
 function addPavementCorners() {
@@ -3552,10 +3831,15 @@ function laneMarkingProfile(way, road = renderedRoadWidth(way)) {
   const backward = way.lanes_back || (oneway ? 0 : Math.floor(tagged / 2));
   const explicitTotal = oneway ? (forward || tagged || 0)
     : (way.lanes_fwd || way.lanes_back ? (forward || 0) + (backward || 0) : tagged);
-  const inferredTotal = explicitTotal ? 0
+  // Lanes are only guessed from the width of a street that is one. A way with no name is a
+  // connector through a junction -- a slip, a turning link, the piece of the Embarcadero's
+  // box that OpenStreetMap draws as its own way -- and at 17.6 m across it was guessed to
+  // have four lanes, so three white lines ran diagonally through the crossroads.
+  const named = Boolean(way.name);
+  const inferredTotal = explicitTotal || !named ? 0
     : road >= 13.8 ? 4 : road >= 9.0 ? 2 : road >= 6.2 && oneway ? 2 : 1;
   const total = explicitTotal || inferredTotal;
-  const opposing = !oneway && (explicitTotal ? total >= 2 : road >= 5.6);
+  const opposing = !oneway && (explicitTotal ? total >= 2 : named && road >= 5.6);
   return { oneway, total, forward, backward, opposing, road };
 }
 
@@ -3950,17 +4234,35 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, y,
     const stretch = spine.slice(from, Math.min(to + 2, spine.length));
     if (stretch.length < 2) return;
     const width = widths[pick];
-    // The kerb first: four inches of the top and the whole face, as its own tile along the
-    // street edge. It is laid with the pavement rather than over it -- the same concrete, the
-    // same height, the same merge -- and it is the thing the curb policy paints. Four inches is
-    // the default where nothing was measured; SFMTA paints the face and the top edge of the kerb.
-    addPavementRibbon(offsetWay(stretch, side * (inner + KERB_LIP_M / 2)), KERB_LIP_M,
-                      color, opacity, y, thickness, "kerb");
+    // The kerb: four inches of the top and the whole face, as its own tile along the street
+    // edge. It is laid with the pavement rather than over it -- the same concrete, the same
+    // height, the same merge -- and it is the thing the curb policy paints. Four inches is the
+    // default where nothing was measured; SFMTA paints the face and the top edge of the kerb.
+    //
+    // With the pavement, and only where the pavement is. The pavement is dropped wherever it
+    // lies over another street's carriageway, but a four-inch tile with its centre a hand's
+    // breadth outside its own kerb line is hardly ever over anything -- so along the nameless
+    // connector ways through the Embarcadero's junctions the kerb was laid where the
+    // pavement was not: a thin white line across the crossroads at an angle nothing else on
+    // the road shares. The kerb is the pavement's edge; where there is no pavement there is
+    // no edge.
     const inset = width - KERB_LIP_M;
     if (inset > 0.2) {
-      laid += addPavementRibbon(offsetWay(stretch, side * (inner + KERB_LIP_M + inset / 2)), inset,
-                                color, opacity, y, thickness,
-                                inset <= NARROW_WALK_M ? "walk_narrow" : "walk");
+      const walkCentre = offsetWay(stretch, side * (inner + KERB_LIP_M + inset / 2));
+      for (const run of pavementRunsOutsideCarriageway(walkCentre, inset)) {
+        const surface = inset <= NARROW_WALK_M ? "walk_narrow" : "walk";
+        stampPaved(run, inset, y + thickness / 2);
+        addMerged(`walk:${surface}:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`,
+                  ribbon(run, inset, color, opacity, y, thickness, surface), surface);
+        laid += wayLength(run);
+        const kerb = offsetWay(run, -side * (inset / 2 + KERB_LIP_M / 2));
+        stampPaved(kerb, KERB_LIP_M, y + thickness / 2);
+        addMerged(`walk:kerb:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`,
+                  ribbon(kerb, KERB_LIP_M, color, opacity, y, thickness, "kerb"), "kerb");
+      }
+    } else {
+      addPavementRibbon(offsetWay(stretch, side * (inner + KERB_LIP_M / 2)), KERB_LIP_M,
+                        color, opacity, y, thickness, "kerb");
     }
   };
   let start = 0;
@@ -4070,6 +4372,7 @@ function walkFitsAt(x, z, nx, nz, width) {
   const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
   const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
   return !(insideCarriageway(x, z, 0.30)
+    || insideJunctionBox(x, z)
     || (innerEdge && outerEdge)
     || pavementSurroundedByStreet(x, z, width));
 }
@@ -7107,16 +7410,9 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     const [markCutStart, markCutEnd] = laneMarkingTrims(way, renderPoints, road);
     const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);
     const markingRuns = markingRunsClearOfJunctions(markingPoints, way);
-    const oneway = Boolean(way.oneway || way.osm_oneway);
-    const tagged = way.lanes || 0;
-    const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
-    const backward = way.lanes_back || (oneway ? 0 : Math.floor(tagged / 2));
-    const explicitTotal = oneway ? (forward || tagged || 0)
-      : (way.lanes_fwd || way.lanes_back ? (forward || 0) + (backward || 0) : tagged);
-    const inferredTotal = explicitTotal ? 0
-      : road >= 13.8 ? 4 : road >= 9.0 ? 2 : road >= 6.2 && oneway ? 2 : 1;
-    const total = explicitTotal || inferredTotal;
-    const opposing = !oneway && (explicitTotal ? total >= 2 : road >= 5.6);
+    // One profile, the same one the transitions and the trims read; this loop used to carry
+    // its own copy of the lane arithmetic and the two could disagree.
+    const { total, backward, opposing } = laneMarkingProfile(way, road);
     if (total >= 2) {
       const laneWidth = road / total;
       if (laneWidth >= 2.6 && markingPoints.length >= 2) {
@@ -7203,6 +7499,7 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
 
 // The corner pieces, once every pavement that meets at one is down.
 const cornersLaid = addPavementCorners();
+const junctionBoxes = addJunctionBoxes();
 
 // Ground. Everything that is not a road, a footway or a building stands on something -- back
 // yards, light wells, car parks, the middle of a block -- and none of it is mapped. Without a
@@ -9638,6 +9935,8 @@ window.kerbside = {
   scene, camera, renderer, groups, DATA, xy, insideCarriageway, buildingAt,
   pickedFeature,
   // The corner pieces: how many cuts were decided and how many pieces laid between them.
+  recentred,
+  junctionBoxes,
   corners: { cuts: pavementCornerCuts.size, valid: [...pavementCornerCuts.values()].filter((c) => c.valid).length,
              laid: cornersLaid, legs: cornerLegs.length,
              ends: pavementCornerLaid.size, skipped: addPavementCorners.skipped },
@@ -9647,6 +9946,7 @@ window.kerbside = {
     return cornerLegs.filter((leg) => Math.hypot(leg.x - x, leg.y - y) <= reach).map((leg) => ({
       id: leg.id, name: leg.way.name, bearing: +(leg.bearing * 180 / Math.PI).toFixed(1),
       inner: +leg.inner.toFixed(2), walk: +leg.walk.toFixed(2), length: +leg.length.toFixed(1),
+      boxExit: leg.boxExit, internal: !!leg.way._junctionInternal,
       sides: Object.fromEntries([1, -1].map((side) => {
         const c = pavementCornerCuts.get(`${leg.id}:${side}`);
         const l = pavementCornerLaid.get(`${leg.id}:${side}`);

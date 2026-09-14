@@ -92,6 +92,8 @@ const metersPerLon = 88000;
 const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
 const SIDEWALK_INTERSECTION_CUT_MAX_M = 10.5;
 function xy(lon, lat) { return [lon * metersPerLon, lat * metersPerLat]; }
+// Junction boxes are not built in the harness; nothing here is inside one.
+function insideJunctionBox() { return false; }
 """
 
 
@@ -536,7 +538,14 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
                          points: [at(0, 2000), at(0, 2004.75), at(0, 2040)] };
     const grantNorth = { kind: "street", road_m: 7.36, road_source: "curb_geometry",
                          points: [at(0, 1960), at(0, 2000)] };
-    const ways = [avenue, alley, boulevard, service, driveway, aisle, clay, grantSouth, grantNorth];
+    // And the same measured street tagged lanes=1, which it is: one lane of traffic between
+    // two lanes of parked cars. The lane cap is for inferred widths, not measured ones.
+    const grantParked = { kind: "street", road_m: 7.36, road_source: "curb_geometry", lanes: 1,
+                          points: [at(0, 3000), at(0, 3040)] };
+    const inferredNarrow = { kind: "street", road_m: 12.0, road_source: "row_minus_footways",
+                             lanes: 1, points: [at(0, 4000), at(0, 4040)] };
+    const ways = [avenue, alley, boulevard, service, driveway, aisle, clay, grantSouth, grantNorth,
+                  grantParked, inferredNarrow];
     clampRoadWidthsToNeighbours(ways);
     console.log(JSON.stringify({
       avenue: +renderedRoadWidth(avenue).toFixed(2),
@@ -546,6 +555,8 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
       aisle: +renderedRoadWidth(aisle).toFixed(2),
       grant: +renderedRoadWidth(grantSouth).toFixed(2),
       clay: +renderedRoadWidth(clay).toFixed(2),
+      parked: +renderedRoadWidth(grantParked).toFixed(2),
+      inferred: +renderedRoadWidth(inferredNarrow).toFixed(2),
     }));
     """)
     out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
@@ -569,6 +580,9 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     # way's second point from the node, and the pavement laid from that kerb crossed the road.
     assert abs(widths["grant"] - 7.36) < 0.01, widths
     assert widths["clay"] >= 8.0, widths          # its two-lane cap, not a junction clamp
+    # Measured kerb to kerb outranks the lane count; an inferred width does not.
+    assert abs(widths["parked"] - 7.36) < 0.01, widths
+    assert abs(widths["inferred"] - 4.75) < 0.01, widths
 
 
 def test_roof_furniture_is_geometry_at_real_sizes() -> None:
@@ -733,7 +747,7 @@ def test_no_sidewalk_is_believed_only_where_one_is_mapped_instead() -> None:
     # A side the tag excludes is still drawn when nothing is mapped along it.
     assert "if (!sampled || covered < sampled * 0.5) drawn.push(side);" in body
     # A driveway or a parking aisle has no footway of its own, and no paint down its middle.
-    assert "if (isUnmarkedService(way)) return drawn;" in body
+    assert "if (isUnmarkedService(way) || way._junctionInternal) return drawn;" in body
     assert "if (!isSidewalk && !isCrossing && !isPath && !isUnmarkedService(way)) {" in js
 
 
@@ -748,6 +762,9 @@ def test_a_footway_narrows_to_fit_rather_than_vanishing() -> None:
     # The kerb's own four-inch tile sits at the kerb; the pavement proper starts behind it.
     assert "(inner + KERB_LIP_M / 2)" in body
     assert "(inner + KERB_LIP_M + inset / 2)" in body
+    # The kerb tile is laid along the runs the pavement survives, never on its own.
+    assert "for (const run of pavementRunsOutsideCarriageway(walkCentre, inset))" in body
+    assert "const kerb = offsetWay(run, -side * (inset / 2 + KERB_LIP_M / 2));" in body
     # And the end trim cannot eat a short way whole.
     assert "wanted * 0.32" in body
 
@@ -1374,6 +1391,11 @@ function addPavementRibbon(points, width) {
   LAID.push({ width, points, length: wayLength(points) });
   return wayLength(points);
 }
+function stampPaved() {}
+function ribbon(points, width) { return { points, width }; }
+function addMerged(key, mesh) {
+  LAID.push({ width: mesh.width, points: mesh.points, length: wayLength(mesh.points) });
+}
 """
 
 
@@ -1557,7 +1579,8 @@ CORNER_FUNCTIONS = (
     *PAVEMENT_FUNCTIONS,
     "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "renderedWalkWidth",
     "isUnmarkedService", "cornerLegsAt", "cornerNeighbour", "cornerFrame", "cornerCutFor",
-    "reconcilePavementCorners", "indexPavementCorners", "cornerQuad",
+    "reconcilePavementCorners", "indexPavementCorners", "cornerQuad", "junctionClusters",
+    "junctionBoxHull", "pointInRing", "convexHull", "indexJunctionBox",
 )
 
 CORNER_PREAMBLE = PAVEMENT_PREAMBLE + """
@@ -1569,7 +1592,11 @@ const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0
 const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
 const CORNER_MIN_DEG = 20;
 const CORNER_MAX_DEG = 150;
+const JUNCTION_CLUSTER_M = 16.0;
+const JUNCTION_BOX_CELL_M = 30;
 const cornerLegs = [];
+const junctionBoxHulls = [];
+const junctionBoxGrid = new Map();
 """
 
 
@@ -1660,18 +1687,24 @@ def test_a_crossroads_cuts_each_pavement_where_the_crossing_pavement_ends() -> N
 
 
 def test_a_stub_between_two_junctions_shares_itself_between_its_corners() -> None:
-    """A way too short for the corners at both ends gives them what it has, kerb corners first."""
+    """A way too short for the corners at both ends gives them what it has, kerb corners first.
+    And a way that only joins two nodes of one junction is the junction: it gets no corners
+    and no pavement of its own."""
     result = _run_corners("""
     const asLonLat = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
-    // A 9 m stub of an east-west street between two north-south streets 8 m wide, and its
-    // continuations beyond them.
     const mk = (name, a, b, road, walk) => ({ kind: "street", name, road_m: road, walk_m: walk,
       points: [asLonLat(...a), asLonLat(...b)], _renderRoadM: road });
+    // A 20 m stub of an east-west street between two 16 m wide north-south streets: each
+    // corner wants 11 m of it.
     const ways = [
-      mk("Stub", [0, 0], [9, 0], 10, 4),
-      mk("Stub", [-100, 0], [0, 0], 10, 4), mk("Stub", [9, 0], [109, 0], 10, 4),
-      mk("Left", [0, -100], [0, 0], 8, 3), mk("Left", [0, 0], [0, 100], 8, 3),
-      mk("Right", [9, -100], [9, 0], 8, 3), mk("Right", [9, 0], [9, 100], 8, 3),
+      mk("Stub", [0, 0], [20, 0], 10, 4),
+      mk("Stub", [-100, 0], [0, 0], 10, 4), mk("Stub", [20, 0], [120, 0], 10, 4),
+      mk("Left", [0, -100], [0, 0], 16, 3), mk("Left", [0, 0], [0, 100], 16, 3),
+      mk("Right", [20, -100], [20, 0], 16, 3), mk("Right", [20, 0], [20, 100], 16, 3),
+      // And a 9 m connector between two nodes of what is one junction.
+      mk("Link", [0, 1000], [9, 1000], 10, 4),
+      mk("A", [0, 900], [0, 1000], 8, 3), mk("A", [0, 1000], [0, 1100], 8, 3),
+      mk("B", [9, 900], [9, 1000], 8, 3), mk("B", [9, 1000], [9, 1100], 8, 3),
     ];
     const valid = indexPavementCorners(ways);
     const stub = cornerLegs.filter((leg) => leg.way === ways[0]);
@@ -1679,14 +1712,20 @@ def test_a_stub_between_two_junctions_shares_itself_between_its_corners() -> Non
       const c = pavementCornerCuts.get(`${leg.id}:${side}`);
       return c ? [+c.cut.toFixed(2), c.valid] : null;
     }));
-    console.log(JSON.stringify({ valid, cuts }));
+    const link = cornerLegs.filter((leg) => leg.way === ways[7]);
+    console.log(JSON.stringify({ valid, cuts, linkInternal: !!ways[7]._junctionInternal,
+      linkCuts: link.map((leg) => [1, -1].map((side) => pavementCornerCuts.has(`${leg.id}:${side}`))),
+      stubInternal: !!ways[0]._junctionInternal }));
     """)
-    # Each end wanted 7 m; the stub is 9. Both keep their kerb corner (4 m) and share the rest.
+    assert not result["stubInternal"]
+    # Each end wanted 11 m; the stub is 20. Both keep their kerb corner (8 m) and share the rest.
     for end in result["cuts"]:
         for corner in end:
             assert corner is not None, result
-            assert 4.3 <= corner[0] <= 4.7, result
-    assert result["cuts"][0][0][0] + result["cuts"][1][1][0] <= 9.0 + 0.01, result
+            assert 9.5 <= corner[0] <= 10.05, result
+    assert result["cuts"][0][0][0] + result["cuts"][1][1][0] <= 20.0 + 0.01, result
+    assert result["linkInternal"], result
+    assert result["linkCuts"] == [[False, False], [False, False]], result
 
 
 def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
@@ -1704,3 +1743,100 @@ def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
     # Two legs of one street forking are not a corner.
     neighbour = _extract("cornerNeighbour", js)
     assert "if (leg.way.name && best.way.name === leg.way.name) return null;" in neighbour
+
+
+def test_lanes_are_only_guessed_for_a_street_with_a_name() -> None:
+    """A nameless way is a connector through a junction, and its width says nothing about lanes.
+
+    A 17.6 m piece of the Embarcadero's junction with Broadway, drawn by OpenStreetMap as its
+    own unnamed way, was guessed to have four lanes and painted three white lines diagonally
+    through the crossroads. The paint reads the one profile the trims and transitions read.
+    """
+    js = _page_js()
+    parts = [PREAMBLE, """
+    const MIN_RENDER_ROAD_M = 2.8;
+    const MAX_RENDER_ROAD_M = 24.0;
+    const MAX_INFERRED_ROAD_M = 16.5;
+    const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
+    """]
+    parts += [_extract(name, js) for name in ("laneCountForWay", "nominalRoadWidth",
+                                              "renderedRoadWidth", "laneMarkingProfile")]
+    parts.append("""
+    const connector = { kind: "street", road_m: 17.6, road_source: "curb_geometry" };
+    const avenue = { kind: "street", name: "Van Ness Avenue", road_m: 17.6,
+                     road_source: "curb_geometry" };
+    const tagged = { kind: "street", road_m: 17.6, lanes: 4, road_source: "curb_geometry" };
+    console.log(JSON.stringify({
+      connector: laneMarkingProfile(connector), avenue: laneMarkingProfile(avenue),
+      tagged: laneMarkingProfile(tagged),
+    }));
+    """)
+    out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    profiles = json.loads(out.stdout)
+    assert profiles["connector"]["total"] == 0 and not profiles["connector"]["opposing"]
+    assert profiles["avenue"]["total"] == 4 and profiles["avenue"]["opposing"]
+    assert profiles["tagged"]["total"] == 4, "a lanes tag is believed whatever the name"
+    # And the draw loop reads that profile rather than its own arithmetic.
+    assert "const { total, backward, opposing } = laneMarkingProfile(way, road);" in js
+    assert js.count("road >= 13.8 ? 4 : road >= 9.0 ? 2") == 1
+
+
+def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
+    """OpenStreetMap's centreline for Grant Avenue runs 1.75 m west of the road the city
+    surveyed; everything laid from it stood 1.75 m west of where it is. A way is moved sideways
+    onto the midline of the official kerbs it runs between -- one offset for the whole way --
+    and an inferred width becomes the measured one. Stations that do not agree leave it alone.
+    """
+    js = _page_js()
+    parts = [PREAMBLE, """
+    const MIN_RENDER_ROAD_M = 2.8;
+    const MAX_RENDER_ROAD_M = 24.0;
+    const MAX_INFERRED_ROAD_M = 16.5;
+    const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
+    const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
+    const RECENTRE_END_MARGIN_M = 8.0;
+    const RECENTRE_STATION_M = 4.0;
+    const RECENTRE_MAX_SPREAD_M = 0.5;
+    const RECENTRE_MAX_SHIFT_M = 4.0;
+    const RECENTRE_MIN_SHIFT_M = 0.12;
+    """]
+    parts += [_extract(name, js) for name in (
+        "isUnmarkedService", "wayLength", "offsetWay", "densifyWay", "lerpLonLat",
+        "addOfficialCurbGridSegment", "rayCurbIntersections", "officialKerbOffsetsAt",
+        "recentreStreetsOnOfficialKerbs")]
+    parts.append("""
+    const at = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
+    // A street drawn along y = 0 from x = -60 to 60; the city's kerbs at y = -2 and y = +5.5,
+    // so the road is 7.5 m wide and its middle is at y = 1.75. In the x/z frame z = -y.
+    addOfficialCurbGridSegment(officialCurbGrid, -80, 2.0, 80, 2.0);
+    addOfficialCurbGridSegment(officialCurbGrid, -80, -5.5, 80, -5.5);
+    const grant = { kind: "street", name: "Grant Avenue", road_m: 12.0,
+                    road_source: "row_minus_footways", points: [at(-60, 0), at(60, 0)] };
+    // A street whose kerbs wander: one side steps two metres halfway along.
+    addOfficialCurbGridSegment(officialCurbGrid, -80, 1002.0, 0, 1002.0);
+    addOfficialCurbGridSegment(officialCurbGrid, 0, 1004.0, 80, 1004.0);
+    addOfficialCurbGridSegment(officialCurbGrid, -80, 994.5, 80, 994.5);
+    const wobbly = { kind: "street", name: "Wobbly Street", road_m: 7.5,
+                     road_source: "curb_geometry", points: [at(-60, -1000), at(60, -1000)] };
+    const moved = recentreStreetsOnOfficialKerbs([grant, wobbly]);
+    console.log(JSON.stringify({
+      moved,
+      grantY: grant.points.map((p) => +(p[1] * metersPerLat).toFixed(2)),
+      grantRoad: grant.road_m, grantSource: grant.road_source, shift: grant.recentred_m,
+      node: grant._node && grant._node.map((p) => +(p[1] * metersPerLat).toFixed(2)),
+      wobblyY: wobbly.points.map((p) => +(p[1] * metersPerLat).toFixed(2)),
+    }));
+    """)
+    out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    assert result["moved"] == {"moved": 1, "widened": 1}, result
+    assert result["grantY"] == [1.75, 1.75], result
+    assert abs(result["grantRoad"] - 7.5) < 0.01 and result["grantSource"] == "official_curbs"
+    assert abs(result["shift"] - 1.75) < 0.01
+    # Where it stood is kept, for the junctions it shares with the streets that meet it.
+    assert result["node"] == [0, 0], result
+    assert result["wobblyY"] == [-1000, -1000], result

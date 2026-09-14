@@ -238,7 +238,10 @@ def test_renderer_clamps_wide_right_of_way_fallbacks() -> None:
     source = _source()
 
     assert "function renderedRoadWidth(way)" in source
-    assert 'const sourceCap = way.road_source === "curb_geometry" ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;' in source
+    assert 'const measured = way.road_source === "curb_geometry";' in source
+    assert "const sourceCap = measured ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;" in source
+    # The lane cap is for inferred widths; a width measured between the kerbs keeps it.
+    assert "const laneCap = lanes && !measured ?" in source
     assert "const half = renderedRoadWidth(way) / 2;" in source
     assert "const road = widthMeters;" in source
 
@@ -576,3 +579,23 @@ def test_place_categories_become_trades_and_non_shops_are_left_out() -> None:
     assert ways[1]["shops"] == [{"n": "Kayo Books", "t": "books"}], "OSM's names come first"
     assert ways[2]["shops"] == [{"n": "Near Cafe", "t": "cafe", "s": "google_places"}]
     assert counts == {"overture_places": 1, "google_places": 1, "buildings_named": 2}
+
+
+def test_every_crossing_is_a_ladder_with_a_stated_reason() -> None:
+    """The inventory says which crossings the city restriped; nothing says one is plain. So a
+    crossing is continental by the inventory, by its junction, or by default -- and the record
+    says which. Drawn as two lines, the 125 defaults read as stray strokes across the road."""
+    source = _source()
+    assert 'crossing["continental_source"] = "default_continental"' in source
+    if not PAGE_DATA.exists():
+        return
+    payload = json.loads(PAGE_DATA.read_text(encoding="utf-8"))
+    sources = {}
+    for way in payload["ways"]:
+        if way.get("kind") != "crossing":
+            continue
+        assert way.get("continental") is True, way
+        key = way.get("continental_source") or ("alley_mouth" if way.get("alley_mouth") else None)
+        sources[key] = sources.get(key, 0) + 1
+    assert set(sources) <= {"sfmta_inventory", "sibling_at_junction", "default_continental",
+                            "alley_mouth"}, sources

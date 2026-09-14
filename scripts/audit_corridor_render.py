@@ -153,6 +153,10 @@ function addPavementRibbon(points, width, color, opacity, y, thickness, surface)
   for (const run of pavementRunsOutsideCarriageway(points, width)) laid += wayLength(run);
   return laid;
 }
+function stampPaved() {}
+function insideJunctionBox() { return false; }
+function ribbon(points, width) { return { points, width }; }
+function addMerged() {}
 
 const MAPPED_WALK_CELL = 40;
 const mappedWalkGrid = new Map();
@@ -332,6 +336,7 @@ function offsetWay(points, metres) {
 let sides = 0;
 let sidesBare = 0;
 const bareExamples = [];
+const bareAll = [];
 for (const way of DATA.ways) {
   if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
   if (wayLength(way.points) < 12) continue;
@@ -350,13 +355,18 @@ for (const way of DATA.ways) {
         bareExamples.push({ street: way.name || way.osm_id, side,
                             at: way.points[Math.floor(way.points.length / 2)] });
       }
+      if (process.env.AUDIT_BARE_ALL) {
+        bareAll.push({ street: way.name || way.osm_id, side,
+                       at: way.points[Math.floor(way.points.length / 2)] });
+      }
     }
   }
 }
 
 console.log(JSON.stringify({
   kerbside: { sides, sidesWithoutPavement: sidesBare,
-              share: +(sidesBare / sides).toFixed(3), examples: bareExamples },
+              share: +(sidesBare / sides).toFixed(3), examples: bareExamples,
+              all: process.env.AUDIT_BARE_ALL ? bareAll : undefined },
   groundOnCarriageway: layers,
   fences: { runs: fenceRuns, crossingRoad: fenceOnRoad },
   divider: { mapped: dividerMapped, rendered: dividerRendered, bySource: dividerBySource },
