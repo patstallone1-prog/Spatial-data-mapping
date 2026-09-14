@@ -1,0 +1,44 @@
+{
+ "source": "USGS 3DEP CA_SanFrancisco_1_B23 ground returns, via Entwine",
+ "method": "median ground elevation on the approach (3-14 m outside the mouth) and over the bore (10-24 m inside), within 6 m of the centreline",
+ "tunnels": {
+  "Broadway:[-122.411287, 37.797265]": {
+   "name": "Broadway",
+   "length_m": 585.5,
+   "start": {
+    "road_z": 40.43,
+    "hill_z": 42.46,
+    "headwall_m": 2.03,
+    "points": 259872
+   },
+   "end": {
+    "road_z": 55.52,
+    "hill_z": 67.1,
+    "headwall_m": 11.58,
+    "points": 223150
+   }
+  },
+  "1st Street:[-122.397043, 37.789352]": {
+   "name": "1st Street",
+   "length_m": 54.5,
+   "start": null,
+   "end": null
+  },
+  "Stockton Tunnel:[-122.407148, 37.790283]": {
+   "name": "Stockton Tunnel",
+   "length_m": 278.0,
+   "start": {
+    "road_z": 29.05,
+    "hill_z": 37.08,
+    "headwall_m": 8.03,
+    "points": 328596
+   },
+   "end": {
+    "road_z": 41.09,
+    "hill_z": 49.37,
+    "headwall_m": 8.28,
+    "points": 251865
+   }
+  }
+ }
+}

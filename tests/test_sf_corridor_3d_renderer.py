@@ -599,3 +599,32 @@ def test_every_crossing_is_a_ladder_with_a_stated_reason() -> None:
         sources[key] = sources.get(key, 0) + 1
     assert set(sources) <= {"sfmta_inventory", "sibling_at_junction", "default_continental",
                             "alley_mouth"}, sources
+
+
+def test_only_road_tunnels_get_a_mouth_and_the_mouth_is_as_tall_as_the_lidar_says() -> None:
+    """Seventy-five ways are tagged tunnel=yes; three are road tunnels. The rest are bus ramps
+    and car park entrances going underground, and they were drawn as 150 portals."""
+    namespace = runpy.run_path(str(SOURCE))
+    classify = namespace["classify_tunnels"]
+    long = [[-122.41, 37.79], [-122.404, 37.79]]          # ~530 m
+    ways = [
+        {"kind": "street", "name": "Stockton Tunnel", "highway": "tertiary", "tunnel": True,
+         "points": [[-122.407148, 37.790283], [-122.407648, 37.792749]]},
+        {"kind": "street", "name": "Broadway", "highway": "primary", "tunnel": True, "points": long},
+        {"kind": "street", "name": None, "highway": "busway", "tunnel": True, "points": long},
+        {"kind": "street", "name": None, "highway": "service", "tunnel": True, "points": long},
+        {"kind": "street", "name": "Fremont Street", "highway": "secondary", "tunnel": True,
+         "points": [[-122.3960, 37.7900], [-122.3961, 37.7901]]},   # 14 m: a ramp's piece
+        {"kind": "street", "name": "Mason Street", "highway": "residential", "points": long},
+    ]
+    counts = classify(ways)
+    kinds = [w.get("tunnel_kind") for w in ways]
+    assert kinds == ["road", "road", "underground", "underground", "underground", None], kinds
+    assert counts["underground ramp"] == 3
+    # Stockton's portals were measured off the lidar and travel with the way.
+    portal = ways[0].get("tunnel_portal")
+    assert portal and 7.0 < portal["start"] < 9.5 and 7.0 < portal["end"] < 9.5, portal
+    source = _source()
+    assert "const runs = isRoadTunnel(way) ? tunnelStubs(way.points) : [way.points];" in source
+    assert "if (isUndergroundWay(way)) continue;" in source
+    assert 'const H = Math.max(TUNNEL_CROWN_M + TUNNEL_SHELL_M + 0.5, measured[label] || 0);' in source

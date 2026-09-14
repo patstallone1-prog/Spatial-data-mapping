@@ -128,6 +128,9 @@ const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
 const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
+function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
+function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
+function tunnelStubs(points) { return [points]; }
 const NEIGHBOUR_PARALLEL_DEG = 30;
 const MIN_RENDER_WALK_M = 0.9;
 const MAX_RENDER_WALK_M = 5.5;
