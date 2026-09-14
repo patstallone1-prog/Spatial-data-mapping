@@ -2292,10 +2292,9 @@ function entryTexture(seed, archetype) {
     ctx.fillRect(62, 69, 3, 3);
     ctx.fillStyle = awning;
     ctx.fillRect(4, 20, 120, 18);
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.font = "bold 13px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(archetype === "restaurant" ? "CAFE" : "SHOP", 64, 34);
+    // No words on the awning. It used to say CAFE or SHOP, which is a placeholder pretending
+    // to be a sign; the business's own name goes on the sign geometry over the door, from
+    // OpenStreetMap, Overture or Google, and where none of them knows it the awning is blank.
     ctx.fillStyle = "rgba(255,255,255,0.34)";
     for (let x = 12; x < 120; x += 18) ctx.fillRect(x, 20, 8, 18);
     ctx.strokeStyle = "rgba(255,255,255,0.18)";
@@ -2649,6 +2648,24 @@ function renderedRoadWidth(way) {
   return way._renderRoadM;
 }
 
+//: A neighbouring carriageway runs within this angle of the way it makes room for.
+const NEIGHBOUR_PARALLEL_DEG = 30;
+
+function segmentRunsAlongside(px, pz, bearing, other) {
+  // Does this segment lie beside the point, running the same way? A cross street meets the way
+  // at a junction and is not beside it; the same street carrying on is met at its endpoint.
+  const [ax, az, bx, bz] = other;
+  const dx = bx - ax;
+  const dz = bz - az;
+  const length2 = dx * dx + dz * dz;
+  if (length2 < 1e-9) return false;
+  let turn = Math.abs(Math.atan2(dz, dx) - bearing) % Math.PI;
+  turn = Math.min(turn, Math.PI - turn);
+  if (turn > (NEIGHBOUR_PARALLEL_DEG * Math.PI) / 180) return false;
+  const t = ((px - ax) * dx + (pz - az) * dz) / length2;
+  return t > 0.02 && t < 0.98;
+}
+
 function clampRoadWidthsToNeighbours(ways) {
   const CELL = 40;
   const grid = new Map();
@@ -2675,12 +2692,21 @@ function clampRoadWidthsToNeighbours(ways) {
       }
     }
   }
-  // The nearest other centreline to each way, sampled along it. Junctions are excluded by
-  // ignoring anything that shares an endpoint neighbourhood -- two streets that meet at a
-  // corner are not competing for the same ground, they are the same ground.
+  // The nearest other centreline running alongside each way, sampled along it.
+  //
+  // Alongside is the whole of it. This used to take the nearest other segment of any kind,
+  // skipping only what was under three metres away, and the nearest segment to a point a few
+  // metres along a way is nearly always the cross street at the junction it just left -- or
+  // the same street carrying on beyond it, met at its endpoint. So every leg of every junction
+  // was clamped to however far its first sample stood from the node: Grant Avenue, measured
+  // between its kerbs at 7.36 m, was drawn 4.75 m wide out of Clay Street, and the pavement
+  // laid from that kerb reached a metre and a third into the roadway and across the ends of
+  // the crossing. A neighbour is a segment that runs beside this one: roughly parallel, with
+  // its nearest point in its interior rather than at an end.
   const nearest = new Map();
   for (const [ax, az, bx, bz, way] of segments) {
     const steps = Math.max(1, Math.round(Math.hypot(bx - ax, bz - az) / 8));
+    const ownBearing = Math.atan2(bz - az, bx - ax);
     for (let k = 0; k <= steps; k += 1) {
       const t = k / steps;
       const px = ax + (bx - ax) * t;
@@ -2693,10 +2719,11 @@ function clampRoadWidthsToNeighbours(ways) {
           if (!bucket) continue;
           for (const other of bucket) {
             if (other[4] === way) continue;
+            if (!segmentRunsAlongside(px, pz, ownBearing, other)) continue;
             const d = Math.sqrt(distanceToSegmentSquared(px, pz, other[0], other[1],
                                                          other[2], other[3]));
-            // Under three metres is a junction or a way drawn on top of another, not a
-            // neighbour to make room for; clamping to that would erase the street.
+            // Under three metres is a way drawn on top of another, not a neighbour to make
+            // room for; clamping to that would erase the street.
             if (d < 3.0) continue;
             const best = nearest.get(way);
             if (best === undefined || d < best) nearest.set(way, d);

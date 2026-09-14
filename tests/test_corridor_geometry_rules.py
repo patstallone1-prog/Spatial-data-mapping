@@ -497,7 +497,7 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     assert "laneCountForWay(way)" in body, "a street with stated lanes must keep room for them"
 
     functions = ("distanceToSegmentSquared", "laneCountForWay", "nominalRoadWidth",
-                 "renderedRoadWidth", "clampRoadWidthsToNeighbours")
+                 "renderedRoadWidth", "segmentRunsAlongside", "clampRoadWidthsToNeighbours")
     parts = ["""
     const metersPerLat = 111320;
     const metersPerLon = 88000;
@@ -506,6 +506,7 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
+    const NEIGHBOUR_PARALLEL_DEG = 30;
     """]
     parts += [_extract(name, js) for name in functions]
     parts.append("""
@@ -527,7 +528,15 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
                        points: [at(-200, 800), at(200, 800)] };
     const aisle = { kind: "street", service: "parking_aisle",
                     points: [at(-200, 1200), at(200, 1200)] };
-    const ways = [avenue, alley, boulevard, service, driveway, aisle];
+    // A measured 7.36 m street leaving a crossroads, split at the node the way OpenStreetMap
+    // splits it, with a short first segment: Grant Avenue out of Clay Street.
+    const clay = { kind: "street", road_m: 9.0, lanes: 2,
+                   points: [at(-100, 2000), at(100, 2000)] };
+    const grantSouth = { kind: "street", road_m: 7.36, road_source: "curb_geometry",
+                         points: [at(0, 2000), at(0, 2004.75), at(0, 2040)] };
+    const grantNorth = { kind: "street", road_m: 7.36, road_source: "curb_geometry",
+                         points: [at(0, 1960), at(0, 2000)] };
+    const ways = [avenue, alley, boulevard, service, driveway, aisle, clay, grantSouth, grantNorth];
     clampRoadWidthsToNeighbours(ways);
     console.log(JSON.stringify({
       avenue: +renderedRoadWidth(avenue).toFixed(2),
@@ -535,6 +544,8 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
       boulevard: +renderedRoadWidth(boulevard).toFixed(2),
       driveway: +renderedRoadWidth(driveway).toFixed(2),
       aisle: +renderedRoadWidth(aisle).toFixed(2),
+      grant: +renderedRoadWidth(grantSouth).toFixed(2),
+      clay: +renderedRoadWidth(clay).toFixed(2),
     }));
     """)
     out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
@@ -553,6 +564,11 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     # A driveway is one car wide and an aisle two; neither is an eight metre street.
     assert widths["driveway"] <= 3.4 + 0.01, widths
     assert widths["aisle"] <= 6.0 + 0.01, widths
+    # The cross street at a junction and the same street carrying on are not neighbours: a
+    # measured width survives leaving a crossroads. It was clamped to 4.75, the distance of the
+    # way's second point from the node, and the pavement laid from that kerb crossed the road.
+    assert abs(widths["grant"] - 7.36) < 0.01, widths
+    assert widths["clay"] >= 8.0, widths          # its two-lane cap, not a junction clamp
 
 
 def test_roof_furniture_is_geometry_at_real_sizes() -> None:

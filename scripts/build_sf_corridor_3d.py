@@ -806,6 +806,109 @@ def attach_shopfronts(ways: list[dict]) -> int:
     return attached
 
 
+#: What a business is, from the category vocabulary Overture and Google share (snake_case
+#: words such as ``coffee_shop``, ``clothing_store``, ``hair_salon``). Matched on the words in
+#: the category, first rule wins, so ``pizza_restaurant`` is pizza before it is a restaurant.
+PLACE_TRADE_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("pizza", ("pizza",)),
+    ("cafe", ("cafe", "coffee", "tea", "bubble", "juice", "dessert", "ice_cream")),
+    ("bakery", ("bakery", "bakeries", "pastry", "donut", "bagel", "chocolate", "candy")),
+    ("bar", ("bar", "pub", "brewery", "night_club", "nightclub", "lounge", "wine_bar",
+             "cocktail")),
+    ("restaurant", ("restaurant", "food", "diner", "grill", "bistro", "noodle", "sushi",
+                    "taqueria", "sandwich", "burger", "steak", "seafood", "dim_sum")),
+    ("grocery", ("grocery", "supermarket", "market", "butcher", "deli", "convenience",
+                 "liquor")),
+    ("clothing", ("clothing", "clothes", "fashion", "shoe", "boutique", "jewelry", "jeweler",
+                  "apparel", "tailor", "bag", "lingerie", "bridal")),
+    ("books", ("book", "stationery", "art_gallery", "gallery", "music", "record", "gift")),
+    ("salon", ("salon", "beauty", "barber", "spa", "nail", "massage", "cosmetic", "tattoo")),
+    ("pharmacy", ("pharmacy", "drugstore", "dentist", "dental", "doctor", "clinic",
+                  "optometrist", "optical", "veterinar", "medical", "chiropract",
+                  "acupunctur", "physical_therap")),
+    ("bank", ("bank", "credit_union", "atm", "post_office", "currency", "insurance")),
+    ("laundry", ("laundry", "laundromat", "dry_clean")),
+    ("hardware", ("hardware", "auto", "car_repair", "bicycle", "bike", "locksmith",
+                  "electronics", "phone", "computer", "appliance", "furniture", "paint")),
+    ("florist", ("florist", "flower", "garden")),
+    ("hotel", ("hotel", "hostel", "motel", "inn", "lodging", "guest_house")),
+)
+
+#: Categories that are not a shopfront: a place with one of these has no sign over a door.
+NOT_A_PLACE_SHOPFRONT = (
+    "parking", "atm", "bus_stop", "transit", "station", "apartment", "condominium",
+    "residential", "housing", "real_estate_agent", "landmark", "monument", "park",
+    "playground", "school", "university", "church", "religious", "place_of_worship", "public",
+    "government", "office", "consulting", "lawyer", "attorney", "accountant", "association",
+    "organization", "nonprofit", "construction", "contractor", "wholesale", "warehouse",
+    "storage", "utility", "embassy", "hospital", "fire_station", "police", "courthouse",
+    "cemetery", "point_of_interest", "establishment", "premise", "route", "locality",
+)
+
+
+def place_trade(category: str) -> str | None:
+    """Which trade a place category describes, or None when it is not a shopfront."""
+    words = str(category or "").lower().replace("-", "_").replace(" ", "_")
+    if not words:
+        return None
+    if any(bad in words for bad in NOT_A_PLACE_SHOPFRONT):
+        return None
+    for trade, needles in PLACE_TRADE_RULES:
+        if any(needle in words for needle in needles):
+            return trade
+    return "shop"
+
+
+def attach_named_places(ways: list[dict[str, Any]]) -> dict[str, int]:
+    """Name the shopfronts OpenStreetMap left unnamed, from the enrichment's places.
+
+    The first pass folded OpenStreetMap's points of interest into the buildings they stand in.
+    The buildings that got nothing -- most of the corridor's retail -- take their names here:
+    from Overture's places (CDLA-Permissive-2.0; a point in the footprint, like the OSM ones),
+    and from Google's Places answers where the city's own address on the building matched the
+    place's. Each shopfront records where its name came from.
+    """
+    counts = {"overture_places": 0, "google_places": 0, "buildings_named": 0}
+    for way in ways:
+        if way.get("kind") != "building":
+            continue
+        shops = way.get("shops") or []
+        if shops:
+            continue
+        seen: set[str] = set()
+        for place in way.get("overture_places") or []:
+            name = str(place.get("name") or "").strip()
+            trade = place_trade(place.get("category") or "")
+            if not name or trade is None or name.lower() in seen:
+                continue
+            shops.append({"n": name, "t": trade, "s": "overture_places"})
+            seen.add(name.lower())
+            counts["overture_places"] += 1
+            if len(shops) >= MAX_SHOPFRONTS:
+                break
+        if len(shops) < MAX_SHOPFRONTS:
+            for place in way.get("google_places") or []:
+                if str(place.get("business_status") or "OPERATIONAL") != "OPERATIONAL":
+                    continue
+                reasons = set(place.get("match_reasons") or [])
+                close = float(place.get("distance_m") or 999) <= 12.0
+                if not ("address_match" in reasons or close):
+                    continue
+                name = str(place.get("name") or "").strip()
+                trade = place_trade(place.get("primary_type") or "")
+                if not name or trade is None or name.lower() in seen:
+                    continue
+                shops.append({"n": name, "t": trade, "s": "google_places"})
+                seen.add(name.lower())
+                counts["google_places"] += 1
+                if len(shops) >= MAX_SHOPFRONTS:
+                    break
+        if shops:
+            way["shops"] = shops
+            counts["buildings_named"] += 1
+    return counts
+
+
 def drop_water_over_land(ways: list[dict]) -> list[dict]:
     """Refuse any water polygon with a neighbourhood inside it."""
     landmarks = []
@@ -1148,6 +1251,8 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     ground_summary = publish_ground_cover()
     furniture_summary = publish_street_furniture()
     building_summary = annotate_building_enrichment(ways)
+    building_summary["named_places"] = attach_named_places(ways)
+    print(f"  shopfronts named from places: {building_summary['named_places']}", file=sys.stderr)
     official_summary = annotate_official(ways, {
         "south": SF_CORRIDOR.bbox.south, "west": SF_CORRIDOR.bbox.west,
         "north": SF_CORRIDOR.bbox.north, "east": SF_CORRIDOR.bbox.east,
@@ -4081,10 +4186,9 @@ function entryTexture(seed, archetype) {
     ctx.fillRect(62, 69, 3, 3);
     ctx.fillStyle = awning;
     ctx.fillRect(4, 20, 120, 18);
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.font = "bold 13px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(archetype === "restaurant" ? "CAFE" : "SHOP", 64, 34);
+    // No words on the awning. It used to say CAFE or SHOP, which is a placeholder pretending
+    // to be a sign; the business's own name goes on the sign geometry over the door, from
+    // OpenStreetMap, Overture or Google, and where none of them knows it the awning is blank.
     ctx.fillStyle = "rgba(255,255,255,0.34)";
     for (let x = 12; x < 120; x += 18) ctx.fillRect(x, 20, 8, 18);
     ctx.strokeStyle = "rgba(255,255,255,0.18)";
@@ -4438,6 +4542,24 @@ function renderedRoadWidth(way) {
   return way._renderRoadM;
 }
 
+//: A neighbouring carriageway runs within this angle of the way it makes room for.
+const NEIGHBOUR_PARALLEL_DEG = 30;
+
+function segmentRunsAlongside(px, pz, bearing, other) {
+  // Does this segment lie beside the point, running the same way? A cross street meets the way
+  // at a junction and is not beside it; the same street carrying on is met at its endpoint.
+  const [ax, az, bx, bz] = other;
+  const dx = bx - ax;
+  const dz = bz - az;
+  const length2 = dx * dx + dz * dz;
+  if (length2 < 1e-9) return false;
+  let turn = Math.abs(Math.atan2(dz, dx) - bearing) % Math.PI;
+  turn = Math.min(turn, Math.PI - turn);
+  if (turn > (NEIGHBOUR_PARALLEL_DEG * Math.PI) / 180) return false;
+  const t = ((px - ax) * dx + (pz - az) * dz) / length2;
+  return t > 0.02 && t < 0.98;
+}
+
 function clampRoadWidthsToNeighbours(ways) {
   const CELL = 40;
   const grid = new Map();
@@ -4464,12 +4586,21 @@ function clampRoadWidthsToNeighbours(ways) {
       }
     }
   }
-  // The nearest other centreline to each way, sampled along it. Junctions are excluded by
-  // ignoring anything that shares an endpoint neighbourhood -- two streets that meet at a
-  // corner are not competing for the same ground, they are the same ground.
+  // The nearest other centreline running alongside each way, sampled along it.
+  //
+  // Alongside is the whole of it. This used to take the nearest other segment of any kind,
+  // skipping only what was under three metres away, and the nearest segment to a point a few
+  // metres along a way is nearly always the cross street at the junction it just left -- or
+  // the same street carrying on beyond it, met at its endpoint. So every leg of every junction
+  // was clamped to however far its first sample stood from the node: Grant Avenue, measured
+  // between its kerbs at 7.36 m, was drawn 4.75 m wide out of Clay Street, and the pavement
+  // laid from that kerb reached a metre and a third into the roadway and across the ends of
+  // the crossing. A neighbour is a segment that runs beside this one: roughly parallel, with
+  // its nearest point in its interior rather than at an end.
   const nearest = new Map();
   for (const [ax, az, bx, bz, way] of segments) {
     const steps = Math.max(1, Math.round(Math.hypot(bx - ax, bz - az) / 8));
+    const ownBearing = Math.atan2(bz - az, bx - ax);
     for (let k = 0; k <= steps; k += 1) {
       const t = k / steps;
       const px = ax + (bx - ax) * t;
@@ -4482,10 +4613,11 @@ function clampRoadWidthsToNeighbours(ways) {
           if (!bucket) continue;
           for (const other of bucket) {
             if (other[4] === way) continue;
+            if (!segmentRunsAlongside(px, pz, ownBearing, other)) continue;
             const d = Math.sqrt(distanceToSegmentSquared(px, pz, other[0], other[1],
                                                          other[2], other[3]));
-            // Under three metres is a junction or a way drawn on top of another, not a
-            // neighbour to make room for; clamping to that would erase the street.
+            // Under three metres is a way drawn on top of another, not a neighbour to make
+            // room for; clamping to that would erase the street.
             if (d < 3.0) continue;
             const best = nearest.get(way);
             if (best === undefined || d < best) nearest.set(way, d);

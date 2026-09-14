@@ -152,3 +152,24 @@ def test_geometry_helpers_are_stable_for_closed_rings() -> None:
     assert building_address({"addr:full": "10 Mission St, San Francisco, CA"}) == {
         "formatted": "10 Mission St, San Francisco, CA"
     }
+
+
+def test_google_queue_is_the_unnamed_shopfronts() -> None:
+    """One request per building would be sixteen thousand requests; the queue is the ones that
+    need a name: retail and restaurants first, then hotels and offices, then commercial parcels.
+    Anything already named, or already asked, is not asked."""
+    import runpy
+    from pathlib import Path
+
+    ns = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts" / "build_building_enrichment.py"))
+    priority = ns["google_priority"]
+    assert priority({"archetype": "retail"}) == 0
+    assert priority({"archetype": "restaurant"}) == 0
+    assert priority({"archetype": "hotel"}) == 1
+    assert priority({"archetype": "office"}) == 2
+    assert priority({"archetype": "generic", "land_use": "RESIDENTIAL- COMMERCIAL, HIGH DENSITY"}) == 3
+    assert priority({"archetype": "generic", "land_use": "RESIDENTIAL"}) is None
+    assert priority({"archetype": "residential"}) is None
+    assert priority({"archetype": "retail", "name": "Safeway"}) is None
+    assert priority({"archetype": "retail", "shops": [{"n": "Kayo Books", "t": "shop"}]}) is None
+    assert priority({"archetype": "retail", "google_places": [{"place_id": "x"}]}) is None

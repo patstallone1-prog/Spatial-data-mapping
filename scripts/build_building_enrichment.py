@@ -21,6 +21,7 @@ import urllib.request
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -122,10 +123,18 @@ def attach_pois(buildings: list[dict], pois: list[dict]) -> int:
 
 
 def load_buildings(page_json: Path) -> list[dict[str, Any]]:
+    """The buildings and points of interest, from the OSM cache or the page's payload.
+
+    The cache is the right input: the page's payload is slimmed to what the renderer draws,
+    and a point of interest there is a name with no point and no tags -- so every one of
+    5,493 landed nowhere and the archetypes fell back to "generic". The payload is still
+    accepted for the older workflow.
+    """
     payload = json.loads(page_json.read_text(encoding="utf-8"))
+    ways = payload if isinstance(payload, list) else payload.get("ways", [])
     buildings = []
     pois = []
-    for way in payload.get("ways", []):
+    for way in ways:
         if way.get("kind") == "poi":
             pois.append(way)
             continue
@@ -442,6 +451,65 @@ def google_nearby(
         return json.loads(response.read().decode("utf-8")).get("places", [])
 
 
+#: Archetypes whose ground floor has a name over the door, in the order they are worth asking
+#: Google about. A building that already carries a name or a shop from OpenStreetMap is not
+#: asked; neither is a house.
+GOOGLE_ASK_ARCHETYPES = {"retail": 0, "restaurant": 0, "hotel": 1, "office": 2}
+
+
+def google_priority(row: Mapping[str, Any]) -> int | None:
+    """Where a building sits in the queue for a Places lookup, or None if it is not in it.
+
+    Every request costs money and there are sixteen thousand buildings, so the queue is the
+    shopfronts nobody has named yet: retail and restaurants first, then hotels and offices,
+    then anything on a parcel the city zones commercial. A building with a name of its own or
+    a business already inside it from OpenStreetMap has what a sign needs.
+    """
+    if row.get("google_places") or row.get("place"):
+        return None
+    if row.get("name") or row.get("shops"):
+        return None
+    archetype = str(row.get("archetype") or "")
+    if archetype in GOOGLE_ASK_ARCHETYPES:
+        return GOOGLE_ASK_ARCHETYPES[archetype]
+    if "COMMERCIAL" in str(row.get("land_use") or "").upper():
+        return 3
+    return None
+
+
+def carry_over_google(records: list[dict[str, Any]], previous: Path) -> int:
+    """Keep the Places answers an earlier run paid for, so a rerun only asks about the rest."""
+    if not previous.exists():
+        return 0
+    try:
+        rows = json.loads(previous.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return 0
+    by_id = {str(row.get("building_id")): row for row in rows if row.get("building_id")}
+    carried = 0
+    for row in records:
+        old = by_id.get(str(row.get("building_id")))
+        if not old:
+            continue
+        for key in ("google_places", "place", "google_place_review", "overture_places",
+                    "overture"):
+            if old.get(key) and not row.get(key):
+                row[key] = old[key]
+        # A height Overture measured stays measured when the buildings theme is not re-pulled.
+        if (old.get("height_source") == "overture_height" and old.get("height_m")
+                and row.get("height_source") in (None, "", "inferred_default", "missing")):
+            row["height_m"] = old["height_m"]
+            row["height_source"] = "overture_height"
+            if old.get("building_levels") and not row.get("building_levels"):
+                row["building_levels"] = old["building_levels"]
+        if old.get("google_places") or old.get("place"):
+            carried += 1
+            sources = set(row.get("sources") or [])
+            sources.update(s for s in (old.get("sources") or []) if s.startswith("google"))
+            row["sources"] = sorted(sources)
+    return carried
+
+
 def attach_google_places(
     records: list[dict[str, Any]],
     *,
@@ -455,9 +523,15 @@ def attach_google_places(
     fetched_at = datetime.now(UTC)
     errors: list[str] = []
     done = 0
-    for row in records:
+    queue = [row for row in records if google_priority(row) is not None]
+    queue.sort(key=lambda row: (google_priority(row), str(row.get("building_id"))))
+    print(f"google places: {len(queue)} buildings in the queue, asking about {min(limit, len(queue))}",
+          flush=True)
+    for row in queue:
         if done >= limit:
             break
+        if done and done % 100 == 0:
+            print(f"google places: {done} asked", flush=True)
         lon, lat = row.get("centroid") or [None, None]
         if lon is None or lat is None:
             continue
@@ -614,6 +688,101 @@ def attach_overture(records: list[dict[str, Any]], *, limit: int, release: str) 
     return matched, None
 
 
+#: Below this the place is a guess about whether the business still exists at all.
+OVERTURE_PLACE_MIN_CONFIDENCE = 0.5
+#: Businesses kept per building; a mall has hundreds and a sign has room for a few.
+OVERTURE_PLACES_PER_BUILDING = 6
+
+
+def attach_overture_places(
+    records: list[dict[str, Any]], *, limit: int, release: str
+) -> tuple[int, int, str | None]:
+    """Name the shopfronts from Overture's places, which are licensed to be used.
+
+    Overture's transportation and buildings themes are ODbL and stay reference; its places
+    theme is CDLA-Permissive-2.0 and may be merged. Each place is a point with a name and a
+    category, and it lands in the building whose footprint it stands in -- the same fold the
+    OpenStreetMap points get. Google's Places API answers a hundred requests a day on this
+    project; Overture answers for the whole corridor in one pull.
+
+    Returns (places pulled, buildings that gained one, error).
+    """
+    if limit <= 0:
+        return 0, 0, None
+    try:
+        import duckdb  # type: ignore
+    except ModuleNotFoundError:
+        return 0, 0, "duckdb is not installed; install the project dependency to enable Overture pulls"
+
+    bbox = SF_CORRIDOR.bbox
+    path = f"s3://overturemaps-us-west-2/release/{release}/theme=places/type=place/*"
+    sql = f"""
+        INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
+        SET s3_region='us-west-2';
+        SELECT
+          id,
+          names.primary AS name,
+          categories.primary AS category,
+          confidence,
+          ST_X(geometry) AS lon,
+          ST_Y(geometry) AS lat
+        FROM read_parquet('{path}', hive_partitioning=1)
+        WHERE bbox.xmin <= {bbox.east}
+          AND bbox.xmax >= {bbox.west}
+          AND bbox.ymin <= {bbox.north}
+          AND bbox.ymax >= {bbox.south}
+          AND names.primary IS NOT NULL
+        LIMIT {int(limit)}
+    """
+    try:
+        rows = duckdb.sql(sql).fetchall()
+    except Exception as exc:  # noqa: BLE001 - Overture schema/release can move
+        return 0, 0, f"Overture places query failed: {exc}"
+
+    cells: dict[tuple[int, int], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        ring = row.get("points") or []
+        if len(ring) < 3:
+            continue
+        x0, y0, x1, y1 = ring_bbox(ring)
+        row["_bbox"] = (x0, y0, x1, y1)
+        for ix in range(int(x0 * 3000), int(x1 * 3000) + 1):
+            for iy in range(int(y0 * 3000), int(y1 * 3000) + 1):
+                cells[(ix, iy)].append(row)
+
+    gained: set[str] = set()
+    for place_id, name, category, confidence, lon, lat in rows:
+        if not name or lon is None or lat is None:
+            continue
+        if confidence is not None and float(confidence) < OVERTURE_PLACE_MIN_CONFIDENCE:
+            continue
+        for row in cells.get((int(lon * 3000), int(lat * 3000)), ()):
+            x0, y0, x1, y1 = row["_bbox"]
+            if not (x0 <= lon <= x1 and y0 <= lat <= y1):
+                continue
+            if not point_in_ring(lon, lat, row["points"]):
+                continue
+            places = row.setdefault("overture_places", [])
+            if len(places) >= OVERTURE_PLACES_PER_BUILDING:
+                break
+            if any(p["name"] == name for p in places):
+                break
+            places.append({
+                "id": place_id, "name": str(name), "category": str(category or ""),
+                "confidence": round(float(confidence), 3) if confidence is not None else None,
+                "source": "overture:places", "release": release,
+                "licence": "CDLA-Permissive-2.0",
+            })
+            gained.add(str(row.get("building_id")))
+            sources = set(row.get("sources") or [])
+            sources.add("overture_places")
+            row["sources"] = sorted(sources)
+            break
+    for row in records:
+        row.pop("_bbox", None)
+    return len(rows), len(gained), None
+
+
 def compact(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     keep = []
     for row in records:
@@ -636,6 +805,7 @@ def compact(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "osm_types",
             "datasf_building_height",
             "overture",
+            "overture_places",
             "google_places",
             "place",
             "archetype",
@@ -661,7 +831,8 @@ def display_path(path: Path | None) -> str | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--page-json", type=Path, default=ROOT / "docs" / "sf-corridor-3d.json")
+    parser.add_argument("--page-json", type=Path,
+                        default=ROOT / "data" / "sf_corridor" / "stats" / "osm_ways.json")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--summary", type=Path, default=DEFAULT_SUMMARY)
     parser.add_argument("--parcel-cache", type=Path, default=None)
@@ -669,12 +840,18 @@ def main() -> int:
     parser.add_argument("--google-radius-m", type=float, default=28.0)
     parser.add_argument("--google-sleep-s", type=float, default=0.05)
     parser.add_argument("--overture-limit", type=int, default=0)
+    parser.add_argument("--overture-places-limit", type=int, default=0)
     parser.add_argument("--overture-release", default="2026-08-19.0")
     parser.add_argument("--refresh-building-heights", action="store_true")
     args = parser.parse_args()
 
     buildings = load_buildings(args.page_json)
     records = [normalize_osm_building(feature, index) for index, feature in enumerate(buildings)]
+    # The businesses OpenStreetMap already put inside each building, so the Places queue knows
+    # which shopfronts have a name and which do not.
+    for record, feature in zip(records, buildings, strict=True):
+        if feature.get("shops"):
+            record["shops"] = feature["shops"]
 
     parcel_cache = args.parcel_cache or default_parcel_cache()
     parcels = load_parcels(parcel_cache)
@@ -688,8 +865,15 @@ def main() -> int:
     overture_matches, overture_error = attach_overture(
         records, limit=args.overture_limit, release=args.overture_release
     )
+    overture_places_pulled, overture_places_buildings, overture_places_error = attach_overture_places(
+        records, limit=args.overture_places_limit, release=args.overture_release
+    )
+    print(f"overture places: {overture_places_pulled} pulled, {overture_places_buildings} buildings named"
+          + (f" ({overture_places_error})" if overture_places_error else ""), flush=True)
 
     google_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    carried = carry_over_google(records, args.out)
+    print(f"google places: {carried} buildings carried over from the previous run", flush=True)
     google_requests, google_errors = attach_google_places(
         records,
         key=google_key,
@@ -714,7 +898,13 @@ def main() -> int:
         "datasf_building_height_matches": building_height_matches,
         "overture_matches": overture_matches,
         "overture_error": overture_error,
+        "overture_places_pulled": overture_places_pulled,
+        "overture_places_buildings": overture_places_buildings,
+        "overture_places_error": overture_places_error,
+        "overture_places_licence": "CDLA-Permissive-2.0; names and categories may be merged",
         "google_places_requests": google_requests,
+        "google_places_carried_over": carried,
+        "google_places_queue": sum(1 for row in records if google_priority(row) is not None),
         "google_places_errors": google_errors,
         "with_address": sum(1 for row in output if row.get("address")),
         "with_place": sum(1 for row in output if row.get("place")),

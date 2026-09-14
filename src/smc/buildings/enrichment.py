@@ -425,6 +425,7 @@ def merge_building_enrichment(
             "land_use",
             "building_osm",
             "overture",
+            "overture_places",
             "google_places",
             "place",
             "archetype",

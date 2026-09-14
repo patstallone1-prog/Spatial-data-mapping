@@ -380,7 +380,11 @@ def test_facade_renderer_adds_ground_floor_identity() -> None:
     source = _source()
 
     assert "function entryTexture(seed, archetype)" in source
-    assert 'ctx.fillText(archetype === "restaurant" ? "CAFE" : "SHOP", 64, 34);' in source
+    # The awning carries no placeholder words: a sign says the business's name or nothing.
+    assert '"CAFE"' not in source and '"SHOP"' not in source
+    assert "def attach_named_places(ways" in source
+    assert '"s": "overture_places"' in source
+    assert "CDLA-Permissive-2.0" in source
     assert "function addGroundFacadeDetail(group, feature, seed, height)" in source
     assert 'feature.archetype === "retail" || feature.archetype === "restaurant"' in source
     assert "addGroundFacadeDetail(group, feature, seed, height)" in source
@@ -537,3 +541,38 @@ def test_a_parcel_standing_on_a_park_is_the_park() -> None:
     assert "green = Lattice(bbox)" in ground
     assert "green.stamp_polygon(park[\"p\"])" in ground
     assert "if share_covered(green, ring) > MAX_PARCEL_ON_GREEN:" in ground
+
+
+def test_place_categories_become_trades_and_non_shops_are_left_out() -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    trade = namespace["place_trade"]
+    assert trade("coffee_shop") == "cafe"
+    assert trade("pizza_restaurant") == "pizza"
+    assert trade("hair_salon") == "salon"
+    assert trade("clothing_store") == "clothing"
+    assert trade("bank") == "bank"
+    assert trade("hotel") == "hotel"
+    assert trade("toy_store") == "shop"
+    assert trade("parking") is None
+    assert trade("real_estate_agent") is None
+    assert trade("apartment_building") is None
+    assert trade("") is None
+
+    attach = namespace["attach_named_places"]
+    ways = [
+        {"kind": "building", "overture_places": [
+            {"name": "Golden Boy Pizza", "category": "pizza_restaurant"},
+            {"name": "Some Parking", "category": "parking"},
+        ]},
+        {"kind": "building", "shops": [{"n": "Kayo Books", "t": "books"}],
+         "overture_places": [{"name": "Other", "category": "cafe"}]},
+        {"kind": "building", "google_places": [
+            {"name": "Far Cafe", "primary_type": "cafe", "distance_m": 40, "match_reasons": []},
+            {"name": "Near Cafe", "primary_type": "cafe", "distance_m": 5, "match_reasons": []},
+        ]},
+    ]
+    counts = attach(ways)
+    assert ways[0]["shops"] == [{"n": "Golden Boy Pizza", "t": "pizza", "s": "overture_places"}]
+    assert ways[1]["shops"] == [{"n": "Kayo Books", "t": "books"}], "OSM's names come first"
+    assert ways[2]["shops"] == [{"n": "Near Cafe", "t": "cafe", "s": "google_places"}]
+    assert counts == {"overture_places": 1, "google_places": 1, "buildings_named": 2}
