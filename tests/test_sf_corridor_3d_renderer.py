@@ -85,7 +85,12 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert "function tactileWarningTexture()" in source
     assert "Truncated-dome warning tile" in source
     assert 'ctx.fillStyle = "#d8aa24";' in source
-    assert "const TACTILE_PAD_DEPTH_M = 0.61;" in source   # 24 in: ADA's detectable-warning depth
+    assert "const TACTILE_PAD_DEPTH_M = 0.91;" in source
+    assert "const TACTILE_PAD_MIN_W_M = 1.22;" in source
+    assert "const TACTILE_PAD_MAX_W_M = 1.52;" in source
+    assert "const TACTILE_TEXTURE_TILE_M = 0.48;" in source
+    assert "function tactilePadsOverlap(a, b)" in source
+    assert "tactileWarningPads.some((corners) => tactilePadsOverlap(corners, pad.corners))" in source
     # And the pad is the front of a ramp, not a yellow stripe on its own.
     assert "const CURB_RAMP_DEPTH_M" in source
     assert 'addMerged("crossing:ramp", ramp, "curb_ramp");' in source
@@ -174,7 +179,7 @@ def test_alley_mouth_crossings_bridge_sidewalk_cuts() -> None:
     assert 'way.get("service") != "alley"' in source
     assert '"alley_mouth": True' in source
     assert 'const widthMeters = isCrossing ? (way.crossing_m || 3.7)' in source
-    assert '((way.continental || way.alley_mouth) ? "crossing" : "crossing_edges")' in source
+    assert "const surfaceKind = isCrossing ? crossingMarkingKind(way)" in source
 
 
 def test_a_way_without_a_highway_tag_is_not_a_street() -> None:
@@ -224,6 +229,19 @@ def test_parking_aisles_on_a_mapped_lot_are_the_lot() -> None:
     assert '"service",' in _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
 
 
+def test_crossing_style_provenance_survives_payload_slimming() -> None:
+    page_fields = _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
+    for field in (
+        "crossing_type",
+        "crossing_markings",
+        "crossing_style_group",
+        "resolved_crossing_marking",
+        "marking_provenance",
+        "marking_confidence",
+    ):
+        assert f'"{field}"' in page_fields
+
+
 def test_ground_cover_classifies_small_frontage_and_backyard_remainders() -> None:
     source = _source()
     ground = _ground_source()
@@ -264,7 +282,9 @@ def test_renderer_densifies_curved_road_markings() -> None:
     # The ribbon is merged by material rather than added on its own: 53,383 street meshes
     # were 53,383 draw calls a frame. Same geometry, one call per surface class.
     assert "addMerged(`ribbon:${surfaceKind}" in source
-    assert "const paintRuns = isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints];" in source
+    assert "const paintRuns = (isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints])" in source
+    assert ".map((run) => isCrossing ? trimWay(run, 0.48) : run)" in source
+    assert "if (!isCrossing || surfaceKind)" in source
     assert "ribbon(paintRun, widthMeters" in source
     # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
@@ -589,24 +609,66 @@ def test_place_categories_become_trades_and_non_shops_are_left_out() -> None:
     assert counts == {"overture_places": 1, "google_places": 1, "buildings_named": 2}
 
 
-def test_every_crossing_is_a_ladder_with_a_stated_reason() -> None:
-    """The inventory says which crossings the city restriped; nothing says one is plain. So a
-    crossing is continental by the inventory, by its junction, or by default -- and the record
-    says which. Drawn as two lines, the 125 defaults read as stray strokes across the road."""
+def _crossing(lon: float, lat: float, **fields: object) -> dict:
+    return {
+        "kind": "crossing",
+        "points": [[lon - 0.00002, lat], [lon + 0.00002, lat]],
+        **fields,
+    }
+
+
+def test_missing_crossing_styles_are_consistent_per_intersection() -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    resolve = namespace["resolve_crossing_marking_styles"]
+    lon, lat = -122.420000, 37.790000
+    ways = [_crossing(lon + dx, lat + dy) for dx, dy in (
+        (0, 0.00001), (0, -0.00001), (0.00001, 0), (-0.00001, 0),
+    )]
+    resolve(ways, [{"lon": lon, "lat": lat}])
+    assert {way["resolved_crossing_marking"] for way in ways} == {"continental"}
+    assert {way["crossing_style_group"] for way in ways} == {
+        "intersection:-122.420000:37.790000"
+    }
+
+
+def test_deterministic_intersection_defaults_include_both_marking_types() -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    resolve = namespace["resolve_crossing_marking_styles"]
+    intersections = [
+        {"lon": -122.420000, "lat": 37.790000},
+        {"lon": -122.419000, "lat": 37.790000},
+    ]
+    ways = [_crossing(item["lon"], item["lat"]) for item in intersections]
+    resolve(ways, intersections)
+    assert {way["resolved_crossing_marking"] for way in ways} == {
+        "continental", "parallel"
+    }
+
+
+def test_source_confirmed_marking_propagates_to_unknown_siblings() -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    resolve = namespace["resolve_crossing_marking_styles"]
+    lon, lat = -122.420000, 37.790000
+    confirmed = _crossing(
+        lon, lat, continental=True, continental_source="sfmta_inventory"
+    )
+    sibling = _crossing(lon, lat + 0.00001)
+    resolve([confirmed, sibling], [{"lon": lon, "lat": lat}])
+    assert confirmed["resolved_crossing_marking"] == "continental"
+    assert sibling["resolved_crossing_marking"] == "continental"
+    assert sibling["marking_provenance"] == "intersection_source_propagation"
+
+
+def test_explicit_unmarked_crossing_stays_unpainted() -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    resolve = namespace["resolve_crossing_marking_styles"]
+    lon, lat = -122.420000, 37.790000
+    crossing = _crossing(lon, lat, crossing_markings="no")
+    resolve([crossing], [{"lon": lon, "lat": lat}])
+    assert crossing["resolved_crossing_marking"] == "unmarked"
     source = _source()
-    assert 'crossing["continental_source"] = "default_continental"' in source
-    if not PAGE_DATA.exists():
-        return
-    payload = json.loads(PAGE_DATA.read_text(encoding="utf-8"))
-    sources = {}
-    for way in payload["ways"]:
-        if way.get("kind") != "crossing":
-            continue
-        assert way.get("continental") is True, way
-        key = way.get("continental_source") or ("alley_mouth" if way.get("alley_mouth") else None)
-        sources[key] = sources.get(key, 0) + 1
-    assert set(sources) <= {"sfmta_inventory", "sibling_at_junction", "default_continental",
-                            "alley_mouth"}, sources
+    assert 'resolved === "unmarked") return null;' in source
+    assert "if (!isCrossing || surfaceKind)" in source
 
 
 def test_only_road_tunnels_get_a_mouth_and_the_mouth_is_as_tall_as_the_lidar_says() -> None:

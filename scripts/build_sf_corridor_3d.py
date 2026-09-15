@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import subprocess
@@ -549,6 +550,11 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
             "name": tags.get("name"),
             "points": points,
         }
+        if kind == "crossing":
+            feature["crossing_type"] = tags.get("crossing")
+            feature["crossing_markings"] = tags.get("crossing:markings")
+            feature["marking_provenance"] = "osm_crossing_tags"
+            feature["marking_confidence"] = 0.74 if tags.get("crossing:markings") else 0.56
         if kind == "street":
             feature["highway"] = tags.get("highway")
             # How the roadway is divided, as OpenStreetMap has it. This is the current answer
@@ -990,6 +996,118 @@ def street_intersections(ways: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _crossing_source_style(way: dict[str, Any]) -> str | None:
+    """Return only a marking style that an input source actually specifies."""
+    markings = str(way.get("crossing_markings") or "").strip().lower()
+    crossing = str(way.get("crossing_type") or "").strip().lower()
+    legacy_guess = way.get("continental_source") in {
+        "default_continental", "sibling_at_junction"
+    }
+    if markings in {"no", "none", "unmarked"} or crossing in {"no", "unmarked"}:
+        return "unmarked"
+    if ((way.get("continental") and not legacy_guess)
+            or markings in {"zebra", "ladder", "continental"} or crossing == "zebra"):
+        return "continental"
+    if markings in {"lines", "parallel", "transverse", "crossing_edges"}:
+        return "parallel"
+    return None
+
+
+def _crossing_centre(way: dict[str, Any]) -> tuple[float, float] | None:
+    points = way.get("points") or []
+    if len(points) < 2:
+        return None
+    spans: list[tuple[float, list[float], list[float]]] = []
+    total = 0.0
+    for a, b in zip(points, points[1:]):
+        length = math.hypot((float(b[0]) - float(a[0])) * 88_000.0,
+                            (float(b[1]) - float(a[1])) * 111_320.0)
+        if length <= 0:
+            continue
+        spans.append((length, a, b))
+        total += length
+    if not spans:
+        return float(points[0][0]), float(points[0][1])
+    target = total / 2.0
+    travelled = 0.0
+    for length, a, b in spans:
+        if travelled + length >= target:
+            ratio = (target - travelled) / length
+            return (float(a[0]) + (float(b[0]) - float(a[0])) * ratio,
+                    float(a[1]) + (float(b[1]) - float(a[1])) * ratio)
+        travelled += length
+    return float(points[-1][0]), float(points[-1][1])
+
+
+def resolve_crossing_marking_styles(
+        ways: list[dict[str, Any]], intersections: list[dict[str, Any]]) -> dict[str, int]:
+    """Use source style where known; otherwise choose once per physical intersection."""
+    locations: list[tuple[str, float, float]] = []
+    seen_locations: set[str] = set()
+    for intersection in intersections:
+        lon = float(intersection["lon"])
+        lat = float(intersection["lat"])
+        key = f"intersection:{lon:.6f}:{lat:.6f}"
+        if key not in seen_locations:
+            locations.append((key, lon, lat))
+            seen_locations.add(key)
+
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for way in ways:
+        if way.get("kind") != "crossing":
+            continue
+        # Older payloads called every unknown style continental. Remove that rendering guess;
+        # the official SFMTA inventory and explicit OSM tags below remain authoritative.
+        if way.get("continental_source") in {"default_continental", "sibling_at_junction"}:
+            way.pop("continental", None)
+            way.pop("continental_source", None)
+        centre = _crossing_centre(way)
+        if centre is None:
+            continue
+        lon, lat = centre
+        nearest = None
+        for key, junction_lon, junction_lat in locations:
+            metres = math.hypot((junction_lon - lon) * 88_000.0,
+                                (junction_lat - lat) * 111_320.0)
+            if metres <= 26.0 and (nearest is None or metres < nearest[0]):
+                nearest = (metres, key)
+        group = nearest[1] if nearest else f"midblock:{lon:.5f}:{lat:.5f}"
+        way["crossing_style_group"] = group
+        grouped[group].append(way)
+
+    counts: Counter = Counter()
+    for group, members in grouped.items():
+        known: Counter = Counter()
+        for way in members:
+            style = _crossing_source_style(way)
+            if style in {"continental", "parallel"}:
+                known[style] += 3 if way.get("continental_source") == "sfmta_inventory" else 1
+        if known:
+            group_style = sorted(known, key=lambda item: (-known[item], item))[0]
+            provenance = "intersection_source_propagation"
+            confidence = 0.68
+        else:
+            # Stable, evenly available alternatives—not an independent percentage draw per arm.
+            group_style = ("continental" if hashlib.sha256(group.encode()).digest()[0] & 1
+                           else "parallel")
+            provenance = "deterministic_intersection_default"
+            confidence = 0.52
+        for way in members:
+            source_style = _crossing_source_style(way)
+            if source_style == "unmarked":
+                way["resolved_crossing_marking"] = "unmarked"
+                counts["explicit unmarked"] += 1
+            elif source_style:
+                way["resolved_crossing_marking"] = source_style
+                counts[f"source {source_style}"] += 1
+            else:
+                way["resolved_crossing_marking"] = group_style
+                way["marking_provenance"] = provenance
+                way["marking_confidence"] = confidence
+                counts[f"default {group_style}"] += 1
+    return dict(counts)
+
+
 #: A parking aisle is folded into the lot when at least this share of it lies on a mapped lot.
 #: The rest of such an aisle is its entrance, crossing the pavement from the street.
 PARKING_AISLE_IN_LOT_SHARE = 0.5
@@ -1319,6 +1437,9 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             + sum(1 for way in synthetic_alley_crossings if way.get("covered"))
         )
         osm_summary["synthetic_alley_mouth_crossings"] = len(synthetic_alley_crossings)
+    intersections = street_intersections(ways)
+    official_summary["crossing_marking_resolution"] = resolve_crossing_marking_styles(
+        ways, intersections)
     obs_by_sequence: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for obs in observations:
         obs_by_sequence[obs["sequence_uid"]].append(obs)
@@ -1374,7 +1495,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
         "official": official_summary,
         "ground_counts": ground_summary,
         "facades": photo_facades(),
-        "intersections": street_intersections(ways),
+        "intersections": intersections,
         "districts": district_bands(),
         "ways": ways,
         "coverage": [
@@ -2621,12 +2742,18 @@ function surfaceMaterial(surface, color, opacity) {
   const painted = surface === "crossing" || surface === "crossing_edges";
   return new THREE.MeshStandardMaterial({
     color, opacity, roughness: surface === "road" ? 0.86 : 0.94, metalness: 0.02,
-    transparent: opacity < 1 || painted,
+    // Alpha-tested road paint belongs in the opaque queue. Sorting overlapping transparent
+    // crossing rectangles produced the dark smears seen at perpendicular seams.
+    transparent: opacity < 1,
     // Paint or not paint, at the half: below this the edge fades over a texel and a bar reads
     // as dissolving into the road at the far end of a street.
     alphaTest: painted ? 0.5 : 0,
+    depthWrite: true,
     map: surfaceBase(surface),
     side: THREE.DoubleSide,
+    polygonOffset: painted,
+    polygonOffsetFactor: painted ? -4 : 0,
+    polygonOffsetUnits: painted ? -8 : 0,
     // The kerb carries its paint on its own vertices: red, yellow, white, green or blue over the
     // same concrete texture, which is what painted concrete looks like. The colour is put on
     // when the curb policy loads, and it is in the tile rather than laid over it.
@@ -4403,6 +4530,23 @@ function crossingEdgeTexture() {
 }
 
 const CROSSING_EDGES = crossingEdgeTexture();
+
+function crossingMarkingKind(way) {
+  const markings = String(way.crossing_markings || "").toLowerCase();
+  const crossing = String(way.crossing_type || "").toLowerCase();
+  const resolved = String(way.resolved_crossing_marking || "").toLowerCase();
+  if (["no", "none", "unmarked"].includes(markings)
+      || ["no", "unmarked"].includes(crossing) || resolved === "unmarked") return null;
+  if ((way.continental && way.continental_source !== "default_continental")
+      || ["zebra", "ladder", "continental"].includes(markings)
+      || crossing === "zebra") return "crossing";
+  if (["lines", "parallel", "transverse", "crossing_edges"].includes(markings)) {
+    return "crossing_edges";
+  }
+  if (resolved === "continental") return "crossing";
+  if (resolved === "parallel") return "crossing_edges";
+  return null;
+}
 
 //: Six ways San Francisco closes a ground-floor garage. Drawn in the building's own colour --
 //: a door is part of the house and is nearly always painted to match it -- with white banding
@@ -6465,14 +6609,43 @@ function tactileWarningTexture() {
 }
 
 const TACTILE_WARNING = tactileWarningTexture();
-const TACTILE_PAD_DEPTH_M = 0.61;   // 24 in, the ADA detectable-warning depth
+// A 3-by-5-foot warning field reads as a full rectangular truncated-dome panel from the demo
+// camera, instead of the former yellow line spanning almost the whole crosswalk.
+const TACTILE_PAD_DEPTH_M = 0.91;
 //: The ramp the pad sits on: from the kerb back into the footway, with the flared sides San
 //: Francisco pours. The pad is the first 24 in of it at the street; the rest is smooth concrete.
 const CURB_RAMP_DEPTH_M = 1.55;
 const CURB_RAMP_FLARE_M = 0.45;
 const TACTILE_PAD_SETBACK_M = 0.18;
-const TACTILE_PAD_MIN_W_M = 1.35;
-const TACTILE_PAD_MAX_W_M = 3.20;
+const TACTILE_PAD_MIN_W_M = 1.22;
+const TACTILE_PAD_MAX_W_M = 1.52;
+const TACTILE_TEXTURE_TILE_M = 0.48;
+const TACTILE_CLEARANCE_M = 0.10;
+const tactileWarningPads = [];
+
+function tactilePadsOverlap(a, b) {
+  for (const polygon of [a, b]) {
+    for (let i = 0; i < polygon.length; i += 1) {
+      const p = polygon[i];
+      const q = polygon[(i + 1) % polygon.length];
+      const edgeX = q[0] - p[0];
+      const edgeZ = q[1] - p[1];
+      const length = Math.hypot(edgeX, edgeZ);
+      if (!(length > 1e-6)) continue;
+      const axisX = -edgeZ / length;
+      const axisZ = edgeX / length;
+      const range = (corners) => {
+        const values = corners.map(([x, z]) => x * axisX + z * axisZ);
+        return [Math.min(...values), Math.max(...values)];
+      };
+      const ar = range(a);
+      const br = range(b);
+      if (ar[1] + TACTILE_CLEARANCE_M < br[0]
+          || br[1] + TACTILE_CLEARANCE_M < ar[0]) return false;
+    }
+  }
+  return true;
+}
 const CROSSING_LANDING_DEPTH_M = 2.35;
 const CROSSING_LANDING_FLARE_M = 2.20;
 
@@ -6592,8 +6765,21 @@ function addCrossingAsphaltBackstop(points, crossingWidth, roadTop) {
   // flared corners and divided roads.  Crosswalk paint is transparent; give its exact span an
   // asphalt bed so a more accurate endpoint can never expose neutral unmapped ground below.
   if (!points || points.length < 2) return false;
+  const a = points[0];
+  const b = points[points.length - 1];
+  const [ax, ay] = xy(a[0], a[1]);
+  const [bx, by] = xy(b[0], b[1]);
+  const length = Math.hypot(bx - ax, by - ay);
+  if (!(length > 0.5)) return false;
+  const extension = 0.55;
+  const lonDx = (b[0] - a[0]) / length;
+  const latDy = (b[1] - a[1]) / length;
+  const backedSpan = [
+    [a[0] - lonDx * extension, a[1] - latDy * extension],
+    [b[0] + lonDx * extension, b[1] + latDy * extension],
+  ];
   addMerged("road:crossing-backstop",
-            ribbon(points, Math.max(2.4, crossingWidth + 0.35), 0xffffff, 1.0,
+            ribbon(backedSpan, Math.max(2.4, crossingWidth + 0.70), 0xffffff, 1.0,
                    roadTop / 2, roadTop, "road"), "road");
   return true;
 }
@@ -6621,6 +6807,10 @@ function curbRampTexture() {
 function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   const pad = tactilePadCorners(endpoint, intoCrossing, crossingWidth);
   if (!pad) return false;
+  // Two mapped arms can terminate on one physical corner ramp. Keep one complete rectangle
+  // there instead of stacking perpendicular pads into a yellow L/plus.
+  if (tactileWarningPads.some((corners) => tactilePadsOverlap(corners, pad.corners))) return false;
+  tactileWarningPads.push(pad.corners);
   // The ramp under the pad: a full rectangle back from the kerb with flared sides, so the pad
   // is the front edge of a ramp rather than a yellow stripe on its own. Corners 0-1 are the
   // street edge, 2-3 the footway edge of the pad; the ramp carries on from 2-3.
@@ -6667,9 +6857,9 @@ function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   ], 3));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute([
     0, 0,
-    pad.width / 0.30, 0,
-    pad.width / 0.30, pad.depth / 0.30,
-    0, pad.depth / 0.30,
+    pad.width / TACTILE_TEXTURE_TILE_M, 0,
+    pad.width / TACTILE_TEXTURE_TILE_M, pad.depth / TACTILE_TEXTURE_TILE_M,
+    0, pad.depth / TACTILE_TEXTURE_TILE_M,
   ], 2));
   geometry.setIndex([0, 1, 2, 0, 2, 3]);
   geometry.computeVertexNormals();
@@ -9850,7 +10040,7 @@ for (const way of DRAW_ORDER) {
   const surfaceY = isCrossing ? roadTop + 0.02
     : (isSidewalk || isPath) ? roadTop + KERB / 2 : roadTop / 2;
   const surfaceThickness = isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop;
-const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossing" : "crossing_edges")
+ const surfaceKind = isCrossing ? crossingMarkingKind(way)
   : (isSidewalk || isPath) ? (widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk") : "road";
   if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters)) continue;
     // Continental unless we positively know otherwise. San Francisco has been converting its
@@ -9862,13 +10052,17 @@ const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossi
     addSidewalkCrossingReplacements(renderPoints, roadTop + 0.024);
     addPavementRibbon(surfacePoints, widthMeters, color, opacity,
                       surfaceY, surfaceThickness, surfaceKind, true);
-  } else {
-    const paintRuns = isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints];
-    for (const paintRun of paintRuns) {
-      addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
-                ribbon(paintRun, widthMeters, color, opacity,
-                       surfaceY, surfaceThickness, surfaceKind), surfaceKind);
-    }
+ } else {
+ const paintRuns = (isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints])
+ .map((run) => isCrossing ? trimWay(run, 0.48) : run)
+ .filter((run) => run && run.length >= 2);
+ if (!isCrossing || surfaceKind) {
+ for (const paintRun of paintRuns) {
+ addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
+ ribbon(paintRun, widthMeters, color, opacity,
+ surfaceY, surfaceThickness, surfaceKind), surfaceKind);
+ }
+ }
     if (isCrossing) {
     addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);
     }
@@ -13127,6 +13321,8 @@ window.kerbside = {
 #: this list back out of the renderer's own source, so a field that starts being used cannot be
 #: silently stripped.
 PAGE_FIELDS = {
+    "crossing_type", "crossing_markings", "crossing_style_group",
+    "resolved_crossing_marking", "marking_provenance", "marking_confidence",
     "continental_source",
     "service",
     "tunnel_kind",
