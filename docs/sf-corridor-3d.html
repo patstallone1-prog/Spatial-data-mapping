@@ -676,12 +676,18 @@ function surfaceMaterial(surface, color, opacity) {
   const painted = surface === "crossing" || surface === "crossing_edges";
   return new THREE.MeshStandardMaterial({
     color, opacity, roughness: surface === "road" ? 0.86 : 0.94, metalness: 0.02,
-    transparent: opacity < 1 || painted,
+    // Alpha-tested road paint belongs in the opaque queue. Sorting overlapping transparent
+    // crossing rectangles produced the dark smears seen at perpendicular seams.
+    transparent: opacity < 1,
     // Paint or not paint, at the half: below this the edge fades over a texel and a bar reads
     // as dissolving into the road at the far end of a street.
     alphaTest: painted ? 0.5 : 0,
+    depthWrite: true,
     map: surfaceBase(surface),
     side: THREE.DoubleSide,
+    polygonOffset: painted,
+    polygonOffsetFactor: painted ? -4 : 0,
+    polygonOffsetUnits: painted ? -8 : 0,
     // The kerb carries its paint on its own vertices: red, yellow, white, green or blue over the
     // same concrete texture, which is what painted concrete looks like. The colour is put on
     // when the curb policy loads, and it is in the tile rather than laid over it.
@@ -2522,6 +2528,23 @@ function crossingEdgeTexture() {
 
 const CROSSING_EDGES = crossingEdgeTexture();
 
+function crossingMarkingKind(way) {
+  const markings = String(way.crossing_markings || "").toLowerCase();
+  const crossing = String(way.crossing_type || "").toLowerCase();
+  const resolved = String(way.resolved_crossing_marking || "").toLowerCase();
+  if (["no", "none", "unmarked"].includes(markings)
+      || ["no", "unmarked"].includes(crossing) || resolved === "unmarked") return null;
+  if ((way.continental && way.continental_source !== "default_continental")
+      || ["zebra", "ladder", "continental"].includes(markings)
+      || crossing === "zebra") return "crossing";
+  if (["lines", "parallel", "transverse", "crossing_edges"].includes(markings)) {
+    return "crossing_edges";
+  }
+  if (resolved === "continental") return "crossing";
+  if (resolved === "parallel") return "crossing_edges";
+  return null;
+}
+
 //: Six ways San Francisco closes a ground-floor garage. Drawn in the building's own colour --
 //: a door is part of the house and is nearly always painted to match it -- with white banding
 //: on the configurations that carry it.
@@ -3718,6 +3741,10 @@ function cornerNeighbour(leg, side) {
   let bestTurn = Infinity;
   for (const other of cornerLegsAt(leg)) {
     if (other.way._junctionInternal) continue;
+    // A fork or a slightly bent continuation of this street can be the closest leg in angle.
+    // It is not the pavement around the corner, so discard it while searching rather than
+    // selecting it and returning null below: there may still be a real cross-street next.
+    if (leg.way.name && other.way.name === leg.way.name) continue;
     let turn = other.bearing - leg.bearing;
     turn = ((turn % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     if (side < 0) turn = (2 * Math.PI - turn) % (2 * Math.PI);
@@ -3727,9 +3754,6 @@ function cornerNeighbour(leg, side) {
   if (!best) return null;
   const degrees = (bestTurn * 180) / Math.PI;
   if (degrees < CORNER_MIN_DEG || degrees > CORNER_MAX_DEG) return null;
-  // Two legs of one street forking apart are a divided road, not a crossroads: the wedge
-  // between Columbus's two carriageways is a gore in the roadway, not a pavement corner.
-  if (leg.way.name && best.way.name === leg.way.name) return null;
   return best;
 }
 
@@ -5098,14 +5122,43 @@ function tactileWarningTexture() {
 }
 
 const TACTILE_WARNING = tactileWarningTexture();
-const TACTILE_PAD_DEPTH_M = 0.61;   // 24 in, the ADA detectable-warning depth
+// A 3-by-5-foot warning field reads as a full rectangular truncated-dome panel from the demo
+// camera, instead of the former yellow line spanning almost the whole crosswalk.
+const TACTILE_PAD_DEPTH_M = 0.91;
 //: The ramp the pad sits on: from the kerb back into the footway, with the flared sides San
 //: Francisco pours. The pad is the first 24 in of it at the street; the rest is smooth concrete.
 const CURB_RAMP_DEPTH_M = 1.55;
 const CURB_RAMP_FLARE_M = 0.45;
 const TACTILE_PAD_SETBACK_M = 0.18;
-const TACTILE_PAD_MIN_W_M = 1.35;
-const TACTILE_PAD_MAX_W_M = 3.20;
+const TACTILE_PAD_MIN_W_M = 1.22;
+const TACTILE_PAD_MAX_W_M = 1.52;
+const TACTILE_TEXTURE_TILE_M = 0.48;
+const TACTILE_CLEARANCE_M = 0.10;
+const tactileWarningPads = [];
+
+function tactilePadsOverlap(a, b) {
+  for (const polygon of [a, b]) {
+    for (let i = 0; i < polygon.length; i += 1) {
+      const p = polygon[i];
+      const q = polygon[(i + 1) % polygon.length];
+      const edgeX = q[0] - p[0];
+      const edgeZ = q[1] - p[1];
+      const length = Math.hypot(edgeX, edgeZ);
+      if (!(length > 1e-6)) continue;
+      const axisX = -edgeZ / length;
+      const axisZ = edgeX / length;
+      const range = (corners) => {
+        const values = corners.map(([x, z]) => x * axisX + z * axisZ);
+        return [Math.min(...values), Math.max(...values)];
+      };
+      const ar = range(a);
+      const br = range(b);
+      if (ar[1] + TACTILE_CLEARANCE_M < br[0]
+          || br[1] + TACTILE_CLEARANCE_M < ar[0]) return false;
+    }
+  }
+  return true;
+}
 const CROSSING_LANDING_DEPTH_M = 2.35;
 const CROSSING_LANDING_FLARE_M = 2.20;
 
@@ -5225,8 +5278,21 @@ function addCrossingAsphaltBackstop(points, crossingWidth, roadTop) {
   // flared corners and divided roads.  Crosswalk paint is transparent; give its exact span an
   // asphalt bed so a more accurate endpoint can never expose neutral unmapped ground below.
   if (!points || points.length < 2) return false;
+  const a = points[0];
+  const b = points[points.length - 1];
+  const [ax, ay] = xy(a[0], a[1]);
+  const [bx, by] = xy(b[0], b[1]);
+  const length = Math.hypot(bx - ax, by - ay);
+  if (!(length > 0.5)) return false;
+  const extension = 0.55;
+  const lonDx = (b[0] - a[0]) / length;
+  const latDy = (b[1] - a[1]) / length;
+  const backedSpan = [
+    [a[0] - lonDx * extension, a[1] - latDy * extension],
+    [b[0] + lonDx * extension, b[1] + latDy * extension],
+  ];
   addMerged("road:crossing-backstop",
-            ribbon(points, Math.max(2.4, crossingWidth + 0.35), 0xffffff, 1.0,
+            ribbon(backedSpan, Math.max(2.4, crossingWidth + 0.70), 0xffffff, 1.0,
                    roadTop / 2, roadTop, "road"), "road");
   return true;
 }
@@ -5254,6 +5320,10 @@ function curbRampTexture() {
 function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   const pad = tactilePadCorners(endpoint, intoCrossing, crossingWidth);
   if (!pad) return false;
+  // Two mapped arms can terminate on one physical corner ramp. Keep one complete rectangle
+  // there instead of stacking perpendicular pads into a yellow L/plus.
+  if (tactileWarningPads.some((corners) => tactilePadsOverlap(corners, pad.corners))) return false;
+  tactileWarningPads.push(pad.corners);
   // The ramp under the pad: a full rectangle back from the kerb with flared sides, so the pad
   // is the front edge of a ramp rather than a yellow stripe on its own. Corners 0-1 are the
   // street edge, 2-3 the footway edge of the pad; the ramp carries on from 2-3.
@@ -5300,9 +5370,9 @@ function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   ], 3));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute([
     0, 0,
-    pad.width / 0.30, 0,
-    pad.width / 0.30, pad.depth / 0.30,
-    0, pad.depth / 0.30,
+    pad.width / TACTILE_TEXTURE_TILE_M, 0,
+    pad.width / TACTILE_TEXTURE_TILE_M, pad.depth / TACTILE_TEXTURE_TILE_M,
+    0, pad.depth / TACTILE_TEXTURE_TILE_M,
   ], 2));
   geometry.setIndex([0, 1, 2, 0, 2, 3]);
   geometry.computeVertexNormals();
@@ -7996,7 +8066,9 @@ function stoneWallTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#6e6a62";                                // the mortar
+  // Cool charcoal mortar and neutral blue-grey blocks keep a retaining wall visibly separate
+  // from the warmer green-grey scored concrete used for sidewalks.
+  ctx.fillStyle = "#454b4f";                                // the mortar
   ctx.fillRect(0, 0, size, size);
   const rows = 6;
   const rowH = size / rows;
@@ -8004,8 +8076,8 @@ function stoneWallTexture() {
     let x = -random(r * 17) * 40;
     while (x < size) {
       const w = 28 + random(r * 31 + x) * 40;
-      const tone = 150 + random(r * 7 + x * 3) * 50;
-      ctx.fillStyle = `rgb(${tone + 8},${tone},${tone - 10})`;
+      const tone = 104 + random(r * 7 + x * 3) * 48;
+      ctx.fillStyle = `rgb(${tone - 5},${tone},${tone + 5})`;
       ctx.fillRect(x + 2, r * rowH + 2, w - 4, rowH - 4);
       // A face that is not flat: a darker lower edge and a lit top edge on each block.
       ctx.fillStyle = "rgba(0,0,0,0.18)";
@@ -8165,6 +8237,8 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   const dark = new THREE.MeshStandardMaterial({ color: 0x08090a, roughness: 1.0, metalness: 0.0 });
   const measured = way.tunnel_portal || {};
   const ends = stubs.length === 2 ? [["start", stubs[0]], ["end", stubs[1]]] : [["start", stubs[0]]];
+  group.userData.tunnelLengthM = Number(way.tunnel_length_m || wayLength(renderPoints));
+  group.userData.mouthCount = ends.length;
   for (const [label, stub] of ends) {
     // The stub runs from the mouth inward; the end stub is stored mouth-last.
     const inward = label === "start" ? stub : stub.slice().reverse();
@@ -8642,7 +8716,7 @@ for (const way of DRAW_ORDER) {
   const surfaceY = isCrossing ? roadTop + 0.02
     : (isSidewalk || isPath) ? roadTop + KERB / 2 : roadTop / 2;
   const surfaceThickness = isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop;
-const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossing" : "crossing_edges")
+ const surfaceKind = isCrossing ? crossingMarkingKind(way)
   : (isSidewalk || isPath) ? (widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk") : "road";
   if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters)) continue;
     // Continental unless we positively know otherwise. San Francisco has been converting its
@@ -8655,14 +8729,18 @@ const surfaceKind = isCrossing ? ((way.continental || way.alley_mouth) ? "crossi
     addPavementRibbon(surfacePoints, widthMeters, color, opacity,
                       surfaceY, surfaceThickness, surfaceKind, true);
   } else {
-    const paintRuns = isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints];
-    for (const paintRun of paintRuns) {
-      // A divided half is as wide as the city's two kerbs say at each point along it.
-      const widths = way._spans
-        ? alongDistances(paintRun).map((along) => halfWidthAt(way, along) * 2) : widthMeters;
-      addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
-                ribbon(paintRun, widths, color, opacity,
-                       surfaceY, surfaceThickness, surfaceKind), surfaceKind);
+    const paintRuns = (isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints])
+      .map((run) => isCrossing ? trimWay(run, 0.48) : run)
+      .filter((run) => run && run.length >= 2);
+    if (!isCrossing || surfaceKind) {
+      for (const paintRun of paintRuns) {
+        // A divided half is as wide as the city's two kerbs say at each point along it.
+        const widths = way._spans
+          ? alongDistances(paintRun).map((along) => halfWidthAt(way, along) * 2) : widthMeters;
+        addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
+                  ribbon(paintRun, widths, color, opacity,
+                         surfaceY, surfaceThickness, surfaceKind), surfaceKind);
+      }
     }
     if (isCrossing) {
     addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);
@@ -12042,7 +12120,7 @@ window.kerbside = {
             if (insideCarriageway(qx, -qy, 0.2)) continue;
             missing.sampled += 1;
             const top = this.probeXY(qx, qy)[0];
-            if (!top || top.y < 0.02) {
+            if (!top || (top.what !== "walk_underlay" && top.y < 0.02)) {
               missing.bare += 1;
               if (missing.examples.length < 12) {
                 missing.examples.push({ street: way.name || way.osm_id, lon, lat });
