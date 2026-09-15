@@ -694,10 +694,30 @@ def test_only_road_tunnels_get_a_mouth_and_the_mouth_is_as_tall_as_the_lidar_say
     # Stockton's portals were measured off the lidar and travel with the way.
     portal = ways[0].get("tunnel_portal")
     assert portal and 7.0 < portal["start"] < 9.5 and 7.0 < portal["end"] < 9.5, portal
+    assert ways[0]["tunnel_length_m"] > 250
     source = _source()
     assert "const runs = isRoadTunnel(way) ? tunnelStubs(way.points) : [way.points];" in source
     assert "if (isUndergroundWay(way)) continue;" in source
     assert 'const H = Math.max(TUNNEL_CROWN_M + TUNNEL_SHELL_M + 0.5, measured[label] || 0);' in source
+    assert "group.userData.tunnelLengthM = Number(way.tunnel_length_m || wayLength(renderPoints));" in source
+    assert "group.userData.mouthCount = ends.length;" in source
+    assert 'const ends = stubs.length === 2 ? [["start", stubs[0]], ["end", stubs[1]]]' in source
+    if PAGE_DATA.exists():
+        deployed = json.loads(PAGE_DATA.read_text(encoding="utf-8"))
+        road_tunnels = [way for way in deployed["ways"] if way.get("tunnel_kind") == "road"]
+        assert {way.get("name") for way in road_tunnels} == {
+            "Broadway", "1st Street", "Stockton Tunnel"
+        }
+        assert all(way.get("tunnel_length_m", 0) > 40 for way in road_tunnels)
+
+
+def test_stone_walls_are_cooler_and_darker_than_sidewalk_concrete() -> None:
+    source = _source()
+    stone = source.split("function stoneWallTexture()", 1)[1].split("function brickWallTexture()", 1)[0]
+    sidewalk = source.split("function sidewalkTexture(", 1)[1].split("function bikeTexture()", 1)[0]
+    assert 'ctx.fillStyle = "#454b4f";' in stone
+    assert 'ctx.fillStyle = `rgb(${tone - 5},${tone},${tone + 5})`;' in stone
+    assert 'ctx.fillStyle = "#696d65";' in sidewalk
 
 
 def test_the_pavement_is_let_down_at_every_driveway_and_paint_ends_hard() -> None:

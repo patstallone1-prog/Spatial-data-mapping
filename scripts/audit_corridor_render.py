@@ -74,6 +74,7 @@ FUNCTIONS = (
     "kerbsideTrims",
     "walkFitsAt",
     "addKerbsidePavement",
+    "addPropertyLinePavementUnderlay",
 )
 
 
@@ -139,6 +140,11 @@ const KERB_LIP_M = 0.1016;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 const WALK_ENOUGH = 0.55;
 const WALK_WIDTH_RUN_M = 6.0;
+const PROPERTY_LINE_PAVEMENT_WIDTH_M = 8.6;
+const UNDERLAY_MIN_WIDTH_M = 0.8;
+const UNDERLAY_RUN_M = 5.0;
+const PROPERTY_LINE_PAVEMENT_Y = 0.012;
+const PROPERTY_LINE_PAVEMENT_THICKNESS_M = 0.004;
 const NARROW_WALK_M = 1.15;
 const STREET_JOIN_M = 3.0;
 const STREET_JOIN_DEG = 34.0;
@@ -337,6 +343,8 @@ function offsetWay(points, metres) {
   return out;
 }
 let sides = 0;
+let sidesBlockedByNeighbour = 0;
+let sidesRequiringPavement = 0;
 let sidesBare = 0;
 const bareExamples = [];
 const bareAll = [];
@@ -348,18 +356,44 @@ for (const way of DATA.ways) {
   const inner = road / 2;
   for (const side of walkSidesToDraw(way, way.points, inner)) {
     sides += 1;
+    const stations = densifyWay(way.points, 5.0);
+    let blockedStations = 0;
+    for (let i = 0; i < stations.length; i += 1) {
+      if (kerbsideBlockedAt(stations[Math.max(0, i - 1)], stations[i],
+                           stations[Math.min(stations.length - 1, i + 1)], side, inner)) {
+        blockedStations += 1;
+      }
+    }
+    const blockedShare = blockedStations / Math.max(1, stations.length);
+    // A median-facing side of a divided carriageway is supposed to have roadway beyond its
+    // kerb, not a sidewalk. Count it separately instead of reporting correct road as a black
+    // pavement hole.
+    if (blockedShare >= 0.75) {
+      sidesBlockedByNeighbour += 1;
+      continue;
+    }
+    sidesRequiringPavement += 1;
     // Use the renderer's current run-based placement, not the old width-ladder approximation.
     // This keeps the audit from reporting black kerbs that the page no longer draws.
     const wanted = wayLength(way.points);
     const kept = addKerbsidePavement(way.points, side, inner, walk, 0, 1, 0, 0.1);
-    if (kept < wanted * 0.25) {
+    const underlay = addPropertyLinePavementUnderlay(
+      way.points, side, inner, walk, 0, 1);
+    // The low adaptive underlay is an intentional pavement surface: it fills the survey and
+    // property-line slivers the stable-width sidewalk cannot cover without stacking tiles.
+    if (Math.max(kept, underlay) < wanted * 0.25) {
       sidesBare += 1;
       if (bareExamples.length < 10) {
         bareExamples.push({ street: way.name || way.osm_id, side,
                             at: way.points[Math.floor(way.points.length / 2)] });
       }
       if (process.env.AUDIT_BARE_ALL) {
-        bareAll.push({ street: way.name || way.osm_id, side,
+        bareAll.push({ street: way.name || way.osm_id, osmId: way.osm_id, side,
+                       lengthM: +wanted.toFixed(1), keptM: +kept.toFixed(1),
+                       underlayM: +underlay.toFixed(1), roadM: +road.toFixed(1),
+                       walkM: +walk.toFixed(1), blockedShare: +blockedShare.toFixed(2),
+                       service: way.service || null,
+                       walkSides: way.walk_sides || null,
                        at: way.points[Math.floor(way.points.length / 2)] });
       }
     }
@@ -367,8 +401,10 @@ for (const way of DATA.ways) {
 }
 
 console.log(JSON.stringify({
-  kerbside: { sides, sidesWithoutPavement: sidesBare,
-              share: +(sidesBare / sides).toFixed(3), examples: bareExamples,
+  kerbside: { sides, sidesBlockedByNeighbour, sidesRequiringPavement,
+              sidesWithoutPavement: sidesBare,
+              share: +(sidesBare / Math.max(1, sidesRequiringPavement)).toFixed(3),
+              examples: bareExamples,
               all: process.env.AUDIT_BARE_ALL ? bareAll : undefined },
   groundOnCarriageway: layers,
   fences: { runs: fenceRuns, crossingRoad: fenceOnRoad },

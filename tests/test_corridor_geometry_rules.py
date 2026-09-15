@@ -287,10 +287,18 @@ indexOfficialCurbGeometry([{r: "island", p: [
 ]}]);
 const legs = crossingPaintLegs([asLonLat(0, -5), asLonLat(0, 5)]);
 console.log(JSON.stringify({count: legs.length,
-  lengths: legs.map((leg) => +wayLength(leg).toFixed(2))}));
+  lengths: legs.map((leg) => +wayLength(leg).toFixed(2)),
+  points: legs.flat().map((point) => {
+    const [x, y] = xy(point[0], point[1]);
+    return [+x.toFixed(3), +(-y).toFixed(3)];
+  })}));
 """)
     assert result["count"] == 2, result
     assert all(3.7 <= length <= 4.1 for length in result["lengths"]), result
+    assert all(abs(point[0]) <= 0.001 for point in result["points"]), result
+    assert [point[1] for point in result["points"]] == sorted(
+        point[1] for point in result["points"]
+    ), result
 
 
 def test_crosswalk_geometry_does_not_draw_where_no_carriageway_is_crossed() -> None:

@@ -1155,6 +1155,10 @@ def classify_tunnels(ways: list[dict[str, Any]]) -> dict[str, int]:
                      for a, b in zip(points[:-1], points[1:], strict=True))
         if way.get("highway") in ROAD_TUNNEL_CLASSES and length >= MIN_ROAD_TUNNEL_M:
             way["tunnel_kind"] = "road"
+            # Keep the full mapped centreline length even though only the two visible portal
+            # galleries are rendered above ground. This makes both mouths views of one tunnel,
+            # rather than two unrelated decorative stubs with no retained extent.
+            way["tunnel_length_m"] = round(length, 2)
             key = str(way.get("osm_id") or f"{way.get('name')}:{points[0]}")
             measured = portals.get(key) or {}
             heights = {}
@@ -9551,7 +9555,9 @@ function stoneWallTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#6e6a62";                                // the mortar
+  // Cool charcoal mortar and neutral blue-grey blocks keep a retaining wall visibly separate
+  // from the warmer green-grey scored concrete used for sidewalks.
+  ctx.fillStyle = "#454b4f";                                // the mortar
   ctx.fillRect(0, 0, size, size);
   const rows = 6;
   const rowH = size / rows;
@@ -9559,8 +9565,8 @@ function stoneWallTexture() {
     let x = -random(r * 17) * 40;
     while (x < size) {
       const w = 28 + random(r * 31 + x) * 40;
-      const tone = 150 + random(r * 7 + x * 3) * 50;
-      ctx.fillStyle = `rgb(${tone + 8},${tone},${tone - 10})`;
+      const tone = 104 + random(r * 7 + x * 3) * 48;
+      ctx.fillStyle = `rgb(${tone - 5},${tone},${tone + 5})`;
       ctx.fillRect(x + 2, r * rowH + 2, w - 4, rowH - 4);
       // A face that is not flat: a darker lower edge and a lit top edge on each block.
       ctx.fillStyle = "rgba(0,0,0,0.18)";
@@ -9720,6 +9726,8 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   const dark = new THREE.MeshStandardMaterial({ color: 0x08090a, roughness: 1.0, metalness: 0.0 });
   const measured = way.tunnel_portal || {};
   const ends = stubs.length === 2 ? [["start", stubs[0]], ["end", stubs[1]]] : [["start", stubs[0]]];
+  group.userData.tunnelLengthM = Number(way.tunnel_length_m || wayLength(renderPoints));
+  group.userData.mouthCount = ends.length;
   for (const [label, stub] of ends) {
     // The stub runs from the mouth inward; the end stub is stored mouth-last.
     const inward = label === "start" ? stub : stub.slice().reverse();
@@ -13262,7 +13270,7 @@ window.kerbside = {
             if (insideCarriageway(qx, -qy, 0.2)) continue;
             missing.sampled += 1;
             const top = this.probeXY(qx, qy)[0];
-            if (!top || top.y < 0.02) {
+            if (!top || (top.what !== "walk_underlay" && top.y < 0.02)) {
               missing.bare += 1;
               if (missing.examples.length < 12) {
                 missing.examples.push({ street: way.name || way.osm_id, lon, lat });
@@ -13326,7 +13334,7 @@ PAGE_FIELDS = {
     "resolved_crossing_marking", "marking_provenance", "marking_confidence",
     "continental_source",
     "service",
-    "tunnel_kind",
+    "tunnel_kind", "tunnel_length_m",
     "tunnel_portal",
     "capacity",
     "surface",
