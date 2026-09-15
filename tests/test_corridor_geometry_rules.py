@@ -768,9 +768,11 @@ def test_a_footway_narrows_to_fit_rather_than_vanishing() -> None:
     # with less of it rather than a pavement somewhere else. Asserted of the geometry rather than
     # of the source text: the literal that used to be checked here survived a rewrite that
     # changed what the function does, and would have gone on passing if the property had broken.
-    # The kerb's own four-inch tile sits at the kerb; the pavement proper starts behind it.
-    assert "(inner + KERB_LIP_M / 2)" in body
-    assert "(inner + KERB_LIP_M + inset / 2)" in body
+    # The kerb's own four-inch tile sits at the kerb; the pavement proper starts behind it. The
+    # kerb line is read per station, since a divided half widens where the city's kerbs say.
+    assert "lineAt(KERB_LIP_M / 2)" in body
+    assert "lineAt(KERB_LIP_M + inset / 2)" in body
+    assert "kerbAt[Math.min(from + j, kerbAt.length - 1)] + extra" in body
     # The kerb tile is laid along the runs the pavement survives, never on its own.
     assert "for (const run of pavementRunsOutsideCarriageway(walkCentre, inset))" in body
     assert "const kerb = offsetWay(run, -side * (inset / 2 + KERB_LIP_M / 2));" in body
@@ -1377,6 +1379,10 @@ PAVEMENT_FUNCTIONS = (
     "streetCarriesOn",
     "cornerLegAt",
     "kerbsideTrims",
+    "mappedWalkBeyondKerb",
+    "bulbDepthAt",
+    "halfWidthAt",
+    "addBulbOuts",
     "addKerbsidePavement",
 )
 
@@ -1403,6 +1409,16 @@ function addPavementRibbon(points, width) {
   return wayLength(points);
 }
 function stampPaved() {}
+// No mapped footways, no city kerbs and no bulb-outs in the harness.
+const MAPPED_WALK_CELL = 40;
+const mappedWalkGrid = new Map();
+const MAPPED_WALK_ABUT_M = 7.0;
+const MAPPED_WALK_GAP_MIN_M = 0.35;
+const BULB_STATION_M = 2.0;
+const KERB_FALLBACK = 0.126;
+const KERB_RENDER_MAX_M = 0.2;
+const ROAD_TOP_M = 0.06;
+function surfaceMaterial() { return {}; }
 function ribbon(points, width) { return { points, width }; }
 function addMerged(key, mesh) {
   LAID.push({ width: mesh.width, points: mesh.points, length: wayLength(mesh.points) });
@@ -1592,6 +1608,7 @@ CORNER_FUNCTIONS = (
     "isUnmarkedService", "cornerLegsAt", "cornerNeighbour", "cornerFrame", "cornerCutFor",
     "reconcilePavementCorners", "indexPavementCorners", "cornerQuad", "junctionClusters",
     "junctionBoxHull", "pointInRing", "convexHull", "indexJunctionBox",
+    "streetCarryOn", "legBulb", "legInner", "rayCurbIntersections",
 )
 
 CORNER_PREAMBLE = PAVEMENT_PREAMBLE + """
@@ -1608,6 +1625,11 @@ const JUNCTION_BOX_CELL_M = 30;
 const cornerLegs = [];
 const junctionBoxHulls = [];
 const junctionBoxGrid = new Map();
+const BULB_MIN_M = 0.5;
+const BULB_MAX_M = 5.0;
+const BULB_RETURN_M = 6.0;
+const BULB_CORNER_M = 16.0;
+function isDividedHalf() { return false; }
 """
 
 
@@ -1838,11 +1860,15 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     const RECENTRE_MAX_SPREAD_M = 0.5;
     const RECENTRE_MAX_SHIFT_M = 4.0;
     const RECENTRE_MIN_SHIFT_M = 0.12;
+    const RECENTRE_VERTEX_REACH_M = 12.0;
+    const STREET_JOIN_M = 3.0;
+    const STREET_JOIN_DEG = 34.0;
     """]
     parts += [_extract(name, js) for name in (
         "isUnmarkedService", "wayLength", "offsetWay", "densifyWay", "lerpLonLat",
         "addOfficialCurbGridSegment", "rayCurbIntersections", "officialKerbOffsetsAt",
-        "recentreStreetsOnOfficialKerbs")]
+        "laneCountForWay", "isDividedHalf", "dividedHalfWidth", "recentreDividedHalf",
+        "inheritRecentring", "recentreStreetsOnOfficialKerbs")]
     parts.append("""
     const at = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
     // A street drawn along y = 0 from x = -60 to 60; the city's kerbs at y = -2 and y = +5.5,
@@ -1870,7 +1896,7 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
-    assert result["moved"] == {"moved": 1, "widened": 1}, result
+    assert result["moved"] == {"moved": 1, "widened": 1, "inherited": 0}, result
     assert result["grantY"] == [1.75, 1.75], result
     assert abs(result["grantRoad"] - 7.5) < 0.01 and result["grantSource"] == "official_curbs"
     assert abs(result["shift"] - 1.75) < 0.01

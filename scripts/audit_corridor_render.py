@@ -73,6 +73,10 @@ FUNCTIONS = (
     "cornerLegAt",
     "kerbsideTrims",
     "walkFitsAt",
+    "mappedWalkBeyondKerb",
+    "bulbDepthAt",
+    "halfWidthAt",
+    "addBulbOuts",
     "addKerbsidePavement",
     "addPropertyLinePavementUnderlay",
 )
@@ -169,6 +173,13 @@ function addMerged() {}
 
 const MAPPED_WALK_CELL = 40;
 const mappedWalkGrid = new Map();
+const MAPPED_WALK_ABUT_M = 7.0;
+const MAPPED_WALK_GAP_MIN_M = 0.35;
+const BULB_STATION_M = 2.0;
+const KERB_FALLBACK = 0.126;
+const KERB_RENDER_MAX_M = 0.2;
+const ROAD_TOP_M = 0.06;
+function surfaceMaterial() { return {}; }
 const MAPPED_WALK_REACH_M = 11.0;
 for (const way of DATA.ways) {
   if ((way.kind !== "sidewalk" && way.kind !== "path") || !way.points || way.points.length < 2) continue;

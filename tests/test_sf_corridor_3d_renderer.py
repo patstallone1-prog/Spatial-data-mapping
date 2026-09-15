@@ -285,7 +285,9 @@ def test_renderer_densifies_curved_road_markings() -> None:
     assert "const paintRuns = (isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints])" in source
     assert ".map((run) => isCrossing ? trimWay(run, 0.48) : run)" in source
     assert "if (!isCrossing || surfaceKind)" in source
-    assert "ribbon(paintRun, widthMeters" in source
+    assert "ribbon(paintRun, widths" in source
+    # A divided half is drawn as wide as the city's two kerbs say at each point along it.
+    assert "alongDistances(paintRun).map((along) => halfWidthAt(way, along) * 2) : widthMeters" in source
     # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
     assert "const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);" in source
@@ -756,3 +758,84 @@ def test_storefronts_are_drawn_for_their_trade_on_a_ground_storey_of_their_own()
     # The old one-picture-for-everything is gone, and so are its words.
     assert 'if (archetype === "retail" || archetype === "restaurant") {' not in source
     assert '"CAFE"' not in source and '"SHOP"' not in source
+
+
+def test_a_lots_entrance_is_an_access_road_and_its_inside_part_is_lot() -> None:
+    """A nameless service way with no service tag is the way into a car park. It used to be
+    matched to the street it leaves and inherit that street's right of way: the entrance to
+    the Walgreens lot off Broadway was an 11.85 m carriageway with footways, nine metres into
+    the lot. It is an access road now -- two cars wide, no footways, no street record -- and
+    the part of it on the lot is lot."""
+    namespace = runpy.run_path(str(SOURCE))
+    fold = namespace["fold_parking_aisles_into_lots"]
+    lot = {"kind": "parking_lot", "points": [[-122.44, 37.80], [-122.439, 37.80],
+                                             [-122.439, 37.8006], [-122.44, 37.8006],
+                                             [-122.44, 37.80]]}
+    entrance = {"kind": "street", "service": "access",
+                "points": [[-122.4398, 37.8002], [-122.4392, 37.8002]]}
+    assert fold([lot, entrance]) == 1
+    assert entrance["kind"] == "parking_aisle"
+    source = _source()
+    assert 'if way.get("highway") == "service" and not way.get("service") and not way.get("name"):' in source
+    assert 'way["service"] = "access"' in source
+    assert 'access: 5.0 };' in source
+
+
+def test_car_park_stalls_are_angled_rows_off_the_frontage_in_pairs_of_lines() -> None:
+    """A lot is striped from the edge that faces the street: rows parallel to it, stalls at
+    sixty degrees, each divided from the next by a pair of lines a hand apart."""
+    source = _source()
+    assert "function parkingLayout(ring, reach)" in source
+    assert "const PARKING_STALL_ANGLE_DEG = 60;" in source
+    assert "const PARKING_STRIPE_GAP_M = 0.22;" in source
+    assert "for (const sign of [-1, +1]) {" in source
+    assert "rows.push([m, m + R, +1], [depth - m - R, depth - m, -1]);" in source
+    # Aisles folded into lots are not drawn as roads.
+    assert 'if (way.kind === "parking_aisle") continue;' in source
+
+
+def test_a_derived_pavement_meets_the_mapped_footway_at_the_footways_height() -> None:
+    """Where OpenStreetMap maps the footway a few metres off the kerb line, the derived pavement
+    is the strip between the two at the footway's height, not a second slab beside it."""
+    source = _source()
+    assert "function mappedWalkBeyondKerb(x, z, nx, nz, inner)" in source
+    assert "mappedWalkBeyondKerb(sx, -sy, -side * nx, -side * nz, inner)" in source
+    assert 'return `gap:${Math.round(gap / 0.25)}:${met.thickness.toFixed(3)}`;' in source
+    assert "y = met.y - 0.01;" in source
+
+
+def test_a_divided_road_is_two_halves_between_the_citys_kerbs_with_a_median() -> None:
+    """Each half of a divided road runs from the outer kerb to the median island's kerb, vertex
+    by vertex, and the strip between the halves is asphalt with the raised median on it."""
+    source = _source()
+    assert "function isDividedHalf(way)" in source
+    assert "function recentreDividedHalf(way)" in source
+    assert "officialIslandCurbGrid);" in source.split("function recentreDividedHalf", 1)[1].split("\n}\n", 1)[0]
+    assert "function halfWidthAt(way, along)" in source
+    assert "function addDividedMedians()" in source
+    assert 'addMerged("median", mesh, "median");' in source
+    # A short piece moves with the street it is part of.
+    assert "function inheritRecentring(ways)" in source
+
+
+def test_kerbs_follow_the_city_at_bulb_outs_and_crossings_reach_them() -> None:
+    """Polk's kerb steps three metres into the road at Broadway. The crossing already ended on
+    the city's line; now the pavement, its corner and the crossing's reach all do."""
+    source = _source()
+    assert "function indexBulbOuts(ways)" in source
+    assert "function legBulb(leg, side)" in source
+    assert "function legInner(leg, side)" in source
+    assert "frame.meet(legInner(A, side), legInner(B, -side))" in source
+    assert "function addBulbOuts(spine, innerAt, kerbAt, side, color, opacity, y, thickness)" in source
+    assert "officialCurbCrossingSpan(best.x, best.z, ux, uz, best.half, wayLength(points))" in source
+    # A short way between two junctions has the room of the street it carries on into.
+    assert "function streetCarryOn(leg)" in source
+
+
+def test_a_bike_lane_eases_sideways_to_meet_the_lane_it_joins() -> None:
+    source = _source()
+    assert "const BIKE_BLEND_M = 12.0;" in source
+    assert "function bikeLaneJoinTarget(x, z)" in source
+    assert "function blendLaneEnd(points, target, atStart)" in source
+    assert "if (joinStart) lane = blendLaneEnd(lane, joinStart, true);" in source
+    assert "const ease = t * t * (3 - 2 * t);" in source
