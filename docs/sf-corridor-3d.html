@@ -3395,6 +3395,10 @@ function cornerNeighbour(leg, side) {
   let bestTurn = Infinity;
   for (const other of cornerLegsAt(leg)) {
     if (other.way._junctionInternal) continue;
+    // A fork or a slightly bent continuation of this street can be the closest leg in angle.
+    // It is not the pavement around the corner, so discard it while searching rather than
+    // selecting it and returning null below: there may still be a real cross-street next.
+    if (leg.way.name && other.way.name === leg.way.name) continue;
     let turn = other.bearing - leg.bearing;
     turn = ((turn % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     if (side < 0) turn = (2 * Math.PI - turn) % (2 * Math.PI);
@@ -3404,9 +3408,6 @@ function cornerNeighbour(leg, side) {
   if (!best) return null;
   const degrees = (bestTurn * 180) / Math.PI;
   if (degrees < CORNER_MIN_DEG || degrees > CORNER_MAX_DEG) return null;
-  // Two legs of one street forking apart are a divided road, not a crossroads: the wedge
-  // between Columbus's two carriageways is a gore in the roadway, not a pavement corner.
-  if (leg.way.name && best.way.name === leg.way.name) return null;
   return best;
 }
 

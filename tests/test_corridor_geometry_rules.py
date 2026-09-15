@@ -1731,6 +1731,28 @@ def test_a_stub_between_two_junctions_shares_itself_between_its_corners() -> Non
     assert result["linkCuts"] == [[False, False], [False, False]], result
 
 
+def test_corner_neighbour_skips_a_same_street_fork_and_keeps_searching() -> None:
+    """A divided or skewed approach must not hide the real cross-street corner behind it."""
+    result = _run_corners("""
+    const asLonLat = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
+    const ray = (name, degrees) => {
+      const angle = degrees * Math.PI / 180;
+      return { kind: "street", name, road_m: 10, walk_m: 4, _renderRoadM: 10,
+        points: [asLonLat(0, 0), asLonLat(100 * Math.cos(angle), 100 * Math.sin(angle))] };
+    };
+    // Main Street forks 30 degrees left; Cross Street is the actual 90-degree neighbour.
+    // The old search selected Main's fork first, rejected it only afterwards, and returned null.
+    const approach = ray("Main Street", 0);
+    const fork = ray("Main Street", 30);
+    const cross = ray("Cross Street", 90);
+    indexPavementCorners([approach, fork, cross]);
+    const leg = cornerLegs.find((item) => item.way === approach && item.end === 0);
+    const neighbour = cornerNeighbour(leg, 1);
+    console.log(JSON.stringify({ name: neighbour && neighbour.way.name }));
+    """)
+    assert result["name"] == "Cross Street", result
+
+
 def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
     js = _page_js()
     assert "indexPavementCorners(DATA.ways);" in js
@@ -1743,9 +1765,9 @@ def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
             '"kerb");') in body
     # A piece on the road is not laid.
     assert "insideCarriageway(sx, -sy, 0.15)" in body
-    # Two legs of one street forking are not a corner.
+    # Two legs of one street forking are not a corner and do not abort the neighbour search.
     neighbour = _extract("cornerNeighbour", js)
-    assert "if (leg.way.name && best.way.name === leg.way.name) return null;" in neighbour
+    assert "if (leg.way.name && other.way.name === leg.way.name) continue;" in neighbour
 
 
 def test_lanes_are_only_guessed_for_a_street_with_a_name() -> None:
