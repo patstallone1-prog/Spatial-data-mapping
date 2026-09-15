@@ -105,9 +105,15 @@ def test_official_signs_and_curb_zone_bands_render_from_geometry_based_sidecar()
 
     assert "const official = furniture.geometry_based || {};" in source
     assert "const officialStops = officialSigns.filter((s) => s.sign_kind === \"stop\");" in source
-    assert "function addOfficialStopSigns(records)" in source
-    assert "STOP_SIGN_GEOMETRY" in source
+    # Every sign is a plate saying what the inventory says it says, in the colours of its
+    # class, standing in front of its post; a stop sign is a red octagon with STOP on it.
+    assert "function addOfficialSignPlates(records)" in source
+    assert "const plates = addOfficialSignPlates(officialSigns);" in source
+    assert 'stop:        { bg: "#b52127", fg: "#ffffff", shape: "octagon"' in source
+    assert "const cx = post.anchor.x + nx * PLATE_STANDOFF_M;" in source
     assert "side: THREE.FrontSide" in source
+    # The inventory's shorthand is read out on the plate.
+    assert '.replace(/\\bNPRK\\b/g, "NO PARKING")' in source
     assert "function addOfficialCurbZoneBands(records)" in source
     # The paint is vertex colour on the kerb tile, not a band laid over it.
     assert 'o.userData.surface === "kerb"' in source
@@ -628,3 +634,18 @@ def test_only_road_tunnels_get_a_mouth_and_the_mouth_is_as_tall_as_the_lidar_say
     assert "const runs = isRoadTunnel(way) ? tunnelStubs(way.points) : [way.points];" in source
     assert "if (isUndergroundWay(way)) continue;" in source
     assert 'const H = Math.max(TUNNEL_CROWN_M + TUNNEL_SHELL_M + 0.5, measured[label] || 0);' in source
+
+
+def test_the_pavement_is_let_down_at_every_driveway_and_paint_ends_hard() -> None:
+    """A driveway is the pavement itself dropped to the gutter across the door, made on the
+    merged pavement's own vertices at the kerb this model draws; the apron slab that used to
+    draw the ramp drew it inside the solid pavement. And a road marking ends where it ends:
+    no half-transparent sprinkle along a bar's edge, and the alpha cut at the half."""
+    source = _source()
+    assert "function dropKerbsAtDriveways(ways)" in source
+    assert "const kerbVerticesDropped = dropKerbsAtDriveways(DATA.ways);" in source
+    assert "const kerb = nearestKerbAt(drop.x, drop.z, 4.0);" in source
+    assert 'addMerged("apron", apron, "apron")' not in source
+    assert "Softened edges" not in source
+    assert "alphaTest: painted ? 0.5 : 0," in source
+    assert "texture.magFilter = THREE.NearestFilter;" in source

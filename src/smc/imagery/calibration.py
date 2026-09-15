@@ -35,16 +35,20 @@ def quaternion_to_matrix(w: float, x: float, y: float, z: float) -> np.ndarray:
     ])
 
 
-#: How PandaSet orients a camera: x out of the lens, y downward, z to the left. Checked against
-#: the archive rather than assumed -- the x axis of the published rotation comes out horizontal
-#: and on the bearing the provider reports, and the y axis comes out pointing at the ground.
+#: How PandaSet orients a camera: the ordinary computer-vision frame, z out of the lens, x to
+#: the right, y downward. This is what the official devkit's projection does -- it keeps the
+#: points with z > 0 in the camera frame and divides x and y by z -- and it is what the poses
+#: say when checked: over 2,225 consecutive front-camera frames the camera's z axis lies along
+#: the vehicle's direction of travel (mean dot product 1.000; x and y 0.002 and -0.001), and y
+#: points at the ground.
 #:
-#: This matters because decomposing the pose as if it were an east-north-up attitude gives a
-#: roll of ninety degrees for a camera that is sitting perfectly level. That is the axis
-#: convention showing through, not a tilted camera, and storing it would have put a fabricated
-#: roll on all 15,282 frames.
-CAMERA_FORWARD = (1.0, 0.0, 0.0)
+#: This module used to say x was forward and z was to the left, on the strength of the x axis
+#: "coming out horizontal" -- which the right-hand axis of a level camera also does. Every
+#: stored heading was ninety degrees off, and the lidar depth benchmark was projected onto the
+#: wrong axis: a "depth" that was really the distance to the right of the camera.
+CAMERA_FORWARD = (0.0, 0.0, 1.0)
 CAMERA_DOWN = (0.0, 1.0, 0.0)
+CAMERA_RIGHT = (1.0, 0.0, 0.0)
 
 
 def camera_angles(rotation: np.ndarray) -> tuple[float, float, float]:
@@ -57,7 +61,7 @@ def camera_angles(rotation: np.ndarray) -> tuple[float, float, float]:
     """
     forward = rotation @ np.array(CAMERA_FORWARD)
     down = rotation @ np.array(CAMERA_DOWN)
-    right = np.cross(down, forward)
+    right = rotation @ np.array(CAMERA_RIGHT)
 
     heading = (90.0 - math.degrees(math.atan2(forward[1], forward[0]))) % 360.0
     pitch = math.degrees(math.asin(max(-1.0, min(1.0, forward[2]))))

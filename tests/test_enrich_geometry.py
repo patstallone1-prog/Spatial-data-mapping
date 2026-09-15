@@ -63,7 +63,8 @@ class TestFootwayBound:
 
 
 class TestCameraAngles:
-    #: A real PandaSet front camera: level, facing north-east.
+    #: A real PandaSet front camera: level, facing north-west. The vehicle's next frame is
+    #: 1.9 m away on a bearing of 317 degrees, which is what settles which axis is forward.
     QUATERNION = (0.6547141728904644, -0.6609508258934794,
                   -0.25921186551431247, 0.25942738163823914)
 
@@ -72,25 +73,38 @@ class TestCameraAngles:
         assert abs(pitch) < 2.0, "a roof-mounted camera came out pitched"
         assert abs(roll) < 2.0, "the axis convention leaked into the roll"
 
-    def test_the_heading_matches_what_the_provider_reports(self):
+    def test_the_heading_is_the_direction_of_travel(self):
+        # With x taken as forward this read 46.97: the bearing of the camera's right-hand
+        # edge, ninety degrees from where it was looking.
         heading, _pitch, _roll = camera_angles(quaternion_to_matrix(*self.QUATERNION))
-        assert heading == pytest.approx(46.97, abs=0.05)
+        assert heading == pytest.approx(316.97, abs=0.05)
+
+    def test_the_frame_is_z_forward_x_right_y_down(self):
+        # A camera facing north, level: z along +north, x along +east, y down. Columns of the
+        # rotation are the camera axes in the world.
+        rotation = np.zeros((3, 3))
+        rotation[:, 0] = [1.0, 0.0, 0.0]          # x -> east
+        rotation[:, 1] = [0.0, 0.0, -1.0]         # y -> down
+        rotation[:, 2] = [0.0, 1.0, 0.0]          # z -> north
+        heading, pitch, roll = camera_angles(rotation)
+        assert heading == pytest.approx(0.0, abs=1e-6)
+        assert pitch == pytest.approx(0.0, abs=1e-6)
+        assert roll == pytest.approx(0.0, abs=1e-6)
 
     def test_a_camera_pitched_up_reads_positive(self):
-        # Rotate the forward axis (x) up towards +z by 20 degrees.
+        # Rotate the forward axis (z) up towards world +z by 20 degrees, about the right axis.
         angle = math.radians(20.0)
-        rotation = np.array([[math.cos(angle), 0.0, 0.0],
-                             [0.0, 1.0, 0.0],
-                             [math.sin(angle), 0.0, 0.0]])
-        rotation[:, 1] = [0.0, 1.0, 0.0]
-        rotation[:, 2] = np.cross(rotation[:, 0], rotation[:, 1])
+        rotation = np.zeros((3, 3))
+        rotation[:, 0] = [1.0, 0.0, 0.0]                                        # right: east
+        rotation[:, 2] = [0.0, math.cos(angle), math.sin(angle)]                # forward, up 20
+        rotation[:, 1] = np.cross(rotation[:, 2], rotation[:, 0])               # down = z x x
         _heading, pitch, _roll = camera_angles(rotation)
         assert pitch == pytest.approx(20.0, abs=0.5)
 
-    def test_an_identity_pose_faces_east_and_is_level(self):
-        heading, pitch, roll = camera_angles(np.eye(3))
-        assert heading == pytest.approx(90.0)
-        assert pitch == pytest.approx(0.0, abs=1e-6)
+    def test_an_identity_pose_looks_straight_up(self):
+        # Camera z along world z: the lens points at the sky.
+        _heading, pitch, _roll = camera_angles(np.eye(3))
+        assert pitch == pytest.approx(90.0, abs=1e-6)
 
     def test_a_degenerate_quaternion_does_not_explode(self):
         assert np.allclose(quaternion_to_matrix(0.0, 0.0, 0.0, 0.0), np.eye(3))
@@ -105,41 +119,49 @@ class TestProjection:
 
     def test_a_point_down_the_optical_axis_lands_in_the_centre(self):
         u, v, depth, valid = project_points_to_image(
-            np.array([[10.0, 0.0, 0.0]]), self._calibration(), 1920, 1080)
+            np.array([[0.0, 0.0, 10.0]]), self._calibration(), 1920, 1080)
         assert valid[0]
         assert u[0] == pytest.approx(960.0) and v[0] == pytest.approx(540.0)
         assert depth[0] == pytest.approx(10.0)
 
-    def test_a_point_to_the_left_lands_left_of_centre(self):
-        # PandaSet's camera z axis points left, so a positive z is to the camera's left.
+    def test_a_point_to_the_right_lands_right_of_centre(self):
+        # x is to the camera's right. With z taken as leftward, as it used to be, this landed
+        # on the left.
         u, _v, _d, valid = project_points_to_image(
-            np.array([[10.0, 0.0, 1.0]]), self._calibration(), 1920, 1080)
-        assert valid[0] and u[0] < 960.0
+            np.array([[1.0, 0.0, 10.0]]), self._calibration(), 1920, 1080)
+        assert valid[0] and u[0] > 960.0
 
     def test_a_point_below_lands_below_centre(self):
         # y is down.
         _u, v, _d, valid = project_points_to_image(
-            np.array([[10.0, 1.0, 0.0]]), self._calibration(), 1920, 1080)
+            np.array([[0.0, 1.0, 10.0]]), self._calibration(), 1920, 1080)
         assert valid[0] and v[0] > 540.0
 
     def test_a_point_behind_the_camera_is_invalid(self):
         _u, _v, _d, valid = project_points_to_image(
-            np.array([[-10.0, 0.0, 0.0]]), self._calibration(), 1920, 1080)
+            np.array([[0.0, 0.0, -10.0]]), self._calibration(), 1920, 1080)
+        assert not valid[0]
+
+    def test_a_point_beside_the_camera_is_not_in_front_of_it(self):
+        # Ten metres to the right and level with the lens: not a depth of ten. This is the
+        # case the old axes got wrong for every return in the corridor.
+        _u, _v, _d, valid = project_points_to_image(
+            np.array([[10.0, 0.0, 0.0]]), self._calibration(), 1920, 1080)
         assert not valid[0]
 
     def test_a_return_off_the_vehicle_itself_is_dropped(self):
         _u, _v, _d, valid = project_points_to_image(
-            np.array([[0.4, 0.0, 0.0]]), self._calibration(), 1920, 1080)
+            np.array([[0.0, 0.0, 0.4]]), self._calibration(), 1920, 1080)
         assert not valid[0]
 
     def test_the_camera_pose_is_applied_not_its_inverse(self):
-        # Move the camera ten metres along +x; a point at twenty is now ten away, not thirty.
+        # Move the camera ten metres along +z; a point at twenty is now ten away, not thirty.
         calibration = SensorCalibration(
             observation_uid="u", provider="pandaset", fx=1970.0, fy=1970.0,
-            cx=960.0, cy=540.0, position_x=10.0, position_y=0.0, position_z=0.0,
+            cx=960.0, cy=540.0, position_x=0.0, position_y=0.0, position_z=10.0,
             quaternion_w=1.0, quaternion_x=0.0, quaternion_y=0.0, quaternion_z=0.0)
         _u, _v, depth, _valid = project_points_to_image(
-            np.array([[20.0, 0.0, 0.0]]), calibration, 1920, 1080)
+            np.array([[0.0, 0.0, 20.0]]), calibration, 1920, 1080)
         assert depth[0] == pytest.approx(10.0)
 
     def test_intrinsics_are_required(self):
@@ -148,7 +170,7 @@ class TestProjection:
             project_points_to_image(np.array([[1.0, 0.0, 0.0]]), bare, 100, 100)
 
     def test_the_depth_map_keeps_the_nearer_return(self):
-        points = np.array([[30.0, 0.0, 0.0], [8.0, 0.0, 0.0]])
+        points = np.array([[0.0, 0.0, 30.0], [0.0, 0.0, 8.0]])
         out = depth_image(points, self._calibration(), 1920, 1080, downsample=4)
         assert out[540 // 4, 960 // 4] == pytest.approx(8.0)
 

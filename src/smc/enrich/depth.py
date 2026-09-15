@@ -8,10 +8,12 @@ the points, and so those frames can carry a true distance on every pixel a retur
 That makes them the calibration corpus. A model that reads a kerb height off an image can be
 checked against them; every other frame in the catalogue has nothing to be checked against.
 
-The projection is a plain pinhole, with one thing worth stating out loud: PandaSet's camera
-frame is x out of the lens, y downward and z to the left, so the optical axis is x and the
-image's rightward direction is negative z. Assuming the usual z-forward convention instead puts
-every point on the wrong axis and yields a picture that looks like a projection and is nonsense.
+The projection is a plain pinhole in the ordinary camera frame -- z out of the lens, x to the
+right, y downward -- which is the frame the official devkit projects in and the frame the
+published poses are in (see :mod:`smc.imagery.calibration`). This module used to take x as the
+optical axis and z as leftward, so every "depth" it reported was the distance to the camera's
+right and the projected picture was the scene seen through a wall: a projection that looked
+like one and was nonsense. The lidar depth benchmark built on it has to be rebuilt.
 """
 
 from __future__ import annotations
@@ -50,12 +52,12 @@ def project_points_to_image(
     # produces a plausible-looking image of the scene reflected through the camera.
     camera = (points - centre) @ calibration.rotation()
 
-    forward = camera[:, 0]
+    right = camera[:, 0]
     down = camera[:, 1]
-    left = camera[:, 2]
+    forward = camera[:, 2]
 
     safe = np.where(forward > 1e-6, forward, 1e-6)
-    u = calibration.cx + calibration.fx * (-left) / safe
+    u = calibration.cx + calibration.fx * right / safe
     v = (calibration.cy or 0.0) + (calibration.fy or calibration.fx) * down / safe
 
     valid = (forward > min_range_m) & (u >= 0) & (u < width) & (v >= 0) & (v < height)
