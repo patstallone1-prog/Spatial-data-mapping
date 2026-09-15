@@ -394,9 +394,9 @@ def test_facade_renderer_adds_ground_floor_identity() -> None:
     assert "def attach_named_places(ways" in source
     assert '"s": "overture_places"' in source
     assert "CDLA-Permissive-2.0" in source
-    assert "function addGroundFacadeDetail(group, feature, seed, height)" in source
-    assert 'feature.archetype === "retail" || feature.archetype === "restaurant"' in source
-    assert "addGroundFacadeDetail(group, feature, seed, height)" in source
+    assert "function addGroundFacadeDetail(group, feature, seed, height, tint)" in source
+    assert "if (hasStorefront(feature)) {" in source
+    assert "addGroundFacadeDetail(group, feature, seed, height, tint);" in source
 
 
 def test_gas_station_renderer_has_pumps_and_price_sign() -> None:
@@ -447,22 +447,24 @@ def test_facade_textures_are_prioritized_and_frame_budgeted() -> None:
 
 
 def test_grass_texture_has_cached_realistic_variants() -> None:
+    """Every pixel its own green, a few per hundred a brown, blades over that, and nothing in
+    the tile larger than a blade: a patch or a mowing line is a feature, and a feature every
+    four metres is a grid. A dozen kinds of grass, one per lawn polygon."""
     source = _source()
 
     assert "const GRASS_TEXTURES = new Map();" in source
     assert 'function grassTexture(kind = "yard", variant = 0)' in source
-    assert "const key = `${kind}:${variant}`;" in source
     assert "if (GRASS_TEXTURES.has(key)) return GRASS_TEXTURES.get(key);" in source
-    assert "const size = 384;" in source
-    assert "const parkPalettes = [" in source
-    assert "const yardPalettes = [" in source
-    assert "straw/dirt flecks" in source
-    assert "Low, soft mowing direction" in source
+    assert "const GRASS_KINDS = [" in source
+    assert source.count('{ name: "') >= 12
+    assert "const GRASS_VARIANTS = GRASS_KINDS.length;" in source
+    assert "ctx.createImageData(size, size)" in source
+    assert "if (r1 < spec.brown) {" in source
+    assert "mowStep" not in source and "parkPalettes" not in source
+    assert "texture.repeat.set(1, 1);\n  texture.anisotropy = 8;\n  texture.colorSpace = THREE.SRGBColorSpace;\n  GRASS_TEXTURES.set(key, texture);" in source
     assert "function grassVariantForRing(ring, count)" in source
-    assert "const parkVariants = 4;" in source
-    assert "const yardVariants = 5;" in source
-    assert 'map: grassTexture("park", variant)' in source
-    assert 'map: grassTexture("yard", variant)' in source
+    assert "const parkVariants = GRASS_VARIANTS;" in source
+    assert "const yardVariants = GRASS_VARIANTS;" in source
 
 
 def test_named_buildings_get_plaque_signage_without_duplicate_shop_names() -> None:
@@ -472,7 +474,7 @@ def test_named_buildings_get_plaque_signage_without_duplicate_shop_names() -> No
     assert "function buildingNameTrade(feature)" in source
     assert "function addBuildingNamePlaque(group, feature, seed, height, tint)" in source
     assert "if (shops.some((shop) => cleanName(shop.n) === clean)) return;" in source
-    assert "const slot = signSlot(name, trade);" in source
+    assert "const slot = signSlot(name, trade, inkFor(colour));" in source
     assert 'const sink = awningSink("board");' in source
     assert "addSignFace(slot.atlas" in source
     assert "addBuildingNamePlaque(group, feature, seed, height, tint);" in source
@@ -649,3 +651,26 @@ def test_the_pavement_is_let_down_at_every_driveway_and_paint_ends_hard() -> Non
     assert "Softened edges" not in source
     assert "alphaTest: painted ? 0.5 : 0," in source
     assert "texture.magFilter = THREE.NearestFilter;" in source
+
+
+def test_storefronts_are_drawn_for_their_trade_on_a_ground_storey_of_their_own() -> None:
+    """A bank, a laundromat and a taqueria used to be the same cafe at three widths. Each trade
+    has its own front now, in bays the signs share, on a ground storey painted a colour chosen
+    to go with the building, and a standalone shop is built differently from one under flats."""
+    source = _source()
+    assert "function addStorefronts(group, feature, seed, height, tint)" in source
+    assert "function storefrontTexture(trade, variant, frameHex, standalone)" in source
+    for trade in ("restaurant", "cafe", "bar", "grocery", "clothing", "books", "salon",
+                  "pharmacy", "bank", "laundry", "hardware", "florist", "hotel"):
+        assert f'case "{trade}":' in source, trade
+    assert "const STOREFRONT_PALETTES = {" in source
+    assert "const harmonious = neutral || apart <= 40 || Math.abs(apart - 180) <= 25;" in source
+    assert "const contrast = Math.abs(h.l - hsl.l) >= 0.16;" in source
+    assert "const standalone = height <= STOREFRONT_STANDALONE_MAX_M;" in source
+    # The bays the fronts are drawn in are the bays the signs go over.
+    assert source.count("shopBays(feature, wall)") >= 2
+    # Ink that reads on the board it is on.
+    assert 'signSlot(shop.n, trade, inkFor(colour))' in source
+    # The old one-picture-for-everything is gone, and so are its words.
+    assert 'if (archetype === "retail" || archetype === "restaurant") {' not in source
+    assert '"CAFE"' not in source and '"SHOP"' not in source
