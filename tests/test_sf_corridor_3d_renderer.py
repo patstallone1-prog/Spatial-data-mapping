@@ -913,3 +913,19 @@ def test_the_walker_is_measured_as_it_stands_and_has_a_first_person_view() -> No
     assert "function setFirstPerson(on)" in source
     assert "eye.y = AVATAR_EYE_Y;" in source
     assert "camera.near = on ? 0.12 : 0.5;" in source
+
+
+def test_the_roadway_between_the_citys_kerbs_is_filled_where_nothing_else_covers_it() -> None:
+    """A street is drawn as a ribbon of one width on OpenStreetMap's centreline and the city's
+    kerbs are where they are; between the two the ground showed as a black strip down the
+    middle of the street. What no carriageway, pavement or median covers is filled: asphalt,
+    a raised island where island kerbs bound the strip, a line where two carriageways meet."""
+    source = _source()
+    assert "function fillRoadwayToKerbs()" in source
+    assert "function roadwayCovered(x, z)" in source
+    assert "const roadFillGrid = new Set();" in source
+    assert "if (width >= ROAD_FILL_ISLAND_MIN_M && kerbed(t0) && kerbed(t1)) {" in source
+    assert "const sink = opposing ? lines.yellow : lines.white;" in source
+    assert "const roadwayFilled = fillRoadwayToKerbs();" in source
+    # Medians stamp their strip so the fill never doubles them.
+    assert "stampFill(a[0], a[1], b[0], b[1]);" in source
