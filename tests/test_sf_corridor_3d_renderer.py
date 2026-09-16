@@ -839,3 +839,17 @@ def test_a_bike_lane_eases_sideways_to_meet_the_lane_it_joins() -> None:
     assert "function blendLaneEnd(points, target, atStart)" in source
     assert "if (joinStart) lane = blendLaneEnd(lane, joinStart, true);" in source
     assert "const ease = t * t * (3 - 2 * t);" in source
+
+
+def test_the_walker_is_measured_as_it_stands_and_has_a_first_person_view() -> None:
+    """Box3.setFromObject read the skinned figure's unposed geometry, a fifth of its height, so
+    the walker fitted to seven feet stood ten metres tall. It is measured skinned now, and a
+    First person button puts the camera at its eyes."""
+    source = _source()
+    assert "function skinnedBounds(object)" in source
+    assert "node.computeBoundingBox();" in source
+    assert "const size = skinnedBounds(model).getSize(new THREE.Vector3());" in source
+    assert '<button id="firstperson" aria-pressed="false"' in source
+    assert "function setFirstPerson(on)" in source
+    assert "eye.y = AVATAR_EYE_Y;" in source
+    assert "camera.near = on ? 0.12 : 0.5;" in source
