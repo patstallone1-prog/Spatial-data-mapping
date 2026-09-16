@@ -38,6 +38,76 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+async function reportFull3d(source, detail) {
+  const message = { type: "CACHE_FULL_3D_PROGRESS", ...detail };
+  if (source && typeof source.postMessage === "function") {
+    source.postMessage(message);
+    return;
+  }
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  clients.forEach((client) => client.postMessage(message));
+}
+
+self.addEventListener("message", (event) => {
+  const message = event.data || {};
+  if (message.type !== "CACHE_FULL_3D") return;
+
+  event.waitUntil((async () => {
+    try {
+      const manifestUrl = new URL("./sf-corridor-detail-manifest.json", self.registration.scope);
+      const manifestResponse = await fetch(manifestUrl, { cache: "no-store" });
+      if (!manifestResponse.ok) throw new Error(`detail manifest returned ${manifestResponse.status}`);
+      const manifest = await manifestResponse.clone().json();
+      const assets = [...new Set([
+        "sf-corridor-detail-manifest.json",
+        ...(Array.isArray(manifest.offline_assets) ? manifest.offline_assets : []),
+      ])];
+      const cache = await caches.open(CACHE);
+      let done = 0;
+      let failed = 0;
+      let bytes = 0;
+
+      await cache.put(manifestUrl, manifestResponse.clone());
+      for (const asset of assets) {
+        const assetUrl = new URL(asset, self.registration.scope);
+        try {
+          const response = asset === "sf-corridor-detail-manifest.json"
+            ? manifestResponse.clone()
+            : await fetch(assetUrl, { cache: "no-store" });
+          if (!response.ok) throw new Error(`${response.status}`);
+          const length = Number(response.headers.get("content-length"));
+          if (Number.isFinite(length)) bytes += length;
+          await cache.put(assetUrl, response);
+          done += 1;
+        } catch (error) {
+          failed += 1;
+        }
+        await reportFull3d(event.source, {
+          state: "progress",
+          done,
+          failed,
+          total: assets.length,
+          bytes,
+          file: asset,
+        });
+      }
+
+      await reportFull3d(event.source, {
+        state: failed ? "partial" : "complete",
+        done,
+        failed,
+        total: assets.length,
+        bytes,
+      });
+    } catch (error) {
+      await reportFull3d(event.source, {
+        state: "error",
+        error: `Full 3D download failed: ${error && error.message ? error.message : "network or storage error"}.`,
+      });
+    }
+  })());
+});
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;

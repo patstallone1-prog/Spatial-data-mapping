@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
@@ -47,7 +48,17 @@ for name, tag in (
     if path.exists():
         shots.append({"src": encode(path, 900), "alt": tag, "tag": tag})
 
-photos = discover_photos(pathlib.Path("photos/vantage"))
+photo_root = pathlib.Path("photos/vantage")
+photos = discover_photos(photo_root) if photo_root.is_dir() else []
+if not photos and not shots:
+    # Release checkouts intentionally omit the optional local photo folder.  Preserve the
+    # already-published, inlined demo frames instead of silently replacing them with an empty
+    # carousel during an unrelated site rebuild.
+    published = pathlib.Path("docs/index.html")
+    if published.exists():
+        match = re.search(r"const SHOTS = (.*?);\n", published.read_text())
+        if match:
+            shots.extend(json.loads(match.group(1)))
 for path in photos[:: max(1, len(photos) // 3)][:3]:
     image, meta = load_photo(path, max_width=900)
     shots.append(

@@ -98,7 +98,9 @@ def main(out: pathlib.Path | None = None) -> None:
     # that had opened the site before.
     digest = hashlib.blake2b(digest_size=8)
     digest.update((app + landing).encode())
-    for extra in sorted(out.glob("sf-corridor-3d.*")):
+    for extra in sorted(out.glob("sf-corridor-*")):
+        if not extra.is_file():
+            continue
         digest.update(extra.name.encode())
         digest.update(str(extra.stat().st_size).encode())
     version = digest.hexdigest()

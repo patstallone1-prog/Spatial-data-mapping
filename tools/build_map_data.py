@@ -74,6 +74,8 @@ def ways_from(payload: dict, classify) -> list[dict]:
 
 def thumbnails(directory: Path, count: int = 10, width: int = 220) -> list[dict]:
     """Small JPEGs of the capture session, inlined as data URIs."""
+    if not directory.is_dir():
+        return []
     from PIL import Image
 
     files = discover_photos(directory)
@@ -125,7 +127,8 @@ def main() -> int:
         for image in panoramax.nearby(*CENTRE, radius_m=RADIUS_M, limit=300)
     ]
 
-    photos = thumbnails(Path("photos/vantage"))
+    photo_root = Path("photos/vantage")
+    photos = thumbnails(photo_root)
 
     data = {
         "centre": {"lat": CENTRE[0], "lon": CENTRE[1]},
@@ -134,7 +137,7 @@ def main() -> int:
         "pedestrian": pedestrian,
         "coverage": captures,
         "session": {
-            "frames": len(discover_photos(Path("photos/vantage"))),
+            "frames": len(discover_photos(photo_root)) if photo_root.is_dir() else 0,
             "photos": photos,
         },
     }

@@ -387,6 +387,20 @@
       </div>
       <p class="muted" id="install-note"></p>
     </div>
+    <div class="card" id="full-3d-card">
+      <h2>Full 3D city artifact</h2>
+      <p>
+        Open the complete render immediately, or save its geometry, source-detail shards,
+        official curb data, street furniture, and facade textures for offline inspection.
+      </p>
+      <div class="row">
+        <a class="btn ghost" id="full-3d-link" href="sf-corridor-3d.html">Open full 3D map</a>
+        <button class="btn" id="full-3d-download" type="button">Download full 3D offline</button>
+      </div>
+      <p class="muted" id="full-3d-status" role="status" aria-live="polite">
+        The extra archive detail downloads only when you ask for it.
+      </p>
+    </div>
     <div class="card">
       <h2>Privacy</h2>
       <p>
@@ -1617,9 +1631,61 @@ if (!STANDALONE) showSteps(DEVICE === "ios" ? "ios" : "android");
 // The service worker is what makes the app installable and what lets it open with no signal.
 // It only exists when the app is served from the site; a saved copy has no origin to register
 // against, and failing quietly is the right outcome there.
-if ("serviceWorker" in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+const full3dButton = document.getElementById("full-3d-download");
+const full3dStatus = document.getElementById("full-3d-status");
+let serviceWorkerRegistration = null;
+
+function humanBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  const rank = Math.min(Math.floor(Math.log(bytes) / Math.log(1000)), units.length - 1);
+  return `${(bytes / (1000 ** rank)).toFixed(rank > 1 ? 1 : 0)} ${units[rank]}`;
 }
+
+function full3dMessage(event) {
+  const message = event.data || {};
+  if (message.type !== "CACHE_FULL_3D_PROGRESS") return;
+  if (message.state === "progress") {
+    full3dStatus.textContent = `Saving ${message.done} of ${message.total} files${message.file ? ` — ${message.file}` : ""}`;
+  } else if (message.state === "complete") {
+    const size = humanBytes(message.bytes);
+    full3dStatus.textContent = `Full 3D package saved offline: ${message.done} files${size ? `, ${size}` : ""}.`;
+    full3dButton.textContent = "Full 3D saved offline";
+    full3dButton.disabled = false;
+  } else if (message.state === "partial") {
+    full3dStatus.textContent = `Saved ${message.done} of ${message.total} files. ${message.failed} could not be downloaded; tap to retry.`;
+    full3dButton.disabled = false;
+  } else if (message.state === "error") {
+    full3dStatus.textContent = message.error || "The full 3D package could not be saved. Check storage and connection, then retry.";
+    full3dButton.disabled = false;
+  }
+}
+
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  navigator.serviceWorker.addEventListener("message", full3dMessage);
+  navigator.serviceWorker.register("sw.js")
+    .then((registration) => { serviceWorkerRegistration = registration; })
+    .catch(() => {
+      full3dStatus.textContent = "Offline download is unavailable here; the full 3D map still opens online.";
+    });
+} else {
+  full3dButton.disabled = true;
+  full3dStatus.textContent = "Offline download requires the installed app or a secure browser connection.";
+}
+
+full3dButton.addEventListener("click", async () => {
+  full3dButton.disabled = true;
+  full3dStatus.textContent = "Preparing full 3D offline package…";
+  try {
+    const registration = serviceWorkerRegistration || await navigator.serviceWorker.ready;
+    const worker = registration.active || registration.waiting || registration.installing;
+    if (!worker) throw new Error("service worker not ready");
+    worker.postMessage({ type: "CACHE_FULL_3D" });
+  } catch (error) {
+    full3dStatus.textContent = "Offline download could not start. Reload once while online, then retry.";
+    full3dButton.disabled = false;
+  }
+});
 
 document.getElementById("auto-explain").textContent = DEVICE === "ios"
   ? "Fires the shutter for you while the app is open and on screen, once you have moved far enough for a frame to show something new. iOS stops capture the moment you switch away."

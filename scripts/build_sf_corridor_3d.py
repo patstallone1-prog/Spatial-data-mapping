@@ -2213,6 +2213,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <p id="facadenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
       <p id="officialnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
       <p id="furniturenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
+      <p id="detailnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
     </div>
   </div>
@@ -2230,7 +2231,8 @@ import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GL
 // Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
 // overlay.  Load the compact official sidecar before laying out crossings; a network failure
 // still leaves the renderer's local-road-width fallback available.
-const [DATA, OFFICIAL_GEOMETRY] = await Promise.all([
+const EMPTY_DETAIL_MANIFEST = { shards: [], offline_assets: [] };
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST] = await Promise.all([
   fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -2238,6 +2240,9 @@ const [DATA, OFFICIAL_GEOMETRY] = await Promise.all([
   fetch("sf-corridor-official.json", { cache: "no-cache" })
     .then((r) => r.ok ? r.json() : { curb_lines: [], curb_ramps: [] })
     .catch(() => ({ curb_lines: [], curb_ramps: [] })),
+  fetch("sf-corridor-detail-manifest.json", { cache: "no-cache" })
+    .then((r) => r.ok ? r.json() : EMPTY_DETAIL_MANIFEST)
+    .catch(() => EMPTY_DETAIL_MANIFEST),
 ]);
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
@@ -2245,6 +2250,10 @@ document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleStri
 document.getElementById("cells").textContent = DATA.summary.coverage_cells.toLocaleString();
 document.getElementById("surfaces").textContent = (DATA.summary.cv_depth.surface_rows || 0).toLocaleString();
 document.getElementById("measured").textContent = (DATA.summary.cv_depth.measured_curb_height_count || 0).toLocaleString();
+const detailBytes = (DETAIL_MANIFEST.shards || []).reduce((sum, shard) => sum + (shard.bytes || 0), 0);
+document.getElementById("detailnote").textContent = DETAIL_MANIFEST.shards.length
+  ? `Full source detail — ${(detailBytes / 1e6).toFixed(1)} MB in two lossless archive shards; the nearby half loads automatically when you inspect a feature.`
+  : "Full source detail is unavailable in this build; render geometry remains complete.";
 
 const canvas = document.getElementById("scene");
 // A logarithmic depth buffer, because this scene spans five orders of magnitude: a 126 mm kerb
@@ -13886,21 +13895,91 @@ let pressedAt = [0, 0];
 canvas.addEventListener("pointerdown", (e) => { pressedAt = [e.clientX, e.clientY]; });
 const tip = document.getElementById("tip");
 
-function featureSummary(feature) {
+const wayIndex = new WeakMap(DATA.ways.map((way, index) => [way, index]));
+const detailShardCache = new Map();
+
+function detailKey(feature) {
+  const renderIndex = wayIndex.get(feature);
+  if (renderIndex !== undefined) return `way:${renderIndex}`;
+  const kind = feature.kind || "feature";
+  if (feature.osm_id !== undefined && feature.osm_id !== null && feature.osm_id !== "") {
+    return `${kind}:osm:${feature.osm_id}`;
+  }
+  const point = feature.centroid || feature.point || (feature.points || [])[0] || [0, 0];
+  const lon = Number(Number(point[0] || 0).toFixed(6));
+  const lat = Number(Number(point[1] || 0).toFixed(6));
+  return `${kind}:at:${lon}:${lat}:${feature.name || ""}`;
+}
+
+function featureLongitude(feature) {
+  const point = feature.centroid || feature.point || (feature.points || [])[0];
+  return point && point.length >= 2 ? Number(point[0]) : Number(DETAIL_MANIFEST.split_lon || 0);
+}
+
+async function fullDetailFeature(feature) {
+  if (!feature || !(DETAIL_MANIFEST.shards || []).length) return feature;
+  const lon = featureLongitude(feature);
+  const side = lon < Number(DETAIL_MANIFEST.split_lon || 0) ? "west" : "east";
+  const shard = DETAIL_MANIFEST.shards.find((candidate) => candidate.id === side)
+    || DETAIL_MANIFEST.shards.find((candidate) =>
+      lon >= candidate.bbox.west && lon <= candidate.bbox.east
+    );
+  if (!shard) return feature;
+  let records = detailShardCache.get(shard.id);
+  if (!records) {
+    records = fetch(shard.file, { cache: "force-cache" })
+      .then((response) => {
+        if (!response.ok) throw new Error(`detail shard ${response.status}`);
+        return response.json();
+      })
+      .then((payload) => new Map((payload.features || []).map((row) => [row.key, row.fields])));
+    detailShardCache.set(shard.id, records);
+  }
+  try {
+    const fields = (await records).get(detailKey(feature));
+    if (!fields) return feature;
+    const full = { ...feature };
+    for (const [field, value] of Object.entries(fields)) {
+      if (value && !Array.isArray(value) && typeof value === "object"
+          && full[field] && !Array.isArray(full[field]) && typeof full[field] === "object") {
+        full[field] = { ...full[field], ...value };
+      } else {
+        full[field] = value;
+      }
+    }
+    full._detailShard = shard.id;
+    full._detailFieldCount = Object.keys(fields).length;
+    full._renderIndex = wayIndex.get(feature);
+    return full;
+  } catch (error) {
+    console.warn("Full feature detail could not be loaded; using render-complete record.", error);
+    return { ...feature, _detailError: true };
+  }
+}
+
+async function featureSummary(feature) {
   if (!feature) return null;
-  const place = feature.place || (feature.google_places || [])[0] || {};
-  const address = feature.address || {};
-  const parcel = feature.parcel || {};
-  const zoning = feature.zoning || {};
-  const title = place.name || feature.name || address.formatted || "Building";
+  const full = await fullDetailFeature(feature);
+  const place = full.place || (full.google_places || [])[0] || {};
+  const address = full.address || {};
+  const parcel = full.parcel || {};
+  const zoning = full.zoning || {};
+  const lidar = full.datasf_building_height || {};
+  const title = place.name || full.name || address.formatted || "Building";
   const lines = [
     `<b>${title}</b>`,
     address.formatted || place.formatted_address || "",
-    feature.archetype ? `Type: ${feature.archetype.replaceAll("_", " ")}` : "",
+    full.archetype ? `Type: ${full.archetype.replaceAll("_", " ")}` : "",
     place.primary_type ? `Business: ${place.primary_type.replaceAll("_", " ")}` : "",
-    feature.land_use || zoning.district ? `Land use: ${feature.land_use || zoning.district}` : "",
+    full.land_use || zoning.district ? `Land use: ${full.land_use || zoning.district}` : "",
+    zoning.code ? `Zoning: ${zoning.code}${zoning.district ? ` — ${zoning.district}` : ""}` : "",
     parcel.blklot ? `Parcel: ${parcel.blklot}` : "",
-    feature.sources ? `Sources: ${feature.sources.join(", ")}` : "",
+    parcel.planning_district ? `Planning district: ${parcel.planning_district}` : "",
+    lidar.height_m ? `DataSF lidar height: ${Number(lidar.height_m).toFixed(2)} m (${lidar.height_method || "measured"})` : "",
+    full.cnn_name ? `Street record: ${full.cnn_name}${full.cnn ? ` (CNN ${full.cnn})` : ""}` : "",
+    full.sources ? `Sources: ${full.sources.join(", ")}` : "",
+    full._detailShard ? `Full archive: ${full._detailFieldCount} restored fields · ${full._detailShard} shard` : "",
+    full._detailError ? "Full archive: temporarily unavailable; showing render-complete record" : "",
   ].filter(Boolean);
   return lines.join("<br>");
 }
@@ -13990,12 +14069,12 @@ function goTo(landing, { travel }) {
   placeCamera();
 }
 
-canvas.addEventListener("pointerup", (e) => {
+canvas.addEventListener("pointerup", async (e) => {
   // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
   if (Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
   if (e.button === 2) return;   // handled on contextmenu, which fires first on a two-finger tap
   const feature = pickedFeature(e.clientX, e.clientY);
-  const summary = featureSummary(feature);
+  const summary = await featureSummary(feature);
   if (summary && tip) {
     tip.innerHTML = summary;
     return;
@@ -14111,7 +14190,8 @@ animate();
 // picture into its own buffer, and answers what is actually standing at a given point on the
 // ground. Between them a caller with no screen can both see the model and measure it.
 window.kerbside = {
-  scene, camera, renderer, groups, DATA, xy, insideCarriageway, buildingAt,
+  scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,
+  xy, insideCarriageway, buildingAt,
   pickedFeature,
   // The corner pieces: how many cuts were decided and how many pieces laid between them.
   recentred,
@@ -14364,6 +14444,158 @@ PAGE_SUBFIELDS = {
     "tags": {"building"},
 }
 
+DETAIL_SCHEMA_VERSION = 1
+DETAIL_MANIFEST_NAME = "sf-corridor-detail-manifest.json"
+DETAIL_SHARD_NAMES = {
+    "west": "sf-corridor-detail-west.json",
+    "east": "sf-corridor-detail-east.json",
+}
+
+
+def _detail_key(way: dict[str, Any], render_index: int | None = None) -> str:
+    """Return the same feature key used by the browser detail loader.
+
+    OSM numeric identifiers are only unique within their element type, and this render also
+    contains split and synthetic features.  The payload index is the one genuinely unique key
+    shared by the render JSON and its lossless detail archive.
+    """
+
+    if render_index is not None:
+        return f"way:{render_index}"
+
+    kind = str(way.get("kind") or "feature")
+    osm_id = way.get("osm_id")
+    if osm_id not in (None, ""):
+        return f"{kind}:osm:{osm_id}"
+    point = way.get("centroid") or way.get("point")
+    if not point:
+        points = way.get("points") or []
+        point = points[0] if points else [0, 0]
+    lon = round(float(point[0]), PRECISION) if len(point) >= 2 else 0
+    lat = round(float(point[1]), PRECISION) if len(point) >= 2 else 0
+    return f"{kind}:at:{lon}:{lat}:{way.get('name') or ''}"
+
+
+def _detail_lon(way: dict[str, Any], fallback: float) -> float:
+    point = way.get("centroid") or way.get("point")
+    if point and len(point) >= 2:
+        return float(point[0])
+    points = way.get("points") or []
+    if points:
+        return sum(float(point[0]) for point in points) / len(points)
+    return fallback
+
+
+def _omitted_way_fields(way: dict[str, Any]) -> dict[str, Any]:
+    """Fields removed from the render payload, including trimmed nested fields."""
+
+    extra = {field: value for field, value in way.items() if field not in PAGE_FIELDS}
+    for field, keep in PAGE_SUBFIELDS.items():
+        value = way.get(field)
+        if not isinstance(value, dict):
+            continue
+        omitted = {inner: inner_value for inner, inner_value in value.items() if inner not in keep}
+        if omitted:
+            extra[field] = omitted
+    return extra
+
+
+def write_detail_shards(payload: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+    """Write the lossless part of the catalogue as two spatial, on-demand shards.
+
+    The global render payload remains small and immediately usable.  These shards restore every
+    field that :func:`slim_payload` removes, keyed without duplicating geometry, so inspecting a
+    feature in the browser or downloading the PWA offline pack reconstructs its full record.
+    """
+
+    bbox = payload.get("bbox") or {}
+    west = float(bbox.get("west", SF_CORRIDOR.bbox.west))
+    east = float(bbox.get("east", SF_CORRIDOR.bbox.east))
+    south = float(bbox.get("south", SF_CORRIDOR.bbox.south))
+    north = float(bbox.get("north", SF_CORRIDOR.bbox.north))
+    split_lon = (west + east) / 2
+    rows: dict[str, list[dict[str, Any]]] = {"west": [], "east": []}
+    collisions: set[str] = set()
+    seen: set[str] = set()
+
+    for render_index, way in enumerate(payload.get("ways", [])):
+        fields = _omitted_way_fields(way)
+        if not fields:
+            continue
+        key = _detail_key(way, render_index)
+        if key in seen:
+            collisions.add(key)
+        seen.add(key)
+        shard = "west" if _detail_lon(way, split_lon) < split_lon else "east"
+        rows[shard].append({"key": key, "fields": fields})
+
+    if collisions:
+        sample = ", ".join(sorted(collisions)[:3])
+        raise ValueError(f"detail feature keys must be unique; collisions: {sample}")
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    shard_meta = []
+    for shard in ("west", "east"):
+        shard_bbox = {
+            "west": west if shard == "west" else split_lon,
+            "south": south,
+            "east": split_lon if shard == "west" else east,
+            "north": north,
+        }
+        body = {
+            "schema_version": DETAIL_SCHEMA_VERSION,
+            "id": shard,
+            "bbox": shard_bbox,
+            "features": rows[shard],
+        }
+        encoded = json.dumps(body, separators=(",", ":"), default=str).encode("utf-8")
+        filename = DETAIL_SHARD_NAMES[shard]
+        (out_dir / filename).write_bytes(encoded)
+        shard_meta.append({
+            "id": shard,
+            "file": filename,
+            "bbox": shard_bbox,
+            "features": len(rows[shard]),
+            "bytes": len(encoded),
+            "sha256": hashlib.sha256(encoded).hexdigest(),
+        })
+
+    facade_assets = sorted({
+        f"facades/{wall['c']}/{wall['t']}"
+        for wall in (payload.get("facades") or {}).get("walls", [])
+        if wall.get("c") and wall.get("t")
+    })
+    core_assets = [
+        "sf-corridor-3d.html",
+        "sf-corridor-3d.json",
+        DETAIL_MANIFEST_NAME,
+        *DETAIL_SHARD_NAMES.values(),
+        "sf-corridor-official.json",
+        "sf-corridor-ground.json",
+        "sf-corridor-furniture.json",
+        "sf-corridor-chunks.json",
+        "sf-corridor-priority.json",
+    ]
+    manifest = {
+        "schema_version": DETAIL_SCHEMA_VERSION,
+        "key_strategy": "render_index",
+        "strategy": "render-complete base plus two lossless on-demand archive shards",
+        "base": "sf-corridor-3d.json",
+        "split_lon": split_lon,
+        "ways": len(payload.get("ways", [])),
+        "detail_features": sum(len(items) for items in rows.values()),
+        "shards": shard_meta,
+        "offline_assets": core_assets + facade_assets,
+        "accuracy": {
+            "geometry_changed_by_slimming": False,
+            "coordinate_decimals": PRECISION,
+            "note": "Archive shards restore provenance and source attributes; render geometry is identical to the base payload.",
+        },
+    }
+    manifest_path = out_dir / DETAIL_MANIFEST_NAME
+    manifest_path.write_text(json.dumps(manifest, separators=(",", ":")), encoding="utf-8")
+    return manifest
+
 
 def slim_payload(payload: dict) -> dict[str, int]:
     """Drop everything the page does not draw, and report what went.
@@ -14423,12 +14655,17 @@ def main() -> int:
     # change, and the payload is one file the browser caches -- where inlining rewrote ten
     # megabytes of undedupable HTML into the repository on every single build.
     data_path = args.out.with_suffix(".json")
+    detail_manifest = write_detail_shards(payload, args.out.parent)
     dropped = slim_payload(payload)
     if dropped:
         total = sum(dropped.values())
         top = sorted(dropped.items(), key=lambda kv: -kv[1])[:6]
         print(f"payload slimmed by {total / 1e6:.2f} MB: "
               + ", ".join(f"{name} {size / 1e6:.2f}" for name, size in top))
+    print("full detail shards: " + ", ".join(
+        f"{shard['id']} {shard['bytes'] / 1e6:.2f} MB"
+        for shard in detail_manifest["shards"]
+    ))
     data_path.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     args.out.write_text(
         HTML,

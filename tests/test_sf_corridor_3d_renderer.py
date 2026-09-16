@@ -242,6 +242,66 @@ def test_crossing_style_provenance_survives_payload_slimming() -> None:
         assert f'"{field}"' in page_fields
 
 
+def test_full_detail_shards_restore_every_field_omitted_from_rendering(
+    tmp_path: Path,
+) -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    payload = {
+        "bbox": {"west": -122.45, "south": 37.78, "east": -122.39, "north": 37.81},
+        "facades": {"walls": [{"c": "c1", "t": "wall.jpg"}]},
+        "ways": [
+            {
+                "kind": "building", "osm_id": 10, "name": "West",
+                "points": [[-122.44, 37.79], [-122.439, 37.79]],
+                "address": {"formatted": "10 West St", "city": "San Francisco"},
+                "datasf_building_height": {"height_m": 12.34, "height_method": "lidar_median"},
+                "building_id": "osm:way:10",
+            },
+            {
+                "kind": "street", "osm_id": 20, "name": "East",
+                "points": [[-122.40, 37.80], [-122.399, 37.80]],
+                "road_m": 11.2, "cnn": 1234, "cnn_name": "East Street",
+            },
+        ],
+    }
+    full = json.loads(json.dumps(payload))
+    manifest = namespace["write_detail_shards"](full, tmp_path)
+    namespace["slim_payload"](payload)
+
+    assert len(payload["ways"]) == len(full["ways"]) == 2
+    assert payload["ways"][0]["points"] == full["ways"][0]["points"]
+    assert payload["ways"][1]["road_m"] == full["ways"][1]["road_m"]
+    assert "datasf_building_height" not in payload["ways"][0]
+    assert payload["ways"][0]["address"] == {"formatted": "10 West St"}
+
+    west = json.loads((tmp_path / "sf-corridor-detail-west.json").read_text())
+    east = json.loads((tmp_path / "sf-corridor-detail-east.json").read_text())
+    assert west["features"] == [{
+        "key": "way:0",
+        "fields": {
+            "datasf_building_height": {"height_m": 12.34, "height_method": "lidar_median"},
+            "building_id": "osm:way:10",
+            "address": {"city": "San Francisco"},
+        },
+    }]
+    assert east["features"] == [{
+        "key": "way:1",
+        "fields": {"cnn": 1234, "cnn_name": "East Street"},
+    }]
+    assert manifest["detail_features"] == 2
+    assert manifest["accuracy"]["geometry_changed_by_slimming"] is False
+    assert "facades/c1/wall.jpg" in manifest["offline_assets"]
+
+
+def test_browser_loads_the_nearby_full_detail_shard_on_demand() -> None:
+    source = _source()
+    assert 'fetch("sf-corridor-detail-manifest.json", { cache: "no-cache" })' in source
+    assert 'records = fetch(shard.file, { cache: "force-cache" })' in source
+    assert "async function fullDetailFeature(feature)" in source
+    assert "full._detailShard = shard.id;" in source
+    assert "const summary = await featureSummary(feature);" in source
+
+
 def test_ground_cover_classifies_small_frontage_and_backyard_remainders() -> None:
     source = _source()
     ground = _ground_source()
@@ -440,7 +500,7 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert "const lazyLayerBuilders = new Map();" in source
     assert "function registerLazyLayer(layer, builder)" in source
     assert "function ensureLazyLayer(layer)" in source
-    assert "const [DATA, OFFICIAL_GEOMETRY] = await Promise.all([" in source
+    assert "const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST] = await Promise.all([" in source
     assert 'fetch("sf-corridor-official.json", { cache: "no-cache" })' in source
     assert 'registerLazyLayer("official", () => {' in source
     assert 'registerLazyLayer("chunks", () => {' in source
