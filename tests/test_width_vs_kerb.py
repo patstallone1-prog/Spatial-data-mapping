@@ -100,3 +100,13 @@ def test_crossing_paint_is_laid_kerb_to_kerb_in_legs(report: dict, baseline: dic
     # Van Ness's BRT islands alone part two dozen crossings; losing the split would mean paint
     # laid across the island.
     assert crosswalk["splitForIslands"] >= baseline["crosswalkSplitForIslands"] - 2, crosswalk
+
+
+def test_a_mapped_crossing_is_never_displaced_by_a_sidewalk_stand_in(
+        report: dict, baseline: dict) -> None:
+    """A sidewalk drawn through a junction gets a plain stand-in crossing; sidewalks are laid
+    before crossings, so a stand-in that does not yield takes the spot and the city's crossing
+    is thrown out as its duplicate (39 of them, Grant and Clay among them). None may be."""
+    crosswalk = report["crosswalk"]
+    assert crosswalk["mappedSuppressedByStandIn"] == 0, crosswalk["suppressedExamples"]
+    assert crosswalk["standInsLaid"] <= baseline["crosswalkStandInsLaid"] + 5, crosswalk

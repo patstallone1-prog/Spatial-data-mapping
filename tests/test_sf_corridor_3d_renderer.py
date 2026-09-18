@@ -136,7 +136,7 @@ def test_crosswalks_dedupe_same_direction_overlaps_only() -> None:
     assert "function crossingRectanglePoints(points)" in source
     assert "const surfacePoints = isCrossing ? crossingRectanglePoints(renderPoints)" in source
     assert "const crossingDrawGrid = new Map();" in source
-    assert "function shouldDrawCrossing(points, width)" in source
+    assert "function shouldDrawCrossing(points, width, tag = null)" in source
     assert "crossingBearingDifference(other.bearing, pose.bearing)" in source
     assert "if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters)) continue;" in source
 

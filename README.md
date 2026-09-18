@@ -35,7 +35,8 @@ Marina through the Financial District, about five square miles.
 - Lane paint that stops at every junction and is spaced over the travel lanes, with the
   parking lanes read from SFMTA's parking block faces (1,131 of 2,169 named street ways have one); crossings painted
   kerb to kerb in legs, one each side of a median or refuge island (99.8% of legs end on a
-  drawn carriageway; 27 crossings parted for islands); curb ramps with ADA dome pads; bike
+  drawn carriageway; 27 crossings parted for islands; no mapped crossing displaced by the
+  stand-in a sidewalk drawn through the junction gets); curb ramps with ADA dome pads; bike
   lanes between the parked cars and the traffic, eased to meet across a split.
 - 24,603 official signs facing the road; 12,499 curb policy zones and 4,275 Color Curb Program
   assets painted in the five colours the city paints; bus zones in transit red.
@@ -57,7 +58,8 @@ The corridor-wide figures below are the `widthVsKerb` audit
   narrow ones are mostly halves of divided roads where the kerb file has no island lines, so
   the comparison spans the whole street).
 - Crossings ending on the local kerb: 59%; crossing legs ending on a drawn carriageway: 99.8%,
-  with 11 of 2,558 falling back to the whole desire line. Footway laid of footway asked: 91%. Kerb sides with
+  with 11 of 2,558 falling back to the whole desire line; mapped crossings displaced by a
+  sidewalk's stand-in crossing: 0 (was 39). Footway laid of footway asked: 91%. Kerb sides with
   no pavement at all: 2.5%. Streets drawn through a building facade: 96; buildings with two or
   more footprint corners on a carriageway: 780.
 - Tunnel mouths within 14 m of OpenStreetMap's nodes (Broadway east is that far inside);
@@ -97,7 +99,7 @@ index only anchors captures taken from its own vantage. See `docs/07-status.md`.
 
 ```bash
 make install-dev
-make check                                   # lint + 747 tests
+make check                                   # lint + 748 tests
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
 python tools/build_pages.py --map-only --out ../Curb-measurements/docs   # publish the map
 ```

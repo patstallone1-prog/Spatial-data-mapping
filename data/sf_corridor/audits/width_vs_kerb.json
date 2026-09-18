@@ -43,6 +43,8 @@
  "crosswalkLegsAttachedShare": 0.998,
  "crosswalkWholeSpanFallback": 11,
  "crosswalkSplitForIslands": 27,
+ "crosswalkStandInsLaid": 382,
+ "crosswalkMappedSuppressedByStandIn": 0,
  "footwayKeptShare": 0.915,
  "kerbsideBareShare": 0.025,
  "roadThroughFacade": 96,

@@ -132,8 +132,17 @@ def _run_crossing(js_body: str) -> dict:
         "crossingRectanglePoints",
         "sidewalkCrossingReplacementSpans",
         "trimWalkwayForCorners",
+        "crossingDrawPose",
+        "crossingBearingDifference",
+        "indexMappedCrossing",
+        "nearMappedCrossing",
     )
-    parts = [PREAMBLE]
+    parts = [PREAMBLE, """
+    const CROSSING_DEDUPE_CELL_M = 4.0;
+    const MAPPED_CROSSING_YIELD_M = 6.0;
+    const MAPPED_CROSSING_YIELD_DEG = 30.0;
+    const mappedCrossingGrid = new Map();
+    """]
     parts += [_extract(name, js) for name in functions]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
@@ -382,6 +391,36 @@ console.log(JSON.stringify({
     assert result["spans"] == 1, result
     assert abs(result["pts"][0][0] - result["pts"][1][0]) < 0.05, result
     assert 9.6 <= result["len"] <= 10.4, result
+
+
+def test_a_sidewalk_stand_in_crossing_yields_to_the_mapped_one() -> None:
+    """OpenStreetMap draws many sidewalks straight through a junction; where one crosses the
+    road with no crossing way of its own, a plain two-line crossing stands in for it. Sidewalks
+    are laid before crossings, and the stand-in used to claim the spot first, so at Grant and
+    Clay two of the city's four continental crossings were thrown out as duplicates of a pair
+    of lines drawn 2 m inside the box. A mapped crossing within MAPPED_CROSSING_YIELD_M,
+    running the same way, means no stand-in; one across the other street does not."""
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
+// The city's crossing, 3 m along the street from where the sidewalk line crosses.
+indexMappedCrossing([asLonLat(3, -5), asLonLat(3, 5)]);
+// And one on the cross street, running the other way, right where the sidewalk crosses.
+indexMappedCrossing([asLonLat(-5, 0), asLonLat(5, 0)]);
+const standIn = [asLonLat(0, -5), asLonLat(0, 5)];
+const farAway = [asLonLat(12, -5), asLonLat(12, 5)];
+console.log(JSON.stringify({
+  yields: nearMappedCrossing(standIn),
+  farAwayYields: nearMappedCrossing(farAway),
+}));
+""")
+    assert result["yields"] is True, result
+    assert result["farAwayYields"] is False, result
+    js = _page_js()
+    # Indexed before any way is drawn, and asked before the stand-in is laid.
+    assert js.index("indexMappedCrossing(span);") < js.index("const DRAW_ORDER = DATA.ways")
+    replacements = _extract("addSidewalkCrossingReplacements", js)
+    assert "if (nearMappedCrossing(span)) continue;" in replacements
 
 
 def test_intersection_sidewalk_cutback_is_property_edge_plus_three_metres() -> None:

@@ -3454,9 +3454,9 @@ function crossingBearingDifference(a, b) {
   return diff;
 }
 
-function shouldDrawCrossing(points, width) {
-  const pose = crossingDrawPose(points);
-  if (!pose) return false;
+function crossingDrawConflict(pose, width) {
+  // The crossing already drawn that this one would double, or null. A query only: nothing is
+  // registered, so the audit can ask the same question the draw loop asks.
   const cx = Math.floor(pose.x / CROSSING_DEDUPE_CELL_M);
   const cz = Math.floor(pose.z / CROSSING_DEDUPE_CELL_M);
   const angleLimit = (CROSSING_DEDUPE_ANGLE_DEG * Math.PI) / 180;
@@ -3468,15 +3468,64 @@ function shouldDrawCrossing(points, width) {
       for (const other of bucket) {
         if (Math.hypot(other.x - pose.x, other.z - pose.z) > distanceLimit) continue;
         if (crossingBearingDifference(other.bearing, pose.bearing) > angleLimit) continue;
-        return false;
+        return other;
       }
     }
   }
-  const key = `${cx}:${cz}`;
+  return null;
+}
+
+function shouldDrawCrossing(points, width, tag = null) {
+  const pose = crossingDrawPose(points);
+  if (!pose) return false;
+  if (crossingDrawConflict(pose, width)) return false;
+  if (tag) pose.tag = tag;
+  const key = `${Math.floor(pose.x / CROSSING_DEDUPE_CELL_M)}:${Math.floor(pose.z / CROSSING_DEDUPE_CELL_M)}`;
   let bucket = crossingDrawGrid.get(key);
   if (!bucket) crossingDrawGrid.set(key, bucket = []);
   bucket.push(pose);
   return true;
+}
+
+//: A sidewalk that OpenStreetMap draws straight through a junction gets a plain two-line
+//: crossing where it crosses the road -- unless the junction already has a mapped crossing
+//: there. Sidewalks are laid before crossings, so the stand-in used to claim the spot first and
+//: the city's continental crossing was then thrown out as its duplicate (Grant and Clay: two
+//: ladders from the inventory drawn, two replaced by lines 2 m inside the box). The mapped
+//: crossings are indexed before anything is drawn and a stand-in within this distance of one,
+//: running the same way, is not laid at all.
+const MAPPED_CROSSING_YIELD_M = 6.0;
+const MAPPED_CROSSING_YIELD_DEG = 30.0;
+const mappedCrossingGrid = new Map();
+
+function indexMappedCrossing(points) {
+  const pose = crossingDrawPose(points);
+  if (!pose) return;
+  const key = `${Math.floor(pose.x / CROSSING_DEDUPE_CELL_M)}:${Math.floor(pose.z / CROSSING_DEDUPE_CELL_M)}`;
+  let bucket = mappedCrossingGrid.get(key);
+  if (!bucket) mappedCrossingGrid.set(key, bucket = []);
+  bucket.push(pose);
+}
+
+function nearMappedCrossing(points) {
+  const pose = crossingDrawPose(points);
+  if (!pose) return false;
+  const cx = Math.floor(pose.x / CROSSING_DEDUPE_CELL_M);
+  const cz = Math.floor(pose.z / CROSSING_DEDUPE_CELL_M);
+  const cells = Math.ceil(MAPPED_CROSSING_YIELD_M / CROSSING_DEDUPE_CELL_M);
+  const angleLimit = (MAPPED_CROSSING_YIELD_DEG * Math.PI) / 180;
+  for (let dx = -cells; dx <= cells; dx += 1) {
+    for (let dz = -cells; dz <= cells; dz += 1) {
+      const bucket = mappedCrossingGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const other of bucket) {
+        if (Math.hypot(other.x - pose.x, other.z - pose.z) > MAPPED_CROSSING_YIELD_M) continue;
+        if (crossingBearingDifference(other.bearing, pose.bearing) > angleLimit) continue;
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function arrowTexture(kind) {
@@ -7909,7 +7958,8 @@ function addSidewalkCrossingReplacements(points, y) {
   const crossingWidth = 3.7;
   let added = 0;
   for (const span of sidewalkCrossingReplacementSpans(points, crossingWidth)) {
-    if (!shouldDrawCrossing(span, crossingWidth)) continue;
+    if (nearMappedCrossing(span)) continue;
+    if (!shouldDrawCrossing(span, crossingWidth, "stand-in")) continue;
     addMerged("ribbon:sidewalk-crossing-replacement",
       ribbon(span, crossingWidth, 0xffffff, 1.0, y, 0.02, "crossing_edges"),
       "crossing_edges");
@@ -11295,6 +11345,7 @@ for (const way of DATA.ways) {
   if (wayLength(way.points) > 40) continue;
   const span = crossingRectanglePoints(way.points);
   if (!span || span.length < 2) continue;
+  indexMappedCrossing(span);
   const crossingWidth = way.crossing_m || 3.7;
   addCrossingAsphaltBackstop(span, crossingWidth, ROAD_TOP_M);
 }

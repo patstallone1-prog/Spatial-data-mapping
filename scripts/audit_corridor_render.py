@@ -78,6 +78,13 @@ FUNCTIONS = (
     "crossingPaintLegs",
     "crossingRoadSpanPoints",
     "crossingRectanglePoints",
+    "sidewalkCrossingReplacementSpans",
+    "crossingDrawPose",
+    "crossingBearingDifference",
+    "crossingDrawConflict",
+    "shouldDrawCrossing",
+    "indexMappedCrossing",
+    "nearMappedCrossing",
     "pavementRunsOutsideCarriageway",
     "mappedWalkNear",
     "kerbsideBlockedAt",
@@ -141,6 +148,12 @@ const officialIslandCurbGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
 const CROSSING_STEP_M = 0.25;
+const CROSSING_DEDUPE_CELL_M = 4.0;
+const CROSSING_DEDUPE_ANGLE_DEG = 12.0;
+const crossingDrawGrid = new Map();
+const MAPPED_CROSSING_YIELD_M = 6.0;
+const MAPPED_CROSSING_YIELD_DEG = 30.0;
+const mappedCrossingGrid = new Map();
 const bbox = DATA.bbox;
 const midLat = (bbox.south + bbox.north) / 2;
 const midLon = (bbox.west + bbox.east) / 2;
@@ -463,6 +476,44 @@ for (const way of DATA.ways) {
   // separately rather than mislabelling a correct corner crossing as detached.
   if (aInside && bInside) crossingKerbAttached += 1;
   if (aInside && bInside && !aOutside && !bOutside) crossingUnionBoundary += 1;
+  indexMappedCrossing(span);
+}
+
+// -- sidewalks drawn through a junction: the plain stand-in crossing they get, and whether it
+// would have taken the place of a mapped crossing. The page lays sidewalks before crossings,
+// so a stand-in that does not yield claims the spot and the city's crossing is thrown out as
+// its duplicate. Laid here in the page's order: every stand-in that survives is registered,
+// then every mapped crossing is asked whether it would still draw.
+let standIns = 0;
+let standInsYielding = 0;
+let standInsLaid = 0;
+for (const way of DATA.ways) {
+  if ((way.kind !== "sidewalk" && way.kind !== "path") || !way.points || way.points.length < 2) continue;
+  for (const span of sidewalkCrossingReplacementSpans(densifyWay(way.points), 3.7)) {
+    standIns += 1;
+    if (nearMappedCrossing(span)) { standInsYielding += 1; continue; }
+    if (shouldDrawCrossing(span, 3.7, "stand-in")) standInsLaid += 1;
+  }
+}
+let mappedSuppressedByStandIn = 0;
+const suppressedExamples = [];
+// A mapped crossing that OpenStreetMap drew twice is a duplicate of itself, which is the
+// dedupe doing its job; only a conflict with a stand-in counts here.
+for (const way of DATA.ways) {
+  if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
+  if (wayLength(way.points) > 40) continue;
+  const span = crossingRectanglePoints(way.points);
+  if (!span || span.length < 2) continue;
+  const pose = crossingDrawPose(span);
+  const conflict = pose && crossingDrawConflict(pose, way.crossing_m || 3.7);
+  if (conflict && conflict.tag === "stand-in") {
+    mappedSuppressedByStandIn += 1;
+    if (suppressedExamples.length < 6) {
+      suppressedExamples.push({osmId: way.osm_id,
+        at: [+((span[0][0] + span[1][0]) / 2).toFixed(6),
+             +((span[0][1] + span[1][1]) / 2).toFixed(6)]});
+    }
+  }
 }
 
 // -- ground cover standing on the roadway ---------------------------------------------------
@@ -614,6 +665,12 @@ console.log(JSON.stringify({
     splitForIslands: crossingSplitForIslands,
     splitExamples: crossingSplitExamples,
     meanLengthM: +(crossingLengthM / Math.max(crossingRendered, 1)).toFixed(2),
+    // Sidewalk stand-ins, and the mapped crossings one would have displaced.
+    standIns,
+    standInsYielding,
+    standInsLaid,
+    mappedSuppressedByStandIn,
+    suppressedExamples,
   },
   widthVsKerb: widthReport,
   footway: {
@@ -689,6 +746,8 @@ def baseline_from(report: dict, previous: dict) -> dict:
         "crosswalkLegsAttachedShare": crosswalk["legsAttachedShare"],
         "crosswalkWholeSpanFallback": crosswalk["wholeSpanFallback"],
         "crosswalkSplitForIslands": crosswalk["splitForIslands"],
+        "crosswalkStandInsLaid": crosswalk["standInsLaid"],
+        "crosswalkMappedSuppressedByStandIn": crosswalk["mappedSuppressedByStandIn"],
         "footwayKeptShare": report["footway"]["keptShare"],
         "kerbsideBareShare": report["kerbside"]["share"],
         "roadThroughFacade": width["buildings"]["roadThroughFacade"],
