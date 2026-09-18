@@ -125,7 +125,9 @@ def test_official_signs_and_curb_zone_bands_render_from_geometry_based_sidecar()
     assert "col.setXYZ(i, best[4], best[5], best[6]);" in source
     # No separate band surface any more: the kerb tile carries the colour.
     assert "official_curb_zone:${bucket.colorName}" not in source
-    assert "curb_zone_bands: addOfficialCurbZoneBands(official.curb_zones || [])" in source
+    # The paint inventory first, then the policy zones that are paint by definition.
+    assert 'curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || []))' in source
+    assert "function colorCurbRecordLines(record)" in source
 
 
 def test_crosswalks_dedupe_same_direction_overlaps_only() -> None:
@@ -739,16 +741,21 @@ def test_explicit_unmarked_crossing_stays_unpainted() -> None:
     assert "if (!isCrossing || surfaceKind)" in source
 
 
-def test_only_road_tunnels_get_a_mouth_and_the_mouth_is_as_tall_as_the_lidar_says() -> None:
-    """Seventy-five ways are tagged tunnel=yes; three are road tunnels. The rest are bus ramps
-    and car park entrances going underground, and they were drawn as 150 portals."""
+def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill_starts() -> None:
+    """Seventy-five ways are tagged tunnel=yes. The lidar profile along each says which are
+    bores through a hill (Broadway, Stockton), which pass under a building (1st Street beneath
+    the transit centre) and which are ramps going underground; and it puts each mouth where
+    the ground first stands over the road, not where OpenStreetMap ended the way."""
     namespace = runpy.run_path(str(SOURCE))
     classify = namespace["classify_tunnels"]
     long = [[-122.41, 37.79], [-122.404, 37.79]]          # ~530 m
     ways = [
         {"kind": "street", "name": "Stockton Tunnel", "highway": "tertiary", "tunnel": True,
          "points": [[-122.407148, 37.790283], [-122.407648, 37.792749]]},
-        {"kind": "street", "name": "Broadway", "highway": "primary", "tunnel": True, "points": long},
+        {"kind": "street", "name": "Broadway", "highway": "primary", "tunnel": True,
+         "points": [[-122.411287, 37.797265], [-122.417852, 37.796413]]},
+        {"kind": "street", "name": "1st Street", "highway": "secondary", "tunnel": True,
+         "points": [[-122.397043, 37.789352], [-122.396607, 37.789004]]},
         {"kind": "street", "name": None, "highway": "busway", "tunnel": True, "points": long},
         {"kind": "street", "name": None, "highway": "service", "tunnel": True, "points": long},
         {"kind": "street", "name": "Fremont Street", "highway": "secondary", "tunnel": True,
@@ -757,26 +764,41 @@ def test_only_road_tunnels_get_a_mouth_and_the_mouth_is_as_tall_as_the_lidar_say
     ]
     counts = classify(ways)
     kinds = [w.get("tunnel_kind") for w in ways]
-    assert kinds == ["road", "road", "underground", "underground", "underground", None], kinds
-    assert counts["underground ramp"] == 3
-    # Stockton's portals were measured off the lidar and travel with the way.
-    portal = ways[0].get("tunnel_portal")
-    assert portal and 7.0 < portal["start"] < 9.5 and 7.0 < portal["end"] < 9.5, portal
-    assert ways[0]["tunnel_length_m"] > 250
+    assert kinds == ["road", "road", "underpass", "underground", "underground", "underground", None], kinds
+    assert counts["underground ramp"] == 3 and counts["underpass beneath a building"] == 1
+    # Stockton: both mouths within a few metres of the nodes, 276 m of hill between them.
+    stockton = ways[0]
+    assert 270 < stockton["tunnel_length_m"] < 280, stockton["tunnel_length_m"]
+    assert set(stockton["tunnel_mouths"]) == {"start", "end"}
+    portal = stockton["tunnel_portal"]
+    assert 7.0 < portal["start"] < 9.5 and 7.0 < portal["end"] < 9.5, portal
+    assert len(stockton["tunnel_cover"]) > 50 and all(c > 5 for _, c in stockton["tunnel_cover"])
+    # Broadway: the east mouth is inside the way, past the open approach at Mason.
+    broadway = ways[1]
+    assert 540 < broadway["tunnel_length_m"] < 570, broadway["tunnel_length_m"]
+    assert broadway["tunnel_mouths"]["start"][0] < -122.4113, broadway["tunnel_mouths"]
     source = _source()
-    assert "const runs = isRoadTunnel(way) ? tunnelStubs(way.points) : [way.points];" in source
-    assert "if (isUndergroundWay(way)) continue;" in source
-    assert 'const H = Math.max(TUNNEL_CROWN_M + TUNNEL_SHELL_M + 0.5, measured[label] || 0);' in source
-    assert "group.userData.tunnelLengthM = Number(way.tunnel_length_m || wayLength(renderPoints));" in source
-    assert "group.userData.mouthCount = ends.length;" in source
-    assert 'const ends = stubs.length === 2 ? [["start", stubs[0]], ["end", stubs[1]]]' in source
+    # One headwall design at both ends; the hill behind it is what the lidar measured.
+    assert "const H = TUNNEL_CROWN_M + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;" in source
+    assert "const cover = Math.max(H, measured[label] || 0);" in source
+    # The portal is as wide as the city's kerbs on the approach; over sixteen metres, two bores.
+    assert "function tunnelApproachWidth(mouth, outward)" in source
+    assert "const bores = width > TUNNEL_TWIN_MIN_M ? 2 : 1;" in source
+    # The dark wall is seen from both sides, and the bore stops short of the surface network.
+    assert "const dark = new THREE.MeshStandardMaterial({ color: 0x08090a, roughness: 1.0, metalness: 0.0,\n                                                side: THREE.DoubleSide });" in source
+    assert "function tunnelClearRun(way, mouth, inward)" in source
+    # An underpass is a street to everything else.
+    assert 'function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }' in source
+    # Buildings, trees and posts on the hill over a mouth stand on the hill.
+    assert "const hillLift = tunnelCoverIndex.length ? tunnelCoverAt(liftX, -liftY) : 0;" in source
     if PAGE_DATA.exists():
         deployed = json.loads(PAGE_DATA.read_text(encoding="utf-8"))
-        road_tunnels = [way for way in deployed["ways"] if way.get("tunnel_kind") == "road"]
-        assert {way.get("name") for way in road_tunnels} == {
-            "Broadway", "1st Street", "Stockton Tunnel"
-        }
-        assert all(way.get("tunnel_length_m", 0) > 40 for way in road_tunnels)
+        by_kind = {}
+        for way in deployed["ways"]:
+            if way.get("tunnel_kind"):
+                by_kind.setdefault(way["tunnel_kind"], set()).add(way.get("name"))
+        assert by_kind["road"] == {"Broadway", "Stockton Tunnel"}, by_kind
+        assert by_kind["underpass"] == {"1st Street"}, by_kind
 
 
 def test_stone_walls_are_cooler_and_darker_than_sidewalk_concrete() -> None:

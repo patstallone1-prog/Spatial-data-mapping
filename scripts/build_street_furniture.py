@@ -348,31 +348,52 @@ def official_sign_kind(props: dict[str, Any]) -> str | None:
     return "regulatory" if category or legend or code else None
 
 
-def curb_color(props: dict[str, Any]) -> str | None:
-    text = " ".join(
-        str(props.get(key) or "")
-        for key in (
-            "POLICY_CATEGORY",
-            "POLICY_SUB_CATEGORY",
-            "POLICY_SUPER_CATEGORY",
-            "CZ_PRIMARY_CURB_POLICY",
-            "ZONE_TYPE",
-            "LABEL",
-        )
-    ).lower()
-    if "accessible" in text or "blue zone" in text:
-        return "blue"
-    if "commercial loading" in text or "six wheeled" in text or "6-wheel" in text or "yellow zone" in text:
-        return "yellow"
-    if "passenger loading" in text or "whitezone" in text or "white zone" in text:
-        return "white"
-    if "short term" in text or "green zone" in text:
-        return "green"
-    if "transit vehicle loading" in text or "munizone" in text:
+def curb_zone_color(props: dict[str, Any]) -> str | None:
+    """The paint a curb policy zone is, or None for a policy that is signed rather than painted.
+
+    Paint is a small set of policies. "No Parking Some Time" is a street-cleaning sign on a
+    post -- 7,549 whole block faces in this corridor were being painted red for it, which
+    put red under two fifths of every kerb in the model -- and "Crosswalk" and "Driveway" are
+    curb cuts, not colour. "No Parking Anytime" is the short red zone at a corner or a hydrant
+    (median 3 m); the transit and loading policies are the red, yellow and white zones they
+    say they are; accessible is blue; short term is green.
+    """
+    category = str(props.get("POLICY_CATEGORY") or "").lower()
+    if category in ("transit vehicle loading", "no stopping", "no parking anytime"):
         return "red"
-    if "no parking" in text or "driveway red" in text or "crosswalk" in text:
+    if category in ("commercial loading", "six wheeled truck loading"):
+        return "yellow"
+    if category in ("passenger loading", "general loading", "taxi stand", "tour bus loading",
+                    "commuter shuttle loading"):
+        return "white"
+    if category in ("accessible parking", "accessible passenger loading"):
+        return "blue"
+    if category in ("short term parking",):
+        return "green"
+    return None
+
+
+def color_curb_color(props: dict[str, Any]) -> str | None:
+    """The colour of a Color Curb Program asset, from its zone type: what is actually painted."""
+    text = str(props.get("ZONE_TYPE") or "").lower()
+    if "blue" in text or "disabled" in text:
+        return "blue"
+    if "yellow" in text or "commercial loading" in text or "6-wheel" in text:
+        return "yellow"
+    if "green" in text:
+        return "green"
+    if "white" in text or "passenger" in text or "taxi" in text or "bus loading" in text:
+        return "white"
+    if "red" in text:
         return "red"
     return None
+
+
+def curb_color(props: dict[str, Any]) -> str | None:
+    """Either kind of record, by whichever fields it carries."""
+    if props.get("ZONE_TYPE"):
+        return color_curb_color(props)
+    return curb_zone_color(props)
 
 
 def records_from_official(
@@ -474,7 +495,7 @@ def records_from_official(
     for feature in features_by_layer.get("sfmta_curb_zones", []):
         props = feature.get("properties") or {}
         lines = [line for line in geojson_lines(feature) if len(line) >= 2]
-        color = curb_color(props)
+        color = curb_zone_color(props)
         if not lines or not color:
             continue
         out["curb_zones"].append({
@@ -498,7 +519,7 @@ def records_from_official(
     for feature in features_by_layer.get("sfmta_color_curbs", []):
         props = feature.get("properties") or {}
         point = geojson_point(feature)
-        color = curb_color(props)
+        color = color_curb_color(props)
         if not point or not color:
             continue
         out["color_curbs"].append({

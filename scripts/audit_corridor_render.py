@@ -49,6 +49,8 @@ FUNCTIONS = (
     "clampRoadWidthsToNeighbours",
     "renderedWalkWidth",
     "sameLevel",
+    "isRoadTunnel",
+    "isTunnelWay",
     "isDividedHalf",
     "dividedHalfWidth",
     "envelopeEdgesAt",

@@ -520,6 +520,7 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     const NEIGHBOUR_PARALLEL_DEG = 30;
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
+    function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
     """]
     parts += [_extract(name, js) for name in functions]
     parts.append("""
@@ -769,7 +770,7 @@ def test_no_sidewalk_is_believed_only_where_one_is_mapped_instead() -> None:
     # A side the tag excludes is still drawn when nothing is mapped along it.
     assert "if (!sampled || covered < sampled * 0.5) drawn.push(side);" in body
     # A driveway or a parking aisle has no footway of its own, and no paint down its middle.
-    assert "if (isUnmarkedService(way) || way._junctionInternal || way.tunnel_kind) return drawn;" in body
+    assert "if (isUnmarkedService(way) || way._junctionInternal || isTunnelWay(way)) return drawn;" in body
     assert "if (!isSidewalk && !isCrossing && !isPath && !isUnmarkedService(way)) {" in js
 
 
@@ -855,6 +856,7 @@ const MAX_INFERRED_ROAD_M = 16.5;
 const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
 const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
+function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
 const BIKE_LANE_M = 1.75;
 const BIKE_JOIN_M = 2.5;
@@ -1640,6 +1642,7 @@ const JUNCTION_BOX_CELL_M = 30;
 const cornerLegs = [];
 const junctionBoxHulls = [];
 const junctionBoxGrid = new Map();
+function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
 const BULB_MIN_M = 0.5;
 const BULB_MAX_M = 5.0;
 const BULB_RETURN_M = 6.0;
@@ -1830,6 +1833,7 @@ def test_lanes_are_only_guessed_for_a_street_with_a_name() -> None:
     const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
+    function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
     function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
     """]
     parts += [_extract(name, js) for name in ("laneCountForWay", "nominalRoadWidth",
@@ -1871,6 +1875,7 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
+    function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
     function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
     const RECENTRE_END_MARGIN_M = 8.0;
     const RECENTRE_STATION_M = 4.0;

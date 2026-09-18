@@ -137,3 +137,50 @@ def test_official_curb_zone_lines_keep_color_policy_and_geometry() -> None:
     assert zone["curb_color"] == "yellow"
     assert zone["lines"] == [[[-122.4169, 37.79], [-122.4168, 37.7901]]]
     assert zone["geometry_basis"] == "official_digital_curb_polyline"
+
+
+def test_curb_paint_is_paint_not_signage() -> None:
+    """Two fifths of every kerb in the corridor was red because "No Parking Some Time" -- a
+    street-cleaning sign on a post -- and "Crosswalk", a curb cut, were painted. Paint is the
+    policies that are painted: the loading zones, the short no-parking-anytime zone at a
+    corner, accessible, short term. Green comes from the Color Curb Program's own inventory,
+    which is now rendered as well; it appeared nowhere else."""
+    module = _module()
+    color_curb_color, curb_zone_color = module.color_curb_color, module.curb_zone_color
+
+    assert curb_zone_color({"POLICY_CATEGORY": "No Parking Some Time"}) is None
+    assert curb_zone_color({"POLICY_CATEGORY": "Crosswalk"}) is None
+    assert curb_zone_color({"POLICY_CATEGORY": "Driveway"}) is None
+    assert curb_zone_color({"POLICY_CATEGORY": "General Parking"}) is None
+    assert curb_zone_color({"POLICY_CATEGORY": "No Parking Anytime"}) == "red"
+    assert curb_zone_color({"POLICY_CATEGORY": "Transit Vehicle Loading"}) == "red"
+    assert curb_zone_color({"POLICY_CATEGORY": "Commercial Loading"}) == "yellow"
+    assert curb_zone_color({"POLICY_CATEGORY": "Passenger Loading"}) == "white"
+    assert curb_zone_color({"POLICY_CATEGORY": "Accessible Parking"}) == "blue"
+    assert curb_zone_color({"POLICY_CATEGORY": "Short Term Parking"}) == "green"
+    assert color_curb_color({"ZONE_TYPE": "Green Zone/Short Term Parking"}) == "green"
+    assert color_curb_color({"ZONE_TYPE": "Green Meter"}) == "green"
+    assert color_curb_color({"ZONE_TYPE": "Driveway Red Zone"}) == "red"
+    assert color_curb_color({"ZONE_TYPE": "Blue Zone/Disabled Parking"}) == "blue"
+    assert color_curb_color({"ZONE_TYPE": "Taxi Zone"}) == "white"
+    assert color_curb_color({"ZONE_TYPE": "6-Wheel Commercial Loading Zone"}) == "yellow"
+
+
+def test_the_published_curb_paint_is_all_five_colours_and_mostly_not_red() -> None:
+    """What ships: no signed policy painted, every colour present, the paint inventory in."""
+    import json
+
+    sidecar = ROOT / "docs" / "sf-corridor-furniture.json"
+    if not sidecar.exists():
+        return
+    official = json.loads(sidecar.read_text(encoding="utf-8"))["geometry_based"]
+    zones = official["curb_zones"]
+    assert not [z for z in zones if z.get("policy_category") in ("No Parking Some Time", "Crosswalk", "Driveway")]
+    colours = {}
+    for record in zones + official["color_curbs"]:
+        colours[record["curb_color"]] = colours.get(record["curb_color"], 0) + 1
+    assert set(colours) == {"red", "yellow", "white", "blue", "green"}, colours
+    assert colours["green"] >= 50, colours
+    # Red is the corner and hydrant zones, the transit stops and the driveway reds -- under
+    # two thirds of the painted records, where it was five sixths.
+    assert colours["red"] / sum(colours.values()) < 0.7, colours

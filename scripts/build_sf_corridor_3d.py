@@ -1133,15 +1133,17 @@ TUNNEL_PORTALS = ROOT / "data" / "sf_public_works" / "tunnel_portals.json"
 
 
 def classify_tunnels(ways: list[dict[str, Any]]) -> dict[str, int]:
-    """Say which tunnels are bores with a mouth and which are ramps under a building.
+    """Say what each ``tunnel=yes`` way is, from the lidar where it has been read.
 
-    Seventy-five ways in the corridor are tagged ``tunnel=yes``. Three are road tunnels --
-    Broadway, Stockton, the 1st Street ramp -- and the rest are the Transbay bus ramps under
-    the transit centre and car park entrances going underground. All seventy-five were being
-    drawn as a lining and two headwalls at the surface, 150 portals in a city with six. A
-    road tunnel is ``tunnel_kind="road"`` and carries the heights of its portals as measured
-    from the lidar (scripts/measure_tunnel_portals.py); anything else is ``"underground"``
-    and is not drawn at the surface at all.
+    Seventy-five ways in the corridor are tagged ``tunnel=yes``. Road class and length used to
+    decide which were bores with a mouth, which put two stone headwalls on 1st Street where
+    it merely passes under the Transbay transit centre. Now the lidar profile along each
+    candidate (scripts/measure_tunnel_portals.py) says: a ``bore`` has hill over it and gets
+    ``tunnel_kind="road"`` with its two mouths where the ground first stands over the road,
+    its covered length, the cover profile along it and each end's headwall; an
+    ``underpass`` has a building over it and no ground at all, and is drawn as the street it
+    is; anything the lidar read as open, or never read, is ``"underground"`` -- the Transbay
+    bus ramps, car park entrances -- and is not drawn at the surface.
     """
     portals: dict[str, dict] = {}
     if TUNNEL_PORTALS.exists():
@@ -1153,22 +1155,31 @@ def classify_tunnels(ways: list[dict[str, Any]]) -> dict[str, int]:
         points = way.get("points") or []
         length = sum(math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
                      for a, b in zip(points[:-1], points[1:], strict=True))
-        if way.get("highway") in ROAD_TUNNEL_CLASSES and length >= MIN_ROAD_TUNNEL_M:
+        key = str(way.get("osm_id") or f"{way.get('name')}:{points[0]}")
+        measured = portals.get(key) or {}
+        kind = measured.get("kind")
+        if kind == "underpass":
+            way["tunnel_kind"] = "underpass"
+            counts["underpass beneath a building"] += 1
+            continue
+        if kind == "bore" or (not measured and way.get("highway") in ROAD_TUNNEL_CLASSES
+                              and length >= MIN_ROAD_TUNNEL_M):
             way["tunnel_kind"] = "road"
-            # Keep the full mapped centreline length even though only the two visible portal
-            # galleries are rendered above ground. This makes both mouths views of one tunnel,
-            # rather than two unrelated decorative stubs with no retained extent.
             way["tunnel_length_m"] = round(length, 2)
-            key = str(way.get("osm_id") or f"{way.get('name')}:{points[0]}")
-            measured = portals.get(key) or {}
-            heights = {}
-            for end in ("start", "end"):
-                reading = measured.get(end) or {}
-                if reading.get("headwall_m") is not None:
-                    heights[end] = reading["headwall_m"]
-            if heights:
-                way["tunnel_portal"] = heights
-                counts["road tunnel with measured portals"] += 1
+            if measured:
+                way["tunnel_length_m"] = measured.get("covered_length_m") or round(length, 2)
+                way["tunnel_mouths"] = {
+                    end: measured[end]["p"] for end in ("start", "end") if measured.get(end)
+                }
+                heights = {end: measured[end]["headwall_m"] for end in ("start", "end")
+                           if measured.get(end) and measured[end].get("headwall_m") is not None}
+                if heights:
+                    way["tunnel_portal"] = heights
+                # Cover along the bore, metres of hill over the road every few metres from
+                # the first mouth, for the buildings that stand on that hill.
+                way["tunnel_cover"] = [[round(s - measured["start"]["s"], 1), c]
+                                       for s, c in measured.get("cover", []) if c is not None]
+                counts["road tunnel measured from the lidar"] += 1
             else:
                 counts["road tunnel with default portals"] += 1
         else:
@@ -4777,6 +4788,10 @@ function isUnmarkedService(way) { return UNMARKED_SERVICE.has(way.service); }
 //: mouth at each end, and that is what is drawn of it.
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
+//: A street beneath a building -- 1st Street under the Transbay transit centre -- is a street:
+//: it has kerbs, pavement and corners, and nothing at its ends. Only a bore through a hill or
+//: a ramp going underground is a tunnel to the rest of the model.
+function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
 //: How far into the hill a road tunnel's bore is drawn from each mouth before it goes dark:
 //: the portal gallery. Looking in from the street this is what is lit; the rest is under the
 //: hill, where the camera cannot go, and the model is flat, so it is not drawn -- and the
@@ -4784,6 +4799,9 @@ function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
 //: same level, which is the flat model's limit. Declared here because the carriageway grid,
 //: built long before the tunnels are drawn, keeps only these stubs.
 const TUNNEL_STUB_M = 9.0;
+//: The bore is drawn this far in from the mouth at most; less where a surface street crosses
+//: over it sooner, since the flat model draws that street at the bore's own level.
+const TUNNEL_STUB_MAX_M = 30.0;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
 const MIN_RENDER_WALK_M = 0.9;
@@ -4862,7 +4880,7 @@ function segmentRunsAlongside(px, pz, bearing, other) {
 //: Two ways are on the same level when neither is under or over the other: same OpenStreetMap
 //: layer, and both tunnels or neither.
 function sameLevel(a, b) {
-  return (a.layer || 0) === (b.layer || 0) && Boolean(a.tunnel_kind) === Boolean(b.tunnel_kind)
+  return (a.layer || 0) === (b.layer || 0) && isTunnelWay(a) === isTunnelWay(b)
     && Boolean(a.bridge) === Boolean(b.bridge);
 }
 
@@ -5244,7 +5262,7 @@ function recentreStreetsOnOfficialKerbs(ways) {
   let widened = 0;
   for (const way of ways) {
     if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
-    if (isUnmarkedService(way) || way.tunnel_kind) continue;
+    if (isUnmarkedService(way) || isTunnelWay(way)) continue;
     const before = way.road_source;
     if (!recentreOnKerbEnvelope(way)) continue;
     if (way.recentred_m) moved += 1;
@@ -5276,7 +5294,7 @@ function inheritRecentring(ways) {
   let inherited = 0;
   for (const way of ways) {
     if (way.kind !== "street" || !way.points || way.points.length < 2 || way._shift) continue;
-    if (isUnmarkedService(way) || way.tunnel_kind || !way.name) continue;
+    if (isUnmarkedService(way) || isTunnelWay(way) || !way.name) continue;
     const n = way.points.length;
     const found = [];
     for (const [end, next] of [[0, 1], [n - 1, n - 2]]) {
@@ -5327,7 +5345,7 @@ for (const way of DATA.ways) {
   const half = renderedRoadWidth(way) / 2;
   // A road tunnel is roadway only at its two mouths; between them it is under the hill, and
   // the streets on the hill cross its line with their pavements intact.
-  const runs = isRoadTunnel(way) ? tunnelStubs(way.points) : [way.points];
+  const runs = isRoadTunnel(way) ? tunnelStubs(tunnelCoveredPoints(way, way.points)) : [way.points];
   for (const run of runs) {
     const along = way._spans ? alongDistances(run) : null;
     for (let i = 1; i < run.length; i += 1) {
@@ -5690,7 +5708,7 @@ function walkSidesToDraw(way, renderPoints, inner) {
   // Both sides unless OpenStreetMap says otherwise and the ground agrees with it.
   const stated = way.walk_sides;
   const drawn = [];
-  if (isUnmarkedService(way) || way._junctionInternal || way.tunnel_kind) return drawn;
+  if (isUnmarkedService(way) || way._junctionInternal || isTunnelWay(way)) return drawn;
   for (const side of [1, -1]) {
     if (stated === undefined) {
       drawn.push(side);
@@ -5987,7 +6005,7 @@ function indexBulbOuts(ways) {
   let found = 0;
   for (const way of ways) {
     if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
-    if (isUnmarkedService(way) || way.tunnel_kind) continue;
+    if (isUnmarkedService(way) || isTunnelWay(way)) continue;
     const inner = renderedRoadWidth(way) / 2;
     const dense = densifyWay(way.points, BULB_STATION_M);
     const length = wayLength(way.points);
@@ -6160,7 +6178,7 @@ function indexPavementCorners(ways) {
     if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
     // A driveway has no pavement of its own; the street's runs across its mouth as an apron.
     // A tunnel's pavement is inside the hill.
-    if (isUnmarkedService(way) || way.tunnel_kind) continue;
+    if (isUnmarkedService(way) || isTunnelWay(way)) continue;
     const n = way.points.length;
     const walk = renderedWalkWidth(way, 4.0);
     const length = wayLength(way.points);
@@ -9904,6 +9922,12 @@ function buildingMesh(feature) {
     depth: height, bevelEnabled: false, UVGenerator: FACADE_UV,
   });
   geom.rotateX(-Math.PI / 2);
+  // A building over a tunnel stands on the hill the tunnel goes through, at the height the
+  // lidar measured the ground there; drawn on the roadway it filled the mouth.
+  const [liftX, liftY] = xy(feature.centroid ? feature.centroid[0] : feature.points[0][0],
+                            feature.centroid ? feature.centroid[1] : feature.points[0][1]);
+  const hillLift = tunnelCoverIndex.length ? tunnelCoverAt(liftX, -liftY) : 0;
+  if (hillLift > 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
   const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
     || feature.height_source === "overture_height";
   const material = pickMaterial(seed, height, feature.archetype);
@@ -9981,6 +10005,7 @@ function buildingMesh(feature) {
   // What that costs is the ability to raycast a building and get the building. Picking is done
   // against the footprints instead, which is better anyway: it works when you click the roof.
   const group = new THREE.Group();
+  if (hillLift > 0) { group.position.y = hillLift; group.userData.hillLiftM = feature._hillLiftM; }
   const capColour = new THREE.Color(roofTint.getHex());
   const wallColour = new THREE.Color(tint);
   roof.color.setHex(0xffffff);
@@ -10342,7 +10367,27 @@ const TUNNEL_CROWN_M = 6.4;         // road surface to the crown of the arch
 const TUNNEL_WALL_M = 4.2;          // the vertical wall before the arch springs
 const TUNNEL_SHELL_M = 0.6;         // the lining's thickness
 const TUNNEL_PORTAL_DEPTH_M = 1.4;  // the headwall at each mouth
-const TUNNEL_PORTAL_MARGIN_M = 4.0; // how far the headwall reaches past the bore each side
+const TUNNEL_PORTAL_MARGIN_M = 2.0; // how far the headwall reaches past the bore each side
+//: The headwall is a design: the arch, its lining and a parapet over it. The hill behind it is
+//: measured and stands as high as the lidar says; the headwall does not change height from
+//: one end of a tunnel to the other because the hill does.
+const TUNNEL_PARAPET_M = 1.2;
+//: A portal wider than this is two bores with a pier between them -- no road arch spans more
+//: -- and Broadway's is 24 m between its walls.
+const TUNNEL_TWIN_MIN_M = 16.0;
+const TUNNEL_PIER_M = 1.2;
+//: No single road bore is wider than this; Broadway's two are about ten metres each.
+const TUNNEL_BORE_MAX_M = 11.0;
+//: The bore's floor is a slab this thick, standing over everything the surface network draws
+//: at ground level along the tunnel's line: pavements, crossings, paint.
+const TUNNEL_FLOOR_M = 0.34;
+//: The portal's width is read off the city's kerb lines on the approach, this far outside the
+//: mouth, where the walls of the cut are.
+const TUNNEL_APPROACH_FROM_M = 4.0;
+const TUNNEL_APPROACH_TO_M = 30.0;
+//: Ground over a bore this near the tunnel's line is the hill it goes through; a building
+//: standing there stands on the hill, not on the road.
+const TUNNEL_HILL_HALF_EXTRA_M = 3.0;
 function tunnelStubs(points) {
   // The first and last TUNNEL_STUB_M of a tunnel way, from each mouth inward.
   const length = wayLength(points);
@@ -10369,66 +10414,199 @@ function tunnelArchShape(halfWidth, outer) {
   return shape;
 }
 
+//: How far along a polyline (metres) the point nearest to a lon/lat lies.
+function alongOfPoint(points, lonLat) {
+  const [px, py] = xy(lonLat[0], lonLat[1]);
+  let best = null;
+  let along = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    const [ax, ay] = xy(points[i - 1][0], points[i - 1][1]);
+    const [bx, by] = xy(points[i][0], points[i][1]);
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2)) : 0;
+    const d = Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+    if (best === null || d < best.d) best = { d, s: along + Math.sqrt(len2) * t };
+    along += Math.sqrt(len2);
+  }
+  return best ? best.s : 0;
+}
+
+//: The bore between the lidar's two mouths, as the piece of the way between them.
+function tunnelCoveredPoints(way, renderPoints) {
+  const mouths = way.tunnel_mouths || {};
+  const total = wayLength(renderPoints);
+  const from = mouths.start ? Math.max(0, alongOfPoint(renderPoints, mouths.start)) : 0;
+  const to = mouths.end ? Math.min(total, alongOfPoint(renderPoints, mouths.end)) : total;
+  if (to - from < 2 * TUNNEL_STUB_MAX_M * 0.3) return renderPoints;
+  return trimWayEnds(renderPoints, from, total - to);
+}
+
+//: The portal's width: the span between the city's kerb lines on the approach outside the
+//: mouth, where the retaining walls of the cut stand. Null where the city drew none.
+function tunnelApproachWidth(mouth, outward) {
+  if (!officialCurbGrid.size) return null;
+  const spans = [];
+  const ux = outward.x, uz = outward.z;
+  const nx = uz, nz = -ux;
+  for (let t = TUNNEL_APPROACH_FROM_M; t <= TUNNEL_APPROACH_TO_M; t += 2) {
+    const x = mouth.x + ux * t, z = mouth.z + uz * t;
+    const hits = rayCurbIntersections(x, z, nx, nz, 22, officialCurbGrid);
+    const a = hits.filter((v) => v < -1.2).pop();
+    const b = hits.find((v) => v > 1.2);
+    if (a === undefined || b === undefined || b - a > 40) continue;
+    spans.push(b - a);
+  }
+  if (spans.length < 3) return null;
+  spans.sort((p, q) => p - q);
+  return spans[Math.floor(spans.length / 2)];
+}
+
+//: How far into the bore the surface network stays clear of it: the distance to the first
+//: carriageway of another street crossing the tunnel's line, since the flat model draws that
+//: street at the bore's own level and the bore stops short of it.
+function tunnelClearRun(way, mouth, inward) {
+  for (let t = 2; t <= TUNNEL_STUB_MAX_M; t += 1) {
+    const hit = carriagewaySourceAt(mouth.x + inward.x * t, mouth.z + inward.z * t, 0.2);
+    if (!hit || !hit.source || hit.source === way || isTunnelWay(hit.source)) continue;
+    // The street on the hill running along the bore's own line is over it, not across it.
+    const own = Math.atan2(inward.z, inward.x);
+    if (Math.abs(Math.sin(hit.bearing - own)) < 0.5) continue;
+    return Math.max(6, t - 4);
+  }
+  return TUNNEL_STUB_MAX_M;
+}
+
+//: Metres of hill over the road at (x, z), where a road tunnel's cover profile says there is
+//: one: for the buildings standing on the hill. Zero everywhere else.
+function tunnelCoverAt(x, z) {
+  // Only within the drawn hill at each mouth, and no higher than that hill: the model is
+  // flat, and a building forty metres up on Russian Hill in the middle of the bore would
+  // stand in the air over its neighbours drawn on the ground. At the mouth the hill is
+  // drawn, and the buildings on it stand on it.
+  let best = 0;
+  for (const entry of tunnelCoverIndex) {
+    const { points, halfWidth, cover, zones } = entry;
+    let along = 0;
+    for (let i = 1; i < points.length; i += 1) {
+      const [ax, az] = points[i - 1];
+      const [bx, bz] = points[i];
+      const dx = bx - ax, dz = bz - az;
+      const len2 = dx * dx + dz * dz;
+      const t = len2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2)) : 0;
+      const d = Math.hypot(x - (ax + dx * t), z - (az + dz * t));
+      if (d <= halfWidth + TUNNEL_HILL_HALF_EXTRA_M) {
+        const s = along + Math.sqrt(len2) * t;
+        // The profile is [distance from the first mouth, cover]; the nearest reading.
+        let nearest = null;
+        for (const [ps, c] of cover) {
+          if (nearest === null || Math.abs(ps - s) < Math.abs(nearest[0] - s)) nearest = [ps, c];
+        }
+        // The hill at a mouth is drawn as high as the headwall at least, and what stands
+        // on it stands on top of it.
+        const zone = (zones || []).find(([from, to]) => s >= from && s <= to);
+        if (nearest && zone) best = Math.max(best, zone[2]);
+      }
+      along += Math.sqrt(len2);
+    }
+  }
+  return best;
+}
+const tunnelCoverIndex = [];
+
 function addTunnel(way, renderPoints, roadWidth, roadTop) {
-  // A road tunnel is drawn as what can be seen of it from the street: the two mouths. At
-  // each, the headwall stands as high as the lidar says the ground is over the bore there
-  // (Stockton's 8 m, Broadway's 11.6 m at Mason; a default where nothing measured), the bore
-  // goes in under it for TUNNEL_STUB_M with its road and its lining, and then it is dark. The
-  // model is flat, so the hill itself is not here; between the mouths the surface is the
-  // streets and houses that stand on the hill, with nothing of the tunnel under them.
+  // A road tunnel is drawn as what can be seen of it from the street: the two mouths, where
+  // the lidar put them. At each, a headwall of one design -- the arch, its lining, a parapet
+  // -- stands in front of the hill, and the hill behind it is as tall as the lidar says the
+  // ground is over the bore there. The bore goes in under it as far as the surface network
+  // stays clear, with its road and its lining, and ends in a wall of dark. The portal is as
+  // wide as the city's kerbs on the approach say the cut is, and wider than sixteen metres
+  // it is two bores with a pier between them, which is what Broadway's is.
   //
   // It used to be drawn as a lining along the whole way lying on the ground -- a tube across
   // three blocks of Russian Hill with the roadway inside it -- and every busway ramp and
-  // car park entrance tagged tunnel=yes got the same, 150 portals for a city with six.
+  // car park entrance tagged tunnel=yes got the same, 150 portals for a city with six. Then
+  // the headwall was the ground over the bore read in one window, so Broadway's east end was
+  // two metres and its west eleven; the bore was as wide as the street on the hill over it
+  // left it; and the dark wall faced inward, so the street beyond showed through the arch.
   if (renderPoints.length < 2) return null;
-  const half = roadWidth / 2;
+  const covered = tunnelCoveredPoints(way, renderPoints);
+  if (covered.length < 2) return null;
   const group = new THREE.Group();
-  const stubs = tunnelStubs(renderPoints);
   const lining = new THREE.MeshStandardMaterial({
     color: 0x5f6266, roughness: 0.92, metalness: 0.02, side: THREE.DoubleSide,
   });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x08090a, roughness: 1.0, metalness: 0.0 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x08090a, roughness: 1.0, metalness: 0.0,
+                                                side: THREE.DoubleSide });
+  const hill = new THREE.MeshStandardMaterial({ color: 0x4f5a45, roughness: 1.0, metalness: 0.0 });
   const measured = way.tunnel_portal || {};
-  const ends = stubs.length === 2 ? [["start", stubs[0]], ["end", stubs[1]]] : [["start", stubs[0]]];
-  group.userData.tunnelLengthM = Number(way.tunnel_length_m || wayLength(renderPoints));
-  group.userData.mouthCount = ends.length;
-  for (const [label, stub] of ends) {
-    // The stub runs from the mouth inward; the end stub is stored mouth-last.
-    const inward = label === "start" ? stub : stub.slice().reverse();
-    const pts = inward.map((p) => { const [x, y] = xy(p[0], p[1]); return new THREE.Vector3(x, roadTop, -y); });
-    if (pts.length < 2) continue;
-    // The road in the mouth.
-    addMerged(`ribbon:road:${(Math.round(roadTop / 0.05) * 0.05).toFixed(2)}`,
-              ribbon(inward, roadWidth, 0xffffff, 1.0, roadTop / 2, roadTop, "road"), "road");
-    // The lining, swept along the stub.
-    const path = new THREE.CatmullRomCurve3(pts, false, "centripetal");
-    const outer = tunnelArchShape(half, true);
-    outer.holes.push(new THREE.Path(tunnelArchShape(half, false).getPoints(28)));
-    const shell = new THREE.ExtrudeGeometry(outer, {
-      steps: Math.max(4, Math.round(path.getLength() / 3)), bevelEnabled: false, extrudePath: path,
-    });
-    const bore = new THREE.Mesh(shell, lining);
-    bore.userData.surface = "tunnel";
-    group.add(bore);
-    // Where the light gives out: a dark wall across the bore at the stub's inner end.
-    const last = pts[pts.length - 1];
-    const before = pts[pts.length - 2];
-    const yawIn = Math.atan2(last.x - before.x, last.z - before.z);
-    const cap = new THREE.Mesh(new THREE.ShapeGeometry(tunnelArchShape(half, false)), dark);
-    cap.position.set(last.x, roadTop, last.z);
-    cap.rotation.y = yawIn;
-    cap.userData.surface = "tunnel_dark";
-    group.add(cap);
-    // The headwall at the mouth, as tall as the ground over the bore, and never shorter than
-    // the bore it has to hide.
+  const total = wayLength(covered);
+  group.userData.tunnelLengthM = Number(way.tunnel_length_m || total);
+  group.userData.mouthCount = 2;
+  const H = TUNNEL_CROWN_M + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;
+  const halves = [];
+  const ends = [["start", covered], ["end", covered.slice().reverse()]].map(([label, inwardPoints]) => {
+    const pts = inwardPoints.map((p) => { const [x, y] = xy(p[0], p[1]); return new THREE.Vector3(x, TUNNEL_FLOOR_M, -y); });
+    if (pts.length < 2) return null;
+    const inward = { x: pts[1].x - pts[0].x, z: pts[1].z - pts[0].z };
+    const len = Math.hypot(inward.x, inward.z) || 1;
+    inward.x /= len; inward.z /= len;
+    const mouth = { x: pts[0].x, z: pts[0].z };
+    return { label, inwardPoints, pts, inward, mouth,
+             approach: tunnelApproachWidth(mouth, { x: -inward.x, z: -inward.z }) };
+  }).filter(Boolean);
+  // One structure, one width: the portal's, read off the city's kerbs on whichever approach
+  // has them (Broadway's east approach runs straight into the Mason Street junction and
+  // reads nothing; its west approach reads the cut). Wider than sixteen metres it is two
+  // bores with a pier between them.
+  const approaches = ends.map((e) => e.approach).filter((v) => v);
+  const width = Math.max(MIN_RENDER_ROAD_M, Math.min(40, approaches.length ? Math.max(...approaches) : roadWidth));
+  const bores = width > TUNNEL_TWIN_MIN_M ? 2 : 1;
+  const boreWidth = Math.min(TUNNEL_BORE_MAX_M, (width - (bores - 1) * TUNNEL_PIER_M) / bores);
+  for (const { label, inwardPoints, pts, inward, mouth } of ends) {
     const here = pts[0];
-    const next = pts[1];
-    const yaw = Math.atan2(next.x - here.x, next.z - here.z);
-    const H = Math.max(TUNNEL_CROWN_M + TUNNEL_SHELL_M + 0.5, measured[label] || 0);
-    const W = half + TUNNEL_PORTAL_MARGIN_M;
+    const approach = approaches.length > 0;
+    const half = boreWidth / 2;
+    const offsets = bores === 2 ? [-(boreWidth + TUNNEL_PIER_M) / 2, (boreWidth + TUNNEL_PIER_M) / 2] : [0];
+    const stub = Math.min(tunnelClearRun(way, mouth, inward), total / 2);
+    const stubPoints = trimWayEnds(inwardPoints, 0, Math.max(0, total - stub));
+    const yaw = Math.atan2(inward.x, inward.z);
+    const rightX = inward.z, rightZ = -inward.x;             // to the right of travel inward
+    for (const off of offsets) {
+      const laneLine = stubPoints.map((p) => { const [x, y] = xy(p[0], p[1]); return lonLatFromXZ(x + rightX * off, -y + rightZ * off); });
+      // The road in the mouth: a slab thick enough to stand over the surface street the flat
+      // model draws at the bore's own level -- Bush Street's crossing lay on the Stockton
+      // Tunnel's floor -- so what shows through the arch is the bore's road and nothing else.
+      addMerged(`ribbon:road:${(TUNNEL_FLOOR_M).toFixed(2)}`,
+                ribbon(laneLine, boreWidth, 0xffffff, 1.0, TUNNEL_FLOOR_M / 2, TUNNEL_FLOOR_M, "road"), "road");
+      // The lining, swept along the stub.
+      const lanePts = laneLine.map((p) => { const [x, y] = xy(p[0], p[1]); return new THREE.Vector3(x, TUNNEL_FLOOR_M, -y); });
+      const path = new THREE.CatmullRomCurve3(lanePts, false, "centripetal");
+      const outer = tunnelArchShape(half, true);
+      outer.holes.push(new THREE.Path(tunnelArchShape(half, false).getPoints(28)));
+      const shell = new THREE.ExtrudeGeometry(outer, {
+        steps: Math.max(4, Math.round(path.getLength() / 3)), bevelEnabled: false, extrudePath: path,
+      });
+      const bore = new THREE.Mesh(shell, lining);
+      bore.userData.surface = "tunnel";
+      group.add(bore);
+      // Where the light gives out: a dark wall across the bore at the stub's inner end, seen
+      // from either side.
+      const last = lanePts[lanePts.length - 1];
+      const cap = new THREE.Mesh(new THREE.ShapeGeometry(tunnelArchShape(half, false)), dark);
+      cap.position.set(last.x, TUNNEL_FLOOR_M, last.z);
+      cap.rotation.y = yaw;
+      cap.userData.surface = "tunnel_dark";
+      group.add(cap);
+    }
+    // The headwall: one design at both ends, the arches cut through it.
+    const W = width / 2 + TUNNEL_PORTAL_MARGIN_M;
     const face = new THREE.Shape();
     face.moveTo(-W, 0); face.lineTo(W, 0); face.lineTo(W, H); face.lineTo(-W, H); face.lineTo(-W, 0);
-    face.holes.push(new THREE.Path(tunnelArchShape(half, false).getPoints(28)));
+    for (const off of offsets) {
+      const arch = tunnelArchShape(half, false).getPoints(28).map((q) => new THREE.Vector2(q.x + off, q.y));
+      face.holes.push(new THREE.Path(arch));
+    }
     const slab = new THREE.ExtrudeGeometry(face, { depth: TUNNEL_PORTAL_DEPTH_M, bevelEnabled: false });
     const portal = new THREE.Mesh(slab, new THREE.MeshStandardMaterial({
       map: WALL_TEXTURES.stone || (WALL_TEXTURES.stone = stoneWallTexture()),
@@ -10438,9 +10616,33 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
     portal.rotation.y = yaw;
     portal.userData.surface = "tunnel_portal";
     portal.userData.headwallM = H;
-    portal.userData.measured = Boolean(measured[label]);
+    portal.userData.boreWidthM = +boreWidth.toFixed(2);
+    portal.userData.bores = bores;
+    portal.userData.widthSource = approach ? "sfmta_curbs_on_approach" : "road_width";
     group.add(portal);
+    // The hill over the bore: as high as the lidar measured the ground behind this mouth, and
+    // never lower than the headwall in front of it. It is what stops the surface network
+    // showing through the arch, and what the buildings up there stand on.
+    const cover = Math.max(H, measured[label] || 0);
+    // The same face as the headwall, the bores cut through it, extruded the length of the
+    // stub: a hill with the tunnel going into it, rather than a block the tunnel is lost in.
+    const hillFace = new THREE.Shape();
+    hillFace.moveTo(-W, 0); hillFace.lineTo(W, 0); hillFace.lineTo(W, cover); hillFace.lineTo(-W, cover); hillFace.lineTo(-W, 0);
+    for (const off of offsets) {
+      // The hole is the lining's outside, so the lining is what shows inside the bore.
+      const arch = tunnelArchShape(half, true).getPoints(28).map((q) => new THREE.Vector2(q.x + off, Math.max(0, q.y)));
+      hillFace.holes.push(new THREE.Path(arch));
+    }
+    const mound = new THREE.Mesh(new THREE.ExtrudeGeometry(hillFace, { depth: stub, bevelEnabled: false }), hill);
+    mound.position.set(here.x + inward.x * TUNNEL_PORTAL_DEPTH_M, TUNNEL_FLOOR_M - 0.05, here.z + inward.z * TUNNEL_PORTAL_DEPTH_M);
+    mound.rotation.y = yaw;
+    mound.userData.surface = "tunnel_hill";
+    mound.userData.coverM = +cover.toFixed(2);
+    mound.userData.measured = Boolean(measured[label]);
+    group.add(mound);
+    halves.push({ label, width, bores, stub, cover });
   }
+  group.userData.halves = halves;
   return group;
 }
 
@@ -10724,6 +10926,31 @@ let streetLabelCount = 0;
 // stamps it. Nothing else in this loop depends on the order: the meshes are merged by material
 // and separated by height, not by when they were added.
 const ROAD_TOP_M = 0.06;
+// The hill over each road tunnel, before anything is drawn on it: a building's lift has to be
+// known when the building is drawn, and the payload does not order tunnels first.
+for (const way of DATA.ways) {
+  if (way.kind !== "street" || !isRoadTunnel(way) || !Array.isArray(way.tunnel_cover)
+      || !way.tunnel_cover.length || !way.points || way.points.length < 2) continue;
+  const covered = tunnelCoveredPoints(way, densifyWay(way.points));
+  if (covered.length < 2) continue;
+  const local = covered.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+  let width = renderedRoadWidth(way);
+  const total = wayLength(covered);
+  const zones = [];
+  const H = TUNNEL_CROWN_M + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;
+  for (const [label, a, b] of [["start", local[0], local[1]],
+                              ["end", local[local.length - 1], local[local.length - 2]]]) {
+    const dx = a[0] - b[0], dz = a[1] - b[1];
+    const len = Math.hypot(dx, dz) || 1;
+    const approach = tunnelApproachWidth({ x: a[0], z: a[1] }, { x: dx / len, z: dz / len });
+    if (approach) width = Math.max(width, approach);
+    const stub = Math.min(tunnelClearRun(way, { x: a[0], z: a[1] }, { x: -dx / len, z: -dz / len }), total / 2);
+    const cover = Math.max(H, (way.tunnel_portal || {})[label] || 0);
+    zones.push(label === "start" ? [0, stub + TUNNEL_PORTAL_DEPTH_M, cover]
+                                 : [total - stub - TUNNEL_PORTAL_DEPTH_M, total, cover]);
+  }
+  tunnelCoverIndex.push({ points: local, halfWidth: width / 2, cover: way.tunnel_cover, zones });
+}
 for (const way of DATA.ways) {
   if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
   if (wayLength(way.points) > 40) continue;
@@ -11278,7 +11505,7 @@ function fillRoadwayToKerbs() {
   };
   for (const way of DATA.ways) {
     if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
-    if (way.tunnel_kind || isUnmarkedService(way)) continue;
+    if (isTunnelWay(way) || isUnmarkedService(way)) continue;
     const dense = densifyWay(way.points, ROAD_FILL_STATION_M);
     for (let i = 0; i < dense.length; i += 1) {
       const before = dense[Math.max(0, i - 1)];
@@ -12539,6 +12766,9 @@ function buildCourts(ground) {
       if (insideCarriageway(cx, cz, 0.0) || insideBikeLane(cx, cz, 0.15)) { onRoad = true; break; }
     }
     if (onRoad) continue;
+    // Nor is a pit cut into the hill over a tunnel mouth: the tree up there stands on the
+    // hill, and the pit would be drawn on the roadway in the bore beneath it.
+    if (tunnelCoverIndex.length && tunnelCoverAt(tx, tz) > 0) continue;
     const base = pits.positions.length / 3;
     for (let c = 0; c < 4; c += 1) {
       const [dx, dz] = [[-half, -half], [half, -half], [half, half], [-half, half]][c];
@@ -12581,7 +12811,8 @@ function buildCourts(ground) {
       const scale = Math.max(2.2, Math.min(maxScale, tree.d * 0.34));
         dummy.position.set(x, 0, -y);
         dummy.scale.setScalar(scale);
-        dummy.position.y = part.position.y * scale;
+        // A tree on the hill over a tunnel mouth stands on the hill, with the buildings.
+        dummy.position.y = part.position.y * scale + (tunnelCoverIndex.length ? tunnelCoverAt(x, -y) : 0);
         dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
@@ -12910,7 +13141,10 @@ function furnitureAnchor(item) {
     }
   }
   const top = pavementTopAt(x, z);
-  return { x, z, y: top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top };
+  // On the hill over a tunnel mouth, on the hill: a sign post at ground level there stood
+  // in the middle of the bore.
+  const lift = tunnelCoverIndex.length ? tunnelCoverAt(x, z) : 0;
+  return { x, z, y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + lift };
 }
 
 function furnitureBearing(item, index, anchor = null) {
@@ -13402,6 +13636,23 @@ function curbZoneColor(record) {
 //: the lip and absorb the snap's own error.
 const KERB_PAINT_REACH_M = 0.45;
 
+//: A Color Curb Program asset is a point and a length in feet: the middle of a painted zone
+//: and how much of it there is. It becomes a line along the kerb the point is nearest, half
+//: the length each way, and is painted like a policy zone. This is the inventory of paint
+//: itself -- every driveway red, every green zone in the corridor is here and nowhere else.
+const COLOR_CURB_MIN_M = 1.0;
+function colorCurbRecordLines(record) {
+  if (!record.p || record.p.length < 2) return [];
+  const feet = Number(record.length_ft);
+  const length = Math.max(COLOR_CURB_MIN_M, Number.isFinite(feet) && feet > 0 ? feet * 0.3048 : 6.0);
+  const [x, y] = xy(record.p[0], record.p[1]);
+  const kerb = nearestKerbAt(x, -y, CURB_SNAP_REACH_M);
+  if (!kerb) return [];
+  const half = length / 2;
+  return [[lonLatFromXZ(kerb.x - kerb.ax * half, kerb.z - kerb.az * half),
+           lonLatFromXZ(kerb.x + kerb.ax * half, kerb.z + kerb.az * half)]];
+}
+
 function addOfficialCurbZoneBands(records) {
   // Kerb paint, painted onto the kerb.
   //
@@ -13424,12 +13675,16 @@ function addOfficialCurbZoneBands(records) {
   const grid = new Map();
   let segments = 0;
   let unplaced = 0;
+  const byColour = {};
   for (const record of records) {
     const color = curbZoneColor(record);
-    if (!color || !Array.isArray(record.lines)) continue;
+    if (!color) continue;
+    const lines = Array.isArray(record.lines) ? record.lines : colorCurbRecordLines(record);
+    if (!lines.length) { unplaced += 1; continue; }
     const c = new THREE.Color(color);
-    const runs = kerbRunsFor(record);
+    const runs = kerbRunsFor({ lines });
     if (!runs.length) { unplaced += 1; continue; }
+    byColour[record.curb_color] = (byColour[record.curb_color] || 0) + 1;
     for (const run of runs) {
       for (let i = 1; i < run.length; i += 1) {
         const a = run[i - 1];
@@ -13480,7 +13735,7 @@ function addOfficialCurbZoneBands(records) {
     }
     if (touched) col.needsUpdate = true;
   }
-  return { segments, unplaced, painted };
+  return { segments, unplaced, painted, byColour };
 }
 
 //: The curb lane a bus pulls into. Three metres is the lane, and the paint covers it.
@@ -13614,7 +13869,8 @@ function renderStreetFurniture(furniture) {
     bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25),
     ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55),
     shelters: addMuniShelters(shelters),
-    curb_zone_bands: addOfficialCurbZoneBands(official.curb_zones || []),
+    // The paint inventory first, then the policy zones that are paint by definition.
+    curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [])),
     bus_zone_paint: addBusZonePaint((official.curb_zones || [])
       .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
   };
@@ -14441,7 +14697,7 @@ window.kerbside = {
   mappedWalkBeyondKerb, mappedWalkGrid, MAPPED_WALK_CELL, crossingRoadSpanPoints, crossingPaintLegs,
   officialIslandCurbGrid, isDividedHalf, recentreOnKerbEnvelope, envelopeEdgesAt, sameLevel, roadwayCovered, roadFillGrid, filledAt, cornerLegs, cornerLegsAt, cornerNeighbour, bulbDepthAt, legBulb, cornerQuad, pavementCornerCuts,
   crossingDrawGrid, sidewalkCrossingReplacementSpans, crossingDrawPose, densifyWay, crossingRectanglePoints,
-  twinInnerEdgeAt, halfWidthAt,
+  twinInnerEdgeAt, halfWidthAt, tunnelCoverAt, tunnelCoverIndex, tunnelCoveredPoints, tunnelApproachWidth,
   corners: { cuts: pavementCornerCuts.size, valid: [...pavementCornerCuts.values()].filter((c) => c.valid).length,
              laid: cornersLaid, legs: cornerLegs.length,
              ends: pavementCornerLaid.size, skipped: addPavementCorners.skipped },
@@ -14657,7 +14913,7 @@ PAGE_FIELDS = {
     "continental_source",
     "service",
     "tunnel_kind", "tunnel_length_m",
-    "tunnel_portal",
+    "tunnel_portal", "tunnel_mouths", "tunnel_cover",
     "capacity",
     "surface",
     "material",
