@@ -322,10 +322,16 @@ def test_renderer_clamps_wide_right_of_way_fallbacks() -> None:
     source = _source()
 
     assert "function renderedRoadWidth(way)" in source
-    assert 'const measured = way.road_source === "curb_geometry";' in source
+    # Measured is measured: the kerb envelope read along the way as much as the city's own
+    # kerb-to-kerb record. The lane cap once took Vallejo from its measured 11.6 m to 8.1.
+    assert 'const measured = way._spans !== undefined || MEASURED_ROAD_SOURCES.has(way.road_source);' in source
+    assert 'const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);' in source
     assert "const sourceCap = measured ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;" in source
     # The lane cap is for inferred widths; a width measured between the kerbs keeps it.
     assert "const laneCap = lanes && !measured ?" in source
+    # And nothing clamps a way drawn between the city's kerbs, nor a street on another level.
+    assert "if (way._spans !== undefined) continue;" in source
+    assert "function sameLevel(a, b)" in source
     assert "const half = renderedRoadWidth(way) / 2;" in source
     assert "const road = widthMeters;" in source
 
@@ -859,7 +865,7 @@ def test_a_derived_pavement_meets_the_mapped_footway_at_the_footways_height() ->
     is the strip between the two at the footway's height, not a second slab beside it."""
     source = _source()
     assert "function mappedWalkBeyondKerb(x, z, nx, nz, inner)" in source
-    assert "mappedWalkBeyondKerb(sx, -sy, -side * nx, -side * nz, inner)" in source
+    assert "mappedWalkBeyondKerb(sx, -sy, -side * nx, -side * nz, kerbAt[i])" in source
     assert 'return `gap:${Math.round(gap / 0.25)}:${met.thickness.toFixed(3)}`;' in source
     assert "y = met.y - 0.01;" in source
 
@@ -869,8 +875,10 @@ def test_a_divided_road_is_two_halves_between_the_citys_kerbs_with_a_median() ->
     by vertex, and the strip between the halves is asphalt with the raised median on it."""
     source = _source()
     assert "function isDividedHalf(way)" in source
-    assert "function recentreDividedHalf(way)" in source
-    assert "officialIslandCurbGrid);" in source.split("function recentreDividedHalf", 1)[1].split("\n}\n", 1)[0]
+    # One kerb envelope for every way: a divided half reads its outer kerb and the island's.
+    assert "function recentreOnKerbEnvelope(way)" in source
+    assert "function envelopeEdgesAt(x, z, nx, nz, way, reach)" in source
+    assert "officialIslandCurbGrid);" in source.split("function envelopeEdgesAt", 1)[1].split("\n}\n", 1)[0]
     assert "function halfWidthAt(way, along)" in source
     assert "function addDividedMedians()" in source
     assert 'addMerged("median", mesh, "median");' in source

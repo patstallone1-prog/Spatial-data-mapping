@@ -48,6 +48,16 @@ FUNCTIONS = (
     "segmentRunsAlongside",
     "clampRoadWidthsToNeighbours",
     "renderedWalkWidth",
+    "sameLevel",
+    "isDividedHalf",
+    "dividedHalfWidth",
+    "envelopeEdgesAt",
+    "recentreOnKerbEnvelope",
+    "halfWidthAt",
+    "alongDistances",
+    "officialKerbOffsetsAt",
+    "inheritRecentring",
+    "recentreStreetsOnOfficialKerbs",
     "offsetWay",
     "lerpLonLat",
     "wayLength",
@@ -152,6 +162,20 @@ const PROPERTY_LINE_PAVEMENT_THICKNESS_M = 0.004;
 const NARROW_WALK_M = 1.15;
 const STREET_JOIN_M = 3.0;
 const STREET_JOIN_DEG = 34.0;
+const RECENTRE_END_MARGIN_M = 8.0;
+const RECENTRE_STATION_M = 4.0;
+const RECENTRE_MAX_SPREAD_M = 0.5;
+const RECENTRE_MAX_SHIFT_M = 4.0;
+const RECENTRE_MIN_SHIFT_M = 0.12;
+const RECENTRE_VERTEX_REACH_M = 12.0;
+const ENVELOPE_VERTEX_M = 24.0;
+const ENVELOPE_MIN_EDGE_M = 0.6;
+const ENVELOPE_MIN_SPAN_M = 2.4;
+const ENVELOPE_MAX_SPREAD_M = 0.9;
+const ENVELOPE_MIN_WAY_M = 10.0;
+const ROW_MISMATCH_FACTOR = 2.0;
+const ENVELOPE_RELABEL_M = 1.0;
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
 const streetEndGrid = new Map();
 const CORNER_JOIN_M = 1.0;
 const CORNER_CELL_M = 4.0;
@@ -201,18 +225,104 @@ for (const way of DATA.ways) {
   }
 }
 
+// The same order the page uses: the city's kerbs first, every way moved onto its kerb
+// envelope, then the fallbacks for the ways the city drew no kerb for.
+indexOfficialCurbGeometry(OFFICIAL.curb_lines || []);
+const recentred = recentreStreetsOnOfficialKerbs(DATA.ways);
 clampRoadWidthsToNeighbours(DATA.ways);
 indexStreetEnds(DATA.ways);
-indexOfficialCurbGeometry(OFFICIAL.curb_lines || []);
 for (const way of DATA.ways) {
   if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+  if (isUndergroundWay(way)) continue;
   const half = renderedRoadWidth(way) / 2;
+  const along = way._spans ? alongDistances(way.points) : null;
   for (let i = 1; i < way.points.length; i += 1) {
     const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
     const [bx, by] = xy(way.points[i][0], way.points[i][1]);
-    addCarriagewaySegment(ax, -ay, bx, -by, half, way);
+    const segmentHalf = along
+      ? (halfWidthAt(way, along[i - 1]) + halfWidthAt(way, along[i])) / 2 : half;
+    addCarriagewaySegment(ax, -ay, bx, -by, segmentHalf, way);
   }
 }
+
+// -- rendered width against the city's kerbs -------------------------------------------------
+//
+// The one comparison that says whether a street is drawn as wide as it is. Kerb to kerb (or
+// kerb to island kerb) read straight off the city's lines every eight metres along each way,
+// against the width the way is drawn at, per source of that width. A street more than three
+// metres off is drawn under its pavement or with black beside it.
+const UNMARKED = new Set(["driveway", "drive-through", "parking_aisle", "access"]);
+const widthRows = [];
+for (const way of DATA.ways) {
+  if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+  if (way.tunnel_kind || UNMARKED.has(way.service)) continue;
+  const dense = densifyWay(way.points, 8);
+  const spans = [];
+  for (let i = 1; i + 1 < dense.length; i += 1) {
+    const [px, py] = xy(dense[i - 1][0], dense[i - 1][1]);
+    const [x, y] = xy(dense[i][0], dense[i][1]);
+    const [qx, qy] = xy(dense[i + 1][0], dense[i + 1][1]);
+    const dx = qx - px, dz = -(qy - py);
+    const s = Math.hypot(dx, dz) || 1;
+    const nx = dz / s, nz = -dx / s;
+    const hits = rayCurbIntersections(x, -y, nx, nz, 24, officialCurbGrid)
+      .concat(rayCurbIntersections(x, -y, nx, nz, 24, officialIslandCurbGrid))
+      .sort((a, b) => a - b);
+    const neg = hits.filter((v) => v < -0.8).pop();
+    const pos = hits.find((v) => v > 0.8);
+    if (neg === undefined || pos === undefined || pos - neg > 40) continue;
+    spans.push(pos - neg);
+  }
+  if (spans.length < 3) continue;
+  spans.sort((a, b) => a - b);
+  const kerb = spans[Math.floor(spans.length / 2)];
+  const drawn = renderedRoadWidth(way);
+  widthRows.push({ name: way.name || null, source: way.road_source || "none",
+                   divided: isDividedHalf(way), enveloped: way._spans !== undefined,
+                   drawnM: +drawn.toFixed(2), kerbM: +kerb.toFixed(2),
+                   diffM: +(drawn - kerb).toFixed(2), rejectedRecordM: way.road_record_rejected || null,
+                   layer: way.layer || 0, at: way.points[Math.floor(way.points.length / 2)] });
+}
+const widthBySource = {};
+for (const row of widthRows) {
+  const key = row.divided ? "divided_half" : row.source;
+  (widthBySource[key] = widthBySource[key] || []).push(Math.abs(row.diffM));
+}
+const widthStat = (values) => {
+  const sorted = values.slice().sort((a, b) => a - b);
+  return { ways: sorted.length,
+           medianAbsM: +sorted[Math.floor(sorted.length / 2)].toFixed(2),
+           p90AbsM: +sorted[Math.floor(sorted.length * 0.9)].toFixed(2),
+           over3M: sorted.filter((v) => v > 3).length };
+};
+// A way on another level -- a tunnel bore, a bridge deck, anything with a layer -- keeps the
+// width it was measured at: the street over or under it is not beside it.
+const levelRows = [];
+for (const way of DATA.ways) {
+  if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+  if (!((way.layer || 0) !== 0 || way.tunnel_kind === "road")) continue;
+  // Named: the nameless ramps of a bridge approach run beside each other on their own level
+  // and share it out as any two streets do.
+  if (!way.name || !way.road_m || !MEASURED_ROAD_SOURCES.has(way.road_source)) continue;
+  const drawn = renderedRoadWidth(way);
+  const expected = Math.min(way.road_m, MAX_RENDER_ROAD_M);
+  levelRows.push({ name: way.name || null, layer: way.layer || 0, tunnel: way.tunnel_kind || null,
+                   roadM: +way.road_m.toFixed(2), drawnM: +drawn.toFixed(2),
+                   clamped: drawn < expected - 0.05 });
+}
+const widthReport = {
+  ways: widthRows.length,
+  otherLevels: { ways: levelRows.length, clamped: levelRows.filter((r) => r.clamped).length,
+                 rows: levelRows.filter((r) => r.clamped).slice(0, 12) },
+  enveloped: widthRows.filter((r) => r.enveloped).length,
+  recordsRejected: widthRows.filter((r) => r.rejectedRecordM).length,
+  tooNarrowOver3M: widthRows.filter((r) => r.diffM < -3).length,
+  tooWideOver3M: widthRows.filter((r) => r.diffM > 3).length,
+  medianAbsM: widthStat(widthRows.map((r) => Math.abs(r.diffM))).medianAbsM,
+  bySource: Object.fromEntries(Object.entries(widthBySource).map(([k, v]) => [k, widthStat(v)])),
+  worst: widthRows.slice().sort((a, b) => Math.abs(b.diffM) - Math.abs(a.diffM)).slice(0, 12),
+  recentred,
+};
 
 // -- OSM physical dividers, distinct from the lane-paint pass -------------------------------
 let dividerMapped = 0;
@@ -336,23 +446,8 @@ for (const way of DATA.ways) {
 // outward, which is what covers the blocks OpenStreetMap has no sidewalk for. The question that
 // matters for the black-along-the-kerb regression is whether anything survives on each side of
 // each street, from either source -- so this asks the derived one, way by way and side by side.
-function offsetWay(points, metres) {
-  const out = [];
-  for (let i = 0; i < points.length; i += 1) {
-    const before = points[Math.max(0, i - 1)];
-    const after = points[Math.min(points.length - 1, i + 1)];
-    const [bx, by] = xy(before[0], before[1]);
-    const [ax, ay] = xy(after[0], after[1]);
-    const dx = ax - bx;
-    const dy = ay - by;
-    const length = Math.hypot(dx, dy) || 1;
-    const nx = -dy / length;
-    const ny = dx / length;
-    out.push([points[i][0] + (nx * metres) / metersPerLon,
-              points[i][1] + (ny * metres) / metersPerLat]);
-  }
-  return out;
-}
+// (offsetWay is the page's own, pulled in with the rules above; a private copy here once
+// shadowed it and could not take the per-vertex offsets the kerb envelope produces.)
 let sides = 0;
 let sidesBlockedByNeighbour = 0;
 let sidesRequiringPavement = 0;
@@ -434,6 +529,7 @@ console.log(JSON.stringify({
     splitExamples: crossingSplitExamples,
     meanLengthM: +(crossingLengthM / Math.max(crossingRendered, 1)).toFixed(2),
   },
+  widthVsKerb: widthReport,
   footway: {
     ways: walkWays,
     askedKm: +(askedM / 1000).toFixed(2),

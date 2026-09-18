@@ -507,7 +507,8 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     assert "laneCountForWay(way)" in body, "a street with stated lanes must keep room for them"
 
     functions = ("distanceToSegmentSquared", "laneCountForWay", "nominalRoadWidth",
-                 "renderedRoadWidth", "segmentRunsAlongside", "clampRoadWidthsToNeighbours")
+                 "renderedRoadWidth", "segmentRunsAlongside", "sameLevel",
+                 "clampRoadWidthsToNeighbours")
     parts = ["""
     const metersPerLat = 111320;
     const metersPerLon = 88000;
@@ -515,6 +516,7 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     const MIN_RENDER_ROAD_M = 2.8;
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
+    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     const NEIGHBOUR_PARALLEL_DEG = 30;
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
@@ -533,6 +535,12 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
                         points: [at(-200, 400), at(200, 400)] };
     const service = { kind: "street", road_m: 4.0,
                       points: [at(-200, 407), at(200, 407)] };
+    // A tunnel under a street on the hill above it: the street is not beside it, and the
+    // bore keeps the width the city measured for it.
+    const bore = { kind: "street", name: "Stockton Tunnel", road_m: 14.0, road_source: "curb_geometry",
+                   tunnel_kind: "road", layer: -1, points: [at(-200, 5200), at(200, 5200)] };
+    const hill = { kind: "street", name: "Stockton Street", road_m: 12.0, road_source: "curb_geometry",
+                   points: [at(-200, 5203), at(200, 5203)] };
     // A driveway and a lone parking aisle with nothing measured: neither gets the street
     // default of eight metres.
     const driveway = { kind: "street", service: "driveway",
@@ -554,9 +562,11 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     const inferredNarrow = { kind: "street", road_m: 12.0, road_source: "row_minus_footways",
                              lanes: 1, points: [at(0, 4000), at(0, 4040)] };
     const ways = [avenue, alley, boulevard, service, driveway, aisle, clay, grantSouth, grantNorth,
-                  grantParked, inferredNarrow];
+                  grantParked, inferredNarrow, bore, hill];
     clampRoadWidthsToNeighbours(ways);
     console.log(JSON.stringify({
+      bore: +renderedRoadWidth(bore).toFixed(2),
+      hill: +renderedRoadWidth(hill).toFixed(2),
       avenue: +renderedRoadWidth(avenue).toFixed(2),
       alley: +renderedRoadWidth(alley).toFixed(2),
       boulevard: +renderedRoadWidth(boulevard).toFixed(2),
@@ -592,6 +602,9 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     # Measured kerb to kerb outranks the lane count; an inferred width does not.
     assert abs(widths["parked"] - 7.36) < 0.01, widths
     assert abs(widths["inferred"] - 4.75) < 0.01, widths
+    # A street on the hill over a tunnel is not beside it: the bore keeps its measured 14 m
+    # and the street its 12. Each was being clamped to the other's centreline three metres off.
+    assert abs(widths["bore"] - 14.0) < 0.01 and abs(widths["hill"] - 12.0) < 0.01, widths
 
 
 def test_roof_furniture_is_geometry_at_real_sizes() -> None:
@@ -839,6 +852,7 @@ BIKE_PREAMBLE = PREAMBLE + """
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
 const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
@@ -1615,6 +1629,7 @@ CORNER_PREAMBLE = PAVEMENT_PREAMBLE + """
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
 const MAX_RENDER_WALK_M = 6.0;
 const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
@@ -1812,6 +1827,7 @@ def test_lanes_are_only_guessed_for_a_street_with_a_name() -> None:
     const MIN_RENDER_ROAD_M = 2.8;
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
+    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
     function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
@@ -1851,6 +1867,7 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     const MIN_RENDER_ROAD_M = 2.8;
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
+    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
@@ -1863,12 +1880,19 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     const RECENTRE_VERTEX_REACH_M = 12.0;
     const STREET_JOIN_M = 3.0;
     const STREET_JOIN_DEG = 34.0;
+    const ENVELOPE_VERTEX_M = 24.0;
+    const ENVELOPE_MIN_EDGE_M = 0.6;
+    const ENVELOPE_MIN_SPAN_M = 2.4;
+    const ENVELOPE_MAX_SPREAD_M = 0.9;
+    const ENVELOPE_MIN_WAY_M = 10.0;
+    const ROW_MISMATCH_FACTOR = 2.0;
+    const ENVELOPE_RELABEL_M = 1.0;
     """]
     parts += [_extract(name, js) for name in (
         "isUnmarkedService", "wayLength", "offsetWay", "densifyWay", "lerpLonLat",
         "addOfficialCurbGridSegment", "rayCurbIntersections", "officialKerbOffsetsAt",
-        "laneCountForWay", "isDividedHalf", "dividedHalfWidth", "recentreDividedHalf",
-        "inheritRecentring", "recentreStreetsOnOfficialKerbs")]
+        "laneCountForWay", "isDividedHalf", "dividedHalfWidth", "envelopeEdgesAt",
+        "recentreOnKerbEnvelope", "inheritRecentring", "recentreStreetsOnOfficialKerbs")]
     parts.append("""
     const at = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
     // A street drawn along y = 0 from x = -60 to 60; the city's kerbs at y = -2 and y = +5.5,
@@ -1883,23 +1907,37 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     addOfficialCurbGridSegment(officialCurbGrid, -80, 994.5, 80, 994.5);
     const wobbly = { kind: "street", name: "Wobbly Street", road_m: 7.5,
                      road_source: "curb_geometry", points: [at(-60, -1000), at(60, -1000)] };
-    const moved = recentreStreetsOnOfficialKerbs([grant, wobbly]);
+    // An alley matched to the avenue's record: 3 m between its kerbs, 26 m on paper.
+    addOfficialCurbGridSegment(officialCurbGrid, -80, 2001.5, 80, 2001.5);
+    addOfficialCurbGridSegment(officialCurbGrid, -80, 1998.5, 80, 1998.5);
+    const alley = { kind: "street", name: "Ophir Alley", road_m: 26.0,
+                    road_source: "row_minus_footways", points: [at(-60, -2000), at(60, -2000)] };
+    const moved = recentreStreetsOnOfficialKerbs([grant, wobbly, alley]);
     console.log(JSON.stringify({
       moved,
       grantY: grant.points.map((p) => +(p[1] * metersPerLat).toFixed(2)),
       grantRoad: grant.road_m, grantSource: grant.road_source, shift: grant.recentred_m,
       node: grant._node && grant._node.map((p) => +(p[1] * metersPerLat).toFixed(2)),
       wobblyY: wobbly.points.map((p) => +(p[1] * metersPerLat).toFixed(2)),
+      wobblyWidths: wobbly._spans && [wobbly._spans[0][1], wobbly._spans[wobbly._spans.length - 1][1]].map((v) => +v.toFixed(2)),
+      alleyRoad: alley.road_m, alleyRejected: alley.road_record_rejected, alleySource: alley.road_source,
     }));
     """)
     out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
-    assert result["moved"] == {"moved": 1, "widened": 1, "inherited": 0}, result
-    assert result["grantY"] == [1.75, 1.75], result
+    assert result["moved"] == {"moved": 2, "widened": 2, "inherited": 0}, result  # the alley was already centred
+    assert all(abs(y - 1.75) < 0.01 for y in result["grantY"]), result
     assert abs(result["grantRoad"] - 7.5) < 0.01 and result["grantSource"] == "official_curbs"
     assert abs(result["shift"] - 1.75) < 0.01
     # Where it stood is kept, for the junctions it shares with the streets that meet it.
     assert result["node"] == [0, 0], result
-    assert result["wobblyY"] == [-1000, -1000], result
+    # The kerb envelope is read vertex by vertex, so a street whose kerb steps two metres is
+    # followed: 7.5 m wide at one end, 9.5 at the other, its middle moved to match.
+    assert result["wobblyWidths"][0] < result["wobblyWidths"][1], result
+    assert abs(result["wobblyWidths"][0] - 7.5) < 0.3 and abs(result["wobblyWidths"][1] - 9.5) < 0.3, result
+    assert result["wobblyY"][0] > -1000.5 and result["wobblyY"][-1] < result["wobblyY"][0], result
+    # A right of way twice what the kerbs allow is another street's record, and is rejected.
+    assert abs(result["alleyRoad"] - 3.0) < 0.05 and result["alleyRejected"] == 26.0, result
+    assert result["alleySource"] == "official_curbs", result
