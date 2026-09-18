@@ -9,8 +9,13 @@ on the hill above it -- and nothing failed.
 This runs the renderer's own width rules over the payload and reads kerb-to-kerb off the city's
 lines every eight metres along each way (``widthVsKerb`` in scripts/audit_corridor_render.py),
 then holds the result to the baseline in data/sf_corridor/audits/width_vs_kerb.json. A change
-may make the numbers better; when it does, regenerate the baseline on purpose. It may not make
-them worse.
+may make the numbers better; when it does, regenerate the baseline on purpose
+(``python scripts/audit_corridor_render.py --baseline``). It may not make them worse.
+
+Each of the fixes this model has had is held here by the number that would slip if it came
+undone: the kerb envelope by the width error, the tunnels by the other-level clamp, the
+building line by the road-through-facade count, the crossings by the legs that end on a drawn
+carriageway and the spans that had to fall back to the whole desire line.
 """
 from __future__ import annotations
 
@@ -80,3 +85,18 @@ def test_streets_and_buildings_keep_out_of_each_other(report: dict, baseline: di
     buildings = report["widthVsKerb"]["buildings"]
     assert buildings["roadThroughFacade"] <= baseline["roadThroughFacade"] + 2, buildings
     assert buildings["onRoad2plus"] <= baseline["buildingsOnRoad2plus"] + 5, buildings
+
+
+def test_crossing_paint_is_laid_kerb_to_kerb_in_legs(report: dict, baseline: dict) -> None:
+    """A crossing is painted as the runs of its span that stand on roadway -- one leg on an
+    undivided street, one each side of a median or a refuge island -- and each leg ends on a
+    carriageway the model drew. A span the model could not place on any roadway falls back to
+    the whole desire line; that count may only fall, and the legs that end on asphalt may not
+    become fewer."""
+    crosswalk = report["crosswalk"]
+    attached = baseline["crosswalkLegsAttachedShare"]
+    assert crosswalk["legsAttachedShare"] >= attached - 0.005, crosswalk
+    assert crosswalk["wholeSpanFallback"] <= baseline["crosswalkWholeSpanFallback"] + 2, crosswalk
+    # Van Ness's BRT islands alone part two dozen crossings; losing the split would mean paint
+    # laid across the island.
+    assert crosswalk["splitForIslands"] >= baseline["crosswalkSplitForIslands"] - 2, crosswalk

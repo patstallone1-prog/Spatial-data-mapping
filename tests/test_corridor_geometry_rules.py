@@ -87,6 +87,9 @@ const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
 const officialCurbGrid = new Map();
 const officialIslandCurbGrid = new Map();
+const CROSSING_BRIDGE_GAP_M = 2.0;
+const CROSSING_LEG_MIN_M = 0.7;
+const CROSSING_STEP_M = 0.25;
 const metersPerLat = 111320;
 const metersPerLon = 88000;
 const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
@@ -279,8 +282,16 @@ console.log(JSON.stringify({pts, provenance: clipped.provenance,
 
 
 def test_crosswalk_paint_splits_around_an_official_refuge_island() -> None:
+    """A refuge island in the middle of one carriageway still parts the paint.
+
+    The legs of a crossing are the runs of its span that stand on roadway. A divided street
+    leaves a gap in the carriageway where its median is, and the legs part there of their own
+    accord; a refuge island set into a single carriageway does not, so the island's own kerbs
+    have to take the span off the road between them.
+    """
     result = _run_crossing("""
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);
 indexOfficialCurbGeometry([{r: "island", p: [
   asLonLat(-2, -1), asLonLat(2, -1), asLonLat(2, 1),
   asLonLat(-2, 1), asLonLat(-2, -1),
@@ -481,14 +492,18 @@ def test_lane_markings_are_painted_with_a_width() -> None:
     marking = _extract("paintedLine", js)
     assert "mitredEdges(points, width)" in marking, "the marking has no width"
     assert "new THREE.Mesh(" in marking, "the marking is not geometry"
-    # The centre line and lane lines both go through it, with transition pullbacks.
-    assert "paintedLine(offsetWay(run, side * apart), MARK_W" in js
-    # Offset from the way's own centreline and painted with a width -- asserted of the call
-    # that survives, not of a literal. The markings are now emitted per junction-clear run, so
-    # the polyline handed to paintedLine is a run rather than the whole way.
-    assert "paintedLine(offsetWay(run, offset), MARK_W" in js
+    # Every marking -- lane line, both halves of the double yellow, taper -- is one paint from
+    # laneMarkingPaints handed to paintedLine at MARK_W, per junction-clear run.
+    assert "paintedLine(offsetWay(run, mark.offset), MARK_W" in js
+    assert "paintedLine(run, MARK_W, mark.color" in js
     # Four inches, which is what the MUTCD says and what San Francisco paints.
     assert re.search(r"const MARK_W = 0\.10\d?;", js)
+    # And the double yellow is two four-inch lines with four inches of road between them.
+    paints = _lane_paints({"kind": "street", "name": "Polk Street", "road_m": 13.4,
+                           "road_source": "curb_geometry", "lanes": 2})
+    centre = sorted(m["offset"] for m in paints if m["kind"] == "centre")
+    assert len(centre) == 2, paints
+    assert abs((centre[1] - centre[0]) - 0.204) < 0.002, centre
 
 
 def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
@@ -1588,9 +1603,11 @@ def test_lane_markings_stop_at_every_junction_not_only_at_a_way_s_ends() -> None
     clear = re.search(r"const JUNCTION_CLEAR_M = ([0-9.]+);", js)
     assert clear and 3.0 <= float(clear.group(1)) <= 8.0
     # The lane dividers, the centreline and the transition tapers all go through it.
-    for caller in ("paintedLine(offsetWay(run, offset), MARK_W",
-                   "paintedLine(offsetWay(run, side * apart), MARK_W",
-                   "for (const run of markingRunsClearOfJunctions(points, way))"):
+    assert "const markingRuns = markingRunsClearOfJunctions(markingPoints, way);" in js
+    assert "for (const run of markingRuns) {" in js
+    assert "for (const run of markingRunsClearOfJunctions(points, way))" in js
+    for caller in ("paintedLine(offsetWay(run, mark.offset), MARK_W",
+                   "paintedLine(run, MARK_W, mark.color"):
         assert caller in js, caller
 
 
@@ -1834,38 +1851,104 @@ def test_lanes_are_only_guessed_for_a_street_with_a_name() -> None:
     through the crossroads. The paint reads the one profile the trims and transitions read.
     """
     js = _page_js()
-    parts = [PREAMBLE, """
-    const MIN_RENDER_ROAD_M = 2.8;
-    const MAX_RENDER_ROAD_M = 24.0;
-    const MAX_INFERRED_ROAD_M = 16.5;
-    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
-    const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
-    function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
-    function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
-    function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
-    """]
-    parts += [_extract(name, js) for name in ("laneCountForWay", "nominalRoadWidth",
-                                              "renderedRoadWidth", "laneMarkingProfile")]
-    parts.append("""
-    const connector = { kind: "street", road_m: 17.6, road_source: "curb_geometry" };
-    const avenue = { kind: "street", name: "Van Ness Avenue", road_m: 17.6,
-                     road_source: "curb_geometry" };
-    const tagged = { kind: "street", road_m: 17.6, lanes: 4, road_source: "curb_geometry" };
-    console.log(JSON.stringify({
-      connector: laneMarkingProfile(connector), avenue: laneMarkingProfile(avenue),
-      tagged: laneMarkingProfile(tagged),
-    }));
-    """)
-    out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
-                         capture_output=True, text=True, timeout=120)
-    assert out.returncode == 0, out.stderr
-    profiles = json.loads(out.stdout)
+    profiles = {
+        key: _lane_profile(way) for key, way in {
+            "connector": {"kind": "street", "road_m": 17.6, "road_source": "curb_geometry"},
+            "avenue": {"kind": "street", "name": "Van Ness Avenue", "road_m": 17.6,
+                       "road_source": "curb_geometry"},
+            "tagged": {"kind": "street", "road_m": 17.6, "lanes": 4,
+                       "road_source": "curb_geometry"},
+        }.items()
+    }
     assert profiles["connector"]["total"] == 0 and not profiles["connector"]["opposing"]
     assert profiles["avenue"]["total"] == 4 and profiles["avenue"]["opposing"]
     assert profiles["tagged"]["total"] == 4, "a lanes tag is believed whatever the name"
     # And the draw loop reads that profile rather than its own arithmetic.
-    assert "const { total, backward, opposing } = laneMarkingProfile(way, road);" in js
-    assert js.count("road >= 13.8 ? 4 : road >= 9.0 ? 2") == 1
+    assert "laneMarkingPaints(laneMarkingProfile(way, road))" in js
+    assert js.count("travel >= 13.8 ? 4 : travel >= 9.0 ? 2") == 1
+    assert "road >= 13.8 ? 4" not in js
+
+
+LANE_PREAMBLE = """
+const MIN_RENDER_ROAD_M = 2.8;
+const MAX_RENDER_ROAD_M = 24.0;
+const MAX_INFERRED_ROAD_M = 16.5;
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
+const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
+const PARKING_LANE_M = 2.4;
+const BIKE_LANE_M = 1.5;
+const MARK_W = 0.102;
+const DOUBLE_GAP_M = 0.102;
+function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
+function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
+function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
+"""
+
+LANE_FUNCTIONS = ("laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "travelSpan",
+                  "laneOffsets", "laneMarkingProfile", "laneMarkingPaints", "bikeLaneOffset")
+
+
+def _run_lanes(js_body: str) -> dict:
+    js = _page_js()
+    parts = [PREAMBLE, LANE_PREAMBLE]
+    parts += [_extract(name, js) for name in LANE_FUNCTIONS]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+def _lane_profile(way: dict) -> dict:
+    return _run_lanes(f"console.log(JSON.stringify(laneMarkingProfile({json.dumps(way)})));")
+
+
+def _lane_paints(way: dict) -> list[dict]:
+    return _run_lanes(
+        f"console.log(JSON.stringify(laneMarkingPaints(laneMarkingProfile({json.dumps(way)}))));")
+
+
+def test_lane_lines_are_spaced_over_the_travel_lanes_not_the_parked_cars() -> None:
+    """A street with parking down one side has its lanes on the other side of it.
+
+    Lane lines and the double yellow used to be spaced over the whole width between the kerbs,
+    as if the parked cars were a lane of traffic: on Polk, where the east kerb is a parking
+    lane and the west kerb a bike lane, the yellow ran 1.2 m off the middle of the traffic and
+    the bike lane stood in the parked cars. The parking sides come from SFMTA's parking block
+    faces (annotate_parking_lanes), and everything laid across the road -- lane lines, the
+    centre pair, turn arrows, bike lanes -- is laid across the travel span they leave.
+    """
+    bare = {"kind": "street", "name": "Polk Street", "road_m": 12.0,
+            "road_source": "curb_geometry", "lanes": 2}
+    parked_right = dict(bare, parking_sides=[-1])
+    parked_both = dict(bare, parking_sides=[1, -1])
+    result = _run_lanes(f"""
+    const bare = {json.dumps(bare)}, right = {json.dumps(parked_right)},
+          both = {json.dumps(parked_both)};
+    const centre = (way) => laneMarkingPaints(laneMarkingProfile(way))
+      .filter((m) => m.kind === "centre").map((m) => m.offset);
+    console.log(JSON.stringify({{
+      bare: travelSpan(bare, 12.0), right: travelSpan(right, 12.0), both: travelSpan(both, 12.0),
+      narrow: travelSpan(both, 7.0),
+      centreBare: centre(bare), centreRight: centre(right),
+      arrowsRight: laneOffsets(12.0, 2, right),
+      bikeBare: bikeLaneOffset(12.0, bare, -1), bikeParked: bikeLaneOffset(12.0, right, -1),
+      bikeOtherSide: bikeLaneOffset(12.0, right, 1),
+    }}));
+    """)
+    assert result["bare"] == [6.0, -6.0]
+    assert result["right"] == [6.0, -3.6], "the parked cars are still a lane"
+    assert result["both"] == [3.6, -3.6]
+    # Too narrow to park both sides and still drive: the lanes are what the kerbs leave.
+    assert result["narrow"] == [3.5, -3.5]
+    # The yellow sits in the middle of the traffic, which is 1.2 m left of the road's middle.
+    assert abs(sum(result["centreBare"]) / 2) < 1e-9
+    assert abs(sum(result["centreRight"]) / 2 - 1.2) < 1e-9, result["centreRight"]
+    # Turn arrows are in the travel lanes too.
+    assert all(-3.6 < o < 6.0 for o in result["arrowsRight"]), result["arrowsRight"]
+    # A bike lane runs between the parked cars and the traffic, not under the parked cars.
+    assert abs(result["bikeBare"] - result["bikeParked"] - 2.4) < 1e-9
+    assert result["bikeOtherSide"] == result["bikeBare"]
 
 
 def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:

@@ -22,6 +22,7 @@ and it answers the question the screenshots were being used to answer.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -33,6 +34,7 @@ SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
 PAGE_DATA = ROOT / "docs" / "sf-corridor-3d.json"
 GROUND_DATA = ROOT / "docs" / "sf-corridor-ground.json"
 OFFICIAL_DATA = ROOT / "docs" / "sf-corridor-official.json"
+BASELINE_DATA = ROOT / "data" / "sf_corridor" / "audits" / "width_vs_kerb.json"
 
 #: The rules, by name, exactly as the page defines them. Anything renamed fails loudly here
 #: rather than quietly measuring nothing.
@@ -136,6 +138,9 @@ const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
 const officialCurbGrid = new Map();
 const officialIslandCurbGrid = new Map();
+const CROSSING_BRIDGE_GAP_M = 2.0;
+const CROSSING_LEG_MIN_M = 0.7;
+const CROSSING_STEP_M = 0.25;
 const bbox = DATA.bbox;
 const midLat = (bbox.south + bbox.north) / 2;
 const midLon = (bbox.west + bbox.east) / 2;
@@ -405,6 +410,9 @@ let crossingLengthM = 0;
 let crossingOfficial = 0;
 let crossingFallback = 0;
 let crossingSplitForIslands = 0;
+let crossingLegs = 0;
+let crossingLegsAttached = 0;
+let crossingWholeSpan = 0;
 const crossingSplitExamples = [];
 for (const way of DATA.ways) {
   if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
@@ -415,7 +423,19 @@ for (const way of DATA.ways) {
   crossingRendered += 1;
   if (span.provenance === "sfmta_curbs") crossingOfficial += 1;
   if (span.provenance === "road_width_fallback") crossingFallback += 1;
-  if (crossingPaintLegs(span).length > 1) {
+  const legs = crossingPaintLegs(span);
+  crossingLegs += legs.length;
+  if (legs.length === 1 && legs[0] === span) crossingWholeSpan += 1;
+  for (const leg of legs) {
+    const [lax, lay] = xy(leg[0][0], leg[0][1]);
+    const [lbx, lby] = xy(leg[leg.length - 1][0], leg[leg.length - 1][1]);
+    const llen = Math.hypot(lbx - lax, lby - lay) || 1;
+    const lux = (lbx - lax) / llen, luz = -(lby - lay) / llen;
+    const ins = 0.25;
+    if (insideCarriageway(lax + lux * ins, -lay + luz * ins, 0.0)
+        && insideCarriageway(lbx - lux * ins, -lby - luz * ins, 0.0)) crossingLegsAttached += 1;
+  }
+  if (legs.length > 1) {
     crossingSplitForIslands += 1;
     if (crossingSplitExamples.length < 6) {
       crossingSplitExamples.push({osmId: way.osm_id,
@@ -586,6 +606,11 @@ console.log(JSON.stringify({
     officialResolved: crossingOfficial,
     officialShare: +(crossingOfficial / Math.max(crossingRendered, 1)).toFixed(3),
     fallbackResolved: crossingFallback,
+    // The bars as drawn: each leg of each crossing, ending on a drawn carriageway.
+    legs: crossingLegs,
+    legsAttached: crossingLegsAttached,
+    legsAttachedShare: +(crossingLegsAttached / Math.max(crossingLegs, 1)).toFixed(3),
+    wholeSpanFallback: crossingWholeSpan,
     splitForIslands: crossingSplitForIslands,
     splitExamples: crossingSplitExamples,
     meanLengthM: +(crossingLengthM / Math.max(crossingRendered, 1)).toFixed(2),
@@ -607,6 +632,9 @@ def main() -> int:
     ap.add_argument("--page", type=Path, default=PAGE_DATA)
     ap.add_argument("--ground", type=Path, default=GROUND_DATA)
     ap.add_argument("--official", type=Path, default=OFFICIAL_DATA)
+    ap.add_argument("--baseline", type=Path, nargs="?", const=BASELINE_DATA, default=None,
+                    help="also write the regression baseline tests/test_width_vs_kerb.py holds "
+                         "a build to (default data/sf_corridor/audits/width_vs_kerb.json)")
     args = ap.parse_args()
 
     node = shutil.which("node")
@@ -625,7 +653,51 @@ def main() -> int:
         print(out.stderr, file=sys.stderr)
         return 1
     print(out.stdout)
+    if args.baseline is not None:
+        report = json.loads(out.stdout)
+        previous = (json.loads(args.baseline.read_text(encoding="utf-8"))
+                    if args.baseline.exists() else {})
+        args.baseline.write_text(json.dumps(baseline_from(report, previous), indent=1) + "\n",
+                                 encoding="utf-8")
+        print(f"baseline written to {args.baseline}", file=sys.stderr)
     return 0
+
+
+def baseline_from(report: dict, previous: dict) -> dict:
+    """The numbers a build is held to, read off one audit report.
+
+    Every figure here is a measurement of the build the baseline was cut from; the notes are
+    carried over from the previous baseline so the reasons for a deliberate step stay with it.
+    """
+    width = report["widthVsKerb"]
+    crosswalk = report["crosswalk"]
+    out = {
+        "note": "Rendered carriageway width against the city's kerb lines, from "
+                "scripts/audit_corridor_render.py (widthVsKerb). tests/test_width_vs_kerb.py "
+                "fails when a build gets worse than this; regenerate deliberately with "
+                "`python scripts/audit_corridor_render.py --baseline` after a change that "
+                "improves it.",
+        "ways": width["ways"],
+        "enveloped": width["enveloped"],
+        "tooNarrowOver3M": width["tooNarrowOver3M"],
+        "tooWideOver3M": width["tooWideOver3M"],
+        "medianAbsM": width["medianAbsM"],
+        "bySource": width["bySource"],
+        "otherLevelsClamped": width["otherLevels"]["clamped"],
+        "crosswalkAttachedShare": crosswalk["attachedShare"],
+        "crosswalkLegs": crosswalk["legs"],
+        "crosswalkLegsAttachedShare": crosswalk["legsAttachedShare"],
+        "crosswalkWholeSpanFallback": crosswalk["wholeSpanFallback"],
+        "crosswalkSplitForIslands": crosswalk["splitForIslands"],
+        "footwayKeptShare": report["footway"]["keptShare"],
+        "kerbsideBareShare": report["kerbside"]["share"],
+        "roadThroughFacade": width["buildings"]["roadThroughFacade"],
+        "buildingsOnRoad2plus": width["buildings"]["onRoad2plus"],
+    }
+    for key, value in previous.items():
+        if key.endswith("Note") and key not in out:
+            out[key] = value
+    return out
 
 
 if __name__ == "__main__":

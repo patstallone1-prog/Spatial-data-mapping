@@ -1235,6 +1235,89 @@ def fold_parking_aisles_into_lots(ways: list[dict[str, Any]]) -> int:
     return folded
 
 
+PARKING_ZONES = ROOT / "build" / "street_furniture" / "parking_zones.json"
+#: A block face is a parking lane when the city's parking policies cover this share of it.
+PARKING_SIDE_SHARE = 0.3
+PARKING_MATCH_M = 14.0
+#: A parked car's lane, as San Francisco lays it out.
+PARKING_LANE_M = 2.4
+
+
+def _street_key(name: str | None) -> str:
+    text = (name or "").upper().replace(".", "")
+    for long, short in (("STREET", "ST"), ("AVENUE", "AVE"), ("BOULEVARD", "BLVD"),
+                        ("PLACE", "PL"), ("TERRACE", "TER"), ("COURT", "CT"), ("LANE", "LN"),
+                        ("DRIVE", "DR"), ("ROAD", "RD"), ("ALLEY", "ALY")):
+        text = text.replace(f" {long}", f" {short}")
+    return " ".join(text.split())
+
+
+def annotate_parking_lanes(ways: list[dict[str, Any]]) -> dict[str, int]:
+    """Which side of each street has a parking lane, from the city's parking block faces.
+
+    OpenStreetMap's ``parking:lane`` tags are not in this corridor's cache and a lane count
+    does not say where the parked cars are. SFMTA's curb policies do: every block face under
+    General Parking, Residential Permit Parking or the like is a lane of parked cars. Each
+    such block face is matched to the nearest street way of the same name within
+    PARKING_MATCH_M, on the side its midpoint falls; a way whose side is parked along at
+    least PARKING_SIDE_SHARE of its length gets that side in ``parking_sides`` (1 left of
+    travel, -1 right), and the lane lines are then spaced over the travel lanes only.
+    """
+    counts: Counter[str] = Counter()
+    if not PARKING_ZONES.exists():
+        counts["parking block faces unavailable"] += 1
+        return dict(counts)
+    zones = json.loads(PARKING_ZONES.read_text(encoding="utf-8")).get("zones", [])
+    streets = [w for w in ways if w.get("kind") == "street" and w.get("name")
+               and len(w.get("points") or []) >= 2]
+    by_name: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for way in streets:
+        by_name[_street_key(way["name"])].append(way)
+        way["_parked"] = {1: 0.0, -1: 0.0}
+    for zone in zones:
+        candidates = by_name.get(_street_key(zone.get("street")))
+        if not candidates:
+            counts["block faces with no street of that name"] += 1
+            continue
+        points = zone["p"]
+        length = sum(math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
+                     for a, b in zip(points[:-1], points[1:], strict=True))
+        mid = points[len(points) // 2]
+        best: tuple[float, dict[str, Any], int] | None = None
+        for way in candidates:
+            pts = way["points"]
+            for a, b in zip(pts[:-1], pts[1:], strict=True):
+                ax, ay = 0.0, 0.0
+                bx = (b[0] - a[0]) * 88_000.0
+                by = (b[1] - a[1]) * 111_320.0
+                px = (mid[0] - a[0]) * 88_000.0
+                py = (mid[1] - a[1]) * 111_320.0
+                seg2 = bx * bx + by * by
+                t = max(0.0, min(1.0, (px * bx + py * by) / seg2)) if seg2 else 0.0
+                dx, dy = px - bx * t, py - by * t
+                distance = math.hypot(dx, dy)
+                if distance > PARKING_MATCH_M:
+                    continue
+                side = 1 if (bx * py - by * px) > 0 else -1     # left of travel is positive
+                if best is None or distance < best[0]:
+                    best = (distance, way, side)
+        if best is None:
+            counts["block faces matched to no way"] += 1
+            continue
+        best[1]["_parked"][best[2]] += length
+        counts["block faces matched"] += 1
+    for way in streets:
+        parked = way.pop("_parked")
+        length = sum(math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
+                     for a, b in zip(way["points"][:-1], way["points"][1:], strict=True))
+        sides = [side for side in (1, -1)
+                 if length > 0 and parked[side] >= PARKING_SIDE_SHARE * length]
+        if sides:
+            way["parking_sides"] = sides
+            counts["ways with a parking lane"] += 1
+    return dict(counts)
+
+
 def alley_mouth_crossings(ways: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Short pedestrian crossings where alleys cut a sidewalk.
 
@@ -1445,6 +1528,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     })
     osm_summary["parking_aisles_folded_into_lots"] = fold_parking_aisles_into_lots(ways)
     osm_summary["tunnels"] = classify_tunnels(ways)
+    osm_summary["parking_lanes"] = annotate_parking_lanes(ways)
     synthetic_alley_crossings = alley_mouth_crossings(ways)
     if synthetic_alley_crossings:
         ways.extend(synthetic_alley_crossings)
@@ -2104,7 +2188,7 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             "distinct_curb_heights": len({w["kerb_m"] for w in ways if w.get("kerb_m")})}
 
 
-HTML = """<!doctype html>
+HTML = r"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -3134,39 +3218,62 @@ function officialCurbCrossingSpan(x, z, dx, dz, expectedHalfWidth, mappedLength 
   return points;
 }
 
+//: Bars are painted on roadway. A crossing's legs are the runs of its span that lie on a
+//: drawn carriageway or in a junction box; a gap between two runs is bridged where it is a
+//: strip of asphalt narrower than this with no island kerb in it, and breaks the crossing
+//: where it is an island -- which is where a walker stops halfway and the bars resume.
+const CROSSING_BRIDGE_GAP_M = 2.0;
+const CROSSING_LEG_MIN_M = 0.7;
+const CROSSING_STEP_M = 0.25;
+
 function crossingPaintLegs(points) {
-  if (!points || points.length < 2 || !officialIslandCurbGrid.size) return [points];
+  if (!points || points.length < 2) return [points];
   const [ax, ay] = xy(points[0][0], points[0][1]);
   const [bx, by] = xy(points[points.length - 1][0], points[points.length - 1][1]);
   const az = -ay;
   const bz = -by;
   const length = Math.hypot(bx - ax, bz - az);
-  if (!(length > 2.4)) return [points];
+  if (!(length > 1.0)) return [points];
   const dx = (bx - ax) / length;
   const dz = (bz - az) / length;
-  const hits = rayCurbIntersections(ax, az, dx, dz, length + 0.5, officialIslandCurbGrid)
-    .filter((value) => value > 0.35 && value < length - 0.35);
-  if (hits.length < 2) return [points];
-  const legs = [];
-  let cursor = 0;
-  for (let i = 0; i + 1 < hits.length; i += 2) {
-    const before = Math.max(0, hits[i] - 0.10);
-    const after = Math.min(length, hits[i + 1] + 0.10);
-    if (before - cursor > 0.7) {
-      legs.push([
-        lonLatFromXZ(ax + dx * cursor, az + dz * cursor),
-        lonLatFromXZ(ax + dx * before, az + dz * before),
-      ]);
-    }
-    cursor = Math.max(cursor, after);
+  const islands = officialIslandCurbGrid.size
+    ? rayCurbIntersections(ax, az, dx, dz, length + 0.5, officialIslandCurbGrid)
+        .filter((value) => value > 0.2 && value < length - 0.2)
+        .sort((a, b) => a - b)
+    : [];
+  // Between an odd and an even island kerb the span stands on the island, not the road --
+  // whether or not the carriageway grid runs on beneath it.
+  const onIsland = (tt) => islands.filter((v) => v < tt).length % 2 === 1;
+  // A run ends where the island kerb is when one was hit in the last step, and otherwise
+  // halfway between the last station on the road and the first off it.
+  const edgeBetween = (t0, t1) => islands.find((v) => v >= t0 && v <= t1) ?? (t0 + t1) / 2;
+  // The runs of the span on roadway.
+  const runs = [];
+  let start = null;
+  let previous = 0;
+  const steps = Math.ceil(length / CROSSING_STEP_M);
+  for (let i = 0; i <= steps; i += 1) {
+    const tt = Math.min(i * CROSSING_STEP_M, length);
+    const x = ax + dx * tt, z = az + dz * tt;
+    const on = (insideCarriageway(x, z, 0.05) || insideJunctionBox(x, z)) && !onIsland(tt);
+    if (on && start === null) start = i === 0 ? 0 : edgeBetween(previous, tt);
+    if (!on && start !== null) { runs.push([start, edgeBetween(previous, tt)]); start = null; }
+    previous = tt;
   }
-  if (length - cursor > 0.7) {
-    legs.push([
-      lonLatFromXZ(ax + dx * cursor, az + dz * cursor),
-      points[points.length - 1],
-    ]);
+  if (start !== null) runs.push([start, length]);
+  if (!runs.length) return [points];
+  // Bridge the gaps that are asphalt, keep the ones that are islands.
+  const legs = [runs[0]];
+  for (let i = 1; i < runs.length; i += 1) {
+    const last = legs[legs.length - 1];
+    const gap = runs[i][0] - last[1];
+    const island = islands.some((v) => v > last[1] - 0.1 && v < runs[i][0] + 0.1);
+    if (gap <= CROSSING_BRIDGE_GAP_M && !island) last[1] = runs[i][1];
+    else legs.push(runs[i].slice());
   }
-  return legs.length ? legs : [points];
+  const out = legs.filter(([t0, t1]) => t1 - t0 >= CROSSING_LEG_MIN_M)
+    .map(([t0, t1]) => [lonLatFromXZ(ax + dx * t0, az + dz * t0), lonLatFromXZ(ax + dx * t1, az + dz * t1)]);
+  return out.length ? out : [points];
 }
 
 indexOfficialCurbGeometry(OFFICIAL_GEOMETRY.curb_lines || []);
@@ -3434,9 +3541,26 @@ function arrowKind(token) {
 }
 
 //: Where each lane's centre sits, as an offset from the street's own centreline.
-function laneOffsets(roadWidth, count) {
+//: The parked cars' lane along a kerb, where the city's parking policies say one is.
+const PARKING_LANE_M = 2.4;
+
+//: The travel lanes of a way: the carriageway less its parking lanes, as [left edge offset,
+//: right edge offset] from the centreline, left of travel positive. Lane lines, the centre
+//: line, arrows and the bike lane are all placed inside this, not across the parked cars.
+function travelSpan(way, roadWidth) {
+  const sides = Array.isArray(way && way.parking_sides) ? way.parking_sides : [];
+  const parkLeft = sides.includes(1) ? PARKING_LANE_M : 0;
+  const parkRight = sides.includes(-1) ? PARKING_LANE_M : 0;
+  // A street too narrow to park on both sides and still drive has the lanes it has.
+  if (roadWidth - parkLeft - parkRight < 3.0) return [roadWidth / 2, -roadWidth / 2];
+  return [roadWidth / 2 - parkLeft, -roadWidth / 2 + parkRight];
+}
+
+function laneOffsets(roadWidth, count, way = null) {
+  const [left, right] = travelSpan(way, roadWidth);
+  const width = left - right;
   const out = [];
-  for (let i = 0; i < count; i += 1) out.push((i + 0.5 - count / 2) * (roadWidth / count));
+  for (let i = 0; i < count; i += 1) out.push(left - (i + 0.5) * (width / count));
   return out;
 }
 
@@ -3595,8 +3719,12 @@ function insideBikeLane(x, z, slack = 0.0) {
   return false;
 }
 
-function bikeLaneOffset(roadWidth) {
-  return Math.max(0.8, roadWidth / 2 - BIKE_LANE_M / 2 - 0.18);
+function bikeLaneOffset(roadWidth, way = null, side = 1) {
+  // Against the kerb, or against the parked cars where the kerb is a parking lane: a class II
+  // lane runs between the parking and the travel lane, which is where the cyclist is.
+  const sides = Array.isArray(way && way.parking_sides) ? way.parking_sides : [];
+  const parked = sides.includes(side) ? PARKING_LANE_M : 0;
+  return Math.max(0.8, roadWidth / 2 - parked - BIKE_LANE_M / 2 - 0.18);
 }
 
 function indexBikeLaneEnds(ways) {
@@ -3609,8 +3737,8 @@ function indexBikeLaneEnds(ways) {
     const roadWidth = renderedRoadWidth(way);
     if (roadWidth < BIKE_LANE_M + 2.2) continue;
     for (const side of sides) {
-      const centre = offsetWay(way.points, side * bikeLaneOffset(roadWidth));
-      stampBikeLane(centre, side, bikeLaneOffset(roadWidth));
+      const centre = offsetWay(way.points, side * bikeLaneOffset(roadWidth, way, side));
+      stampBikeLane(centre, side, bikeLaneOffset(roadWidth, way, side));
       for (const end of [centre[0], centre[centre.length - 1]]) {
         const [x, y] = xy(end[0], end[1]);
         const key = `${Math.floor(x / BIKE_JOIN_M)}:${Math.floor(-y / BIKE_JOIN_M)}`;
@@ -3882,8 +4010,8 @@ function bikeLaneZones(lane, ownWay = null) {
 function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
   const sides = cyclewaySides(way);
   if (!sides.length || roadWidth < BIKE_LANE_M + 2.2) return;
-  const offset = bikeLaneOffset(roadWidth);
   for (const side of sides) {
+    const offset = bikeLaneOffset(roadWidth, way, side);
     const centre = offsetWay(renderPoints, side * offset);
     if (!centre || centre.length < 2) continue;
     const [sx, sy] = xy(centre[0][0], centre[0][1]);
@@ -6677,11 +6805,13 @@ function laneMarkingProfile(way, road = renderedRoadWidth(way)) {
   // box that OpenStreetMap draws as its own way -- and at 17.6 m across it was guessed to
   // have four lanes, so three white lines ran diagonally through the crossroads.
   const named = Boolean(way.name);
+  const [left, right] = travelSpan(way, road);
+  const travel = left - right;
   const inferredTotal = explicitTotal || !named ? 0
-    : road >= 13.8 ? 4 : road >= 9.0 ? 2 : road >= 6.2 && oneway ? 2 : 1;
+    : travel >= 13.8 ? 4 : travel >= 9.0 ? 2 : travel >= 6.2 && oneway ? 2 : 1;
   const total = explicitTotal || inferredTotal;
-  const opposing = !oneway && (explicitTotal ? total >= 2 : named && road >= 5.6);
-  return { oneway, total, forward, backward, opposing, road };
+  const opposing = !oneway && (explicitTotal ? total >= 2 : named && travel >= 5.6);
+  return { oneway, total, forward, backward, opposing, road, left, right, travel };
 }
 
 function laneMarkingProfileChanged(a, b) {
@@ -6886,20 +7016,27 @@ function markingRunsClearOfJunctions(points, way) {
 function laneMarkingPaints(profile) {
   const marks = [];
   if (!profile) return marks;
-  const laneWidth = profile.total ? profile.road / profile.total : 0;
+  const left = profile.left ?? profile.road / 2;
+  const right = profile.right ?? -profile.road / 2;
+  const travel = left - right;
+  const laneWidth = profile.total ? travel / profile.total : 0;
   if (profile.total >= 2 && laneWidth >= 2.6) {
     for (let i = 1; i < profile.total; i += 1) {
       if (profile.opposing && i === (profile.backward || Math.floor(profile.total / 2))) continue;
-      const offset = profile.road / 2 - i * laneWidth;
-      if (Math.abs(offset) < profile.road / 2 - 0.35) {
+      const offset = left - i * laneWidth;
+      if (offset < left - 0.35 && offset > right + 0.35) {
         marks.push({ offset, color: 0xdfe3e0, kind: "lane", y: 0.015 });
       }
     }
   }
   if (profile.opposing) {
+    // Down the middle of the travel lanes, which is the middle of the road only where the
+    // parking is the same on both sides.
+    const middle = profile.backward && profile.total
+      ? left - profile.backward * laneWidth : (left + right) / 2;
     const apart = (MARK_W + DOUBLE_GAP_M) / 2;
-    marks.push({ offset: apart, color: 0xd8a92e, kind: "centre", y: 0.02 });
-    marks.push({ offset: -apart, color: 0xd8a92e, kind: "centre", y: 0.02 });
+    marks.push({ offset: middle + apart, color: 0xd8a92e, kind: "centre", y: 0.02 });
+    marks.push({ offset: middle - apart, color: 0xd8a92e, kind: "centre", y: 0.02 });
   }
   return marks;
 }
@@ -8541,12 +8678,12 @@ function signSlot(name, trade, ink = "light") {
 
   // Set it at the trade's own size, then shrink until it fits the board. A long name in a small
   // face is what a signwriter does; a long name overflowing the board is what nobody does.
-  const base = RegExp("(\\\\d+)px").exec(style.font);
+  const base = RegExp("(\\d+)px").exec(style.font);
   const basePx = base ? Number(base[1]) : 32;
   let scale = 1.0;
   let width = 0;
   for (let attempt = 0; attempt < 14; attempt += 1) {
-    ctx.font = style.font.replace(RegExp("(\\\\d+)px"), `${Math.max(12, Math.round(basePx * scale))}px`);
+    ctx.font = style.font.replace(RegExp("(\\d+)px"), `${Math.max(12, Math.round(basePx * scale))}px`);
     width = measureTracked(ctx, text, style.track * scale) + SIGN_PAD_PX * 2;
     if (width <= SIGN_MAX_PX || scale <= SIGN_MIN_SCALE) break;
     scale = Math.max(SIGN_MIN_SCALE, scale * 0.9);
@@ -11367,34 +11504,17 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     const markingRuns = markingRunsClearOfJunctions(markingPoints, way);
     // One profile, the same one the transitions and the trims read; this loop used to carry
     // its own copy of the lane arithmetic and the two could disagree.
-    const { total, backward, opposing } = laneMarkingProfile(way, road);
-    if (total >= 2) {
-      const laneWidth = road / total;
-      if (laneWidth >= 2.6 && markingPoints.length >= 2) {
-        for (let i = 1; i < total; i += 1) {
-          // The middle of a two-way street is the yellow line, drawn separately.
-          if (opposing && i === (backward || Math.floor(total / 2))) continue;
-          const offset = road / 2 - i * laneWidth;
-          if (Math.abs(offset) >= road / 2 - 0.35) continue;
-          for (const run of markingRuns) {
-            const divider = paintedLine(offsetWay(run, offset), MARK_W, 0xdfe3e0,
-                                        roadTop + 0.015, { dash: true });
-            if (divider) addMerged("marking:lane", divider, "marking");
-          }
-        }
-      }
-    }
-    if (opposing && markingPoints.length >= 2) {
-      // A double solid yellow, which is what San Francisco paints down the middle of a two-way
-      // street. A broken line means overtaking is allowed and is the exception here, not the
-      // rule -- and drawn as one dashed thread it read as a dotted line on a map rather than as
-      // a road marking.
-      const apart = (MARK_W + DOUBLE_GAP_M) / 2;
-      for (const side of [1, -1]) {
+    // The paints come from the one profile the transitions read too. White lane lines are
+    // broken; the double yellow down the middle of the travel lanes is solid, which is what
+    // San Francisco paints on a two-way street (a broken line means overtaking is allowed
+    // and is the exception here). Both sit inside the travel lanes: with parking down one
+    // side the yellow is off the road's middle, as it is in the street.
+    if (markingPoints.length >= 2) {
+      for (const mark of laneMarkingPaints(laneMarkingProfile(way, road))) {
         for (const run of markingRuns) {
-          const yellow = paintedLine(offsetWay(run, side * apart), MARK_W, 0xd8a92e,
-                                     roadTop + 0.02);
-          if (yellow) addMerged("marking:centre", yellow, "marking");
+          const line = paintedLine(offsetWay(run, mark.offset), MARK_W, mark.color,
+                                   roadTop + mark.y, mark.kind === "lane" ? { dash: true } : {});
+          if (line) addMerged(`marking:${mark.kind}`, line, "marking");
         }
       }
     }
@@ -11405,8 +11525,9 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
   const turns = way.turn || way.turn_fwd;
   if (turns && way.road_m && !isSidewalk && !isCrossing) {
     const tokens = String(turns).split("|");
-    const offsets = laneOffsets(way.road_m, tokens.length);
-    const laneWidth = way.road_m / tokens.length;
+    const offsets = laneOffsets(widthMeters, tokens.length, way);
+    const [tLeft, tRight] = travelSpan(way, widthMeters);
+    const laneWidth = (tLeft - tRight) / tokens.length;
     for (let i = 0; i < tokens.length; i += 1) {
       const kind = arrowKind(tokens[i]);
       if (!kind) continue;
@@ -11460,7 +11581,9 @@ const roadFillGrid = new Set();
 //: a kerb's height. Narrower than this it is paint, not an island; wider it is a park.
 const MEDIAN_MIN_M = 0.5;
 const MEDIAN_MAX_M = 9.0;
-const MEDIAN_KERB_M = 0.15;
+//: The height of a median or an island is a kerb's: the same as the pavements either side,
+//: so a mapped footway on a platform meets the island it stands on level rather than stepped.
+const MEDIAN_KERB_M = 0.126;
 const MEDIAN_STATION_M = 2.0;
 //: The strip between the halves runs the whole way, end to end -- a way split at a driveway
 //: node is followed by the next piece, and any margin here is a hole between them. The raised
@@ -14337,7 +14460,7 @@ document.getElementById("reset").addEventListener("click", () => {
   function search(query) {
     const words = query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
     if (!words.length) return [];
-    const numbered = /^\\d/.test(words[0]);
+    const numbered = /^\d/.test(words[0]);
     const first = numbered ? match(addresses, words, 8) : match(corners, words, 8);
     if (first.length >= 8) return first;
     const second = numbered
@@ -15112,7 +15235,7 @@ PAGE_FIELDS = {
     "continental_source",
     "service",
     "tunnel_kind", "tunnel_length_m",
-    "tunnel_portal", "tunnel_mouths", "tunnel_cover",
+    "tunnel_portal", "tunnel_mouths", "tunnel_cover", "parking_sides",
     "capacity",
     "surface",
     "material",

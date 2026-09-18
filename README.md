@@ -32,8 +32,11 @@ Marina through the Financial District, about five square miles.
   the kerbs allow is rejected as another street's record (51 ways).
 - Footways from the kerb outward, held to the building line, with a four-inch kerb tile that
   carries the city's curb paint on its own vertices, and a corner piece at every junction.
-- Lane paint that stops at every junction; continental crossings resolved so a junction's legs
-  match; curb ramps with ADA dome pads; bike lanes eased to meet across a split.
+- Lane paint that stops at every junction and is spaced over the travel lanes, with the
+  parking lanes read from SFMTA's parking block faces (1,131 of 2,169 named street ways have one); crossings painted
+  kerb to kerb in legs, one each side of a median or refuge island (99.8% of legs end on a
+  drawn carriageway; 27 crossings parted for islands); curb ramps with ADA dome pads; bike
+  lanes between the parked cars and the traffic, eased to meet across a split.
 - 24,603 official signs facing the road; 12,499 curb policy zones and 4,275 Color Curb Program
   assets painted in the five colours the city paints; bus zones in transit red.
 - 15,985 buildings, 14,490 wearing a colour sampled from a photograph of that building, 220
@@ -53,7 +56,8 @@ The corridor-wide figures below are the `widthVsKerb` audit
   ways are drawn more than 3 m narrower than kerb to kerb and 13 more than 3 m wider (the
   narrow ones are mostly halves of divided roads where the kerb file has no island lines, so
   the comparison spans the whole street).
-- Crossings ending on the local kerb: 59%. Footway laid of footway asked: 91%. Kerb sides with
+- Crossings ending on the local kerb: 59%; crossing legs ending on a drawn carriageway: 99.8%,
+  with 11 of 2,558 falling back to the whole desire line. Footway laid of footway asked: 91%. Kerb sides with
   no pavement at all: 2.5%. Streets drawn through a building facade: 96; buildings with two or
   more footprint corners on a carriageway: 780.
 - Tunnel mouths within 14 m of OpenStreetMap's nodes (Broadway east is that far inside);
@@ -68,8 +72,11 @@ The corridor-wide figures below are the `widthVsKerb` audit
 
 **Still guessed:** building materials and window patterns are procedural except the 220
 photographed walls; unmeasured building heights are drawn desaturated; curb heights come only
-from our lidar because no city record publishes one; lane lines divide the drawn carriageway
-by OpenStreetMap's lane count and do not know about parking lanes; Broadway's twin bores come
+from our lidar because no city record publishes one; lane lines divide the travel lanes by
+OpenStreetMap's lane count, and the parking lanes come from the city's parking policies rather
+than a survey of where cars stand (OpenStreetMap's `parking:lane` tags are absent here); the
+halves of a divided road with no island kerb in the city file are drawn from the right of way;
+Broadway's twin bores come
 from the width of its cut, not from a record; the hill over a tunnel is drawn only at the
 mouths, because the model is flat.
 
@@ -90,7 +97,7 @@ index only anchors captures taken from its own vantage. See `docs/07-status.md`.
 
 ```bash
 make install-dev
-make check                                   # lint + 743 tests
+make check                                   # lint + 747 tests
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
 python tools/build_pages.py --map-only --out ../Curb-measurements/docs   # publish the map
 ```

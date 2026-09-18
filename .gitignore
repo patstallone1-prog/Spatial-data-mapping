@@ -34,6 +34,11 @@ graphify-out/
 # depth store and the OSM cache added roughly 55 MB of undedupable binary per deploy, all of it
 # reproducible from data/sf_corridor_*/observations/*.parquet, which are kept.
 data/sf_corridor/
+# Except the regression baseline tests/test_width_vs_kerb.py holds every build to: 4 KB of
+# measured numbers that mean nothing unless every clone has the same ones.
+!data/sf_corridor/
+data/sf_corridor/*
+!data/sf_corridor/audits/
 
 # Source frames fetched to build facades. Gigabytes of other people's JPEGs, rebuildable
 # from the catalogue at any time, and none of it belongs in a clone.

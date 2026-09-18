@@ -540,6 +540,36 @@ def records_from_official(
     return out
 
 
+#: Curb policies under which a car is parked at the kerb: where these run, the lane beside
+#: the kerb is a parking lane and the lane lines belong inside it.
+PARKING_POLICIES = {"General Parking", "Residential Permit Parking", "Paid Parking",
+                    "Time Limited Parking", "Motorcycle Parking", "Car Share Parking"}
+PARKING_ZONES = CACHE / "parking_zones.json"
+
+
+def write_parking_zones(features: list[dict[str, Any]]) -> int:
+    """The city's parking block faces, as lines, for the map build to read parking lanes from.
+
+    Not part of the sidecar -- 40,000 lines of block face that nothing in the page draws --
+    but the map build needs them: a street's lane lines were spaced over the whole
+    carriageway by OpenStreetMap's lane count, so on a 12 m one-way with three lanes and
+    parking both sides the outer white line ran down the middle of the parked cars.
+    """
+    zones = []
+    for feature in features:
+        props = feature.get("properties") or {}
+        if props.get("POLICY_CATEGORY") not in PARKING_POLICIES:
+            continue
+        for line in geojson_lines(feature):
+            if len(line) >= 2:
+                zones.append({"p": [[round(x, 6), round(y, 6)] for x, y in line],
+                              "street": props.get("STREET_NAME"), "side": props.get("SIDE_OF_STREET"),
+                              "policy": props.get("POLICY_CATEGORY")})
+    PARKING_ZONES.parent.mkdir(parents=True, exist_ok=True)
+    PARKING_ZONES.write_text(json.dumps({"source": "sfmta_curb_zones", "zones": zones}), encoding="utf-8")
+    return len(zones)
+
+
 def base_record(element: dict[str, Any], kind: str, lon: float, lat: float, basis: str) -> dict[str, Any]:
     tags = {str(k): str(v) for k, v in (element.get("tags") or {}).items()}
     return {
@@ -628,6 +658,7 @@ def main() -> int:
     }
     geometry_based = records_from_official(official_features)
     geometry_counts = {key: len(value) for key, value in geometry_based.items()}
+    write_parking_zones(official_features.get("sfmta_curb_zones", []))
     osm_tag_counts = Counter()
     for element in elements:
         for key in (element.get("tags") or {}):

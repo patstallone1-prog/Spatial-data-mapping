@@ -359,7 +359,7 @@ def test_renderer_densifies_curved_road_markings() -> None:
     # Painted with a width rather than drawn as a one-pixel line; the dash pattern is measured
     # in metres along the way, so a broken lane line stays 3.05 m of paint at any zoom.
     assert "const markingPoints = trimWayEnds(renderPoints, markCutStart, markCutEnd);" in source
-    assert "paintedLine(offsetWay(run, offset), MARK_W" in source
+    assert "paintedLine(offsetWay(run, mark.offset), MARK_W" in source
     assert "function addLaneTransitionMarkings(way, renderPoints, roadWidth, roadTop)" in source
     assert "const LANE_TRANSITION_MAX_SHIFT_M = 3.4;" in source
     assert "function laneTransitionCandidate(way, here, other)" in source
@@ -984,3 +984,43 @@ def test_strips_follow_the_kerbs_and_bends_are_curves() -> None:
     assert "const partner = previous.find((p) => !matched.has(p) && p.island === run.island" in source
     assert "function filletBends(points)" in source
     assert "const bendsFilleted = filletStreetBends(DATA.ways);" in source
+
+
+def test_a_parking_lane_is_a_block_face_the_city_lets_cars_park_on(tmp_path: Path, monkeypatch) -> None:
+    """Which kerb the parked cars stand along comes from SFMTA's parking block faces, matched
+    to the nearest street of the same name and the side of travel its midpoint falls on. A
+    face on the far side of the block, a face of another street, and a face too short a share
+    of the way to be a lane all leave the way alone. Lane lines are laid over the travel lanes
+    the parking leaves (travelSpan in the page)."""
+    namespace = runpy.run_path(str(SOURCE))
+    annotate = namespace["annotate_parking_lanes"]
+    # Polk runs north; east of the centreline is right of travel (-1), west is left (+1).
+    polk = {"kind": "street", "name": "Polk Street",
+            "points": [[-122.4210, 37.7950], [-122.4210, 37.7960]]}
+    larkin = {"kind": "street", "name": "Larkin Street",
+              "points": [[-122.4190, 37.7950], [-122.4190, 37.7960]]}
+    ways = [polk, larkin, {"kind": "street", "points": polk["points"]}]
+    east = [[-122.42092, 37.79505], [-122.42092, 37.79595]]          # 100 m along the east kerb
+    west_short = [[-122.42108, 37.79505], [-122.42108, 37.79525]]    # 22 m along the west kerb
+    zones = {"zones": [
+        {"street": "POLK ST", "p": east},
+        {"street": "POLK STREET", "p": west_short},
+        {"street": "LARKIN ST", "p": [[-122.41892, 37.79505], [-122.41892, 37.79595]]},
+        {"street": "HYDE ST", "p": east},
+    ]}
+    zone_file = tmp_path / "parking_zones.json"
+    zone_file.write_text(json.dumps(zones), encoding="utf-8")
+    monkeypatch.setitem(namespace, "PARKING_ZONES", zone_file)
+    annotate.__globals__["PARKING_ZONES"] = zone_file
+
+    counts = annotate(ways)
+
+    assert polk["parking_sides"] == [-1], polk
+    assert larkin["parking_sides"] == [-1], larkin
+    assert "parking_sides" not in ways[2], "a nameless way cannot be matched to a block face"
+    assert counts["block faces matched"] == 3
+    assert counts["block faces with no street of that name"] == 1
+    # The side reaches the page, and the page lays its paint over what the parking leaves.
+    assert '"parking_sides",' in _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
+    assert "function travelSpan(way, roadWidth)" in _source()
+    assert "const [left, right] = travelSpan(way, road);" in _source()
