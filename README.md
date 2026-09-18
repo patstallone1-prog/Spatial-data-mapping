@@ -26,21 +26,38 @@ open in a browser: <https://patstallone1-prog.github.io/Curb-measurements/>
 
 Marina through the Financial District, about five square miles.
 
-- Carriageways at the surveyed width between mapped kerbs (5,017 ways); footways laid from the
-  kerb outward with a four-inch kerb tile that carries SFMTA's curb paint on its own vertices,
-  and a corner piece at every junction where two of them meet.
-- Lane paint that stops at every junction, continental crossings resolved so a junction's legs
-  match (817 from the SFMTA inventory, 1,575 by junction), curb ramps with ADA dome pads.
-- 24,603 official signs facing the road, 21,519 curb zones, bus zones in transit red.
-- 15,984 buildings, 14,490 wearing a colour sampled from a photograph of that building, 220 walls
-  wearing the photograph itself; heights from lidar medians over 12,262 footprints.
-- 142 stone and brick walls, 75 tunnel bores with portals, 146 surface car parks, courts, parks,
-  street furniture, trees.
+- Carriageways drawn between the city's kerb lines, read every few metres along each way
+  (1,639 of 1,728 street ways with kerbs nearby); the recorded right of way, the lane count
+  and the room to the next street are fallbacks for the rest, and a right of way twice what
+  the kerbs allow is rejected as another street's record (51 ways).
+- Footways from the kerb outward, held to the building line, with a four-inch kerb tile that
+  carries the city's curb paint on its own vertices, and a corner piece at every junction.
+- Lane paint that stops at every junction; continental crossings resolved so a junction's legs
+  match; curb ramps with ADA dome pads; bike lanes eased to meet across a split.
+- 24,603 official signs facing the road; 12,499 curb policy zones and 4,275 Color Curb Program
+  assets painted in the five colours the city paints; bus zones in transit red.
+- 15,985 buildings, 14,490 wearing a colour sampled from a photograph of that building, 220
+  walls wearing the photograph itself; heights from lidar medians over 12,262 footprints.
+- Two road tunnels (Broadway, Stockton) with mouths, cover and portal width read from the
+  lidar and the city's kerbs; 142 stone and brick walls, 146 surface car parks with angled
+  bays, courts, parks, street furniture, trees.
 
 ## Measured, not claimed
 
 Every figure came from running the code. Where something is a bound or unproven, it says so.
+The corridor-wide figures below are the `widthVsKerb` audit
+(`scripts/audit_corridor_render.py`), held to a baseline in `data/sf_corridor/audits/` by
+`tests/test_width_vs_kerb.py`, so a change that makes them worse fails.
 
+- Rendered carriageway width against the city's kerb lines: median error 5 cm; 190 of 1,728
+  ways are drawn more than 3 m narrower than kerb to kerb and 13 more than 3 m wider (the
+  narrow ones are mostly halves of divided roads where the kerb file has no island lines, so
+  the comparison spans the whole street).
+- Crossings ending on the local kerb: 59%. Footway laid of footway asked: 91%. Kerb sides with
+  no pavement at all: 2.5%. Streets drawn through a building facade: 96; buildings with two or
+  more footprint corners on a carriageway: 780.
+- Tunnel mouths within 14 m of OpenStreetMap's nodes (Broadway east is that far inside);
+  covered lengths 560 m and 276 m; headwall cover 2.7-13.6 m, all from the lidar.
 - The city's two footway records agree to 5 cm; our aerial lidar sits 0.93 m from both after
   being bounded by the right of way.
 - Aerial and Waymo ground lidar agree on kerb height to 1 mm of median (126 vs 131 mm).
@@ -51,7 +68,10 @@ Every figure came from running the code. Where something is a bound or unproven,
 
 **Still guessed:** building materials and window patterns are procedural except the 220
 photographed walls; unmeasured building heights are drawn desaturated; curb heights come only
-from our lidar because no city record publishes one.
+from our lidar because no city record publishes one; lane lines divide the drawn carriageway
+by OpenStreetMap's lane count and do not know about parking lanes; Broadway's twin bores come
+from the width of its cut, not from a record; the hill over a tunnel is drawn only at the
+mouths, because the model is flat.
 
 **Still open:** the anchoring front end is a correct engine with an empty tank — a reference
 index only anchors captures taken from its own vantage. See `docs/07-status.md`.
@@ -70,7 +90,7 @@ index only anchors captures taken from its own vantage. See `docs/07-status.md`.
 
 ```bash
 make install-dev
-make check                                   # lint + 705 tests
+make check                                   # lint + 743 tests
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
 python tools/build_pages.py --map-only --out ../Curb-measurements/docs   # publish the map
 ```

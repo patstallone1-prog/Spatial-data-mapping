@@ -71,3 +71,12 @@ def test_the_rest_of_the_audit_does_not_slip(report: dict, baseline: dict) -> No
     assert report["crosswalk"]["attachedShare"] >= baseline["crosswalkAttachedShare"] - 0.02
     assert report["footway"]["keptShare"] >= baseline["footwayKeptShare"] - 0.02
     assert report["kerbside"]["share"] <= baseline["kerbsideBareShare"] + 0.01
+
+
+def test_streets_and_buildings_keep_out_of_each_other(report: dict, baseline: dict) -> None:
+    """A roadway never runs through the houses either side of it -- the building line is the
+    width's fallback where the city drew no kerb -- and a building never stands on the
+    carriageway. Both counts may only fall."""
+    buildings = report["widthVsKerb"]["buildings"]
+    assert buildings["roadThroughFacade"] <= baseline["roadThroughFacade"] + 2, buildings
+    assert buildings["onRoad2plus"] <= baseline["buildingsOnRoad2plus"] + 5, buildings

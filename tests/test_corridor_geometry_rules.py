@@ -519,6 +519,8 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     const NEIGHBOUR_PARALLEL_DEG = 30;
+    // No buildings in this harness: the facade clamp finds nothing.
+    function roomBetweenFacades() { return null; }
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
     function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
     """]
@@ -1396,6 +1398,7 @@ PAVEMENT_FUNCTIONS = (
     "cornerLegAt",
     "kerbsideTrims",
     "mappedWalkBeyondKerb",
+    "rayFootprintDistance",
     "bulbDepthAt",
     "halfWidthAt",
     "addBulbOuts",
@@ -1425,6 +1428,11 @@ function addPavementRibbon(points, width) {
   return wayLength(points);
 }
 function stampPaved() {}
+// No buildings in the harness unless a test puts some in the grid.
+const FOOTPRINT_CELL = 60;
+const footprintGrid = new Map();
+const FACADE_GAP_M = 0.3;
+const WALK_TO_FACADE_MAX_M = 7.0;
 // No mapped footways, no city kerbs and no bulb-outs in the harness.
 const MAPPED_WALK_CELL = 40;
 const mappedWalkGrid = new Map();
@@ -1522,7 +1530,7 @@ def test_the_width_kept_is_the_one_that_covers_the_most_ground() -> None:
     body = _extract("addKerbsidePavement", js)
     assert "const fits = widths.map(() => []);" in body
     # Each station is also asked whether the ground beyond its kerb is another carriageway.
-    assert "fits[w].push(!blocked && walkFitsAt(cx, -cy, nx, nz, widths[w]));" in body
+    assert "fits[w].push(!blocked && walkFitsAt(cx, -cy, nx, nz, width));" in body
     assert "if (coverage >= WALK_ENOUGH)" in body
     assert "const chosen = fits[pick].map((ok) => ok ? pick : -1);" in body
     assert "const emit = (from, to) => {" in body
@@ -1946,3 +1954,75 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     # A right of way twice what the kerbs allow is another street's record, and is rejected.
     assert abs(result["alleyRoad"] - 3.0) < 0.05 and result["alleyRejected"] == 26.0, result
     assert result["alleySource"] == "official_curbs", result
+
+
+def test_a_bend_is_drawn_as_a_curve_and_a_band_round_it_does_not_cross_itself() -> None:
+    """OpenStreetMap draws a curving street as straight pieces meeting at an angle, and every
+    band laid from it -- kerb, pavement, paint -- met at the same angle. A bend of up to
+    seventy degrees inside a way becomes an arc tangent to both legs; a sharper turn is a
+    corner and stays one; the ends of a way are never moved. And a band mitred round any of
+    them keeps its two edges apart."""
+    js = _page_js()
+    parts = [PREAMBLE, """
+    const FILLET_MIN_DEG = 8.0;
+    const FILLET_MAX_DEG = 70.0;
+    const FILLET_LEG_MAX_M = 8.0;
+    const FILLET_STEP_M = 1.5;
+    const MAX_MITRE = 2.6;
+    const midLon = 0, midLat = 0;
+    function lonLatFromXZ(x, z) { return [x / metersPerLon, -z / metersPerLat]; }
+    """]
+    parts += [_extract(name, js) for name in ("wayLength", "norm", "mitredEdges", "filletBends")]
+    parts.append("""
+    const at = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
+    const bend = (deg) => {
+      const a = deg * Math.PI / 180;
+      return [at(-30, 0), at(0, 0), at(30 * Math.cos(a), 30 * Math.sin(a))];
+    };
+    const turnsOf = (points) => {
+      const out = [];
+      for (let i = 1; i + 1 < points.length; i += 1) {
+        const [ax, ay] = xy(points[i - 1][0], points[i - 1][1]);
+        const [x, y] = xy(points[i][0], points[i][1]);
+        const [bx, by] = xy(points[i + 1][0], points[i + 1][1]);
+        const l1 = Math.hypot(x - ax, y - ay), l2 = Math.hypot(bx - x, by - y);
+        const dot = ((x - ax) * (bx - x) + (y - ay) * (by - y)) / (l1 * l2);
+        out.push(Math.acos(Math.max(-1, Math.min(1, dot))) * 180 / Math.PI);
+      }
+      return out;
+    };
+    const crosses = (p, q, r, s) => {
+      const d = (b, a, c) => (c[0] - a[0]) * (b[1] - a[1]) - (b[0] - a[0]) * (c[1] - a[1]);
+      return (d(q, p, r) > 0) !== (d(q, p, s) > 0) && (d(s, r, p) > 0) !== (d(s, r, q) > 0);
+    };
+    const selfCrossing = (edge) => {
+      for (let i = 1; i < edge.length; i += 1)
+        for (let j = i + 2; j < edge.length; j += 1)
+          if (crosses(edge[i - 1], edge[i], edge[j - 1], edge[j])) return true;
+      return false;
+    };
+    const result = {};
+    for (const deg of [30, 60, 90, 120]) {
+      const raw = bend(deg);
+      const smooth = filletBends(raw);
+      const edges = mitredEdges(smooth, 6.0);
+      result[deg] = {
+        vertices: smooth.length,
+        maxTurn: +Math.max(...turnsOf(smooth)).toFixed(1),
+        endsKept: smooth[0] === raw[0] && smooth[smooth.length - 1] === raw[raw.length - 1],
+        crossing: selfCrossing(edges.left) || selfCrossing(edges.right),
+      };
+    }
+    console.log(JSON.stringify(result));
+    """)
+    out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    for deg in ("30", "60"):
+        assert result[deg]["vertices"] > 3 and result[deg]["maxTurn"] < 15, result[deg]
+        assert result[deg]["endsKept"], result[deg]
+    for deg in ("90", "120"):
+        assert result[deg]["vertices"] == 3, result[deg]      # a corner stays a corner
+    for deg in ("30", "60", "90", "120"):
+        assert not result[deg]["crossing"], (deg, result[deg])

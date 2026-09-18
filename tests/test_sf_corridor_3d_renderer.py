@@ -954,8 +954,33 @@ def test_the_roadway_between_the_citys_kerbs_is_filled_where_nothing_else_covers
     assert "function fillRoadwayToKerbs()" in source
     assert "function roadwayCovered(x, z)" in source
     assert "const roadFillGrid = new Set();" in source
-    assert "if (width >= ROAD_FILL_ISLAND_MIN_M && kerbed(t0) && kerbed(t1)) {" in source
-    assert "const sink = opposing ? lines.yellow : lines.white;" in source
+    assert "island: width >= ROAD_FILL_ISLAND_MIN_M && kerbed(t0) && kerbed(t1), line: null };" in source
+    assert "run.line = { sink: opposing ? lines.yellow : lines.white, points: offsets.map((off) => at(mid + off, 0)) };" in source
     assert "const roadwayFilled = fillRoadwayToKerbs();" in source
     # Medians stamp their strip so the fill never doubles them.
     assert "stampFill(a[0], a[1], b[0], b[1]);" in source
+
+
+def test_the_pavement_stops_at_the_building_line() -> None:
+    """A third of the corridor's kerb stations put the surveyed pavement through the facade or
+    left a strip of bare ground before it. The pavement is held to the building line: never
+    into a building, and out to the facade where its width was only a share of the right of
+    way; and a way with no kerb to draw between is no wider than the houses allow."""
+    source = _source()
+    assert "function rayFootprintDistance(x, z, dx, dz, reach)" in source
+    assert "const facade = rayFootprintDistance(sx, -sy, -side * nx, -side * nz," in source
+    assert "if (room < walk - 0.6) target = Math.max(MIN_RENDER_WALK_M * 0.55, room);" in source
+    assert "else if (!surveyed && facade - kerbAt[i] > walk + 1.0) {" in source
+    assert "function roomBetweenFacades(way)" in source
+    assert "way.road_facade_clamped = true;" in source
+
+
+def test_strips_follow_the_kerbs_and_bends_are_curves() -> None:
+    """The strips between kerbs -- asphalt, islands, the line where two carriageways meet --
+    were one rectangle per station, squared to the tangent, and fanned open round every bend.
+    They run station to station now; and a bend inside a way is drawn as an arc."""
+    source = _source()
+    assert "const drawStrip = (prev, cur) => {" in source
+    assert "const partner = previous.find((p) => !matched.has(p) && p.island === run.island" in source
+    assert "function filletBends(points)" in source
+    assert "const bendsFilleted = filletStreetBends(DATA.ways);" in source

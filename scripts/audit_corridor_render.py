@@ -49,6 +49,8 @@ FUNCTIONS = (
     "clampRoadWidthsToNeighbours",
     "renderedWalkWidth",
     "sameLevel",
+    "rayFootprintDistance",
+    "roomBetweenFacades",
     "isRoadTunnel",
     "isTunnelWay",
     "isDividedHalf",
@@ -178,6 +180,28 @@ const ENVELOPE_MIN_WAY_M = 10.0;
 const ROW_MISMATCH_FACTOR = 2.0;
 const ENVELOPE_RELABEL_M = 1.0;
 const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
+const FACADE_GAP_M = 0.3;
+const WALK_TO_FACADE_MAX_M = 7.0;
+const FACADE_ROOM_WALK_M = 1.4;
+// The building footprints, for the building line the widths and pavements are held to.
+const FOOTPRINT_CELL = 60;
+const footprintGrid = new Map();
+for (const way of DATA.ways) {
+  if (way.kind !== "building" || !way.points || way.points.length < 4) continue;
+  const local = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const [x, z] of local) {
+    if (x < minX) minX = x; if (x > maxX) maxX = x; if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+  }
+  const entry = { way, local, minX, maxX, minZ, maxZ };
+  for (let ix = Math.floor(minX / FOOTPRINT_CELL); ix <= Math.floor(maxX / FOOTPRINT_CELL); ix += 1)
+    for (let iz = Math.floor(minZ / FOOTPRINT_CELL); iz <= Math.floor(maxZ / FOOTPRINT_CELL); iz += 1) {
+      const key = `${ix}:${iz}`;
+      let bucket = footprintGrid.get(key);
+      if (!bucket) footprintGrid.set(key, bucket = []);
+      bucket.push(entry);
+    }
+}
 const streetEndGrid = new Map();
 const CORNER_JOIN_M = 1.0;
 const CORNER_CELL_M = 4.0;
@@ -312,8 +336,43 @@ for (const way of DATA.ways) {
                    roadM: +way.road_m.toFixed(2), drawnM: +drawn.toFixed(2),
                    clamped: drawn < expected - 0.05 });
 }
+// Streets and buildings: a roadway never runs through the houses either side of it, and a
+// building never stands on the carriageway. Both counted from the footprints and the drawn
+// carriageway, so a width or a footprint that puts one in the other fails here.
+let buildingsOnRoad = 0;
+for (const way of DATA.ways) {
+  if (way.kind !== "building" || !way.points || way.points.length < 4) continue;
+  let on = 0;
+  for (const q of way.points) {
+    const [x, y] = xy(q[0], q[1]);
+    if (insideCarriageway(x, -y, -0.5)) on += 1;
+  }
+  if (on >= 2) buildingsOnRoad += 1;
+}
+let roadThroughFacade = 0;
+for (const way of DATA.ways) {
+  if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+  if (isTunnelWay(way) || UNMARKED.has(way.service)) continue;
+  const half = renderedRoadWidth(way) / 2;
+  const dense = densifyWay(way.points, 12);
+  let through = false;
+  for (let i = 1; i + 1 < dense.length && !through; i += 1) {
+    const [px, py] = xy(dense[i - 1][0], dense[i - 1][1]);
+    const [x, y] = xy(dense[i][0], dense[i][1]);
+    const [qx, qy] = xy(dense[i + 1][0], dense[i + 1][1]);
+    const dx = qx - px, dz = -(qy - py);
+    const s = Math.hypot(dx, dz) || 1;
+    const nx = dz / s, nz = -dx / s;
+    for (const sign of [1, -1]) {
+      const facade = rayFootprintDistance(x, -y, sign * nx, sign * nz, half + 0.5);
+      if (facade !== null && facade < half - 0.5) { through = true; break; }
+    }
+  }
+  if (through) roadThroughFacade += 1;
+}
 const widthReport = {
   ways: widthRows.length,
+  buildings: { onRoad2plus: buildingsOnRoad, roadThroughFacade },
   otherLevels: { ways: levelRows.length, clamped: levelRows.filter((r) => r.clamped).length,
                  rows: levelRows.filter((r) => r.clamped).slice(0, 12) },
   enveloped: widthRows.filter((r) => r.enveloped).length,
