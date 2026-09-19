@@ -53,8 +53,9 @@ def publish_map(out: pathlib.Path, assets_base: str | None = None) -> None:
     # storage by tools/publish_assets.sh and the page fetches it from there. Without one the
     # data sits beside the page, which is what GitHub Pages serves today.
     if not assets_base:
+        # The JSON sidecars and the terrain grid's binary: everything the page fetches.
         for data in sorted(OUT.glob("sf-corridor-*")):
-            if data.is_file() and data.suffix == ".json":
+            if data.is_file() and data.suffix in (".json", ".bin"):
                 shutil.copyfile(data, out / data.name)
         facades = OUT / "facades"
         if facades.is_dir():
