@@ -297,8 +297,8 @@ def test_full_detail_shards_restore_every_field_omitted_from_rendering(
 
 def test_browser_loads_the_nearby_full_detail_shard_on_demand() -> None:
     source = _source()
-    assert 'fetch("sf-corridor-detail-manifest.json", { cache: "no-cache" })' in source
-    assert 'records = fetch(shard.file, { cache: "force-cache" })' in source
+    assert 'fetch(asset("sf-corridor-detail-manifest.json"), { cache: "no-cache" })' in source
+    assert 'records = fetch(asset(shard.file), { cache: "force-cache" })' in source
     assert "async function fullDetailFeature(feature)" in source
     assert "full._detailShard = shard.id;" in source
     assert "const summary = await featureSummary(feature);" in source
@@ -509,12 +509,12 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert "const lazyLayerBuilders = new Map();" in source
     assert "function registerLazyLayer(layer, builder)" in source
     assert "function ensureLazyLayer(layer)" in source
-    assert "const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST] = await Promise.all([" in source
-    assert 'fetch("sf-corridor-official.json", { cache: "no-cache" })' in source
+    assert "const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN] = await Promise.all([" in source
+    assert 'fetch(asset("sf-corridor-official.json"), { cache: "no-cache" })' in source
     assert 'registerLazyLayer("official", () => {' in source
     assert 'registerLazyLayer("chunks", () => {' in source
     assert 'registerLazyLayer("furniture", async () => {' in source
-    assert 'fetch("sf-corridor-furniture.json", { cache: "no-cache" })' in source
+    assert 'fetch(asset("sf-corridor-furniture.json"), { cache: "no-cache" })' in source
     assert '<button data-layer="furniture" aria-pressed="false">Street furniture</button>' in source
     assert 'furniture:blank_ad' in source
     assert "Official geometry:" in source
@@ -781,28 +781,24 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
     source = _source()
     # One headwall design at both ends; the hill behind it is what the lidar measured.
     assert "const H = TUNNEL_CROWN_M + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;" in source
-    assert "const cover = Math.max(H, measured[label] || 0);" in source
+    assert "portal.userData.coverM = measured[label] || null;" in source
     # The portal is as wide as the city's kerbs on the approach; over sixteen metres, two bores.
     assert "function tunnelApproachWidth(mouth, outward)" in source
     assert "const bores = width > TUNNEL_TWIN_MIN_M ? 2 : 1;" in source
-    # No wall of dark: the bore is swept the whole way between the mouths and goes down under
-    # the flat ground, with a walkway along each wall and lights at the crown.
-    assert "tunnel_dark" not in source
+    # No wall of dark and no sunk bore: the bore is swept the whole way between the mouths at
+    # the level the lidar read for its road -- the ground less the measured cover -- with a
+    # walkway along each wall and lights at the crown; the hill is the terrain itself.
+    assert "tunnel_dark" not in source and "TUNNEL_SINK_M" not in source
     assert "function sweepAlongBore(stations, section, material, surface)" in source
-    assert "function tunnelStations(centre, moundStart, moundEnd)" in source
-    assert "const TUNNEL_SINK_M = 8.0;" in source and "const TUNNEL_GRADE = 0.15;" in source
+    assert "function tunnelStations(centre, cover = null, roadZ = null)" in source
+    assert "function approachRoadAt(x, z)" in source and '"tunnel_road_z"' in source
+    assert "function tunnelCoverAlong(cover, s)" in source
     assert '"tunnel_walk"' in source and '"tunnel_light"' in source
-    # The hill at a mouth runs as far as the descent needs, or to the first street across.
-    assert "function tunnelClearRun(way, mouth, inward)" in source
-    assert "mounds[label] = Math.min(tunnelClearRun(way, mouth, inward), TUNNEL_RAMP_M, total / 2);" in source
-    # Nothing at ground level is drawn inside that hill, and the planes under the world are
-    # cut along the bore.
-    assert "function cullUnderTunnelHills(material)" in source
-    assert "cutTunnelVoidsFromPlanes();" in source
+    assert "const TUNNEL_ROOF_UNDER_M = 0.4;" in source
     # An underpass is a street to everything else.
     assert 'function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }' in source
-    # Buildings, trees and posts on the hill over a mouth stand on the hill.
-    assert "const hillLift = tunnelCoverIndex.length ? tunnelCoverAt(liftX, -liftY) : 0;" in source
+    # Buildings stand on the lowest ground under their footprint; trees and posts on the ground.
+    assert "const hillLift = groundBaseFor(feature.points);" in source
     if PAGE_DATA.exists():
         deployed = json.loads(PAGE_DATA.read_text(encoding="utf-8"))
         by_kind = {}
@@ -811,49 +807,60 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
                 by_kind.setdefault(way["tunnel_kind"], set()).add(way.get("name"))
         assert by_kind["road"] == {"Broadway", "Stockton Tunnel"}, by_kind
         assert by_kind["underpass"] == {"1st Street"}, by_kind
+        # Measured, not defaulted: each bore carries the lidar's cover profile and mouths.
+        for way in deployed["ways"]:
+            if way.get("tunnel_kind") == "road":
+                assert len(way.get("tunnel_cover") or []) > 20, (way["name"], "no cover profile")
+                assert way.get("tunnel_mouth_low_cover_m"), way["name"]
 
 
 def test_a_tunnel_way_is_cut_at_its_mouths_and_the_rest_is_street() -> None:
     """OpenStreetMap ends a tunnel way where the tagging changes, not where the ground closes
     over the road. The way used to be drawn as a tunnel end to end, so the open approach past
     the lidar's mouth had no road and no pavement. The way is cut at the mouths: the piece
-    between them is the bore, the pieces outside are streets. A mouth under a junction (Bush
-    Street stands on the Stockton Tunnel's south portal) is moved to the far side of it, since
-    the flat model draws the junction at grade."""
+    between them is the bore, the pieces outside are streets. And a mouth is where the cover
+    is a roof: the lidar's 0.8 m criterion put Broadway's east mouth 26 m before the cover
+    reaches 3.5 m, and that piece was a shell 1.5 m high over the road. Bush Street stands on
+    the Stockton Tunnel's south portal and the mouth stays under it -- the ground is the
+    lidar's now and the street is drawn on the deck."""
     namespace = runpy.run_path(str(SOURCE))
     classify = namespace["classify_tunnels"]
     split = namespace["split_tunnel_approaches"]
     stockton = {"kind": "street", "name": "Stockton Tunnel", "highway": "tertiary", "tunnel": True,
                 "road_m": 14.0,
                 "points": [[-122.407148, 37.790283], [-122.407648, 37.792749]]}
+    # Seven decimals, as the payload now delivers its points: the portal record was keyed on
+    # six, and a textual match sent every tunnel back to default portals.
     broadway = {"kind": "street", "name": "Broadway", "highway": "primary", "tunnel": True,
                 "road_m": 22.0,
-                "points": [[-122.411287, 37.797265], [-122.417852, 37.796413]]}
-    # Bush Street, crossing the line 8 m north of the south mouth, 15 m wide.
+                "points": [[-122.4112874, 37.7972653], [-122.4178520, 37.7964130]]}
     bush = {"kind": "street", "name": "Bush Street", "highway": "secondary", "road_m": 15.0,
             "points": [[-122.4080, 37.790355], [-122.4063, 37.790355]]}
     ways = [stockton, broadway, bush]
-    classify(ways)
+    counts = classify(ways)
+    assert counts["road tunnel measured from the lidar"] == 2, counts
     counts = split(ways)
     assert counts["bore split at its mouths"] == 2
     assert counts["approach drawn as street"] == 3, counts
-    assert counts["mouth moved past a junction"] == 1
+    assert "mouth moved past a junction" not in counts
     approaches = [w for w in ways if w.get("tunnel_approach")]
     assert all(w["kind"] == "street" and not w.get("tunnel_kind") and not w.get("tunnel")
                for w in approaches)
     assert {(w["name"], w["tunnel_approach"]) for w in approaches} == {
         ("Stockton Tunnel", "start"), ("Broadway", "start"), ("Broadway", "end")}
-    # The south mouth is past Bush: its far kerb plus the margin, and the bore is that much
-    # shorter; the cover profile is re-based on the new mouth.
-    pushed = stockton["tunnel_mouth_pushed_m"]["start"]
-    assert 14 < pushed < 24, pushed
-    assert 250 < stockton["tunnel_length_m"] < 262, stockton["tunnel_length_m"]
+    # Stockton's mouths stay where the lidar put them, under Bush Street; the cover is a roof
+    # from the first sample.
+    assert stockton["tunnel_mouth_low_cover_m"] == {"start": 2.0, "end": 2.0}
+    assert 270 < stockton["tunnel_length_m"] < 276, stockton["tunnel_length_m"]
     assert stockton["tunnel_mouths"]["start"] == stockton["points"][0]
     assert stockton["tunnel_cover"][0][0] >= 0
-    # Broadway's east mouth is 13.6 m inside the way; that piece is a street now.
+    # Broadway's east mouth: 14 m inside the way by the lidar, then 26 m more to where the
+    # cover is 3.5 m for two samples running. That 40 m is a street in a cut now.
+    assert broadway["tunnel_mouth_low_cover_m"]["start"] == 26.0
     east = next(w for w in approaches if w["name"] == "Broadway" and w["tunnel_approach"] == "start")
-    assert 10 < namespace["_way_length_m"](east["points"]) < 16
-    assert 555 < broadway["tunnel_length_m"] < 565
+    assert 36 < namespace["_way_length_m"](east["points"]) < 44
+    assert 528 < broadway["tunnel_length_m"] < 536, broadway["tunnel_length_m"]
+    assert broadway["tunnel_cover"][0][1] >= 3.5
     assert '"tunnel_approach"' in _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
 
 

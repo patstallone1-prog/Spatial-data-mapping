@@ -60,7 +60,7 @@ def camera_angles(rotation: np.ndarray) -> tuple[float, float, float]:
     right, which is how a photographer would describe it.
     """
     forward = rotation @ np.array(CAMERA_FORWARD)
-    down = rotation @ np.array(CAMERA_DOWN)
+    rotation @ np.array(CAMERA_DOWN)
     right = rotation @ np.array(CAMERA_RIGHT)
 
     heading = (90.0 - math.degrees(math.atan2(forward[1], forward[0]))) % 360.0

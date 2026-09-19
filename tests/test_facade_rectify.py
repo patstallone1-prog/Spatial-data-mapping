@@ -127,7 +127,7 @@ class TestCompose:
         # One frame has a van parked across the bottom third of the wall.
         van = _flat((40, 90, 160))
         van.image[70:] = (10, 10, 10)
-        out = compose(clean + [van], wall, reject=False)
+        out = compose([*clean, van], wall, reject=False)
         assert out is not None
         assert out.image[80, 32, 2] > 120, "the van survived the median"
 
@@ -135,7 +135,7 @@ class TestCompose:
         wall = _wall(height=10.0)
         agreeing = [_flat((40, 90, 160), noise=6) for _ in range(3)]
         roadway = _flat((200, 30, 20))
-        out = compose(agreeing + [roadway], wall)
+        out = compose([*agreeing, roadway], wall)
         assert out is not None
         assert out.rejected == 1
         assert out.views == 3

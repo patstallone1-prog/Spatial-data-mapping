@@ -132,7 +132,7 @@ def triangulate(cameras: list[Camera], pixels: list[np.ndarray]) -> np.ndarray:
     """
     A = np.zeros((3, 3))
     b = np.zeros(3)
-    for camera, pixel in zip(cameras, pixels):
+    for camera, pixel in zip(cameras, pixels, strict=False):
         d = camera.ray(np.atleast_2d(pixel))[0]
         M = np.eye(3) - np.outer(d, d)
         A += M

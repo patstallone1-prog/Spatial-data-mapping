@@ -9,6 +9,7 @@ commercial facts table into a provider-licensed derivative.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import math
 import re
@@ -109,7 +110,7 @@ def building_centroid(points: Iterable[Iterable[float]]) -> list[float]:
     signed = 0.0
     cx = 0.0
     cy = 0.0
-    for a, b in zip(local, local[1:] + local[:1]):
+    for a, b in zip(local, local[1:] + local[:1], strict=False):
         cross = a[0] * b[1] - b[0] * a[1]
         signed += cross
         cx += (a[0] + b[0]) * cross
@@ -135,7 +136,7 @@ def building_area_m2(points: Iterable[Iterable[float]]) -> float:
     scale_y = 111_320.0
     local = [((p[0] - lon0) * scale_x, (p[1] - lat0) * scale_y) for p in ring]
     area = 0.0
-    for a, b in zip(local, local[1:] + local[:1]):
+    for a, b in zip(local, local[1:] + local[:1], strict=False):
         area += a[0] * b[1] - b[0] * a[1]
     return abs(area) / 2.0
 
@@ -313,13 +314,7 @@ def score_google_place_for_building(
         reasons.append("building_name_unmatched")
 
     promote = False
-    if name_score >= 4 and distance_m <= 60:
-        promote = True
-    elif address_score >= 4 and whole_place and distance_m <= 50:
-        promote = True
-    elif address_score >= 4 and small_building and distance_m <= 25:
-        promote = True
-    elif not building_name and not address and whole_place and distance_m <= 12:
+    if (name_score >= 4 and distance_m <= 60) or (address_score >= 4 and whole_place and distance_m <= 50) or (address_score >= 4 and small_building and distance_m <= 25) or (not building_name and not address and whole_place and distance_m <= 12):
         promote = True
 
     return {
@@ -359,10 +354,8 @@ def normalize_osm_building(feature: Mapping[str, Any], index: int | None = None)
         row["height_m"] = float(feature["height_m"])
         row["height_source"] = str(feature.get("height_source") or "osm_or_renderer_height")
     if tags.get("building:levels") is not None:
-        try:
+        with contextlib.suppress(TypeError, ValueError):
             row["building_levels"] = float(tags["building:levels"])
-        except (TypeError, ValueError):
-            pass
     row["archetype"] = archetype_for(
         place_types=place_types,
         land_use=str(land_use) if land_use else None,

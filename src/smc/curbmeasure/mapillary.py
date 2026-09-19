@@ -17,6 +17,7 @@ and one that decides what may be compared with what:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import random
@@ -101,10 +102,8 @@ def _get(url: str, timeout: float = 60.0) -> dict:
             # getting it wrong turns a throttle into a subdivision storm, where every refusal
             # spawns four more requests and drives the throttling harder.
             body = ""
-            try:
+            with contextlib.suppress(Exception):
                 body = exc.read().decode("utf-8", "replace")
-            except Exception:  # noqa: BLE001
-                pass
             if "reduce the amount of data" in body:
                 # Measured, not assumed: the identical request for a 20 m box downtown is
                 # refused with this message one minute and returns 130 rows the next. It is a
@@ -221,7 +220,7 @@ def fetch_pixels(image: Image, path) -> bool:
             with urllib.request.urlopen(image.thumb_url, timeout=90) as response:
                 path.write_bytes(response.read())
             return True
-        except Exception:  # noqa: BLE001 - a missing thumbnail is ordinary, not exceptional
+        except Exception:
             continue
     return False
 
@@ -244,12 +243,12 @@ def images_along(
     large enough to hold a city block is refused or silently emptied. Overlapping tiles are
     deduplicated by image id.
     """
-    import math  # noqa: PLC0415
+    import math
 
     span_lat = lat2 - lat1
     span_lon = lon2 - lon1
     metres = math.hypot(span_lat * 111_320.0, span_lon * 88_000.0)
-    steps = max(1, int(math.ceil(metres / SAFE_BOX_M)))
+    steps = max(1, math.ceil(metres / SAFE_BOX_M))
     half_lat = min(SAFE_BOX_M, half_width_m) / 2 / 111_320.0
     half_lon = half_lat / max(math.cos(math.radians(lat1)), 1e-6)
 

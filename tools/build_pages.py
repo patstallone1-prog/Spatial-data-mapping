@@ -30,7 +30,15 @@ def need(path: pathlib.Path) -> str:
     return path.read_text()
 
 
-def publish_map(out: pathlib.Path) -> None:
+def point_assets_at(page: str, base: str | None) -> str:
+    """The page fetches its data beside itself unless told where else it lives."""
+    if not base:
+        return page
+    return page.replace('<meta name="kerbside-assets" content="" />',
+                        f'<meta name="kerbside-assets" content="{base.rstrip("/")}" />', 1)
+
+
+def publish_map(out: pathlib.Path, assets_base: str | None = None) -> None:
     """The 3D corridor on its own, as the front page of wherever it is published.
 
     A second, otherwise empty repository serves the map by itself. It gets the page and its data
@@ -40,13 +48,17 @@ def publish_map(out: pathlib.Path) -> None:
     somebody has gone looking for because the first one felt slow.
     """
     out.mkdir(parents=True, exist_ok=True)
-    page = need(OUT / "sf-corridor-3d.html")
-    for data in sorted(OUT.glob("sf-corridor-*")):
-        if data.is_file() and data.suffix == ".json":
-            shutil.copyfile(data, out / data.name)
-    facades = OUT / "facades"
-    if facades.is_dir():
-        shutil.copytree(facades, out / "facades", dirs_exist_ok=True)
+    page = point_assets_at(need(OUT / "sf-corridor-3d.html"), assets_base)
+    # With an assets origin the data is not copied here at all: it is published to object
+    # storage by tools/publish_assets.sh and the page fetches it from there. Without one the
+    # data sits beside the page, which is what GitHub Pages serves today.
+    if not assets_base:
+        for data in sorted(OUT.glob("sf-corridor-*")):
+            if data.is_file() and data.suffix == ".json":
+                shutil.copyfile(data, out / data.name)
+        facades = OUT / "facades"
+        if facades.is_dir():
+            shutil.copytree(facades, out / "facades", dirs_exist_ok=True)
     # index.html and the old name both, so that the short URL works and any link anybody already
     # has to the page by its own name keeps working too.
     (out / "index.html").write_text(page)
@@ -128,8 +140,12 @@ if __name__ == "__main__":
                     help="publish into this directory instead of docs/. Set GITHUB_REPO to "
                          "match the repository it will be served from, or every link in the "
                          "manifest and the service worker will point back at the other site.")
+    ap.add_argument("--assets-base", default=None,
+                    help="origin the page fetches its data from (an R2/S3 bucket's public URL). "
+                         "The JSON and facades are then not copied into --out; publish them "
+                         "with tools/publish_assets.sh.")
     args = ap.parse_args()
     if args.map_only:
-        publish_map(args.out or OUT)
+        publish_map(args.out or OUT, args.assets_base)
     else:
         main(args.out)

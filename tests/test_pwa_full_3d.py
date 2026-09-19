@@ -5,7 +5,6 @@ from pathlib import Path
 
 import tools.build_pages as build_pages
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -55,3 +54,23 @@ def test_detail_shard_change_invalidates_installed_phone_cache(
     second = _worker_version(published / "sw.js")
 
     assert first != second
+
+
+def test_the_page_can_fetch_its_data_from_an_asset_origin_instead_of_beside_itself(tmp_path):
+    """The data files are the bulk of the repository; published to object storage, the page
+    points at them through one meta tag and nothing is copied beside it. Without an origin
+    the page fetches beside itself, which is what GitHub Pages serves today."""
+    import importlib.util
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("build_pages", root / "tools" / "build_pages.py")
+    build_pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build_pages)
+    page = (root / "docs" / "sf-corridor-3d.html").read_text()
+    assert '<meta name="kerbside-assets" content="" />' in page
+    assert page.count("fetch(asset(") >= 5 and 'fetch("sf-corridor-3d.json"' not in page
+    pointed = build_pages.point_assets_at(page, "https://assets.example.org/")
+    assert '<meta name="kerbside-assets" content="https://assets.example.org" />' in pointed
+    assert build_pages.point_assets_at(page, None) == page
+    assert (root / "tools" / "publish_assets.sh").exists()

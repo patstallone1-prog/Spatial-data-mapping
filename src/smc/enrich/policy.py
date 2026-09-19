@@ -20,6 +20,7 @@ the answer a surveyor would: the weakest necessary ingredient sets the result.
 
 from __future__ import annotations
 
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -94,7 +95,7 @@ def _along_cover(stations: tuple[float, ...], length_m: float) -> float:
         return 0.0
     marks = sorted(set(round(s, 1) for s in stations))
     gaps = [marks[0], max(0.0, length_m - marks[-1])]
-    gaps += [b - a for a, b in zip(marks, marks[1:])]
+    gaps += [b - a for a, b in itertools.pairwise(marks)]
     worst = max(gaps)
     return max(0.0, min(1.0, 1.0 - (worst - STATION_GAP_M) / max(length_m, 1.0))) \
         if worst > STATION_GAP_M else 1.0
@@ -139,13 +140,13 @@ def with_ideal_frame(face: FaceEvidence, terms: dict[str, float]) -> dict[str, f
     on a face which already has what it needs, this changes almost nothing.
     """
     improved = dict(terms)
-    improved["kerb_view"] = _combine_views(face.kerb_views + (0.55,))
+    improved["kerb_view"] = _combine_views((*face.kerb_views, 0.55))
     improved["geometry"] = max(terms["geometry"], 0.62)
     improved["pose"] = max(terms["pose"], 0.55)
     if face.length_m > 0:
-        gap_fill = face.kerb_stations + (_worst_gap_midpoint(face),)
+        gap_fill = (*face.kerb_stations, _worst_gap_midpoint(face))
         improved["along"] = _along_cover(gap_fill, face.length_m)
-    improved["angles"] = _angle_cover(face.kerb_headings + (_missing_sector(face),))
+    improved["angles"] = _angle_cover((*face.kerb_headings, _missing_sector(face)))
     return improved
 
 
@@ -154,7 +155,7 @@ def _worst_gap_midpoint(face: FaceEvidence) -> float:
     if not marks:
         return face.length_m / 2.0
     best_at, best_gap = face.length_m / 2.0, 0.0
-    edges = [(0.0, marks[0]), (marks[-1], face.length_m)] + list(zip(marks, marks[1:]))
+    edges = [(0.0, marks[0]), (marks[-1], face.length_m), *list(itertools.pairwise(marks))]
     for a, b in edges:
         if b - a > best_gap:
             best_gap, best_at = b - a, (a + b) / 2.0

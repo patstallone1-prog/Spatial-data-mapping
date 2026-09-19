@@ -24,11 +24,12 @@ anonymised. The real quality fields are ``qualityLevel`` and ``qualityStatus``.
 
 from __future__ import annotations
 
+import itertools
 import threading
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from smc.imagery.base import ImageAsset, License, ObservationUnavailable
 from smc.imagery.http import HttpClient, PermanentError, TransientError
@@ -102,7 +103,7 @@ def _when(*candidates: object) -> datetime | None:
             continue
         for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
             try:
-                return datetime.strptime(text, fmt).replace(tzinfo=timezone.utc)
+                return datetime.strptime(text, fmt).replace(tzinfo=UTC)
             except ValueError:
                 continue
     return None
@@ -296,7 +297,7 @@ class KartaViewProvider:
             # back, consecutive links span that absence: this is the neighbour order of the
             # catalogue, not of the original drive, and a consumer walking it is walking
             # coverage rather than a trajectory.
-            for earlier, later in zip(observations, observations[1:]):
+            for earlier, later in itertools.pairwise(observations):
                 earlier.next_observation_id = later.observation_uid
                 later.previous_observation_id = earlier.observation_uid
             yield from observations
@@ -386,7 +387,7 @@ class KartaViewProvider:
 
         rows: list[dict] = []
         done = 0
-        for batch, batch_rows in zip(batches, results):
+        for batch, batch_rows in zip(batches, results, strict=False):
             rows.extend(batch_rows)
             done += len(batch)
             if progress and (done % (MAX_PHOTO_ID_BATCH * 10) == 0 or done == len(image_ids)):
@@ -413,7 +414,7 @@ class KartaViewProvider:
 
         camera = data.get("cameraParameters") or {}
         make, model = _split_device(_s(data.get("deviceName")))
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = SequenceRecord(
             sequence_uid=sequence_uid(self.name, self.instance, sequence_id),
             provider=self.name,
@@ -500,7 +501,7 @@ class KartaViewProvider:
                 o.captured_at.timestamp() if o.captured_at else 0.0,
             )
         )
-        for earlier, later in zip(observations, observations[1:]):
+        for earlier, later in itertools.pairwise(observations):
             earlier.next_observation_id = later.observation_uid
             later.previous_observation_id = earlier.observation_uid
         yield from observations
@@ -515,7 +516,7 @@ class KartaViewProvider:
         megapixels = (width * height / 1e6) if width and height else None
         file_url = _s(row.get("fileurl")) or ""
         camera = row.get("cameraParameters") or {}
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         return Observation(
             observation_uid=observation_uid(self.name, self.instance, image_id),

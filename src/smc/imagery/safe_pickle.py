@@ -100,7 +100,7 @@ class _Recorder:
     # ``object.__new__`` and never calls ``__init__``, so an instance can arrive with none of
     # its attributes set and a slotted stub raises rather than recording anything.
     args: tuple = ()
-    kwargs: dict = {}
+    kwargs: dict = {}  # noqa: RUF012 - a stub's per-instance record, reset in __init__
     state = None
 
     def __init__(self, *args, **kwargs) -> None:
@@ -117,7 +117,7 @@ class _Recorder:
 class RestrictedUnpickler(pickle.Unpickler):
     """Imports nothing outside :data:`ALLOWED_GLOBALS`, and no pandas class even then."""
 
-    def find_class(self, module: str, name: str):  # noqa: D102 - see class docstring
+    def find_class(self, module: str, name: str):
         if (module, name) not in ALLOWED_GLOBALS:
             raise UnsafePickle(f"refusing to import {module}.{name} from a pickle")
         if module.startswith("pandas"):

@@ -68,7 +68,7 @@ def assign(chunks: dict[str, Chunk], lon: float, lat: float) -> Chunk | None:
     return None
 
 
-def index_by_cell(chunks: dict[str, Chunk]) -> "ChunkIndex":
+def index_by_cell(chunks: dict[str, Chunk]) -> ChunkIndex:
     return ChunkIndex(chunks)
 
 

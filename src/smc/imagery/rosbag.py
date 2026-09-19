@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import bz2
 import http.client
-import io
 import random
 import struct
 import threading
@@ -279,7 +278,7 @@ class RemoteBag:
         if compression == "bz2":
             return bz2.decompress(data)
         if compression == "lz4":
-            import lz4.frame  # noqa: PLC0415 - optional, and only some bags use it
+            import lz4.frame
 
             return lz4.frame.decompress(data)
         return data
@@ -311,7 +310,7 @@ class RemoteBag:
 
 def _header(payload: bytes, offset: int = 0) -> tuple[float, int]:
     """std_msgs/Header: seq, stamp, frame_id. Returns the stamp in seconds and the new offset."""
-    seq, secs, nsecs, frame_len = struct.unpack_from("<IIII", payload, offset)
+    _seq, secs, nsecs, frame_len = struct.unpack_from("<IIII", payload, offset)
     offset += 16 + frame_len
     return secs + nsecs * 1e-9, offset
 
@@ -379,7 +378,7 @@ def decode_compressed_image(payload: bytes) -> dict | None:
 OP_INDEX_DATA = 0x04
 
 
-def _chunk_data_start(reader: "RangedReader", position: int) -> tuple[int, int]:
+def _chunk_data_start(reader: RangedReader, position: int) -> tuple[int, int]:
     """Where a chunk's payload begins, and where it ends."""
     head = reader.read(position, 256)
     (header_len,) = struct.unpack_from("<I", head, 0)
@@ -399,7 +398,7 @@ class MessageIndex:
         self.entries = entries
 
 
-def read_chunk_index(bag: "RemoteBag", chunk: ChunkInfo, next_position: int) -> MessageIndex:
+def read_chunk_index(bag: RemoteBag, chunk: ChunkInfo, next_position: int) -> MessageIndex:
     """The index records that follow one chunk."""
     reader = bag.worker_reader
     data_start, data_end = _chunk_data_start(reader, chunk.position)
@@ -432,7 +431,7 @@ def read_chunk_index(bag: "RemoteBag", chunk: ChunkInfo, next_position: int) -> 
     return MessageIndex(data_start, entries)
 
 
-def read_message(bag: "RemoteBag", index: MessageIndex, offset: int, hint: int = 4096) -> bytes | None:
+def read_message(bag: RemoteBag, index: MessageIndex, offset: int, hint: int = 4096) -> bytes | None:
     """One message's payload, fetched on its own.
 
     ``hint`` is how much to ask for before the record's own length is known. A position fix is a

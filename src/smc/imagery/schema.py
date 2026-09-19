@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import asdict, dataclass, field, fields
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pyarrow as pa
@@ -149,7 +149,7 @@ class Observation:
     contributor_identifier: str | None = None
 
     # --- Kerbside bookkeeping -----------------------------------------------------------
-    ingested_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    ingested_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     provider_metadata_version: str = METADATA_VERSION
     eligible: bool = True
     rejection_reason: str | None = None

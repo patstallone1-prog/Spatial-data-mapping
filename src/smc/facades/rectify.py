@@ -136,7 +136,7 @@ def rectify_wall(
 MAX_ALIGN_FRACTION = 0.2
 
 
-def _grey(view: "View") -> np.ndarray:
+def _grey(view: View) -> np.ndarray:
     """A view as float32 luma, with the unseen parts set to its own mean.
 
     Zeroing them instead would put a hard edge at the mask boundary, and phase correlation
@@ -148,7 +148,7 @@ def _grey(view: "View") -> np.ndarray:
     return grey
 
 
-def align(views: list["View"]) -> list["View"]:
+def align(views: list[View]) -> list[View]:
     """Shift each view onto the best-placed one before merging them.
 
     Rectification puts every view on the same plane, so what is left between them is very
@@ -219,7 +219,7 @@ def compose(views: list[View], wall: Wall, *, reject: bool = True) -> Composite 
             warnings.simplefilter("ignore", RuntimeWarning)
             consensus = np.nanmedian(blocked, axis=0)
         residual = _residuals(stack, masks, consensus)
-        kept = [v for v, r in zip(usable, residual) if r <= MAX_RESIDUAL]
+        kept = [v for v, r in zip(usable, residual, strict=False) if r <= MAX_RESIDUAL]
         # Never reject everything: if no view agrees with the consensus there is no consensus,
         # and the wall should fail the agreement gate rather than silently keep one frame.
         if len(kept) >= 2:
@@ -305,7 +305,7 @@ def fill_gaps(composite: Composite, wall: Wall) -> np.ndarray:
         return out
 
     height = out.shape[0]
-    seen_rows = int(round(height * composite.visible_height_m / max(wall.height_m, 1e-6)))
+    seen_rows = round(height * composite.visible_height_m / max(wall.height_m, 1e-6))
     if 0 < seen_rows < height:
         band = out[height - seen_rows: height - seen_rows + max(1, seen_rows // 6)]
         seen = composite.mask[height - seen_rows: height - seen_rows + max(1, seen_rows // 6)]

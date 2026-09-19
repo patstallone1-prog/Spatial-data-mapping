@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import tarfile
+from pathlib import Path
 
 from smc.storage.release_pack import pack_release_assets
 

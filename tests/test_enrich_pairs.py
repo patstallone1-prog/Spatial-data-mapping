@@ -8,8 +8,6 @@ as a depth map that will not converge.
 
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from smc.enrich.pairs import (

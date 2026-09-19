@@ -55,7 +55,7 @@ class TestUnits:
 
 class TestCrs:
     #: Published by San Francisco with both coordinates for the same point.
-    CONTROL = [
+    CONTROL = [  # noqa: RUF012 - published control points, never mutated
         (6008097.39399, 2118225.37507, -122.41601618666873, 37.79670009242535),
         (6004340.37920, 2110309.60630, -122.42845181562228, 37.77475342584647),
         (6000415.09472, 2086812.45140, -122.44034465879093, 37.710012908823536),
@@ -295,7 +295,7 @@ class TestJoin:
         assert found is not None and found[0] == "sfcnn:1" and found[1] == 1
 
     def test_station_grows_along_the_line(self):
-        _, frame = self._index()
+        _, _frame = self._index()
         import numpy as np
         vertices = np.array([[0.0, 0.0], [100.0, 0.0]])
         near = project_to_polyline(vertices, 10.0, 1.0)

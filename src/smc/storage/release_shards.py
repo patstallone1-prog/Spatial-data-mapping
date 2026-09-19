@@ -10,9 +10,9 @@ The storage contract is deliberately boring:
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
-import json
 from pathlib import Path
 from typing import Any
 
@@ -226,7 +226,7 @@ def plan_capture_release_assets(
         current: list[CaptureAsset] = []
         current_bytes = 0
 
-        def flush() -> None:
+        def flush(cell: str = cell) -> None:  # bound now: the closure must not read the loop variable
             nonlocal part, current, current_bytes
             if not current:
                 return

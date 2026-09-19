@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from smc.carla_gen.profile import CurbHeightClass
 from smc.depth.storage import (
     PROVENANCE_INFERRED,
     PROVENANCE_NEEDS_DEPTH,
@@ -17,7 +18,6 @@ from smc.depth.surfaces import (
     measured_surface_rows_from_cross_section,
     summarize_depth_store,
 )
-from smc.carla_gen.profile import CurbHeightClass
 from smc.measure.extract import CrossSection, KerbMeasurement, SidewalkMeasurement
 
 
@@ -83,7 +83,7 @@ def test_surface_rows_separate_simulation_seed_from_measurement(tmp_path: Path) 
 
     assert len(loaded) == 3
     assert {row["provenance"] for row in loaded} == {PROVENANCE_INFERRED, PROVENANCE_NEEDS_DEPTH}
-    assert all(not row["provenance"] == "measured" for row in loaded)
+    assert all(row["provenance"] != "measured" for row in loaded)
     assert summary["exact_curb_heights_available"] is False
     assert summary["simulation_ready_surface_count"] == 3
 

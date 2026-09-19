@@ -10,10 +10,9 @@ from __future__ import annotations
 
 import unittest
 
-from smc.imagery.schema import METADATA_VERSION
 from smc.imagery.mapillary import MapillaryCredentialMissing, MapillaryProvider
 from smc.imagery.region import SF_CORRIDOR
-from smc.imagery.schema import PROJECTION_PERSPECTIVE, PROJECTION_SPHERICAL
+from smc.imagery.schema import METADATA_VERSION, PROJECTION_PERSPECTIVE, PROJECTION_SPHERICAL
 
 IMAGE = {
     "id": "1234567890",

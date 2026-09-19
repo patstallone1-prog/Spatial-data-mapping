@@ -85,13 +85,17 @@ aggregation puts the swept ground flat to 25 mm rms, and the kerb-line finder ag
 city's lidar agrees to within the lidar's own resolution (`21-curb-measurement-from-photographs.md`).
 What remains is precision and provenance, not existence:
 
-- Deployed curb geometry is decimetre-class because of a 0.10 m simplification and 6-decimal
-  quantisation on the way to the page. Serve local metres at full precision.
-- Sidewalk width against the city's own survey: 1.16 m MAE with a long tail, against a
-  city-vs-city agreement that is much tighter. The tail is where the kerb-derived pavement
-  meets a mapped footway on the same side.
-- Curb ramps are ingested and drawn; they do not yet move the crossing endpoints to where the
-  accessible path actually is.
+- Curb geometry is now delivered at 7 decimals (1 cm) with a 2 cm simplification; the
+  decimetre quantisation is gone. The page's assets can be served from another origin
+  (`<meta name="kerbside-assets">`, `tools/build_pages.py --assets-base`, `tools/publish_assets.sh`
+  for an R2 bucket with credentials in `.env.local`); the split is built and not yet switched on.
+- Sidewalk width against the city's own survey: 1.24 m MAE, median error -3 cm, on 6,141
+  footways, against a survey-vs-record agreement of 5 cm. The lidar reads the paved sidewalk
+  from the kerb riser outward (`smc.lidar.curb.walk_run`) and stops at trees, stairs and cars;
+  the survey records the legal width to the property line. The 0.35 m target was not met and
+  cannot be against that record; a paved-width reference does not exist to measure against.
+- Curb ramps move the crossings: 86.9% of crossing ends stand at a corner where the
+  inventory has a ramp, and 90.5% of crossings end on the kerb the model drew (was 59%).
 - The near-field (5–10 m) photo-vs-lidar benchmark was run (`data/curb_measurement/
   photo_vs_lidar_run.json`): twelve footways, no paired kerb measurement. The 13 mm claim was
   simulated and is withdrawn; the plane sweep does not yet recover a kerb at five metres from
@@ -127,13 +131,13 @@ corners laid as their own piece between the two pavements that meet there, every
 measured cross-sections (53,771 stations; 78% resolved, 1.7% refused and painted with
 nothing) from which the lane paint, the double yellow, the arrows and the bike lanes are
 drawn, crossings painted kerb to kerb in legs that part at medians and refuge islands
-(99.8% of legs end on a drawn carriageway; 59% of crossings end on the local kerb; none displaced by a sidewalk's stand-in), curb ramps with ADA dome pads, bus zones in transit red, 24,603 official signs
+(99.8% of legs end on a drawn carriageway; 90.5% of crossings end on the drawn kerb and 86.9% of their ends at a corner with a recorded ramp; none displaced by a sidewalk's stand-in), curb ramps with ADA dome pads, bus zones in transit red, 24,603 official signs
 facing the road, 142 stone and brick walls, two road tunnels with mouths and cover read from
-the lidar, each bore swept from mouth to mouth under the flat ground with walkways and lights
-so the walker can go through (a third `tunnel=yes` road, 1st Street, is an underpass and drawn
+the lidar, each bore swept from mouth to mouth under the hill with walkways and lights
+so the walker can go through, the ground itself a 2 m terrain grid from the lidar (held-out RMSE 0.125 m overall, 0.037 m on the roadway, on top of the lidar's own ~0.10 m) that every street, pavement, building and tree stands on (a third `tunnel=yes` road, 1st Street, is an underpass and drawn
 as a street), 146
 surface car parks with angled bays, 15,985 buildings of which 14,490 carry a colour sampled
-from a photograph of that building, and the sky. 785 tests, most of them running the
+from a photograph of that building, and the sky. 792 tests, most of them running the
 renderer's own rules in Node rather than reading its source, and one (`test_width_vs_kerb.py`)
 holding the corridor-wide comparison with the city's kerbs to a baseline that may only improve.
 

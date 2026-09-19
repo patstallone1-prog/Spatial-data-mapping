@@ -23,6 +23,7 @@ box instead: a tile that returns exactly its limit is assumed to have been cut o
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable, Iterator
 from datetime import datetime
 
@@ -302,7 +303,7 @@ class PanoramaxProvider:
                 o.captured_at.timestamp() if o.captured_at else 0.0,
             )
         )
-        for earlier, later in zip(observations, observations[1:]):
+        for earlier, later in itertools.pairwise(observations):
             earlier.next_observation_id = later.observation_uid
             later.previous_observation_id = earlier.observation_uid
         yield from observations
@@ -428,6 +429,6 @@ class PanoramaxProvider:
         )
 
 
-from datetime import timezone as _tz  # noqa: E402  (placed after use for readability above)
+from datetime import UTC  # noqa: E402  (placed after use for readability above)
 
-_UTC = _tz.utc
+_UTC = UTC

@@ -8,8 +8,8 @@ it finds the photograph that actually looks at a given wall, and rectifies that 
 
 from smc.facades.geometry import (
     Camera,
-    Wall,
     LocalFrame,
+    Wall,
     project,
     score_view,
     walls_of,

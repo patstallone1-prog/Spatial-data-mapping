@@ -15,7 +15,6 @@ import numpy as np
 from smc.official.crs import geojson_points, geojson_rings
 from smc.official.schema import (
     DocumentStatus,
-    ExtractionMethod,
     OfficialFactClass,
     OfficialGeometryFact,
     feet_to_m,
@@ -243,14 +242,14 @@ def right_of_way_facts(rows, document, *, direction_for=None) -> list[OfficialGe
             if not measured:
                 continue
             width, length = max(measured, key=lambda m: m[0])
-            flags = flags + ("direction_unknown",)
+            flags = (*flags, "direction_unknown")
         points = geojson_points(row.get("the_geom") or {})
         if not (ROW_RANGE_M[0] <= width <= ROW_RANGE_M[1]):
             continue
         # A polygon as wide as it is long is an intersection or a plaza, and its "width" is not
         # a street width. Kept, flagged, and left for the consumer to decline.
         if length is not None and length < width * 1.5:
-            flags = flags + ("not_block_shaped",)
+            flags = (*flags, "not_block_shaped")
         facts.append(OfficialGeometryFact(
             feature_id=feature, fact_class=OfficialFactClass.RIGHT_OF_WAY_WIDTH,
             value=round(width, 3), unit="m", document_id=document.document_id,
@@ -298,6 +297,10 @@ def curb_ramp_facts(rows, document) -> list[OfficialGeometryFact]:
                        ("no_detectable_surface", "detectablesurf"),
                        ("too_narrow", "crtoonarrow"))
                       if _f(row.get(column)) == 1)
+        # The inventory lists every corner leg, ramp or not: ``crexist`` 0 is a leg with no
+        # ramp, which is as much a fact about the crossing there as a ramp would be.
+        if _f(row.get("crexist")) == 0:
+            flags = (*flags, "no_ramp")
         facts.append(OfficialGeometryFact(
             feature_id=f"sframp:{row.get('locid')}",
             fact_class=OfficialFactClass.CURB_RAMP,
@@ -428,7 +431,7 @@ def street_width_facts(rows, document) -> list[OfficialGeometryFact]:
         sheet = props.get("FILENAME") or None
         flags = () if official else ("not_marked_official",)
         if not cnn:
-            flags = flags + ("keyed_by_block_not_cnn",)
+            flags = (*flags, "keyed_by_block_not_cnn")
 
         row_m = _feet_inches(props.get("ROWFEET"), props.get("ROWINCHES"))
         if row_m and ROW_RANGE_M[0] <= row_m <= ROW_RANGE_M[1]:

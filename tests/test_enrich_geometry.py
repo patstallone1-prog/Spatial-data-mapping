@@ -69,7 +69,7 @@ class TestCameraAngles:
                   -0.25921186551431247, 0.25942738163823914)
 
     def test_a_level_camera_reads_level(self):
-        heading, pitch, roll = camera_angles(quaternion_to_matrix(*self.QUATERNION))
+        _heading, pitch, roll = camera_angles(quaternion_to_matrix(*self.QUATERNION))
         assert abs(pitch) < 2.0, "a roof-mounted camera came out pitched"
         assert abs(roll) < 2.0, "the axis convention leaked into the roll"
 

@@ -87,7 +87,7 @@ class RoadMask:
         local = np.array([self.lattice.to_xy(lon, lat) for lon, lat in ring])
         min_row, min_col = self.lattice.to_cell(local[:, 0].min(), local[:, 1].min())
         max_row, max_col = self.lattice.to_cell(local[:, 0].max(), local[:, 1].max())
-        min_row = max(0, min_row); min_col = max(0, min_col)
+        min_row, min_col = max(0, min_row), max(0, min_col)
         max_row = min(self.lattice.height - 1, max_row + 1)
         max_col = min(self.lattice.width - 1, max_col + 1)
         if max_row < min_row or max_col < min_col:

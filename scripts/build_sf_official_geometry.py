@@ -52,6 +52,11 @@ LIDAR = ROOT / "data" / "sf_corridor" / "depth" / "lidar" / "curb_sections.jsonl
 CORRIDOR = {"south": 37.786, "west": -122.4475, "north": 37.8095, "east": -122.392}
 
 
+#: The kerb lines are thinned to this before publishing. Two centimetres keeps every vertex
+#: that moves the line by more than the model's own width error.
+CURB_SIMPLIFY_M = 0.02
+
+
 def simplify(points: list[tuple[float, float]], tolerance_m: float,
              frame: LocalFrame) -> list[tuple[float, float]]:
     """Douglas-Peucker, in metres.
@@ -117,11 +122,14 @@ def viewer_curb_geometry(rows: list[dict], frame: LocalFrame) -> list[dict]:
         points = feature.get("coordinates") or []
         if feature.get("type") != "LineString" or len(points) < 2:
             continue
-        thinned = simplify([(float(x), float(y)) for x, y in points], 0.10, frame)
+        # Thinned to two centimetres and published to seven decimals (about a centimetre):
+        # the kerb envelope reads these lines to five centimetres, and a tenth-of-a-metre
+        # simplification with a decimetre's rounding threw most of that away.
+        thinned = simplify([(float(x), float(y)) for x, y in points], CURB_SIMPLIFY_M, frame)
         geometry.append({
             "c": "curb",
             "r": curb_role((row.get("properties") or {}).get("CURB2_TYPE")),
-            "p": [[round(x, 6), round(y, 6)] for x, y in thinned],
+            "p": [[round(x, 7), round(y, 7)] for x, y in thinned],
         })
     return geometry
 
@@ -292,9 +300,12 @@ def main() -> int:
     # -- what the viewer needs --------------------------------------------------------------
     kept = sum(len(g["p"]) for g in geometry)
     progress(f"curb linework: {len(curb_rows)} SFMTA lines, {kept} retained vertices")
+    # The inventory places every ramp at its intersection and names the corner (NE, SW ...)
+    # and the leg of the curb return it is on; the viewer gets the corner so a crossing's end
+    # can be checked against the ramp that should be there.
     ramps = [
         {"p": [round(f.geometry[0][0], 6), round(f.geometry[0][1], 6)],
-         "f": list(f.flags)}
+         "f": list(f.flags), "c": f.value or None}
         for f in facts if f.fact_class == OfficialFactClass.CURB_RAMP and f.geometry
     ]
     # Only what the map cannot already get from its own payload. The per-segment record is

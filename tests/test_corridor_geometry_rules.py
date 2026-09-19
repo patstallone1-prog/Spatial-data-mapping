@@ -14,6 +14,7 @@ they fail when the behaviour changes, which is the only time a test about behavi
 
 from __future__ import annotations
 
+import itertools
 import json
 import re
 import shutil
@@ -91,6 +92,11 @@ const officialMedianGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
 const CROSSING_STEP_M = 0.25;
+const CROSSING_END_WALK_BACK_M = 1.5;
+const CROSSING_END_STEP_M = 0.05;
+const RAMP_NODE_CELL_M = 40.0;
+const RAMP_NODE_REACH_M = 22.0;
+const rampNodeGrid = new Map();
 const metersPerLat = 111320;
 const metersPerLon = 88000;
 const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
@@ -98,12 +104,19 @@ const SIDEWALK_INTERSECTION_CUT_MAX_M = 10.5;
 function xy(lon, lat) { return [lon * metersPerLon, lat * metersPerLat]; }
 // Junction boxes are not built in the harness; nothing here is inside one.
 function insideJunctionBox() { return false; }
+// Flat ground, no tunnel cuts: every leg is on one level.
+function wayFollowsCut() { return false; }
+function cutLiftAt() { return 0; }
+function sameLevelLegs() { return true; }
 """
+
+
+FLAT_GROUND = "function groundLiftAt() { return 0; }\n"
 
 
 def _run(js_body: str) -> dict:
     js = _page_js()
-    parts = [PREAMBLE]
+    parts = [PREAMBLE, FLAT_GROUND]
     parts += [_extract(name, js) for name in CARRIAGEWAY_FUNCTIONS]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
@@ -128,6 +141,10 @@ def _run_crossing(js_body: str) -> dict:
         "indexOfficialCurbGeometry",
         "rayCurbIntersections",
         "officialCurbCrossingSpan",
+        "endCrossingOnDrawnKerb",
+        "indexCurbRamps",
+        "cornerOf",
+        "rampRecordAt",
         "crossingPaintLegs",
         "crossingRoadSpanPoints",
         "crossingRectanglePoints",
@@ -138,7 +155,7 @@ def _run_crossing(js_body: str) -> dict:
         "indexMappedCrossing",
         "nearMappedCrossing",
     )
-    parts = [PREAMBLE, """
+    parts = [PREAMBLE, FLAT_GROUND, """
     const CROSSING_DEDUPE_CELL_M = 4.0;
     const MAPPED_CROSSING_YIELD_M = 6.0;
     const MAPPED_CROSSING_YIELD_DEG = 30.0;
@@ -1176,7 +1193,7 @@ def test_no_two_ground_layers_share_a_plane() -> None:
     # Every one of them is under the carriageway's own top, and separated enough to resolve.
     ordered = sorted(heights.values())
     assert ordered[-1] < 0.06
-    assert min(b - a for a, b in zip(ordered, ordered[1:])) >= 0.002
+    assert min(b - a for a, b in itertools.pairwise(ordered)) >= 0.002
     # And the page checks it too, at load, rather than trusting this test to be run.
     assert "const GROUND_STACK = {" in js
     assert "are both at" in js
@@ -1704,6 +1721,7 @@ const CORNER_MIN_DEG = 20;
 const CORNER_MAX_DEG = 150;
 const JUNCTION_CLUSTER_M = 16.0;
 const JUNCTION_BOX_CELL_M = 30;
+function groundLiftAt() { return 0; }   // flat ground
 const cornerLegs = [];
 const junctionBoxHulls = [];
 const junctionBoxGrid = new Map();
@@ -1937,7 +1955,7 @@ LANE_FUNCTIONS = ("laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "h
 
 def _run_lanes(js_body: str) -> dict:
     js = _page_js()
-    parts = [PREAMBLE, LANE_PREAMBLE]
+    parts = [PREAMBLE, FLAT_GROUND, LANE_PREAMBLE]
     parts += [_extract(name, js) for name in LANE_FUNCTIONS]
     parts.append(js_body)
     out = subprocess.run([NODE, "-e", "\n".join(textwrap.dedent(p) for p in parts)],
@@ -2005,7 +2023,7 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     and an inferred width becomes the measured one. Stations that do not agree leave it alone.
     """
     js = _page_js()
-    parts = [PREAMBLE, """
+    parts = [PREAMBLE, FLAT_GROUND, """
     const MIN_RENDER_ROAD_M = 2.8;
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
@@ -2093,7 +2111,7 @@ def test_a_bend_is_drawn_as_a_curve_and_a_band_round_it_does_not_cross_itself() 
     corner and stays one; the ends of a way are never moved. And a band mitred round any of
     them keeps its two edges apart."""
     js = _page_js()
-    parts = [PREAMBLE, """
+    parts = [PREAMBLE, FLAT_GROUND, """
     const FILLET_MIN_DEG = 8.0;
     const FILLET_MAX_DEG = 70.0;
     const FILLET_LEG_MAX_M = 8.0;
@@ -2165,25 +2183,23 @@ TUNNEL_PREAMBLE = """
 const TUNNEL_CROWN_M = 6.4;
 const TUNNEL_WALL_M = 4.2;
 const TUNNEL_SHELL_M = 0.6;
-const TUNNEL_FLOOR_M = 0.08;
-const TUNNEL_SINK_M = 8.0;
-const TUNNEL_GRADE = 0.15;
-const TUNNEL_CEILING_CAP_M = -0.25;
-const TUNNEL_RAMP_M = (TUNNEL_CROWN_M + TUNNEL_SHELL_M - TUNNEL_CEILING_CAP_M) / TUNNEL_GRADE;
+const TUNNEL_FLOOR_M = 0.06;
+const TUNNEL_ROOF_UNDER_M = 0.4;
 const TUNNEL_STATION_M = 3.0;
 const TUNNEL_WALK_H_M = 0.3;
 const TUNNEL_ARCH_SEGMENTS = 14;
 const tunnelBores = [];
-const tunnelCoverIndex = [];
-function tunnelCoverAt() { return 0; }
+// A hill: 20 m high in the middle of a 300 m bore, flat ground at 0 at both mouths.
+function terrainHeightAt(x, z) { return Math.max(0, 20 * (1 - Math.abs(x - 150) / 150)); }
+function groundLiftAt(x, z) { return terrainHeightAt(x, z); }
 """
 
 
 def _run_tunnel(js_body: str) -> dict:
     js = _page_js()
     parts = [PREAMBLE, TUNNEL_PREAMBLE]
-    names = ("wayLength", "lonLatFromXZ", "tunnelSectionPoints", "tunnelStations",
-             "tunnelFloorAt", "walkerGroundAt")
+    names = ("wayLength", "lonLatFromXZ", "tunnelSectionPoints", "tunnelCoverAlong",
+             "tunnelStations", "tunnelFloorAt", "walkerGroundAt")
     parts += [_extract(name, js) for name in names]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
@@ -2192,47 +2208,52 @@ def _run_tunnel(js_body: str) -> dict:
     return json.loads(out.stdout)
 
 
-def test_a_bore_goes_down_under_the_flat_ground_and_a_walker_goes_with_it() -> None:
-    """The model is flat, so the hill a tunnel goes through is not there; the bore used to be
-    a thirty-metre stub at each mouth ending in a wall of dark. It is swept the whole way
-    between the mouths, descending from each mouth at TUNNEL_GRADE to TUNNEL_SINK_M below
-    the ground and coming back up at the far end. Under the hill drawn at a mouth the arch is
-    whole; past the hill the roof is held below the surface -- a flat cut-and-cover roof --
-    until the arch fits. The walker's feet follow the floor."""
+def test_a_bore_runs_through_the_hill_at_the_level_the_lidar_read_for_its_road() -> None:
+    """The ground is measured now, so the bore goes through it: the floor at each station is
+    the ground less the cover the portal profile measured over the road there, which meets
+    the approach road at both mouths; without a profile the floor runs straight between the
+    mouths. Under thin cover near a mouth the roof is held below the ground. The walker's
+    feet follow the floor inside the bore and the hill outside it."""
     result = _run_tunnel("""
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
 const centre = [asLonLat(0, 0), asLonLat(300, 0)];
-const stations = tunnelStations(centre, 40, 60);
-const at = (s) => stations.reduce(
-  (best, st) => Math.abs(st.s - s) < Math.abs(best.s - s) ? st : best);
+// Cover profile: the road stays level at 0 while the hill rises to 20 m over the middle.
+const cover = [];
+for (let s = 0; s <= 300; s += 10) cover.push([s, Math.max(0, 20 * (1 - Math.abs(s - 150) / 150))]);
+const stations = tunnelStations(centre, cover);
+const straight = tunnelStations(centre, null);
+const at = (list, s) => list.reduce((best, st) => Math.abs(st.s - s) < Math.abs(best.s - s) ? st : best);
 tunnelBores.push({ stations, half: 5.5 });
 const roof = (st) => tunnelSectionPoints(5.5, st.cap).reduce((m, [, y]) => Math.max(m, y), 0);
 console.log(JSON.stringify({
   count: stations.length,
-  mouth: at(0).floor, in30: at(30).floor, in60: at(60).floor, middle: at(150).floor,
-  far: at(300).floor,
-  mouthRoof: roof(at(0)), hillRoof: roof(at(30)), justPastHill: at(42).floor + roof(at(42)),
-  deepRoof: roof(at(150)),
-  underfoot: tunnelFloorAt(150, 0), beside: tunnelFloorAt(150, 7), ground: walkerGroundAt(150, 9),
+  mouth: at(stations, 0).floor, middle: at(stations, 150).floor, far: at(stations, 300).floor,
+  groundMiddle: at(stations, 150).ground,
+  nearMouthRoof: roof(at(stations, 6)), deepRoof: roof(at(stations, 150)),
+  straightMiddle: at(straight, 150).floor,
+  underfoot: tunnelFloorAt(150, 0), beside: tunnelFloorAt(150, 7), hill: walkerGroundAt(150, 9),
   walker: walkerGroundAt(150, 0),
+  // With the road level the lidar fitted at each mouth, the floor is that line whatever the
+  // grid says at the mouths -- the grid under a deck over a portal is filled from the hill.
+  measuredMouth: at(tunnelStations(centre, cover, { start: 29.3, end: 40.8 }), 0).floor,
+  measuredMiddle: at(tunnelStations(centre, cover, { start: 29.3, end: 40.8 }), 150).floor,
 }));
 """)
+    assert abs(result["measuredMouth"] - 29.36) < 1e-6
+    assert abs(result["measuredMiddle"] - (29.3 + 11.5 / 2 + 0.06)) < 1e-6
     assert result["count"] >= 100
-    assert abs(result["mouth"] - 0.08) < 1e-9
-    assert abs(result["in30"] - (0.08 - 4.5)) < 1e-9, result
-    assert abs(result["middle"] - (0.08 - 8.0)) < 1e-9, result
-    assert abs(result["far"] - 0.08) < 1e-9
-    # The whole arch under the hill; past it the roof stays a quarter metre under the ground.
-    assert abs(result["mouthRoof"] - 6.4) < 1e-9 and abs(result["hillRoof"] - 6.4) < 1e-9
-    assert result["justPastHill"] <= -0.25 + 1e-9, result
-    assert abs(result["deepRoof"] - 6.4) < 1e-9, result
-    # The walker stands on the floor inside the bore and on the ground beside it.
-    assert abs(result["underfoot"] - (0.08 - 8.0)) < 1e-9
-    assert result["walker"] == result["underfoot"]
-    assert result["beside"] is None and result["ground"] == 0
+    # The floor stays at road level under the hill, and the ground over it is the hill.
+    assert abs(result["mouth"] - 0.06) < 1e-6 and abs(result["middle"] - 0.06) < 1e-6
+    assert abs(result["far"] - 0.06) < 1e-6 and abs(result["groundMiddle"] - 20) < 1e-6
+    # Six metres in the cover is 0.8 m: the roof is held down; deep in, the whole arch.
+    assert result["nearMouthRoof"] < 6.4 and abs(result["deepRoof"] - 6.4) < 1e-9
+    # Without a profile the floor runs straight between the mouths (both at 0 here).
+    assert abs(result["straightMiddle"] - 0.06) < 1e-6
+    # The walker: on the floor inside, on the hill outside.
+    assert abs(result["underfoot"] - 0.06) < 1e-6 and result["walker"] == result["underfoot"]
+    assert result["beside"] is None and abs(result["hill"] - 20) < 1e-6
     js = _page_js()
-    assert ("avatar.position.y = AVATAR_STAND_Y + lift"
-            " + walkerGroundAt(avatar.position.x, avatar.position.z);") in js
+    assert "avatar.position.y = AVATAR_STAND_Y + lift + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
     assert "eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
 
 
@@ -2297,3 +2318,146 @@ def test_the_page_reads_its_paint_from_the_cross_sections_and_closes_them_to_its
     assert abs(result["bike"] - 3.55) < 1e-9
     js = _page_js()
     assert "for (const mark of crossSectionMarks(way, markingPoints, markCutStart) || [])" in js
+
+
+def test_a_crossing_ends_on_the_kerb_the_model_drew_not_on_the_curb_return() -> None:
+    """The ray through the city's kerb lines, cast along the crossing, meets the curb return
+    at a corner a metre or so beyond the straight kerb the carriageway is drawn to. Each end
+    is walked back in until it stands on the drawn roadway; an end already on it stays, and
+    one that finds no roadway within a metre and a half is left where the city put it."""
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);          // kerbs at z = +-5
+const overshot = endCrossingOnDrawnKerb([asLonLat(0, -6.2), asLonLat(0, 5.9)]);
+const exact = endCrossingOnDrawnKerb([asLonLat(0, -5), asLonLat(0, 5)]);
+const lost = endCrossingOnDrawnKerb([asLonLat(0, -9), asLonLat(0, 5)]);
+const z = (pts) => pts.map((p) => +(-xy(p[0], p[1])[1]).toFixed(2));
+console.log(JSON.stringify({ overshot: z(overshot), walked: overshot.walkedBackM, exact: z(exact),
+                             lost: z(lost) }));
+""")
+    assert abs(result["overshot"][0] + 5) <= 0.1 and abs(result["overshot"][1] - 5) <= 0.1, result
+    assert result["walked"] == [1.2, 0.9]
+    assert result["exact"] == [-5, 5]
+    assert result["lost"][0] == -9 and abs(result["lost"][1] - 5) <= 0.1
+
+
+def test_a_crossing_end_is_checked_against_the_ramp_inventorys_corner() -> None:
+    """Public Works lists every corner leg at the intersection's own position, named by
+    corner, with or without a ramp. A crossing end in that corner's quadrant finds the
+    record; a single-letter leg (N) belongs to both corners it touches; a place with no
+    intersection record within reach is no record at all."""
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+indexCurbRamps([
+  { p: asLonLat(0, 0), c: "NE", f: [] },
+  { p: asLonLat(0, 0), c: "SW", f: ["no_ramp"] },
+  { p: asLonLat(0, 0), c: "N", f: [] },
+]);
+console.log(JSON.stringify({
+  ne: rampRecordAt(6, -6), sw: rampRecordAt(-6, 6), nw: rampRecordAt(-6, -6), se: rampRecordAt(6, 6),
+  far: rampRecordAt(60, 60), corner: cornerOf(0, 0, 3, -4),
+}));
+""")
+    assert result == {"ne": "ramp", "sw": "no_ramp", "nw": "ramp", "se": None, "far": None,
+                      "corner": "NE"}, result
+
+
+def test_nothing_runs_at_the_top_level_before_the_bindings_it_reads_exist() -> None:
+    """The page ran `indexCurbRamps(...)` a hundred lines above `const rampNodeGrid`, and every
+    test here passed while the browser threw a ReferenceError and drew nothing: the tests pull
+    functions out by name and never run the script top to bottom. This walks the top-level
+    statements in order and, for each call made there, follows the called functions two levels
+    down for a `const` or `let` the top level has not reached yet."""
+    js = _page_js()
+    lines = js.split("\n")
+    declared_at: dict[str, int] = {}
+    for n, line in enumerate(lines):
+        m = re.match(r"(?:const|let) ([A-Za-z_$][\w$]*)\b", line)
+        if m:
+            declared_at[m.group(1)] = n
+    function_names = set(re.findall(r"^(?:async )?function ([A-Za-z_$][\w$]*)\(", js, re.M))
+
+    def body_identifiers(name: str, depth: int, seen: set[str]) -> set[str]:
+        if name in seen or name not in function_names:
+            return set()
+        seen.add(name)
+        body = re.sub(r"//[^\n]*", "", _extract(name, js))   # prose is not a read
+        words = set(re.findall(r"\b[A-Za-z_$][\w$]*\b", body))
+        # A name the function declares for itself shadows the top-level one; a name it asks
+        # `typeof` about before reading is a guard, and the guard runs first.
+        words -= set(re.findall(r"\b(?:const|let|var|function) ([A-Za-z_$][\w$]*)", body))
+        words -= set(re.findall(r"typeof ([A-Za-z_$][\w$]*)", body))
+        if depth > 0:
+            for called in set(re.findall(r"\b([A-Za-z_$][\w$]*)\(", body)) & function_names:
+                words |= body_identifiers(called, depth - 1, seen)
+        return words
+
+    offences = []
+    brace_depth = 0
+    for n, line in enumerate(lines):
+        at_top = brace_depth == 0
+        brace_depth += line.count("{") - line.count("}")
+        m = re.match(r"([A-Za-z_$][\w$]*)\(.*\);\s*$", line)
+        if not at_top or not m or m.group(1) not in function_names:
+            continue
+        reads = body_identifiers(m.group(1), 2, set())
+        late = sorted(v for v in reads if v in declared_at and declared_at[v] > n)
+        if late:
+            offences.append(f"line {n}: {line.strip()} reads {late} declared later")
+    assert not offences, "\n".join(offences)
+
+
+def test_the_ground_in_an_approach_cut_never_climbs_onto_the_deck_over_the_portal() -> None:
+    """Bush Street stands on the Stockton Tunnel's south portal. The terrain grid has no
+    ground returns under that deck and was filled from the hill either side, so the cut's
+    last metres stood seven metres up on the deck and the road ramped onto it. Inside the
+    cut the ground is held to the road line from the mouth's fitted level to the grid's own
+    level at the cut's far end; beside the cut the hill is the hill."""
+    js = _page_js()
+    # The preamble's flat-ground stand-ins give way to the real functions under test.
+    core = "\n".join(line for line in PREAMBLE.split("\n")
+                     if not any(name in line for name in ("wayFollowsCut", "cutLiftAt", "sameLevelLegs")))
+    parts = [core, """
+const TERRAIN_FRAME = {};
+// The grid: the hill at 36 m everywhere except a 40 m open cut, whose floor descends from
+// 28 m to the mouth at x = 100 -- and whose last 10 m are under the deck, read as 36 m.
+function terrainHeightAt(x, z) {
+  if (Math.abs(z) < 6 && x >= 60 && x < 90) return 28 + (x - 60) * 0.03;
+  return 36;
+}
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+const DATA = { ways: [{ tunnel_approach: "start", tunnel_approach_road_z: 29.3, road_m: 14,
+                        points: [asLonLat(60, 0), asLonLat(100, 0)] }] };
+"""]
+    parts += [_extract(name, js) for name in ("approachRoadAt", "groundLiftAt", "cutLiftAt", "wayFollowsCut")]
+    parts.append(re.search(r"const CUT_ALONG_COS = [^;]+;", js).group(0))
+    for constant in ("APPROACH_CUT_MARGIN_M",):
+        found = re.search(rf"const {constant} = [0-9.]+;", js)
+        assert found, constant
+        parts.append(found.group(0))
+    cuts = js[js.index("const APPROACH_CUT_REACH_M = "):]
+    parts.append(cuts[:cuts.index("\n});\n") + 4])
+    parts.append("""
+console.log(JSON.stringify({
+  underDeck: cutLiftAt(97, 0), atMouth: cutLiftAt(100, 0), farEnd: cutLiftAt(61, 0),
+  midCut: cutLiftAt(80, 0), beside: cutLiftAt(97, 15), hill: cutLiftAt(200, 0),
+  // The deck itself keeps the grid: one point, two heights, the way decides.
+  deckOverPortal: groundLiftAt(97, 0),
+  alongCut: wayFollowsCut({ kind: "street", points: [asLonLat(40, 1), asLonLat(99, 1)] }),
+  acrossCut: wayFollowsCut({ kind: "street", points: [asLonLat(97, -30), asLonLat(97, 30)] }),
+  elsewhere: wayFollowsCut({ kind: "street", points: [asLonLat(300, 0), asLonLat(400, 0)] }),
+}));
+""")
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    # Under the deck the ground is the road line, not the 36 m fill; at the mouth, the
+    # fitted level; where the grid has the cut floor, the lower of the two.
+    assert 29.0 < result["underDeck"] < 29.4, result
+    assert abs(result["atMouth"] - 29.3) < 1e-6, result
+    assert result["midCut"] <= 28 + 20 * 0.03 + 1e-9, result
+    assert abs(result["farEnd"] - 28.0) < 0.05, result
+    assert result["beside"] == 36 and result["hill"] == 36, result
+    assert result["deckOverPortal"] == 36, result
+    assert result["alongCut"] is True and result["acrossCut"] is False and result["elsewhere"] is False, result

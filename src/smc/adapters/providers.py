@@ -7,7 +7,6 @@ call site so the selection logic can be tested exhaustively without mocking a tr
 from __future__ import annotations
 
 import warnings
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 

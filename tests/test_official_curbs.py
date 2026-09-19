@@ -8,8 +8,6 @@ its cross streets does not match the same block in the other. None of these rais
 
 from __future__ import annotations
 
-import math
-
 import numpy as np
 import pytest
 

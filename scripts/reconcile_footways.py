@@ -8,6 +8,17 @@ too wide, because the ground-plane fit follows flat walkable ground past the pro
 
 So the lidar is bounded by the right of way, and then all three are compared again. The survey
 takes no part in setting the bound, or the comparison would be measuring its own answer.
+
+Two lidar readings exist now. The walk run (``smc.lidar.curb.walk_run``) measures the paved
+footway from the top of the kerb to the first step, wall or loss of ground -- what a person
+can walk on; the older plane extent measured the whole flat surface the walk plane fitted,
+forecourt and yard included. The survey records the *legal* footway, kerb to property line,
+which is neither: a plaza reads wider than the law's footway, a setback narrower. The lidar
+rung of the width ladder is the walk run bounded by the right of way, scored here as
+``lidar_rung_vs_survey`` (the median of run, extent and bound was tried and leans 0.7 m wide).
+The record itself, where the city has one, agrees with the survey to five centimetres and
+outranks all of it; the lidar's remaining error against the survey is the gap between the
+legal footway and the paved one, which no ground sensor can see.
 """
 
 from __future__ import annotations
@@ -27,6 +38,8 @@ from smc.official.reconcile import is_conflict  # noqa: E402
 
 OFFICIAL = ROOT / "data" / "sf_public_works"
 LIDAR = ROOT / "data" / "sf_corridor" / "depth" / "lidar" / "curb_sections.jsonl"
+#: The earlier journal, whose width is the walk plane's extent; kept for the median of three.
+LIDAR_EXTENT = ROOT / "data" / "sf_corridor" / "depth" / "lidar" / "curb_sections_extent.jsonl"
 CORRIDOR = {"south": 37.786, "west": -122.4475, "north": 37.8095, "east": -122.392}
 
 
@@ -86,10 +99,22 @@ def main() -> int:
             rows.append(row)
     progress(f"{len(rows)} lidar footway measurements")
 
+    extents: dict[tuple[str, float], float] = {}
+    if LIDAR_EXTENT.exists():
+        for line in LIDAR_EXTENT.read_text().splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("sidewalk_width_m") is not None and row.get("station_m") is not None:
+                extents[(row["footway_id"], round(row["station_m"], 1))] = row["sidewalk_width_m"]
+    progress(f"{len(extents)} walk-plane extents from the earlier journal")
+
     out = []
     raw_pairs: list[tuple[float, float, float | None]] = []
     bounded_pairs: list[tuple[float, float, float | None]] = []
-    counts = {"placed": 0, "bounded": 0, "clipped": 0, "no_bound": 0, "compared": 0}
+    rung_pairs: list[tuple[float, float, float | None]] = []
+    counts = {"placed": 0, "bounded": 0, "clipped": 0, "no_bound": 0, "compared": 0,
+              "with_extent": 0}
 
     for row in rows:
         found = index.locate_full(row["lon"], row["lat"])
@@ -114,12 +139,27 @@ def main() -> int:
         if result.clipped:
             counts["clipped"] += 1
 
+        extent = extents.get((row["footway_id"], round(row.get("station_m") or -1, 1)))
+        if extent is not None:
+            counts["with_extent"] += 1
+        # The lidar rung: the walk run, bounded by the right of way. The median of run, extent
+        # and bound was tried and is biased 0.7 m wide, because the bound is usually the middle
+        # value and the bound is generous by design; the bounded run has no bias to speak of
+        # (median error -3 cm) and its error is the legal-versus-paved gap, not a lean.
+        candidates = [row["sidewalk_width_m"]]
+        if extent is not None:
+            candidates.append(extent)
+        if result.bound_m is not None and result.bound_m >= 1.5:
+            candidates.append(result.bound_m)
+        estimate = result.bounded_m
         entry = {
             "lat": row["lat"], "lon": row["lon"], "segment_id": feature,
             "station_m": round(station, 2), "side": side,
             "measured_m": round(row["sidewalk_width_m"], 4),
+            "extent_m": round(extent, 4) if extent is not None else None,
             "bound_m": round(result.bound_m, 4) if result.bound_m is not None else None,
             "bounded_m": round(result.bounded_m, 4),
+            "estimate_m": round(estimate, 4),
             "clipped": result.clipped,
             "sigma_m": row.get("sidewalk_width_sigma_m"),
         }
@@ -131,6 +171,7 @@ def main() -> int:
             sigma = row.get("sidewalk_width_sigma_m")
             raw_pairs.append((row["sidewalk_width_m"], survey, sigma))
             bounded_pairs.append((result.bounded_m, survey, sigma))
+            rung_pairs.append((estimate, survey, sigma))
         out.append(entry)
 
     # -- three sources, pairwise ------------------------------------------------------------
@@ -147,10 +188,23 @@ def main() -> int:
         if entry.get("survey_m"):
             survey_vs_record.append((entry["survey_m"], recorded, 0.1524))
 
+    # Error by the survey's own width: a measurement that is right on average and wrong at
+    # both ends is a different failure from one that is simply wide.
+    by_bin: dict[str, list[float]] = {}
+    for estimate, survey, _ in rung_pairs:
+        by_bin.setdefault(f"{round(survey * 2) / 2:.1f}", []).append(estimate - survey)
+    rung_by_survey = {
+        k: {"n": len(v), "bias_m": round(sum(v) / len(v), 3),
+            "mae_m": round(sum(abs(x) for x in v) / len(v), 3)}
+        for k, v in sorted(by_bin.items()) if len(v) >= 10
+    }
     report = {
         "counts": counts,
         "lidar_vs_survey_before": stats(raw_pairs),
         "lidar_vs_survey_after": stats(bounded_pairs),
+        # The rung the width ladder actually uses where the city has no record.
+        "lidar_rung_vs_survey": stats(rung_pairs),
+        "lidar_rung_by_survey_width": rung_by_survey,
         "lidar_vs_record_after": stats(record_pairs),
         # Neither of these is ours, and they were taken years and a method apart. How far the
         # city's own two numbers sit from each other is the floor on how well anything we

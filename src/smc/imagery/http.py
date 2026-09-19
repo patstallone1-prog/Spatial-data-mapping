@@ -11,6 +11,7 @@ deleted image -- the catalogue would quietly lose real coverage that comes back 
 
 from __future__ import annotations
 
+import contextlib
 import json
 import random
 import time
@@ -97,10 +98,8 @@ class HttpClient:
                     # Obey the server's own number when it gives one; guessing shorter is how a
                     # polite client becomes a rate-limited one.
                     retry_after = exc.headers.get("Retry-After") if exc.headers else None
-                    try:
+                    with contextlib.suppress(TypeError, ValueError):
                         time.sleep(min(float(retry_after), 60.0)) if retry_after else None
-                    except (TypeError, ValueError):
-                        pass
                 last = exc
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 last = exc

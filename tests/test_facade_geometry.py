@@ -51,7 +51,7 @@ class TestWalls:
         assert 1 not in lengths
 
     def test_a_closed_ring_does_not_grow_a_zero_length_wall(self):
-        closed = SQUARE_CCW + [SQUARE_CCW[0]]
+        closed = [*SQUARE_CCW, SQUARE_CCW[0]]
         assert len(walls_of(closed, 12.0)) == 4
 
     def test_a_degenerate_ring_yields_nothing(self):

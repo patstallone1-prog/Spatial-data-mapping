@@ -124,3 +124,11 @@ def test_the_cross_sections_keep_closing_and_keep_their_measured_kerbs(report: d
     assert xs["unresolvedShare"] <= baseline["crossSectionUnresolvedShare"] + 0.01, xs
     assert xs["kerbSurveyShare"] >= baseline["crossSectionKerbSurveyShare"] - 0.02, xs
     assert xs["parkingMeasured"] >= baseline["crossSectionParkingMeasured"], xs
+
+
+def test_crossing_ends_stand_where_the_city_has_a_ramp(report: dict, baseline: dict) -> None:
+    """A crossing's end at a corner the curb-ramp inventory gives a ramp is a crossing the
+    city knows; the share may not fall. And the ends stand on the kerb the model drew."""
+    crosswalk = report["crosswalk"]
+    assert crosswalk["endsAtRampShare"] >= baseline["crosswalkEndsAtRampShare"] - 0.01, crosswalk
+    assert crosswalk["attachedShare"] >= 0.85, crosswalk["attachedShare"]

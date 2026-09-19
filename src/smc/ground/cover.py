@@ -13,6 +13,7 @@ corridor is three million cells.
 
 from __future__ import annotations
 
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -78,7 +79,7 @@ class Lattice:
         local = np.array([self.to_xy(lon, lat) for lon, lat in points])
         added = 0
         half = width_m / 2.0
-        for a, b in zip(local[:-1], local[1:]):
+        for a, b in itertools.pairwise(local):
             length = float(np.hypot(*(b - a)))
             if length < 1e-6:
                 continue
@@ -93,8 +94,9 @@ class Lattice:
         """Even-odd fill of a convex-or-not polygon given in local metres."""
         min_row, min_col = self.to_cell(local[:, 0].min(), local[:, 1].min())
         max_row, max_col = self.to_cell(local[:, 0].max(), local[:, 1].max())
-        min_row = max(0, min_row); min_col = max(0, min_col)
-        max_row = min(self.height - 1, max_row + 1); max_col = min(self.width - 1, max_col + 1)
+        min_row, min_col = max(0, min_row), max(0, min_col)
+        max_row = min(self.height - 1, max_row + 1)
+        max_col = min(self.width - 1, max_col + 1)
         if max_row < min_row or max_col < min_col:
             return 0
 

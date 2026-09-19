@@ -23,14 +23,14 @@ from __future__ import annotations
 import os
 import urllib.parse
 from collections.abc import Callable, Iterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from smc.imagery.base import ImageAsset, License, ObservationUnavailable
 from smc.imagery.http import HttpClient, PermanentError, TransientError
 from smc.imagery.region import BBox, Region
 from smc.imagery.schema import (
-    METADATA_VERSION,
     AVAILABLE,
+    METADATA_VERSION,
     PROJECTION_PERSPECTIVE,
     PROJECTION_SPHERICAL,
     PROJECTION_UNKNOWN,
@@ -107,7 +107,7 @@ def _when(value: object) -> datetime | None:
     if millis is None:
         return None
     try:
-        return datetime.fromtimestamp(millis / 1000.0, tz=timezone.utc)
+        return datetime.fromtimestamp(millis / 1000.0, tz=UTC)
     except (OverflowError, OSError, ValueError):
         return None
 
@@ -307,7 +307,7 @@ class MapillaryProvider:
         if existing is not None:
             existing.observation_count += 1
             return existing
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = SequenceRecord(
             sequence_uid=sequence_uid(self.name, self.instance, sequence_id),
             provider=self.name,
@@ -360,7 +360,7 @@ class MapillaryProvider:
         # equivalent is what can honestly be derived: 36 mm is the long side of a full frame.
         focal_35mm = focal_normalised * 36.0 if focal_normalised else None
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return Observation(
             observation_uid=observation_uid(self.name, self.instance, image_id),
             provider=self.name,

@@ -173,12 +173,12 @@ def sf_segments(bucket: str = DEFAULT_BUCKET, split: str = "training") -> list[s
     try:
         table = ds.dataset(stats.removeprefix("gs://"), filesystem=_filesystem(), format="parquet")
         scanned = table.to_table(columns=["key.segment_context_name", "[StatsComponent].location"])
-    except Exception as exc:  # noqa: BLE001 - surfaced with the remediation, not swallowed
+    except Exception as exc:
         raise WaymoAccessError(f"could not read the stats component: {exc}") from exc
 
     names = scanned.column("key.segment_context_name").to_pylist()
     places = scanned.column("[StatsComponent].location").to_pylist()
-    return sorted({n for n, p in zip(names, places) if p == SF_LOCATION and n})
+    return sorted({n for n, p in zip(names, places, strict=False) if p == SF_LOCATION and n})
 
 
 def _filesystem():

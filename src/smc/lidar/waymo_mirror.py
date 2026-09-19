@@ -59,7 +59,7 @@ def load_protos():
     if str(PROTO_BUILD) not in sys.path:
         sys.path.insert(0, str(PROTO_BUILD))
     try:
-        from waymo_open_dataset import dataset_pb2  # noqa: PLC0415
+        from waymo_open_dataset import dataset_pb2
     except ImportError as exc:
         raise WaymoMirrorError(
             "Waymo protobuf modules are not compiled. Run: "
@@ -93,7 +93,7 @@ def _get(url: str, *, start: int | None = None, end: int | None = None, timeout:
 
 def segment_paths() -> list[str]:
     """Every ``.tfrecord`` in the mirror, from the repository listing."""
-    import json  # noqa: PLC0415
+    import json
 
     payload = json.loads(_get(HF_FILES).decode("utf-8"))
     return sorted(

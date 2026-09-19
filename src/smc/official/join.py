@@ -62,7 +62,7 @@ class CentrelineIndex:
 
     @classmethod
     def from_rows(cls, rows: list[dict], frame: LocalFrame,
-                  *, geometry_key: str = "line") -> "CentrelineIndex":
+                  *, geometry_key: str = "line") -> CentrelineIndex:
         index = cls(frame)
         for row in rows:
             points = geojson_points(row.get(geometry_key) or {})
@@ -73,7 +73,7 @@ class CentrelineIndex:
         return index
 
     @classmethod
-    def from_centrelines(cls, centrelines: list[dict], frame: LocalFrame) -> "CentrelineIndex":
+    def from_centrelines(cls, centrelines: list[dict], frame: LocalFrame) -> CentrelineIndex:
         index = cls(frame)
         for row in centrelines:
             index.add(row["id"], [tuple(p) for p in row["points"]], row.get("name", ""))

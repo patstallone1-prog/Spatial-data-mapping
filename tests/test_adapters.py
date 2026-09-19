@@ -7,9 +7,9 @@ import pytest
 from smc.adapters.base import AdapterUnavailable
 from smc.adapters.credentials import CREDENTIALS, Capability, check, providers_for
 from smc.adapters.providers import (
-    RestrictedSourceWarning,
     ArCoreGeospatial,
     MapillaryImagery,
+    RestrictedSourceWarning,
     StreetViewImagery,
     build_anchor_imagery,
     build_visual_positioning,

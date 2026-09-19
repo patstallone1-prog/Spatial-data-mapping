@@ -1,58 +1,59 @@
 {
  "note": "Rendered carriageway width against the city's kerb lines, from scripts/audit_corridor_render.py (widthVsKerb). tests/test_width_vs_kerb.py fails when a build gets worse than this; regenerate deliberately with `python scripts/audit_corridor_render.py --baseline` after a change that improves it.",
- "ways": 1755,
- "enveloped": 1651,
- "tooNarrowOver3M": 111,
- "tooWideOver3M": 24,
- "medianAbsM": 0.04,
+ "ways": 1760,
+ "enveloped": 1654,
+ "tooNarrowOver3M": 114,
+ "tooWideOver3M": 20,
+ "medianAbsM": 0.03,
  "bySource": {
   "official_curbs": {
-   "ways": 678,
+   "ways": 682,
    "medianAbsM": 0.02,
-   "p90AbsM": 1.42,
-   "over3M": 42
+   "p90AbsM": 1.33,
+   "over3M": 39
   },
   "curb_geometry": {
-   "ways": 832,
-   "medianAbsM": 0.05,
+   "ways": 834,
+   "medianAbsM": 0.02,
    "p90AbsM": 0.22,
-   "over3M": 20
+   "over3M": 19
   },
   "none": {
-   "ways": 16,
+   "ways": 15,
    "medianAbsM": 12.11,
-   "p90AbsM": 21.11,
+   "p90AbsM": 21.13,
    "over3M": 14
   },
   "divided_half": {
-   "ways": 186,
+   "ways": 183,
    "medianAbsM": 0.07,
-   "p90AbsM": 4.56,
-   "over3M": 26
+   "p90AbsM": 4.54,
+   "over3M": 27
   },
   "row_minus_footways": {
-   "ways": 43,
-   "medianAbsM": 9.6,
-   "p90AbsM": 20.83,
-   "over3M": 33
+   "ways": 46,
+   "medianAbsM": 9.76,
+   "p90AbsM": 20.86,
+   "over3M": 35
   }
  },
  "otherLevelsClamped": 0,
- "crosswalkAttachedShare": 0.615,
- "crosswalkLegs": 2595,
+ "crosswalkAttachedShare": 0.902,
+ "crosswalkLegs": 2604,
  "crosswalkLegsAttachedShare": 0.998,
- "crosswalkWholeSpanFallback": 10,
- "crosswalkSplitForIslands": 34,
- "crosswalkStandInsLaid": 376,
- "crossSectionStations": 53771,
- "crossSectionResolvedShare": 0.783,
+ "crosswalkWholeSpanFallback": 11,
+ "crosswalkSplitForIslands": 40,
+ "crosswalkStandInsLaid": 375,
+ "crosswalkEndsAtRampShare": 0.869,
+ "crossSectionStations": 53839,
+ "crossSectionResolvedShare": 0.782,
  "crossSectionUnresolvedShare": 0.017,
  "crossSectionKerbSurveyShare": 0.389,
  "crossSectionParkingMeasured": 0,
  "crosswalkMappedSuppressedByStandIn": 0,
  "footwayKeptShare": 0.913,
  "kerbsideBareShare": 0.025,
- "roadThroughFacade": 96,
- "buildingsOnRoad2plus": 757,
+ "roadThroughFacade": 97,
+ "buildingsOnRoad2plus": 762,
  "tooNarrowNote": "184 -> 190 when the building-line clamp landed: six alleys with no kerb lines of their own, whose 'kerb' here is the avenue's across the block. Narrower is right for them."
 }

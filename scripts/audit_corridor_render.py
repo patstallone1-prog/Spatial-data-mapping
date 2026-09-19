@@ -78,6 +78,10 @@ FUNCTIONS = (
     "officialCurbCrossingSpan",
     "crossingPaintLegs",
     "crossingRoadSpanPoints",
+    "endCrossingOnDrawnKerb",
+    "indexCurbRamps",
+    "cornerOf",
+    "rampRecordAt",
     "crossingRectanglePoints",
     "sidewalkCrossingReplacementSpans",
     "crossingDrawPose",
@@ -150,6 +154,11 @@ const officialMedianGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
 const CROSSING_STEP_M = 0.25;
+const CROSSING_END_WALK_BACK_M = 1.5;
+const RAMP_NODE_CELL_M = 40.0;
+const RAMP_NODE_REACH_M = 22.0;
+const rampNodeGrid = new Map();
+const CROSSING_END_STEP_M = 0.05;
 const CROSSING_DEDUPE_CELL_M = 4.0;
 const CROSSING_DEDUPE_ANGLE_DEG = 12.0;
 const crossingDrawGrid = new Map();
@@ -274,6 +283,7 @@ for (const way of DATA.ways) {
 // The same order the page uses: the city's kerbs first, every way moved onto its kerb
 // envelope, then the fallbacks for the ways the city drew no kerb for.
 indexOfficialCurbGeometry(OFFICIAL.curb_lines || []);
+indexCurbRamps(OFFICIAL.curb_ramps || []);
 const DIVIDED_TWIN_MIN_M = 4.0;
 const DIVIDED_TWIN_MAX_M = 40.0;
 indexDividedTwins(DATA.ways);
@@ -437,6 +447,7 @@ let crossingSplitForIslands = 0;
 let crossingLegs = 0;
 let crossingLegsAttached = 0;
 let crossingWholeSpan = 0;
+let crossingEnds = 0, crossingEndsRamp = 0, crossingEndsNoRamp = 0, crossingEndsNoRecord = 0;
 const crossingSplitExamples = [];
 for (const way of DATA.ways) {
   if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
@@ -458,6 +469,14 @@ for (const way of DATA.ways) {
     const ins = 0.25;
     if (insideCarriageway(lax + lux * ins, -lay + luz * ins, 0.0)
         && insideCarriageway(lbx - lux * ins, -lby - luz * ins, 0.0)) crossingLegsAttached += 1;
+  }
+  for (const end of [span[0], span[span.length - 1]]) {
+    const [ex, ey] = xy(end[0], end[1]);
+    const record = rampRecordAt(ex, -ey);
+    crossingEnds += 1;
+    if (record === "ramp") crossingEndsRamp += 1;
+    else if (record === "no_ramp") crossingEndsNoRamp += 1;
+    else crossingEndsNoRecord += 1;
   }
   if (legs.length > 1) {
     crossingSplitForIslands += 1;
@@ -705,6 +724,13 @@ console.log(JSON.stringify({
     splitForIslands: crossingSplitForIslands,
     splitExamples: crossingSplitExamples,
     meanLengthM: +(crossingLengthM / Math.max(crossingRendered, 1)).toFixed(2),
+    // Each end against the curb-ramp inventory: at a corner with a ramp, at one listed
+    // without a ramp, or at no listed intersection at all.
+    ends: crossingEnds,
+    endsAtRamp: crossingEndsRamp,
+    endsAtRampShare: +(crossingEndsRamp / Math.max(crossingEnds, 1)).toFixed(3),
+    endsAtCornerWithoutRamp: crossingEndsNoRamp,
+    endsWithNoRecord: crossingEndsNoRecord,
     // Sidewalk stand-ins, and the mapped crossings one would have displaced.
     standIns,
     standInsYielding,
@@ -788,6 +814,7 @@ def baseline_from(report: dict, previous: dict) -> dict:
         "crosswalkWholeSpanFallback": crosswalk["wholeSpanFallback"],
         "crosswalkSplitForIslands": crosswalk["splitForIslands"],
         "crosswalkStandInsLaid": crosswalk["standInsLaid"],
+        "crosswalkEndsAtRampShare": crosswalk["endsAtRampShare"],
         "crossSectionStations": report["crossSections"]["stations"],
         "crossSectionResolvedShare": report["crossSections"]["resolvedShare"],
         "crossSectionUnresolvedShare": report["crossSections"]["unresolvedShare"],

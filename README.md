@@ -68,19 +68,47 @@ The corridor-wide figures below are the `widthVsKerb` audit
   (was 13). Divided halves, against the outer kerb and the lidar's median: median error 7 cm
   (was 1.13 m), 26 of 186 over 3 m (was 119 of 286). What remains wide is the Van Ness BRT
   lanes, whose OpenStreetMap line runs on the platform edge and reads no island of its own.
-- Crossings ending on the local kerb: 59%; crossing legs ending on a drawn carriageway: 99.8%,
-  with 11 of 2,558 falling back to the whole desire line; mapped crossings displaced by a
-  sidewalk's stand-in crossing: 0 (was 39). Footway laid of footway asked: 91%. Kerb sides with
+- Crossings ending on the kerb the model drew: 90.5% (was 59%: the end now walks back onto the
+  drawn carriageway rather than stopping on the map's node); crossing ends standing at a corner
+  where SFMTA's curb-ramp inventory has a ramp: 86.9% of 5,118 ends (237 at a corner with no
+  ramp recorded, 431 where the inventory has no record); crossing legs ending on a drawn
+  carriageway: 99.8%, with 10 of 2,596 falling back to the whole desire line; mapped crossings
+  displaced by a sidewalk's stand-in crossing: 0 (was 39). Footway laid of footway asked: 91%. Kerb sides with
   no pavement at all: 2.5%. Streets drawn through a building facade: 96; buildings with two or
   more footprint corners on a carriageway: 780.
-- Tunnel mouths within 14 m of OpenStreetMap's nodes (Broadway east is that far inside),
-  except the Stockton Tunnel's south mouth, moved 18 m past the Bush Street junction that
-  stands on it; covered lengths 560 m and 258 m; headwall cover 2.7-13.6 m, all from the
-  lidar. Each bore is swept the whole way between its mouths, with a walkway along each wall
-  and lights at the crown, and the walker goes in one end and out the other; the open
-  approach outside a mouth is a street between the walls of the cut the city's kerbs draw.
-- The city's two footway records agree to 5 cm; our aerial lidar sits 0.93 m from both after
-  being bounded by the right of way.
+- Tunnel mouths where the lidar's cover over the road first reaches 3.5 m for two samples
+  running (Broadway's east mouth is 40 m inside OpenStreetMap's way end: the first 26 m of
+  "cover" there is the top of the approach cut's walls, not a roof); covered lengths 508 m
+  and 256 m; headwall cover 2.7-13.6 m, all from the lidar. The floor of each bore runs
+  between the road levels the lidar fitted at its two mouths, and Bush Street is drawn on
+  the deck over the Stockton Tunnel's south portal with the mouth beneath it. Each bore is
+  swept the whole way, with a walkway along each wall and lights at the crown, and the walker
+  goes in one end and out the other; the open approach outside a mouth is a street between
+  the walls of the cut the city's kerbs draw, held to the cut's road line where the terrain
+  grid has no ground returns under the deck.
+- Sidewalk width, three ways against each other on 6,141 footways: the city's two records
+  (survey and segment) agree to 5 cm MAE; our aerial lidar, read as a run of ground from the kerb
+  riser and bounded by the right of way (`smc.lidar.curb.walk_run`), sits 1.24 m MAE from the
+  survey with a median error of -3 cm. The MAE is a tail, not a bias: the survey records the
+  legal sidewalk to the property line and the lidar reads the paved one, and where trees,
+  stairs and parked cars stand on the pavement the run stops short. The 0.35 m target was not
+  met and is not reachable against a legal-width record; the lidar figure is reported as what
+  it is. Kerb lines are delivered at 7 decimals (1 cm) and simplified at 2 cm, not the 10 cm
+  and 6 decimals before.
+- Terrain: the ground is a 2 m grid of the city's lidar ground returns
+  (`scripts/build_terrain.py`, `docs/sf-corridor-terrain.bin`, 1,938,904 cells with
+  returns, 1,486,601 filled from neighbours, the rest open water). Its accuracy is
+  measured against 5,529,190 ground returns held out of the gridding: overall RMSE
+  0.125 m, MAE 0.031 m, median 1 mm, bias
+  0 mm; on the roadway (within 4 m of a centreline) RMSE 0.037 m,
+  MAE 0.014 m, 90th percentile 2.6 cm; off the roadway RMSE
+  0.146 m, MAE 0.038 m; by slope, under 5% RMSE 0.040 m,
+  5-15% 0.052 m, over 15% 0.331 m (a 2 m cell
+  straddling a retaining wall or a stair is where the tail is). Those are the grid's own error
+  on top of the lidar's, which USGS states as about 0.10 m RMSEz for this collection; the two
+  are independent, so the roadway ground stands within roughly 0.11 m RMSE of the true surface.
+  Every street, pavement, kerb, crossing, building, tree and post stands on it; a building on
+  the lowest ground under its footprint, a crossing on the line between its two kerbs.
 - Aerial and Waymo ground lidar agree on kerb height to 1 mm of median (126 vs 131 mm).
 - Kerb height from photographs: **not yet measured against the lidar**. The 13 mm figure quoted
   here until September 2026 came from a simulated run scored with an oracle matcher; the
@@ -98,10 +126,9 @@ policies plus a 2.3 m prior -- the estimator that measures them from parked cars
 `crossSectionParkingMeasured` is 0 in the baseline; lane counts are the map's where it has
 one and a width-prior hypothesis where it does not, with no painted-line detection behind
 either; Broadway's twin bores come
-from the width of its cut, not from a record; the model is flat, so a bore goes down under
-the ground at 15% from each mouth to 8 m below and runs there to the far mouth, and the hill
-is drawn only over that descent -- Russian Hill's streets and houses sit at grade over a
-tunnel that is really 40 m beneath them.
+from the width of its cut, not from a record; the tunnel's floor follows the ground less the
+lidar's cover, so the bore is as deep as the hill is high, but its grade between the stations
+where the cover was read is interpolated, not measured.
 
 **Still open:** the anchoring front end is a correct engine with an empty tank — a reference
 index only anchors captures taken from its own vantage. See `docs/07-status.md`.

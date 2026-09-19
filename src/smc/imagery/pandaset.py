@@ -27,12 +27,12 @@ import json
 import math
 import zipfile
 from collections.abc import Callable, Iterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from smc.imagery.archive import RangedHttpFile
 from smc.imagery.base import ImageAsset, License, ObservationUnavailable
-from smc.imagery.region import Region
 from smc.imagery.calibration import SensorCalibration, camera_angles, quaternion_to_matrix
+from smc.imagery.region import Region
 from smc.imagery.schema import (
     AVAILABLE,
     PROJECTION_PERSPECTIVE,
@@ -183,7 +183,7 @@ class PandaSetProvider:
         existing = self._sequences.get(sequence)
         if existing is not None:
             return existing
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         lats = [float(p["lat"]) for p in track]
         lons = [float(p["long"]) for p in track]
         record = SequenceRecord(
@@ -213,11 +213,11 @@ class PandaSetProvider:
         stamp = None
         if index < len(timestamps):
             try:
-                stamp = datetime.fromtimestamp(float(timestamps[index]), tz=timezone.utc)
+                stamp = datetime.fromtimestamp(float(timestamps[index]), tz=UTC)
             except (OverflowError, OSError, ValueError):
                 stamp = None
         focal = float(intrinsics.get("fx") or 0.0) or None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # The pose and the intrinsics were being read and dropped: a measured six-degree-of-
         # freedom pose reduced to a compass bearing, and four intrinsic parameters reduced to

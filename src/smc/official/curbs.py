@@ -20,6 +20,7 @@ spacing rather than the shape of the kerb.
 
 from __future__ import annotations
 
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -64,11 +65,11 @@ def densify(points: list[tuple[float, float]],
     if len(points) < 2:
         return list(points)
     out: list[tuple[float, float]] = [points[0]]
-    for a, b in zip(points, points[1:]):
+    for a, b in itertools.pairwise(points):
         length = math.hypot(b[0] - a[0], b[1] - a[1])
         if length <= 1e-9:
             continue
-        steps = max(1, int(math.ceil(length / step_m)))
+        steps = max(1, math.ceil(length / step_m))
         for i in range(1, steps + 1):
             t = i / steps
             out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
