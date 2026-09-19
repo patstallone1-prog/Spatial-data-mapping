@@ -56,6 +56,7 @@ FUNCTIONS = (
     "isRoadTunnel",
     "isTunnelWay",
     "isDividedHalf",
+    "indexDividedTwins",
     "dividedHalfWidth",
     "envelopeEdgesAt",
     "recentreOnKerbEnvelope",
@@ -145,6 +146,7 @@ const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
 const officialCurbGrid = new Map();
 const officialIslandCurbGrid = new Map();
+const officialMedianGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
 const CROSSING_STEP_M = 0.25;
@@ -272,6 +274,9 @@ for (const way of DATA.ways) {
 // The same order the page uses: the city's kerbs first, every way moved onto its kerb
 // envelope, then the fallbacks for the ways the city drew no kerb for.
 indexOfficialCurbGeometry(OFFICIAL.curb_lines || []);
+const DIVIDED_TWIN_MIN_M = 4.0;
+const DIVIDED_TWIN_MAX_M = 40.0;
+indexDividedTwins(DATA.ways);
 const recentred = recentreStreetsOnOfficialKerbs(DATA.ways);
 clampRoadWidthsToNeighbours(DATA.ways);
 indexStreetEnds(DATA.ways);
@@ -309,8 +314,13 @@ for (const way of DATA.ways) {
     const dx = qx - px, dz = -(qy - py);
     const s = Math.hypot(dx, dz) || 1;
     const nx = dz / s, nz = -dx / s;
+    // A divided half is measured from its outer kerb to the median: the city's island kerb
+    // where it drew one, else the median the lidar measured (measure_medians_lidar.py) --
+    // a raised one as an island line, a painted centre as a median line. The other buckets
+    // never see the median lines: a painted centre is not a kerb.
     const hits = rayCurbIntersections(x, -y, nx, nz, 24, officialCurbGrid)
       .concat(rayCurbIntersections(x, -y, nx, nz, 24, officialIslandCurbGrid))
+      .concat(isDividedHalf(way) ? rayCurbIntersections(x, -y, nx, nz, 24, officialMedianGrid) : [])
       .sort((a, b) => a - b);
     const neg = hits.filter((v) => v < -0.8).pop();
     const pos = hits.find((v) => v > 0.8);
@@ -397,6 +407,7 @@ const widthReport = {
   recordsRejected: widthRows.filter((r) => r.rejectedRecordM).length,
   tooNarrowOver3M: widthRows.filter((r) => r.diffM < -3).length,
   tooWideOver3M: widthRows.filter((r) => r.diffM > 3).length,
+  all: process.env.AUDIT_WIDTH_ALL ? widthRows : undefined,
   medianAbsM: widthStat(widthRows.map((r) => Math.abs(r.diffM))).medianAbsM,
   bySource: Object.fromEntries(Object.entries(widthBySource).map(([k, v]) => [k, widthStat(v)])),
   worst: widthRows.slice().sort((a, b) => Math.abs(b.diffM) - Math.abs(a.diffM)).slice(0, 12),
@@ -638,6 +649,35 @@ for (const way of DATA.ways) {
   }
 }
 
+// -- the cross-sections: what the facts say about every station -----------------------------
+function crossSectionReport() {
+  const out = { ways: 0, stations: 0, resolved: 0, partial: 0, unresolved: 0,
+                kerbSurvey: 0, kerbMapped: 0, kerbInferred: 0,
+                parkingMeasured: 0, parkingPrior: 0, parkingAssumed: 0, junctionsUnmatched: 0,
+                reasons: {} };
+  for (const way of DATA.ways) {
+    if (!way.xs) continue;
+    out.ways += 1;
+    if (way.xs_junction) out.junctionsUnmatched += Object.keys(way.xs_junction).length;
+    for (const row of way.xs) {
+      out.stations += 1;
+      out[{ r: "resolved", p: "partial", u: "unresolved" }[row[4]]] += 1;
+      out[{ S: "kerbSurvey", L: "kerbSurvey", I: "kerbSurvey", M: "kerbMapped", N: "kerbInferred" }[row[3]]] += 1;
+      for (const b of row[5]) {
+        if (b[0] !== "p") continue;
+        if (b[2] === "I" || b[2] === "L") out.parkingMeasured += 1;
+        else if (b[3] < 0.5) out.parkingAssumed += 1;
+        else out.parkingPrior += 1;
+      }
+      for (const code of row[6] || []) out.reasons[code] = (out.reasons[code] || 0) + 1;
+    }
+  }
+  out.resolvedShare = +(out.resolved / Math.max(1, out.stations)).toFixed(3);
+  out.unresolvedShare = +(out.unresolved / Math.max(1, out.stations)).toFixed(3);
+  out.kerbSurveyShare = +(out.kerbSurvey / Math.max(1, out.stations)).toFixed(3);
+  return out;
+}
+
 console.log(JSON.stringify({
   kerbside: { sides, sidesBlockedByNeighbour, sidesRequiringPavement,
               sidesWithoutPavement: sidesBare,
@@ -673,6 +713,7 @@ console.log(JSON.stringify({
     suppressedExamples,
   },
   widthVsKerb: widthReport,
+  crossSections: crossSectionReport(),
   footway: {
     ways: walkWays,
     askedKm: +(askedM / 1000).toFixed(2),
@@ -747,6 +788,11 @@ def baseline_from(report: dict, previous: dict) -> dict:
         "crosswalkWholeSpanFallback": crosswalk["wholeSpanFallback"],
         "crosswalkSplitForIslands": crosswalk["splitForIslands"],
         "crosswalkStandInsLaid": crosswalk["standInsLaid"],
+        "crossSectionStations": report["crossSections"]["stations"],
+        "crossSectionResolvedShare": report["crossSections"]["resolvedShare"],
+        "crossSectionUnresolvedShare": report["crossSections"]["unresolvedShare"],
+        "crossSectionKerbSurveyShare": report["crossSections"]["kerbSurveyShare"],
+        "crossSectionParkingMeasured": report["crossSections"]["parkingMeasured"],
         "crosswalkMappedSuppressedByStandIn": crosswalk["mappedSuppressedByStandIn"],
         "footwayKeptShare": report["footway"]["keptShare"],
         "kerbsideBareShare": report["kerbside"]["share"],

@@ -87,6 +87,7 @@ const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
 const officialCurbGrid = new Map();
 const officialIslandCurbGrid = new Map();
+const officialMedianGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
 const CROSSING_STEP_M = 0.25;
@@ -1918,13 +1919,20 @@ const PARKING_LANE_M = 2.4;
 const BIKE_LANE_M = 1.5;
 const MARK_W = 0.102;
 const DOUBLE_GAP_M = 0.102;
+const CROSS_SECTION_KIND = { p: "parking", b: "bike", f: "buffer", x: "transit", t: "travel",
+                             n: "turn", m: "median", h: "shoulder", l: "loading", u: "unresolved" };
+const CROSS_SECTION_LANE_MIN_M = 2.55;
+const CROSS_SECTION_LANE_MAX_M = 5.2;
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
 """
 
-LANE_FUNCTIONS = ("laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "travelSpan",
-                  "laneOffsets", "laneMarkingProfile", "laneMarkingPaints", "bikeLaneOffset")
+LANE_FUNCTIONS = ("laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "halfWidthAt",
+                  "crossSectionRowAt", "crossSectionBands", "crossSectionBandsNearMiddle",
+                  "crossSectionMarkKind", "travelSpanAt",
+                  "travelSpan", "laneOffsets", "laneMarkingProfile", "laneMarkingPaints",
+                  "bikeLaneOffset")
 
 
 def _run_lanes(js_body: str) -> dict:
@@ -2246,3 +2254,46 @@ def test_the_approach_outside_a_mouth_is_the_cut_the_city_drew() -> None:
     assert 'if (way.road_source === "tunnel_cut") continue;' in clamp
     measured = re.search(r"const MEASURED_ROAD_SOURCES = new Set\(\[(.*?)\]\);", js)
     assert '"tunnel_cut"' in measured.group(1)
+
+
+def test_the_page_reads_its_paint_from_the_cross_sections_and_closes_them_to_its_own_kerbs():
+    """A way carrying `xs` (smc.facts.cross_section) gets its lane lines, centre pair, arrows
+    and bike lane from the bands, not from a count divided into a width. The page's drawn
+    width can differ from the facts' by a few centimetres, so the fixed bands keep their
+    widths and the travel lanes take the difference; an unresolved station paints nothing, and
+    so does one whose lanes would have to leave the plausible range to close."""
+    way = {"kind": "street", "name": "Polk Street", "road_m": 13.4, "road_source": "curb_geometry",
+           "lanes": 2, "xs": [
+               [2.0, 6.7, -6.7, "S", "r", [["p", 2.3, "N", 0.5, 0, "parallel"], ["b", 1.7, "M", 0.75, 0, "lane"],
+                                           ["t", 3.55, "M", 0.8, -1], ["t", 3.55, "M", 0.8, 1],
+                                           ["p", 2.3, "N", 0.5, 0, "parallel"]]],
+               [6.0, 6.7, -6.7, "S", "u", [["u", 13.4, "N", 0.0, 0]], ["nohyp"]],
+           ]}
+    result = _run_lanes(f"""
+    const way = {json.dumps(way)};
+    const bands = crossSectionBands(way, 2.0, 6.7);
+    const wider = crossSectionBands(way, 2.0, 7.0);        // the page drew it 60 cm wider
+    const absurd = crossSectionBands(way, 2.0, 10.0);      // 6.6 m wider: no lane closes that
+    const marks = [];
+    for (let k = 0; k < bands.length - 1; k += 1) marks.push(crossSectionMarkKind(bands[k], bands[k + 1]));
+    console.log(JSON.stringify({{
+      kinds: bands.map((b) => b.kind), edges: bands.map((b) => [+b.left.toFixed(2), +b.right.toFixed(2)]),
+      widerLane: +(wider[2].left - wider[2].right).toFixed(2), widerParking: +(wider[0].left - wider[0].right).toFixed(2),
+      absurd, unresolved: crossSectionBands(way, 6.0, 6.7), marks,
+      span: travelSpanAt(way, 2.0, 6.7), profile: laneMarkingProfile(way, 13.4),
+      bike: bikeLaneOffset(13.4, way, 1),
+    }}));
+    """)
+    assert result["kinds"] == ["parking", "bike", "travel", "travel", "parking"]
+    assert result["edges"][0] == [6.7, 4.4] and result["edges"][1] == [4.4, 2.7]
+    # The travel lanes absorb the page's extra 60 cm; the parking band does not.
+    assert result["widerLane"] == 3.85 and result["widerParking"] == 2.3
+    assert result["absurd"] is None and result["unresolved"] is None
+    assert result["marks"] == ["edge", "edge", "centre", None]  # both edges of the bike lane; none at the parking
+    assert result["span"] == [2.7, -4.4]
+    assert result["profile"]["total"] == 2 and result["profile"]["opposing"] is True
+    assert result["profile"]["fromCrossSection"] is True
+    # The bike lane sits in its band: centre at (4.4 + 2.7) / 2 = 3.55 left of the way.
+    assert abs(result["bike"] - 3.55) < 1e-9
+    js = _page_js()
+    assert "for (const mark of crossSectionMarks(way, markingPoints, markCutStart) || [])" in js

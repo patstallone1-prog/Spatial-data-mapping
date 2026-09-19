@@ -1,0 +1,1801 @@
+{
+ "note": "Lane-geometry benchmark faces (docs/08 \u00a71.5). The `map` and `city` fields are what the sources say; `truth` is filled by hand from aerial imagery, the lidar cross-profile and a site visit, and is null until it has been. tests/test_lane_benchmark.py scores the cross-sections against the faces whose truth is filled in.",
+ "faces": [
+  {
+   "stratum": "bike",
+   "name": "Broadway",
+   "cnn": null,
+   "at": [
+    -122.405927,
+    37.797965
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 4,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Presidio Avenue",
+   "cnn": null,
+   "at": [
+    -122.447195,
+    37.789191
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Howard Street",
+   "cnn": null,
+   "at": [
+    -122.399323,
+    37.785933
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 4,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "track"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Taylor Street",
+   "cnn": null,
+   "at": [
+    -122.412686,
+    37.792653
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Francisco Street",
+   "cnn": null,
+   "at": [
+    -122.428118,
+    37.802814
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": 11.81
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Sansome Street",
+   "cnn": null,
+   "at": [
+    -122.40168,
+    37.795652
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 3,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "The Embarcadero",
+   "cnn": null,
+   "at": [
+    -122.392509,
+    37.79363
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Market Street",
+   "cnn": null,
+   "at": [
+    -122.3998,
+    37.790475
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": null,
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Columbus Avenue",
+   "cnn": null,
+   "at": [
+    -122.406222,
+    37.797579
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Sansome Street",
+   "cnn": null,
+   "at": [
+    -122.401482,
+    37.794695
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 3,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Broadway",
+   "cnn": null,
+   "at": [
+    -122.4047,
+    37.798122
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 4,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "bike",
+   "name": "Polk Street",
+   "cnn": null,
+   "at": [
+    -122.421741,
+    37.795733
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": "lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": 13.48
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Washington Street",
+   "cnn": null,
+   "at": [
+    -122.403498,
+    37.795511
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 12.65
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "The Embarcadero",
+   "cnn": null,
+   "at": [
+    -122.404101,
+    37.80551
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 3,
+    "parking_sides": null,
+    "cycleway": "lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "The Embarcadero",
+   "cnn": null,
+   "at": [
+    -122.397496,
+    37.799178
+   ],
+   "map": {
+    "oneway": "NB",
+    "lanes": 3,
+    "parking_sides": null,
+    "cycleway": "track"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "The Embarcadero",
+   "cnn": null,
+   "at": [
+    -122.39661,
+    37.797878
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 3,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Van Ness Avenue",
+   "cnn": null,
+   "at": [
+    -122.424885,
+    37.80331
+   ],
+   "map": {
+    "oneway": "NB",
+    "lanes": 3,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Battery Street",
+   "cnn": null,
+   "at": [
+    -122.399997,
+    37.793315
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 3,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "track"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Richardson Avenue",
+   "cnn": null,
+   "at": [
+    -122.446521,
+    37.800013
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": 3,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "The Embarcadero",
+   "cnn": null,
+   "at": [
+    -122.397869,
+    37.799274
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 3,
+    "parking_sides": null,
+    "cycleway": "lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Fillmore Street",
+   "cnn": null,
+   "at": [
+    -122.436983,
+    37.803599
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": null,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Van Ness Avenue",
+   "cnn": null,
+   "at": [
+    -122.421501,
+    37.786728
+   ],
+   "map": {
+    "oneway": "EB",
+    "lanes": 2,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Clay Street",
+   "cnn": null,
+   "at": [
+    -122.411204,
+    37.793648
+   ],
+   "map": {
+    "oneway": "EB",
+    "lanes": 1,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "divided",
+   "name": "Columbus Avenue",
+   "cnn": null,
+   "at": [
+    -122.415908,
+    37.804312
+   ],
+   "map": {
+    "oneway": "NB/SB",
+    "lanes": 2,
+    "parking_sides": [
+     -1
+    ],
+    "cycleway": "shared_lane"
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Washington Street",
+   "cnn": null,
+   "at": [
+    -122.421382,
+    37.793253
+   ],
+   "map": {
+    "oneway": "EB",
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 11.7
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Van Ness Bus Rapid Transit",
+   "cnn": null,
+   "at": [
+    -122.42345,
+    37.796066
+   ],
+   "map": {
+    "oneway": "NB",
+    "lanes": 2,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Van Ness Bus Rapid Transit",
+   "cnn": null,
+   "at": [
+    -122.423306,
+    37.795274
+   ],
+   "map": {
+    "oneway": "NB",
+    "lanes": 2,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Post Street",
+   "cnn": null,
+   "at": [
+    -122.41476,
+    37.787488
+   ],
+   "map": {
+    "oneway": "EB",
+    "lanes": 3,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 14.97
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Maiden Lane",
+   "cnn": null,
+   "at": [
+    -122.405036,
+    37.788252
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": 1,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 5.44
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Sutter Street",
+   "cnn": null,
+   "at": [
+    -122.420025,
+    37.78778
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": 3,
+    "parking_sides": [
+     1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 13.66
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Jones Street",
+   "cnn": null,
+   "at": [
+    -122.413391,
+    37.787791
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 3,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Post Street",
+   "cnn": null,
+   "at": [
+    -122.410596,
+    37.788019
+   ],
+   "map": {
+    "oneway": "EB",
+    "lanes": 3,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 12.0
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Jackson Street",
+   "cnn": null,
+   "at": [
+    -122.409815,
+    37.795631
+   ],
+   "map": {
+    "oneway": "EB",
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 9.03
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Pacific Avenue",
+   "cnn": null,
+   "at": [
+    -122.403563,
+    37.79732
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": null,
+    "parking_sides": [
+     1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Clay Street",
+   "cnn": null,
+   "at": [
+    -122.429379,
+    37.791335
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 11.69
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "oneway",
+   "name": "Larkin Street",
+   "cnn": null,
+   "at": [
+    -122.418018,
+    37.785647
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": 3,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Waldo Alley",
+   "cnn": null,
+   "at": [
+    -122.41703,
+    37.797051
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Powell Street",
+   "cnn": null,
+   "at": [
+    -122.412179,
+    37.806861
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": [
+     1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 13.24
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Beach Street",
+   "cnn": null,
+   "at": [
+    -122.410646,
+    37.807922
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Cowell Place",
+   "cnn": null,
+   "at": [
+    -122.401838,
+    37.799383
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Marina Boulevard",
+   "cnn": null,
+   "at": [
+    -122.447184,
+    37.805181
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 4,
+    "parking_sides": [
+     1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Montague Place",
+   "cnn": null,
+   "at": [
+    -122.40442,
+    37.800576
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 5.13
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Broderick Street",
+   "cnn": null,
+   "at": [
+    -122.444699,
+    37.800604
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 11.76
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Union Street",
+   "cnn": null,
+   "at": [
+    -122.422631,
+    37.798731
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 3,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 13.56
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Beach Street",
+   "cnn": null,
+   "at": [
+    -122.418535,
+    37.806923
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 13.01
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Fillmore Street",
+   "cnn": null,
+   "at": [
+    -122.436091,
+    37.799972
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 11.68
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Retiro Way",
+   "cnn": null,
+   "at": [
+    -122.438239,
+    37.805327
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 8.76
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "twoway_residential",
+   "name": "Union Street",
+   "cnn": null,
+   "at": [
+    -122.412574,
+    37.800027
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 19.35
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Spear Street",
+   "cnn": null,
+   "at": [
+    -122.393033,
+    37.791714
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 2,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 15.38
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Fremont Street",
+   "cnn": null,
+   "at": [
+    -122.393533,
+    37.787923
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 3,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 19.09
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Mission Street",
+   "cnn": null,
+   "at": [
+    -122.401735,
+    37.786502
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 5,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 15.89
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "3rd Street",
+   "cnn": null,
+   "at": [
+    -122.401956,
+    37.786192
+   ],
+   "map": {
+    "oneway": "NB",
+    "lanes": 6,
+    "parking_sides": [
+     1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Columbus Avenue",
+   "cnn": null,
+   "at": [
+    -122.41882,
+    37.806269
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Geary Street",
+   "cnn": null,
+   "at": [
+    -122.408229,
+    37.787374
+   ],
+   "map": {
+    "oneway": "WB",
+    "lanes": 3,
+    "parking_sides": [
+     1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 16.42
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Franklin Street",
+   "cnn": null,
+   "at": [
+    -122.423327,
+    37.786882
+   ],
+   "map": {
+    "oneway": "NB",
+    "lanes": 3,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Chestnut Street",
+   "cnn": null,
+   "at": [
+    -122.406717,
+    37.80449
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": null,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 5.19
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Davis Street",
+   "cnn": null,
+   "at": [
+    -122.397608,
+    37.79342
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 3,
+    "parking_sides": [
+     1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Fremont Street",
+   "cnn": null,
+   "at": [
+    -122.393093,
+    37.787591
+   ],
+   "map": {
+    "oneway": null,
+    "lanes": 3,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": 16.09
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "Fremont Street",
+   "cnn": null,
+   "at": [
+    -122.396572,
+    37.790366
+   ],
+   "map": {
+    "oneway": "NB",
+    "lanes": 3,
+    "parking_sides": null,
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  },
+  {
+   "stratum": "wide_arterial",
+   "name": "1st Street",
+   "cnn": null,
+   "at": [
+    -122.395496,
+    37.788117
+   ],
+   "map": {
+    "oneway": "SB",
+    "lanes": 4,
+    "parking_sides": [
+     1,
+     -1
+    ],
+    "cycleway": null
+   },
+   "city": {
+    "kerb_to_kerb_m": null
+   },
+   "truth": {
+    "kerb_to_kerb_m": null,
+    "parking_left_m": null,
+    "parking_right_m": null,
+    "travel_lanes": null,
+    "lane_widths_m": null,
+    "bike_arrangement": null,
+    "source": null,
+    "checked_on": null
+   }
+  }
+ ]
+}

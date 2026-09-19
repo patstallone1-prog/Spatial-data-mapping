@@ -20,11 +20,11 @@ would silently swap road for footway on about half the ways.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
-from smc.lidar.ept import EptReader, LocalCloud
+from smc.lidar.ept import CLASS_GROUND, EptReader, LocalCloud
 from smc.measure.extract import CrossSection, MeasurementConfig, measure_cross_section
 
 EARTH_RADIUS_M = 6_378_137.0
@@ -33,16 +33,54 @@ EARTH_RADIUS_M = 6_378_137.0
 #: surface to fit a plane through parked cars and camber; the footway side stops before the
 #: building line, where steps and stoops would offer a second discontinuity to lock onto.
 ROAD_REACH_M = 6.0
-WALK_REACH_M = 4.0
+#: The window reaches this far from the mapped footway line away from the road: far enough
+#: that a nine-metre footway (Market Street, the Embarcadero) fits inside it with the kerb a
+#: metre or two on the road side of the line. The walk run (WALK_STEP_M and neighbours) stops
+#: the measurement where the footway stops, so the reach no longer sets the width.
+WALK_REACH_M = 12.0
 
 #: Slices are taken every ``STATION_STEP_M`` and each gathers points within half a step either
 #: side, so the whole length is covered exactly once with no overlap between neighbours.
 STATION_STEP_M = 5.0
 
+#: The footway's width is the run of walkable ground from the top of the kerb to the first
+#: thing that is not footway: a step (a planter wall, a stoop, a second kerb), a wall or a
+#: fence standing on it, or no ground at all (a building, a stair, a void). The run advances
+#: one ``KERB_BIN_M`` bin at a time and stops at the first bin that fails.
+#:
+#: It used to be the lateral extent of every point the walk plane fitted, within four metres
+#: of the mapped footway line -- which is the flat forecourt, the driveway apron and the
+#: front yard as much as the footway, and is cut off by the window on a wide footway. Against
+#: the city's survey that read a two-metre footway as four and a six-metre one as five, with a
+#: 1.16 m mean error that was almost all this.
+#: A bin whose ground surface sits this far off the level the run has reached is a step.
+WALK_STEP_M = 0.06
+#: A bin with fewer ground returns than this share of the run's median is not ground any more
+#: -- the returns are on a building, a car, or there are none. Low, because a tree's canopy
+#: thins the ground returns under it without ending the footway.
+WALK_GROUND_SHARE = 0.15
+#: A bin where the returns standing over the footway at a person's height -- walls, fences,
+#: facades: anything the classifier did not call ground between WALK_WALL_RISE_M and
+#: WALK_WALL_TOP_M above the surface -- outnumber the ground returns is a wall. Above that is
+#: canopy and awning, which the footway runs under.
+WALK_WALL_RISE_M = 0.4
+WALK_WALL_TOP_M = 2.2
+#: Aerial lidar sees roofs, not walls: a building beside the footway shows as the ground
+#: returns thinning under its eave while returns above it -- at any height -- take over. A
+#: bin with fewer ground returns than this share of the plateau's and more returns standing
+#: over it than on it is the building line. A tree is not: its canopy stands over the
+#: footway too, but the ground beneath it keeps most of its returns.
+WALK_BUILDING_SHARE = 0.4
+#: One bin may fail and the run go on past it, if the next bin passes: a tree trunk, a pole,
+#: a bench, a bin. Two in a row is the end of the footway.
+WALK_BRIDGE_BINS = 1
+
 #: Lateral bin width for locating the kerb line. Ground returns arrive at roughly fifty per
 #: square metre, so a 25 cm bin across a five-metre slice holds enough points for a stable
 #: median while staying narrower than the feature being looked for.
 KERB_BIN_M = 0.25
+#: The footway is measured from the top of the riser, half a bin in from the riser's edge.
+WALK_FROM_RISER_M = KERB_BIN_M / 2.0
 
 #: A kerb is only accepted where the ground surface actually steps. The rise between adjacent
 #: bins has to clear both an absolute floor -- below about six centimetres a step is
@@ -183,16 +221,24 @@ def measure_footway(
 
     # Cloud origin and footway origin are different points, so shift before projecting.
     origin_east, origin_north = _enu(cloud.origin_lat, cloud.origin_lon, lat0, lon0)
-    east = ground.east + origin_east
-    north = ground.north + origin_north
 
-    relative = np.column_stack((east - start[0], north - start[1]))
-    u = relative @ along
-    v = relative @ across
-    w = ground.up
+    def frame(points: LocalCloud) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        relative = np.column_stack((points.east + origin_east - start[0],
+                                    points.north + origin_north - start[1]))
+        u_ = relative @ along
+        v_ = relative @ across
+        w_ = points.up
+        inside = (v_ > -ROAD_REACH_M) & (v_ < WALK_REACH_M)
+        return u_[inside], v_[inside], w_[inside]
 
-    in_corridor = (v > -ROAD_REACH_M) & (v < WALK_REACH_M)
-    u, v, w = u[in_corridor], v[in_corridor], w[in_corridor]
+    u, v, w = frame(ground)
+    # What stands on the footway -- walls, fences, facades, the canopy -- is everything the
+    # classifier did not call ground. It ends the walk run where the ground alone would not.
+    standing_keep = cloud.classification != CLASS_GROUND
+    standing = LocalCloud(cloud.east[standing_keep], cloud.north[standing_keep],
+                          cloud.up[standing_keep], cloud.classification[standing_keep],
+                          cloud.origin_lat, cloud.origin_lon)
+    su, sv, sw = frame(standing) if len(standing.east) else (np.empty(0), np.empty(0), np.empty(0))
 
     out: list[SegmentMeasurement] = []
     half = station_step_m / 2.0
@@ -210,6 +256,22 @@ def measure_footway(
         section = measure_cross_section(
             slab, float(station), config=config, kerb_offset_hint=offset
         )
+        # The width is the walk run from the top of the riser, not the walk plane's extent.
+        if section.kerb is not None and section.sidewalk is not None:
+            standing_window = (su > station - half) & (su <= station + half)
+            run = walk_run(v[window], w[window], offset,
+                           standing_lateral=sv[standing_window], standing_up=sw[standing_window])
+            if run is None:
+                section = replace(section, sidewalk=None,
+                                  flags=(*section.flags, "no_plateau_past_kerb"))
+            else:
+                width_m, _level = run
+                sidewalk = replace(
+                    section.sidewalk, width_m=width_m,
+                    width_sigma_m=math.hypot(section.sidewalk.surface_rms_m, KERB_BIN_M / 2.0),
+                )
+                section = replace(section, sidewalk=sidewalk,
+                                  flags=(*section.flags, "width_from_walk_run"))
         if section.kerb is not None and not (MIN_STEP_M <= section.kerb.height_m <= MAX_STEP_M):
             # The binned profile found a riser inside the plausible range and the plane fit then
             # disagreed with it. That happens where the riser is the bottom of a stairway or a
@@ -222,6 +284,96 @@ def measure_footway(
         lat, lon = _latlon(here[0], here[1], lat0, lon0)
         out.append(SegmentMeasurement(section, lat, lon, float(station), int(window.sum())))
     return out
+
+
+def walk_run(
+    lateral: np.ndarray,
+    up: np.ndarray,
+    kerb_offset: float,
+    *,
+    standing_lateral: np.ndarray | None = None,
+    standing_up: np.ndarray | None = None,
+    reach_m: float = WALK_REACH_M,
+) -> tuple[float, float] | None:
+    """How far walkable ground runs from the top of the kerb, and its surface level there.
+
+    ``lateral``/``up`` are ground returns in the slice frame (positive lateral is away from
+    the road); ``kerb_offset`` is the riser's lateral offset from :func:`find_kerb_line`.
+    ``standing_*`` are the returns the classifier did not call ground -- what stands on the
+    footway -- and are optional: without them a wall is found only by the ground ending.
+
+    Returns ``(width_m, level_m)`` or ``None`` when there is no plateau beyond the riser.
+    """
+    start = kerb_offset + WALK_FROM_RISER_M
+    edges = np.arange(start, start + reach_m + KERB_BIN_M, KERB_BIN_M)
+    if edges.size < 3:
+        return None
+    index = np.clip(np.digitize(lateral, edges) - 1, -1, edges.size - 1)
+    counts = np.array([int(((index == b) & (lateral >= start)).sum()) for b in range(edges.size - 1)])
+    medians = np.array([
+        float(np.median(up[(index == b) & (lateral >= start)])) if counts[b] >= 6 else np.nan
+        for b in range(edges.size - 1)
+    ])
+    # The plateau just past the riser sets the level; no plateau, no footway. The riser is
+    # smeared over a bin or two, so the level is read from the second and third bins where
+    # they exist, and the first bin is allowed to sit a little under it.
+    if counts[0] < 6 or not np.isfinite(medians[0]):
+        return None
+    plateau_bins = [medians[b] for b in (1, 2) if b < medians.size and np.isfinite(medians[b])
+                    and counts[b] >= 6 and abs(medians[b] - medians[0]) < 3 * WALK_STEP_M]
+    level = float(np.median(plateau_bins)) if plateau_bins else medians[0]
+    # The plateau's own density, from the bins just past the riser: what a bin of this
+    # footway looks like with nothing over it.
+    plateau = [c for c in counts[:2] if c > 0]
+    typical = max(6.0, float(np.mean(plateau)) if plateau else 6.0)
+    standing_index = None
+    if standing_lateral is not None and standing_up is not None and standing_lateral.size:
+        standing_index = np.clip(np.digitize(standing_lateral, edges) - 1, -1, edges.size - 1)
+    def verdict(b: int, level_here: float) -> str:
+        """``ok``, or why the bin is not footway: ``wall`` ends the run outright, the others
+        may be one obstacle to walk round."""
+        if standing_index is not None:
+            over = standing_up[(standing_index == b)] - level_here
+            wall = int(((over > WALK_WALL_RISE_M) & (over < WALK_WALL_TOP_M)).sum())
+            if wall >= max(6, counts[b]):
+                return "wall"
+            above = int((over > WALK_WALL_RISE_M).sum())
+            if above >= 2 * max(6, counts[b]) and counts[b] < WALK_BUILDING_SHARE * typical:
+                return "wall"
+        if counts[b] < max(6, WALK_GROUND_SHARE * typical) or not np.isfinite(medians[b]):
+            return "no_ground"
+        # The first bin may still hold the top of the riser: it sits under the level, not a step.
+        slack = WALK_STEP_M * (2.0 if b == 0 else 1.0)
+        if abs(medians[b] - level_here) > slack:
+            return "step"
+        return "ok"
+
+    accepted = 0
+    b = 0
+    while b < edges.size - 1:
+        why = verdict(b, level)
+        if why == "ok":
+            level = medians[b]
+            accepted = b + 1
+            b += 1
+            continue
+        if why == "wall":
+            break
+        # One obstacle on the footway is walked round; the footway goes on past it.
+        ahead = b + WALK_BRIDGE_BINS
+        if ahead < edges.size - 1 and verdict(ahead, level) == "ok":
+            level = medians[ahead]
+            accepted = ahead + 1
+            b = ahead + 1
+            continue
+        # Ground that vanishes within a metre of the riser is a footway the lidar cannot see
+        # -- under an awning, a canopy, a scaffold -- not a footway a metre wide. Say nothing.
+        if why == "no_ground" and accepted * KERB_BIN_M < 1.0:
+            return None
+        break
+    if accepted == 0:
+        return None
+    return float(accepted * KERB_BIN_M + WALK_FROM_RISER_M), float(level)
 
 
 def find_kerb_line(lateral: np.ndarray, up: np.ndarray) -> float | None:

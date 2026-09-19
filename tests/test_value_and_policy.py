@@ -166,3 +166,18 @@ def test_a_bay_with_a_neighbourhood_in_it_is_not_a_bay() -> None:
     sliver = [[-122.4100, 37.7950], [-122.4096, 37.7950],
               [-122.4096, 37.7952], [-122.4100, 37.7952]]
     assert covers_the_city(sliver, [(-122.4098, 37.7951)] * 6)
+
+
+def test_no_measured_claim_outruns_its_benchmark_file():
+    """The 13 mm kerb-height figure was quoted for months on a simulated run. A claim of
+    photograph-measured kerb height may stand in the README only while the real benchmark
+    file holds paired measurements."""
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    run = json.loads((root / "data/curb_measurement/photo_vs_lidar_run.json").read_text())
+    readme = (root / "README.md").read_text()
+    if run["paired_kerb_measurements"] == 0:
+        assert "13 mm mean absolute error" not in readme
+        assert "not yet measured against the lidar" in readme

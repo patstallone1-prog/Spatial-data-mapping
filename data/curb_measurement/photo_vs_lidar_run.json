@@ -1,0 +1,16 @@
+{
+ "ran_on": "2026-09-19",
+ "script": "scripts/curbmeasure/against_lidar.py --tiles 12",
+ "footways_tried": 10,
+ "footways_skipped_api_quota": 3,
+ "paired_kerb_measurements": 0,
+ "finding": "The plane-sweep pipeline, run against the 12 footways with the most aerial-lidar kerb slices and the Mapillary sequences beside them, produced no kerb measurement in the 5-10 m near field that could be paired with a lidar slice: every footway that got imagery returned zero pairs, and two could not get imagery through the API's quota. The 13 mm curb-height figure quoted until now came from a simulated CARLA run scored with an oracle matcher (docs/08-measurement-and-overlay.md) and is not reproduced by real photographs; it is withdrawn from the README until this file holds paired measurements.",
+ "log_tail": [
+  "  5/12: 0 paired slices (total 0)",
+  "  6/12: 0 paired slices (total 0)",
+  "  7/12: 0 paired slices (total 0)",
+  "  8/12: 0 paired slices (total 0)",
+  "  9/12: skipped (MapillaryError: still over quota at split depth 6: {\"error\":{\"code\":1,\"message\":\"Pleas)",
+  "  10/12: 0 paired slices (total 0)"
+ ]
+}

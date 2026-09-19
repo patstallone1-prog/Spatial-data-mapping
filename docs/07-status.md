@@ -92,8 +92,10 @@ What remains is precision and provenance, not existence:
   meets a mapped footway on the same side.
 - Curb ramps are ingested and drawn; they do not yet move the crossing endpoints to where the
   accessible path actually is.
-- A committed near-field (5–10 m) benchmark with per-sample ground truth, so the 13 mm
-  curb-height claim rests on a file rather than on a paragraph.
+- The near-field (5–10 m) photo-vs-lidar benchmark was run (`data/curb_measurement/
+  photo_vs_lidar_run.json`): twelve footways, no paired kerb measurement. The 13 mm claim was
+  simulated and is withdrawn; the plane sweep does not yet recover a kerb at five metres from
+  real Mapillary sequences, and that is the open problem, not the file.
 
 ### B3. Semantics
 
@@ -116,20 +118,22 @@ orchestration, consumer app, OpenSidewalks/TDEI export, HTTP transport for the i
 ## Where this stands
 
 **Built and deployed.** A 3D recreation of the corridor from the city's own records and
-OpenStreetMap: carriageways drawn between the city's kerb lines read along each way (1,639 of
-1,728 ways; median error against those lines 5 cm), footways from the kerb outward and held to
+OpenStreetMap: carriageways drawn between the city's kerb lines read along each way (1,651 of
+1,755 ways; median error against those lines 4 cm; divided halves against the outer kerb and
+the lidar's median, 7 cm), footways from the kerb outward and held to
 the building line, a four-inch kerb tile that carries the city's curb paint on its own vertices
 (12,499 policy zones that are paint, 4,275 Color Curb Program assets, all five colours),
-corners laid as their own piece between the two pavements that meet there, lane paint that
-stops at every junction and sits over the travel lanes (parking lanes from SFMTA's parking
-block faces), crossings painted kerb to kerb in legs that part at medians and refuge islands
+corners laid as their own piece between the two pavements that meet there, every street as
+measured cross-sections (53,771 stations; 78% resolved, 1.7% refused and painted with
+nothing) from which the lane paint, the double yellow, the arrows and the bike lanes are
+drawn, crossings painted kerb to kerb in legs that part at medians and refuge islands
 (99.8% of legs end on a drawn carriageway; 59% of crossings end on the local kerb; none displaced by a sidewalk's stand-in), curb ramps with ADA dome pads, bus zones in transit red, 24,603 official signs
 facing the road, 142 stone and brick walls, two road tunnels with mouths and cover read from
 the lidar, each bore swept from mouth to mouth under the flat ground with walkways and lights
 so the walker can go through (a third `tunnel=yes` road, 1st Street, is an underpass and drawn
 as a street), 146
 surface car parks with angled bays, 15,985 buildings of which 14,490 carry a colour sampled
-from a photograph of that building, and the sky. 751 tests, most of them running the
+from a photograph of that building, and the sky. 785 tests, most of them running the
 renderer's own rules in Node rather than reading its source, and one (`test_width_vs_kerb.py`)
 holding the corridor-wide comparison with the city's kerbs to a baseline that may only improve.
 

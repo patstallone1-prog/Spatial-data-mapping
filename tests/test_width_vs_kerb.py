@@ -110,3 +110,17 @@ def test_a_mapped_crossing_is_never_displaced_by_a_sidewalk_stand_in(
     crosswalk = report["crosswalk"]
     assert crosswalk["mappedSuppressedByStandIn"] == 0, crosswalk["suppressedExamples"]
     assert crosswalk["standInsLaid"] <= baseline["crosswalkStandInsLaid"] + 5, crosswalk
+
+
+def test_the_cross_sections_keep_closing_and_keep_their_measured_kerbs(report: dict, baseline: dict) -> None:
+    """Every street is a sequence of cross-sections (smc.facts.cross_section): the kerbs from
+    the city's profile where it has one, the bands between them chosen from hypotheses, and a
+    station that cannot be closed left unresolved rather than painted. The share of stations
+    resolved and the share with surveyed kerbs may not fall; the share refused may not rise
+    by more than a little; parking bands measured from imagery may only become more."""
+    xs = report["crossSections"]
+    assert xs["stations"] >= baseline["crossSectionStations"] * 0.97, xs["stations"]
+    assert xs["resolvedShare"] >= baseline["crossSectionResolvedShare"] - 0.02, xs
+    assert xs["unresolvedShare"] <= baseline["crossSectionUnresolvedShare"] + 0.01, xs
+    assert xs["kerbSurveyShare"] >= baseline["crossSectionKerbSurveyShare"] - 0.02, xs
+    assert xs["parkingMeasured"] >= baseline["crossSectionParkingMeasured"], xs

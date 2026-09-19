@@ -39,6 +39,8 @@ data/sf_corridor/
 !data/sf_corridor/
 data/sf_corridor/*
 !data/sf_corridor/audits/
+# And the benchmark faces: hand-checked truth for the lane geometry.
+!data/sf_corridor/benchmarks/
 
 # Source frames fetched to build facades. Gigabytes of other people's JPEGs, rebuildable
 # from the catalogue at any time, and none of it belongs in a clone.
