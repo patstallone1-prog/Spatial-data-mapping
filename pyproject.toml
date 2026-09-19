@@ -55,3 +55,6 @@ warn_unreachable = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests/test_pwa_full_3d.py imports tools.build_pages from the repo root; `python -m pytest`
+# put the cwd on the path by accident and the bare `pytest` CI runs did not.
+pythonpath = ["."]
