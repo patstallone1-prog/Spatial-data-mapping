@@ -125,9 +125,11 @@ stops at every junction and sits over the travel lanes (parking lanes from SFMTA
 block faces), crossings painted kerb to kerb in legs that part at medians and refuge islands
 (99.8% of legs end on a drawn carriageway; 59% of crossings end on the local kerb; none displaced by a sidewalk's stand-in), curb ramps with ADA dome pads, bus zones in transit red, 24,603 official signs
 facing the road, 142 stone and brick walls, two road tunnels with mouths and cover read from
-the lidar (a third `tunnel=yes` road, 1st Street, is an underpass and drawn as a street), 146
+the lidar, each bore swept from mouth to mouth under the flat ground with walkways and lights
+so the walker can go through (a third `tunnel=yes` road, 1st Street, is an underpass and drawn
+as a street), 146
 surface car parks with angled bays, 15,985 buildings of which 14,490 carry a colour sampled
-from a photograph of that building, and the sky. 748 tests, most of them running the
+from a photograph of that building, and the sky. 751 tests, most of them running the
 renderer's own rules in Node rather than reading its source, and one (`test_width_vs_kerb.py`)
 holding the corridor-wide comparison with the city's kerbs to a baseline that may only improve.
 

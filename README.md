@@ -62,8 +62,12 @@ The corridor-wide figures below are the `widthVsKerb` audit
   sidewalk's stand-in crossing: 0 (was 39). Footway laid of footway asked: 91%. Kerb sides with
   no pavement at all: 2.5%. Streets drawn through a building facade: 96; buildings with two or
   more footprint corners on a carriageway: 780.
-- Tunnel mouths within 14 m of OpenStreetMap's nodes (Broadway east is that far inside);
-  covered lengths 560 m and 276 m; headwall cover 2.7-13.6 m, all from the lidar.
+- Tunnel mouths within 14 m of OpenStreetMap's nodes (Broadway east is that far inside),
+  except the Stockton Tunnel's south mouth, moved 18 m past the Bush Street junction that
+  stands on it; covered lengths 560 m and 258 m; headwall cover 2.7-13.6 m, all from the
+  lidar. Each bore is swept the whole way between its mouths, with a walkway along each wall
+  and lights at the crown, and the walker goes in one end and out the other; the open
+  approach outside a mouth is a street between the walls of the cut the city's kerbs draw.
 - The city's two footway records agree to 5 cm; our aerial lidar sits 0.93 m from both after
   being bounded by the right of way.
 - Aerial and Waymo ground lidar agree on kerb height to 1 mm of median (126 vs 131 mm).
@@ -79,8 +83,10 @@ OpenStreetMap's lane count, and the parking lanes come from the city's parking p
 than a survey of where cars stand (OpenStreetMap's `parking:lane` tags are absent here); the
 halves of a divided road with no island kerb in the city file are drawn from the right of way;
 Broadway's twin bores come
-from the width of its cut, not from a record; the hill over a tunnel is drawn only at the
-mouths, because the model is flat.
+from the width of its cut, not from a record; the model is flat, so a bore goes down under
+the ground at 15% from each mouth to 8 m below and runs there to the far mouth, and the hill
+is drawn only over that descent -- Russian Hill's streets and houses sit at grade over a
+tunnel that is really 40 m beneath them.
 
 **Still open:** the anchoring front end is a correct engine with an empty tank — a reference
 index only anchors captures taken from its own vantage. See `docs/07-status.md`.
@@ -99,7 +105,7 @@ index only anchors captures taken from its own vantage. See `docs/07-status.md`.
 
 ```bash
 make install-dev
-make check                                   # lint + 748 tests
+make check                                   # lint + 751 tests
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
 python tools/build_pages.py --map-only --out ../Curb-measurements/docs   # publish the map
 ```

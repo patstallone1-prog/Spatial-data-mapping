@@ -570,7 +570,7 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     const MIN_RENDER_ROAD_M = 2.8;
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
-    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
+    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half", "tunnel_cut"]);
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     const NEIGHBOUR_PARALLEL_DEG = 30;
     // No buildings in this harness: the facade clamp finds nothing.
@@ -909,7 +909,7 @@ BIKE_PREAMBLE = PREAMBLE + """
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
-const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half", "tunnel_cut"]);
 const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
@@ -1695,7 +1695,7 @@ CORNER_PREAMBLE = PAVEMENT_PREAMBLE + """
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
-const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half", "tunnel_cut"]);
 const MAX_RENDER_WALK_M = 6.0;
 const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
@@ -1912,7 +1912,7 @@ LANE_PREAMBLE = """
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
-const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half", "tunnel_cut"]);
 const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
 const PARKING_LANE_M = 2.4;
 const BIKE_LANE_M = 1.5;
@@ -2001,7 +2001,7 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     const MIN_RENDER_ROAD_M = 2.8;
     const MAX_RENDER_ROAD_M = 24.0;
     const MAX_INFERRED_ROAD_M = 16.5;
-    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);
+    const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half", "tunnel_cut"]);
     const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
     const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
     function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
@@ -2148,3 +2148,101 @@ def test_a_bend_is_drawn_as_a_curve_and_a_band_round_it_does_not_cross_itself() 
         assert result[deg]["vertices"] == 3, result[deg]      # a corner stays a corner
     for deg in ("30", "60", "90", "120"):
         assert not result[deg]["crossing"], (deg, result[deg])
+
+
+# ---------------------------------------------------------------- the tunnels
+
+
+TUNNEL_PREAMBLE = """
+const TUNNEL_CROWN_M = 6.4;
+const TUNNEL_WALL_M = 4.2;
+const TUNNEL_SHELL_M = 0.6;
+const TUNNEL_FLOOR_M = 0.08;
+const TUNNEL_SINK_M = 8.0;
+const TUNNEL_GRADE = 0.15;
+const TUNNEL_CEILING_CAP_M = -0.25;
+const TUNNEL_RAMP_M = (TUNNEL_CROWN_M + TUNNEL_SHELL_M - TUNNEL_CEILING_CAP_M) / TUNNEL_GRADE;
+const TUNNEL_STATION_M = 3.0;
+const TUNNEL_WALK_H_M = 0.3;
+const TUNNEL_ARCH_SEGMENTS = 14;
+const tunnelBores = [];
+const tunnelCoverIndex = [];
+function tunnelCoverAt() { return 0; }
+"""
+
+
+def _run_tunnel(js_body: str) -> dict:
+    js = _page_js()
+    parts = [PREAMBLE, TUNNEL_PREAMBLE]
+    names = ("wayLength", "lonLatFromXZ", "tunnelSectionPoints", "tunnelStations",
+             "tunnelFloorAt", "walkerGroundAt")
+    parts += [_extract(name, js) for name in names]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+def test_a_bore_goes_down_under_the_flat_ground_and_a_walker_goes_with_it() -> None:
+    """The model is flat, so the hill a tunnel goes through is not there; the bore used to be
+    a thirty-metre stub at each mouth ending in a wall of dark. It is swept the whole way
+    between the mouths, descending from each mouth at TUNNEL_GRADE to TUNNEL_SINK_M below
+    the ground and coming back up at the far end. Under the hill drawn at a mouth the arch is
+    whole; past the hill the roof is held below the surface -- a flat cut-and-cover roof --
+    until the arch fits. The walker's feet follow the floor."""
+    result = _run_tunnel("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+const centre = [asLonLat(0, 0), asLonLat(300, 0)];
+const stations = tunnelStations(centre, 40, 60);
+const at = (s) => stations.reduce(
+  (best, st) => Math.abs(st.s - s) < Math.abs(best.s - s) ? st : best);
+tunnelBores.push({ stations, half: 5.5 });
+const roof = (st) => tunnelSectionPoints(5.5, st.cap).reduce((m, [, y]) => Math.max(m, y), 0);
+console.log(JSON.stringify({
+  count: stations.length,
+  mouth: at(0).floor, in30: at(30).floor, in60: at(60).floor, middle: at(150).floor,
+  far: at(300).floor,
+  mouthRoof: roof(at(0)), hillRoof: roof(at(30)), justPastHill: at(42).floor + roof(at(42)),
+  deepRoof: roof(at(150)),
+  underfoot: tunnelFloorAt(150, 0), beside: tunnelFloorAt(150, 7), ground: walkerGroundAt(150, 9),
+  walker: walkerGroundAt(150, 0),
+}));
+""")
+    assert result["count"] >= 100
+    assert abs(result["mouth"] - 0.08) < 1e-9
+    assert abs(result["in30"] - (0.08 - 4.5)) < 1e-9, result
+    assert abs(result["middle"] - (0.08 - 8.0)) < 1e-9, result
+    assert abs(result["far"] - 0.08) < 1e-9
+    # The whole arch under the hill; past it the roof stays a quarter metre under the ground.
+    assert abs(result["mouthRoof"] - 6.4) < 1e-9 and abs(result["hillRoof"] - 6.4) < 1e-9
+    assert result["justPastHill"] <= -0.25 + 1e-9, result
+    assert abs(result["deepRoof"] - 6.4) < 1e-9, result
+    # The walker stands on the floor inside the bore and on the ground beside it.
+    assert abs(result["underfoot"] - (0.08 - 8.0)) < 1e-9
+    assert result["walker"] == result["underfoot"]
+    assert result["beside"] is None and result["ground"] == 0
+    js = _page_js()
+    assert ("avatar.position.y = AVATAR_STAND_Y + lift"
+            " + walkerGroundAt(avatar.position.x, avatar.position.z);") in js
+    assert "eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
+
+
+def test_the_approach_outside_a_mouth_is_the_cut_the_city_drew() -> None:
+    """The open street outside a mouth is a piece of the tunnel's OpenStreetMap way -- for
+    Broadway the westbound bore's own line, off the axis of the cut -- and drawn about that
+    line it stood across the mouth of the other bore. It is moved onto the cut's midline at
+    the cut's width, the same reading the portal is built from, and the kerb envelope and the
+    neighbour clamp leave it there."""
+    js = _page_js()
+    align = _extract("alignTunnelApproaches", js)
+    assert "tunnelApproach({ x: m[0], z: m[1] }, { x: dx / len, z: dz / len })" in align
+    assert 'way.road_source = "tunnel_cut";' in align
+    assert "alignTunnelApproaches(DATA.ways);" in js
+    aligned = js.index("alignTunnelApproaches(DATA.ways);")
+    assert aligned < js.index("recentreStreetsOnOfficialKerbs(DATA.ways);")
+    assert "if (way.tunnel_approach) continue;" in _extract("recentreStreetsOnOfficialKerbs", js)
+    clamp = _extract("clampRoadWidthsToNeighbours", js)
+    assert 'if (way.road_source === "tunnel_cut") continue;' in clamp
+    measured = re.search(r"const MEASURED_ROAD_SOURCES = new Set\(\[(.*?)\]\);", js)
+    assert '"tunnel_cut"' in measured.group(1)

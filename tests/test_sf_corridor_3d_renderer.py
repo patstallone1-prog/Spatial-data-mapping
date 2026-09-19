@@ -327,7 +327,8 @@ def test_renderer_clamps_wide_right_of_way_fallbacks() -> None:
     # Measured is measured: the kerb envelope read along the way as much as the city's own
     # kerb-to-kerb record. The lane cap once took Vallejo from its measured 11.6 m to 8.1.
     assert 'const measured = way._spans !== undefined || MEASURED_ROAD_SOURCES.has(way.road_source);' in source
-    assert 'const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half"]);' in source
+    assert ('const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", '
+            '"divided_half", "tunnel_cut"]);') in source
     assert "const sourceCap = measured ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;" in source
     # The lane cap is for inferred widths; a width measured between the kerbs keeps it.
     assert "const laneCap = lanes && !measured ?" in source
@@ -784,9 +785,20 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
     # The portal is as wide as the city's kerbs on the approach; over sixteen metres, two bores.
     assert "function tunnelApproachWidth(mouth, outward)" in source
     assert "const bores = width > TUNNEL_TWIN_MIN_M ? 2 : 1;" in source
-    # The dark wall is seen from both sides, and the bore stops short of the surface network.
-    assert "const dark = new THREE.MeshStandardMaterial({ color: 0x08090a, roughness: 1.0, metalness: 0.0,\n                                                side: THREE.DoubleSide });" in source
+    # No wall of dark: the bore is swept the whole way between the mouths and goes down under
+    # the flat ground, with a walkway along each wall and lights at the crown.
+    assert "tunnel_dark" not in source
+    assert "function sweepAlongBore(stations, section, material, surface)" in source
+    assert "function tunnelStations(centre, moundStart, moundEnd)" in source
+    assert "const TUNNEL_SINK_M = 8.0;" in source and "const TUNNEL_GRADE = 0.15;" in source
+    assert '"tunnel_walk"' in source and '"tunnel_light"' in source
+    # The hill at a mouth runs as far as the descent needs, or to the first street across.
     assert "function tunnelClearRun(way, mouth, inward)" in source
+    assert "mounds[label] = Math.min(tunnelClearRun(way, mouth, inward), TUNNEL_RAMP_M, total / 2);" in source
+    # Nothing at ground level is drawn inside that hill, and the planes under the world are
+    # cut along the bore.
+    assert "function cullUnderTunnelHills(material)" in source
+    assert "cutTunnelVoidsFromPlanes();" in source
     # An underpass is a street to everything else.
     assert 'function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }' in source
     # Buildings, trees and posts on the hill over a mouth stand on the hill.
@@ -799,6 +811,50 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
                 by_kind.setdefault(way["tunnel_kind"], set()).add(way.get("name"))
         assert by_kind["road"] == {"Broadway", "Stockton Tunnel"}, by_kind
         assert by_kind["underpass"] == {"1st Street"}, by_kind
+
+
+def test_a_tunnel_way_is_cut_at_its_mouths_and_the_rest_is_street() -> None:
+    """OpenStreetMap ends a tunnel way where the tagging changes, not where the ground closes
+    over the road. The way used to be drawn as a tunnel end to end, so the open approach past
+    the lidar's mouth had no road and no pavement. The way is cut at the mouths: the piece
+    between them is the bore, the pieces outside are streets. A mouth under a junction (Bush
+    Street stands on the Stockton Tunnel's south portal) is moved to the far side of it, since
+    the flat model draws the junction at grade."""
+    namespace = runpy.run_path(str(SOURCE))
+    classify = namespace["classify_tunnels"]
+    split = namespace["split_tunnel_approaches"]
+    stockton = {"kind": "street", "name": "Stockton Tunnel", "highway": "tertiary", "tunnel": True,
+                "road_m": 14.0,
+                "points": [[-122.407148, 37.790283], [-122.407648, 37.792749]]}
+    broadway = {"kind": "street", "name": "Broadway", "highway": "primary", "tunnel": True,
+                "road_m": 22.0,
+                "points": [[-122.411287, 37.797265], [-122.417852, 37.796413]]}
+    # Bush Street, crossing the line 8 m north of the south mouth, 15 m wide.
+    bush = {"kind": "street", "name": "Bush Street", "highway": "secondary", "road_m": 15.0,
+            "points": [[-122.4080, 37.790355], [-122.4063, 37.790355]]}
+    ways = [stockton, broadway, bush]
+    classify(ways)
+    counts = split(ways)
+    assert counts["bore split at its mouths"] == 2
+    assert counts["approach drawn as street"] == 3, counts
+    assert counts["mouth moved past a junction"] == 1
+    approaches = [w for w in ways if w.get("tunnel_approach")]
+    assert all(w["kind"] == "street" and not w.get("tunnel_kind") and not w.get("tunnel")
+               for w in approaches)
+    assert {(w["name"], w["tunnel_approach"]) for w in approaches} == {
+        ("Stockton Tunnel", "start"), ("Broadway", "start"), ("Broadway", "end")}
+    # The south mouth is past Bush: its far kerb plus the margin, and the bore is that much
+    # shorter; the cover profile is re-based on the new mouth.
+    pushed = stockton["tunnel_mouth_pushed_m"]["start"]
+    assert 14 < pushed < 24, pushed
+    assert 250 < stockton["tunnel_length_m"] < 262, stockton["tunnel_length_m"]
+    assert stockton["tunnel_mouths"]["start"] == stockton["points"][0]
+    assert stockton["tunnel_cover"][0][0] >= 0
+    # Broadway's east mouth is 13.6 m inside the way; that piece is a street now.
+    east = next(w for w in approaches if w["name"] == "Broadway" and w["tunnel_approach"] == "start")
+    assert 10 < namespace["_way_length_m"](east["points"]) < 16
+    assert 555 < broadway["tunnel_length_m"] < 565
+    assert '"tunnel_approach"' in _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
 
 
 def test_stone_walls_are_cooler_and_darker_than_sidewalk_concrete() -> None:
@@ -941,7 +997,7 @@ def test_the_walker_is_measured_as_it_stands_and_has_a_first_person_view() -> No
     assert "const size = skinnedBounds(model).getSize(new THREE.Vector3());" in source
     assert '<button id="firstperson" aria-pressed="false"' in source
     assert "function setFirstPerson(on)" in source
-    assert "eye.y = AVATAR_EYE_Y;" in source
+    assert "eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in source
     assert "camera.near = on ? 0.12 : 0.5;" in source
 
 
