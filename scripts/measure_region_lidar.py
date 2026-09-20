@@ -38,6 +38,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import itertools
+
 from smc.imagery.region import get_region  # noqa: E402
 from smc.lidar.ept import EptReader  # noqa: E402
 from smc.lidar.region import STATION_M, building_height, street_kerbs  # noqa: E402
@@ -165,7 +167,7 @@ def split_way(points: list[list[float]], max_len_m: float) -> list[list[list[flo
     pieces: list[list[list[float]]] = []
     current = [points[0]]
     acc = 0.0
-    for a, b in zip(points[:-1], points[1:], strict=True):
+    for a, b in itertools.pairwise(points):
         seg = math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
         if acc + seg > max_len_m and len(current) >= 2:
             pieces.append(current)
@@ -233,7 +235,7 @@ def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, di
 def station_along(points: list[list[float]], lon: float, lat: float) -> float:
     """Metres along the polyline to the point nearest ``(lon, lat)``."""
     best, best_d, acc = 0.0, None, 0.0
-    for a, b in zip(points[:-1], points[1:], strict=True):
+    for a, b in itertools.pairwise(points):
         bx = (b[0] - a[0]) * 88_000.0
         by = (b[1] - a[1]) * 111_320.0
         px = (lon - a[0]) * 88_000.0

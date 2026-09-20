@@ -21,6 +21,7 @@ Everything is in the lidar's own frame and comes with counts; nothing is filled 
 
 from __future__ import annotations
 
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -153,7 +154,7 @@ def street_kerbs(cloud: LocalCloud, points: list[list[float]], *, station_m: flo
     out: list[KerbStation] = []
     acc = 0.0
     next_s = station_m / 2.0
-    for a, b in zip(verts[:-1], verts[1:], strict=True):
+    for a, b in itertools.pairwise(verts):
         seg = b - a
         length = float(np.hypot(*seg))
         if length <= 0:
