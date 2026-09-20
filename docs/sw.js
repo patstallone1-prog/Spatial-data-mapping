@@ -9,7 +9,7 @@
  * to be picked up immediately -- an app that keeps serving last week's build from cache is a bug
  * that looks like a working app -- while icons and the manifest never change within a version.
  */
-const VERSION = "92faef2873256a8b";
+const VERSION = "1d54c86f7190a073";
 const CACHE = "kerbside-" + VERSION;
 const SHELL = [
   "./",
