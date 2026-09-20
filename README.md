@@ -119,7 +119,10 @@ The corridor-wide figures below are the `widthVsKerb` audit
 - Meta-glasses resolution (1440x1080) matches as well as full resolution; the 720p stream halves it.
 
 **Still guessed:** building materials and window patterns are procedural except the 220
-photographed walls; unmeasured building heights are drawn desaturated; curb heights come only
+photographed walls and the buildings whose facade fingerprint (`scripts/build_facade_fingerprints.py`,
+read off their own photographs: glazing, texture, hue, storey rhythm) has been matched to the
+closest of the six renders the page has (`smc.facades.match`) -- a background job still
+running through the corridor, with the match believed at 0.5 confidence and above; unmeasured building heights are drawn desaturated; curb heights come only
 from our lidar because no city record publishes one; the parking bands are the city's
 policies plus a 2.3 m prior -- the estimator that measures them from parked cars in imagery
 (`smc.measure.parking_band`) is written and tested and has no crawl feeding it yet, so
@@ -132,6 +135,15 @@ where the cover was read is interpolated, not measured.
 
 **Still open:** the anchoring front end is a correct engine with an empty tank — a reference
 index only anchors captures taken from its own vantage. See `docs/07-status.md`.
+
+## The same world in Unreal
+
+`tools/unreal/export_tiles.mjs` runs the page's own build headless and writes the corridor as
+343 glTF tiles of 250 m (25 M triangles, 502 MB; published as the `unreal-tiles-v1` release,
+160 MB compressed and checksummed). `unreal/Kerbside` is the UE 5.4 project that imports them
+(`Content/Kerbside/import_tiles.py`: Interchange import, Nanite, materials by surface name,
+World Partition) with Epic Online Services configured from `.env.local`, never from git. See
+`unreal/README.md`.
 
 ## Licensing discipline
 

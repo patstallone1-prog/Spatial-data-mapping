@@ -174,7 +174,11 @@ async function main() {
     root.updateMatrixWorld(true);
     root.traverse((o) => {
       if (!o.isMesh || !o.geometry || o.visible === false) return;
-      const surface = o.userData.surface || o.userData.kind || o.parent?.userData?.surface || "unlabelled";
+      // Every surface has a name the page gave it; what has none is named for the layer it is
+      // in and the geometry it is, so nothing arrives in Unreal as "unlabelled".
+      const layer = GROUPS.find((g) => k.groups[g] === root) || "scene";
+      const surface = o.userData.surface || o.userData.kind || o.parent?.userData?.surface
+        || `${layer}:${(o.geometry.type || "mesh").replace(/Geometry$/, "").toLowerCase()}`;
       if (surface === "water" || surface === "beach") return;
       if (o.isInstancedMesh) {
         for (let i = 0; i < o.count; i += 1) {

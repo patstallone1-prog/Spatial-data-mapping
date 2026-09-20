@@ -14,13 +14,22 @@ centimetres and the glTF is y-up in metres; the importer converts, so a tile's o
 its south-west corner at (x0 * 100, -z0 * 100, 0) in Unreal's frame.
 """
 
+import hashlib
 import json
 import os
+import tarfile
+import urllib.request
 
 import unreal
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-MANIFEST = os.path.join(ROOT, "build", "unreal", "manifest.json")
+TILES_DIR = os.path.join(ROOT, "build", "unreal")
+MANIFEST = os.path.join(TILES_DIR, "manifest.json")
+#: Where the exported tiles are published when this machine did not export them itself: a
+#: release on the repository. The checksum is checked before anything is unpacked.
+RELEASE = "https://github.com/patstallone1-prog/Spatial-data-mapping/releases/download/unreal-tiles-v1/"
+ARCHIVE = "kerbside-unreal-tiles-v1.tar.gz"
+ARCHIVE_SHA256 = "e6a438520ffcd52db48ceb472aaf89eb48fb896774b7e07257f452b707b01784"
 CONTENT_ROOT = "/Game/Kerbside/Tiles"
 LEVEL = "/Game/Kerbside/Maps/Corridor"
 
@@ -85,7 +94,28 @@ def place(tile: dict, asset: unreal.StaticMesh) -> None:
     actor.set_mobility(unreal.ComponentMobility.STATIC)
 
 
+def fetch_tiles() -> None:
+    """Download and unpack the published tiles when build/unreal has none."""
+    if os.path.exists(MANIFEST):
+        return
+    os.makedirs(TILES_DIR, exist_ok=True)
+    archive = os.path.join(TILES_DIR, ARCHIVE)
+    unreal.log(f"downloading {RELEASE + ARCHIVE} (about 160 MB)")
+    urllib.request.urlretrieve(RELEASE + ARCHIVE, archive)
+    digest = hashlib.sha256()
+    with open(archive, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    if digest.hexdigest() != ARCHIVE_SHA256:
+        os.remove(archive)
+        raise RuntimeError("the downloaded archive does not match its published checksum")
+    with tarfile.open(archive) as tar:
+        tar.extractall(TILES_DIR, filter="data")
+    os.remove(archive)
+
+
 def main() -> None:
+    fetch_tiles()
     with open(MANIFEST, encoding="utf-8") as fh:
         manifest = json.load(fh)
     unreal.log(f"importing {len(manifest['tiles'])} tiles from {MANIFEST}")

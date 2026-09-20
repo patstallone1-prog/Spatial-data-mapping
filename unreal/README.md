@@ -31,11 +31,15 @@ them. Nothing about the city is authored in Unreal.
    set -a; source .env.local; set +a; .venv/bin/python tools/unreal/write_config.py
    ```
 
-4. Export the tiles (a few minutes; ~700 MB under `build/unreal/`):
+4. The tiles: either export them here (a minute or two; ~500 MB under `build/unreal/`) --
 
    ```bash
    node --max-old-space-size=14000 tools/unreal/export_tiles.mjs
    ```
+
+   -- or do nothing: `import_tiles.py` downloads the published archive (160 MB, checksummed)
+   from the repository's `unreal-tiles-v1` release when `build/unreal/` is empty, so an Unreal
+   machine needs only this repository checked out.
 
 5. Open `unreal/Kerbside/Kerbside.uproject` (it compiles the module the first time), then
    Tools → Execute Python Script → `Content/Kerbside/import_tiles.py`. Materials named in the
