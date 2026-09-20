@@ -149,7 +149,7 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
         partial = None
         if stopped and stage == "imagery":
             # What the crawl journalled is the catalogue for now; the crawl resumes another day.
-            finish = cmd + ["--from-journal"]
+            finish = [*cmd, "--from-journal"]
             code, more, _ = run(finish, log=log)
             seconds += more
             partial = "stopped at budget; catalogue built from the journal"
