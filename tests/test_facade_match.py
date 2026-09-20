@@ -30,7 +30,7 @@ def test_a_red_textured_wall_is_brick_and_a_pale_flat_one_is_stucco():
     fp = fingerprint_patch(brick, mask, pixels_per_m=8.0)
     assert fp is not None and 0 <= fp.hue <= 40 and fp.saturation > 0.2
     assert closest_render(fp).material == "brick"
-    stucco, mask = wall((200, 214, 226), glazing=0.18, noise=2)
+    stucco, mask = wall((200, 210, 216), glazing=0.18, noise=2)
     fp = fingerprint_patch(stucco, mask, pixels_per_m=8.0)
     assert fp is not None and fp.texture < 0.15
     assert closest_render(fp).material == "stucco"

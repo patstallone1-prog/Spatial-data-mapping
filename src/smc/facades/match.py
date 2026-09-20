@@ -48,13 +48,24 @@ CATALOGUE: list[dict] = [
                                     "lightness": 0.62, "sd": 0.08}, "hue": None},
 ]
 
-WEIGHTS = {"glazing": 3.0, "texture": 2.5, "saturation": 2.0, "lightness": 1.0, "sd": 1.0}
+#: Lightness carries no weight: a street-level frame is exposed for the sky, and the same
+#: stucco wall reads 0.36 in one frame and 0.7 in another. The first 4,300 fingerprints had a
+#: median lightness of 0.36 on low-rise houses, and with lightness in the distance the
+#: catalogue called 3% of them stucco in a city whose stock is two-fifths stucco.
+WEIGHTS = {"glazing": 3.0, "texture": 2.5, "saturation": 2.0, "lightness": 0.0, "sd": 1.0}
 #: A hue is only evidence for a render that has one (brick is red, curtain wall is blue-grey),
 #: and only when the wall is saturated enough for its hue to mean anything.
 HUE_WEIGHT = 1.5
 HUE_MIN_SATURATION = 0.12
 #: The match is refused -- the die keeps choosing -- when the nearest render is this far off.
 MAX_DISTANCE = 1.6
+#: What is known about the catalogue so far, so nobody reads a match as a measurement: the
+#: prototypes were written from what each render looks like, not fitted to labelled walls,
+#: and the first corridor-wide pass matched far more concrete and glass than the building
+#: stock has. Until the prototypes are fitted to a labelled set of rectified walls, the page
+#: believes a match only at FACADE_MATCH_MIN_CONFIDENCE (0.75) -- see the renderer.
+CATALOGUE_STATUS = "prototypes unfitted; calibrate against labelled walls before lowering the page's threshold"
+
 
 
 @dataclass(frozen=True)

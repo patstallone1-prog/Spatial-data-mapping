@@ -122,7 +122,10 @@ The corridor-wide figures below are the `widthVsKerb` audit
 photographed walls and the buildings whose facade fingerprint (`scripts/build_facade_fingerprints.py`,
 read off their own photographs: glazing, texture, hue, storey rhythm) has been matched to the
 closest of the six renders the page has (`smc.facades.match`) -- a background job still
-running through the corridor, with the match believed at 0.5 confidence and above; unmeasured building heights are drawn desaturated; curb heights come only
+running through the corridor. The fingerprints are the record; the catalogue's prototypes
+are not yet fitted to labelled walls, and the first pass called far more concrete and glass
+than the city has, so the page believes a match only at 0.75 confidence and above until
+they are; unmeasured building heights are drawn desaturated; curb heights come only
 from our lidar because no city record publishes one; the parking bands are the city's
 policies plus a 2.3 m prior -- the estimator that measures them from parked cars in imagery
 (`smc.measure.parking_band`) is written and tested and has no crawl feeding it yet, so
@@ -135,6 +138,15 @@ where the cover was read is interpolated, not measured.
 
 **Still open:** the anchoring front end is a correct engine with an empty tank — a reference
 index only anchors captures taken from its own vantage. See `docs/07-status.md`.
+
+## Any region, the same way
+
+`scripts/ingest_region.py <name>` builds a region from `data/regions/regions.json` through
+the same stages the corridor went through -- discover, osm, terrain, imagery, official,
+build, audit -- with a journal that resumes, and a capability vector found by probing the
+sources (`docs/23-ingestion-at-scale.md`). Downtown Oakland was the first region outside
+San Francisco: no municipal records, kerbs from the lidar, 3,066 buildings and 1,412
+streets with cross-sections on class priors, and the page says which rungs it stands on.
 
 ## The same world in Unreal
 

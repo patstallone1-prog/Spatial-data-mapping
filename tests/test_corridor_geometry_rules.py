@@ -2549,10 +2549,10 @@ def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:
     parts += [_extract(name, js) for name in ("pickMaterial", "random")]
     parts.append("""
 console.log(JSON.stringify({
-  believed: pickMaterial(7, 12, "residential", { m: "brick", conf: 0.8 }).name,
+  believed: pickMaterial(7, 12, "residential", { m: "brick", conf: 0.9 }).name,
   doubted: pickMaterial(7, 12, "residential", { m: "brick", conf: 0.2 }).name === pickMaterial(7, 12, "residential").name,
   unknownRender: pickMaterial(7, 12, "residential", { m: "thatch", conf: 0.9 }).name === pickMaterial(7, 12, "residential").name,
-  glassOnAHouse: pickMaterial(7, 8, "residential", { m: "glass", conf: 0.9 }).name,
+  glassOnAHouse: pickMaterial(7, 8, "residential", { m: "glass", conf: 0.95 }).name,
 }));
 """)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
