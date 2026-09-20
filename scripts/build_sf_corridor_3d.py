@@ -393,6 +393,17 @@ OVERPASS_MIRRORS = (
 OSM_MIN_ELEMENTS = 2_000
 
 
+def load_building_colours(path: Path) -> dict[str, dict]:
+    """The sampled colours keyed by osm_id; an old index-keyed file is refused, not misread."""
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text())
+    if data.get("keyed_by") != "osm_id":
+        raise SystemExit(f"{path} is keyed by building index, which no longer matches the map; "
+                         "re-key it by osm_id (see scripts/build_building_colours.py)")
+    return data.get("buildings", {})
+
+
 def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
     query = overpass_query(bbox)
     data = None
@@ -2065,6 +2076,7 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
     from smc.facades.geometry import LocalFrame
+    from smc.facades.match import Fingerprint, closest_render
     from smc.official.join import CentrelineIndex
 
     segments_path = OFFICIAL / "segments.json"
@@ -2082,10 +2094,17 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     crosswalks = json.loads(crosswalks_path.read_text()) if crosswalks_path.exists() else []
     cuts_path = OFFICIAL / "curb_cuts.json"
     curb_cuts = json.loads(cuts_path.read_text()) if cuts_path.exists() else []
-    # Colours sampled off photographs of each building, keyed by its index among the covered
-    # buildings -- which is how the sampler enumerated them.
+    # Colours sampled off photographs of each building, keyed by OpenStreetMap id. They were
+    # keyed by the building's index among the covered buildings once, which held only as long
+    # as no building was ever added to the map in front of another.
     colours_path = OFFICIAL / "building_colours.json"
-    colours = json.loads(colours_path.read_text()) if colours_path.exists() else {}
+    colours = load_building_colours(colours_path)
+    # And the facade each photograph showed, matched to the closest render the page has
+    # (smc.facades.match): the material and the storey rhythm, kept as the fingerprint so a
+    # richer catalogue can be matched against later without looking at the photographs again.
+    fingerprints_path = OFFICIAL / "facade_fingerprints.json"
+    fingerprints = (json.loads(fingerprints_path.read_text()).get("buildings", {})
+                    if fingerprints_path.exists() else {})
     crosswalk_cells: dict[tuple[int, int], list[dict]] = defaultdict(list)
     for crosswalk in crosswalks:
         lon, lat = crosswalk["p"]
@@ -2333,12 +2352,18 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     for way in ways:
         if way.get("kind") != "building" or not way.get("covered"):
             continue
-        sampled = colours.get(str(covered_index))
         covered_index += 1
+        key = str(way.get("osm_id") or "")
+        sampled = colours.get(key)
         if sampled:
             way["colour"] = sampled["c"]
             way["colour_views"] = sampled["n"]
             counts["colour from a photograph"] += 1
+        fingerprint = fingerprints.get(key)
+        if fingerprint:
+            match = closest_render(Fingerprint.from_json(fingerprint))
+            way["facade"] = match.to_json()
+            counts[f"facade matched to {match.material}"] += 1
     counts["colour still invented"] = covered_index - counts["colour from a photograph"]
 
     walls_index: dict[tuple[int, int], list[tuple]] = defaultdict(list)
@@ -3049,7 +3074,15 @@ if (TERRAIN_FRAME) {
 //: along that edge, again and again, until none is -- a long thin strip splits along its
 //: length only. Neighbours sharing an edge share the midpoint, so a split edge does not open.
 const TERRAIN_REFINE_M = 8.0;
-function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M) {
+//: And shorter than that wherever the ground curves: an edge whose midpoint the ground stands
+//: this far above or below its chord is split too, down to TERRAIN_REFINE_MIN_M. A flat block
+//: stays coarse; the brow of a hill and the foot of a retaining wall get the vertices.
+const TERRAIN_CHORD_M = 0.25;
+const TERRAIN_REFINE_MIN_M = 4.0;
+//: The bend rule may not multiply a mesh past this: the grid is stepped wherever a wall or a
+//: stair stands, and chasing every step to the grid's own cell size ran a yard to millions.
+const TERRAIN_REFINE_GROWTH = 4;
+function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_CHORD_M) {
   const position = geometry.getAttribute("position");
   // A multi-material geometry's index ranges are its material groups; splitting would move them.
   if (!position || (geometry.groups && geometry.groups.length)) return geometry;
@@ -3060,6 +3093,13 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M) {
   const index = geometry.index ? Array.from(geometry.index.array) : Array.from({ length: position.count }, (_, i) => i);
   let count = position.count;
   const px = (i) => arrays[0][i * 3], pz = (i) => arrays[0][i * 3 + 2];
+  // Does the ground leave this edge's chord by more than the tolerance at its midpoint?
+  const budget = position.count * TERRAIN_REFINE_GROWTH + 50000;
+  const bends = (a, b, len) => {
+    if (!TERRAIN_FRAME || !(chord > 0) || len <= TERRAIN_REFINE_MIN_M || count > budget) return false;
+    const mid = terrainHeightAt((px(a) + px(b)) / 2, (pz(a) + pz(b)) / 2);
+    return Math.abs(mid - (terrainHeightAt(px(a), pz(a)) + terrainHeightAt(px(b), pz(b))) / 2) > chord;
+  };
   const midpoints = new Map();
   const midpoint = (a, b) => {
     const key = a < b ? `${a}:${b}` : `${b}:${a}`;
@@ -3085,10 +3125,19 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M) {
       const bc = Math.hypot(px(b) - px(c), pz(b) - pz(c));
       const ca = Math.hypot(px(c) - px(a), pz(c) - pz(a));
       const longest = Math.max(ab, bc, ca);
-      if (!(longest > maxEdge)) { out.push(a, b, c); continue; }
+      let edge = longest > maxEdge ? (longest === ab ? 0 : longest === bc ? 1 : 2) : -1;
+      if (edge < 0) {
+        // Not long, but does the ground bend under it? The longest bending edge is split.
+        if (ab >= bc && ab >= ca && bends(a, b, ab)) edge = 0;
+        else if (bc >= ca && bends(b, c, bc)) edge = 1;
+        else if (bends(c, a, ca)) edge = 2;
+        else if (bends(a, b, ab)) edge = 0;
+        else if (bends(b, c, bc)) edge = 1;
+      }
+      if (edge < 0) { out.push(a, b, c); continue; }
       split += 1;
-      if (longest === ab) { const m = midpoint(a, b); stack.push(a, m, c, m, b, c); }
-      else if (longest === bc) { const m = midpoint(b, c); stack.push(a, b, m, a, m, c); }
+      if (edge === 0) { const m = midpoint(a, b); stack.push(a, m, c, m, b, c); }
+      else if (edge === 1) { const m = midpoint(b, c); stack.push(a, b, m, a, m, c); }
       else { const m = midpoint(c, a); stack.push(a, b, m, m, b, c); }
     }
   }
@@ -5087,7 +5136,15 @@ function liftSampledColour(hex) {
   return colour.getHex();
 }
 
-function pickMaterial(seed, height, archetype) {
+//: A facade read off the building's own photographs and matched to the closest render
+//: (smc.facades.match) is believed at this confidence and above; below it, the die.
+const FACADE_MATCH_MIN_CONFIDENCE = 0.5;
+
+function pickMaterial(seed, height, archetype, facade = null) {
+  if (facade && facade.conf >= FACADE_MATCH_MIN_CONFIDENCE) {
+    const matched = MATERIALS.find((m) => m.name === facade.m);
+    if (matched) return matched;
+  }
   const style = ARCHETYPE_STYLE[archetype];
   if (style) {
     const allowed = MATERIALS.filter((m) => style.materials.includes(m.name));
@@ -11253,7 +11310,7 @@ function buildingMesh(feature) {
   if (hillLift !== 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
   const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
     || feature.height_source === "overture_height";
-  const material = pickMaterial(seed, height, feature.archetype);
+  const material = pickMaterial(seed, height, feature.archetype, feature.facade || null);
   const style = ARCHETYPE_STYLE[feature.archetype];
   const palette = style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
@@ -16391,7 +16448,7 @@ PAGE_FIELDS = {
     "bridge",
     "layer",
     "tunnel",
-    "address", "alley_mouth", "archetype", "centroid", "colour", "continental", "covered",
+    "address", "alley_mouth", "archetype", "centroid", "colour", "continental", "covered", "facade",
     "crossing_m", "cycleway", "cycleway_both", "cycleway_left", "cycleway_right",
     "divider_source", "divider_surface", "divider_width_m", "garages",
     "google_places", "height_m", "height_source", "kerb_m", "kind", "land_use", "lanes",

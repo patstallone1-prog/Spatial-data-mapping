@@ -1,16 +1,16 @@
 {
  "note": "Rendered carriageway width against the city's kerb lines, from scripts/audit_corridor_render.py (widthVsKerb). tests/test_width_vs_kerb.py fails when a build gets worse than this; regenerate deliberately with `python scripts/audit_corridor_render.py --baseline` after a change that improves it.",
- "ways": 1760,
- "enveloped": 1654,
- "tooNarrowOver3M": 114,
+ "ways": 1759,
+ "enveloped": 1653,
+ "tooNarrowOver3M": 113,
  "tooWideOver3M": 20,
  "medianAbsM": 0.03,
  "bySource": {
   "official_curbs": {
-   "ways": 682,
+   "ways": 681,
    "medianAbsM": 0.02,
-   "p90AbsM": 1.33,
-   "over3M": 39
+   "p90AbsM": 1.32,
+   "over3M": 38
   },
   "curb_geometry": {
    "ways": 834,
@@ -43,9 +43,9 @@
  "crosswalkLegsAttachedShare": 0.998,
  "crosswalkWholeSpanFallback": 11,
  "crosswalkSplitForIslands": 40,
- "crosswalkStandInsLaid": 375,
+ "crosswalkStandInsLaid": 374,
  "crosswalkEndsAtRampShare": 0.869,
- "crossSectionStations": 53839,
+ "crossSectionStations": 53846,
  "crossSectionResolvedShare": 0.782,
  "crossSectionUnresolvedShare": 0.017,
  "crossSectionKerbSurveyShare": 0.389,

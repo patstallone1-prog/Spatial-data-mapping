@@ -2482,7 +2482,10 @@ class BufferGeometry {
 }
 const THREE = { Float32BufferAttribute, BufferGeometry };
 """]
-    parts.append(re.search(r"const TERRAIN_REFINE_M = [0-9.]+;", js).group(0))
+    for constant in ("TERRAIN_REFINE_M", "TERRAIN_CHORD_M", "TERRAIN_REFINE_MIN_M", "TERRAIN_REFINE_GROWTH"):
+        parts.append(re.search(rf"const {constant} = [0-9.]+;", js).group(0))
+    # Flat ground first: nothing bends, only length splits.
+    parts.append("let TERRAIN_FRAME = null; let terrainHeightAt = () => 0;")
     parts.append(_extract("refineForTerrain", js))
     parts.append("""
 // Two triangles making a 40 m x 2 m strip, sharing the diagonal.
@@ -2502,8 +2505,17 @@ for (let t = 0; t < idx.length; t += 3) {
 }
 // Every vertex is used by an index; no vertex stands alone.
 const used = new Set(idx);
+// Now a hill: a 4 m x 4 m square (under the length limit) over ground that bumps 0.6 m in
+// the middle is split until its edges follow the bump; the same square on flat ground is not.
+const square = () => { const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute([0,0,0, 6,0,0, 6,0,6, 0,0,6], 3));
+  g.setIndex([0, 1, 2, 0, 2, 3]); return g; };
+const flat = refineForTerrain(square()).index.array.length / 3;
+TERRAIN_FRAME = {}; terrainHeightAt = (x, z) => Math.max(0, 1.2 - 0.3 * Math.hypot(x - 3, z - 3));
+const bumped = refineForTerrain(square()).index.array.length / 3;
 console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, used: used.size,
-  uvMid: Array.from(r.getAttribute("uv").array).slice(8, 10), unrefined: refineForTerrain(new BufferGeometry()) instanceof BufferGeometry }));
+  uvMid: Array.from(r.getAttribute("uv").array).slice(8, 10), unrefined: refineForTerrain(new BufferGeometry()) instanceof BufferGeometry,
+  flat, bumped }));
 """)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
                          capture_output=True, text=True, timeout=60)
@@ -2519,3 +2531,34 @@ console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, u
     assert result["vertices"] < result["tris"] * 1.2, result
     # Interpolated attributes: the first midpoint's uv lies between its ends'.
     assert 0 <= result["uvMid"][0] <= 1 and 0 <= result["uvMid"][1] <= 1, result
+    # Where the ground bends under a short edge it is split; where it is flat it is left.
+    assert result["flat"] == 4 and result["bumped"] > result["flat"], result
+
+
+def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:
+    """A building whose photographs were read (facade_fingerprints.json, smc.facades.match)
+    carries the closest render's name and a confidence; at or above the threshold the
+    renderer draws that material, below it the seeded die still chooses."""
+    js = _page_js()
+    parts = []
+    for constant in ("MATERIALS", "ARCHETYPE_STYLE"):
+        start = js.index(f"const {constant} = ")
+        end = js.index("\n};\n", start) if constant == "ARCHETYPE_STYLE" else js.index("\n];\n", start)
+        parts.append(js[start:end + 4])
+    parts.append(re.search(r"const FACADE_MATCH_MIN_CONFIDENCE = [0-9.]+;", js).group(0))
+    parts += [_extract(name, js) for name in ("pickMaterial", "random")]
+    parts.append("""
+console.log(JSON.stringify({
+  believed: pickMaterial(7, 12, "residential", { m: "brick", conf: 0.8 }).name,
+  doubted: pickMaterial(7, 12, "residential", { m: "brick", conf: 0.2 }).name === pickMaterial(7, 12, "residential").name,
+  unknownRender: pickMaterial(7, 12, "residential", { m: "thatch", conf: 0.9 }).name === pickMaterial(7, 12, "residential").name,
+  glassOnAHouse: pickMaterial(7, 8, "residential", { m: "glass", conf: 0.9 }).name,
+}));
+""")
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    assert result["believed"] == "brick" and result["doubted"] and result["unknownRender"], result
+    # The photograph outranks the archetype's habits: a glass house is a glass house.
+    assert result["glassOnAHouse"] == "glass", result

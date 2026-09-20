@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as futures
 import json
-import math
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -30,12 +29,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import build_facades as facades  # noqa: E402
 import numpy as np  # noqa: E402
 import pyarrow.parquet as pq  # noqa: E402
 
-import build_facades as facades  # noqa: E402
-from smc.facades.geometry import DEFAULT_CAMERA_HEIGHT_M, Camera, score_view, walls_of  # noqa: E402
-from smc.facades.geometry import LocalFrame  # noqa: E402
+from smc.facades.geometry import (  # noqa: E402
+    Camera,
+    LocalFrame,
+    score_view,
+    walls_of,
+)
 from smc.facades.rectify import rectify_wall  # noqa: E402
 
 MAP_JSON = ROOT / "docs" / "sf-corridor-3d.json"
@@ -85,7 +88,8 @@ def main() -> int:
     bbox = payload["bbox"]
     frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0,
                        (bbox["west"] + bbox["east"]) / 2.0)
-    buildings = [w for w in payload["ways"] if w.get("kind") == "building" and w.get("covered")]
+    buildings = [w for w in payload["ways"]
+                 if w.get("kind") == "building" and w.get("covered") and w.get("osm_id") is not None]
     progress(f"{len(buildings)} covered buildings")
 
     rows = pq.read_table(CATALOG, columns=[
@@ -108,19 +112,21 @@ def main() -> int:
         grid[(int(camera.x // 40), int(camera.y // 40))].append(i)
     progress(f"{len(cameras)} usable cameras")
 
+    # Keyed by OpenStreetMap id. The parts under build/ from the first run were keyed by the
+    # building's index and are not read; the file they made was re-keyed and is the record.
     PARTS.mkdir(parents=True, exist_ok=True)
     done: dict[str, dict] = {}
-    for part in sorted(PARTS.glob("*.json")):
-        try:
-            done.update(json.loads(part.read_text()))
-        except json.JSONDecodeError:
-            part.unlink()
+    if OUT.exists():
+        table = json.loads(OUT.read_text())
+        if table.get("keyed_by") != "osm_id":
+            raise SystemExit(f"{OUT} is keyed by index; re-key it by osm_id first")
+        done = dict(table.get("buildings", {}))
     if done:
         progress(f"resuming: {len(done)} buildings already sampled")
 
     jobs = []
     for index, building in enumerate(buildings):
-        key = str(index)
+        key = str(building["osm_id"])
         if key in done:
             continue
         ring = [frame.to_xy(lon, lat) for lon, lat in building["points"]]
@@ -158,7 +164,7 @@ def main() -> int:
             chosen.append((i, wall))
             if len(chosen) >= FRAMES_PER_BUILDING:
                 break
-        jobs.append((index, chosen))
+        jobs.append((key, chosen))
         if args.limit and len(jobs) >= args.limit:
             break
     progress(f"{len(jobs)} buildings have a view")
@@ -168,7 +174,7 @@ def main() -> int:
     counters = Counter()
 
     def sample(job) -> tuple[str, dict | None]:
-        index, chosen = job
+        key, chosen = job
         samples = []
         for i, wall in chosen:
             image = facades.fetch_image(rows["provider"][i], rows["provider_sequence_id"][i],
@@ -187,13 +193,13 @@ def main() -> int:
             if colour is not None:
                 samples.append(colour)
         if not samples:
-            return str(index), None
+            return key, None
         stack = np.array(samples)
         median = np.median(stack, axis=0)
         spread = float(np.abs(stack - median).mean()) if len(samples) > 1 else None
-        return str(index), {
+        return key, {
             # Stored as the hex the renderer wants, from BGR as OpenCV reads it.
-            "c": "#%02x%02x%02x" % tuple(int(max(0, min(255, v))) for v in median[::-1]),
+            "c": "#{:02x}{:02x}{:02x}".format(*tuple(int(max(0, min(255, v))) for v in median[::-1])),
             "n": len(samples),
             "spread": round(spread, 1) if spread is not None else None,
         }
@@ -214,6 +220,8 @@ def main() -> int:
                 part_number += 1
                 done.update(results)
                 results.clear()
+                OUT.write_text(json.dumps({"keyed_by": "osm_id", "buildings": done},
+                                          separators=(",", ":")))
             if n % 500 == 0:
                 progress(f"  {n}/{len(jobs)} buildings, {dict(counters)}")
 
@@ -221,7 +229,12 @@ def main() -> int:
         (PARTS / f"part-{part_number:05d}.json").write_text(json.dumps(results))
         done.update(results)
 
-    OUT.write_text(json.dumps(done, separators=(",", ":")))
+    OUT.write_text(json.dumps({
+        "keyed_by": "osm_id",
+        "note": "Colour sampled off photographs of each building: c = median wall colour, n = "
+                "views, spread = disagreement between views. Keyed by osm_id; nothing sampled is "
+                "ever discarded.",
+        "buildings": done}, separators=(",", ":")))
     progress(f"wrote {OUT.name}: {len(done)} buildings with a sampled colour, {dict(counters)}")
     return 0
 
