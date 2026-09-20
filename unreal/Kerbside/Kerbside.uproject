@@ -1,0 +1,51 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.4",
+  "Category": "",
+  "Description": "Kerbside: the San Francisco corridor as a walkable world, from the repository's measured data.",
+  "Modules": [
+    {
+      "Name": "Kerbside",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "OnlineSubsystemEOS",
+      "Enabled": true
+    },
+    {
+      "Name": "EOSShared",
+      "Enabled": true
+    },
+    {
+      "Name": "OnlineServicesEOS",
+      "Enabled": true
+    },
+    {
+      "Name": "Interchange",
+      "Enabled": true
+    },
+    {
+      "Name": "InterchangeEditor",
+      "Enabled": true
+    },
+    {
+      "Name": "WorldPartitionHLODUtilities",
+      "Enabled": true
+    },
+    {
+      "Name": "EnhancedInput",
+      "Enabled": true
+    },
+    {
+      "Name": "PythonScriptPlugin",
+      "Enabled": true
+    },
+    {
+      "Name": "EditorScriptingUtilities",
+      "Enabled": true
+    }
+  ]
+}

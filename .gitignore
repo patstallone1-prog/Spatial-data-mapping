@@ -74,3 +74,11 @@ build/building-colours/
 
 # Checkpoint parts for the semantic pass; compacted into semantics-000.parquet when it ends.
 data/observation_enrichment/semantics-parts/
+node_modules/
+# Rendered from .env.local; carries the EOS client secret.
+unreal/Kerbside/Config/DefaultEngine.ini
+unreal/Kerbside/Binaries/
+unreal/Kerbside/Intermediate/
+unreal/Kerbside/DerivedDataCache/
+unreal/Kerbside/Saved/
+unreal/Kerbside/Content/Kerbside/Tiles/
