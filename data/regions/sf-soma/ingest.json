@@ -1,0 +1,48 @@
+{
+ "region": "sf-soma",
+ "bbox": [
+  37.77,
+  -122.42,
+  37.79,
+  -122.39
+ ],
+ "stages": {
+  "discover": {
+   "status": "done",
+   "started_at": "2026-09-20T05:27:23Z",
+   "command": [
+    "scripts/discover_region.py",
+    "sf-soma"
+   ],
+   "exit_code": 0,
+   "seconds": 14.7,
+   "finished_at": "2026-09-20T05:27:38Z",
+   "outputs": [
+    "data/regions/sf-soma/capabilities.json"
+   ]
+  },
+  "osm": {
+   "status": "done",
+   "started_at": "2026-09-20T05:27:38Z",
+   "command": [
+    "scripts/fetch_region_osm.py",
+    "sf-soma"
+   ],
+   "exit_code": 0,
+   "seconds": 6.7,
+   "finished_at": "2026-09-20T05:27:44Z",
+   "outputs": [
+    "data/regions/sf-soma/osm_ways.json"
+   ]
+  },
+  "terrain": {
+   "status": "running",
+   "started_at": "2026-09-20T05:27:44Z",
+   "command": [
+    "scripts/build_terrain.py",
+    "--region",
+    "sf-soma"
+   ]
+  }
+ }
+}

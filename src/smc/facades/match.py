@@ -64,7 +64,10 @@ MAX_DISTANCE = 1.6
 #: and the first corridor-wide pass matched far more concrete and glass than the building
 #: stock has. Until the prototypes are fitted to a labelled set of rectified walls, the page
 #: believes a match only at FACADE_MATCH_MIN_CONFIDENCE (0.75) -- see the renderer.
-CATALOGUE_STATUS = "prototypes unfitted; calibrate against labelled walls before lowering the page's threshold"
+CATALOGUE_STATUS = ("not separable at this resolution: on 19 labelled walls (data/sf_public_works/facade_labels.json) "
+                    "the fingerprint tells stucco, painted, brick and concrete apart 3 times in 19 leave-one-out, "
+                    "6 in 19 with these prototypes -- chance. Matches are recorded, not drawn, until the features "
+                    "carry the material (scripts/label_facade_walls.py fit).")
 
 
 

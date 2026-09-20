@@ -5183,9 +5183,11 @@ function liftSampledColour(hex) {
 
 //: A facade read off the building's own photographs and matched to the closest render
 //: (smc.facades.match) is believed at this confidence and above; below it, the die.
-//: High until the catalogue's prototypes are fitted to labelled walls (smc.facades.match
-//: CATALOGUE_STATUS): the first pass over the corridor called 3% of houses stucco.
-const FACADE_MATCH_MIN_CONFIDENCE = 0.75;
+//: Off. The match is recorded on every fingerprinted building, but on 19 labelled walls the
+//: fingerprint told stucco, painted, brick and concrete apart no better than chance
+//: (smc.facades.match CATALOGUE_STATUS), so no match is drawn until the features carry the
+//: material. Lower this once scripts/label_facade_walls.py fit says they do.
+const FACADE_MATCH_MIN_CONFIDENCE = 1.01;
 
 function pickMaterial(seed, height, archetype, facade = null) {
   if (facade && facade.conf >= FACADE_MATCH_MIN_CONFIDENCE) {

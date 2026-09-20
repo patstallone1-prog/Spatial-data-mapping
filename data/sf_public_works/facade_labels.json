@@ -1,0 +1,801 @@
+{
+ "labelled_by": "Claude (Opus 5), by inspection of the rectified patches on the contact sheets",
+ "labelled_at": "2026-09-20T05:31:16Z",
+ "sample": "scripts/label_facade_walls.py sheets --count 60 --seed 11, over the first 378 view-filtered fingerprints",
+ "materials": [
+  "stucco",
+  "painted",
+  "concrete",
+  "brick",
+  "glass",
+  "metal"
+ ],
+ "other": {
+  "not_wall": "the patch is a street scene, road, sky, tree or interior, not the wall",
+  "unsure": "a wall, but its render could not be told from the patch"
+ },
+ "labels": {
+  "0": "unsure",
+  "1": "not_wall",
+  "2": "not_wall",
+  "3": "stucco",
+  "4": "not_wall",
+  "5": "brick",
+  "6": "brick",
+  "7": "brick",
+  "8": "painted",
+  "9": "not_wall",
+  "10": "painted",
+  "11": "unsure",
+  "12": "not_wall",
+  "13": "not_wall",
+  "14": "not_wall",
+  "15": "brick",
+  "16": "stucco",
+  "17": "not_wall",
+  "18": "not_wall",
+  "19": "not_wall",
+  "20": "painted",
+  "21": "unsure",
+  "22": "not_wall",
+  "23": "unsure",
+  "24": "stucco",
+  "25": "unsure",
+  "26": "not_wall",
+  "27": "not_wall",
+  "28": "not_wall",
+  "29": "not_wall",
+  "30": "not_wall",
+  "31": "not_wall",
+  "32": "not_wall",
+  "33": "not_wall",
+  "34": "concrete",
+  "35": "concrete",
+  "36": "stucco",
+  "37": "not_wall",
+  "38": "not_wall",
+  "39": "unsure",
+  "40": "not_wall",
+  "41": "not_wall",
+  "42": "not_wall",
+  "43": "not_wall",
+  "44": "concrete",
+  "45": "painted",
+  "46": "not_wall",
+  "47": "not_wall",
+  "48": "stucco",
+  "49": "stucco",
+  "50": "unsure",
+  "51": "unsure",
+  "52": "not_wall",
+  "53": "not_wall",
+  "54": "not_wall",
+  "55": "not_wall",
+  "56": "stucco",
+  "57": "not_wall",
+  "58": "not_wall",
+  "59": "painted"
+ },
+ "walls": {
+  "0": {
+   "osm_id": "71359567",
+   "frame": {
+    "p": "mapillary",
+    "i": "498013377917377",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "brick",
+   "label": "unsure"
+  },
+  "1": {
+   "osm_id": "147689073",
+   "frame": {
+    "p": "kartaview",
+    "i": "2031387",
+    "w": 2,
+    "wall_share": 0.587,
+    "sky_share": 0.0
+   },
+   "guess": "brick",
+   "label": "not_wall"
+  },
+  "2": {
+   "osm_id": "29904699",
+   "frame": {
+    "p": "kartaview",
+    "i": "15907066",
+    "w": 23,
+    "wall_share": 0.645,
+    "sky_share": 0.0
+   },
+   "guess": "brick",
+   "label": "not_wall"
+  },
+  "3": {
+   "osm_id": "71359572",
+   "frame": {
+    "p": "mapillary",
+    "i": "552490625872331",
+    "w": 5,
+    "wall_share": 1.0,
+    "sky_share": 0.005
+   },
+   "guess": "brick",
+   "label": "stucco"
+  },
+  "4": {
+   "osm_id": "79375230",
+   "frame": {
+    "p": "kartaview",
+    "i": "2047623",
+    "w": 7,
+    "wall_share": 1.0,
+    "sky_share": 0.002
+   },
+   "guess": "brick",
+   "label": "not_wall"
+  },
+  "5": {
+   "osm_id": "71515264",
+   "frame": {
+    "p": "mapillary",
+    "i": "777796725196443",
+    "w": 4,
+    "wall_share": 1.0,
+    "sky_share": 0.004
+   },
+   "guess": "brick",
+   "label": "brick"
+  },
+  "6": {
+   "osm_id": "112878589",
+   "frame": {
+    "p": "mapillary",
+    "i": "1089363606736119",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.033
+   },
+   "guess": "brick",
+   "label": "brick"
+  },
+  "7": {
+   "osm_id": "35536960",
+   "frame": {
+    "p": "mapillary",
+    "i": "135837928880784",
+    "w": 3,
+    "wall_share": 0.472,
+    "sky_share": 0.0
+   },
+   "guess": "brick",
+   "label": "brick"
+  },
+  "8": {
+   "osm_id": "71504455",
+   "frame": {
+    "p": "mapillary",
+    "i": "767293740596616",
+    "w": 3,
+    "wall_share": 0.869,
+    "sky_share": 0.001
+   },
+   "guess": "brick",
+   "label": "painted"
+  },
+  "9": {
+   "osm_id": "148288771",
+   "frame": {
+    "p": "mapillary",
+    "i": "1040559974563612",
+    "w": 0,
+    "wall_share": 0.686,
+    "sky_share": 0.028
+   },
+   "guess": "concrete",
+   "label": "not_wall"
+  },
+  "10": {
+   "osm_id": "93422617",
+   "frame": {
+    "p": "mapillary",
+    "i": "969816083815226",
+    "w": 0,
+    "wall_share": 1.0,
+    "sky_share": 0.001
+   },
+   "guess": "concrete",
+   "label": "painted"
+  },
+  "11": {
+   "osm_id": "32651728",
+   "frame": {
+    "p": "mapillary",
+    "i": "3802919116443110",
+    "w": 2,
+    "wall_share": 1.0,
+    "sky_share": 0.011
+   },
+   "guess": "concrete",
+   "label": "unsure"
+  },
+  "12": {
+   "osm_id": "49429842",
+   "frame": {
+    "p": "kartaview",
+    "i": "2644242",
+    "w": 0,
+    "wall_share": 0.695,
+    "sky_share": 0.01
+   },
+   "guess": "concrete",
+   "label": "not_wall"
+  },
+  "13": {
+   "osm_id": "148288774",
+   "frame": {
+    "p": "mapillary",
+    "i": "2273987349645305",
+    "w": 2,
+    "wall_share": 0.511,
+    "sky_share": 0.005
+   },
+   "guess": "concrete",
+   "label": "not_wall"
+  },
+  "14": {
+   "osm_id": "35537118",
+   "frame": {
+    "p": "mapillary",
+    "i": "1126755719081583",
+    "w": 3,
+    "wall_share": 0.706,
+    "sky_share": 0.003
+   },
+   "guess": "concrete",
+   "label": "not_wall"
+  },
+  "15": {
+   "osm_id": "71515265",
+   "frame": {
+    "p": "mapillary",
+    "i": "514277196238523",
+    "w": 2,
+    "wall_share": 0.539,
+    "sky_share": 0.007
+   },
+   "guess": "concrete",
+   "label": "brick"
+  },
+  "16": {
+   "osm_id": "147633861",
+   "frame": {
+    "p": "panoramax",
+    "i": "0317fa29-025b-4013-932c-f4888131ede3",
+    "w": 5,
+    "wall_share": 1.0,
+    "sky_share": 0.003
+   },
+   "guess": "concrete",
+   "label": "stucco"
+  },
+  "17": {
+   "osm_id": "93817367",
+   "frame": {
+    "p": "mapillary",
+    "i": "1282091689800602",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "concrete",
+   "label": "not_wall"
+  },
+  "18": {
+   "osm_id": "32840019",
+   "frame": {
+    "p": "mapillary",
+    "i": "1617328912067536",
+    "w": 2,
+    "wall_share": 0.505,
+    "sky_share": 0.001
+   },
+   "guess": "glass",
+   "label": "not_wall"
+  },
+  "19": {
+   "osm_id": "32611370",
+   "frame": {
+    "p": "mapillary",
+    "i": "974902676581155",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "glass",
+   "label": "not_wall"
+  },
+  "20": {
+   "osm_id": "32611958",
+   "frame": {
+    "p": "mapillary",
+    "i": "1062206202659984",
+    "w": 8,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "glass",
+   "label": "painted"
+  },
+  "21": {
+   "osm_id": "71209424",
+   "frame": {
+    "p": "kartaview",
+    "i": "2465692",
+    "w": 9,
+    "wall_share": 0.541,
+    "sky_share": 0.0
+   },
+   "guess": "glass",
+   "label": "unsure"
+  },
+  "22": {
+   "osm_id": "35024340",
+   "frame": {
+    "p": "kartaview",
+    "i": "3852422",
+    "w": 0,
+    "wall_share": 0.767,
+    "sky_share": 0.001
+   },
+   "guess": "glass",
+   "label": "not_wall"
+  },
+  "23": {
+   "osm_id": "32866034",
+   "frame": {
+    "p": "mapillary",
+    "i": "1139349243250066",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.007
+   },
+   "guess": "glass",
+   "label": "unsure"
+  },
+  "24": {
+   "osm_id": "71504453",
+   "frame": {
+    "p": "mapillary",
+    "i": "743872895195544",
+    "w": 5,
+    "wall_share": 1.0,
+    "sky_share": 0.003
+   },
+   "guess": "glass",
+   "label": "stucco"
+  },
+  "25": {
+   "osm_id": "32612520",
+   "frame": {
+    "p": "mapillary",
+    "i": "673566401048984",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.025
+   },
+   "guess": "glass",
+   "label": "unsure"
+  },
+  "26": {
+   "osm_id": "33808671",
+   "frame": {
+    "p": "kartaview",
+    "i": "15907555",
+    "w": 2,
+    "wall_share": 0.589,
+    "sky_share": 0.0
+   },
+   "guess": "glass",
+   "label": "not_wall"
+  },
+  "27": {
+   "osm_id": "118229930",
+   "frame": {
+    "p": "kartaview",
+    "i": "1435262",
+    "w": 5,
+    "wall_share": 0.836,
+    "sky_share": 0.0
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "28": {
+   "osm_id": "69707525",
+   "frame": {
+    "p": "panoramax",
+    "i": "02ef813e-6ac6-4c9f-8163-68f416d3e3d9",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "29": {
+   "osm_id": "103339444",
+   "frame": {
+    "p": "mapillary",
+    "i": "602337661161498",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "30": {
+   "osm_id": "79375236",
+   "frame": {
+    "p": "kartaview",
+    "i": "6673431",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.019
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "31": {
+   "osm_id": "35024342",
+   "frame": {
+    "p": "kartaview",
+    "i": "3852415",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.001
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "32": {
+   "osm_id": "71739086",
+   "frame": {
+    "p": "kartaview",
+    "i": "3611595",
+    "w": 14,
+    "wall_share": 0.523,
+    "sky_share": 0.0
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "33": {
+   "osm_id": "49429845",
+   "frame": {
+    "p": "mapillary",
+    "i": "1977398219673454",
+    "w": 4,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "34": {
+   "osm_id": "71504456",
+   "frame": {
+    "p": "mapillary",
+    "i": "352004766516179",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.002
+   },
+   "guess": "metal",
+   "label": "concrete"
+  },
+  "35": {
+   "osm_id": "32946665",
+   "frame": {
+    "p": "mapillary",
+    "i": "103885778671535",
+    "w": 4,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "metal",
+   "label": "concrete"
+  },
+  "36": {
+   "osm_id": "146634594",
+   "frame": {
+    "p": "mapillary",
+    "i": "342584177411137",
+    "w": 0,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "painted",
+   "label": "stucco"
+  },
+  "37": {
+   "osm_id": "93422640",
+   "frame": {
+    "p": "kartaview",
+    "i": "2582254",
+    "w": 0,
+    "wall_share": 1.0,
+    "sky_share": 0.002
+   },
+   "guess": "painted",
+   "label": "not_wall"
+  },
+  "38": {
+   "osm_id": "147507703",
+   "frame": {
+    "p": "kartaview",
+    "i": "2922528",
+    "w": 4,
+    "wall_share": 1.0,
+    "sky_share": 0.032
+   },
+   "guess": "painted",
+   "label": "not_wall"
+  },
+  "39": {
+   "osm_id": "80296711",
+   "frame": {
+    "p": "mapillary",
+    "i": "2410304132718853",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.006
+   },
+   "guess": "painted",
+   "label": "unsure"
+  },
+  "40": {
+   "osm_id": "71359573",
+   "frame": {
+    "p": "kartaview",
+    "i": "3852549",
+    "w": 4,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "painted",
+   "label": "not_wall"
+  },
+  "41": {
+   "osm_id": "35024390",
+   "frame": {
+    "p": "mapillary",
+    "i": "1272297546509745",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.014
+   },
+   "guess": "painted",
+   "label": "not_wall"
+  },
+  "42": {
+   "osm_id": "32946535",
+   "frame": {
+    "p": "mapillary",
+    "i": "1209263810402270",
+    "w": 4,
+    "wall_share": 1.0,
+    "sky_share": 0.001
+   },
+   "guess": "painted",
+   "label": "not_wall"
+  },
+  "43": {
+   "osm_id": "79377213",
+   "frame": {
+    "p": "mapillary",
+    "i": "1166113181005879",
+    "w": 9,
+    "wall_share": 1.0,
+    "sky_share": 0.004
+   },
+   "guess": "painted",
+   "label": "not_wall"
+  },
+  "44": {
+   "osm_id": "32946942",
+   "frame": {
+    "p": "kartaview",
+    "i": "2582422",
+    "w": 26,
+    "wall_share": 0.546,
+    "sky_share": 0.0
+   },
+   "guess": "painted",
+   "label": "concrete"
+  },
+  "45": {
+   "osm_id": "69707493",
+   "frame": {
+    "p": "mapillary",
+    "i": "137941978312974",
+    "w": 11,
+    "wall_share": 0.778,
+    "sky_share": 0.004
+   },
+   "guess": "stucco",
+   "label": "painted"
+  },
+  "46": {
+   "osm_id": "25489482",
+   "frame": {
+    "p": "mapillary",
+    "i": "492402825407917",
+    "w": 0,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "stucco",
+   "label": "not_wall"
+  },
+  "47": {
+   "osm_id": "32947012",
+   "frame": {
+    "p": "kartaview",
+    "i": "7183525",
+    "w": 7,
+    "wall_share": 0.959,
+    "sky_share": 0.042
+   },
+   "guess": "stucco",
+   "label": "not_wall"
+  },
+  "48": {
+   "osm_id": "71515262",
+   "frame": {
+    "p": "kartaview",
+    "i": "19159022",
+    "w": 7,
+    "wall_share": 0.954,
+    "sky_share": 0.003
+   },
+   "guess": "stucco",
+   "label": "stucco"
+  },
+  "49": {
+   "osm_id": "71515266",
+   "frame": {
+    "p": "kartaview",
+    "i": "19159022",
+    "w": 8,
+    "wall_share": 1.0,
+    "sky_share": 0.002
+   },
+   "guess": "stucco",
+   "label": "stucco"
+  },
+  "50": {
+   "osm_id": "80296725",
+   "frame": {
+    "p": "mapillary",
+    "i": "239388801380609",
+    "w": 4,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "stucco",
+   "label": "unsure"
+  },
+  "51": {
+   "osm_id": "32859152",
+   "frame": {
+    "p": "mapillary",
+    "i": "522058777269474",
+    "w": 2,
+    "wall_share": 1.0,
+    "sky_share": 0.001
+   },
+   "guess": "stucco",
+   "label": "unsure"
+  },
+  "52": {
+   "osm_id": "35024321",
+   "frame": {
+    "p": "kartaview",
+    "i": "7064996",
+    "w": 5,
+    "wall_share": 0.631,
+    "sky_share": 0.0
+   },
+   "guess": "stucco",
+   "label": "not_wall"
+  },
+  "53": {
+   "osm_id": "132127810",
+   "frame": {
+    "p": "mapillary",
+    "i": "802361639007895",
+    "w": 3,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "stucco",
+   "label": "not_wall"
+  },
+  "54": {
+   "osm_id": "32964914",
+   "frame": {
+    "p": "kartaview",
+    "i": "3613311",
+    "w": 33,
+    "wall_share": 0.473,
+    "sky_share": 0.0
+   },
+   "guess": "concrete",
+   "label": "not_wall"
+  },
+  "55": {
+   "osm_id": "124670712",
+   "frame": {
+    "p": "kartaview",
+    "i": "2047903",
+    "w": 0,
+    "wall_share": 1.0,
+    "sky_share": 0.001
+   },
+   "guess": "metal",
+   "label": "not_wall"
+  },
+  "56": {
+   "osm_id": "71208650",
+   "frame": {
+    "p": "panoramax",
+    "i": "5a654b5b-e11c-43a1-8359-40058f7729b4",
+    "w": 2,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "concrete",
+   "label": "stucco"
+  },
+  "57": {
+   "osm_id": "91913148",
+   "frame": {
+    "p": "kartaview",
+    "i": "8366069",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "glass",
+   "label": "not_wall"
+  },
+  "58": {
+   "osm_id": "135232162",
+   "frame": {
+    "p": "kartaview",
+    "i": "908245",
+    "w": 0,
+    "wall_share": 0.547,
+    "sky_share": 0.0
+   },
+   "guess": "concrete",
+   "label": "not_wall"
+  },
+  "59": {
+   "osm_id": "79375256",
+   "frame": {
+    "p": "mapillary",
+    "i": "2730970013769285",
+    "w": 1,
+    "wall_share": 1.0,
+    "sky_share": 0.0
+   },
+   "guess": "painted",
+   "label": "painted"
+  }
+ }
+}

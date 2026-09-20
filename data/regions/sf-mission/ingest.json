@@ -51,7 +51,7 @@
    ]
   },
   "imagery": {
-   "status": "running",
+   "status": "done",
    "started_at": "2026-09-20T05:12:33Z",
    "command": [
     "scripts/harvest_region_observations.py",
@@ -59,7 +59,26 @@
     "sf-mission",
     "--out",
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/catalog"
+   ],
+   "exit_code": 0,
+   "seconds": 860.1,
+   "finished_at": "2026-09-20T05:26:53Z",
+   "outputs": [
+    "data/regions/sf-mission/catalog/observations/external-000.parquet"
    ]
+  },
+  "official": {
+   "status": "failed",
+   "started_at": "2026-09-20T05:26:53Z",
+   "command": [
+    "scripts/build_sf_official_geometry.py",
+    "--region",
+    "sf-mission"
+   ],
+   "exit_code": 1,
+   "seconds": 20.3,
+   "finished_at": "2026-09-20T05:27:14Z",
+   "outputs": []
   }
  }
 }
