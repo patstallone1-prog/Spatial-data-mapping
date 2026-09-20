@@ -66,6 +66,56 @@
    "outputs": [
     "data/regions/sf-mission/catalog/observations/external-000.parquet"
    ]
+  },
+  "official": {
+   "status": "done",
+   "started_at": "2026-09-20T05:32:57Z",
+   "command": [
+    "scripts/build_sf_official_geometry.py",
+    "--region",
+    "sf-mission"
+   ],
+   "exit_code": 0,
+   "seconds": 42.7,
+   "finished_at": "2026-09-20T05:33:39Z",
+   "outputs": []
+  },
+  "build": {
+   "status": "done",
+   "started_at": "2026-09-20T05:33:39Z",
+   "command": [
+    "scripts/build_sf_corridor_3d.py",
+    "--region",
+    "sf-mission",
+    "--reuse-osm"
+   ],
+   "exit_code": 0,
+   "seconds": 34.1,
+   "finished_at": "2026-09-20T05:34:13Z",
+   "outputs": [
+    "data/regions/sf-mission/site/sf-corridor-3d.json"
+   ]
+  },
+  "audit": {
+   "status": "done",
+   "started_at": "2026-09-20T05:34:13Z",
+   "command": [
+    "scripts/audit_corridor_render.py",
+    "--page",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/site/sf-corridor-3d.json",
+    "--official",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/site/sf-corridor-official.json",
+    "--ground",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/site/sf-corridor-ground.json",
+    "--baseline",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/audit_baseline.json"
+   ],
+   "exit_code": 0,
+   "seconds": 4.6,
+   "finished_at": "2026-09-20T05:34:18Z",
+   "outputs": [
+    "data/regions/sf-mission/audit_baseline.json"
+   ]
   }
  }
 }

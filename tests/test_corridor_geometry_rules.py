@@ -2562,3 +2562,15 @@ console.log(JSON.stringify({
     assert result["believed"] == "brick" and result["doubted"] and result["unknownRender"], result
     # The photograph outranks the archetype's habits: a glass house is a glass house.
     assert result["glassOnAHouse"] == "glass", result
+
+
+def test_first_person_walks_at_twelve_miles_an_hour_and_zooms_to_twice() -> None:
+    js = _page_js()
+    assert "const FIRST_PERSON_SPEED = 5.36;" in js            # 12 mph in m/s
+    assert "const FIRST_PERSON_MAX_ZOOM = 2.0;" in js
+    assert "const scaled = state.firstPerson ? FIRST_PERSON_SPEED" in js
+    # The wheel narrows the field of view in first person and never past 2x; leaving resets it.
+    assert "camera.fov = FIRST_PERSON_FOV / state.zoom;" in js
+    assert "state.zoom = 1;\n  camera.fov = FIRST_PERSON_FOV;" in js
+    html = SOURCE.read_text(encoding="utf-8")
+    assert "12&nbsp;mph" in html and "15&nbsp;mph" not in html

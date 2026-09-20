@@ -1,0 +1,52 @@
+{
+ "note": "Rendered carriageway width against the city's kerb lines, from scripts/audit_corridor_render.py (widthVsKerb). tests/test_width_vs_kerb.py fails when a build gets worse than this; regenerate deliberately with `python scripts/audit_corridor_render.py --baseline` after a change that improves it.",
+ "ways": 714,
+ "enveloped": 674,
+ "tooNarrowOver3M": 67,
+ "tooWideOver3M": 3,
+ "medianAbsM": 0.01,
+ "bySource": {
+  "official_curbs": {
+   "ways": 570,
+   "medianAbsM": 0.01,
+   "p90AbsM": 0.31,
+   "over3M": 14
+  },
+  "none": {
+   "ways": 17,
+   "medianAbsM": 10.66,
+   "p90AbsM": 22.43,
+   "over3M": 17
+  },
+  "row_minus_footways": {
+   "ways": 19,
+   "medianAbsM": 13.65,
+   "p90AbsM": 19.36,
+   "over3M": 16
+  },
+  "divided_half": {
+   "ways": 108,
+   "medianAbsM": 0.04,
+   "p90AbsM": 15.56,
+   "over3M": 23
+  }
+ },
+ "otherLevelsClamped": 0,
+ "crosswalkAttachedShare": 0.89,
+ "crosswalkLegs": 924,
+ "crosswalkLegsAttachedShare": 1,
+ "crosswalkWholeSpanFallback": 1,
+ "crosswalkSplitForIslands": 14,
+ "crosswalkStandInsLaid": 224,
+ "crosswalkEndsAtRampShare": 0.923,
+ "crossSectionStations": 30287,
+ "crossSectionResolvedShare": 0.64,
+ "crossSectionUnresolvedShare": 0.069,
+ "crossSectionKerbSurveyShare": 0,
+ "crossSectionParkingMeasured": 0,
+ "crosswalkMappedSuppressedByStandIn": 0,
+ "footwayKeptShare": 0.867,
+ "kerbsideBareShare": 0.044,
+ "roadThroughFacade": 27,
+ "buildingsOnRoad2plus": 296
+}

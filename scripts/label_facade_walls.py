@@ -30,11 +30,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import build_facades as facades  # noqa: E402
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 import pyarrow.parquet as pq  # noqa: E402
 
-import build_facades as facades  # noqa: E402
 from smc.facades.geometry import Camera, LocalFrame, walls_of  # noqa: E402
 from smc.facades.match import CATALOGUE, WEIGHTS, Fingerprint, closest_render  # noqa: E402
 from smc.facades.rectify import rectify_wall  # noqa: E402
@@ -45,6 +45,10 @@ FINGERPRINTS = ROOT / "data" / "sf_public_works" / "facade_fingerprints.json"
 LABELS = ROOT / "data" / "sf_public_works" / "facade_labels.json"
 SHEETS = ROOT / "build" / "facade-labels"
 MATERIALS = ("stucco", "painted", "concrete", "brick", "glass", "metal")
+#: What the fingerprint can tell apart. Paint is a colour, not a texture: a painted wall is
+#: fitted as stucco and the sampled colour carries the paint.
+FIT_CLASSES = ("stucco", "concrete", "brick", "glass", "metal")
+MERGE = {"painted": "stucco"}
 PATCH_W, PATCH_H = 300, 220
 COLUMNS, ROWS = 4, 3
 
@@ -59,9 +63,13 @@ def sheets(count: int, seed: int) -> int:
     # Stratified by what the catalogue currently says and by height, so the sample is not
     # all of whatever the biased match favours.
     rng = random.Random(seed)
+    # Walls already labelled are not sampled again; the labels accumulate across rounds.
+    labelled = set()
+    if LABELS.exists():
+        labelled = {w["osm_id"] for w in json.loads(LABELS.read_text()).get("walls", {}).values()}
     strata: dict[tuple[str, str], list[str]] = defaultdict(list)
     for key, fp in fingerprints.items():
-        if key not in buildings or not fp.get("frames"):
+        if key not in buildings or not fp.get("frames") or key in labelled:
             continue
         height = float(buildings[key][1].get("height_m") or 10)
         band = "tall" if height > 25 else "mid" if height > 12 else "low"
@@ -90,7 +98,7 @@ def sheets(count: int, seed: int) -> int:
         old.unlink()
     index: list[dict] = []
     patches: list[np.ndarray] = []
-    for n, key in enumerate(chosen):
+    for key in chosen:
         fp = fingerprints[key]
         i_way, way = buildings[key]
         ring = [frame.to_xy(lon, lat) for lon, lat in way["points"]]
@@ -141,28 +149,33 @@ def sheets(count: int, seed: int) -> int:
 
 def fit() -> int:
     labels = json.loads(LABELS.read_text())
-    index = {row["n"]: row for row in json.loads((SHEETS / "index.json").read_text())}
     fingerprints = json.loads(FINGERPRINTS.read_text())["buildings"]
     samples: list[tuple[str, Fingerprint]] = []
-    for n, material in labels["labels"].items():
-        row = index.get(int(n))
-        if row is None or material not in MATERIALS or row["osm_id"] not in fingerprints:
+    skipped = Counter()
+    for wall in labels.get("walls", {}).values():
+        material = wall.get("label")
+        if material not in MATERIALS:
+            skipped[material] += 1
             continue
-        samples.append((material, Fingerprint.from_json(fingerprints[row["osm_id"]])))
+        if wall["osm_id"] not in fingerprints:
+            skipped["no fingerprint yet"] += 1
+            continue
+        samples.append((MERGE.get(material, material), Fingerprint.from_json(fingerprints[wall["osm_id"]])))
+    print(f"labelled walls not used: {dict(skipped)}")
     counts = Counter(m for m, _ in samples)
     print(f"{len(samples)} labelled walls: {dict(counts)}")
 
     def prototypes(rows: list[tuple[str, Fingerprint]]) -> list[dict]:
         out = []
-        for material in MATERIALS:
+        for material in FIT_CLASSES:
             fps = [fp for m, fp in rows if m == material]
+            base = next(e for e in CATALOGUE if e["material"] == material)
             if len(fps) < 2:
-                base = next(e for e in CATALOGUE if e["material"] == material)
                 out.append(base)
                 continue
             hues = np.radians([fp.hue for fp in fps if fp.saturation >= 0.12])
             hue = float(np.degrees(np.arctan2(np.sin(hues).mean(), np.cos(hues).mean())) % 360) if len(hues) >= 2 else None
-            out.append({"material": material, "hue": hue if material in ("brick", "glass", "stucco", "painted") else None,
+            out.append({"material": material, "hue": hue if material in ("brick", "stucco") else base["hue"],
                         "proto": {"glazing": statistics.median(fp.glazing for fp in fps),
                                   "texture": statistics.median(fp.texture for fp in fps),
                                   "saturation": statistics.median(fp.saturation for fp in fps),

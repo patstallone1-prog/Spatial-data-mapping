@@ -34,14 +34,18 @@ from dataclasses import asdict, dataclass
 #: The renders the page has. ``proto`` is where each sits in fingerprint space; the weights say
 #: how much each axis is trusted. Names match the renderer's ``MATERIALS`` table exactly.
 CATALOGUE: list[dict] = [
-    {"material": "stucco", "proto": {"glazing": 0.16, "texture": 0.06, "saturation": 0.16,
-                                     "lightness": 0.70, "sd": 0.12}, "hue": None},
-    {"material": "painted", "proto": {"glazing": 0.18, "texture": 0.09, "saturation": 0.32,
-                                      "lightness": 0.42, "sd": 0.14}, "hue": None},
-    {"material": "concrete", "proto": {"glazing": 0.22, "texture": 0.14, "saturation": 0.05,
-                                       "lightness": 0.60, "sd": 0.13}, "hue": None},
-    {"material": "brick", "proto": {"glazing": 0.20, "texture": 0.22, "saturation": 0.38,
-                                    "lightness": 0.42, "sd": 0.16}, "hue": 18.0},
+    # Fitted to 39 labelled walls (data/sf_public_works/facade_labels.json, two rounds;
+    # scripts/label_facade_walls.py fit): each prototype is the median fingerprint of the
+    # walls labelled with it. "Painted" is not a class the fingerprint can see -- paint is a
+    # colour, and the colour is sampled separately -- so painted walls are stucco here and the
+    # sampled tint says the rest. Glass and metal had no labelled walls yet and keep their
+    # written prototypes.
+    {"material": "stucco", "proto": {"glazing": 0.213, "texture": 0.162, "saturation": 0.166,
+                                     "lightness": 0.349, "sd": 0.132}, "hue": 42.5},
+    {"material": "concrete", "proto": {"glazing": 0.330, "texture": 0.115, "saturation": 0.065,
+                                       "lightness": 0.480, "sd": 0.237}, "hue": None},
+    {"material": "brick", "proto": {"glazing": 0.273, "texture": 0.250, "saturation": 0.240,
+                                    "lightness": 0.296, "sd": 0.197}, "hue": 26.3},
     {"material": "glass", "proto": {"glazing": 0.62, "texture": 0.12, "saturation": 0.14,
                                     "lightness": 0.45, "sd": 0.20}, "hue": 205.0},
     {"material": "metal", "proto": {"glazing": 0.30, "texture": 0.05, "saturation": 0.05,
@@ -64,10 +68,10 @@ MAX_DISTANCE = 1.6
 #: and the first corridor-wide pass matched far more concrete and glass than the building
 #: stock has. Until the prototypes are fitted to a labelled set of rectified walls, the page
 #: believes a match only at FACADE_MATCH_MIN_CONFIDENCE (0.75) -- see the renderer.
-CATALOGUE_STATUS = ("not separable at this resolution: on 19 labelled walls (data/sf_public_works/facade_labels.json) "
-                    "the fingerprint tells stucco, painted, brick and concrete apart 3 times in 19 leave-one-out, "
-                    "6 in 19 with these prototypes -- chance. Matches are recorded, not drawn, until the features "
-                    "carry the material (scripts/label_facade_walls.py fit).")
+CATALOGUE_STATUS = ("fitted to 39 labelled walls: leave-one-out 26 of 39 right (majority class 21), "
+                    "concrete 9/9, brick 7/9, stucco 10/21; at confidence 0.6 and above, 14 of 18. "
+                    "The page believes a match from 0.6 (FACADE_MATCH_MIN_CONFIDENCE). Glass and "
+                    "metal are unfitted: no labelled wall of either yet.")
 
 
 

@@ -65,9 +65,12 @@ def test_too_little_wall_is_refused_and_views_combine_by_median():
 
 
 def test_a_fingerprint_between_two_renders_is_matched_at_low_confidence_and_a_far_one_refused():
-    between = Fingerprint(0.65, 0.105, 100, 0.19, 0.10, 0.125)   # halfway from stucco to concrete
+    stucco = next(e["proto"] for e in CATALOGUE if e["material"] == "stucco")
+    concrete = next(e["proto"] for e in CATALOGUE if e["material"] == "concrete")
+    mid = {k: (stucco[k] + concrete[k]) / 2 for k in stucco}
+    between = Fingerprint(mid["lightness"], mid["saturation"], 100, mid["glazing"], mid["texture"], mid["sd"])
     match = closest_render(between)
-    assert match.material in ("stucco", "concrete") and match.confidence < 0.5
+    assert match.material in ("stucco", "concrete") and match.confidence < 0.5, match
     far = Fingerprint(0.05, 0.95, 300, 0.95, 0.95, 0.9)
     assert closest_render(far).confidence == 0.0
 

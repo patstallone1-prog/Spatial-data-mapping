@@ -82,6 +82,9 @@ def main() -> int:
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--checkpoint", type=int, default=100)
     ap.add_argument("--redo", action="store_true", help="fingerprint buildings already done")
+    ap.add_argument("--recolour", action="store_true",
+                    help="sample the colour again from view-checked frames for every building, not only "
+                         "where none exists; an old colour stays where no checked view sampled one")
     args = ap.parse_args()
 
     def progress(message: str) -> None:
@@ -157,7 +160,8 @@ def main() -> int:
             chosen.append((i, wall))
             if len(chosen) >= FRAMES_PER_BUILDING:
                 break
-        jobs.append((key, chosen, key not in colours))
+        need_colour = args.recolour or key not in colours or not colours[key].get("checked")
+        jobs.append((key, chosen, need_colour))
         if args.limit and len(jobs) >= args.limit:
             break
     progress(f"{len(jobs)} buildings to read")
@@ -207,7 +211,9 @@ def main() -> int:
             if spread is None or spread <= MAX_SAMPLE_SPREAD:
                 out["colour"] = {
                     "c": "#{:02x}{:02x}{:02x}".format(*tuple(int(max(0, min(255, v))) for v in median[::-1])),
-                    "n": len(samples), "spread": round(spread, 1) if spread is not None else None}
+                    "n": len(samples), "spread": round(spread, 1) if spread is not None else None,
+                    # Sampled from frames that passed the view test: this colour is the wall's.
+                    "checked": True, "wall_share": round(min(f["wall_share"] for f in frames), 3) if frames else None}
         return key, out
 
     part_number = len(list(PARTS.glob("*.json")))
@@ -221,8 +227,8 @@ def main() -> int:
             else:
                 counters["no usable view"] += 1
             if found.get("colour"):
+                counters["colour replaced" if key in colours else "colour sampled"] += 1
                 colours[key] = found["colour"]
-                counters["colour sampled"] += 1
             if found.get("fp") or found.get("colour"):
                 pending[key] = found
             if len(pending) >= args.checkpoint:
@@ -249,8 +255,10 @@ FINGERPRINT_NOTE = ("Facade fingerprints read off photographs of each building "
                     "metre; n views; frames the photographs used. Matched to the page's renders by "
                     "smc.facades.match at build time.")
 COLOUR_NOTE = ("Colour sampled off photographs of each building: c = median wall colour, n = "
-               "views, spread = disagreement between views. Keyed by osm_id; nothing sampled is "
-               "ever discarded, only buildings with no colour are sampled again.")
+               "views, spread = disagreement between views; checked = sampled from frames that "
+               "passed the view test (saw the wall, not the street beside it), wall_share = the "
+               "least share of the wall those frames saw. Keyed by osm_id. An unchecked colour is "
+               "the first pass's and stays until a checked view replaces it.")
 
 
 if __name__ == "__main__":
