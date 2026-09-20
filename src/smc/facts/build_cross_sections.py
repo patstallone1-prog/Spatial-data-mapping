@@ -78,16 +78,24 @@ def _stations_along(points: list[list[float]], step_m: float) -> list[tuple[floa
     return out
 
 
-def _profile_at(profile: dict | None, station_m: float) -> tuple[float, float] | None:
+def _profile_at(profile: dict | None, station_m: float,
+                one_sided: bool = False) -> tuple[float | None, float | None] | None:
+    """The kerb offsets nearest a station. The city's profile has both kerbs at every
+    sample; a lidar profile may have one, and with ``one_sided`` that one is returned with
+    None for the other, the caller taking the other side from the mapped width."""
     if not profile:
         return None
     best, best_gap = None, PROFILE_WINDOW_M + 1
     for sample in profile.get("samples", ()):
-        if sample.get("l") is None or sample.get("r") is None:
+        l_off, r_off = sample.get("l"), sample.get("r")
+        if l_off is None and r_off is None:
+            continue
+        if (l_off is None or r_off is None) and not one_sided:
             continue
         gap = abs(sample["s"] - station_m)
-        if gap < best_gap:
-            best, best_gap = (float(sample["l"]), float(sample["r"])), gap
+        # A sample with both kerbs beats a one-sided one at the same distance.
+        if gap < best_gap or (gap == best_gap and best is not None and None in best):
+            best, best_gap = (None if l_off is None else float(l_off), None if r_off is None else float(r_off)), gap
     return best if best_gap <= PROFILE_WINDOW_M else None
 
 
@@ -188,6 +196,7 @@ def build_cross_sections(
     frame: LocalFrame,
     step_m: float = STATION_M,
     measured_parking: dict | None = None,
+    profile_grade: SourceGrade = SourceGrade.SURVEY,
 ) -> dict[str, int]:
     """Attach ``xs`` to every street way; return counts for the build summary.
 
@@ -216,25 +225,33 @@ def build_cross_sections(
         for s_m, lon, lat, (ux, uy) in _stations_along(points, step_m):
             left = right = None
             grade = SourceGrade.INFERRED
+            one_sided_here = False
             found = index.locate_full(lon, lat)
             if found is not None and profile is not None:
                 feature, c_station, side, distance = found
                 if feature == way.get("cnn"):
-                    reading = _profile_at(profile, c_station)
+                    lidar = profile_grade is SourceGrade.LIDAR
+                    reading = _profile_at(profile, c_station, one_sided=lidar)
                     if reading is not None:
                         l_off, r_off = reading
                         d = side * distance
                         # Does the way run with the city's segment or against it?
                         ahead = index.locate_full(lon + ux * 2.0 / 88_000.0, lat + uy * 2.0 / 111_320.0)
                         same = ahead is None or ahead[0] != feature or ahead[1] >= c_station
-                        if same:
-                            left, right = l_off - d, -(r_off + d)
-                        else:
-                            left, right = r_off + d, d - l_off
+                        if not same:
+                            l_off, r_off, d = r_off, l_off, -d
+                        # A side the lidar did not read takes the mapped half width, and the
+                        # station keeps the lidar grade with the reason recorded.
+                        half = (road_m or prior_width_m(way)) / 2.0
+                        one_side = l_off is None or r_off is None
+                        left = (half if l_off is None else l_off) - d
+                        right = -((half if r_off is None else r_off) + d)
                         if left < MIN_HALF_M or -right < MIN_HALF_M:
                             left = right = None   # the way is not between these kerbs
                         else:
-                            grade = SourceGrade.SURVEY
+                            grade = profile_grade
+                            if one_side:
+                                one_sided_here = True
             if left is None:
                 left, right = road_m / 2.0, -road_m / 2.0
                 grade = SourceGrade.MAPPED if (way.get("road_source") in ("curb_geometry", "official_curbs")
@@ -245,6 +262,8 @@ def build_cross_sections(
                 fixed_bands_for_side(way, -1, measured_parking),
                 oneway=oneway, lanes_tag=way.get("lanes"), lanes_forward_tag=way.get("lanes_fwd"),
                 lanes_backward_tag=way.get("lanes_back"), named=named, left_kerb_m=left)
+            if one_sided_here:
+                reasons = [*reasons, "kerb_one_side"]
             st.bands, st.status, st.reasons, st.score = bands, status, reasons, score
             stations.append(st)
         if not stations:

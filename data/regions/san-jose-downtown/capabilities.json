@@ -1,0 +1,57 @@
+{
+ "region": "san-jose-downtown",
+ "bbox": [
+  37.325,
+  -121.905,
+  37.345,
+  -121.875
+ ],
+ "probed_at": "2026-09-20T19:46:51Z",
+ "osm": {},
+ "lidar": {
+  "collections": [
+   {
+    "dataset": "CA_SantaClaraCounty_2020",
+    "coverage": 1.0,
+    "points": 170420824394,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_SantaClaraCounty_2020/ept.json"
+   }
+  ]
+ },
+ "imagery": {
+  "panoramax": {
+   "available": true,
+   "images_seen": 2,
+   "capped": false
+  }
+ },
+ "municipal": {
+  "city": null,
+  "records": [],
+  "source": null
+ },
+ "overture": {
+  "buildings": true,
+  "places": true,
+  "licence": "ODbL, reference only"
+ },
+ "vector": {
+  "kerbs": "lidar",
+  "sidewalk_width": "lidar",
+  "kerb_height": "lidar",
+  "terrain": "lidar",
+  "buildings": "overture",
+  "building_height": "lidar",
+  "building_colour": "imagery",
+  "parking": "imagery",
+  "curb_ramps": "osm",
+  "signs": "osm",
+  "crossings": "osm",
+  "lanes": "osm+priors",
+  "streets": "none"
+ },
+ "errors": {
+  "osm": "HTTP Error 504: Gateway Timeout",
+  "mapillary": "Mapillary probe failed at every size: HTTP Error 500: Internal Server Error"
+ }
+}

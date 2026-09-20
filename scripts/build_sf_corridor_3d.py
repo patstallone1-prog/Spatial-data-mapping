@@ -600,6 +600,11 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
             "name": tags.get("name"),
             "points": points,
         }
+        # The way's own id: what a lidar kerb profile, a measured height or a colour is keyed
+        # by. Buildings carried it from the start; streets and footways did not, so nothing
+        # measured off a street could be filed against it.
+        if element.get("id") is not None:
+            feature["osm_id"] = element.get("id")
         if kind == "crossing":
             feature["crossing_type"] = tags.get("crossing")
             feature["crossing_markings"] = tags.get("crossing:markings")
@@ -1562,21 +1567,37 @@ def annotate_cross_sections(ways: list[dict[str, Any]]) -> dict[str, int]:
     width."""
     from smc.facades.geometry import LocalFrame
     from smc.facts.build_cross_sections import build_cross_sections
+    from smc.facts.cross_section import SourceGrade
 
     centrelines_path = OFFICIAL / "centrelines.json"
     profiles_path = OFFICIAL / "curb_profiles_corridor.json"
-    # Without the city's kerb profiles every station's kerbs are the mapped width's, graded
-    # mapped or inferred, and the allocation runs on those: a lower rung, not no rung.
+    # The city's curb-line profile where the city has one; the lidar's own reading of the
+    # kerbs (scripts/measure_region_lidar.py) where it does not; and without either every
+    # station's kerbs are the mapped width's, graded mapped or inferred: a lower rung each
+    # time, never no rung.
+    if not (centrelines_path.exists() and profiles_path.exists()):
+        centrelines_path = OFFICIAL / "centrelines_osm.json"
+        profiles_path = OFFICIAL / "curb_profiles_lidar.json"
     has_profiles = centrelines_path.exists() and profiles_path.exists()
     bbox = {"south": REGION.bbox.south, "west": REGION.bbox.west,
             "north": REGION.bbox.north, "east": REGION.bbox.east}
     frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0, (bbox["west"] + bbox["east"]) / 2.0)
-    profiles = json.loads(profiles_path.read_text()).get("profiles", {}) if has_profiles else {}
+    table = json.loads(profiles_path.read_text()) if has_profiles else {}
+    profiles = table.get("profiles", {})
     centrelines = json.loads(centrelines_path.read_text()) if has_profiles else []
+    # A lidar profile (scripts/measure_region_lidar.py) is keyed by the way's own id and
+    # stationed along the way itself; the way is its own centreline.
+    grade = SourceGrade.LIDAR if table.get("grade") == "lidar" else SourceGrade.SURVEY
+    if grade is SourceGrade.LIDAR:
+        for way in ways:
+            if way.get("kind") == "street" and way.get("osm_id") is not None:
+                way["cnn"] = f"osm:{way['osm_id']}"
     bands_path = OFFICIAL / "parking_bands.json"
     measured = json.loads(bands_path.read_text()).get("bands", {}) if bands_path.exists() else {}
-    counts = build_cross_sections(ways, centrelines, profiles, frame=frame, measured_parking=measured)
-    counts["kerb profiles"] = "city" if has_profiles else "none: kerbs from the mapped width"
+    counts = build_cross_sections(ways, centrelines, profiles, frame=frame, measured_parking=measured,
+                                  profile_grade=grade)
+    counts["kerb profiles"] = ("city" if grade is SourceGrade.SURVEY else "lidar") if has_profiles \
+        else "none: kerbs from the mapped width"
     return counts
 
 
@@ -1730,6 +1751,67 @@ def annotate_osm_features(
     }
 
 
+def record_activation(payload: dict[str, Any]) -> None:
+    """Write what this build stood on into the region's capabilities.json."""
+    from smc.regions.activation import activation
+    caps_path = ROOT / "data" / "regions" / REGION.name / "capabilities.json"
+    if not caps_path.exists():
+        if REGION.name != SF_CORRIDOR.name:
+            return
+        caps = {"region": REGION.name, "vector": {}}
+    else:
+        caps = json.loads(caps_path.read_text())
+    official_path = SITE_DIR / "sf-corridor-official.json"
+    official = json.loads(official_path.read_text()) if official_path.exists() else None
+    caps["activation"] = activation(payload, caps.get("vector", {}), official)
+    caps["activation_note"] = ("available: what discovery found over the box; implemented: an extractor "
+                               "exists for that source; active: it ran on this build and the count is "
+                               "what it contributed. A property is truthful only when active matches "
+                               "available.")
+    caps_path.parent.mkdir(parents=True, exist_ok=True)
+    caps_path.write_text(json.dumps(caps, indent=1) + "\n")
+    print("  activation: " + ", ".join(
+        f"{k}={v['active']}({v['count']}/{v['of']})" for k, v in caps["activation"].items()), file=sys.stderr)
+
+
+def annotate_region_lidar(ways: list[dict[str, Any]]) -> dict[str, Any]:
+    """What the region's own lidar pass measured (scripts/measure_region_lidar.py): a roof
+    height for every footprint it saw, taken over the map's storey count and the default but
+    not over a height a mapper wrote down; and the kerb height along each street."""
+    lidar_dir = ROOT / "data" / "regions" / REGION.name / "lidar"
+    counts: Counter[str] = Counter()
+    heights_path = lidar_dir / "building_heights.json"
+    if heights_path.exists():
+        heights = json.loads(heights_path.read_text()).get("buildings", {})
+        for way in ways:
+            if way.get("kind") != "building":
+                continue
+            found = heights.get(str(way.get("osm_id")))
+            if not found:
+                counts["building without a lidar roof"] += 1
+                continue
+            if way.get("height_source") == "osm_height":
+                counts["building kept the mapper's height"] += 1
+                continue
+            way["height_m"] = found["height_m"]
+            way["height_source"] = "lidar_region"
+            way["height_points"] = found["roof_points"]
+            counts["building height from the lidar"] += 1
+    kerbs_path = lidar_dir / "kerb_heights.json"
+    if kerbs_path.exists():
+        kerbs = json.loads(kerbs_path.read_text())
+        for way in ways:
+            if way.get("kind") != "street" or way.get("osm_id") is None:
+                continue
+            found = kerbs.get(f"osm:{way['osm_id']}")
+            if found and not way.get("kerb_m"):
+                way["kerb_m"] = found["curb_height_m"]
+                way["kerb_n"] = found["curb_height_n"]
+                way["kerb_source"] = "lidar_region"
+                counts["street kerb height from the lidar"] += 1
+    return dict(counts)
+
+
 def annotate_building_enrichment(ways: list[dict[str, Any]]) -> dict[str, Any]:
     building_index = 0
     for way in ways:
@@ -1800,6 +1882,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     ground_summary = publish_ground_cover()
     furniture_summary = publish_street_furniture()
     building_summary = annotate_building_enrichment(ways)
+    building_summary["lidar_region"] = annotate_region_lidar(ways)
     building_summary["named_places"] = attach_named_places(ways)
     print(f"  shopfronts named from places: {building_summary['named_places']}", file=sys.stderr)
     official_summary = annotate_official(ways, {
@@ -16507,6 +16590,7 @@ PAGE_FIELDS = {
     "tunnel_kind", "tunnel_length_m",
     "tunnel_portal", "tunnel_mouths", "tunnel_cover", "tunnel_mouth_low_cover_m", "tunnel_road_z",
     "tunnel_approach", "tunnel_approach_road_z", "parking_sides", "xs", "xs_junction",
+    "kerb_source", "height_points",
     "capacity",
     "surface",
     "material",
@@ -16778,7 +16862,20 @@ def main() -> int:
         f"{shard['id']} {shard['bytes'] / 1e6:.2f} MB"
         for shard in detail_manifest["shards"]
     ))
+    # The terrain's own accuracy travels in the summary, and the capability record is then
+    # written from what this build actually stood on (smc.regions.activation): available,
+    # implemented, active, with counts.
+    terrain_meta = SITE_DIR / "sf-corridor-terrain.json"
+    if terrain_meta.exists():
+        meta = json.loads(terrain_meta.read_text())
+        acc = meta.get("accuracy", {})
+        payload["summary"]["terrain"] = {
+            "source": meta.get("source"), "cells_with_ground": meta.get("cells_with_ground"),
+            "roadway_rmse_m": (acc.get("roadway") or {}).get("rmse_m"),
+            "all_rmse_m": (acc.get("all") or {}).get("rmse_m"),
+        }
     data_path.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
+    record_activation(payload)
     # The page is the same for every region; only its name differs.
     page = HTML
     if region.name != SF_CORRIDOR.name:

@@ -130,3 +130,30 @@ def test_the_orchestrator_plans_every_stage_for_a_named_region():
     for stage in ("discover", "osm", "terrain", "imagery", "official", "build", "audit"):
         assert stage in out.stdout
     assert "--region oakland-downtown" in out.stdout
+
+
+def test_activation_counts_what_the_build_stood_on_not_what_discovery_promised():
+    """Available is discovery's word; active is counted from the payload. A region with lidar
+    over it and no lidar stations in its cross-sections is not truthful on kerbs."""
+    from smc.regions.activation import activation
+
+    xs_lidar = [[2.0, 6.0, -6.0, "L", "r", [["t", 3.3, "N", 0.6, 1, None]], []]]
+    xs_prior = [[2.0, 6.0, -6.0, "N", "r", [["p", 2.3, "I", 0.9, 0, "parallel"]], []]]
+    payload = {"ways": [
+        {"kind": "street", "xs": xs_lidar, "kerb_m": 0.12, "kerb_source": "lidar_region"},
+        {"kind": "street", "xs": xs_prior},
+        {"kind": "building", "height_source": "lidar_region", "colour": "#aaaaaa"},
+        {"kind": "building", "height_source": "inferred_default"},
+        {"kind": "crossing"},
+    ], "summary": {"terrain": {"roadway_rmse_m": 0.04}}}
+    vector = {"kerbs": "lidar", "kerb_height": "lidar", "building_height": "lidar", "building_colour": "imagery",
+              "terrain": "lidar", "parking": "imagery", "curb_ramps": "osm", "lanes": "osm+priors"}
+    act = activation(payload, vector)
+    assert act["kerbs"] == {**act["kerbs"], "available": "lidar", "active": "lidar", "count": 1, "of": 2, "truthful": True}
+    assert act["building_height"]["count"] == 1 and act["building_height"]["of"] == 2 and act["building_height"]["truthful"]
+    assert act["parking"]["count"] == 1 and act["parking"]["active"] == "imagery"
+    assert act["curb_ramps"]["active"] == "none" and act["curb_ramps"]["truthful"] is False
+    # The same region before its lidar pass: kerbs available but nothing active, and said so.
+    bare = activation({"ways": [{"kind": "street", "xs": xs_prior}], "summary": {}}, vector)
+    assert bare["kerbs"]["active"] == "none" and bare["kerbs"]["truthful"] is False
+    assert bare["terrain"]["active"] == "none"

@@ -123,6 +123,10 @@ def test_the_cross_sections_keep_closing_and_keep_their_measured_kerbs(report: d
     assert xs["resolvedShare"] >= baseline["crossSectionResolvedShare"] - 0.02, xs
     assert xs["unresolvedShare"] <= baseline["crossSectionUnresolvedShare"] + 0.01, xs
     assert xs["kerbSurveyShare"] >= baseline["crossSectionKerbSurveyShare"] - 0.02, xs
+    # Measured share -- survey, lidar or image kerbs -- and the stations resolved *on* them,
+    # apart from the ones resolved on a prior that fit. Neither may fall.
+    assert xs["kerbMeasuredShare"] >= baseline["crossSectionKerbMeasuredShare"] - 0.02, xs
+    assert xs["resolvedMeasuredShare"] >= baseline["crossSectionResolvedMeasuredShare"] - 0.02, xs
     assert xs["parkingMeasured"] >= baseline["crossSectionParkingMeasured"], xs
 
 

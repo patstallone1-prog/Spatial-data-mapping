@@ -49,6 +49,8 @@
  "crossSectionResolvedShare": 0.747,
  "crossSectionUnresolvedShare": 0.057,
  "crossSectionKerbSurveyShare": 0.355,
+ "crossSectionKerbMeasuredShare": 0.355,
+ "crossSectionResolvedMeasuredShare": 0.302,
  "crossSectionParkingMeasured": 0,
  "crosswalkMappedSuppressedByStandIn": 0,
  "footwayKeptShare": 0.913,

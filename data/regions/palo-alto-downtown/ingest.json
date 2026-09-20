@@ -7,20 +7,6 @@
   -122.155
  ],
  "stages": {
-  "discover": {
-   "status": "done",
-   "started_at": "2026-09-20T19:41:39Z",
-   "command": [
-    "scripts/discover_region.py",
-    "palo-alto-downtown"
-   ],
-   "exit_code": 0,
-   "seconds": 30.9,
-   "finished_at": "2026-09-20T19:42:10Z",
-   "outputs": [
-    "data/regions/palo-alto-downtown/capabilities.json"
-   ]
-  },
   "osm": {
    "status": "done",
    "started_at": "2026-09-20T19:42:10Z",
@@ -35,23 +21,8 @@
     "data/regions/palo-alto-downtown/osm_ways.json"
    ]
   },
-  "terrain": {
-   "status": "done",
-   "started_at": "2026-09-20T19:42:14Z",
-   "command": [
-    "scripts/build_terrain.py",
-    "--region",
-    "palo-alto-downtown"
-   ],
-   "exit_code": 0,
-   "seconds": 2.3,
-   "finished_at": "2026-09-20T19:42:16Z",
-   "outputs": [
-    "data/regions/palo-alto-downtown/site/sf-corridor-terrain.bin"
-   ]
-  },
   "imagery": {
-   "status": "running",
+   "status": "done",
    "started_at": "2026-09-20T19:42:16Z",
    "command": [
     "scripts/harvest_region_observations.py",
@@ -59,7 +30,26 @@
     "palo-alto-downtown",
     "--out",
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/palo-alto-downtown/catalog"
+   ],
+   "exit_code": 0,
+   "seconds": 260.6,
+   "finished_at": "2026-09-20T19:46:37Z",
+   "outputs": [
+    "data/regions/palo-alto-downtown/catalog/observations/external-000.parquet"
    ]
+  },
+  "official": {
+   "status": "done",
+   "started_at": "2026-09-20T19:46:37Z",
+   "command": [
+    "scripts/build_sf_official_geometry.py",
+    "--region",
+    "palo-alto-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 0.1,
+   "finished_at": "2026-09-20T19:46:37Z",
+   "outputs": []
   }
  }
 }

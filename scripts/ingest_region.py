@@ -17,6 +17,8 @@ Stages, in order, each skipped when its journal entry is done and its output is 
   discover   probe the sources; write capabilities.json (scripts/discover_region.py)
   osm        fetch OpenStreetMap for the box (the builder's own fetch, with its sanity guard)
   terrain    the lidar ground grid from the collection discovery found (scripts/build_terrain.py)
+  lidar      kerb offsets and heights along every street and a roof height for every footprint,
+             from the same lidar (scripts/measure_region_lidar.py)
   imagery    every observation Mapillary, Panoramax and KartaView hold in the box
              (scripts/harvest_region_observations.py)
   official   municipal records, where the city has them (scripts/build_sf_official_geometry.py)
@@ -54,7 +56,7 @@ from smc.net import use_certifi  # noqa: E402
 
 use_certifi()
 
-STAGES = ("discover", "osm", "terrain", "imagery", "official", "build", "audit")
+STAGES = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "audit")
 PY = sys.executable
 #: The imagery harvest of a dense district can run for hours against a throttled service.
 #: It gets this long; then it is stopped and the catalogue is built from what the journal
@@ -113,6 +115,10 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
         "osm": ([PY, "scripts/fetch_region_osm.py", region.name],
                 [base / "osm_ways.json"] if not corridor else [ROOT / "data/sf_corridor/stats/osm_ways.json"]),
         "terrain": ([PY, "scripts/build_terrain.py", "--region", region.name], [site / "sf-corridor-terrain.bin"]),
+        # Kerbs and roofs from the lidar. Where a city has curb lines they outrank the lidar's
+        # reading of the kerbs, but every region gets a roof height for every footprint.
+        "lidar": ([PY, "scripts/measure_region_lidar.py", region.name],
+                  [] if corridor else [base / "lidar" / "building_heights.json"]),
         "imagery": ([PY, "scripts/harvest_region_observations.py", "--region", region.name, "--out", str(catalog)],
                     [catalog / "observations" / "external-000.parquet"]),
         "official": ([PY, "scripts/build_sf_official_geometry.py", "--region", region.name],

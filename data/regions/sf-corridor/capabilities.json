@@ -1,0 +1,87 @@
+{
+ "region": "sf-corridor",
+ "vector": {},
+ "activation": {
+  "kerbs": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "official",
+   "count": 20928,
+   "of": 59010,
+   "truthful": false,
+   "note": "stations by kerb grade: {'N': 22788, 'S': 20928, 'M': 15294}"
+  },
+  "kerb_height": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "official",
+   "count": 1248,
+   "of": 2967,
+   "truthful": false,
+   "note": ""
+  },
+  "building_height": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "lidar",
+   "count": 12262,
+   "of": 15986,
+   "truthful": false,
+   "note": "by source: {'datasf_lidar_median_height': 12262, 'osm_height': 2821, 'inferred_default': 647, 'overture_height': 132, 'osm_levels': 124}"
+  },
+  "building_colour": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "imagery",
+   "count": 14534,
+   "of": 15986,
+   "truthful": false,
+   "note": ""
+  },
+  "terrain": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "lidar",
+   "count": 1,
+   "of": 1,
+   "truthful": false,
+   "note": "held-out RMSE 0.037 m on the roadway"
+  },
+  "parking": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "none",
+   "count": 0,
+   "of": 59010,
+   "truthful": true,
+   "note": "parking bands graded image; the rest are policy priors"
+  },
+  "curb_ramps": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "none",
+   "count": 0,
+   "of": 2626,
+   "truthful": true,
+   "note": ""
+  },
+  "lanes": {
+   "available": "none",
+   "implemented": false,
+   "extractor": null,
+   "active": "osm+priors",
+   "count": 59010,
+   "of": 59010,
+   "truthful": false,
+   "note": "every station is an allocation over priors; a measured lane boundary does not exist yet"
+  }
+ },
+ "activation_note": "available: what discovery found over the box; implemented: an extractor exists for that source; active: it ran on this build and the count is what it contributed. A property is truthful only when active matches available."
+}

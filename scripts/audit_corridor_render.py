@@ -676,7 +676,8 @@ for (const way of DATA.ways) {
 // -- the cross-sections: what the facts say about every station -----------------------------
 function crossSectionReport() {
   const out = { ways: 0, stations: 0, resolved: 0, partial: 0, unresolved: 0,
-                kerbSurvey: 0, kerbMapped: 0, kerbInferred: 0,
+                kerbSurvey: 0, kerbLidar: 0, kerbImage: 0, kerbMapped: 0, kerbInferred: 0,
+                resolvedMeasured: 0,
                 parkingMeasured: 0, parkingPrior: 0, parkingAssumed: 0, junctionsUnmatched: 0,
                 reasons: {} };
   for (const way of DATA.ways) {
@@ -686,7 +687,10 @@ function crossSectionReport() {
     for (const row of way.xs) {
       out.stations += 1;
       out[{ r: "resolved", p: "partial", u: "unresolved" }[row[4]]] += 1;
-      out[{ S: "kerbSurvey", L: "kerbSurvey", I: "kerbSurvey", M: "kerbMapped", N: "kerbInferred" }[row[3]]] += 1;
+      out[{ S: "kerbSurvey", L: "kerbLidar", I: "kerbImage", M: "kerbMapped", N: "kerbInferred" }[row[3]]] += 1;
+      // Resolved *because measured*: the kerbs came off a survey or a sensor and the bands
+      // closed between them. Resolved on a mapped width is a prior that fit, and is counted apart.
+      if (row[4] === "r" && (row[3] === "S" || row[3] === "L" || row[3] === "I")) out.resolvedMeasured += 1;
       for (const b of row[5]) {
         if (b[0] !== "p") continue;
         if (b[2] === "I" || b[2] === "L") out.parkingMeasured += 1;
@@ -699,6 +703,8 @@ function crossSectionReport() {
   out.resolvedShare = +(out.resolved / Math.max(1, out.stations)).toFixed(3);
   out.unresolvedShare = +(out.unresolved / Math.max(1, out.stations)).toFixed(3);
   out.kerbSurveyShare = +(out.kerbSurvey / Math.max(1, out.stations)).toFixed(3);
+  out.kerbMeasuredShare = +((out.kerbSurvey + out.kerbLidar + out.kerbImage) / Math.max(1, out.stations)).toFixed(3);
+  out.resolvedMeasuredShare = +(out.resolvedMeasured / Math.max(1, out.stations)).toFixed(3);
   return out;
 }
 
@@ -824,6 +830,8 @@ def baseline_from(report: dict, previous: dict) -> dict:
         "crossSectionResolvedShare": report["crossSections"]["resolvedShare"],
         "crossSectionUnresolvedShare": report["crossSections"]["unresolvedShare"],
         "crossSectionKerbSurveyShare": report["crossSections"]["kerbSurveyShare"],
+        "crossSectionKerbMeasuredShare": report["crossSections"]["kerbMeasuredShare"],
+        "crossSectionResolvedMeasuredShare": report["crossSections"]["resolvedMeasuredShare"],
         "crossSectionParkingMeasured": report["crossSections"]["parkingMeasured"],
         "crosswalkMappedSuppressedByStandIn": crosswalk["mappedSuppressedByStandIn"],
         "footwayKeptShare": report["footway"]["keptShare"],

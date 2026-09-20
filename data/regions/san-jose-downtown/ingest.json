@@ -1,0 +1,65 @@
+{
+ "region": "san-jose-downtown",
+ "bbox": [
+  37.325,
+  -121.905,
+  37.345,
+  -121.875
+ ],
+ "stages": {
+  "discover": {
+   "status": "done",
+   "started_at": "2026-09-20T19:46:51Z",
+   "command": [
+    "scripts/discover_region.py",
+    "san-jose-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 33.6,
+   "finished_at": "2026-09-20T19:47:25Z",
+   "outputs": [
+    "data/regions/san-jose-downtown/capabilities.json"
+   ]
+  },
+  "osm": {
+   "status": "done",
+   "started_at": "2026-09-20T19:47:25Z",
+   "command": [
+    "scripts/fetch_region_osm.py",
+    "san-jose-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 42.2,
+   "finished_at": "2026-09-20T19:48:07Z",
+   "outputs": [
+    "data/regions/san-jose-downtown/osm_ways.json"
+   ]
+  },
+  "terrain": {
+   "status": "done",
+   "started_at": "2026-09-20T19:48:07Z",
+   "command": [
+    "scripts/build_terrain.py",
+    "--region",
+    "san-jose-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 1845.6,
+   "finished_at": "2026-09-20T20:18:53Z",
+   "outputs": [
+    "data/regions/san-jose-downtown/site/sf-corridor-terrain.bin"
+   ]
+  },
+  "imagery": {
+   "status": "running",
+   "started_at": "2026-09-20T20:18:53Z",
+   "command": [
+    "scripts/harvest_region_observations.py",
+    "--region",
+    "san-jose-downtown",
+    "--out",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/san-jose-downtown/catalog"
+   ]
+  }
+ }
+}
