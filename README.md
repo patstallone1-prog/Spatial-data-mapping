@@ -121,12 +121,13 @@ The corridor-wide figures below are the `widthVsKerb` audit
 **Still guessed:** building materials and window patterns are procedural except the 220
 photographed walls and the buildings whose facade fingerprint (`scripts/build_facade_fingerprints.py`,
 read off their own photographs: glazing, texture, hue, storey rhythm) has been matched to the
-closest of the six renders the page has (`smc.facades.match`). The fingerprints are the
-record; the match is not drawn. Labelling a sample of the walls (`data/sf_public_works/
-facade_labels.json`, 60 patches: 33 were not the wall at all before a view test was added,
-19 were walls a person could name) and fitting the catalogue to them gave 3 of 19 right
-leave-one-out -- the fingerprint does not carry the material at this resolution -- so the
-page keeps its die for materials until it does; unmeasured building heights are drawn desaturated; curb heights come only
+closest of the renders the page has (`smc.facades.match`). 12,780 buildings fingerprinted
+from frames that passed a view test (a frame has to have seen the wall, not the street beside
+it: 11,902 views rejected), 12,711 colours re-sampled from those frames. The catalogue is
+fitted to 39 walls labelled by inspection (`data/sf_public_works/facade_labels.json`):
+leave-one-out 26 of 39 right, 14 of 18 at the 0.6 confidence the page draws from, so 5,413
+buildings wear the render their photographs point to (stucco 1,791, concrete 1,781, glass
+1,291, brick 268, metal 282) and the rest keep the die; unmeasured building heights are drawn desaturated; curb heights come only
 from our lidar because no city record publishes one; the parking bands are the city's
 policies plus a 2.3 m prior -- the estimator that measures them from parked cars in imagery
 (`smc.measure.parking_band`) is written and tested and has no crawl feeding it yet, so
