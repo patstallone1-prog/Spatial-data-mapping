@@ -44,6 +44,10 @@ from smc.official.schema import OfficialFactClass  # noqa: E402
 from smc.official.sfmta import LAYERS as SFMTA_LAYERS, fetch as sfmta_fetch  # noqa: E402
 from smc.imagery.region import SF_CORRIDOR, get_region  # noqa: E402
 
+from smc.net import use_certifi  # noqa: E402
+
+use_certifi()
+
 CACHE = ROOT / "build" / "sf_public_works"
 SFMTA_CACHE = ROOT / "build" / "sfmta"
 OUT = ROOT / "data" / "sf_public_works"

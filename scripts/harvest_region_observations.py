@@ -23,7 +23,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import asdict, fields as dataclass_fields
+from dataclasses import asdict
+from dataclasses import fields as dataclass_fields
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -52,6 +53,10 @@ from smc.imagery.pandaset import PandaSetProvider  # noqa: E402
 from smc.imagery.panoramax import PanoramaxProvider  # noqa: E402
 from smc.imagery.region import Region, get_region  # noqa: E402
 from smc.imagery.schema import Observation, SequenceRecord  # noqa: E402
+from smc.net import use_certifi  # noqa: E402
+
+use_certifi()
+
 
 
 def build_provider(name: str, *, kartaview_step_m: float, workers: int):

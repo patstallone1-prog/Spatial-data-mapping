@@ -16,6 +16,10 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+from smc.net import use_certifi  # noqa: E402
+
+use_certifi()
+
 CACHE = ROOT / "build" / "street_furniture"
 OUT = ROOT / "docs" / "sf-corridor-furniture.json"
 CORRIDOR = {"south": 37.786, "west": -122.4475, "north": 37.8095, "east": -122.392}

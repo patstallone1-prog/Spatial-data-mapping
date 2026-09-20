@@ -49,6 +49,10 @@ from smc.facades.fingerprint import combine, fingerprint_patch, view_quality  # 
 from smc.facades.geometry import Camera, LocalFrame, score_view, walls_of  # noqa: E402
 from smc.facades.rectify import rectify_wall  # noqa: E402
 
+from smc.net import use_certifi  # noqa: E402
+
+use_certifi()
+
 MAP_JSON = ROOT / "docs" / "sf-corridor-3d.json"
 CATALOG = ROOT / "data" / "sf_corridor" / "observations" / "external-000.parquet"
 COLOURS = ROOT / "data" / "sf_public_works" / "building_colours.json"

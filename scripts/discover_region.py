@@ -22,8 +22,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from smc.imagery.region import BBox, Region, get_region  # noqa: E402
+from smc.net import use_certifi  # noqa: E402
 from smc.regions.discover import discover  # noqa: E402
 
+use_certifi()
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)

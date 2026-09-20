@@ -66,19 +66,6 @@
    "outputs": [
     "data/regions/sf-mission/catalog/observations/external-000.parquet"
    ]
-  },
-  "official": {
-   "status": "failed",
-   "started_at": "2026-09-20T05:26:53Z",
-   "command": [
-    "scripts/build_sf_official_geometry.py",
-    "--region",
-    "sf-mission"
-   ],
-   "exit_code": 1,
-   "seconds": 20.3,
-   "finished_at": "2026-09-20T05:27:14Z",
-   "outputs": []
   }
  }
 }

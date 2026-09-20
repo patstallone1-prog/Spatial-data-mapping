@@ -50,6 +50,9 @@ from smc.imagery.region import (  # noqa: E402
     grid_regions,
     load_regions,
 )
+from smc.net import use_certifi  # noqa: E402
+
+use_certifi()
 
 STAGES = ("discover", "osm", "terrain", "imagery", "official", "build", "audit")
 PY = sys.executable

@@ -41,6 +41,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from smc.imagery.region import SF_CORRIDOR, get_region  # noqa: E402
 from smc.lidar.ept import SF_DATASET, EptReader  # noqa: E402
+from smc.net import use_certifi  # noqa: E402
+
+use_certifi()
 
 STEP_M = 2.0
 #: Fetched in tiles this wide; the reader caches them, so a re-run costs no download.

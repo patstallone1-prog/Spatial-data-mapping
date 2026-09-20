@@ -20,6 +20,8 @@ dependencies = [
     "pyarrow>=15.0",
     "duckdb>=1.1",
     "laspy[lazrs]>=2.5",
+    # The system certificate bundle on macOS lacked a chain the city's open-data host serves.
+    "certifi>=2024.2",
 ]
 
 [project.optional-dependencies]
