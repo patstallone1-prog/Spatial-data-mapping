@@ -45,7 +45,7 @@ from build_building_colours import (  # noqa: E402
     dominant_colour,
 )
 
-from smc.facades.fingerprint import combine, fingerprint_patch  # noqa: E402
+from smc.facades.fingerprint import combine, fingerprint_patch, view_quality  # noqa: E402
 from smc.facades.geometry import Camera, LocalFrame, score_view, walls_of  # noqa: E402
 from smc.facades.rectify import rectify_wall  # noqa: E402
 
@@ -163,6 +163,7 @@ def main() -> int:
     def read(job) -> tuple[str, dict]:
         key, chosen, need_colour = job
         views, samples, frames = [], [], []
+        rejected_views = [0]
         for i, wall in chosen:
             image = facades.fetch_image(rows["provider"][i], rows["provider_sequence_id"][i],
                                         rows["provider_image_id"][i])
@@ -176,19 +177,25 @@ def main() -> int:
             view = rectify_wall(image, camera, wall, pixels_per_m=PIXELS_PER_M)
             if view is None:
                 continue
+            quality = view_quality(view.image, view.mask)
+            rejected_views[0] += not quality["usable"]
+            if not quality["usable"]:
+                continue
             fp = fingerprint_patch(view.image, view.mask, PIXELS_PER_M)
             if fp is not None:
                 views.append(fp)
                 frames.append({"p": rows["provider"][i], "i": str(rows["provider_image_id"][i]),
-                               "w": wall.wall_index})
+                               "w": wall.wall_index, "wall_share": quality["wall_share"],
+                               "sky_share": quality["sky_share"]})
             if need_colour:
                 colour = dominant_colour(view.image, view.mask)
                 if colour is not None:
                     samples.append(colour)
-        out: dict = {}
+        out: dict = {"views_rejected": rejected_views[0]}
         combined = combine(views)
         if combined is not None:
-            out["fp"] = {**combined.to_json(), "frames": frames}
+            out["fp"] = {**combined.to_json(), "frames": frames,
+                         "wall_share": round(min(f["wall_share"] for f in frames), 3)}
         if need_colour and samples:
             stack = np.array(samples)
             median = np.median(stack, axis=0)
@@ -203,6 +210,7 @@ def main() -> int:
     pending: dict[str, dict] = {}
     with futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
         for n, (key, found) in enumerate(pool.map(read, jobs), start=1):
+            counters["views rejected: too little wall or sky in it"] += found.get("views_rejected", 0)
             if found.get("fp"):
                 fingerprints[key] = found["fp"]
                 counters["fingerprinted"] += 1
@@ -211,7 +219,7 @@ def main() -> int:
             if found.get("colour"):
                 colours[key] = found["colour"]
                 counters["colour sampled"] += 1
-            if found:
+            if found.get("fp") or found.get("colour"):
                 pending[key] = found
             if len(pending) >= args.checkpoint:
                 (PARTS / f"part-{part_number:05d}.json").write_text(json.dumps(pending))

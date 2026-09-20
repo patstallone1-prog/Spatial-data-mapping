@@ -89,3 +89,17 @@ def test_the_payload_form_round_trips():
     fp = Fingerprint(0.61, 0.2, 21.5, 0.3, 0.2, 0.1, 0.333, 0.25, 2)
     again = Fingerprint.from_json(fp.to_json())
     assert abs(again.lightness - 0.61) < 1e-9 and again.views == 2 and abs(again.storeys_per_m - 0.333) < 1e-9
+
+
+def test_a_view_that_saw_little_of_the_wall_or_saw_sky_is_not_a_view_of_the_wall():
+    from smc.facades.fingerprint import view_quality
+
+    patch, mask = wall((180, 180, 180))
+    assert view_quality(patch, mask)["usable"]
+    little = np.zeros_like(mask)
+    little[:, :40] = True                      # a quarter of the rectangle
+    assert not view_quality(patch, little)["usable"]
+    sky = patch.copy()
+    sky[:40] = (235, 205, 170)                 # pale blue across the top (BGR)
+    q = view_quality(sky, mask)
+    assert q["sky_share"] > 0.06 and not q["usable"]

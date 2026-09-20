@@ -36,13 +36,49 @@
    ]
   },
   "terrain": {
-   "status": "running",
+   "status": "done",
    "started_at": "2026-09-20T04:19:14Z",
    "command": [
     "scripts/build_terrain.py",
     "--region",
     "oakland-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 1655.9,
+   "finished_at": "2026-09-20T04:46:50Z",
+   "outputs": [
+    "data/regions/oakland-downtown/site/sf-corridor-terrain.bin"
    ]
+  },
+  "imagery": {
+   "status": "done",
+   "started_at": "2026-09-20T04:47:00Z",
+   "command": [
+    "scripts/harvest_region_observations.py",
+    "--region",
+    "oakland-downtown",
+    "--out",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/oakland-downtown/catalog"
+   ],
+   "exit_code": 0,
+   "seconds": 399.1,
+   "finished_at": "2026-09-20T04:53:40Z",
+   "outputs": [
+    "data/regions/oakland-downtown/catalog/observations/external-000.parquet"
+   ]
+  },
+  "official": {
+   "status": "done",
+   "started_at": "2026-09-20T04:53:40Z",
+   "command": [
+    "scripts/build_sf_official_geometry.py",
+    "--region",
+    "oakland-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 0.1,
+   "finished_at": "2026-09-20T04:53:40Z",
+   "outputs": []
   }
  }
 }

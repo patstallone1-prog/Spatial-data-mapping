@@ -1712,10 +1712,12 @@ def annotate_osm_features(
     # "Covered" meant photographed: the corridor draws its buildings in 3D where the imagery
     # reached. A region built with no imagery at all is drawn whole, from the map and the
     # lidar, and its capability vector says which rungs it stands on.
-    no_imagery = not coverage
+    # A region other than the corridor is drawn whole as well: the terrain and the lidar
+    # heights cover it, and a district with half its blocks missing is not a district.
+    whole = not coverage or REGION.name != SF_CORRIDOR.name
     for feature in ways:
         item = dict(feature)
-        item["covered"] = True if no_imagery else _feature_is_covered(item, covered_cells, resolution)
+        item["covered"] = True if whole else _feature_is_covered(item, covered_cells, resolution)
         if item.get("kind") == "building":
             height_sources[item.get("height_source") or "unknown"] += 1
         annotated.append(item)

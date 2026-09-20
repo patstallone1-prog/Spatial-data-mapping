@@ -141,9 +141,12 @@ def extract(name: str, js: str) -> str:
 
 
 DRIVER = """
-const DATA = JSON.parse(require('fs').readFileSync(process.env.PAGE_JSON, 'utf8'));
-const GROUND = JSON.parse(require('fs').readFileSync(process.env.GROUND_JSON, 'utf8'));
-const OFFICIAL = JSON.parse(require('fs').readFileSync(process.env.OFFICIAL_JSON, 'utf8'));
+const fs = require('fs');
+const DATA = JSON.parse(fs.readFileSync(process.env.PAGE_JSON, 'utf8'));
+// A region outside San Francisco has no ground-cover record and no official geometry: the
+// audit runs on what the page has, and the shares that need the city's kerbs come out empty.
+const GROUND = fs.existsSync(process.env.GROUND_JSON) ? JSON.parse(fs.readFileSync(process.env.GROUND_JSON, 'utf8')) : { features: [] };
+const OFFICIAL = fs.existsSync(process.env.OFFICIAL_JSON) ? JSON.parse(fs.readFileSync(process.env.OFFICIAL_JSON, 'utf8')) : { curb_lines: [], curb_ramps: [], islands: [], medians: [] };
 
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
@@ -354,6 +357,8 @@ for (const row of widthRows) {
 }
 const widthStat = (values) => {
   const sorted = values.slice().sort((a, b) => a - b);
+  // No kerb lines at all (a region without the city's records) is an empty comparison, not a crash.
+  if (!sorted.length) return { ways: 0, medianAbsM: null, p90AbsM: null, over3M: 0 };
   return { ways: sorted.length,
            medianAbsM: +sorted[Math.floor(sorted.length / 2)].toFixed(2),
            p90AbsM: +sorted[Math.floor(sorted.length * 0.9)].toFixed(2),

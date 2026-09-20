@@ -1,0 +1,65 @@
+{
+ "region": "sf-mission",
+ "bbox": [
+  37.748,
+  -122.4275,
+  37.77,
+  -122.405
+ ],
+ "stages": {
+  "discover": {
+   "status": "done",
+   "started_at": "2026-09-20T04:50:50Z",
+   "command": [
+    "scripts/discover_region.py",
+    "sf-mission"
+   ],
+   "exit_code": 0,
+   "seconds": 7.7,
+   "finished_at": "2026-09-20T04:50:57Z",
+   "outputs": [
+    "data/regions/sf-mission/capabilities.json"
+   ]
+  },
+  "osm": {
+   "status": "done",
+   "started_at": "2026-09-20T04:50:57Z",
+   "command": [
+    "scripts/fetch_region_osm.py",
+    "sf-mission"
+   ],
+   "exit_code": 0,
+   "seconds": 9.1,
+   "finished_at": "2026-09-20T04:51:07Z",
+   "outputs": [
+    "data/regions/sf-mission/osm_ways.json"
+   ]
+  },
+  "terrain": {
+   "status": "done",
+   "started_at": "2026-09-20T04:51:07Z",
+   "command": [
+    "scripts/build_terrain.py",
+    "--region",
+    "sf-mission"
+   ],
+   "exit_code": 0,
+   "seconds": 1286.6,
+   "finished_at": "2026-09-20T05:12:33Z",
+   "outputs": [
+    "data/regions/sf-mission/site/sf-corridor-terrain.bin"
+   ]
+  },
+  "imagery": {
+   "status": "running",
+   "started_at": "2026-09-20T05:12:33Z",
+   "command": [
+    "scripts/harvest_region_observations.py",
+    "--region",
+    "sf-mission",
+    "--out",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/catalog"
+   ]
+  }
+ }
+}

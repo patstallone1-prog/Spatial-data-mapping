@@ -6,7 +6,7 @@
   37.77,
   -122.405
  ],
- "probed_at": "2026-09-20T04:14:26Z",
+ "probed_at": "2026-09-20T04:50:50Z",
  "osm": {
   "highway_ways": 3800,
   "buildings": 8392
@@ -46,6 +46,11 @@
   ]
  },
  "imagery": {
+  "mapillary": {
+   "available": true,
+   "images_seen": 500,
+   "capped": true
+  },
   "panoramax": {
    "available": true,
    "images_seen": 42,
@@ -89,7 +94,5 @@
   "lanes": "osm+priors",
   "streets": "osm"
  },
- "errors": {
-  "mapillary": "HTTP Error 500: Internal Server Error"
- }
+ "errors": {}
 }

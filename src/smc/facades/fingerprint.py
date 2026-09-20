@@ -60,6 +60,32 @@ def _period_per_m(profile: np.ndarray, pixels_per_m: float) -> float | None:
     return pixels_per_m / k
 
 
+#: How much of the wall's rectangle a frame has to have seen, and how little of what it saw
+#: may be sky, before the view counts. A frame that saw a fifth of the wall saw the street
+#: beside it projected onto the wall's plane -- the pose is a few degrees off, or the wall is
+#: behind a tree -- and a wall with sky in it is not a wall at all. The first pass had no
+#: such test, and its contact sheets were street scenes with the odd facade.
+MIN_WALL_SHARE = 0.45
+MAX_SKY_SHARE = 0.06
+
+
+def view_quality(patch_bgr: np.ndarray, mask: np.ndarray) -> dict:
+    """``wall_share``: the share of the rectangle the frame saw; ``sky_share``: the share of
+    that which is sky -- pale, blue-leaning, in the upper half."""
+    wall = mask.astype(bool)
+    share = float(wall.sum() / max(1, wall.size))
+    if not wall.any():
+        return {"wall_share": share, "sky_share": 0.0, "usable": False}
+    rgb = patch_bgr[..., ::-1].astype(np.float64) / 255.0
+    _h, light, sat = _rgb_to_hls(rgb)
+    sky = (light > 0.72) & (rgb[..., 2] >= rgb[..., 0] + 0.03) & (sat < 0.75)
+    upper = np.zeros_like(wall)
+    upper[: max(1, wall.shape[0] // 2)] = True
+    sky_share = float((sky & wall & upper).sum() / wall.sum())
+    return {"wall_share": round(share, 3), "sky_share": round(sky_share, 3),
+            "usable": share >= MIN_WALL_SHARE and sky_share <= MAX_SKY_SHARE}
+
+
 def fingerprint_patch(patch_bgr: np.ndarray, mask: np.ndarray, pixels_per_m: float) -> Fingerprint | None:
     """One view's fingerprint, or None when too little of the wall is in it."""
     if mask.sum() < MIN_WALL_PIXELS:
