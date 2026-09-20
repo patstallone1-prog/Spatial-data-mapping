@@ -56,6 +56,11 @@ use_certifi()
 
 STAGES = ("discover", "osm", "terrain", "imagery", "official", "build", "audit")
 PY = sys.executable
+#: The imagery harvest of a dense district can run for hours against a throttled service.
+#: It gets this long; then it is stopped and the catalogue is built from what the journal
+#: holds (--from-journal), the stage recorded as done with "partial" and the frame count.
+#: A later run resumes the crawl from the journal.
+IMAGERY_BUDGET_S = 90 * 60
 
 
 def region_dir(region: Region) -> Path:
@@ -80,15 +85,21 @@ def save_journal(region: Region, journal: dict) -> None:
     path.write_text(json.dumps(journal, indent=1) + "\n")
 
 
-def run(cmd: list[str], *, log: Path) -> tuple[int, float]:
-    """Run one stage's command, its output to a log beside the journal."""
+def run(cmd: list[str], *, log: Path, budget_s: float | None = None) -> tuple[int, float, bool]:
+    """Run one stage's command, its output to a log beside the journal. Returns the exit
+    code, the seconds it took, and whether it was stopped at its budget."""
     started = time.time()
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("a") as fh:
         fh.write(f"\n$ {' '.join(cmd)}\n")
         fh.flush()
-        code = subprocess.call(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT, env=os.environ)
-    return code, time.time() - started
+        try:
+            code = subprocess.call(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT, env=os.environ,
+                                   timeout=budget_s)
+        except subprocess.TimeoutExpired:
+            fh.write(f"\n[stopped at the stage's budget of {budget_s:.0f} s]\n")
+            return -1, time.time() - started, True
+    return code, time.time() - started, False
 
 
 def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
@@ -133,12 +144,21 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
         journal["stages"][stage] = {"status": "running", "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                                     "command": cmd[1:]}
         save_journal(region, journal)
-        code, seconds = run(cmd, log=log)
+        budget = IMAGERY_BUDGET_S if stage == "imagery" else None
+        code, seconds, stopped = run(cmd, log=log, budget_s=budget)
+        partial = None
+        if stopped and stage == "imagery":
+            # What the crawl journalled is the catalogue for now; the crawl resumes another day.
+            finish = cmd + ["--from-journal"]
+            code, more, _ = run(finish, log=log)
+            seconds += more
+            partial = "stopped at budget; catalogue built from the journal"
         present = all(p.exists() for p in outputs)
         status = "done" if code == 0 and present else "failed"
         journal["stages"][stage].update({"status": status, "exit_code": code, "seconds": round(seconds, 1),
                                          "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                                         "outputs": [str(p.relative_to(ROOT)) for p in outputs if p.exists()]})
+                                         "outputs": [str(p.relative_to(ROOT)) for p in outputs if p.exists()],
+                                         **({"partial": partial} if partial else {})})
         save_journal(region, journal)
         print(f"  {stage:9s} {status} in {seconds:.0f} s" + ("" if status == "done" else f" (exit {code}; see {log})"))
         if status == "failed":
