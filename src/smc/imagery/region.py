@@ -8,8 +8,10 @@ assume a known area.
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 #: Mean Earth radius, metres. Local work here is well inside the range where a sphere is fine.
 EARTH_RADIUS_M = 6_371_000.0
@@ -105,10 +107,49 @@ SF_CORRIDOR = Region(
 
 REGIONS: dict[str, Region] = {SF_CORRIDOR.name: SF_CORRIDOR}
 
+#: The other regions are data: data/regions/regions.json, one entry per region, so that
+#: scaling to a new district or a new city is a line in a file and a run of the ingestion.
+REGIONS_FILE = Path(__file__).resolve().parents[3] / "data" / "regions" / "regions.json"
+
+
+def load_regions(path: Path = REGIONS_FILE) -> dict[str, Region]:
+    """Every region: the corridor, and those listed in the regions file."""
+    out = dict(REGIONS)
+    if path.exists():
+        for row in json.loads(path.read_text(encoding="utf-8")).get("regions", []):
+            south, west, north, east = row["bbox"]
+            out[row["name"]] = Region(name=row["name"], bbox=BBox(south=south, west=west, north=north, east=east),
+                                      description=row.get("description", ""))
+    return out
+
+
+def grid_regions(bbox: BBox, cell_km: float, prefix: str) -> list[Region]:
+    """A bounding box cut into square cells, each a region of its own: the unit the Bay Area
+    is ingested in. Cells are named ``<prefix>-<column>-<row>`` from the south-west."""
+    step_lat = cell_km * 1000.0 / 111_320.0
+    step_lon = cell_km * 1000.0 / (111_320.0 * math.cos(math.radians((bbox.south + bbox.north) / 2.0)))
+    cells: list[Region] = []
+    row = 0
+    south = bbox.south
+    while south < bbox.north - 1e-9:
+        north = min(bbox.north, south + step_lat)
+        col = 0
+        west = bbox.west
+        while west < bbox.east - 1e-9:
+            east = min(bbox.east, west + step_lon)
+            cells.append(Region(name=f"{prefix}-{col}-{row}", bbox=BBox(south=south, west=west, north=north, east=east),
+                                description=f"{prefix} cell column {col} row {row}, {cell_km} km"))
+            west = east
+            col += 1
+        south = north
+        row += 1
+    return cells
+
 
 def get_region(name: str) -> Region:
+    regions = load_regions()
     try:
-        return REGIONS[name]
+        return regions[name]
     except KeyError:
-        known = ", ".join(sorted(REGIONS))
+        known = ", ".join(sorted(regions))
         raise KeyError(f"unknown region {name!r}; known regions: {known}") from None

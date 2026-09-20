@@ -1,0 +1,48 @@
+{
+ "region": "oakland-downtown",
+ "bbox": [
+  37.795,
+  -122.285,
+  37.815,
+  -122.26
+ ],
+ "stages": {
+  "discover": {
+   "status": "done",
+   "started_at": "2026-09-20T04:18:48Z",
+   "command": [
+    "scripts/discover_region.py",
+    "oakland-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 12.7,
+   "finished_at": "2026-09-20T04:19:01Z",
+   "outputs": [
+    "data/regions/oakland-downtown/capabilities.json"
+   ]
+  },
+  "osm": {
+   "status": "done",
+   "started_at": "2026-09-20T04:19:01Z",
+   "command": [
+    "scripts/fetch_region_osm.py",
+    "oakland-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 7.4,
+   "finished_at": "2026-09-20T04:19:08Z",
+   "outputs": [
+    "data/regions/oakland-downtown/osm_ways.json"
+   ]
+  },
+  "terrain": {
+   "status": "running",
+   "started_at": "2026-09-20T04:19:14Z",
+   "command": [
+    "scripts/build_terrain.py",
+    "--region",
+    "oakland-downtown"
+   ]
+  }
+ }
+}

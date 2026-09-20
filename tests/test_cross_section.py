@@ -191,3 +191,15 @@ def test_a_measured_parking_band_outranks_the_policy_prior_and_a_measured_absenc
     prior = parking_band_for_side(way, 1, {})
     assert prior.grade is SourceGrade.INFERRED and prior.width_m == 2.3
     assert parking_band_for_side({"cnn": "sfcnn:2"}, 1, {}) is None
+
+
+def test_a_street_with_no_recorded_width_gets_a_prior_from_its_class_and_says_so():
+    """Outside San Francisco there are no kerb lines and no recorded widths; a residential
+    street is two travel lanes and parking both sides by prior, a one-lane service road is a
+    lane, and the kerbs are graded inferred rather than mapped."""
+    from smc.facts.build_cross_sections import prior_width_m
+
+    assert prior_width_m({"highway": "residential"}) == 2 * 3.3 + 2 * 2.3
+    assert prior_width_m({"highway": "service"}) == 3.3
+    assert prior_width_m({"highway": "primary", "lanes": 4}) == 4 * 3.3 + 2.3
+    assert prior_width_m({"highway": "residential", "parking_sides": [1]}) == 2 * 3.3

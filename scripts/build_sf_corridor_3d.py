@@ -29,7 +29,7 @@ from smc.buildings.enrichment import (
     merge_building_enrichment,
     normalize_osm_building,
 )
-from smc.imagery.region import SF_CORRIDOR, BBox
+from smc.imagery.region import SF_CORRIDOR, BBox, Region, get_region
 
 #: Coordinates are published to seven decimals: about a centimetre at this latitude. Six was
 #: a decimetre -- the model measures the kerbs to five centimetres and then rounded them to
@@ -391,6 +391,30 @@ OVERPASS_MIRRORS = (
 
 #: The corridor's query returns some 20,000 elements; a tenth of that is a broken answer.
 OSM_MIN_ELEMENTS = 2_000
+
+#: The region being built. The corridor by default; any region from data/regions/regions.json
+#: with --region, in which case every path below moves under data/regions/<name>/ and the
+#: page and its sidecars are written beside --out. A region outside San Francisco has no
+#: municipal records: its official directory is empty and every consumer here already copes
+#: with a missing file by dropping that rung of the ladder.
+REGION: Region = SF_CORRIDOR
+SITE_DIR = ROOT / "docs"
+
+
+def configure_region(region: Region, out: Path, official_dir: Path | None = None) -> None:
+    """Point the build at a region: its box, its official records and where its site goes."""
+    global REGION, SITE_DIR, OFFICIAL, TUNNEL_PORTALS, GROUND_COVER, GROUND_VIEWER, FURNITURE_VIEWER, FACADE_ROOT
+    REGION = region
+    SITE_DIR = out.resolve().parent
+    if official_dir is None:
+        official_dir = (ROOT / "data" / "sf_public_works" if region.name == SF_CORRIDOR.name
+                        else ROOT / "data" / "regions" / region.name / "official")
+    OFFICIAL = official_dir
+    TUNNEL_PORTALS = official_dir / "tunnel_portals.json"
+    GROUND_COVER = official_dir / "ground_cover.json"
+    GROUND_VIEWER = SITE_DIR / "sf-corridor-ground.json"
+    FURNITURE_VIEWER = SITE_DIR / "sf-corridor-furniture.json"
+    FACADE_ROOT = SITE_DIR / "facades"
 
 
 def load_building_colours(path: Path) -> dict[str, dict]:
@@ -1155,7 +1179,7 @@ def _point_in_ring(x: float, y: float, ring: list[list[float]]) -> bool:
 ROAD_TUNNEL_CLASSES = {"primary", "secondary", "tertiary", "residential", "unclassified", "trunk",
                        "primary_link", "secondary_link", "trunk_link"}
 MIN_ROAD_TUNNEL_M = 40.0
-TUNNEL_PORTALS = ROOT / "data" / "sf_public_works" / "tunnel_portals.json"
+TUNNEL_PORTALS = ROOT / "data" / "sf_public_works" / "tunnel_portals.json"   # set by configure_region
 
 
 #: A way's portal record is keyed by its name and first point as the measurement wrote them
@@ -1541,16 +1565,19 @@ def annotate_cross_sections(ways: list[dict[str, Any]]) -> dict[str, int]:
 
     centrelines_path = OFFICIAL / "centrelines.json"
     profiles_path = OFFICIAL / "curb_profiles_corridor.json"
-    if not centrelines_path.exists() or not profiles_path.exists():
-        return {"skipped": 1}
-    bbox = {"south": SF_CORRIDOR.bbox.south, "west": SF_CORRIDOR.bbox.west,
-            "north": SF_CORRIDOR.bbox.north, "east": SF_CORRIDOR.bbox.east}
+    # Without the city's kerb profiles every station's kerbs are the mapped width's, graded
+    # mapped or inferred, and the allocation runs on those: a lower rung, not no rung.
+    has_profiles = centrelines_path.exists() and profiles_path.exists()
+    bbox = {"south": REGION.bbox.south, "west": REGION.bbox.west,
+            "north": REGION.bbox.north, "east": REGION.bbox.east}
     frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0, (bbox["west"] + bbox["east"]) / 2.0)
-    profiles = json.loads(profiles_path.read_text()).get("profiles", {})
+    profiles = json.loads(profiles_path.read_text()).get("profiles", {}) if has_profiles else {}
+    centrelines = json.loads(centrelines_path.read_text()) if has_profiles else []
     bands_path = OFFICIAL / "parking_bands.json"
     measured = json.loads(bands_path.read_text()).get("bands", {}) if bands_path.exists() else {}
-    return build_cross_sections(ways, json.loads(centrelines_path.read_text()), profiles,
-                                frame=frame, measured_parking=measured)
+    counts = build_cross_sections(ways, centrelines, profiles, frame=frame, measured_parking=measured)
+    counts["kerb profiles"] = "city" if has_profiles else "none: kerbs from the mapped width"
+    return counts
 
 
 def alley_mouth_crossings(ways: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1633,7 +1660,11 @@ def alley_mouth_crossings(ways: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def district_bands() -> list[dict[str, Any]]:
-    south, north = SF_CORRIDOR.bbox.south, SF_CORRIDOR.bbox.north
+    south, north = REGION.bbox.south, REGION.bbox.north
+    if REGION.name != SF_CORRIDOR.name:
+        # The corridor's districts are hand-drawn; any other region is one district, itself.
+        return [{"name": REGION.description or REGION.name, "west": REGION.bbox.west, "east": REGION.bbox.east,
+                 "south": south, "north": north}]
     return [
         {"name": "Marina", "west": -122.4475, "east": -122.4310, "south": 37.7975, "north": north},
         {"name": "Cow Hollow", "west": -122.4475, "east": -122.4235, "south": south, "north": 37.7975},
@@ -1678,9 +1709,13 @@ def annotate_osm_features(
     resolution = _cell_resolution(covered_cells)
     annotated = []
     height_sources = Counter()
+    # "Covered" meant photographed: the corridor draws its buildings in 3D where the imagery
+    # reached. A region built with no imagery at all is drawn whole, from the map and the
+    # lidar, and its capability vector says which rungs it stands on.
+    no_imagery = not coverage
     for feature in ways:
         item = dict(feature)
-        item["covered"] = _feature_is_covered(item, covered_cells, resolution)
+        item["covered"] = True if no_imagery else _feature_is_covered(item, covered_cells, resolution)
         if item.get("kind") == "building":
             height_sources[item.get("height_source") or "unknown"] += 1
         annotated.append(item)
@@ -1728,10 +1763,18 @@ def annotate_building_enrichment(ways: list[dict[str, Any]]) -> dict[str, Any]:
     return summary
 
 
+def _rows(path: Path) -> list[dict]:
+    """A catalogue table's rows, or none: a region whose imagery has not been harvested yet
+    builds from the map, the lidar and the records, and its coverage layer is empty."""
+    return pq.read_table(path).to_pylist() if path.exists() else []
+
+
 def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
-    observations = pq.read_table(root / "observations" / "external-000.parquet").to_pylist()
-    coverage = pq.read_table(root / "coverage" / "h3.parquet").to_pylist()
-    sequences = pq.read_table(root / "sequences" / "external.parquet").to_pylist()
+    observations = _rows(root / "observations" / "external-000.parquet")
+    coverage = _rows(root / "coverage" / "h3.parquet")
+    sequences = _rows(root / "sequences" / "external.parquet")
+    if not observations:
+        print(f"  no observation catalogue under {root}: building without imagery", file=sys.stderr)
     # A fallback, and only that. This used to be *the* kerb height: one median taken over every
     # measurement in the corridor and built into every kerb in the model, which is how nine
     # thousand lidar slices became a single number. Each way now carries its own measured height
@@ -1758,8 +1801,8 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     building_summary["named_places"] = attach_named_places(ways)
     print(f"  shopfronts named from places: {building_summary['named_places']}", file=sys.stderr)
     official_summary = annotate_official(ways, {
-        "south": SF_CORRIDOR.bbox.south, "west": SF_CORRIDOR.bbox.west,
-        "north": SF_CORRIDOR.bbox.north, "east": SF_CORRIDOR.bbox.east,
+        "south": REGION.bbox.south, "west": REGION.bbox.west,
+        "north": REGION.bbox.north, "east": REGION.bbox.east,
     })
     osm_summary["parking_aisles_folded_into_lots"] = fold_parking_aisles_into_lots(ways)
     osm_summary["tunnels"] = classify_tunnels(ways)
@@ -1826,10 +1869,10 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
             "street_furniture": furniture_summary,
         },
         "bbox": {
-            "south": SF_CORRIDOR.bbox.south,
-            "west": SF_CORRIDOR.bbox.west,
-            "north": SF_CORRIDOR.bbox.north,
-            "east": SF_CORRIDOR.bbox.east,
+            "south": REGION.bbox.south,
+            "west": REGION.bbox.west,
+            "north": REGION.bbox.north,
+            "east": REGION.bbox.east,
         },
         "kerb_height_m": round(kerb_height_m, 4),
         "official": official_summary,
@@ -1866,11 +1909,11 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-GROUND_COVER = Path(__file__).resolve().parents[1] / "data" / "sf_public_works" / "ground_cover.json"
+GROUND_COVER = ROOT / "data" / "sf_public_works" / "ground_cover.json"   # set by configure_region
 
 
-GROUND_VIEWER = Path(__file__).resolve().parents[1] / "docs" / "sf-corridor-ground.json"
-FURNITURE_VIEWER = Path(__file__).resolve().parents[1] / "docs" / "sf-corridor-furniture.json"
+GROUND_VIEWER = ROOT / "docs" / "sf-corridor-ground.json"          # set by configure_region
+FURNITURE_VIEWER = ROOT / "docs" / "sf-corridor-furniture.json"
 
 
 def publish_ground_cover() -> dict:
@@ -1893,7 +1936,7 @@ def publish_street_furniture() -> dict:
     if not script.exists():
         return {"available": False, "reason": "missing build_street_furniture.py"}
     try:
-        subprocess.run([sys.executable, str(script), "--out", str(FURNITURE_VIEWER)], check=True)
+        subprocess.run([sys.executable, str(script), "--out", str(FURNITURE_VIEWER), "--region", REGION.name], check=True)
     except Exception as exc:  # noqa: BLE001
         return {"available": False, "reason": str(exc)}
     if not FURNITURE_VIEWER.exists():
@@ -1905,7 +1948,7 @@ def publish_street_furniture() -> dict:
     return summary
 
 
-FACADE_ROOT = Path(__file__).resolve().parents[1] / "docs" / "facades"
+FACADE_ROOT = ROOT / "docs" / "facades"   # set by configure_region
 
 
 def photo_facades() -> dict:
@@ -1955,7 +1998,7 @@ def photo_facades() -> dict:
     }
 
 
-OFFICIAL = Path(__file__).resolve().parents[1] / "data" / "sf_public_works"
+OFFICIAL = ROOT / "data" / "sf_public_works"   # set by configure_region
 #: How near an inventory point has to be to the middle of a crossing way to be that crossing.
 #: Generous enough for the offset between where the city drops the point and where OSM draws
 #: the way, tight enough not to reach the next arm of the intersection.
@@ -16532,10 +16575,10 @@ def write_detail_shards(payload: dict[str, Any], out_dir: Path) -> dict[str, Any
     """
 
     bbox = payload.get("bbox") or {}
-    west = float(bbox.get("west", SF_CORRIDOR.bbox.west))
-    east = float(bbox.get("east", SF_CORRIDOR.bbox.east))
-    south = float(bbox.get("south", SF_CORRIDOR.bbox.south))
-    north = float(bbox.get("north", SF_CORRIDOR.bbox.north))
+    west = float(bbox.get("west", REGION.bbox.west))
+    east = float(bbox.get("east", REGION.bbox.east))
+    south = float(bbox.get("south", REGION.bbox.south))
+    north = float(bbox.get("north", REGION.bbox.north))
     split_lon = (west + east) / 2
     rows: dict[str, list[dict[str, Any]]] = {"west": [], "east": []}
     collisions: set[str] = set()
@@ -16653,11 +16696,32 @@ def slim_payload(payload: dict) -> dict[str, int]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--catalog", type=Path, default=Path("data/sf_corridor"))
-    parser.add_argument("--out", type=Path, default=Path("docs/sf-corridor-3d.html"))
-    parser.add_argument("--osm-cache", type=Path, default=Path("data/sf_corridor/stats/osm_ways.json"))
+    parser.add_argument("--region", default=SF_CORRIDOR.name,
+                        help="a region from data/regions/regions.json; the corridor by default")
+    parser.add_argument("--catalog", type=Path, default=None,
+                        help="the observation catalogue; default data/sf_corridor for the corridor, "
+                             "data/regions/<name>/catalog otherwise")
+    parser.add_argument("--out", type=Path, default=None,
+                        help="the page; default docs/sf-corridor-3d.html for the corridor, "
+                             "data/regions/<name>/site/sf-corridor-3d.html otherwise")
+    parser.add_argument("--official-dir", type=Path, default=None,
+                        help="the municipal records; default data/sf_public_works for the corridor, "
+                             "data/regions/<name>/official otherwise")
+    parser.add_argument("--osm-cache", type=Path, default=None)
     parser.add_argument("--reuse-osm", action="store_true")
     args = parser.parse_args()
+    region = get_region(args.region)
+    corridor = region.name == SF_CORRIDOR.name
+    if args.catalog is None:
+        args.catalog = Path("data/sf_corridor") if corridor else ROOT / "data" / "regions" / region.name / "catalog"
+    if args.out is None:
+        args.out = (Path("docs/sf-corridor-3d.html") if corridor
+                    else ROOT / "data" / "regions" / region.name / "site" / "sf-corridor-3d.html")
+    if args.osm_cache is None:
+        args.osm_cache = (Path("data/sf_corridor/stats/osm_ways.json") if corridor
+                          else ROOT / "data" / "regions" / region.name / "osm_ways.json")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    configure_region(region, args.out, args.official_dir)
 
     if args.reuse_osm and args.osm_cache.exists():
         ways = reclassify(json.loads(args.osm_cache.read_text(encoding="utf-8")))
@@ -16666,7 +16730,7 @@ def main() -> int:
         # rule applies: a bay with houses in it is not a bay.
         ways = drop_water_over_land(ways)
     else:
-        ways = fetch_osm(SF_CORRIDOR.bbox)
+        ways = fetch_osm(REGION.bbox)
         args.osm_cache.parent.mkdir(parents=True, exist_ok=True)
         args.osm_cache.write_text(json.dumps(ways, indent=2) + "\n", encoding="utf-8")
 
@@ -16693,10 +16757,11 @@ def main() -> int:
         for shard in detail_manifest["shards"]
     ))
     data_path.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
-    args.out.write_text(
-        HTML,
-        encoding="utf-8",
-    )
+    # The page is the same for every region; only its name differs.
+    page = HTML
+    if region.name != SF_CORRIDOR.name:
+        page = page.replace("Kerbside SF Corridor 3D", f"Kerbside {region.description or region.name} 3D")
+    args.out.write_text(page, encoding="utf-8")
     print(f"{args.out} -> {args.out.stat().st_size / 1e3:.1f} kB page")
     print(f"{data_path} -> {data_path.stat().st_size / 1e6:.2f} MB payload")
     print(json.dumps(payload["summary"], indent=2))

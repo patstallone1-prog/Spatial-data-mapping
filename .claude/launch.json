@@ -4,8 +4,30 @@
     {
       "name": "kerbside-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "docs", "--bind", "127.0.0.1"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--directory",
+        "docs",
+        "--bind",
+        "127.0.0.1"
+      ],
       "port": 8765
+    },
+    {
+      "name": "kerbside-regions",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8766",
+        "--directory",
+        "data/regions",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "port": 8766
     }
   ]
 }

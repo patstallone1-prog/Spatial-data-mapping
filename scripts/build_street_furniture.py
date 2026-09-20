@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 import math
 import time
 import urllib.parse
@@ -647,13 +648,26 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=OUT)
     parser.add_argument("--refresh", action="store_true")
+    parser.add_argument("--region", default=None, help="a region from data/regions/regions.json; the corridor by default")
     args = parser.parse_args()
+
+    global CORRIDOR
+    sfmta = True
+    if args.region:
+        sys.path.insert(0, str(ROOT / "src"))
+        from smc.imagery.region import get_region
+        from smc.regions.discover import municipal_records
+        region = get_region(args.region)
+        CORRIDOR = {"south": region.bbox.south, "west": region.bbox.west,
+                    "north": region.bbox.north, "east": region.bbox.east}
+        # The SFMTA layers are the city's; outside it the furniture is OpenStreetMap's alone.
+        sfmta = municipal_records(region.bbox).get("city") == "san-francisco"
 
     elements = fetch_overpass(CORRIDOR, refresh=args.refresh)
     inferred = records_from_osm(elements)
     counts = {key: len(value) for key, value in inferred.items()}
     official_features = {
-        key: fetch_arcgis_layer(key, CORRIDOR, refresh=args.refresh)
+        key: (fetch_arcgis_layer(key, CORRIDOR, refresh=args.refresh) if sfmta else [])
         for key in ARCGIS_LAYERS
     }
     geometry_based = records_from_official(official_features)

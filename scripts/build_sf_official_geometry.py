@@ -42,6 +42,7 @@ from smc.official.join import CentrelineIndex  # noqa: E402
 from smc.official.reconcile import compare_widths  # noqa: E402
 from smc.official.schema import OfficialFactClass  # noqa: E402
 from smc.official.sfmta import LAYERS as SFMTA_LAYERS, fetch as sfmta_fetch  # noqa: E402
+from smc.imagery.region import SF_CORRIDOR, get_region  # noqa: E402
 
 CACHE = ROOT / "build" / "sf_public_works"
 SFMTA_CACHE = ROOT / "build" / "sfmta"
@@ -143,7 +144,25 @@ def main() -> int:
         action="store_true",
         help="refresh the viewer's SFMTA curb geometry without rebuilding every official fact",
     )
+    ap.add_argument("--region", default=SF_CORRIDOR.name,
+                    help="a San Francisco region from data/regions/regions.json; the records are "
+                         "the city's, so a region outside the city has none and this exits")
     args = ap.parse_args()
+    region = get_region(args.region)
+    global OUT, VIEWER, LIDAR, CORRIDOR, CACHE
+    CORRIDOR = {"south": region.bbox.south, "west": region.bbox.west,
+                "north": region.bbox.north, "east": region.bbox.east}
+    if region.name != SF_CORRIDOR.name:
+        from smc.regions.discover import municipal_records
+        if municipal_records(region.bbox).get("city") != "san-francisco":
+            print(f"{region.name} is outside San Francisco: no municipal records to extract", file=sys.stderr)
+            return 0
+        base = ROOT / "data" / "regions" / region.name
+        OUT = base / "official"
+        VIEWER = base / "site" / "sf-corridor-official.json"
+        LIDAR = base / "lidar" / "curb_sections.jsonl"
+        CACHE = ROOT / "build" / "regions" / region.name / "sf_public_works"
+        VIEWER.parent.mkdir(parents=True, exist_ok=True)
 
     def progress(message: str) -> None:
         print(message, flush=True)

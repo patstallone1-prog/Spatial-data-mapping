@@ -25,6 +25,7 @@ from typing import Any
 
 from smc.facades.geometry import LocalFrame
 from smc.facts.cross_section import (
+    PRIORS,
     STATION_M,
     Band,
     Kind,
@@ -133,6 +134,30 @@ def parking_band_for_side(way: dict, side: int, measured: dict | None) -> Band |
     return None
 
 
+#: A carriageway width from the map alone, for a way with no kerb reading and no recorded
+#: width: the map's lane count (or the class's usual one) at the travel prior, plus a parking
+#: band each side where the class usually has one. Graded inferred; it is a prior.
+CLASS_LANES = {"motorway": 3, "trunk": 2, "primary": 2, "secondary": 2, "tertiary": 2,
+               "residential": 2, "unclassified": 2, "living_street": 1, "service": 1}
+CLASS_PARKING_SIDES = {"primary": 1, "secondary": 2, "tertiary": 2, "residential": 2, "unclassified": 2,
+                       "living_street": 1}
+
+
+def prior_width_m(way: dict) -> float:
+    highway = str(way.get("highway") or "residential")
+    lanes = way.get("lanes") or CLASS_LANES.get(highway, 2)
+    try:
+        lanes = max(1, int(lanes))
+    except (TypeError, ValueError):
+        lanes = CLASS_LANES.get(highway, 2)
+    if way.get("oneway") or way.get("osm_oneway"):
+        lanes = max(1, lanes)
+    width = lanes * PRIORS[Kind.TRAVEL][1]
+    if not way.get("parking_sides"):
+        width += CLASS_PARKING_SIDES.get(highway, 0) * PARKING_PRIOR_M
+    return round(width, 2)
+
+
 def fixed_bands_for_side(way: dict, side: int, measured_parking: dict | None = None) -> list[Band]:
     """The bands from one kerb inward that are known before any lane is placed."""
     bands: list[Band] = []
@@ -182,6 +207,10 @@ def build_cross_sections(
         oneway = bool(way.get("oneway") or way.get("osm_oneway"))
         named = bool(way.get("name"))
         road_m = float(way.get("road_m") or 0.0)
+        width_is_prior = False
+        if road_m <= 0:
+            road_m = prior_width_m(way)
+            width_is_prior = True
         profile = profiles.get(way.get("cnn") or "")
         stations: list[Station] = []
         for s_m, lon, lat, (ux, uy) in _stations_along(points, step_m):
@@ -207,11 +236,9 @@ def build_cross_sections(
                         else:
                             grade = SourceGrade.SURVEY
             if left is None:
-                if road_m <= 0:
-                    continue
                 left, right = road_m / 2.0, -road_m / 2.0
-                grade = SourceGrade.MAPPED if way.get("road_source") in ("curb_geometry", "official_curbs") \
-                    else SourceGrade.INFERRED
+                grade = SourceGrade.MAPPED if (way.get("road_source") in ("curb_geometry", "official_curbs")
+                                               and not width_is_prior) else SourceGrade.INFERRED
             st = Station(s_m, lon, lat, left, right, grade)
             bands, status, reasons, score = allocate(
                 st.width_m, fixed_bands_for_side(way, 1, measured_parking),

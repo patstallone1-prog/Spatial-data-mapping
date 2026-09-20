@@ -82,3 +82,12 @@ unreal/Kerbside/Intermediate/
 unreal/Kerbside/DerivedDataCache/
 unreal/Kerbside/Saved/
 unreal/Kerbside/Content/Kerbside/Tiles/
+# Regions: the capability vector, the journal and the audit baseline are the record and are
+# kept; the fetched and built intermediates are rebuilt by scripts/ingest_region.py.
+data/regions/*/osm_ways.json
+data/regions/*/catalog/
+data/regions/*/lidar/
+data/regions/*/site/
+data/regions/*/official/
+data/regions/*/ingest.log
+build/regions/

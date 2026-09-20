@@ -1,0 +1,23 @@
+{
+  "note": "Regions the ingestion runs over: a name, a bounding box and a word about why. Each is built on its own, with its own capability vector found by probing the sources (scripts/discover_region.py), its own journal under data/regions/<name>/ and its own site under docs/regions/<name>/. Municipal records exist for San Francisco only; every other region builds from OpenStreetMap, Overture, the lidar and the imagery and says so. Add a region here, not in code.",
+  "regions": [
+    {"name": "sf-mission", "bbox": [37.7480, -122.4275, 37.7700, -122.4050], "city": "san-francisco",
+     "description": "Mission District: flat grid, dense storefronts, painted facades, heavy imagery"},
+    {"name": "sf-soma", "bbox": [37.7700, -122.4200, 37.7900, -122.3900], "city": "san-francisco",
+     "description": "South of Market: wide one-way arterials, warehouses, new towers, freeway ramps"},
+    {"name": "sf-haight-castro", "bbox": [37.7550, -122.4550, 37.7650, -122.4300], "city": "san-francisco",
+     "description": "Haight, Duboce, Castro: Victorians, hills, Muni tunnel portals"},
+    {"name": "sf-richmond", "bbox": [37.7750, -122.5100, 37.7900, -122.4600], "city": "san-francisco",
+     "description": "Inner and Central Richmond: the avenues, Geary, fog, few tall buildings"},
+    {"name": "sf-sunset", "bbox": [37.7400, -122.5100, 37.7650, -122.4700], "city": "san-francisco",
+     "description": "Sunset: rows of near-identical houses, the L Taraval, wide flat avenues"},
+    {"name": "oakland-downtown", "bbox": [37.7950, -122.2850, 37.8150, -122.2600], "city": "oakland",
+     "description": "Downtown Oakland, Broadway, Lake Merritt's west shore: the first region outside San Francisco"},
+    {"name": "berkeley-downtown", "bbox": [37.8650, -122.2750, 37.8800, -122.2550], "city": "berkeley",
+     "description": "Downtown Berkeley and the campus edge: Shattuck, Telegraph, protected bike lanes"},
+    {"name": "palo-alto-downtown", "bbox": [37.4400, -122.1700, 37.4520, -122.1550], "city": "palo-alto",
+     "description": "University Avenue and the streets either side: low, leafy, angled parking"},
+    {"name": "san-jose-downtown", "bbox": [37.3250, -121.9050, 37.3450, -121.8750], "city": "san-jose",
+     "description": "Downtown San Jose: light rail in the street, big blocks, the SAP Center"}
+  ]
+}

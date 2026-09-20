@@ -39,8 +39,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from smc.imagery.region import SF_CORRIDOR  # noqa: E402
-from smc.lidar.ept import EptReader  # noqa: E402
+from smc.imagery.region import SF_CORRIDOR, get_region  # noqa: E402
+from smc.lidar.ept import SF_DATASET, EptReader  # noqa: E402
 
 STEP_M = 2.0
 #: Fetched in tiles this wide; the reader caches them, so a re-run costs no download.
@@ -109,18 +109,50 @@ def refill(out: Path) -> int:
     return 0
 
 
+def roadway_lines(centrelines: Path, region_name: str) -> list[dict]:
+    """Centrelines for the roadway accuracy class: the city's for the corridor, the region's
+    OpenStreetMap streets otherwise (data/regions/<name>/osm_ways.json)."""
+    if region_name == SF_CORRIDOR.name and centrelines.exists():
+        return json.loads(centrelines.read_text())
+    osm = ROOT / "data" / "regions" / region_name / "osm_ways.json"
+    if osm.exists():
+        return [{"points": w["points"]} for w in json.loads(osm.read_text())
+                if w.get("kind") == "street" and w.get("points")]
+    return []
+
+
+def discovered_dataset(region_name: str) -> str | None:
+    """The lidar collection discovery found for the region, best coverage first."""
+    path = ROOT / "data" / "regions" / region_name / "capabilities.json"
+    if not path.exists():
+        return None
+    collections = json.loads(path.read_text()).get("lidar", {}).get("collections", [])
+    return collections[0]["dataset"] if collections else None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", type=Path, default=ROOT / "docs" / "sf-corridor-terrain.bin")
+    ap.add_argument("--out", type=Path, default=None,
+                    help="the grid; default docs/sf-corridor-terrain.bin for the corridor, "
+                         "data/regions/<name>/site/sf-corridor-terrain.bin otherwise")
+    ap.add_argument("--region", default=SF_CORRIDOR.name, help="a region from data/regions/regions.json")
+    ap.add_argument("--dataset", default=None,
+                    help="the USGS Entwine collection; default the one discovery found for the region")
     ap.add_argument("--refill", action="store_true",
                     help="only close the wide holes in the grid already at --out")
     ap.add_argument("--step", type=float, default=STEP_M)
     ap.add_argument("--centrelines", type=Path, default=ROOT / "data/sf_public_works/centrelines.json")
     args = ap.parse_args()
+    region = get_region(args.region)
+    if args.out is None:
+        args.out = (ROOT / "docs" / "sf-corridor-terrain.bin" if region.name == SF_CORRIDOR.name
+                    else ROOT / "data" / "regions" / region.name / "site" / "sf-corridor-terrain.bin")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.refill:
         return refill(args.out)
+    dataset = args.dataset or discovered_dataset(region.name) or SF_DATASET
 
-    bbox = SF_CORRIDOR.bbox
+    bbox = region.bbox
     mid_lat = (bbox.south + bbox.north) / 2.0
     mid_lon = (bbox.west + bbox.east) / 2.0
     kx = KY * math.cos(math.radians(mid_lat))
@@ -141,7 +173,8 @@ def main() -> int:
     # kerb step inside a cell is what the residuals below measure.
     holdout: list[np.ndarray] = []
     rng = np.random.default_rng(11)
-    reader = EptReader()
+    reader = EptReader(dataset)
+    print(f"region {region.name}, lidar collection {dataset}", flush=True)
     tiles = 0
     tx = x0
     while tx < x1:
@@ -233,9 +266,10 @@ def main() -> int:
                     "p99_abs_m": round(float(np.quantile(a, 0.99)), 3)}
 
         report["all"] = stats(residual)
-        # On the roadway: within 4 m of a city centreline.
-        if args.centrelines.exists():
-            lines = json.loads(args.centrelines.read_text())
+        # On the roadway: within 4 m of a city centreline where the city has one, else of an
+        # OpenStreetMap street from the region's own fetch.
+        lines = roadway_lines(args.centrelines, region.name)
+        if lines:
             segs = []
             for line in lines:
                 pts = [((p[0] - mid_lon) * kx, (p[1] - mid_lat) * KY) for p in line["points"]]
@@ -275,7 +309,8 @@ def main() -> int:
         }
 
     meta = {
-        "source": "USGS 3DEP CA_SanFrancisco_1_B23 ground returns (class 2), via Entwine",
+        "source": f"USGS 3DEP {dataset} ground returns (class 2), via Entwine",
+        "region": region.name,
         "method": f"mean of the ground returns in each {step} m cell; empty cells filled from "
                   f"neighbours out to {FILL_REACH} cells; holes still open are grown into from their "
                   f"edge a cell a step, out to {FAR_FILL_REACH} cells; {HOLDOUT_SHARE:.0%} of returns "
