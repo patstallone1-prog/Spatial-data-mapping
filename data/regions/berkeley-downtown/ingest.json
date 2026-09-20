@@ -64,6 +64,29 @@
    "seconds": 0.1,
    "finished_at": "2026-09-20T19:41:26Z",
    "outputs": []
+  },
+  "terrain": {
+   "status": "done",
+   "started_at": "2026-09-20T21:55:54Z",
+   "command": [
+    "scripts/build_terrain.py",
+    "--region",
+    "berkeley-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 750.6,
+   "finished_at": "2026-09-20T22:08:25Z",
+   "outputs": [
+    "data/regions/berkeley-downtown/site/sf-corridor-terrain.bin"
+   ]
+  },
+  "lidar": {
+   "status": "running",
+   "started_at": "2026-09-20T22:08:25Z",
+   "command": [
+    "scripts/measure_region_lidar.py",
+    "berkeley-downtown"
+   ]
   }
  }
 }

@@ -53,5 +53,88 @@
  "errors": {
   "osm": "HTTP Error 504: Gateway Timeout",
   "mapillary": "Mapillary probe failed at every size: HTTP Error 500: Internal Server Error"
- }
+ },
+ "activation": {
+  "kerbs": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/measure_region_lidar.py (street risers)",
+   "active": "none",
+   "count": 0,
+   "of": 37722,
+   "truthful": false,
+   "note": "stations by kerb grade: {'N': 37722}"
+  },
+  "kerb_height": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
+   "active": "none",
+   "count": 0,
+   "of": 2019,
+   "truthful": false,
+   "note": ""
+  },
+  "building_height": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/measure_region_lidar.py (roof over foot)",
+   "active": "none",
+   "count": 0,
+   "of": 4265,
+   "truthful": false,
+   "note": "by source: {'inferred_default': 502, 'osm_height': 3608, 'osm_levels': 155}"
+  },
+  "building_colour": {
+   "available": "imagery",
+   "implemented": true,
+   "extractor": "scripts/build_facade_fingerprints.py",
+   "active": "none",
+   "count": 0,
+   "of": 4265,
+   "truthful": false,
+   "note": ""
+  },
+  "terrain": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/build_terrain.py",
+   "active": "lidar",
+   "count": 1,
+   "of": 1,
+   "truthful": true,
+   "note": "held-out RMSE 0.054 m on the roadway"
+  },
+  "parking": {
+   "available": "imagery",
+   "implemented": true,
+   "extractor": "smc.measure.parking_band (no crawl yet)",
+   "active": "none",
+   "count": 0,
+   "of": 37722,
+   "truthful": false,
+   "note": "parking bands graded image; the rest are policy priors"
+  },
+  "curb_ramps": {
+   "available": "osm",
+   "implemented": false,
+   "extractor": null,
+   "active": "none",
+   "count": 0,
+   "of": 993,
+   "truthful": false,
+   "note": "the city's ramp inventory, as ramps; crossings end at them in the audit's endsAtRampShare"
+  },
+  "lanes": {
+   "available": "osm+priors",
+   "implemented": true,
+   "extractor": "smc.facts.cross_section allocate",
+   "active": "osm+priors",
+   "count": 37722,
+   "of": 37722,
+   "truthful": true,
+   "note": "every station is an allocation over priors; a measured lane boundary does not exist yet"
+  }
+ },
+ "activation_note": "available: what discovery found over the box; implemented: an extractor exists for that source; active: it ran on this build and the count is what it contributed. A property is truthful only when active matches available."
 }

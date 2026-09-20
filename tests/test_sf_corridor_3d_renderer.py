@@ -884,7 +884,7 @@ def test_the_pavement_is_let_down_at_every_driveway_and_paint_ends_hard() -> Non
     # The drop reads the gutter as the flat model's ROAD_TOP_M, so it runs before the streets
     # are lifted onto the terrain: after, it let every kerb near a garage on a hill down to
     # sea level.
-    assert source.index("dropKerbsAtDriveways(DATA.ways);") < source.index("liftOntoGround(groups.streets);")
+    assert source.index("dropKerbsAtDriveways(DATA.ways);") < source.index("liftOntoGroundAsync(groups.streets")
     # Water and the beach stay at sea level: lifted, the bay's polygon stood over the Marina.
     assert 'mesh.userData.surface = "water";\n      mesh.userData.liftedOntoGround = true;' in source
     assert 'mesh.userData.surface = "beach";' in source

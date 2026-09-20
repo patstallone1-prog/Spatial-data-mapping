@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import math
 import re
 import shutil
 import subprocess
@@ -2523,16 +2524,20 @@ console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, u
     result = json.loads(out.stdout)
     limit = float(re.search(r"const TERRAIN_REFINE_M = ([0-9.]+);", js).group(1))
     assert result["longest"] <= limit + 1e-6, result
-    # Bisection along the longest edge each time: a strip this long ends as a few hundred
-    # small triangles, not the tens of thousands a grid over its bounding box would be.
-    assert 20 <= result["tris"] <= 200, result
+    # Bisection along the longest edge each time: a strip this long ends as a few dozen small
+    # triangles -- at least a pair per limit-length of strip -- not the tens of thousands a
+    # grid over its bounding box would be.
+    assert 2 * math.ceil(40 / limit) <= result["tris"] <= 200, result
     assert result["vertices"] == result["used"], result
     # The shared diagonal was split once for both triangles: fewer vertices than 3 per triangle.
     assert result["vertices"] < result["tris"] * 1.2, result
     # Interpolated attributes: the first midpoint's uv lies between its ends'.
     assert 0 <= result["uvMid"][0] <= 1 and 0 <= result["uvMid"][1] <= 1, result
-    # Where the ground bends under a short edge it is split; where it is flat it is left.
-    assert result["flat"] == 4 and result["bumped"] > result["flat"], result
+    # Where the ground bends under a short edge it is split; where it is flat it is left --
+    # as its two triangles when the square's diagonal is under the length limit, as four when
+    # the diagonal alone is over it.
+    flat_expected = 2 if math.hypot(6, 6) <= limit else 4
+    assert result["flat"] == flat_expected and result["bumped"] > result["flat"], result
 
 
 def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:

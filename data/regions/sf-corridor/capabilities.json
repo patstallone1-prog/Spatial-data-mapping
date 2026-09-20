@@ -66,11 +66,11 @@
    "available": "none",
    "implemented": false,
    "extractor": null,
-   "active": "none",
-   "count": 0,
+   "active": "official",
+   "count": 7774,
    "of": 2626,
-   "truthful": true,
-   "note": ""
+   "truthful": false,
+   "note": "the city's ramp inventory, as ramps; crossings end at them in the audit's endsAtRampShare"
   },
   "lanes": {
    "available": "none",

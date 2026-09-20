@@ -55,6 +55,14 @@ Marina through the Financial District, about five square miles.
 - Two road tunnels (Broadway, Stockton) with mouths, cover and portal width read from the
   lidar and the city's kerbs; 142 stone and brick walls, 146 surface car parks with angled
   bays, courts, parks, street furniture, trees.
+- Drawn to be walked, not just loaded. The page builds a frame at a time with its progress on
+  screen (it used to hold the browser for half a minute and be reported "unresponsive"); the
+  merged surfaces are cut into tiles the GPU can skip when they are off screen, the fine ones
+  -- kerbs, lane paint, shopfronts, roof planters -- are dropped past the distance at which
+  they no longer cover a pixel, and the resolution follows the measured frame time. On the
+  machine it was measured on (Apple M4, 2048x1536): 3,900 draw calls and 27.6 M triangles a
+  frame at 22 ms became 813 calls and 11 M at 6 ms; the scene is 15.5 M triangles, was 26 M.
+  The console prints what was built and how fast it draws.
 
 ## Measured, not claimed
 

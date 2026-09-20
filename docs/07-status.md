@@ -137,7 +137,11 @@ the lidar, each bore swept from mouth to mouth under the hill with walkways and 
 so the walker can go through, the ground itself a 2 m terrain grid from the lidar (held-out RMSE 0.125 m overall, 0.037 m on the roadway, on top of the lidar's own ~0.10 m) that every street, pavement, building and tree stands on (a third `tunnel=yes` road, 1st Street, is an underpass and drawn
 as a street), 146
 surface car parks with angled bays, 15,985 buildings of which 14,490 carry a colour sampled
-from a photograph of that building, and the sky. 792 tests, most of them running the
+from a photograph of that building, and the sky -- built a frame at a time with its progress on
+screen, in tiles the GPU can cull, the fine surfaces dropped past the distance they stop covering
+a pixel, at a resolution set by the measured frame time (M4, 2048x1536: 813 draw calls, 11 M
+triangles, 6 ms a frame; had been 3,900 calls, 27.6 M triangles, 22 ms, after a half-minute
+freeze). 792 tests, most of them running the
 renderer's own rules in Node rather than reading its source, and one (`test_width_vs_kerb.py`)
 holding the corridor-wide comparison with the city's kerbs to a baseline that may only improve.
 
