@@ -2461,3 +2461,61 @@ console.log(JSON.stringify({
     assert result["beside"] == 36 and result["hill"] == 36, result
     assert result["deckOverPortal"] == 36, result
     assert result["alongCut"] is True and result["acrossCut"] is False and result["elsewhere"] is False, result
+
+
+def test_a_surface_is_refined_until_it_can_follow_the_hill() -> None:
+    """A yard drawn as one polygon, a fence panel, a block's pavement underlay: lifted at their
+    corners alone they cut through the hill between them. Every triangle with an edge over
+    TERRAIN_REFINE_M is bisected along its longest edge until none is; a long thin strip splits
+    along its length only; two triangles sharing a split edge share the new vertex."""
+    js = _page_js()
+    parts = ["""
+class Float32BufferAttribute {
+  constructor(array, itemSize) { this.array = Float32Array.from(array); this.itemSize = itemSize; this.count = this.array.length / itemSize; }
+}
+class BufferGeometry {
+  constructor() { this.attributes = {}; this.index = null; this.groups = []; this.userData = {}; }
+  setAttribute(n, a) { this.attributes[n] = a; return this; }
+  getAttribute(n) { return this.attributes[n]; }
+  setIndex(i) { this.index = { array: Uint32Array.from(i), count: i.length }; return this; }
+  dispose() {}
+}
+const THREE = { Float32BufferAttribute, BufferGeometry };
+"""]
+    parts.append(re.search(r"const TERRAIN_REFINE_M = [0-9.]+;", js).group(0))
+    parts.append(_extract("refineForTerrain", js))
+    parts.append("""
+// Two triangles making a 40 m x 2 m strip, sharing the diagonal.
+const g = new BufferGeometry();
+g.setAttribute("position", new Float32BufferAttribute([0,0,0, 40,0,0, 40,0,2, 0,0,2], 3));
+g.setAttribute("uv", new Float32BufferAttribute([0,0, 1,0, 1,1, 0,1], 2));
+g.setIndex([0, 1, 2, 0, 2, 3]);
+const r = refineForTerrain(g);
+const p = r.getAttribute("position"), idx = r.index.array;
+let longest = 0;
+const edges = new Set();
+for (let t = 0; t < idx.length; t += 3) {
+  for (const [a, b] of [[idx[t], idx[t+1]], [idx[t+1], idx[t+2]], [idx[t+2], idx[t]]]) {
+    longest = Math.max(longest, Math.hypot(p.array[a*3] - p.array[b*3], p.array[a*3+2] - p.array[b*3+2]));
+    edges.add(a < b ? `${a}:${b}` : `${b}:${a}`);
+  }
+}
+// Every vertex is used by an index; no vertex stands alone.
+const used = new Set(idx);
+console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, used: used.size,
+  uvMid: Array.from(r.getAttribute("uv").array).slice(8, 10), unrefined: refineForTerrain(new BufferGeometry()) instanceof BufferGeometry }));
+""")
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    limit = float(re.search(r"const TERRAIN_REFINE_M = ([0-9.]+);", js).group(1))
+    assert result["longest"] <= limit + 1e-6, result
+    # Bisection along the longest edge each time: a strip this long ends as a few hundred
+    # small triangles, not the tens of thousands a grid over its bounding box would be.
+    assert 20 <= result["tris"] <= 200, result
+    assert result["vertices"] == result["used"], result
+    # The shared diagonal was split once for both triangles: fewer vertices than 3 per triangle.
+    assert result["vertices"] < result["tris"] * 1.2, result
+    # Interpolated attributes: the first midpoint's uv lies between its ends'.
+    assert 0 <= result["uvMid"][0] <= 1 and 0 <= result["uvMid"][1] <= 1, result

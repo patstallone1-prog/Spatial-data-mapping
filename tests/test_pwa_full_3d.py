@@ -26,6 +26,9 @@ def test_phone_app_exposes_full_3d_offline_download() -> None:
     assert 'sf-corridor-detail-manifest.json' in worker
     assert "manifest.offline_assets" in worker
     assert 'state: failed ? "partial" : "complete"' in worker
+    # The offline download carries the terrain grid, so the installed world has its hills.
+    source = (ROOT / "scripts" / "build_sf_corridor_3d.py").read_text()
+    assert '"sf-corridor-terrain.bin",' in source.split("core_assets = [", 1)[1].split("]", 1)[0]
 
 
 def test_detail_shard_change_invalidates_installed_phone_cache(

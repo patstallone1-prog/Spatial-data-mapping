@@ -55,7 +55,9 @@ try {
   await new Promise((r) => setTimeout(r, 200));   // let the deferred loads settle
   const k = globalThis.kerbside || {};
   console.log(JSON.stringify({ ok: true, ms: Math.round(performance.now() - t0), exports: Object.keys(k).length,
-    terrain: !!k.TERRAIN, h0: k.terrainHeightAt ? k.terrainHeightAt(0, 0) : null }));
+    terrain: !!k.TERRAIN, h0: k.terrainHeightAt ? k.terrainHeightAt(0, 0) : null,
+    ways: k.DATA && k.DATA.ways ? k.DATA.ways.length : 0,
+    streets: k.DATA && k.DATA.ways ? k.DATA.ways.filter((w) => w.kind === "street").length : 0 }));
 } catch (e) {
   console.log(JSON.stringify({ ok: false, error: String(e && e.stack || e).split("\n").slice(0, 4).join(" | ") }));
   process.exit(1);

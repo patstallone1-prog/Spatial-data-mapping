@@ -45,3 +45,6 @@ def test_the_shipped_page_loads_without_an_error(tmp_path: Path) -> None:
     # The page reached its exports, and the terrain it loaded stands under the corridor.
     assert result["exports"] > 50, result
     assert result["terrain"] and 40 < result["h0"] < 80, result
+    # A world with no streets in it loaded without an error once, from an Overpass answer
+    # that had no elements; a page that builds nothing is not a page that works.
+    assert result["ways"] > 20_000 and result["streets"] > 2_000, result
