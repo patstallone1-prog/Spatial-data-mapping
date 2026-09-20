@@ -57,6 +57,12 @@ def test_discovery_finds_the_lidar_over_oakland_and_no_municipal_records_there(m
     collections = lidar_collections(oakland.bbox, fetch=fake_fetch)
     assert [c["dataset"] for c in collections][:2] == ["CA_AlamedaCo_2_2021", "USGS_LPC_CA_NoCAL_Wildfires_B5b_2018"]
     assert collections[0]["coverage"] == 1.0
+    # Coverage is by the outline, not its bounding box: an L-shaped collection whose box
+    # holds the region but whose outline does not gets none of it.
+    from smc.regions.discover import polygon_coverage
+    ell = [[[-122.4, 37.7], [-122.1, 37.7], [-122.1, 37.75], [-122.30, 37.75], [-122.30, 37.9], [-122.4, 37.9], [-122.4, 37.7]]]
+    assert polygon_coverage(ell, oakland.bbox) == 0.0
+    assert polygon_coverage(ell, BBox(south=37.71, west=-122.39, north=37.74, east=-122.30)) == 1.0
     assert municipal_records(oakland.bbox)["city"] is None
     caps = discover(oakland, fetch=fake_fetch)
     assert caps.vector["kerbs"] == "lidar" and caps.vector["parking"] == "imagery" and caps.vector["terrain"] == "lidar"
@@ -118,7 +124,7 @@ def test_the_ingestion_journals_every_stage_and_resumes(tmp_path: Path, monkeypa
 
 
 def test_the_orchestrator_plans_every_stage_for_a_named_region():
-    out = subprocess.run([sys.executable, str(ROOT / "scripts" / "ingest_region.py"), "oakland-downtown", "--dry-run"],
+    out = subprocess.run([sys.executable, str(ROOT / "scripts" / "ingest_region.py"), "oakland-downtown", "--dry-run", "--force"],
                          cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr
     for stage in ("discover", "osm", "terrain", "imagery", "official", "build", "audit"):

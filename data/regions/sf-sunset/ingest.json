@@ -1,0 +1,121 @@
+{
+ "region": "sf-sunset",
+ "bbox": [
+  37.74,
+  -122.51,
+  37.765,
+  -122.47
+ ],
+ "stages": {
+  "discover": {
+   "status": "done",
+   "started_at": "2026-09-20T17:42:35Z",
+   "command": [
+    "scripts/discover_region.py",
+    "sf-sunset"
+   ],
+   "exit_code": 0,
+   "seconds": 11.5,
+   "finished_at": "2026-09-20T17:42:46Z",
+   "outputs": [
+    "data/regions/sf-sunset/capabilities.json"
+   ]
+  },
+  "osm": {
+   "status": "done",
+   "started_at": "2026-09-20T17:42:46Z",
+   "command": [
+    "scripts/fetch_region_osm.py",
+    "sf-sunset"
+   ],
+   "exit_code": 0,
+   "seconds": 8.2,
+   "finished_at": "2026-09-20T17:42:54Z",
+   "outputs": [
+    "data/regions/sf-sunset/osm_ways.json"
+   ]
+  },
+  "terrain": {
+   "status": "done",
+   "started_at": "2026-09-20T17:42:54Z",
+   "command": [
+    "scripts/build_terrain.py",
+    "--region",
+    "sf-sunset"
+   ],
+   "exit_code": 0,
+   "seconds": 6099.2,
+   "finished_at": "2026-09-20T19:24:33Z",
+   "outputs": [
+    "data/regions/sf-sunset/site/sf-corridor-terrain.bin"
+   ]
+  },
+  "imagery": {
+   "status": "done",
+   "started_at": "2026-09-20T19:24:33Z",
+   "command": [
+    "scripts/harvest_region_observations.py",
+    "--region",
+    "sf-sunset",
+    "--out",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-sunset/catalog"
+   ],
+   "exit_code": 0,
+   "seconds": 536.0,
+   "finished_at": "2026-09-20T19:33:29Z",
+   "outputs": [
+    "data/regions/sf-sunset/catalog/observations/external-000.parquet"
+   ]
+  },
+  "official": {
+   "status": "done",
+   "started_at": "2026-09-20T19:33:29Z",
+   "command": [
+    "scripts/build_sf_official_geometry.py",
+    "--region",
+    "sf-sunset"
+   ],
+   "exit_code": 0,
+   "seconds": 33.4,
+   "finished_at": "2026-09-20T19:34:03Z",
+   "outputs": []
+  },
+  "build": {
+   "status": "done",
+   "started_at": "2026-09-20T19:34:03Z",
+   "command": [
+    "scripts/build_sf_corridor_3d.py",
+    "--region",
+    "sf-sunset",
+    "--reuse-osm"
+   ],
+   "exit_code": 0,
+   "seconds": 40.7,
+   "finished_at": "2026-09-20T19:34:43Z",
+   "outputs": [
+    "data/regions/sf-sunset/site/sf-corridor-3d.json"
+   ]
+  },
+  "audit": {
+   "status": "done",
+   "started_at": "2026-09-20T19:34:43Z",
+   "command": [
+    "scripts/audit_corridor_render.py",
+    "--page",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-sunset/site/sf-corridor-3d.json",
+    "--official",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-sunset/site/sf-corridor-official.json",
+    "--ground",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-sunset/site/sf-corridor-ground.json",
+    "--baseline",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-sunset/audit_baseline.json"
+   ],
+   "exit_code": 0,
+   "seconds": 4.6,
+   "finished_at": "2026-09-20T19:34:48Z",
+   "outputs": [
+    "data/regions/sf-sunset/audit_baseline.json"
+   ]
+  }
+ }
+}

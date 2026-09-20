@@ -1,0 +1,69 @@
+{
+ "region": "berkeley-downtown",
+ "bbox": [
+  37.865,
+  -122.275,
+  37.88,
+  -122.255
+ ],
+ "stages": {
+  "discover": {
+   "status": "done",
+   "started_at": "2026-09-20T19:35:04Z",
+   "command": [
+    "scripts/discover_region.py",
+    "berkeley-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 8.5,
+   "finished_at": "2026-09-20T19:35:12Z",
+   "outputs": [
+    "data/regions/berkeley-downtown/capabilities.json"
+   ]
+  },
+  "osm": {
+   "status": "done",
+   "started_at": "2026-09-20T19:35:12Z",
+   "command": [
+    "scripts/fetch_region_osm.py",
+    "berkeley-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 65.1,
+   "finished_at": "2026-09-20T19:36:17Z",
+   "outputs": [
+    "data/regions/berkeley-downtown/osm_ways.json"
+   ]
+  },
+  "imagery": {
+   "status": "done",
+   "started_at": "2026-09-20T19:36:21Z",
+   "command": [
+    "scripts/harvest_region_observations.py",
+    "--region",
+    "berkeley-downtown",
+    "--out",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/berkeley-downtown/catalog"
+   ],
+   "exit_code": 0,
+   "seconds": 305.0,
+   "finished_at": "2026-09-20T19:41:26Z",
+   "outputs": [
+    "data/regions/berkeley-downtown/catalog/observations/external-000.parquet"
+   ]
+  },
+  "official": {
+   "status": "done",
+   "started_at": "2026-09-20T19:41:26Z",
+   "command": [
+    "scripts/build_sf_official_geometry.py",
+    "--region",
+    "berkeley-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 0.1,
+   "finished_at": "2026-09-20T19:41:26Z",
+   "outputs": []
+  }
+ }
+}

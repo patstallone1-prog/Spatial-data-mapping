@@ -1,0 +1,95 @@
+{
+ "region": "sf-haight-castro",
+ "bbox": [
+  37.755,
+  -122.455,
+  37.765,
+  -122.43
+ ],
+ "probed_at": "2026-09-20T16:58:01Z",
+ "osm": {
+  "highway_ways": 1562,
+  "buildings": 5313
+ },
+ "lidar": {
+  "collections": [
+   {
+    "dataset": "CA_SanFrancisco_1_B23",
+    "coverage": 1.0,
+    "points": 13088433078,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_SanFrancisco_1_B23/ept.json"
+   },
+   {
+    "dataset": "USGS_LPC_CA_NoCAL_Wildfires_B5b_2018",
+    "coverage": 1.0,
+    "points": 28725854623,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CA_NoCAL_Wildfires_B5b_2018/ept.json"
+   },
+   {
+    "dataset": "USGS_LPC_CA_WestCoastElNinoUTM10_2016_LAS_2017",
+    "coverage": 1.0,
+    "points": 34390196929,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CA_WestCoastElNinoUTM10_2016_LAS_2017/ept.json"
+   },
+   {
+    "dataset": "ARRA-CA_GoldenGate_2010",
+    "coverage": 1.0,
+    "points": 8777987577,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/ARRA-CA_GoldenGate_2010/ept.json"
+   },
+   {
+    "dataset": "ARRA-CA_SanFranCoast_2010",
+    "coverage": 0.084,
+    "points": 2215580200,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/ARRA-CA_SanFranCoast_2010/ept.json"
+   }
+  ]
+ },
+ "imagery": {
+  "panoramax": {
+   "available": true,
+   "images_seen": 92,
+   "capped": false
+  }
+ },
+ "municipal": {
+  "city": "san-francisco",
+  "records": [
+   "curb_lines",
+   "curb_ramps",
+   "sidewalk_widths",
+   "right_of_way",
+   "parking_policies",
+   "color_curb",
+   "signs",
+   "crosswalks",
+   "parcels",
+   "centrelines",
+   "street_trees"
+  ],
+  "source": "DataSF / SFMTA open data"
+ },
+ "overture": {
+  "buildings": true,
+  "places": true,
+  "licence": "ODbL, reference only"
+ },
+ "vector": {
+  "kerbs": "official",
+  "sidewalk_width": "official",
+  "kerb_height": "lidar",
+  "terrain": "lidar",
+  "buildings": "osm+overture",
+  "building_height": "lidar",
+  "building_colour": "imagery",
+  "parking": "official",
+  "curb_ramps": "official",
+  "signs": "official",
+  "crossings": "official",
+  "lanes": "osm+priors",
+  "streets": "osm"
+ },
+ "errors": {
+  "mapillary": "Mapillary probe failed at every size: HTTP Error 500: Internal Server Error"
+ }
+}

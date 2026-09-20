@@ -1,0 +1,37 @@
+{
+ "region": "sf-richmond",
+ "bbox": [
+  37.775,
+  -122.51,
+  37.79,
+  -122.46
+ ],
+ "stages": {
+  "discover": {
+   "status": "done",
+   "started_at": "2026-09-20T17:38:53Z",
+   "command": [
+    "scripts/discover_region.py",
+    "sf-richmond"
+   ],
+   "exit_code": 0,
+   "seconds": 27.0,
+   "finished_at": "2026-09-20T17:39:20Z",
+   "outputs": [
+    "data/regions/sf-richmond/capabilities.json"
+   ]
+  },
+  "osm": {
+   "status": "failed",
+   "started_at": "2026-09-20T17:39:20Z",
+   "command": [
+    "scripts/fetch_region_osm.py",
+    "sf-richmond"
+   ],
+   "exit_code": 1,
+   "seconds": 194.4,
+   "finished_at": "2026-09-20T17:42:34Z",
+   "outputs": []
+  }
+ }
+}

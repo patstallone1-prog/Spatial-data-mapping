@@ -1,0 +1,81 @@
+{
+ "region": "palo-alto-downtown",
+ "bbox": [
+  37.44,
+  -122.17,
+  37.452,
+  -122.155
+ ],
+ "probed_at": "2026-09-20T19:41:39Z",
+ "osm": {},
+ "lidar": {
+  "collections": [
+   {
+    "dataset": "CA_CaliforniaGaps_3_B23",
+    "coverage": 1.0,
+    "points": 55840054389,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_CaliforniaGaps_3_B23/ept.json"
+   },
+   {
+    "dataset": "CA_AlamedaCo_2_2021",
+    "coverage": 1.0,
+    "points": 26097078802,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_AlamedaCo_2_2021/ept.json"
+   },
+   {
+    "dataset": "CA_SantaClaraCounty_2020",
+    "coverage": 1.0,
+    "points": 170420824394,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_SantaClaraCounty_2020/ept.json"
+   },
+   {
+    "dataset": "USGS_LPC_CA_WestCoastElNinoUTM10_2016_LAS_2017",
+    "coverage": 1.0,
+    "points": 34390196929,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CA_WestCoastElNinoUTM10_2016_LAS_2017/ept.json"
+   },
+   {
+    "dataset": "ARRA-CA_SanFranCoast_2010",
+    "coverage": 1.0,
+    "points": 2215580200,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/ARRA-CA_SanFranCoast_2010/ept.json"
+   }
+  ]
+ },
+ "imagery": {
+  "panoramax": {
+   "available": false,
+   "images_seen": 0,
+   "capped": false
+  }
+ },
+ "municipal": {
+  "city": null,
+  "records": [],
+  "source": null
+ },
+ "overture": {
+  "buildings": true,
+  "places": true,
+  "licence": "ODbL, reference only"
+ },
+ "vector": {
+  "kerbs": "lidar",
+  "sidewalk_width": "lidar",
+  "kerb_height": "lidar",
+  "terrain": "lidar",
+  "buildings": "overture",
+  "building_height": "lidar",
+  "building_colour": "none",
+  "parking": "none",
+  "curb_ramps": "osm",
+  "signs": "osm",
+  "crossings": "osm",
+  "lanes": "osm+priors",
+  "streets": "none"
+ },
+ "errors": {
+  "osm": "HTTP Error 504: Gateway Timeout",
+  "mapillary": "Mapillary probe failed at every size: HTTP Error 500: Internal Server Error"
+ }
+}

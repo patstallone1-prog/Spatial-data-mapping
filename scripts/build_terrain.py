@@ -53,6 +53,8 @@ FILL_REACH = 6
 #: A hole wider than FILL_REACH is grown into from its edge, one cell a step, this far (cells).
 #: Sixty cells is 120 m: the widest block in the corridor, not the bay.
 FAR_FILL_REACH = 60
+#: A collection with no ground in this many of its first tiles is not the one for the box.
+PROBE_TILES = 12
 HOLDOUT_SHARE = 0.02
 MIN_CELL_POINTS = 2
 #: The lidar is read at this spacing: two metres of grid does not need five-centimetre points.
@@ -124,13 +126,13 @@ def roadway_lines(centrelines: Path, region_name: str) -> list[dict]:
     return []
 
 
-def discovered_dataset(region_name: str) -> str | None:
-    """The lidar collection discovery found for the region, best coverage first."""
+def discovered_datasets(region_name: str) -> list[str]:
+    """The lidar collections discovery found for the region, best coverage first."""
     path = ROOT / "data" / "regions" / region_name / "capabilities.json"
     if not path.exists():
-        return None
-    collections = json.loads(path.read_text()).get("lidar", {}).get("collections", [])
-    return collections[0]["dataset"] if collections else None
+        return []
+    return [c["dataset"] for c in json.loads(path.read_text()).get("lidar", {}).get("collections", [])
+            if c.get("coverage", 0) > 0]
 
 
 def main() -> int:
@@ -153,7 +155,7 @@ def main() -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.refill:
         return refill(args.out)
-    dataset = args.dataset or discovered_dataset(region.name) or SF_DATASET
+    candidates = [args.dataset] if args.dataset else (discovered_datasets(region.name) or [SF_DATASET])
 
     bbox = region.bbox
     mid_lat = (bbox.south + bbox.north) / 2.0
@@ -176,44 +178,68 @@ def main() -> int:
     # kerb step inside a cell is what the residuals below measure.
     holdout: list[np.ndarray] = []
     rng = np.random.default_rng(11)
-    reader = EptReader(dataset)
-    print(f"region {region.name}, lidar collection {dataset}", flush=True)
+    # The first collection with ground in the box wins. A collection can cover the box on
+    # paper and hold nothing over it -- Berkeley lay inside the bounding box of one Alameda
+    # County block and outside its outline -- so the first tiles are a probe: a collection
+    # that returns no ground in its first PROBE_TILES tiles is set aside for the next.
     tiles = 0
-    tx = x0
-    while tx < x1:
-        ty = y0
-        while ty < y1:
-            cx, cy = tx + TILE_M / 2, ty + TILE_M / 2
-            lat = mid_lat + cy / KY
-            lon = mid_lon + cx / kx
-            try:
-                cloud = reader.around(lat, lon, TILE_M / 2 + 2.0, resolution_m=RESOLUTION_M).ground()
-            except Exception as exc:  # a missing tile is a hole, not a halt
-                print(f"  tile at {lat:.4f},{lon:.4f} unavailable: {exc}", flush=True)
+    dataset = None
+    for candidate in candidates:
+        reader = EptReader(candidate)
+        print(f"region {region.name}, lidar collection {candidate}", flush=True)
+        total[:] = 0
+        count[:] = 0
+        holdout.clear()
+        tiles = 0
+        tx = x0
+        empty_probe = False
+        while tx < x1 and not empty_probe:
+            ty = y0
+            while ty < y1:
+                cx, cy = tx + TILE_M / 2, ty + TILE_M / 2
+                lat = mid_lat + cy / KY
+                lon = mid_lon + cx / kx
+                try:
+                    cloud = reader.around(lat, lon, TILE_M / 2 + 2.0, resolution_m=RESOLUTION_M).ground()
+                except Exception as exc:  # a missing tile is a hole, not a halt
+                    print(f"  tile at {lat:.4f},{lon:.4f} unavailable: {exc}", flush=True)
+                    ty += TILE_M
+                    continue
+                tiles += 1
+                if tiles == PROBE_TILES and not (count > 0).any():
+                    print(f"  no ground in the first {PROBE_TILES} tiles of {candidate}: not this collection", flush=True)
+                    empty_probe = True
+                    break
+                if len(cloud.east):
+                    ex = cloud.east + (cloud.origin_lon - mid_lon) * kx
+                    ny = cloud.north + (cloud.origin_lat - mid_lat) * KY
+                    keep = (ex >= tx) & (ex < tx + TILE_M) & (ny >= ty) & (ny < ty + TILE_M)
+                    ex, ny, up = ex[keep], ny[keep], cloud.up[keep]
+                    held = rng.random(ex.size) < HOLDOUT_SHARE
+                    if held.any():
+                        holdout.append(np.column_stack((ex[held], ny[held], up[held])))
+                    ex, ny, up = ex[~held], ny[~held], up[~held]
+                    ci = np.clip(((ex - x0) / step).astype(int), 0, cols - 1)
+                    ri = np.clip(((ny - y0) / step).astype(int), 0, rows - 1)
+                    np.add.at(total, (ri, ci), up)
+                    np.add.at(count, (ri, ci), 1)
                 ty += TILE_M
-                continue
-            tiles += 1
-            if len(cloud.east):
-                ex = cloud.east + (cloud.origin_lon - mid_lon) * kx
-                ny = cloud.north + (cloud.origin_lat - mid_lat) * KY
-                keep = (ex >= tx) & (ex < tx + TILE_M) & (ny >= ty) & (ny < ty + TILE_M)
-                ex, ny, up = ex[keep], ny[keep], cloud.up[keep]
-                held = rng.random(ex.size) < HOLDOUT_SHARE
-                if held.any():
-                    holdout.append(np.column_stack((ex[held], ny[held], up[held])))
-                ex, ny, up = ex[~held], ny[~held], up[~held]
-                ci = np.clip(((ex - x0) / step).astype(int), 0, cols - 1)
-                ri = np.clip(((ny - y0) / step).astype(int), 0, rows - 1)
-                np.add.at(total, (ri, ci), up)
-                np.add.at(count, (ri, ci), 1)
-            ty += TILE_M
-        tx += TILE_M
-        print(f"  {tiles} tiles, {int((count > 0).sum())} cells so far", flush=True)
+            tx += TILE_M
+            print(f"  {tiles} tiles, {int((count > 0).sum())} cells so far", flush=True)
+        if not empty_probe and (count > 0).any():
+            dataset = candidate
+            break
+    if dataset is None:
+        print(f"no lidar collection had ground over {region.name}: tried {candidates}", file=sys.stderr)
+        return 1
 
     height = np.full((rows, cols), np.nan, dtype=np.float64)
     known = count >= MIN_CELL_POINTS
     height[known] = total[known] / count[known]
     print(f"{int(known.sum())} cells with ground, {int((~known).sum())} to fill", flush=True)
+    if not known.any():
+        print(f"the grid has no ground at all; nothing is written for {region.name}", file=sys.stderr)
+        return 1
 
     # Fill: each empty cell takes the mean of the known cells in a growing window.
     filled = height.copy()

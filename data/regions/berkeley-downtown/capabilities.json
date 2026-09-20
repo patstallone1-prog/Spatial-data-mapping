@@ -6,19 +6,13 @@
   37.88,
   -122.255
  ],
- "probed_at": "2026-09-20T04:14:48Z",
+ "probed_at": "2026-09-20T19:42:51Z",
  "osm": {
   "highway_ways": 3775,
   "buildings": 2716
  },
  "lidar": {
   "collections": [
-   {
-    "dataset": "CA_AlamedaCo_2_2021",
-    "coverage": 1.0,
-    "points": 26097078802,
-    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_AlamedaCo_2_2021/ept.json"
-   },
    {
     "dataset": "CA_AlamedaCo_3_2021",
     "coverage": 1.0,
@@ -32,23 +26,17 @@
     "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CA_NoCAL_Wildfires_B5b_2018/ept.json"
    },
    {
-    "dataset": "USGS_LPC_CA_WestCoastElNinoUTM10_2016_LAS_2017",
-    "coverage": 1.0,
-    "points": 34390196929,
-    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CA_WestCoastElNinoUTM10_2016_LAS_2017/ept.json"
-   },
-   {
-    "dataset": "ARRA-CA_GoldenGate_2010",
-    "coverage": 1.0,
-    "points": 8777987577,
-    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/ARRA-CA_GoldenGate_2010/ept.json"
+    "dataset": "CA_AlamedaCo_2_2021",
+    "coverage": 0.014,
+    "points": 26097078802,
+    "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_AlamedaCo_2_2021/ept.json"
    }
   ]
  },
  "imagery": {
   "mapillary": {
    "available": true,
-   "images_seen": 445,
+   "images_seen": 461,
    "capped": false
   },
   "panoramax": {

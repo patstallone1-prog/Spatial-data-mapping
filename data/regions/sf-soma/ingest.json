@@ -51,7 +51,7 @@
    ]
   },
   "imagery": {
-   "status": "running",
+   "status": "failed",
    "started_at": "2026-09-20T08:54:00Z",
    "command": [
     "scripts/harvest_region_observations.py",
@@ -59,7 +59,11 @@
     "sf-soma",
     "--out",
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-soma/catalog"
-   ]
+   ],
+   "exit_code": -15,
+   "seconds": 29038.0,
+   "finished_at": "2026-09-20T16:57:58Z",
+   "outputs": []
   }
  }
 }

@@ -99,6 +99,37 @@ def _ring_bbox(coords) -> tuple[float, float, float, float]:
     return min(lats), min(lons), max(lats), max(lons)
 
 
+def _inside(ring, lat: float, lon: float) -> bool:
+    """Point in polygon, ray cast; ring is [[lon, lat], ...]."""
+    inside = False
+    n = len(ring)
+    for i in range(n):
+        x1, y1 = ring[i][0], ring[i][1]
+        x2, y2 = ring[(i + 1) % n][0], ring[(i + 1) % n][1]
+        if (y1 > lat) != (y2 > lat):
+            x = x1 + (lat - y1) * (x2 - x1) / ((y2 - y1) or 1e-12)
+            if x > lon:
+                inside = not inside
+    return inside
+
+
+def polygon_coverage(rings, bbox: BBox, samples: int = 12) -> float:
+    """The share of a grid of points over the box that fall inside any of the rings.
+
+    The collections' outlines are ragged: Berkeley sat inside the *bounding box* of the
+    Alameda County 2021 collection's second block and outside its outline, and a terrain
+    built from it had no ground at all. So the box is not the test; the outline is.
+    """
+    hits = 0
+    for i in range(samples):
+        for j in range(samples):
+            lat = bbox.south + (bbox.north - bbox.south) * (i + 0.5) / samples
+            lon = bbox.west + (bbox.east - bbox.west) * (j + 0.5) / samples
+            if any(_inside(ring, lat, lon) for ring in rings):
+                hits += 1
+    return hits / (samples * samples)
+
+
 def _overlap(a: tuple[float, float, float, float], b: BBox) -> float:
     """Share of ``b`` covered by box ``a``."""
     south = max(a[0], b.south)
@@ -137,9 +168,12 @@ def lidar_collections(bbox: BBox, index: dict | None = None, fetch=_get,
             rings = [geometry["coordinates"][0]]
         elif geometry.get("type") == "MultiPolygon":
             rings = [poly[0] for poly in geometry["coordinates"]]
+        # The bounding box first, cheaply, then the outline itself for the ones that pass.
         best = 0.0
         for ring in rings:
             best = max(best, _overlap(_ring_bbox(ring), bbox))
+        if best > 0:
+            best = polygon_coverage(rings, bbox)
         if best > 0:
             props = feature.get("properties") or {}
             found.append({"dataset": name, "coverage": round(best, 3),
