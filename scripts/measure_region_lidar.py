@@ -27,6 +27,7 @@ scripts/ingest_region.py as the ``lidar`` stage, between terrain and imagery.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 import shutil
@@ -37,8 +38,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-
-import itertools
 
 from smc.imagery.region import get_region  # noqa: E402
 from smc.lidar.ept import EptReader  # noqa: E402
