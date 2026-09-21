@@ -102,7 +102,12 @@ def test_crosswalks_get_yellow_truncated_dome_warning_pads() -> None:
     assert 'addMerged("road:crossing-backstop"' in source
     assert "polygonOffsetFactor: -10" in source
     assert "polygonOffsetUnits: -20" in source
-    assert "addCrossingTactilePads(surfacePoints, widthMeters, roadTop + KERB + 0.018);" in source
+    # The pads are laid after every pavement and corner piece, each on the top of the pavement
+    # under it: a crossing's own kerb height is not the street's, and at the street's kerb the
+    # corner piece stood over a pad laid at the crossing's.
+    assert "deferredTactilePads.push({ points: surfacePoints, width: widthMeters, fallbackY: roadTop + KERB + 0.018 });" in source
+    assert source.index("const cornersLaid = addPavementCorners();") < source.index("for (const pad of deferredTactilePads) {")
+    assert "return top === undefined ? pad.fallbackY : top + 0.018;" in source
 
 
 def test_official_signs_and_curb_zone_bands_render_from_geometry_based_sidecar() -> None:

@@ -2514,16 +2514,30 @@ const square = () => { const g = new BufferGeometry();
 const flat = refineForTerrain(square()).index.array.length / 3;
 TERRAIN_FRAME = {}; terrainHeightAt = (x, z) => Math.max(0, 1.2 - 0.3 * Math.hypot(x - 3, z - 3));
 const bumped = refineForTerrain(square()).index.array.length / 3;
+// Two parts meeting along the line z = 2 -- the strip above and a wider slab below, built
+// with different vertices -- are cut at the same x along it, so the seam between them has
+// no T-junction to open on a hill.
+TERRAIN_FRAME = null; terrainHeightAt = () => 0;
+const cutsAlong = (geom, zLine) => { const q = refineForTerrain(geom); const pp = q.getAttribute("position"); const xs = new Set();
+  for (let i = 0; i < pp.count; i += 1) if (Math.abs(pp.array[i * 3 + 2] - zLine) < 1e-6) xs.add(pp.array[i * 3].toFixed(3));
+  return [...xs].sort(); };
+const upper = new BufferGeometry();
+upper.setAttribute("position", new Float32BufferAttribute([1,0,2, 41,0,2, 41,0,4, 1,0,4], 3)); upper.setIndex([0, 1, 2, 0, 2, 3]);
+const lower = new BufferGeometry();
+lower.setAttribute("position", new Float32BufferAttribute([1,0,-30, 41,0,-30, 41,0,2, 1,0,2], 3)); lower.setIndex([0, 2, 1, 0, 3, 2]);
+const seamUpper = cutsAlong(upper, 2), seamLower = cutsAlong(lower, 2);
 console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, used: used.size,
   uvMid: Array.from(r.getAttribute("uv").array).slice(8, 10), unrefined: refineForTerrain(new BufferGeometry()) instanceof BufferGeometry,
-  flat, bumped }));
+  flat, bumped, seamUpper, seamLower }));
 """)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
                          capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
     limit = float(re.search(r"const TERRAIN_REFINE_M = ([0-9.]+);", js).group(1))
-    assert result["longest"] <= limit + 1e-6, result
+    # Edges are cut where they cross the lines of a world lattice TERRAIN_REFINE_M apart, so
+    # no edge is longer than a lattice cell's diagonal.
+    assert result["longest"] <= limit * math.sqrt(2) + 1e-6, result
     # Bisection along the longest edge each time: a strip this long ends as a few dozen small
     # triangles -- at least a pair per limit-length of strip -- not the tens of thousands a
     # grid over its bounding box would be.
@@ -2538,6 +2552,9 @@ console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, u
     # the diagonal alone is over it.
     flat_expected = 2 if math.hypot(6, 6) <= limit else 4
     assert result["flat"] == flat_expected and result["bumped"] > result["flat"], result
+    # The seam: both parts cut the shared line at the lattice's x = 12, 24, 36 and nowhere else.
+    assert result["seamUpper"] == result["seamLower"], result
+    assert set(result["seamUpper"]) >= {f"{k * limit:.3f}" for k in range(1, 4) if 1 < k * limit < 41}, result
 
 
 def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:
