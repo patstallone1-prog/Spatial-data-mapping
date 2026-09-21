@@ -145,6 +145,10 @@ freeze). 792 tests, most of them running the
 renderer's own rules in Node rather than reading its source, and one (`test_width_vs_kerb.py`)
 holding the corridor-wide comparison with the city's kerbs to a baseline that may only improve.
 
+**The shore.** The water surface is measured from the lidar's returns off it and the grid is
+flooded from the map's coastlines (wet side read from the returns); the page draws the sea at
+that surface. No building in the corridor stands on water (tested against the built grid).
+
 **Regions.** Eight built and published beside the corridor (regions/<name>/, a switcher in the
 page); Oakland truthful on kerbs, kerb heights, roof heights and terrain from the lidar, its
 kerb readings filtered for outliers and smoothed along the way. Not yet for any region outside

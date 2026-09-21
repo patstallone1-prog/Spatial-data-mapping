@@ -96,7 +96,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T04:37:38Z",
+   "started_at": "2026-09-21T16:26:34Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,15 +104,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 9.9,
-   "finished_at": "2026-09-21T04:37:48Z",
+   "seconds": 7.0,
+   "finished_at": "2026-09-21T16:26:41Z",
    "outputs": [
     "data/regions/palo-alto-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-21T04:37:48Z",
+   "started_at": "2026-09-21T16:26:41Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -125,8 +125,8 @@
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/palo-alto-downtown/audit_baseline.json"
    ],
    "exit_code": 0,
-   "seconds": 2.1,
-   "finished_at": "2026-09-21T04:37:50Z",
+   "seconds": 1.5,
+   "finished_at": "2026-09-21T16:26:42Z",
    "outputs": [
     "data/regions/palo-alto-downtown/audit_baseline.json"
    ]

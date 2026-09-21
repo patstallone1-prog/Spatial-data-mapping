@@ -55,6 +55,19 @@ Marina through the Financial District, about five square miles.
 - Two road tunnels (Broadway, Stockton) with mouths, cover and portal width read from the
   lidar and the city's kerbs; 142 stone and brick walls, 146 surface car parks with angled
   bays, courts, parks, street furniture, trees.
+- The waterline is the lidar's, where the map's coastline is. The ground grid's low cells are
+  returns off the water -- a sheet at one height, the tide the day it flew, -0.14 m here --
+  and its shore was filled outward from the quays; both drew as dry land under a fixed water
+  plane. `smc.terrain.waterline` reads the water surface from those returns, floods the grid
+  from the seaward side of each coastline way (the wet side read from the returns, not assumed
+  from the map's convention -- six of this corridor's seven ways run against it) and inside the
+  closed water polygons, and writes the surface and the count into the grid's metadata; the
+  page draws the sea at and under that surface and the backdrop as land above it, with an
+  apron easing the grid's edge to the land plate instead of a cliff. Tested against the built
+  grid: no building stands on water.
+- A cycle track mapped as its own way (`highway=cycleway`, a road's `cycleway=separate`) is
+  fetched and drawn as a track, and the road's lanes ease onto it: 2nd Street's green ran out
+  at every such block. 44 tracks in the corridor.
 - Paint and pads stand on the surfaces as drawn, not on the grid: after the streets are
   lifted, every vertex of a crossing's paint is set from the rendered road under it and every
   tactile pad from the rendered pavement (`settleOnto`), so a road that bulges between its

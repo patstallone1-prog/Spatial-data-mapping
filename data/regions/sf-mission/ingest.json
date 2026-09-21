@@ -80,9 +80,17 @@
    "finished_at": "2026-09-20T05:33:39Z",
    "outputs": []
   },
+  "lidar": {
+   "status": "running",
+   "started_at": "2026-09-21T05:28:03Z",
+   "command": [
+    "scripts/measure_region_lidar.py",
+    "sf-mission"
+   ]
+  },
   "build": {
    "status": "done",
-   "started_at": "2026-09-20T05:33:39Z",
+   "started_at": "2026-09-21T16:24:39Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -90,15 +98,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 34.1,
-   "finished_at": "2026-09-20T05:34:13Z",
+   "seconds": 20.8,
+   "finished_at": "2026-09-21T16:25:00Z",
    "outputs": [
     "data/regions/sf-mission/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-20T05:34:13Z",
+   "started_at": "2026-09-21T16:25:00Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -111,18 +119,10 @@
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/audit_baseline.json"
    ],
    "exit_code": 0,
-   "seconds": 4.6,
-   "finished_at": "2026-09-20T05:34:18Z",
+   "seconds": 4.2,
+   "finished_at": "2026-09-21T16:25:04Z",
    "outputs": [
     "data/regions/sf-mission/audit_baseline.json"
-   ]
-  },
-  "lidar": {
-   "status": "running",
-   "started_at": "2026-09-21T05:28:03Z",
-   "command": [
-    "scripts/measure_region_lidar.py",
-    "sf-mission"
    ]
   }
  }

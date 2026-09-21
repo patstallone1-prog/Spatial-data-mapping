@@ -96,7 +96,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T14:57:25Z",
+   "started_at": "2026-09-21T16:25:59Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,15 +104,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 19.1,
-   "finished_at": "2026-09-21T14:57:45Z",
+   "seconds": 19.3,
+   "finished_at": "2026-09-21T16:26:18Z",
    "outputs": [
     "data/regions/oakland-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-21T14:57:45Z",
+   "started_at": "2026-09-21T16:26:18Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -125,8 +125,8 @@
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/oakland-downtown/audit_baseline.json"
    ],
    "exit_code": 0,
-   "seconds": 3.8,
-   "finished_at": "2026-09-21T14:57:48Z",
+   "seconds": 3.9,
+   "finished_at": "2026-09-21T16:26:22Z",
    "outputs": [
     "data/regions/oakland-downtown/audit_baseline.json"
    ]

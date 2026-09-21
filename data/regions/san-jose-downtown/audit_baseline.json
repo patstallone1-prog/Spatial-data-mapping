@@ -7,12 +7,12 @@
  "medianAbsM": null,
  "bySource": {},
  "otherLevelsClamped": 0,
- "crosswalkAttachedShare": 0.989,
+ "crosswalkAttachedShare": 0.984,
  "crosswalkLegs": 947,
- "crosswalkLegsAttachedShare": 1,
+ "crosswalkLegsAttachedShare": 0.999,
  "crosswalkWholeSpanFallback": 0,
  "crosswalkSplitForIslands": 0,
- "crosswalkStandInsLaid": 686,
+ "crosswalkStandInsLaid": 679,
  "crosswalkEndsAtRampShare": 0,
  "crossSectionStations": 37722,
  "crossSectionResolvedShare": 0.621,
@@ -22,8 +22,8 @@
  "crossSectionResolvedMeasuredShare": 0,
  "crossSectionParkingMeasured": 0,
  "crosswalkMappedSuppressedByStandIn": 0,
- "footwayKeptShare": 0.946,
- "kerbsideBareShare": 0.012,
- "roadThroughFacade": 38,
- "buildingsOnRoad2plus": 180
+ "footwayKeptShare": 0.943,
+ "kerbsideBareShare": 0.014,
+ "roadThroughFacade": 17,
+ "buildingsOnRoad2plus": 144
 }

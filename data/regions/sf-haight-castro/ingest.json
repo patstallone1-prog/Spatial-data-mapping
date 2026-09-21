@@ -80,43 +80,6 @@
    "finished_at": "2026-09-20T17:38:36Z",
    "outputs": []
   },
-  "build": {
-   "status": "done",
-   "started_at": "2026-09-20T17:38:36Z",
-   "command": [
-    "scripts/build_sf_corridor_3d.py",
-    "--region",
-    "sf-haight-castro",
-    "--reuse-osm"
-   ],
-   "exit_code": 0,
-   "seconds": 14.7,
-   "finished_at": "2026-09-20T17:38:50Z",
-   "outputs": [
-    "data/regions/sf-haight-castro/site/sf-corridor-3d.json"
-   ]
-  },
-  "audit": {
-   "status": "done",
-   "started_at": "2026-09-20T17:38:50Z",
-   "command": [
-    "scripts/audit_corridor_render.py",
-    "--page",
-    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/site/sf-corridor-3d.json",
-    "--official",
-    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/site/sf-corridor-official.json",
-    "--ground",
-    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/site/sf-corridor-ground.json",
-    "--baseline",
-    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/audit_baseline.json"
-   ],
-   "exit_code": 0,
-   "seconds": 1.9,
-   "finished_at": "2026-09-20T17:38:52Z",
-   "outputs": [
-    "data/regions/sf-haight-castro/audit_baseline.json"
-   ]
-  },
   "lidar": {
    "status": "done",
    "started_at": "2026-09-21T05:27:59Z",
@@ -129,6 +92,43 @@
    "finished_at": "2026-09-21T05:28:03Z",
    "outputs": [
     "data/regions/sf-haight-castro/lidar/building_heights.json"
+   ]
+  },
+  "build": {
+   "status": "done",
+   "started_at": "2026-09-21T16:25:04Z",
+   "command": [
+    "scripts/build_sf_corridor_3d.py",
+    "--region",
+    "sf-haight-castro",
+    "--reuse-osm"
+   ],
+   "exit_code": 0,
+   "seconds": 11.4,
+   "finished_at": "2026-09-21T16:25:16Z",
+   "outputs": [
+    "data/regions/sf-haight-castro/site/sf-corridor-3d.json"
+   ]
+  },
+  "audit": {
+   "status": "done",
+   "started_at": "2026-09-21T16:25:16Z",
+   "command": [
+    "scripts/audit_corridor_render.py",
+    "--page",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/site/sf-corridor-3d.json",
+    "--official",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/site/sf-corridor-official.json",
+    "--ground",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/site/sf-corridor-ground.json",
+    "--baseline",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-haight-castro/audit_baseline.json"
+   ],
+   "exit_code": 0,
+   "seconds": 2.1,
+   "finished_at": "2026-09-21T16:25:18Z",
+   "outputs": [
+    "data/regions/sf-haight-castro/audit_baseline.json"
    ]
   }
  }

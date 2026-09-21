@@ -96,7 +96,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T03:52:20Z",
+   "started_at": "2026-09-21T16:26:22Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,15 +104,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 10.0,
-   "finished_at": "2026-09-21T03:52:30Z",
+   "seconds": 10.2,
+   "finished_at": "2026-09-21T16:26:32Z",
    "outputs": [
     "data/regions/berkeley-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-21T03:52:30Z",
+   "started_at": "2026-09-21T16:26:32Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -125,8 +125,8 @@
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/berkeley-downtown/audit_baseline.json"
    ],
    "exit_code": 0,
-   "seconds": 1.7,
-   "finished_at": "2026-09-21T03:52:31Z",
+   "seconds": 1.8,
+   "finished_at": "2026-09-21T16:26:34Z",
    "outputs": [
     "data/regions/berkeley-downtown/audit_baseline.json"
    ]

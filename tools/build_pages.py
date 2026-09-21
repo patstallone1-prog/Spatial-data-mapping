@@ -45,6 +45,24 @@ def region_title(entry: dict) -> str:
     return (entry.get("description") or entry["name"]).split(":")[0]
 
 
+def region_page(entry: dict, site: pathlib.Path) -> str:
+    """The current corridor page, named for the region, as scripts/build_sf_corridor_3d.py
+    names it. A region's own site/ page is whatever renderer built it last; a deploy that
+    copied it shipped eight pages without the region switcher. The page is data-driven and the
+    same for every region, so the one in docs/ is the one every region gets."""
+    page = need(OUT / "sf-corridor-3d.html")
+    page = page.replace("Kerbside SF Corridor 3D", f"Kerbside {region_title(entry)} 3D")
+    try:
+        ways = json.loads((site / "sf-corridor-3d.json").read_text()).get("ways", [])
+        streets = sorted({w.get("name") for w in ways if w.get("kind") == "street" and w.get("name")})
+    except (OSError, ValueError):
+        streets = []
+    hint = " &amp; ".join(streets[:2]) if len(streets) >= 2 else "a corner or an address"
+    page = page.replace('placeholder="Columbus &amp; Broadway, or 600 Montgomery"', f'placeholder="{hint}, or an address"', 1)
+    return page.replace('<meta name="kerbside-regions" content="regions.json" />',
+                        '<meta name="kerbside-regions" content="../../regions.json" />', 1)
+
+
 def publish_regions(out: pathlib.Path) -> list[dict]:
     """Every region the ingestion has built, beside the corridor, and the index the page's
     region switcher reads.
@@ -86,14 +104,11 @@ def publish_regions(out: pathlib.Path) -> list[dict]:
             target = out / "regions" / name
             target.mkdir(parents=True, exist_ok=True)
             for data in sorted(site.iterdir()):
-                if data.is_file() and (data.suffix in (".json", ".bin") or data.name == "sf-corridor-3d.html"):
-                    if data.name == "sf-corridor-3d.html":
-                        page = data.read_text().replace('<meta name="kerbside-regions" content="regions.json" />',
-                                                        '<meta name="kerbside-regions" content="../../regions.json" />', 1)
-                        (target / data.name).write_text(page)
-                        (target / "index.html").write_text(page)
-                    else:
-                        shutil.copyfile(data, target / data.name)
+                if data.is_file() and data.suffix in (".json", ".bin"):
+                    shutil.copyfile(data, target / data.name)
+            page = region_page(entry, site)
+            (target / "sf-corridor-3d.html").write_text(page)
+            (target / "index.html").write_text(page)
             facades = site / "facades"
             if facades.is_dir():
                 shutil.copytree(facades, target / "facades", dirs_exist_ok=True)
@@ -184,6 +199,12 @@ def main(out: pathlib.Path | None = None) -> None:
             continue
         digest.update(extra.name.encode())
         digest.update(str(extra.stat().st_size).encode())
+    # The regions too: a deploy that changed only Oakland's build must still turn the version
+    # over, or an installed app keeps serving the old Oakland.
+    for extra in sorted(out.glob("regions/*/sf-corridor-3d.*")) + sorted(out.glob("regions.json")):
+        if extra.is_file():
+            digest.update(str(extra.relative_to(out)).encode())
+            digest.update(str(extra.stat().st_size).encode())
     version = digest.hexdigest()
     sw = (ROOT / "tools/pwa/sw.js").read_text().replace("__VERSION__", version)
     (out / "sw.js").write_text(sw)
