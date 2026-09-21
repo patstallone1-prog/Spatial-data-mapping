@@ -378,6 +378,34 @@
     </div>
   </section>
 
+  <section id="regions">
+    <hr class="rule" />
+    <div class="narrow">
+      <p class="eyebrow">Where it has been built</p>
+      <h2>Walk the places that are done.</h2>
+      <p class="lede" style="font-size: 16px">Each is a 3D reconstruction you can open and walk through. The note under each says what it stands on &mdash; the city's records, the lidar, or the map alone.</p>
+    </div>
+    <div class="devicelist" id="regionlist"></div>
+    <script>
+      fetch("regions.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((index) => {
+        const list = document.getElementById("regionlist");
+        if (!index || !list) return;
+        for (const region of index.regions) {
+          const row = document.createElement("div"); row.className = "devrow";
+          const what = document.createElement("div"); what.className = "what";
+          const link = document.createElement("a"); link.textContent = region.title;
+          if (region.built) link.href = region.path; else { link.style.opacity = "0.6"; link.style.pointerEvents = "none"; }
+          what.appendChild(link);
+          const sub = document.createElement("span"); sub.textContent = region.note || region.description || ""; what.appendChild(sub);
+          const tick = document.createElement("span"); tick.className = "tick " + (region.built ? "yes" : "no");
+          tick.textContent = region.built ? "Open" : "Not yet";
+          if (region.built) { tick.style.cursor = "pointer"; tick.addEventListener("click", () => { location.href = region.path; }); }
+          row.appendChild(what); row.appendChild(tick); list.appendChild(row);
+        }
+      }).catch(() => {});
+    </script>
+  </section>
+
   <section>
     <hr class="rule" />
     <div class="narrow">

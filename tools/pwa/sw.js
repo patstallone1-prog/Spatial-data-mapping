@@ -131,7 +131,16 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match("./app.html")))
+        // Off the network: the cached copy if there is one. A navigation with nothing cached
+        // gets the app shell, which can open with no signal; a data request gets an honest
+        // failure -- handing a page's JSON fetch the app's HTML gave it "Unexpected token '<'"
+        // in place of the truth, which is that the file could not be fetched.
+        .catch(() => caches.match(request).then((hit) => {
+          if (hit) return hit;
+          if (request.mode === "navigate") return caches.match("./app.html");
+          return new Response(JSON.stringify({ error: "offline", url: url.pathname }),
+                              { status: 503, headers: { "Content-Type": "application/json" } });
+        }))
     );
     return;
   }
