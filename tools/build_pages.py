@@ -38,6 +38,72 @@ def point_assets_at(page: str, base: str | None) -> str:
                         f'<meta name="kerbside-assets" content="{base.rstrip("/")}" />', 1)
 
 
+REGIONS = ROOT / "data" / "regions"
+
+
+def region_title(entry: dict) -> str:
+    return (entry.get("description") or entry["name"]).split(":")[0]
+
+
+def publish_regions(out: pathlib.Path) -> list[dict]:
+    """Every region the ingestion has built, beside the corridor, and the index the page's
+    region switcher reads.
+
+    A region's site is built into data/regions/<name>/site by scripts/ingest_region.py; the
+    page there fetches its data from beside itself, so the folder is copied whole to
+    regions/<name>/ and the page inside is told where the site's index lives. A region in the
+    registry with no build yet is listed as such, so the switcher says what is coming rather
+    than pretending the map is the city.
+    """
+    registry = json.loads((REGIONS / "regions.json").read_text())["regions"]
+    from_journal = {}
+    index: list[dict] = [{
+        "name": "sf-corridor", "title": "San Francisco: Marina to the Financial District",
+        "path": "sf-corridor-3d.html", "built": True,
+        "note": "The corridor: the city's kerb lines, the footway survey, the lidar.",
+    }]
+    for entry in registry:
+        name = entry["name"]
+        site = REGIONS / name / "site"
+        built = (site / "sf-corridor-3d.json").exists() and (site / "sf-corridor-3d.html").exists()
+        record = {"name": name, "title": region_title(entry), "path": f"regions/{name}/sf-corridor-3d.html",
+                  "built": built, "city": entry.get("city"), "description": entry.get("description")}
+        journal = REGIONS / name / "ingest.json"
+        if journal.exists():
+            stages = json.loads(journal.read_text()).get("stages", {})
+            record["stages"] = {k: v.get("status") for k, v in stages.items()}
+            built_at = (stages.get("build") or {}).get("finished_at")
+            if built_at:
+                record["built_at"] = built_at
+        caps = REGIONS / name / "capabilities.json"
+        if caps.exists():
+            activation = json.loads(caps.read_text()).get("activation") or {}
+            active = {k: v.get("active") for k, v in activation.items() if isinstance(v, dict)}
+            record["active"] = active
+            parts = [f"{k} from {v}" for k, v in active.items() if v and v != "none" and k in ("kerbs", "terrain", "building_height")]
+            record["note"] = "; ".join(parts) if parts else "built from the map alone"
+        if built:
+            target = out / "regions" / name
+            target.mkdir(parents=True, exist_ok=True)
+            for data in sorted(site.iterdir()):
+                if data.is_file() and (data.suffix in (".json", ".bin") or data.name == "sf-corridor-3d.html"):
+                    if data.name == "sf-corridor-3d.html":
+                        page = data.read_text().replace('<meta name="kerbside-regions" content="regions.json" />',
+                                                        '<meta name="kerbside-regions" content="../../regions.json" />', 1)
+                        (target / data.name).write_text(page)
+                        (target / "index.html").write_text(page)
+                    else:
+                        shutil.copyfile(data, target / data.name)
+            facades = site / "facades"
+            if facades.is_dir():
+                shutil.copytree(facades, target / "facades", dirs_exist_ok=True)
+        index.append(record)
+    (out / "regions.json").write_text(json.dumps({"regions": index}, indent=1) + "\n")
+    built = sum(1 for r in index if r["built"])
+    print(f"  regions {built} built of {len(index)} listed -> {out.name}/regions/")
+    return index
+
+
 def publish_map(out: pathlib.Path, assets_base: str | None = None) -> None:
     """The 3D corridor on its own, as the front page of wherever it is published.
 
@@ -64,6 +130,7 @@ def publish_map(out: pathlib.Path, assets_base: str | None = None) -> None:
     # has to the page by its own name keeps working too.
     (out / "index.html").write_text(page)
     (out / "sf-corridor-3d.html").write_text(page)
+    publish_regions(out)
     make_icons.main(out)
     (out / ".nojekyll").write_text("")
     total = sum(f.stat().st_size for f in out.iterdir() if f.is_file())
@@ -95,6 +162,7 @@ def main(out: pathlib.Path | None = None) -> None:
 
     (out / "app.html").write_text(app)
     (out / "index.html").write_text(landing)
+    publish_regions(out)
 
     make_icons.main(out)
 

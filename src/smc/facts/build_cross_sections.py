@@ -24,6 +24,7 @@ from collections import Counter
 from typing import Any
 
 from smc.facades.geometry import LocalFrame
+from smc.facts.clearance import BuildingClearance
 from smc.facts.cross_section import (
     PRIORS,
     STATION_M,
@@ -204,6 +205,7 @@ def build_cross_sections(
     (data/sf_public_works/parking_bands.json); a face without one takes the policy's prior.
     """
     index = CentrelineIndex.from_centrelines(centrelines, frame)
+    clearance = BuildingClearance(ways, frame)
     counts: Counter[str] = Counter()
     ends_by_node: dict[tuple[float, float], list[tuple[str, LaneEnd]]] = {}
 
@@ -252,10 +254,17 @@ def build_cross_sections(
                             grade = profile_grade
                             if one_side:
                                 one_sided_here = True
+            walled = False
             if left is None:
                 left, right = road_m / 2.0, -road_m / 2.0
                 grade = SourceGrade.MAPPED if (way.get("road_source") in ("curb_geometry", "official_curbs")
                                                and not width_is_prior) else SourceGrade.INFERRED
+                if width_is_prior:
+                    # A prior may not run under a building: bounded by the walls either side.
+                    left, right_abs, walled = clearance.half_widths(lon, lat, ux, uy, road_m / 2.0, MIN_HALF_M)
+                    right = -right_abs
+                    if walled:
+                        counts["stations bounded by a building wall"] += 1
             st = Station(s_m, lon, lat, left, right, grade)
             bands, status, reasons, score = allocate(
                 st.width_m, fixed_bands_for_side(way, 1, measured_parking),
@@ -264,11 +273,32 @@ def build_cross_sections(
                 lanes_backward_tag=way.get("lanes_back"), named=named, left_kerb_m=left)
             if one_sided_here:
                 reasons = [*reasons, "kerb_one_side"]
+            if walled:
+                reasons = [*reasons, "walled"]
             st.bands, st.status, st.reasons, st.score = bands, status, reasons, score
             stations.append(st)
         if not stations:
             counts["ways with no stations"] += 1
             continue
+        if not way.get("road_m"):
+            # The way had no recorded width, so what the stations found is its width: the
+            # renderer drew such a way at eight metres whatever its kerbs said -- Grenard
+            # Terrace, whose kerbs the city's profile puts 6.9 m apart, was an eight-metre
+            # road under two houses. The median over the way, so one open station at an
+            # alley's mouth does not widen the whole alley; the source says which rung it is.
+            widths = sorted(st.width_m for st in stations)
+            way["road_m"] = round(widths[len(widths) // 2], 2)
+            grades = {st.kerb_grade for st in stations}
+            if SourceGrade.SURVEY in grades:
+                way["road_source"] = "curb_profile"
+            elif SourceGrade.LIDAR in grades:
+                way["road_source"] = "lidar_profile"
+            elif any("walled" in st.reasons for st in stations):
+                way["road_source"] = "building_walls"
+                counts["ways narrowed to the room between buildings"] += 1
+            else:
+                way["road_source"] = "class_prior"
+            counts[f"ways widthed from stations ({way['road_source']})"] += 1
         counts["steps flagged"] += fit_longitudinal(stations)
         for st in stations:
             counts[f"stations {st.status}"] += 1

@@ -116,6 +116,20 @@
    "outputs": [
     "data/regions/sf-haight-castro/audit_baseline.json"
    ]
+  },
+  "lidar": {
+   "status": "done",
+   "started_at": "2026-09-21T05:27:59Z",
+   "command": [
+    "scripts/measure_region_lidar.py",
+    "sf-haight-castro"
+   ],
+   "exit_code": 0,
+   "seconds": 3.8,
+   "finished_at": "2026-09-21T05:28:03Z",
+   "outputs": [
+    "data/regions/sf-haight-castro/lidar/building_heights.json"
+   ]
   }
  }
 }

@@ -88,5 +88,88 @@
   "lanes": "osm+priors",
   "streets": "osm"
  },
- "errors": {}
+ "errors": {},
+ "activation": {
+  "kerbs": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/measure_region_lidar.py (street risers)",
+   "active": "lidar",
+   "count": 19479,
+   "of": 33531,
+   "truthful": true,
+   "note": "stations by kerb grade: {'L': 19479, 'N': 14052}"
+  },
+  "kerb_height": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
+   "active": "lidar",
+   "count": 1109,
+   "of": 1752,
+   "truthful": true,
+   "note": ""
+  },
+  "building_height": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/measure_region_lidar.py (roof over foot)",
+   "active": "lidar",
+   "count": 2675,
+   "of": 3066,
+   "truthful": true,
+   "note": "by source: {'lidar_region': 2675, 'osm_height': 85, 'inferred_default': 239, 'osm_levels': 67}"
+  },
+  "building_colour": {
+   "available": "imagery",
+   "implemented": true,
+   "extractor": "scripts/build_facade_fingerprints.py",
+   "active": "none",
+   "count": 0,
+   "of": 3066,
+   "truthful": false,
+   "note": ""
+  },
+  "terrain": {
+   "available": "lidar",
+   "implemented": true,
+   "extractor": "scripts/build_terrain.py",
+   "active": "lidar",
+   "count": 1,
+   "of": 1,
+   "truthful": true,
+   "note": "held-out RMSE 0.041 m on the roadway"
+  },
+  "parking": {
+   "available": "imagery",
+   "implemented": true,
+   "extractor": "smc.measure.parking_band (no crawl yet)",
+   "active": "none",
+   "count": 0,
+   "of": 33531,
+   "truthful": false,
+   "note": "parking bands graded image; the rest are policy priors"
+  },
+  "curb_ramps": {
+   "available": "osm",
+   "implemented": false,
+   "extractor": null,
+   "active": "none",
+   "count": 0,
+   "of": 641,
+   "truthful": false,
+   "note": "the city's ramp inventory, as ramps; crossings end at them in the audit's endsAtRampShare"
+  },
+  "lanes": {
+   "available": "osm+priors",
+   "implemented": true,
+   "extractor": "smc.facts.cross_section allocate",
+   "active": "osm+priors",
+   "count": 33531,
+   "of": 33531,
+   "truthful": true,
+   "note": "every station is an allocation over priors; a measured lane boundary does not exist yet"
+  }
+ },
+ "activation_note": "available: what discovery found over the box; implemented: an extractor exists for that source; active: it ran on this build and the count is what it contributed. A property is truthful only when active matches available."
 }

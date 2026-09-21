@@ -145,6 +145,12 @@ freeze). 792 tests, most of them running the
 renderer's own rules in Node rather than reading its source, and one (`test_width_vs_kerb.py`)
 holding the corridor-wide comparison with the city's kerbs to a baseline that may only improve.
 
+**Regions.** Eight built and published beside the corridor (regions/<name>/, a switcher in the
+page); Oakland truthful on kerbs, kerb heights, roof heights and terrain from the lidar, its
+kerb readings filtered for outliers and smoothed along the way. Not yet for any region outside
+San Francisco: ground cover and trees (the parcel pipeline is the city's), building colours,
+parking, curb ramps.
+
 **Measured, and measured against something.** Curb heights from lidar; kerb lines from
 photographs, checked against that lidar; widths from the city's survey; building heights from
 lidar medians over 12,262 footprints.

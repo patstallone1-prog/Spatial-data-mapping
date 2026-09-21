@@ -58,6 +58,8 @@ try {
     terrain: !!k.TERRAIN, h0: k.terrainHeightAt ? k.terrainHeightAt(0, 0) : null,
     ways: k.DATA && k.DATA.ways ? k.DATA.ways.length : 0,
     streets: k.DATA && k.DATA.ways ? k.DATA.ways.filter((w) => w.kind === "street").length : 0 }));
+  // The page may hold a port or a timer open; the result is printed, so this is done.
+  process.exit(0);
 } catch (e) {
   console.log(JSON.stringify({ ok: false, error: String(e && e.stack || e).split("\n").slice(0, 4).join(" | ") }));
   process.exit(1);

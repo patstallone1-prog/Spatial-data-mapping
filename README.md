@@ -55,6 +55,12 @@ Marina through the Financial District, about five square miles.
 - Two road tunnels (Broadway, Stockton) with mouths, cover and portal width read from the
   lidar and the city's kerbs; 142 stone and brick walls, 146 surface car parks with angled
   bays, courts, parks, street furniture, trees.
+- Paint and pads stand on the surfaces as drawn, not on the grid: after the streets are
+  lifted, every vertex of a crossing's paint is set from the rendered road under it and every
+  tactile pad from the rendered pavement (`settleOnto`), so a road that bulges between its
+  vertices no longer rises through the zebra. A street with no kerb reading is no wider than
+  the room between the buildings either side (`smc.facts.clearance`): 86 alleys in the
+  corridor, Grenard Terrace among them, were drawn at a two-lane prior under their neighbours.
 - Drawn to be walked, not just loaded. The page builds a frame at a time with its progress on
   screen (it used to hold the browser for half a minute and be reported "unresponsive"); the
   merged surfaces are cut into tiles the GPU can skip when they are off screen, the fine ones
@@ -150,6 +156,16 @@ where the cover was read is interpolated, not measured.
 index only anchors captures taken from its own vantage. See `docs/07-status.md`.
 
 ## Any region, the same way
+
+Every region the ingestion has built is published beside the corridor at `regions/<name>/`,
+with a switcher in the page and a list on the landing page; `regions.json` at the site root
+says which are built and what each stands on. Downtown Oakland stands on the lidar for its
+kerbs (19,479 of 33,531 stations), kerb heights (1,109 streets) and roof heights (2,675 of
+3,066 buildings): the first-riser reading is filtered along each way -- a reading over 0.6 m
+from its neighbours' median is dropped (6,551 of 24,000, most of them a median island or the
+far kerb) and the kept ones take a running median over five stations -- and both rules are
+written into the profile file. What Oakland does not have yet: ground cover and trees (the
+San Francisco pipeline stands on the city's parcels), building colours, parking, curb ramps.
 
 `scripts/ingest_region.py <name>` builds a region from `data/regions/regions.json` through
 the same stages the corridor went through -- discover, osm, terrain, imagery, official,

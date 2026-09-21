@@ -81,11 +81,54 @@
    ]
   },
   "lidar": {
-   "status": "running",
+   "status": "done",
    "started_at": "2026-09-20T22:08:25Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "berkeley-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 20635.0,
+   "finished_at": "2026-09-21T03:52:20Z",
+   "outputs": [
+    "data/regions/berkeley-downtown/lidar/building_heights.json"
+   ]
+  },
+  "build": {
+   "status": "done",
+   "started_at": "2026-09-21T03:52:20Z",
+   "command": [
+    "scripts/build_sf_corridor_3d.py",
+    "--region",
+    "berkeley-downtown",
+    "--reuse-osm"
+   ],
+   "exit_code": 0,
+   "seconds": 10.0,
+   "finished_at": "2026-09-21T03:52:30Z",
+   "outputs": [
+    "data/regions/berkeley-downtown/site/sf-corridor-3d.json"
+   ]
+  },
+  "audit": {
+   "status": "done",
+   "started_at": "2026-09-21T03:52:30Z",
+   "command": [
+    "scripts/audit_corridor_render.py",
+    "--page",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/berkeley-downtown/site/sf-corridor-3d.json",
+    "--official",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/berkeley-downtown/site/sf-corridor-official.json",
+    "--ground",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/berkeley-downtown/site/sf-corridor-ground.json",
+    "--baseline",
+    "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/berkeley-downtown/audit_baseline.json"
+   ],
+   "exit_code": 0,
+   "seconds": 1.7,
+   "finished_at": "2026-09-21T03:52:31Z",
+   "outputs": [
+    "data/regions/berkeley-downtown/audit_baseline.json"
    ]
   }
  }

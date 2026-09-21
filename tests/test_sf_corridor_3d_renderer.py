@@ -167,7 +167,9 @@ def test_sidewalk_ribbons_are_clipped_against_carriageways() -> None:
     assert "addCrossingAreaSegment" not in source
     assert "insideCrossingArea" not in source
     assert "function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color, opacity)" in source
-    assert "PROPERTY_LINE_PAVEMENT_Y = 0.012" in source
+    # Under the flat model's ground: 23 cm below the pavement's top, so a chord over the
+    # grid's noise never stands up through the pavement.
+    assert "PROPERTY_LINE_PAVEMENT_Y = -0.05" in source
     assert '"walk_underlay"' in source
     assert "addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color, opacity);" in source
     assert "addKerbsidePavement(renderPoints, side, inner, walk" in source
@@ -332,8 +334,9 @@ def test_renderer_clamps_wide_right_of_way_fallbacks() -> None:
     # Measured is measured: the kerb envelope read along the way as much as the city's own
     # kerb-to-kerb record. The lane cap once took Vallejo from its measured 11.6 m to 8.1.
     assert 'const measured = way._spans !== undefined || MEASURED_ROAD_SOURCES.has(way.road_source);' in source
+    # A width read from the city's kerb profile or the lidar's along the way is measured too.
     assert ('const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", '
-            '"divided_half", "tunnel_cut"]);') in source
+            '"divided_half", "tunnel_cut", "curb_profile", "lidar_profile"]);') in source
     assert "const sourceCap = measured ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;" in source
     # The lane cap is for inferred widths; a width measured between the kerbs keeps it.
     assert "const laneCap = lanes && !measured ?" in source
@@ -357,7 +360,8 @@ def test_renderer_densifies_curved_road_markings() -> None:
     # were 53,383 draw calls a frame. Same geometry, one call per surface class.
     assert "addMerged(`ribbon:${surfaceKind}" in source
     assert "const paintRuns = (isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints])" in source
-    assert ".map((run) => isCrossing ? trimWay(run, 0.48) : run)" in source
+    # A crossing's paint is dense along its legs, so settleOnto can lay it on the road as drawn.
+    assert ".map((run) => isCrossing ? densifyWay(trimWay(run, 0.48), CROSSING_PAINT_STEP_M) : run)" in source
     assert "if (!isCrossing || surfaceKind)" in source
     assert "ribbon(paintRun, widths" in source
     # A divided half is drawn as wide as the city's two kerbs say at each point along it.

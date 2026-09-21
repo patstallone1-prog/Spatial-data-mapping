@@ -117,6 +117,20 @@
    "outputs": [
     "data/regions/san-jose-downtown/audit_baseline.json"
    ]
+  },
+  "lidar": {
+   "status": "done",
+   "started_at": "2026-09-21T04:37:50Z",
+   "command": [
+    "scripts/measure_region_lidar.py",
+    "san-jose-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 3008.6,
+   "finished_at": "2026-09-21T05:27:59Z",
+   "outputs": [
+    "data/regions/san-jose-downtown/lidar/building_heights.json"
+   ]
   }
  }
 }

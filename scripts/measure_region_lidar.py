@@ -179,6 +179,61 @@ def split_way(points: list[list[float]], max_len_m: float) -> list[list[list[flo
     return pieces
 
 
+#: A kerb reading further than this from the running median of its neighbours along the way
+#: is not the kerb: a median island, a parked car's step, a driveway's edge, the far kerb. In
+#: downtown Oakland a quarter of consecutive stations differed by over a metre before this.
+KERB_OUTLIER_M = 0.6
+OUTLIER_WINDOW = 2
+
+
+def reject_outliers(samples: list[dict]) -> int:
+    """Drop, per side, the readings that leave their neighbours' running median by more than
+    KERB_OUTLIER_M. The kept readings are the sensor's own, untouched; a dropped one is None,
+    which the cross-section solver reads as "no kerb here" and falls back honestly."""
+    dropped = 0
+    for side in ("l", "r"):
+        values = [s[side] for s in samples]
+        keep = list(values)
+        for i, v in enumerate(values):
+            if v is None:
+                continue
+            window = [values[j] for j in range(max(0, i - OUTLIER_WINDOW), min(len(values), i + OUTLIER_WINDOW + 1))
+                      if j != i and values[j] is not None]
+            if len(window) < 2:
+                continue
+            window.sort()
+            median = window[len(window) // 2]
+            if abs(v - median) > KERB_OUTLIER_M:
+                keep[i] = None
+                dropped += 1
+        for s, k in zip(samples, keep):
+            if k is None and s[side] is not None:
+                s[side] = None
+                s[side + "h"] = None
+    return dropped
+
+
+#: The kept readings, smoothed along the way with a running median over this many stations:
+#: the riser is found in quarter-metre bins, so neighbours differed by the bin and the paint
+#: laid from them stepped sideways every four metres. A median keeps a real step -- a bulb-out
+#: -- where a mean would round it off.
+SMOOTH_WINDOW = 5
+
+
+def smooth_kept(samples: list[dict]) -> None:
+    for side in ("l", "r"):
+        values = [s[side] for s in samples]
+        out = list(values)
+        half = SMOOTH_WINDOW // 2
+        for i, v in enumerate(values):
+            if v is None:
+                continue
+            window = sorted(values[j] for j in range(max(0, i - half), min(len(values), i + half + 1)) if values[j] is not None)
+            out[i] = window[len(window) // 2]
+        for s, v in zip(samples, out):
+            s[side] = None if v is None else round(v, 3)
+
+
 def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, dict]) -> None:
     """Profiles keyed osm:<id> with stations in metres along the way, and roof heights."""
     official = base / "official"
@@ -190,6 +245,7 @@ def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, di
     profiles: dict[str, dict] = {}
     heights_by_way: dict[str, list[float]] = {}
     centrelines = []
+    outliers = 0
     for way in streets:
         osm_id = str(way["osm_id"])
         key = f"osm:{osm_id}"
@@ -202,8 +258,12 @@ def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, di
             s = station_along(way["points"], st["lon"], st["lat"])
             samples.append({"s": round(s, 2), "l": st["l"], "r": st["r"], "lh": st["lh"], "rh": st["rh"], "n": st["n"]})
         samples.sort(key=lambda r: r["s"])
+        outliers += reject_outliers(samples)
+        if not any(s["l"] is not None or s["r"] is not None for s in samples):
+            continue
+        smooth_kept(samples)
         profiles[key] = {"samples": samples}
-        heights = [h for st in stations for h in (st["lh"], st["rh"]) if h is not None]
+        heights = [h for s in samples for h in (s["lh"], s["rh"]) if h is not None]
         if heights:
             heights_by_way[key] = heights
     (official / "curb_profiles_lidar.json").write_text(json.dumps({
@@ -213,6 +273,10 @@ def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, di
                 "scripts/measure_region_lidar.py (smc.lidar.region.street_kerbs). A station with "
                 "no riser the sensor could tell from its noise is absent.",
         "region": name,
+        "outliers_dropped": outliers,
+        "outlier_rule": f"a reading over {KERB_OUTLIER_M} m from the running median of its neighbours "
+                        f"(+/-{OUTLIER_WINDOW} stations) is dropped, not moved",
+        "smoothing": f"the kept offsets are the running median over {SMOOTH_WINDOW} stations along the way",
         "profiles": profiles}, separators=(",", ":")))
     (official / "centrelines_osm.json").write_text(json.dumps(centrelines, separators=(",", ":")))
     kerb_heights = {key: {"curb_height_m": round(float(sorted(h)[len(h) // 2]), 3), "curb_height_n": len(h)}
@@ -227,8 +291,9 @@ def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, di
         "buildings": roofs}, separators=(",", ":")))
     stations_n = sum(len(p["samples"]) for p in profiles.values())
     both = sum(1 for p in profiles.values() for s in p["samples"] if s["l"] is not None and s["r"] is not None)
-    print(f"wrote {len(profiles)} street profiles ({stations_n} stations, {both} with both kerbs), "
-          f"{len(kerb_heights)} kerb heights, {len(roofs)} roof heights under {base}")
+    print(f"wrote {len(profiles)} street profiles ({stations_n} stations, {both} with both kerbs, "
+          f"{outliers} readings dropped as outliers), {len(kerb_heights)} kerb heights, "
+          f"{len(roofs)} roof heights under {base}")
 
 
 def station_along(points: list[list[float]], lon: float, lat: float) -> float:

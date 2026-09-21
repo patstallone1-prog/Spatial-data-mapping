@@ -61,3 +61,21 @@ def test_a_roof_is_measured_over_the_ground_at_its_foot():
     found = building_height(cloud, ring)
     assert found is not None and abs(found["height_m"] - 12.0) < 0.6 and found["roof_points"] > 1000, found
     assert building_height(cloud, ring[:2]) is None
+
+
+def test_a_kerb_reading_that_leaves_its_neighbours_is_dropped_not_moved():
+    """The first riser is sometimes a median island or the far kerb; along a way the kerb line
+    is smooth, so a reading over KERB_OUTLIER_M from its neighbours' median goes, and the kept
+    readings are exactly what the sensor said."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    from measure_region_lidar import KERB_OUTLIER_M, reject_outliers
+
+    samples = [{"s": 4.0 * i, "l": 5.4 + 0.02 * (i % 3), "r": 5.5, "lh": 0.12, "rh": 0.12, "n": 100} for i in range(8)]
+    samples[3]["l"] = 5.4 + KERB_OUTLIER_M + 1.0     # the far kerb, read on the near side
+    samples[5]["r"] = None                            # already nothing there
+    dropped = reject_outliers(samples)
+    assert dropped == 1
+    assert samples[3]["l"] is None and samples[3]["lh"] is None
+    assert samples[2]["l"] == 5.4 + 0.02 * 2 and samples[4]["r"] == 5.5

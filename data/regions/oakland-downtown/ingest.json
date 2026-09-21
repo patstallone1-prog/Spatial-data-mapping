@@ -80,9 +80,23 @@
    "finished_at": "2026-09-20T04:53:40Z",
    "outputs": []
   },
+  "lidar": {
+   "status": "done",
+   "started_at": "2026-09-21T03:52:31Z",
+   "command": [
+    "scripts/measure_region_lidar.py",
+    "oakland-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 0.3,
+   "finished_at": "2026-09-21T03:52:32Z",
+   "outputs": [
+    "data/regions/oakland-downtown/lidar/building_heights.json"
+   ]
+  },
   "build": {
    "status": "done",
-   "started_at": "2026-09-20T19:34:51Z",
+   "started_at": "2026-09-21T14:57:25Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -90,15 +104,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 9.1,
-   "finished_at": "2026-09-20T19:35:00Z",
+   "seconds": 19.1,
+   "finished_at": "2026-09-21T14:57:45Z",
    "outputs": [
     "data/regions/oakland-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-20T19:35:00Z",
+   "started_at": "2026-09-21T14:57:45Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -112,7 +126,7 @@
    ],
    "exit_code": 0,
    "seconds": 3.8,
-   "finished_at": "2026-09-20T19:35:04Z",
+   "finished_at": "2026-09-21T14:57:48Z",
    "outputs": [
     "data/regions/oakland-downtown/audit_baseline.json"
    ]
