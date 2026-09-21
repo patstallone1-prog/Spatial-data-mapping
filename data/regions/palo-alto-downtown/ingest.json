@@ -96,7 +96,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T16:26:34Z",
+   "started_at": "2026-09-21T19:54:56Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,15 +104,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 7.0,
-   "finished_at": "2026-09-21T16:26:41Z",
+   "seconds": 272.6,
+   "finished_at": "2026-09-21T19:59:28Z",
    "outputs": [
     "data/regions/palo-alto-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-21T16:26:41Z",
+   "started_at": "2026-09-21T19:59:28Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -126,7 +126,7 @@
    ],
    "exit_code": 0,
    "seconds": 1.5,
-   "finished_at": "2026-09-21T16:26:42Z",
+   "finished_at": "2026-09-21T19:59:30Z",
    "outputs": [
     "data/regions/palo-alto-downtown/audit_baseline.json"
    ]

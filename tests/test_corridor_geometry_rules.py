@@ -1895,8 +1895,13 @@ def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
             'mesh, "walk");') in body
     assert ('KERB_LIP_M,\n                        mine.color, mine.opacity, y, thickness, '
             '"kerb");') in body
-    # A piece on the road is not laid.
-    assert "insideCarriageway(sx, -sy, 0.15)" in body
+    # A piece on a third road is not laid; its own two legs' carriageways and their end caps
+    # are never the reason, which is what refused 403 corners and lost the corner chunks.
+    assert "onAnotherCarriageway(sx, -sy, 0.15, legs)" in body
+    assert "const legs = [leg.way, corner.B.way];" in body
+    another = _extract("onAnotherCarriageway", js)
+    assert "if (source && exclude.includes(source)) continue;" in another
+    assert "if (t <= 0 || t >= 1) continue;" in another
     # Two legs of one street forking are not a corner and do not abort the neighbour search.
     neighbour = _extract("cornerNeighbour", js)
     assert "if (leg.way.name && other.way.name === leg.way.name) continue;" in neighbour

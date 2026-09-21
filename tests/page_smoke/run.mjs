@@ -56,6 +56,7 @@ try {
   const k = globalThis.kerbside || {};
   console.log(JSON.stringify({ ok: true, ms: Math.round(performance.now() - t0), exports: Object.keys(k).length,
     terrain: !!k.TERRAIN, h0: k.terrainHeightAt ? k.terrainHeightAt(0, 0) : null,
+    corners: k.corners || null,
     ways: k.DATA && k.DATA.ways ? k.DATA.ways.length : 0,
     streets: k.DATA && k.DATA.ways ? k.DATA.ways.filter((w) => w.kind === "street").length : 0 }));
   // The page may hold a port or a timer open; the result is printed, so this is done.

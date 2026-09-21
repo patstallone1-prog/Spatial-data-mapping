@@ -518,7 +518,7 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert "const lazyLayerBuilders = new Map();" in source
     assert "function registerLazyLayer(layer, builder)" in source
     assert "function ensureLazyLayer(layer)" in source
-    assert "const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN] = await Promise.all([" in source
+    assert "const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER] = await Promise.all([" in source
     assert 'fetch(asset("sf-corridor-official.json"), { cache: "no-cache" })' in source
     assert 'registerLazyLayer("official", () => {' in source
     assert 'registerLazyLayer("chunks", () => {' in source

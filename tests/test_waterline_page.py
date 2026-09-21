@@ -31,7 +31,7 @@ def test_the_page_reads_the_measured_water_surface_and_draws_the_sea_from_it():
     # Over open water with no returns the ground is the sea's, not zero.
     assert "if (!good.length) return OPEN_WATER_GROUND_M;" in source
     # The backdrop paints sea at or under the waterline and land above it.
-    assert "if (edge < WATERLINE_M) return { y: SEA_Y - 0.02, colour: TERRAIN_SEA };" in source
+    assert "if (wet === true || (wet === null && edge < WATERLINE_M)) return { y: SEA_Y - 0.02, colour: TERRAIN_SEA };" in source
     # The builder runs the waterline pass on the grid before the page reads it.
     assert "apply_waterline(terrain_bin, closed_water, coastlines)" in source
     # Coastline ways reach the payload for the pass, and are not drawn as anything.
@@ -131,3 +131,37 @@ def test_the_built_corridor_carries_the_separate_tracks():
                    for t in tracks for p in t["points"])
         missing += 0 if near else 1
     assert missing <= len(separate) // 4, f"{missing} of {len(separate)} separate-cycleway streets have no track nearby"
+
+
+def test_the_page_draws_the_perimeter_and_the_bridges_and_the_backdrop_faces_up():
+    source = _source()
+    # The five-mile country: fetched with the rest, drawn as tiles, the apron classified by it.
+    assert 'fetch(asset("sf-corridor-perimeter.json")' in source
+    assert "function perimeterWaterAt(x, z)" in source
+    assert "const wet = apron > 0 ? perimeterWaterAt(x, z) : null;" in source
+    assert 'tile.userData.surface = "perimeter";' in source
+    # Bridges: the map's ways whole, at clearance over water, down to the ground by the grade.
+    assert "PERIMETER_BRIDGE_CLEARANCE_M" in source and 'deck.userData.surface = "bridge";' in source
+    # The backdrop is wound to face up whichever way its rows run, and drawn double-sided: wound
+    # the other way it was invisible from above and the bay showed through every gap.
+    assert "const up = (zs[Math.min(1, h - 1)] - zs[0]) < 0;" in source
+    assert "side: THREE.DoubleSide });" in source.split("const TERRAIN_MATERIAL")[1].split("\n")[0]
+    # Ground cover is clipped to the region's box before it is lifted.
+    assert "function clipRingToBox(ring)" in source and "const ring = clipRingToBox(raw);" in source
+    # A station under the street is a record, not a slab over the junction.
+    assert "if (feature.underground) return null;" in source
+    assert 'tags.get("location") == "underground"' in source
+
+
+@pytest.mark.skipif(not PAYLOAD.exists(), reason="no built corridor")
+def test_the_built_corridor_keeps_underground_stations_and_the_corners():
+    payload = json.loads(PAYLOAD.read_text())
+    underground = [w for w in payload["ways"] if w.get("kind") == "building" and w.get("underground")]
+    assert any("Montgomery" in (w.get("name") or "") for w in underground), [w.get("name") for w in underground]
+    perimeter = ROOT / "docs" / "sf-corridor-perimeter.json"
+    assert perimeter.exists()
+    p = json.loads(perimeter.read_text())
+    assert p["frame"]["cols"] > 400 and 0.4 < p["counts"]["cells_water"] / p["counts"]["cells"] < 0.75
+    spans = [b for b in p["bridges"] if sum(b["over_water"]) >= 20]
+    names = {b["name"] for b in spans}
+    assert any("Golden Gate" in (n or "") for n in names) and any("Eisenhower" in (n or "") for n in names), names

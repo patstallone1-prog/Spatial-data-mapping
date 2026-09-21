@@ -48,3 +48,11 @@ def test_the_shipped_page_loads_without_an_error(tmp_path: Path) -> None:
     # A world with no streets in it loaded without an error once, from an Overpass answer
     # that had no elements; a page that builds nothing is not a page that works.
     assert result["ways"] > 20_000 and result["streets"] > 2_000, result
+    # The corner pieces. Every corner cut that reconciled is laid unless a third carriageway
+    # runs across it; the two legs' own roads and their end caps are never a reason. 403 of
+    # 1,738 were once refused for those, and the missing corner chunks came back three times.
+    corners = result["corners"]
+    assert corners and corners["valid"] > 3000, corners
+    pairs = corners["laid"] + corners["skipped"]["onRoad"]
+    assert corners["laid"] / pairs >= 0.9, corners
+    assert corners["skipped"]["shape"] == 0 and corners["skipped"]["unlaid"] == 0, corners

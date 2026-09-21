@@ -145,6 +145,10 @@ freeze). 792 tests, most of them running the
 renderer's own rules in Node rather than reading its source, and one (`test_width_vs_kerb.py`)
 holding the corridor-wide comparison with the city's kerbs to a baseline that may only improve.
 
+**The country round the city.** Five miles of land and water from the map's coastline and bay
+outline, the bridges whole to the far shore, every other built region standing in it as a
+marker; the corner pieces back (1,604 of 1,738 laid); the backdrop facing up at last.
+
 **The shore.** The water surface is measured from the lidar's returns off it and the grid is
 flooded from the map's coastlines (wet side read from the returns); the page draws the sea at
 that surface. No building in the corridor stands on water (tested against the built grid).

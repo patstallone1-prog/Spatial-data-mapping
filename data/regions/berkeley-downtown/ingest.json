@@ -96,7 +96,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T16:26:22Z",
+   "started_at": "2026-09-21T19:51:11Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,15 +104,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 10.2,
-   "finished_at": "2026-09-21T16:26:32Z",
+   "seconds": 223.3,
+   "finished_at": "2026-09-21T19:54:54Z",
    "outputs": [
     "data/regions/berkeley-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-21T16:26:32Z",
+   "started_at": "2026-09-21T19:54:54Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -126,7 +126,7 @@
    ],
    "exit_code": 0,
    "seconds": 1.8,
-   "finished_at": "2026-09-21T16:26:34Z",
+   "finished_at": "2026-09-21T19:54:56Z",
    "outputs": [
     "data/regions/berkeley-downtown/audit_baseline.json"
    ]

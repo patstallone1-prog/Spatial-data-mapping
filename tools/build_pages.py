@@ -75,17 +75,20 @@ def publish_regions(out: pathlib.Path) -> list[dict]:
     """
     registry = json.loads((REGIONS / "regions.json").read_text())["regions"]
     from_journal = {}
+    corridor_bbox = json.loads((OUT / "sf-corridor-3d.json").read_text()).get("bbox") if (OUT / "sf-corridor-3d.json").exists() else None
     index: list[dict] = [{
         "name": "sf-corridor", "title": "San Francisco: Marina to the Financial District",
         "path": "sf-corridor-3d.html", "built": True,
         "note": "The corridor: the city's kerb lines, the footway survey, the lidar.",
+        "bbox": [corridor_bbox["south"], corridor_bbox["west"], corridor_bbox["north"], corridor_bbox["east"]] if corridor_bbox else None,
     }]
     for entry in registry:
         name = entry["name"]
         site = REGIONS / name / "site"
         built = (site / "sf-corridor-3d.json").exists() and (site / "sf-corridor-3d.html").exists()
         record = {"name": name, "title": region_title(entry), "path": f"regions/{name}/sf-corridor-3d.html",
-                  "built": built, "city": entry.get("city"), "description": entry.get("description")}
+                  "built": built, "city": entry.get("city"), "description": entry.get("description"),
+                  "bbox": entry.get("bbox")}
         journal = REGIONS / name / "ingest.json"
         if journal.exists():
             stages = json.loads(journal.read_text()).get("stages", {})

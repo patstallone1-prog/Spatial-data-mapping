@@ -97,7 +97,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T16:26:42Z",
+   "started_at": "2026-09-21T19:59:30Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -105,15 +105,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 16.3,
-   "finished_at": "2026-09-21T16:26:59Z",
+   "seconds": 255.8,
+   "finished_at": "2026-09-21T20:03:46Z",
    "outputs": [
     "data/regions/san-jose-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-21T16:26:59Z",
+   "started_at": "2026-09-21T20:03:46Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -126,8 +126,8 @@
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/san-jose-downtown/audit_baseline.json"
    ],
    "exit_code": 0,
-   "seconds": 4.3,
-   "finished_at": "2026-09-21T16:27:03Z",
+   "seconds": 4.6,
+   "finished_at": "2026-09-21T20:03:50Z",
    "outputs": [
     "data/regions/san-jose-downtown/audit_baseline.json"
    ]

@@ -55,6 +55,22 @@ Marina through the Financial District, about five square miles.
 - Two road tunnels (Broadway, Stockton) with mouths, cover and portal width read from the
   lidar and the city's kerbs; 142 stone and brick walls, 146 surface car parks with angled
   bays, courts, parks, street furniture, trees.
+- Five miles of country round every region, from the map (`smc.terrain.perimeter`,
+  `scripts/build_perimeter.py`): a 40 m grid classified land or water by flooding from the
+  region's own water and the map's bay outline through walls made of its coastline, the map's
+  lakes and lagoons as water outright, and a flooded body with the region's buildings in it
+  refused as the leak it is. The page draws it as grass and sea beyond the survey, the
+  region's edge eased down to it, and the map's bridge ways -- whole, so the Bay Bridge and the
+  Golden Gate reach the far shore -- as decks at clearance height on piers. The other built
+  regions stand in it as markers you can click. Not measured: the map, and the file says so.
+- Corner pieces: 403 of the corridor's 1,738 were refused as "on the road" by their own two
+  streets -- the stamped carriageway is a segment's average width where the corner is built
+  at the node's, and every road ending at a node reached into every corner by its end cap.
+  Only a third road's body across the wedge refuses a corner now; 1,604 laid, and the page
+  smoke test holds the ratio.
+- The terrain backdrop's triangles were wound facing down since the day the terrain came in:
+  invisible from above, so the sea disc showed through every gap between surfaces as water.
+  Wound up, double-sided, and a ray from above finds it (tested).
 - The waterline is the lidar's, where the map's coastline is. The ground grid's low cells are
   returns off the water -- a sheet at one height, the tide the day it flew, -0.14 m here --
   and its shore was filled outward from the quays; both drew as dry land under a fixed water
