@@ -162,6 +162,7 @@ const RAMP_NODE_CELL_M = 40.0;
 const RAMP_NODE_REACH_M = 22.0;
 const rampNodeGrid = new Map();
 const CROSSING_END_STEP_M = 0.05;
+const CROSSING_MIN_ON_ROAD_M = 2.5;
 const CROSSING_DEDUPE_CELL_M = 4.0;
 const CROSSING_DEDUPE_ANGLE_DEG = 12.0;
 const crossingDrawGrid = new Map();

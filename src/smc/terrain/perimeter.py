@@ -48,6 +48,9 @@ def perimeter_query(south: float, west: float, north: float, east: float) -> str
         # The bay itself, as the map has it: the flood's seed for a region whose own ground
         # grid holds no water -- downtown Oakland is a mile from the estuary.
         f'relation["natural"~"^(bay|strait)$"]({area});'
+        # The beaches: sand between the land and the sea, where the map has them.
+        f'way["natural"="beach"]({area});'
+        f'relation["natural"="beach"]({area});'
         f'way["bridge"]["highway"~"^({"|".join(BRIDGE_HIGHWAYS)})$"]({area});'
         ");out geom;"
     )
@@ -266,6 +269,39 @@ def classify(elements: list[dict[str, Any]], frame: dict, seeds: np.ndarray,
                    "seeds": int(seeds.sum()), "bodies": int(label.max()), "bodies_rejected_as_land": rejected}
 
 
+#: The atlas's cell classes.
+LAND, WATER, BEACH = 0, 1, 2
+
+
+def beaches(elements: list[dict[str, Any]], frame: dict, water: np.ndarray) -> np.ndarray:
+    """The cells inside the map's beach polygons that are not water: sand."""
+    rings: list[list[list[float]]] = []
+    for element in elements:
+        tags = element.get("tags") or {}
+        if tags.get("natural") != "beach":
+            continue
+        if element.get("type") == "way":
+            points = [[p["lon"], p["lat"]] for p in (element.get("geometry") or []) if "lon" in p]
+            if len(points) >= 4 and points[0] == points[-1]:
+                rings.append(points)
+        elif element.get("type") == "relation":
+            # Ocean Beach is one relation whose outer ways are not closed on their own.
+            outers = [[[p["lon"], p["lat"]] for p in (member.get("geometry") or []) if "lon" in p]
+                      for member in element.get("members") or [] if member.get("role") in ("outer", "", None)]
+            rings.extend(chain_rings([o for o in outers if len(o) >= 2]))
+    if not rings:
+        return np.zeros_like(water)
+    return rasterise_rings(rings, frame) & ~water
+
+
+def atlas_cells(water: np.ndarray, beach: np.ndarray | None = None) -> np.ndarray:
+    """One class a cell: LAND, WATER or BEACH."""
+    cells = np.where(water, WATER, LAND).astype(np.uint8)
+    if beach is not None:
+        cells[beach & ~water] = BEACH
+    return cells
+
+
 def bridges(elements: list[dict[str, Any]], frame: dict, water: np.ndarray) -> list[dict]:
     out = []
     for element in elements:
@@ -300,33 +336,33 @@ def bridges(elements: list[dict[str, Any]], frame: dict, water: np.ndarray) -> l
     return out
 
 
-def run_lengths(water: np.ndarray) -> list[list[int]]:
-    """Each row as run lengths, land first, alternating: a row of a hundred land cells then
-    twenty water is [100, 20]. Three and a half million cells of coast are a few thousand
-    runs; a character a cell would be three and a half megabytes a page."""
+def run_lengths(cells: np.ndarray) -> list[list[int]]:
+    """Each row as runs, a length and a class in turn: a row of a hundred land cells then
+    twenty water then ten beach is [100, 0, 20, 1, 10, 2]. Three and a half million cells of
+    coast are a few thousand runs; a character a cell would be three and a half megabytes a
+    page."""
     runs: list[list[int]] = []
-    for row in water:
+    for row in cells:
         if not row.size:
             runs.append([])
             continue
         change = np.nonzero(row[1:] != row[:-1])[0] + 1
         bounds = np.concatenate([[0], change, [row.size]])
         lengths = np.diff(bounds).tolist()
-        if row[0]:
-            lengths = [0, *lengths]
-        runs.append(lengths)
+        classes = row[bounds[:-1]].tolist()
+        runs.append([v for pair in zip(lengths, classes, strict=True) for v in pair])
     return runs
 
 
-def write_perimeter(out: Path, frame: dict, water: np.ndarray, spans: list[dict], counts: dict, source: str,
+def write_perimeter(out: Path, frame: dict, cells: np.ndarray, spans: list[dict], counts: dict, source: str,
                     regions: list[str] | None = None) -> None:
     out.write_text(json.dumps({
         "source": source,
-        "note": ("land or water, from OpenStreetMap's coastline flooded from the regions' own water and "
-                 "the map's bay, and its closed water polygons; the bridges are the map's bridge ways whole, "
-                 "with which vertices stand over water. Each row of cells is run lengths, land first, "
-                 "alternating. Not measured: the map."),
-        "frame": frame, "regions": regions or [], "counts": counts, "runs": run_lengths(water), "bridges": spans,
+        "note": ("land, water or beach, from OpenStreetMap's coastline flooded from the regions' own water "
+                 "and the map's bay, its closed water polygons and its beaches; the bridges are the map's "
+                 "bridge ways whole, with which vertices stand over water. Each row of cells is runs, a "
+                 "length then a class (0 land, 1 water, 2 beach) in turn. Not measured: the map."),
+        "frame": frame, "regions": regions or [], "counts": counts, "runs": run_lengths(cells), "bridges": spans,
     }, separators=(",", ":")))
 
 
@@ -338,12 +374,11 @@ def read_atlas(path: Path) -> tuple[dict, np.ndarray] | None:
     frame = data["frame"]
     cells = np.zeros((frame["rows"], frame["cols"]), dtype=np.uint8)
     for r, runs in enumerate(data["runs"]):
-        c, wet = 0, False
-        for n in runs:
-            if wet:
-                cells[r, c:c + n] = 1
+        c = 0
+        for n, cls in zip(runs[0::2], runs[1::2], strict=True):
+            if cls:
+                cells[r, c:c + n] = cls
             c += n
-            wet = not wet
     return frame, cells
 
 
@@ -358,5 +393,5 @@ def water_under(grid_frame: dict, atlas: tuple[dict, np.ndarray]) -> np.ndarray 
     r = np.floor(((lat - frame["mid_lat"]) * frame["metres_per_lat"] - frame["y0"]) / frame["step_m"]).astype(int)
     if c.min() < 0 or r.min() < 0 or c.max() >= frame["cols"] or r.max() >= frame["rows"]:
         return None
-    return cells[r][:, c] == 1
+    return cells[r][:, c] == WATER
 

@@ -78,14 +78,27 @@ def test_the_atlas_is_one_box_round_every_region_and_its_rows_are_run_lengths(tm
     assert box == {"south": 37.32, "west": -122.41, "north": 37.81, "east": -121.87}
     frame = frame_for(box)
     assert frame["rows"] * frame["step_m"] > 0.49 * 111_320 + 2 * 8000   # SF to San Jose and five miles each way
+    from smc.terrain.perimeter import atlas_cells, beaches, read_atlas
     water = np.zeros((3, 10), dtype=bool)
     water[0, 4:7] = True                                   # land, water, land
     water[1, :] = True                                     # all water
     water[2, :3] = True                                    # water, land, water
     water[2, 8:] = True
-    assert run_lengths(water) == [[4, 3, 3], [0, 10], [0, 3, 5, 2]]
+    beach = np.zeros((3, 10), dtype=bool)
+    beach[0, 2:5] = True                                   # sand up to the water's edge (and one cell in it: water wins)
+    cells = atlas_cells(water, beach)
+    assert run_lengths(cells) == [[2, 0, 2, 2, 3, 1, 3, 0], [10, 1], [3, 1, 5, 0, 2, 1]]
     out = tmp_path / "p.json"
-    write_perimeter(out, frame, water, [], {"cells_water": 15, "cells": 30}, source="test", regions=["a", "b"])
+    write_perimeter(out, frame, cells, [], {"cells_water": 15, "cells": 30}, source="test", regions=["a", "b"])
     import json
     data = json.loads(out.read_text())
-    assert data["runs"] == [[4, 3, 3], [0, 10], [0, 3, 5, 2]] and data["regions"] == ["a", "b"] and "cells" not in data
+    assert data["runs"][0] == [2, 0, 2, 2, 3, 1, 3, 0] and data["regions"] == ["a", "b"] and "cells" not in data
+    # And read back whole.
+    frame_back, cells_back = read_atlas(out)
+    assert frame_back["cols"] == frame["cols"]
+    # A beach polygon is sand where it is not water.
+    sand = _way([lonlat(-400, -400), lonlat(400, -400), lonlat(400, 400), lonlat(-400, 400), lonlat(-400, -400)], {"natural": "beach"})
+    wet = np.zeros((100, 100), dtype=bool)
+    wet[:, 55:] = True
+    got = beaches([sand], FRAME, wet)
+    assert got[50, 45] and not got[50, 60] and not got[10, 10]

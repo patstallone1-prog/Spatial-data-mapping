@@ -112,7 +112,8 @@ def test_the_built_corridor_keeps_underground_stations_and_the_corners():
     # The atlas: five miles round every built region, SF to San Jose, a fifth to a half water.
     assert p["frame"]["cols"] > 1500 and p["frame"]["rows"] > 1500 and len(p["regions"]) >= 8
     assert 0.2 < p["counts"]["cells_water"] / p["counts"]["cells"] < 0.5
-    assert len(p["runs"]) == p["frame"]["rows"] and all(sum(r) == p["frame"]["cols"] for r in p["runs"])
+    assert len(p["runs"]) == p["frame"]["rows"] and all(sum(r[0::2]) == p["frame"]["cols"] for r in p["runs"])
+    assert p["counts"]["cells_beach"] > 500                                   # Ocean Beach, Baker Beach, Crissy Field
     spans = [b for b in p["bridges"] if sum(b["over_water"]) >= 20]
     names = {b["name"] for b in spans}
     for bridge in ("Golden Gate", "Eisenhower", "San Mateo", "Dumbarton", "Richmond"):

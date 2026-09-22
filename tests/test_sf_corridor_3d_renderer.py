@@ -408,7 +408,7 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
     assert "tunnel_dark" not in source and "TUNNEL_SINK_M" not in source
     assert "function sweepAlongBore(stations, section, material, surface)" in source
     assert "function tunnelStations(centre, cover = null, roadZ = null)" in source
-    assert "function approachRoadAt(x, z)" in source and '"tunnel_road_z"' in source
+    assert "function approachRoadAt(x, z, outsideOnly = false)" in source and '"tunnel_road_z"' in source
     assert "function tunnelCoverAlong(cover, s)" in source
     assert '"tunnel_walk"' in source and '"tunnel_light"' in source
     assert "const TUNNEL_ROOF_UNDER_M = 0.4;" in source

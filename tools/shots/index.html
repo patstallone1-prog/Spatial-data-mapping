@@ -15,9 +15,42 @@ ready().then(async (k) => {
     const img = document.createElement("img"); img.style.cssText = "width:640px;height:360px;display:block";
     const hidden = [];
     if (s.hide) k.scene.traverse((o) => { if (o.isMesh && o.userData.surface === s.hide && o.visible) { o.visible = false; hidden.push(o); } });
+    if (s.hideGroup && k.groups[s.hideGroup] && k.groups[s.hideGroup].visible) { k.groups[s.hideGroup].visible = false; hidden.push(k.groups[s.hideGroup]); }
     img.src = k.shoot({ ...s, w: 960, h: 540 });
     hidden.forEach((o) => { o.visible = true; });
-    const cap = document.createElement("div"); cap.textContent = s.name; cap.style.cssText = "padding:2px 4px";
+    let text = s.name;
+    // probe: [[lon, lat], ...] -- what is drawn under each point, top down, as surface(name) lists.
+    if (s.probe && k.THREE) {
+      const ray = new k.THREE.Raycaster(); ray.camera = k.camera; ray.layers.enableAll();
+      for (const [lon, lat] of s.probe) {
+        const [x, y] = k.xy(lon, lat);
+        ray.set(new k.THREE.Vector3(x, 500, -y), new k.THREE.Vector3(0, -1, 0));
+        const hits = ray.intersectObjects(k.scene.children, true).slice(0, 6)
+          .map((h) => `${h.object.userData.surface || h.object.name || h.object.type}${h.object.userData.name ? "(" + h.object.userData.name + ")" : ""}@${h.point.y.toFixed(2)}`);
+        text += ` | ${lon},${lat}: ${hits.join(", ")}`;
+      }
+    }
+    // scan: metres either side of the spot to walk at 1 m, reporting pavement drawn in the
+    // carriageway (surface walk/kerb/corner under a point the page says is road), clustered.
+    if (s.scan && k.THREE) {
+      const ray = new k.THREE.Raycaster(); ray.camera = k.camera; ray.layers.enableAll();
+      const [cx, cy] = k.xy(s.lon, s.lat);
+      const found = [];
+      const step = s.scanStep || 1;
+      for (let dx = -s.scan; dx <= s.scan; dx += step) for (let dy = -s.scan; dy <= s.scan; dy += step) {
+        const x = cx + dx, z = -(cy + dy);
+        if (!k.insideCarriageway(x, z, 0.6)) continue;
+        ray.set(new k.THREE.Vector3(x, 500, z), new k.THREE.Vector3(0, -1, 0));
+        const top = ray.intersectObjects(k.groups.streets.children.filter((o) => !o.isSprite), true)[0];
+        if (top && /^(walk|walk_narrow|kerb|corner|walk_underlay)$/.test(top.object.userData.surface || "")) found.push([x, z, top.object.userData.surface]);
+      }
+      text += ` | ${found.length} road points under pavement`;
+      if (found.length) {
+        const xs = found.map((f) => f[0]), zs = found.map((f) => f[1]);
+        text += `; bbox x ${Math.min(...xs).toFixed(0)}..${Math.max(...xs).toFixed(0)} z ${Math.min(...zs).toFixed(0)}..${Math.max(...zs).toFixed(0)}; sample ${found.slice(0, 8).map((f) => f.join("/")).join(" ")}`;
+      }
+    }
+    const cap = document.createElement("div"); cap.textContent = text; cap.style.cssText = "padding:2px 4px;white-space:pre-wrap";
     box.appendChild(img); box.appendChild(cap); document.getElementById("out").appendChild(box);
   }
   document.title = "SHOTS_READY";

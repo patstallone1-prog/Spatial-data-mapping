@@ -95,6 +95,7 @@ const CROSSING_LEG_MIN_M = 0.7;
 const CROSSING_STEP_M = 0.25;
 const CROSSING_END_WALK_BACK_M = 1.5;
 const CROSSING_END_STEP_M = 0.05;
+const CROSSING_MIN_ON_ROAD_M = 2.5;
 const RAMP_NODE_CELL_M = 40.0;
 const RAMP_NODE_REACH_M = 22.0;
 const rampNodeGrid = new Map();
@@ -350,6 +351,22 @@ console.log(JSON.stringify({ count: clipped.length }));
 """)
 
     assert result["count"] == 0, result
+
+
+def test_a_corner_link_tagged_as_a_crossing_is_not_a_crossing_of_the_road() -> None:
+    """OpenStreetMap draws a short footway=crossing from the kerb corner off across the corner
+    at forty-five degrees at many a junction: the link between two kerb ramps. A metre of it
+    touches the asphalt. Matched to the road as if it crossed it, it was drawn as a second
+    ladder at a skew over the real crossing (Stockton at Sutter). A way crosses a road only
+    when enough of it lies on the road."""
+    result = _run_crossing("""
+const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+addCarriagewaySegment(-30, 0, 30, 0, 5);            // a road 10 m wide along x, kerbs at z = +-5
+const cornerLink = [asLonLat(0, 5.2), asLonLat(6, 11.2)];    // from the kerb, away at 45 degrees
+const real = [asLonLat(0, 7), asLonLat(0, -7)];              // kerb to kerb
+console.log(JSON.stringify({ link: crossingRectanglePoints(cornerLink).length, real: crossingRectanglePoints(real).length }));
+""")
+    assert result["link"] == 0 and result["real"] == 2, result
 
 
 def test_crosswalk_geometry_uses_the_local_kerb_bearing_not_global_axes() -> None:
@@ -770,6 +787,10 @@ BIKE_FUNCTIONS = (
     "renderedRoadWidth",
     "bikeLaneOffset",
     "indexBikeLaneEnds",
+    "indexLaneEnds",
+    "laneEndDirection",
+    "laneEndsFace",
+    "bikeLaneJoinTarget",
     "bikeLaneEndsAt",
     "dashRuns",
     "bikeLaneZones",
@@ -788,6 +809,7 @@ const BIKE_LANE_M = 1.75;
 const BIKE_JOIN_M = 2.5;
 const BIKE_END_TRIM_M = 2.0;
 const BIKE_CROSS_ANGLE_DEG = 25.0;
+const BIKE_JOIN_FACING = -0.5;
 const BIKE_MIXING_M = 7.6;
 const bikeJoinGrid = new Map();
 const BIKE_AREA_CELL = 4.0;
@@ -872,6 +894,35 @@ def test_only_a_lane_that_really_stops_is_pulled_back() -> None:
     """)
     assert result["endsHere"] == 1          # nothing else reaches it, so it is a real end
     assert abs(result["mapped"] - result["drawn"] - 2 * 2.0) < 0.6
+
+
+def test_a_lane_ending_at_a_t_junction_is_an_end_not_a_join() -> None:
+    """Battery's lane meets Market's cycle track at a right angle. The two ends stand within a
+    join's reach of each other, and eased onto each other the one bent across the junction. A
+    join is two ends that face each other; ends that meet at an angle are a T, and the lane
+    that stops is pulled back from the crossroads like any other."""
+    result = _run_bike(SPLIT_STREET + """
+    const ways = pieces(1, 60);                       // a lane running east
+    const way = ways[0];
+    const centre = offsetWay(way.points, -bikeLaneOffset(renderedRoadWidth(way)));
+    const [ex, ey] = xy(centre[centre.length - 1][0], centre[centre.length - 1][1]);
+    const end = centre[centre.length - 1];
+    // A track starting where the lane ends and running north: a T.
+    const across = { kind: "cycleway", points: [end, asLonLat(ex, -ey - 30)] };
+    // A track starting where the lane ends and carrying on east: the lane continues.
+    const onward = { kind: "cycleway", points: [end, asLonLat(ex + 60, -ey)] };
+    const dir = laneEndDirection(centre, false);
+    indexBikeLaneEnds([...ways, across]);
+    const atT = { ends: bikeLaneEndsAt(ex, -ey, ...dir), join: bikeLaneJoinTarget(ex, -ey, ...dir) !== null,
+                  blind: bikeLaneEndsAt(ex, -ey) };
+    indexBikeLaneEnds([...ways, onward]);
+    const on = { ends: bikeLaneEndsAt(ex, -ey, ...dir), join: bikeLaneJoinTarget(ex, -ey, ...dir) !== null };
+    console.log(JSON.stringify({ atT, on, dir }));
+    """)
+    assert result["dir"][0] > 0.99                     # the lane points east at its end
+    assert result["atT"]["blind"] >= 2                 # without the direction the T looked like a join
+    assert result["atT"]["ends"] == 1 and result["atT"]["join"] is False
+    assert result["on"]["ends"] >= 2 and result["on"]["join"] is True
 
 
 def test_a_street_crossing_the_lane_is_a_crossing_and_a_bend_is_not() -> None:
@@ -2244,7 +2295,7 @@ const DATA = { ways: [{ tunnel_approach: "start", tunnel_approach_road_z: 29.3, 
 """]
     parts += [_extract(name, js) for name in ("approachRoadAt", "groundLiftAt", "cutLiftAt", "wayFollowsCut")]
     parts.append(re.search(r"const CUT_ALONG_COS = [^;]+;", js).group(0))
-    for constant in ("APPROACH_CUT_MARGIN_M",):
+    for constant in ("APPROACH_CUT_MARGIN_M", "APPROACH_CUT_DECK_M"):
         found = re.search(rf"const {constant} = [0-9.]+;", js)
         assert found, constant
         parts.append(found.group(0))
@@ -2256,6 +2307,9 @@ console.log(JSON.stringify({
   midCut: cutLiftAt(80, 0), beside: cutLiftAt(97, 15), hill: cutLiftAt(200, 0),
   // The deck itself keeps the grid: one point, two heights, the way decides.
   deckOverPortal: groundLiftAt(97, 0),
+  // Well outside the mouth everything stands on the cut's road line, whatever the grid's fill
+  // says: a cross street there met the approach road a metre or two up.
+  crossStreetInCut: groundLiftAt(80, 0),
   alongCut: wayFollowsCut({ kind: "street", points: [asLonLat(40, 1), asLonLat(99, 1)] }),
   acrossCut: wayFollowsCut({ kind: "street", points: [asLonLat(97, -30), asLonLat(97, 30)] }),
   elsewhere: wayFollowsCut({ kind: "street", points: [asLonLat(300, 0), asLonLat(400, 0)] }),
@@ -2273,6 +2327,7 @@ console.log(JSON.stringify({
     assert abs(result["farEnd"] - 28.0) < 0.05, result
     assert result["beside"] == 36 and result["hill"] == 36, result
     assert result["deckOverPortal"] == 36, result
+    assert result["crossStreetInCut"] <= 28 + 20 * 0.03 + 1e-9, result
     assert result["alongCut"] is True and result["acrossCut"] is False and result["elsewhere"] is False, result
 
 

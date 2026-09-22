@@ -502,7 +502,31 @@ def main() -> int:
     front_walks = []
     service_yards = []
     backyards = []
+    plazas = []
     kept_rings: list[tuple[str, list, tuple | None]] = []
+    # What a lot is for, from the city's land-use record that came in with its buildings. The
+    # ground left over on a commercial, office, downtown, public or industrial lot is a
+    # forecourt, a service yard or a plaza -- concrete, not lawn. Market and 1st was drawn as
+    # a meadow between the towers. A lot with no building on it takes its block's majority.
+    use_of_lot: dict[str, str] = {}
+    use_of_block: dict[str, list[str]] = {}
+    for way in payload["ways"]:
+        if way.get("kind") != "building":
+            continue
+        lot = str((way.get("parcel") or {}).get("blklot") or "")
+        use = str(way.get("land_use") or "")
+        if lot and use:
+            use_of_lot[lot] = use
+            use_of_block.setdefault(lot[:4], []).append(use)
+
+    def paved_lot(blklot: str) -> bool:
+        use = use_of_lot.get(blklot)
+        if use is None:
+            uses = use_of_block.get(blklot[:4]) or []
+            if not uses:
+                return False
+            use = max(set(uses), key=uses.count)
+        return not use.upper().startswith("RESIDENTIAL") and not use.startswith("recreation")
     # One row per lot, not one per unit. A condominium building is a row in this file for every
     # unit in it, and every one of those rows carries the same lot polygon -- 37,244 rows over
     # 14,920 lots. Left alone that drew one parcel forty times, and made every edge of it look
@@ -575,7 +599,9 @@ def main() -> int:
                 setback = None
             simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
             item = {"id": blklot, "p": simplified}
-            if bare < MIN_YARD_CELLS:
+            if paved_lot(blklot):
+                plazas.append(item)
+            elif bare < MIN_YARD_CELLS:
                 service_yards.append(item)
             elif setback is not None and bare < MIN_BACKYARD_CELLS:
                 lawns.append(item)
@@ -600,12 +626,13 @@ def main() -> int:
                 # once each has been thinned independently, and a shared boundary that no longer
                 # matches is a boundary that gets fenced twice.
                 kept_rings.append((blklot, ring, front))
-    progress(f"{len(yards)} grass parcel remainders, {len(front_walks)} shallow frontages, "
+    progress(f"{len(yards)} grass parcel remainders, {len(plazas)} paved on commercial and public lots, "
+             f"{len(front_walks)} shallow frontages, "
              f"{len(service_yards)} neutral slivers ({dropped_yards} dropped for lying in the "
              f"road, {dropped_on_green} for standing on a park, "
              f"{split_frontages} cut off the front of their lot, "
              f"{nudged_vertices} corners pulled off it)")
-    for yard in [*yards, *front_walks, *service_yards]:
+    for yard in [*yards, *front_walks, *service_yards, *plazas]:
         lattice.stamp_polygon(yard["p"])
 
     # -- fences ---------------------------------------------------------------------------------
@@ -779,7 +806,7 @@ def main() -> int:
 
     OUT.write_text(json.dumps({"parks": parks, "yards": yards, "lawns": lawns,
                                "front_walks": front_walks, "service_yards": service_yards,
-                               "backyards": backyards, "trees": trees,
+                               "backyards": backyards, "plazas": plazas, "trees": trees,
                                "courts": courts, "pitches": pitches, "fences": fences},
                               separators=(",", ":")))
     progress(f"wrote {OUT.name}: described after ground cover {lattice.grid.mean():.1%}")

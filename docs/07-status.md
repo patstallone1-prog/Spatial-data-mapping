@@ -154,6 +154,18 @@ own grids; every bridge whole to its far shore; every page draws it in its own f
 other regions standing in it as markers and their boxes outlined on the ground. The corner
 pieces back (1,604 of 1,738 laid); the backdrop facing up at last.
 
+**Downtown, and the opening view.** The ground left over on a commercial, office, downtown
+or public lot is paved (`plazas` in the ground cover, from the city's land-use record on the
+lot's buildings, or its block's majority) rather than a lawn between the towers; a footway
+tagged as a crossing that only touches the road -- the kerb-ramp link across a corner -- is
+not drawn as a crossing of it; a bike lane's end is joined only to a lane end that faces it,
+so a lane meeting another at a T stops rather than bending across the junction; outside a
+tunnel mouth everything stands no higher than the cut's road line, so a cross street meets
+the approach at one level. The page opens on the whole region in its country, twelve
+kilometres up, with the other regions' markers standing in it; the far plane is thirty
+kilometres. The atlas carries the map's beaches as a third class, drawn as sand, and in the
+grid the low ground beside a mapped beach is sand to the waterline.
+
 **The shore.** The water surface is measured from the lidar's returns off it, and inside the
 coastline the coastline is right: the grid is flooded from the open water and the coastlines'
 wet sides through whatever the grid builder filled, walled by the coastlines and the water

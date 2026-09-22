@@ -32,6 +32,8 @@ from smc.imagery.region import SF_CORRIDOR, load_regions  # noqa: E402
 from smc.net import use_certifi  # noqa: E402
 from smc.terrain.perimeter import (  # noqa: E402
     PERIMETER_M,
+    atlas_cells,
+    beaches,
     bridges,
     classify,
     frame_for,
@@ -163,14 +165,18 @@ def main() -> int:
                              if w.get("kind") == "building" and w.get("centroid"))
     print(f"  {int(seeds.sum())} seed cells from the regions' grids, {len(buildings)} buildings", flush=True)
     water, counts = classify(elements, frame, seeds, buildings)
+    sand = beaches(elements, frame, water)
+    counts["cells_beach"] = int(sand.sum())
+    cells = atlas_cells(water, sand)
     spans = bridges(elements, frame, water)
     source = (f"OpenStreetMap via Overpass, {time.strftime('%Y-%m-%d')}, {PERIMETER_M / 1609.344:.0f} miles "
               f"round {len(built)} regions and the country between them")
     for site in built.values():
         out = site / "sf-corridor-perimeter.json"
-        write_perimeter(out, frame, water, spans, counts, source=source, regions=sorted(built))
+        write_perimeter(out, frame, cells, spans, counts, source=source, regions=sorted(built))
     out = site_of(SF_CORRIDOR.name) / "sf-corridor-perimeter.json"
-    print(f"{frame['cols']}x{frame['rows']} cells, {counts['cells_water']} water of {counts['cells']}, "
+    print(f"{frame['cols']}x{frame['rows']} cells, {counts['cells_water']} water and {counts['cells_beach']} beach "
+          f"of {counts['cells']}, "
           f"{counts['coastline_ways']} coastline ways, {counts['water_polygons']} water polygons, "
           f"{counts['bodies']} bodies ({counts['bodies_rejected_as_land']} rejected as land), "
           f"{len(spans)} bridge ways -> {out.relative_to(ROOT)} ({out.stat().st_size / 1e3:.0f} kB) "
