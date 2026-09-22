@@ -1,23 +1,25 @@
-"""The country round a region: land or water, five miles out in every direction, and the
-bridges that leave it.
+"""The country round the map: land or water, five miles out from every rendered region and
+all the country between them, and the bridges that leave them.
 
 A region's page used to end at its box. Past the edge was a green plate and a blue disc
 that met in a straight seam somewhere out in the bay, and nothing said where the shore
 really ran, so the Bay Bridge stopped at the edge of the box and Oakland was a rectangle
-of ocean. This classifies a coarse grid (PERIMETER_CELL_M) over the region's box widened by
-PERIMETER_M, from the map:
+of ocean. This classifies one coarse grid (PERIMETER_CELL_M) -- the atlas -- over the box
+round every built region, widened by PERIMETER_M, from the map:
 
-* the coastline ways are walls;
-* the water is flooded from what the region's own ground grid already knows is water (the
-  cells at the water surface, smc.terrain.waterline) -- so the bay, the estuary and the
-  ocean through the Golden Gate are one body, and an island ringed by coastline is land;
-* the map's closed water polygons (lakes, lagoons) are water outright;
+* the coastline ways are walls, and so are the closed water polygons' outlines;
+* the water is flooded from what the regions' own ground grids already know is water (the
+  cells at the water surface, smc.terrain.waterline) and from the map's own bay outline --
+  so the bay, the estuary and the ocean through the Golden Gate are one body, and an island
+  ringed by coastline is land;
+* the map's closed water polygons (lakes, lagoons, the salt ponds) are water outright;
+* a flooded body with the regions' buildings standing in it is land the flood leaked into;
 * everything the flood does not reach is land.
 
-The bridges are the map's bridge ways -- whole, not cut at the box, so a span that leaves
-the region reaches the other shore -- with which of their vertices stand over water. The
-result is one small file the page draws as grass, sea and decks. Nothing here is measured:
-it is the map, and says so.
+The bridges are the map's bridge ways -- whole, not cut at any box, so a span that leaves a
+region reaches the other shore -- with which of their vertices stand over water. The result
+is one file every page draws as grass, sea and decks, each page in its own frame. Nothing
+here is measured: it is the map, and says so.
 """
 
 from __future__ import annotations
@@ -39,7 +41,7 @@ BRIDGE_HIGHWAYS = ("motorway", "trunk", "primary", "secondary", "motorway_link",
 def perimeter_query(south: float, west: float, north: float, east: float) -> str:
     area = f"{south},{west},{north},{east}"
     return (
-        "[out:json][timeout:120];("
+        "[out:json][timeout:300];("
         f'way["natural"="coastline"]({area});'
         f'way["natural"="water"]({area});'
         f'relation["natural"="water"]({area});'
@@ -51,20 +53,30 @@ def perimeter_query(south: float, west: float, north: float, east: float) -> str
     )
 
 
-def frame_for(bbox: dict, region_frame: dict, wide: dict | None = None) -> dict:
-    """A cell frame over the widened box, in the region grid's own metre frame. ``wide`` is
-    a lon/lat box to cover instead of the five-mile one -- the five-mile box grown to take in
-    a bridge that leaves it."""
-    kx, ky = region_frame["metres_per_lon"], region_frame["metres_per_lat"]
+def union_box(bboxes: list[dict]) -> dict:
+    """The one box round every region's box: the regions and all the country between them."""
+    return {"south": min(b["south"] for b in bboxes), "west": min(b["west"] for b in bboxes),
+            "north": max(b["north"] for b in bboxes), "east": max(b["east"] for b in bboxes)}
+
+
+def frame_for(bbox: dict, wide: dict | None = None) -> dict:
+    """A cell frame over ``bbox`` widened by five miles, in a metre frame of its own centred on
+    the box (metres east and north of the middle, metres per degree at the middle latitude).
+    ``wide`` is a lon/lat box to cover instead -- the five-mile box grown to take in a bridge
+    that leaves it. A page draws the cells in its own frame by going through lon/lat."""
+    mid_lat = (bbox["south"] + bbox["north"]) / 2.0
+    mid_lon = (bbox["west"] + bbox["east"]) / 2.0
+    ky = 111_320.0
+    kx = ky * math.cos(math.radians(mid_lat))
     box = wide or {"south": bbox["south"] - PERIMETER_M / ky, "west": bbox["west"] - PERIMETER_M / kx,
                    "north": bbox["north"] + PERIMETER_M / ky, "east": bbox["east"] + PERIMETER_M / kx}
-    west = (box["west"] - region_frame["mid_lon"]) * kx
-    east = (box["east"] - region_frame["mid_lon"]) * kx
-    south = (box["south"] - region_frame["mid_lat"]) * ky
-    north = (box["north"] - region_frame["mid_lat"]) * ky
+    west = (box["west"] - mid_lon) * kx
+    east = (box["east"] - mid_lon) * kx
+    south = (box["south"] - mid_lat) * ky
+    north = (box["north"] - mid_lat) * ky
     cols = math.ceil((east - west) / PERIMETER_CELL_M)
     rows = math.ceil((north - south) / PERIMETER_CELL_M)
-    return {"mid_lon": region_frame["mid_lon"], "mid_lat": region_frame["mid_lat"],
+    return {"mid_lon": mid_lon, "mid_lat": mid_lat,
             "metres_per_lon": kx, "metres_per_lat": ky, "x0": west, "y0": south,
             "step_m": PERIMETER_CELL_M, "cols": cols, "rows": rows, "bbox": dict(box)}
 
@@ -160,7 +172,7 @@ MAX_BUILDINGS_IN_WATER = 40
 
 
 def region_water_seeds(frame: dict, grid_path: Path) -> np.ndarray:
-    """The perimeter cells whose centre lies on a region grid cell at the water surface."""
+    """The perimeter cells on which a region grid cell at the water surface lies."""
     meta = json.loads(grid_path.with_suffix(".json").read_text())
     g = meta["frame"]
     surface = (meta.get("waterline") or {}).get("surface_m")
@@ -169,18 +181,17 @@ def region_water_seeds(frame: dict, grid_path: Path) -> np.ndarray:
         return seeds
     cm = np.frombuffer(grid_path.read_bytes(), dtype=np.int16).reshape(g["rows"], g["cols"])
     height = np.where(cm == g["nodata"], np.nan, g["base_m"] + cm / 100.0)
-    wet = np.isfinite(height) & (height < surface + 0.45)
-    # Both frames share an origin; only the cell size differs.
-    for r in range(frame["rows"]):
-        y = frame["y0"] + (r + 0.5) * frame["step_m"]
-        gr = int((y - g["y0"]) // g["step_m"])
-        if not 0 <= gr < g["rows"]:
-            continue
-        for c in range(frame["cols"]):
-            x = frame["x0"] + (c + 0.5) * frame["step_m"]
-            gc = int((x - g["x0"]) // g["step_m"])
-            if 0 <= gc < g["cols"] and wet[gr, gc]:
-                seeds[r, c] = True
+    wet_r, wet_c = np.nonzero(np.isfinite(height) & (height < surface + 0.45))
+    if not wet_r.size:
+        return seeds
+    # The wet cells' centres, through lon/lat into the perimeter's frame: the two frames are
+    # not the same frame.
+    lon = g["mid_lon"] + (g["x0"] + (wet_c + 0.5) * g["step_m"]) / g["metres_per_lon"]
+    lat = g["mid_lat"] + (g["y0"] + (wet_r + 0.5) * g["step_m"]) / g["metres_per_lat"]
+    c = np.floor(((lon - frame["mid_lon"]) * frame["metres_per_lon"] - frame["x0"]) / frame["step_m"]).astype(int)
+    r = np.floor(((lat - frame["mid_lat"]) * frame["metres_per_lat"] - frame["y0"]) / frame["step_m"]).astype(int)
+    inside = (r >= 0) & (r < frame["rows"]) & (c >= 0) & (c < frame["cols"])
+    seeds[r[inside], c[inside]] = True
     return seeds
 
 
@@ -190,6 +201,7 @@ def classify(elements: list[dict[str, Any]], frame: dict, seeds: np.ndarray,
     coastlines: list[list[list[float]]] = []
     rings: list[list[list[float]]] = []
     bays: list[list[list[float]]] = []
+    islands: list[list[list[float]]] = []
     for element in elements:
         tags = element.get("tags") or {}
         geometry = element.get("geometry") or []
@@ -198,12 +210,16 @@ def classify(elements: list[dict[str, Any]], frame: dict, seeds: np.ndarray,
             coastlines.append(points)
         elif element.get("type") == "relation" and tags.get("natural") in ("bay", "strait"):
             for member in element.get("members") or []:
+                ring = [[p["lon"], p["lat"]] for p in (member.get("geometry") or []) if "lon" in p]
                 if member.get("role") in ("outer", "", None):
-                    ring = [[p["lon"], p["lat"]] for p in (member.get("geometry") or []) if "lon" in p]
                     # A member of two points is still a link in the chain; dropped, the ring
                     # never closed and the bay seeded nothing.
                     if len(ring) >= 2:
                         bays.append(ring)
+                elif member.get("role") == "inner" and len(ring) >= 2:
+                    # The islands: inside the bay's outline and not the bay. Seeded with the
+                    # rest, Treasure Island was a ring of shore round a lake.
+                    islands.append(ring)
         elif tags.get("natural") == "water":
             if element.get("type") == "way" and len(points) >= 4 and points[0] == points[-1]:
                 rings.append(points)
@@ -222,7 +238,11 @@ def classify(elements: list[dict[str, Any]], frame: dict, seeds: np.ndarray,
     if bays:
         closed = chain_rings(bays)
         if closed:
-            seeds = seeds | (rasterise_rings(closed, frame) & ~wall)
+            bay_seeds = rasterise_rings(closed, frame) & ~wall
+            inner = chain_rings(islands)
+            if inner:
+                bay_seeds &= ~rasterise_rings(inner, frame)
+            seeds = seeds | bay_seeds
     label = components(seeds, wall)
     # A body with the region's buildings in it is land the flood leaked into.
     rejected = 0
@@ -240,6 +260,7 @@ def classify(elements: list[dict[str, Any]], frame: dict, seeds: np.ndarray,
     lakes = rasterise_rings(rings, frame) if rings else np.zeros_like(water)
     water |= lakes
     return water, {"coastline_ways": len(coastlines), "water_polygons": len(rings), "bay_members": len(bays),
+                   "bay_islands": len(islands),
                    "bay_rings_closed": len(chain_rings(bays)) if bays else 0,
                    "cells_water": int(water.sum()), "cells": int(water.size),
                    "seeds": int(seeds.sum()), "bodies": int(label.max()), "bodies_rejected_as_land": rejected}
@@ -266,6 +287,10 @@ def bridges(elements: list[dict[str, Any]], frame: dict, water: np.ndarray) -> l
         for lon, lat in points:
             r, c = _cell(frame, lon, lat)
             over.append(bool(0 <= r < frame["rows"] and 0 <= c < frame["cols"] and water[r, c]))
+        # A road bridge over a road is not this: the atlas has three thousand of them and
+        # draws none, so they are not shipped.
+        if not any(over):
+            continue
         try:
             lanes = int(str(tags.get("lanes", "")).split(";")[0])
         except ValueError:
@@ -275,12 +300,63 @@ def bridges(elements: list[dict[str, Any]], frame: dict, water: np.ndarray) -> l
     return out
 
 
-def write_perimeter(out: Path, frame: dict, water: np.ndarray, spans: list[dict], counts: dict, source: str) -> None:
-    rows = ["".join("1" if v else "0" for v in water[r]) for r in range(frame["rows"])]
+def run_lengths(water: np.ndarray) -> list[list[int]]:
+    """Each row as run lengths, land first, alternating: a row of a hundred land cells then
+    twenty water is [100, 20]. Three and a half million cells of coast are a few thousand
+    runs; a character a cell would be three and a half megabytes a page."""
+    runs: list[list[int]] = []
+    for row in water:
+        if not row.size:
+            runs.append([])
+            continue
+        change = np.nonzero(row[1:] != row[:-1])[0] + 1
+        bounds = np.concatenate([[0], change, [row.size]])
+        lengths = np.diff(bounds).tolist()
+        if row[0]:
+            lengths = [0, *lengths]
+        runs.append(lengths)
+    return runs
+
+
+def write_perimeter(out: Path, frame: dict, water: np.ndarray, spans: list[dict], counts: dict, source: str,
+                    regions: list[str] | None = None) -> None:
     out.write_text(json.dumps({
         "source": source,
-        "note": ("land or water, from OpenStreetMap's coastline flooded from the region's own water and "
-                 "its closed water polygons; the bridges are the map's bridge ways whole, with which vertices "
-                 "stand over water. Not measured: the map."),
-        "frame": frame, "counts": counts, "cells": rows, "bridges": spans,
+        "note": ("land or water, from OpenStreetMap's coastline flooded from the regions' own water and "
+                 "the map's bay, and its closed water polygons; the bridges are the map's bridge ways whole, "
+                 "with which vertices stand over water. Each row of cells is run lengths, land first, "
+                 "alternating. Not measured: the map."),
+        "frame": frame, "regions": regions or [], "counts": counts, "runs": run_lengths(water), "bridges": spans,
     }, separators=(",", ":")))
+
+
+def read_atlas(path: Path) -> tuple[dict, np.ndarray] | None:
+    """The atlas's frame and its cells (1 water, 0 land) from the file the page reads."""
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text())
+    frame = data["frame"]
+    cells = np.zeros((frame["rows"], frame["cols"]), dtype=np.uint8)
+    for r, runs in enumerate(data["runs"]):
+        c, wet = 0, False
+        for n in runs:
+            if wet:
+                cells[r, c:c + n] = 1
+            c += n
+            wet = not wet
+    return frame, cells
+
+
+def water_under(grid_frame: dict, atlas: tuple[dict, np.ndarray]) -> np.ndarray | None:
+    """Which cells of a region grid the atlas says are water, through lon/lat; None where the
+    grid lies outside the atlas."""
+    frame, cells = atlas
+    g = grid_frame
+    lon = g["mid_lon"] + (g["x0"] + (np.arange(g["cols"]) + 0.5) * g["step_m"]) / g["metres_per_lon"]
+    lat = g["mid_lat"] + (g["y0"] + (np.arange(g["rows"]) + 0.5) * g["step_m"]) / g["metres_per_lat"]
+    c = np.floor(((lon - frame["mid_lon"]) * frame["metres_per_lon"] - frame["x0"]) / frame["step_m"]).astype(int)
+    r = np.floor(((lat - frame["mid_lat"]) * frame["metres_per_lat"] - frame["y0"]) / frame["step_m"]).astype(int)
+    if c.min() < 0 or r.min() < 0 or c.max() >= frame["cols"] or r.max() >= frame["rows"]:
+        return None
+    return cells[r][:, c] == 1
+

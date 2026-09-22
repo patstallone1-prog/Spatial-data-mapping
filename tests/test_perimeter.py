@@ -66,5 +66,26 @@ def test_rasterised_walls_are_eight_connected_so_no_flood_slips_through():
     seeds[5, 90] = True                                    # south-east corner
     water = flood(seeds, wall)
     assert water[5, 90] and not water[90, 5]               # never reaches the north-west
-    frame = frame_for({"south": 37.79, "west": -122.41, "north": 37.81, "east": -122.39}, FRAME)
+    frame = frame_for({"south": 37.79, "west": -122.41, "north": 37.81, "east": -122.39})
     assert frame["cols"] > 400 and frame["rows"] > 400     # five miles each way at 40 m
+    assert abs(frame["mid_lat"] - 37.8) < 1e-9 and 87_000 < frame["metres_per_lon"] < 89_000
+
+
+def test_the_atlas_is_one_box_round_every_region_and_its_rows_are_run_lengths(tmp_path):
+    from smc.terrain.perimeter import run_lengths, union_box, write_perimeter
+    box = union_box([{"south": 37.79, "west": -122.41, "north": 37.81, "east": -122.39},
+                     {"south": 37.32, "west": -121.90, "north": 37.34, "east": -121.87}])
+    assert box == {"south": 37.32, "west": -122.41, "north": 37.81, "east": -121.87}
+    frame = frame_for(box)
+    assert frame["rows"] * frame["step_m"] > 0.49 * 111_320 + 2 * 8000   # SF to San Jose and five miles each way
+    water = np.zeros((3, 10), dtype=bool)
+    water[0, 4:7] = True                                   # land, water, land
+    water[1, :] = True                                     # all water
+    water[2, :3] = True                                    # water, land, water
+    water[2, 8:] = True
+    assert run_lengths(water) == [[4, 3, 3], [0, 10], [0, 3, 5, 2]]
+    out = tmp_path / "p.json"
+    write_perimeter(out, frame, water, [], {"cells_water": 15, "cells": 30}, source="test", regions=["a", "b"])
+    import json
+    data = json.loads(out.read_text())
+    assert data["runs"] == [[4, 3, 3], [0, 10], [0, 3, 5, 2]] and data["regions"] == ["a", "b"] and "cells" not in data

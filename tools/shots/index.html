@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>shots</title>
+<!-- The contact-sheet harness tools/shots/shoot.sh drives: the page in an iframe, photographed at each spot once its streets and ground are built. -->
+<body style="margin:0;background:#111;color:#ddd;font:12px monospace">
+<iframe id="f" style="width:1280px;height:200px;border:0;display:block"></iframe>
+<div id="out" style="display:flex;flex-wrap:wrap;width:1920px"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const f = document.getElementById("f"); f.src = q.get("page") || "/docs/sf-corridor-3d.html";
+const spots = JSON.parse(decodeURIComponent(q.get("spots") || "[]"));
+const ready = () => new Promise((r) => { const i = setInterval(() => { const w = f.contentWindow; if (w.kerbside && w.kerbsideReady && w.kerbsideReady.streets && w.kerbsideReady.ground) { clearInterval(i); r(w.kerbside); } }, 500); });
+ready().then(async (k) => {
+  await new Promise((r) => setTimeout(r, 4000));
+  for (const s of spots) {
+    const box = document.createElement("div"); box.style.cssText = "width:640px";
+    const img = document.createElement("img"); img.style.cssText = "width:640px;height:360px;display:block";
+    const hidden = [];
+    if (s.hide) k.scene.traverse((o) => { if (o.isMesh && o.userData.surface === s.hide && o.visible) { o.visible = false; hidden.push(o); } });
+    img.src = k.shoot({ ...s, w: 960, h: 540 });
+    hidden.forEach((o) => { o.visible = true; });
+    const cap = document.createElement("div"); cap.textContent = s.name; cap.style.cssText = "padding:2px 4px";
+    box.appendChild(img); box.appendChild(cap); document.getElementById("out").appendChild(box);
+  }
+  document.title = "SHOTS_READY";
+});
+</script>

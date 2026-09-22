@@ -222,13 +222,51 @@ World Partition) with Epic Online Services configured from `.env.local`, never f
   (`data/waymo_sf/PROVENANCE.md`). The project is non-commercial.
 - Anchor imagery defaults to [Panoramax](https://panoramax.fr).
 
+## Layout, and the order things are built in
+
+```
+src/smc/          the library: everything that computes, importable and tested on its own
+  imagery/        the observation catalogue and the region registry (data/regions/regions.json)
+  official/       SFMTA and DataSF records, and the OSM stand-ins for cities without them
+  terrain/        the lidar ground grid's water (waterline) and the country round the map (perimeter)
+  facts/          what a street is: cross-sections, widths, clearance from the buildings
+  ground/         ground cover from parcels, and what is road and what is not
+  facades/        walls rectified out of photographs, colours and materials sampled from them
+  lidar/ measure/ mapping/ enrich/ ...   the measurement and anchoring stack (see the table above)
+scripts/          the builders, one per artefact, each a command with its own --help
+tools/            publishing: the app, the landing page, the pages bundle, the contact sheets
+tests/            pytest; behaviour, not the text of the code
+data/             the sources and the derived tables that are kept (see .gitignore for what is not)
+docs/             the published site (GitHub Pages), and the written record under docs/NN-*.md
+unreal/ clients/  the Unreal world and the capture clients
+```
+
+A region is built in this order; `scripts/ingest_region.py <name>` runs it end to end for any
+region in the registry and keeps a journal so it can resume.
+
+| Step | Command | Makes |
+|---|---|---|
+| Fetch the map | `scripts/fetch_region_osm.py`, or the corridor builder's own fetch | `osm_ways.json` |
+| Harvest the photographs | `scripts/harvest_region_observations.py` | the catalogue |
+| Ground from the lidar | `scripts/build_terrain.py` | `sf-corridor-terrain.{bin,json}` |
+| Kerbs, heights, portals from the lidar | `scripts/measure_region_lidar.py`, `measure_curbs_lidar.py`, `measure_tunnel_portals.py` | `official/*.json` |
+| Ground cover, furniture, colours | `scripts/build_ground_cover.py`, `build_street_furniture.py`, `build_building_colours.py` | sidecars |
+| The page | `scripts/build_sf_corridor_3d.py [--region <name>] [--reuse-osm]` | `sf-corridor-3d.{html,json}` and the shards; sets the grid's water (`smc.terrain.waterline`) |
+| The country round every region | `scripts/build_perimeter.py` | `sf-corridor-perimeter.json`, one atlas copied beside every built page |
+| Publish | `tools/build_app.py`, `tools/build_landing.py`, `tools/build_pages.py [--map-only --out <dir>]` | `docs/` |
+
+Every builder reads what is beside its inputs and writes beside its page; nothing is fetched
+twice, and a rebuild with the cached map (`--reuse-osm`) reclassifies rather than refetches.
+
 ## Running it
 
 ```bash
 make install-dev
-make check                                   # lint + 785 tests
+make check                                   # lint + tests
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
+.venv/bin/python scripts/build_perimeter.py                    # the five-mile country round every region
 python tools/build_pages.py --map-only --out ../Curb-measurements/docs   # publish the map
+tools/shots/shoot.sh docs/sf-corridor-3d.html spots.json sheet.png       # photograph it before deploying
 ```
 
 `python -m smc.adapters check` reports which credentials are set. Keys live in `.env.local`

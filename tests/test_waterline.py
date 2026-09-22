@@ -59,23 +59,38 @@ def test_rasterise_follows_the_even_odd_rule_and_a_grid_with_no_water_says_so():
     assert water_surface_m(np.full((10, 10), 20.0)) is None
 
 
-def test_a_coastline_floods_its_seaward_side_and_stops_at_the_quay(tmp_path: Path):
-    """Water to port of the way, land to starboard; the flood does not climb a quay."""
+def test_a_coastline_floods_its_seaward_side_whatever_the_fill_and_a_leak_is_told_by_the_buildings(tmp_path: Path):
+    """Water to port of the way, land to starboard; the quay's fill out over the water is water
+    because the map says so, and a pier is land only where the coastline goes round it."""
     from smc.terrain.waterline import coastline_mask
     rows, cols = 40, 80
     height = np.full((rows, cols), -0.1)
     height[:, :30] = 5.0                  # the town, west
     height[:, 30:34] = 2.0                # the quay wall
-    height[10:14, 34:60] = 1.6            # a pier deck out over the water: land
+    height[:, 34:50] = 3.5                # the grid builder's fill, thirty metres out over the water
+    height[10:14, 34:60] = 1.6            # a pier deck out over the water
     frame = json.loads(_grid(tmp_path, height).with_suffix(".json").read_text())["frame"]
-    # A coastline running south along column 34's west edge: travelling south the land (west) is
-    # on its right and the water (east) on its left, as the map's convention has it.
     x = frame["x0"] + 34 * frame["step_m"]
     def lon(xx): return -122.4 + xx / 88_000.0
     def lat(yy): return 37.8 + yy / 111_320.0
-    coast = [[lon(x), lat(frame["y0"] + rows * frame["step_m"])], [lon(x), lat(frame["y0"])]]
+    top, bottom = lat(frame["y0"] + rows * frame["step_m"]), lat(frame["y0"])
+    # A coastline down column 34's west edge: south along it the town is to starboard.
+    coast = [[lon(x), top], [lon(x), bottom]]
     for line in (coast, coast[::-1]):                  # drawn either way round: the returns decide
         water = coastline_mask([line], frame, height, -0.1)
         assert water[:, 40:].sum() > rows * 35 * 0.9      # the open water is water
         assert not water[:, :33].any()                     # the town and the quay are not
-        assert not water[10:14, 36:58].any()               # the pier deck is not
+        assert water[:, 36:50].sum() > rows * 14 * 0.9     # the fill is water: the map says the bay is there
+        assert water[10:14, 36:58].all()                   # and so is the deck the map did not go round
+    # The same coastline going round the pier: the deck is land, the water beside it is not.
+    y0, y1 = lat(frame["y0"] + 10 * frame["step_m"]), lat(frame["y0"] + 14 * frame["step_m"])
+    x_end = frame["x0"] + 60 * frame["step_m"]
+    round_pier = [[lon(x), top], [lon(x), y1], [lon(x_end), y1], [lon(x_end), y0], [lon(x), y0], [lon(x), bottom]]
+    water = coastline_mask([round_pier], frame, height, -0.1)
+    assert not water[11:13, 36:58].any() and water[16:20, 36:58].all() and water[4:8, 36:58].all()
+    # A flood that got into the town is land: the buildings say so.
+    gap = [[lon(x), top], [lon(x), lat(frame["y0"] + 22 * frame["step_m"])]]   # a coastline that stops half way
+    houses = [[lon(frame["x0"] + c * frame["step_m"]), lat(frame["y0"] + r * frame["step_m"])]
+              for r in range(2, 38, 2) for c in range(4, 28, 4)]
+    water = coastline_mask([gap], frame, np.where(np.arange(cols) >= 34, -0.1, 5.0) * np.ones((rows, 1)), -0.1, houses)
+    assert water[:, 40:].sum() > rows * 35 * 0.9 and not water[:, :30].any()

@@ -91,3 +91,6 @@ data/regions/*/site/
 data/regions/*/official/
 data/regions/*/ingest.log
 build/regions/
+
+# Finder droppings.
+.DS_Store

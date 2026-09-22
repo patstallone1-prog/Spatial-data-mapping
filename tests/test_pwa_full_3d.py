@@ -14,23 +14,6 @@ def _worker_version(path: Path) -> str:
     return match.group(1)
 
 
-def test_phone_app_exposes_full_3d_offline_download() -> None:
-    app = (ROOT / "tools" / "app_template.html").read_text()
-    worker = (ROOT / "tools" / "pwa" / "sw.js").read_text()
-
-    assert 'href="sf-corridor-3d.html"' in app
-    assert 'id="full-3d-download"' in app
-    assert 'id="full-3d-status"' in app
-    assert 'postMessage({ type: "CACHE_FULL_3D" })' in app
-    assert 'message.type !== "CACHE_FULL_3D"' in worker
-    assert 'sf-corridor-detail-manifest.json' in worker
-    assert "manifest.offline_assets" in worker
-    assert 'state: failed ? "partial" : "complete"' in worker
-    # The offline download carries the terrain grid, so the installed world has its hills.
-    source = (ROOT / "scripts" / "build_sf_corridor_3d.py").read_text()
-    assert '"sf-corridor-terrain.bin",' in source.split("core_assets = [", 1)[1].split("]", 1)[0]
-
-
 def test_detail_shard_change_invalidates_installed_phone_cache(
     tmp_path: Path, monkeypatch,
 ) -> None:

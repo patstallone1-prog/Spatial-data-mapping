@@ -90,7 +90,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T19:42:52Z",
+   "started_at": "2026-09-22T00:38:42Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -98,15 +98,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 48.5,
-   "finished_at": "2026-09-21T19:43:40Z",
+   "seconds": 23.1,
+   "finished_at": "2026-09-22T00:39:05Z",
    "outputs": [
     "data/regions/sf-mission/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
    "status": "done",
-   "started_at": "2026-09-21T19:43:40Z",
+   "started_at": "2026-09-22T00:39:05Z",
    "command": [
     "scripts/audit_corridor_render.py",
     "--page",
@@ -119,8 +119,8 @@
     "/Users/elialbukerk/Projects/Applications/spatial-mapping-crowdsource/data/regions/sf-mission/audit_baseline.json"
    ],
    "exit_code": 0,
-   "seconds": 10.2,
-   "finished_at": "2026-09-21T19:43:50Z",
+   "seconds": 4.7,
+   "finished_at": "2026-09-22T00:39:09Z",
    "outputs": [
     "data/regions/sf-mission/audit_baseline.json"
    ]

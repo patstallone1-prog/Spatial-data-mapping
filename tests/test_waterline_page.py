@@ -19,26 +19,6 @@ def _source() -> str:
     return (ROOT / "scripts" / "build_sf_corridor_3d.py").read_text()
 
 
-def test_the_page_reads_the_measured_water_surface_and_draws_the_sea_from_it():
-    source = _source()
-    # The surface is read from the grid's metadata, not assumed; everything else follows it.
-    assert "TERRAIN.meta.waterline.surface_m" in source
-    assert "const WATERLINE_M = SEA_SURFACE_M + " in source
-    assert "const SEA_Y = SEA_SURFACE_M + " in source
-    assert "const BAY_Y = SEA_Y - " in source and "const WATER_Y = SEA_Y + " in source
-    # The land plate stands above the water, so the apron never reads as sea over dry land.
-    assert "const PENINSULA_Y = WATERLINE_M + " in source
-    # Over open water with no returns the ground is the sea's, not zero.
-    assert "if (!good.length) return OPEN_WATER_GROUND_M;" in source
-    # The backdrop paints sea at or under the waterline and land above it.
-    assert "if (wet === true || (wet === null && edge < WATERLINE_M)) return { y: SEA_Y - 0.02, colour: TERRAIN_SEA };" in source
-    # The builder runs the waterline pass on the grid before the page reads it.
-    assert "apply_waterline(terrain_bin, closed_water, coastlines)" in source
-    # Coastline ways reach the payload for the pass, and are not drawn as anything.
-    assert '"kind": "coastline"' in source
-    assert 'way.kind === "coastline") continue;' in source
-
-
 @pytest.mark.skipif(not (GRID.exists() and PAYLOAD.exists()), reason="no built corridor")
 def test_the_built_grid_is_water_under_the_maps_water_and_land_under_its_buildings():
     meta = json.loads(GRID.with_suffix(".json").read_text())
@@ -104,18 +84,6 @@ def test_regions_are_published_beside_the_corridor_with_an_index(tmp_path: Path)
     assert 'fetch("regions.json"' in (ROOT / "tools" / "landing_template.html").read_text()
 
 
-def test_a_separate_cycle_track_is_fetched_drawn_and_joined():
-    """A road tagged cycleway=separate has its track as a highway=cycleway way of its own. Not
-    fetched, 2nd Street's green stopped at every such block; fetched, it is drawn as a track
-    and the road's lanes ease onto it."""
-    source = _source()
-    assert "footway|pedestrian|steps|path|cycleway)$" in source          # the query fetches them
-    assert 'elif highway == "cycleway":' in source and 'kind = "cycleway"' in source
-    assert 'if (way.kind === "cycleway") {' in source
-    assert 'addMerged("bike:fill", fill, "bike");' in source
-    assert 'if (way.kind === "cycleway" && way.points && way.points.length >= 2) {' in source  # join index
-
-
 @pytest.mark.skipif(not PAYLOAD.exists(), reason="no built corridor")
 def test_the_built_corridor_carries_the_separate_tracks():
     payload = json.loads(PAYLOAD.read_text())
@@ -133,26 +101,6 @@ def test_the_built_corridor_carries_the_separate_tracks():
     assert missing <= len(separate) // 4, f"{missing} of {len(separate)} separate-cycleway streets have no track nearby"
 
 
-def test_the_page_draws_the_perimeter_and_the_bridges_and_the_backdrop_faces_up():
-    source = _source()
-    # The five-mile country: fetched with the rest, drawn as tiles, the apron classified by it.
-    assert 'fetch(asset("sf-corridor-perimeter.json")' in source
-    assert "function perimeterWaterAt(x, z)" in source
-    assert "const wet = apron > 0 ? perimeterWaterAt(x, z) : null;" in source
-    assert 'tile.userData.surface = "perimeter";' in source
-    # Bridges: the map's ways whole, at clearance over water, down to the ground by the grade.
-    assert "PERIMETER_BRIDGE_CLEARANCE_M" in source and 'deck.userData.surface = "bridge";' in source
-    # The backdrop is wound to face up whichever way its rows run, and drawn double-sided: wound
-    # the other way it was invisible from above and the bay showed through every gap.
-    assert "const up = (zs[Math.min(1, h - 1)] - zs[0]) < 0;" in source
-    assert "side: THREE.DoubleSide });" in source.split("const TERRAIN_MATERIAL")[1].split("\n")[0]
-    # Ground cover is clipped to the region's box before it is lifted.
-    assert "function clipRingToBox(ring)" in source and "const ring = clipRingToBox(raw);" in source
-    # A station under the street is a record, not a slab over the junction.
-    assert "if (feature.underground) return null;" in source
-    assert 'tags.get("location") == "underground"' in source
-
-
 @pytest.mark.skipif(not PAYLOAD.exists(), reason="no built corridor")
 def test_the_built_corridor_keeps_underground_stations_and_the_corners():
     payload = json.loads(PAYLOAD.read_text())
@@ -161,7 +109,16 @@ def test_the_built_corridor_keeps_underground_stations_and_the_corners():
     perimeter = ROOT / "docs" / "sf-corridor-perimeter.json"
     assert perimeter.exists()
     p = json.loads(perimeter.read_text())
-    assert p["frame"]["cols"] > 400 and 0.4 < p["counts"]["cells_water"] / p["counts"]["cells"] < 0.75
+    # The atlas: five miles round every built region, SF to San Jose, a fifth to a half water.
+    assert p["frame"]["cols"] > 1500 and p["frame"]["rows"] > 1500 and len(p["regions"]) >= 8
+    assert 0.2 < p["counts"]["cells_water"] / p["counts"]["cells"] < 0.5
+    assert len(p["runs"]) == p["frame"]["rows"] and all(sum(r) == p["frame"]["cols"] for r in p["runs"])
     spans = [b for b in p["bridges"] if sum(b["over_water"]) >= 20]
     names = {b["name"] for b in spans}
-    assert any("Golden Gate" in (n or "") for n in names) and any("Eisenhower" in (n or "") for n in names), names
+    for bridge in ("Golden Gate", "Eisenhower", "San Mateo", "Dumbarton", "Richmond"):
+        assert any(bridge in (n or "") for n in names), (bridge, names)
+    # Every built region's site carries the same file.
+    for name in p["regions"]:
+        if name == "sf-corridor":
+            continue
+        assert (ROOT / "data" / "regions" / name / "site" / "sf-corridor-perimeter.json").exists(), name

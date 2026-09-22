@@ -33,6 +33,7 @@ import build_facades as facades  # noqa: E402
 import numpy as np  # noqa: E402
 import pyarrow.parquet as pq  # noqa: E402
 
+from smc.facades.colour import BAND_PIXEL_MAX, MIN_WALL_CHANNEL  # noqa: E402
 from smc.facades.geometry import (  # noqa: E402
     Camera,
     LocalFrame,
@@ -66,12 +67,17 @@ def dominant_colour(patch: np.ndarray, mask: np.ndarray) -> tuple[float, float, 
     that is on none of it, while the median lands on the render -- which is what the wall
     between the windows is made of and what the building reads as from across the street.
     """
+    # The black band a panorama carries at its poles is not the wall, whatever the mask says.
+    mask = mask & (patch.max(axis=2) > BAND_PIXEL_MAX)
     if mask.sum() < MIN_WALL_PIXELS:
         return None
     pixels = patch[mask]
     if not pixels.size:
         return None
-    return tuple(float(v) for v in np.median(pixels.reshape(-1, 3), axis=0))
+    median = tuple(float(v) for v in np.median(pixels.reshape(-1, 3), axis=0))
+    if sum(median) / 3.0 < MIN_WALL_CHANNEL:
+        return None
+    return median
 
 
 def main() -> int:

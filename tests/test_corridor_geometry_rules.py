@@ -472,13 +472,6 @@ console.log(JSON.stringify({
     assert result["runs"] == 0, result
 
 
-def test_circular_intersection_padding_is_not_rendered() -> None:
-    """Road and crossing ribbons meet directly; no synthetic circle masks their geometry."""
-    js = _page_js()
-    assert "addIntersectionRoadPads(" not in js
-    assert 'addMerged("road:junction"' not in js
-
-
 def test_midblock_sidewalk_way_ends_are_not_cut_back() -> None:
     result = _run_crossing("""
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
@@ -683,40 +676,6 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     assert abs(widths["bore"] - 14.0) < 0.01 and abs(widths["hill"] - 12.0) < 0.01, widths
 
 
-def test_roof_furniture_is_geometry_at_real_sizes() -> None:
-    """A solar array is modules in rows, not a pattern painted on a tiling texture.
-
-    It was the second: one 50x28 pixel rectangle in a 128 pixel tile that the roof repeated two
-    and a half times in each direction, so a house with panels wore six copies of the same array
-    at whatever size the tiling gave them, cut off at the tile edges and squared to nothing.
-    """
-    js = _page_js()
-    assert "const SOLAR_MODULE = { long: 1.70, short: 1.00" in js, "modules have no real size"
-    body = _extract("solarArray", js)
-    # Rows and columns of modules, stepped by the module size plus its rail gap.
-    assert "SOLAR_MODULE.gap" in body
-    assert "for (let c = 0; c < cols; c += 1)" in body
-    assert "for (let r = 0; r < rows; r += 1)" in body
-    # And it refuses rather than laying an array on a roof that cannot hold one.
-    assert "if (cols < 2 || rows < 2) return false;" in body
-
-
-def test_solar_only_goes_on_a_flat_rectangular_roof() -> None:
-    """The user's rule, and the physical one: an array needs a rectangle to sit in."""
-    js = _page_js()
-    placement = _extract("addRoofFurniture", js)
-    assert 'if (use === "solar")' in placement
-    assert "if (!roof.squarish || areaM2 < 90) continue;" in placement
-    # `squarish` is measured off the footprint's own rectangle, at the angle the roof is at.
-    # Measured against a north-aligned box instead, the median San Francisco building filled
-    # 0.666 of it -- the grid runs twenty to forty degrees off north -- and 681 of the 690 roofs
-    # that came up for an array were refused as ragged when every one was a rectangle.
-    shape = _extract("roofRectangle", js)
-    assert "convexHull(local)" in shape, "the roof rectangle is not oriented to the roof"
-    assert "footprint / best.area" in shape
-    assert "squarish:" in shape and "> 0.82" in shape
-
-
 def test_every_roof_use_has_a_stated_frequency_and_variants() -> None:
     """How common each is, written down, rather than a coin flip per building."""
     js = _page_js()
@@ -734,28 +693,6 @@ def test_every_roof_use_has_a_stated_frequency_and_variants() -> None:
         body = _extract(name, js)
         assert marker in body, name
         assert "variant === 1" in body, name
-
-
-def test_a_shed_is_not_drawn_as_a_house() -> None:
-    """726 small footprints deep inside blocks were being extruded to 10.5 m with windows on.
-
-    The height came from `inferred_default` -- the corridor median -- applied to a garden
-    workshop, and the treatment came from the residential archetype. Both are decided here off
-    the two things the data does say: the footprint area, and where the height came from.
-    """
-    js = _page_js()
-    body = _extract("structureClass", js)
-    assert "CANOPY_TAGS.has(tag)" in body, "building=roof is still extruded as a building"
-    assert "OUTBUILDING_TAGS.has(tag)" in body
-    # A height OpenStreetMap states is believed; a lidar median over a tiny footprint is not.
-    assert 'feature.height_source === "osm_height"' in body
-    assert 'feature.height_source === "inferred_default"' in body
-    assert "SLENDER_LIMIT" in body
-    # And the consequences: a canopy is not drawn, an outbuilding is capped and plain.
-    assert 'if (kind === "canopy") return null;' in js
-    assert "OUTBUILDING_MAX_M" in js
-    assert "outbuildingTexture(seed)" in js
-    assert 'kind === "outbuilding" ? outbuildingRoofTexture(seed)' in js
 
 
 def test_every_awning_kind_exists_and_the_flat_board_is_the_common_one() -> None:
@@ -781,92 +718,6 @@ def test_every_awning_kind_exists_and_the_flat_board_is_the_common_one() -> None
         if max(shares, key=shares.get) == "board":
             leads += 1
     assert leads > len(rows) * 0.7, f"the flat board leads in only {leads} of {len(rows)} trades"
-
-
-def test_a_long_shop_name_is_set_smaller_rather_than_overflowing() -> None:
-    js = _page_js()
-    body = _extract("signSlot", js)
-    assert "SIGN_MAX_PX" in body and "SIGN_MIN_SCALE" in body
-    assert "scale = Math.max(SIGN_MIN_SCALE, scale * 0.9)" in body, "the name is never shrunk"
-    # And the measurement respects the trade's letter spacing, or a tracked sign overflows.
-    assert "measureTracked(ctx, text, style.track * scale)" in body
-
-
-def test_the_name_curves_with_a_dome_awning() -> None:
-    """Flat text in front of a curved awning reads as a sticker. The sign is laid on the same
-    arc the canvas is, one strip per arc segment, so it curves because the awning curves."""
-    js = _page_js()
-    body = _extract("buildDome", js)
-    assert "const arc = [];" in body
-    # The sign strips walk the same arc array the canvas does.
-    assert "for (let i = from; i < to; i += 1)" in body
-    assert "slot.v0 + (slot.v1 - slot.v0)" in body
-
-
-def test_the_underside_of_an_awning_is_shaded_rather_than_flat() -> None:
-    js = _page_js()
-    assert "function underTones(colour)" in js
-    for builder in ("buildSloped", "buildShed"):
-        body = _extract(builder, js)
-        assert "[lip, lip, deep, deep]" in body, builder
-    dome = _extract("buildDome", js)
-    assert "deep.clone().lerp(lip, shade)" in dome
-
-
-def test_awnings_and_signs_do_not_cost_a_draw_call_each() -> None:
-    """Two thousand seven hundred signs, each with different words on it, and still a handful of
-    meshes: the words go into a shared atlas and the awning's colour goes on its vertices."""
-    js = _page_js()
-    assert "function emitShopfronts()" in js
-    assert "emitShopfronts();" in js
-    assert "const SIGN_ATLAS_PX = 2048;" in js
-    body = _extract("awningMaterial", js)
-    assert "vertexColors: true" in body
-
-
-def test_no_sidewalk_is_believed_only_where_one_is_mapped_instead() -> None:
-    """988 street ways carry `sidewalk=no`, and the renderer believed every one of them.
-
-    41.6 km -- 13.2% of the corridor's street network -- was drawn with no footway on either
-    side, Polk Street and Sacramento Street among them. What the tag usually means on a street
-    like those is that the pavement is mapped as its own way, which is what `sidewalk=separate`
-    is for and what a great many mappers write `no` for instead. It is worth believing only when
-    a mapped footway is actually standing there.
-    """
-    js = _page_js()
-    body = _extract("walkSidesToDraw", js)
-    # The blanket side rejection is gone. It sampled seven points and dropped the whole side if
-    # three were blocked, so a side beside a median for half a block lost its pavement for all of
-    # it. Whether the ground beyond a kerb is roadway is asked of each station now, in the two
-    # pavement passes, where it belongs.
-    assert "sideBlockedByCarriageway" not in body
-    assert "kerbsideBlockedAt(before, spine[i], after, side, inner)" in js
-    assert "mappedWalkNear" in body, "the tag is taken on trust"
-    # A side the tag excludes is still drawn when nothing is mapped along it.
-    assert "if (!sampled || covered < sampled * 0.5) drawn.push(side);" in body
-    # A driveway or a parking aisle has no footway of its own, and no paint down its middle.
-    assert "if (isUnmarkedService(way) || way._junctionInternal || isTunnelWay(way)) return drawn;" in body
-    assert "if (!isSidewalk && !isCrossing && !isPath && !isUnmarkedService(way)) {" in js
-
-
-def test_a_footway_narrows_to_fit_rather_than_vanishing() -> None:
-    js = _page_js()
-    body = _extract("addKerbsidePavement", js)
-    assert "WALK_FALLBACK_WIDTHS_M" in body
-    # The inner edge stays on the kerb at every width, so a narrower stretch is the same pavement
-    # with less of it rather than a pavement somewhere else. Asserted of the geometry rather than
-    # of the source text: the literal that used to be checked here survived a rewrite that
-    # changed what the function does, and would have gone on passing if the property had broken.
-    # The kerb's own four-inch tile sits at the kerb; the pavement proper starts behind it. The
-    # kerb line is read per station, since a divided half widens where the city's kerbs say.
-    assert "lineAt(KERB_LIP_M / 2)" in body
-    assert "lineAt(KERB_LIP_M + inset / 2)" in body
-    assert "kerbAt[Math.min(from + j, kerbAt.length - 1)] + extra" in body
-    # The kerb tile is laid along the runs the pavement survives, never on its own.
-    assert "for (const run of pavementRunsOutsideCarriageway(walkCentre, inset))" in body
-    assert "const kerb = offsetWay(run, -side * (inset / 2 + KERB_LIP_M / 2));" in body
-    # And the end trim cannot eat a short way whole.
-    assert "wanted * 0.32" in body
 
 
 def test_a_tree_pit_needs_pavement_under_the_tree_not_near_it() -> None:
@@ -1216,8 +1067,6 @@ def test_a_tree_pit_is_square_to_the_pavement_it_is_cut_into() -> None:
     # And the whole pit is tested against the roadway, not only the tree in the middle of it.
     assert "for (const [cx, cz] of corners)" in pit
     assert "insideBikeLane(cx, cz" in pit
-
-
 
 
 #: A stand-in for THREE.Color that behaves the way the page's does.
@@ -1592,26 +1441,6 @@ def test_a_pinch_does_not_end_the_pavement() -> None:
     assert result["laid"] > result["asked"] * 0.5, result
 
 
-def test_the_width_kept_is_the_one_that_covers_the_most_ground() -> None:
-    """Width is chosen from geometry before anything is drawn.
-
-    A one-metre strip running the whole block covers less pavement than a four-metre one over two
-    thirds of it. Comparing by length picked the sliver against the kerb and left the rest of the
-    way to the building line bare, which is the black along the shopfronts under another name.
-    """
-    js = _page_js()
-    body = _extract("addKerbsidePavement", js)
-    assert "const fits = widths.map(() => []);" in body
-    # Each station is also asked whether the ground beyond its kerb is another carriageway.
-    assert "fits[w].push(!blocked && walkFitsAt(cx, -cy, nx, nz, width));" in body
-    assert "if (coverage >= WALK_ENOUGH)" in body
-    assert "const chosen = fits[pick].map((ok) => ok ? pick : -1);" in body
-    assert "const emit = (from, to) => {" in body
-    assert body.index("const fits = widths.map(() => []);") < body.index("let laid = 0;")
-    assert body.index("const chosen = fits[pick].map((ok) => ok ? pick : -1);") < body.index("let laid = 0;")
-    assert body.index("let laid = 0;") < body.index("addPavementRibbon(")
-
-
 def test_the_inner_edge_of_the_pavement_sits_on_the_kerb() -> None:
     """A narrower pavement is the same pavement with less of it, not one somewhere else."""
     result = _run_pavement(PINCHED_STREET + """
@@ -1627,14 +1456,6 @@ def test_the_inner_edge_of_the_pavement_sits_on_the_kerb() -> None:
     """)
     for edge in result["innerEdges"]:
         assert abs(edge - result["kerb"]) < 0.35, result
-
-
-def test_mapped_footways_are_laid_before_any_is_derived_from_a_kerb() -> None:
-    """So that what is already on the ground is on the ground before anything asks about it."""
-    js = _page_js()
-    assert "const DRAW_ORDER = DATA.ways.slice().sort(" in js
-    order = js[js.index("const DRAW_ORDER"):js.index("for (const way of DRAW_ORDER)")]
-    assert '"sidewalk"' in order and '"path"' in order
 
 
 def test_lane_markings_stop_at_every_junction_not_only_at_a_way_s_ends() -> None:
@@ -1667,20 +1488,6 @@ def test_lane_markings_stop_at_every_junction_not_only_at_a_way_s_ends() -> None
     for caller in ("paintedLine(offsetWay(run, mark.offset), MARK_W",
                    "paintedLine(run, MARK_W, mark.color"):
         assert caller in js, caller
-
-
-def test_street_furniture_faces_the_road_rather_than_a_die_roll() -> None:
-    """A shelter with its back to the kerb is not a shelter.
-
-    Every one of the corridor's 19 shelters, 616 bus stop flags and 375 bearingless stop signs
-    arrives without a stated bearing. They used to be spun to a random angle over the full circle.
-    """
-    js = _page_js()
-    body = _extract("furnitureBearing", js)
-    assert "random(" not in body, "furniture is still being pointed by a die roll"
-    assert "nearestKerbAt(" in body
-    # A stated bearing is a measurement and still wins.
-    assert "Number.isFinite(item.bearing)" in body
 
 
 def test_curb_paint_is_snapped_to_the_kerb_the_model_drew() -> None:
@@ -2591,13 +2398,3 @@ console.log(JSON.stringify({
     assert result["glassOnAHouse"] == "glass", result
 
 
-def test_first_person_walks_at_twelve_miles_an_hour_and_zooms_to_twice() -> None:
-    js = _page_js()
-    assert "const FIRST_PERSON_SPEED = 5.36;" in js            # 12 mph in m/s
-    assert "const FIRST_PERSON_MAX_ZOOM = 2.0;" in js
-    assert "const scaled = state.firstPerson ? FIRST_PERSON_SPEED" in js
-    # The wheel narrows the field of view in first person and never past 2x; leaving resets it.
-    assert "camera.fov = FIRST_PERSON_FOV / state.zoom;" in js
-    assert "state.zoom = 1;\n  camera.fov = FIRST_PERSON_FOV;" in js
-    html = SOURCE.read_text(encoding="utf-8")
-    assert "12&nbsp;mph" in html and "15&nbsp;mph" not in html

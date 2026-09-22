@@ -62,22 +62,29 @@ RESOLUTION_M = 0.5
 KY = 111_320.0
 
 
-def fill_far(filled: np.ndarray, max_reach: int = FAR_FILL_REACH) -> tuple[np.ndarray, int]:
+def fill_far(filled: np.ndarray, max_reach: int | None = FAR_FILL_REACH,
+             allowed: np.ndarray | None = None) -> tuple[np.ndarray, int]:
     """Grow the known ground into the remaining holes, one ring of cells a step.
 
     Each step, every no-data cell with a known 8-neighbour takes the mean of those neighbours.
     Returns the grid and how many cells were closed. A hole that is still open after
-    ``max_reach`` steps is wider than 2 * max_reach cells and is left as no data.
+    ``max_reach`` steps is wider than 2 * max_reach cells and is left as no data -- unless
+    ``max_reach`` is None, when the growth runs until nothing is left to close. ``allowed``
+    restricts the growth to those cells: the map's land, so that the bay stays open.
     """
     out = filled.copy()
     rows, cols = out.shape
     closed = 0
-    for _ in range(max_reach):
-        holes = np.isnan(out)
+    for _ in itertools.count() if max_reach is None else range(max_reach):
+        unknown = np.isnan(out)
+        holes = unknown & allowed if allowed is not None else unknown
         if not holes.any():
             break
-        padded = np.pad(np.where(holes, 0.0, out), 1)
-        mask = np.pad((~holes).astype(np.float64), 1)
+        # Every unknown cell is left out of the means, not only the ones being closed: a
+        # water hole beside a land hole would otherwise put NaN into the mean, and the land
+        # hole would never close.
+        padded = np.pad(np.where(unknown, 0.0, out), 1)
+        mask = np.pad((~unknown).astype(np.float64), 1)
         total = np.zeros_like(out)
         n = np.zeros_like(out)
         for dy in (-1, 0, 1):
@@ -94,23 +101,58 @@ def fill_far(filled: np.ndarray, max_reach: int = FAR_FILL_REACH) -> tuple[np.nd
     return out, closed
 
 
+def map_land(frame: dict) -> np.ndarray | None:
+    """Which cells of the grid the atlas (scripts/build_perimeter.py) says are land; None
+    when there is no atlas over the grid yet."""
+    from smc.terrain.perimeter import read_atlas, water_under
+    atlas = read_atlas(ROOT / "docs" / "sf-corridor-perimeter.json")
+    if atlas is None:
+        return None
+    water = water_under(frame, atlas)
+    return None if water is None else ~water
+
+
+def fill_holes(filled: np.ndarray, frame: dict) -> tuple[np.ndarray, int, int]:
+    """Close the holes: out to FAR_FILL_REACH from the known ground, and on the map's land
+    however wide. Returns the grid, the cells closed by reach, and the cells closed as land.
+
+    A hole wider than the far fill's reach is open water -- unless it is not: the lidar had
+    no ground under two blocks of downtown Oakland's waterfront, and left as no data they
+    were drawn as the estuary, between the buildings. The atlas is the map's word on which
+    holes are water; the rest are grown into from their edges until they are closed. Where
+    there is an atlas the reach fill keeps to the land too, so that a rebuild does not grow
+    the shore another hundred metres into the bay every time it runs.
+    """
+    land = map_land(frame)
+    filled, far = fill_far(filled, allowed=land)
+    if land is None:
+        return filled, far, 0
+    filled, on_land = fill_far(filled, max_reach=None, allowed=land)
+    return filled, far, on_land
+
+
 def refill(out: Path) -> int:
     """Close the wide holes in an already built grid in place (``--refill``)."""
     meta = json.loads(out.with_suffix(".json").read_text())
     frame = meta["frame"]
     cm = np.frombuffer(out.read_bytes(), dtype=np.int16).reshape(frame["rows"], frame["cols"])
     height = np.where(cm == frame["nodata"], np.nan, frame["base_m"] + cm / 100.0)
-    filled, closed = fill_far(height)
+    filled, closed, closed_land = fill_holes(height, frame)
+    closed += closed_land
     unfilled = int(np.isnan(filled).sum())
     new_cm = np.where(np.isnan(filled), -32768, np.round((filled - frame["base_m"]) * 100.0)).astype(np.int16)
     out.write_bytes(new_cm.tobytes(order="C"))
     meta["cells_filled"] = meta.get("cells_filled", 0) + closed
     meta["cells_no_data"] = unfilled
     meta["cells_filled_far"] = closed
-    meta["method"] += (f"; holes still open are grown into from their edge a cell a step, out to "
-                       f"{FAR_FILL_REACH} cells, so a block under a wide building has ground")
+    meta["cells_filled_land"] = meta.get("cells_filled_land", 0) + closed_land
+    if "holes still open are grown into" not in meta["method"]:
+        meta["method"] += (f"; holes still open are grown into from their edge a cell a step, out to "
+                           f"{FAR_FILL_REACH} cells, so a block under a wide building has ground")
+    if closed_land and "the map's land" not in meta["method"]:
+        meta["method"] += "; holes the map's land (the atlas) covers are closed however wide"
     out.with_suffix(".json").write_text(json.dumps(meta, indent=1) + "\n")
-    print(f"closed {closed} cells; {unfilled} still no data (open water)")
+    print(f"closed {closed} cells ({closed_land} on the map's land); {unfilled} still no data (open water)")
     return 0
 
 
@@ -256,7 +298,10 @@ def main() -> int:
                 window_n += mask[reach + dy:reach + dy + rows, reach + dx:reach + dx + cols]
         take = np.isnan(filled) & (window_n > 0)
         filled[take] = window_sum[take] / window_n[take]
-    filled, closed_far = fill_far(filled)
+    filled, closed_far, closed_land = fill_holes(filled, {"mid_lon": mid_lon, "mid_lat": mid_lat, "metres_per_lon": kx,
+                                                          "metres_per_lat": KY, "x0": x0, "y0": y0, "step_m": step,
+                                                          "cols": cols, "rows": rows})
+    closed_far += closed_land
     unfilled = int(np.isnan(filled).sum())
     base = float(np.nanmin(filled)) - 1.0
     cm = np.where(np.isnan(filled), -32768, np.round((filled - base) * 100.0)).astype(np.int16)
