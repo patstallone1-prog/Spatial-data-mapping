@@ -143,9 +143,11 @@ def publish_map(out: pathlib.Path, assets_base: str | None = None) -> None:
         for data in sorted(OUT.glob("sf-corridor-*")):
             if data.is_file() and data.suffix in (".json", ".bin"):
                 shutil.copyfile(data, out / data.name)
-        facades = OUT / "facades"
-        if facades.is_dir():
-            shutil.copytree(facades, out / "facades", dirs_exist_ok=True)
+        # The facades, and the tile tree the page draws the rest of the Bay Area from.
+        for folder in ("facades", "tiles"):
+            source = OUT / folder
+            if source.is_dir():
+                shutil.copytree(source, out / folder, dirs_exist_ok=True)
     # index.html and the old name both, so that the short URL works and any link anybody already
     # has to the page by its own name keeps working too.
     (out / "index.html").write_text(page)
