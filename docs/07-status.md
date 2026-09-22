@@ -154,6 +154,24 @@ own grids; every bridge whole to its far shore; every page draws it in its own f
 other regions standing in it as markers and their boxes outlined on the ground. The corner
 pieces back (1,604 of 1,738 laid); the backdrop facing up at last.
 
+**The Bay Area, coarse to fine.** One quadtree over the whole area (`scripts/build_tiles.py`,
+`smc.tiles`), rooted on the atlas's box and built from the regions' own geometry: the skyline
+as oriented boxes at 25 m of error, every road at 5 m, the real footprints at 1.2 m, 124 tiles
+and 15.5 MB with a 38 kB index that prices every tile before it is asked for. The page refines
+by **screen error** -- a tile's own error times the focal length over its distance, in pixels --
+and never by zoom, so the far side of the bay stays a few boxes while the street underfoot is
+drawn to the kerb. A parent stays drawn until every child that is on screen has its geometry,
+and then fades out over them; tiles are fetched in order of what is on screen, about to be
+visibly wrong, and in the direction of travel, six at a time, with the ring beyond what is
+drawn prefetched; resident geometry is evicted from the far end. Flying from twelve kilometres
+into downtown Oakland now costs 8 to 26 meshes and about 110,000 triangles, and there is no
+point on the map with nothing under it. The atlas gained a built-up class from the regions'
+own mapped footprints, so a city is not drawn standing in a meadow.
+
+Inside a built region the page's own street renderer is still the leaf, and it is still a
+region at a time: baking the kerbs, lanes and facades into depths 7 and 8 of the same tree is
+what would let the triangle budgets go.
+
 **Downtown, and the opening view.** The ground left over on a commercial, office, downtown
 or public lot is paved (`plazas` in the ground cover, from the city's land-use record on the
 lot's buildings, or its block's majority) rather than a lawn between the towers; a footway

@@ -59,6 +59,8 @@ def region_page(entry: dict, site: pathlib.Path) -> str:
         streets = []
     hint = " &amp; ".join(streets[:2]) if len(streets) >= 2 else "a corner or an address"
     page = page.replace('placeholder="Columbus &amp; Broadway, or 600 Montgomery"', f'placeholder="{hint}, or an address"', 1)
+    # One tile tree a site, at its root: a region's page is two folders down from it.
+    page = page.replace('const TILE_BASE = "tiles/";', 'const TILE_BASE = "../../tiles/";', 1)
     return page.replace('<meta name="kerbside-regions" content="regions.json" />',
                         '<meta name="kerbside-regions" content="../../regions.json" />', 1)
 

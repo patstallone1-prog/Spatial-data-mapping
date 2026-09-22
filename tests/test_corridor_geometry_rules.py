@@ -1073,6 +1073,151 @@ def test_nothing_else_is_laid_inside_a_bike_lane() -> None:
     assert result["elsewhere"] is False
 
 
+# ---------------------------------------------------------------- the tile tree
+
+
+TILE_PREAMBLE = """
+// The tree's own decisions, with the scene stubbed: what refines, what stays up, what is
+// fetched first. No THREE, no network -- these are the rules, not the rendering.
+const TILES = new Map();
+let VIEW = { fov: 50, position: { x: 0, y: 0, z: 0 } };
+const camera = VIEW;
+const renderer = { domElement: { clientHeight: 900 } };
+let inView = () => true;
+function tileInView(tile) { return inView(tile); }
+const asked = [];
+function requestTile(tile, screenError, onScreen = true, aheadness = 0, eye = camera) {
+  asked.push({ id: tile.id, priority: tilePriority(tile, screenError, onScreen, aheadness, eye) });
+}
+let motion = { x: 0, z: 0 };
+function tileAheadness(tile, eye = camera) {
+  if (!motion.x && !motion.z) return 0;
+  const dx = tile.cx - eye.position.x, dz = tile.cz - eye.position.z;
+  const len = Math.hypot(dx, dz) || 1;
+  return (dx / len) * motion.x + (dz / len) * motion.z;
+}
+function tile(id, depth, error, cx, cz, radius, children, state) {
+  const t = { id, depth, error, cx, cy: 0, cz, radius, children: children || [], state: state || "unavailable" };
+  TILES.set(id, t);
+  return t;
+}
+"""
+
+
+def _run_tiles(js_body: str) -> dict:
+    js = _page_js()
+    names = ("tileFocalPx", "tileScreenErrorPx", "tilePriority", "tileHasContent",
+             "tilePending", "selectTiles")
+    parts = [TILE_PREAMBLE]
+    parts.append(re.search(r"const TILE_MAX_SCREEN_ERROR_PX = [0-9.]+;", js).group(0))
+    parts += [_extract(name, js) for name in names]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+def test_a_tile_refines_by_the_pixels_it_is_wrong_by_not_by_how_far_away_it_is() -> None:
+    """The whole point of the hierarchy. A tile is asked what its own error would look like
+    from where the camera is -- error times focal over distance -- and refines only when that
+    is more than a few pixels. So the same tile is good enough at ten kilometres and not at
+    one, and a coarser tile refines sooner than a finer one at the same distance."""
+    result = _run_tiles("""
+    const coarse = tile("1/0/0", 1, 25.0, 0, 0, 100, []);
+    const fine = tile("6/0/0", 6, 1.2, 0, 0, 100, []);
+    const at = (d) => { VIEW.position = { x: 0, y: 0, z: d }; };
+    const errors = {};
+    for (const d of [200, 1000, 8000, 30000]) {
+      at(d + 100);
+      errors[d] = { coarse: +tileScreenErrorPx(coarse).toFixed(2), fine: +tileScreenErrorPx(fine).toFixed(2) };
+    }
+    console.log(JSON.stringify({ errors, focal: +tileFocalPx().toFixed(1) }));
+    """)
+    focal = result["focal"]
+    assert 950 < focal < 980                       # 900 px at 50 degrees
+    errors = result["errors"]
+    # Inversely with distance, exactly.
+    assert errors["200"]["coarse"] == pytest.approx(errors["1000"]["coarse"] * 5, rel=0.02)
+    # The coarse tile is over budget at a kilometre and under it at thirty; the fine one is
+    # under budget at a kilometre -- which is why the skyline is enough from far off.
+    assert errors["1000"]["coarse"] > 3.0 and errors["30000"]["coarse"] < 3.0
+    assert errors["1000"]["fine"] < 3.0 and errors["200"]["fine"] > 3.0
+
+
+def test_a_parent_stays_drawn_until_every_child_on_screen_has_its_geometry() -> None:
+    """What makes the swap silent. A tile whose error is too big wants its children, but until
+    each child that is actually on screen has been built the parent is what is drawn -- and
+    the moment they are all there, the parent goes and the children are drawn instead. Drawing
+    the children as they arrive is how a hole opens and fills in, one quarter at a time."""
+    result = _run_tiles("""
+    const parent = tile("1/0/0", 1, 25.0, 0, 0, 500, ["2/0/0", "2/1/0", "2/0/1", "2/1/1"]);
+    for (const id of parent.children) tile(id, 2, 15.0, 0, 0, 250, []);
+    VIEW.position = { x: 0, y: 0, z: 900 };       // close enough that 25 m of error is too much
+    const steps = [];
+    const draw = () => { const out = []; selectTiles(parent, out); return out.map((t) => t.id); };
+    steps.push({ when: "nothing loaded", drawn: draw(), asked: asked.map((a) => a.id) });
+    TILES.get("2/0/0").state = "cpu";
+    TILES.get("2/1/0").state = "cpu";
+    steps.push({ when: "half loaded", drawn: draw() });
+    for (const id of parent.children) TILES.get(id).state = "cpu";
+    steps.push({ when: "all loaded", drawn: draw() });
+    // A child that is off screen need not be there for the others to be drawn.
+    for (const id of parent.children) TILES.get(id).state = "unavailable";
+    TILES.get("2/0/0").state = "cpu";
+    inView = (t) => t.id !== "2/1/0" && t.id !== "2/0/1" && t.id !== "2/1/1";
+    steps.push({ when: "only the visible child loaded", drawn: draw() });
+    console.log(JSON.stringify({ steps }));
+    """)
+    steps = {s["when"]: s for s in result["steps"]}
+    assert steps["nothing loaded"]["drawn"] == ["1/0/0"]
+    assert sorted(steps["nothing loaded"]["asked"]) == ["2/0/0", "2/0/1", "2/1/0", "2/1/1"]
+    assert steps["half loaded"]["drawn"] == ["1/0/0"], "half the children is still the parent"
+    assert sorted(steps["all loaded"]["drawn"]) == ["2/0/0", "2/0/1", "2/1/0", "2/1/1"]
+    assert steps["only the visible child loaded"]["drawn"] == ["2/0/0"]
+
+
+def test_a_tile_with_no_children_is_drawn_however_wrong_it_is() -> None:
+    """The floor. Past the deepest tile that was built there is nothing better to ask for, and
+    the answer is to draw what there is -- never to draw nothing, which is the hole this whole
+    structure exists to close."""
+    result = _run_tiles("""
+    const leaf = tile("6/0/0", 6, 1.2, 0, 0, 150, []);
+    VIEW.position = { x: 0, y: 0, z: 155 };        // a metre away: wrong by hundreds of pixels
+    const out = [];
+    selectTiles(leaf, out);
+    console.log(JSON.stringify({ error: Math.round(tileScreenErrorPx(leaf)), drawn: out.map((t) => t.id) }));
+    """)
+    assert result["error"] > 100
+    assert result["drawn"] == ["6/0/0"]
+
+
+def test_what_is_ahead_and_visibly_wrong_is_fetched_before_what_is_behind() -> None:
+    """The order things are asked for. A tile on screen that is about to be visibly wrong beats
+    an equally distant one behind you; the way you are moving is worth something; and distance
+    only breaks ties. Fetching nearest-first alone sent the six slots to the square you were
+    leaving."""
+    result = _run_tiles("""
+    VIEW.position = { x: 0, y: 0, z: 0 };
+    motion = { x: 1, z: 0 };                        // moving east
+    const ahead = tile("6/1/0", 6, 1.2, 1000, 0, 150, []);
+    const behind = tile("6/0/0", 6, 1.2, -1000, 0, 150, []);
+    const far = tile("6/2/0", 6, 1.2, 4000, 0, 150, []);
+    const score = (t, err, onScreen) => +tilePriority(t, err, onScreen, tileAheadness(t)).toFixed(2);
+    console.log(JSON.stringify({
+      aheadOnScreen: score(ahead, 8, true),
+      behindOnScreen: score(behind, 8, true),
+      aheadOffScreen: score(ahead, 8, false),
+      aheadButFine: score(ahead, 0.5, true),
+      farAhead: score(far, 8, true),
+    }));
+    """)
+    assert result["aheadOnScreen"] > result["behindOnScreen"], "the way you are going comes first"
+    assert result["aheadOnScreen"] > result["aheadOffScreen"], "what is on screen comes first"
+    assert result["aheadOnScreen"] > result["aheadButFine"], "what is about to be wrong comes first"
+    assert result["aheadOnScreen"] > result["farAhead"], "distance breaks the tie"
+
+
 # ---------------------------------------------------------------- the ground stack
 
 

@@ -229,6 +229,7 @@ src/smc/          the library: everything that computes, importable and tested o
   imagery/        the observation catalogue and the region registry (data/regions/regions.json)
   official/       SFMTA and DataSF records, and the OSM stand-ins for cities without them
   terrain/        the lidar ground grid's water (waterline) and the country round the map (perimeter)
+  tiles/          the visual tile tree: the quadtree, each depth's error, and what it carries
   facts/          what a street is: cross-sections, widths, clearance from the buildings
   ground/         ground cover from parcels, and what is road and what is not
   facades/        walls rectified out of photographs, colours and materials sampled from them
@@ -253,6 +254,7 @@ region in the registry and keeps a journal so it can resume.
 | Ground cover, furniture, colours | `scripts/build_ground_cover.py`, `build_street_furniture.py`, `build_building_colours.py` | sidecars |
 | The page | `scripts/build_sf_corridor_3d.py [--region <name>] [--reuse-osm]` | `sf-corridor-3d.{html,json}` and the shards; sets the grid's water (`smc.terrain.waterline`) |
 | The country round every region | `scripts/build_perimeter.py` | `sf-corridor-perimeter.json`, one atlas copied beside every built page |
+| The Bay Area, coarse to fine | `scripts/build_tiles.py` | `tiles/` — one quadtree over the whole area, built from the regions themselves |
 | Publish | `tools/build_app.py`, `tools/build_landing.py`, `tools/build_pages.py [--map-only --out <dir>]` | `docs/` |
 
 Every builder reads what is beside its inputs and writes beside its page; nothing is fetched
@@ -265,6 +267,7 @@ make install-dev
 make check                                   # lint + tests
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
 .venv/bin/python scripts/build_perimeter.py                    # the five-mile country round every region
+.venv/bin/python scripts/build_tiles.py                        # the Bay Area as a tile tree
 python tools/build_pages.py --map-only --out ../Curb-measurements/docs   # publish the map
 tools/shots/shoot.sh docs/sf-corridor-3d.html spots.json sheet.png       # photograph it before deploying
 ```

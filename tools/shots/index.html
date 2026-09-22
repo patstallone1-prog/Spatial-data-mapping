@@ -19,6 +19,16 @@ ready().then(async (k) => {
     img.src = k.shoot({ ...s, w: 960, h: 540 });
     hidden.forEach((o) => { o.visible = true; });
     let text = s.name;
+    // tiles: what the tile tree is drawing here, after letting it settle.
+    if (s.tiles && k.updateTileTree) {
+      // Settle the tree for a camera at this spot before the shot: a tile requested now is
+      // drawn a few passes later, and the sheet should show what a viewer would end up with.
+      const eye = k.shootCamera({ ...s, w: 960, h: 540 });   // the aspect the shot is taken at
+      for (let i = 0; i < 40; i += 1) { k.updateTileTree(performance.now() + i * 20, eye); await new Promise((r) => setTimeout(r, 60)); }
+      const byDepth = {};
+      for (const t of k.TILES.values()) if (t.drawn) byDepth[t.depth] = (byDepth[t.depth] || 0) + 1;
+      text += ` | drawn ${JSON.stringify(byDepth)} of ${k.TILES.size}; ${JSON.stringify(k.tileStats)}`;
+    }
     // probe: [[lon, lat], ...] -- what is drawn under each point, top down, as surface(name) lists.
     if (s.probe && k.THREE) {
       const ray = new k.THREE.Raycaster(); ray.camera = k.camera; ray.layers.enableAll();
@@ -49,6 +59,21 @@ ready().then(async (k) => {
         const xs = found.map((f) => f[0]), zs = found.map((f) => f[1]);
         text += `; bbox x ${Math.min(...xs).toFixed(0)}..${Math.max(...xs).toFixed(0)} z ${Math.min(...zs).toFixed(0)}..${Math.max(...zs).toFixed(0)}; sample ${found.slice(0, 8).map((f) => f.join("/")).join(" ")}`;
       }
+    }
+    if (s.cost) {
+      let meshes = 0, triangles = 0, tileMeshes = 0, tileTriangles = 0;
+      k.scene.traverse((o) => {
+        if (!o.isMesh || !o.visible) return;
+        let parent = o, hidden = false;
+        while (parent) { if (!parent.visible) hidden = true; parent = parent.parent; }
+        if (hidden) return;
+        const g = o.geometry;
+        const n = g && g.index ? g.index.count / 3 : (g && g.attributes && g.attributes.position ? g.attributes.position.count / 3 : 0);
+        const count = (o.isInstancedMesh ? o.count : 1) * n;
+        meshes += 1; triangles += count;
+        if (o.userData.surface === "tile") { tileMeshes += 1; tileTriangles += count; }
+      });
+      text += ` | visible meshes ${meshes} (${Math.round(triangles / 1000)}k tris), of which tiles ${tileMeshes} (${Math.round(tileTriangles / 1000)}k)`;
     }
     const cap = document.createElement("div"); cap.textContent = text; cap.style.cssText = "padding:2px 4px;white-space:pre-wrap";
     box.appendChild(img); box.appendChild(cap); document.getElementById("out").appendChild(box);

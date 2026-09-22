@@ -270,7 +270,33 @@ def classify(elements: list[dict[str, Any]], frame: dict, seeds: np.ndarray,
 
 
 #: The atlas's cell classes.
-LAND, WATER, BEACH = 0, 1, 2
+LAND, WATER, BEACH, BUILT = 0, 1, 2, 3
+#: A built-up cell is grown this far past the buildings that made it, so a block of mapped
+#: footprints is a block of town rather than a scatter of forty-metre dots.
+BUILT_GROW_CELLS = 2
+
+
+def built_up(buildings: list[list[float]], frame: dict, water: np.ndarray) -> np.ndarray:
+    """The cells the regions' own mapped buildings stand in, grown a little: where the town is.
+
+    The country round a region was grass to its very kerbs, so from any height a city stood in
+    a meadow. This is not a guess at land use -- it is the footprints the region was built
+    from, at the atlas's own resolution.
+    """
+    rows, cols = frame["rows"], frame["cols"]
+    built = np.zeros((rows, cols), dtype=bool)
+    for lon, lat in buildings or []:
+        r, c = _cell(frame, lon, lat)
+        if 0 <= r < rows and 0 <= c < cols:
+            built[r, c] = True
+    for _ in range(BUILT_GROW_CELLS):
+        grown = built.copy()
+        grown[1:, :] |= built[:-1, :]
+        grown[:-1, :] |= built[1:, :]
+        grown[:, 1:] |= built[:, :-1]
+        grown[:, :-1] |= built[:, 1:]
+        built = grown
+    return built & ~water
 
 
 def beaches(elements: list[dict[str, Any]], frame: dict, water: np.ndarray) -> np.ndarray:
@@ -294,9 +320,12 @@ def beaches(elements: list[dict[str, Any]], frame: dict, water: np.ndarray) -> n
     return rasterise_rings(rings, frame) & ~water
 
 
-def atlas_cells(water: np.ndarray, beach: np.ndarray | None = None) -> np.ndarray:
-    """One class a cell: LAND, WATER or BEACH."""
+def atlas_cells(water: np.ndarray, beach: np.ndarray | None = None,
+                built: np.ndarray | None = None) -> np.ndarray:
+    """One class a cell: LAND, WATER, BEACH or BUILT."""
     cells = np.where(water, WATER, LAND).astype(np.uint8)
+    if built is not None:
+        cells[built & ~water] = BUILT
     if beach is not None:
         cells[beach & ~water] = BEACH
     return cells
