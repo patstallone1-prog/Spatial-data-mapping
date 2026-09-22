@@ -40,10 +40,11 @@ from smc.tiles.tree import (  # noqa: E402
     tiles_covering,
 )
 
-#: The kinds worth carrying into the distance. Everything else -- the paint, the pads, the
-#: points of interest -- is the street renderer's, and is never seen from far enough away for
-#: a tile to be the thing drawing it.
-CARRIED = ("building", "street", "cycleway", "beach", "water")
+#: The kinds worth carrying into the distance: the city's shape, its streets and the footways
+#: and crossings that make a street a street. Everything else -- the kerb paint, the tactile
+#: pads, the signs, the points of interest -- is the street renderer's, and belongs to the
+#: region you are standing in rather than to the world you are flying over.
+CARRIED = ("building", "street", "cycleway", "sidewalk", "path", "crossing", "beach", "water")
 
 
 def site_of(name: str) -> Path:

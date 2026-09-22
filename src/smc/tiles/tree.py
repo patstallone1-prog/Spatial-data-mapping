@@ -38,7 +38,7 @@ MAX_DEPTH = 8
 #: These are what decide, through screen_error, when each thing appears. At 900 px and 50
 #: degrees: massing out to 8 km, roads to 4.8, real footprints inside 970 m, kerbs inside
 #: 390, the full street inside 130.
-ERROR_AT_DEPTH = (60.0, 25.0, 15.0, 9.0, 5.0, 3.0, 1.2, 0.4, 0.12)
+ERROR_AT_DEPTH = (60.0, 25.0, 15.0, 9.0, 5.0, 3.0, 1.2, 0.5, 0.15)
 #: The leaf: full detail, and the error the kerb line itself is drawn to.
 LEAF_ERROR_M = ERROR_AT_DEPTH[MAX_DEPTH]
 ROOT_ERROR_M = ERROR_AT_DEPTH[0]
@@ -55,8 +55,9 @@ def error_at(depth: int) -> float:
 #: The tiers, in the language of the plan this was built to: the root is the Bay Area
 #: silhouette (L0) -- terrain, water and bridges, which the atlas already gives every page at
 #: no cost; depth 1-3 the skyline and major roads (L1); 4-5 massing and every road (L2-L3);
-#: 6 real building shapes (L4); and inside a built region the page's own street renderer is
-#: L5-L6, from its kerbs to its facades.
+#: 6 real building shapes (L4); 7-8 the street itself -- carriageway, footways, crossings
+#: (L5); and inside a built region the page's own street renderer is L6, from its kerb
+#: readings to its facades.
 LAYERS_AT_DEPTH: dict[int, tuple[str, ...]] = {
     0: (),
     1: ("massing",),
@@ -65,14 +66,16 @@ LAYERS_AT_DEPTH: dict[int, tuple[str, ...]] = {
     4: ("massing", "roads"),
     5: ("massing", "roads"),
     6: ("buildings", "roads"),
-    7: ("buildings", "roads"),
-    8: ("buildings", "roads"),
+    7: ("buildings", "carriageway", "pavement"),
+    8: ("buildings", "carriageway", "pavement", "crossings"),
 }
-#: Where the tile tree stops and the region's own page takes over. Inside a built region the
-#: street renderer draws everything -- kerbs, lanes, crossings, furniture, facades -- and the
-#: tree's business is the rest of the Bay Area and the approach to it. Tiles deeper than this
-#: are not built.
-DEEPEST_BUILT = 6
+#: The deepest tile built. At depth 8 a tile is about 300 m -- the block you stand in -- and
+#: carries the street as a street: the carriageway at the width the model drew, the footways
+#: either side of it, the crossings, and the buildings with the colour their photographs gave
+#: them. It is not the region renderer's leaf, which knows every kerb and every sign; it is
+#: enough of a city to fly into and stand in, anywhere in the Bay Area, without loading a
+#: page for it.
+DEEPEST_BUILT = 8
 
 
 def layers_for(depth: int) -> tuple[str, ...]:

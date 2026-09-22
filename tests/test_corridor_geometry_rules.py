@@ -1177,6 +1177,46 @@ def test_a_parent_stays_drawn_until_every_child_on_screen_has_its_geometry() -> 
     assert steps["only the visible child loaded"]["drawn"] == ["2/0/0"]
 
 
+def test_every_road_in_a_tile_is_its_own_ribbon_not_stitched_to_the_first() -> None:
+    """One buffer a tile, so a road's triangles have to be indexed from where its own vertices
+    start. Indexed from zero, the first road was a road and every other one was a sliver
+    stitched back to its first two vertices -- which from above is a city with no streets in
+    it, and from the side a few black streaks across the bay."""
+    js = _page_js()
+    body = _extract("tileRoads", js)
+    parts = ["const TILE_GROUND_Y = 0;\nconst TILE_ROAD_Y = 0.15;\nfunction tileOwnGround() { return false; }\n",
+             """
+const THREE = { BufferGeometry: class { constructor() { this.attributes = {}; }
+                  setAttribute(n, a) { this.attributes[n] = a; }
+                  setIndex(i) { this.index = i; } computeVertexNormals() {} computeBoundingSphere() {} },
+                Float32BufferAttribute: class { constructor(a) { this.array = a; } },
+                Mesh: class { constructor(g) { this.geometry = g; } } };
+""", body, """
+// Two separate roads, four vertices each, in one tile.
+const f = { x0: 0, y0: 0, sx: 0.01, sy: 0.01 };
+const rows = [[1000, 0, 0, 10000, 0], [1000, 0, 50000, 10000, 50000]];
+const out = tileRoads(rows, f, () => -122.4, () => 37.8, {});
+const g = out[0].geometry;
+const pos = g.attributes.position.array, idx = g.index;
+// Every index has to point at a vertex of the road it belongs to.
+let crossed = 0;
+for (let t = 0; t < idx.length; t += 3) {
+  const rowsOf = [idx[t], idx[t + 1], idx[t + 2]].map((v) => (v < 4 ? 0 : 1));
+  if (rowsOf[0] !== rowsOf[1] || rowsOf[1] !== rowsOf[2]) crossed += 1;
+}
+console.log(JSON.stringify({ vertices: pos.length / 3, triangles: idx.length / 3, crossed,
+                             maxIndex: Math.max(...idx) }));
+"""]
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    assert result["vertices"] == 8, result          # two roads, two vertices a station
+    assert result["triangles"] == 4, result          # two triangles each
+    assert result["maxIndex"] == 7, result           # the second road's own vertices are used
+    assert result["crossed"] == 0, "a triangle stitched across two roads is a sliver"
+
+
 def test_a_tile_with_no_children_is_drawn_however_wrong_it_is() -> None:
     """The floor. Past the deepest tile that was built there is nothing better to ask for, and
     the answer is to draw what there is -- never to draw nothing, which is the hole this whole
@@ -1231,10 +1271,16 @@ def test_no_two_ground_layers_share_a_plane() -> None:
     stripes, across a playground, with nothing in either source to point at.
     """
     js = _page_js()
-    stack = dict(re.findall(r"^const ([A-Z_]+_Y) = ([0-9.]+);", js, re.M))
+    declared = dict(re.findall(r"^const ([A-Z_]+_Y) = ([0-9.]+);", js, re.M))
+    # The stack this is about is the one the page checks at load: the layers laid on the
+    # region's own ground. The tile tree has a stack of its own (TILE_*), on the atlas's
+    # surface and a couple of metres below this one -- a different plane, not a rival for it.
+    stack = {name: value for name, value in declared.items()
+             if name in _page_js().split("const GROUND_STACK = {")[1].split("};")[0]}
     for name in ("YARD_Y", "SERVICE_YARD_Y", "PARK_Y", "FRONT_WALK_Y", "COURT_Y",
                  "COURT_LINE_Y"):
         assert name in stack, f"{name} is not declared as its own height"
+    assert not any(name.startswith("TILE_") for name in stack), "the tile tree is not this stack"
     heights = {name: float(value) for name, value in stack.items()}
     assert len(set(heights.values())) == len(heights), (
         f"two ground layers share a height: {sorted(heights.items(), key=lambda kv: kv[1])}")

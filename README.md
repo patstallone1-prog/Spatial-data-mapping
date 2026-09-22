@@ -254,7 +254,7 @@ region in the registry and keeps a journal so it can resume.
 | Ground cover, furniture, colours | `scripts/build_ground_cover.py`, `build_street_furniture.py`, `build_building_colours.py` | sidecars |
 | The page | `scripts/build_sf_corridor_3d.py [--region <name>] [--reuse-osm]` | `sf-corridor-3d.{html,json}` and the shards; sets the grid's water (`smc.terrain.waterline`) |
 | The country round every region | `scripts/build_perimeter.py` | `sf-corridor-perimeter.json`, one atlas copied beside every built page |
-| The Bay Area, coarse to fine | `scripts/build_tiles.py` | `tiles/` — one quadtree over the whole area, built from the regions themselves |
+| The Bay Area, coarse to fine | `scripts/build_tiles.py` | `tiles/` — one quadtree over the whole area, from the skyline down to the street, built from the regions themselves |
 | Publish | `tools/build_app.py`, `tools/build_landing.py`, `tools/build_pages.py [--map-only --out <dir>]` | `docs/` |
 
 Every builder reads what is beside its inputs and writes beside its page; nothing is fetched

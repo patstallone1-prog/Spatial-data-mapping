@@ -168,9 +168,15 @@ into downtown Oakland now costs 8 to 26 meshes and about 110,000 triangles, and 
 point on the map with nothing under it. The atlas gained a built-up class from the regions'
 own mapped footprints, so a city is not drawn standing in a meadow.
 
-Inside a built region the page's own street renderer is still the leaf, and it is still a
-region at a time: baking the kerbs, lanes and facades into depths 7 and 8 of the same tree is
-what would let the triangle budgets go.
+Depths 7 and 8 carry the street as a street: the carriageway at the width the model drew, the
+footways either side (the map's own where it has them, the width the street was given where it
+does not), the crossings, and the buildings with the colour their photographs gave them. So
+every built region is a place you can fly into and stand in from any other page -- 881 tiles,
+38 MB. **The region switcher no longer loads a page**: choosing a region, or clicking its
+marker across the bay, flies the camera there in the world you are already in, and the full
+survey for that region stays one link away. Inside a built region the page's own street
+renderer is still the leaf, and still one region at a time: what the tree gives you everywhere
+is a city, and what the region's own page gives you is the kerb.
 
 **Downtown, and the opening view.** The ground left over on a commercial, office, downtown
 or public lot is paved (`plazas` in the ground cover, from the city's land-use record on the

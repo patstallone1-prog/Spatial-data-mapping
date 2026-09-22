@@ -163,7 +163,8 @@ def massing(ways: Iterable[dict[str, Any]], box: Frame, error_m: float) -> list[
 
 
 def lines(ways: Iterable[dict[str, Any]], box: Frame, error_m: float, *,
-          kinds: tuple[str, ...], major_only: bool = False) -> list[list[int]]:
+          kinds: tuple[str, ...], major_only: bool = False,
+          width_m: float | None = None) -> list[list[int]]:
     """Polylines for a layer: ``[width_cm, x0, y0, x1, y1, ...]`` in centimetres."""
     to_cm = _metres(box)
     out: list[list[int]] = []
@@ -178,12 +179,78 @@ def lines(ways: Iterable[dict[str, Any]], box: Frame, error_m: float, *,
         kept = simplify(points, error_m / 2.0, box)
         if len(kept) < 2:
             continue
-        width = float(way.get("road_m") or way.get("track_m") or 8.0)
+        width = width_m if width_m is not None else float(way.get("road_m") or way.get("track_m") or 8.0)
         row = [round(width * 100)]
         for lon, lat in kept:
             x, y = to_cm(lon, lat)
             row.extend((x, y))
         out.append(row)
+    return out
+
+
+#: A street with one of the map's own footways this close beside it already has its pavement.
+FOOTWAY_NEAR_M = 6.0
+#: A footway the map does not have is drawn beside the street at the width the model gave it.
+#: Offsetting is in metres in the tile's own frame, which is flat over three hundred metres.
+def footways(ways: Iterable[dict[str, Any]], box: Frame, error_m: float) -> list[list[int]]:
+    """The pavements: the map's own footways, and a ribbon either side of every street that
+    has a width for one and no footway mapped along it."""
+    to_cm = _metres(box)
+    kx, ky = box.metres_per_lon, box.metres_per_lat
+    out: list[list[int]] = []
+
+    def emit(points: list[list[float]], width: float) -> None:
+        kept = simplify(points, error_m / 2.0, box)
+        if len(kept) < 2:
+            return
+        row = [round(width * 100)]
+        for lon, lat in kept:
+            x, y = to_cm(lon, lat)
+            row.extend((x, y))
+        out.append(row)
+
+    # The map's own footways, and where they are: a six-metre cell hash, so asking whether a
+    # street already has one beside it is a lookup rather than a walk over every vertex in the
+    # tile (which on the corridor was a hundred and sixty million comparisons a tile).
+    near = FOOTWAY_NEAR_M
+    mapped: set[tuple[int, int]] = set()
+    for way in ways:
+        if way.get("kind") not in ("sidewalk", "path"):
+            continue
+        points = way.get("points") or []
+        if len(points) >= 2 and way_in_box(way, box):
+            emit(points, float(way.get("walk_m") or 2.4))
+            for lon, lat in points:
+                mapped.add((int(lon * kx // near), int(lat * ky // near)))
+
+    def is_mapped(lon: float, lat: float) -> bool:
+        """Is one of the map's own footways already within a cell of here?"""
+        cx, cy = int(lon * kx // near), int(lat * ky // near)
+        return any((cx + dx, cy + dy) in mapped for dx in (-1, 0, 1) for dy in (-1, 0, 1))
+
+    for way in ways:
+        if way.get("kind") != "street" or not way_in_box(way, box):
+            continue
+        points = way.get("points") or []
+        walk = float(way.get("walk_m") or way.get("walk_fallback_m") or 0.0)
+        road = float(way.get("road_m") or 0.0)
+        if len(points) < 2 or walk < 0.8 or road < 2.0:
+            continue
+        sides = way.get("walk_sides")
+        for side in (sides if isinstance(sides, list) and sides else (1, -1)):
+            offset = (road / 2.0 + walk / 2.0) * (1 if side > 0 else -1)
+            shifted: list[list[float]] = []
+            for i, (lon, lat) in enumerate(points):
+                a = points[max(0, i - 1)]
+                b = points[min(len(points) - 1, i + 1)]
+                dx = (b[0] - a[0]) * kx
+                dy = (b[1] - a[1]) * ky
+                n = math.hypot(dx, dy)
+                if n < 1e-6:
+                    continue
+                shifted.append([lon + (-dy / n) * offset / kx, lat + (dx / n) * offset / ky])
+            if len(shifted) >= 2 and not is_mapped(*shifted[len(shifted) // 2]):
+                emit(shifted, walk)
     return out
 
 
@@ -234,7 +301,15 @@ def assets_for(ways: list[dict[str, Any]], box: Frame, depth: int) -> dict[str, 
         out["buildings"] = rings(ways, box, error, kinds=("building",), with_height=True)
     else:
         out["massing"] = massing(ways, box, error)
-    if depth >= 4:
+    if depth >= 7:
+        # The street as a street. The carriageway is the width the model drew between the
+        # city's kerbs; the footways are the ways the map has and the width each street was
+        # given either side of it, which is where a pavement is when nobody mapped one.
+        out["carriageway"] = lines(ways, box, error, kinds=("street",))
+        out["pavement"] = footways(ways, box, error)
+        if depth >= 8:
+            out["crossings"] = lines(ways, box, error, kinds=("crossing",), width_m=3.6)
+    elif depth >= 4:
         out["roads"] = lines(ways, box, error, kinds=("street", "cycleway"))
     elif depth >= 2:
         out["roads_major"] = lines(ways, box, error, kinds=("street",), major_only=True)

@@ -60,6 +60,22 @@ ready().then(async (k) => {
         text += `; bbox x ${Math.min(...xs).toFixed(0)}..${Math.max(...xs).toFixed(0)} z ${Math.min(...zs).toFixed(0)}..${Math.max(...zs).toFixed(0)}; sample ${found.slice(0, 8).map((f) => f.join("/")).join(" ")}`;
       }
     }
+    if (s.tileInfo) {
+      const rows = [];
+      for (const t of k.TILES.values()) {
+        if (!t.drawn) continue;
+        const kids = [];
+        if (t.group) t.group.traverse((o) => {
+          if (!o.isMesh) return;
+          const g = o.geometry;
+          g.computeBoundingSphere();
+          const c = g.boundingSphere ? g.boundingSphere.center : { x: 0, y: 0, z: 0 };
+          kids.push(`${o.isInstancedMesh ? "inst" + o.count : "mesh"}@${c.x.toFixed(0)},${c.y.toFixed(1)},${c.z.toFixed(0)} r${(g.boundingSphere ? g.boundingSphere.radius : 0).toFixed(0)}`);
+        });
+        rows.push(`${t.id}[${Object.keys(t.assets).join("+")}] vis=${t.group ? t.group.visible : "-"} ${kids.join(" ") || "EMPTY"}`);
+      }
+      text += " | " + rows.join(" ;; ");
+    }
     if (s.cost) {
       let meshes = 0, triangles = 0, tileMeshes = 0, tileTriangles = 0;
       k.scene.traverse((o) => {
