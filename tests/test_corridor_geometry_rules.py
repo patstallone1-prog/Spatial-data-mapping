@@ -1218,6 +1218,61 @@ console.log(JSON.stringify({ vertices: pos.length / 3, triangles: idx.length / 3
     assert result["crossed"] == 0, "a triangle stitched across two roads is a sliver"
 
 
+def test_tile_building_wall_indices_never_become_wall_elevations() -> None:
+    """A building wall has two coordinate systems: metres for vertex positions and integer
+    offsets for triangle indices.  Reusing ``base`` for both made each successive wall begin
+    at y=0, 4, 8... vertices, stretching later buildings into the sky.  Exercise multiple
+    buildings so this fails as soon as a vertex offset leaks into a y coordinate."""
+    js = _page_js()
+    body = _extract("tileBuildings", js)
+    parts = ["""
+const TILE_GROUND_Y = 7;
+const TILE_ARCHETYPES = ["residential"];
+function tileOwnGround() { return false; }
+function earthDrop() { return 2; }
+const THREE = {
+  Color: class {
+    constructor() { this.r = 0.5; this.g = 0.5; this.b = 0.5; }
+    setHex() { return this; }
+    clone() { const c = new THREE.Color(); c.r = this.r; c.g = this.g; c.b = this.b; return c; }
+    multiplyScalar(n) { this.r *= n; this.g *= n; this.b *= n; return this; }
+  },
+  Vector2: class { constructor(x, y) { this.x = x; this.y = y; } },
+  ShapeUtils: { triangulateShape() { return []; }, isClockWise() { return false; } },
+  BufferGeometry: class {
+    constructor() { this.attributes = {}; }
+    setAttribute(n, a) { this.attributes[n] = a; }
+    setIndex(i) { this.index = i; }
+    computeVertexNormals() {}
+    computeBoundingSphere() {}
+  },
+  Float32BufferAttribute: class { constructor(a) { this.array = a; } },
+  Mesh: class { constructor(g) { this.geometry = g; } },
+};
+""", body, """
+const f = { x0: 0, y0: 0, sx: 0.01, sy: 0.01 };
+const square = (x) => [1000, 0x998877, 0,
+  x, 0, x + 1000, 0, x + 1000, 1000, x, 1000, x, 0];
+const out = tileBuildings([square(0), square(3000)], f, () => -122.4, () => 37.8, {});
+const pos = out[0].geometry.attributes.position.array;
+const ys = pos.filter((_, i) => i % 3 === 1);
+const bottoms = [];
+for (let wall = 0; wall < ys.length / 4; wall += 1) {
+  bottoms.push(ys[wall * 4], ys[wall * 4 + 1]);
+}
+console.log(JSON.stringify({ bottoms: [...new Set(bottoms)], minY: Math.min(...ys),
+                             maxY: Math.max(...ys), vertices: ys.length }));
+"""]
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    assert result["vertices"] == 32, result          # two four-wall buildings
+    assert result["bottoms"] == [5], result          # TILE_GROUND_Y minus earth drop
+    assert result["minY"] == 5, result
+    assert result["maxY"] == 15, result              # ground plus ten-metre height
+
+
 def test_a_tile_with_no_children_is_drawn_however_wrong_it_is() -> None:
     """The floor. Past the deepest tile that was built there is nothing better to ask for, and
     the answer is to draw what there is -- never to draw nothing, which is the hole this whole
@@ -2643,5 +2698,4 @@ console.log(JSON.stringify({
     assert result["believed"] == "brick" and result["doubted"] and result["unknownRender"], result
     # The photograph outranks the archetype's habits: a glass house is a glass house.
     assert result["glassOnAHouse"] == "glass", result
-
 
