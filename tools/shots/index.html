@@ -76,6 +76,22 @@ ready().then(async (k) => {
       }
       text += " | " + rows.join(" ;; ");
     }
+    if (s.colours) {
+      const seen = new Map();
+      for (const t of k.TILES.values()) {
+        if (!t.drawn || !t.group) continue;
+        t.group.traverse((o) => {
+          const c = o.isMesh && o.geometry && o.geometry.attributes.color;
+          if (!c) return;
+          for (let i = 0; i < c.count; i += 97) {
+            const hex = [c.getX(i), c.getY(i), c.getZ(i)].map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("");
+            seen.set(hex, (seen.get(hex) || 0) + 1);
+          }
+        });
+      }
+      const top = [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+      text += ` | ${seen.size} distinct wall colours; commonest ${top.map(([h, n]) => h + "x" + n).join(" ")}`;
+    }
     if (s.cost) {
       let meshes = 0, triangles = 0, tileMeshes = 0, tileTriangles = 0;
       k.scene.traverse((o) => {

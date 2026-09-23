@@ -168,9 +168,23 @@ into downtown Oakland now costs 8 to 26 meshes and about 110,000 triangles, and 
 point on the map with nothing under it. The atlas gained a built-up class from the regions'
 own mapped footprints, so a city is not drawn standing in a meadow.
 
-Depths 7 and 8 carry the street as a street: the carriageway at the width the model drew, the
-footways either side (the map's own where it has them, the width the street was given where it
-does not), the crossings, and the buildings with the colour their photographs gave them. So
+Depths 7 and 8 carry the street as a street, and carry the *measurement*: the carriageway runs
+between the two kerb lines the region actually read -- the city's curb geometry in San
+Francisco, the lidar's profile elsewhere -- station by station and asymmetric, which is what a
+street is (Broadway in Oakland is 3.3 m to one kerb and 6.7 m to the other; drawn at one width
+about its centreline it had the right area in the wrong place). 2,553 of the corridor's 2,854
+carriageways and 1,400 of Oakland's 1,412 are the measured kerbs; the rest fall back to a
+width and the file says which is which. Beside them the footways (the map's own where it has
+them, the width the street was given where it does not) and the crossings -- and where a
+crossing runs over a footway the footway gives way, so the paint is not buried under concrete
+at every corner outside San Francisco. A building nobody photographed is coloured the way the
+street renderer colours one: its archetype's palette, or the palette of the material its
+height suggests, seeded by where it stands.
+
+**The earth is round.** Eight kilometres out the ground is five metres below the plane you
+stand on, at forty it is a hundred and twenty-five, and drawn flat the model read as a
+tabletop with a hard line across the sky. Everything past the region's own grid drops by the
+sagitta of the earth's curve, zero at the grid's edge so there is no step at the boundary. So
 every built region is a place you can fly into and stand in from any other page -- 881 tiles,
 38 MB. **The region switcher no longer loads a page**: choosing a region, or clicking its
 marker across the bay, flies the camera there in the world you are already in, and the full

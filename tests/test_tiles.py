@@ -9,7 +9,18 @@ from pathlib import Path
 
 import pytest
 
-from smc.tiles.compile import assets_for, oriented_box, ring_area_m2, simplify, way_in_box
+from smc.tiles.compile import (
+    ARCHETYPES,
+    archetype_index,
+    assets_for,
+    carriageways,
+    cut_at_crossings,
+    measured_edges,
+    oriented_box,
+    ring_area_m2,
+    simplify,
+    way_in_box,
+)
 from smc.tiles.tree import (
     DEEPEST_BUILT,
     MAX_DEPTH,
@@ -175,3 +186,82 @@ def test_the_built_tree_is_whole_and_every_child_is_reachable_from_the_root():
             path = ROOT / "docs" / "tiles" / meta["url"]
             assert path.exists(), f"{tile['id']} {name} is missing"
             assert path.stat().st_size == meta["bytes"]
+
+
+def _box() -> Frame:
+    return Frame(-122.41, 37.79, -122.40, 37.80)
+
+
+def _at(box: Frame, x_m: float, y_m: float) -> list[float]:
+    return [box.west + x_m / box.metres_per_lon, box.south + y_m / box.metres_per_lat]
+
+
+def test_the_carriageway_runs_between_the_kerbs_the_region_measured_not_a_width_either_side():
+    """The measurement is the point. A street's cross-sections give the left kerb's offset and
+    the right kerb's separately -- Broadway in Oakland is 3.3 m one side and 6.7 m the other --
+    and drawn at one width about the centreline the carriageway had the right area in the wrong
+    place, with its kerbs metres off the ones the lidar read."""
+    box = _box()
+    way = {"kind": "street", "road_m": 10.0,
+           "points": [_at(box, 0, 100), _at(box, 100, 100)],          # due east
+           "xs": [[0.0, 3.3, -6.7, "L", "p"], [100.0, 3.3, -6.7, "L", "p"]]}
+    left, right = measured_edges(way, box)
+    ky = box.metres_per_lat
+    # East along the way, left of travel is north: +3.3 m north, -6.7 m south.
+    assert (left[0][1] - 37.79) * ky == pytest.approx(100 + 3.3, abs=0.05)
+    assert (right[0][1] - 37.79) * ky == pytest.approx(100 - 6.7, abs=0.05)
+    # And the width between them is the width the region measured, not the class prior.
+    assert (left[0][1] - right[0][1]) * ky == pytest.approx(10.0, abs=0.05)
+    # A varying section is followed station by station rather than averaged.
+    way["xs"] = [[0.0, 3.0, -3.0, "N", "r"], [100.0, 8.0, -3.0, "N", "r"]]
+    left, _ = measured_edges(way, box)
+    assert (left[0][1] - 37.79) * ky == pytest.approx(103.0, abs=0.05)
+    assert (left[-1][1] - 37.79) * ky == pytest.approx(108.0, abs=0.05)
+
+
+def test_a_street_with_no_cross_sections_falls_back_to_its_width_and_says_which_it_is():
+    box = _box()
+    measured = {"kind": "street", "road_m": 10.0, "points": [_at(box, 0, 100), _at(box, 100, 100)],
+                "xs": [[0.0, 3.3, -6.7], [100.0, 3.3, -6.7]]}
+    guessed = {"kind": "street", "road_m": 9.0, "points": [_at(box, 0, 200), _at(box, 100, 200)]}
+    rows = carriageways([measured, guessed], box, 0.15)
+    assert len(rows) == 2
+    # A leading zero is the strip between two measured kerb lines; anything else is a width.
+    kinds = sorted(row[0] for row in rows)
+    assert kinds == [0, 900]
+    strip = next(r for r in rows if r[0] == 0)
+    assert (len(strip) - 1) % 4 == 0, "a strip is the two kerbs, left and right in turn"
+
+
+def test_a_footway_gives_way_to_the_crossing_that_runs_over_it():
+    """The paint is the thing that has to be seen. Where the map runs a crossing up onto the
+    kerb the two overlap, and with the footway on top the crossing disappeared under it at
+    every corner outside San Francisco."""
+    box = _box()
+    # A footway running east at y = 100, and a crossing running north over it at x = 50.
+    pavement = [[240] + [v for x in range(0, 101, 5)
+                         for v in (round(x * 100), round(100 * 100))]]
+    crossing = [[360, 50 * 100, 90 * 100, 50 * 100, 110 * 100]]
+    cut = cut_at_crossings(pavement, crossing, box)
+    assert len(cut) == 2, "the footway carries on the other side of the crossing"
+    def xs(row):
+        return [row[i] / 100.0 for i in range(1, len(row) - 1, 2)]
+    before, after = sorted(cut, key=lambda r: xs(r)[0])
+    assert max(xs(before)) < 50 and min(xs(after)) > 50
+    # Nothing is left inside the crossing's own width.
+    for row in cut:
+        assert all(abs(x - 50) > 360 / 200.0 for x in xs(row))
+    # A footway nowhere near a crossing is untouched.
+    assert cut_at_crossings(pavement, [[360, 0, 0, 0, 1000]], box) == pavement
+
+
+def test_every_building_names_an_archetype_the_page_knows():
+    assert "generic" in ARCHETYPES
+    assert archetype_index({"archetype": "office"}) == ARCHETYPES.index("office")
+    assert archetype_index({"archetype": "something nobody wrote"}) == ARCHETYPES.index("generic")
+    assert archetype_index({}) == ARCHETYPES.index("generic")
+    box = _box()
+    ring = [_at(box, 0, 0), _at(box, 30, 0), _at(box, 30, 20), _at(box, 0, 20), _at(box, 0, 0)]
+    rows = assets_for([{"kind": "building", "height_m": 12.0, "archetype": "hotel", "points": ring}],
+                      box, 8)["buildings"]
+    assert rows[0][0] == 1200 and rows[0][1] == -1 and rows[0][2] == ARCHETYPES.index("hotel")

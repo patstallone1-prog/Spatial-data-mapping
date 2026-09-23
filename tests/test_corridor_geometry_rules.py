@@ -1184,7 +1184,8 @@ def test_every_road_in_a_tile_is_its_own_ribbon_not_stitched_to_the_first() -> N
     it, and from the side a few black streaks across the bay."""
     js = _page_js()
     body = _extract("tileRoads", js)
-    parts = ["const TILE_GROUND_Y = 0;\nconst TILE_ROAD_Y = 0.15;\nfunction tileOwnGround() { return false; }\n",
+    parts = ["const TILE_GROUND_Y = 0;\nconst TILE_ROAD_Y = 0.15;\n"
+             "function tileOwnGround() { return false; }\nfunction earthDrop() { return 0; }\n",
              """
 const THREE = { BufferGeometry: class { constructor() { this.attributes = {}; }
                   setAttribute(n, a) { this.attributes[n] = a; }
@@ -1194,7 +1195,7 @@ const THREE = { BufferGeometry: class { constructor() { this.attributes = {}; }
 """, body, """
 // Two separate roads, four vertices each, in one tile.
 const f = { x0: 0, y0: 0, sx: 0.01, sy: 0.01 };
-const rows = [[1000, 0, 0, 10000, 0], [1000, 0, 50000, 10000, 50000]];
+const rows = [[1000, 0, 0, 10000, 0], [1000, 0, 50000, 10000, 50000]];   // two centrelines with a width
 const out = tileRoads(rows, f, () => -122.4, () => 37.8, {});
 const g = out[0].geometry;
 const pos = g.attributes.position.array, idx = g.index;
