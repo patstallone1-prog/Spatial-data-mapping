@@ -240,7 +240,7 @@ def test_a_footway_gives_way_to_the_crossing_that_runs_over_it():
     box = _box()
     # A footway running east at y = 100, and a crossing running north over it at x = 50.
     pavement = [[240] + [v for x in range(0, 101, 5)
-                         for v in (round(x * 100), round(100 * 100))]]
+                         for v in (round(x * 100), 100 * 100)]]
     crossing = [[360, 50 * 100, 90 * 100, 50 * 100, 110 * 100]]
     cut = cut_at_crossings(pavement, crossing, box)
     assert len(cut) == 2, "the footway carries on the other side of the crossing"

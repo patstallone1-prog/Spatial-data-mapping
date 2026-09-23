@@ -94,7 +94,7 @@ def test_the_atlas_is_one_box_round_every_region_and_its_rows_are_run_lengths(tm
     data = json.loads(out.read_text())
     assert data["runs"][0] == [2, 0, 2, 2, 3, 1, 3, 0] and data["regions"] == ["a", "b"] and "cells" not in data
     # And read back whole.
-    frame_back, cells_back = read_atlas(out)
+    frame_back, _cells_back = read_atlas(out)
     assert frame_back["cols"] == frame["cols"]
     # A beach polygon is sand where it is not water.
     sand = _way([lonlat(-400, -400), lonlat(400, -400), lonlat(400, 400), lonlat(-400, 400), lonlat(-400, -400)], {"natural": "beach"})
