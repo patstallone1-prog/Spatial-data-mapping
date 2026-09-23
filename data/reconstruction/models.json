@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "models": [
+    {"id": "sam2.1-hiera-large", "repository": "facebook/sam2.1-hiera-large", "revision": "665f8e2ad61cf5f53d65644ff27c8ee525124610", "license": "Apache-2.0", "role": "segmentation"},
+    {"id": "grounding-dino-base", "repository": "IDEA-Research/grounding-dino-base", "revision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb", "license": "Apache-2.0", "role": "open_vocabulary_detection"},
+    {"id": "dinov2-base", "repository": "facebook/dinov2-base", "revision": "f9e44c814b77203eaa57a6bdbbd535f21ede1415", "license": "Apache-2.0", "role": "material_embedding"},
+    {"id": "da3metric-large", "repository": "depth-anything/DA3METRIC-LARGE", "revision": "4010e39f3634a45bc60553321fb49fb760bd594e", "license": "Apache-2.0", "role": "metric_depth_prior_only"},
+    {"id": "aliked-n16", "repository": "Shiaoming/ALIKED", "revision": "683d7c65197395c0b3f01ebe76e1084a27e73a65", "license": "BSD-3-Clause", "role": "local_features"},
+    {"id": "lightglue", "repository": "cvg/LightGlue", "revision": "eb42fee2d71449efb0aa5c10549752b5d75384d8", "license": "Apache-2.0", "role": "feature_matching"},
+    {"id": "hloc", "repository": "cvg/Hierarchical-Localization", "revision": "c13273bd0ecc2917a35910fd843712a1c6243193", "license": "Apache-2.0", "role": "reconstruction_harness"},
+    {"id": "colmap", "repository": "colmap/colmap", "revision": "8f23d8ec4ca2f71c7fe42f42d63dde9536793d91", "license": "BSD-3-Clause", "role": "sfm_and_dense_stereo"},
+    {"id": "gltfpack", "repository": "zeux/meshoptimizer", "revision": "717ca3489b457f781e5cd3e3a8bbc0229619415c", "license": "MIT", "role": "meshopt_and_ktx2_compilation"}
+  ],
+  "disallowed": ["google-imagery", "google-photorealistic-3d-tiles", "sam3", "openmvs", "realesrgan", "superpoint", "superglue"]
+}
