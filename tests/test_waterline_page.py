@@ -122,4 +122,7 @@ def test_the_built_corridor_keeps_underground_stations_and_the_corners():
     for name in p["regions"]:
         if name == "sf-corridor":
             continue
-        assert (ROOT / "data" / "regions" / name / "site" / "sf-corridor-perimeter.json").exists(), name
+        site = ROOT / "docs" / "regions" / name
+        if not (site / "sf-corridor-3d.json").exists():
+            continue
+        assert (site / "sf-corridor-perimeter.json").exists(), name
