@@ -2364,7 +2364,10 @@ console.log(JSON.stringify({
     assert abs(result["underfoot"] - 0.06) < 1e-6 and result["walker"] == result["underfoot"]
     assert result["beside"] is None and abs(result["hill"] - 20) < 1e-6
     js = _page_js()
-    assert "avatar.position.y = AVATAR_STAND_Y + lift + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
+    assert "avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
+    assert "const lift = moving ?" not in js
+    pointer_look = js.split('canvas.addEventListener("pointerdown", (e) => {', 1)[1].split("});", 1)[0]
+    assert "held.clear();" in pointer_look, "changing the view must cancel, never initiate, movement"
     assert "eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
 
 
@@ -2698,4 +2701,3 @@ console.log(JSON.stringify({
     assert result["believed"] == "brick" and result["doubted"] and result["unknownRender"], result
     # The photograph outranks the archetype's habits: a glass house is a glass house.
     assert result["glassOnAHouse"] == "glass", result
-
