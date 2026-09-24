@@ -4289,17 +4289,30 @@ function buildTile(tile, layers) {
     roads: TILE_ROAD_MATERIAL.clone(),
     pavement: TILE_WALK_MATERIAL.clone(),
     paint: TILE_PAINT_MATERIAL.clone(),
+    tactile: new THREE.MeshStandardMaterial({
+      map: TACTILE_WARNING, color: 0xffffff, roughness: 0.86, metalness: 0.0,
+      transparent: true, side: THREE.DoubleSide,
+    }),
   };
   tile.materials = Object.values(materials);
   if (layers.massing) group.add(...tileMassing(layers.massing, f, lonOf, latOf, materials.massing));
   if (layers.buildings) group.add(...tileBuildings(layers.buildings, f, lonOf, latOf, materials.buildings));
-  // The street, from the outside in: the carriageway, the paint on it, the footways beside it.
+  // The street, from the outside in: carriageway and footways.  Crossings are not a wide road
+  // ribbon: their resolved style becomes either repeated continental bars or two parallel lines,
+  // plus the same full rectangular yellow warning fields used by the near-region renderer.
   for (const [name, material, height] of [["roads", materials.roads, TILE_ROAD_Y],
                                           ["roads_major", materials.roads, TILE_ROAD_Y],
                                           ["carriageway", materials.roads, TILE_ROAD_Y],
-                                          ["crossings", materials.paint, TILE_PAINT_Y],
                                           ["pavement", materials.pavement, TILE_WALK_Y]]) {
     if (layers[name]) group.add(...tileRoads(layers[name], f, lonOf, latOf, material, height));
+  }
+  if (layers.crossings_continental) {
+    group.add(...tileCrossings(layers.crossings_continental, "continental", f, lonOf, latOf,
+                               materials.paint, materials.tactile));
+  }
+  if (layers.crossings_parallel) {
+    group.add(...tileCrossings(layers.crossings_parallel, "parallel", f, lonOf, latOf,
+                               materials.paint, materials.tactile));
   }
   group.visible = false;
   // Deeper tiles draw after shallower ones, so a parent fading out lies over its children
@@ -4489,6 +4502,107 @@ function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   return [new THREE.Mesh(geometry, material)];
+}
+
+function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMaterial) {
+  const paintPosition = [], paintIndex = [];
+  const tactilePosition = [], tactileUv = [], tactileIndex = [];
+  const BAR_M = 0.43;
+  const PERIOD_M = 0.86;
+  const EDGE_M = 0.12;
+  const PAD_DEPTH_M = 0.91;
+  const PAD_SETBACK_M = 0.18;
+
+  const addQuad = (position, index, cx, cz, ux, uz, halfAlong, halfAcross, y) => {
+    const nx = -uz, nz = ux;
+    const base = position.length / 3;
+    for (const [along, across] of [[-halfAlong, -halfAcross], [halfAlong, -halfAcross],
+                                   [halfAlong, halfAcross], [-halfAlong, halfAcross]]) {
+      const x = cx + ux * along + nx * across;
+      const z = cz + uz * along + nz * across;
+      position.push(x, TILE_GROUND_Y + y - earthDrop(x, z), z);
+    }
+    index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    return base;
+  };
+
+  const addPad = (at, into, crossingWidth) => {
+    const dx = at[0] - into[0], dz = at[1] - into[1];
+    const length = Math.hypot(dx, dz);
+    if (!(length > 0.5)) return;
+    const ux = dx / length, uz = dz / length;
+    const width = Math.max(1.22, Math.min(1.52, crossingWidth));
+    const cx = at[0] + ux * (PAD_DEPTH_M / 2 + PAD_SETBACK_M);
+    const cz = at[1] + uz * (PAD_DEPTH_M / 2 + PAD_SETBACK_M);
+    const base = addQuad(tactilePosition, tactileIndex, cx, cz, ux, uz,
+                         PAD_DEPTH_M / 2, width / 2, TILE_WALK_Y + 0.018);
+    tactileUv.push(0, 0, PAD_DEPTH_M / 0.48, 0,
+                   PAD_DEPTH_M / 0.48, width / 0.48, 0, width / 0.48);
+    // addQuad appends exactly four vertices; keep this assertion visible to future format edits.
+    if (base * 2 + 8 !== tactileUv.length) throw new Error("tile tactile UV mismatch");
+  };
+
+  for (const row of rows) {
+    const width = Math.max(1.2, row[0] / 100.0);
+    const points = [];
+    for (let i = 1; i + 1 < row.length; i += 2) {
+      if (i === 1 && tileOwnGround(lonOf(row[i]), latOf(row[i + 1]))) {
+        points.length = 0;
+        break;
+      }
+      points.push([f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)]);
+    }
+    if (points.length < 2) continue;
+    for (let i = 1; i < points.length; i += 1) {
+      const a = points[i - 1], b = points[i];
+      const dx = b[0] - a[0], dz = b[1] - a[1];
+      const length = Math.hypot(dx, dz);
+      if (!(length > 0.5)) continue;
+      const ux = dx / length, uz = dz / length;
+      if (style === "parallel") {
+        const offset = Math.max(0.25, width / 2 - EDGE_M / 2);
+        const nx = -uz, nz = ux;
+        for (const side of [-1, 1]) {
+          addQuad(paintPosition, paintIndex,
+                  (a[0] + b[0]) / 2 + nx * side * offset,
+                  (a[1] + b[1]) / 2 + nz * side * offset,
+                  ux, uz, length / 2, EDGE_M / 2, TILE_PAINT_Y);
+        }
+      } else {
+        // Centre the bar sequence so both ends have equal clear paint margin.
+        const count = Math.max(1, Math.floor((length + (PERIOD_M - BAR_M)) / PERIOD_M));
+        const occupied = (count - 1) * PERIOD_M + BAR_M;
+        const start = (length - occupied) / 2 + BAR_M / 2;
+        for (let bar = 0; bar < count; bar += 1) {
+          const along = start + bar * PERIOD_M;
+          addQuad(paintPosition, paintIndex, a[0] + ux * along, a[1] + uz * along,
+                  ux, uz, BAR_M / 2, width / 2, TILE_PAINT_Y);
+        }
+      }
+    }
+    addPad(points[0], points[1], width);
+    addPad(points[points.length - 1], points[points.length - 2], width);
+  }
+
+  const meshes = [];
+  if (paintIndex.length) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(paintPosition, 3));
+    geometry.setIndex(paintIndex);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    meshes.push(new THREE.Mesh(geometry, paintMaterial));
+  }
+  if (tactileIndex.length) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(tactilePosition, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(tactileUv, 2));
+    geometry.setIndex(tactileIndex);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    meshes.push(new THREE.Mesh(geometry, tactileMaterial));
+  }
+  return meshes;
 }
 
 //: The tiles to draw: from the root down, refining only where the tile being drawn would be
@@ -8928,15 +9042,15 @@ function cornerLegsAt(leg) {
 }
 
 function cornerNeighbour(leg, side) {
-  // The next leg round the junction on this side of this one: anticlockwise for the left.
+  // The immediately adjacent leg round the junction on this side of this one: anticlockwise
+  // for the left.  Do not skip over a same-named fork while searching.  That made A select C
+  // across B while C selected B, leaving two non-reciprocal cuts that could never be filled by
+  // a corner slab.  The angular wedge belongs to adjacent legs; if those two are one street
+  // forking or bending, it simply is not a street corner.
   let best = null;
   let bestTurn = Infinity;
   for (const other of cornerLegsAt(leg)) {
     if (other.way._junctionInternal) continue;
-    // A fork or a slightly bent continuation of this street can be the closest leg in angle.
-    // It is not the pavement around the corner, so discard it while searching rather than
-    // selecting it and returning null below: there may still be a real cross-street next.
-    if (leg.way.name && other.way.name === leg.way.name) continue;
     let turn = other.bearing - leg.bearing;
     turn = ((turn % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     if (side < 0) turn = (2 * Math.PI - turn) % (2 * Math.PI);
@@ -8946,6 +9060,7 @@ function cornerNeighbour(leg, side) {
   if (!best) return null;
   const degrees = (bestTurn * 180) / Math.PI;
   if (degrees < CORNER_MIN_DEG || degrees > CORNER_MAX_DEG) return null;
+  if (leg.way.name && best.way.name === leg.way.name) return null;
   return best;
 }
 
@@ -18774,6 +18889,8 @@ def main() -> int:
                              "data/regions/<name>/official otherwise")
     parser.add_argument("--osm-cache", type=Path, default=None)
     parser.add_argument("--reuse-osm", action="store_true")
+    parser.add_argument("--allow-incomplete", action="store_true",
+                        help="permit a deliberately incomplete SF build for local experiments")
     args = parser.parse_args()
     region = get_region(args.region)
     corridor = region.name == SF_CORRIDOR.name
@@ -18785,6 +18902,19 @@ def main() -> int:
     if args.osm_cache is None:
         args.osm_cache = (Path("data/sf_corridor/stats/osm_ways.json") if corridor
                           else ROOT / "data" / "regions" / region.name / "osm_ways.json")
+    if corridor and args.allow_incomplete and args.out.resolve() == (ROOT / "docs/sf-corridor-3d.html").resolve():
+        parser.error("--allow-incomplete requires --out outside the published docs/sf-corridor-3d.html")
+    if corridor and not args.allow_incomplete:
+        missing_sources = []
+        if not any((args.catalog / "observations").glob("*.parquet")):
+            missing_sources.append(f"merged observation catalogue: {args.catalog / 'observations'}")
+        official_source = args.official_dir or ROOT / "data" / "sf_public_works"
+        if not (official_source / "parking_bands.json").is_file():
+            missing_sources.append(f"curb-policy bands: {official_source / 'parking_bands.json'}")
+        if missing_sources:
+            parser.error("refusing to replace the complete SF map with an incomplete build; "
+                         + "; ".join(missing_sources)
+                         + ". Use --allow-incomplete only for a separate experimental output.")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     configure_region(region, args.out, args.official_dir)
 

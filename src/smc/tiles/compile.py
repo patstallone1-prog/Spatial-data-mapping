@@ -188,6 +188,49 @@ def lines(ways: Iterable[dict[str, Any]], box: Frame, error_m: float, *,
     return out
 
 
+def crossing_lines(ways: Iterable[dict[str, Any]], box: Frame,
+                   error_m: float) -> dict[str, list[list[int]]]:
+    """Crossing centrelines separated by the marking the source resolved.
+
+    The near-region renderer already resolves unknown arms once per physical intersection.
+    Keeping that field in the tile layers prevents the distant renderer from turning every
+    crossing into one solid band (or independently choosing a style for each arm).
+    """
+    styled: dict[str, list[list[int]]] = {"continental": [], "parallel": []}
+    to_cm = _metres(box)
+    for way in ways:
+        if way.get("kind") != "crossing":
+            continue
+        resolved = str(way.get("resolved_crossing_marking") or "").strip().lower()
+        markings = str(way.get("crossing_markings") or "").strip().lower()
+        crossing = str(way.get("crossing_type") or "").strip().lower()
+        if resolved == "unmarked" or markings in {"no", "none", "unmarked"} \
+                or crossing in {"no", "unmarked"}:
+            continue
+        if resolved in styled:
+            style = resolved
+        elif way.get("continental") or markings in {"zebra", "ladder", "continental"} \
+                or crossing == "zebra":
+            style = "continental"
+        elif markings in {"lines", "parallel", "transverse", "crossing_edges"}:
+            style = "parallel"
+        else:
+            # Region builds normally resolve this before the tree is compiled.  A legacy payload
+            # without that plumbing still gets one conservative, consistent default.
+            style = "continental"
+        points = way.get("points") or []
+        if len(points) < 2 or not way_in_box(way, box):
+            continue
+        kept = simplify(points, error_m / 2.0, box)
+        if len(kept) < 2:
+            continue
+        row = [round(float(way.get("crossing_m") or 3.6) * 100)]
+        for lon, lat in kept:
+            row.extend(to_cm(lon, lat))
+        styled[style].append(row)
+    return styled
+
+
 #: A street with one of the map's own footways this close beside it already has its pavement.
 FOOTWAY_NEAR_M = 6.0
 #: How far past a crossing's own width the footway over it is taken out, so the paint is not
@@ -418,32 +461,124 @@ def cut_at_crossings(pavements: list[list[int]], crossings: list[list[int]],
     if not boxes:
         return pavements
 
-    def under_a_crossing(x: float, y: float) -> bool:
-        for ax, ay, bx, by, half in boxes:
-            ex, ey = bx - ax, by - ay
-            length2 = ex * ex + ey * ey
-            if length2 < 1e-9:
-                continue
-            t = max(0.0, min(1.0, ((x - ax) * ex + (y - ay) * ey) / length2))
-            px, py = ax + ex * t, ay + ey * t
-            if (x - px) ** 2 + (y - py) ** 2 <= half * half:
-                return True
-        return False
+    def distance2_to_crossing(x: float, y: float,
+                              crossing: tuple[float, float, float, float, float]) -> float:
+        ax, ay, bx, by, _ = crossing
+        ex, ey = bx - ax, by - ay
+        length2 = ex * ex + ey * ey
+        if length2 < 1e-9:
+            return (x - ax) ** 2 + (y - ay) ** 2
+        t = max(0.0, min(1.0, ((x - ax) * ex + (y - ay) * ey) / length2))
+        px, py = ax + ex * t, ay + ey * t
+        return (x - px) ** 2 + (y - py) ** 2
+
+    def blocked_interval(px: float, py: float, qx: float, qy: float,
+                         crossing: tuple[float, float, float, float, float]
+                         ) -> tuple[float, float] | None:
+        """The parameter interval of PQ inside one crossing's swept-width capsule."""
+        half = crossing[4]
+
+        def distance2(t: float) -> float:
+            return distance2_to_crossing(px + (qx - px) * t, py + (qy - py) * t, crossing)
+
+        # Squared distance to a convex segment is convex along PQ.  Ternary search finds its
+        # minimum even when both pavement vertices are outside the crossing -- the case that the
+        # old vertex-only cut missed after tile simplification made a block one long segment.
+        lo, hi = 0.0, 1.0
+        for _ in range(36):
+            one = lo + (hi - lo) / 3.0
+            two = hi - (hi - lo) / 3.0
+            if distance2(one) <= distance2(two):
+                hi = two
+            else:
+                lo = one
+        at = (lo + hi) / 2.0
+        limit = half * half
+        if distance2(at) > limit:
+            return None
+
+        if distance2(0.0) <= limit:
+            enter = 0.0
+        else:
+            outside, inside = 0.0, at
+            for _ in range(36):
+                middle = (outside + inside) / 2.0
+                if distance2(middle) <= limit:
+                    inside = middle
+                else:
+                    outside = middle
+            enter = inside
+        if distance2(1.0) <= limit:
+            leave = 1.0
+        else:
+            inside, outside = at, 1.0
+            for _ in range(36):
+                middle = (inside + outside) / 2.0
+                if distance2(middle) <= limit:
+                    inside = middle
+                else:
+                    outside = middle
+            leave = inside
+        return enter, leave
+
+    def intervals_for(px: float, py: float, qx: float, qy: float) -> list[tuple[float, float]]:
+        intervals = [span for crossing in boxes
+                     if (span := blocked_interval(px, py, qx, qy, crossing)) is not None]
+        if not intervals:
+            return []
+        intervals.sort()
+        merged = [intervals[0]]
+        for start, end in intervals[1:]:
+            if start <= merged[-1][1] + 1e-7:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            else:
+                merged.append((start, end))
+        return merged
+
+    def cut_row(row: list[int]) -> list[list[int]]:
+        pieces: list[list[int]] = []
+        width = row[0]
+        points = [(row[i] / 100.0, row[i + 1] / 100.0)
+                  for i in range(1, len(row) - 1, 2)]
+        if len(points) < 2:
+            return pieces
+        piece: list[tuple[int, int]] = []
+
+        def point_at(a: tuple[float, float], b: tuple[float, float], t: float) -> tuple[int, int]:
+            return (round((a[0] + (b[0] - a[0]) * t) * 100),
+                    round((a[1] + (b[1] - a[1]) * t) * 100))
+
+        def append(point: tuple[int, int]) -> None:
+            if not piece or piece[-1] != point:
+                piece.append(point)
+
+        def finish() -> None:
+            nonlocal piece
+            if len(piece) >= 2 and piece[0] != piece[-1]:
+                pieces.append([width, *(value for point in piece for value in point)])
+            piece = []
+
+        for a, b in itertools.pairwise(points):
+            cursor = 0.0
+            for start, end in intervals_for(*a, *b):
+                if start > cursor + 1e-7:
+                    append(point_at(a, b, cursor))
+                    append(point_at(a, b, start))
+                    finish()
+                else:
+                    finish()
+                cursor = max(cursor, end)
+            if cursor < 1.0 - 1e-7:
+                append(point_at(a, b, cursor))
+                append(point_at(a, b, 1.0))
+            elif cursor >= 1.0 - 1e-7:
+                finish()
+        finish()
+        return pieces
 
     out: list[list[int]] = []
     for row in pavements:
-        width = row[0]
-        piece: list[int] = []
-        for i in range(1, len(row) - 1, 2):
-            x, y = row[i] / 100.0, row[i + 1] / 100.0
-            if under_a_crossing(x, y):
-                if len(piece) >= 4:
-                    out.append([width, *piece])
-                piece = []
-                continue
-            piece.extend((row[i], row[i + 1]))
-        if len(piece) >= 4:
-            out.append([width, *piece])
+        out.extend(cut_row(row))
     return out
 
 
@@ -472,10 +607,12 @@ def assets_for(ways: list[dict[str, Any]], box: Frame, depth: int) -> dict[str, 
         # is when nobody mapped one; where a crossing runs over one, the footway gives way.
         out["carriageway"] = carriageways(ways, box, error)
         pavement = footways(ways, box, error)
-        crossings = lines(ways, box, error, kinds=("crossing",), width_m=3.6)
+        crossing_styles = crossing_lines(ways, box, error)
+        crossings = crossing_styles["continental"] + crossing_styles["parallel"]
         out["pavement"] = cut_at_crossings(pavement, crossings, box)
         if depth >= 8:
-            out["crossings"] = crossings
+            out["crossings_continental"] = crossing_styles["continental"]
+            out["crossings_parallel"] = crossing_styles["parallel"]
     elif depth >= 4:
         out["roads"] = lines(ways, box, error, kinds=("street", "cycleway"))
     elif depth >= 2:

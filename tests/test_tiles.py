@@ -255,6 +255,43 @@ def test_a_footway_gives_way_to_the_crossing_that_runs_over_it():
     assert cut_at_crossings(pavement, [[360, 0, 0, 0, 1000]], box) == pavement
 
 
+def test_a_two_point_footway_is_cut_when_a_crossing_falls_between_its_vertices():
+    """Tile simplification commonly leaves one long footway segment across a whole block.
+
+    Looking only at its vertices misses a crossing in the middle and lets the higher concrete
+    ribbon cover the paint.  The clip is geometric, so it must insert the two cut points even
+    when neither input vertex lies within the crossing.
+    """
+    box = _box()
+    pavement = [[240, 0, 100 * 100, 100 * 100, 100 * 100]]
+    crossing = [[360, 50 * 100, 90 * 100, 50 * 100, 110 * 100]]
+    cut = cut_at_crossings(pavement, crossing, box)
+    assert len(cut) == 2, cut
+
+    def xs(row):
+        return [row[i] / 100.0 for i in range(1, len(row) - 1, 2)]
+
+    before, after = sorted(cut, key=lambda row: xs(row)[0])
+    assert 47.0 < max(xs(before)) < 48.0, cut
+    assert 52.0 < min(xs(after)) < 53.0, cut
+
+
+def test_leaf_tiles_preserve_crossing_marking_style_and_do_not_paint_unmarked_ways():
+    box = _box()
+    ways = [
+        {"kind": "crossing", "resolved_crossing_marking": "continental",
+         "points": [_at(box, 10, 0), _at(box, 10, 20)]},
+        {"kind": "crossing", "resolved_crossing_marking": "parallel",
+         "points": [_at(box, 30, 0), _at(box, 30, 20)]},
+        {"kind": "crossing", "resolved_crossing_marking": "unmarked",
+         "points": [_at(box, 50, 0), _at(box, 50, 20)]},
+    ]
+    assets = assets_for(ways, box, 8)
+    assert len(assets["crossings_continental"]) == 1
+    assert len(assets["crossings_parallel"]) == 1
+    assert "crossings" not in assets
+
+
 def test_every_building_names_an_archetype_the_page_knows():
     assert "generic" in ARCHETYPES
     assert archetype_index({"archetype": "office"}) == ARCHETYPES.index("office")

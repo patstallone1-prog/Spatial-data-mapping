@@ -1968,8 +1968,14 @@ def test_a_stub_between_two_junctions_shares_itself_between_its_corners() -> Non
     assert result["linkCuts"] == [[False, False], [False, False]], result
 
 
-def test_corner_neighbour_skips_a_same_street_fork_and_keeps_searching() -> None:
-    """A divided or skewed approach must not hide the real cross-street corner behind it."""
+def test_corner_neighbours_are_adjacent_and_reciprocal_at_a_fork() -> None:
+    """A corner is the wedge between adjacent legs, never a jump across another leg.
+
+    Skipping a same-named fork while searching made the approach select the cross street, while
+    the cross street selected the fork.  Neither directed cut could then produce a corner slab.
+    The fork consumes that angular sector: it owns the physical corner beside the cross street,
+    and the other branch must not bridge across it.
+    """
     result = _run_corners("""
     const asLonLat = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
     const ray = (name, degrees) => {
@@ -1977,17 +1983,28 @@ def test_corner_neighbour_skips_a_same_street_fork_and_keeps_searching() -> None
       return { kind: "street", name, road_m: 10, walk_m: 4, _renderRoadM: 10,
         points: [asLonLat(0, 0), asLonLat(100 * Math.cos(angle), 100 * Math.sin(angle))] };
     };
-    // Main Street forks 30 degrees left; Cross Street is the actual 90-degree neighbour.
-    // The old search selected Main's fork first, rejected it only afterwards, and returned null.
+    // Main Street forks 30 degrees left; Cross Street is another 60 degrees round the node.
     const approach = ray("Main Street", 0);
     const fork = ray("Main Street", 30);
     const cross = ray("Cross Street", 90);
     indexPavementCorners([approach, fork, cross]);
     const leg = cornerLegs.find((item) => item.way === approach && item.end === 0);
     const neighbour = cornerNeighbour(leg, 1);
-    console.log(JSON.stringify({ name: neighbour && neighbour.way.name }));
+    const pairs = [];
+    for (const item of cornerLegs) for (const side of [1, -1]) {
+      const candidate = pavementCornerCuts.get(`${item.id}:${side}`);
+      if (!candidate) continue;
+      const reverse = pavementCornerCuts.get(`${candidate.B.id}:${-side}`);
+      pairs.push({ reciprocal: !!reverse && reverse.B === item,
+                   names: [item.way.name, candidate.B.way.name] });
+    }
+    console.log(JSON.stringify({ name: neighbour && neighbour.way.name, pairs }));
     """)
-    assert result["name"] == "Cross Street", result
+    assert result["name"] is None, result
+    assert result["pairs"], result
+    assert all(pair["reciprocal"] for pair in result["pairs"]), result
+    assert any(set(pair["names"]) == {"Main Street", "Cross Street"}
+               for pair in result["pairs"]), result
 
 
 def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
@@ -2007,9 +2024,9 @@ def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
     another = _extract("onAnotherCarriageway", js)
     assert "if (source && exclude.includes(source)) continue;" in another
     assert "if (t <= 0 || t >= 1) continue;" in another
-    # Two legs of one street forking are not a corner and do not abort the neighbour search.
+    # Two legs of one street forking are not a corner, and a corner never jumps across the fork.
     neighbour = _extract("cornerNeighbour", js)
-    assert "if (leg.way.name && other.way.name === leg.way.name) continue;" in neighbour
+    assert "if (leg.way.name && best.way.name === leg.way.name) return null;" in neighbour
 
 
 def test_lanes_are_only_guessed_for_a_street_with_a_name() -> None:

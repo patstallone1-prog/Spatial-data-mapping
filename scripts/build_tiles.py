@@ -48,12 +48,29 @@ CARRIED = ("building", "street", "cycleway", "sidewalk", "path", "crossing", "be
 
 
 def site_of(name: str) -> Path:
-    return ROOT / "docs" if name == SF_CORRIDOR.name else ROOT / "data" / "regions" / name / "site"
+    if name == SF_CORRIDOR.name:
+        return ROOT / "docs"
+    local = ROOT / "data" / "regions" / name / "site"
+    if (local / "sf-corridor-3d.json").exists():
+        return local
+    # Region build directories are local/ignored; a clean checkout still has
+    # the published payloads that make up the existing Bay Area tile tree.
+    return ROOT / "docs" / "regions" / name
+
+
+def missing_published_regions(index_path: Path, built: dict[str, Path]) -> set[str]:
+    """A partial checkout must not silently shrink the published city tree."""
+    if not index_path.is_file():
+        return set()
+    previous = json.loads(index_path.read_text())
+    return set(previous.get("regions", {})) - set(built)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, default=ROOT / "docs" / "tiles")
+    ap.add_argument("--allow-region-removal", action="store_true",
+                    help="explicitly permit removal of previously published regions")
     args = ap.parse_args()
 
     atlas_path = ROOT / "docs" / "sf-corridor-perimeter.json"
@@ -70,6 +87,10 @@ def main() -> int:
     if not built:
         print("no region has been built; nothing to tile", file=sys.stderr)
         return 1
+    lost = missing_published_regions(args.out / "index.json", built)
+    if lost and not args.allow_region_removal:
+        ap.error("refusing to remove published regions from tile tree: "
+                 + ", ".join(sorted(lost)))
 
     # The ways of every built region, gathered per tile. A coarse tile takes several regions;
     # a fine one takes part of one.
