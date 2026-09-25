@@ -16,6 +16,57 @@ def _ground_source() -> str:
     return GROUND_SOURCE.read_text(encoding="utf-8")
 
 
+def test_osm_kerb_nodes_are_normalized_without_inventing_ramps() -> None:
+    namespace = runpy.run_path(str(SOURCE))
+    query = namespace["overpass_query"](namespace["SF_CORRIDOR"].bbox)
+    assert 'node["kerb"]' in query
+    normalize = namespace["normalize_osm_kerb_node"]
+    node = {"type": "node", "id": 42, "lon": -122.41, "lat": 37.79,
+            "tags": {"kerb": "lowered", "tactile_paving": "yes"}}
+    ramp = normalize(node)
+    assert ramp["accessible_lip"] is True
+    assert ramp["source"] == "osm_kerb_node"
+    assert ramp["osm_id"] == 42
+    assert normalize({**node, "tags": {"kerb": "raised"}})["accessible_lip"] is False
+    assert normalize({**node, "tags": {"barrier": "kerb"}}) is None
+
+
+def test_walker_moves_only_with_arrows_and_keeps_metric_speed_at_any_zoom() -> None:
+    source = _source()
+    assert "const STREET_SPEED = 8.94;" in source
+    assert "const FIRST_PERSON_SPEED = 5.36;" in source
+    assert "const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;" in source
+    assert "SPEED_REFERENCE_DIST" not in source
+    assert "if (!held.size || dragging)" in source
+    pointer = source.split('canvas.addEventListener("pointerup", async (e) => {', 1)[1]
+    pointer = pointer.split("// The address, where the building is.", 1)[0]
+    assert "goTo(groundAt(" not in pointer
+    context = source.split('canvas.addEventListener("contextmenu", (e) => {', 1)[1]
+    context = context.split('canvas.addEventListener("pointerdown", hideAddress);', 1)[0]
+    assert "goTo(groundAt(" not in context
+
+
+def test_built_region_navigation_loads_full_city_and_preserves_arrival() -> None:
+    source = _source()
+    assert 'location.assign(url.href);' in source
+    assert 'sessionStorage.setItem("kerbside:region-arrival"' in source
+    assert 'saved.path === location.pathname' in source
+    assert 'window.kerbsideOpenFullRegionAt(lon, lat)' in source
+
+
+def test_front_lawn_stops_at_house_line_without_erasing_backyard() -> None:
+    namespace = runpy.run_path(str(GROUND_SOURCE))
+    ring = [[0, 0], [10, 0], [10, 20], [0, 20], [0, 0]]
+    identity = lambda x, y: (x, y)
+    lawn, backyard = namespace["split_at_frontage"](
+        ring, (0, 0), (10, 0), 4.0, identity, identity)
+    area = namespace["ring_area_m2"]
+    assert area(lawn, identity) == 40.0
+    assert area(backyard, identity) == 160.0
+    assert max(p[1] for p in lawn) == 4.0
+    assert min(p[1] for p in backyard) == 4.0
+
+
 def test_batched_building_is_not_treated_as_missing_ground() -> None:
     """A successfully queued roof/walls must not create a dark fallback footprint."""
     source = _source()
@@ -286,7 +337,8 @@ def test_a_boundary_is_fenced_only_where_it_is_a_fence() -> None:
     assert "MIN_FENCE_RUN_M" in ground
     # And the lots whose remainder is small enough to be called a lawn still contribute their
     # rear boundaries -- that is the ordinary San Francisco lot, not an edge case.
-    assert ground.count("kept_rings.append((blklot, ring, front))") == 2
+    # The split-front-lawn branch also retains the surveyed ring for fencing.
+    assert ground.count("kept_rings.append((blklot, ring, front))") == 3
 
 
 def test_place_categories_become_trades_and_non_shops_are_left_out() -> None:

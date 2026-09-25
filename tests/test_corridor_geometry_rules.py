@@ -101,6 +101,7 @@ const CROSSING_MIN_ON_ROAD_M = 2.5;
 const RAMP_NODE_CELL_M = 40.0;
 const RAMP_NODE_REACH_M = 22.0;
 const rampNodeGrid = new Map();
+const osmRampNodes = [];
 const metersPerLat = 111320;
 const metersPerLon = 88000;
 const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
@@ -149,6 +150,9 @@ def _run_crossing(js_body: str) -> dict:
         "rayCurbIntersections",
         "officialCurbCrossingSpan",
         "endCrossingOnDrawnKerb",
+        "indexOsmCurbRamps",
+        "nearestOsmRamp",
+        "snapCrossingEndsToOsmRamps",
         "indexCurbRamps",
         "cornerOf",
         "rampRecordAt",
@@ -2566,6 +2570,29 @@ console.log(JSON.stringify({
 """)
     assert result == {"ne": "ramp", "sw": "no_ramp", "nw": "ramp", "se": None, "far": None,
                       "corner": "NE"}, result
+
+
+def test_non_sf_crossing_end_uses_only_mapped_accessible_kerb_lips() -> None:
+    result = _run_crossing("""
+const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+addCarriagewaySegment(-20, 0, 20, 0, 6);
+indexOsmCurbRamps([
+  {kind: "curb_ramp", point: ll(0, 5.5), kerb_type: "lowered", accessible_lip: true},
+  {kind: "curb_ramp", point: ll(0, -5.5), kerb_type: "raised", accessible_lip: false},
+]);
+const span = endCrossingOnDrawnKerb([ll(0, 6), ll(0, -6)]);
+console.log(JSON.stringify({
+  north: +(-xy(...span[0])[1]).toFixed(2),
+  south: +(-xy(...span[1])[1]).toFixed(2),
+  northRamp: rampRecordAt(0, 5.5), southRamp: rampRecordAt(0, -5.5),
+  provenance: span.provenance,
+}));
+""")
+    assert result["north"] == 5.5
+    assert result["south"] <= -5.9
+    assert result["northRamp"] == "ramp"
+    assert result["southRamp"] == "no_ramp"
+    assert result["provenance"].endswith("+osm_kerb_node")
 
 
 def test_nothing_runs_at_the_top_level_before_the_bindings_it_reads_exist() -> None:

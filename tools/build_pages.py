@@ -65,6 +65,13 @@ def region_page(entry: dict, site: pathlib.Path) -> str:
                         '<meta name="kerbside-regions" content="../../regions.json" />', 1)
 
 
+def region_build_ready(site: pathlib.Path, published: pathlib.Path) -> bool:
+    """A viewer-only refresh may use the large payload already published in docs."""
+    return (site / "sf-corridor-3d.html").exists() and (
+        (site / "sf-corridor-3d.json").exists()
+        or (published / "sf-corridor-3d.json").exists())
+
+
 def publish_regions(out: pathlib.Path) -> list[dict]:
     """Every region the ingestion has built, beside the corridor, and the index the page's
     region switcher reads.
@@ -87,7 +94,12 @@ def publish_regions(out: pathlib.Path) -> list[dict]:
     for entry in registry:
         name = entry["name"]
         site = REGIONS / name / "site"
-        built = (site / "sf-corridor-3d.json").exists() and (site / "sf-corridor-3d.html").exists()
+        # A shipped region can keep its large, previously published payload in
+        # docs while a viewer-only rebuild updates the source HTML.  Requiring
+        # the JSON to be duplicated under data/regions marked every Bay Area
+        # city "not built" and hid its full-detail handoff after that rebuild.
+        published = out / "regions" / name
+        built = region_build_ready(site, published)
         record = {"name": name, "title": region_title(entry), "path": f"regions/{name}/sf-corridor-3d.html",
                   "built": built, "city": entry.get("city"), "description": entry.get("description"),
                   "bbox": entry.get("bbox")}
