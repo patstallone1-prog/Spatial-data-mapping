@@ -89,6 +89,8 @@ const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
 const officialCurbGrid = new Map();
 const officialIslandCurbGrid = new Map();
+const crossingIslandCurbGrid = new Map();
+const mappedDividerCurbGrid = new Map();
 const officialMedianGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
@@ -140,6 +142,9 @@ def _run_crossing(js_body: str) -> dict:
         "lonLatFromXZ",
         "intersectionWalkwayCutback",
         "addOfficialCurbGridSegment",
+        "closedPhysicalRing",
+        "closedOfficialIslandRing",
+        "indexMappedDividerGeometry",
         "indexOfficialCurbGeometry",
         "rayCurbIntersections",
         "officialCurbCrossingSpan",
@@ -339,6 +344,55 @@ console.log(JSON.stringify({count: legs.length,
     assert [point[1] for point in result["points"]] == sorted(
         point[1] for point in result["points"]
     ), result
+
+
+def test_open_island_curbs_do_not_cut_crosswalk_paint() -> None:
+    """Paired but open surveyed curb fragments do not establish a refuge footprint."""
+    result = _run_crossing("""
+    const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+    addCarriagewaySegment(-30, 0, 30, 0, 5);
+    indexOfficialCurbGeometry([
+      {r: "island", p: [ll(-2, -0.75), ll(2, -0.75)]},
+      {r: "island", p: [ll(-2, 0.75), ll(2, 0.75)]},
+    ]);
+    const legs = crossingPaintLegs([ll(0, -5), ll(0, 5)]);
+    console.log(JSON.stringify({count: legs.length,
+      length: +wayLength(legs[0]).toFixed(2),
+      envelopeSegments: officialIslandCurbGrid.size,
+      refugeSegments: crossingIslandCurbGrid.size}));
+    """)
+    assert result["count"] == 1, result
+    assert 9.7 <= result["length"] <= 10.1, result
+    assert result["envelopeSegments"] > 0, result
+    assert result["refugeSegments"] == 0, result
+
+
+def test_only_closed_non_degenerate_islands_form_concrete_footprints() -> None:
+    result = _run_crossing("""
+    const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+    const closed = {r: "island", p: [ll(-2, -1), ll(2, -1), ll(2, 1),
+      ll(-2, 1), ll(-2, -1)]};
+    const open = {r: "island", p: [ll(-2, -1), ll(2, -1), ll(2, 1)]};
+    const folded = {r: "island", p: [ll(-2, -1), ll(2, -1),
+      ll(2, 1), ll(2, -1), ll(-2, -1)]};
+    console.log(JSON.stringify({closed: closedOfficialIslandRing(closed)?.length,
+      open: closedOfficialIslandRing(open), folded: closedOfficialIslandRing(folded)}));
+    """)
+    assert result == {"closed": 5, "open": None, "folded": None}
+
+
+def test_mapped_concrete_divider_parts_crosswalk_without_official_curb() -> None:
+    result = _run_crossing("""
+    const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+    addCarriagewaySegment(-30, 0, 30, 0, 5);
+    indexMappedDividerGeometry([{kind: "divider", points: [ll(-2, -1), ll(2, -1),
+      ll(2, 1), ll(-2, 1), ll(-2, -1)]}]);
+    const legs = crossingPaintLegs([ll(0, -5), ll(0, 5)]);
+    console.log(JSON.stringify({count: legs.length,
+      lengths: legs.map((leg) => +wayLength(leg).toFixed(2))}));
+    """)
+    assert result["count"] == 2, result
+    assert all(3.7 <= length <= 4.1 for length in result["lengths"]), result
 
 
 def test_crosswalk_geometry_does_not_draw_where_no_carriageway_is_crossed() -> None:
@@ -1175,6 +1229,27 @@ def test_a_parent_stays_drawn_until_every_child_on_screen_has_its_geometry() -> 
     assert steps["half loaded"]["drawn"] == ["1/0/0"], "half the children is still the parent"
     assert sorted(steps["all loaded"]["drawn"]) == ["2/0/0", "2/0/1", "2/1/0", "2/1/1"]
     assert steps["only the visible child loaded"]["drawn"] == ["2/0/0"]
+
+
+def test_empty_streamed_tile_layer_never_adds_undefined() -> None:
+    """Three.js add() with no arguments logs an invalid-object error."""
+    js = _page_js()
+    helper = _extract("addTileMeshes", js)
+    run = subprocess.run(
+        [NODE, "--input-type=module", "-e", "\n".join([
+            helper,
+            "const calls = [];",
+            "const group = {add(...meshes) { if (!meshes.length) throw Error('empty add'); calls.push(meshes); }};",
+            "addTileMeshes(group, []);",
+            "addTileMeshes(group, [{isObject3D: true}]);",
+            "console.log(JSON.stringify({calls: calls.length, count: calls[0].length}));",
+        ])],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout) == {"calls": 1, "count": 1}
+    build = _extract("buildTile", js)
+    assert "group.add(...tile" not in build
 
 
 def test_every_road_in_a_tile_is_its_own_ribbon_not_stitched_to_the_first() -> None:

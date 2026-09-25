@@ -73,6 +73,9 @@ FUNCTIONS = (
     "densifyWay",
     "lonLatFromXZ",
     "addOfficialCurbGridSegment",
+    "closedPhysicalRing",
+    "closedOfficialIslandRing",
+    "indexMappedDividerGeometry",
     "indexOfficialCurbGeometry",
     "rayCurbIntersections",
     "officialCurbCrossingSpan",
@@ -153,6 +156,8 @@ const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
 const officialCurbGrid = new Map();
 const officialIslandCurbGrid = new Map();
+const crossingIslandCurbGrid = new Map();
+const mappedDividerCurbGrid = new Map();
 const officialMedianGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
@@ -292,6 +297,7 @@ const DIVIDED_TWIN_MIN_M = 4.0;
 const DIVIDED_TWIN_MAX_M = 40.0;
 indexDividedTwins(DATA.ways);
 const recentred = recentreStreetsOnOfficialKerbs(DATA.ways);
+indexMappedDividerGeometry(DATA.ways);
 clampRoadWidthsToNeighbours(DATA.ways);
 indexStreetEnds(DATA.ways);
 for (const way of DATA.ways) {
@@ -455,6 +461,8 @@ let crossingLegsAttached = 0;
 let crossingWholeSpan = 0;
 let crossingEnds = 0, crossingEndsRamp = 0, crossingEndsNoRamp = 0, crossingEndsNoRecord = 0;
 const crossingSplitExamples = [];
+const focusCrossingIds = new Set((process.env.FOCUS_CROSSING_IDS || "").split(",").filter(Boolean).map(Number));
+const focusCrossings = [];
 for (const way of DATA.ways) {
   if (way.kind !== "crossing" || !way.points || way.points.length < 2) continue;
   if (wayLength(way.points) > 40) continue;
@@ -465,6 +473,9 @@ for (const way of DATA.ways) {
   if (span.provenance === "sfmta_curbs") crossingOfficial += 1;
   if (span.provenance === "road_width_fallback") crossingFallback += 1;
   const legs = crossingPaintLegs(span);
+  if (focusCrossingIds.has(Number(way.osm_id))) focusCrossings.push({
+    osmId: way.osm_id, mapped: way.points, span, legs,
+  });
   crossingLegs += legs.length;
   if (legs.length === 1 && legs[0] === span) crossingWholeSpan += 1;
   for (const leg of legs) {
@@ -734,6 +745,7 @@ console.log(JSON.stringify({
     legsAttachedShare: +(crossingLegsAttached / Math.max(crossingLegs, 1)).toFixed(3),
     wholeSpanFallback: crossingWholeSpan,
     splitForIslands: crossingSplitForIslands,
+    ...(focusCrossingIds.size ? {focusCrossings} : {}),
     splitExamples: crossingSplitExamples,
     meanLengthM: +(crossingLengthM / Math.max(crossingRendered, 1)).toFixed(2),
     // Each end against the curb-ramp inventory: at a corner with a ramp, at one listed
@@ -768,6 +780,8 @@ def main() -> int:
     ap.add_argument("--page", type=Path, default=PAGE_DATA)
     ap.add_argument("--ground", type=Path, default=GROUND_DATA)
     ap.add_argument("--official", type=Path, default=OFFICIAL_DATA)
+    ap.add_argument("--focus-crossing", type=int, action="append", default=[],
+                    help="include mapped and rendered endpoints for an OSM crossing ID")
     ap.add_argument("--baseline", type=Path, nargs="?", const=BASELINE_DATA, default=None,
                     help="also write the regression baseline tests/test_width_vs_kerb.py holds "
                          "a build to (default data/sf_corridor/audits/width_vs_kerb.json)")
@@ -784,7 +798,8 @@ def main() -> int:
     out = subprocess.run([node, "-e", driver], capture_output=True, text=True, timeout=900,
                          env={**os.environ, "PAGE_JSON": str(args.page),
                               "GROUND_JSON": str(args.ground),
-                              "OFFICIAL_JSON": str(args.official)})
+            "OFFICIAL_JSON": str(args.official),
+            "FOCUS_CROSSING_IDS": ",".join(map(str, args.focus_crossing))})
     if out.returncode != 0:
         print(out.stderr, file=sys.stderr)
         return 1

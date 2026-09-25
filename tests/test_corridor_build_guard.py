@@ -34,3 +34,16 @@ def test_experimental_incomplete_build_cannot_replace_published_corridor():
     )
     assert run.returncode == 2
     assert "requires --out outside the published" in run.stderr
+
+
+def test_page_only_rebuild_does_not_touch_data_when_catalog_is_missing(tmp_path: Path):
+    page = tmp_path / "corridor.html"
+    run = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/build_sf_corridor_3d.py"),
+         "--page-only", "--catalog", str(tmp_path / "missing-catalog"),
+         "--out", str(page)],
+        cwd=ROOT, capture_output=True, text=True, timeout=30,
+    )
+    assert run.returncode == 0, run.stderr
+    assert "crossingIslandCurbGrid" in page.read_text(encoding="utf-8")
+    assert not page.with_suffix(".json").exists()
