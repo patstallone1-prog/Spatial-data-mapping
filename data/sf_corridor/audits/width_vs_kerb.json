@@ -42,7 +42,7 @@
  "crosswalkLegs": 2604,
  "crosswalkLegsAttachedShare": 0.998,
  "crosswalkWholeSpanFallback": 11,
- "crosswalkSplitForIslands": 40,
+ "crosswalkSplitForIslands": 15,
  "crosswalkStandInsLaid": 374,
  "crosswalkEndsAtRampShare": 0.869,
  "crossSectionStations": 59010,

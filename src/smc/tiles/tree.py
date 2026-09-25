@@ -67,7 +67,8 @@ LAYERS_AT_DEPTH: dict[int, tuple[str, ...]] = {
     5: ("massing", "roads"),
     6: ("buildings", "roads"),
     7: ("buildings", "carriageway", "pavement"),
-    8: ("buildings", "carriageway", "pavement", "crossings"),
+    8: ("buildings", "carriageway", "pavement",
+        "crossings_continental", "crossings_parallel"),
 }
 #: The deepest tile built. At depth 8 a tile is about 300 m -- the block you stand in -- and
 #: carries the street as a street: the carriageway at the width the model drew, the footways

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "source_id": "mapillary",
+      "license_id": "CC-BY-SA-4.0",
+      "attribution": "© Mapillary contributors, CC BY-SA 4.0",
+      "status": "approved",
+      "allowed_uses": ["cv_processing", "texture_baking", "derived_mesh", "persistent_hosting", "redistribution", "commercial_use"]
+    },
+    {
+      "source_id": "panoramax",
+      "license_id": "per-observation",
+      "attribution": "Per-observation attribution required",
+      "status": "conditional",
+      "allowed_uses": []
+    },
+    {
+      "source_id": "kartaview",
+      "license_id": "per-observation",
+      "attribution": "Per-observation attribution required",
+      "status": "conditional",
+      "allowed_uses": []
+    },
+    {
+      "source_id": "pilot_oblique_aerial",
+      "license_id": "unprocured",
+      "attribution": "",
+      "status": "pending_contract",
+      "allowed_uses": []
+    }
+  ]
+}

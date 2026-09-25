@@ -97,8 +97,9 @@ def test_crossing_paint_is_laid_kerb_to_kerb_in_legs(report: dict, baseline: dic
     attached = baseline["crosswalkLegsAttachedShare"]
     assert crosswalk["legsAttachedShare"] >= attached - 0.005, crosswalk
     assert crosswalk["wholeSpanFallback"] <= baseline["crosswalkWholeSpanFallback"] + 2, crosswalk
-    # Van Ness's BRT islands alone part two dozen crossings; losing the split would mean paint
-    # laid across the island.
+    # Count only verified closed official islands and mapped physical divider footprints.
+    # The old 40 included gaps cut by unclosed curb fragments with no proven concrete surface;
+    # those produced black cuts in the middle of Broadway's painted crossing.
     assert crosswalk["splitForIslands"] >= baseline["crosswalkSplitForIslands"] - 2, crosswalk
 
 

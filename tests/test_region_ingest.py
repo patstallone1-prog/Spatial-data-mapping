@@ -130,6 +130,19 @@ def test_the_orchestrator_plans_every_stage_for_a_named_region():
     for stage in ("discover", "osm", "terrain", "imagery", "official", "build", "audit"):
         assert stage in out.stdout
     assert "--region oakland-downtown" in out.stdout
+    assert "reconstruct" not in out.stdout
+
+
+def test_reconstruction_is_journalled_but_opt_in():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import ingest_region
+
+    assert ingest_region.STAGES.index("build") < ingest_region.STAGES.index("reconstruct")
+    assert ingest_region.STAGES.index("reconstruct") < ingest_region.STAGES.index("audit")
+    assert "reconstruct" not in ingest_region.DEFAULT_STAGES
+    command, outputs = ingest_region.stage_commands(SF_CORRIDOR)["reconstruct"]
+    assert command[1:3] == ["scripts/build_surface_fusion.py", "--region"]
+    assert outputs[0].name == "cell.json"
 
 
 def test_activation_counts_what_the_build_stood_on_not_what_discovery_promised():

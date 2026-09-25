@@ -10,4 +10,5 @@ PY=python3
 $PY tools/build_app.py
 $PY tools/build_site.py
 $PY tools/build_landing.py
+$PY scripts/publish_visual_pilot.py
 $PY tools/build_pages.py

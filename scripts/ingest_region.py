@@ -56,7 +56,10 @@ from smc.net import use_certifi  # noqa: E402
 
 use_certifi()
 
-STAGES = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "audit")
+STAGES = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "reconstruct", "audit")
+# The visual pilot requires licensed aerial images and surveyed truth.  Routine
+# region ingestion still finishes when that opt-in stage has no such inputs.
+DEFAULT_STAGES = tuple(stage for stage in STAGES if stage != "reconstruct")
 PY = sys.executable
 #: The imagery harvest of a dense district can run for hours against a throttled service.
 #: It gets this long; then it is stopped and the catalogue is built from what the journal
@@ -125,6 +128,8 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
                      [] if not corridor else [ROOT / "docs/sf-corridor-official.json"]),
         "build": ([PY, "scripts/build_sf_corridor_3d.py", "--region", region.name, "--reuse-osm"],
                   [site / "sf-corridor-3d.json"]),
+        "reconstruct": ([PY, "scripts/build_surface_fusion.py", "--region", region.name],
+                         [ROOT / "build/visual/pilot/c14r03/cell.json"] if corridor else []),
         "audit": ([PY, "scripts/audit_corridor_render.py", "--page", str(site / "sf-corridor-3d.json"),
                    "--official", str(site / "sf-corridor-official.json"), "--ground", str(site / "sf-corridor-ground.json"),
                    "--baseline", str(base / "audit_baseline.json")], [base / "audit_baseline.json"]),
@@ -180,7 +185,8 @@ def main() -> int:
     ap.add_argument("--grid", help="south,west,north,east: ingest a grid of cells over this box")
     ap.add_argument("--cell-km", type=float, default=2.5)
     ap.add_argument("--prefix", default="cell")
-    ap.add_argument("--stages", default=",".join(STAGES), help="comma-separated subset, in order")
+    ap.add_argument("--stages", default=",".join(DEFAULT_STAGES),
+                    help="comma-separated subset, in order; reconstruct is an opt-in pilot stage")
     ap.add_argument("--force", action="store_true", help="run stages that are already done")
     ap.add_argument("--dry-run", action="store_true", help="print what would run")
     args = ap.parse_args()

@@ -16,6 +16,33 @@ def _ground_source() -> str:
     return GROUND_SOURCE.read_text(encoding="utf-8")
 
 
+def test_batched_building_is_not_treated_as_missing_ground() -> None:
+    """A successfully queued roof/walls must not create a dark fallback footprint."""
+    source = _source()
+    building = source.split("function buildingMesh(feature) {", 1)[1].split(
+        "// ---- photographed facades ----", 1
+    )[0]
+    assert 'addMerged(part.materialIndex === 0 ? "roof" : "wall"' in building
+    assert "return group.children.length ? group : true;" in building
+    assert "if (!building) {" in source
+    assert "if (building && building.isObject3D) groups.mapped3d.add(building);" in source
+
+
+def test_crossing_paint_tracks_overlapping_road_triangles() -> None:
+    """The crossing mesh is dense enough to stay above independently joined road ribbons."""
+    source = _source()
+    assert 'above: { crossing: 0.06, crossing_edges: 0.06 }, grid: 0.5' in source
+    assert "if (rule.grid) o.geometry = refineForTerrain(o.geometry, rule.grid, 0);" in source
+
+
+def test_plaza_paving_follows_the_two_metre_lidar_grid() -> None:
+    """Coarse plaza chords let terrain poke through as dark angular holes."""
+    source = _source()
+    assert "plaza: [2.0, 0, 2.0, true]" in source
+    assert "o.geometry = refineForTerrain(o.geometry, limit, chord, minEdge, snapToTerrain);" in source
+    assert "TERRAIN_FRAME.x0 + TERRAIN_FRAME.step_m / 2" in source
+
+
 def test_osm_dividers_require_explicit_physical_geometry() -> None:
     namespace = runpy.run_path(str(SOURCE))
     query = namespace["overpass_query"](namespace["SF_CORRIDOR"].bbox)

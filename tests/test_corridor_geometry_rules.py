@@ -89,6 +89,8 @@ const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
 const officialCurbGrid = new Map();
 const officialIslandCurbGrid = new Map();
+const crossingIslandCurbGrid = new Map();
+const mappedDividerCurbGrid = new Map();
 const officialMedianGrid = new Map();
 const CROSSING_BRIDGE_GAP_M = 2.0;
 const CROSSING_LEG_MIN_M = 0.7;
@@ -140,6 +142,9 @@ def _run_crossing(js_body: str) -> dict:
         "lonLatFromXZ",
         "intersectionWalkwayCutback",
         "addOfficialCurbGridSegment",
+        "closedPhysicalRing",
+        "closedOfficialIslandRing",
+        "indexMappedDividerGeometry",
         "indexOfficialCurbGeometry",
         "rayCurbIntersections",
         "officialCurbCrossingSpan",
@@ -339,6 +344,55 @@ console.log(JSON.stringify({count: legs.length,
     assert [point[1] for point in result["points"]] == sorted(
         point[1] for point in result["points"]
     ), result
+
+
+def test_open_island_curbs_do_not_cut_crosswalk_paint() -> None:
+    """Paired but open surveyed curb fragments do not establish a refuge footprint."""
+    result = _run_crossing("""
+    const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+    addCarriagewaySegment(-30, 0, 30, 0, 5);
+    indexOfficialCurbGeometry([
+      {r: "island", p: [ll(-2, -0.75), ll(2, -0.75)]},
+      {r: "island", p: [ll(-2, 0.75), ll(2, 0.75)]},
+    ]);
+    const legs = crossingPaintLegs([ll(0, -5), ll(0, 5)]);
+    console.log(JSON.stringify({count: legs.length,
+      length: +wayLength(legs[0]).toFixed(2),
+      envelopeSegments: officialIslandCurbGrid.size,
+      refugeSegments: crossingIslandCurbGrid.size}));
+    """)
+    assert result["count"] == 1, result
+    assert 9.7 <= result["length"] <= 10.1, result
+    assert result["envelopeSegments"] > 0, result
+    assert result["refugeSegments"] == 0, result
+
+
+def test_only_closed_non_degenerate_islands_form_concrete_footprints() -> None:
+    result = _run_crossing("""
+    const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+    const closed = {r: "island", p: [ll(-2, -1), ll(2, -1), ll(2, 1),
+      ll(-2, 1), ll(-2, -1)]};
+    const open = {r: "island", p: [ll(-2, -1), ll(2, -1), ll(2, 1)]};
+    const folded = {r: "island", p: [ll(-2, -1), ll(2, -1),
+      ll(2, 1), ll(2, -1), ll(-2, -1)]};
+    console.log(JSON.stringify({closed: closedOfficialIslandRing(closed)?.length,
+      open: closedOfficialIslandRing(open), folded: closedOfficialIslandRing(folded)}));
+    """)
+    assert result == {"closed": 5, "open": None, "folded": None}
+
+
+def test_mapped_concrete_divider_parts_crosswalk_without_official_curb() -> None:
+    result = _run_crossing("""
+    const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+    addCarriagewaySegment(-30, 0, 30, 0, 5);
+    indexMappedDividerGeometry([{kind: "divider", points: [ll(-2, -1), ll(2, -1),
+      ll(2, 1), ll(-2, 1), ll(-2, -1)]}]);
+    const legs = crossingPaintLegs([ll(0, -5), ll(0, 5)]);
+    console.log(JSON.stringify({count: legs.length,
+      lengths: legs.map((leg) => +wayLength(leg).toFixed(2))}));
+    """)
+    assert result["count"] == 2, result
+    assert all(3.7 <= length <= 4.1 for length in result["lengths"]), result
 
 
 def test_crosswalk_geometry_does_not_draw_where_no_carriageway_is_crossed() -> None:
@@ -1177,6 +1231,27 @@ def test_a_parent_stays_drawn_until_every_child_on_screen_has_its_geometry() -> 
     assert steps["only the visible child loaded"]["drawn"] == ["2/0/0"]
 
 
+def test_empty_streamed_tile_layer_never_adds_undefined() -> None:
+    """Three.js add() with no arguments logs an invalid-object error."""
+    js = _page_js()
+    helper = _extract("addTileMeshes", js)
+    run = subprocess.run(
+        [NODE, "--input-type=module", "-e", "\n".join([
+            helper,
+            "const calls = [];",
+            "const group = {add(...meshes) { if (!meshes.length) throw Error('empty add'); calls.push(meshes); }};",
+            "addTileMeshes(group, []);",
+            "addTileMeshes(group, [{isObject3D: true}]);",
+            "console.log(JSON.stringify({calls: calls.length, count: calls[0].length}));",
+        ])],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout) == {"calls": 1, "count": 1}
+    build = _extract("buildTile", js)
+    assert "group.add(...tile" not in build
+
+
 def test_every_road_in_a_tile_is_its_own_ribbon_not_stitched_to_the_first() -> None:
     """One buffer a tile, so a road's triangles have to be indexed from where its own vertices
     start. Indexed from zero, the first road was a road and every other one was a sliver
@@ -1968,8 +2043,14 @@ def test_a_stub_between_two_junctions_shares_itself_between_its_corners() -> Non
     assert result["linkCuts"] == [[False, False], [False, False]], result
 
 
-def test_corner_neighbour_skips_a_same_street_fork_and_keeps_searching() -> None:
-    """A divided or skewed approach must not hide the real cross-street corner behind it."""
+def test_corner_neighbours_are_adjacent_and_reciprocal_at_a_fork() -> None:
+    """A corner is the wedge between adjacent legs, never a jump across another leg.
+
+    Skipping a same-named fork while searching made the approach select the cross street, while
+    the cross street selected the fork.  Neither directed cut could then produce a corner slab.
+    The fork consumes that angular sector: it owns the physical corner beside the cross street,
+    and the other branch must not bridge across it.
+    """
     result = _run_corners("""
     const asLonLat = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
     const ray = (name, degrees) => {
@@ -1977,17 +2058,28 @@ def test_corner_neighbour_skips_a_same_street_fork_and_keeps_searching() -> None
       return { kind: "street", name, road_m: 10, walk_m: 4, _renderRoadM: 10,
         points: [asLonLat(0, 0), asLonLat(100 * Math.cos(angle), 100 * Math.sin(angle))] };
     };
-    // Main Street forks 30 degrees left; Cross Street is the actual 90-degree neighbour.
-    // The old search selected Main's fork first, rejected it only afterwards, and returned null.
+    // Main Street forks 30 degrees left; Cross Street is another 60 degrees round the node.
     const approach = ray("Main Street", 0);
     const fork = ray("Main Street", 30);
     const cross = ray("Cross Street", 90);
     indexPavementCorners([approach, fork, cross]);
     const leg = cornerLegs.find((item) => item.way === approach && item.end === 0);
     const neighbour = cornerNeighbour(leg, 1);
-    console.log(JSON.stringify({ name: neighbour && neighbour.way.name }));
+    const pairs = [];
+    for (const item of cornerLegs) for (const side of [1, -1]) {
+      const candidate = pavementCornerCuts.get(`${item.id}:${side}`);
+      if (!candidate) continue;
+      const reverse = pavementCornerCuts.get(`${candidate.B.id}:${-side}`);
+      pairs.push({ reciprocal: !!reverse && reverse.B === item,
+                   names: [item.way.name, candidate.B.way.name] });
+    }
+    console.log(JSON.stringify({ name: neighbour && neighbour.way.name, pairs }));
     """)
-    assert result["name"] == "Cross Street", result
+    assert result["name"] is None, result
+    assert result["pairs"], result
+    assert all(pair["reciprocal"] for pair in result["pairs"]), result
+    assert any(set(pair["names"]) == {"Main Street", "Cross Street"}
+               for pair in result["pairs"]), result
 
 
 def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
@@ -2007,9 +2099,9 @@ def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
     another = _extract("onAnotherCarriageway", js)
     assert "if (source && exclude.includes(source)) continue;" in another
     assert "if (t <= 0 || t >= 1) continue;" in another
-    # Two legs of one street forking are not a corner and do not abort the neighbour search.
+    # Two legs of one street forking are not a corner, and a corner never jumps across the fork.
     neighbour = _extract("cornerNeighbour", js)
-    assert "if (leg.way.name && other.way.name === leg.way.name) continue;" in neighbour
+    assert "if (leg.way.name && best.way.name === leg.way.name) return null;" in neighbour
 
 
 def test_lanes_are_only_guessed_for_a_street_with_a_name() -> None:
@@ -2364,7 +2456,10 @@ console.log(JSON.stringify({
     assert abs(result["underfoot"] - 0.06) < 1e-6 and result["walker"] == result["underfoot"]
     assert result["beside"] is None and abs(result["hill"] - 20) < 1e-6
     js = _page_js()
-    assert "avatar.position.y = AVATAR_STAND_Y + lift + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
+    assert "avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
+    assert "const lift = moving ?" not in js
+    pointer_look = js.split('canvas.addEventListener("pointerdown", (e) => {', 1)[1].split("});", 1)[0]
+    assert "held.clear();" in pointer_look, "changing the view must cancel, never initiate, movement"
     assert "eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
 
 
@@ -2698,4 +2793,3 @@ console.log(JSON.stringify({
     assert result["believed"] == "brick" and result["doubted"] and result["unknownRender"], result
     # The photograph outranks the archetype's habits: a glass house is a glass house.
     assert result["glassOnAHouse"] == "glass", result
-
