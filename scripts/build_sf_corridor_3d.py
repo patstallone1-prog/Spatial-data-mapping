@@ -3718,7 +3718,10 @@ const TERRAIN_REFINE_BY_SURFACE = {
   // Visible plaza paving must follow the 2 m terrain grid. A 12 m chord fell 40 cm below
   // that grid around 600 Montgomery, exposing dark terrain as angular holes in the paving.
   plaza: [2.0, 0, 2.0, true],
-  yard: [16.0, TERRAIN_CHORD_M], park: [16.0, TERRAIN_CHORD_M], service_yard: [16.0, TERRAIN_CHORD_M], court: [16.0, TERRAIN_CHORD_M],
+  // A 16 m grass chord can bridge over a steep footway or a court even though its vertices
+  // are below both surfaces. Grass has no reason to be planar across a retaining wall.
+  yard: [12.0, 0.15, 3.0], park: [12.0, 0.15, 3.0],
+  service_yard: [12.0, 0.15, 3.0], court: [8.0, 0.05, 2.0], court_line: [8.0, 0.05, 2.0],
 };
 //: The bend rule may not multiply a mesh past this: the grid is stepped wherever a wall or a
 //: stair stands, and chasing every step to the grid's own cell size ran a yard to millions.
@@ -3773,8 +3776,10 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
       if (best >= 0) return best;
     }
     if (!TERRAIN_FRAME || !(chord > 0) || len <= minEdge / 4 || count > budget) return -1;
-    const mid = terrainHeightAt((px(a) + px(b)) / 2, (pz(a) + pz(b)) / 2);
-    const bend = Math.abs(mid - (terrainHeightAt(px(a), pz(a)) + terrainHeightAt(px(b), pz(b))) / 2);
+    // Match the height function used by liftOntoGround, including tunnel approaches. Using
+    // the raw grid here left grass on a chord above a sidewalk following a cut's road level.
+    const mid = groundLiftAt((px(a) + px(b)) / 2, (pz(a) + pz(b)) / 2);
+    const bend = Math.abs(mid - (groundLiftAt(px(a), pz(a)) + groundLiftAt(px(b), pz(b))) / 2);
     // Down to the minimum edge for a bend over the tolerance; to half that for a bend over twice
     // it and a quarter for four times -- a retaining wall or a flight of steps in the grid, which
     // a four-metre edge can only drape over, and which the grid's own decimetre of noise never
@@ -8780,6 +8785,35 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
 //: thing that knows where the footway ended up is the code that put it there.
 const PAVED_CELL = 1.5;
 const pavedGrid = new Map();
+// The neutral property-line underlay is deliberately allowed beneath private lawns. Public
+// park grass, however, must stop at its visible paved frontage. Keep that footprint separate
+// from pavedGrid so excluding the park cannot erase a legitimate front lawn.
+const UNDERLAY_CELL_M = 16;
+const underlayGrid = new Map();
+function stampParkPavement(run, width) {
+  const edges = mitredEdges(run, width);
+  if (!edges) return;
+  for (let i = 1; i < edges.left.length; i += 1) {
+    // These are the ribbon's *actual* top-face quads. Rounded capsules overcut the park
+    // beyond a sidewalk run's blunt end, leaving a dark crescent at curb corners.
+    const quad = [edges.left[i - 1], edges.left[i], edges.right[i], edges.right[i - 1]];
+    const xs = quad.map((p) => p[0]), zs = quad.map((p) => p[1]);
+    for (let ix = Math.floor(Math.min(...xs) / UNDERLAY_CELL_M);
+         ix <= Math.floor(Math.max(...xs) / UNDERLAY_CELL_M); ix += 1) {
+      for (let iz = Math.floor(Math.min(...zs) / UNDERLAY_CELL_M);
+           iz <= Math.floor(Math.max(...zs) / UNDERLAY_CELL_M); iz += 1) {
+        const key = `${ix}:${iz}`;
+        let bucket = underlayGrid.get(key);
+        if (!bucket) underlayGrid.set(key, bucket = []);
+        bucket.push(quad);
+      }
+    }
+  }
+}
+function parkPavementAt(x, z) {
+  const bucket = underlayGrid.get(`${Math.floor(x / UNDERLAY_CELL_M)}:${Math.floor(z / UNDERLAY_CELL_M)}`);
+  return Boolean(bucket && bucket.some((quad) => pointInRing(x, z, quad)));
+}
 //: Which way the footway runs through each cell. A tree pit is a square cut out of the paving,
 //: and paving is laid square to the kerb -- so a pit turned a few degrees off the flags around
 //: it reads as a mistake in the pavement rather than as an opening in it. This is what squares
@@ -10483,6 +10517,7 @@ function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color,
     const width = ladder[pick];
     for (const run of pavementRunsOutsideCarriageway(
            offsetWay(stretch, side * (inner + width / 2)), width)) {
+      stampParkPavement(run, width);
       addMerged("walk:property-underlay",
                 ribbon(run, width, color, opacity, PROPERTY_LINE_PAVEMENT_Y,
                        PROPERTY_LINE_PAVEMENT_THICKNESS_M, "walk_underlay"),
@@ -15650,7 +15685,93 @@ function clipRingToBox(ring) {
   }
   return poly.map(([x, y]) => lonLatFromXZ(x, -y));
 }
-function ringGeometry(rings, y, clipToRoad = true) {
+// The source polygons for parks and parcels can overlap paved paths and mapped sport pitches.
+// Elevation alone cannot establish precedence: the grass may bridge a steep 2 m terrain cell
+// while the narrow path follows it. Keep hard surfaces out of grass triangulation altogether.
+const HARD_GROUND_CELL_M = 16.0;
+function hardGroundExclusion(ground) {
+  const grid = new Map();
+  const rows = [
+    ...(ground.front_walks || []), ...(ground.plazas || []), ...(ground.service_yards || []),
+    ...(ground.pitches || []).filter((p) => COURT_STYLE[p.s] && COURT_STYLE[p.s].surround !== null),
+  ];
+  for (const row of rows) {
+    const clipped = clipRingToBox(row.p);
+    if (!clipped) continue;
+    const ring = clipped.map(([lon, lat]) => xy(lon, lat));
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const [x, y] of ring) {
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    }
+    for (let ix = Math.floor(minX / HARD_GROUND_CELL_M);
+         ix <= Math.floor(maxX / HARD_GROUND_CELL_M); ix += 1) {
+      for (let iy = Math.floor(minY / HARD_GROUND_CELL_M);
+           iy <= Math.floor(maxY / HARD_GROUND_CELL_M); iy += 1) {
+        const key = `${ix}:${iy}`;
+        let bucket = grid.get(key);
+        if (!bucket) grid.set(key, bucket = []);
+        bucket.push(ring);
+      }
+    }
+  }
+  return (x, z) => {
+    if (pavementTopAt(x, z) !== undefined) return true;
+    const bucket = grid.get(`${Math.floor(x / HARD_GROUND_CELL_M)}:${Math.floor(-z / HARD_GROUND_CELL_M)}`);
+    return Boolean(bucket && bucket.some((ring) => pointInRing(x, -z, ring)));
+  };
+}
+
+// A triangle can cover a narrow path entirely between its vertices, so vertex/centroid
+// clipping alone cannot guarantee that grass stays off paving. Rasterize the same hard-surface
+// footprint once at one metre and discard grass fragments there on the GPU. The CPU clip above
+// still shapes its boundary, but does not need to subdivide whole parks to path-pixel scale.
+function grassHardMask(excludeAt) {
+  const [bw, bs] = xy(bbox.west, bbox.south), [be, bn] = xy(bbox.east, bbox.north);
+  const west = bw - RING_BOX_MARGIN_M, east = be + RING_BOX_MARGIN_M;
+  const south = bs - RING_BOX_MARGIN_M, north = bn + RING_BOX_MARGIN_M;
+  const width = Math.ceil(east - west), height = Math.ceil(north - south);
+  // Red excludes true hard surfaces for both lawns and parks. Green additionally excludes
+  // the visible property-line underlay for parks only; lawns retain their own precedence.
+  const data = new Uint8Array(width * height * 2);
+  for (let iy = 0; iy < height; iy += 1) {
+    const y = south + iy + 0.5;
+    for (let ix = 0; ix < width; ix += 1) {
+      const x = west + ix + 0.5, z = -y;
+      const hard = excludeAt(x, z);
+      const offset = 2 * (iy * width + ix);
+      data[offset] = hard ? 0 : 255;
+      data[offset + 1] = hard || parkPavementAt(x, z) ? 0 : 255;
+    }
+  }
+  const texture = new THREE.DataTexture(data, width, height, THREE.RGFormat);
+  texture.magFilter = texture.minFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return { texture, west, east, south, north };
+}
+
+function maskedGrassMaterial(map, hardMask, roughness, park = false) {
+  const material = new THREE.MeshStandardMaterial({
+    map, color: 0xffffff, roughness, metalness: 0.0, side: THREE.DoubleSide,
+  });
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.groundHardMask = { value: hardMask.texture };
+    shader.vertexShader = shader.vertexShader.replace("#include <common>",
+      "#include <common>\nvarying vec2 vGroundHardUv;");
+    shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>",
+      `#include <begin_vertex>\nvGroundHardUv = vec2((position.x - ${hardMask.west}) / ${hardMask.east - hardMask.west}, `
+      + `(-position.z - ${hardMask.south}) / ${hardMask.north - hardMask.south});`);
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>",
+      "#include <common>\nvarying vec2 vGroundHardUv;\nuniform sampler2D groundHardMask;");
+    shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>",
+      `#include <clipping_planes_fragment>\nif (texture2D(groundHardMask, vGroundHardUv).${park ? "g" : "r"} < 0.5) discard;`);
+  };
+  material.customProgramCacheKey = () => `ground-hard-mask-v2-${park ? "park" : "yard"}`;
+  return material;
+}
+
+function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
   // One geometry for every ring handed in, triangulated by ear clipping through THREE.Shape.
   const positions = [];
   const uvs = [];
@@ -15699,7 +15820,13 @@ function ringGeometry(rings, y, clipToRoad = true) {
       const extraPos = [];
       const gx = (i) => i < pos.count ? px(i) : extraPos[(i - pos.count) * 2];
       const gy = (i) => i < pos.count ? py(i) : extraPos[(i - pos.count) * 2 + 1];
-      const road = (i) => insideCarriageway(gx(i), -gy(i), 0.15);
+      const blockedAt = (x, y) => insideCarriageway(x, -y, 0.15)
+        || Boolean(excludeAt && excludeAt(x, -y));
+      const blockedCache = new Map();
+      const road = (i) => {
+        if (!blockedCache.has(i)) blockedCache.set(i, blockedAt(gx(i), gy(i)));
+        return blockedCache.get(i);
+      };
       const cutAt = (a, b) => {
         const key = a < b ? `${a}:${b}` : `${b}:${a}`;
         let m = local.get(key);
@@ -15718,14 +15845,20 @@ function ringGeometry(rings, y, clipToRoad = true) {
         while (stack.length) {
           const c = stack.pop(), b = stack.pop(), a = stack.pop();
           const ra = road(a), rb = road(b), rc = road(c);
-          const centre = insideCarriageway((gx(a) + gx(b) + gx(c)) / 3, -(gy(a) + gy(b) + gy(c)) / 3, 0.15);
+          const centre = blockedAt((gx(a) + gx(b) + gx(c)) / 3, (gy(a) + gy(b) + gy(c)) / 3);
           const agree = ra === rb && rb === rc && rc === centre;
           const ab = Math.hypot(gx(a) - gx(b), gy(a) - gy(b));
           const bc = Math.hypot(gx(b) - gx(c), gy(b) - gy(c));
           const ca = Math.hypot(gx(c) - gx(a), gy(c) - gy(a));
           const longest = Math.max(ab, bc, ca);
-          if (agree || longest < RING_CLIP_M) {
-            if (!(centre && (ra + rb + rc) >= 2)) kept.push(a, b, c);
+          if (agree || longest < (excludeAt ? 1.5 : RING_CLIP_M)) {
+            // At a hard-surface boundary, a grass sliver with even one point on the path
+            // must lose. The old majority vote kept exactly those green triangles on flags.
+            const touchesHard = excludeAt && (ra || rb || rc || centre
+              || blockedAt((gx(a) + gx(b)) / 2, (gy(a) + gy(b)) / 2)
+              || blockedAt((gx(b) + gx(c)) / 2, (gy(b) + gy(c)) / 2)
+              || blockedAt((gx(c) + gx(a)) / 2, (gy(c) + gy(a)) / 2));
+            if (!touchesHard && !(centre && (ra + rb + rc) >= 2)) kept.push(a, b, c);
             continue;
           }
           if (longest === ab) { const m = cutAt(a, b); stack.push(a, m, c, m, b, c); }
@@ -16237,10 +16370,10 @@ function buildCourts(ground) {
     if (!style) continue;
     const geom = ringGeometry(rings, COURT_Y);
     if (!geom) continue;
-    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+    addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       map: style.surround === null ? grassTexture() : courtSurface(style.surround),
       color: 0xffffff, roughness: 0.94, metalness: 0.0, side: THREE.DoubleSide,
-    })));
+    })), "court");
   }
 
   // The playing surfaces, then the paint. Two merged meshes for the whole city.
@@ -16283,10 +16416,10 @@ function buildCourts(ground) {
     geom.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
     geom.setIndex(sink.indices);
     geom.computeVertexNormals();
-    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+    addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       map: courtSurface(COURT_STYLE[sport].play), color: 0xffffff,
       roughness: 0.72, metalness: 0.02, side: THREE.DoubleSide,
-    })));
+    })), "court");
   }
   if (lines.indices.length) {
     const geom = new THREE.BufferGeometry();
@@ -16294,10 +16427,10 @@ function buildCourts(ground) {
     geom.setAttribute("uv", new THREE.Float32BufferAttribute(lines.uvs, 2));
     geom.setIndex(lines.indices);
     geom.computeVertexNormals();
-    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+    addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       color: 0xf1f3ef, roughness: 0.82, metalness: 0.0, side: THREE.DoubleSide,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
-    })));
+    })), "court_line");
   }
 
   // Nets. A tennis net is not a flat sheet -- it is 1.07 at the posts and 0.914 in the middle,
@@ -16466,17 +16599,18 @@ function buildCourts(ground) {
   // the scene and then covered over by the very plane it was there to replace. That is what
   // Moscone and Fort Mason were: not missing polygons, buried ones. They belong between the base
   // plane and the top of the roadway (0.06), so they cover the black without climbing the kerb.
+  const excludeGrassAt = hardGroundExclusion(ground);
+  const excludeParkAt = (x, z) => excludeGrassAt(x, z) || parkPavementAt(x, z);
+  const grassMask = grassHardMask(excludeGrassAt);
   const parkVariants = GRASS_VARIANTS;
   for (let variant = 0; variant < parkVariants; variant += 1) {
     const rings = (ground.parks || [])
       .filter((p) => grassVariantForRing(p.p, parkVariants) === variant)
       .map((p) => p.p);
-    const parkGeom = ringGeometry(rings, PARK_Y);
+    const parkGeom = ringGeometry(rings, PARK_Y, true, excludeParkAt);
     if (parkGeom) {
-      addGround(new THREE.Mesh(parkGeom, new THREE.MeshStandardMaterial({
-        map: grassTexture("park", variant), color: 0xffffff, roughness: 0.97, metalness: 0.0,
-        side: THREE.DoubleSide,
-      })), "park");
+      addGround(new THREE.Mesh(parkGeom,
+        maskedGrassMaterial(grassTexture("park", variant), grassMask, 0.97, true)), "park");
     }
   }
 
@@ -16489,12 +16623,10 @@ function buildCourts(ground) {
     const rings = grassRings
       .filter((y) => grassVariantForRing(y.p, yardVariants) === variant)
       .map((y) => y.p);
-    const yardGeom = ringGeometry(rings, YARD_Y);
+    const yardGeom = ringGeometry(rings, YARD_Y, true, excludeGrassAt);
     if (yardGeom) {
-      addGround(new THREE.Mesh(yardGeom, new THREE.MeshStandardMaterial({
-        map: grassTexture("yard", variant), color: 0xffffff, roughness: 0.98, metalness: 0.0,
-        side: THREE.DoubleSide,
-      })), "yard");
+      addGround(new THREE.Mesh(yardGeom,
+        maskedGrassMaterial(grassTexture("yard", variant), grassMask, 0.98)), "yard");
     }
   }
 

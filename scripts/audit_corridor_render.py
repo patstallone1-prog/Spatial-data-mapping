@@ -259,6 +259,7 @@ function addPavementRibbon(points, width, color, opacity, y, thickness, surface)
   return laid;
 }
 function stampPaved() {}
+function stampParkPavement() {}
 function insideJunctionBox() { return false; }
 function ribbon(points, width) { return { points, width }; }
 function addMerged() {}

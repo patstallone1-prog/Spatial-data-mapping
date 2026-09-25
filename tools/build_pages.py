@@ -154,11 +154,13 @@ def publish_map(out: pathlib.Path, assets_base: str | None = None) -> None:
         # The JSON sidecars and the terrain grid's binary: everything the page fetches.
         for data in sorted(OUT.glob("sf-corridor-*")):
             if data.is_file() and data.suffix in (".json", ".bin"):
-                shutil.copyfile(data, out / data.name)
+                target = out / data.name
+                if data.resolve() != target.resolve():
+                    shutil.copyfile(data, target)
         # The facades, and the tile tree the page draws the rest of the Bay Area from.
         for folder in ("facades", "tiles"):
             source = OUT / folder
-            if source.is_dir():
+            if source.is_dir() and source.resolve() != (out / folder).resolve():
                 shutil.copytree(source, out / folder, dirs_exist_ok=True)
     # index.html and the old name both, so that the short URL works and any link anybody already
     # has to the page by its own name keeps working too.
