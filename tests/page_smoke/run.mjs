@@ -7,6 +7,7 @@
 //   node run.mjs <repo root> <page module>
 import { readFileSync } from "node:fs";
 const ROOT = process.argv[2];
+const ASSET_ROOT = process.argv[4] || `${ROOT}/docs`;
 function stub(name = "stub") {
   const f = function () {};
   return new Proxy(f, {
@@ -42,7 +43,7 @@ globalThis.ResizeObserver = class { observe() {} };
 globalThis.fetch = async (url) => {
   const name = String(url).split("?")[0];
   try {
-    const bytes = readFileSync(`${ROOT}/docs/${name}`);
+    const bytes = readFileSync(`${ASSET_ROOT}/${name}`);
     return { ok: true, status: 200, json: async () => JSON.parse(bytes.toString("utf8")),
              arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), text: async () => bytes.toString("utf8") };
   } catch (e) { return { ok: false, status: 404, json: async () => { throw e; }, arrayBuffer: async () => null }; }
@@ -58,6 +59,7 @@ try {
     terrain: !!k.TERRAIN, h0: k.terrainHeightAt ? k.terrainHeightAt(0, 0) : null,
     corners: k.corners || null,
     ways: k.DATA && k.DATA.ways ? k.DATA.ways.length : 0,
+    ramps: k.DATA && k.DATA.ways ? k.DATA.ways.filter((w) => w.kind === "curb_ramp").length : 0,
     streets: k.DATA && k.DATA.ways ? k.DATA.ways.filter((w) => w.kind === "street").length : 0 }));
   // The page may hold a port or a timer open; the result is printed, so this is done.
   process.exit(0);

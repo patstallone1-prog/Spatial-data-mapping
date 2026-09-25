@@ -21,8 +21,8 @@ PAGE = ROOT / "docs" / "sf-corridor-3d.html"
 NODE = shutil.which("node")
 
 
-def page_module(out: Path) -> Path:
-    text = PAGE.read_text(encoding="utf-8")
+def page_module(out: Path, page: Path = PAGE) -> Path:
+    text = page.read_text(encoding="utf-8")
     start = text.index('<script type="module">')
     js = text[start + len('<script type="module">'):text.index("</script>", start)]
     js = re.sub(r'^import \* as THREE from "[^"]+";', "const THREE = globalThis.__THREE;", js, flags=re.M)
@@ -56,3 +56,21 @@ def test_the_shipped_page_loads_without_an_error(tmp_path: Path) -> None:
     pairs = corners["laid"] + corners["skipped"]["onRoad"]
     assert corners["laid"] / pairs >= 0.9, corners
     assert corners["skipped"]["shape"] == 0 and corners["skipped"]["unlaid"] == 0, corners
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to run regional pages")
+@pytest.mark.parametrize("region", ["berkeley-downtown", "oakland-downtown",
+                                     "palo-alto-downtown", "san-jose-downtown"])
+def test_bay_area_full_detail_pages_load_mapped_ramps(tmp_path: Path, region: str) -> None:
+    assets = ROOT / "docs" / "regions" / region
+    page = assets / "sf-corridor-3d.html"
+    if not page.exists() or not (assets / "sf-corridor-3d.json").exists():
+        pytest.skip("region has not been published")
+    module = page_module(tmp_path / "region.mjs", page)
+    out = subprocess.run([NODE, str(ROOT / "tests" / "page_smoke" / "run.mjs"),
+                          str(ROOT), str(module), str(assets)],
+                         capture_output=True, text=True, timeout=300)
+    assert out.returncode == 0 and out.stdout.strip(), out.stdout[-2000:] + out.stderr[-2000:]
+    result = json.loads(out.stdout.strip().splitlines()[-1])
+    assert result["ok"] and result["ways"] > 1000, result
+    assert result["ramps"] > 0, result
