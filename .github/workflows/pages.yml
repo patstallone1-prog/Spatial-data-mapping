@@ -1,0 +1,53 @@
+name: Deploy Pages after CI
+
+# Pages must use build_type=workflow. The old branch-based /docs source publishes
+# immediately on a main push, before CI has finished.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Require the exact green main commit
+        env:
+          GREEN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GREEN_SHA"
+          # A newer main push may have arrived while this CI run was finishing.
+          # Never publish an older green run over a newer version (or a failed one).
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GREEN_SHA"
+          test -s docs/index.html
+          test -s docs/app.html
+          test -s docs/sf-corridor-3d.html
+          test -s docs/sw.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4

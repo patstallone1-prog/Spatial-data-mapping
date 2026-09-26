@@ -8,7 +8,8 @@
 # and when it does the baseline is regenerated on purpose
 # (`python scripts/audit_corridor_render.py --baseline`); it may not make them worse.
 #
-# Deploys happen from a green main only (tools/build_pages.py, run by hand after this passes).
+# Pages uses the separate workflow_run deployment after every main CI job succeeds.
+# Configure Pages build_type=workflow; legacy branch publishing is not CI-gated.
 name: ci
 
 on:
