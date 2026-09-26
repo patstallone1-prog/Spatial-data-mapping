@@ -212,6 +212,28 @@ def test_a_footway_against_the_kerb_is_not_deleted() -> None:
     assert result["kept"] > result["asked"] * 0.95, result
 
 
+def test_mapped_footway_can_reach_ramp_inside_generous_junction_hull() -> None:
+    """A convex asphalt backstop may include a sidewalk outside the actual carriageway.
+
+    Mapped paving must reach its curb-ramp endpoint there, while inferred paving is still
+    trimmed by the junction box and even a mapped walk cannot lie across road asphalt.
+    """
+    result = _run(STREET + """
+insideJunctionBox = () => true;
+const mapped = [asLonLat(-40, 7.8), asLonLat(40, 7.8)];
+const onRoad = [asLonLat(-40, 0), asLonLat(40, 0)];
+const length = (runs) => Math.round(runs.reduce((sum, run) => sum + wayLength(run), 0));
+console.log(JSON.stringify({
+  mapped: length(pavementRunsOutsideCarriageway(mapped, 3.6, true)),
+  inferred: length(pavementRunsOutsideCarriageway(mapped, 3.6, false)),
+  onRoad: length(pavementRunsOutsideCarriageway(onRoad, 3.6, true)),
+}));
+""")
+    assert result["mapped"] > 75, result
+    assert result["inferred"] == 0, result
+    assert result["onRoad"] == 0, result
+
+
 def test_a_footway_laid_across_the_road_is_removed() -> None:
     """The opposite regression, and the reason the guard exists at all."""
     result = _run(STREET + """

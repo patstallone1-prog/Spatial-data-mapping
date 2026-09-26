@@ -8756,9 +8756,13 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
       // that abuts a street, and is not a reason to delete it.
       const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
       const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
-    const overlaps = insideCarriageway(x, z, 0.30)
-      || insideJunctionBox(x, z)
-      || (innerEdge && outerEdge)
+      // Junction hulls are deliberately generous asphalt backstops.  Their convex envelope
+      // also encloses the curb-ramp end of some mapped footways (Broadway/Van Ness is one),
+      // although those points are outside every carriageway.  Trust the mapped footway there;
+      // keep the box exclusion for inferred kerbside paving and the property-line underlay.
+      const overlaps = insideCarriageway(x, z, 0.30)
+        || (!discardDetached && insideJunctionBox(x, z))
+        || (innerEdge && outerEdge)
         || pavementSurroundedByStreet(x, z, width);
     if (overlaps) {
       finish(true);
