@@ -57,7 +57,8 @@ def test_built_region_navigation_loads_full_city_and_preserves_arrival() -> None
 def test_front_lawn_stops_at_house_line_without_erasing_backyard() -> None:
     namespace = runpy.run_path(str(GROUND_SOURCE))
     ring = [[0, 0], [10, 0], [10, 20], [0, 20], [0, 0]]
-    identity = lambda x, y: (x, y)
+    def identity(x: float, y: float) -> tuple[float, float]:
+        return x, y
     lawn, backyard = namespace["split_at_frontage"](
         ring, (0, 0), (10, 0), 4.0, identity, identity)
     area = namespace["ring_area_m2"]

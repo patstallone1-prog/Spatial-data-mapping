@@ -7,8 +7,9 @@ parking from a single parked-looking frame or paint from OSM policy tags.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
+from itertools import pairwise
 
 import cv2
 import numpy as np
@@ -46,7 +47,7 @@ def _ground_contours(mask: np.ndarray, image_to_enu: np.ndarray,
 def _signed_curb_distance(point: np.ndarray, curb: np.ndarray) -> float:
     """Signed nearest distance: positive to the left of oriented curb polyline."""
     best = (math.inf, 0.0)
-    for a, b in zip(curb[:-1], curb[1:]):
+    for a, b in pairwise(curb):
         direction = b - a
         squared = float(direction @ direction)
         if squared < 1e-10:

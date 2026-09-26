@@ -1,12 +1,13 @@
 """Metric-mask extraction must not turn pixels or policy into measured road facts."""
 
+import json
+import runpy
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
 import cv2
 import numpy as np
 import pytest
-import json
-from datetime import datetime, timedelta, UTC
-from pathlib import Path
-import runpy
 
 from smc.measure.road_image import extract_lane_paint, vehicle_roadside_reach
 from smc.reconstruction.provenance import Footprint, SourceAlias, SourceAsset, SourceRights
