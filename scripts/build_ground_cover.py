@@ -603,6 +603,22 @@ def main() -> int:
                 plazas.append(item)
             elif bare < MIN_YARD_CELLS:
                 service_yards.append(item)
+            elif setback is not None and setback >= MIN_FRONT_LAWN_DEPTH_M:
+                # A front lawn ends at the nearest mapped house face. Clip the
+                # surveyed parcel parallel to the street frontage, retaining
+                # its original side edges and the distinct backyard behind it.
+                front_lawn, behind_house = split_at_frontage(
+                    ring, front[1], front[2], setback, to_metres, to_lonlat)
+                if front_lawn and ring_area_m2(front_lawn, to_metres) >= MIN_FRONT_WALK_M2:
+                    lawns.append({"id": blklot, "p": [[round(x, 6), round(y, 6)]
+                                                        for x, y in simplify(front_lawn)]})
+                    if behind_house and ring_area_m2(behind_house, to_metres) >= MIN_FRONT_WALK_M2:
+                        backyards.append({"id": blklot, "p": [[round(x, 6), round(y, 6)]
+                                                             for x, y in simplify(behind_house)]})
+                else:
+                    backyards.append(item)
+                yards.append(item)
+                kept_rings.append((blklot, ring, front))
             elif setback is not None and bare < MIN_BACKYARD_CELLS:
                 lawns.append(item)
                 yards.append(item)

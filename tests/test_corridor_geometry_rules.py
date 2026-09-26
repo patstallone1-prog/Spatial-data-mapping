@@ -101,6 +101,7 @@ const CROSSING_MIN_ON_ROAD_M = 2.5;
 const RAMP_NODE_CELL_M = 40.0;
 const RAMP_NODE_REACH_M = 22.0;
 const rampNodeGrid = new Map();
+const osmRampNodes = [];
 const metersPerLat = 111320;
 const metersPerLon = 88000;
 const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
@@ -149,6 +150,9 @@ def _run_crossing(js_body: str) -> dict:
         "rayCurbIntersections",
         "officialCurbCrossingSpan",
         "endCrossingOnDrawnKerb",
+        "indexOsmCurbRamps",
+        "nearestOsmRamp",
+        "snapCrossingEndsToOsmRamps",
         "indexCurbRamps",
         "cornerOf",
         "rampRecordAt",
@@ -206,6 +210,28 @@ def test_a_footway_against_the_kerb_is_not_deleted() -> None:
     """)
     # Nearly all of it: a footway that touches the kerb is a footway, not an obstruction.
     assert result["kept"] > result["asked"] * 0.95, result
+
+
+def test_mapped_footway_can_reach_ramp_inside_generous_junction_hull() -> None:
+    """A convex asphalt backstop may include a sidewalk outside the actual carriageway.
+
+    Mapped paving must reach its curb-ramp endpoint there, while inferred paving is still
+    trimmed by the junction box and even a mapped walk cannot lie across road asphalt.
+    """
+    result = _run(STREET + """
+insideJunctionBox = () => true;
+const mapped = [asLonLat(-40, 7.8), asLonLat(40, 7.8)];
+const onRoad = [asLonLat(-40, 0), asLonLat(40, 0)];
+const length = (runs) => Math.round(runs.reduce((sum, run) => sum + wayLength(run), 0));
+console.log(JSON.stringify({
+  mapped: length(pavementRunsOutsideCarriageway(mapped, 3.6, true)),
+  inferred: length(pavementRunsOutsideCarriageway(mapped, 3.6, false)),
+  onRoad: length(pavementRunsOutsideCarriageway(onRoad, 3.6, true)),
+}));
+""")
+    assert result["mapped"] > 75, result
+    assert result["inferred"] == 0, result
+    assert result["onRoad"] == 0, result
 
 
 def test_a_footway_laid_across_the_road_is_removed() -> None:
@@ -599,7 +625,7 @@ def test_ground_cover_is_clipped_off_the_carriageway() -> None:
     assert "insideCarriageway" in body, "the clip does not consult the carriageway"
     # And it is on by default, because the caller that forgets is the one that puts a garden in
     # the road.
-    assert re.search(r"function ringGeometry\(rings, y, clipToRoad = true\)", js)
+    assert re.search(r"function ringGeometry\(rings, y, clipToRoad = true, excludeAt = null\)", js)
 
 
 def test_lane_markings_are_painted_with_a_width() -> None:
@@ -2568,6 +2594,29 @@ console.log(JSON.stringify({
                       "corner": "NE"}, result
 
 
+def test_non_sf_crossing_end_uses_only_mapped_accessible_kerb_lips() -> None:
+    result = _run_crossing("""
+const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+addCarriagewaySegment(-20, 0, 20, 0, 6);
+indexOsmCurbRamps([
+  {kind: "curb_ramp", point: ll(0, 5.5), kerb_type: "lowered", accessible_lip: true},
+  {kind: "curb_ramp", point: ll(0, -5.5), kerb_type: "raised", accessible_lip: false},
+]);
+const span = endCrossingOnDrawnKerb([ll(0, 6), ll(0, -6)]);
+console.log(JSON.stringify({
+  north: +(-xy(...span[0])[1]).toFixed(2),
+  south: +(-xy(...span[1])[1]).toFixed(2),
+  northRamp: rampRecordAt(0, 5.5), southRamp: rampRecordAt(0, -5.5),
+  provenance: span.provenance,
+}));
+""")
+    assert result["north"] == 5.5
+    assert result["south"] <= -5.9
+    assert result["northRamp"] == "ramp"
+    assert result["southRamp"] == "no_ramp"
+    assert result["provenance"].endswith("+osm_kerb_node")
+
+
 def test_nothing_runs_at_the_top_level_before_the_bindings_it_reads_exist() -> None:
     """The page ran `indexCurbRamps(...)` a hundred lines above `const rampNodeGrid`, and every
     test here passed while the browser threw a ReferenceError and drew nothing: the tests pull
@@ -2695,7 +2744,8 @@ const THREE = { Float32BufferAttribute, BufferGeometry };
     for constant in ("TERRAIN_REFINE_M", "TERRAIN_CHORD_M", "TERRAIN_REFINE_MIN_M", "TERRAIN_REFINE_GROWTH"):
         parts.append(re.search(rf"const {constant} = [0-9.]+;", js).group(0))
     # Flat ground first: nothing bends, only length splits.
-    parts.append("let TERRAIN_FRAME = null; let terrainHeightAt = () => 0;")
+    parts.append("let TERRAIN_FRAME = null; let terrainHeightAt = () => 0; "
+                 "let groundLiftAt = (x, z) => terrainHeightAt(x, z);")
     parts.append(_extract("refineForTerrain", js))
     parts.append("""
 // Two triangles making a 40 m x 2 m strip, sharing the diagonal.
@@ -2723,10 +2773,15 @@ const square = () => { const g = new BufferGeometry();
 const flat = refineForTerrain(square()).index.array.length / 3;
 TERRAIN_FRAME = {}; terrainHeightAt = (x, z) => Math.max(0, 1.2 - 0.3 * Math.hypot(x - 3, z - 3));
 const bumped = refineForTerrain(square()).index.array.length / 3;
+// A tunnel approach changes the actual ground height without changing the raw terrain grid.
+// Refinement must use the same lift that the finished mesh receives.
+terrainHeightAt = () => 0;
+groundLiftAt = (x, z) => Math.max(0, 1.2 - 0.3 * Math.hypot(x - 3, z - 3));
+const approachBumped = refineForTerrain(square()).index.array.length / 3;
 // Two parts meeting along the line z = 2 -- the strip above and a wider slab below, built
 // with different vertices -- are cut at the same x along it, so the seam between them has
 // no T-junction to open on a hill.
-TERRAIN_FRAME = null; terrainHeightAt = () => 0;
+TERRAIN_FRAME = null; terrainHeightAt = () => 0; groundLiftAt = () => 0;
 const cutsAlong = (geom, zLine) => { const q = refineForTerrain(geom); const pp = q.getAttribute("position"); const xs = new Set();
   for (let i = 0; i < pp.count; i += 1) if (Math.abs(pp.array[i * 3 + 2] - zLine) < 1e-6) xs.add(pp.array[i * 3].toFixed(3));
   return [...xs].sort(); };
@@ -2737,7 +2792,7 @@ lower.setAttribute("position", new Float32BufferAttribute([1,0,-30, 41,0,-30, 41
 const seamUpper = cutsAlong(upper, 2), seamLower = cutsAlong(lower, 2);
 console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, used: used.size,
   uvMid: Array.from(r.getAttribute("uv").array).slice(8, 10), unrefined: refineForTerrain(new BufferGeometry()) instanceof BufferGeometry,
-  flat, bumped, seamUpper, seamLower }));
+  flat, bumped, approachBumped, seamUpper, seamLower }));
 """)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
                          capture_output=True, text=True, timeout=60)
@@ -2761,9 +2816,90 @@ console.log(JSON.stringify({ tris: idx.length / 3, vertices: p.count, longest, u
     # the diagonal alone is over it.
     flat_expected = 2 if math.hypot(6, 6) <= limit else 4
     assert result["flat"] == flat_expected and result["bumped"] > result["flat"], result
+    assert result["approachBumped"] > result["flat"], result
     # The seam: both parts cut the shared line at the lattice's x = 12, 24, 36 and nowhere else.
     assert result["seamUpper"] == result["seamLower"], result
     assert set(result["seamUpper"]) >= {f"{k * limit:.3f}" for k in range(1, 4) if 1 < k * limit < 41}, result
+
+
+def test_grass_excludes_paved_paths_and_hard_courts_but_not_sports_grass() -> None:
+    js = _page_js()
+    script = "\n".join([
+        "const HARD_GROUND_CELL_M = 16;",
+        "const xy = (x, y) => [x, y];",
+        "const clipRingToBox = (ring) => ring;",
+        "const pavementTopAt = (x, z) => x > 10 && x < 11 ? 0.2 : undefined;",
+        "const COURT_STYLE = {tennis: {surround: 1}, soccer: {surround: null}};",
+        _extract("pointInRing", js),
+        _extract("hardGroundExclusion", js),
+        "const square = (x) => [[x,1],[x+2,1],[x+2,3],[x,3],[x,1]];",
+        "const mask = hardGroundExclusion({front_walks:[{p:square(1)}], "
+        "plazas:[{p:square(12)}], pitches:[{s:'tennis',p:square(4)}, "
+        "{s:'soccer',p:square(7)}]});",
+        "console.log(JSON.stringify([mask(2,-2),mask(5,-2),mask(8,-2),"
+        "mask(10.5,-2),mask(13,-2),mask(15,-2)]));",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == [True, True, False, True, True, False]
+    assert "ringGeometry(rings, PARK_Y, true, excludeParkAt)" in js
+    assert "ringGeometry(rings, YARD_Y, true, excludeGrassAt)" in js
+    assert "if (!touchesHard && !(centre && (ra + rb + rc) >= 2))" in js
+
+
+def test_grass_fragment_mask_catches_paths_inside_large_triangles() -> None:
+    js = _page_js()
+    script = "\n".join([
+        "const bbox = {west:0,east:2,south:0,north:2};",
+        "const RING_BOX_MARGIN_M = 0; const xy = (x,y) => [x,y];",
+        "const parkPavementAt = (x,z) => x < 1 && -z > 1;",
+        "const THREE = {RGFormat:'rg',NearestFilter:'nearest',DoubleSide:2,",
+        "DataTexture: class {constructor(data,width,height,format) {"
+        "this.data=data;this.width=width;this.height=height;this.format=format;}},",
+        "MeshStandardMaterial: class {constructor(options){this.options=options;}}};",
+        _extract("grassHardMask", js), _extract("maskedGrassMaterial", js),
+        "const mask=grassHardMask((x,z)=>x>1 && -z>1);",
+        "const material=maskedGrassMaterial(null,mask,0.97);",
+        "const parkMaterial=maskedGrassMaterial(null,mask,0.97,true);",
+        "const shader={uniforms:{},vertexShader:'#include <common>\\n#include <begin_vertex>',"
+        "fragmentShader:'#include <common>\\n#include <clipping_planes_fragment>'};",
+        "material.onBeforeCompile(shader);",
+        "const parkShader={uniforms:{},vertexShader:'#include <common>\\n#include <begin_vertex>',"
+        "fragmentShader:'#include <common>\\n#include <clipping_planes_fragment>'};",
+        "parkMaterial.onBeforeCompile(parkShader);",
+        "console.log(JSON.stringify({pixels:[...mask.texture.data],"
+        "vertex:shader.vertexShader,fragment:shader.fragmentShader,"
+        "parkFragment:parkShader.fragmentShader,uniform:!!shader.uniforms.groundHardMask}));",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    assert result["pixels"] == [255, 255, 255, 255, 255, 0, 0, 0]
+    assert "vGroundHardUv" in result["vertex"]
+    assert "discard" in result["fragment"] and result["uniform"]
+    assert ").g < 0.5" in result["parkFragment"]
+
+
+def test_property_underlay_clips_park_without_erasing_front_lawns() -> None:
+    js = _page_js()
+    script = "\n".join([
+        "const UNDERLAY_CELL_M = 16; const underlayGrid = new Map();",
+        "const MAX_MITRE = 2.6;",
+        "const xy = (x,y) => [x,y];",
+        _extract("norm", js), _extract("mitredEdges", js), _extract("pointInRing", js),
+        _extract("stampParkPavement", js), _extract("parkPavementAt", js),
+        "stampParkPavement([[0,0],[10,0]], 4);",
+        "console.log(JSON.stringify([parkPavementAt(5,0),parkPavementAt(5,1.9),"
+        "parkPavementAt(5,2.1),parkPavementAt(11,0)]));",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == [True, True, False, False]
+    assert "data[offset] = hard ? 0 : 255" in js
+    assert "data[offset + 1] = hard || parkPavementAt(x, z) ? 0 : 255" in js
 
 
 def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:

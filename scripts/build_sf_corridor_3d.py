@@ -53,6 +53,10 @@ def overpass_query(bbox: BBox) -> str:
         # are that for half their length: not fetched, the green stopped at every such block.
         f'secondary_link|tertiary_link|footway|pedestrian|steps|path|cycleway)$"]({area});'
         f'way["footway"~"^(sidewalk|crossing)$"]({area});'
+        # These nodes locate real kerb transitions outside San Francisco's municipal
+        # ramp inventory.  A crossing way alone cannot tell us where its lip is.
+        f'node["kerb"]({area});'
+        f'node["barrier"="kerb"]({area});'
         # A divider is concrete only when OSM maps a physical island or a raised kerb
         # footprint.  Lane/separation tags such as ``solid_line`` deliberately do not enter
         # this query: those remain road paint in the renderer.
@@ -438,6 +442,30 @@ def load_building_colours(path: Path) -> dict[str, dict]:
     return {key: sample for key, sample in data.get("buildings", {}).items() if believable(sample.get("c"))}
 
 
+def normalize_osm_kerb_node(element: dict[str, Any]) -> dict[str, Any] | None:
+    """Preserve mapped kerb transitions without treating every crossing node as a ramp.
+
+    OSM's ``kerb=raised`` is positive evidence *against* a flush crossing.  An
+    unspecified ``barrier=kerb`` is not enough to infer a ramp either.
+    """
+    if element.get("type") != "node" or "lon" not in element or "lat" not in element:
+        return None
+    tags = element.get("tags") or {}
+    value = str(tags.get("kerb") or "").lower()
+    if value not in {"lowered", "flush", "raised", "rolled"}:
+        return None
+    return {
+        "kind": "curb_ramp",
+        "point": [round(float(element["lon"]), PRECISION),
+                  round(float(element["lat"]), PRECISION)],
+        "kerb_type": value,
+        "accessible_lip": value in {"lowered", "flush"},
+        "tactile_paving": tags.get("tactile_paving"),
+        "source": "osm_kerb_node",
+        "osm_id": element.get("id"),
+    }
+
+
 def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
     query = overpass_query(bbox)
     data = None
@@ -492,6 +520,9 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
             # restaurant is a point inside a building far more often than it is the building --
             # and skipping everything without geometry threw all of it away.
             if element.get("type") == "node" and "lat" in element and "lon" in element:
+                ramp = normalize_osm_kerb_node(element)
+                if ramp is not None:
+                    ways.append(ramp)
                 kept = {k: tags[k] for k in (*ADDRESS_KEYS, *BUSINESS_KEYS)
                         if tags.get(k) not in (None, "")}
                 if kept:
@@ -2760,7 +2791,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
   </div>
 </div>
 <div id="addr" hidden></div>
-<div id="tip"><b>Click anywhere to go there</b> &mdash; the walker is you, and arriving brings the camera down to street level. Arrow keys walk it at 12&nbsp;mph in first person, relative to the way you are facing. Drag to orbit, wheel or pinch to zoom &mdash; in first person the wheel zooms your view up to 2x. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
+<div id="tip"><b>Drag to look around</b> &mdash; the walker stays put until you use the arrow keys or choose a place in search. Arrow keys move at 20&nbsp;mph in orbit view and 12&nbsp;mph in first person, relative to the way you are facing. Wheel or pinch to zoom &mdash; in first person the wheel zooms your view up to 2x. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
 <!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
      eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
      its previous version. Fetched, the page is a few kilobytes, the data changes independently,
@@ -2936,6 +2967,27 @@ Object.values(groups).forEach((g) => root.add(g));
   const group = document.getElementById("regiongroup");
   const here = location.pathname.replace(/\/[^/]*$/, "/");
   const root = index.replace(/regions\.json$/, "");
+  const fullRegions = list.filter((region) => region.built && region.bbox);
+  function openFullRegion(region, lon, lat) {
+    const url = new URL(root + region.path, location.href);
+    try {
+      sessionStorage.setItem("kerbside:region-arrival", JSON.stringify({
+        path: url.pathname, lon, lat, yaw: state.yaw, pitch: state.pitch,
+        dist: Math.min(state.dist, ARRIVAL_DIST), firstPerson: state.firstPerson,
+      }));
+    } catch (error) { /* navigation also works when storage is unavailable */ }
+    location.assign(url.href);
+  }
+  window.kerbsideOpenFullRegionAt = (lon, lat) => {
+    if (tileOwnGround(lon, lat)) return false;
+    const destination = fullRegions.find((region) => {
+      const [south, west, north, east] = region.bbox;
+      return lon >= west && lon <= east && lat >= south && lat <= north;
+    });
+    if (!destination) return false;
+    openFullRegion(destination, lon, lat);
+    return true;
+  };
   for (const region of list) {
     const option = document.createElement("option");
     option.value = new URL(root + region.path, location.href).pathname;
@@ -2960,6 +3012,12 @@ Object.values(groups).forEach((g) => root.add(g));
   const REGION_FRAME = 1.4;
   function flyToRegion(region) {
     const [south, west, north, east] = region.bbox;
+    // An overview tile omits signs, lawns and other city details. Load that
+    // city's complete survey, preserving the destination and view direction.
+    if (new URL(root + region.path, location.href).pathname !== location.pathname) {
+      openFullRegion(region, (west + east) / 2, (south + north) / 2);
+      return;
+    }
     const [x, y] = xy((west + east) / 2, (south + north) / 2);
     const [x0, y0] = xy(west, south);
     const [x1, y1] = xy(east, north);
@@ -3660,7 +3718,10 @@ const TERRAIN_REFINE_BY_SURFACE = {
   // Visible plaza paving must follow the 2 m terrain grid. A 12 m chord fell 40 cm below
   // that grid around 600 Montgomery, exposing dark terrain as angular holes in the paving.
   plaza: [2.0, 0, 2.0, true],
-  yard: [16.0, TERRAIN_CHORD_M], park: [16.0, TERRAIN_CHORD_M], service_yard: [16.0, TERRAIN_CHORD_M], court: [16.0, TERRAIN_CHORD_M],
+  // A 16 m grass chord can bridge over a steep footway or a court even though its vertices
+  // are below both surfaces. Grass has no reason to be planar across a retaining wall.
+  yard: [12.0, 0.15, 3.0], park: [12.0, 0.15, 3.0],
+  service_yard: [12.0, 0.15, 3.0], court: [8.0, 0.05, 2.0], court_line: [8.0, 0.05, 2.0],
 };
 //: The bend rule may not multiply a mesh past this: the grid is stepped wherever a wall or a
 //: stair stands, and chasing every step to the grid's own cell size ran a yard to millions.
@@ -3715,8 +3776,10 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
       if (best >= 0) return best;
     }
     if (!TERRAIN_FRAME || !(chord > 0) || len <= minEdge / 4 || count > budget) return -1;
-    const mid = terrainHeightAt((px(a) + px(b)) / 2, (pz(a) + pz(b)) / 2);
-    const bend = Math.abs(mid - (terrainHeightAt(px(a), pz(a)) + terrainHeightAt(px(b), pz(b))) / 2);
+    // Match the height function used by liftOntoGround, including tunnel approaches. Using
+    // the raw grid here left grass on a chord above a sidewalk following a cut's road level.
+    const mid = groundLiftAt((px(a) + px(b)) / 2, (pz(a) + pz(b)) / 2);
+    const bend = Math.abs(mid - (groundLiftAt(px(a), pz(a)) + groundLiftAt(px(b), pz(b))) / 2);
     // Down to the minimum edge for a bend over the tolerance; to half that for a bend over twice
     // it and a quarter for four times -- a retaining wall or a flight of steps in the grid, which
     // a four-metre edge can only drape over, and which the grid's own decimetre of noise never
@@ -5796,6 +5859,28 @@ function crossingRoadSpanPoints(points) {
 const RAMP_NODE_CELL_M = 40.0;
 const RAMP_NODE_REACH_M = 22.0;
 const rampNodeGrid = new Map();
+const osmRampNodes = [];
+
+function indexOsmCurbRamps(ways) {
+  osmRampNodes.length = 0;
+  for (const way of ways || []) {
+    if (way.kind !== "curb_ramp" || !way.point) continue;
+    const [x, y] = xy(way.point[0], way.point[1]);
+    osmRampNodes.push({ x, z: -y, type: way.kerb_type,
+                        accessible: way.accessible_lip === true, osmId: way.osm_id });
+  }
+}
+
+function nearestOsmRamp(x, z, reach = 2.0) {
+  let found = null;
+  for (const ramp of osmRampNodes) {
+    const distance = Math.hypot(x - ramp.x, z - ramp.z);
+    if (distance <= reach && (!found || distance < found.distance)) {
+      found = { ...ramp, distance };
+    }
+  }
+  return found;
+}
 
 function indexCurbRamps(ramps) {
   rampNodeGrid.clear();
@@ -5819,6 +5904,8 @@ function cornerOf(nx, nz, x, z) {
 //: "no_ramp" (the corner is listed without one), or null (no intersection record within
 //: reach). The corner's single-letter legs (N, S, E, W) count for both corners they touch.
 function rampRecordAt(x, z) {
+  const mapped = nearestOsmRamp(x, z, 2.0);
+  if (mapped) return mapped.accessible ? "ramp" : "no_ramp";
   const cx = Math.floor(x / RAMP_NODE_CELL_M), cz = Math.floor(z / RAMP_NODE_CELL_M);
   let node = null;
   for (let dx = -1; dx <= 1; dx += 1) {
@@ -5848,6 +5935,7 @@ function rampRecordAt(x, z) {
 }
 
 indexCurbRamps(OFFICIAL_GEOMETRY.curb_ramps || []);
+indexOsmCurbRamps(DATA.ways);
 
 //: A crossing's end lies on the kerb the model drew. The ray through the city's kerb lines
 //: is cast along the crossing's own direction, and at a corner that direction meets the
@@ -5876,11 +5964,32 @@ function endCrossingOnDrawnKerb(span) {
   };
   const ta = walkIn(ax, az, ux, uz);
   const tb = walkIn(bx, bz, -ux, -uz);
-  if (ta === 0 && tb === 0) return span;
+  if (ta === 0 && tb === 0) return snapCrossingEndsToOsmRamps(span);
   const out = [lonLatFromXZ(ax + ux * ta, az + uz * ta), lonLatFromXZ(bx - ux * tb, bz - uz * tb)];
   out.provenance = span.provenance;
   out.walkedBackM = [+ta.toFixed(2), +tb.toFixed(2)];
-  return out;
+  return snapCrossingEndsToOsmRamps(out);
+}
+
+function snapCrossingEndsToOsmRamps(span) {
+  if (!span || span.length < 2 || !osmRampNodes.length) return span;
+  const output = span.map((p) => [...p]);
+  let snapped = false;
+  for (const i of [0, output.length - 1]) {
+    const [x, y] = xy(output[i][0], output[i][1]);
+    const ramp = nearestOsmRamp(x, -y, 1.25);
+    if (!ramp || !ramp.accessible) continue;
+    const j = i === 0 ? output.length - 1 : 0;
+    const [ox, oy] = xy(output[j][0], output[j][1]);
+    const vx = ox - x, vz = -oy + y;
+    const length = Math.hypot(vx, vz);
+    if (length < 2 || Math.abs((ramp.x - x) * vz - (ramp.z + y) * vx) / length > 0.75) continue;
+    output[i] = lonLatFromXZ(ramp.x, ramp.z);
+    snapped = true;
+  }
+  if (!snapped) return span;
+  output.provenance = `${span.provenance || "osm_crossing"}+osm_kerb_node`;
+  return output;
 }
 
 function crossingRectanglePoints(points) {
@@ -8647,9 +8756,13 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
       // that abuts a street, and is not a reason to delete it.
       const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
       const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
-    const overlaps = insideCarriageway(x, z, 0.30)
-      || insideJunctionBox(x, z)
-      || (innerEdge && outerEdge)
+      // Junction hulls are deliberately generous asphalt backstops.  Their convex envelope
+      // also encloses the curb-ramp end of some mapped footways (Broadway/Van Ness is one),
+      // although those points are outside every carriageway.  Trust the mapped footway there;
+      // keep the box exclusion for inferred kerbside paving and the property-line underlay.
+      const overlaps = insideCarriageway(x, z, 0.30)
+        || (!discardDetached && insideJunctionBox(x, z))
+        || (innerEdge && outerEdge)
         || pavementSurroundedByStreet(x, z, width);
     if (overlaps) {
       finish(true);
@@ -8676,6 +8789,35 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
 //: thing that knows where the footway ended up is the code that put it there.
 const PAVED_CELL = 1.5;
 const pavedGrid = new Map();
+// The neutral property-line underlay is deliberately allowed beneath private lawns. Public
+// park grass, however, must stop at its visible paved frontage. Keep that footprint separate
+// from pavedGrid so excluding the park cannot erase a legitimate front lawn.
+const UNDERLAY_CELL_M = 16;
+const underlayGrid = new Map();
+function stampParkPavement(run, width) {
+  const edges = mitredEdges(run, width);
+  if (!edges) return;
+  for (let i = 1; i < edges.left.length; i += 1) {
+    // These are the ribbon's *actual* top-face quads. Rounded capsules overcut the park
+    // beyond a sidewalk run's blunt end, leaving a dark crescent at curb corners.
+    const quad = [edges.left[i - 1], edges.left[i], edges.right[i], edges.right[i - 1]];
+    const xs = quad.map((p) => p[0]), zs = quad.map((p) => p[1]);
+    for (let ix = Math.floor(Math.min(...xs) / UNDERLAY_CELL_M);
+         ix <= Math.floor(Math.max(...xs) / UNDERLAY_CELL_M); ix += 1) {
+      for (let iz = Math.floor(Math.min(...zs) / UNDERLAY_CELL_M);
+           iz <= Math.floor(Math.max(...zs) / UNDERLAY_CELL_M); iz += 1) {
+        const key = `${ix}:${iz}`;
+        let bucket = underlayGrid.get(key);
+        if (!bucket) underlayGrid.set(key, bucket = []);
+        bucket.push(quad);
+      }
+    }
+  }
+}
+function parkPavementAt(x, z) {
+  const bucket = underlayGrid.get(`${Math.floor(x / UNDERLAY_CELL_M)}:${Math.floor(z / UNDERLAY_CELL_M)}`);
+  return Boolean(bucket && bucket.some((quad) => pointInRing(x, z, quad)));
+}
 //: Which way the footway runs through each cell. A tree pit is a square cut out of the paving,
 //: and paving is laid square to the kerb -- so a pit turned a few degrees off the flags around
 //: it reads as a mistake in the pavement rather than as an opening in it. This is what squares
@@ -10379,6 +10521,7 @@ function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color,
     const width = ladder[pick];
     for (const run of pavementRunsOutsideCarriageway(
            offsetWay(stretch, side * (inner + width / 2)), width)) {
+      stampParkPavement(run, width);
       addMerged("walk:property-underlay",
                 ribbon(run, width, color, opacity, PROPERTY_LINE_PAVEMENT_Y,
                        PROPERTY_LINE_PAVEMENT_THICKNESS_M, "walk_underlay"),
@@ -15546,7 +15689,93 @@ function clipRingToBox(ring) {
   }
   return poly.map(([x, y]) => lonLatFromXZ(x, -y));
 }
-function ringGeometry(rings, y, clipToRoad = true) {
+// The source polygons for parks and parcels can overlap paved paths and mapped sport pitches.
+// Elevation alone cannot establish precedence: the grass may bridge a steep 2 m terrain cell
+// while the narrow path follows it. Keep hard surfaces out of grass triangulation altogether.
+const HARD_GROUND_CELL_M = 16.0;
+function hardGroundExclusion(ground) {
+  const grid = new Map();
+  const rows = [
+    ...(ground.front_walks || []), ...(ground.plazas || []), ...(ground.service_yards || []),
+    ...(ground.pitches || []).filter((p) => COURT_STYLE[p.s] && COURT_STYLE[p.s].surround !== null),
+  ];
+  for (const row of rows) {
+    const clipped = clipRingToBox(row.p);
+    if (!clipped) continue;
+    const ring = clipped.map(([lon, lat]) => xy(lon, lat));
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const [x, y] of ring) {
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    }
+    for (let ix = Math.floor(minX / HARD_GROUND_CELL_M);
+         ix <= Math.floor(maxX / HARD_GROUND_CELL_M); ix += 1) {
+      for (let iy = Math.floor(minY / HARD_GROUND_CELL_M);
+           iy <= Math.floor(maxY / HARD_GROUND_CELL_M); iy += 1) {
+        const key = `${ix}:${iy}`;
+        let bucket = grid.get(key);
+        if (!bucket) grid.set(key, bucket = []);
+        bucket.push(ring);
+      }
+    }
+  }
+  return (x, z) => {
+    if (pavementTopAt(x, z) !== undefined) return true;
+    const bucket = grid.get(`${Math.floor(x / HARD_GROUND_CELL_M)}:${Math.floor(-z / HARD_GROUND_CELL_M)}`);
+    return Boolean(bucket && bucket.some((ring) => pointInRing(x, -z, ring)));
+  };
+}
+
+// A triangle can cover a narrow path entirely between its vertices, so vertex/centroid
+// clipping alone cannot guarantee that grass stays off paving. Rasterize the same hard-surface
+// footprint once at one metre and discard grass fragments there on the GPU. The CPU clip above
+// still shapes its boundary, but does not need to subdivide whole parks to path-pixel scale.
+function grassHardMask(excludeAt) {
+  const [bw, bs] = xy(bbox.west, bbox.south), [be, bn] = xy(bbox.east, bbox.north);
+  const west = bw - RING_BOX_MARGIN_M, east = be + RING_BOX_MARGIN_M;
+  const south = bs - RING_BOX_MARGIN_M, north = bn + RING_BOX_MARGIN_M;
+  const width = Math.ceil(east - west), height = Math.ceil(north - south);
+  // Red excludes true hard surfaces for both lawns and parks. Green additionally excludes
+  // the visible property-line underlay for parks only; lawns retain their own precedence.
+  const data = new Uint8Array(width * height * 2);
+  for (let iy = 0; iy < height; iy += 1) {
+    const y = south + iy + 0.5;
+    for (let ix = 0; ix < width; ix += 1) {
+      const x = west + ix + 0.5, z = -y;
+      const hard = excludeAt(x, z);
+      const offset = 2 * (iy * width + ix);
+      data[offset] = hard ? 0 : 255;
+      data[offset + 1] = hard || parkPavementAt(x, z) ? 0 : 255;
+    }
+  }
+  const texture = new THREE.DataTexture(data, width, height, THREE.RGFormat);
+  texture.magFilter = texture.minFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return { texture, west, east, south, north };
+}
+
+function maskedGrassMaterial(map, hardMask, roughness, park = false) {
+  const material = new THREE.MeshStandardMaterial({
+    map, color: 0xffffff, roughness, metalness: 0.0, side: THREE.DoubleSide,
+  });
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.groundHardMask = { value: hardMask.texture };
+    shader.vertexShader = shader.vertexShader.replace("#include <common>",
+      "#include <common>\nvarying vec2 vGroundHardUv;");
+    shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>",
+      `#include <begin_vertex>\nvGroundHardUv = vec2((position.x - ${hardMask.west}) / ${hardMask.east - hardMask.west}, `
+      + `(-position.z - ${hardMask.south}) / ${hardMask.north - hardMask.south});`);
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>",
+      "#include <common>\nvarying vec2 vGroundHardUv;\nuniform sampler2D groundHardMask;");
+    shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>",
+      `#include <clipping_planes_fragment>\nif (texture2D(groundHardMask, vGroundHardUv).${park ? "g" : "r"} < 0.5) discard;`);
+  };
+  material.customProgramCacheKey = () => `ground-hard-mask-v2-${park ? "park" : "yard"}`;
+  return material;
+}
+
+function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
   // One geometry for every ring handed in, triangulated by ear clipping through THREE.Shape.
   const positions = [];
   const uvs = [];
@@ -15595,7 +15824,13 @@ function ringGeometry(rings, y, clipToRoad = true) {
       const extraPos = [];
       const gx = (i) => i < pos.count ? px(i) : extraPos[(i - pos.count) * 2];
       const gy = (i) => i < pos.count ? py(i) : extraPos[(i - pos.count) * 2 + 1];
-      const road = (i) => insideCarriageway(gx(i), -gy(i), 0.15);
+      const blockedAt = (x, y) => insideCarriageway(x, -y, 0.15)
+        || Boolean(excludeAt && excludeAt(x, -y));
+      const blockedCache = new Map();
+      const road = (i) => {
+        if (!blockedCache.has(i)) blockedCache.set(i, blockedAt(gx(i), gy(i)));
+        return blockedCache.get(i);
+      };
       const cutAt = (a, b) => {
         const key = a < b ? `${a}:${b}` : `${b}:${a}`;
         let m = local.get(key);
@@ -15614,14 +15849,20 @@ function ringGeometry(rings, y, clipToRoad = true) {
         while (stack.length) {
           const c = stack.pop(), b = stack.pop(), a = stack.pop();
           const ra = road(a), rb = road(b), rc = road(c);
-          const centre = insideCarriageway((gx(a) + gx(b) + gx(c)) / 3, -(gy(a) + gy(b) + gy(c)) / 3, 0.15);
+          const centre = blockedAt((gx(a) + gx(b) + gx(c)) / 3, (gy(a) + gy(b) + gy(c)) / 3);
           const agree = ra === rb && rb === rc && rc === centre;
           const ab = Math.hypot(gx(a) - gx(b), gy(a) - gy(b));
           const bc = Math.hypot(gx(b) - gx(c), gy(b) - gy(c));
           const ca = Math.hypot(gx(c) - gx(a), gy(c) - gy(a));
           const longest = Math.max(ab, bc, ca);
-          if (agree || longest < RING_CLIP_M) {
-            if (!(centre && (ra + rb + rc) >= 2)) kept.push(a, b, c);
+          if (agree || longest < (excludeAt ? 1.5 : RING_CLIP_M)) {
+            // At a hard-surface boundary, a grass sliver with even one point on the path
+            // must lose. The old majority vote kept exactly those green triangles on flags.
+            const touchesHard = excludeAt && (ra || rb || rc || centre
+              || blockedAt((gx(a) + gx(b)) / 2, (gy(a) + gy(b)) / 2)
+              || blockedAt((gx(b) + gx(c)) / 2, (gy(b) + gy(c)) / 2)
+              || blockedAt((gx(c) + gx(a)) / 2, (gy(c) + gy(a)) / 2));
+            if (!touchesHard && !(centre && (ra + rb + rc) >= 2)) kept.push(a, b, c);
             continue;
           }
           if (longest === ab) { const m = cutAt(a, b); stack.push(a, m, c, m, b, c); }
@@ -16133,10 +16374,10 @@ function buildCourts(ground) {
     if (!style) continue;
     const geom = ringGeometry(rings, COURT_Y);
     if (!geom) continue;
-    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+    addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       map: style.surround === null ? grassTexture() : courtSurface(style.surround),
       color: 0xffffff, roughness: 0.94, metalness: 0.0, side: THREE.DoubleSide,
-    })));
+    })), "court");
   }
 
   // The playing surfaces, then the paint. Two merged meshes for the whole city.
@@ -16179,10 +16420,10 @@ function buildCourts(ground) {
     geom.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
     geom.setIndex(sink.indices);
     geom.computeVertexNormals();
-    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+    addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       map: courtSurface(COURT_STYLE[sport].play), color: 0xffffff,
       roughness: 0.72, metalness: 0.02, side: THREE.DoubleSide,
-    })));
+    })), "court");
   }
   if (lines.indices.length) {
     const geom = new THREE.BufferGeometry();
@@ -16190,10 +16431,10 @@ function buildCourts(ground) {
     geom.setAttribute("uv", new THREE.Float32BufferAttribute(lines.uvs, 2));
     geom.setIndex(lines.indices);
     geom.computeVertexNormals();
-    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+    addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       color: 0xf1f3ef, roughness: 0.82, metalness: 0.0, side: THREE.DoubleSide,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
-    })));
+    })), "court_line");
   }
 
   // Nets. A tennis net is not a flat sheet -- it is 1.07 at the posts and 0.914 in the middle,
@@ -16362,17 +16603,18 @@ function buildCourts(ground) {
   // the scene and then covered over by the very plane it was there to replace. That is what
   // Moscone and Fort Mason were: not missing polygons, buried ones. They belong between the base
   // plane and the top of the roadway (0.06), so they cover the black without climbing the kerb.
+  const excludeGrassAt = hardGroundExclusion(ground);
+  const excludeParkAt = (x, z) => excludeGrassAt(x, z) || parkPavementAt(x, z);
+  const grassMask = grassHardMask(excludeGrassAt);
   const parkVariants = GRASS_VARIANTS;
   for (let variant = 0; variant < parkVariants; variant += 1) {
     const rings = (ground.parks || [])
       .filter((p) => grassVariantForRing(p.p, parkVariants) === variant)
       .map((p) => p.p);
-    const parkGeom = ringGeometry(rings, PARK_Y);
+    const parkGeom = ringGeometry(rings, PARK_Y, true, excludeParkAt);
     if (parkGeom) {
-      addGround(new THREE.Mesh(parkGeom, new THREE.MeshStandardMaterial({
-        map: grassTexture("park", variant), color: 0xffffff, roughness: 0.97, metalness: 0.0,
-        side: THREE.DoubleSide,
-      })), "park");
+      addGround(new THREE.Mesh(parkGeom,
+        maskedGrassMaterial(grassTexture("park", variant), grassMask, 0.97, true)), "park");
     }
   }
 
@@ -16385,12 +16627,10 @@ function buildCourts(ground) {
     const rings = grassRings
       .filter((y) => grassVariantForRing(y.p, yardVariants) === variant)
       .map((y) => y.p);
-    const yardGeom = ringGeometry(rings, YARD_Y);
+    const yardGeom = ringGeometry(rings, YARD_Y, true, excludeGrassAt);
     if (yardGeom) {
-      addGround(new THREE.Mesh(yardGeom, new THREE.MeshStandardMaterial({
-        map: grassTexture("yard", variant), color: 0xffffff, roughness: 0.98, metalness: 0.0,
-        side: THREE.DoubleSide,
-      })), "yard");
+      addGround(new THREE.Mesh(yardGeom,
+        maskedGrassMaterial(grassTexture("yard", variant), grassMask, 0.98)), "yard");
     }
   }
 
@@ -17716,6 +17956,8 @@ canvas.addEventListener("pointermove", (e) => {
   placeCamera();
 });
 canvas.addEventListener("pointerup", () => { dragging = false; });
+canvas.addEventListener("pointercancel", () => { dragging = false; held.clear(); });
+canvas.addEventListener("lostpointercapture", () => { dragging = false; held.clear(); });
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
   if (state.firstPerson) {
@@ -17845,9 +18087,11 @@ document.getElementById("reset").addEventListener("click", () => {
   }
 
   function travelTo(place) {
+    if (window.kerbsideOpenFullRegionAt &&
+        window.kerbsideOpenFullRegionAt(place.lon, place.lat)) return;
     const [x, y] = xy(place.lon, place.lat);
-    // A named place is a destination, so this behaves like the two-finger gesture: it moves
-    // the sphere and closes the distance rather than only turning the camera.
+    // A named place is an explicit destination: unlike pointer view gestures,
+    // search is allowed to move the walker and close the distance.
     goTo(new THREE.Vector3(x, 0, -y), { travel: true });
     field.value = place.label;
     showing = [];
@@ -17917,11 +18161,8 @@ const FIRST_PERSON_SPEED = 5.36;   // 12 mph
 //: 50 degrees down to half that, a 2x look at a sign or a kerb across the street.
 const FIRST_PERSON_FOV = 50;
 const FIRST_PERSON_MAX_ZOOM = 2.0;
-// Above that the speed scales with how far the camera has pulled back, so the walker always
-// crosses the screen at the same rate. Walking a block at 20 mph is right when you are standing
-// in it; from two thousand metres up the same 20 mph is a stationary dot, and crossing the
-// corridor would take four minutes. What stays constant is the apparent speed, not the metric.
-const SPEED_REFERENCE_DIST = 45;
+// Movement speed is a physical speed, not scaled by camera zoom. Zooming or
+// orbiting the camera therefore cannot accelerate the walker across the map.
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
 const AVATAR_HEIGHT = 2.1336;  // seven feet exactly, which is what the demo avatar is asked to be
 //: The walker is drawn at the size above: one, once the figure is measured as it stands
@@ -18110,8 +18351,21 @@ function loadDemoCharacterAvatar(rig) {
   });
 }
 loadDemoCharacterAvatar(avatar);
+try {
+  const saved = JSON.parse(sessionStorage.getItem("kerbside:region-arrival") || "null");
+  if (saved && saved.path === location.pathname && Number.isFinite(saved.lon)
+      && Number.isFinite(saved.lat) && tileOwnGround(saved.lon, saved.lat)) {
+    const [x, y] = xy(saved.lon, saved.lat);
+    avatar.position.set(x, AVATAR_STAND_Y + walkerGroundAt(x, -y), -y);
+    state.yaw = Number.isFinite(saved.yaw) ? saved.yaw : state.yaw;
+    state.pitch = Number.isFinite(saved.pitch) ? saved.pitch : state.pitch;
+    state.dist = Number.isFinite(saved.dist) ? Math.max(8, saved.dist) : ARRIVAL_DIST;
+    state.firstPerson = Boolean(saved.firstPerson);
+    sessionStorage.removeItem("kerbside:region-arrival");
+  }
+} catch (error) { /* no saved arrival, or storage unavailable */ }
 state.target.copy(avatar.position);
-placeCamera();
+setFirstPerson(state.firstPerson);
 
 const held = new Set();
 const ARROWS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
@@ -18256,9 +18510,8 @@ function groundAt(clientX, clientY) {
   return ray.ray.intersectPlane(groundPlane, landing) ? landing : null;
 }
 
-// One finger looks, two fingers travel. Panning the focus without moving the sphere is how you
-// survey a block you have not decided to walk to yet; committing to it should be the deliberate
-// gesture, not the one you make by accident while orbiting.
+// Pointer gestures only inspect or rotate the view. Search selects a destination;
+// arrows walk. A touchpad gesture must never move the walker accidentally.
 function goTo(landing, { travel }) {
   if (!landing) return;
   // The ground where the click landed: the terrain's height, or the bore's floor inside a
@@ -18294,7 +18547,9 @@ canvas.addEventListener("pointerup", async (e) => {
     tip.innerHTML = summary;
     return;
   }
-  goTo(groundAt(e.clientX, e.clientY), { travel: false });
+  // A plain click is part of looking around, never a change of the walker's
+  // position or the camera's orbit centre. Named-place search remains the
+  // explicit jump-to-place control; arrows are the only movement gesture.
 });
 
 // The address, where the building is. Every footprint carries the parcel it stands on and the
@@ -18327,14 +18582,12 @@ function showAddress(feature, clientX, clientY) {
 }
 
 canvas.addEventListener("contextmenu", (e) => {
-  // A two-finger tap on a trackpad, or a right click. Both arrive here. On a building it asks
-  // what the building is; on the ground it still travels, which is the gesture that was here
-  // first and the one the help text describes.
+  // A two-finger tap or right click asks about a building; it cannot teleport
+  // the walker when the user is merely changing the view.
   e.preventDefault();
   const feature = pickedFeature(e.clientX, e.clientY);
   if (feature && showAddress(feature, e.clientX, e.clientY)) return;
   hideAddress();
-  goTo(groundAt(e.clientX, e.clientY), { travel: true });
 });
 canvas.addEventListener("pointerdown", hideAddress);
 addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
@@ -18364,7 +18617,7 @@ function updateAvatarMixer(dt) {
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
-  if (!held.size) {
+  if (!held.size || dragging) {
     animateAvatar(0, new THREE.Vector3(), false);
     updateAvatarMixer(dt);
     return;
@@ -18379,10 +18632,12 @@ function stepAvatar(now) {
   if (held.has("ArrowRight")) move.add(rightward);
   if (held.has("ArrowLeft")) move.sub(rightward);
   if (!move.lengthSq()) return;
-  const scaled = state.firstPerson ? FIRST_PERSON_SPEED
-    : STREET_SPEED * Math.max(1, state.dist / SPEED_REFERENCE_DIST);
+  const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;
   move.normalize().multiplyScalar(scaled * dt);
   avatar.position.add(move);
+  const lon = midLon + avatar.position.x / metersPerLon;
+  const lat = midLat - avatar.position.z / metersPerLat;
+  if (window.kerbsideOpenFullRegionAt && window.kerbsideOpenFullRegionAt(lon, lat)) return;
   animateAvatar(move.length(), move, true);
   updateAvatarMixer(dt);
   state.target.copy(avatar.position);
@@ -18996,8 +19251,6 @@ def main() -> int:
         args.osm_cache = (Path("data/sf_corridor/stats/osm_ways.json") if corridor
                           else ROOT / "data" / "regions" / region.name / "osm_ways.json")
     if args.page_only:
-        if not corridor:
-            parser.error("--page-only currently supports the SF corridor viewer only")
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(HTML, encoding="utf-8")
         print(f"{args.out} -> {args.out.stat().st_size / 1e3:.1f} kB viewer only")
