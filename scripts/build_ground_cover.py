@@ -39,8 +39,14 @@ from smc.ground.courts import layout_courts, oriented_rect, resolve_sport  # noq
 from smc.ground.cover import Lattice  # noqa: E402
 from smc.ground.exclusion import RoadMask  # noqa: E402
 from smc.imagery.region import SF_CORRIDOR  # noqa: E402
+from smc.net import use_certifi  # noqa: E402
 from smc.official.crs import geojson_rings  # noqa: E402
 from smc.regions.paths import region_city, region_paths  # noqa: E402
+
+# The same certificate bundle every other fetching script uses. Without it this one depended
+# on whatever the system store happened to hold, and a handshake that worked on Monday failed
+# on Friday -- recorded, of course, as "the city refused".
+use_certifi()
 
 #: The region being described. Rebound by main() from --region: the fetches below run inside
 #: module-level helpers, so the box and the cache they use are module state rather than
@@ -107,9 +113,14 @@ def fetch(dataset: str, where: str, columns: str, cache_name: str,
         rows = json.loads(path.read_text())
         progress(f"{cache_name}: {len(rows)} rows from cache")
         return rows
+    # No $select. DataSF answers a query of fifty thousand rows with a $where clause quite
+    # happily and refuses the same query with a $select on it -- 403 from the front end, not
+    # from Socrata -- so the columns are chosen here instead. It costs the fields we did not
+    # want over the wire and nothing else.
+    wanted = [c.strip() for c in columns.split(",") if c.strip()]
     rows: list[dict] = []
     while True:
-        params = {"$limit": 50000, "$offset": len(rows), "$where": where, "$select": columns}
+        params = {"$limit": 50000, "$offset": len(rows), "$where": where}
         url = f"https://data.sfgov.org/resource/{dataset}.json?{urllib.parse.urlencode(params)}"
         request = urllib.request.Request(url, headers={"User-Agent": "kerbside/ground"})
         try:
@@ -123,7 +134,7 @@ def fetch(dataset: str, where: str, columns: str, cache_name: str,
             DATASF_REFUSED[cache_name] = f"{type(exc).__name__}: {exc}"
             progress(f"{cache_name}: DataSF refused ({exc}); recorded as no_data")
             return []
-        rows.extend(page)
+        rows.extend({k: row.get(k) for k in wanted} if wanted else row for row in page)
         progress(f"{cache_name}: {len(rows)} rows")
         if len(page) < 50000:
             break
