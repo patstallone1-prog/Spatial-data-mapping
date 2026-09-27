@@ -1260,7 +1260,10 @@ def test_every_road_in_a_tile_is_its_own_ribbon_not_stitched_to_the_first() -> N
     js = _page_js()
     body = _extract("tileRoads", js)
     parts = ["const TILE_GROUND_Y = 0;\nconst TILE_ROAD_Y = 0.15;\n"
-             "function tileOwnGround() { return false; }\nfunction earthDrop() { return 0; }\n",
+             "function tileOwnGround() { return false; }\nfunction earthDrop() { return 0; }\n"
+             # With no region drawn in full, every station is outside it: one run, whole.
+             "const TILE_OWN_BOX = null;\n",
+             _extract("tileOutsideRuns", _page_js()),
              """
 const THREE = { BufferGeometry: class { constructor() { this.attributes = {}; }
                   setAttribute(n, a) { this.attributes[n] = a; }
@@ -1346,6 +1349,54 @@ console.log(JSON.stringify({ bottoms: [...new Set(bottoms)], minY: Math.min(...y
     assert result["bottoms"] == [5], result          # TILE_GROUND_Y minus earth drop
     assert result["minY"] == 5, result
     assert result["maxY"] == 15, result              # ground plus ten-metre height
+
+
+def test_a_tile_line_stops_at_the_edge_of_the_region_drawn_in_full() -> None:
+    """Inside the region this page draws in full the street renderer already has the real
+    thing, so a tile's copy of it has to stop at the boundary. Kept or dropped by its first
+    vertex alone, every street and footway that crossed the boundary was drawn whole -- a
+    second carriageway over the real one, for as far as the way ran, which from above is a set
+    of long pale lines lying across the city with the real roadwork showing underneath."""
+    js = _page_js()
+    parts = ["""
+const TILE_GROUND_Y = 0;
+const TILE_ROAD_Y = 0.15;
+function earthDrop() { return 0; }
+let TILE_OWN_BOX = [0, 0, 1, 1];          // the region drawn in full: 0..1 in lon and lat
+const THREE = { BufferGeometry: class { constructor() { this.attributes = {}; }
+                  setAttribute(n, a) { this.attributes[n] = a; }
+                  setIndex(i) { this.index = i; } computeVertexNormals() {} computeBoundingSphere() {} },
+                Float32BufferAttribute: class { constructor(a) { this.array = a; } },
+                Mesh: class { constructor(g) { this.geometry = g; } } };
+"""]
+    parts += [_extract(name, js) for name in ("tileOwnGround", "tileOutsideRuns", "tileRoads")]
+    parts.append("""
+const f = { x0: 0, y0: 0, sx: 0.01, sy: 0.01 };
+const lonOf = (cm) => cm / 100, latOf = (cm) => cm / 100;
+const xsOf = (rows) => {
+  const out = tileRoads(rows, f, lonOf, latOf, {});
+  if (!out.length) return [];
+  const pos = out[0].geometry.attributes.position.array;
+  const xs = [];
+  for (let i = 0; i < pos.length; i += 3) xs.push(+pos[i].toFixed(2));
+  return xs;
+};
+// A centreline running from lon 5 through the region and out to lon -6.
+const ribbon = xsOf([[1000, 500, 50, 300, 50, 50, 50, -300, 50, -600, 50]]);
+// The same in the measured-kerb form: [0, lx, ly, rx, ry, ...].
+const strip = xsOf([[0, 500, 40, 500, 60, 300, 40, 300, 60, 50, 40, 50, 60,
+                     -300, 40, -300, 60, -600, 40, -600, 60]]);
+console.log(JSON.stringify({ ribbon, strip }));
+""")
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    for name in ("ribbon", "strip"):
+        xs = result[name]
+        assert xs, f"{name}: the parts outside the region are still drawn"
+        assert all(x > 1 or x < 0 for x in xs), (name, xs)
+        assert max(xs) > 1 and min(xs) < 0, f"{name}: both sides of the region are kept"
 
 
 def test_a_tile_with_no_children_is_drawn_however_wrong_it_is() -> None:

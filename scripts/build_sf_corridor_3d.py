@@ -4194,6 +4194,30 @@ function tileOwnGround(lon, lat) {
   return TILE_OWN_BOX !== null && lon >= TILE_OWN_BOX[0] && lon <= TILE_OWN_BOX[2]
       && lat >= TILE_OWN_BOX[1] && lat <= TILE_OWN_BOX[3];
 }
+//: A line, cut into the runs of it that lie outside the region this page draws in full.
+//:
+//: Keeping or dropping a whole line by its first vertex leaves every street and every footway
+//: that crosses the region's boundary drawn whole: a second carriageway over the real one and
+//: a second pavement over the real pavement, for as far as the way runs. From above that is a
+//: set of long pale lines lying across the city with the real roadwork visible underneath.
+//:
+//: ``stations`` carry at least ``lon`` and ``lat``; the runs come back as the same objects,
+//: so a caller keeps whatever else it put in them.
+function tileOutsideRuns(stations) {
+  if (TILE_OWN_BOX === null) return stations.length >= 2 ? [stations] : [];
+  const runs = [];
+  let run = [];
+  for (const station of stations) {
+    if (tileOwnGround(station.lon, station.lat)) {
+      if (run.length >= 2) runs.push(run);
+      run = [];
+      continue;
+    }
+    run.push(station);
+  }
+  if (run.length >= 2) runs.push(run);
+  return runs;
+}
 
 function tileFocalPx(eye = camera) {
   const h = renderer.domElement.clientHeight || innerHeight || 900;
@@ -4415,7 +4439,12 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
     const height = row[0] / 100.0;
     const packed = row[1];
     const archetype = TILE_ARCHETYPES[row[2]] || "generic";
-    if (tileOwnGround(lonOf(row[3]), latOf(row[4]))) continue;
+    // Where the building stands, not where its ring happens to start: one on the region's
+    // boundary whose first corner fell outside it was drawn whole, over the one the street
+    // renderer had already drawn.
+    let ringX = 0, ringY = 0, corners = 0;
+    for (let i = 3; i + 1 < row.length; i += 2) { ringX += row[i]; ringY += row[i + 1]; corners += 1; }
+    if (!corners || tileOwnGround(lonOf(ringX / corners), latOf(ringY / corners))) continue;
     const ring = [];
     for (let i = 3; i + 1 < row.length; i += 2) ring.push([f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)]);
     if (ring.length >= 3 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring.pop();
@@ -4474,39 +4503,48 @@ function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
     // left and right in turn, and the carriageway is the strip between them. Everything else
     // is a centreline with a width, which is what a way with no cross-sections has.
     if (row[0] === 0) {
-      const base = position.length / 3;
-      let n = 0;
-      for (let i = 1; i + 3 < row.length; i += 4, n += 1) {
-        const lx = f.x0 + row[i] * f.sx, lz = -(f.y0 + row[i + 1] * f.sy);
-        const rx = f.x0 + row[i + 2] * f.sx, rz = -(f.y0 + row[i + 3] * f.sy);
-        position.push(lx, TILE_GROUND_Y + height - earthDrop(lx, lz), lz,
-                      rx, TILE_GROUND_Y + height - earthDrop(rx, rz), rz);
-        if (n) { const k = base + n * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+      const stations = [];
+      for (let i = 1; i + 3 < row.length; i += 4) {
+        // The centre of the two kerbs is where the street is, and what decides whether this
+        // station stands inside the region the page is drawing in full.
+        stations.push({ lx: f.x0 + row[i] * f.sx, lz: -(f.y0 + row[i + 1] * f.sy),
+                        rx: f.x0 + row[i + 2] * f.sx, rz: -(f.y0 + row[i + 3] * f.sy),
+                        lon: lonOf((row[i] + row[i + 2]) / 2),
+                        lat: latOf((row[i + 1] + row[i + 3]) / 2) });
+      }
+      for (const run of tileOutsideRuns(stations)) {
+        const base = position.length / 3;
+        run.forEach(({ lx, lz, rx, rz }, n) => {
+          position.push(lx, TILE_GROUND_Y + height - earthDrop(lx, lz), lz,
+                        rx, TILE_GROUND_Y + height - earthDrop(rx, rz), rz);
+          if (n) { const k = base + n * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+        });
       }
       continue;
     }
     const width = Math.max(1.2, row[0] / 100.0);
-    const pts = [];
+    const stations = [];
     for (let i = 1; i + 1 < row.length; i += 2) {
-      if (i === 1 && tileOwnGround(lonOf(row[i]), latOf(row[i + 1]))) { pts.length = 0; break; }
-      pts.push([f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)]);
+      stations.push({ x: f.x0 + row[i] * f.sx, z: -(f.y0 + row[i + 1] * f.sy),
+                      lon: lonOf(row[i]), lat: latOf(row[i + 1]) });
     }
-    if (pts.length < 2) continue;
-    // Every road in the tile goes into one buffer, so a road's triangles are indexed from
-    // where its own vertices start. Indexed from zero -- which is what this did -- the first
-    // road was a road and all the rest were slivers stitched back to its first two vertices.
-    const base = position.length / 3;
-    // eslint-disable-next-line no-unused-vars
-    for (let i = 0; i < pts.length; i += 1) {
-      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
-      const dx = b[0] - a[0], dz = b[1] - a[1];
-      const len = Math.hypot(dx, dz) || 1;
-      const nx = -dz / len * width / 2, nz = dx / len * width / 2;
-      const lx = pts[i][0] + nx, lz = pts[i][1] + nz;
-      const rx = pts[i][0] - nx, rz = pts[i][1] - nz;
-      position.push(lx, TILE_GROUND_Y + height - earthDrop(lx, lz), lz,
-                    rx, TILE_GROUND_Y + height - earthDrop(rx, rz), rz);
-      if (i) { const k = base + i * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+    for (const run of tileOutsideRuns(stations)) {
+      const pts = run.map(({ x, z }) => [x, z]);
+      // Every road in the tile goes into one buffer, so a road's triangles are indexed from
+      // where its own vertices start. Indexed from zero -- which is what this did -- the
+      // first road was a road and all the rest were slivers stitched back to its first two.
+      const base = position.length / 3;
+      for (let i = 0; i < pts.length; i += 1) {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        const dx = b[0] - a[0], dz = b[1] - a[1];
+        const len = Math.hypot(dx, dz) || 1;
+        const nx = -dz / len * width / 2, nz = dx / len * width / 2;
+        const lx = pts[i][0] + nx, lz = pts[i][1] + nz;
+        const rx = pts[i][0] - nx, rz = pts[i][1] - nz;
+        position.push(lx, TILE_GROUND_Y + height - earthDrop(lx, lz), lz,
+                      rx, TILE_GROUND_Y + height - earthDrop(rx, rz), rz);
+        if (i) { const k = base + i * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+      }
     }
   }
   if (!index.length) return [];
@@ -4558,12 +4596,14 @@ function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMater
 
   for (const row of rows) {
     const width = Math.max(1.2, row[0] / 100.0);
+    // A crossing is one short object, so it is kept or dropped whole -- by its middle rather
+    // than by its first vertex, which at the region's boundary decided it on the strength of
+    // whichever end the map happened to draw first.
+    let midX = 0, midY = 0, ends = 0;
+    for (let i = 1; i + 1 < row.length; i += 2) { midX += row[i]; midY += row[i + 1]; ends += 1; }
+    if (!ends || tileOwnGround(lonOf(midX / ends), latOf(midY / ends))) continue;
     const points = [];
     for (let i = 1; i + 1 < row.length; i += 2) {
-      if (i === 1 && tileOwnGround(lonOf(row[i]), latOf(row[i + 1]))) {
-        points.length = 0;
-        break;
-      }
       points.push([f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)]);
     }
     if (points.length < 2) continue;
