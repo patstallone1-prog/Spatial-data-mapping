@@ -89,10 +89,10 @@
    "available": "imagery",
    "implemented": true,
    "extractor": "scripts/build_facade_fingerprints.py",
-   "active": "none",
-   "count": 0,
+   "active": "imagery",
+   "count": 832,
    "of": 4265,
-   "truthful": false,
+   "truthful": true,
    "note": ""
   },
   "terrain": {

@@ -1942,6 +1942,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     building_summary["lidar_region"] = annotate_region_lidar(ways)
     building_summary["named_places"] = attach_named_places(ways)
     print(f"  shopfronts named from places: {building_summary['named_places']}", file=sys.stderr)
+    building_summary["facades"] = annotate_facades(ways)
     official_summary = annotate_official(ways, {
         "south": REGION.bbox.south, "west": REGION.bbox.west,
         "north": REGION.bbox.north, "east": REGION.bbox.east,
@@ -2244,6 +2245,47 @@ def _project_fraction(a, b, point) -> float:
     px = (point[0] - a[0]) * 88_000.0
     py = (point[1] - a[1]) * 111_320.0
     return max(0.0, min(1.0, (px * ax + py * ay) / length_squared))
+
+
+def annotate_facades(ways: list[dict[str, Any]]) -> dict[str, Any]:
+    """What the photographs said each building's wall looks like: its colour, its fingerprint.
+
+    This lived inside :func:`annotate_official`, which returns early for a region that has no
+    San Francisco centreline records -- and reading a colour off a photograph has nothing to do
+    with San Francisco's centreline records. So every region outside the city skipped it: the
+    633 colours read for Oakland, the 832 for San Jose, the 311 for Berkeley and the 319 for
+    Palo Alto sat in files beside pages that drew every wall from its archetype and reported
+    ``building_colour: none``. It needs the sampled files and an osm_id, and nothing else.
+    """
+    colours = load_building_colours(OFFICIAL / "building_colours.json")
+    fingerprints_path = OFFICIAL / "facade_fingerprints.json"
+    fingerprints = (json.loads(fingerprints_path.read_text()).get("buildings", {})
+                    if fingerprints_path.exists() else {})
+    if not colours and not fingerprints:
+        return {"colours": 0, "fingerprints": 0}
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    from smc.facades.match import Fingerprint, closest_render
+
+    counts: Counter = Counter()
+    covered_index = 0
+    for way in ways:
+        if way.get("kind") != "building" or not way.get("covered"):
+            continue
+        covered_index += 1
+        key = str(way.get("osm_id") or "")
+        sampled = colours.get(key)
+        if sampled:
+            way["colour"] = sampled["c"]
+            way["colour_views"] = sampled["n"]
+            counts["colour from a photograph"] += 1
+        fingerprint = fingerprints.get(key)
+        if fingerprint:
+            match = closest_render(Fingerprint.from_json(fingerprint))
+            way["facade"] = match.to_json()
+            counts[f"facade matched to {match.material}"] += 1
+    counts["colour still invented"] = covered_index - counts["colour from a photograph"]
+    return dict(counts)
 
 
 def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
@@ -2551,24 +2593,6 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
     # Built once and shared: the same authority the ground cover uses.
     from smc.ground.exclusion import RoadMask
     road_mask = RoadMask(ways, bbox)
-
-    covered_index = 0
-    for way in ways:
-        if way.get("kind") != "building" or not way.get("covered"):
-            continue
-        covered_index += 1
-        key = str(way.get("osm_id") or "")
-        sampled = colours.get(key)
-        if sampled:
-            way["colour"] = sampled["c"]
-            way["colour_views"] = sampled["n"]
-            counts["colour from a photograph"] += 1
-        fingerprint = fingerprints.get(key)
-        if fingerprint:
-            match = closest_render(Fingerprint.from_json(fingerprint))
-            way["facade"] = match.to_json()
-            counts[f"facade matched to {match.material}"] += 1
-    counts["colour still invented"] = covered_index - counts["colour from a photograph"]
 
     walls_index: dict[tuple[int, int], list[tuple]] = defaultdict(list)
     for way_index, way in enumerate(ways):

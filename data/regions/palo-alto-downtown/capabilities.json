@@ -97,10 +97,10 @@
    "available": "none",
    "implemented": false,
    "extractor": null,
-   "active": "none",
-   "count": 0,
+   "active": "imagery",
+   "count": 319,
    "of": 1766,
-   "truthful": true,
+   "truthful": false,
    "note": ""
   },
   "terrain": {

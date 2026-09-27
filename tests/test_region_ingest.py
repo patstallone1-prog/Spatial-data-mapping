@@ -229,3 +229,29 @@ def test_discovery_being_rewritten_does_not_make_the_terrain_stale(tmp_path):
     os.utime(caps, (now, now))
     commands = {"discover": ([], [caps]), "terrain": ([], [grid])}
     assert ingest_region.overtaken_by_inputs("terrain", commands) is None
+
+
+def test_reading_a_wall_colour_does_not_depend_on_san_franciscos_centrelines():
+    """The facade reading lived inside the function that joins the city's own geometry.
+
+    ``annotate_official`` returns early for a region with no San Francisco centreline records,
+    and the building colours and facade fingerprints were applied after that point -- so every
+    region outside the city skipped them. 633 colours read for Oakland, 832 for San Jose, 311
+    for Berkeley and 319 for Palo Alto sat in files beside pages that drew every wall from its
+    archetype and reported ``building_colour: none``. Reading a colour off a photograph needs
+    the sampled file and an osm_id; it has nothing to do with a centreline.
+    """
+    import importlib
+    import inspect
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    builder = importlib.import_module("build_sf_corridor_3d")
+    assert hasattr(builder, "annotate_facades"), "the facade reading has no function of its own"
+    official = inspect.getsource(builder.annotate_official)
+    assert "colour from a photograph" not in official, (
+        "the facade reading is back inside the centreline-gated function")
+    facades = inspect.getsource(builder.annotate_facades)
+    assert "segments.json" not in facades and "centrelines.json" not in facades
+    # And it is called whatever the region.
+    source = inspect.getsource(builder)
+    assert "annotate_facades(ways)" in source
