@@ -60,6 +60,39 @@ PAGE = ROOT / "docs" / "sf-corridor-3d.json"
 OUT = ROOT / "data" / "sf_public_works" / "ground_cover.json"
 CACHE = ROOT / "build" / "ground_cover"
 CORRIDOR = {"south": 37.786, "west": -122.4475, "north": 37.8095, "east": -122.392}
+#: Where each city keeps the records this reads, and under what names. San Francisco's were
+#: the only ones wired for as long as the corridor was the only region; the others run their
+#: own portals with their own column names, and a city missing from here is a known gap with
+#: a reason rather than a region that silently has no gardens.
+#:
+#: ``geom`` is the column the shape is in, ``id`` the column that names the thing, and
+#: ``where`` an extra filter. A dataset whose shape is a point cannot be a parcel or a park
+#: polygon and is left out.
+CITY_SOURCES: dict[str, dict[str, dict]] = {
+    "san-francisco": {
+        "host": "data.sfgov.org",
+        "parks": {"id": "3nje-yn2u", "geom": "the_geom", "name": "map_park_n"},
+        "parcels": {"id": "acdm-wktn", "geom": "shape", "name": "mapblklot", "where": "active=true"},
+        "trees": {"id": "tkzw-k3nq", "lat": "latitude", "lon": "longitude",
+                  "species": "qspecies", "dbh": "dbh"},
+    },
+    "oakland": {
+        "host": "data.oaklandca.gov",
+        # The city's parks are points in its portal, not polygons, so they cannot be ground
+        # cover; OpenStreetMap's green is what draws Oakland's parks.
+        "parcels": {"id": "c3xp-qcgn", "geom": "the_geom", "name": "apn"},
+        # Oakland's street trees (4jcx-enxf) are a tree-well inventory keyed by street name:
+        # every one of its 38,598 rows carries the same location_1, which is a placeholder
+        # rather than a position. Taken at face value it plants the whole city on one corner.
+        "trees_note": "4jcx-enxf has one placeholder coordinate for every row",
+    },
+    # Berkeley's portal lists parcels (bhxd-e6up) and parks (5zw5-qt7z) but both answer empty
+    # to an unauthenticated read; Palo Alto and San Jose are not Socrata portals at all
+    # (ArcGIS Hub), which needs an adapter of its own.
+    "berkeley": {"host": "data.cityofberkeley.info", "note": "datasets answer empty unauthenticated"},
+    "palo-alto": {"note": "ArcGIS Hub, not Socrata: needs its own adapter"},
+    "san-jose": {"note": "ArcGIS Hub, not Socrata: needs its own adapter"},
+}
 #: The cities DataSF describes. Only San Francisco's regions get parcels, street trees and
 #: the Recreation and Parks polygons.
 DATASF_CITY = "san-francisco"
@@ -105,8 +138,91 @@ FENCE_KINDS = (
 SIMPLIFY_M = 1.2
 
 
+def _one_place(rows: list[dict], spec: dict) -> str | None:
+    """The coordinate every row shares, if they all share one.
+
+    A portal that has not geocoded a dataset still answers with a position column, filled with
+    the same placeholder throughout. Trusted, it stands the whole city on one corner; and the
+    count of rows looks like an answer all the way to the render.
+    """
+    column = spec.get("point") or spec.get("lat")
+    if not column or len(rows) < 50:
+        return None
+    seen = set()
+    for row in rows[:500]:
+        value = row.get(spec.get("point")) if spec.get("point") else (row.get(spec.get("lat")), row.get(spec.get("lon")))
+        if isinstance(value, dict):
+            value = (value.get("latitude"), value.get("longitude"), tuple(value.get("coordinates") or ()))
+        seen.add(str(value))
+        if len(seen) > 1:
+            return None
+    return next(iter(seen), None)
+
+
+def fetch_city(kind: str, city: str, bbox: dict, progress) -> list[dict]:
+    """One city's records for ``kind``, normalised.
+
+    Every portal names its columns differently -- San Francisco's parcels are ``shape`` under
+    ``mapblklot``, Oakland's are ``the_geom`` under ``apn``, its trees are a point in
+    ``location_1`` where San Francisco's are two float columns. The callers should not have to
+    know that, so what comes back is ``{"geom", "name"}`` for a shape and
+    ``{"lon", "lat", "species", "dbh"}`` for a tree, whichever city it came from.
+
+    A city with no entry for this kind returns nothing: a gap with a reason recorded, not an
+    empty answer dressed up as one.
+    """
+    source = CITY_SOURCES.get(city) or {}
+    spec = source.get(kind)
+    host = source.get("host")
+    if not spec or not host:
+        return []
+    geom = spec.get("geom") or spec.get("point")
+    if geom:
+        where = (f"within_box({geom}, {bbox['north']}, {bbox['west']}, "
+                 f"{bbox['south']}, {bbox['east']})")
+    else:
+        where = (f"{spec['lat']} between {bbox['south']} and {bbox['north']} "
+                 f"AND {spec['lon']} between {bbox['west']} and {bbox['east']}")
+    if spec.get("where"):
+        where = f"{where} AND {spec['where']}"
+    wanted = [c for c in (spec.get("geom"), spec.get("point"), spec.get("name"), spec.get("lat"),
+                          spec.get("lon"), spec.get("species"), spec.get("dbh")) if c]
+    rows = fetch(spec["id"], where, ",".join(wanted), f"{kind}", progress, host=host)
+    out = []
+    degenerate = _one_place(rows, spec)
+    if degenerate:
+        progress(f"{kind}: every row shares one coordinate ({degenerate}); "
+                 "that is a placeholder, not a position -- recorded as no_data")
+        DATASF_REFUSED[kind] = "every row carries the same coordinate"
+        return []
+    for row in rows:
+        if spec.get("geom"):
+            out.append({"geom": row.get(spec["geom"]), "name": row.get(spec.get("name") or "")})
+            continue
+        if spec.get("point"):
+            # Two shapes wear the same name. Socrata's Point is GeoJSON with a coordinates
+            # pair; its older Location is a pair of strings with a postal address beside them,
+            # which is what Oakland's street trees are. Read as GeoJSON it yields nothing, and
+            # thirty-eight thousand trees arrive and none is planted.
+            point = row.get(spec["point"]) or {}
+            if not isinstance(point, dict):
+                continue
+            coords = point.get("coordinates")
+            if coords and len(coords) >= 2:
+                lon, lat = coords[0], coords[1]
+            elif point.get("latitude") is not None and point.get("longitude") is not None:
+                lon, lat = point["longitude"], point["latitude"]
+            else:
+                continue
+        else:
+            lon, lat = row.get(spec["lon"]), row.get(spec["lat"])
+        out.append({"lon": lon, "lat": lat, "species": row.get(spec.get("species") or ""),
+                    "dbh": row.get(spec.get("dbh") or "")})
+    return out
+
+
 def fetch(dataset: str, where: str, columns: str, cache_name: str,
-          progress) -> list[dict]:
+          progress, host: str = "data.sfgov.org") -> list[dict]:
     CACHE.mkdir(parents=True, exist_ok=True)
     path = CACHE / f"{cache_name}.json"
     if path.exists():
@@ -121,7 +237,7 @@ def fetch(dataset: str, where: str, columns: str, cache_name: str,
     rows: list[dict] = []
     while True:
         params = {"$limit": 50000, "$offset": len(rows), "$where": where}
-        url = f"https://data.sfgov.org/resource/{dataset}.json?{urllib.parse.urlencode(params)}"
+        url = f"https://{host}/resource/{dataset}.json?{urllib.parse.urlencode(params)}"
         request = urllib.request.Request(url, headers={"User-Agent": "kerbside/ground"})
         try:
             page = json.loads(urllib.request.urlopen(request, timeout=180).read())
@@ -356,9 +472,12 @@ def main() -> int:
                 "north": bbox["north"], "east": bbox["east"]}
     city = str(region_city(args.region) or "")
     surveyed = city == DATASF_CITY
-    progress(f"{args.region}: {page}"
-             + ("" if surveyed else f" -- {city or 'this city'} is not in DataSF, so the parcels, "
-                                    "the street trees and the city's parks are no_data here"))
+    source = CITY_SOURCES.get(city) or {}
+    have = [kind for kind in ("parks", "parcels", "trees") if source.get(kind)]
+    missing = [kind for kind in ("parks", "parcels", "trees") if not source.get(kind)]
+    progress(f"{args.region}: {page}\n  {city or 'this city'}: "
+             + (f"{', '.join(have)} from {source['host']}" if have else "no city portal wired")
+             + (f"; {', '.join(missing)} no_data ({source.get('note', 'not wired')})" if missing else ""))
 
     # The same flat local frame the viewer lays the world out in, so a bearing measured here is
     # the bearing drawn there. Over three kilometres of San Francisco the error in treating
@@ -550,8 +669,7 @@ def main() -> int:
     dropped_yards = 0
     dropped_on_green = 0
     split_frontages = 0
-    parcel_rows = fetch("acdm-wktn", f"{box.replace('the_geom', 'shape')} AND active=true",
-                        "mapblklot,shape", "parcels", progress) if surveyed else []
+    parcel_rows = fetch_city("parcels", city, CORRIDOR, progress)
     yards = []
     nudged_vertices = 0
     lawns = []
@@ -589,11 +707,11 @@ def main() -> int:
     # like a boundary the neighbour had already fenced.
     seen_lots: set[str] = set()
     for row in parcel_rows:
-        lot = str(row.get("mapblklot") or "")
+        lot = str(row.get("name") or "")
         if lot in seen_lots:
             continue
         seen_lots.add(lot)
-        for ring in geojson_rings(row.get("shape") or {}):
+        for ring in geojson_rings(row.get("geom") or {}):
             if len(ring) < 4:
                 continue
             bare = count_bare(lattice, ring)
@@ -618,7 +736,7 @@ def main() -> int:
             # ring is pulled off the carriageway rather than drawn across it.
             ring, moved = off_the_road(ring, road)
             nudged_vertices += moved
-            blklot = str(row.get("mapblklot") or "")
+            blklot = str(row.get("name") or "")
             front = front_setback(ring)
             setback = None if front is None else front[0]
 
@@ -825,18 +943,14 @@ def main() -> int:
 
     # -- trees ---------------------------------------------------------------------------------
     dropped_trees = moved_trees = 0
-    tree_rows = [] if not surveyed else fetch(
-        "tkzw-k3nq",
-        f"latitude between {CORRIDOR['south']} and {CORRIDOR['north']} "
-        f"AND longitude between {CORRIDOR['west']} and {CORRIDOR['east']}",
-        "treeid,qspecies,dbh,latitude,longitude,planttype", "trees", progress)
+    tree_rows = fetch_city("trees", city, CORRIDOR, progress)
     trees = []
     for row in tree_rows:
         try:
-            lon, lat = float(row["longitude"]), float(row["latitude"])
+            lon, lat = float(row["lon"]), float(row["lat"])
         except (KeyError, TypeError, ValueError):
             continue
-        species = str(row.get("qspecies") or "")
+        species = str(row.get("species") or "")
         try:
             dbh = float(row.get("dbh") or 0)
         except (TypeError, ValueError):
@@ -862,6 +976,8 @@ def main() -> int:
 
     OUT.write_text(json.dumps({"region": args.region, "city": city,
                                "sources": {
+                                   "city_portal": source.get("host", "none"),
+                                   "city_records": {k: ("surveyed" if source.get(k) else "no_data") for k in ("parks", "parcels", "trees")},
                                    "datasf_parcels_parks_trees": (
                                        "no_data: not a DataSF city" if not surveyed
                                        else f"no_data: {sorted(DATASF_REFUSED)} refused" if DATASF_REFUSED
