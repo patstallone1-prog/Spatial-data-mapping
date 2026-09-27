@@ -98,7 +98,7 @@ def main() -> int:
                     help="stop after pulling this much of the bag")
     ap.add_argument("--workers", type=int, default=4,
                     help=("Concurrent range reads. The pass is latency-bound, but this host "
-                          "refuses heavy concurrency: at twelve workers 95% of chunks failed "
+                          "refuses heavy concurrency: at twelve workers 95%% of chunks failed "
                           "to read, and serially none did. Four is what it tolerates."))
     ap.add_argument("--everywhere", action="store_true",
                     help="keep frames anywhere in the region, not only in thin cells")
@@ -300,6 +300,14 @@ def main() -> int:
     write_json(out / "stats" / "summary.json", {
         "generated_at": now.isoformat(),
         "sequence": args.sequence,
+        # The bag this came out of, and how it was filtered. UrbanLoco's bags are share links
+        # rather than stable paths, and the first pass here recorded neither: it read 1.4 GB,
+        # kept nothing, and left no way to repeat the attempt and find out why. A run that
+        # cannot be repeated is not a measurement.
+        "bag": args.bag,
+        "region": args.region,
+        "everywhere": bool(args.everywhere),
+        "budget_mb": args.budget_mb,
         "observations": len(observations),
         "eligible_observations": sum(1 for o in observations if o.eligible),
         "coverage_cells": len(coverage_rows),

@@ -55,6 +55,15 @@ TRANSIENT = (
     "502",
     "503",
     "504",
+    # Not the network but this machine: a full disk, a file handle exhausted, a cache directory
+    # that could not be written. None of them is a statement about the lidar either, and a cell
+    # lost to one is lost exactly as permanently. The disk filled during the Haight-Castro pass
+    # and the cell in flight was journalled as measured-and-empty before this was here.
+    "No space left on device",
+    "Errno 28",
+    "Too many open files",
+    "Errno 24",
+    "Resource temporarily unavailable",
 )
 #: How many times one cell is tried again inside a run before it is left for the next one.
 CELL_TRIES = 3

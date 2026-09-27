@@ -146,12 +146,19 @@ def main() -> int:
         walls = walls_of(ring, float(building.get("height_m") or 10.5), index)
         if not walls:
             continue
-        centre = walls[0].midpoint
-        cell = (int(centre[0] // 40), int(centre[1] // 40))
+        # Around every wall, not only the first one. The candidate frames were gathered from
+        # the three-by-three block of forty-metre cells around walls[0] and then scored against
+        # all of the building's walls -- so a building whose street-facing side is not the
+        # first in its ring, or which is simply longer than the window, was matched against
+        # cameras standing behind it and none in front. "No usable view" was the answer for
+        # 2,048 of Berkeley's 2,669 buildings, and for most of them the photograph existed.
         nearby: set[int] = set()
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                nearby.update(grid.get((cell[0] + dx, cell[1] + dy), ()))
+        for wall in walls:
+            centre = wall.midpoint
+            cell = (int(centre[0] // 40), int(centre[1] // 40))
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    nearby.update(grid.get((cell[0] + dx, cell[1] + dy), ()))
         best = []
         for wall in walls:
             for i in nearby:

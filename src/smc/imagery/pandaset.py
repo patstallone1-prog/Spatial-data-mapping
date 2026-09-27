@@ -22,6 +22,8 @@ smoothed over.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import io
 import json
 import math
@@ -116,12 +118,34 @@ class PandaSetProvider:
     def _read_json(self, path: str):
         return json.loads(self.archive.read(path))
 
+    #: Where the placed index is kept once it has been built. Reading the 103 GPS tracks costs
+    #: 117 MB of range requests and two minutes, and the answer does not change, so a harvest
+    #: that runs over seven regions should pay for it once rather than seven times -- and a
+    #: region the release does not reach should cost nothing at all. Built by
+    #: build/pandaset-probe.py.
+    INDEX = Path("build/pandaset-index.json")
+
+    def placed(self) -> dict | None:
+        """The cached placement of every sequence, if it has been built."""
+        try:
+            return json.loads(self.INDEX.read_text())
+        except (OSError, ValueError):
+            return None
+
     def sequences_in(self, region: Region, *, progress: Callable[[str], None] | None = None) -> list[str]:
         """Sequence ids with at least one frame inside the region.
 
         Only the GPS tracks are read -- a few kilobytes each -- so the whole release can be
-        filtered geographically for a fraction of a percent of its size.
+        filtered geographically for a fraction of a percent of its size. Where the placement
+        has already been made it is read from disk instead, and a region this release does not
+        reach is answered without opening the archive at all.
         """
+        index = self.placed()
+        if index is not None:
+            found = list((index.get("by_region") or {}).get(region.name) or [])
+            if progress:
+                progress(f"pandaset: {len(found)} sequences in {region.name}, from the placed index")
+            return found
         found: list[str] = []
         ids = self.sequence_ids()
         for index, sequence in enumerate(ids, start=1):

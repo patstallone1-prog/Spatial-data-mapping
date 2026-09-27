@@ -81,11 +81,20 @@
    "outputs": []
   },
   "lidar": {
-   "status": "running",
+   "status": "failed",
    "started_at": "2026-09-27T20:30:36Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "sf-haight-castro"
+   ],
+   "exit_code": -15,
+   "seconds": 7866.6,
+   "finished_at": "2026-09-27T22:41:42Z",
+   "outputs": [
+    "data/regions/sf-haight-castro/lidar/building_heights.json"
+   ],
+   "produced_nothing": [
+    "data/regions/sf-haight-castro/lidar/building_heights.json"
    ]
   },
   "build": {

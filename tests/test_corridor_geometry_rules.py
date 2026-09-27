@@ -2944,3 +2944,53 @@ def test_a_long_name_is_fitted_rather_than_chopped_at_a_fixed_count():
     js = _page_js()
     assert "text.slice(0, 28)" not in js, "names are still cut at a fixed character count"
     assert "\\u2026" in js or "…" in js, "a shortened name should say that it was shortened"
+
+
+# ---- a right of way is not a carriageway -------------------------------------------------
+
+
+def test_a_right_of_way_far_over_the_class_prior_is_another_streets_record():
+    """Villa Terrace is about eight metres across and took a 53.4 m right of way.
+
+    A right of way is the whole legal strip -- setbacks, stairs, the slope easement on a hill
+    -- so it is always larger than the roadway, and the builder took it as the roadway wherever
+    the kerbs had not been surveyed. The kerb envelope already catches this for the streets it
+    can check: Brant Alley carrying 27.7 m between kerbs 4 m apart, because the centreline
+    index matched it to the avenue it leaves from. On a street with no measured kerb there was
+    nothing to catch it, and 496 ways across three San Francisco districts drew at the 16.5 m
+    cap on an inferred width.
+    """
+    import importlib
+    import sys as _sys
+
+    _sys.path.insert(0, str(ROOT / "scripts"))
+    builder = importlib.import_module("build_sf_corridor_3d")
+    assert builder.ROW_PRIOR_MAX_FACTOR > 1.0, "a right of way is always larger than its roadway"
+
+    from smc.facts.build_cross_sections import prior_width_m
+
+    residential = {"highway": "residential"}
+    prior = prior_width_m(residential)
+    # Villa Terrace's record, through the same arithmetic the builder uses.
+    row_m = 59.0
+    walk = min(3.0, row_m * 0.18)
+    from_row = max(2.5, row_m - 2.0 * walk)
+    assert from_row > prior * builder.ROW_PRIOR_MAX_FACTOR, (from_row, prior)
+    # And a right of way that is merely generous is still believed.
+    ordinary = 14.0
+    ordinary_road = max(2.5, ordinary - 2.0 * min(3.0, ordinary * 0.18))
+    assert ordinary_road <= prior * builder.ROW_PRIOR_MAX_FACTOR, (ordinary_road, prior)
+
+
+def test_the_survey_layers_stand_on_the_ground_with_the_streets():
+    """The measured-kerb bands lay 74 m under the Sunset.
+
+    They are built in the flat model's frame beside the streets and were left out of the lift
+    that puts the streets on the hill, so the layer sat at the flat height while the city
+    around it had been raised. Nobody had seen it because the layer is off until asked for.
+    """
+    js = _page_js()
+    lift = js[js.index('liftOntoGroundAsync(groups.streets'):]
+    lift = lift[:lift.index("settleOntoPavement()")]
+    for group in ("kerbs", "official", "chunks"):
+        assert f'"{group}"' in lift, f"groups.{group} is still left off the ground"

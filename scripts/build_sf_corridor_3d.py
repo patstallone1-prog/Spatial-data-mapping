@@ -30,7 +30,14 @@ from smc.buildings.enrichment import (
     normalize_osm_building,
 )
 from smc.facades.colour import believable
+from smc.facts.build_cross_sections import prior_width_m
 from smc.imagery.region import SF_CORRIDOR, BBox, Region, get_region
+
+#: How far over a street's own class prior a recorded right of way may reach before it is
+#: read as another street's record. A right of way is the whole legal strip -- setbacks,
+#: stairs, the slope easement on a hillside -- so it is always the larger number; at nearly
+#: twice the prior it has stopped describing this carriageway.
+ROW_PRIOR_MAX_FACTOR = 1.8
 
 #: Coordinates are published to seven decimals: about a centimetre at this latitude. Six was
 #: a decimetre -- the model measures the kerbs to five centimetres and then rounded them to
@@ -2363,9 +2370,26 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             counts["carriageway from curb lines"] += 1
         elif row_m:
             walk = way.get("walk_m") or min(3.0, row_m * 0.18)
-            way["road_m"] = round(max(2.5, row_m - 2.0 * walk), 3)
-            way["road_source"] = "row_minus_footways"
-            counts["carriageway from right of way"] += 1
+            from_row = round(max(2.5, row_m - 2.0 * walk), 3)
+            # A right of way that dwarfs what a street of this class can be has been matched to
+            # the wrong street. It is the same fault the kerb envelope already catches for the
+            # streets it can check -- Brant Alley carrying a 27.7 m right of way between kerbs
+            # 4 m apart, because the centreline index matched it to the avenue it leaves from --
+            # and on the streets with no measured kerb there was nothing to catch it: Villa
+            # Terrace, a hillside street about eight metres across, took 53.4 m, and 496 ways
+            # across three San Francisco districts took a figure more than this much over their
+            # own class prior. Every one of them then drew at the 16.5 m cap on an inferred
+            # width, which is where the asphalt over the front gardens came from.
+            prior = prior_width_m(way)
+            if from_row > prior * ROW_PRIOR_MAX_FACTOR:
+                way["road_m"] = prior
+                way["road_source"] = "class_prior"
+                way["road_record_rejected_m"] = from_row
+                counts["right of way rejected as another street's"] += 1
+            else:
+                way["road_m"] = from_row
+                way["road_source"] = "row_minus_footways"
+                counts["carriageway from right of way"] += 1
             if not way.get("walk_m"):
                 way["walk_fallback_m"] = round(walk, 3)
 
@@ -16796,6 +16820,19 @@ function dropKerbsAtDriveways(ways) {
 const kerbVerticesDropped = dropKerbsAtDriveways(DATA.ways);
 // Everything at ground level stands on the ground the lidar measured (the tunnels carry their own).
 await liftOntoGroundAsync(groups.streets, "Standing the streets on the ground");
+// The survey layers that were built in the flat model's frame, beside the streets, stand on
+// the same ground. Left out of the lift, the measured-kerb bands lay at the flat model's
+// height while the city around them had been raised onto the hill: 2,244 ribbons at y = 0.24
+// under a Sunset that the lidar puts at 79 m, which is 74 m of solid ground between the
+// viewer and the layer. Nobody had seen it because the layer is off until asked for -- which
+// is exactly why it was worth asking.
+for (const [name, label] of [["kerbs", "Standing the measured kerbs on the ground"],
+                             ["official", "Standing the city's records on the ground"],
+                             ["chunks", "Standing the survey chunks on the ground"]]) {
+  if (groups[name] && groups[name].children.length) {
+    await liftOntoGroundAsync(groups[name], label);
+  }
+}
 await settleOntoPavement();
 //: For anything driving the page -- the audit's photographs, a test -- the moment the streets
 //: are finished; the ground cover sets its own flag when it is down (see the ground fetch).

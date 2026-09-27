@@ -237,7 +237,14 @@ def main() -> int:
 
     region = get_region(args.region)
     out = args.out
-    providers = args.provider or ["panoramax", "kartaview", "mapillary"]
+    # PandaSet joins the three services as a default. It is not a service to query but one
+    # 44.5 GB archive read in place, and it was left out of the harvest for that reason -- but
+    # it is the only source in this catalogue that arrives with its camera geometry already
+    # solved, per-frame six-degree-of-freedom pose and measured intrinsics, which is what the
+    # photogrammetry ahead will want. Since its placement is cached (build/pandaset-index.json)
+    # a region it does not reach now costs nothing to ask about, so there is no reason to leave
+    # it out: 32 of its 103 sequences sit in the corridor and 20 in SoMa.
+    providers = args.provider or ["panoramax", "kartaview", "mapillary", "pandaset"]
 
     sequences: list[SequenceRecord] = []
     observations: list[Observation] = []
