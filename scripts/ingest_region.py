@@ -136,11 +136,158 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
     }
 
 
+def produced_nothing(path: Path) -> bool:
+    """Whether an output a stage declared is present but holds nothing.
+
+    A stage that exits 0 having measured nothing writes a file of the right shape with no
+    facts in it, and every stage after it reads that as an answer. Seven regions carried a
+    curb-profile file of exactly this kind -- ``{"grade": "lidar", ..., "profiles": {}}`` --
+    beside an empty list of centrelines, because the lidar pass had rejected every street for
+    want of an id and had said so only in a count nobody read. Their maps have been drawn from
+    class priors ever since, with the measurement sitting on disk as an empty promise.
+
+    JSON only, and only the shape: a list with nothing in it, or an object whose every
+    collection is empty. Anything else -- a binary grid, a parquet, a file we cannot parse --
+    is judged by its size alone.
+    """
+    if not path.exists():
+        return True
+    if path.suffix != ".json":
+        return path.stat().st_size == 0
+    try:
+        body = json.loads(path.read_text())
+    except (ValueError, UnicodeDecodeError):
+        return path.stat().st_size == 0
+    if isinstance(body, list):
+        return not body
+    if isinstance(body, dict):
+        collections = [v for v in body.values() if isinstance(v, (list, dict))]
+        return bool(collections) and not any(collections)
+    return False
+
+
+#: A stage's outputs are the next stages' inputs, so finishing one makes everything after it
+#: out of date. Without this, running a single stage by hand -- "just re-run the lidar" --
+#: leaves the build, and the capability record derived from that build, describing the world
+#: as it was before. That is how two San Francisco districts came to report "kerbs: none"
+#: while their kerb profiles sat on disk: the lidar ran, nothing downstream was told, and the
+#: record has been read ever since as though it were the truth about the region.
+#: What each stage actually reads. Order alone is too blunt: re-fetching the map does not
+#: invalidate a lidar grid that was flown years ago, and a twenty-seven minute terrain rebuild
+#: is too expensive to trigger on a dependency that is not there.
+DEPENDS_ON = {
+    "discover": (),
+    "osm": ("discover",),
+    "terrain": ("discover",),
+    "lidar": ("discover", "osm"),
+    "imagery": ("discover",),
+    "official": ("osm",),
+    "build": ("osm", "terrain", "lidar", "imagery", "official"),
+    "reconstruct": ("build",),
+    "audit": ("build",),
+}
+
+
+def invalidate_downstream(journal: dict, stage: str) -> list[str]:
+    """Mark every stage that reads ``stage``'s outputs stale, and say which ones were."""
+    after = [name for name in STAGES if stage in DEPENDS_ON.get(name, ())]
+    # A stage made stale makes its own readers stale in turn.
+    spreading = True
+    while spreading:
+        spreading = False
+        for name in STAGES:
+            if name in after:
+                continue
+            if any(dep in after for dep in DEPENDS_ON.get(name, ())):
+                after.append(name)
+                spreading = True
+    stale = []
+    for later in after:
+        entry = journal["stages"].get(later)
+        if entry and entry.get("status") == "done":
+            entry["status"] = "stale"
+            entry["stale_because"] = stage
+            stale.append(later)
+    return stale
+
+
+def mark_interrupted(region: Region, journal: dict) -> list[str]:
+    """A stage left "running" by a process that is no longer here is not running.
+
+    Nothing distinguished a live stage from one whose process died, so an interrupted run
+    read as an in-flight one for as long as anybody cared to look. It is recorded as
+    interrupted, with when it was last seen, and it will be run again.
+    """
+    interrupted = []
+    for name, entry in journal.get("stages", {}).items():
+        if entry.get("status") == "running":
+            entry["status"] = "interrupted"
+            entry["interrupted_noticed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            interrupted.append(name)
+    if interrupted:
+        save_journal(region, journal)
+    return interrupted
+
+
+#: What each capability is made of: if the file is there and the record still says "none",
+#: the record is behind the region rather than the region behind the record.
+CAPABILITY_ARTEFACTS = {
+    "kerbs": ("official/curb_profiles_corridor.json", "official/curb_profiles_lidar.json"),
+    "kerb_height": ("lidar/kerb_heights.json",),
+    "building_height": ("lidar/building_heights.json",),
+    "building_colour": ("official/building_colours.json",),
+    "curb_ramps": ("official/curb_ramps.json",),
+    "terrain": ("site/sf-corridor-terrain.bin",),
+}
+
+
+def status(region: Region) -> bool:
+    """What this region's journal and capability record say, against what is on disk.
+
+    A record is only worth reading if something checks it. These two have disagreed for
+    months: a stage interrupted and never noticed, and a capability recorded before the
+    artefact that would have changed it. Returns False when they disagree.
+    """
+    base = region_dir(region)
+    journal = load_journal(region)
+    stages = journal.get("stages", {})
+    print(f"{region.name}")
+    unhappy = [n for n, e in stages.items() if e.get("status") not in ("done", None)]
+    line = ", ".join(f"{n}={e.get('status')}" for n, e in stages.items())
+    print(f"  stages   {line or 'never run'}")
+    caps_path = base / "capabilities.json"
+    if not caps_path.exists():
+        print("  record   none: discovery has not run")
+        return False
+    caps = json.loads(caps_path.read_text())
+    activation = caps.get("activation") or {}
+    behind = []
+    for prop, files in CAPABILITY_ARTEFACTS.items():
+        present = [f for f in files if not produced_nothing(base / f)]
+        hollow = [f for f in files if (base / f).exists() and produced_nothing(base / f)]
+        active = (activation.get(prop) or {}).get("active", "none")
+        if present and active in (None, "none"):
+            behind.append(f"{prop} says none but {present[0]} is here")
+        elif hollow and active in (None, "none"):
+            behind.append(f"{prop}: {hollow[0]} is here but holds nothing -- the stage that "
+                          "wrote it measured nothing and said so only in a count")
+    for prop, row in sorted(activation.items()):
+        print(f"  {prop:16s} available={row.get('available'):8s} active={str(row.get('active')):8s}"
+              f" {row.get('count', 0)}/{row.get('of', 0)}")
+    for note in behind:
+        print(f"  BEHIND   {note}")
+    if unhappy:
+        print(f"  UNFINISHED {', '.join(unhappy)}")
+    return not behind and not unhappy
+
+
 def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: bool = False) -> bool:
     journal = load_journal(region)
     commands = stage_commands(region)
     log = region_dir(region) / "ingest.log"
     ok = True
+    for name in mark_interrupted(region, journal):
+        print(f"  {name:9s} was left running by a process that is gone; recorded interrupted")
     for stage in STAGES:
         if stage not in stages:
             continue
@@ -165,11 +312,20 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
             seconds += more
             partial = "stopped at budget; catalogue built from the journal"
         present = all(p.exists() for p in outputs)
-        status = "done" if code == 0 and present else "failed"
+        hollow = [p for p in outputs if p.exists() and produced_nothing(p)]
+        status = "done" if code == 0 and present and not hollow else "failed"
+        if hollow:
+            print(f"  {stage:9s} exited 0 but measured nothing: "
+                  + ", ".join(str(p.relative_to(ROOT)) for p in hollow))
         journal["stages"][stage].update({"status": status, "exit_code": code, "seconds": round(seconds, 1),
                                          "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                                          "outputs": [str(p.relative_to(ROOT)) for p in outputs if p.exists()],
+                                         **({"produced_nothing": [str(p.relative_to(ROOT)) for p in hollow]} if hollow else {}),
                                          **({"partial": partial} if partial else {})})
+        if status == "done":
+            stale = invalidate_downstream(journal, stage)
+            if stale:
+                print(f"  {stage:9s} makes {', '.join(stale)} stale")
         save_journal(region, journal)
         print(f"  {stage:9s} {status} in {seconds:.0f} s" + ("" if status == "done" else f" (exit {code}; see {log})"))
         if status == "failed":
@@ -189,6 +345,8 @@ def main() -> int:
                     help="comma-separated subset, in order; reconstruct is an opt-in pilot stage")
     ap.add_argument("--force", action="store_true", help="run stages that are already done")
     ap.add_argument("--dry-run", action="store_true", help="print what would run")
+    ap.add_argument("--status", action="store_true",
+                    help="report each region's stages and capabilities against what is on disk")
     args = ap.parse_args()
 
     stages = [s.strip() for s in args.stages.split(",") if s.strip()]
@@ -217,6 +375,12 @@ def main() -> int:
         regions = [get_region(name) for name in args.region]
 
     failed = []
+    if args.status:
+        disagreed = [r.name for r in regions if not status(r)]
+        if disagreed:
+            print(f"\nbehind or unfinished: {', '.join(disagreed)}", file=sys.stderr)
+            return 1
+        return 0
     for region in regions:
         print(f"{region.name}: {region.description} ({region.bbox.area_km2:.1f} km2)")
         if not ingest(region, stages, force=args.force, dry_run=args.dry_run):

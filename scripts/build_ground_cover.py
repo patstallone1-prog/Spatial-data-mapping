@@ -38,12 +38,27 @@ sys.path.insert(0, str(ROOT / "src"))
 from smc.ground.courts import layout_courts, oriented_rect, resolve_sport  # noqa: E402
 from smc.ground.cover import Lattice  # noqa: E402
 from smc.ground.exclusion import RoadMask  # noqa: E402
+from smc.imagery.region import SF_CORRIDOR  # noqa: E402
 from smc.official.crs import geojson_rings  # noqa: E402
+from smc.regions.paths import region_city, region_paths  # noqa: E402
 
+#: The region being described. Rebound by main() from --region: the fetches below run inside
+#: module-level helpers, so the box and the cache they use are module state rather than
+#: arguments threaded through a dozen calls.
+#:
+#: The parks, the parcels, the trees and the courts are San Francisco's own records. Outside
+#: the city the DataSF queries return nothing, and this says so rather than writing an empty
+#: file that reads like an answer: what a region outside San Francisco does get is the
+#: OpenStreetMap green and the pitches, which cover everywhere.
 PAGE = ROOT / "docs" / "sf-corridor-3d.json"
 OUT = ROOT / "data" / "sf_public_works" / "ground_cover.json"
 CACHE = ROOT / "build" / "ground_cover"
 CORRIDOR = {"south": 37.786, "west": -122.4475, "north": 37.8095, "east": -122.392}
+#: The cities DataSF describes. Only San Francisco's regions get parcels, street trees and
+#: the Recreation and Parks polygons.
+DATASF_CITY = "san-francisco"
+#: What DataSF refused this run, by dataset, so the record says why a source is empty.
+DATASF_REFUSED: dict[str, str] = {}
 
 #: A parcel with less bare ground than this is already described by what stands on it.
 MIN_YARD_CELLS = 12         # 48 square metres at the two-metre lattice
@@ -97,7 +112,17 @@ def fetch(dataset: str, where: str, columns: str, cache_name: str,
         params = {"$limit": 50000, "$offset": len(rows), "$where": where, "$select": columns}
         url = f"https://data.sfgov.org/resource/{dataset}.json?{urllib.parse.urlencode(params)}"
         request = urllib.request.Request(url, headers={"User-Agent": "kerbside/ground"})
-        page = json.loads(urllib.request.urlopen(request, timeout=180).read())
+        try:
+            page = json.loads(urllib.request.urlopen(request, timeout=180).read())
+        except Exception as exc:
+            # The city's own records are one source among several. When DataSF will not answer
+            # -- a token it now wants, a block on this address, an outage -- the honest result
+            # is that this source said nothing, recorded as such, and the rest of the ground
+            # cover is built from what did answer. Writing an empty file as though the city
+            # had told us there are no parcels would be a lie the renderer cannot see through.
+            DATASF_REFUSED[cache_name] = f"{type(exc).__name__}: {exc}"
+            progress(f"{cache_name}: DataSF refused ({exc}); recorded as no_data")
+            return []
         rows.extend(page)
         progress(f"{cache_name}: {len(rows)} rows")
         if len(page) < 50000:
@@ -152,7 +177,7 @@ def fetch_overpass(selectors: tuple[str, ...], cache_name: str, progress) -> lis
             path.write_text(json.dumps(elements, separators=(",", ":")))
             progress(f"{cache_name}: {len(elements)} elements")
             return elements
-        except Exception as exc:  # noqa: BLE001 - any failure means try the next mirror
+        except Exception as exc:
             last = exc
             print(f"  overpass {mirror.split('/')[2]}: {exc}", file=sys.stderr)
     progress(f"{cache_name}: every Overpass mirror refused ({last}); continuing without it")
@@ -295,14 +320,34 @@ def simplify(ring: list, tolerance_m: float = SIMPLIFY_M) -> list:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--page", type=Path, default=PAGE)
+    ap.add_argument("--region", default=SF_CORRIDOR.name,
+                    help="the region to describe; default the SF corridor")
+    ap.add_argument("--page", type=Path, default=None)
+    ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
+
+    global CACHE, CORRIDOR, OUT
+    paths = region_paths(args.region, work="ground-cover")
+    page = args.page or paths.page
+    OUT = args.out or (paths.official / "ground_cover.json")
+    CACHE = paths.work
+    if not page.exists():
+        raise SystemExit(f"{args.region}: no built page at {page}")
+    OUT.parent.mkdir(parents=True, exist_ok=True)
 
     def progress(message: str) -> None:
         print(message, flush=True)
 
-    payload = json.loads(args.page.read_text())
+    payload = json.loads(page.read_text())
     bbox = payload["bbox"]
+    # The fetches are framed on the region's own box, not on the corridor's.
+    CORRIDOR = {"south": bbox["south"], "west": bbox["west"],
+                "north": bbox["north"], "east": bbox["east"]}
+    city = str(region_city(args.region) or "")
+    surveyed = city == DATASF_CITY
+    progress(f"{args.region}: {page}"
+             + ("" if surveyed else f" -- {city or 'this city'} is not in DataSF, so the parcels, "
+                                    "the street trees and the city's parks are no_data here"))
 
     # The same flat local frame the viewer lays the world out in, so a bearing measured here is
     # the bearing drawn there. Over three kilometres of San Francisco the error in treating
@@ -353,7 +398,7 @@ def main() -> int:
            f"{CORRIDOR['south']}, {CORRIDOR['east']})")
 
     # -- parks ---------------------------------------------------------------------------------
-    park_rows = fetch("3nje-yn2u", box, "map_park_n,the_geom,acres", "parks", progress)
+    park_rows = fetch("3nje-yn2u", box, "map_park_n,the_geom,acres", "parks", progress) if surveyed else []
     parks = []
     for row in park_rows:
         for ring in geojson_rings(row.get("the_geom") or {}):
@@ -495,7 +540,7 @@ def main() -> int:
     dropped_on_green = 0
     split_frontages = 0
     parcel_rows = fetch("acdm-wktn", f"{box.replace('the_geom', 'shape')} AND active=true",
-                        "mapblklot,shape", "parcels", progress)
+                        "mapblklot,shape", "parcels", progress) if surveyed else []
     yards = []
     nudged_vertices = 0
     lawns = []
@@ -769,7 +814,7 @@ def main() -> int:
 
     # -- trees ---------------------------------------------------------------------------------
     dropped_trees = moved_trees = 0
-    tree_rows = fetch(
+    tree_rows = [] if not surveyed else fetch(
         "tkzw-k3nq",
         f"latitude between {CORRIDOR['south']} and {CORRIDOR['north']} "
         f"AND longitude between {CORRIDOR['west']} and {CORRIDOR['east']}",
@@ -804,7 +849,14 @@ def main() -> int:
     progress(f"{len(trees)} street trees ({moved_trees} nudged clear of the roadway, "
              f"{dropped_trees} dropped)")
 
-    OUT.write_text(json.dumps({"parks": parks, "yards": yards, "lawns": lawns,
+    OUT.write_text(json.dumps({"region": args.region, "city": city,
+                               "sources": {
+                                   "datasf_parcels_parks_trees": (
+                                       "no_data: not a DataSF city" if not surveyed
+                                       else f"no_data: {sorted(DATASF_REFUSED)} refused" if DATASF_REFUSED
+                                       else "surveyed"),
+                                   "openstreetmap_green_and_pitches": "surveyed"},
+                               "parks": parks, "yards": yards, "lawns": lawns,
                                "front_walks": front_walks, "service_yards": service_yards,
                                "backyards": backyards, "plazas": plazas, "trees": trees,
                                "courts": courts, "pitches": pitches, "fences": fences},

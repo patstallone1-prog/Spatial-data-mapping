@@ -48,16 +48,14 @@ from build_building_colours import (  # noqa: E402
 from smc.facades.fingerprint import combine, fingerprint_patch, view_quality  # noqa: E402
 from smc.facades.geometry import Camera, LocalFrame, score_view, walls_of  # noqa: E402
 from smc.facades.rectify import rectify_wall  # noqa: E402
-
+from smc.imagery.region import SF_CORRIDOR  # noqa: E402
 from smc.net import use_certifi  # noqa: E402
+from smc.regions.paths import region_paths  # noqa: E402  # noqa: E402
 
 use_certifi()
 
-MAP_JSON = ROOT / "docs" / "sf-corridor-3d.json"
-CATALOG = ROOT / "data" / "sf_corridor" / "observations" / "external-000.parquet"
-COLOURS = ROOT / "data" / "sf_public_works" / "building_colours.json"
-FINGERPRINTS = ROOT / "data" / "sf_public_works" / "facade_fingerprints.json"
-PARTS = ROOT / "build" / "facade-fingerprints"
+#: The corridor's own paths are the defaults; --region moves them together
+#: (smc.regions.paths).
 #: Finer than the colour sampler's 6 px/m: a storey rhythm needs the window rows resolved.
 PIXELS_PER_M = 8.0
 
@@ -78,6 +76,8 @@ def write_keyed(path: Path, buildings: dict[str, dict], note: str) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--region", default=SF_CORRIDOR.name,
+                    help="the region to fingerprint; default the SF corridor")
     ap.add_argument("--limit", type=int, default=None, help="cap the buildings attempted")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--checkpoint", type=int, default=100)
@@ -86,6 +86,16 @@ def main() -> int:
                     help="sample the colour again from view-checked frames for every building, not only "
                          "where none exists; an old colour stays where no checked view sampled one")
     args = ap.parse_args()
+    paths = region_paths(args.region, work="facade-fingerprints")
+    MAP_JSON, CATALOG = paths.page, paths.observations
+    COLOURS = paths.official / "building_colours.json"
+    FINGERPRINTS = paths.official / "facade_fingerprints.json"
+    PARTS = paths.work
+    for needed in (MAP_JSON, CATALOG):
+        if not needed.exists():
+            raise SystemExit(f"{args.region}: nothing to fingerprint from at {needed}")
+    FINGERPRINTS.parent.mkdir(parents=True, exist_ok=True)
+    print(f"{args.region}: {MAP_JSON} against {CATALOG}", flush=True)
 
     def progress(message: str) -> None:
         print(message, flush=True)

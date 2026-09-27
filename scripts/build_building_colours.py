@@ -41,11 +41,13 @@ from smc.facades.geometry import (  # noqa: E402
     walls_of,
 )
 from smc.facades.rectify import rectify_wall  # noqa: E402
+from smc.imagery.region import SF_CORRIDOR  # noqa: E402
+from smc.regions.paths import region_paths  # noqa: E402
 
-MAP_JSON = ROOT / "docs" / "sf-corridor-3d.json"
-CATALOG = ROOT / "data" / "sf_corridor" / "observations" / "external-000.parquet"
-OUT = ROOT / "data" / "sf_public_works" / "building_colours.json"
-PARTS = ROOT / "build" / "building-colours"
+#: The corridor's own paths are the defaults; --region moves all four together
+#: (smc.regions.paths). Written against the corridor alone, this could only ever describe the
+#: corridor -- which is why every other city has been drawn from an archetype's palette on
+#: photographs that were harvested and never looked at.
 
 #: Frames fetched per building. Two is enough for a median colour and a disagreement between
 #: them; a third buys very little and costs a third more of the only expensive step.
@@ -82,14 +84,25 @@ def dominant_colour(patch: np.ndarray, mask: np.ndarray) -> tuple[float, float, 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--region", default=SF_CORRIDOR.name,
+                    help="the region to sample; default the SF corridor")
     ap.add_argument("--limit", type=int, default=None, help="cap the buildings attempted")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--checkpoint", type=int, default=250)
     args = ap.parse_args()
+    paths = region_paths(args.region, work="building-colours")
+    MAP_JSON, CATALOG = paths.page, paths.observations
+    OUT = paths.official / "building_colours.json"
+    PARTS = paths.work
 
     def progress(message: str) -> None:
         print(message, flush=True)
 
+    for needed in (MAP_JSON, CATALOG):
+        if not needed.exists():
+            raise SystemExit(f"{args.region}: nothing to sample from at {needed}")
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    progress(f"{args.region}: {MAP_JSON} against {CATALOG}")
     payload = json.loads(MAP_JSON.read_text())
     bbox = payload["bbox"]
     frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0,
