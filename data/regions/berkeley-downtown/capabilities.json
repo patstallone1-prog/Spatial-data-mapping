@@ -76,20 +76,20 @@
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (street risers)",
-   "active": "none",
-   "count": 0,
+   "active": "lidar",
+   "count": 1529,
    "of": 14496,
-   "truthful": false,
-   "note": "stations by kerb grade: {'N': 14496}"
+   "truthful": true,
+   "note": "stations by kerb grade: {'N': 12967, 'L': 1529}"
   },
   "kerb_height": {
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
-   "active": "none",
-   "count": 0,
+   "active": "lidar",
+   "count": 65,
    "of": 1005,
-   "truthful": false,
+   "truthful": true,
    "note": ""
   },
   "building_height": {
@@ -97,10 +97,10 @@
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (roof over foot)",
    "active": "lidar",
-   "count": 2423,
+   "count": 2422,
    "of": 2669,
    "truthful": true,
-   "note": "by source: {'lidar_region': 2423, 'osm_height': 8, 'osm_levels': 33, 'inferred_default': 205}"
+   "note": "by source: {'lidar_region': 2422, 'osm_height': 8, 'osm_levels': 34, 'inferred_default': 205}"
   },
   "building_colour": {
    "available": "imagery",
@@ -138,7 +138,7 @@
    "extractor": null,
    "active": "none",
    "count": 0,
-   "of": 276,
+   "of": 277,
    "truthful": false,
    "note": "the city's ramp inventory, as ramps; crossings end at them in the audit's endsAtRampShare"
   },

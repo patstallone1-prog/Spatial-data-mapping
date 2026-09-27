@@ -87,12 +87,52 @@ CITY_SOURCES: dict[str, dict[str, dict]] = {
         "trees_note": "4jcx-enxf has one placeholder coordinate for every row",
     },
     # Berkeley's portal lists parcels (bhxd-e6up) and parks (5zw5-qt7z) but both answer empty
-    # to an unauthenticated read; Palo Alto and San Jose are not Socrata portals at all
-    # (ArcGIS Hub), which needs an adapter of its own.
+    # to an unauthenticated read, and the city publishes nothing equivalent through ArcGIS
+    # either. Berkeley's green is OpenStreetMap's until that changes.
     "berkeley": {"host": "data.cityofberkeley.info", "note": "datasets answer empty unauthenticated"},
-    "palo-alto": {"note": "ArcGIS Hub, not Socrata: needs its own adapter"},
-    "san-jose": {"note": "ArcGIS Hub, not Socrata: needs its own adapter"},
+    # Palo Alto and San Jose are ArcGIS rather than Socrata; see ARCGIS_SOURCES.
+    "palo-alto": {"arcgis": True},
+    "san-jose": {"arcgis": True},
 }
+
+#: The cities whose records come off an ArcGIS REST service rather than a Socrata portal.
+#: Both kinds answer the same three questions -- where the parcels are, where the parks are,
+#: where the trees are -- and the shape that comes back here is the same either way, so
+#: nothing above fetch_city has to know which sort of portal a city keeps.
+#:
+#: ``service`` is the FeatureServer or MapServer, ``layer`` the layer id on it. ``name`` is
+#: the field to label a shape by; a tree layer gives ``lon``/``lat`` fields instead (or none,
+#: in which case the point geometry is used).
+ARCGIS_SOURCES: dict[str, dict[str, dict]] = {
+    "san-jose": {
+        # The city's own server. PLN_Geocortex_Public_PRD is the public planning map: layer 49
+        # is the parcel fabric, 317 the parks.
+        "parcels": {"service": "https://geo.sanjoseca.gov/server/rest/services/PLN/"
+                               "PLN_Geocortex_Public_PRD/MapServer", "layer": 49, "name": "APN"},
+        "parks": {"service": "https://geo.sanjoseca.gov/server/rest/services/PLN/"
+                             "PLN_Geocortex_Public_PRD/MapServer", "layer": 317, "name": "NAME"},
+        # Santa Clara County's inventory carries each city's own street trees as its own layer,
+        # and San Jose's is the one the city itself supplied. 9,828 of them stand in this region.
+        "trees": {"service": "https://services.arcgis.com/NkcnS0qk4w2wasOJ/arcgis/rest/services/"
+                             "Tree_Inventories_in_Santa_Clara_County_WFL1/FeatureServer",
+                  "layer": 4, "species": "SPP", "dbh": "DBH"},
+    },
+    "palo-alto": {
+        # The City of Palo Alto's own ArcGIS Online organisation.
+        "parcels": {"service": "https://services6.arcgis.com/evmyRZRrsopdeog7/arcgis/rest/"
+                               "services/AssessorsParcels/FeatureServer", "layer": 0, "name": "APN"},
+        # ParkLocation is a point per park, not a boundary, so it cannot be ground cover --
+        # the same as Oakland's. OpenStreetMap's green draws Palo Alto's parks.
+        "parks_note": "ParkLocation is points, not polygons",
+        "trees": {"service": "https://services.arcgis.com/NkcnS0qk4w2wasOJ/arcgis/rest/services/"
+                             "Tree_Inventories_in_Santa_Clara_County_WFL1/FeatureServer",
+                  "layer": 2, "species": "SPP", "dbh": "DBH"},
+    },
+}
+
+#: An ArcGIS layer answers at most a few thousand features at a time and says so with
+#: ``exceededTransferLimit``; the rest are asked for by offset.
+ARCGIS_PAGE = 2000
 #: The cities DataSF describes. Only San Francisco's regions get parcels, street trees and
 #: the Recreation and Parks polygons.
 DATASF_CITY = "san-francisco"
@@ -159,6 +199,70 @@ def _one_place(rows: list[dict], spec: dict) -> str | None:
     return next(iter(seen), None)
 
 
+def fetch_arcgis(kind: str, city: str, bbox: dict, progress) -> list[dict]:
+    """One city's records for ``kind`` off an ArcGIS REST layer, in the same shape as Socrata's.
+
+    ArcGIS answers GeoJSON, pages by offset, and caps a page at a few thousand features -- so
+    a region is asked for by envelope and read until the service stops saying there is more.
+    Polygons come back as ``{"geom", "name"}`` and points as ``{"lon", "lat", "species",
+    "dbh"}``, which is what the Socrata path returns, so the ground cover is built the same
+    way whichever sort of portal a city keeps.
+    """
+    spec = (ARCGIS_SOURCES.get(city) or {}).get(kind)
+    if not spec:
+        return []
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path = CACHE / f"{kind}.json"
+    if path.exists():
+        rows = json.loads(path.read_text())
+        progress(f"{kind}: {len(rows)} rows from cache")
+        return rows
+    envelope = f"{bbox['west']},{bbox['south']},{bbox['east']},{bbox['north']}"
+    out: list[dict] = []
+    offset = 0
+    while True:
+        params = {
+            "where": "1=1", "outFields": "*", "geometry": envelope,
+            "geometryType": "esriGeometryEnvelope", "inSR": "4326",
+            "spatialRel": "esriSpatialRelIntersects", "outSR": "4326", "f": "geojson",
+            "resultOffset": offset, "resultRecordCount": ARCGIS_PAGE,
+        }
+        url = f"{spec['service']}/{spec['layer']}/query?{urllib.parse.urlencode(params)}"
+        request = urllib.request.Request(url, headers={"User-Agent": "kerbside/ground"})
+        try:
+            page = json.loads(urllib.request.urlopen(request, timeout=180).read())
+        except Exception as exc:
+            # A city's records are one source among several: when the service will not answer,
+            # that is recorded as this source saying nothing and the rest is built from what did.
+            progress(f"{kind}: the city's ArcGIS service refused: {exc}")
+            DATASF_REFUSED[kind] = f"arcgis: {exc}"
+            return out
+        if isinstance(page, dict) and page.get("error"):
+            progress(f"{kind}: the city's ArcGIS service refused: {page['error']}")
+            DATASF_REFUSED[kind] = f"arcgis: {page['error']}"
+            return out
+        features = page.get("features") or []
+        for feature in features:
+            geometry = feature.get("geometry") or {}
+            fields = feature.get("properties") or {}
+            if geometry.get("type") == "Point":
+                coords = geometry.get("coordinates") or []
+                if len(coords) < 2:
+                    continue
+                out.append({"lon": coords[0], "lat": coords[1],
+                            "species": fields.get(spec.get("species") or "", ""),
+                            "dbh": fields.get(spec.get("dbh") or "", "")})
+            elif geometry.get("type") in ("Polygon", "MultiPolygon"):
+                out.append({"geom": geometry, "name": fields.get(spec.get("name") or "", "")})
+        progress(f"{kind}: {len(out)} rows")
+        more = (page.get("properties") or {}).get("exceededTransferLimit")
+        if not more or not features:
+            break
+        offset += len(features)
+    path.write_text(json.dumps(out))
+    return out
+
+
 def fetch_city(kind: str, city: str, bbox: dict, progress) -> list[dict]:
     """One city's records for ``kind``, normalised.
 
@@ -172,6 +276,8 @@ def fetch_city(kind: str, city: str, bbox: dict, progress) -> list[dict]:
     empty answer dressed up as one.
     """
     source = CITY_SOURCES.get(city) or {}
+    if source.get("arcgis"):
+        return fetch_arcgis(kind, city, bbox, progress)
     spec = source.get(kind)
     host = source.get("host")
     if not spec or not host:
@@ -473,11 +579,14 @@ def main() -> int:
     city = str(region_city(args.region) or "")
     surveyed = city == DATASF_CITY
     source = CITY_SOURCES.get(city) or {}
-    have = [kind for kind in ("parks", "parcels", "trees") if source.get(kind)]
-    missing = [kind for kind in ("parks", "parcels", "trees") if not source.get(kind)]
+    arcgis = ARCGIS_SOURCES.get(city) or {}
+    portal = source.get("host") or ("the city's ArcGIS service" if arcgis else None)
+    have = [kind for kind in ("parks", "parcels", "trees") if source.get(kind) or arcgis.get(kind)]
+    note = source.get("note") or arcgis.get("parks_note") or "not wired"
+    missing = [kind for kind in ("parks", "parcels", "trees") if kind not in have]
     progress(f"{args.region}: {page}\n  {city or 'this city'}: "
-             + (f"{', '.join(have)} from {source['host']}" if have else "no city portal wired")
-             + (f"; {', '.join(missing)} no_data ({source.get('note', 'not wired')})" if missing else ""))
+             + (f"{', '.join(have)} from {portal}" if have else "no city portal wired")
+             + (f"; {', '.join(missing)} no_data ({note})" if missing else ""))
 
     # The same flat local frame the viewer lays the world out in, so a bearing measured here is
     # the bearing drawn there. Over three kilometres of San Francisco the error in treating
@@ -528,15 +637,18 @@ def main() -> int:
            f"{CORRIDOR['south']}, {CORRIDOR['east']})")
 
     # -- parks ---------------------------------------------------------------------------------
-    park_rows = fetch("3nje-yn2u", box, "map_park_n,the_geom,acres", "parks", progress) if surveyed else []
+    # Through the city adapter, like the parcels and the trees: San Francisco's Recreation and
+    # Parks polygons, Palo Alto's ParkLocation, San Jose's planning-map parks -- whichever the
+    # region's city keeps, in the one shape.
+    park_rows = fetch_city("parks", city, CORRIDOR, progress)
     parks = []
     for row in park_rows:
-        for ring in geojson_rings(row.get("the_geom") or {}):
+        for ring in geojson_rings(row.get("geom") or {}):
             if len(ring) >= 4:
                 ring, _ = off_the_road(ring, road)
-                parks.append({"n": row.get("map_park_n"),
+                parks.append({"n": row.get("name"),
                               "p": [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]})
-    progress(f"{len(parks)} park rings from Recreation and Parks")
+    progress(f"{len(parks)} park rings from the city's own records")
     for park in parks:
         lattice.stamp_polygon(park["p"])
         green.stamp_polygon(park["p"])
@@ -976,8 +1088,13 @@ def main() -> int:
 
     OUT.write_text(json.dumps({"region": args.region, "city": city,
                                "sources": {
-                                   "city_portal": source.get("host", "none"),
-                                   "city_records": {k: ("surveyed" if source.get(k) else "no_data") for k in ("parks", "parcels", "trees")},
+                                   "city_portal": portal or "none",
+                                   "city_records": {k: ("no_data: refused" if k in DATASF_REFUSED
+                                                        else "surveyed" if (source.get(k) or arcgis.get(k))
+                                                        else "no_data")
+                                                    for k in ("parks", "parcels", "trees")},
+                                   "city_services": {k: f"{v['service']}/{v['layer']}"
+                                                     for k, v in arcgis.items() if isinstance(v, dict)},
                                    "datasf_parcels_parks_trees": (
                                        "no_data: not a DataSF city" if not surveyed
                                        else f"no_data: {sorted(DATASF_REFUSED)} refused" if DATASF_REFUSED

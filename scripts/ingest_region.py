@@ -211,6 +211,43 @@ def invalidate_downstream(journal: dict, stage: str) -> list[str]:
     return stale
 
 
+def newest(paths) -> float:
+    """The most recent mtime among the paths that exist, or 0.0 when none do."""
+    times = [p.stat().st_mtime for p in paths if p.exists()]
+    return max(times) if times else 0.0
+
+
+def overtaken_by_inputs(stage: str, commands: dict) -> str | None:
+    """The dependency whose outputs are newer than this stage's, or None.
+
+    The journal is a record of what was run, not of what is on disk, and the two part company
+    the moment anybody refreshes an input by hand. sf-haight-castro's map was re-fetched
+    directly -- ``scripts/fetch_region_osm.py`` rather than this script -- after an Overpass
+    outage had left every street without an id. The journal still said ``lidar: done`` from an
+    earlier flight, so the next run skipped the measurement, reported the region finished, and
+    published a page built from a map that no longer matched the one the lidar had read. The
+    work was not lost because it failed; it was lost because nothing compared the dates.
+
+    A stage is stale when any dependency it reads has an output younger than its own, however
+    that dependency came to be rebuilt.
+    """
+    own = newest(commands[stage][1])
+    if not own:
+        return None
+    for dep in DEPENDS_ON.get(stage, ()):
+        # Not discovery: its output is the capability record, which every build rewrites, so
+        # comparing against it would call a twenty-seven minute terrain rebuild stale after
+        # every page build. Discovery describes what a region could have, not what it holds.
+        if dep == "discover":
+            continue
+        outputs = commands[dep][1]
+        if not outputs:
+            continue
+        if newest(outputs) > own:
+            return dep
+    return None
+
+
 def mark_interrupted(region: Region, journal: dict) -> list[str]:
     """A stage left "running" by a process that is no longer here is not running.
 
@@ -294,8 +331,14 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
         cmd, outputs = commands[stage]
         entry = journal["stages"].get(stage, {})
         if not force and entry.get("status") == "done" and all(p.exists() for p in outputs):
-            print(f"  {stage:9s} done already ({entry.get('finished_at', '')})")
-            continue
+            overtaken = overtaken_by_inputs(stage, commands)
+            if overtaken is None:
+                print(f"  {stage:9s} done already ({entry.get('finished_at', '')})")
+                continue
+            entry["status"] = "stale"
+            entry["stale_because"] = f"{overtaken} is newer on disk"
+            save_journal(region, journal)
+            print(f"  {stage:9s} recorded done, but {overtaken} has been rebuilt since; running again")
         print(f"  {stage:9s} running: {' '.join(cmd[1:])}")
         if dry_run:
             continue

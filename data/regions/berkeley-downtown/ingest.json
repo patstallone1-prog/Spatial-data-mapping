@@ -23,14 +23,14 @@
   },
   "osm": {
    "status": "done",
-   "started_at": "2026-09-20T19:35:12Z",
+   "started_at": "2026-09-27T04:14:32Z",
    "command": [
     "scripts/fetch_region_osm.py",
     "berkeley-downtown"
    ],
    "exit_code": 0,
-   "seconds": 65.1,
-   "finished_at": "2026-09-20T19:36:17Z",
+   "seconds": 86.1,
+   "finished_at": "2026-09-27T04:15:58Z",
    "outputs": [
     "data/regions/berkeley-downtown/osm_ways.json"
    ]
@@ -53,7 +53,7 @@
    ]
   },
   "official": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-20T19:41:26Z",
    "command": [
     "scripts/build_sf_official_geometry.py",
@@ -63,7 +63,8 @@
    "exit_code": 0,
    "seconds": 0.1,
    "finished_at": "2026-09-20T19:41:26Z",
-   "outputs": []
+   "outputs": [],
+   "stale_because": "osm"
   },
   "terrain": {
    "status": "done",
@@ -82,21 +83,21 @@
   },
   "lidar": {
    "status": "done",
-   "started_at": "2026-09-20T22:08:25Z",
+   "started_at": "2026-09-27T04:16:28Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "berkeley-downtown"
    ],
    "exit_code": 0,
-   "seconds": 20635.0,
-   "finished_at": "2026-09-21T03:52:20Z",
+   "seconds": 2713.9,
+   "finished_at": "2026-09-27T05:01:42Z",
    "outputs": [
     "data/regions/berkeley-downtown/lidar/building_heights.json"
    ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-22T00:38:20Z",
+   "started_at": "2026-09-27T05:14:34Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,14 +105,14 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 11.4,
-   "finished_at": "2026-09-22T00:38:32Z",
+   "seconds": 19.0,
+   "finished_at": "2026-09-27T05:14:54Z",
    "outputs": [
     "data/regions/berkeley-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-22T00:38:32Z",
    "command": [
     "scripts/audit_corridor_render.py",
@@ -129,7 +130,8 @@
    "finished_at": "2026-09-22T00:38:34Z",
    "outputs": [
     "data/regions/berkeley-downtown/audit_baseline.json"
-   ]
+   ],
+   "stale_because": "build"
   }
  }
 }

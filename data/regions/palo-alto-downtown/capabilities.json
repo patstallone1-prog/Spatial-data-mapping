@@ -67,20 +67,20 @@
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (street risers)",
-   "active": "none",
-   "count": 0,
+   "active": "lidar",
+   "count": 1416,
    "of": 11098,
-   "truthful": false,
-   "note": "stations by kerb grade: {'N': 11098}"
+   "truthful": true,
+   "note": "stations by kerb grade: {'N': 9682, 'L': 1416}"
   },
   "kerb_height": {
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
-   "active": "none",
-   "count": 0,
+   "active": "lidar",
+   "count": 84,
    "of": 813,
-   "truthful": false,
+   "truthful": true,
    "note": ""
   },
   "building_height": {

@@ -23,14 +23,14 @@
   },
   "osm": {
    "status": "done",
-   "started_at": "2026-09-20T04:50:57Z",
+   "started_at": "2026-09-27T04:29:18Z",
    "command": [
     "scripts/fetch_region_osm.py",
     "sf-mission"
    ],
    "exit_code": 0,
-   "seconds": 9.1,
-   "finished_at": "2026-09-20T04:51:07Z",
+   "seconds": 36.1,
+   "finished_at": "2026-09-27T04:29:54Z",
    "outputs": [
     "data/regions/sf-mission/osm_ways.json"
    ]
@@ -68,7 +68,7 @@
    ]
   },
   "official": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-20T05:32:57Z",
    "command": [
     "scripts/build_sf_official_geometry.py",
@@ -78,19 +78,26 @@
    "exit_code": 0,
    "seconds": 42.7,
    "finished_at": "2026-09-20T05:33:39Z",
-   "outputs": []
+   "outputs": [],
+   "stale_because": "osm"
   },
   "lidar": {
-   "status": "running",
-   "started_at": "2026-09-21T05:28:03Z",
+   "status": "done",
+   "started_at": "2026-09-27T14:54:03Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "sf-mission"
+   ],
+   "exit_code": 0,
+   "seconds": 625.9,
+   "finished_at": "2026-09-27T15:04:29Z",
+   "outputs": [
+    "data/regions/sf-mission/lidar/building_heights.json"
    ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-22T00:38:42Z",
+   "started_at": "2026-09-27T15:04:29Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -98,14 +105,14 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 23.1,
-   "finished_at": "2026-09-22T00:39:05Z",
+   "seconds": 9639.4,
+   "finished_at": "2026-09-27T17:45:09Z",
    "outputs": [
     "data/regions/sf-mission/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-22T00:39:05Z",
    "command": [
     "scripts/audit_corridor_render.py",
@@ -123,7 +130,8 @@
    "finished_at": "2026-09-22T00:39:09Z",
    "outputs": [
     "data/regions/sf-mission/audit_baseline.json"
-   ]
+   ],
+   "stale_because": "osm"
   }
  }
 }

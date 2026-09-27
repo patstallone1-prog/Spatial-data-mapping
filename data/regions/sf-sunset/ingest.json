@@ -23,14 +23,14 @@
   },
   "osm": {
    "status": "done",
-   "started_at": "2026-09-20T17:42:46Z",
+   "started_at": "2026-09-27T06:07:19Z",
    "command": [
     "scripts/fetch_region_osm.py",
     "sf-sunset"
    ],
    "exit_code": 0,
-   "seconds": 8.2,
-   "finished_at": "2026-09-20T17:42:54Z",
+   "seconds": 51.1,
+   "finished_at": "2026-09-27T06:08:11Z",
    "outputs": [
     "data/regions/sf-sunset/osm_ways.json"
    ]
@@ -68,7 +68,7 @@
    ]
   },
   "official": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-20T19:33:29Z",
    "command": [
     "scripts/build_sf_official_geometry.py",
@@ -78,11 +78,12 @@
    "exit_code": 0,
    "seconds": 33.4,
    "finished_at": "2026-09-20T19:34:03Z",
-   "outputs": []
+   "outputs": [],
+   "stale_because": "osm"
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-22T00:37:36Z",
+   "started_at": "2026-09-27T13:55:34Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -90,14 +91,14 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 38.5,
-   "finished_at": "2026-09-22T00:38:14Z",
+   "seconds": 140.6,
+   "finished_at": "2026-09-27T13:57:55Z",
    "outputs": [
     "data/regions/sf-sunset/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-22T00:38:14Z",
    "command": [
     "scripts/audit_corridor_render.py",
@@ -115,6 +116,21 @@
    "finished_at": "2026-09-22T00:38:20Z",
    "outputs": [
     "data/regions/sf-sunset/audit_baseline.json"
+   ],
+   "stale_because": "build"
+  },
+  "lidar": {
+   "status": "done",
+   "started_at": "2026-09-27T06:08:11Z",
+   "command": [
+    "scripts/measure_region_lidar.py",
+    "sf-sunset"
+   ],
+   "exit_code": 0,
+   "seconds": 28042.6,
+   "finished_at": "2026-09-27T13:55:34Z",
+   "outputs": [
+    "data/regions/sf-sunset/lidar/building_heights.json"
    ]
   }
  }

@@ -59,20 +59,20 @@
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (street risers)",
-   "active": "none",
-   "count": 0,
-   "of": 37722,
-   "truthful": false,
-   "note": "stations by kerb grade: {'N': 37722}"
+   "active": "lidar",
+   "count": 4818,
+   "of": 37756,
+   "truthful": true,
+   "note": "stations by kerb grade: {'N': 32938, 'L': 4818}"
   },
   "kerb_height": {
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
-   "active": "none",
-   "count": 0,
-   "of": 2019,
-   "truthful": false,
+   "active": "lidar",
+   "count": 257,
+   "of": 2024,
+   "truthful": true,
    "note": ""
   },
   "building_height": {
@@ -111,7 +111,7 @@
    "extractor": "smc.measure.parking_band (no crawl yet)",
    "active": "none",
    "count": 0,
-   "of": 37722,
+   "of": 37756,
    "truthful": false,
    "note": "parking bands graded image; the rest are policy priors"
   },
@@ -130,8 +130,8 @@
    "implemented": true,
    "extractor": "smc.facts.cross_section allocate",
    "active": "osm+priors",
-   "count": 37722,
-   "of": 37722,
+   "count": 37756,
+   "of": 37756,
    "truthful": true,
    "note": "every station is an allocation over priors; a measured lane boundary does not exist yet"
   }

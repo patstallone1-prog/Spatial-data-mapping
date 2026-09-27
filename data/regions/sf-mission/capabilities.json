@@ -100,40 +100,40 @@
    "available": "official",
    "implemented": true,
    "extractor": "scripts/build_curb_profiles.py (city curb lines)",
-   "active": "none",
-   "count": 0,
+   "active": "lidar",
+   "count": 7720,
    "of": 30287,
    "truthful": false,
-   "note": "stations by kerb grade: {'N': 30287}"
+   "note": "stations by kerb grade: {'N': 22567, 'L': 7720}"
   },
   "kerb_height": {
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
-   "active": "none",
-   "count": 0,
+   "active": "lidar",
+   "count": 395,
    "of": 1405,
-   "truthful": false,
+   "truthful": true,
    "note": ""
   },
   "building_height": {
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (roof over foot)",
-   "active": "none",
-   "count": 0,
+   "active": "lidar",
+   "count": 676,
    "of": 8313,
-   "truthful": false,
-   "note": "by source: {'osm_height': 6705, 'inferred_default': 1576, 'osm_levels': 32}"
+   "truthful": true,
+   "note": "by source: {'osm_height': 6705, 'inferred_default': 916, 'lidar_region': 676, 'osm_levels': 16}"
   },
   "building_colour": {
    "available": "imagery",
    "implemented": true,
    "extractor": "scripts/build_facade_fingerprints.py",
-   "active": "none",
-   "count": 0,
+   "active": "imagery",
+   "count": 4327,
    "of": 8313,
-   "truthful": false,
+   "truthful": true,
    "note": ""
   },
   "terrain": {

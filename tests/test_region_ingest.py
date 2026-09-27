@@ -170,3 +170,62 @@ def test_activation_counts_what_the_build_stood_on_not_what_discovery_promised()
     bare = activation({"ways": [{"kind": "street", "xs": xs_prior}], "summary": {}}, vector)
     assert bare["kerbs"]["active"] == "none" and bare["kerbs"]["truthful"] is False
     assert bare["terrain"]["active"] == "none"
+
+
+def test_a_stage_is_stale_when_what_it_reads_has_been_rebuilt_under_it(tmp_path):
+    """The journal records what was run; the disk records what is there. They part company.
+
+    sf-haight-castro's map was re-fetched directly -- scripts/fetch_region_osm.py rather than
+    the ingestion -- after an Overpass outage had left every one of its streets without an id.
+    The journal still said "lidar: done" from a flight six days earlier, so the next run
+    skipped the measurement, called the region finished and published a page built from a map
+    the lidar had never read. Nothing had failed. Nothing had compared the dates.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import importlib
+
+    ingest_region = importlib.import_module("ingest_region")
+
+    osm = tmp_path / "osm_ways.json"
+    heights = tmp_path / "building_heights.json"
+    commands = {
+        "discover": ([], [tmp_path / "capabilities.json"]),
+        "osm": ([], [osm]),
+        "lidar": ([], [heights]),
+    }
+    heights.write_text("{}")
+    osm.write_text("{}")
+    import os
+    import time
+
+    # The map older than the measurement: nothing to redo.
+    old = time.time() - 3600
+    os.utime(osm, (old, old))
+    assert ingest_region.overtaken_by_inputs("lidar", commands) is None
+
+    # The map re-fetched since: the measurement read a map that is no longer there.
+    now = time.time()
+    os.utime(osm, (now, now))
+    assert ingest_region.overtaken_by_inputs("lidar", commands) == "osm"
+
+
+def test_discovery_being_rewritten_does_not_make_the_terrain_stale(tmp_path):
+    """Every page build rewrites the capability record, and the terrain takes 27 minutes.
+
+    Discovery says what a region could have, not what it holds, so it is not a dependency
+    anything is redone for.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import importlib
+    import os
+    import time
+
+    ingest_region = importlib.import_module("ingest_region")
+    caps = tmp_path / "capabilities.json"
+    grid = tmp_path / "terrain.bin"
+    grid.write_text("x")
+    caps.write_text("{}")
+    now = time.time()
+    os.utime(caps, (now, now))
+    commands = {"discover": ([], [caps]), "terrain": ([], [grid])}
+    assert ingest_region.overtaken_by_inputs("terrain", commands) is None

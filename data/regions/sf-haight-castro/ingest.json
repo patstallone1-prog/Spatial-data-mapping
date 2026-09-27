@@ -22,15 +22,15 @@
    ]
   },
   "osm": {
-   "status": "done",
-   "started_at": "2026-09-20T16:58:29Z",
+   "status": "failed",
+   "started_at": "2026-09-27T06:05:37Z",
    "command": [
     "scripts/fetch_region_osm.py",
     "sf-haight-castro"
    ],
-   "exit_code": 0,
-   "seconds": 14.3,
-   "finished_at": "2026-09-20T16:58:43Z",
+   "exit_code": 1,
+   "seconds": 81.6,
+   "finished_at": "2026-09-27T06:06:59Z",
    "outputs": [
     "data/regions/sf-haight-castro/osm_ways.json"
    ]
@@ -81,22 +81,16 @@
    "outputs": []
   },
   "lidar": {
-   "status": "done",
-   "started_at": "2026-09-21T05:27:59Z",
+   "status": "running",
+   "started_at": "2026-09-27T20:30:36Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "sf-haight-castro"
-   ],
-   "exit_code": 0,
-   "seconds": 3.8,
-   "finished_at": "2026-09-21T05:28:03Z",
-   "outputs": [
-    "data/regions/sf-haight-castro/lidar/building_heights.json"
    ]
   },
   "build": {
-   "status": "done",
-   "started_at": "2026-09-21T19:43:50Z",
+   "status": "stale",
+   "started_at": "2026-09-27T05:13:14Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,14 +98,15 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 332.9,
-   "finished_at": "2026-09-21T19:49:23Z",
+   "seconds": 17.0,
+   "finished_at": "2026-09-27T05:13:31Z",
    "outputs": [
     "data/regions/sf-haight-castro/site/sf-corridor-3d.json"
-   ]
+   ],
+   "stale_because": "osm is newer on disk"
   },
   "audit": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-21T19:49:23Z",
    "command": [
     "scripts/audit_corridor_render.py",
@@ -129,7 +124,8 @@
    "finished_at": "2026-09-21T19:49:25Z",
    "outputs": [
     "data/regions/sf-haight-castro/audit_baseline.json"
-   ]
+   ],
+   "stale_because": "build"
   }
  }
 }

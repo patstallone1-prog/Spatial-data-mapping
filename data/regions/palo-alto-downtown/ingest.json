@@ -9,14 +9,14 @@
  "stages": {
   "osm": {
    "status": "done",
-   "started_at": "2026-09-20T19:42:10Z",
+   "started_at": "2026-09-27T13:58:15Z",
    "command": [
     "scripts/fetch_region_osm.py",
     "palo-alto-downtown"
    ],
    "exit_code": 0,
-   "seconds": 3.9,
-   "finished_at": "2026-09-20T19:42:14Z",
+   "seconds": 5.7,
+   "finished_at": "2026-09-27T13:58:21Z",
    "outputs": [
     "data/regions/palo-alto-downtown/osm_ways.json"
    ]
@@ -39,7 +39,7 @@
    ]
   },
   "official": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-20T19:46:37Z",
    "command": [
     "scripts/build_sf_official_geometry.py",
@@ -49,7 +49,8 @@
    "exit_code": 0,
    "seconds": 0.1,
    "finished_at": "2026-09-20T19:46:37Z",
-   "outputs": []
+   "outputs": [],
+   "stale_because": "osm"
   },
   "discover": {
    "status": "done",
@@ -82,21 +83,21 @@
   },
   "lidar": {
    "status": "done",
-   "started_at": "2026-09-21T04:03:45Z",
+   "started_at": "2026-09-27T13:58:21Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "palo-alto-downtown"
    ],
    "exit_code": 0,
-   "seconds": 2033.3,
-   "finished_at": "2026-09-21T04:37:38Z",
+   "seconds": 714.4,
+   "finished_at": "2026-09-27T14:10:15Z",
    "outputs": [
     "data/regions/palo-alto-downtown/lidar/building_heights.json"
    ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T19:54:56Z",
+   "started_at": "2026-09-27T14:10:15Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,14 +105,14 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 272.6,
-   "finished_at": "2026-09-21T19:59:28Z",
+   "seconds": 26.7,
+   "finished_at": "2026-09-27T14:10:42Z",
    "outputs": [
     "data/regions/palo-alto-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-21T19:59:28Z",
    "command": [
     "scripts/audit_corridor_render.py",
@@ -129,7 +130,8 @@
    "finished_at": "2026-09-21T19:59:30Z",
    "outputs": [
     "data/regions/palo-alto-downtown/audit_baseline.json"
-   ]
+   ],
+   "stale_because": "build"
   }
  }
 }

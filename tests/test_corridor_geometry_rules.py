@@ -2844,3 +2844,103 @@ console.log(JSON.stringify({
     assert result["believed"] == "brick" and result["doubted"] and result["unknownRender"], result
     # The photograph outranks the archetype's habits: a glass house is a glass house.
     assert result["glassOnAHouse"] == "glass", result
+
+
+# ---- a mapped footway does not pave the roadway ------------------------------------------
+
+
+FIT_FUNCTIONS = CARRIAGEWAY_FUNCTIONS + ("insideMeasuredCarriageway", "walkWidthAgainstMeasuredKerbs")
+
+
+def _run_fit(js_body: str) -> dict:
+    js = _page_js()
+    parts = [PREAMBLE, FLAT_GROUND,
+             "const WALK_FIT_SAMPLE_M = 2.0;", "const WALK_FIT_MIN_M = 1.2;",
+             'const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", '
+             '"divided_half", "tunnel_cut", "curb_profile", "lidar_profile"]);']
+    parts += [_extract(name, js) for name in FIT_FUNCTIONS]
+    parts.append(js_body)
+    out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+def test_a_footway_is_narrowed_to_the_measured_kerb_rather_than_paved_over_the_road():
+    """14th Street in Oakland: the lidar measured 18.16 m across, the mapped footway sits closer.
+
+    A mapped footway carries no width in most cities, so it is drawn at the 3.6 m fallback,
+    centred on a line drawn by eye. Where that line runs inside a measured kerb the slab went
+    on the asphalt -- and not far enough in for the carriageway guard to drop the run, which
+    asks about the centreline and about both edges together and rightly keeps a pavement that
+    merely abuts a kerb. Deleting it is the wrong answer: at every tolerance that caught this,
+    a third of the corridor's 200 km of footway went with it. The strip is narrowed instead.
+    """
+    body = """
+    const lon = (x) => x / metersPerLon;
+    const lat = (y) => y / metersPerLat;
+    // A measured carriageway 18.16 m across: the kerb stands at 9.08 m.
+    const measured = { road_source: "lidar_profile" };
+    for (let x = 0; x < 120; x += 10) addCarriagewaySegment(x, 0, x + 10, 0, 18.16 / 2, measured);
+    // A footway centred 10.2 m out: at 3.6 m wide its inner edge reaches 8.4 m, which is
+    // 0.68 m inside the kerb.
+    const over = [[lon(0), lat(10.2)], [lon(60), lat(10.2)], [lon(120), lat(10.2)]];
+    // And one centred 11.0 m out, whose inner edge sits on the kerb.
+    const beside = [[lon(0), lat(11.0)], [lon(60), lat(11.0)], [lon(120), lat(11.0)]];
+    console.log(JSON.stringify({
+      over: +walkWidthAgainstMeasuredKerbs(over, 3.6).toFixed(2),
+      beside: +walkWidthAgainstMeasuredKerbs(beside, 3.6).toFixed(2),
+    }));
+    """
+    out = _run_fit(body)
+    # Narrowed by twice the intrusion, so the edge clears the kerb.
+    assert 2.4 < out["over"] < 2.7, out
+    # The one that only abuts is left exactly as it was.
+    assert out["beside"] == 3.6, out
+
+
+def test_a_footway_beside_an_inferred_width_is_left_alone():
+    """Where the carriageway width is our guess, the mapper's pavement is not narrowed for it.
+
+    Villa Terrace is drawn 53 m across because its right of way minus footways says so. A
+    pavement inside that is our error, not the mapper's, and narrowing it would be believing
+    the wrong number twice.
+    """
+    body = """
+    const lon = (x) => x / metersPerLon;
+    const lat = (y) => y / metersPerLat;
+    const inferred = { road_source: "row_minus_footways" };
+    for (let x = 0; x < 120; x += 10) addCarriagewaySegment(x, 0, x + 10, 0, 53.4 / 2, inferred);
+    const walk = [[lon(0), lat(10.2)], [lon(120), lat(10.2)]];
+    console.log(JSON.stringify({ width: +walkWidthAgainstMeasuredKerbs(walk, 3.6).toFixed(2) }));
+    """
+    assert _run_fit(body)["width"] == 3.6
+
+
+# ---- a name on the map is a name, not a board lying over the blocks -----------------------
+
+
+def test_a_label_keeps_its_size_on_screen_rather_than_in_the_world():
+    """A district name was a 145-metre sprite and a street name a 78-metre one.
+
+    From two hundred metres up over Palo Alto the region's own title covered the block it
+    named; from a low camera in San Jose a street name filled the view. A name belongs to the
+    reader rather than to the ground, so it is drawn at a fixed share of the viewport and
+    hidden past the distance its kind is worth reading at.
+    """
+    js = _page_js()
+    assert "labelScreenH" in js, "labels are still sized in world metres"
+    assert "LABEL_SCREEN_H" in js and "LABEL_RANGE_M" in js
+    # Nothing left that scales a label by a count of metres.
+    assert "sprite.scale.set(scale, scale * 0.25, 1)" not in js
+    # And the ranges are sane: a street name goes before a district name does.
+    street = float(re.search(r"LABEL_RANGE_M = \{ street: ([0-9.]+)", js).group(1))
+    district = float(re.search(r"LABEL_RANGE_M = \{ street: [0-9.]+, district: ([0-9.]+)", js).group(1))
+    assert 100 < street < district
+
+
+def test_a_long_name_is_fitted_rather_than_chopped_at_a_fixed_count():
+    """"University Avenue and the st" is not the name of anywhere."""
+    js = _page_js()
+    assert "text.slice(0, 28)" not in js, "names are still cut at a fixed character count"
+    assert "\\u2026" in js or "…" in js, "a shortened name should say that it was shortened"

@@ -36,6 +36,38 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+#: Errors that say nothing about the lidar and everything about the network between here and
+#: it. A cell that failed this way has not been measured and has not been shown to be empty;
+#: recording it as measured is how 670 cells across three regions came to be written off for
+#: good -- the machine could not resolve an Amazon hostname for a few minutes, every cell in
+#: flight was journalled as an answer, and every later run skipped them as already done.
+TRANSIENT = (
+    "nodename nor servname",        # DNS did not resolve
+    "Temporary failure in name resolution",
+    "Broken pipe",
+    "Remote end closed connection",
+    "UNEXPECTED_EOF_WHILE_READING",
+    "timed out",
+    "Connection reset",
+    "Connection refused",
+    "Remote disconnected",
+    "IncompleteRead",
+    "502",
+    "503",
+    "504",
+)
+#: How many times one cell is tried again inside a run before it is left for the next one.
+CELL_TRIES = 3
+#: The wait before each retry, seconds. DNS comes back in seconds; a throttled bucket takes
+#: longer, so the wait grows.
+CELL_BACKOFF_S = (5, 30, 120)
+
+
+def transient(message: str) -> bool:
+    """Whether this failure is the network's rather than the dataset's."""
+    return any(mark in message for mark in TRANSIENT)
+
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -108,7 +140,12 @@ def main() -> int:
         for line in journal.read_text().splitlines():
             if line.strip():
                 row = json.loads(line)
-                done[row["cell"]] = row
+                # Last line for a cell wins, and a cell whose only answer was the network
+                # failing is not an answer: it comes round again.
+                if row.get("retry"):
+                    done.pop(row["cell"], None)
+                else:
+                    done[row["cell"]] = row
     print(f"{len(by_cell)} cells, {len(done)} already measured", flush=True)
 
     cache_root = ROOT / "build" / "regions" / region.name / "lidar-cache"
@@ -125,11 +162,29 @@ def main() -> int:
             centre_lon = lon0 + (cx + 0.5) * CELL_M / kx
             centre_lat = lat0 + (cy + 0.5) * CELL_M / ky
             reader = EptReader(dataset, cache_dir=cache_root / key)
-            try:
-                cloud = reader.around(centre_lat, centre_lon, CELL_M / 2 + REACH_M, resolution_m=RESOLUTION_M)
-            except Exception as exc:  # a cell the service will not serve is a gap, not a halt
-                print(f"  cell {key}: unavailable: {exc}", flush=True)
-                out.write(json.dumps({"cell": key, "error": str(exc), "streets": {}, "buildings": {}}) + "\n")
+            cloud = None
+            failure = ""
+            for attempt in range(CELL_TRIES):
+                try:
+                    cloud = reader.around(centre_lat, centre_lon, CELL_M / 2 + REACH_M, resolution_m=RESOLUTION_M)
+                    failure = ""
+                    break
+                except Exception as exc:   # a cell the service will not serve is a gap, not a halt
+                    failure = str(exc)
+                    if not transient(failure) or attempt == CELL_TRIES - 1:
+                        break
+                    wait = CELL_BACKOFF_S[min(attempt, len(CELL_BACKOFF_S) - 1)]
+                    print(f"  cell {key}: {failure}; again in {wait} s", flush=True)
+                    shutil.rmtree(cache_root / key, ignore_errors=True)
+                    time.sleep(wait)
+            if failure:
+                # Journalled either way, so the run leaves a record of what it met -- but a
+                # network failure is marked to be tried again rather than counted as measured.
+                again = transient(failure)
+                print(f"  cell {key}: unavailable: {failure}"
+                      + (" (left for the next run)" if again else ""), flush=True)
+                out.write(json.dumps({"cell": key, "error": failure, "streets": {}, "buildings": {},
+                                      **({"retry": True} if again else {})}) + "\n")
                 out.flush()
                 shutil.rmtree(cache_root / key, ignore_errors=True)
                 continue
@@ -145,7 +200,11 @@ def main() -> int:
                 for way in content["buildings"]:
                     found = building_height(cloud, way["points"])
                     if found:
-                        row["buildings"][str(way["osm_id"])] = found
+                        # A reading the measurement itself refused is journalled with its
+                        # reason rather than thrown away -- the cell record says what was seen
+                        # there -- but it is not a height, and nothing downstream reads it as one.
+                        bucket = "rejected_buildings" if found.get("rejected") else "buildings"
+                        row.setdefault(bucket, {})[str(way["osm_id"])] = found
             out.write(json.dumps(row) + "\n")
             out.flush()
             done[key] = row
@@ -283,17 +342,23 @@ def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, di
                     for key, h in heights_by_way.items()}
     (base / "lidar" / "kerb_heights.json").write_text(json.dumps(kerb_heights, separators=(",", ":")))
     roofs: dict[str, dict] = {}
+    rejected = 0
     for row in done.values():
         roofs.update(row["buildings"])
+        rejected += len(row.get("rejected_buildings") or {})
     (base / "lidar" / "building_heights.json").write_text(json.dumps({
         "source": "USGS 3DEP lidar: the 92nd percentile of the non-ground returns inside the footprint "
                   "over the median ground return at its foot (smc.lidar.region.building_height)",
+        "rejected": rejected,
+        "rejection_rule": "a reading with less than a quarter of the footprint's returns within "
+                          "2 m of it is something thin standing there, not a roof; and nothing "
+                          "built is more than 15 times as tall as its footprint is wide",
         "buildings": roofs}, separators=(",", ":")))
     stations_n = sum(len(p["samples"]) for p in profiles.values())
     both = sum(1 for p in profiles.values() for s in p["samples"] if s["l"] is not None and s["r"] is not None)
     print(f"wrote {len(profiles)} street profiles ({stations_n} stations, {both} with both kerbs, "
           f"{outliers} readings dropped as outliers), {len(kerb_heights)} kerb heights, "
-          f"{len(roofs)} roof heights under {base}")
+          f"{len(roofs)} roof heights ({rejected} readings refused as not roofs) under {base}")
 
 
 def station_along(points: list[list[float]], lon: float, lat: float) -> float:

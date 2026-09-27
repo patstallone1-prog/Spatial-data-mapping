@@ -44,6 +44,21 @@ MIN_STRIP_POINTS = 60
 #: Building heights: at least this many non-ground returns inside the footprint.
 MIN_ROOF_POINTS = 30
 ROOF_PERCENTILE = 92.0
+#: A roof is a surface, so the height read for one has to be held up by a surface's worth of
+#: returns at that height. A mast, a crane, a flagpole or the crown of a street tree standing
+#: over a small footprint is not: its returns are strung out down through the air beneath it.
+#: This is the depth of the band under the reading that has to hold them.
+ROOF_TOP_BAND_M = 2.0
+#: And the share of the footprint's non-ground returns that has to lie in that band. A flat
+#: roof gives nearly all of them; a pitched one with three metres of rise gives about half; a
+#: tree crown eight metres deep gives a fifth. Oakland had a 31 m2 footprint reading 69.8 m
+#: tall on this test's wrong side -- a shed with a mast over it, recorded as a twenty-storey
+#: building -- and 36 like it across three regions.
+MIN_TOP_BAND_SHARE = 0.25
+#: A backstop on slenderness for the case where the thing standing there does have a
+#: surface's worth of returns. Sather Tower is 93.6 m over a footprint 20 m across, which is
+#: 4.7; nothing anybody builds is fifteen.
+MAX_SLENDERNESS = 15.0
 EARTH_RADIUS_M = 6_378_137.0
 
 
@@ -222,5 +237,26 @@ def building_height(cloud: LocalCloud, ring: list[list[float]]) -> dict | None:
     height = top - base
     if not 2.0 <= height <= 320.0:
         return None
+    # Is there a roof up there, or only something thin? Count what stands within a couple of
+    # metres of the reading: a roof puts most of the footprint's returns there, a mast or a
+    # tree crown puts a handful.
+    top_band = int((roof >= top - ROOF_TOP_BAND_M).sum())
+    share = top_band / float(roof.size)
+    if share < MIN_TOP_BAND_SHARE:
+        return {"rejected": "no roof at that height", "height_m": round(height, 2),
+                "top_band_share": round(share, 3), "roof_points": int(roof.size)}
+    area = _ring_area_m2(poly)
+    if area > 0 and height > MAX_SLENDERNESS * math.sqrt(area):
+        return {"rejected": "too slender for its footprint", "height_m": round(height, 2),
+                "area_m2": round(area, 1), "roof_points": int(roof.size)}
     return {"height_m": round(height, 2), "base_m": round(base, 2), "roof_points": int(roof.size),
-            "ground_points": int(foot.size), "source": "lidar_roof_p92_over_foot"}
+            "ground_points": int(foot.size), "top_band_share": round(share, 3),
+            "source": "lidar_roof_p92_over_foot"}
+
+
+def _ring_area_m2(poly: np.ndarray) -> float:
+    """The plan area of a footprint already in local metres, by the shoelace formula."""
+    if len(poly) < 3:
+        return 0.0
+    x, y = poly[:, 0], poly[:, 1]
+    return float(abs(np.dot(x, np.roll(y, -1)) - np.dot(np.roll(x, -1), y)) / 2.0)

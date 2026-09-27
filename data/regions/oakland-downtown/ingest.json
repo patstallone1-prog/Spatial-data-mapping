@@ -96,7 +96,7 @@
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-22T00:37:10Z",
+   "started_at": "2026-09-27T05:14:03Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,14 +104,14 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 22.0,
-   "finished_at": "2026-09-22T00:37:32Z",
+   "seconds": 31.6,
+   "finished_at": "2026-09-27T05:14:34Z",
    "outputs": [
     "data/regions/oakland-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-22T00:37:32Z",
    "command": [
     "scripts/audit_corridor_render.py",
@@ -129,7 +129,8 @@
    "finished_at": "2026-09-22T00:37:36Z",
    "outputs": [
     "data/regions/oakland-downtown/audit_baseline.json"
-   ]
+   ],
+   "stale_because": "build"
   }
  }
 }

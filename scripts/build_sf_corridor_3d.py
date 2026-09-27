@@ -6838,7 +6838,14 @@ function dashedLine(points, color, opacity, y) {
   return obj;
 }
 
-function labelSprite(text, color = "#edf5f5", scale = 90) {
+//: A label's height as a fraction of the viewport, and the range beyond which it is not
+//: drawn. A sprite with sizeAttenuation off keeps its size on screen however far away it is,
+//: which is what a name on a map should do -- but it also means a name never shrinks out of
+//: the way, so each kind of label is given the distance past which it stops being useful.
+const LABEL_SCREEN_H = { street: 0.030, district: 0.042 };
+const LABEL_RANGE_M = { street: 420, district: 6000 };
+
+function labelSprite(text, color = "#edf5f5", kind = "street") {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
   canvas.height = 128;
@@ -6851,14 +6858,40 @@ function labelSprite(text, color = "#edf5f5", scale = 90) {
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = color;
-  ctx.font = "600 42px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text.slice(0, 28), 256, 62, 450);
+  // The name is fitted rather than cut. Chopping at a fixed count of characters put
+  // "University Avenue and the st" across a city; a name is set smaller until it fits the
+  // plate, and only a name too long to read at all is shortened, with the ellipsis that says so.
+  let size = 42;
+  let shown = text;
+  ctx.font = `600 ${size}px Inter, system-ui, sans-serif`;
+  while (ctx.measureText(shown).width > 450 && size > 24) {
+    size -= 2;
+    ctx.font = `600 ${size}px Inter, system-ui, sans-serif`;
+  }
+  while (ctx.measureText(shown).width > 450 && shown.length > 4) {
+    shown = shown.slice(0, -2) + "\u2026";
+    if (shown.length > 6) shown = shown.slice(0, -2) + "\u2026";
+  }
+  ctx.fillText(shown, 256, 62);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-  sprite.scale.set(scale, scale * 0.25, 1);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: texture, transparent: true, depthWrite: false,
+  }));
+  // Sized every frame from how far away it is, so it holds its share of the viewport.
+  //
+  // Not through sizeAttenuation: that leaves the sprite's scale in world units and has the
+  // shader multiply by the view depth, which also picks up whatever scale stands above the
+  // sprite in the graph -- so a name meant to be three per cent of the view came out nearer
+  // twenty. The size is worked out here instead, from the camera's own field of view, where
+  // it can be checked. As fixed world metres a district name was a 145-metre board lying over
+  // the blocks it named and a street name a 78-metre one: from a low camera they filled the
+  // view, and from a high one they tiled the city.
+  sprite.userData.labelScreenH = LABEL_SCREEN_H[kind] || LABEL_SCREEN_H.street;
+  sprite.userData.labelAspect = canvas.width / canvas.height;
+  sprite.userData.labelRange = LABEL_RANGE_M[kind] || LABEL_RANGE_M.street;
   return sprite;
 }
 
@@ -6876,8 +6909,8 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function labelAt(text, lon, lat, y, group, color = "#edf5f5", scale = 90) {
-  const sprite = labelSprite(text, color, scale);
+function labelAt(text, lon, lat, y, group, color = "#edf5f5", kind = "street") {
+  const sprite = labelSprite(text, color, kind);
   const [x, yy] = xy(lon, lat);
   sprite.position.set(x, y, -yy);
   group.add(sprite);
@@ -8571,6 +8604,31 @@ function distanceToSegmentSquared(px, pz, ax, az, bx, bz) {
   return ox * ox + oz * oz;
 }
 
+function insideMeasuredCarriageway(x, z, slack) {
+  // Inside a carriageway whose width was measured -- the lidar's kerb risers, or a city's own
+  // curb lines -- rather than one inferred from the street's class or from a right of way.
+  //
+  // The difference decides whether a mapped footway that overlaps the road is the mapper's
+  // error or ours. Where the kerb is measured it is the better line and the pavement drawn
+  // over it is wrong. Where the width is a prior, or a right of way minus its footways -- which
+  // makes Villa Terrace 53 m across -- the wide carriageway is ours, and deleting the
+  // pavement inside it would erase a third of the footway in this corridor for our own guess.
+  const cx = Math.floor(x / CARRIAGEWAY_CELL);
+  const cz = Math.floor(z / CARRIAGEWAY_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      if (!bucket) continue;
+      for (const [ax, az, bx, bz, half, , source] of bucket) {
+        if (!source || !MEASURED_ROAD_SOURCES.has(source.road_source)) continue;
+        const limit = Math.max(0, half - slack);
+        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
+      }
+    }
+  }
+  return false;
+}
+
 function insideCarriageway(x, z, slack = 0.4) {
   const cx = Math.floor(x / CARRIAGEWAY_CELL);
   const cz = Math.floor(z / CARRIAGEWAY_CELL);
@@ -8768,6 +8826,60 @@ function pavementTopAt(x, z) {
 
 function pavementBearingAt(x, z) {
   return pavedBearing.get(`${Math.floor(x / PAVED_CELL)}:${Math.floor(z / PAVED_CELL)}`);
+}
+
+//: A mapped footway with no surveyed width is drawn at this, and 3.6 m of concrete centred on
+//: a line somebody drew by eye reaches 1.8 m either side of it. Where the kerb beside it was
+//: measured, that is often 1.8 m the pavement does not have.
+const WALK_FIT_SAMPLE_M = 2.0;
+//: Never narrowed below this: a pavement that has shrunk to a kerb tile is not a pavement,
+//: and at that point the run is better dropped by the carriageway guard than drawn as a line.
+const WALK_FIT_MIN_M = 1.2;
+
+function walkWidthAgainstMeasuredKerbs(points, width) {
+  // The width this footway has room for, against the kerbs somebody measured.
+  //
+  // A mapped footway carries no width of its own in most cities, so it is drawn at the 3.6 m
+  // fallback, centred on the mapped line. On 14th Street in Oakland that line runs closer to
+  // the middle of the road than the lidar's kerb does, and the slab was laid over the asphalt
+  // -- not far enough in for the carriageway guard to drop the run, which asks about the
+  // centreline and about both edges together, and rightly keeps a pavement that merely abuts
+  // a kerb. The answer is not to delete the pavement but to draw the width there is: the
+  // strip is narrowed until its edge clears the measured kerb, and a footway beside an
+  // inferred width -- a class prior, a right of way minus its footways -- is left alone,
+  // because there the wide carriageway is our guess rather than the mapper's error.
+  if (!points || points.length < 2 || !carriagewayGrid.size) return width;
+  let intrusion = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1];
+    const b = points[i];
+    const [ax, ay] = xy(a[0], a[1]);
+    const [bx, by] = xy(b[0], b[1]);
+    const span = Math.hypot(bx - ax, by - ay);
+    const steps = Math.max(1, Math.ceil(span / WALK_FIT_SAMPLE_M));
+    const nx = -(ay - by) / (span || 1);
+    const nz = (bx - ax) / (span || 1);
+    for (let k = 0; k <= steps; k += 1) {
+      const point = lerpLonLat(a, b, k / steps);
+      const [x, y] = xy(point[0], point[1]);
+      const z = -y;
+      // How far out this sample's edges have to move to clear a measured kerb, found by
+      // halving between the edge and the centreline.
+      for (const sign of [1, -1]) {
+        let clear = 0;
+        let over = width / 2;
+        if (!insideMeasuredCarriageway(x + sign * nx * over, z + sign * nz * over, 0.15)) continue;
+        for (let step = 0; step < 8; step += 1) {
+          const mid = (clear + over) / 2;
+          if (insideMeasuredCarriageway(x + sign * nx * mid, z + sign * nz * mid, 0.15)) over = mid;
+          else clear = mid;
+        }
+        intrusion = Math.max(intrusion, width / 2 - clear);
+      }
+    }
+  }
+  if (intrusion <= 0.05) return width;
+  return Math.max(WALK_FIT_MIN_M, width - 2 * intrusion);
 }
 
 function addPavementRibbon(points, width, color, opacity, y, thickness, surface,
@@ -14660,8 +14772,13 @@ for (const way of DRAW_ORDER) {
   // ``continental`` flag still records the 817 the city confirms.
   if (isSidewalk || isPath) {
     addSidewalkCrossingReplacements(renderPoints, roadTop + 0.024);
-    addPavementRibbon(surfacePoints, widthMeters, color, opacity,
-                      surfaceY, surfaceThickness, surfaceKind, true);
+    // A surveyed width is a measurement and is drawn as it stands; a fallback width is a guess,
+    // and a guess gives way to the measured kerb beside it.
+    const fitted = way.walk_m ? widthMeters
+      : walkWidthAgainstMeasuredKerbs(surfacePoints, widthMeters);
+    addPavementRibbon(surfacePoints, fitted, color, opacity,
+                      surfaceY, surfaceThickness,
+                      fitted <= NARROW_WALK_M ? "walk_narrow" : surfaceKind, true);
   } else {
     // A crossing's paint is dense along its length -- a vertex every half metre -- because it
     // is settled onto the road as drawn afterwards (settleOnto), and it can only follow the
@@ -14804,7 +14921,7 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     if (midpoint) {
       streetNames.add(way.name);
       streetLabelCount += 1;
-      labelAt(way.name, midpoint[0], midpoint[1], 28, groups.streets, "#d6e7ea", 78);
+      labelAt(way.name, midpoint[0], midpoint[1], 28, groups.streets, "#d6e7ea", "street");
     }
   }
 }
@@ -16710,7 +16827,7 @@ DATA.districts.forEach((d, i) => {
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set((x1 + x2) / 2, -0.08, -(y1 + y2) / 2);
   groups.districts.add(mesh);
-  labelAt(d.name, (d.west + d.east) / 2, (d.south + d.north) / 2, 54, groups.districts, "#ffffff", 145);
+  labelAt(d.name, (d.west + d.east) / 2, (d.south + d.north) / 2, 54, groups.districts, "#ffffff", "district");
 });
 
 const FURNITURE_POST_H_M = 2.7;
@@ -18503,13 +18620,37 @@ function cullDetailByDistance(frame, eye = camera) {
 }
 let frameCount = 0;
 
+//: Labels keep their size on screen, so nothing makes a far one go away by itself: each is
+//: hidden past the range its kind is useful over. Rebuilt on the same cadence as the detail
+//: index, because street names are added as the streets are.
+let labelSprites = [];
+const labelCentre = new THREE.Vector3();
+
+function cullLabelsByDistance(frame, eye = camera) {
+  if (frame % DETAIL_REINDEX_FRAMES === 0) {
+    labelSprites = [];
+    root.traverse((o) => { if (o.isSprite && o.userData.labelRange) labelSprites.push(o); });
+  }
+  // A sprite h of the viewport high, at distance d, is 2 d tan(fov/2) h metres tall.
+  const perMetre = 2 * Math.tan((eye.fov * Math.PI) / 360);
+  for (const sprite of labelSprites) {
+    labelCentre.setFromMatrixPosition(sprite.matrixWorld);
+    const away = eye.position.distanceTo(labelCentre);
+    sprite.visible = away < sprite.userData.labelRange;
+    if (!sprite.visible) continue;
+    const height = Math.max(0.05, away * perMetre * sprite.userData.labelScreenH);
+    sprite.scale.set(height * sprite.userData.labelAspect, height, 1);
+  }
+}
+
 function animate(now) {
   requestAnimationFrame(animate);
   // The first frame drawn is the end of loading.
   const progress = document.getElementById("progress");
   if (progress && !progress.hidden) progress.hidden = true;
   stepAvatar(now || performance.now());
-  cullDetailByDistance(frameCount++);
+  cullDetailByDistance(frameCount);
+  cullLabelsByDistance(frameCount++);
   updateTileTree(now || performance.now());
   renderer.render(scene, camera);
   adaptResolution(now || performance.now());
@@ -18634,6 +18775,7 @@ window.kerbside = {
     // The fine surfaces are culled by distance from the map's camera; the photograph is taken
     // from its own, so they are culled for it, and put back for the map's next frame.
     cullDetailByDistance(0, cam);
+    cullLabelsByDistance(0, cam);
     try {
       this._shot.render(scene, cam);
     } finally {

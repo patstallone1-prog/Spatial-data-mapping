@@ -41,6 +41,7 @@ BASELINE_DATA = ROOT / "data" / "sf_corridor" / "audits" / "width_vs_kerb.json"
 FUNCTIONS = (
     "distanceToSegmentSquared",
     "insideCarriageway",
+    "insideMeasuredCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
     "dividerFootprintIsRoadborne",
@@ -195,6 +196,7 @@ const KERBSIDE_BLOCK_PROBE_M = 1.8;
 const KERB_LIP_M = 0.1016;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 const WALK_ENOUGH = 0.55;
+const WALK_EDGE_ALLOWED_M = 2.6;
 const WALK_WIDTH_RUN_M = 6.0;
 const PROPERTY_LINE_PAVEMENT_WIDTH_M = 8.6;
 const UNDERLAY_MIN_WIDTH_M = 0.8;
@@ -217,7 +219,7 @@ const ENVELOPE_MAX_SPREAD_M = 0.9;
 const ENVELOPE_MIN_WAY_M = 10.0;
 const ROW_MISMATCH_FACTOR = 2.0;
 const ENVELOPE_RELABEL_M = 1.0;
-const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half", "tunnel_cut"]);
+const MEASURED_ROAD_SOURCES = new Set(["curb_geometry", "official_curbs", "divided_half", "tunnel_cut", "curb_profile", "lidar_profile"]);
 const FACADE_GAP_M = 0.3;
 const WALK_TO_FACADE_MAX_M = 7.0;
 const FACADE_ROOM_WALK_M = 1.4;

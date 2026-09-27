@@ -127,10 +127,10 @@
    "available": "imagery",
    "implemented": true,
    "extractor": "scripts/build_facade_fingerprints.py",
-   "active": "none",
-   "count": 0,
+   "active": "imagery",
+   "count": 1437,
    "of": 5293,
-   "truthful": false,
+   "truthful": true,
    "note": ""
   },
   "terrain": {
@@ -159,7 +159,7 @@
    "extractor": "SFMTA curb ramp inventory",
    "active": "official",
    "count": 1291,
-   "of": 316,
+   "of": 317,
    "truthful": true,
    "note": "the city's ramp inventory, as ramps; crossings end at them in the audit's endsAtRampShare"
   },

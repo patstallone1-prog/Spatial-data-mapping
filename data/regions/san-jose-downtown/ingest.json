@@ -23,14 +23,14 @@
   },
   "osm": {
    "status": "done",
-   "started_at": "2026-09-20T19:47:25Z",
+   "started_at": "2026-09-27T14:11:02Z",
    "command": [
     "scripts/fetch_region_osm.py",
     "san-jose-downtown"
    ],
    "exit_code": 0,
-   "seconds": 42.2,
-   "finished_at": "2026-09-20T19:48:07Z",
+   "seconds": 9.8,
+   "finished_at": "2026-09-27T14:11:12Z",
    "outputs": [
     "data/regions/san-jose-downtown/osm_ways.json"
    ]
@@ -69,7 +69,7 @@
    "partial": "stopped at budget; catalogue built from the journal"
   },
   "official": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-20T21:49:03Z",
    "command": [
     "scripts/build_sf_official_geometry.py",
@@ -79,25 +79,26 @@
    "exit_code": 0,
    "seconds": 0.2,
    "finished_at": "2026-09-20T21:49:03Z",
-   "outputs": []
+   "outputs": [],
+   "stale_because": "osm"
   },
   "lidar": {
    "status": "done",
-   "started_at": "2026-09-21T04:37:50Z",
+   "started_at": "2026-09-27T14:11:12Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "san-jose-downtown"
    ],
    "exit_code": 0,
-   "seconds": 3008.6,
-   "finished_at": "2026-09-21T05:27:59Z",
+   "seconds": 2540.6,
+   "finished_at": "2026-09-27T14:53:33Z",
    "outputs": [
     "data/regions/san-jose-downtown/lidar/building_heights.json"
    ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-21T19:59:30Z",
+   "started_at": "2026-09-27T14:53:33Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -105,14 +106,14 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 255.8,
-   "finished_at": "2026-09-21T20:03:46Z",
+   "seconds": 35.6,
+   "finished_at": "2026-09-27T14:54:08Z",
    "outputs": [
     "data/regions/san-jose-downtown/site/sf-corridor-3d.json"
    ]
   },
   "audit": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-21T20:03:46Z",
    "command": [
     "scripts/audit_corridor_render.py",
@@ -130,7 +131,8 @@
    "finished_at": "2026-09-21T20:03:50Z",
    "outputs": [
     "data/regions/san-jose-downtown/audit_baseline.json"
-   ]
+   ],
+   "stale_because": "build"
   }
  }
 }
