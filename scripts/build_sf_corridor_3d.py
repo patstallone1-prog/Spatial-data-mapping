@@ -432,6 +432,44 @@ def configure_region(region: Region, out: Path, official_dir: Path | None = None
     FACADE_ROOT = SITE_DIR / "facades"
 
 
+#: How finely the ground is cut, by where the page is going to be read.
+#:
+#: The site build has to arrive over the network into a browser tab and stay interactive there,
+#: so its lattice stops at four metres: past that the corridor went to 83 ms a frame for a last
+#: few centimetres nobody can see. The app is a mirror already on the device with no page weight
+#: to keep to and no tab to share a GPU with, so it is cut as finely as the two-metre terrain
+#: grid can justify -- and the covers the site leaves on one spacing, the pavement underlay and
+#: the parking lots, follow the ground there too.
+DETAIL_TUNING = {
+    "app": {
+        "const LATTICE_BY_INCLINE = [\n  [600, 4.0],   // a cliff, a stair, a retaining wall\n"
+        "  [300, 6.0],\n  [150, 8.0],\n  [60, 12.0],\n  [0, 16.0],    // flat ground: as it was\n];":
+        "const LATTICE_BY_INCLINE = [\n  [300, 1.5],   // finer than the terrain grid, where the grid earns it\n"
+        "  [150, 2.0],\n  [60, 3.0],\n  [20, 4.0],\n  [0, 8.0],     // flat ground, still cut four times finer\n];",
+        "const LATTICE_DRAWN_MAX_M = 12.0;": "const LATTICE_DRAWN_MAX_M = 6.0;",
+        "const LATTICE_BUSY_RINGS = 6;": "const LATTICE_BUSY_RINGS = 3;",
+        "  walk_underlay: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M],":
+        "  walk_underlay: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M, undefined, false, true],",
+        "  parking_lot: [12.0, 0], front_walk: [12.0, 0],":
+        "  parking_lot: [12.0, 0, undefined, false, true], front_walk: [12.0, 0, undefined, false, true],",
+    },
+    "site": {},
+}
+
+
+def tuned(html: str, detail: str) -> str:
+    """The page, cut for where it is going to be read."""
+    swaps = DETAIL_TUNING.get(detail) or {}
+    for old, new in swaps.items():
+        if old not in html:
+            raise SystemExit(f"--detail {detail}: the page no longer contains {old[:60]!r}; "
+                             "the tuning has drifted from the renderer it tunes")
+        html = html.replace(old, new, 1)
+    if swaps:
+        html = html.replace("<title>Kerbside", "<title>Kerbside", 1)
+    return html
+
+
 def load_building_colours(path: Path) -> dict[str, dict]:
     """The sampled colours keyed by osm_id; an old index-keyed file is refused, not misread."""
     if not path.exists():
@@ -3732,10 +3770,15 @@ const TERRAIN_REFINE_BY_SURFACE = {
 //: stair stands, and chasing every step to the grid's own cell size ran a yard to millions.
 const TERRAIN_REFINE_GROWTH = 4;
 //: And a mesh may not pass this many vertices however much area it covers. The cut index is
-//: packed as a * 2^24 + b, so two vertices past 16,777,216 share a key and the refinement
-//: reads back somebody else's cut; V8's Map gives out at about the same place. Four million is
-//: clear of both, and a merged mesh that wants more is one that should have been split.
-const REFINE_VERTEX_CAP = 4_000_000;
+//: packed as a * 2^24 + b, so two vertices past 16,777,216 would share a key and the
+//: refinement would read back somebody else's cut; V8 stops a Map at about the same place,
+//: which is where the ground build died. Twelve million is clear of both.
+//:
+//: Not lower. Four million looked like a safe round number and was not: the corridor's plaza
+//: paving is one merged mesh that had been refining past it happily, and capping it there put
+//: Huntington Park six and a half metres under the hill -- the same holes this work is here to
+//: close, dug deeper, in the one surface that had been right all along.
+const REFINE_VERTEX_CAP = 12_000_000;
 // ---- how fine the ground has to be cut, place by place ----
 //
 // A surface is cut against a world lattice, and the lattice used to be one spacing for the
@@ -3760,12 +3803,15 @@ const REFINE_VERTEX_CAP = 4_000_000;
 const LATTICE_CELL_M = 32.0;
 //: Degrees of accumulated incline across one cell, and what each earns. The finest is the
 //: terrain grid's own step, below which there is nothing left to resolve.
+//: Tempered once already. Running the finest step down to the terrain grid's own two metres
+//: took the corridor to 83 ms a frame -- twelve pictures a second, on a machine that draws the
+//: unmodified model comfortably -- for a last few centimetres nobody can see. Four metres is
+//: where the sag stops being visible and the frame rate survives.
 const LATTICE_BY_INCLINE = [
-  [420, 2.0],   // a cliff, a stair, a retaining wall: the grid's own step
-  [220, 3.0],
-  [110, 4.0],
-  [55, 6.0],
-  [25, 9.0],
+  [600, 4.0],   // a cliff, a stair, a retaining wall
+  [300, 6.0],
+  [150, 8.0],
+  [60, 12.0],
   [0, 16.0],    // flat ground: as it was
 ];
 //: Cover rings over a cell that count as "much is drawn here", and the step finer it earns.
@@ -3901,13 +3947,19 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
   const gridZ = snapToTerrain && TERRAIN_FRAME ? -(TERRAIN_FRAME.y0 + TERRAIN_FRAME.step_m / 2) : 0;
   const cutAt = (a, b, len) => {
     const lattice = latticeFor(a, b);
-    // The budget binds here too. It never used to: the lattice branch cut whatever it liked
-    // and only the chord branch asked whether there was room, which was harmless while the
-    // lattice was one coarse number and fatal as soon as it could ask for two metres over a
-    // merged mesh the size of the corridor. The cut index is keyed as a * 2^24 + b, so a mesh
-    // has nowhere to put its 16.7 millionth vertex: the ground build died there with
-    // "Map maximum size exceeded" and every park, yard and plaza in the city went with it.
-    if (count > budget) return -1;
+    // The hard cap binds here, and only the hard cap. The lattice branch used to have no limit
+    // at all, which was harmless while the lattice was one coarse number and fatal as soon as
+    // it could ask for two metres over a merged mesh the size of the corridor: the cut index
+    // is keyed as a * 2^24 + b, the mesh had nowhere to put its 16.7 millionth vertex, and the
+    // ground build died with "Map maximum size exceeded" taking every park, yard and plaza in
+    // the city with it.
+    //
+    // The budget is not the limit to use here. It is sized for the chord rule -- the optional
+    // extra cuts that chase a bend -- and holding the lattice to it starved the plaza paving,
+    // which had been refining past it quite happily: Huntington Park went from sixteen
+    // centimetres off the hill to six and a half metres under it. The lattice is the
+    // structural cut, the one that decides whether a surface follows the ground at all.
+    if (count > REFINE_VERTEX_CAP) return -1;
     if (len >= Math.min(minEdge, lattice)) {
       let best = -1, bestOff = Infinity;
       for (const [pa, pb, origin] of [[px(a), px(b), gridX], [pz(a), pz(b), gridZ]]) {
@@ -19384,6 +19436,11 @@ def main() -> int:
                              "data/regions/<name>/official otherwise")
     parser.add_argument("--osm-cache", type=Path, default=None)
     parser.add_argument("--reuse-osm", action="store_true")
+    parser.add_argument("--detail", choices=("site", "app"), default="site",
+                        help="how finely the ground is cut. 'site' is sized for a browser tab "
+                             "over the network; 'app' is the downloaded mirror, which has the "
+                             "whole file on disk and no page-weight budget to keep to, and is "
+                             "cut as finely as the terrain grid can justify.")
     parser.add_argument("--page-only", action="store_true",
                         help="regenerate the SF viewer HTML without rebuilding its published data")
     parser.add_argument("--allow-incomplete", action="store_true",
@@ -19403,7 +19460,7 @@ def main() -> int:
         if not corridor:
             parser.error("--page-only currently supports the SF corridor viewer only")
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(HTML, encoding="utf-8")
+        args.out.write_text(tuned(HTML, args.detail), encoding="utf-8")
         print(f"{args.out} -> {args.out.stat().st_size / 1e3:.1f} kB viewer only")
         return 0
     if corridor and args.allow_incomplete and args.out.resolve() == (ROOT / "docs/sf-corridor-3d.html").resolve():

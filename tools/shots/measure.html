@@ -1,0 +1,71 @@
+<!doctype html><meta charset="utf-8"><title>measure</title>
+<!-- Runs a measurement against the built page in headless Chrome and prints it as JSON.
+     The browser bridge throttles a hidden pane to a few frames a second, which makes a
+     corridor build take minutes and a traverse time out; headless runs at full speed. -->
+<body style="margin:0;background:#111;color:#ddd;font:12px monospace">
+<iframe id="f" style="width:1280px;height:720px;border:0"></iframe>
+<pre id="out">measuring…</pre>
+<script>
+const q = new URLSearchParams(location.search);
+const f = document.getElementById("f");
+f.src = q.get("page") || "/docs/sf-corridor-3d.html";
+const spec = JSON.parse(decodeURIComponent(q.get("spec") || "{}"));
+const ready = () => new Promise((r) => {
+  const i = setInterval(() => {
+    const w = f.contentWindow;
+    if (w.kerbside && w.kerbsideReady && w.kerbsideReady.streets && w.kerbsideReady.ground) {
+      clearInterval(i); r(w.kerbside);
+    }
+  }, 500);
+});
+ready().then(async (k) => {
+  await new Promise((r) => setTimeout(r, 3000));
+  const T = k.THREE;
+  const ray = new T.Raycaster(); ray.camera = k.camera; ray.layers.enableAll();
+  const out = { triangles: {}, blocks: {} };
+  for (const [name, group] of Object.entries(k.groups)) {
+    if (!group || !group.traverse) continue;
+    let tri = 0; const by = {};
+    group.traverse((o) => {
+      if (!o.isMesh || !o.geometry) return;
+      const g = o.geometry;
+      const n = (g.index ? g.index.count : (g.getAttribute("position") || { count: 0 }).count) / 3;
+      tri += n;
+      const s = (o.userData || {}).surface || "?";
+      by[s] = (by[s] || 0) + n;
+    });
+    if (tri) out.triangles[name] = { total: Math.round(tri), by };
+  }
+  // Each block: how much of the ground cover is drawn below the terrain it stands on.
+  for (const block of spec.blocks || []) {
+    const [cx, cy] = k.xy(block.lon, block.lat);
+    let n = 0, below = 0, worst = 0; const kinds = {};
+    for (let dx = block.x0; dx <= block.x1; dx += (block.step || 6)) {
+      for (let dz = block.z0; dz <= block.z1; dz += (block.step || 6)) {
+        const x = cx + dx, z = -cy + dz;
+        const t = k.terrainHeightAt(x, z);
+        if (!isFinite(t)) continue;
+        ray.set(new T.Vector3(x, 600, z), new T.Vector3(0, -1, 0));
+        const h = ray.intersectObjects([k.groups.ground], true)[0];
+        if (!h) continue;
+        const s = (h.object.userData || {}).surface || "?";
+        kinds[s] = (kinds[s] || 0) + 1;
+        n += 1;
+        const d = h.point.y - t;
+        if (d < -0.05) { below += 1; if (d < worst) worst = d; }
+      }
+    }
+    out.blocks[block.name] = { sampled: n, below, worstSagM: +worst.toFixed(2), kinds };
+  }
+  // What the lattice chose, where asked.
+  if (k.latticeAt) {
+    out.lattice = {};
+    for (const p of spec.lattice || []) {
+      const [x, y] = k.xy(p.lon, p.lat);
+      out.lattice[p.name] = k.latticeAt(x, -y);
+    }
+  }
+  document.getElementById("out").textContent = "RESULT " + JSON.stringify(out);
+  document.title = "done";
+});
+</script>

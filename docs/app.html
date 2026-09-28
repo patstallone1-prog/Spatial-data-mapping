@@ -65,6 +65,25 @@
   .bar .state { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
 
   .view { display: none; padding-top: 14px; }
+  /* The model fills the app: it is the thing the app is for, not a panel inside it. */
+  #v-map.on { display: block; padding-top: 0; }
+  #mapwrap { position: relative; width: 100%; height: calc(100vh - 132px);
+             min-height: 340px; border-radius: 12px; overflow: hidden;
+             background: #071013; border: 1px solid var(--line); }
+  #model { width: 100%; height: 100%; border: 0; display: block; }
+  /* The loading cover sits over the model until the model says it is built. */
+  #mapload { position: absolute; inset: 0; display: grid; place-items: center;
+             background: #071013; transition: opacity .45s ease; z-index: 3; }
+  #mapload.done { opacity: 0; pointer-events: none; }
+  .ml-card { width: min(420px, 82vw); text-align: left; }
+  .ml-title { font-weight: 650; font-size: 15px; color: var(--ink); margin-bottom: 4px; }
+  .ml-stage { font-size: 13px; color: var(--muted); min-height: 18px; margin-bottom: 10px; }
+  .ml-track { height: 6px; border-radius: 99px; background: #14242b; overflow: hidden; }
+  .ml-fill { height: 100%; width: 0%; border-radius: 99px; background: var(--accent);
+             transition: width .35s ease; }
+  .ml-pct { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px;
+            font-size: 12px; color: var(--muted); }
+  .ml-pct span:first-child { color: var(--ink); font-variant-numeric: tabular-nums; }
   .view.on { display: flex; flex-direction: column; gap: 14px; }
 
   .card {
@@ -200,7 +219,7 @@
   </header>
 
   <!-- ================= CAPTURE ================= -->
-  <div class="view on" id="v-capture">
+  <div class="view" id="v-capture">
     <div class="stage" id="stage">
       <div class="idle" id="stage-idle">
         Camera off.<br />Start it to capture, or import frames from glasses.
@@ -350,18 +369,20 @@
   </div>
 
   <!-- ================= MAP ================= -->
-  <div class="view" id="v-map">
-    <canvas id="map"></canvas>
-    <div class="grid2">
-      <div class="stat"><span class="v" id="m-walk">0</span><span class="k">Footways here</span></div>
-      <div class="stat"><span class="v" id="m-cover">0</span><span class="k">Scanned</span></div>
-    </div>
-    <div class="card">
-      <h2>Alamo Square, San Francisco</h2>
-      <p>
-        Street and footway geometry from OpenStreetMap; pink marks where street-level imagery
-        already exists. Your captures join this once positions are recovered.
-      </p>
+  <div class="view on" id="v-map">
+    <!-- The model itself, the same page the site serves, cut finer because this copy is on the
+         device rather than coming down a wire. It starts loading the moment the app opens:
+         everything else here is one tap away, and the map is what takes time. -->
+    <div id="mapwrap">
+      <iframe id="model" title="Kerbside 3D" src="app-model.html" loading="eager"></iframe>
+      <div id="mapload" role="status" aria-live="polite">
+        <div class="ml-card">
+          <div class="ml-title">Building the model</div>
+          <div class="ml-stage" id="ml-stage">Fetching the measurements&hellip;</div>
+          <div class="ml-track"><div class="ml-fill" id="ml-fill"></div></div>
+          <div class="ml-pct"><span id="ml-pct">0%</span><span id="ml-note">measured kerbs, lidar ground, photographed walls</span></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -413,10 +434,10 @@
 </div>
 
 <nav class="tabs">
-  <button class="tab" data-view="capture" aria-selected="true"><span class="ic">&#9673;</span>Capture</button>
+  <button class="tab" data-view="map" aria-selected="true"><span class="ic">&#9678;</span>Map</button>
+  <button class="tab" data-view="capture" aria-selected="false"><span class="ic">&#9673;</span>Capture</button>
   <button class="tab" data-view="library" aria-selected="false"><span class="ic">&#9776;</span>Library</button>
   <button class="tab" data-view="tonight" aria-selected="false"><span class="ic">&#9788;</span>Tonight</button>
-  <button class="tab" data-view="map" aria-selected="false"><span class="ic">&#9678;</span>Map</button>
   <button class="tab" data-view="about" aria-selected="false"><span class="ic">&#8681;</span>App</button>
 </nav>
 
@@ -1423,30 +1444,111 @@ async function refresh() {
   paintProjection(frames);
 }
 
+/* ============ the model's loading bar ============ */
+//
+// The model reports its own progress: it writes a line into #progress as it goes ("Building
+// the streets: 62%", "Standing the ground cover on the hill: 10%") and sets kerbsideReady when
+// each half is done. The app is same-origin with it, so rather than invent a spinner that
+// means nothing, the bar shows what the model is actually doing and how far in it is.
+//
+// The stages are weighted by how long each really takes, measured on a corridor build, so the
+// bar moves at something like an even rate instead of sitting at one number for a minute.
+const MODEL_STAGES = [
+  [/fetch|loading|reading/i, 0.00, 0.06, "Fetching the measurements"],
+  [/terrain|ground grid/i, 0.06, 0.14, "Laying the lidar ground"],
+  [/building the streets/i, 0.14, 0.52, "Building the streets"],
+  [/standing the streets/i, 0.52, 0.74, "Standing the streets on the hill"],
+  [/crossing|paint/i, 0.74, 0.80, "Painting the crossings"],
+  [/ground cover|standing the ground/i, 0.80, 0.94, "Standing the ground cover on the hill"],
+  [/facade|colour|tree|furniture/i, 0.94, 0.99, "Dressing the block"],
+];
+
+function watchModel() {
+  const frame = document.getElementById("model");
+  const cover = document.getElementById("mapload");
+  const fill = document.getElementById("ml-fill");
+  const pct = document.getElementById("ml-pct");
+  const stageOut = document.getElementById("ml-stage");
+  if (!frame || !cover) return;
+  let shown = 0;
+  const tick = () => {
+    let done = false;
+    let text = "";
+    try {
+      const w = frame.contentWindow;
+      const ready = w && w.kerbsideReady;
+      done = Boolean(ready && ready.streets && ready.ground);
+      const box = w && w.document && w.document.getElementById("progress");
+      text = (box && !box.hidden && box.textContent) || "";
+    } catch (err) {
+      // Cross-origin, which it should never be -- the model is served beside the app. Nothing
+      // to read, so the bar creeps rather than lying about a number it does not have.
+      shown = Math.min(0.92, shown + 0.01);
+    }
+    let target = shown;
+    if (done) {
+      target = 1;
+    } else if (text) {
+      const inside = (text.match(/(\d+)\s*%/) || [])[1];
+      const within = inside === undefined ? 0.5 : Math.min(1, Number(inside) / 100);
+      const stage = MODEL_STAGES.find(([re]) => re.test(text));
+      if (stage) {
+        target = stage[1] + (stage[2] - stage[1]) * within;
+        stageOut.textContent = stage[3] + (inside === undefined ? "\u2026" : " \u2014 " + inside + "%");
+      } else {
+        stageOut.textContent = text;
+      }
+    }
+    // Never backwards: a later stage reporting 0% should not undo the bar.
+    shown = Math.max(shown, Math.min(1, target));
+    fill.style.width = (shown * 100).toFixed(0) + "%";
+    pct.textContent = (shown * 100).toFixed(0) + "%";
+    if (done) {
+      stageOut.textContent = "Ready";
+      cover.classList.add("done");
+      setTimeout(() => { cover.style.display = "none"; }, 500);
+      return;
+    }
+    setTimeout(tick, 250);
+  };
+  tick();
+}
+watchModel();
+
 /* ============ tabs ============ */
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
     document.querySelectorAll(".view").forEach((v) => v.classList.remove("on"));
     document.getElementById("v-" + tab.dataset.view).classList.add("on");
-    if (tab.dataset.view === "map") drawMap();
+    // The model is an iframe that has been loading since the app opened; switching to it
+    // needs nothing but showing it. It does need to know its size changed.
+    if (tab.dataset.view === "map") {
+      const frame = document.getElementById("model");
+      if (frame && frame.contentWindow) frame.contentWindow.dispatchEvent(new Event("resize"));
+    }
   });
 });
 
 /* ============ map ============ */
+// The flat overview canvas the Map tab used to be. The tab shows the measured model now, so
+// this element is not in the page; the code stays because the uploaded-points bookkeeping
+// below it is still wanted, and every entry point checks for the canvas before drawing.
 const mapCanvas = document.getElementById("map");
-const mg = mapCanvas.getContext("2d");
+const mg = mapCanvas ? mapCanvas.getContext("2d") : null;
 let mapView = null;
 let uploadedPoints = [];
 
 function fitMap() {
   const [w, s, e, n] = DATA.bbox;
+  if (!mapCanvas) return { cx: (w + e) / 2, cy: (s + n) / 2, scale: 1, kx: 1, base: 1 };
   const rect = mapCanvas.getBoundingClientRect();
   const kx = Math.cos((((s + n) / 2) * Math.PI) / 180);
   const scale = Math.min(rect.width / ((e - w) * kx), rect.height / (n - s)) * 0.94;
   return { cx: (w + e) / 2, cy: (s + n) / 2, scale, kx, base: scale };
 }
 function drawMap() {
+  if (!mapCanvas || !mg) return;
   const rect = mapCanvas.getBoundingClientRect();
   if (!rect.width) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1491,16 +1593,16 @@ function drawMap() {
   }
 }
 let mdrag = false, mlast = null;
-mapCanvas.addEventListener("pointerdown", (e) => { mdrag = true; mlast = [e.clientX, e.clientY]; mapCanvas.setPointerCapture(e.pointerId); });
-mapCanvas.addEventListener("pointermove", (e) => {
+if (mapCanvas) mapCanvas.addEventListener("pointerdown", (e) => { mdrag = true; mlast = [e.clientX, e.clientY]; mapCanvas.setPointerCapture(e.pointerId); });
+if (mapCanvas) mapCanvas.addEventListener("pointermove", (e) => {
   if (!mdrag || !mapView) return;
   mapView.cx -= (e.clientX - mlast[0]) / (mapView.kx * mapView.scale);
   mapView.cy += (e.clientY - mlast[1]) / mapView.scale;
   mlast = [e.clientX, e.clientY];
   drawMap();
 });
-mapCanvas.addEventListener("pointerup", () => { mdrag = false; });
-mapCanvas.addEventListener("wheel", (e) => {
+if (mapCanvas) mapCanvas.addEventListener("pointerup", () => { mdrag = false; });
+if (mapCanvas) mapCanvas.addEventListener("wheel", (e) => {
   e.preventDefault();
   if (!mapView) return;
   mapView.scale = Math.min(Math.max(mapView.scale * Math.exp(-e.deltaY * 0.0016), mapView.base * 0.6), mapView.base * 12);

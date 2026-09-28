@@ -2745,6 +2745,8 @@ const THREE = { Float32BufferAttribute, BufferGeometry };
 """]
     for constant in ("TERRAIN_REFINE_M", "TERRAIN_CHORD_M", "TERRAIN_REFINE_MIN_M", "TERRAIN_REFINE_GROWTH"):
         parts.append(re.search(rf"const {constant} = [0-9.]+;", js).group(0))
+    # The hard cap on how far a mesh may be cut, which the lattice branch is held to.
+    parts.append(re.search(r"const REFINE_VERTEX_CAP = [0-9_]+;", js).group(0))
     # Flat ground first: nothing bends, only length splits.
     parts.append("let TERRAIN_FRAME = null; let terrainHeightAt = () => 0;")
     parts.append(_extract("refineForTerrain", js))

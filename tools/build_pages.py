@@ -183,6 +183,12 @@ def main(out: pathlib.Path | None = None) -> None:
     landing = need(BUILD / "landing.html")
 
     (out / "app.html").write_text(app)
+    # The app's own copy of the viewer, cut finer than the site's. The app opens on the model,
+    # so this is the first thing it loads; it is a separate file rather than inlined because
+    # the viewer fetches its measurements from beside itself either way.
+    app_model = BUILD / "app-viewer.html"
+    if app_model.exists():
+        (out / "app-model.html").write_text(app_model.read_text())
     (out / "index.html").write_text(landing)
     publish_regions(out)
 

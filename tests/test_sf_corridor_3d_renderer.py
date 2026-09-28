@@ -39,7 +39,10 @@ def test_plaza_paving_follows_the_two_metre_lidar_grid() -> None:
     """Coarse plaza chords let terrain poke through as dark angular holes."""
     source = _source()
     assert "plaza: [2.0, 0, 2.0, true]" in source
-    assert "o.geometry = refineForTerrain(o.geometry, limit, chord, minEdge, snapToTerrain);" in source
+    # The fifth argument is the adaptive lattice, which plaza does not take: it asks for two
+    # metres everywhere and two metres is already the finest the terrain grid can justify.
+    assert ("o.geometry = refineForTerrain(o.geometry, limit, chord, minEdge, snapToTerrain, adaptive);"
+            in source)
     assert "TERRAIN_FRAME.x0 + TERRAIN_FRAME.step_m / 2" in source
 
 
