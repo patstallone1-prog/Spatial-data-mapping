@@ -427,7 +427,7 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
     assert broadway["tunnel_mouths"]["start"][0] < -122.4113, broadway["tunnel_mouths"]
     source = _source()
     # One headwall design at both ends; the hill behind it is what the lidar measured.
-    assert "const H = TUNNEL_CROWN_M + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;" in source
+    assert "const H = crown + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;" in source
     assert "portal.userData.coverM = measured[label] || null;" in source
     # The portal is as wide as the city's kerbs on the approach; over sixteen metres, two bores.
     assert "function tunnelApproachWidth(mouth, outward)" in source
@@ -437,7 +437,7 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
     # walkway along each wall and lights at the crown; the hill is the terrain itself.
     assert "tunnel_dark" not in source and "TUNNEL_SINK_M" not in source
     assert "function sweepAlongBore(stations, section, material, surface)" in source
-    assert "function tunnelStations(centre, cover = null, roadZ = null)" in source
+    assert "function tunnelStations(centre, cover = null, roadZ = null, design = null)" in source
     assert "function approachRoadAt(x, z, outsideOnly = false)" in source and '"tunnel_road_z"' in source
     assert "function tunnelCoverAlong(cover, s)" in source
     assert '"tunnel_walk"' in source and '"tunnel_light"' in source

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="kerbside-assets" content="" />
+<meta name="kerbside-assets" content="../../regions/sf-mission" />
 <meta name="kerbside-app-mode" content="full-regional-view" />
-<meta name="kerbside-regions" content="app-regions.json" />
-<title>Kerbside SF Corridor 3D</title>
+<meta name="kerbside-regions" content="../../app-regions.json" />
+<title>Kerbside Mission District 3D</title>
 <style>
 :root { color-scheme: dark; --bg:#071013; --panel:#10191e; --line:#274048; --ink:#edf5f5; --muted:#8fa4a6; --pink:#ff4d8f; --green:#4fbe86; --amber:#e0a84e; --cyan:#54c8e8; }
 * { box-sizing: border-box; }
@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
 <div class="hud" id="hud" data-open="true">
   <div class="panel">
     <div class="bar">
-      <h1>Kerbside SF Corridor 3D</h1>
+      <h1>Kerbside Mission District 3D</h1>
       <button id="fold" aria-expanded="true" aria-controls="hud" title="Collapse">&minus;</button>
     </div>
     <div class="collapsible">
@@ -1797,7 +1797,7 @@ if (PERIMETER) {
 //: corridor's page sits beside it, and a region's page two folders down reaches up to it
 //: rather than carrying fifteen megabytes of its own copy (tools/build_pages.py rewrites
 //: this line for a region's page).
-const TILE_BASE = "tiles/";
+const TILE_BASE = "../../tiles/";
 const TILE_MAX_SCREEN_ERROR_PX = 3.0;
 //: How many tiles may be in flight. More than this and the one you are about to need queues
 //: behind six you are about to leave.

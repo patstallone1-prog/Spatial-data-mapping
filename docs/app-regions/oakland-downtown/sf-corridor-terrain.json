@@ -1,0 +1,96 @@
+{
+ "source": "USGS 3DEP CA_AlamedaCo_2_2021 ground returns (class 2), via Entwine",
+ "region": "oakland-downtown",
+ "method": "mean of the ground returns in each 2.0 m cell; empty cells filled from neighbours out to 6 cells; holes still open are grown into from their edge a cell a step, out to 60 cells; 2% of returns held out and compared with the bilinear grid at their position",
+ "sensor_accuracy_note": "USGS states about 0.10 m RMSEz for this collection; the figures here are the grid's own error on top of that, measured against held-out returns of the same lidar.",
+ "frame": {
+  "mid_lon": -122.27250000000001,
+  "mid_lat": 37.8,
+  "metres_per_lon": 87960.05597766186,
+  "metres_per_lat": 111320.0,
+  "x0": -1219.501,
+  "y0": -1789.8,
+  "step_m": 2.0,
+  "cols": 1220,
+  "rows": 1790,
+  "base_m": -2.638,
+  "nodata": -32768,
+  "dtype": "int16-le-cm"
+ },
+ "cells_with_ground": 915215,
+ "cells_filled": 699242,
+ "cells_no_data": 569343,
+ "cells_filled_far": 332524,
+ "tiles": 234,
+ "height_range_m": [
+  -1.64,
+  33.09
+ ],
+ "accuracy": {
+  "held_out_points": 729007,
+  "all": {
+   "n": 729007,
+   "rmse_m": 0.428,
+   "mae_m": 0.082,
+   "bias_m": 0.0,
+   "median_abs_m": 0.01,
+   "p90_abs_m": 0.077,
+   "p99_abs_m": 1.607
+  },
+  "roadway": {
+   "n": 208010,
+   "rmse_m": 0.044,
+   "mae_m": 0.011,
+   "bias_m": -0.0,
+   "median_abs_m": 0.007,
+   "p90_abs_m": 0.019,
+   "p99_abs_m": 0.076
+  },
+  "off_roadway": {
+   "n": 520997,
+   "rmse_m": 0.505,
+   "mae_m": 0.11,
+   "bias_m": 0.001,
+   "median_abs_m": 0.013,
+   "p90_abs_m": 0.122,
+   "p99_abs_m": 2.022
+  },
+  "by_slope": {
+   "under_5pct": {
+    "n": 546221,
+    "rmse_m": 0.069,
+    "mae_m": 0.019,
+    "bias_m": 0.0,
+    "median_abs_m": 0.008,
+    "p90_abs_m": 0.035,
+    "p99_abs_m": 0.164
+   },
+   "5_to_15pct": {
+    "n": 119960,
+    "rmse_m": 0.153,
+    "mae_m": 0.045,
+    "bias_m": -0.001,
+    "median_abs_m": 0.017,
+    "p90_abs_m": 0.082,
+    "p99_abs_m": 0.57
+   },
+   "over_15pct": {
+    "n": 62826,
+    "rmse_m": 1.428,
+    "mae_m": 0.706,
+    "bias_m": 0.003,
+    "median_abs_m": 0.249,
+    "p90_abs_m": 1.724,
+    "p99_abs_m": 7.055
+   }
+  }
+ },
+ "waterline": {
+  "polygons": 15,
+  "coastlines": 3,
+  "surface_m": null,
+  "cells_set_to_water": 0,
+  "cells_open_water": 569343,
+  "note": "no water surface in the grid"
+ }
+}

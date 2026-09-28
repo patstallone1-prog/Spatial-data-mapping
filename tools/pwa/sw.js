@@ -15,6 +15,8 @@ const SHELL = [
   "./",
   "./index.html",
   "./app.html",
+  "./app-model.html",
+  "./app-regions.json",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",

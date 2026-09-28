@@ -1338,6 +1338,21 @@ def classify_tunnels(ways: list[dict[str, Any]]) -> dict[str, int]:
         points = way.get("points") or []
         length = sum(math.hypot((b[0] - a[0]) * 88_000.0, (b[1] - a[1]) * 111_320.0)
                      for a, b in zip(points[:-1], points[1:], strict=True))
+        # Immersed road tubes have water rather than a lidar-visible hill above them.
+        # The generic bore classifier therefore cannot discover them from cover returns.
+        # Clearance is documented; floor depth remains explicitly inferred visual geometry.
+        tube_clearance = {"Posey Tube": 4.47, "Webster Street Tube": 4.52}.get(way.get("name"))
+        if tube_clearance is not None and len(points) >= 2:
+            way["tunnel_kind"] = "road"
+            way["tunnel_mouths"] = {"start": points[0], "end": points[-1]}
+            way["tunnel_design"] = {
+                "kind": "immersed_tube", "clearance_m": tube_clearance,
+                "floor_below_water_m": 12.0,
+                "profile_source": "inferred_visual_not_measured",
+                "clearance_source": "Caltrans tube specifications; see docs/tunnel-geometry.md",
+            }
+            counts["immersed road tube"] += 1
+            continue
         measured = _portal_record_for(way, portals)
         kind = measured.get("kind")
         if kind == "underpass":
@@ -1495,7 +1510,7 @@ def split_tunnel_approaches(ways: list[dict[str, Any]]) -> dict[str, int]:
                 continue
             approach = {k: v for k, v in way.items()
                         if k not in ("tunnel", "tunnel_kind", "tunnel_length_m", "tunnel_portal",
-                                     "tunnel_mouths", "tunnel_cover", "tunnel_road_z", "layer")}
+                                 "tunnel_mouths", "tunnel_cover", "tunnel_road_z", "tunnel_design", "layer")}
             approach["points"] = piece
             approach["tunnel_approach"] = label
             if label in mouth_z:
@@ -3057,7 +3072,7 @@ Object.values(groups).forEach((g) => root.add(g));
   const select = document.getElementById("region");
   const group = document.getElementById("regiongroup");
   const here = location.pathname.replace(/\/[^/]*$/, "/");
-  const root = index.replace(/regions\.json$/, "");
+  const root = index.replace(/[^/]+$/, "");
   for (const region of list) {
     const option = document.createElement("option");
     option.value = new URL(root + region.path, location.href).pathname;
@@ -3071,7 +3086,10 @@ Object.values(groups).forEach((g) => root.add(g));
   // already drawn, across the bay, in the same model you are standing in.
   select.addEventListener("change", () => {
     const region = list.find((r) => new URL(root + r.path, location.href).pathname === select.value);
-    if (region && region.bbox) flyToRegion(region);
+    // The installed app's regional pages use the full local renderer and local region payload.
+    // Do not stop at the far-field tree when its user asks to enter a different city.
+    if (document.querySelector('meta[name="kerbside-app-mode"]')) location.href = select.value;
+    else if (region && region.bbox) flyToRegion(region);
     else location.href = select.value;
   });
   const current = list.find((r) => new URL(root + r.path, location.href).pathname.replace(/[^/]*$/, "") === here);
@@ -3670,6 +3688,28 @@ function backdropAt(x, z, apron = 0) {
   }
   return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: sandy ? TERRAIN_SAND : TERRAIN_LAND };
 }
+// A terrain triangle across an immersed-tube portal fills its entrance like a wall.  Remove
+// only the small opening at each mapped mouth; the estuary surface above the submerged middle
+// remains intact.  The headwall and the road close the opening at street level.
+const TUBE_PORTAL_CUTS = (DATA.ways || []).flatMap((way) => {
+  if (!way.tunnel_design || way.tunnel_design.kind !== "immersed_tube" || !way.points || way.points.length < 2) return [];
+  const local = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+  return [[local[0], local[1]], [local[local.length - 1], local[local.length - 2]]]
+    .map(([mouth, inside]) => {
+      const dx = inside[0] - mouth[0], dz = inside[1] - mouth[1];
+      const length = Math.hypot(dx, dz) || 1;
+      return { x: mouth[0], z: mouth[1], ux: dx / length, uz: dz / length,
+               half: (way.road_m || 8.9) / 2 + 1.0 };
+    });
+});
+function inTubePortalOpening(x, z) {
+  return TUBE_PORTAL_CUTS.some((cut) => {
+    const dx = x - cut.x, dz = z - cut.z;
+    const along = dx * cut.ux + dz * cut.uz;
+    const across = Math.abs(dx * cut.uz - dz * cut.ux);
+    return along >= -5 && along <= 8 && across <= cut.half;
+  });
+}
 function addBackdropTile(xs, zs, apronOf) {
   const w = xs.length, h = zs.length;
   const position = new Float32Array(w * h * 3);
@@ -3691,6 +3731,7 @@ function addBackdropTile(xs, zs, apronOf) {
   for (let r = 0; r + 1 < h; r += 1) {
     for (let c = 0; c + 1 < w; c += 1) {
       const a = r * w + c, b = a + 1, d = a + w, e = d + 1;
+      if (inTubePortalOpening((xs[c] + xs[c + 1]) / 2, (zs[r] + zs[r + 1]) / 2)) continue;
       if (up) { index[k++] = a; index[k++] = b; index[k++] = d; index[k++] = b; index[k++] = e; index[k++] = d; }
       else { index[k++] = a; index[k++] = d; index[k++] = b; index[k++] = b; index[k++] = d; index[k++] = e; }
     }
@@ -3698,7 +3739,7 @@ function addBackdropTile(xs, zs, apronOf) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colour, 3));
-  geometry.setIndex(new THREE.BufferAttribute(index, 1));
+  geometry.setIndex(new THREE.BufferAttribute(index.subarray(0, k), 1));
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   const tile = new THREE.Mesh(geometry, TERRAIN_MATERIAL);
@@ -4090,9 +4131,12 @@ const SETTLE_RULES = [
   { onto: new Set(["road"]), above: { crossing: 0.06, crossing_edges: 0.06 }, grid: 0.5, label: "Painting the crossings on the road" },
 ];
 const settleKey = (x, z) => Math.floor(x / SETTLE_CELL_M) * 1048576 + Math.floor(z / SETTLE_CELL_M);
+const SETTLE_COARSE_M = 8.0;
 async function settleOnto(rule) {
   // The vertices to settle, by the cell each stands in, and the best top found for each.
   const buckets = new Map();
+  const coarseBuckets = new Map();
+  const coarseByX = new Map();
   const tops = new Map();
   const standing = [];
   groups.streets.traverse((o) => { if (o.isMesh && o.geometry && rule.above[o.userData.surface] !== undefined) standing.push(o); });
@@ -4110,8 +4154,29 @@ async function settleOnto(rule) {
       let list = buckets.get(key);
       if (!list) buckets.set(key, list = []);
       list.push(position, i);
+      const coarseX = Math.floor(position.getX(i) / SETTLE_COARSE_M);
+      const coarseZ = Math.floor(position.getZ(i) / SETTLE_COARSE_M);
+      const coarseKey = coarseX * 1048576 + coarseZ;
+      let coarseList = coarseBuckets.get(coarseKey);
+      if (!coarseList) {
+        coarseBuckets.set(coarseKey, coarseList = []);
+        let column = coarseByX.get(coarseX);
+        if (!column) coarseByX.set(coarseX, column = new Map());
+        column.set(coarseZ, coarseList);
+      }
+      coarseList.push(position, i);
     }
   }
+  const coarseXs = [...coarseByX.keys()].sort((a, b) => a - b);
+  const firstCoarseX = (x) => {
+    let lo = 0, hi = coarseXs.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (coarseXs[mid] < x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
   const bases = [];
   groups.streets.traverse((o) => { if (o.isMesh && o.geometry && rule.onto.has(o.userData.surface)) bases.push(o); });
   for (const o of bases) {
@@ -4125,11 +4190,34 @@ async function settleOnto(rule) {
       if (Math.abs(d) < 1e-9) continue;
       const x0 = Math.floor(Math.min(ax, bx, cx) / SETTLE_CELL_M), x1 = Math.floor(Math.max(ax, bx, cx) / SETTLE_CELL_M);
       const z0 = Math.floor(Math.min(az, bz, cz) / SETTLE_CELL_M), z1 = Math.floor(Math.max(az, bz, cz) / SETTLE_CELL_M);
+      const cX0 = Math.floor(Math.min(ax, bx, cx) / SETTLE_COARSE_M);
+      const cX1 = Math.floor(Math.max(ax, bx, cx) / SETTLE_COARSE_M);
+      const cZ0 = Math.floor(Math.min(az, bz, cz) / SETTLE_COARSE_M);
+      const cZ1 = Math.floor(Math.max(az, bz, cz) / SETTLE_COARSE_M);
+      // Iterate occupied paint columns only. A malformed/very broad road triangle can span
+      // millions of empty grid cells; scanning its integer bbox froze the Oakland viewer.
+      const coarseCandidates = [];
+      for (let k = firstCoarseX(cX0); k < coarseXs.length && coarseXs[k] <= cX1; k += 1) {
+        for (const [z, list] of coarseByX.get(coarseXs[k])) {
+          if (z >= cZ0 && z <= cZ1) coarseCandidates.push(list);
+        }
+      }
+      if (!coarseCandidates.length) continue;
+      // A broad junction/backstop triangle can span hundreds of thousands of empty half-metre
+      // cells.  Query only occupied eight-metre bins in that case.  Small road triangles keep
+      // the fine index, so their exact barycentric settlement is unchanged.
+      const broad = (x1 - x0 + 1) * (z1 - z0 + 1) > 256;
       const ay = position.getY(a), by = position.getY(b), cy = position.getY(c);
-      for (let gx = x0; gx <= x1; gx += 1) {
-        for (let gz = z0; gz <= z1; gz += 1) {
-          const list = buckets.get(gx * 1048576 + gz);
-          if (!list) continue;
+      const candidates = broad ? coarseCandidates : [];
+      if (!broad) {
+        for (let gx = x0; gx <= x1; gx += 1) {
+          for (let gz = z0; gz <= z1; gz += 1) {
+            const list = buckets.get(gx * 1048576 + gz);
+            if (list) candidates.push(list);
+          }
+        }
+      }
+      for (const list of candidates) {
           for (let k = 0; k < list.length; k += 2) {
             const pos = list[k], vi = list[k + 1];
             const x = pos.getX(vi), z = pos.getZ(vi);
@@ -4141,8 +4229,8 @@ async function settleOnto(rule) {
             const best = tops.get(pos);
             if (Number.isNaN(best[vi]) || y > best[vi]) best[vi] = y;
           }
-        }
       }
+      if ((i & 8191) === 0) await maybeYield(rule.label);
     }
     await maybeYield(rule.label);
   }
@@ -14211,13 +14299,13 @@ const TUNNEL_ARCH_SEGMENTS = 14;
 //: The bore's inner section at one station: across (u, positive right) and up (y) from the
 //: floor, the same number of points at every station so sections can be stitched. The roof
 //: is clipped to `cap` (metres above the floor) where it may not rise: a flat roof.
-function tunnelSectionPoints(half, cap = Infinity) {
+function tunnelSectionPoints(half, cap = Infinity, crown = TUNNEL_CROWN_M, spring = TUNNEL_WALL_M) {
   const out = [];
-  const wall = Math.min(TUNNEL_WALL_M, cap);
+  const wall = Math.min(spring, cap);
   out.push([-half, 0], [-half, wall]);
   for (let i = 1; i < TUNNEL_ARCH_SEGMENTS; i += 1) {
     const t = Math.PI * (1 - i / TUNNEL_ARCH_SEGMENTS);
-    out.push([half * Math.cos(t), Math.min(cap, TUNNEL_WALL_M + (TUNNEL_CROWN_M - TUNNEL_WALL_M) * Math.sin(t))]);
+    out.push([half * Math.cos(t), Math.min(cap, spring + (crown - spring) * Math.sin(t))]);
   }
   out.push([half, wall], [half, 0]);
   return out;
@@ -14285,7 +14373,7 @@ function tunnelCoverAlong(cover, s) {
 //: against; without that, the ground less the measured cover; without either, straight
 //: between the ground at the mouths. The cap keeps the roof under the ground where the cover
 //: is thinner than the arch.
-function tunnelStations(centre, cover = null, roadZ = null) {
+function tunnelStations(centre, cover = null, roadZ = null, design = null) {
   const local = centre.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
   const total = wayLength(centre);
   const stations = [];
@@ -14311,11 +14399,21 @@ function tunnelStations(centre, cover = null, roadZ = null) {
       const c = tunnelCoverAlong(cover, s);
       // The road under the measured cover; at the mouths it meets the approach road.
       const straight = groundStart + (groundEnd - groundStart) * (total > 0 ? s / total : 0);
-      const floor = TUNNEL_FLOOR_M + (!measured && c !== null && c > 0 ? Math.min(ground - c, straight + 12) : straight);
+      // The two Oakland-Alameda immersed tubes have no meaningful lidar "cover" across the
+      // estuary.  A smooth, explicitly inferred sag keeps both portals at their approach-road
+      // elevation and puts the middle safely below the measured water surface.  This is visual
+      // geometry only; neither the low point nor the curve is exported as a measurement.
+      const immersed = design && design.kind === "immersed_tube";
+      const low = immersed ? SEA_SURFACE_M - design.floor_below_water_m : 0;
+      const sag = immersed ? Math.sin(Math.PI * s / Math.max(total, 1)) ** 2 : 0;
+      const roadLevel = immersed ? straight + Math.min(0, low - straight) * sag
+        : (!measured && c !== null && c > 0 ? Math.min(ground - c, straight + 12) : straight);
+      const floor = TUNNEL_FLOOR_M + roadLevel;
       const headroom = ground - floor - TUNNEL_ROOF_UNDER_M;
       stations.push({
         s, x, z, ux, uz, rx: -uz, rz: ux, floor, ground,
-        cap: Number.isFinite(headroom) && headroom < TUNNEL_CROWN_M ? Math.max(TUNNEL_WALK_H_M + 1.2, headroom) : Infinity,
+        cap: !immersed && Number.isFinite(headroom) && headroom < TUNNEL_CROWN_M
+          ? Math.max(TUNNEL_WALK_H_M + 1.2, headroom) : Infinity,
       });
     }
     acc += seg;
@@ -14330,10 +14428,10 @@ function tunnelStubs(points) {
           trimWayEnds(points, length - TUNNEL_STUB_M, 0)];
 }
 
-function tunnelArchShape(halfWidth, outer) {
+function tunnelArchShape(halfWidth, outer, crown = TUNNEL_CROWN_M, spring = TUNNEL_WALL_M) {
   const w = halfWidth + (outer ? TUNNEL_SHELL_M : 0);
-  const wall = TUNNEL_WALL_M;
-  const crown = TUNNEL_CROWN_M + (outer ? TUNNEL_SHELL_M : 0);
+  const wall = spring;
+  crown += outer ? TUNNEL_SHELL_M : 0;
   const shape = new THREE.Shape();
   shape.moveTo(-w, outer ? -0.3 : 0);
   shape.lineTo(w, outer ? -0.3 : 0);
@@ -14489,10 +14587,15 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   });
   const light = new THREE.MeshBasicMaterial({ color: 0xfff1c8, side: THREE.DoubleSide });
   const measured = way.tunnel_portal || {};
+  const design = way.tunnel_design && way.tunnel_design.kind === "immersed_tube"
+    ? way.tunnel_design : null;
+  const crown = design ? design.clearance_m : TUNNEL_CROWN_M;
+  const spring = design ? Math.min(3.6, crown - 0.3) : TUNNEL_WALL_M;
   const total = wayLength(covered);
   group.userData.tunnelLengthM = Number(way.tunnel_length_m || total);
   group.userData.mouthCount = 2;
-  const H = TUNNEL_CROWN_M + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;
+  group.userData.profileSource = design ? design.profile_source : "lidar_or_terrain";
+  const H = crown + TUNNEL_SHELL_M + TUNNEL_PARAPET_M;
   const halves = [];
   const ends = [["start", covered], ["end", covered.slice().reverse()]].map(([label, inwardPoints]) => {
     const pts = inwardPoints.map((p) => { const [x, y] = xy(p[0], p[1]); return new THREE.Vector3(x, 0, -y); });
@@ -14517,11 +14620,11 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   let mouthFloor = {};
   for (const off of offsets) {
     const line = offsetWay(covered, off);
-    const stations = tunnelStations(line, cover, way.tunnel_road_z || null);
+    const stations = tunnelStations(line, cover, way.tunnel_road_z || null, design);
     if (stations.length < 2) continue;
     tunnelBores.push({ stations, half });
     if (!mouthFloor.start) mouthFloor = { start: stations[0].floor, end: stations[stations.length - 1].floor };
-    const inner = sweepAlongBore(stations, (st) => tunnelSectionPoints(half, st.cap), lining, "tunnel");
+    const inner = sweepAlongBore(stations, (st) => tunnelSectionPoints(half, st.cap, crown, spring), lining, "tunnel");
     if (inner) group.add(inner);
     const floor = sweepAlongBore(stations, () => [[-half, 0], [half, 0]],
                                  surfaceMaterial("road", 0xffffff, 1.0), "tunnel_floor");
@@ -14575,7 +14678,7 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
     }
     // The lamps, as separate fittings with dark ceiling between them.
     const strip = sweepAlongBore(stations, (st) => {
-      const top = Math.min(st.cap, TUNNEL_CROWN_M) - 0.08;
+      const top = Math.min(st.cap, crown) - 0.08;
       if ((st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) > TUNNEL_LAMP_M) {
         return [[-TUNNEL_LIGHT_W_M / 2, top], [-TUNNEL_LIGHT_W_M / 2, top]];
       }
@@ -14589,7 +14692,7 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
       depthWrite: false,
     });
     const glow = sweepAlongBore(stations, (st) => {
-      const top = Math.min(st.cap, TUNNEL_CROWN_M) - 0.10;
+      const top = Math.min(st.cap, crown) - 0.10;
       const lit = (st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) <= TUNNEL_LAMP_M * 2.2;
       const spread = lit ? TUNNEL_LIGHT_W_M * 3.4 : 0;
       return [[-spread, top], [spread, top]];
@@ -14606,7 +14709,7 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
     const face = new THREE.Shape();
     face.moveTo(-W, -0.3); face.lineTo(W, -0.3); face.lineTo(W, H); face.lineTo(-W, H); face.lineTo(-W, -0.3);
     for (const off of offsets) {
-      const arch = tunnelArchShape(half, false).getPoints(28).map((q) => new THREE.Vector2(q.x + off, q.y));
+      const arch = tunnelArchShape(half, false, crown, spring).getPoints(28).map((q) => new THREE.Vector2(q.x + off, q.y));
       face.holes.push(new THREE.Path(arch));
     }
     const slab = new THREE.ExtrudeGeometry(face, { depth: TUNNEL_PORTAL_DEPTH_M, bevelEnabled: false });
@@ -14909,6 +15012,74 @@ let streetLabelCount = 0;
 // stamps it. Nothing else in this loop depends on the order: the meshes are merged by material
 // and separated by height, not by when they were added.
 const ROAD_TOP_M = 0.06;
+// The Central Freeway is OSM bridge geometry.  Draping its carriageway onto the lidar ground
+// puts it through the streets underneath.  Each shared bridge node gets one deck elevation;
+// a terminal joined to an at-grade road eases back to that road instead of ending in a step.
+const CENTRAL_FREEWAY_WAYS = (DATA.ways || []).filter((way) =>
+  way.kind === "street" && way.bridge && way.name === "Central Freeway" && way.points && way.points.length >= 2);
+const bridgeNodeKey = (p) => `${p[0].toFixed(6)}:${p[1].toFixed(6)}`;
+const CENTRAL_DECK_NODES = new Map();
+const GROUND_JOIN_NODES = new Set();
+for (const way of DATA.ways || []) {
+  if (way.kind !== "street" || way.bridge || !way.points || way.points.length < 2) continue;
+  GROUND_JOIN_NODES.add(bridgeNodeKey(way.points[0]));
+  GROUND_JOIN_NODES.add(bridgeNodeKey(way.points[way.points.length - 1]));
+}
+for (const way of CENTRAL_FREEWAY_WAYS) {
+  for (const p of [way.points[0], way.points[way.points.length - 1]]) {
+    const [x, y] = xy(p[0], p[1]);
+    const key = bridgeNodeKey(p);
+    const deck = groundLiftAt(x, -y) + 5.2 * Math.max(1, Math.min(2, Number(way.layer) || 1));
+    CENTRAL_DECK_NODES.set(key, Math.max(deck, CENTRAL_DECK_NODES.get(key) || -Infinity));
+  }
+}
+function centralFreewayProfile(way) {
+  const pts = way.points || [];
+  if (pts.length < 2) return null;
+  const ends = [pts[0], pts[pts.length - 1]];
+  const heights = ends.map((p) => {
+    const [x, y] = xy(p[0], p[1]);
+    const key = bridgeNodeKey(p);
+    return GROUND_JOIN_NODES.has(key) ? groundLiftAt(x, -y) : CENTRAL_DECK_NODES.get(key);
+  });
+  const local = pts.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+  const lengths = [0];
+  for (let i = 1; i < local.length; i += 1) lengths.push(lengths[i - 1] + Math.hypot(local[i][0] - local[i - 1][0], local[i][1] - local[i - 1][1]));
+  const total = lengths[lengths.length - 1] || 1;
+  return (x, z) => {
+    let nearest = { d: Infinity, s: 0 };
+    for (let i = 1; i < local.length; i += 1) {
+      const [ax, az] = local[i - 1], [bx, bz] = local[i];
+      const dx = bx - ax, dz = bz - az, n = dx * dx + dz * dz;
+      const t = n ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / n)) : 0;
+      const d = Math.hypot(x - ax - dx * t, z - az - dz * t);
+      if (d < nearest.d) nearest = { d, s: lengths[i - 1] + Math.sqrt(n) * t };
+    }
+    return heights[0] + (heights[1] - heights[0]) * nearest.s / total;
+  };
+}
+function addCentralFreewayDetails(way, points, width, deckAt) {
+  for (const side of [-1, 1]) {
+    const edge = offsetWay(points, side * Math.max(0, width / 2 - 0.18));
+    const parapet = ribbon(edge, 0.36, 0xb9b9b3, 1, ROAD_TOP_M + 0.48, 0.96, "bridge_parapet");
+    if (parapet) addMerged("bridge:parapet", parapet, "bridge_parapet");
+  }
+  // Columns are deliberately tagged visual/inferred.  They do not alter the canonical road
+  // or its collision and are omitted where the deck is too low for a pier.
+  const stations = densifyWay(points, 24);
+  for (let i = 1; i + 1 < stations.length; i += 1) {
+    const [x, y] = xy(stations[i][0], stations[i][1]), z = -y;
+    const earth = groundLiftAt(x, z), deck = deckAt(x, z);
+    if (deck - earth < 3.5) continue;
+    const support = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.78, deck - earth, 8),
+      new THREE.MeshStandardMaterial({ color: 0x9a9d9b, roughness: 0.94 }));
+    support.position.set(x, (deck + earth) / 2, z);
+    support.userData.surface = "bridge_support";
+    support.userData.provenance = "inferred_visual";
+    support.userData.liftedOntoGround = true;
+    groups.streets.add(support);
+  }
+}
 //: A crossing's paint has a vertex every this far along its legs, for settleOnto.
 const CROSSING_PAINT_STEP_M = 0.5;
 indexMappedDividerGeometry(DATA.ways);
@@ -14929,8 +15100,9 @@ const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
 let builtWays = 0;
 for (const way of DRAW_ORDER) {
  if ((++builtWays & 31) === 0) await maybeYield(`Building the streets: ${Math.round(100 * builtWays / DRAW_ORDER.length)}%`);
- WAY_LIFT = way.kind === "street" && wayFollowsCut(way) ? cutLiftAt
-   : way.kind === "crossing" && way.points && way.points.length >= 2 ? lineLiftFor(way.points) : null;
+ const centralDeck = CENTRAL_FREEWAY_WAYS.includes(way) ? centralFreewayProfile(way) : null;
+ WAY_LIFT = centralDeck || (way.kind === "street" && wayFollowsCut(way) ? cutLiftAt
+   : way.kind === "crossing" && way.points && way.points.length >= 2 ? lineLiftFor(way.points) : null);
  if (way.kind === "beach") {
  const shape = footprintShape(way.points);
  if (shape) {
@@ -15086,6 +15258,7 @@ for (const way of DRAW_ORDER) {
     : isPath ? 2.4
     : renderedRoadWidth(way);
   const renderPoints = densifyWay(way.points);
+  if (centralDeck) addCentralFreewayDetails(way, renderPoints, widthMeters, centralDeck);
   // A road tunnel: its two mouths, and nothing at the surface between them.
   if (isRoadTunnel(way)) {
     const bore = addTunnel(way, renderPoints, widthMeters, ROAD_TOP_M);
@@ -19359,7 +19532,7 @@ PAGE_FIELDS = {
     "continental_source",
     "service",
     "tunnel_kind", "tunnel_length_m",
-    "tunnel_portal", "tunnel_mouths", "tunnel_cover", "tunnel_mouth_low_cover_m", "tunnel_road_z",
+    "tunnel_portal", "tunnel_mouths", "tunnel_cover", "tunnel_design", "tunnel_mouth_low_cover_m", "tunnel_road_z",
     "tunnel_approach", "tunnel_approach_road_z", "parking_sides", "xs", "xs_junction",
     "kerb_source", "height_points",
     "capacity",

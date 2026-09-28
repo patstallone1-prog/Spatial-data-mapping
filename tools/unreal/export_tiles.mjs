@@ -173,7 +173,10 @@ async function main() {
   for (const root of roots) {
     root.updateMatrixWorld(true);
     root.traverse((o) => {
-      if (!o.isMesh || !o.geometry || o.visible === false) return;
+      // Browser distance culling toggles `visible` at runtime.  An export is a persistent
+      // world tile, not a screenshot from the startup camera: omitting culled meshes erased
+      // kerbs (and other fine surfaces) from tiles away from that camera.
+      if (!o.isMesh || !o.geometry) return;
       // Every surface has a name the page gave it; what has none is named for the layer it is
       // in and the geometry it is, so nothing arrives in Unreal as "unlabelled".
       const layer = GROUPS.find((g) => k.groups[g] === root) || "scene";
