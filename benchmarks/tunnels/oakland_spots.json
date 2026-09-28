@@ -1,8 +1,8 @@
 [
-  {"name":"Posey Tube — Oakland portal","lon":-122.2717447,"lat":37.7963063,"from":42,"tilt":9,"heading":195,"fov":56},
-  {"name":"Posey Tube — Alameda portal","lon":-122.2766389,"lat":37.7874396,"from":42,"tilt":9,"heading":18,"fov":56},
-  {"name":"Webster Tube — Oakland portal","lon":-122.2732864,"lat":37.7966930,"from":42,"tilt":9,"heading":194,"fov":56},
-  {"name":"Webster Tube — Alameda portal","lon":-122.2782351,"lat":37.7880968,"from":42,"tilt":9,"heading":18,"fov":56},
-  {"name":"Posey Tube — inferred interior","lon":-122.2742,"lat":37.7923,"targetY":-10.5,"from":26,"tilt":3,"heading":200,"fov":60},
-  {"name":"Webster Tube — inferred interior","lon":-122.2761,"lat":37.7923,"targetY":-10.5,"from":26,"tilt":3,"heading":18,"fov":60}
+{"name":"Posey Tube — Oakland portal","lon":-122.2717447,"lat":37.7963063,"from":27,"tilt":5,"heading":155,"fov":72},
+{"name":"Posey Tube — Alameda portal","lon":-122.2766389,"lat":37.7874396,"from":27,"tilt":5,"heading":335,"fov":72},
+{"name":"Webster Tube — Oakland portal","lon":-122.2732864,"lat":37.7966930,"from":27,"tilt":5,"heading":150,"fov":72},
+{"name":"Webster Tube — Alameda portal","lon":-122.2782351,"lat":37.7880968,"from":27,"tilt":5,"heading":330,"fov":72},
+{"name":"Posey Tube — inferred interior","lon":-122.2742,"lat":37.7923,"targetY":-10.5,"from":26,"tilt":3,"heading":155,"fov":65},
+{"name":"Webster Tube — inferred interior","lon":-122.27599,"lat":37.7923,"targetY":-10.5,"from":26,"tilt":3,"heading":150,"fov":65}
 ]

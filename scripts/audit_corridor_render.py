@@ -83,6 +83,9 @@ FUNCTIONS = (
     "crossingPaintLegs",
     "crossingRoadSpanPoints",
     "endCrossingOnDrawnKerb",
+    "indexOsmCurbRamps",
+    "nearestOsmRamp",
+    "snapCrossingEndsToOsmRamps",
     "indexCurbRamps",
     "cornerOf",
     "rampRecordAt",
@@ -167,6 +170,7 @@ const CROSSING_END_WALK_BACK_M = 1.5;
 const RAMP_NODE_CELL_M = 40.0;
 const RAMP_NODE_REACH_M = 22.0;
 const rampNodeGrid = new Map();
+const osmRampNodes = [];
 const CROSSING_END_STEP_M = 0.05;
 const CROSSING_MIN_ON_ROAD_M = 2.5;
 const CROSSING_DEDUPE_CELL_M = 4.0;
@@ -259,6 +263,7 @@ function addPavementRibbon(points, width, color, opacity, y, thickness, surface)
   return laid;
 }
 function stampPaved() {}
+function stampParkPavement() {}
 function insideJunctionBox() { return false; }
 function ribbon(points, width) { return { points, width }; }
 function addMerged() {}

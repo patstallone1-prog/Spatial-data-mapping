@@ -6,7 +6,6 @@ import json
 import runpy
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -55,6 +54,15 @@ def test_central_freeway_remains_an_elevated_bridge() -> None:
     renderer = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
     assert "function centralFreewayProfile(way)" in renderer
     assert 'support.userData.provenance = "inferred_visual";' in renderer
+
+
+def test_ground_mask_shader_injects_float_literals() -> None:
+    renderer = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    shader = renderer.split("function maskedGrassMaterial(", 1)[1].split("function ringGeometry(", 1)[0]
+    assert "const glslFloat = (value) => Number(value).toFixed(8);" in shader
+    for extent in ("hardMask.west", "hardMask.east - hardMask.west",
+                   "hardMask.south", "hardMask.north - hardMask.south"):
+        assert "${glslFloat(" + extent + ")}" in shader
 
 
 def test_unreal_export_ignores_startup_camera_culling() -> None:

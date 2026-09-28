@@ -34,6 +34,7 @@ says so in its capabilities. Nothing is invented to fill a gap.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -121,7 +122,11 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
         # Kerbs and roofs from the lidar. Where a city has curb lines they outrank the lidar's
         # reading of the kerbs, but every region gets a roof height for every footprint.
         "lidar": ([PY, "scripts/measure_region_lidar.py", region.name],
-                  [] if corridor else [base / "lidar" / "building_heights.json"]),
+                  [] if corridor else [base / "lidar" / "building_heights.json",
+                                       base / "official" / "curb_profiles_lidar.json",
+                                       base / "official" / "centrelines_osm.json",
+                                       base / "lidar" / "cells.jsonl",
+                                       base / "lidar" / "completion.json"]),
         "imagery": ([PY, "scripts/harvest_region_observations.py", "--region", region.name, "--out", str(catalog)],
                     [catalog / "observations" / "external-000.parquet"]),
         "official": ([PY, "scripts/build_sf_official_geometry.py", "--region", region.name],
@@ -350,6 +355,26 @@ def status(region: Region) -> bool:
     return not behind and not unhappy
 
 
+def stage_outputs_ready(stage: str, outputs: list[Path]) -> bool:
+    if not all(path.exists() for path in outputs):
+        return False
+    if stage != "lidar" or not outputs:
+        return True
+    profile_path = next((path for path in outputs if path.name == "curb_profiles_lidar.json"), None)
+    completion_path = next((path for path in outputs if path.name == "completion.json"), None)
+    if profile_path is None or completion_path is None:
+        return False
+    try:
+        profiles = json.loads(profile_path.read_text()).get("profiles", {})
+        completion = json.loads(completion_path.read_text())
+        osm_path = completion_path.parent.parent / "osm_ways.json"
+        return (bool(profiles) and completion.get("profiles") == len(profiles)
+                and completion.get("cells", 0) > 0
+                and completion.get("osm_sha256") == hashlib.sha256(osm_path.read_bytes()).hexdigest())
+    except (OSError, ValueError, TypeError):
+        return False
+
+
 def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: bool = False) -> bool:
     journal = load_journal(region)
     commands = stage_commands(region)
@@ -362,7 +387,7 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
             continue
         cmd, outputs = commands[stage]
         entry = journal["stages"].get(stage, {})
-        if not force and entry.get("status") == "done" and all(p.exists() for p in outputs):
+        if not force and entry.get("status") == "done" and stage_outputs_ready(stage, outputs):
             outstanding = work_outstanding(region, stage)
             overtaken = overtaken_by_inputs(stage, commands)
             if outstanding:
@@ -395,7 +420,7 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
             code, more, _ = run(finish, log=log)
             seconds += more
             partial = "stopped at budget; catalogue built from the journal"
-        present = all(p.exists() for p in outputs)
+        present = stage_outputs_ready(stage, outputs)
         hollow = [p for p in outputs if p.exists() and produced_nothing(p)]
         status = "done" if code == 0 and present and not hollow else "failed"
         if hollow:

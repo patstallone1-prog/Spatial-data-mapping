@@ -68,6 +68,13 @@ def test_regions_are_published_beside_the_corridor_with_an_index(tmp_path: Path)
     spec = importlib.util.spec_from_file_location("build_pages", ROOT / "tools" / "build_pages.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    source_site = tmp_path / "source-site"
+    published = tmp_path / "published"
+    source_site.mkdir()
+    published.mkdir()
+    (source_site / "sf-corridor-3d.html").write_text("viewer")
+    (published / "sf-corridor-3d.json").write_text("{}")
+    assert module.region_build_ready(source_site, published)
     index = module.publish_regions(tmp_path)
     names = [r["name"] for r in index]
     assert names[0] == "sf-corridor" and "oakland-downtown" in names

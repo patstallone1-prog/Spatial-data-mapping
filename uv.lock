@@ -2028,6 +2028,7 @@ name = "smc"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "certifi" },
     { name = "duckdb" },
     { name = "h3" },
     { name = "laspy", extra = ["lazrs"] },
@@ -2062,6 +2063,7 @@ learned = [
 [package.metadata]
 requires-dist = [
     { name = "carla", marker = "extra == 'carla'", specifier = ">=0.9.15" },
+    { name = "certifi", specifier = ">=2024.2" },
     { name = "duckdb", specifier = ">=1.1" },
     { name = "google-cloud-storage", marker = "extra == 'gcs'", specifier = ">=2.14" },
     { name = "h3", specifier = ">=4.0" },
