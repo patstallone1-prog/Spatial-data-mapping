@@ -7,7 +7,7 @@
 <meta name="kerbside-regions" content="../../regions.json" />
 <title>Kerbside Sunset 3D</title>
 <style>
-:root { color-scheme: dark; --bg:#071013; --panel:#10191e; --line:#274048; --ink:#edf5f5; --muted:#8fa4a6; --pink:#ff4d8f; --green:#4fbe86; --amber:#e0a84e; --cyan:#54c8e8; }
+:root { color-scheme: light; --bg:#edf3f4; --panel:#fffdf9; --line:#c8d8dc; --ink:#21363b; --muted:#577076; --pink:#a23e67; --green:#288660; --amber:#aa772b; --cyan:#237d9a; }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; }
 #scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; }
@@ -26,15 +26,16 @@ body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-s
 /* Collapsing targets the sections themselves rather than one wrapper. The wrapper closes
    where the original panel did, which left the layer groups outside it and folding hid
    only the statistics. */
-.hud[data-open="false"] .collapsible, .hud[data-open="false"] .group { display:none; }
+.hud[data-open="false"] .collapsible { display:none; }
 .bar { pointer-events:auto; display:flex; align-items:center; gap:8px; }
 .bar h1 { flex:1; margin:0; }
-#fold { padding:6px 10px; line-height:1; }
+#fold { flex:1; }
+.primary-actions { margin-top:10px; }
 .group { margin-top:12px; }
 .group > h2 { margin:0 0 7px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; }
-.panel { pointer-events:auto; background:rgba(16,25,30,.88); border:1px solid var(--line); border-radius:8px; padding:12px; backdrop-filter:blur(14px); box-shadow:0 12px 30px rgba(0,0,0,.22); }
+.panel { pointer-events:auto; background:rgba(255,253,249,.96); border:1px solid var(--line); border-radius:14px; padding:12px; backdrop-filter:blur(14px); box-shadow:0 12px 30px rgba(28,61,66,.16); }
 h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-spacing:0; }
-.meta { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+.meta { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
 .stat { border:1px solid var(--line); border-radius:7px; padding:8px; min-width:0; }
 .stat b { display:block; font-size:17px; font-variant-numeric:tabular-nums; }
 .stat span { color:var(--muted); font-size:10px; text-transform:uppercase; }
@@ -59,28 +60,38 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
   .meta { grid-template-columns:repeat(2, 1fr); }
   #tip { left:14px; width:calc(100vw - 28px); }
 }
+/* The compact navigation stays bright and legible over both aerial and street views. */
+#region, #find { background:#fff; color:var(--ink); border-color:var(--line); }
+.toolbar button, #fold { background:#fff; color:var(--ink); border-color:var(--line); }
+.toolbar button[aria-pressed="true"] { background:#e6f3f1; border-color:#5b9e99; }
+#hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
+#tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
 </head>
 <body>
 <canvas id="scene"></canvas>
 <div id="progress" hidden>Loading the corridor&hellip;</div>
-<div class="hud" id="hud" data-open="true">
+<div class="hud" id="hud" data-open="false">
   <div class="panel">
     <div class="bar">
       <h1>Kerbside Sunset 3D</h1>
-      <button id="fold" aria-expanded="true" aria-controls="hud" title="Collapse">&minus;</button>
     </div>
-    <div class="collapsible">
     <div class="group" id="regiongroup" style="margin-top:4px" hidden>
       <h2>Region</h2>
       <select id="region" aria-label="Region"></select>
-      <div class="sub" id="regionnote"></div>
     </div>
     <div class="group" style="margin-top:4px">
       <h2>Go to a corner or address</h2>
       <input id="find" type="search" autocomplete="off" placeholder="a corner or an address, or an address" />
       <ul id="hits"></ul>
     </div>
+    <div class="toolbar primary-actions">
+      <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
+      <button id="reset">Reset view</button>
+      <button id="fold" aria-expanded="false" aria-controls="controls" title="Show map layers and details">More controls</button>
+    </div>
+    <div class="collapsible" id="controls">
+    <div class="sub" id="regionnote"></div>
     <div class="meta">
       <div class="stat"><b id="obs">0</b><span>observations</span></div>
       <div class="stat"><b id="eligible">0</b><span>eligible</span></div>
@@ -97,10 +108,9 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
 <span class="key"><span class="sw"></span>metadata observations</span>
 <span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
 <span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
-      <span class="key"><span class="sw" style="background:var(--cyan)"></span>sequence paths</span>
-    </div>
-  </div>
-    <div class="group">
+<span class="key"><span class="sw" style="background:var(--cyan)"></span>sequence paths</span>
+</div>
+<div class="group">
       <h2>Layers</h2>
       <div class="toolbar">
         <button data-layer="streets" aria-pressed="true">Streets</button>
@@ -121,8 +131,6 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <h2>Where coverage is missing</h2>
       <div class="toolbar">
         <button data-layer="gaps" aria-pressed="false">Show gaps</button>
-        <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
-        <button id="reset">Reset view</button>
       </div>
       <p id="gapnote" style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.45"></p>
       <p id="facadenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
@@ -130,11 +138,11 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <p id="furniturenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
       <p id="detailnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
+    <div id="tip"><b>Drag to look around</b> &mdash; the walker stays put until you use the arrow keys or choose a place in search. Arrow keys move at 20&nbsp;mph in orbit view and 12&nbsp;mph in first person, relative to the way you are facing. Wheel or pinch to zoom &mdash; in first person the wheel zooms your view up to 2x. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
     </div>
   </div>
 </div>
 <div id="addr" hidden></div>
-<div id="tip"><b>Drag to look around</b> &mdash; the walker stays put until you use the arrow keys or choose a place in search. Arrow keys move at 20&nbsp;mph in orbit view and 12&nbsp;mph in first person, relative to the way you are facing. Wheel or pinch to zoom &mdash; in first person the wheel zooms your view up to 2x. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
 <!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
      eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
      its previous version. Fetched, the page is a few kilobytes, the data changes independently,
@@ -13075,23 +13083,24 @@ function hardGroundExclusion(ground) {
 // still shapes its boundary, but does not need to subdivide whole parks to path-pixel scale.
 function grassHardMask(excludeAt) {
   const [bw, bs] = xy(bbox.west, bbox.south), [be, bn] = xy(bbox.east, bbox.north);
-  const west = bw - RING_BOX_MARGIN_M, east = be + RING_BOX_MARGIN_M;
-  const south = bs - RING_BOX_MARGIN_M, north = bn + RING_BOX_MARGIN_M;
-  const width = Math.ceil(east - west), height = Math.ceil(north - south);
-  // Red excludes true hard surfaces for both lawns and parks. Green additionally excludes
-  // the visible property-line underlay for parks only; lawns retain their own precedence.
-  const data = new Uint8Array(width * height * 2);
+  // Three-quarter-metre cells retain the old two-channel mask's memory budget while
+  // resolving narrow paths and stair-step edges more faithfully. One channel encodes
+  // hard surface (0), park-only underlay (128), or grass (255).
+  const step = 0.75;
+  const west = bw - RING_BOX_MARGIN_M, south = bs - RING_BOX_MARGIN_M;
+  const width = Math.ceil((be + RING_BOX_MARGIN_M - west) / step);
+  const height = Math.ceil((bn + RING_BOX_MARGIN_M - south) / step);
+  const east = west + width * step, north = south + height * step;
+  const data = new Uint8Array(width * height);
   for (let iy = 0; iy < height; iy += 1) {
-    const y = south + iy + 0.5;
+    const y = south + (iy + 0.5) * step;
     for (let ix = 0; ix < width; ix += 1) {
-      const x = west + ix + 0.5, z = -y;
+      const x = west + (ix + 0.5) * step, z = -y;
       const hard = excludeAt(x, z);
-      const offset = 2 * (iy * width + ix);
-      data[offset] = hard ? 0 : 255;
-      data[offset + 1] = hard || parkPavementAt(x, z) ? 0 : 255;
+      data[iy * width + ix] = hard ? 0 : parkPavementAt(x, z) ? 128 : 255;
     }
   }
-  const texture = new THREE.DataTexture(data, width, height, THREE.RGFormat);
+  const texture = new THREE.DataTexture(data, width, height, THREE.RedFormat);
   texture.magFilter = texture.minFilter = THREE.NearestFilter;
   texture.generateMipmaps = false;
   texture.needsUpdate = true;
@@ -13112,9 +13121,9 @@ function maskedGrassMaterial(map, hardMask, roughness, park = false) {
     shader.fragmentShader = shader.fragmentShader.replace("#include <common>",
       "#include <common>\nvarying vec2 vGroundHardUv;\nuniform sampler2D groundHardMask;");
     shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>",
-      `#include <clipping_planes_fragment>\nif (texture2D(groundHardMask, vGroundHardUv).${park ? "g" : "r"} < 0.5) discard;`);
+      `#include <clipping_planes_fragment>\nif (texture2D(groundHardMask, vGroundHardUv).r < ${park ? "0.75" : "0.25"}) discard;`);
   };
-  material.customProgramCacheKey = () => `ground-hard-mask-v2-${park ? "park" : "yard"}`;
+  material.customProgramCacheKey = () => `ground-hard-mask-v3-${park ? "park" : "yard"}`;
   return material;
 }
 
@@ -15458,7 +15467,7 @@ document.getElementById("reset").addEventListener("click", () => {
   });
 }
 
-// ---- the sidebar folds, because on a phone it otherwise covers the map it describes ----
+// Keep search and view controls visible; expand the data and layer menu on demand.
 {
   const hud = document.getElementById("hud");
   const fold = document.getElementById("fold");
@@ -15466,8 +15475,8 @@ document.getElementById("reset").addEventListener("click", () => {
     const open = hud.dataset.open !== "false";
     hud.dataset.open = String(!open);
     fold.setAttribute("aria-expanded", String(!open));
-    fold.innerHTML = open ? "&plus;" : "&minus;";
-    fold.title = open ? "Expand" : "Collapse";
+    fold.textContent = open ? "More controls" : "Hide controls";
+    fold.title = open ? "Show map layers and details" : "Hide map layers and details";
   });
 }
 

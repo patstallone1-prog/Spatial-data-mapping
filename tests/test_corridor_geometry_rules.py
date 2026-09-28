@@ -2854,7 +2854,7 @@ def test_grass_fragment_mask_catches_paths_inside_large_triangles() -> None:
         "const bbox = {west:0,east:2,south:0,north:2};",
         "const RING_BOX_MARGIN_M = 0; const xy = (x,y) => [x,y];",
         "const parkPavementAt = (x,z) => x < 1 && -z > 1;",
-        "const THREE = {RGFormat:'rg',NearestFilter:'nearest',DoubleSide:2,",
+        "const THREE = {RedFormat:'red',NearestFilter:'nearest',DoubleSide:2,",
         "DataTexture: class {constructor(data,width,height,format) {"
         "this.data=data;this.width=width;this.height=height;this.format=format;}},",
         "MeshStandardMaterial: class {constructor(options){this.options=options;}}};",
@@ -2876,10 +2876,10 @@ def test_grass_fragment_mask_catches_paths_inside_large_triangles() -> None:
                          capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
-    assert result["pixels"] == [255, 255, 255, 255, 255, 0, 0, 0]
+    assert result["pixels"] == [255, 255, 255, 128, 0, 0, 128, 0, 0]
     assert "vGroundHardUv" in result["vertex"]
-    assert "discard" in result["fragment"] and result["uniform"]
-    assert ").g < 0.5" in result["parkFragment"]
+    assert ").r < 0.25" in result["fragment"] and result["uniform"]
+    assert ").r < 0.75" in result["parkFragment"]
 
 
 def test_property_underlay_clips_park_without_erasing_front_lawns() -> None:
@@ -2898,8 +2898,7 @@ def test_property_underlay_clips_park_without_erasing_front_lawns() -> None:
                          capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     assert json.loads(out.stdout) == [True, True, False, False]
-    assert "data[offset] = hard ? 0 : 255" in js
-    assert "data[offset + 1] = hard || parkPavementAt(x, z) ? 0 : 255" in js
+    assert "data[iy * width + ix] = hard ? 0 : parkPavementAt(x, z) ? 128 : 255" in js
 
 
 def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:

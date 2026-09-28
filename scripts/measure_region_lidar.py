@@ -27,6 +27,7 @@ scripts/ingest_region.py as the ``lidar`` stage, between terrain and imagery.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import itertools
 import json
 import math
@@ -75,6 +76,7 @@ def main() -> int:
         return 0
     dataset = collections[0]
     ways = json.loads(ways_path.read_text())
+    osm_sha256 = hashlib.sha256(ways_path.read_bytes()).hexdigest()
     streets = [w for w in ways if w.get("kind") in STREET_KINDS and w.get("points") and len(w["points"]) >= 2
                and w.get("osm_id") is not None and w.get("service") not in SKIP_SERVICE
                and not w.get("tunnel")]
@@ -103,17 +105,16 @@ def main() -> int:
     lidar_dir = base / "lidar"
     lidar_dir.mkdir(parents=True, exist_ok=True)
     journal = lidar_dir / "cells.jsonl"
-    done: dict[str, dict] = {}
-    if journal.exists():
-        for line in journal.read_text().splitlines():
-            if line.strip():
-                row = json.loads(line)
-                done[row["cell"]] = row
+    completion = lidar_dir / "completion.json"
+    if not args.limit_cells:
+        completion.unlink(missing_ok=True)
+    done = load_successful_cells(journal, osm_sha256=osm_sha256, dataset=dataset)
     print(f"{len(by_cell)} cells, {len(done)} already measured", flush=True)
 
     cache_root = ROOT / "build" / "regions" / region.name / "lidar-cache"
     started = time.time()
     n_cells = 0
+    failed_cells: list[str] = []
     with journal.open("a") as out:
         for (cx, cy), content in sorted(by_cell.items()):
             key = f"{cx}:{cy}"
@@ -129,11 +130,14 @@ def main() -> int:
                 cloud = reader.around(centre_lat, centre_lon, CELL_M / 2 + REACH_M, resolution_m=RESOLUTION_M)
             except Exception as exc:  # a cell the service will not serve is a gap, not a halt
                 print(f"  cell {key}: unavailable: {exc}", flush=True)
-                out.write(json.dumps({"cell": key, "error": str(exc), "streets": {}, "buildings": {}}) + "\n")
+                failed_cells.append(key)
+                out.write(json.dumps({"cell": key, "error": str(exc), "osm_sha256": osm_sha256,
+                                      "dataset": dataset, "streets": {}, "buildings": {}}) + "\n")
                 out.flush()
                 shutil.rmtree(cache_root / key, ignore_errors=True)
                 continue
-            row = {"cell": key, "points": len(cloud), "streets": {}, "buildings": {}}
+            row = {"cell": key, "points": len(cloud), "osm_sha256": osm_sha256,
+                   "dataset": dataset, "streets": {}, "buildings": {}}
             if len(cloud):
                 for way, piece in content["streets"]:
                     stations = street_kerbs(cloud, piece, station_m=STATION_M)
@@ -157,8 +161,37 @@ def main() -> int:
                       f"{(time.time() - started) / 60:.0f} min", flush=True)
 
     shutil.rmtree(cache_root, ignore_errors=True)
-    write_outputs(region.name, base, streets, done)
+    profile_count = write_outputs(region.name, base, streets, done)
+    if failed_cells:
+        print(f"{region.name}: {len(failed_cells)} lidar cells failed; rerun to retry them", file=sys.stderr)
+        return 1
+    if not args.limit_cells and profile_count == 0:
+        print(f"{region.name}: no curb profiles measured; refusing a successful lidar stage", file=sys.stderr)
+        return 1
+    if not args.limit_cells:
+        if len(done) != len(by_cell):
+            print(f"{region.name}: only {len(done)}/{len(by_cell)} lidar cells complete", file=sys.stderr)
+            return 1
+        completion.write_text(json.dumps({"region": region.name, "dataset": dataset,
+                                          "osm_sha256": osm_sha256, "cells": len(done),
+                                          "profiles": profile_count}, separators=(",", ":")))
     return 0
+
+
+def load_successful_cells(journal: Path, *, osm_sha256: str | None = None,
+                          dataset: str | None = None) -> dict[str, dict]:
+    """Return only successful cells measured against the same source and collection."""
+    done: dict[str, dict] = {}
+    if journal.exists():
+        for line in journal.read_text().splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if ((osm_sha256 is None or row.get("osm_sha256") == osm_sha256)
+                    and (dataset is None or row.get("dataset") == dataset)
+                    and not row.get("error")):
+                done[row["cell"]] = row
+    return done
 
 
 def split_way(points: list[list[float]], max_len_m: float) -> list[list[list[float]]]:
@@ -234,7 +267,7 @@ def smooth_kept(samples: list[dict]) -> None:
             s[side] = None if v is None else round(v, 3)
 
 
-def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, dict]) -> None:
+def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, dict]) -> int:
     """Profiles keyed osm:<id> with stations in metres along the way, and roof heights."""
     official = base / "official"
     official.mkdir(parents=True, exist_ok=True)
@@ -294,6 +327,7 @@ def write_outputs(name: str, base: Path, streets: list[dict], done: dict[str, di
     print(f"wrote {len(profiles)} street profiles ({stations_n} stations, {both} with both kerbs, "
           f"{outliers} readings dropped as outliers), {len(kerb_heights)} kerb heights, "
           f"{len(roofs)} roof heights under {base}")
+    return len(profiles)
 
 
 def station_along(points: list[list[float]], lon: float, lat: float) -> float:
