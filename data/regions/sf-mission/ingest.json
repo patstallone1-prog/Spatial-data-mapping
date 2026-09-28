@@ -82,17 +82,11 @@
    "stale_because": "osm"
   },
   "lidar": {
-   "status": "done",
-   "started_at": "2026-09-27T14:54:03Z",
+   "status": "running",
+   "started_at": "2026-09-28T02:04:49Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "sf-mission"
-   ],
-   "exit_code": 0,
-   "seconds": 625.9,
-   "finished_at": "2026-09-27T15:04:29Z",
-   "outputs": [
-    "data/regions/sf-mission/lidar/building_heights.json"
    ]
   },
   "build": {

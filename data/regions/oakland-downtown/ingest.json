@@ -81,23 +81,22 @@
    "outputs": []
   },
   "lidar": {
-   "status": "partial",
-   "started_at": "2026-09-21T03:52:31Z",
+   "status": "done",
+   "started_at": "2026-09-28T02:03:27Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "oakland-downtown"
    ],
    "exit_code": 0,
-   "seconds": 0.3,
-   "finished_at": "2026-09-21T03:52:32Z",
+   "seconds": 28.8,
+   "finished_at": "2026-09-28T02:03:55Z",
    "outputs": [
     "data/regions/oakland-downtown/lidar/building_heights.json"
-   ],
-   "outstanding": 1
+   ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-27T05:14:03Z",
+   "started_at": "2026-09-28T02:03:55Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -105,8 +104,8 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 31.6,
-   "finished_at": "2026-09-27T05:14:34Z",
+   "seconds": 53.5,
+   "finished_at": "2026-09-28T02:04:49Z",
    "outputs": [
     "data/regions/oakland-downtown/site/sf-corridor-3d.json"
    ]
