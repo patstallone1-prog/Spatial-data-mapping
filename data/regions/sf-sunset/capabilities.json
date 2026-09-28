@@ -121,10 +121,10 @@
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (roof over foot)",
    "active": "lidar",
-   "count": 948,
+   "count": 949,
    "of": 21697,
    "truthful": true,
-   "note": "by source: {'osm_height': 20736, 'lidar_region': 948, 'inferred_default': 13}"
+   "note": "by source: {'osm_height': 20736, 'lidar_region': 949, 'inferred_default': 12}"
   },
   "building_colour": {
    "available": "imagery",

@@ -82,16 +82,22 @@
    "stale_because": "osm"
   },
   "lidar": {
-   "status": "running",
+   "status": "done",
    "started_at": "2026-09-28T02:04:49Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "sf-mission"
+   ],
+   "exit_code": 0,
+   "seconds": 7422.9,
+   "finished_at": "2026-09-28T04:08:32Z",
+   "outputs": [
+    "data/regions/sf-mission/lidar/building_heights.json"
    ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-27T15:04:29Z",
+   "started_at": "2026-09-28T04:08:32Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -99,8 +105,8 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 9639.4,
-   "finished_at": "2026-09-27T17:45:09Z",
+   "seconds": 28.2,
+   "finished_at": "2026-09-28T04:09:00Z",
    "outputs": [
     "data/regions/sf-mission/site/sf-corridor-3d.json"
    ]

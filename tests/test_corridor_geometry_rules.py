@@ -2996,3 +2996,60 @@ def test_the_survey_layers_stand_on_the_ground_with_the_streets():
     lift = lift[:lift.index("settleOntoPavement()")]
     for group in ("kerbs", "official", "chunks"):
         assert f'"{group}"' in lift, f"groups.{group} is still left off the ground"
+
+
+# ---- the kerb everybody gets, the bench, and the bore ------------------------------------
+
+
+def test_every_kerb_is_drawn_the_way_an_unmeasured_one_is():
+    """The measurements stay on the way; they are not what the renderer draws from.
+
+    A measured kerb and an inferred one were drawn by two different paths, and the measured
+    one breaks: at Pine and Stockton the corner is assembled from the two legs' own kerb lines,
+    the lines disagree where the survey put them, and the corner is dropped -- a staircase of
+    disconnected slabs with the road showing between them. An inferred kerb has no disagreement
+    to have.
+    """
+    js = _page_js()
+    assert "const KERB_RENDER_UNIFORM = true;" in js
+    # Nothing reads the per-way height directly any more.
+    assert "way.kerb_m || KERB_FALLBACK" not in js
+    assert "function renderedKerbHeight(way)" in js
+    # And the per-station envelope is not what the width comes from while it is on.
+    fn = _extract("halfWidthAt", js)
+    assert "KERB_RENDER_UNIFORM" in fn, "halfWidthAt still widens along the block"
+
+
+def test_a_bench_is_drawn_where_the_map_has_one():
+    """242 in downtown Berkeley, 139 in Palo Alto, 98 in Oakland, in every catalogue from the
+    start because a bench carries an amenity tag -- and nothing drew them."""
+    js = _page_js()
+    assert "function addBenches(records)" in js
+    assert "benches: addBenches(inferred.benches || [])" in js
+    for part in ("BENCH_LENGTH_M", "BENCH_SEAT_Y_M", "BENCH_BACK_H_M"):
+        assert part in js, part
+    collected = (ROOT / "scripts" / "build_street_furniture.py").read_text()
+    assert 'tags.get("amenity") == "bench"' in collected
+    assert '"benches"' in collected
+
+
+def test_the_bore_carries_the_road_through_it():
+    """The markings were painted over the lining's own concrete: the road stopped at the portal.
+
+    A carriageway is its surface, its centre line and its two edges. Inside the tunnel only the
+    centre line was there.
+    """
+    js = _page_js()
+    for piece in ("tunnel_road", "TUNNEL_ROAD_Y_M", "TUNNEL_EDGE_INSET_M"):
+        assert piece in js, piece
+    # And the lamps are fittings with dark between them, not one lit seam.
+    assert "TUNNEL_LAMP_GAP_M" in js and "TUNNEL_LAMP_M" in js
+
+
+def test_the_street_furniture_the_map_has_is_actually_asked_for():
+    """A bus stop is a highway tag, not an amenity, and was never fetched in any region."""
+    source = (ROOT / "scripts" / "build_sf_corridor_3d.py").read_text()
+    query = source[source.index("def overpass_query"):source.index('");out geom;"')]
+    for tag in ('node["highway"="bus_stop"]', 'node["traffic_sign"]',
+                'node["highway"="street_lamp"]', 'public_transport'):
+        assert tag in query, tag

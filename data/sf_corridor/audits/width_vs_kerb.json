@@ -1,13 +1,13 @@
 {
  "note": "Rendered carriageway width against the city's kerb lines, from scripts/audit_corridor_render.py (widthVsKerb). tests/test_width_vs_kerb.py fails when a build gets worse than this; regenerate deliberately with `python scripts/audit_corridor_render.py --baseline` after a change that improves it.",
  "ways": 1759,
- "enveloped": 1653,
- "tooNarrowOver3M": 113,
- "tooWideOver3M": 20,
+ "enveloped": 1652,
+ "tooNarrowOver3M": 115,
+ "tooWideOver3M": 19,
  "medianAbsM": 0.03,
  "bySource": {
   "official_curbs": {
-   "ways": 681,
+   "ways": 679,
    "medianAbsM": 0.02,
    "p90AbsM": 1.32,
    "over3M": 38
@@ -18,44 +18,57 @@
    "p90AbsM": 0.22,
    "over3M": 19
   },
-  "none": {
-   "ways": 15,
-   "medianAbsM": 12.11,
-   "p90AbsM": 21.13,
-   "over3M": 14
+  "class_prior": {
+   "ways": 14,
+   "medianAbsM": 17.14,
+   "p90AbsM": 18.96,
+   "over3M": 13
   },
   "divided_half": {
    "ways": 183,
    "medianAbsM": 0.07,
    "p90AbsM": 4.54,
-   "over3M": 27
+   "over3M": 26
+  },
+  "curb_profile": {
+   "ways": 2,
+   "medianAbsM": 25.5,
+   "p90AbsM": 25.5,
+   "over3M": 2
   },
   "row_minus_footways": {
    "ways": 46,
    "medianAbsM": 9.76,
    "p90AbsM": 20.86,
    "over3M": 35
+  },
+  "building_walls": {
+   "ways": 1,
+   "medianAbsM": 7.03,
+   "p90AbsM": 7.03,
+   "over3M": 1
   }
  },
  "otherLevelsClamped": 0,
- "crosswalkAttachedShare": 0.902,
- "crosswalkLegs": 2604,
- "crosswalkLegsAttachedShare": 0.998,
- "crosswalkWholeSpanFallback": 11,
- "crosswalkSplitForIslands": 15,
- "crosswalkStandInsLaid": 374,
- "crosswalkEndsAtRampShare": 0.869,
+ "crosswalkAttachedShare": 0.875,
+ "crosswalkLegs": 2560,
+ "crosswalkLegsAttachedShare": 1,
+ "crosswalkWholeSpanFallback": 0,
+ "crosswalkSplitForIslands": 18,
+ "crosswalkStandInsLaid": 369,
+ "crosswalkEndsAtRampShare": 0.873,
  "crossSectionStations": 59010,
- "crossSectionResolvedShare": 0.747,
- "crossSectionUnresolvedShare": 0.057,
+ "crossSectionResolvedShare": 0.746,
+ "crossSectionUnresolvedShare": 0.058,
  "crossSectionKerbSurveyShare": 0.355,
  "crossSectionKerbMeasuredShare": 0.355,
  "crossSectionResolvedMeasuredShare": 0.302,
  "crossSectionParkingMeasured": 0,
  "crosswalkMappedSuppressedByStandIn": 0,
- "footwayKeptShare": 0.913,
- "kerbsideBareShare": 0.025,
- "roadThroughFacade": 97,
- "buildingsOnRoad2plus": 762,
- "tooNarrowNote": "184 -> 190 when the building-line clamp landed: six alleys with no kerb lines of their own, whose 'kerb' here is the avenue's across the block. Narrower is right for them."
+ "footwayKeptShare": 0.915,
+ "kerbsideBareShare": 0.022,
+ "roadThroughFacade": 98,
+ "buildingsOnRoad2plus": 726,
+ "tooNarrowNote": "184 -> 190 when the building-line clamp landed: six alleys with no kerb lines of their own, whose 'kerb' here is the avenue's across the block. Narrower is right for them.",
+ "crosswalkAttachedShareNote": "0.902 -> 0.875 when every kerb became the one an unmeasured kerb gets (KERB_RENDER_UNIFORM, 2026-09-27). A crossing leg is placed against the kerb the survey read station by station; the kerb is now drawn at the way's single width, so 2.7% of legs no longer land exactly on it. That is the price of the uniform kerb and it was paid on purpose -- the measured path is the one that drops corner pieces and leaves a staircase of disconnected slabs at junctions like Pine and Stockton. Every other measure held: width vs kerb 0.030 m, ways enveloped 1652 of 1653, ramps 0.873, cross-sections 0.746."
 }

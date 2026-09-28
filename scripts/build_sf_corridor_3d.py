@@ -97,6 +97,17 @@ def overpass_query(bbox: BBox) -> str:
         f'way["amenity"]({area});'
         f'way["shop"]({area});'
         f'way["tourism"]({area});'
+        # The street's own furniture, which the amenity sweep above does not reach. A bus stop
+        # is a highway tag, not an amenity, and it was never fetched in any region: benches
+        # arrived by accident because a bench happens to be an amenity, and the stop that the
+        # bench is usually next to did not.
+        f'node["highway"="bus_stop"]({area});'
+        f'node["public_transport"~"^(platform|stop_position)$"]({area});'
+        f'way["public_transport"="platform"]({area});'
+        f'node["highway"="street_lamp"]({area});'
+        # Signs the city has put on a pole, as opposed to paint on the road.
+        f'node["traffic_sign"]({area});'
+        f'node["highway"~"^(traffic_signals|stop|give_way)$"]({area});'
         ");out geom;"
     )
 
@@ -2968,6 +2979,31 @@ const KERB_FALLBACK = DATA.kerb_height_m || 0.126;
 //: The tallest kerb the model will draw. San Francisco's standard is six inches; eight is the
 //: most a kerb face gets before it is a wall.
 const KERB_RENDER_MAX_M = 0.2;
+
+// ---- one kerb, everywhere ----
+//
+// Every kerb is drawn the way an unmeasured one is drawn: the region's own median height, and
+// the way's single width rather than the width read station by station along it.
+//
+// The measurements are not discarded and nothing upstream changes. way.kerb_m still carries
+// the height the lidar read for that street, way._spans still carries the kerb envelope, the
+// cross-sections still carry every station, and the capability record still reports what was
+// measured and how much of it. They are simply not what the renderer draws from.
+//
+// The reason is that a measured kerb and an inferred one were being drawn by two different
+// paths, and the measured path is the one that breaks: at Pine and Stockton the corner pieces
+// are assembled from the two legs' own kerb lines, the lines disagree where the survey put
+// them, and the corner is dropped -- leaving a staircase of disconnected slabs with the road
+// showing between them. An inferred kerb has no disagreement to have, so it closes. Until the
+// corner builder can take two measured lines that do not meet and still produce a corner, a
+// street drawn consistently is worth more than a street drawn accurately in places and
+// broken in others.
+const KERB_RENDER_UNIFORM = true;
+
+function renderedKerbHeight(way) {
+  if (KERB_RENDER_UNIFORM) return Math.min(KERB_FALLBACK, KERB_RENDER_MAX_M);
+  return Math.min((way && way.kerb_m) || KERB_FALLBACK, KERB_RENDER_MAX_M);
+}
 
 const root = new THREE.Group();
 scene.add(root);
@@ -8538,6 +8574,9 @@ function recentreOnKerbEnvelope(way) {
 }
 
 function halfWidthAt(way, along) {
+  // The uniform kerb draws every street at its own single width, so the carriageway does not
+  // widen and narrow along the block the way the survey read it. The envelope stays on the way.
+  if (KERB_RENDER_UNIFORM) return renderedRoadWidth(way) / 2;
   const spans = way && way._spans;
   if (!spans || spans.length < 2) return renderedRoadWidth(way) / 2;
   if (along <= spans[0][0]) return spans[0][1] / 2;
@@ -9279,7 +9318,7 @@ function mappedWalkBeyondKerb(x, z, nx, nz, inner) {
         const half = renderedWalkWidth(way, 3.6) / 2;
         if (out < inner - half || out > inner + MAPPED_WALK_ABUT_M) continue;
         if (best && out >= best.out) continue;
-        const kerb = Math.min(way.kerb_m || KERB_FALLBACK, KERB_RENDER_MAX_M);
+        const kerb = renderedKerbHeight(way);
         best = { out, edge: out - half, y: ROAD_TOP_M + kerb / 2, thickness: kerb };
       }
     }
@@ -14154,6 +14193,19 @@ const TUNNEL_WALK_W_M = 1.0;
 const TUNNEL_WALK_H_M = 0.3;
 //: The lighting: a continuous strip at the crown.
 const TUNNEL_LIGHT_W_M = 0.3;
+//: Luminaires at the crown, as fittings rather than as one lit seam. A tunnel's ceiling is a
+//: run of separate lamps every few metres and the gaps between them are most of what tells a
+//: driver how fast they are going; drawn as a continuous strip it reads as a lit slot and the
+//: bore has no length to it.
+const TUNNEL_LAMP_M = 1.4;
+const TUNNEL_LAMP_GAP_M = 7.6;
+//: The roadway inside the bore. It was never drawn: the markings were painted at 12 mm over
+//: whatever the bore's floor happened to be, so the surface under them was the lining's own
+//: concrete and the road stopped being a road at the portal.
+const TUNNEL_ROAD_Y_M = 0.006;
+//: And its edge lines, which is what continues the road through: a carriageway is its centre
+//: line and its two edges, and inside the tunnel only the centre was carried in.
+const TUNNEL_EDGE_INSET_M = 0.28;
 const TUNNEL_ARCH_SEGMENTS = 14;
 
 //: The bore's inner section at one station: across (u, positive right) and up (y) from the
@@ -14482,6 +14534,31 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
       if (walk) group.add(walk);
     }
     const laneRoom = boreWidth - 2 * TUNNEL_WALK_W_M;
+    // The road itself, carried through the bore. Inferred where the survey stops at the
+    // portal, which is everywhere: what is known is the width between the walkways and the
+    // level of the floor, and that is a carriageway.
+    if (laneRoom > 0.6) {
+      const asphalt = new THREE.MeshStandardMaterial({
+        color: 0x2f3439, roughness: 0.95, metalness: 0.0,
+        side: THREE.DoubleSide, emissive: 0x0a0c0e,
+      });
+      const deck = sweepAlongBore(stations,
+        () => [[-laneRoom / 2, TUNNEL_ROAD_Y_M], [laneRoom / 2, TUNNEL_ROAD_Y_M]],
+        asphalt, "tunnel_road");
+      if (deck) group.add(deck);
+      // An edge line against each walkway, the same white the approach carries.
+      const edgePaint = new THREE.MeshStandardMaterial({
+        color: 0xdfe3e0, roughness: 0.82, side: THREE.DoubleSide,
+        emissive: 0xdfe3e0, emissiveIntensity: 0.22,
+      });
+      for (const side of [-1, 1]) {
+        const u = side * (laneRoom / 2 - TUNNEL_EDGE_INSET_M);
+        const edge = sweepAlongBore(stations,
+          () => [[u - MARK_W / 2, TUNNEL_ROAD_Y_M + 0.006], [u + MARK_W / 2, TUNNEL_ROAD_Y_M + 0.006]],
+          edgePaint, "tunnel_marking");
+        if (edge) group.add(edge);
+      }
+    }
     const marks = oneway
       ? [{ u: 0, color: 0xdfe3e0, dash: true }]
       : [{ u: -(MARK_W + DOUBLE_GAP_M) / 2, color: 0xd8a92e }, { u: (MARK_W + DOUBLE_GAP_M) / 2, color: 0xd8a92e }];
@@ -14496,11 +14573,28 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
         if (strip) group.add(strip);
       }
     }
+    // The lamps, as separate fittings with dark ceiling between them.
     const strip = sweepAlongBore(stations, (st) => {
       const top = Math.min(st.cap, TUNNEL_CROWN_M) - 0.08;
+      if ((st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) > TUNNEL_LAMP_M) {
+        return [[-TUNNEL_LIGHT_W_M / 2, top], [-TUNNEL_LIGHT_W_M / 2, top]];
+      }
       return [[-TUNNEL_LIGHT_W_M / 2, top], [TUNNEL_LIGHT_W_M / 2, top]];
     }, light, "tunnel_light");
     if (strip) group.add(strip);
+    // What each lamp throws on the lining above it: the fitting alone reads as a sticker on a
+    // flat ceiling, and the tunnels people remember are lit by the walls, not by the lamp.
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffe9b8, transparent: true, opacity: 0.16, side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const glow = sweepAlongBore(stations, (st) => {
+      const top = Math.min(st.cap, TUNNEL_CROWN_M) - 0.10;
+      const lit = (st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) <= TUNNEL_LAMP_M * 2.2;
+      const spread = lit ? TUNNEL_LIGHT_W_M * 3.4 : 0;
+      return [[-spread, top], [spread, top]];
+    }, glowMaterial, "tunnel_light");
+    if (glow) group.add(glow);
   }
   for (const { label, pts, inward } of ends) {
     const here = pts[0];
@@ -15006,7 +15100,7 @@ for (const way of DRAW_ORDER) {
   // planter wall, a step, a bank of ground the lidar's plane fit ran up. The record keeps its
   // number; the pavement is drawn no taller than a kerb can be, since at 445 mm a footway
   // read as a raised slab with a face you could sit on.
-  const KERB = Math.min(way.kerb_m || KERB_FALLBACK, KERB_RENDER_MAX_M);
+  const KERB = renderedKerbHeight(way);
   // Opaque, because these are surfaces rather than overlays. Once the kerb was built at its
   // measured 126 mm the old 0.62 made the footway a faint film on dark ground and it read as
   // missing -- the geometry was right and the material was still drawn like a diagram.
@@ -17359,6 +17453,61 @@ function addStreetFurniturePosts(records) {
   return anchors.length;
 }
 
+//: A public bench: the seat, its back, and the two legs under it. Measured off the ones on
+//: Market Street and within a few centimetres of every municipal bench in the four cities.
+const BENCH_LENGTH_M = 1.8;
+const BENCH_DEPTH_M = 0.52;
+const BENCH_SEAT_Y_M = 0.44;
+const BENCH_SEAT_THICK_M = 0.06;
+const BENCH_BACK_H_M = 0.46;
+const BENCH_LEG_M = 0.06;
+const BENCH_SLATS = 0xa5714a;      // weathered hardwood
+const BENCH_FRAME = 0x5c6266;      // painted cast iron
+
+function addBenches(records) {
+  // One geometry, one placement each: there are a few hundred to a region and they are
+  // identical but for where they stand and which way they face.
+  const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (!anchors.length) return 0;
+  // One instanced mesh a part, sharing the same placement. The page has no geometry-merge
+  // helper loaded and a bench is four boxes; four instanced draws for a few hundred benches
+  // is cheaper than pulling in BufferGeometryUtils for them.
+  const wood = new THREE.MeshStandardMaterial({ color: BENCH_SLATS, roughness: 0.78 });
+  const iron = new THREE.MeshStandardMaterial({ color: BENCH_FRAME, roughness: 0.52, metalness: 0.42 });
+  const parts = [];
+  const seat = new THREE.BoxGeometry(BENCH_LENGTH_M, BENCH_SEAT_THICK_M, BENCH_DEPTH_M);
+  seat.translate(0, BENCH_SEAT_Y_M, 0);
+  parts.push([seat, wood]);
+  const back = new THREE.BoxGeometry(BENCH_LENGTH_M, BENCH_BACK_H_M, BENCH_SEAT_THICK_M);
+  back.translate(0, BENCH_SEAT_Y_M + BENCH_BACK_H_M / 2, -BENCH_DEPTH_M / 2 + BENCH_SEAT_THICK_M);
+  parts.push([back, wood]);
+  for (const sx of [-1, 1]) {
+    const leg = new THREE.BoxGeometry(BENCH_LEG_M, BENCH_SEAT_Y_M, BENCH_DEPTH_M * 0.8);
+    leg.translate(sx * (BENCH_LENGTH_M / 2 - 0.12), BENCH_SEAT_Y_M / 2, 0);
+    parts.push([leg, iron]);
+  }
+  const dummy = new THREE.Object3D();
+  const matrices = anchors.map((row, index) => {
+    dummy.position.set(row.anchor.x, row.anchor.y, row.anchor.z);
+    // Along the kerb, not across it: furnitureBearing already turns a piece of furniture to
+    // the street it stands on, and a bench is set along the pavement rather than blocking it.
+    dummy.rotation.set(0, furnitureBearing(row.item, row.index, row.anchor) + Math.PI / 2, 0);
+    dummy.scale.set(1, 1, 1);
+    dummy.updateMatrix();
+    return dummy.matrix.clone();
+  });
+  for (const [geometry, material] of parts) {
+    const mesh = new THREE.InstancedMesh(geometry, material, matrices.length);
+    matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.userData.surface = "furniture:bench";
+    mesh.castShadow = false;
+    groups.furniture.add(mesh);
+  }
+  return anchors.length;
+}
+
 function addMuniShelters(records) {
   let added = 0;
   for (let i = 0; i < records.length; i += 1) {
@@ -18014,6 +18163,7 @@ function renderStreetFurniture(furniture) {
     bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25),
     ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55),
     shelters: addMuniShelters(shelters),
+    benches: addBenches(inferred.benches || []),
     // The paint inventory first, then the policy zones that are paint by definition.
     curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [])),
     bus_zone_paint: addBusZonePaint((official.curb_zones || [])

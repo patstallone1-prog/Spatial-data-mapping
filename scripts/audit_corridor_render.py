@@ -196,6 +196,8 @@ const KERBSIDE_BLOCK_PROBE_M = 1.8;
 const KERB_LIP_M = 0.1016;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 const WALK_ENOUGH = 0.55;
+// Every kerb is drawn the way an unmeasured one is; the audit measures what is drawn.
+const KERB_RENDER_UNIFORM = true;
 const WALK_EDGE_ALLOWED_M = 2.6;
 const WALK_WIDTH_RUN_M = 6.0;
 const PROPERTY_LINE_PAVEMENT_WIDTH_M = 8.6;

@@ -412,6 +412,7 @@ def records_from_official(
         "bus_stops": [],
         "shelters": [],
         "ad_panels": [],
+        "benches": [],
     }
     seen_sign_ids: set[str] = set()
 
@@ -598,6 +599,7 @@ def base_record(element: dict[str, Any], kind: str, lon: float, lat: float, basi
 def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     out: dict[str, list[dict[str, Any]]] = {
         "street_signs": [],
+        "benches": [],
         "bus_stops": [],
         "shelters": [],
         "ad_panels": [],
@@ -621,6 +623,23 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
             }
             if record["id"] not in seen:
                 out["bus_stops"].append(record)
+                seen.add(record["id"])
+
+        # A bench is a thing anybody can see from the pavement, and OpenStreetMap has been
+        # mapping them for years: 242 in downtown Berkeley, 139 in Palo Alto, 98 in Oakland.
+        # They arrived in every region's catalogue from the start, because a bench happens to
+        # carry an amenity tag and the amenity sweep took them -- and then nothing drew them.
+        if tags.get("amenity") == "bench":
+            record = base_record(element, "bench", lon, lat, basis)
+            # A bench beside a road is set along it, not across it; where the direction is
+            # mapped it is kept, and where it is not the renderer turns it to the nearest kerb.
+            if tags.get("direction"):
+                record["direction"] = tags["direction"]
+            record["seats"] = tags.get("seats")
+            record["backrest"] = tags.get("backrest")
+            record["material"] = tags.get("material")
+            if record["id"] not in seen:
+                out["benches"].append(record)
                 seen.add(record["id"])
 
         if tags.get("amenity") == "shelter" or tags.get("shelter_type") == "public_transport":
