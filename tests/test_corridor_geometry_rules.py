@@ -2849,7 +2849,7 @@ console.log(JSON.stringify({
 # ---- a mapped footway does not pave the roadway ------------------------------------------
 
 
-FIT_FUNCTIONS = CARRIAGEWAY_FUNCTIONS + ("insideMeasuredCarriageway", "walkWidthAgainstMeasuredKerbs")
+FIT_FUNCTIONS = (*CARRIAGEWAY_FUNCTIONS, "insideMeasuredCarriageway", "walkWidthAgainstMeasuredKerbs")
 
 
 def _run_fit(js_body: str) -> dict:

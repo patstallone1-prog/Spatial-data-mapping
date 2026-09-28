@@ -22,14 +22,13 @@ smoothed over.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import io
 import json
 import math
 import zipfile
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
+from pathlib import Path
 
 from smc.imagery.archive import RangedHttpFile
 from smc.imagery.base import ImageAsset, License, ObservationUnavailable
