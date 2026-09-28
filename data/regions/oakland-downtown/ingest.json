@@ -81,7 +81,7 @@
    "outputs": []
   },
   "lidar": {
-   "status": "done",
+   "status": "partial",
    "started_at": "2026-09-21T03:52:31Z",
    "command": [
     "scripts/measure_region_lidar.py",
@@ -92,7 +92,8 @@
    "finished_at": "2026-09-21T03:52:32Z",
    "outputs": [
     "data/regions/oakland-downtown/lidar/building_heights.json"
-   ]
+   ],
+   "outstanding": 1
   },
   "build": {
    "status": "done",

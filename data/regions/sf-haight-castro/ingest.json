@@ -82,15 +82,15 @@
   },
   "lidar": {
    "status": "running",
-   "started_at": "2026-09-27T23:26:41Z",
+   "started_at": "2026-09-28T01:42:34Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "sf-haight-castro"
    ]
   },
   "build": {
-   "status": "stale",
-   "started_at": "2026-09-27T05:13:14Z",
+   "status": "done",
+   "started_at": "2026-09-28T01:24:03Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -98,12 +98,11 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 17.0,
-   "finished_at": "2026-09-27T05:13:31Z",
+   "seconds": 12.1,
+   "finished_at": "2026-09-28T01:24:15Z",
    "outputs": [
     "data/regions/sf-haight-castro/site/sf-corridor-3d.json"
-   ],
-   "stale_because": "osm is newer on disk"
+   ]
   },
   "audit": {
    "status": "stale",

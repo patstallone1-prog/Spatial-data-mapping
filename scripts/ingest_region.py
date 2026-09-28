@@ -248,6 +248,38 @@ def overtaken_by_inputs(stage: str, commands: dict) -> str | None:
     return None
 
 
+def work_outstanding(region: Region, stage: str) -> int:
+    """Work a stage still has to do, by its own inner journal, whatever the outer one says.
+
+    A stage is recorded done when its command exits 0 and its outputs are there. The lidar's
+    command does exit 0 with every output written while cells it could not read are still
+    marked to be tried again -- it measures each cell once per run and leaves the rest for the
+    next. So "done" and "finished" are not the same thing, and after the Haight-Castro pass the
+    journal said done with twenty-one of its two hundred and forty-four cells never read.
+    Returns the number of cells still wanted, or 0.
+    """
+    if stage != "lidar":
+        return 0
+    cells = region_dir(region) / "lidar" / "cells.jsonl"
+    if not cells.exists():
+        return 0
+    done: dict[str, dict] = {}
+    wanted: set[str] = set()
+    for line in cells.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        wanted.add(row["cell"])
+        if row.get("retry"):
+            done.pop(row["cell"], None)
+        else:
+            done[row["cell"]] = row
+    return len(wanted - set(done))
+
+
 def mark_interrupted(region: Region, journal: dict) -> list[str]:
     """A stage left "running" by a process that is no longer here is not running.
 
@@ -331,14 +363,23 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
         cmd, outputs = commands[stage]
         entry = journal["stages"].get(stage, {})
         if not force and entry.get("status") == "done" and all(p.exists() for p in outputs):
+            outstanding = work_outstanding(region, stage)
             overtaken = overtaken_by_inputs(stage, commands)
-            if overtaken is None:
+            if outstanding:
+                entry["status"] = "partial"
+                entry["outstanding"] = outstanding
+                save_journal(region, journal)
+                print(f"  {stage:9s} recorded done, but {outstanding} cells are still "
+                      f"waiting to be read; running again")
+            elif overtaken is not None:
+                entry["status"] = "stale"
+                entry["stale_because"] = f"{overtaken} is newer on disk"
+                save_journal(region, journal)
+                print(f"  {stage:9s} recorded done, but {overtaken} has been rebuilt since; "
+                      "running again")
+            else:
                 print(f"  {stage:9s} done already ({entry.get('finished_at', '')})")
                 continue
-            entry["status"] = "stale"
-            entry["stale_because"] = f"{overtaken} is newer on disk"
-            save_journal(region, journal)
-            print(f"  {stage:9s} recorded done, but {overtaken} has been rebuilt since; running again")
         print(f"  {stage:9s} running: {' '.join(cmd[1:])}")
         if dry_run:
             continue

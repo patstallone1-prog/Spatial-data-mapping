@@ -255,3 +255,43 @@ def test_reading_a_wall_colour_does_not_depend_on_san_franciscos_centrelines():
     # And it is called whatever the region.
     source = inspect.getsource(builder)
     assert "annotate_facades(ways)" in source
+
+
+def test_a_stage_is_not_finished_while_its_own_journal_still_has_work(tmp_path, monkeypatch):
+    """"Done" and "finished" are not the same thing.
+
+    The lidar measures each cell once per run and leaves the rest for the next, so its command
+    exits 0 with every output written while cells it could not read are still marked to be
+    tried again. The stage journal recorded that as done, and after the Haight-Castro pass it
+    said done with twenty-one of two hundred and forty-four cells never read -- and every
+    later run skipped the stage.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import importlib
+
+    ingest_region = importlib.import_module("ingest_region")
+
+    class FakeRegion:
+        name = "test-region"
+
+    base = tmp_path / "test-region"
+    (base / "lidar").mkdir(parents=True)
+    monkeypatch.setattr(ingest_region, "region_dir", lambda r: base)
+
+    cells = base / "lidar" / "cells.jsonl"
+    rows = [
+        {"cell": "0:0", "streets": {}, "buildings": {}},
+        {"cell": "0:1", "streets": {}, "buildings": {}},
+        # read, then lost to the network and marked to come round again
+        {"cell": "0:2", "streets": {}, "buildings": {}},
+        {"cell": "0:2", "error": "nodename nor servname", "retry": True},
+    ]
+    cells.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    assert ingest_region.work_outstanding(FakeRegion, "lidar") == 1
+
+    # Once it is read, nothing is outstanding.
+    cells.write_text(cells.read_text() + json.dumps({"cell": "0:2", "streets": {}, "buildings": {}}) + "\n")
+    assert ingest_region.work_outstanding(FakeRegion, "lidar") == 0
+
+    # And no other stage keeps an inner journal, so none of them claims work.
+    assert ingest_region.work_outstanding(FakeRegion, "build") == 0
