@@ -107,7 +107,7 @@
    "implemented": true,
    "extractor": "scripts/build_facade_fingerprints.py",
    "active": "imagery",
-   "count": 311,
+   "count": 326,
    "of": 2669,
    "truthful": true,
    "note": ""

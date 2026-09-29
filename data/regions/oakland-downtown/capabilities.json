@@ -96,17 +96,17 @@
    "extractor": "scripts/measure_region_lidar.py (street risers)",
    "active": "lidar",
    "count": 19513,
-   "of": 41932,
+   "of": 33531,
    "truthful": true,
-   "note": "stations by kerb grade: {'L': 19513, 'N': 22419}"
+   "note": "stations by kerb grade: {'L': 19513, 'N': 14018}"
   },
   "kerb_height": {
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
    "active": "lidar",
-   "count": 1148,
-   "of": 2137,
+   "count": 1112,
+   "of": 1752,
    "truthful": true,
    "note": ""
   },
@@ -115,10 +115,10 @@
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (roof over foot)",
    "active": "lidar",
-   "count": 2445,
-   "of": 3564,
+   "count": 2685,
+   "of": 3066,
    "truthful": true,
-   "note": "by source: {'lidar_region': 2445, 'osm_height': 86, 'osm_levels': 169, 'inferred_default': 864}"
+   "note": "by source: {'lidar_region': 2685, 'osm_height': 85, 'inferred_default': 233, 'osm_levels': 63}"
   },
   "building_colour": {
    "available": "imagery",
@@ -126,7 +126,7 @@
    "extractor": "scripts/build_facade_fingerprints.py",
    "active": "imagery",
    "count": 633,
-   "of": 3564,
+   "of": 3066,
    "truthful": true,
    "note": ""
   },
@@ -138,7 +138,7 @@
    "count": 1,
    "of": 1,
    "truthful": true,
-   "note": "held-out RMSE 0.044 m on the roadway"
+   "note": "held-out RMSE 0.041 m on the roadway"
   },
   "parking": {
    "available": "imagery",
@@ -146,7 +146,7 @@
    "extractor": "smc.measure.parking_band (no crawl yet)",
    "active": "none",
    "count": 0,
-   "of": 41932,
+   "of": 33531,
    "truthful": false,
    "note": "parking bands graded image; the rest are policy priors"
   },
@@ -156,7 +156,7 @@
    "extractor": null,
    "active": "none",
    "count": 0,
-   "of": 727,
+   "of": 641,
    "truthful": false,
    "note": "the city's ramp inventory, as ramps; crossings end at them in the audit's endsAtRampShare"
   },
@@ -165,8 +165,8 @@
    "implemented": true,
    "extractor": "smc.facts.cross_section allocate",
    "active": "osm+priors",
-   "count": 41932,
-   "of": 41932,
+   "count": 33531,
+   "of": 33531,
    "truthful": true,
    "note": "every station is an allocation over priors; a measured lane boundary does not exist yet"
   }
