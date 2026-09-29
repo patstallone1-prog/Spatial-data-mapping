@@ -1609,8 +1609,8 @@ if (mapCanvas) mapCanvas.addEventListener("wheel", (e) => {
   drawMap();
 }, { passive: false });
 
-document.getElementById("m-walk").textContent = DATA.pedestrian.filter((w) => w.k === "sidewalk").length;
-document.getElementById("m-cover").textContent = DATA.coverage.length;
+// The map tab is now the full 3D iframe; the old 2D-only m-walk/m-cover counters
+// no longer exist. Its own HUD reports the live measurements.
 
 /* ============ device copy ============ */
 const COPY = {

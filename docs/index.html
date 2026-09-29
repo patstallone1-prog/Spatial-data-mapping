@@ -228,12 +228,16 @@
   }
   .devrow:last-child { border-bottom: 0; }
   .devrow .what { font-size: 15.5px; }
+  .devrow .what a { color: var(--ink); font-weight: 600; text-decoration: none; }
+  .devrow .what a:hover, .devrow .what a:focus-visible { color: var(--accent); text-decoration: underline; }
   .devrow .what span { display: block; color: var(--ink-3); font-size: 13.5px; }
   .tick {
     font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase;
     font-weight: 600; padding: 4px 10px; border-radius: 5px; white-space: nowrap;
   }
   .tick.yes { color: #17734a; background: rgba(23, 115, 74, 0.12); }
+  a.tick { text-decoration: none; white-space: nowrap; }
+  a.tick:hover, a.tick:focus-visible { text-decoration: underline; }
   .tick.no { color: #a53a30; background: rgba(165, 58, 48, 0.12); }
   :root[data-theme="dark"] .tick.yes,
   :root:not([data-theme="light"]) .tick.yes { color: #62c894; background: rgba(98, 200, 148, 0.14); }
@@ -268,12 +272,12 @@
 
     <div class="cta">
       <div class="ctarow">
-        <button class="btn" id="get-android">Download for Samsung</button>
-        <button class="btn" id="get-ios">Download for iPhone</button>
+        <button class="btn" id="get-android">Install on Android</button>
+        <button class="btn" id="get-ios">Install on iPhone</button>
       </div>
       <div class="ctarow">
         <a class="btn ghost" id="open-app" href="app.html">Open it now</a>
-        <a class="btn ghost" id="save-app" href="app.html" download="kerbside.html">Save the file</a>
+        <a class="btn ghost" id="save-app" href="app.html" download="kerbside.html">Save app page</a>
       </div>
       <ol class="steps" id="steps" hidden></ol>
       <p class="ctanote" id="ctanote"></p>
@@ -381,28 +385,35 @@
   <section id="regions">
     <hr class="rule" />
     <div class="narrow">
-      <p class="eyebrow">Where it has been built</p>
-      <h2>Walk the places that are done.</h2>
+      <p class="eyebrow">Live coverage</p>
+      <h2>Explore the live map.</h2>
       <p class="lede" style="font-size: 16px">Each is a 3D reconstruction you can open and walk through. The note under each says what it stands on &mdash; the city's records, the lidar, or the map alone.</p>
     </div>
+    <p class="ctanote" id="coverage-status" role="status">Loading live coverage…</p>
     <div class="devicelist" id="regionlist"></div>
     <script>
-      fetch("regions.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((index) => {
+      fetch("app-regions.json", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((index) => {
         const list = document.getElementById("regionlist");
-        if (!index || !list) return;
-        for (const region of index.regions) {
+        const status = document.getElementById("coverage-status");
+        if (!index || !Array.isArray(index.regions) || !list) throw new Error("coverage unavailable");
+        const available = index.regions.filter((region) => region.built &&
+          /^(app-model\.html|app-regions\/[a-z0-9-]+\/app-model\.html)$/.test(region.path || ""));
+        status.textContent = `${available.length} full-detail areas available now.`;
+        for (const region of available) {
           const row = document.createElement("div"); row.className = "devrow";
           const what = document.createElement("div"); what.className = "what";
           const link = document.createElement("a"); link.textContent = region.title;
-          if (region.built) link.href = region.path; else { link.style.opacity = "0.6"; link.style.pointerEvents = "none"; }
+          link.href = region.path;
           what.appendChild(link);
           const sub = document.createElement("span"); sub.textContent = region.note || region.description || ""; what.appendChild(sub);
-          const tick = document.createElement("span"); tick.className = "tick " + (region.built ? "yes" : "no");
-          tick.textContent = region.built ? "Open" : "Not yet";
-          if (region.built) { tick.style.cursor = "pointer"; tick.addEventListener("click", () => { location.href = region.path; }); }
+          const tick = document.createElement("a"); tick.className = "tick yes";
+          tick.textContent = "Open 3D"; tick.href = region.path;
           row.appendChild(what); row.appendChild(tick); list.appendChild(row);
         }
-      }).catch(() => {});
+      }).catch(() => {
+        document.getElementById("coverage-status").textContent =
+          "Live coverage is temporarily unavailable. Open the app to browse the map.";
+      });
     </script>
   </section>
 
@@ -445,12 +456,12 @@
       <h2>It installs from the browser. There is no store, and no account.</h2>
       <div class="cta">
         <div class="ctarow">
-          <button class="btn" id="get-android2">Download for Samsung</button>
-          <button class="btn" id="get-ios2">Download for iPhone</button>
+          <button class="btn" id="get-android2">Install on Android</button>
+          <button class="btn" id="get-ios2">Install on iPhone</button>
         </div>
         <div class="ctarow">
           <a class="btn ghost" id="open-app2" href="app.html">Open it in this browser</a>
-          <a class="btn ghost" id="save-app2" href="app.html" download="kerbside.html">Save the file</a>
+          <a class="btn ghost" id="save-app2" href="app.html" download="kerbside.html">Save app page</a>
         </div>
         <ol class="steps" id="steps2" hidden></ol>
         <p class="ctanote" id="ctanote2"></p>
@@ -572,7 +583,8 @@
   function showSteps(kind) {
     ["steps", "steps2"].forEach((id) => {
       const ol = document.getElementById(id);
-      ol.innerHTML = STEPS[kind].map((t) => "<li>" + t + "</li>").join("");
+    ol.innerHTML = STEPS[kind].map((t) => "<li>" + t.replace(
+      "<code>" + APP_URL + "</code>", "<a href=\"" + APP_URL + "\">Open Kerbside</a>") + "</li>").join("");
       ol.hidden = false;
     });
   }
@@ -585,7 +597,7 @@
   function paintButtons() {
     ["get-android", "get-android2"].forEach((id) => {
       document.getElementById(id).textContent =
-        installPrompt ? "Install on this phone" : "Download for Samsung";
+      installPrompt ? "Install on this phone" : "Install on Android";
     });
   }
 
@@ -609,7 +621,7 @@
   // discover it in the street.
   ["save-app", "save-app2"].forEach((id) =>
     document.getElementById(id).addEventListener("click", () =>
-      setNote("Saving a copy. A saved file can show the map and read imported photographs, but browsers will not give it the camera or your location \u2014 install it instead to capture.")
+      setNote("Saving the HTML page only. For the live map, camera, location and offline 3D data, install Kerbside from the browser instead.")
     )
   );
 
