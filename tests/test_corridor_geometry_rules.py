@@ -3188,3 +3188,17 @@ def test_the_street_furniture_the_map_has_is_actually_asked_for():
     for tag in ('node["highway"="bus_stop"]', 'node["traffic_sign"]',
                 'node["highway"="street_lamp"]', 'public_transport'):
         assert tag in query, tag
+
+
+def test_a_pavement_is_not_one_slab_stamped_across_the_city():
+    """Tiled edge to edge, one scored slab puts its aggregate, its staining and its broom
+    marks in the same place on every slab in the city, and a pavement reads from above as a
+    chequerboard of one square. Each slab in the block is poured off its own seed."""
+    js = _page_js()
+    assert "const SLAB_BLOCK" in js
+    assert "function sidewalkSlab(variant, size, seed)" in js
+    assert "const grit = (n) => random(n + seed * 977);" in js
+    # And every UV written for a pavement is in units of the block, not of the slab: divide by
+    # the slab and one slab's ground shows the whole block squeezed into it.
+    assert "/ SLAB_M" not in js, "a pavement UV is still in slab units"
+    assert "const WALK_UV_M = SLAB_M * SLAB_BLOCK;" in js

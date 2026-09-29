@@ -23,14 +23,14 @@
   },
   "osm": {
    "status": "done",
-   "started_at": "2026-09-20T04:19:01Z",
+   "started_at": "2026-09-29T02:48:47Z",
    "command": [
     "scripts/fetch_region_osm.py",
     "oakland-downtown"
    ],
    "exit_code": 0,
-   "seconds": 7.4,
-   "finished_at": "2026-09-20T04:19:08Z",
+   "seconds": 7.6,
+   "finished_at": "2026-09-29T02:48:54Z",
    "outputs": [
     "data/regions/oakland-downtown/osm_ways.json"
    ]
@@ -68,7 +68,7 @@
    ]
   },
   "official": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-20T04:53:40Z",
    "command": [
     "scripts/build_sf_official_geometry.py",
@@ -78,10 +78,11 @@
    "exit_code": 0,
    "seconds": 0.1,
    "finished_at": "2026-09-20T04:53:40Z",
-   "outputs": []
+   "outputs": [],
+   "stale_because": "osm"
   },
   "lidar": {
-   "status": "done",
+   "status": "stale",
    "started_at": "2026-09-28T02:03:27Z",
    "command": [
     "scripts/measure_region_lidar.py",
@@ -92,11 +93,12 @@
    "finished_at": "2026-09-28T02:03:55Z",
    "outputs": [
     "data/regions/oakland-downtown/lidar/building_heights.json"
-   ]
+   ],
+   "stale_because": "osm"
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-28T02:03:55Z",
+   "started_at": "2026-09-29T02:48:54Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -104,8 +106,8 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 53.5,
-   "finished_at": "2026-09-28T02:04:49Z",
+   "seconds": 24.5,
+   "finished_at": "2026-09-29T02:49:19Z",
    "outputs": [
     "data/regions/oakland-downtown/site/sf-corridor-3d.json"
    ]

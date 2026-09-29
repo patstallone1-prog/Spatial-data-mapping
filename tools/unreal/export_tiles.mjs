@@ -13,7 +13,9 @@
 //
 //   node tools/unreal/export_tiles.mjs [--tile 250] [--out build/unreal] [--only x,y]
 //
-// Run from the repository root after the page has been built (docs/sf-corridor-3d.*).
+// Run from the repository root after the page has been built:
+//   node tools/unreal/export_tiles.mjs                       the corridor
+//   node tools/unreal/export_tiles.mjs --region sf-sunset    one built region
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -30,6 +32,12 @@ const flag = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ?
 const TILE_M = Number(flag("--tile", 250));
 const OUT = resolve(ROOT, flag("--out", "build/unreal"));
 const ONLY = flag("--only", null);
+// Which world to export. The corridor's page and payload sit in docs/; a region's sit in
+// docs/regions/<name>/. Both are the same renderer reading the same shapes, so the exporter
+// needs nothing but the directory they live in -- it was hard-wired to docs/ and so only the
+// corridor could ever be exported, which is why seven of the eight built worlds had no tiles.
+const REGION = flag("--region", null);
+const WORLD = REGION ? `docs/regions/${REGION}` : "docs";
 const GROUPS = ["streets", "mapped3d", "ground", "furniture"];
 
 // ---- the browser the page expects, minus the drawing ------------------------------------
@@ -92,7 +100,7 @@ globalThis.FileReader = class {
 globalThis.fetch = async (url) => {
   const name = String(url).split("?")[0];
   try {
-    const bytes = readFileSync(resolve(ROOT, "docs", name));
+    const bytes = readFileSync(resolve(ROOT, WORLD, name));
     return { ok: true, status: 200, json: async () => JSON.parse(bytes.toString("utf8")),
              arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
              text: async () => bytes.toString("utf8") };
@@ -101,7 +109,7 @@ globalThis.fetch = async (url) => {
 
 // ---- the page, as a module ---------------------------------------------------------------
 function pageModule() {
-  const html = readFileSync(resolve(ROOT, "docs/sf-corridor-3d.html"), "utf8");
+  const html = readFileSync(resolve(ROOT, WORLD, "sf-corridor-3d.html"), "utf8");
   const start = html.indexOf('<script type="module">') + '<script type="module">'.length;
   let js = html.slice(start, html.indexOf("</script>", start));
   js = js.replace(/^import \* as THREE from "[^"]+";/m, "const THREE = globalThis.__THREE;");

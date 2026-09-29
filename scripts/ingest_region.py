@@ -253,6 +253,34 @@ def overtaken_by_inputs(stage: str, commands: dict) -> str | None:
     return None
 
 
+#: Stages whose answer is bounded by the region's own box: asking Overpass, reading the lidar,
+#: sweeping a photograph service. Widen the box and their old answer covers less than the
+#: region now is.
+BOUNDED_BY_BBOX = ("osm", "terrain", "lidar", "imagery")
+
+
+def bbox_changed(region: Region, journal: dict) -> str:
+    """How the region's box has moved since the journal was written, or "".
+
+    The journal records the box each run was made under and nothing compared it against the
+    registry. Oakland's south edge was taken from 37.795 to 37.785 to bring in the Posey and
+    Webster tube approaches, and the map was never asked again: the strip between the two
+    latitudes -- the whole Alameda side -- arrived with one street and no buildings, so the
+    tube portal stood in an empty field with its road tapering away to nothing. Every stage
+    reported done, because every stage was done for a region that no longer existed.
+    """
+    was = journal.get("bbox")
+    now = [region.bbox.south, region.bbox.west, region.bbox.north, region.bbox.east]
+    if not was or len(was) != 4:
+        return ""
+    if all(abs(float(a) - float(b)) < 1e-9 for a, b in zip(was, now)):
+        return ""
+    grew = (now[0] < was[0] - 1e-9 or now[1] < was[1] - 1e-9
+            or now[2] > was[2] + 1e-9 or now[3] > was[3] + 1e-9)
+    return ("the region has grown since this ran" if grew
+            else "the region has moved since this ran")
+
+
 def work_outstanding(region: Region, stage: str) -> int:
     """Work a stage still has to do, by its own inner journal, whatever the outer one says.
 
@@ -390,7 +418,13 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
         if not force and entry.get("status") == "done" and stage_outputs_ready(stage, outputs):
             outstanding = work_outstanding(region, stage)
             overtaken = overtaken_by_inputs(stage, commands)
-            if outstanding:
+            moved = bbox_changed(region, journal) if stage in BOUNDED_BY_BBOX else ""
+            if moved:
+                entry["status"] = "stale"
+                entry["stale_because"] = moved
+                save_journal(region, journal)
+                print(f"  {stage:9s} {moved}; running again")
+            elif outstanding:
                 entry["status"] = "partial"
                 entry["outstanding"] = outstanding
                 save_journal(region, journal)

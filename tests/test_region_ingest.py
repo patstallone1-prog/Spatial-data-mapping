@@ -295,3 +295,45 @@ def test_a_stage_is_not_finished_while_its_own_journal_still_has_work(tmp_path, 
 
     # And no other stage keeps an inner journal, so none of them claims work.
     assert ingest_region.work_outstanding(FakeRegion, "build") == 0
+
+
+def test_a_stage_is_stale_when_the_region_itself_has_been_redrawn(tmp_path):
+    """The journal records the box a run was made under, and nothing compared it.
+
+    Oakland's south edge was taken from 37.795 to 37.785 to bring in the Posey and Webster
+    tube approaches. The map was never asked again, so the strip between the two latitudes --
+    the whole Alameda side -- arrived with one street and no buildings at all, and the tube
+    portal stood in an empty field with its road tapering away to nothing. Every stage reported
+    done, because every stage was done for a region that no longer existed.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import importlib
+
+    ingest_region = importlib.import_module("ingest_region")
+
+    class Box:
+        def __init__(self, s, w, n, e):
+            self.south, self.west, self.north, self.east = s, w, n, e
+
+    class FakeRegion:
+        name = "test-region"
+        bbox = Box(37.785, -122.285, 37.815, -122.26)
+
+    # The box it ran under, and the box it is now: grown southward.
+    assert ingest_region.bbox_changed(
+        FakeRegion, {"bbox": [37.795, -122.285, 37.815, -122.26]}
+    ) == "the region has grown since this ran"
+    # Unchanged is unchanged.
+    assert ingest_region.bbox_changed(
+        FakeRegion, {"bbox": [37.785, -122.285, 37.815, -122.26]}
+    ) == ""
+    # A box that moved without growing still invalidates what was fetched for the old one.
+    assert "moved" in ingest_region.bbox_changed(
+        FakeRegion, {"bbox": [37.780, -122.290, 37.820, -122.255]}
+    )
+    # A journal with no box recorded cannot be judged, and is not guessed at.
+    assert ingest_region.bbox_changed(FakeRegion, {}) == ""
+    # Only the stages whose answer the box bounds.
+    assert "osm" in ingest_region.BOUNDED_BY_BBOX
+    assert "lidar" in ingest_region.BOUNDED_BY_BBOX
+    assert "build" not in ingest_region.BOUNDED_BY_BBOX
