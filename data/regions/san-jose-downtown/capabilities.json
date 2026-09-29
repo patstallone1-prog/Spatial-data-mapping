@@ -60,17 +60,17 @@
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (street risers)",
    "active": "lidar",
-   "count": 4818,
+   "count": 14827,
    "of": 37756,
    "truthful": true,
-   "note": "stations by kerb grade: {'N': 32938, 'L': 4818}"
+   "note": "stations by kerb grade: {'N': 22929, 'L': 14827}"
   },
   "kerb_height": {
    "available": "lidar",
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py / measure_curbs_lidar.py",
    "active": "lidar",
-   "count": 257,
+   "count": 939,
    "of": 2024,
    "truthful": true,
    "note": ""
@@ -80,10 +80,10 @@
    "implemented": true,
    "extractor": "scripts/measure_region_lidar.py (roof over foot)",
    "active": "lidar",
-   "count": 389,
+   "count": 580,
    "of": 4265,
    "truthful": true,
-   "note": "by source: {'inferred_default': 205, 'osm_height': 3608, 'osm_levels': 63, 'lidar_region': 389}"
+   "note": "by source: {'inferred_default': 55, 'lidar_region': 580, 'osm_height': 3608, 'osm_levels': 22}"
   },
   "building_colour": {
    "available": "imagery",

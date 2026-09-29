@@ -67,10 +67,12 @@ CITY_RECORDS: dict[str, list[Record]] = {
         Record("parcels", "Parcels", "socrata_table", "c3xp-qcgn",
                host="data.oaklandca.gov", geometry="the_geom"),
         Record("curb_ramps", "Curb Ramps", "socrata_table", "uq94-uqnq",
-               host="data.oaklandca.gov"),
-        Record("curb_ramp_survey", "Characteristics of Surveyed Curb Ramps",
-               "socrata_geospatial", "bxep-iu9u", host="data.oaklandca.gov",
-               note="a map layer, not a table: the row interface answers empty"),
+               host="data.oaklandca.gov",
+               note="four inside this region: the inventory is thin here, not absent"),
+        # Listed, and empty: four rows and no data columns, through the row interface, the
+        # geospatial export and the full views download alike. The same shell Berkeley's whole
+        # catalogue turned out to be. Kept here so it is not looked up a third time.
+        # Record("curb_ramp_survey", "Characteristics of Surveyed Curb Ramps", ...)
         Record("curb_inventory", "Downtown Oakland On-street Parking Inventory",
                "socrata_table", "87ce-u2wf", host="data.oaklandca.gov",
                note="the kerb use of every downtown block face -- this region exactly"),

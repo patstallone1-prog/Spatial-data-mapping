@@ -83,16 +83,22 @@
    "stale_because": "osm"
   },
   "lidar": {
-   "status": "running",
-   "started_at": "2026-09-28T04:10:15Z",
+   "status": "done",
+   "started_at": "2026-09-28T05:45:49Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "san-jose-downtown"
+   ],
+   "exit_code": 0,
+   "seconds": 226.7,
+   "finished_at": "2026-09-28T05:49:36Z",
+   "outputs": [
+    "data/regions/san-jose-downtown/lidar/building_heights.json"
    ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-27T14:53:33Z",
+   "started_at": "2026-09-28T05:49:36Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -100,8 +106,8 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 35.6,
-   "finished_at": "2026-09-27T14:54:08Z",
+   "seconds": 60.5,
+   "finished_at": "2026-09-28T05:50:37Z",
    "outputs": [
     "data/regions/san-jose-downtown/site/sf-corridor-3d.json"
    ]

@@ -83,21 +83,21 @@
   },
   "lidar": {
    "status": "done",
-   "started_at": "2026-09-27T13:58:21Z",
+   "started_at": "2026-09-28T05:44:45Z",
    "command": [
     "scripts/measure_region_lidar.py",
     "palo-alto-downtown"
    ],
    "exit_code": 0,
-   "seconds": 714.4,
-   "finished_at": "2026-09-27T14:10:15Z",
+   "seconds": 35.2,
+   "finished_at": "2026-09-28T05:45:21Z",
    "outputs": [
     "data/regions/palo-alto-downtown/lidar/building_heights.json"
    ]
   },
   "build": {
    "status": "done",
-   "started_at": "2026-09-27T14:10:15Z",
+   "started_at": "2026-09-28T05:45:21Z",
    "command": [
     "scripts/build_sf_corridor_3d.py",
     "--region",
@@ -105,8 +105,8 @@
     "--reuse-osm"
    ],
    "exit_code": 0,
-   "seconds": 26.7,
-   "finished_at": "2026-09-27T14:10:42Z",
+   "seconds": 26.8,
+   "finished_at": "2026-09-28T05:45:48Z",
    "outputs": [
     "data/regions/palo-alto-downtown/site/sf-corridor-3d.json"
    ]
