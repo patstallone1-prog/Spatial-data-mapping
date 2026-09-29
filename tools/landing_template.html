@@ -24,8 +24,8 @@
     --ink: #16181c;
     --ink-2: #555c66;
     --ink-3: #8a919b;
-    --accent: #c8175f;
-    --accent-soft: rgba(200, 23, 95, 0.10);
+    --accent: #8c844c;
+    --accent-soft: rgba(140, 132, 76, 0.10);
     --shadow: 0 1px 2px rgba(22, 24, 28, 0.05), 0 16px 44px rgba(22, 24, 28, 0.09);
 
     --display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
@@ -43,8 +43,8 @@
       --ink: #eceff3;
       --ink-2: #a2acb8;
       --ink-3: #74808d;
-      --accent: #ff5c9b;
-      --accent-soft: rgba(255, 92, 155, 0.14);
+      --accent: #8c844c;
+      --accent-soft: rgba(140, 132, 76, 0.14);
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 48px rgba(0, 0, 0, 0.4);
     }
   }
@@ -57,8 +57,8 @@
     --ink: #eceff3;
     --ink-2: #a2acb8;
     --ink-3: #74808d;
-    --accent: #ff5c9b;
-    --accent-soft: rgba(255, 92, 155, 0.14);
+    --accent: #8c844c;
+    --accent-soft: rgba(140, 132, 76, 0.14);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 48px rgba(0, 0, 0, 0.4);
   }
 
@@ -111,7 +111,7 @@
   }
   .mark {
     width: 30px; height: 30px; border-radius: 7px; background: var(--accent);
-    display: grid; place-items: center; color: #fff;
+    display: grid; place-items: center; color: #171910;
     font-family: var(--display); font-weight: 700; font-size: 17px; flex: none;
   }
   .brand { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.02em; }
@@ -130,11 +130,11 @@
   .cta { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 11px;
-    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+    background: var(--accent); color: #171910; border: 1px solid var(--accent);
     padding: 17px 30px; border-radius: 10px;
     font-family: var(--body); font-size: 17px; font-weight: 600;
     cursor: pointer; text-decoration: none;
-    box-shadow: 0 2px 5px rgba(200, 23, 95, 0.22), 0 14px 30px rgba(200, 23, 95, 0.18);
+    box-shadow: 0 2px 5px rgba(140, 132, 76, 0.22), 0 14px 30px rgba(140, 132, 76, 0.18);
     transition: transform 0.14s ease;
   }
   .btn:hover { transform: translateY(-1px); }
@@ -275,10 +275,6 @@
         <button class="btn" id="get-android">Install on Android</button>
         <button class="btn" id="get-ios">Install on iPhone</button>
       </div>
-      <div class="ctarow">
-        <a class="btn ghost" id="open-app" href="app.html">Open it now</a>
-        <a class="btn ghost" id="save-app" href="app.html" download="kerbside.html">Save app page</a>
-      </div>
       <ol class="steps" id="steps" hidden></ol>
       <p class="ctanote" id="ctanote"></p>
     </div>
@@ -386,8 +382,8 @@
     <hr class="rule" />
     <div class="narrow">
       <p class="eyebrow">Live coverage</p>
-      <h2>Explore the live map.</h2>
-      <p class="lede" style="font-size: 16px">Each is a 3D reconstruction you can open and walk through. The note under each says what it stands on &mdash; the city's records, the lidar, or the map alone.</p>
+      <h2>Live app coverage.</h2>
+      <p class="lede" style="font-size: 16px">Full-detail areas are available in the Kerbside app. Each note says whether the reconstruction is grounded in city records, lidar, or map data.</p>
     </div>
     <p class="ctanote" id="coverage-status" role="status">Loading live coverage…</p>
     <div class="devicelist" id="regionlist"></div>
@@ -402,12 +398,11 @@
         for (const region of available) {
           const row = document.createElement("div"); row.className = "devrow";
           const what = document.createElement("div"); what.className = "what";
-          const link = document.createElement("a"); link.textContent = region.title;
-          link.href = region.path;
-          what.appendChild(link);
+          const title = document.createElement("strong"); title.textContent = region.title;
+          what.appendChild(title);
           const sub = document.createElement("span"); sub.textContent = region.note || region.description || ""; what.appendChild(sub);
-          const tick = document.createElement("a"); tick.className = "tick yes";
-          tick.textContent = "Open 3D"; tick.href = region.path;
+          const tick = document.createElement("span"); tick.className = "tick yes";
+          tick.textContent = "In app";
           row.appendChild(what); row.appendChild(tick); list.appendChild(row);
         }
       }).catch(() => {
@@ -458,10 +453,6 @@
         <div class="ctarow">
           <button class="btn" id="get-android2">Install on Android</button>
           <button class="btn" id="get-ios2">Install on iPhone</button>
-        </div>
-        <div class="ctarow">
-          <a class="btn ghost" id="open-app2" href="app.html">Open it in this browser</a>
-          <a class="btn ghost" id="save-app2" href="app.html" download="kerbside.html">Save app page</a>
         </div>
         <ol class="steps" id="steps2" hidden></ol>
         <p class="ctanote" id="ctanote2"></p>
@@ -615,15 +606,6 @@
 
   ["get-android", "get-android2"].forEach((id) => document.getElementById(id).addEventListener("click", android));
   ["get-ios", "get-ios2"].forEach((id) => document.getElementById(id).addEventListener("click", () => showSteps("ios")));
-
-  // Saving the page is a genuine download, but a file opened from Files or Downloads runs on
-  // file:// where browsers refuse both the camera and location. Say so rather than let somebody
-  // discover it in the street.
-  ["save-app", "save-app2"].forEach((id) =>
-    document.getElementById(id).addEventListener("click", () =>
-      setNote("Saving the HTML page only. For the live map, camera, location and offline 3D data, install Kerbside from the browser instead.")
-    )
-  );
 
   if (DEVICE !== "desktop") showSteps(DEVICE === "ios" ? "ios" : "android");
   paintButtons();

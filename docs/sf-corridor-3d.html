@@ -7,7 +7,7 @@
 <meta name="kerbside-regions" content="regions.json" />
 <title>Kerbside SF Corridor 3D</title>
 <style>
-:root { color-scheme: light; --bg:#edf3f4; --panel:#fffdf9; --line:#c8d8dc; --ink:#21363b; --muted:#577076; --pink:#a23e67; --green:#288660; --amber:#aa772b; --cyan:#237d9a; }
+:root { color-scheme: light; --bg:#edf3f4; --panel:#fffdf9; --line:#c8d8dc; --ink:#21363b; --muted:#577076; --accent:#8c844c; --green:#288660; --amber:#aa772b; --cyan:#237d9a; }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; }
 #scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; }
@@ -22,7 +22,7 @@ body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-s
 #find::placeholder { color:var(--muted); }
 #hits { list-style:none; margin:6px 0 0; padding:0; max-height:190px; overflow:auto; }
 #hits li { padding:7px 9px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--muted); }
-#hits li:hover, #hits li[aria-selected=true] { background:rgba(255,77,143,.16); color:var(--ink); }
+#hits li:hover, #hits li[aria-selected=true] { background:rgba(140,132,76,.16); color:var(--ink); }
 /* Collapsing targets the sections themselves rather than one wrapper. The wrapper closes
    where the original panel did, which left the layer groups outside it and folding hid
    only the statistics. */
@@ -41,11 +41,11 @@ h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-sp
 .stat span { color:var(--muted); font-size:10px; text-transform:uppercase; }
 .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
 .key { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
-.sw { width:10px; height:10px; border-radius:50%; background:var(--pink); }
+.sw { width:10px; height:10px; border-radius:50%; background:var(--accent); }
 .toolbar { display:flex; flex-wrap:wrap; gap:7px; }
 .toolbar button { padding:8px 10px; font-size:13px; }
 button { color:var(--ink); background:rgba(16,25,30,.9); border:1px solid var(--line); border-radius:7px; padding:10px 12px; font:inherit; cursor:pointer; }
-button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgba(255,77,143,.20); }
+button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:rgba(140,132,76,.20); }
 /* Clear of the sidebar, which takes the whole left column when it is open. The tip used to
    start at the same 14px and simply print itself over the panel's lower half. */
 #addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:8px;
