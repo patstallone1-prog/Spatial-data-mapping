@@ -88,7 +88,7 @@ def test_regions_are_published_beside_the_corridor_with_an_index(tmp_path: Path)
     assert len(listed) == len(index)
     # The page and the landing template both read the index.
     assert 'name="kerbside-regions"' in _source()
-    assert 'fetch("regions.json"' in (ROOT / "tools" / "landing_template.html").read_text()
+    assert 'fetch("app-regions.json"' in (ROOT / "tools" / "landing_template.html").read_text()
 
 
 @pytest.mark.skipif(not PAYLOAD.exists(), reason="no built corridor")
