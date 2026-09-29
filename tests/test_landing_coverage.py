@@ -32,7 +32,7 @@ def test_live_coverage_index_only_points_at_published_full_app_pages() -> None:
         assert (DOCS / region["path"]).is_file(), region["path"]
 
 
-def test_install_and_download_controls_reach_the_published_app() -> None:
+def test_install_controls_reach_the_published_app() -> None:
     page = (DOCS / "index.html").read_text()
     manifest = json.loads((DOCS / "manifest.webmanifest").read_text())
     assert (DOCS / "app.html").is_file()
@@ -42,8 +42,8 @@ def test_install_and_download_controls_reach_the_published_app() -> None:
         in page
     )
     for suffix in ("", "2"):
-        assert f'id="open-app{suffix}" href="app.html"' in page
-        assert f'id="save-app{suffix}" href="app.html" download="kerbside.html"' in page
+        assert f'id="open-app{suffix}"' not in page
+        assert f'id="save-app{suffix}"' not in page
         assert f'id="get-android{suffix}"' in page
         assert f'id="get-ios{suffix}"' in page
     assert '"<a href=\\"" + APP_URL + "\\">Open Kerbside</a>"' in page

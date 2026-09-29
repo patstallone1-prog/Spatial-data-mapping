@@ -12,7 +12,7 @@ import sys
 
 from PIL import Image, ImageDraw
 
-PINK = (212, 23, 107, 255)
+EARTH = (140, 132, 76, 255)
 WHITE = (255, 255, 255, 255)
 INK = (12, 16, 21, 255)
 
@@ -39,7 +39,7 @@ def rounded(size: int, radius_ratio: float) -> Image.Image:
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     r = round(size * radius_ratio)
-    draw.rounded_rectangle([0, 0, size - 1, size - 1], radius=r, fill=PINK)
+    draw.rounded_rectangle([0, 0, size - 1, size - 1], radius=r, fill=EARTH)
     return image
 
 
@@ -52,7 +52,7 @@ def any_icon(size: int) -> Image.Image:
 def maskable_icon(size: int) -> Image.Image:
     # Android crops maskable icons to whatever shape the launcher uses, and only the central 80%
     # is guaranteed to survive. So the ground is full bleed and the mark sits well inside it.
-    image = Image.new("RGBA", (size, size), PINK)
+    image = Image.new("RGBA", (size, size), EARTH)
     draw_k(ImageDraw.Draw(image), size, inset=0.28)
     return image
 
