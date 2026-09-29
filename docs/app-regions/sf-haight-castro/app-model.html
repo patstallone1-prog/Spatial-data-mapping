@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="kerbside-assets" content="../../regions/sf-haight-castro" />
 <meta name="kerbside-app-mode" content="full-regional-view" />
+<meta name="kerbside-visual-support" content="app-landwater.bin" />
 <meta name="kerbside-regions" content="../../app-regions.json" />
 <title>Kerbside Haight, Duboce, Castro 3D</title>
 <style>
@@ -162,7 +163,8 @@ import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GL
 // overlay.  Load the compact official sidecar before laying out crossings; a network failure
 // still leaves the renderer's local-road-width fallback available.
 const EMPTY_DETAIL_MANIFEST = { shards: [], offline_assets: [] };
-const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER] = await Promise.all([
+const VISUAL_SUPPORT_URL = (document.querySelector('meta[name="kerbside-visual-support"]') || {}).content || "";
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT] = await Promise.all([
   fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -207,6 +209,10 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER] = await Pro
       return { frame: f, cells, bridges: p.bridges || [], counts: p.counts, source: p.source, regions: p.regions || [] };
     })
     .catch(() => null),
+  VISUAL_SUPPORT_URL ? fetch(VISUAL_SUPPORT_URL, { cache: "no-cache" })
+    .then((r) => r.ok ? r.arrayBuffer() : null)
+    .then((bytes) => bytes ? new Uint8Array(bytes) : null)
+    .catch(() => null) : Promise.resolve(null),
 ]);
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
@@ -493,6 +499,78 @@ function xy(lon, lat) { return [(lon - midLon) * metersPerLon, (lat - midLat) * 
 // there: the merged street surfaces vertex by vertex, a building at the lowest corner of its
 // footprint, a tree or a post at its foot, the walker at each step, the camera where it lands.
 const TERRAIN_FRAME = TERRAIN ? TERRAIN.meta.frame : null;
+// Visual land/water identity comes from mapped geometry, never from a low height or absent
+// lidar return.  The original measured grid remains TERRAIN.data; this app-only companion
+// fills unsupported *land* cells for drawing, without exporting them as measurements.
+const LANDWATER = TERRAIN_FRAME && VISUAL_SUPPORT && VISUAL_SUPPORT.length === TERRAIN_FRAME.rows * TERRAIN_FRAME.cols
+  ? VISUAL_SUPPORT : null;
+function mappedWaterAt(x, z) {
+  if (!LANDWATER || !TERRAIN_FRAME) return null;
+  const f = TERRAIN_FRAME;
+  const c = Math.floor((x - f.x0) / f.step_m), r = Math.floor((-z - f.y0) / f.step_m);
+  return r >= 0 && r < f.rows && c >= 0 && c < f.cols ? LANDWATER[r * f.cols + c] === 1 : null;
+}
+function mappedBuiltAt(x, z) {
+  if (!LANDWATER || !TERRAIN_FRAME) return false;
+  const f = TERRAIN_FRAME;
+  const c = Math.floor((x - f.x0) / f.step_m), r = Math.floor((-z - f.y0) / f.step_m);
+  return r >= 0 && r < f.rows && c >= 0 && c < f.cols && LANDWATER[r * f.cols + c] === 2;
+}
+if (LANDWATER) {
+  const f = TERRAIN_FRAME, original = TERRAIN.data, n = original.length;
+  const visual = new Int16Array(original);
+  const missing = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  const inferred = [];
+  const measuredSurface = TERRAIN.meta.waterline?.surface_m;
+  const flattened = measuredSurface == null ? null : Math.round((measuredSurface - f.base_m) * 100);
+  let tail = 0;
+  for (let i = 0; i < n; i += 1) {
+    if (LANDWATER[i] === 1) continue;
+    // A real low-lying shoreline must stay low. Only mapped dry structures repair cells
+    // flattened by the older waterline pass; elsewhere, keep the lidar sample as measured.
+    if (original[i] === f.nodata || (LANDWATER[i] === 2 && flattened !== null
+        && Math.abs(original[i] - flattened) <= 1)) {
+      missing[i] = 1;
+    } else queue[tail++] = i;
+  }
+  for (let head = 0; head < tail; head += 1) {
+    const i = queue[head], r = Math.floor(i / f.cols), c = i - r * f.cols;
+    const neighbours = [c > 0 ? i - 1 : -1, c + 1 < f.cols ? i + 1 : -1,
+      r > 0 ? i - f.cols : -1, r + 1 < f.rows ? i + f.cols : -1];
+    for (const j of neighbours) {
+      if (j < 0 || !missing[j]) continue;
+      visual[j] = visual[i];
+      missing[j] = 0;
+      inferred.push(j);
+      queue[tail++] = j;
+    }
+  }
+  const fallback = Math.round(((measuredSurface ?? -0.14) + 1.0 - f.base_m) * 100);
+  for (let i = 0; i < n; i += 1) {
+    if (!missing[i]) continue;
+    visual[i] = fallback;
+    inferred.push(i);
+  }
+  // A few harmonic passes take the blocky nearest-station plateaus out of broad unsurveyed
+  // patches. Only inferred values move; every measured centimetre stays untouched.
+  for (let pass = 0; pass < 8 && inferred.length; pass += 1) {
+    const next = new Int16Array(visual);
+    for (const i of inferred) {
+      const r = Math.floor(i / f.cols), c = i - r * f.cols;
+      let sum = 0, count = 0;
+      for (const j of [c > 0 ? i - 1 : -1, c + 1 < f.cols ? i + 1 : -1,
+        r > 0 ? i - f.cols : -1, r + 1 < f.rows ? i + f.cols : -1]) {
+        if (j < 0 || LANDWATER[j] === 1) continue;
+        sum += visual[j]; count += 1;
+      }
+      if (count) next[i] = Math.round(sum / count);
+    }
+    visual.set(next);
+  }
+  TERRAIN.visualData = visual;
+  TERRAIN.visualInferredCount = inferred.length;
+}
 //: The earth is round, and over a Bay Area it shows. Eight kilometres out the ground is five
 //: metres below the plane you are standing on; at forty it is a hundred and twenty-five. Drawn
 //: flat, the far shore sat too high, the horizon was a hard line across the sky, and the whole
@@ -546,7 +624,7 @@ function rawTerrainHeightAt(x, z) {
   const r0 = Math.max(0, Math.min(f.rows - 2, Math.floor(fy)));
   const tx = Math.max(0, Math.min(1, fx - c0));
   const ty = Math.max(0, Math.min(1, fy - r0));
-  const d = TERRAIN.data;
+  const d = TERRAIN.visualData || TERRAIN.data;
   const at = (r, c) => d[r * f.cols + c];
   const v00 = at(r0, c0), v10 = at(r0, c0 + 1), v01 = at(r0 + 1, c0), v11 = at(r0 + 1, c0 + 1);
   // A no-data corner takes the value of a corner that has data; four no-data corners is
@@ -559,34 +637,8 @@ function rawTerrainHeightAt(x, z) {
   const cm = g[0] * (1 - tx) * (1 - ty) + g[1] * tx * (1 - ty) + g[2] * (1 - tx) * ty + g[3] * tx * ty;
   return f.base_m + cm / 100.0;
 }
-// Alameda lidar has no returns over pieces of land at the immersed-tube approaches. This
-// narrow infill is visual-only: it never changes the measured grid or the submerged bore.
-const TUBE_EXTERIOR_VISUAL_CORRIDORS = (DATA.ways || []).flatMap((way) => {
-  if (way.tunnel_design?.kind !== "immersed_tube" || !way.points || way.points.length < 2) return [];
-  const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
-  return [[pts[0], pts[1]], [pts[pts.length - 1], pts[pts.length - 2]]].map(([mouth, inside]) => {
-    const dx = mouth[0] - inside[0], dz = mouth[1] - inside[1];
-    const length = Math.hypot(dx, dz) || 1;
-    return { x: mouth[0], z: mouth[1], ux: dx / length, uz: dz / length,
-      half: (way.road_m || 8.9) / 2 + 16, reach: 180,
-      height: Math.max(rawTerrainHeightAt(mouth[0], mouth[1]), SEA_Y + 0.4) };
-  });
-});
-function tubeExteriorVisualAt(x, z) {
-  for (const cut of TUBE_EXTERIOR_VISUAL_CORRIDORS) {
-    const dx = x - cut.x, dz = z - cut.z;
-    const along = dx * cut.ux + dz * cut.uz;
-    if (along < -2 || along > cut.reach) continue;
-    if (Math.abs(dx * cut.uz - dz * cut.ux) > cut.half) continue;
-    return cut.height;
-  }
-  return null;
-}
 function terrainHeightAt(x, z) {
-  const raw = rawTerrainHeightAt(x, z);
-  const visual = tubeExteriorVisualAt(x, z);
-  // Partial lidar cells at the land/water boundary can interpolate to the waterline too.
-  return visual !== null && raw < WATERLINE_M ? visual : raw;
+  return mappedWaterAt(x, z) === true ? OPEN_WATER_GROUND_M : rawTerrainHeightAt(x, z);
 }
 //: The ground's height at a point: what everything at ground level is lifted by. The terrain
 //: grid, except in the open cut outside a tunnel mouth: under a street decked over the portal
@@ -940,18 +992,39 @@ const TERRAIN_TILE_VERTICES = 128;
 const TERRAIN_APRON_M = 2400.0;
 const TERRAIN_APRON_STEP_M = 32.0;
 const TERRAIN_APRON_DECAY_M = 700.0;
-const TERRAIN_LAND = new THREE.Color(0x4a4a45);
+const TERRAIN_LAND = new THREE.Color(0x62645b);
 const TERRAIN_SEA = new THREE.Color(0x2c6187);
 //: Sand: the map's beaches in the atlas, and the low ground beside a beach in the grid.
 const TERRAIN_SAND = new THREE.Color(0xc9b98a);
 //: The town: the atlas's cells with mapped buildings in them. A city drawn on the same green
 //: as the hills behind it stood in a meadow from any height worth the name.
 const TERRAIN_BUILT = new THREE.Color(0x6e7263);
+const TERRAIN_CONCRETE = new THREE.Color(0x85867e);
 //: The country beyond the survey: grass, plainly, so the edge of what was measured is legible.
 const TERRAIN_PLATE = new THREE.Color(0x4a6f3c);
 //: The backdrop's grey gives way to the grass over this distance past the grid's edge; the
 //: height eases over TERRAIN_APRON_DECAY_M.
 const TERRAIN_APRON_COLOUR_M = 300.0;
+function terrainNoise(x, z, scale) {
+  const u = x / scale, v = z / scale, ix = Math.floor(u), iz = Math.floor(v);
+  const hash = (a, b) => { const h = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return h - Math.floor(h); };
+  const sx = (u - ix) ** 2 * (3 - 2 * (u - ix));
+  const sz = (v - iz) ** 2 * (3 - 2 * (v - iz));
+  const a = hash(ix, iz) * (1 - sx) + hash(ix + 1, iz) * sx;
+  const b = hash(ix, iz + 1) * (1 - sx) + hash(ix + 1, iz + 1) * sx;
+  return a * (1 - sz) + b * sz;
+}
+function terrainLandColourAt(x, z) {
+  // A hard class edge made each OSM parcel a huge, squared-off grey slab. Feather just
+  // its *colour* across a few metres; mapped water and measured heights stay exact.
+  const built = (2 * Number(mappedBuiltAt(x, z))
+    + Number(mappedBuiltAt(x - 4, z)) + Number(mappedBuiltAt(x + 4, z))
+    + Number(mappedBuiltAt(x, z - 4)) + Number(mappedBuiltAt(x, z + 4))) / 6;
+  const blotch = terrainNoise(x, z, 37) - 0.5;
+  const grit = terrainNoise(x, z, 9) - 0.5;
+  const base = TERRAIN_LAND.clone().lerp(TERRAIN_CONCRETE, built);
+  return base.multiplyScalar(0.96 + 0.14 * blotch + 0.08 * grit);
+}
 const terrainTiles = [];
 //: The backdrop's height and colour at a point: land under the ground, or the sea where the
 //: ground is at or under the waterline. ``apron`` is how far outside the grid the point lies.
@@ -999,8 +1072,10 @@ function backdropAt(x, z, apron = 0) {
   // perimeter, which has the map's coastline, says otherwise.
   const edge = cutLiftAt(x, z);
   const wet = apron > 0 ? perimeterWaterAt(x, z) : null;
-  const visualLand = tubeExteriorVisualAt(x, z) !== null && rawTerrainHeightAt(x, z) < WATERLINE_M;
-  if (!visualLand && (wet === true || (wet === null && edge < WATERLINE_M))) return { y: SEA_Y - 0.02 - earthDrop(x, z), colour: TERRAIN_SEA };
+  const mappedWet = apron > 0 ? null : mappedWaterAt(x, z);
+  if (mappedWet === true || (mappedWet === null && (wet === true || (wet === null && edge < WATERLINE_M)))) {
+    return { y: SEA_Y - 0.02 - earthDrop(x, z), colour: TERRAIN_SEA };
+  }
   let h = edge;
   // Sand: the atlas's beaches, and the low ground beside a mapped beach.
   const cls = apron > 0 ? perimeterClassAt(x, z) : null;
@@ -1014,7 +1089,7 @@ function backdropAt(x, z, apron = 0) {
     const colour = sandy ? TERRAIN_SAND : ground.clone().lerp(TERRAIN_LAND, Math.exp(-apron / TERRAIN_APRON_COLOUR_M));
     return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour };
   }
-  return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: sandy ? TERRAIN_SAND : TERRAIN_LAND };
+  return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: sandy ? TERRAIN_SAND : terrainLandColourAt(x, z) };
 }
 // A terrain triangle across an immersed-tube portal fills its entrance like a wall.  Remove
 // only the small opening at each mapped mouth; the estuary surface above the submerged middle
@@ -1042,12 +1117,15 @@ function addBackdropTile(xs, zs, apronOf) {
   const w = xs.length, h = zs.length;
   const position = new Float32Array(w * h * 3);
   const colour = new Float32Array(w * h * 3);
+  const uv = new Float32Array(w * h * 2);
   for (let r = 0; r < h; r += 1) {
     for (let c = 0; c < w; c += 1) {
       const i = (r * w + c) * 3;
       const at = backdropAt(xs[c], zs[r], apronOf ? apronOf(xs[c], zs[r]) : 0);
       position[i] = xs[c]; position[i + 1] = at.y; position[i + 2] = zs[r];
       colour[i] = at.colour.r; colour[i + 1] = at.colour.g; colour[i + 2] = at.colour.b;
+      const j = (r * w + c) * 2;
+      uv[j] = xs[c] / 64; uv[j + 1] = zs[r] / 64;
     }
   }
   const index = new Uint32Array((w - 1) * (h - 1) * 6);
@@ -1067,6 +1145,7 @@ function addBackdropTile(xs, zs, apronOf) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colour, 3));
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
   geometry.setIndex(new THREE.BufferAttribute(index.subarray(0, k), 1));
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -1077,7 +1156,10 @@ function addBackdropTile(xs, zs, apronOf) {
   terrainTiles.push(tile);
   root.add(tile);
 }
-const TERRAIN_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.99, metalness: 0.0, side: THREE.DoubleSide });
+const TERRAIN_GRAIN = LANDWATER ? noiseTexture("#ffffff", "#777771", 512, 0.09) : null;
+if (TERRAIN_GRAIN) TERRAIN_GRAIN.colorSpace = THREE.SRGBColorSpace;
+const TERRAIN_MATERIAL = new THREE.MeshStandardMaterial({ map: TERRAIN_GRAIN, color: 0xffffff,
+  vertexColors: true, roughness: 0.99, metalness: 0.0, side: THREE.DoubleSide });
 if (TERRAIN_FRAME) {
   const f = TERRAIN_FRAME;
   const cols = Math.floor((f.cols - 1) / TERRAIN_MESH_STRIDE) + 1;
@@ -11162,6 +11244,14 @@ function outbuildingRoofTexture(seed) {
   return texture;
 }
 
+const IMMERSED_MOUTHS = (DATA.ways || []).filter((way) => way.tunnel_design?.kind === "immersed_tube")
+  .flatMap((way) => [way.points?.[0], way.points?.[way.points.length - 1]]).filter(Boolean)
+  .map(([lon, lat]) => xy(lon, lat));
+function mappedTubePortalBuilding(feature) {
+  if (!/tube.*portal/i.test(feature.name || "") || !feature.centroid) return false;
+  const [x, y] = xy(feature.centroid[0], feature.centroid[1]);
+  return IMMERSED_MOUTHS.some(([mx, my]) => Math.hypot(x - mx, y - my) < 25);
+}
 function buildingMesh(feature) {
   // A station under the street has no walls above it.
   if (feature.underground) return null;
@@ -11995,7 +12085,8 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   const concrete = new THREE.MeshStandardMaterial({
     color: 0x9d9e9a, roughness: 0.92, metalness: 0.0, side: THREE.DoubleSide, emissive: 0x141414,
   });
-  const light = new THREE.MeshBasicMaterial({ color: 0xfff1c8, side: THREE.DoubleSide });
+  const light = new THREE.MeshBasicMaterial({ color: 0xffebbd });
+  const lightHousing = new THREE.MeshStandardMaterial({ color: 0x252b2e, roughness: 0.78, metalness: 0.28 });
   const measured = way.tunnel_portal || {};
   const design = way.tunnel_design && way.tunnel_design.kind === "immersed_tube"
     ? way.tunnel_design : null;
@@ -12086,28 +12177,32 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
         if (strip) group.add(strip);
       }
     }
-    // The lamps, as separate fittings with dark ceiling between them.
-    const strip = sweepAlongBore(stations, (st) => {
-      const top = Math.min(st.cap, crown) - 0.08;
-      if ((st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) > TUNNEL_LAMP_M) {
-        return [[-TUNNEL_LIGHT_W_M / 2, top], [-TUNNEL_LIGHT_W_M / 2, top]];
+    // Sparse sweep sections turned short lamps into huge triangular streaks. Physical
+    // fittings are independent boxes at measured stations, aligned with the local bore.
+    const lampStations = stations.filter((st, i) => i >= 2 && i < stations.length - 2 && i % 3 === 2);
+    if (lampStations.length) {
+      const mount = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(TUNNEL_LIGHT_W_M + 0.16, 0.08, TUNNEL_LAMP_M + 0.16),
+        lightHousing, lampStations.length);
+      const lens = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(TUNNEL_LIGHT_W_M, 0.035, TUNNEL_LAMP_M),
+        light, lampStations.length);
+      const up = new THREE.Vector3(0, 1, 0);
+      const unit = new THREE.Vector3(1, 1, 1);
+      for (let i = 0; i < lampStations.length; i += 1) {
+        const st = lampStations[i];
+        const yaw = Math.atan2(st.ux, st.uz);
+        const turn = new THREE.Quaternion().setFromAxisAngle(up, yaw);
+        const ceiling = st.floor + Math.min(st.cap, crown) - 0.12;
+        mount.setMatrixAt(i, new THREE.Matrix4().compose(
+          new THREE.Vector3(st.x, ceiling, st.z), turn, unit));
+        lens.setMatrixAt(i, new THREE.Matrix4().compose(
+          new THREE.Vector3(st.x, ceiling - 0.055, st.z), turn, unit));
       }
-      return [[-TUNNEL_LIGHT_W_M / 2, top], [TUNNEL_LIGHT_W_M / 2, top]];
-    }, light, "tunnel_light");
-    if (strip) group.add(strip);
-    // What each lamp throws on the lining above it: the fitting alone reads as a sticker on a
-    // flat ceiling, and the tunnels people remember are lit by the walls, not by the lamp.
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffe9b8, transparent: true, opacity: 0.16, side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const glow = sweepAlongBore(stations, (st) => {
-      const top = Math.min(st.cap, crown) - 0.10;
-      const lit = (st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) <= TUNNEL_LAMP_M * 2.2;
-      const spread = lit ? TUNNEL_LIGHT_W_M * 3.4 : 0;
-      return [[-spread, top], [spread, top]];
-    }, glowMaterial, "tunnel_light");
-    if (glow) group.add(glow);
+      mount.instanceMatrix.needsUpdate = lens.instanceMatrix.needsUpdate = true;
+      mount.userData.surface = lens.userData.surface = "tunnel_light";
+      group.add(mount, lens);
+    }
   }
   for (const { label, pts, inward } of ends) {
     const here = pts[0];
@@ -12554,8 +12649,8 @@ for (const way of DRAW_ORDER) {
     // under these very polygons), and a sheet laid over it a centimetre up is a second plane
     // the depth buffer cannot tell from the first a few kilometres out: the bands off the
     // coastline were long shards of darker water from any height.
-    if (TERRAIN && TERRAIN.meta.waterline && TERRAIN.meta.waterline.surface_m !== null
-        && TERRAIN.meta.waterline.surface_m !== undefined) continue;
+    if (LANDWATER || (TERRAIN && TERRAIN.meta.waterline && TERRAIN.meta.waterline.surface_m !== null
+        && TERRAIN.meta.waterline.surface_m !== undefined)) continue;
     const shape = footprintShape(way.points);
     if (shape) {
       const geom = new THREE.ShapeGeometry(shape);
@@ -12598,6 +12693,9 @@ for (const way of DRAW_ORDER) {
     continue;
   }
   if (way.kind === "building") {
+    // This OSM footprint is the Posey headhouse around the tunnel mouth, not a solid
+    // obstruction. The dedicated arched portal already represents its street face.
+    if (mappedTubePortalBuilding(way)) continue;
     // On the ground, where a footprint is. At 1.8 m it was a plate floating at head height
     // through the middle of every building.
     // The flat footprint under a building is the fallback for one that has no 3D mesh. Drawn
