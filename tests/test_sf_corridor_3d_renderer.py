@@ -31,12 +31,13 @@ def test_osm_kerb_nodes_are_normalized_without_inventing_ramps() -> None:
     assert normalize({**node, "tags": {"barrier": "kerb"}}) is None
 
 
-def test_walker_keeps_metric_speed_and_clicks_move_without_dragging() -> None:
+def test_walker_scales_orbit_speed_and_clicks_move_without_dragging() -> None:
     source = _source()
     assert "const STREET_SPEED = 8.94;" in source
     assert "const FIRST_PERSON_SPEED = 5.36;" in source
-    assert "const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;" in source
-    assert "SPEED_REFERENCE_DIST" not in source
+    assert "const scaled = avatarMoveSpeed();" in source
+    assert "if (state.firstPerson) return FIRST_PERSON_SPEED;" in source
+    assert "firstBuildingCollision(" in source
     assert "if (!held.size || dragging)" in source
     pointer = source.split('canvas.addEventListener("pointerup", (e) => {', 1)[1]
     pointer = pointer.split("// The address, where the building is.", 1)[0]
@@ -252,7 +253,9 @@ def test_ground_cover_classifies_small_frontage_and_backyard_remainders() -> Non
     assert "inside & ~window" in ground
     assert "const grassRings = classifiedGround" in source
     assert "const frontWalkGeom = ringGeometry((ground.front_walks || [])" in source
-    assert "const serviceGeom = ringGeometry((ground.service_yards || [])" in source
+    assert "const serviceRings = (ground.service_yards || [])" in source
+    assert 'const neutralService = (ground.service_yards || []).filter((y) => y.basis === "unbuilt_nonpark_parcel")' in source
+    assert '"neutral_ground"' in source
 
 
 def test_renderer_clamps_wide_right_of_way_fallbacks() -> None:

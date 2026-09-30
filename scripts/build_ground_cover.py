@@ -468,6 +468,47 @@ def ring_area_m2(ring: list, to_metres) -> float:
                    for i in range(len(pts)))) / 2.0
 
 
+NONRESIDENTIAL_BUILDINGS = {
+    "commercial", "retail", "office", "industrial", "warehouse", "supermarket",
+    "civic", "government", "public", "hospital", "hotel", "parking", "garage",
+}
+RESIDENTIAL_BUILDINGS = {
+    "residential", "house", "detached", "apartments", "terrace", "semidetached_house",
+    "bungalow", "dormitory", "farm", "cabin",
+}
+
+
+def point_in_parcel(point: list[float], ring: list) -> bool:
+    """Test a building centroid against the surveyed parcel, in lon/lat space."""
+    x, y = point
+    inside = False
+    for a, b in zip(ring, ring[1:]):
+        if (a[1] > y) != (b[1] > y):
+            edge_x = a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1])
+            if x < edge_x:
+                inside = not inside
+    return inside
+
+
+def parcel_surface_class(city_use: str, building_tags: list[str], city: str = "") -> str:
+    """Use explicit city use or OSM building type; unbuilt lots are not lawns by default."""
+    if city_use:
+        upper = city_use.upper()
+        if upper.startswith("RESIDENTIAL") or upper.startswith("RECREATION"):
+            return "yard"
+        return "plaza"
+    known = [tag.lower() for tag in building_tags if tag.lower() in
+             NONRESIDENTIAL_BUILDINGS | RESIDENTIAL_BUILDINGS]
+    if known and all(tag in NONRESIDENTIAL_BUILDINGS for tag in known):
+        return "plaza"
+    if any(tag in RESIDENTIAL_BUILDINGS for tag in known):
+        return "yard"
+    # Generic OSM building=yes is not evidence of a garden. SF's parcel pipeline
+    # has its own dense land-use context; elsewhere expose the uncertainty with
+    # neutral ground until imagery or a city land-use record resolves it.
+    return "yard" if city == DATASF_CITY and building_tags else "neutral"
+
+
 def split_at_frontage(ring: list, a, b, depth: float, to_metres, to_lonlat):
     """A parcel cut into the strip along its street frontage and everything behind it.
 
@@ -805,14 +846,39 @@ def main() -> int:
             use_of_lot[lot] = use
             use_of_block.setdefault(lot[:4], []).append(use)
 
-    def paved_lot(blklot: str) -> bool:
+    # Outside San Francisco the city parcel API supplies geometry but no land-use
+    # field. Match OSM building centroids to each surveyed lot rather than treating
+    # a downtown commercial block as a collection of private lawns.
+    building_cells: dict[tuple[int, int], list[tuple[list[float], str]]] = {}
+    cell_deg = 0.001
+    for way in payload["ways"]:
+        if way.get("kind") != "building" or not way.get("centroid"):
+            continue
+        centre = way["centroid"]
+        tag = str((way.get("tags") or {}).get("building") or "yes")
+        entry = (centre, tag)
+        key = (int(centre[0] // cell_deg), int(centre[1] // cell_deg))
+        building_cells.setdefault(key, []).append(entry)
+
+    def building_tags_in_lot(ring: list) -> list[str]:
+        xs = [point[0] for point in ring]
+        ys = [point[1] for point in ring]
+        tags = []
+        for ix in range(int(min(xs) // cell_deg), int(max(xs) // cell_deg) + 1):
+            for iy in range(int(min(ys) // cell_deg), int(max(ys) // cell_deg) + 1):
+                for centre, tag in building_cells.get((ix, iy), []):
+                    if point_in_parcel(centre, ring):
+                        tags.append(tag)
+        return tags
+
+    def city_lot_use(blklot: str) -> str:
         use = use_of_lot.get(blklot)
         if use is None:
             uses = use_of_block.get(blklot[:4]) or []
             if not uses:
-                return False
+                return ""
             use = max(set(uses), key=uses.count)
-        return not use.upper().startswith("RESIDENTIAL") and not use.startswith("recreation")
+        return use
     # One row per lot, not one per unit. A condominium building is a row in this file for every
     # unit in it, and every one of those rows carries the same lot polygon -- 37,244 rows over
     # 14,920 lots. Left alone that drew one parcel forty times, and made every edge of it look
@@ -826,6 +892,9 @@ def main() -> int:
         for ring in geojson_rings(row.get("geom") or {}):
             if len(ring) < 4:
                 continue
+            original_ring = ring
+            lot_tags = building_tags_in_lot(original_ring)
+            surface_class = parcel_surface_class(city_lot_use(lot), lot_tags, city)
             bare = count_bare(lattice, ring)
             if bare < MIN_SERVICE_YARD_CELLS:
                 continue
@@ -885,10 +954,12 @@ def main() -> int:
                 setback = None
             simplified = [[round(x, 6), round(y, 6)] for x, y in simplify(ring)]
             item = {"id": blklot, "p": simplified}
-            if paved_lot(blklot):
-                plazas.append(item)
-            elif bare < MIN_YARD_CELLS:
-                service_yards.append(item)
+            if surface_class == "plaza":
+                plazas.append({**item, "basis": "city_land_use" if city_lot_use(blklot)
+                               else "osm_building_type"})
+            elif surface_class == "neutral" or bare < MIN_YARD_CELLS:
+                service_yards.append({**item, "basis": "unbuilt_nonpark_parcel"
+                                      if surface_class == "neutral" else "small_remainder"})
             elif setback is not None and setback >= MIN_FRONT_LAWN_DEPTH_M:
                 # A front lawn ends at the nearest mapped house face. Clip the
                 # surveyed parcel parallel to the street frontage, retaining

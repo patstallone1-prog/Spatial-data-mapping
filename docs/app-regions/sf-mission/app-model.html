@@ -12861,7 +12861,15 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     for (let i = 0; i < tokens.length; i += 1) {
       const kind = arrowKind(tokens[i]);
       if (!kind) continue;
-      const lane = trimWay(offsetWay(renderPoints, offsets[i]), 6.0);
+      // The road way may extend into a broad junction. An arbitrary six-metre
+      // trim put short chevrons in its middle (10th & Webster in Oakland). Use
+      // the same junction-cleared paint run as lane lines, then leave room for
+      // the arrow's own 2.6 m plate before its cleared end.
+      const clearRuns = markingRunsClearOfJunctions(
+        offsetWay(renderPoints, offsets[i]), way);
+      const clearRun = clearRuns.length ? clearRuns[clearRuns.length - 1] : null;
+      if (!clearRun || wayLength(clearRun) < 8.0) continue;
+      const lane = trimWayEnds(clearRun, 0, 3.0);
       if (!lane || lane.length < 2) continue;
       const tail = lane[lane.length - 1];
       const before = lane[lane.length - 2];
@@ -14657,7 +14665,19 @@ function buildCourts(ground) {
     addGround(plazaMesh, "plaza");
   }
 
-  const serviceGeom = ringGeometry((ground.service_yards || []).map((y) => y.p), SERVICE_YARD_Y);
+const neutralService = (ground.service_yards || []).filter((y) => y.basis === "unbuilt_nonpark_parcel");
+const serviceRings = (ground.service_yards || [])
+  .filter((y) => y.basis !== "unbuilt_nonpark_parcel");
+const neutralServiceGeom = ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y);
+if (neutralServiceGeom) {
+    // An unbuilt parcel is not evidence of lawn. Keep it as a restrained,
+    // slightly warm hardscape fallback until city land-use or imagery resolves
+    // it; this avoids the distinct green islands seen on Oakland blocks.
+    addGround(new THREE.Mesh(neutralServiceGeom, new THREE.MeshStandardMaterial({
+      map: SIDEWALK, color: 0xa6a39a, roughness: 0.98, metalness: 0.0, side: THREE.DoubleSide,
+    })), "neutral_ground");
+  }
+const serviceGeom = ringGeometry(serviceRings.map((y) => y.p), SERVICE_YARD_Y);
   if (serviceGeom) {
     addGround(new THREE.Mesh(serviceGeom, new THREE.MeshStandardMaterial({
       color: 0x3d403d, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide,
@@ -16230,8 +16250,17 @@ const FIRST_PERSON_SPEED = 5.36;   // 12 mph
 //: 50 degrees down to half that, a 2x look at a sign or a kerb across the street.
 const FIRST_PERSON_FOV = 50;
 const FIRST_PERSON_MAX_ZOOM = 2.0;
-// Movement speed is a physical speed, not scaled by camera zoom. Zooming or
-// orbiting the camera therefore cannot accelerate the walker across the map.
+// At the arrival zoom the walker covers twenty miles per hour. Farther out, one
+// screen pixel spans proportionally more ground, so orbit walking keeps the
+// same apparent pace across the screen. First person stays at twelve mph.
+function avatarMoveSpeed() {
+  if (state.firstPerson) return FIRST_PERSON_SPEED;
+  const height = Math.max(1, renderer.domElement.clientHeight);
+  const fov = camera.fov * Math.PI / 180;
+  const metresPerPixel = 2 * state.dist * Math.tan(fov / 2) / height;
+  const arrivalMetresPerPixel = 2 * ARRIVAL_DIST * Math.tan(fov / 2) / height;
+  return STREET_SPEED * Math.max(1, metresPerPixel / arrivalMetresPerPixel);
+}
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
 const AVATAR_HEIGHT = 2.1336;  // seven feet exactly, which is what the demo avatar is asked to be
 //: The walker is drawn at the size above: one, once the figure is measured as it stands
@@ -16721,6 +16750,44 @@ function updateAvatarMixer(dt) {
   if (!avatarMixer) return;
   avatarMixer.update(dt);
 }
+function firstBuildingCollision(fromX, fromZ, toX, toZ) {
+  // A long, zoom-scaled frame can cross an entire narrow building. Test the
+  // whole swept segment against actual footprint edges, not only its endpoint.
+  const dx = toX - fromX, dz = toZ - fromZ;
+  if (dx * dx + dz * dz < 1e-12) return null;
+  const seen = new Set();
+  let first = null;
+  const minX = Math.floor(Math.min(fromX, toX) / FOOTPRINT_CELL) - 1;
+  const maxX = Math.floor(Math.max(fromX, toX) / FOOTPRINT_CELL) + 1;
+  const minZ = Math.floor(Math.min(fromZ, toZ) / FOOTPRINT_CELL) - 1;
+  const maxZ = Math.floor(Math.max(fromZ, toZ) / FOOTPRINT_CELL) + 1;
+  for (let ix = minX; ix <= maxX; ix += 1) {
+    for (let iz = minZ; iz <= maxZ; iz += 1) {
+      for (const entry of footprintGrid.get(`${ix}:${iz}`) || []) {
+        if (seen.has(entry)) continue;
+        seen.add(entry);
+        // An old spawn point or changed footprint may already enclose the
+        // walker. Allow walking out instead of trapping them inside forever.
+        if (insideFootprint(entry, fromX, fromZ)) continue;
+        if (Math.max(fromX, toX) < entry.minX || Math.min(fromX, toX) > entry.maxX
+            || Math.max(fromZ, toZ) < entry.minZ || Math.min(fromZ, toZ) > entry.maxZ) continue;
+        const ring = entry.local;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+          const [ax, az] = ring[j], [bx, bz] = ring[i];
+          const ex = bx - ax, ez = bz - az;
+          const denominator = dx * ez - dz * ex;
+          if (Math.abs(denominator) < 1e-9) continue;
+          const qx = ax - fromX, qz = az - fromZ;
+          const along = (qx * ez - qz * ex) / denominator;
+          const onEdge = (qx * dz - qz * dx) / denominator;
+          if (along < 0 || along > 1 || onEdge < 0 || onEdge > 1) continue;
+          if (first === null || along < first) first = along;
+        }
+      }
+    }
+  }
+  return first;
+}
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
@@ -16739,8 +16806,16 @@ function stepAvatar(now) {
   if (held.has("ArrowRight")) move.add(rightward);
   if (held.has("ArrowLeft")) move.sub(rightward);
   if (!move.lengthSq()) return;
-  const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;
+  const scaled = avatarMoveSpeed();
   move.normalize().multiplyScalar(scaled * dt);
+  const collision = firstBuildingCollision(
+    avatar.position.x, avatar.position.z,
+    avatar.position.x + move.x, avatar.position.z + move.z);
+  if (collision !== null) {
+    // Stop a small distance before the facade, including at an oblique angle.
+    const travel = move.length();
+    move.multiplyScalar(Math.max(0, collision - 0.3 / travel));
+  }
   avatar.position.add(move);
   const lon = midLon + avatar.position.x / metersPerLon;
   const lat = midLat - avatar.position.z / metersPerLat;

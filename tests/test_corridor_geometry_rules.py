@@ -70,6 +70,43 @@ def _extract(name: str, js: str) -> str:
     raise AssertionError(f"{name} is not closed")
 
 
+def test_avatar_speed_tracks_orbit_pixel_scale_but_not_first_person_zoom() -> None:
+    js = _page_js()
+    script = "\n".join([
+        "const STREET_SPEED=8.94, FIRST_PERSON_SPEED=5.36, ARRIVAL_DIST=45;",
+        "const state={dist:45,firstPerson:false};",
+        "const renderer={domElement:{clientHeight:800}};",
+        "const camera={fov:50};",
+        _extract("avatarMoveSpeed", js),
+        "const speeds=[]; for (const dist of [20,45,90,180]) {state.dist=dist; speeds.push(avatarMoveSpeed());}",
+        "state.firstPerson=true; speeds.push(avatarMoveSpeed());",
+        "console.log(JSON.stringify(speeds));",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == pytest.approx([8.94, 8.94, 17.88, 35.76, 5.36])
+
+
+def test_avatar_sweep_stops_at_building_even_when_one_frame_crosses_it() -> None:
+    js = _page_js()
+    script = "\n".join([
+        "const FOOTPRINT_CELL=60, footprintGrid=new Map();",
+        _extract("insideFootprint", js),
+        _extract("firstBuildingCollision", js),
+        "const entry={minX:10,maxX:11,minZ:-1,maxZ:1,local:[[10,-1],[11,-1],[11,1],[10,1],[10,-1]]};",
+        "footprintGrid.set('0:0',[entry]); footprintGrid.set('0:-1',[entry]);",
+        "console.log(JSON.stringify([firstBuildingCollision(0,0,100,0),",
+        "firstBuildingCollision(0,2,100,2), firstBuildingCollision(10.5,0,20,0)]));",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    hits = json.loads(out.stdout)
+    assert hits[0] == pytest.approx(0.1)
+    assert hits[1:] == [None, None]
+
+
 #: Everything the carriageway rules need, and nothing else. Pulled by name so that renaming one
 #: breaks the test loudly instead of silently skipping the thing it was meant to check.
 CARRIAGEWAY_FUNCTIONS = (

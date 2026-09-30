@@ -21,6 +21,23 @@ ground = importlib.import_module("build_ground_cover")
 measure = importlib.import_module("measure_region_lidar")
 
 
+def test_parcel_surface_uses_explicit_building_use_and_never_calls_empty_lot_a_lawn():
+    assert ground.parcel_surface_class("", ["commercial", "commercial"]) == "plaza"
+    assert ground.parcel_surface_class("", ["house"]) == "yard"
+    assert ground.parcel_surface_class("", ["yes"], "oakland") == "neutral"
+    assert ground.parcel_surface_class("", ["yes"], "san-francisco") == "yard"
+    assert ground.parcel_surface_class("", []) == "neutral"
+    assert ground.parcel_surface_class("RESIDENTIAL", ["commercial"]) == "yard"
+    assert ground.parcel_surface_class("OFFICE", ["house"]) == "plaza"
+
+
+def test_building_centroid_matches_surveyed_parcel_even_at_negative_longitude():
+    ring = [[-122.271, 37.800], [-122.270, 37.800], [-122.270, 37.801],
+            [-122.271, 37.801], [-122.271, 37.800]]
+    assert ground.point_in_parcel([-122.2705, 37.8005], ring)
+    assert not ground.point_in_parcel([-122.2695, 37.8005], ring)
+
+
 def test_every_arcgis_city_names_a_service_and_a_layer_for_what_it_claims():
     for city, kinds in ground.ARCGIS_SOURCES.items():
         assert ground.CITY_SOURCES.get(city, {}).get("arcgis"), f"{city} is not routed to ArcGIS"
