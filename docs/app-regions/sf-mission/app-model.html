@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="kerbside-assets" content="../../regions/sf-mission" />
 <meta name="kerbside-app-mode" content="full-regional-view" />
+<meta name="kerbside-visual-support" content="app-landwater.bin" />
 <meta name="kerbside-regions" content="../../app-regions.json" />
 <title>Kerbside Mission District 3D</title>
 <style>
@@ -162,7 +163,8 @@ import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GL
 // still leaves the renderer's local-road-width fallback available.
 const EMPTY_DETAIL_MANIFEST = { shards: [], offline_assets: [] };
 const EMPTY_WORLD_OBJECTS = { objects: [] };
-const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, WORLD_OBJECTS] = await Promise.all([
+const VISUAL_SUPPORT_URL = (document.querySelector('meta[name="kerbside-visual-support"]') || {}).content || "";
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS] = await Promise.all([
   fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -207,8 +209,11 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, WORLD_OBJEC
       return { frame: f, cells, bridges: p.bridges || [], counts: p.counts, source: p.source, regions: p.regions || [] };
     })
     .catch(() => null),
-  // Reconstructed objects (scripts/build_world_objects.py): measured shapes that replace the
-  // page's own drawing of the same things where they stand. Absent, nothing changes.
+  VISUAL_SUPPORT_URL ? fetch(VISUAL_SUPPORT_URL, { cache: "no-cache" })
+    .then((r) => r.ok ? r.arrayBuffer() : null)
+    .then((bytes) => bytes ? new Uint8Array(bytes) : null)
+    .catch(() => null) : Promise.resolve(null),
+  // Reconstructed visual objects are optional; canonical geometry remains separate.
   fetch(asset("sf-corridor-world-objects.json"), { cache: "no-cache" })
     .then((r) => r.ok ? r.json() : EMPTY_WORLD_OBJECTS)
     .catch(() => EMPTY_WORLD_OBJECTS),
@@ -499,6 +504,78 @@ function xy(lon, lat) { return [(lon - midLon) * metersPerLon, (lat - midLat) * 
 // there: the merged street surfaces vertex by vertex, a building at the lowest corner of its
 // footprint, a tree or a post at its foot, the walker at each step, the camera where it lands.
 const TERRAIN_FRAME = TERRAIN ? TERRAIN.meta.frame : null;
+// Visual land/water identity comes from mapped geometry, never from a low height or absent
+// lidar return.  The original measured grid remains TERRAIN.data; this app-only companion
+// fills unsupported *land* cells for drawing, without exporting them as measurements.
+const LANDWATER = TERRAIN_FRAME && VISUAL_SUPPORT && VISUAL_SUPPORT.length === TERRAIN_FRAME.rows * TERRAIN_FRAME.cols
+  ? VISUAL_SUPPORT : null;
+function mappedWaterAt(x, z) {
+  if (!LANDWATER || !TERRAIN_FRAME) return null;
+  const f = TERRAIN_FRAME;
+  const c = Math.floor((x - f.x0) / f.step_m), r = Math.floor((-z - f.y0) / f.step_m);
+  return r >= 0 && r < f.rows && c >= 0 && c < f.cols ? LANDWATER[r * f.cols + c] === 1 : null;
+}
+function mappedBuiltAt(x, z) {
+  if (!LANDWATER || !TERRAIN_FRAME) return false;
+  const f = TERRAIN_FRAME;
+  const c = Math.floor((x - f.x0) / f.step_m), r = Math.floor((-z - f.y0) / f.step_m);
+  return r >= 0 && r < f.rows && c >= 0 && c < f.cols && LANDWATER[r * f.cols + c] === 2;
+}
+if (LANDWATER) {
+  const f = TERRAIN_FRAME, original = TERRAIN.data, n = original.length;
+  const visual = new Int16Array(original);
+  const missing = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  const inferred = [];
+  const measuredSurface = TERRAIN.meta.waterline?.surface_m;
+  const flattened = measuredSurface == null ? null : Math.round((measuredSurface - f.base_m) * 100);
+  let tail = 0;
+  for (let i = 0; i < n; i += 1) {
+    if (LANDWATER[i] === 1) continue;
+    // A real low-lying shoreline must stay low. Only mapped dry structures repair cells
+    // flattened by the older waterline pass; elsewhere, keep the lidar sample as measured.
+    if (original[i] === f.nodata || (LANDWATER[i] === 2 && flattened !== null
+        && Math.abs(original[i] - flattened) <= 1)) {
+      missing[i] = 1;
+    } else queue[tail++] = i;
+  }
+  for (let head = 0; head < tail; head += 1) {
+    const i = queue[head], r = Math.floor(i / f.cols), c = i - r * f.cols;
+    const neighbours = [c > 0 ? i - 1 : -1, c + 1 < f.cols ? i + 1 : -1,
+      r > 0 ? i - f.cols : -1, r + 1 < f.rows ? i + f.cols : -1];
+    for (const j of neighbours) {
+      if (j < 0 || !missing[j]) continue;
+      visual[j] = visual[i];
+      missing[j] = 0;
+      inferred.push(j);
+      queue[tail++] = j;
+    }
+  }
+  const fallback = Math.round(((measuredSurface ?? -0.14) + 1.0 - f.base_m) * 100);
+  for (let i = 0; i < n; i += 1) {
+    if (!missing[i]) continue;
+    visual[i] = fallback;
+    inferred.push(i);
+  }
+  // A few harmonic passes take the blocky nearest-station plateaus out of broad unsurveyed
+  // patches. Only inferred values move; every measured centimetre stays untouched.
+  for (let pass = 0; pass < 8 && inferred.length; pass += 1) {
+    const next = new Int16Array(visual);
+    for (const i of inferred) {
+      const r = Math.floor(i / f.cols), c = i - r * f.cols;
+      let sum = 0, count = 0;
+      for (const j of [c > 0 ? i - 1 : -1, c + 1 < f.cols ? i + 1 : -1,
+        r > 0 ? i - f.cols : -1, r + 1 < f.rows ? i + f.cols : -1]) {
+        if (j < 0 || LANDWATER[j] === 1) continue;
+        sum += visual[j]; count += 1;
+      }
+      if (count) next[i] = Math.round(sum / count);
+    }
+    visual.set(next);
+  }
+  TERRAIN.visualData = visual;
+  TERRAIN.visualInferredCount = inferred.length;
+}
 //: The earth is round, and over a Bay Area it shows. Eight kilometres out the ground is five
 //: metres below the plane you are standing on; at forty it is a hundred and twenty-five. Drawn
 //: flat, the far shore sat too high, the horizon was a hard line across the sky, and the whole
@@ -552,7 +629,7 @@ function rawTerrainHeightAt(x, z) {
   const r0 = Math.max(0, Math.min(f.rows - 2, Math.floor(fy)));
   const tx = Math.max(0, Math.min(1, fx - c0));
   const ty = Math.max(0, Math.min(1, fy - r0));
-  const d = TERRAIN.data;
+  const d = TERRAIN.visualData || TERRAIN.data;
   const at = (r, c) => d[r * f.cols + c];
   const v00 = at(r0, c0), v10 = at(r0, c0 + 1), v01 = at(r0 + 1, c0), v11 = at(r0 + 1, c0 + 1);
   // A no-data corner takes the value of a corner that has data; four no-data corners is
@@ -565,34 +642,8 @@ function rawTerrainHeightAt(x, z) {
   const cm = g[0] * (1 - tx) * (1 - ty) + g[1] * tx * (1 - ty) + g[2] * (1 - tx) * ty + g[3] * tx * ty;
   return f.base_m + cm / 100.0;
 }
-// Alameda lidar has no returns over pieces of land at the immersed-tube approaches. This
-// narrow infill is visual-only: it never changes the measured grid or the submerged bore.
-const TUBE_EXTERIOR_VISUAL_CORRIDORS = (DATA.ways || []).flatMap((way) => {
-  if (way.tunnel_design?.kind !== "immersed_tube" || !way.points || way.points.length < 2) return [];
-  const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
-  return [[pts[0], pts[1]], [pts[pts.length - 1], pts[pts.length - 2]]].map(([mouth, inside]) => {
-    const dx = mouth[0] - inside[0], dz = mouth[1] - inside[1];
-    const length = Math.hypot(dx, dz) || 1;
-    return { x: mouth[0], z: mouth[1], ux: dx / length, uz: dz / length,
-      half: (way.road_m || 8.9) / 2 + 16, reach: 180,
-      height: Math.max(rawTerrainHeightAt(mouth[0], mouth[1]), SEA_Y + 0.4) };
-  });
-});
-function tubeExteriorVisualAt(x, z) {
-  for (const cut of TUBE_EXTERIOR_VISUAL_CORRIDORS) {
-    const dx = x - cut.x, dz = z - cut.z;
-    const along = dx * cut.ux + dz * cut.uz;
-    if (along < -2 || along > cut.reach) continue;
-    if (Math.abs(dx * cut.uz - dz * cut.ux) > cut.half) continue;
-    return cut.height;
-  }
-  return null;
-}
 function terrainHeightAt(x, z) {
-  const raw = rawTerrainHeightAt(x, z);
-  const visual = tubeExteriorVisualAt(x, z);
-  // Partial lidar cells at the land/water boundary can interpolate to the waterline too.
-  return visual !== null && raw < WATERLINE_M ? visual : raw;
+  return mappedWaterAt(x, z) === true ? OPEN_WATER_GROUND_M : rawTerrainHeightAt(x, z);
 }
 //: The ground's height at a point: what everything at ground level is lifted by. The terrain
 //: grid, except in the open cut outside a tunnel mouth: under a street decked over the portal
@@ -1219,17 +1270,39 @@ const TERRAIN_TILE_VERTICES = 128;
 const TERRAIN_APRON_M = 2400.0;
 const TERRAIN_APRON_STEP_M = 32.0;
 const TERRAIN_APRON_DECAY_M = 700.0;
-const TERRAIN_LAND = new THREE.Color(0x4a4a45);
+const TERRAIN_LAND = new THREE.Color(0x62645b);
 const TERRAIN_SEA = new THREE.Color(0x2c6187);
 //: Sand: the map's beaches in the atlas, and the low ground beside a beach in the grid.
 const TERRAIN_SAND = new THREE.Color(0xc9b98a);
 //: The town: the atlas's cells with mapped buildings in them. A city drawn on the same green
 //: as the hills behind it stood in a meadow from any height worth the name.
 const TERRAIN_BUILT = new THREE.Color(0x6e7263);
+const TERRAIN_CONCRETE = new THREE.Color(0x85867e);
 //: The country beyond the survey: grass, plainly, so the edge of what was measured is legible.
 const TERRAIN_PLATE = new THREE.Color(0x4a6f3c);
-// The surveyed grid ends at a visible boundary; height can still ease into the country,
-// but its colour must not fade through a dark halo before reaching the grassland.
+//: The backdrop's grey gives way to the grass over this distance past the grid's edge; the
+//: height eases over TERRAIN_APRON_DECAY_M.
+const TERRAIN_APRON_COLOUR_M = 300.0;
+function terrainNoise(x, z, scale) {
+  const u = x / scale, v = z / scale, ix = Math.floor(u), iz = Math.floor(v);
+  const hash = (a, b) => { const h = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return h - Math.floor(h); };
+  const sx = (u - ix) ** 2 * (3 - 2 * (u - ix));
+  const sz = (v - iz) ** 2 * (3 - 2 * (v - iz));
+  const a = hash(ix, iz) * (1 - sx) + hash(ix + 1, iz) * sx;
+  const b = hash(ix, iz + 1) * (1 - sx) + hash(ix + 1, iz + 1) * sx;
+  return a * (1 - sz) + b * sz;
+}
+function terrainLandColourAt(x, z) {
+  // A hard class edge made each OSM parcel a huge, squared-off grey slab. Feather just
+  // its *colour* across a few metres; mapped water and measured heights stay exact.
+  const built = (2 * Number(mappedBuiltAt(x, z))
+    + Number(mappedBuiltAt(x - 4, z)) + Number(mappedBuiltAt(x + 4, z))
+    + Number(mappedBuiltAt(x, z - 4)) + Number(mappedBuiltAt(x, z + 4))) / 6;
+  const blotch = terrainNoise(x, z, 37) - 0.5;
+  const grit = terrainNoise(x, z, 9) - 0.5;
+  const base = TERRAIN_LAND.clone().lerp(TERRAIN_CONCRETE, built);
+  return base.multiplyScalar(0.96 + 0.14 * blotch + 0.08 * grit);
+}
 const terrainTiles = [];
 //: The backdrop's height and colour at a point: land under the ground, or the sea where the
 //: ground is at or under the waterline. ``apron`` is how far outside the grid the point lies.
@@ -1277,21 +1350,24 @@ function backdropAt(x, z, apron = 0) {
   // perimeter, which has the map's coastline, says otherwise.
   const edge = cutLiftAt(x, z);
   const wet = apron > 0 ? perimeterWaterAt(x, z) : null;
-  const visualLand = tubeExteriorVisualAt(x, z) !== null && rawTerrainHeightAt(x, z) < WATERLINE_M;
-  if (!visualLand && (wet === true || (wet === null && edge < WATERLINE_M))) return { y: SEA_Y - 0.02 - earthDrop(x, z), colour: TERRAIN_SEA };
+  const mappedWet = apron > 0 ? null : mappedWaterAt(x, z);
+  if (mappedWet === true || (mappedWet === null && (wet === true || (wet === null && edge < WATERLINE_M)))) {
+    return { y: SEA_Y - 0.02 - earthDrop(x, z), colour: TERRAIN_SEA };
+  }
   let h = edge;
   // Sand: the atlas's beaches, and the low ground beside a mapped beach.
   const cls = apron > 0 ? perimeterClassAt(x, z) : null;
   const sandy = cls === 2 || (edge < SEA_SURFACE_M + BEACH_RISE_M && nearBeach(x, z));
   if (apron > 0) {
-    // Keep the height transition, but cut the colour directly to the mapped country.
+    // Height and colour both ease out to the plate's, so the apron is neither a cliff nor a
+    // grey ring round the city.
     const s = Math.exp(-apron / TERRAIN_APRON_DECAY_M);
     h = PENINSULA_Y + (h - PENINSULA_Y) * s;
     const ground = cls === 3 ? TERRAIN_BUILT : TERRAIN_PLATE;
-    const colour = sandy ? TERRAIN_SAND : ground;
+    const colour = sandy ? TERRAIN_SAND : ground.clone().lerp(TERRAIN_LAND, Math.exp(-apron / TERRAIN_APRON_COLOUR_M));
     return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour };
   }
-  return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: sandy ? TERRAIN_SAND : TERRAIN_LAND };
+  return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: sandy ? TERRAIN_SAND : terrainLandColourAt(x, z) };
 }
 // A terrain triangle across an immersed-tube portal fills its entrance like a wall.  Remove
 // only the small opening at each mapped mouth; the estuary surface above the submerged middle
@@ -1319,18 +1395,15 @@ function addBackdropTile(xs, zs, apronOf) {
   const w = xs.length, h = zs.length;
   const position = new Float32Array(w * h * 3);
   const colour = new Float32Array(w * h * 3);
+  const uv = new Float32Array(w * h * 2);
   for (let r = 0; r < h; r += 1) {
     for (let c = 0; c < w; c += 1) {
       const i = (r * w + c) * 3;
-      const apron = apronOf ? apronOf(xs[c], zs[r]) : 0;
-      const at = backdropAt(xs[c], zs[r], apron);
-      // The apron and grid share this position but not its colour. Giving the apron's
-      // inner vertices their outside colour removes the last 32 m interpolated halo.
-      const edgeClass = apronOf && apron === 0 ? perimeterClassAt(xs[c], zs[r]) : null;
-      const vertexColour = apronOf && apron === 0 && at.colour === TERRAIN_LAND
-        ? (edgeClass === 3 ? TERRAIN_BUILT : TERRAIN_PLATE) : at.colour;
+      const at = backdropAt(xs[c], zs[r], apronOf ? apronOf(xs[c], zs[r]) : 0);
       position[i] = xs[c]; position[i + 1] = at.y; position[i + 2] = zs[r];
-      colour[i] = vertexColour.r; colour[i + 1] = vertexColour.g; colour[i + 2] = vertexColour.b;
+      colour[i] = at.colour.r; colour[i + 1] = at.colour.g; colour[i + 2] = at.colour.b;
+      const j = (r * w + c) * 2;
+      uv[j] = xs[c] / 64; uv[j + 1] = zs[r] / 64;
     }
   }
   const index = new Uint32Array((w - 1) * (h - 1) * 6);
@@ -1350,6 +1423,7 @@ function addBackdropTile(xs, zs, apronOf) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colour, 3));
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
   geometry.setIndex(new THREE.BufferAttribute(index.subarray(0, k), 1));
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -1360,7 +1434,10 @@ function addBackdropTile(xs, zs, apronOf) {
   terrainTiles.push(tile);
   root.add(tile);
 }
-const TERRAIN_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.99, metalness: 0.0, side: THREE.DoubleSide });
+const TERRAIN_GRAIN = LANDWATER ? noiseTexture("#ffffff", "#777771", 512, 0.09) : null;
+if (TERRAIN_GRAIN) TERRAIN_GRAIN.colorSpace = THREE.SRGBColorSpace;
+const TERRAIN_MATERIAL = new THREE.MeshStandardMaterial({ map: TERRAIN_GRAIN, color: 0xffffff,
+  vertexColors: true, roughness: 0.99, metalness: 0.0, side: THREE.DoubleSide });
 if (TERRAIN_FRAME) {
   const f = TERRAIN_FRAME;
   const cols = Math.floor((f.cols - 1) / TERRAIN_MESH_STRIDE) + 1;
@@ -2852,13 +2929,9 @@ function tiledMap(base, name, repeatU, repeatV) {
 //: the vertex UVs rather than in a cloned texture, a footway's slabs stay 1.52 m whatever the
 //: shape of the run.
 function surfaceScale(surface, width) {
-  // One repeat of the pavement texture is SLAB_BLOCK slabs across, so the ground it covers is
-  // that many slabs. The slab is still 1.52 m; what changed is how far apart two identical
-  // slabs are.
-  const walkRepeat = WALK_UV_M;
-  if (surface === "walk") return [walkRepeat, walkRepeat];
-  if (surface === "kerb") return [walkRepeat, walkRepeat];
-  if (surface === "walk_underlay") return [walkRepeat, walkRepeat];
+  if (surface === "walk") return [SLAB_M, SLAB_M];
+  if (surface === "kerb") return [SLAB_M, SLAB_M];
+  if (surface === "walk_underlay") return [SLAB_M, SLAB_M];
   if (surface === "walk_narrow") return [NARROW_SLAB_M, width];
   if (surface === "bike") return [5.5, BIKE_LANE_M];
   if (surface === "road") return [8.0, 8.0];
@@ -9082,114 +9155,59 @@ function addSidewalkCrossingReplacements(points, y) {
   return added;
 }
 
-//: How many slabs across one texture. A single scored slab tiled edge to edge is a stamp: the
-//: aggregate, the staining and the broom marks land in the same place on every slab in the
-//: city, and from above a pavement reads as a chequerboard of one square repeated -- which is
-//: what "procedural square paving" is. Four by four slabs to a texture, each poured with its
-//: own seed and its own tone, puts the repeat at 6.1 m instead of 1.52 m and breaks the eye's
-//: hold on it. The slab itself is still 1.52 m; nothing about the geometry changes.
+// Four independently seeded slabs make the aggregate and broom marks change at each joint
+// instead of stamping one scored square across every sidewalk in the city.
 const SLAB_BLOCK = 4;
-
-function sidewalkTexture(variant = "square") {
-  // Scored concrete, as San Francisco actually pours it: a mid grey rather than a pale one,
-  // with exposed aggregate speckle at two scales, the fine parallel striations a broom leaves
-  // across a fresh slab, and a scored joint every five feet. The joints are most of what tells
-  // you at a glance that you are looking at a pavement and not at a grey strip; the grain is
-  // what stops it looking like painted card.
-  const size = 128;
-  const block = variant === "narrow" ? 1 : SLAB_BLOCK;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size * block;
-  const outer = canvas.getContext("2d");
-  // Each slab is poured on its own canvas and then set into the block, so that every one gets
-  // its own aggregate, its own staining and its own tone rather than a copy of the first.
-  for (let bx = 0; bx < block; bx += 1) {
-    for (let by = 0; by < block; by += 1) {
-      outer.drawImage(sidewalkSlab(variant, size, bx * block + by), bx * size, by * size);
-    }
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
-  return texture;
-}
-
 function sidewalkSlab(variant, size, seed) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  // Every number this slab needs comes off its own seed, so no two slabs in the block share
-  // an aggregate, a stain or a broom stroke.
   const grit = (n) => random(n + seed * 977);
-  // A pour is never quite the colour of the pour beside it: the concrete came on a different
-  // day, off a different truck, and has weathered for a different number of years.
-  const tone = 0.90 + grit(seed * 71 + 3) * 0.20;
-  const base = [0x69, 0x6d, 0x65].map((v) => Math.max(0, Math.min(255, Math.round(v * tone))));
+  const tone = 0.90 + grit(3) * 0.20;
+  const base = [0x69, 0x6d, 0x65].map((v) => Math.round(v * tone));
   ctx.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
   ctx.fillRect(0, 0, size, size);
-
-  // Coarse aggregate: the stones in the mix, a few pixels across.
   for (let i = 0; i < size * size * 0.02; i += 1) {
-    const shade = grit(i * 13);
-    ctx.fillStyle = shade < 0.56 ? "rgba(44,46,42,0.34)" : "rgba(166,168,158,0.22)";
-    const r = 1 + grit(i * 17) * 1.8;
+    ctx.fillStyle = grit(i * 13) < 0.56 ? "rgba(44,46,42,0.34)" : "rgba(166,168,158,0.22)";
     ctx.beginPath();
-    ctx.arc(grit(i * 3) * size, grit(i * 5) * size, r, 0, Math.PI * 2);
+    ctx.arc(grit(i * 3) * size, grit(i * 5) * size, 1 + grit(i * 17) * 1.8, 0, Math.PI * 2);
     ctx.fill();
   }
-  // Fine grain over the whole slab.
   for (let i = 0; i < size * size * 0.5; i += 1) {
     const shade = grit(i * 7);
     ctx.fillStyle = shade < 0.5 ? "rgba(0,0,0,0.20)"
       : shade < 0.85 ? "rgba(255,255,255,0.075)" : "rgba(104,96,84,0.16)";
     ctx.fillRect(grit(i * 3) * size, grit(i * 5) * size, 1, 1);
   }
-  // Broom finish: shallow parallel striations across the slab, which is what a finisher leaves
-  // and what gives real pavement its direction under raking light.
   for (let y = 0; y < size; y += 2) {
     ctx.fillStyle = grit(y * 29) < 0.5 ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.04)";
     ctx.fillRect(0, y, size, 1);
   }
-  // Staining along the joints, where water sits and dirt collects.
   ctx.fillStyle = "rgba(58,60,56,0.20)";
-  ctx.fillRect(0, 0, size, 6);
-  ctx.fillRect(0, 0, 6, size);
-  // The score itself: a groove, so a dark line with a bright lip below it.
-  ctx.strokeStyle = "rgba(38,40,38,0.62)";
-  ctx.lineWidth = 3.0;
+  ctx.fillRect(0, 0, size, 6); ctx.fillRect(0, 0, 6, size);
+  ctx.strokeStyle = "rgba(38,40,38,0.62)"; ctx.lineWidth = 3.0;
   if (variant === "narrow") {
-    ctx.beginPath();
-    ctx.moveTo(1.5, 1.5);
-    ctx.lineTo(size - 1.5, 1.5);
-    ctx.moveTo(1.5, size - 1.5);
-    ctx.lineTo(size - 1.5, size - 1.5);
-    ctx.moveTo(size * 0.16, size * 0.82);
-    ctx.lineTo(size * 0.84, size * 0.18);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(200,202,194,0.13)";
-    ctx.lineWidth = 1.1;
-    ctx.beginPath();
-    ctx.moveTo(size * 0.20, size * 0.86);
-    ctx.lineTo(size * 0.88, size * 0.22);
-    ctx.stroke();
-  } else {
-    ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
-  }
-  ctx.strokeStyle = "rgba(200,202,194,0.14)";
-  ctx.lineWidth = 1.2;
-  if (variant !== "narrow") ctx.strokeRect(4.0, 4.0, size - 8, size - 8);
+    ctx.beginPath(); ctx.moveTo(1.5, 1.5); ctx.lineTo(size - 1.5, size - 1.5); ctx.stroke();
+  } else ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
   return canvas;
+}
+function sidewalkTexture(variant = "square") {
+  const size = 128, block = variant === "narrow" ? 1 : SLAB_BLOCK;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size * block;
+  const ctx = canvas.getContext("2d");
+  for (let bx = 0; bx < block; bx += 1) for (let by = 0; by < block; by += 1) {
+    ctx.drawImage(sidewalkSlab(variant, size, bx * block + by), bx * size, by * size);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  return texture;
 }
 
 const SIDEWALK = sidewalkTexture();
 const NARROW_SIDEWALK = sidewalkTexture("narrow");
 //: One scored square, in metres. Five feet is the usual San Francisco pour.
 const SLAB_M = 1.52;
-//: The ground one repeat of the pavement texture covers. The texture is a block of SLAB_BLOCK
-//: distinct slabs, so every UV written for a pavement -- the ribbons, the corner pieces, the
-//: kerb-ramp pads -- has to be in units of the block rather than of the slab. Divide by the
-//: slab and one slab's worth of ground shows the whole block squeezed into it.
 const WALK_UV_M = SLAB_M * SLAB_BLOCK;
 const NARROW_SLAB_M = 2.75;
 const NARROW_WALK_M = 1.8;
@@ -11489,6 +11507,14 @@ function outbuildingRoofTexture(seed) {
   return texture;
 }
 
+const IMMERSED_MOUTHS = (DATA.ways || []).filter((way) => way.tunnel_design?.kind === "immersed_tube")
+  .flatMap((way) => [way.points?.[0], way.points?.[way.points.length - 1]]).filter(Boolean)
+  .map(([lon, lat]) => xy(lon, lat));
+function mappedTubePortalBuilding(feature) {
+  if (!/tube.*portal/i.test(feature.name || "") || !feature.centroid) return false;
+  const [x, y] = xy(feature.centroid[0], feature.centroid[1]);
+  return IMMERSED_MOUTHS.some(([mx, my]) => Math.hypot(x - mx, y - my) < 25);
+}
 function buildingMesh(feature) {
   // A station under the street has no walls above it.
   if (feature.underground) return null;
@@ -12332,7 +12358,8 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   const concrete = new THREE.MeshStandardMaterial({
     color: 0x9d9e9a, roughness: 0.92, metalness: 0.0, side: THREE.DoubleSide, emissive: 0x141414,
   });
-  const light = new THREE.MeshBasicMaterial({ color: 0xfff1c8, side: THREE.DoubleSide });
+  const light = new THREE.MeshBasicMaterial({ color: 0xffebbd });
+  const lightHousing = new THREE.MeshStandardMaterial({ color: 0x252b2e, roughness: 0.78, metalness: 0.28 });
   const measured = way.tunnel_portal || {};
   const design = way.tunnel_design && way.tunnel_design.kind === "immersed_tube"
     ? way.tunnel_design : null;
@@ -12423,28 +12450,32 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
         if (strip) group.add(strip);
       }
     }
-    // The lamps, as separate fittings with dark ceiling between them.
-    const strip = sweepAlongBore(stations, (st) => {
-      const top = Math.min(st.cap, crown) - 0.08;
-      if ((st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) > TUNNEL_LAMP_M) {
-        return [[-TUNNEL_LIGHT_W_M / 2, top], [-TUNNEL_LIGHT_W_M / 2, top]];
+    // Sparse sweep sections turned short lamps into huge triangular streaks. Physical
+    // fittings are independent boxes at measured stations, aligned with the local bore.
+    const lampStations = stations.filter((st, i) => i >= 2 && i < stations.length - 2 && i % 3 === 2);
+    if (lampStations.length) {
+      const mount = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(TUNNEL_LIGHT_W_M + 0.16, 0.08, TUNNEL_LAMP_M + 0.16),
+        lightHousing, lampStations.length);
+      const lens = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(TUNNEL_LIGHT_W_M, 0.035, TUNNEL_LAMP_M),
+        light, lampStations.length);
+      const up = new THREE.Vector3(0, 1, 0);
+      const unit = new THREE.Vector3(1, 1, 1);
+      for (let i = 0; i < lampStations.length; i += 1) {
+        const st = lampStations[i];
+        const yaw = Math.atan2(st.ux, st.uz);
+        const turn = new THREE.Quaternion().setFromAxisAngle(up, yaw);
+        const ceiling = st.floor + Math.min(st.cap, crown) - 0.12;
+        mount.setMatrixAt(i, new THREE.Matrix4().compose(
+          new THREE.Vector3(st.x, ceiling, st.z), turn, unit));
+        lens.setMatrixAt(i, new THREE.Matrix4().compose(
+          new THREE.Vector3(st.x, ceiling - 0.055, st.z), turn, unit));
       }
-      return [[-TUNNEL_LIGHT_W_M / 2, top], [TUNNEL_LIGHT_W_M / 2, top]];
-    }, light, "tunnel_light");
-    if (strip) group.add(strip);
-    // What each lamp throws on the lining above it: the fitting alone reads as a sticker on a
-    // flat ceiling, and the tunnels people remember are lit by the walls, not by the lamp.
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffe9b8, transparent: true, opacity: 0.16, side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const glow = sweepAlongBore(stations, (st) => {
-      const top = Math.min(st.cap, crown) - 0.10;
-      const lit = (st.s % (TUNNEL_LAMP_M + TUNNEL_LAMP_GAP_M)) <= TUNNEL_LAMP_M * 2.2;
-      const spread = lit ? TUNNEL_LIGHT_W_M * 3.4 : 0;
-      return [[-spread, top], [spread, top]];
-    }, glowMaterial, "tunnel_light");
-    if (glow) group.add(glow);
+      mount.instanceMatrix.needsUpdate = lens.instanceMatrix.needsUpdate = true;
+      mount.userData.surface = lens.userData.surface = "tunnel_light";
+      group.add(mount, lens);
+    }
   }
   for (const { label, pts, inward } of ends) {
     const here = pts[0];
@@ -12891,8 +12922,8 @@ for (const way of DRAW_ORDER) {
     // under these very polygons), and a sheet laid over it a centimetre up is a second plane
     // the depth buffer cannot tell from the first a few kilometres out: the bands off the
     // coastline were long shards of darker water from any height.
-    if (TERRAIN && TERRAIN.meta.waterline && TERRAIN.meta.waterline.surface_m !== null
-        && TERRAIN.meta.waterline.surface_m !== undefined) continue;
+    if (LANDWATER || (TERRAIN && TERRAIN.meta.waterline && TERRAIN.meta.waterline.surface_m !== null
+        && TERRAIN.meta.waterline.surface_m !== undefined)) continue;
     const shape = footprintShape(way.points);
     if (shape) {
       const geom = new THREE.ShapeGeometry(shape);
@@ -12935,6 +12966,9 @@ for (const way of DRAW_ORDER) {
     continue;
   }
   if (way.kind === "building") {
+    // This OSM footprint is the Posey headhouse around the tunnel mouth, not a solid
+    // obstruction. The dedicated arched portal already represents its street face.
+    if (mappedTubePortalBuilding(way)) continue;
     // On the ground, where a footprint is. At 1.8 m it was a plate floating at head height
     // through the middle of every building.
     // The flat footprint under a building is the fallback for one that has no 3D mesh. Drawn
@@ -13155,7 +13189,13 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     for (let i = 0; i < tokens.length; i += 1) {
       const kind = arrowKind(tokens[i]);
       if (!kind) continue;
-      const lane = trimWay(offsetWay(renderPoints, offsets[i]), 6.0);
+      // Clear the arrow from the junction before placing it. A fixed six-metre trim
+      // could leave an isolated chevron in the middle of a broad intersection.
+      const clearRuns = markingRunsClearOfJunctions(
+        offsetWay(renderPoints, offsets[i]), way);
+      const clearRun = clearRuns.length ? clearRuns[clearRuns.length - 1] : null;
+      if (!clearRun || wayLength(clearRun) < 8.0) continue;
+      const lane = trimWayEnds(clearRun, 0, 3.0);
       if (!lane || lane.length < 2) continue;
       const tail = lane[lane.length - 1];
       const before = lane[lane.length - 2];
@@ -14951,7 +14991,18 @@ function buildCourts(ground) {
     addGround(plazaMesh, "plaza");
   }
 
-  const serviceGeom = ringGeometry((ground.service_yards || []).map((y) => y.p), SERVICE_YARD_Y);
+  const neutralService = (ground.service_yards || []).filter((y) => y.basis === "unbuilt_nonpark_parcel");
+  const serviceRings = (ground.service_yards || [])
+    .filter((y) => y.basis !== "unbuilt_nonpark_parcel");
+  const neutralServiceGeom = ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y);
+  if (neutralServiceGeom) {
+    // An unbuilt parcel is not evidence of lawn. Keep it as a restrained hardscape
+    // fallback until city land-use or imagery resolves it.
+    addGround(new THREE.Mesh(neutralServiceGeom, new THREE.MeshStandardMaterial({
+      map: SIDEWALK, color: 0xa6a39a, roughness: 0.98, metalness: 0.0, side: THREE.DoubleSide,
+    })), "neutral_ground");
+  }
+  const serviceGeom = ringGeometry(serviceRings.map((y) => y.p), SERVICE_YARD_Y);
   if (serviceGeom) {
     addGround(new THREE.Mesh(serviceGeom, new THREE.MeshStandardMaterial({
       color: 0x3d403d, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide,
@@ -16600,7 +16651,7 @@ document.getElementById("reset").addEventListener("click", () => {
     const [x, y] = xy(place.lon, place.lat);
     // A named place is an explicit destination: unlike pointer view gestures,
     // search is allowed to move the walker and close the distance.
-    goTo(eligibleLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });
+    goTo(new THREE.Vector3(x, 0, -y), { travel: true });
     field.value = place.label;
     showing = [];
     selected = -1;
@@ -16623,7 +16674,7 @@ document.getElementById("reset").addEventListener("click", () => {
   });
 }
 
-// The whole control column, including search and layers, opens only on demand.
+// Keep search and view controls visible; expand the data and layer menu on demand.
 {
   const hud = document.getElementById("hud");
   const fold = document.getElementById("fold");
@@ -16631,8 +16682,7 @@ document.getElementById("reset").addEventListener("click", () => {
     const open = hud.dataset.open !== "false";
     hud.dataset.open = String(!open);
     fold.setAttribute("aria-expanded", String(!open));
-    fold.setAttribute("aria-label", open ? "Open map controls" : "Close map controls");
-    fold.textContent = open ? "☰ Map" : "× Close";
+    fold.textContent = open ? "Open map controls" : "Close map controls";
     fold.title = open ? "Open map controls" : "Close map controls";
   });
 }
@@ -16670,8 +16720,16 @@ const FIRST_PERSON_SPEED = 5.36;   // 12 mph
 //: 50 degrees down to half that, a 2x look at a sign or a kerb across the street.
 const FIRST_PERSON_FOV = 50;
 const FIRST_PERSON_MAX_ZOOM = 2.0;
-// Movement speed is a physical speed, not scaled by camera zoom. Zooming or
-// orbiting the camera therefore cannot accelerate the walker across the map.
+// Keep the apparent screen-space pace stable as the orbit camera moves farther away.
+// First-person remains a fixed 12 mph.
+function avatarMoveSpeed() {
+  if (state.firstPerson) return FIRST_PERSON_SPEED;
+  const height = Math.max(1, renderer.domElement.clientHeight);
+  const fov = camera.fov * Math.PI / 180;
+  const metresPerPixel = 2 * state.dist * Math.tan(fov / 2) / height;
+  const arrivalMetresPerPixel = 2 * ARRIVAL_DIST * Math.tan(fov / 2) / height;
+  return STREET_SPEED * Math.max(1, metresPerPixel / arrivalMetresPerPixel);
+}
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
 const AVATAR_HEIGHT = 2.1336;  // seven feet exactly, which is what the demo avatar is asked to be
 //: The walker is drawn at the size above: one, once the figure is measured as it stands
@@ -16893,7 +16951,7 @@ addEventListener("blur", () => held.clear());   // a key held while tabbing away
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const ray = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-let pressedAt = [NaN, NaN];
+let pressedAt = [0, 0];
 canvas.addEventListener("pointerdown", (e) => { pressedAt = [e.clientX, e.clientY]; });
 const tip = document.getElementById("tip");
 
@@ -16992,7 +17050,8 @@ function pickedFeature(clientX, clientY) {
   // the camera is what makes clicking a facade from street level pick that facade's building.
   pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
-  for (const hit of ray.intersectObjects(groups.mapped3d.children, true)) {
+  const hit = ray.intersectObjects(groups.mapped3d.children, false)[0];
+  if (hit) {
     const found = buildingAt(hit.point.x, hit.point.z);
     if (found) return found;
   }
@@ -17019,8 +17078,7 @@ function groundAt(clientX, clientY) {
 }
 
 // Use surface street centrelines as safe destinations when a picked point is inside a
-// building or the camera is too far away to choose a precise gap. Never land on a bridge or
-// in a tunnel merely because its 2D centreline is nearest to the click.
+// building or the camera is too far away to choose a precise gap.
 const streetLandingSegments = [];
 for (const way of DATA.ways) {
   if (way.kind !== "street" || way.bridge || way.tunnel || !way.points) continue;
@@ -17091,22 +17149,18 @@ function hideAddress() { if (addrBox) addrBox.hidden = true; }
 
 function showAddress(feature, clientX, clientY) {
   if (!addrBox) return false;
-  const escapeText = (value) => String(value).replace(/[&<>"']/g, (ch) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
   const address = feature.address || {};
   const parcel = feature.parcel || {};
   const line = address.formatted
     || [address.house_number, address.street].filter(Boolean).join(" ");
-  // An unaddressed footprint is still a building pick, not a travel command.
-  // Say what is missing rather than teleporting or fabricating a house number.
-  const label = line || feature.name || "Address unavailable";
+  if (!line && !feature.name) return false;
   const rest = [
     feature.name && line ? feature.name : "",
     parcel.blklot ? `Parcel ${parcel.blklot}` : "",
     parcel.analysis_neighborhood || "",
   ].filter(Boolean);
-  addrBox.innerHTML = `<b>${escapeText(label)}</b>`
-    + (rest.length ? `<br><span class="sub">${rest.map(escapeText).join(" &middot; ")}</span>` : "");
+  addrBox.innerHTML = `<b>${line || feature.name}</b>`
+    + (rest.length ? `<br><span class="sub">${rest.join(" &middot; ")}</span>` : "");
   addrBox.hidden = false;
   // Placed after it is measurable, and kept inside the window rather than half off the edge.
   const box = addrBox.getBoundingClientRect();
@@ -17116,16 +17170,14 @@ function showAddress(feature, clientX, clientY) {
 }
 
 canvas.addEventListener("contextmenu", async (e) => {
-  // At close range a building click inspects its address. At overview scale, even a
-  // building pick is a travel request: snap to the nearest safe surface street.
+  // At close range a building click inspects its address. At overview scale,
+  // snap to the nearest safe surface street.
   e.preventDefault();
   if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
   const distant = !state.firstPerson && state.dist > 1200;
   const feature = distant ? null : pickedFeature(e.clientX, e.clientY);
   if (feature) {
     showAddress(feature, e.clientX, e.clientY);
-    // Detail shards are still retrieved on demand, now from the inspection gesture.
-    // A plain left click is exclusively movement; the full record lives in the sidebar.
     const summary = await featureSummary(feature);
     if (summary && tip) tip.innerHTML = summary;
     return;
@@ -17720,6 +17772,41 @@ function updateAvatarMixer(dt) {
   if (!avatarMixer) return;
   avatarMixer.update(dt);
 }
+function firstBuildingCollision(fromX, fromZ, toX, toZ) {
+  // Sweep the whole movement segment so zoom-scaled steps cannot tunnel through a building.
+  const dx = toX - fromX, dz = toZ - fromZ;
+  if (dx * dx + dz * dz < 1e-12) return null;
+  const seen = new Set();
+  let first = null;
+  const minX = Math.floor(Math.min(fromX, toX) / FOOTPRINT_CELL) - 1;
+  const maxX = Math.floor(Math.max(fromX, toX) / FOOTPRINT_CELL) + 1;
+  const minZ = Math.floor(Math.min(fromZ, toZ) / FOOTPRINT_CELL) - 1;
+  const maxZ = Math.floor(Math.max(fromZ, toZ) / FOOTPRINT_CELL) + 1;
+  for (let ix = minX; ix <= maxX; ix += 1) {
+    for (let iz = minZ; iz <= maxZ; iz += 1) {
+      for (const entry of footprintGrid.get(`${ix}:${iz}`) || []) {
+        if (seen.has(entry)) continue;
+        seen.add(entry);
+        if (insideFootprint(entry, fromX, fromZ)) continue;
+        if (Math.max(fromX, toX) < entry.minX || Math.min(fromX, toX) > entry.maxX
+            || Math.max(fromZ, toZ) < entry.minZ || Math.min(fromZ, toZ) > entry.maxZ) continue;
+        const ring = entry.local;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+          const [ax, az] = ring[j], [bx, bz] = ring[i];
+          const ex = bx - ax, ez = bz - az;
+          const denominator = dx * ez - dz * ex;
+          if (Math.abs(denominator) < 1e-9) continue;
+          const qx = ax - fromX, qz = az - fromZ;
+          const along = (qx * ez - qz * ex) / denominator;
+          const onEdge = (qx * dz - qz * dx) / denominator;
+          if (along < 0 || along > 1 || onEdge < 0 || onEdge > 1) continue;
+          if (first === null || along < first) first = along;
+        }
+      }
+    }
+  }
+  return first;
+}
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
@@ -17739,10 +17826,10 @@ function stepAvatar(now) {
   if (held.has("ArrowRight")) move.add(rightward);
   if (held.has("ArrowLeft")) move.sub(rightward);
   if (!move.lengthSq()) return;
-  const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;
+  const scaled = avatarMoveSpeed();
   move.normalize().multiplyScalar(scaled * dt);
   requestInteriors();
-  // Buildings are solid: the walker slides along their walls and goes in by a door.
+  // The current building collision model lets the walker slide along walls and enter mapped doors.
   const moved = moveWalker(move.x, move.z);
   const lon = midLon + avatar.position.x / metersPerLon;
   const lat = midLat - avatar.position.z / metersPerLat;
