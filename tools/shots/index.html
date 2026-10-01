@@ -11,25 +11,19 @@ const ready = () => new Promise((r) => { const i = setInterval(() => { const w =
 ready().then(async (k) => {
   await new Promise((r) => setTimeout(r, 4000));
   for (const s of spots) {
-    // A spot that asks for its own size is laid out at that size, so the sheet holds the frame
-    // at full resolution and a crop off it is the picture rather than a scaled copy. Contact
-    // sheets keep the 640-wide default.
-    const shotW = s.w || 960, shotH = s.h || 540;
-    const sheetW = s.w ? shotW : 640, sheetH = s.w ? shotH : 360;
-    const box = document.createElement("div"); box.style.cssText = `width:${sheetW}px`;
-    const img = document.createElement("img");
-    img.style.cssText = `width:${sheetW}px;height:${sheetH}px;display:block`;
+    const box = document.createElement("div"); box.style.cssText = "width:640px";
+    const img = document.createElement("img"); img.style.cssText = "width:640px;height:360px;display:block";
     const hidden = [];
     if (s.hide) k.scene.traverse((o) => { if (o.isMesh && o.userData.surface === s.hide && o.visible) { o.visible = false; hidden.push(o); } });
     if (s.hideGroup && k.groups[s.hideGroup] && k.groups[s.hideGroup].visible) { k.groups[s.hideGroup].visible = false; hidden.push(k.groups[s.hideGroup]); }
-    img.src = k.shoot({ w: 960, h: 540, ...s });
+    img.src = k.shoot({ ...s, w: 960, h: 540 });
     hidden.forEach((o) => { o.visible = true; });
     let text = s.name;
     // tiles: what the tile tree is drawing here, after letting it settle.
     if (s.tiles && k.updateTileTree) {
       // Settle the tree for a camera at this spot before the shot: a tile requested now is
       // drawn a few passes later, and the sheet should show what a viewer would end up with.
-      const eye = k.shootCamera({ w: 960, h: 540, ...s });   // the aspect the shot is taken at
+      const eye = k.shootCamera({ ...s, w: 960, h: 540 });   // the aspect the shot is taken at
       for (let i = 0; i < 40; i += 1) { k.updateTileTree(performance.now() + i * 20, eye); await new Promise((r) => setTimeout(r, 60)); }
       const byDepth = {};
       for (const t of k.TILES.values()) if (t.drawn) byDepth[t.depth] = (byDepth[t.depth] || 0) + 1;

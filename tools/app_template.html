@@ -19,8 +19,8 @@
     --ink: #e6ecf2;
     --ink-2: #98a6b4;
     --ink-3: #6b7885;
-    --accent: #ff4d8f;
-    --accent-soft: rgba(255, 77, 143, 0.14);
+    --accent: #8c844c;
+    --accent-soft: rgba(140, 132, 76, 0.14);
     --ok: #4fbe86;
     --warn: #ddaa46;
     --stop: #e8776a;
@@ -31,7 +31,7 @@
     --ground: #eef1f5; --surface: #ffffff; --surface-2: #f4f6f9;
     --line: #d6dce3; --line-soft: #e5eaef;
     --ink: #121820; --ink-2: #4e5966; --ink-3: #7c8794;
-    --accent: #d4176b; --accent-soft: rgba(212, 23, 107, 0.11);
+    --accent: #8c844c; --accent-soft: rgba(140, 132, 76, 0.11);
     --ok: #1f7a4d; --warn: #a86a08; --stop: #ab3b30;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -59,7 +59,7 @@
   }
   .mark {
     width: 26px; height: 26px; border-radius: 6px; background: var(--accent);
-    display: grid; place-items: center; color: #fff;
+    display: grid; place-items: center; color: #171910;
     font-family: var(--mono); font-weight: 700; font-size: 13px; flex: none;
   }
   .bar .state { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
@@ -101,7 +101,7 @@
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+    background: var(--accent); color: #171910; border: 1px solid var(--accent);
     padding: 12px 18px; border-radius: 9px; font: inherit; font-weight: 620;
     cursor: pointer; width: 100%;
   }
@@ -111,16 +111,6 @@
   .btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .row { display: flex; gap: 9px; }
 
-  .install-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-  .install-link {
-    display: block; color: var(--ink-2); text-decoration: none;
-    font-family: var(--mono); font-size: 11.5px; overflow-wrap: anywhere;
-    border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px;
-  }
-  .install-link:hover { color: var(--accent); border-color: var(--accent); }
-  .steps { margin: 0; padding-left: 19px; color: var(--ink-2); font-size: 14.5px; line-height: 1.62; }
-  .steps li { margin: 5px 0; }
-  .steps b { color: var(--ink); }
 
   .pill {
     display: inline-flex; align-items: center; font-family: var(--mono);
@@ -176,7 +166,7 @@
   nav.tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
     background: var(--surface); border-top: 1px solid var(--line);
-    display: grid; grid-template-columns: repeat(5, 1fr);
+    display: grid; grid-template-columns: repeat(4, 1fr);
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
   .tab {
@@ -205,8 +195,24 @@
     font-size: 12px; line-height: 1; border: 1px solid rgba(255,255,255,0.28);
   }
   .reviewitem[aria-pressed="true"] { border-color: var(--accent); }
-  .reviewitem[aria-pressed="true"] .tick { background: var(--accent); color: #fff; }
+  .reviewitem[aria-pressed="true"] .tick { background: var(--accent); color: #171910; }
   .reviewitem:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* On desktop the map is the workspace, not a phone-width card. Keep the app tabs
+     reachable as a small floating switcher without taking height from the model. */
+  @media (min-width: 900px) {
+    body:has(#v-map.on) { padding-bottom: 0; }
+    body:has(#v-map.on) .app { max-width: none; width: 100%; padding: 0; }
+    body:has(#v-map.on) header.bar { display: none; }
+    body:has(#v-map.on) #mapwrap {
+      height: 100dvh; min-height: 0; border: 0; border-radius: 0;
+    }
+    body:has(#v-map.on) nav.tabs {
+      left: auto; right: 16px; bottom: 16px; width: auto; display: flex;
+      padding: 0; border: 1px solid var(--line); border-radius: 12px;
+      overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    }
+    body:has(#v-map.on) .tab { min-width: 72px; padding: 8px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -386,59 +392,11 @@
     </div>
   </div>
 
-  <!-- ================= DEVICE NOTE ================= -->
-  <div class="view" id="v-about">
-    <div class="card">
-      <h2 id="dev-title">Device</h2>
-      <p id="dev-body"></p>
-      <ul class="list" id="dev-list"></ul>
-    </div>
-    <div class="card">
-      <h2>Install it</h2>
-      <p id="install-body"></p>
-      <div class="install-actions">
-        <button class="btn" id="android-install-btn">Samsung / Android</button>
-        <button class="btn ghost" id="ios-install-btn">iPhone</button>
-      </div>
-      <ol class="steps" id="install-steps" hidden></ol>
-      <a class="install-link" id="app-link" href="__APP_URL__">__APP_URL__</a>
-      <div class="row">
-        <button class="btn ghost" id="copy-link">Copy the address</button>
-        <a class="btn ghost" id="save-file" href="app.html" download="kerbside.html">Save a copy</a>
-      </div>
-      <p class="muted" id="install-note"></p>
-    </div>
-    <div class="card" id="full-3d-card">
-      <h2>Full 3D city artifact</h2>
-      <p>
-        Open the complete render immediately, or save its geometry, source-detail shards,
-        official curb data, street furniture, and facade textures for offline inspection.
-      </p>
-      <div class="row">
-        <a class="btn ghost" id="full-3d-link" href="sf-corridor-3d.html">Open full 3D map</a>
-        <button class="btn" id="full-3d-download" type="button">Download full 3D offline</button>
-      </div>
-      <p class="muted" id="full-3d-status" role="status" aria-live="polite">
-        The extra archive detail downloads only when you ask for it.
-      </p>
-    </div>
-    <div class="card">
-      <h2>Privacy</h2>
-      <p>
-        Photographs stay in this browser's storage on this device. Nothing is uploaded. The
-        nightly run writes a batch file that you choose to save &mdash; you decide where it goes.
-      </p>
-      <p id="face-note"></p>
-    </div>
-  </div>
-</div>
-
 <nav class="tabs">
   <button class="tab" data-view="map" aria-selected="true"><span class="ic">&#9678;</span>Map</button>
   <button class="tab" data-view="capture" aria-selected="false"><span class="ic">&#9673;</span>Capture</button>
   <button class="tab" data-view="library" aria-selected="false"><span class="ic">&#9776;</span>Library</button>
   <button class="tab" data-view="tonight" aria-selected="false"><span class="ic">&#9788;</span>Tonight</button>
-  <button class="tab" data-view="about" aria-selected="false"><span class="ic">&#8681;</span>App</button>
 </nav>
 
 <script>
@@ -453,7 +411,6 @@ function detectDevice() {
   return "desktop";
 }
 const DEVICE = detectDevice();
-const STANDALONE = window.matchMedia("(display-mode: standalone)").matches ||
   window.navigator.standalone === true;
 
 /* ============ storage ============ */
@@ -1579,9 +1536,9 @@ function drawMap() {
   for (const c of DATA.coverage) {
     const [x, y] = P(c.lon, c.lat);
     mg.beginPath(); mg.arc(x, y, 5.5, 0, Math.PI * 2);
-    mg.fillStyle = "rgba(255,77,143,0.2)"; mg.fill();
+    mg.fillStyle = "rgba(140,132,76,0.2)"; mg.fill();
     mg.beginPath(); mg.arc(x, y, 3, 0, Math.PI * 2);
-    mg.fillStyle = "#ff4d8f"; mg.fill();
+    mg.fillStyle = "#8c844c"; mg.fill();
   }
   // Your own uploads, drawn distinctly so it is obvious what you added.
   for (const c of uploadedPoints) {
@@ -1609,196 +1566,20 @@ if (mapCanvas) mapCanvas.addEventListener("wheel", (e) => {
   drawMap();
 }, { passive: false });
 
-document.getElementById("m-walk").textContent = DATA.pedestrian.filter((w) => w.k === "sidewalk").length;
-document.getElementById("m-cover").textContent = DATA.coverage.length;
+// The map tab is now the full 3D iframe; the old 2D-only m-walk/m-cover counters
+// no longer exist. Its own HUD reports the live measurements.
 
-/* ============ device copy ============ */
-const COPY = {
-  ios: {
-    title: "iPhone",
-    body: "iOS does not allow any app, web or native, to use the camera while it is in the background. You take the photographs; everything after the shutter runs on its own.",
-    list: [
-      ["stop", "No background capture", "A platform rule with no exception to request"],
-      ["ok", "Curation and compression", "Runs here, on this device"],
-      ["ok", "Glasses frames", "Export from the Meta app, then Import"],
-    ],
-    install: "iOS has no button that installs a web app; Apple routes it through the Share menu and offers no API to any site. So the iPhone button below shows you the three taps rather than pretending to do them.",
-  },
-  android: {
-    title: "Android",
-    body: "Chrome permits camera capture while the app is open and in view. Keep the screen on while walking a corridor.",
-    list: [
-      ["ok", "Capture while walking", "Distance-triggered, not on a timer"],
-      ["ok", "Curation and compression", "Runs here, on this device"],
-      ["ok", "Glasses frames", "Export from the Meta app, then Import"],
-    ],
-    install: "Chrome and Samsung Internet can install this outright. The button below opens the phone's own install prompt.",
-  },
-  desktop: {
-    title: "Desktop",
-    body: "Useful for reviewing a day and running the nightly pass. Capture is possible with a webcam, though the field tool is a phone or glasses.",
-    list: [
-      ["ok", "Import and review", "Drop in frames from anywhere"],
-      ["ok", "Curation and compression", "Runs here, in this browser"],
-      ["warn", "Capture", "Webcam only; no motion trigger without location"],
-    ],
-    install: "Install from the address bar, or just keep the tab open. The field tool is a phone or a pair of glasses.",
-  },
-};
-
-const copy = COPY[DEVICE];
-document.getElementById("dev-title").textContent = copy.title;
-document.getElementById("dev-body").textContent = copy.body;
-document.getElementById("dev-list").innerHTML = copy.list
-  .map(([tone, head, tail]) => `<li><span class="pill ${tone}">${tone === "ok" ? "yes" : tone === "stop" ? "no" : "part"}</span><span><b>${head}.</b> ${tail}</span></li>`)
-  .join("");
-/* ============ install ============ */
-const APP_URL = "__APP_URL__";
-const appLink = document.getElementById("app-link");
-appLink.href = APP_URL;
-appLink.textContent = APP_URL;
-
-let installPrompt = null;
-window.addEventListener("beforeinstallprompt", (e) => {
-  // Chrome fires this only when the page is genuinely installable: served over https, with a
-  // manifest, icons and a service worker. Holding on to the event is what lets a button do the
-  // install instead of describing it.
-  e.preventDefault();
-  installPrompt = e;
-  paintInstall();
-});
-window.addEventListener("appinstalled", () => {
-  installPrompt = null;
-  document.getElementById("install-note").textContent = "Installed. Open it from the home screen.";
-  paintInstall();
-});
-
-const STEPS = {
-  ios: [
-    "Open <b>" + APP_URL + "</b> in <b>Safari</b>. Chrome and the in-app browsers cannot add to the home screen.",
-    "Tap <b>Share</b> — the square with the arrow out of the top.",
-    "Scroll and tap <b>Add to Home Screen</b>, then <b>Add</b>.",
-    "Open it from the home screen. The first shutter asks for the camera and for location: choose <b>While Using the App</b>.",
-  ],
-  android: [
-    "Open <b>" + APP_URL + "</b> in <b>Chrome</b> or <b>Samsung Internet</b>.",
-    "Open the <b>⋮</b> menu and tap <b>Install app</b>, or <b>Add to Home screen</b>.",
-    "Confirm <b>Install</b>.",
-    "Open it from the app drawer. The first shutter asks for the camera and for location: choose <b>While using the app</b>.",
-  ],
-};
-
-function showSteps(kind) {
-  const ol = document.getElementById("install-steps");
-  ol.innerHTML = STEPS[kind].map((t) => "<li>" + t + "</li>").join("");
-  ol.hidden = false;
-}
-
-document.getElementById("android-install-btn").addEventListener("click", async () => {
-  if (installPrompt) {
-    installPrompt.prompt();
-    const choice = await installPrompt.userChoice.catch(() => null);
-    installPrompt = null;
-    paintInstall();
-    document.getElementById("install-note").textContent =
-      choice && choice.outcome === "accepted" ? "Installing." : "Not installed. The steps below still work.";
-    if (!choice || choice.outcome !== "accepted") showSteps("android");
-    return;
-  }
-  showSteps("android");
-});
-
-document.getElementById("ios-install-btn").addEventListener("click", () => showSteps("ios"));
-
-document.getElementById("copy-link").addEventListener("click", async () => {
-  const note = document.getElementById("install-note");
-  try {
-    await navigator.clipboard.writeText(APP_URL);
-    note.textContent = "Address copied. Paste it into Safari or Chrome on the phone.";
-  } catch (e) {
-    note.textContent = "Copy the address above by hand — this browser blocked the clipboard.";
-  }
-});
-
-function paintInstall() {
-  document.getElementById("install-body").textContent = STANDALONE
-    ? "Installed. This is the app running on its own, with its own storage."
-    : copy.install;
-  document.getElementById("android-install-btn").textContent =
-    installPrompt ? "Install on this phone" : "Samsung / Android";
-}
-paintInstall();
-if (!STANDALONE) showSteps(DEVICE === "ios" ? "ios" : "android");
-
-// The service worker is what makes the app installable and what lets it open with no signal.
-// It only exists when the app is served from the site; a saved copy has no origin to register
-// against, and failing quietly is the right outcome there.
-const full3dButton = document.getElementById("full-3d-download");
-const full3dStatus = document.getElementById("full-3d-status");
-let serviceWorkerRegistration = null;
-
-function humanBytes(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "";
-  const units = ["B", "KB", "MB", "GB"];
-  const rank = Math.min(Math.floor(Math.log(bytes) / Math.log(1000)), units.length - 1);
-  return `${(bytes / (1000 ** rank)).toFixed(rank > 1 ? 1 : 0)} ${units[rank]}`;
-}
-
-function full3dMessage(event) {
-  const message = event.data || {};
-  if (message.type !== "CACHE_FULL_3D_PROGRESS") return;
-  if (message.state === "progress") {
-    full3dStatus.textContent = `Saving ${message.done} of ${message.total} files${message.file ? ` — ${message.file}` : ""}`;
-  } else if (message.state === "complete") {
-    const size = humanBytes(message.bytes);
-    full3dStatus.textContent = `Full 3D package saved offline: ${message.done} files${size ? `, ${size}` : ""}.`;
-    full3dButton.textContent = "Full 3D saved offline";
-    full3dButton.disabled = false;
-  } else if (message.state === "partial") {
-    full3dStatus.textContent = `Saved ${message.done} of ${message.total} files. ${message.failed} could not be downloaded; tap to retry.`;
-    full3dButton.disabled = false;
-  } else if (message.state === "error") {
-    full3dStatus.textContent = message.error || "The full 3D package could not be saved. Check storage and connection, then retry.";
-    full3dButton.disabled = false;
-  }
-}
-
+/* ============ installed app shell ============ */
+// Keep the launcher available without turning the full 3D world into an offline download.
 if ("serviceWorker" in navigator && window.isSecureContext) {
-  navigator.serviceWorker.addEventListener("message", full3dMessage);
-  navigator.serviceWorker.register("sw.js")
-    .then((registration) => { serviceWorkerRegistration = registration; })
-    .catch(() => {
-      full3dStatus.textContent = "Offline download is unavailable here; the full 3D map still opens online.";
-    });
-} else {
-  full3dButton.disabled = true;
-  full3dStatus.textContent = "Offline download requires the installed app or a secure browser connection.";
+  navigator.serviceWorker.register("sw.js").catch(() => {});
 }
-
-full3dButton.addEventListener("click", async () => {
-  full3dButton.disabled = true;
-  full3dStatus.textContent = "Preparing full 3D offline package…";
-  try {
-    const registration = serviceWorkerRegistration || await navigator.serviceWorker.ready;
-    const worker = registration.active || registration.waiting || registration.installing;
-    if (!worker) throw new Error("service worker not ready");
-    worker.postMessage({ type: "CACHE_FULL_3D" });
-  } catch (error) {
-    full3dStatus.textContent = "Offline download could not start. Reload once while online, then retry.";
-    full3dButton.disabled = false;
-  }
-});
 
 document.getElementById("auto-explain").textContent = DEVICE === "ios"
-  ? "Fires the shutter for you while the app is open and on screen, once you have moved far enough for a frame to show something new. iOS stops capture the moment you switch away."
-  : "Fires the shutter for you once you have moved far enough for a frame to show something new. Distance, not a timer, so spacing holds whether you dawdle or stride.";
+  ? "Fires the shutter while the app is open on screen, once you have moved far enough for the next frame to show something new. iOS stops capture when you switch away."
+  : "Fires the shutter once you have moved far enough for the next frame to show something new. Distance, not a timer, keeps spacing useful.";
 document.getElementById("auto-note").textContent =
-  "Needs location permission: distance is what decides when to shoot.";
-
-document.getElementById("face-note").textContent = faceDetector
-  ? "This browser has a face detector, so frames whose subject is a person are deleted before anything is written."
-  : "This browser has no face detector. Frames are held back rather than written, because sending a photograph of somebody is not a mistake that can be undone.";
-
+  "Needs location permission: distance decides when to shoot.";
 /* ============ boot ============ */
 (async () => {
   db = await openDb();

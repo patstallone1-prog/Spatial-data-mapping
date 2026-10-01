@@ -8,29 +8,28 @@
 <meta name="kerbside-regions" content="../../app-regions.json" />
 <title>Kerbside Downtown San Jose 3D</title>
 <style>
-:root { color-scheme: light; --bg:#edf3f4; --panel:#fffdf9; --line:#c8d8dc; --ink:#21363b; --muted:#577076; --pink:#a23e67; --green:#288660; --amber:#aa772b; --cyan:#237d9a; }
+:root { color-scheme: light; --bg:#edf3f4; --panel:#fffdf9; --line:#c8d8dc; --ink:#21363b; --muted:#577076; --accent:#8c844c; --green:#288660; --amber:#aa772b; --cyan:#237d9a; }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; }
 #scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; }
-.hud { position:fixed; top:14px; left:14px; bottom:14px; width:min(340px, calc(100vw - 28px)); display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+.hud { position:fixed; top:14px; left:14px; bottom:14px; width:min(340px, calc(100vw - 28px)); display:flex; flex-direction:column; gap:10px; pointer-events:none; z-index:8; }
 /* The panel takes the column it is given rather than shrinking to its contents, so the
    sections breathe instead of being packed against the title. */
 .hud .panel { flex:1; overflow:auto; padding:16px; display:flex; flex-direction:column; gap:2px; }
-.hud[data-open="false"] .panel { flex:0 0 auto; padding:12px 16px; }
-#find { width:100%; padding:9px 10px; border-radius:7px; border:1px solid var(--line);
-#region { width:100%; box-sizing:border-box; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.06); color:#e8eef2; font-size:13px; }
-        background:rgba(7,16,19,.75); color:var(--ink); font:inherit; }
+.hud[data-open="false"] .panel { display:none; }
+#fold { align-self:flex-start; pointer-events:auto; min-width:48px; min-height:44px; background:#fff; color:var(--ink); box-shadow:0 8px 24px rgba(28,61,66,.2); }
+#fold:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+#find { width:100%; padding:9px 10px; border-radius:7px; border:1px solid var(--line); background:#fff; color:var(--ink); font:inherit; }
+#region { width:100%; box-sizing:border-box; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:13px; }
 #find::placeholder { color:var(--muted); }
 #hits { list-style:none; margin:6px 0 0; padding:0; max-height:190px; overflow:auto; }
 #hits li { padding:7px 9px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--muted); }
-#hits li:hover, #hits li[aria-selected=true] { background:rgba(255,77,143,.16); color:var(--ink); }
+#hits li:hover, #hits li[aria-selected=true] { background:rgba(140,132,76,.16); color:var(--ink); }
 /* Collapsing targets the sections themselves rather than one wrapper. The wrapper closes
    where the original panel did, which left the layer groups outside it and folding hid
    only the statistics. */
-.hud[data-open="false"] .collapsible { display:none; }
 .bar { pointer-events:auto; display:flex; align-items:center; gap:8px; }
 .bar h1 { flex:1; margin:0; }
-#fold { flex:1; }
 .primary-actions { margin-top:10px; }
 .group { margin-top:12px; }
 .group > h2 { margin:0 0 7px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; }
@@ -42,18 +41,18 @@ h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-sp
 .stat span { color:var(--muted); font-size:10px; text-transform:uppercase; }
 .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
 .key { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
-.sw { width:10px; height:10px; border-radius:50%; background:var(--pink); }
+.sw { width:10px; height:10px; border-radius:50%; background:var(--accent); }
 .toolbar { display:flex; flex-wrap:wrap; gap:7px; }
 .toolbar button { padding:8px 10px; font-size:13px; }
 button { color:var(--ink); background:rgba(16,25,30,.9); border:1px solid var(--line); border-radius:7px; padding:10px 12px; font:inherit; cursor:pointer; }
-button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgba(255,77,143,.20); }
+button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:rgba(140,132,76,.20); }
 /* Clear of the sidebar, which takes the whole left column when it is open. The tip used to
    start at the same 14px and simply print itself over the panel's lower half. */
 #addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:8px;
-  background:rgba(12,20,24,.94); border:1px solid var(--line); color:var(--ink);
+  background:rgba(12,20,24,.94); border:1px solid #82959b; color:#fff;
   font-size:12px; line-height:1.45; box-shadow:0 14px 34px rgba(0,0,0,.4); pointer-events:none; }
 #addr b { font-size:13px; }
-#addr .sub { color:var(--muted); }
+#addr .sub { color:#fff; }
 #tip { position:fixed; left:368px; bottom:14px; width:min(520px, calc(100vw - 382px)); color:var(--muted); font-size:12px; }
 #progress { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(12,18,24,0.88); color:#e8eef2; padding:14px 22px; border-radius:8px; font-size:15px; letter-spacing:0.01em; z-index:20; pointer-events:none; }
 @media (max-width: 760px) {
@@ -73,7 +72,8 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
 <canvas id="scene"></canvas>
 <div id="progress" hidden>Loading the corridor&hellip;</div>
 <div class="hud" id="hud" data-open="false">
-  <div class="panel">
+  <button id="fold" aria-expanded="false" aria-controls="map-sidebar" aria-label="Open map controls" title="Map controls">☰ Map</button>
+  <div class="panel" id="map-sidebar">
     <div class="bar">
       <h1>Kerbside Downtown San Jose 3D</h1>
     </div>
@@ -89,7 +89,6 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
     <div class="toolbar primary-actions">
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
       <button id="reset">Reset view</button>
-      <button id="fold" aria-expanded="false" aria-controls="controls" title="Show map layers and details">More controls</button>
     </div>
     <div class="collapsible" id="controls">
     <div class="sub" id="regionnote"></div>
@@ -139,7 +138,7 @@ button[aria-pressed=true] { border-color:var(--pink); color:#fff; background:rgb
       <p id="furniturenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
       <p id="detailnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
-    <div id="tip"><b>Drag to look around</b> &mdash; the walker stays put until you use the arrow keys or choose a place in search. Arrow keys move at 20&nbsp;mph in orbit view and 12&nbsp;mph in first person, relative to the way you are facing. Wheel or pinch to zoom &mdash; in first person the wheel zooms your view up to 2x. The survey layers are off by default: turn them on for where photographs were taken, which blocks are covered, and which streets nobody has captured yet.</div>
+    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom; when close, right-click a building for its address. Drag to look around, use arrow keys to walk, and wheel or pinch to zoom. The survey layers are off by default; enable them here to inspect coverage.</div>
     </div>
   </div>
 </div>
@@ -949,9 +948,8 @@ const TERRAIN_SAND = new THREE.Color(0xc9b98a);
 const TERRAIN_BUILT = new THREE.Color(0x6e7263);
 //: The country beyond the survey: grass, plainly, so the edge of what was measured is legible.
 const TERRAIN_PLATE = new THREE.Color(0x4a6f3c);
-//: The backdrop's grey gives way to the grass over this distance past the grid's edge; the
-//: height eases over TERRAIN_APRON_DECAY_M.
-const TERRAIN_APRON_COLOUR_M = 300.0;
+// The surveyed grid ends at a visible boundary; height can still ease into the country,
+// but its colour must not fade through a dark halo before reaching the grassland.
 const terrainTiles = [];
 //: The backdrop's height and colour at a point: land under the ground, or the sea where the
 //: ground is at or under the waterline. ``apron`` is how far outside the grid the point lies.
@@ -1006,12 +1004,11 @@ function backdropAt(x, z, apron = 0) {
   const cls = apron > 0 ? perimeterClassAt(x, z) : null;
   const sandy = cls === 2 || (edge < SEA_SURFACE_M + BEACH_RISE_M && nearBeach(x, z));
   if (apron > 0) {
-    // Height and colour both ease out to the plate's, so the apron is neither a cliff nor a
-    // grey ring round the city.
+    // Keep the height transition, but cut the colour directly to the mapped country.
     const s = Math.exp(-apron / TERRAIN_APRON_DECAY_M);
     h = PENINSULA_Y + (h - PENINSULA_Y) * s;
     const ground = cls === 3 ? TERRAIN_BUILT : TERRAIN_PLATE;
-    const colour = sandy ? TERRAIN_SAND : ground.clone().lerp(TERRAIN_LAND, Math.exp(-apron / TERRAIN_APRON_COLOUR_M));
+    const colour = sandy ? TERRAIN_SAND : ground;
     return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour };
   }
   return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: sandy ? TERRAIN_SAND : TERRAIN_LAND };
@@ -1045,9 +1042,15 @@ function addBackdropTile(xs, zs, apronOf) {
   for (let r = 0; r < h; r += 1) {
     for (let c = 0; c < w; c += 1) {
       const i = (r * w + c) * 3;
-      const at = backdropAt(xs[c], zs[r], apronOf ? apronOf(xs[c], zs[r]) : 0);
+      const apron = apronOf ? apronOf(xs[c], zs[r]) : 0;
+      const at = backdropAt(xs[c], zs[r], apron);
+      // The apron and grid share this position but not its colour. Giving the apron's
+      // inner vertices their outside colour removes the last 32 m interpolated halo.
+      const edgeClass = apronOf && apron === 0 ? perimeterClassAt(xs[c], zs[r]) : null;
+      const vertexColour = apronOf && apron === 0 && at.colour === TERRAIN_LAND
+        ? (edgeClass === 3 ? TERRAIN_BUILT : TERRAIN_PLATE) : at.colour;
       position[i] = xs[c]; position[i + 1] = at.y; position[i + 2] = zs[r];
-      colour[i] = at.colour.r; colour[i + 1] = at.colour.g; colour[i + 2] = at.colour.b;
+      colour[i] = vertexColour.r; colour[i + 1] = vertexColour.g; colour[i + 2] = vertexColour.b;
     }
   }
   const index = new Uint32Array((w - 1) * (h - 1) * 6);
@@ -2569,9 +2572,13 @@ function tiledMap(base, name, repeatU, repeatV) {
 //: the vertex UVs rather than in a cloned texture, a footway's slabs stay 1.52 m whatever the
 //: shape of the run.
 function surfaceScale(surface, width) {
-  if (surface === "walk") return [SLAB_M, SLAB_M];
-  if (surface === "kerb") return [SLAB_M, SLAB_M];
-  if (surface === "walk_underlay") return [SLAB_M, SLAB_M];
+  // One repeat of the pavement texture is SLAB_BLOCK slabs across, so the ground it covers is
+  // that many slabs. The slab is still 1.52 m; what changed is how far apart two identical
+  // slabs are.
+  const walkRepeat = WALK_UV_M;
+  if (surface === "walk") return [walkRepeat, walkRepeat];
+  if (surface === "kerb") return [walkRepeat, walkRepeat];
+  if (surface === "walk_underlay") return [walkRepeat, walkRepeat];
   if (surface === "walk_narrow") return [NARROW_SLAB_M, width];
   if (surface === "bike") return [5.5, BIKE_LANE_M];
   if (surface === "road") return [8.0, 8.0];
@@ -7612,8 +7619,8 @@ function addPavementCorners() {
       const top = y + thickness / 2;
       // The slab, tiled in the pavement's own frame so its flags continue round the corner:
       // u runs along the leg from the cut, v across from the outer edge, as the ribbon's do.
-      const uOf = (q) => ((q[0] - frame.P[0]) * frame.a[0] + (q[1] - frame.P[1]) * frame.a[1] - cutA) / SLAB_M;
-      const vOf = (q) => (vC - ((q[0] - frame.P[0]) * frame.na[0] + (q[1] - frame.P[1]) * frame.na[1])) / SLAB_M;
+      const uOf = (q) => ((q[0] - frame.P[0]) * frame.a[0] + (q[1] - frame.P[1]) * frame.a[1] - cutA) / WALK_UV_M;
+      const vOf = (q) => (vC - ((q[0] - frame.P[0]) * frame.na[0] + (q[1] - frame.P[1]) * frame.na[1])) / WALK_UV_M;
       const ring = side > 0 ? [K, A1, C, B1] : [K, B1, C, A1];
       const position = [];
       const uv = [];
@@ -8393,7 +8400,7 @@ function apronSlab(opening) {
       // something upstream is wrong about this cut, and none is better than one in the road.
       if (insideCarriageway(x, z, 0.2)) return null;
       positions.push(x, row.y, z);
-      uvs.push(sign > 0 ? width / SLAB_M : 0, row.at / SLAB_M);
+      uvs.push(sign > 0 ? width / WALK_UV_M : 0, row.at / WALK_UV_M);
     }
   }
   for (let r = 1; r < rows.length; r += 1) {
@@ -8626,9 +8633,9 @@ function addCrossingLandingPad(endpoint, intoCrossing, crossingWidth, y) {
   ], 3));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute([
     0, 0,
-    pad.width / SLAB_M, 0,
-    pad.width / SLAB_M, pad.depth / SLAB_M,
-    0, pad.depth / SLAB_M,
+    pad.width / WALK_UV_M, 0,
+    pad.width / WALK_UV_M, pad.depth / WALK_UV_M,
+    0, pad.depth / WALK_UV_M,
   ], 2));
   geometry.setIndex([0, 1, 2, 0, 2, 3]);
   geometry.computeVertexNormals();
@@ -8791,6 +8798,14 @@ function addSidewalkCrossingReplacements(points, y) {
   return added;
 }
 
+//: How many slabs across one texture. A single scored slab tiled edge to edge is a stamp: the
+//: aggregate, the staining and the broom marks land in the same place on every slab in the
+//: city, and from above a pavement reads as a chequerboard of one square repeated -- which is
+//: what "procedural square paving" is. Four by four slabs to a texture, each poured with its
+//: own seed and its own tone, puts the repeat at 6.1 m instead of 1.52 m and breaks the eye's
+//: hold on it. The slab itself is still 1.52 m; nothing about the geometry changes.
+const SLAB_BLOCK = 4;
+
 function sidewalkTexture(variant = "square") {
   // Scored concrete, as San Francisco actually pours it: a mid grey rather than a pale one,
   // with exposed aggregate speckle at two scales, the fine parallel striations a broom leaves
@@ -8798,32 +8813,58 @@ function sidewalkTexture(variant = "square") {
   // you at a glance that you are looking at a pavement and not at a grey strip; the grain is
   // what stops it looking like painted card.
   const size = 128;
+  const block = variant === "narrow" ? 1 : SLAB_BLOCK;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size * block;
+  const outer = canvas.getContext("2d");
+  // Each slab is poured on its own canvas and then set into the block, so that every one gets
+  // its own aggregate, its own staining and its own tone rather than a copy of the first.
+  for (let bx = 0; bx < block; bx += 1) {
+    for (let by = 0; by < block; by += 1) {
+      outer.drawImage(sidewalkSlab(variant, size, bx * block + by), bx * size, by * size);
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+function sidewalkSlab(variant, size, seed) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#696d65";
+  // Every number this slab needs comes off its own seed, so no two slabs in the block share
+  // an aggregate, a stain or a broom stroke.
+  const grit = (n) => random(n + seed * 977);
+  // A pour is never quite the colour of the pour beside it: the concrete came on a different
+  // day, off a different truck, and has weathered for a different number of years.
+  const tone = 0.90 + grit(seed * 71 + 3) * 0.20;
+  const base = [0x69, 0x6d, 0x65].map((v) => Math.max(0, Math.min(255, Math.round(v * tone))));
+  ctx.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
   ctx.fillRect(0, 0, size, size);
 
   // Coarse aggregate: the stones in the mix, a few pixels across.
   for (let i = 0; i < size * size * 0.02; i += 1) {
-    const shade = random(i * 13);
+    const shade = grit(i * 13);
     ctx.fillStyle = shade < 0.56 ? "rgba(44,46,42,0.34)" : "rgba(166,168,158,0.22)";
-    const r = 1 + random(i * 17) * 1.8;
+    const r = 1 + grit(i * 17) * 1.8;
     ctx.beginPath();
-    ctx.arc(random(i * 3) * size, random(i * 5) * size, r, 0, Math.PI * 2);
+    ctx.arc(grit(i * 3) * size, grit(i * 5) * size, r, 0, Math.PI * 2);
     ctx.fill();
   }
   // Fine grain over the whole slab.
   for (let i = 0; i < size * size * 0.5; i += 1) {
-    const shade = random(i * 7);
+    const shade = grit(i * 7);
     ctx.fillStyle = shade < 0.5 ? "rgba(0,0,0,0.20)"
       : shade < 0.85 ? "rgba(255,255,255,0.075)" : "rgba(104,96,84,0.16)";
-    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
+    ctx.fillRect(grit(i * 3) * size, grit(i * 5) * size, 1, 1);
   }
   // Broom finish: shallow parallel striations across the slab, which is what a finisher leaves
   // and what gives real pavement its direction under raking light.
   for (let y = 0; y < size; y += 2) {
-    ctx.fillStyle = random(y * 29) < 0.5 ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.04)";
+    ctx.fillStyle = grit(y * 29) < 0.5 ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.04)";
     ctx.fillRect(0, y, size, 1);
   }
   // Staining along the joints, where water sits and dirt collects.
@@ -8854,16 +8895,18 @@ function sidewalkTexture(variant = "square") {
   ctx.strokeStyle = "rgba(200,202,194,0.14)";
   ctx.lineWidth = 1.2;
   if (variant !== "narrow") ctx.strokeRect(4.0, 4.0, size - 8, size - 8);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  return texture;
+  return canvas;
 }
 
 const SIDEWALK = sidewalkTexture();
 const NARROW_SIDEWALK = sidewalkTexture("narrow");
 //: One scored square, in metres. Five feet is the usual San Francisco pour.
 const SLAB_M = 1.52;
+//: The ground one repeat of the pavement texture covers. The texture is a block of SLAB_BLOCK
+//: distinct slabs, so every UV written for a pavement -- the ribbons, the corner pieces, the
+//: kerb-ramp pads -- has to be in units of the block rather than of the slab. Divide by the
+//: slab and one slab's worth of ground shows the whole block squeezed into it.
+const WALK_UV_M = SLAB_M * SLAB_BLOCK;
 const NARROW_SLAB_M = 2.75;
 const NARROW_WALK_M = 1.8;
 
@@ -16117,7 +16160,7 @@ document.getElementById("reset").addEventListener("click", () => {
     const [x, y] = xy(place.lon, place.lat);
     // A named place is an explicit destination: unlike pointer view gestures,
     // search is allowed to move the walker and close the distance.
-    goTo(new THREE.Vector3(x, 0, -y), { travel: true });
+    goTo(eligibleLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });
     field.value = place.label;
     showing = [];
     selected = -1;
@@ -16140,7 +16183,7 @@ document.getElementById("reset").addEventListener("click", () => {
   });
 }
 
-// Keep search and view controls visible; expand the data and layer menu on demand.
+// The whole control column, including search and layers, opens only on demand.
 {
   const hud = document.getElementById("hud");
   const fold = document.getElementById("fold");
@@ -16148,8 +16191,9 @@ document.getElementById("reset").addEventListener("click", () => {
     const open = hud.dataset.open !== "false";
     hud.dataset.open = String(!open);
     fold.setAttribute("aria-expanded", String(!open));
-    fold.textContent = open ? "More controls" : "Hide controls";
-    fold.title = open ? "Show map layers and details" : "Hide map layers and details";
+    fold.setAttribute("aria-label", open ? "Open map controls" : "Close map controls");
+    fold.textContent = open ? "☰ Map" : "× Close";
+    fold.title = open ? "Open map controls" : "Close map controls";
   });
 }
 
@@ -16409,7 +16453,7 @@ addEventListener("blur", () => held.clear());   // a key held while tabbing away
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const ray = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-let pressedAt = [0, 0];
+let pressedAt = [NaN, NaN];
 canvas.addEventListener("pointerdown", (e) => { pressedAt = [e.clientX, e.clientY]; });
 const tip = document.getElementById("tip");
 
@@ -16508,8 +16552,7 @@ function pickedFeature(clientX, clientY) {
   // the camera is what makes clicking a facade from street level pick that facade's building.
   pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
-  const hit = ray.intersectObjects(groups.mapped3d.children, false)[0];
-  if (hit) {
+  for (const hit of ray.intersectObjects(groups.mapped3d.children, true)) {
     const found = buildingAt(hit.point.x, hit.point.z);
     if (found) return found;
   }
@@ -16535,24 +16578,52 @@ function groundAt(clientX, clientY) {
   return ray.ray.intersectPlane(groundPlane, landing) ? landing : null;
 }
 
-// Pointer gestures only inspect or rotate the view. Search selects a destination;
-// arrows walk. A touchpad gesture must never move the walker accidentally.
-function goTo(landing, { travel }) {
+// Use surface street centrelines as safe destinations when a picked point is inside a
+// building or the camera is too far away to choose a precise gap. Never land on a bridge or
+// in a tunnel merely because its 2D centreline is nearest to the click.
+const streetLandingSegments = [];
+for (const way of DATA.ways) {
+  if (way.kind !== "street" || way.bridge || way.tunnel || !way.points) continue;
+  for (let i = 1; i < way.points.length; i += 1) {
+    const [ax, ay] = xy(...way.points[i - 1]);
+    const [bx, by] = xy(...way.points[i]);
+    const dx = bx - ax, dz = ay - by;
+    if (dx * dx + dz * dz > 1) streetLandingSegments.push([ax, -ay, dx, dz]);
+  }
+}
+function eligibleLanding(landing, forceStreet = false) {
+  if (!landing) return null;
+  if (!forceStreet && !buildingAt(landing.x, landing.z)) return landing;
+  let best = null, bestD2 = Infinity;
+  for (const [ax, az, dx, dz] of streetLandingSegments) {
+    const t = Math.max(0, Math.min(1, ((landing.x - ax) * dx + (landing.z - az) * dz) / (dx * dx + dz * dz)));
+    const x = ax + t * dx, z = az + t * dz;
+    const d2 = (x - landing.x) ** 2 + (z - landing.z) ** 2;
+    if (d2 >= bestD2 || buildingAt(x, z)) continue;
+    best = new THREE.Vector3(x, 0, z);
+    bestD2 = d2;
+  }
+  return best || (!buildingAt(landing.x, landing.z) ? landing : null);
+}
+
+// A click moves the walker without changing zoom. Right-click is the deliberate
+// street-level teleport; dragging and wheel zoom never move the walker.
+function goTo(landing, { travel = false, zoom = false } = {}) {
   if (!landing) return;
   // The ground where the click landed: the terrain's height, or the bore's floor inside a
   // tunnel. The orbit target and the walker's feet both stand on it.
   const ground = walkerGroundAt(landing.x, landing.z);
   if (travel) {
     avatar.position.set(landing.x, AVATAR_STAND_Y + ground, landing.z);
-    state.dist = Math.min(state.dist, ARRIVAL_DIST);
+    if (zoom) state.dist = ARRIVAL_DIST;
   }
   state.target.set(landing.x, (travel ? AVATAR_STAND_Y : 0) + ground, landing.z);
   placeCamera();
 }
 
-canvas.addEventListener("pointerup", async (e) => {
+canvas.addEventListener("pointerup", (e) => {
   // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
-  if (Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
+  if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
   if (e.button === 2) return;   // handled on contextmenu, which fires first on a two-finger tap
   // A region marker first: it opens that region's page.
   pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -16566,15 +16637,9 @@ canvas.addEventListener("pointerup", async (e) => {
     else location.href = marker.object.userData.href;
     return;
   }
-  const feature = pickedFeature(e.clientX, e.clientY);
-  const summary = await featureSummary(feature);
-  if (summary && tip) {
-    tip.innerHTML = summary;
-    return;
-  }
-  // A plain click is part of looking around, never a change of the walker's
-  // position or the camera's orbit centre. Named-place search remains the
-  // explicit jump-to-place control; arrows are the only movement gesture.
+  if (e.button !== 0) return;
+  const landing = eligibleLanding(groundAt(e.clientX, e.clientY));
+  if (landing) goTo(landing, { travel: true });
 });
 
 // The address, where the building is. Every footprint carries the parcel it stands on and the
@@ -16586,18 +16651,22 @@ function hideAddress() { if (addrBox) addrBox.hidden = true; }
 
 function showAddress(feature, clientX, clientY) {
   if (!addrBox) return false;
+  const escapeText = (value) => String(value).replace(/[&<>"']/g, (ch) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
   const address = feature.address || {};
   const parcel = feature.parcel || {};
   const line = address.formatted
     || [address.house_number, address.street].filter(Boolean).join(" ");
-  if (!line && !feature.name) return false;
+  // An unaddressed footprint is still a building pick, not a travel command.
+  // Say what is missing rather than teleporting or fabricating a house number.
+  const label = line || feature.name || "Address unavailable";
   const rest = [
     feature.name && line ? feature.name : "",
     parcel.blklot ? `Parcel ${parcel.blklot}` : "",
     parcel.analysis_neighborhood || "",
   ].filter(Boolean);
-  addrBox.innerHTML = `<b>${line || feature.name}</b>`
-    + (rest.length ? `<br><span class="sub">${rest.join(" &middot; ")}</span>` : "");
+  addrBox.innerHTML = `<b>${escapeText(label)}</b>`
+    + (rest.length ? `<br><span class="sub">${rest.map(escapeText).join(" &middot; ")}</span>` : "");
   addrBox.hidden = false;
   // Placed after it is measurable, and kept inside the window rather than half off the edge.
   const box = addrBox.getBoundingClientRect();
@@ -16606,13 +16675,26 @@ function showAddress(feature, clientX, clientY) {
   return true;
 }
 
-canvas.addEventListener("contextmenu", (e) => {
-  // A two-finger tap or right click asks about a building; it cannot teleport
-  // the walker when the user is merely changing the view.
+canvas.addEventListener("contextmenu", async (e) => {
+  // At close range a building click inspects its address. At overview scale, even a
+  // building pick is a travel request: snap to the nearest safe surface street.
   e.preventDefault();
-  const feature = pickedFeature(e.clientX, e.clientY);
-  if (feature && showAddress(feature, e.clientX, e.clientY)) return;
+  if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
+  const distant = !state.firstPerson && state.dist > 1200;
+  const feature = distant ? null : pickedFeature(e.clientX, e.clientY);
+  if (feature) {
+    showAddress(feature, e.clientX, e.clientY);
+    // Detail shards are still retrieved on demand, now from the inspection gesture.
+    // A plain left click is exclusively movement; the full record lives in the sidebar.
+    const summary = await featureSummary(feature);
+    if (summary && tip) tip.innerHTML = summary;
+    return;
+  }
   hideAddress();
+  const landing = eligibleLanding(groundAt(e.clientX, e.clientY), distant);
+  if (!landing) return;
+  if (state.firstPerson) setFirstPerson(false);
+  goTo(landing, { travel: true, zoom: true });
 });
 canvas.addEventListener("pointerdown", hideAddress);
 addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });

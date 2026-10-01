@@ -31,19 +31,21 @@ def test_osm_kerb_nodes_are_normalized_without_inventing_ramps() -> None:
     assert normalize({**node, "tags": {"barrier": "kerb"}}) is None
 
 
-def test_walker_moves_only_with_arrows_and_keeps_metric_speed_at_any_zoom() -> None:
+def test_walker_keeps_metric_speed_and_clicks_move_without_dragging() -> None:
     source = _source()
     assert "const STREET_SPEED = 8.94;" in source
     assert "const FIRST_PERSON_SPEED = 5.36;" in source
     assert "const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;" in source
     assert "SPEED_REFERENCE_DIST" not in source
     assert "if (!held.size || dragging)" in source
-    pointer = source.split('canvas.addEventListener("pointerup", async (e) => {', 1)[1]
+    pointer = source.split('canvas.addEventListener("pointerup", (e) => {', 1)[1]
     pointer = pointer.split("// The address, where the building is.", 1)[0]
-    assert "goTo(groundAt(" not in pointer
-    context = source.split('canvas.addEventListener("contextmenu", (e) => {', 1)[1]
+    assert 'goTo(landing, { travel: true });' in pointer
+    assert 'if (Math.hypot(e.clientX - pressedAt[0]' not in pointer
+    context = source.split('canvas.addEventListener("contextmenu", async (e) => {', 1)[1]
     context = context.split('canvas.addEventListener("pointerdown", hideAddress);', 1)[0]
-    assert "goTo(groundAt(" not in context
+    assert 'const distant = !state.firstPerson && state.dist > 1200;' in context
+    assert 'goTo(landing, { travel: true, zoom: true });' in context
 
 
 def test_built_region_navigation_loads_full_city_and_preserves_arrival() -> None:

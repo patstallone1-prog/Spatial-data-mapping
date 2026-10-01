@@ -57,11 +57,14 @@ def main() -> None:
         assets = f"../../regions/{name}"
         if name == "oakland-downtown":
             site = ROOT / "data" / "regions" / name / "site"
-            if not (site / "sf-corridor-3d.json").exists():
+            if (site / "sf-corridor-3d.json").exists():
+                for source in site.glob("sf-corridor-*"):
+                    if source.suffix in (".json", ".bin"):
+                        shutil.copy2(source, target / source.name)
+            elif not (target / "sf-corridor-3d.json").exists():
                 raise FileNotFoundError("expanded Oakland app world has not been built")
-            for source in site.glob("sf-corridor-*"):
-                if source.suffix in (".json", ".bin"):
-                    shutil.copy2(source, target / source.name)
+            # A clean checkout already carries the published app data. Rebuilding the
+            # viewer must not require the much larger private source world on disk.
             assets = ""
             region["bbox"] = registry[name]["bbox"]
             region["title"] = "Downtown Oakland and the Oakland-Alameda tubes"
