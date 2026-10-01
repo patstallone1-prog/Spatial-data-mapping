@@ -18,7 +18,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from smc.reconstruction.contracts import load_rights, sha256_file
+from smc.reconstruction.contracts import build_uses, load_rights, sha256_file
 from smc.reconstruction.fusion import mask_temporary_objects
 from smc.reconstruction.geo import EnuFrame
 
@@ -78,10 +78,10 @@ def preflight_inputs(input_manifest: Path, rights_path: Path,
         source = rights.get(item.source_id)
         if source is None:
             raise ValueError(f"unregistered image source {item.source_id}")
-        source.require(
+        source.require(*build_uses(
             "cv_processing", "texture_baking", "derived_mesh",
-            "persistent_hosting", "redistribution", "commercial_use",
-        )
+            "persistent_hosting", "redistribution",
+        ))
         if item.license_id != source.license_id or not item.attribution:
             raise ValueError(f"license or attribution mismatch on {item.observation_uid}")
         if not item.image_path.is_file() or not item.masks_npz.is_file():

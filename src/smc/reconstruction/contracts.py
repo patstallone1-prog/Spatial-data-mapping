@@ -5,6 +5,7 @@ from __future__ import annotations
 import enum
 import hashlib
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -74,6 +75,20 @@ def sha256_file(path: Path) -> str:
 def stable_id(*parts: object) -> str:
     packed = json.dumps(parts, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(packed.encode()).hexdigest()[:32]
+
+
+#: The project is a non-commercial validation build (docs/24, decisions of 2026-09-29). A build
+#: asks only for the uses it exercises, so commercial use is demanded only once the project is
+#: declared commercial -- at which point the non-commercial sources (Mapillary, Waymo, CC BY-NC
+#: scans) fail the gate by name and are replaced, rather than being quietly relabelled.
+COMMERCIAL_BUILD_ENV = "SMC_COMMERCIAL_BUILD"
+
+
+def build_uses(*uses: str) -> tuple[str, ...]:
+    """``uses`` plus ``commercial_use`` when this is declared a commercial build."""
+    if os.environ.get(COMMERCIAL_BUILD_ENV, "").strip() in ("1", "true", "yes"):
+        return (*uses, "commercial_use")
+    return uses
 
 
 @dataclass(frozen=True)

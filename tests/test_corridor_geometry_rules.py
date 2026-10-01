@@ -1774,6 +1774,12 @@ PAVEMENT_FUNCTIONS = (
     "bulbDepthAt",
     "halfWidthAt",
     "addBulbOuts",
+    "worldMetresPerDegree",
+    "worldLocalToPage",
+    "worldSweepLevel",
+    "worldClaims",
+    "kerbClaimedAt",
+    "unclaimedKerbRuns",
     "addKerbsidePavement",
 )
 
@@ -1784,6 +1790,11 @@ const WALK_ENOUGH = 0.55;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 const WALK_WIDTH_RUN_M = 6.0;
 const KERB_LIP_M = 0.1016;
+// No reconstructed objects: every kerb line comes back untouched (the production path).
+const WORLD_OBJECTS = { objects: [] };
+const WORLD_CLAIM_CELL_M = 10;
+const WORLD_CLAIM_ALIGN_COS = Math.cos(35 * Math.PI / 180);
+let WORLD_CLAIMS = null;
 const KERBSIDE_BLOCK_PROBE_M = 1.8;
 const STREET_JOIN_M = 3.0;
 const STREET_JOIN_DEG = 34.0;
@@ -2167,7 +2178,9 @@ def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
     # The slab merges with the pavements it joins, and its kerb is the pavements' kerb tile.
     assert ('addMerged(`walk:walk:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`, '
             'mesh, "walk");') in body
-    assert ('KERB_LIP_M,\n                        mine.color, mine.opacity, y, thickness, '
+    # ...except where a reconstructed kerb stands: that stretch is its to draw.
+    assert "for (const run of unclaimedKerbRuns(kerb.map((q) => lonLatFromXZ(q[0], -q[1])))) {" in body
+    assert ('addPavementRibbon(run, KERB_LIP_M, mine.color, mine.opacity, y, thickness, '
             '"kerb");') in body
     # A piece on a third road is not laid; its own two legs' carriageways and their end caps
     # are never the reason, which is what refused 403 corners and lost the corner chunks.

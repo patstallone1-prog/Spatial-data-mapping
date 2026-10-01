@@ -90,7 +90,22 @@ data/regions/*/lidar/
 data/regions/*/site/
 data/regions/*/official/
 data/regions/*/ingest.log
+# Canonical world objects: rebuilt by scripts/build_world_objects.py in about two minutes.
+data/regions/*/world/world_objects.jsonl
 build/regions/
 
 # Finder droppings.
 .DS_Store
+# Interior datasets and scan archives: raw downloads stay out of git (smc.interiors, smc.scans).
+data/interiors/*/raw/
+data/scans/*/raw/
+data/interiors/*/templates.jsonl.gz
+data/regions/*/points/
+data/regions/*/official/facade_relief/
+data/sf_public_works/facade_relief/
+# Mapillary API answers (solved orientations): a regenerable cache, fetched per build with the
+# user's own token (smc.facades.poses).
+data/observation_enrichment/mapillary_poses.jsonl
+data/observation_enrichment/mapillary_rotations.jsonl
+# Scans the user fetched: their files and inbox stay local; the catalogue is tracked.
+data/scans/*/inbox/

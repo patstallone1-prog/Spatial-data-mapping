@@ -21,6 +21,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any
 
+from smc.net import fetch
+
 USER_AGENT = "Kerbside/0.1 (street-imagery catalogue; +https://github.com/patstallone1-prog/Spatial-data-mapping)"
 
 
@@ -37,6 +39,8 @@ class HttpClient:
     """Retrying, rate-limited JSON client."""
 
     timeout_s: float = 30.0
+    #: The whole request, headers and body, must finish in this (see smc.net.fetch).
+    deadline_s: float = 120.0
     #: Minimum seconds between requests. 10/s is far below anything either provider throttles at
     #: and still finishes a corridor sweep in minutes.
     min_interval_s: float = 0.1
@@ -89,8 +93,7 @@ class HttpClient:
             request = urllib.request.Request(url, data=data, headers=headers)
             try:
                 self.requests_made += 1
-                with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
-                    return response.read()
+                return fetch(request, self.deadline_s, self.timeout_s)
             except urllib.error.HTTPError as exc:
                 if exc.code in (400, 401, 403, 404, 410):
                     raise PermanentError(f"{url}: HTTP {exc.code}") from exc

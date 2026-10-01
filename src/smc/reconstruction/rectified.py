@@ -18,6 +18,7 @@ import pyarrow.parquet as pq
 from smc.reconstruction.contracts import (
     SURFACE_SCHEMA,
     Coverage,
+    build_uses,
     load_rights,
     sha256_file,
     stable_id,
@@ -64,8 +65,8 @@ def fuse_rectified_manifest(manifest_path: Path, rights_path: Path,
             if not item.get("privacy_reviewed"):
                 raise ValueError(f"unreviewed privacy mask: {item['observation_uid']}")
             source = rights[str(item["source_id"])]
-            source.require("cv_processing", "texture_baking", "persistent_hosting",
-                           "redistribution", "commercial_use")
+            source.require(*build_uses("cv_processing", "texture_baking", "persistent_hosting",
+                                       "redistribution"))
             if item["license_id"] != source.license_id:
                 raise ValueError("source license does not match rights registry")
             image_path = Path(item["image_path"])

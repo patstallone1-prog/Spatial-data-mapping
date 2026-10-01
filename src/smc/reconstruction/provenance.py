@@ -95,7 +95,7 @@ class SourceAsset(Manifest):
     dataset_id: str = Field(min_length=1)
     acquisition_id: str = Field(min_length=1)
     kind: Literal["aerial_frame", "street_frame", "orthomosaic", "satellite",
-                  "lidar", "dem", "gis"]
+                  "lidar", "dem", "gis", "scan_mesh", "scan_point_cloud"]
     captured_start: datetime
     captured_end: datetime
     footprint: Footprint
@@ -129,7 +129,7 @@ class AcquisitionManifest(Manifest):
     dataset_id: str = Field(min_length=1)
     source_id: str = Field(min_length=1)
     kind: Literal["flight", "street_sequence", "orthomosaic", "point_cloud",
-                  "terrain", "satellite", "gis_collection"]
+                  "terrain", "satellite", "gis_collection", "scan"]
     captured_start: datetime
     captured_end: datetime
     footprint: Footprint

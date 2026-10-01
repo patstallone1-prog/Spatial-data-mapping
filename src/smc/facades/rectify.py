@@ -69,7 +69,16 @@ class Composite:
     rejected: int = 0
 
 
-def output_size(wall: Wall, pixels_per_m: float = PIXELS_PER_M) -> tuple[int, int]:
+def output_size(wall: Wall, pixels_per_m: float = PIXELS_PER_M,
+                exact: bool = False) -> tuple[int, int]:
+    """Output width and height. A texture is clamped to the shipping sizes above, stretching
+    it -- harmless, it is drawn over the wall's own extent. A *measurement* must not be: a
+    surveyed wall read at ``pixels_per_m`` has to be sampled at exactly that, or every length
+    taken from it is wrong by the stretch (the survey's did: every wall under 6 m or over 80 m).
+    ``exact`` honours the scale; the caller chooses one that keeps the image a sensible size."""
+    if exact:
+        return (max(1, round(wall.length_m * pixels_per_m)),
+                max(1, round(wall.height_m * pixels_per_m)))
     return (
         int(np.clip(round(wall.length_m * pixels_per_m), MIN_EDGE_PX, MAX_EDGE_PX)),
         int(np.clip(round(wall.height_m * pixels_per_m), MIN_EDGE_PX, MAX_EDGE_PX)),
@@ -97,11 +106,13 @@ def rectify_wall(
     *,
     weight: float = 1.0,
     pixels_per_m: float = PIXELS_PER_M,
+    exact: bool = False,
 ) -> View | None:
-    """Sample ``wall`` out of one ``image``, or None if it lands nowhere."""
+    """Sample ``wall`` out of one ``image``, or None if it lands nowhere. With ``exact`` the
+    output is at ``pixels_per_m`` whatever the wall's size (see :func:`output_size`)."""
     if wall.length_m <= 0 or wall.height_m <= 0:
         return None
-    out_w, out_h = output_size(wall, pixels_per_m)
+    out_w, out_h = output_size(wall, pixels_per_m, exact)
 
     points = _grid(wall, out_w, out_h)
     u, v, valid = project(camera, points)

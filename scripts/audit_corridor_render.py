@@ -112,6 +112,12 @@ FUNCTIONS = (
     "bulbDepthAt",
     "halfWidthAt",
     "addBulbOuts",
+    "worldMetresPerDegree",
+    "worldLocalToPage",
+    "worldSweepLevel",
+    "worldClaims",
+    "kerbClaimedAt",
+    "unclaimedKerbRuns",
     "addKerbsidePavement",
     "addPropertyLinePavementUnderlay",
 )
@@ -198,6 +204,11 @@ const MIN_RENDER_WALK_M = 0.9;
 const MAX_RENDER_WALK_M = 5.5;
 const KERBSIDE_BLOCK_PROBE_M = 1.8;
 const KERB_LIP_M = 0.1016;
+// No reconstructed objects: every kerb line comes back untouched (the production path).
+const WORLD_OBJECTS = { objects: [] };
+const WORLD_CLAIM_CELL_M = 10;
+const WORLD_CLAIM_ALIGN_COS = Math.cos(35 * Math.PI / 180);
+let WORLD_CLAIMS = null;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 const WALK_ENOUGH = 0.55;
 // Every kerb is drawn the way an unmeasured one is; the audit measures what is drawn.

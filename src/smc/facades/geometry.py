@@ -124,6 +124,16 @@ class Camera:
     height: int
     spherical: bool
     hfov_rad: float | None = None
+    #: The solved orientation, when one exists: a 3x3 world-to-camera rotation (row-major, nine
+    #: numbers) in OpenSfM's convention -- camera x right, y down, z forward; world east, north,
+    #: up. With it the camera's pitch and roll are known; without it the camera is assumed level
+    #: and upright, which a phone held at an angle or a car-mounted rig on a hill is not, and the
+    #: wall comes out slanted or, for a panorama with its seam in the wrong place, upside down.
+    rotation: tuple[float, ...] | None = None
+    #: Perspective lens from the same solve: focal length in pixels and two radial terms.
+    focal_px: float | None = None
+    k1: float = 0.0
+    k2: float = 0.0
 
     @property
     def forward(self) -> tuple[float, float]:
@@ -148,6 +158,8 @@ def project(camera: Camera, points: np.ndarray) -> tuple[np.ndarray, np.ndarray,
     be sampled from a hundred and eighty degrees away -- so the extractor cross-checks the
     assumption against independent cameras rather than trusting it.
     """
+    if camera.rotation is not None:
+        return _project_solved(camera, points)
     fx, fy = camera.forward
     rx, ry = camera.right
     d = points - np.array([camera.x, camera.y, camera.z], dtype=np.float64)
@@ -175,6 +187,32 @@ def project(camera: Camera, points: np.ndarray) -> tuple[np.ndarray, np.ndarray,
         v = camera.height / 2.0 - focal * du / safe
         valid = df > 1e-6
 
+    valid &= (u >= 0) & (u < camera.width) & (v >= 0) & (v < camera.height)
+    return u, v, valid
+
+
+def _project_solved(camera: Camera, points: np.ndarray
+                    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Projection with the solved rotation (and, for a perspective camera, the solved lens)."""
+    rotation = np.asarray(camera.rotation, dtype=np.float64).reshape(3, 3)
+    d = points - np.array([camera.x, camera.y, camera.z], dtype=np.float64)
+    c = d @ rotation.T
+    x, y, z = c[:, 0], c[:, 1], c[:, 2]
+    if camera.spherical:
+        lon = np.arctan2(x, z)
+        lat = np.arctan2(-y, np.hypot(x, z))
+        u = np.mod((0.5 + lon / (2.0 * math.pi)) * camera.width, camera.width)
+        v = (0.5 - lat / math.pi) * camera.height
+        valid = np.linalg.norm(c, axis=1) > 1e-6
+    else:
+        focal = camera.focal_px or (camera.width / 2.0) / math.tan((camera.hfov_rad or 1.2) / 2.0)
+        safe = np.where(z > 1e-6, z, 1e-6)
+        xn, yn = x / safe, y / safe
+        r2 = xn * xn + yn * yn
+        distort = 1.0 + camera.k1 * r2 + camera.k2 * r2 * r2
+        u = camera.width / 2.0 + focal * distort * xn
+        v = camera.height / 2.0 + focal * distort * yn
+        valid = z > 1e-6
     valid &= (u >= 0) & (u < camera.width) & (v >= 0) & (v < camera.height)
     return u, v, valid
 

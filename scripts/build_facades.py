@@ -43,6 +43,7 @@ from smc.facades.geometry import (  # noqa: E402
     walls_of,
 )
 from smc.facades.rectify import compose, fill_gaps, rectify_wall  # noqa: E402
+from smc.net import fetch  # noqa: E402
 
 MAP_JSON = ROOT / "docs" / "sf-corridor-3d.json"
 CATALOG = ROOT / "data" / "sf_corridor" / "observations" / "external-000.parquet"
@@ -201,6 +202,10 @@ def readiness(chunk: Chunk) -> float:
 # ---- extraction -----------------------------------------------------------------------------
 
 
+#: A frame that has not arrived in this long is abandoned (and not cached): see smc.net.read_by.
+IMAGE_DEADLINE_S = 180
+
+
 def fetch_image(provider_name: str, sequence_id: str, image_id: str) -> np.ndarray | None:
     """Resolve a locator through the provider's own API and download the pixels.
 
@@ -224,8 +229,7 @@ def fetch_image(provider_name: str, sequence_id: str, image_id: str) -> np.ndarr
         return None
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(request, timeout=90) as response:
-            blob = response.read()
+        blob = fetch(request, IMAGE_DEADLINE_S, 90)
     except Exception:
         return None
     cache_path.parent.mkdir(parents=True, exist_ok=True)
