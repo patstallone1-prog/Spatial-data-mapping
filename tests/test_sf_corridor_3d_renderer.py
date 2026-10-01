@@ -39,7 +39,7 @@ def test_walker_scales_orbit_speed_and_clicks_move_without_dragging() -> None:
     assert "if (state.firstPerson) return FIRST_PERSON_SPEED;" in source
     assert "firstBuildingCollision(" in source
     assert "if (!held.size || dragging)" in source
-    pointer = source.split('canvas.addEventListener("pointerup", (e) => {', 1)[1]
+    pointer = source.split('canvas.addEventListener("pointerup",', 1)[1]
     pointer = pointer.split("// The address, where the building is.", 1)[0]
     assert 'goTo(landing, { travel: true });' in pointer
     assert 'if (Math.hypot(e.clientX - pressedAt[0]' not in pointer
@@ -284,7 +284,9 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert "const lazyLayerBuilders = new Map();" in source
     assert "function registerLazyLayer(layer, builder)" in source
     assert "function ensureLazyLayer(layer)" in source
-    assert "const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER] = await Promise.all([" in source
+    assert ("const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, "
+            "VISUAL_SUPPORT] = await Promise.all([") in source
+    assert 'fetch(VISUAL_SUPPORT_URL, { cache: "no-cache" })' in source
     assert 'fetch(asset("sf-corridor-official.json"), { cache: "no-cache" })' in source
     assert 'registerLazyLayer("official", () => {' in source
     assert 'registerLazyLayer("chunks", () => {' in source

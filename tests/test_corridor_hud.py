@@ -67,7 +67,8 @@ def test_click_moves_and_right_click_has_distant_safe_landing():
     assert 'const distant = !state.firstPerson && state.dist > 1200;' in source
     assert 'const feature = distant ? null : pickedFeature' in source
     assert 'if (d2 >= bestD2 || buildingAt(x, z)) continue;' in source
-    assert 'const colour = sandy ? TERRAIN_SAND : ground;' in source
+    assert 'const mappedWet = apron > 0 ? null : mappedWaterAt(x, z);' in source
+    assert 'ground.clone().lerp(TERRAIN_LAND, Math.exp(-apron / TERRAIN_APRON_COLOUR_M))' in source
 
 
 def test_published_app_viewers_and_shell_have_the_new_controls():
