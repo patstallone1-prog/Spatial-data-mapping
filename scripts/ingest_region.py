@@ -126,6 +126,7 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
                                        base / "official" / "curb_profiles_lidar.json",
                                        base / "official" / "centrelines_osm.json",
                                        base / "lidar" / "cells.jsonl",
+                                       base / "lidar" / "kerb_stations.jsonl",
                                        base / "lidar" / "completion.json"]),
         "imagery": ([PY, "scripts/harvest_region_observations.py", "--region", region.name, "--out", str(catalog)],
                     [catalog / "observations" / "external-000.parquet"]),

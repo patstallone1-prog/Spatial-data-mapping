@@ -49,7 +49,10 @@ def test_benchmark_split_has_no_training_date_or_sequence_leak():
 
 def test_rights_gate_rejects_unprocured_oblique_images_and_google():
     rights = load_rights(ROOT / "data/reconstruction/source_rights.json")
-    rights["mapillary"].require("cv_processing", "texture_baking", "commercial_use")
+    rights["mapillary"].require("cv_processing", "texture_baking")
+    # Mapillary stays non-commercial: a declared commercial build must refuse it by name.
+    with pytest.raises(ValueError, match="commercial_use"):
+        rights["mapillary"].require("commercial_use")
     with pytest.raises(ValueError, match="pending_contract"):
         rights["pilot_oblique_aerial"].require("texture_baking")
     assert "google" not in rights

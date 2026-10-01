@@ -1,0 +1,38 @@
+{
+  "dataset": "resplan",
+  "title": "ResPlan: 17,000 residential floor plans",
+  "license": "CC-BY-4.0",
+  "commercial_use": true,
+  "url": "https://github.com/m-agour/ResPlan",
+  "templates": 16992,
+  "storeys": {
+    "1": 16992
+  },
+  "rooms_by_kind": {
+    "bedroom": 40742,
+    "bathroom": 40395,
+    "balcony": 21746,
+    "living": 17258,
+    "kitchen": 16940,
+    "storage": 1797,
+    "garden": 847,
+    "stair": 750,
+    "garage": 345
+  },
+  "width_m_p5_p50_p95": [
+    9.8,
+    13.9,
+    21.8
+  ],
+  "floor_area_m2_p5_p50_p95": [
+    52.0,
+    100.6,
+    212.6
+  ],
+  "windows_p5_p50_p95": [
+    3.0,
+    7.0,
+    12.0
+  ],
+  "seconds": 132
+}

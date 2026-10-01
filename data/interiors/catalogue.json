@@ -1,0 +1,68 @@
+[
+  {
+    "key": "swiss_dwellings",
+    "title": "Swiss Dwellings v3.0.0 (Archilyse)",
+    "license": "CC-BY-4.0",
+    "commercial_use": true,
+    "access": "download",
+    "size_bytes": 931868205,
+    "url": "https://zenodo.org/records/7788422",
+    "notes": "45k apartments in 3,184 real multi-storey buildings: rooms, walls, windows, doors, fixtures, storeys with elevations. Local coordinates (published without positions). Areas checked against source plans (median deviation 1.2%).",
+    "status": "ingested: 3184 templates"
+  },
+  {
+    "key": "resplan",
+    "title": "ResPlan: 17,000 residential floor plans",
+    "license": "CC-BY-4.0",
+    "commercial_use": true,
+    "access": "download",
+    "size_bytes": 100106537,
+    "url": "https://github.com/m-agour/ResPlan",
+    "notes": "Single-level residential units in metres from real-estate listings; rooms by kind, walls, doors, windows, front door. Takedown process in the repository's TAKEDOWN.md.",
+    "status": "ingested: 16992 templates"
+  },
+  {
+    "key": "cubicasa5k",
+    "title": "CubiCasa5K",
+    "license": "CC-BY-NC-SA-4.0",
+    "commercial_use": false,
+    "access": "download",
+    "size_bytes": 5469500000,
+    "url": "https://zenodo.org/records/2613548",
+    "notes": "5,000 Finnish plans as images with SVG annotation, no metric scale. Non-commercial and share-alike: stripped at the commercial transition. Not downloaded: without a scale its rooms cannot be matched to a building's metres.",
+    "status": "not ingested: no adapter (see notes)"
+  },
+  {
+    "key": "rplan",
+    "title": "RPLAN",
+    "license": "research-agreement",
+    "commercial_use": false,
+    "access": "agreement",
+    "size_bytes": null,
+    "url": "http://staff.ustc.edu.cn/~fuxm/projects/DeepLayout/index.html",
+    "notes": "80k Asian apartment plans; released on request under a research agreement.",
+    "status": "not ingested: needs an agreement"
+  },
+  {
+    "key": "structured3d",
+    "title": "Structured3D",
+    "license": "research-agreement",
+    "commercial_use": false,
+    "access": "agreement",
+    "size_bytes": null,
+    "url": "https://structured3d-dataset.org/",
+    "notes": "3.5k synthetic houses with full 3D; terms of use must be agreed before download.",
+    "status": "not ingested: needs an agreement"
+  },
+  {
+    "key": "zind",
+    "title": "Zillow Indoor Dataset",
+    "license": "zillow-non-commercial",
+    "commercial_use": false,
+    "access": "agreement",
+    "size_bytes": null,
+    "url": "https://github.com/zillow/zind",
+    "notes": "1.5k real homes with panoramas and floor plans; access by application.",
+    "status": "not ingested: needs an agreement"
+  }
+]

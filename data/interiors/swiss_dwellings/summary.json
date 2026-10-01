@@ -1,0 +1,67 @@
+{
+  "dataset": "swiss_dwellings",
+  "title": "Swiss Dwellings v3.0.0 (Archilyse)",
+  "license": "CC-BY-4.0",
+  "commercial_use": true,
+  "url": "https://zenodo.org/records/7788422",
+  "templates": 3184,
+  "storeys": {
+    "1": 87,
+    "2": 225,
+    "3": 716,
+    "4": 961,
+    "5": 588,
+    "6": 299,
+    "7": 124,
+    "8": 78,
+    "9": 33,
+    "10": 30,
+    "11": 15,
+    "12": 13,
+    "13": 2,
+    "14": 4,
+    "15": 2,
+    "16": 4,
+    "17": 2,
+    "22": 1
+  },
+  "rooms_by_kind": {
+    "bedroom": 106895,
+    "shaft": 100928,
+    "bathroom": 70317,
+    "corridor": 64055,
+    "balcony": 48744,
+    "kitchen": 44521,
+    "living": 32921,
+    "storage": 20578,
+    "stair": 12903,
+    "elevator": 11313,
+    "void": 3339,
+    "other": 1630,
+    "dining": 1322,
+    "terrace": 823,
+    "office": 683,
+    "utility": 655,
+    "garden": 188,
+    "entrance": 135,
+    "garage": 97,
+    "toilet": 95,
+    "commercial": 41
+  },
+  "width_m_p5_p50_p95": [
+    14.8,
+    24.8,
+    60.4
+  ],
+  "floor_area_m2_p5_p50_p95": [
+    271.0,
+    1060.2,
+    4067.0
+  ],
+  "windows_p5_p50_p95": [
+    18.0,
+    61.0,
+    214.7
+  ],
+  "seconds": 548
+}

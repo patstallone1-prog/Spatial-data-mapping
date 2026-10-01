@@ -1,0 +1,40 @@
+{
+  "region": "sf-corridor",
+  "curb_lines": 9441,
+  "objects": 8534,
+  "decisions": {
+    "accepted_full": 8534
+  },
+  "corners": {
+    "rounded": 5368,
+    "sharp": 4808
+  },
+  "heights": {
+    "corridor median": 5152,
+    "lidar": 3382
+  },
+  "skipped": {
+    "no street within 40 m to orient it by": 282,
+    "shorter than 1.0 m": 513,
+    "closed island/median ring: already raised from the same survey ring": 97,
+    "no usable geometry or role 'other'": 15
+  },
+  "web_bytes": 5173991,
+  "seconds": 102.1,
+  "sources": {
+    "sfmta_curbs": {
+      "file": "docs/sf-corridor-official.json",
+      "generated_from": [
+        "datasf:3psu-pn9h:61711b47c273",
+        "datasf:4g86-grxu:bc83cd3831b9",
+        "datasf:h8n7-e4ns:64089ddb259b",
+        "datasf:abvp-arbf:4b535b655999",
+        "datasf:ch9w-7kih:6b430ec41a8b",
+        "datasf:emxt-b6yg:26fc4491cd95",
+        "datasf:acdm-wktn:8fb75cba8e84",
+        "sfmta:curbs:84e833cf066e"
+      ],
+      "note": "SFMTA curb linework, thinned to 2 cm before publishing"
+    }
+  }
+}

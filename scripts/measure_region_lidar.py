@@ -225,6 +225,11 @@ def main() -> int:
 
     shutil.rmtree(cache_root, ignore_errors=True)
     profile_count = write_outputs(region.name, base, streets, done)
+    # Every station's kerb positions, not only each street's median height: the kerb fitter's
+    # lidar sensor samples (scripts/build_kerb_stations.py reads the journal just written).
+    from build_kerb_stations import build as build_kerb_stations
+
+    print(json.dumps(build_kerb_stations(region.name)), flush=True)
     if failed_cells:
         print(f"{region.name}: {len(failed_cells)} lidar cells failed; rerun to retry them", file=sys.stderr)
         return 1

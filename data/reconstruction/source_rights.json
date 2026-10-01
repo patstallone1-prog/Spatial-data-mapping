@@ -6,7 +6,7 @@
       "license_id": "CC-BY-SA-4.0",
       "attribution": "© Mapillary contributors, CC BY-SA 4.0",
       "status": "approved",
-      "allowed_uses": ["cv_processing", "texture_baking", "derived_mesh", "persistent_hosting", "redistribution", "commercial_use"]
+      "allowed_uses": ["cv_processing", "texture_baking", "derived_mesh", "persistent_hosting", "redistribution"]
     },
     {
       "source_id": "panoramax",
