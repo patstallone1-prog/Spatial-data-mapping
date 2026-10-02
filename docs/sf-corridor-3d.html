@@ -18843,8 +18843,8 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
       const ring = item.userData.roomRing;
       if (!ring) continue;
       for (let angle = 0; angle < 8; angle += 1) {
-        const px = x + Math.cos(angle * Math.PI / 4) * 2.1;
-        const pz = z + Math.sin(angle * Math.PI / 4) * 2.1;
+        const px = x + Math.cos(angle * Math.PI / 4) * 1.4;
+        const pz = z + Math.sin(angle * Math.PI / 4) * 1.4;
         if (!pointInRing(px, pz, ring) || !insideFootprint(entry, px, pz)
             || insideEntranceRecess(entry, px, pz)) continue;
         if (entry.interior.segments.some(([ax, az, bx, bz]) =>

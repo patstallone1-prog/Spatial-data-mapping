@@ -31,3 +31,31 @@ The grass hard mask retains 0.75 m samples, but only evaluates conservative gras
 The fire-station block was also compared with the public USGS NAIP orthophoto service; its rear yards contain both vegetation and paving, so public-parcel concrete is not arbitrarily relabelled as measured grass. The reference is an appearance check, not a current parcel-scale survey: https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer . A prior street-level check at 2026 California Street found uncertain glass classification; unknown material evidence must not be upgraded to measured masonry merely to improve appearance. The SF corridor's OSM extract has no mapped utility-pole or overhead-wire records, so that path has only synthetic test coverage. The fresh photo survey remains blocked by missing credentials/pose evidence; the append-only journal preserves existing results but no healthy continuing reconstruction job can presently be claimed.
 
 These evidence limitations must remain visible in a release. Older implementations remain in Git history and the other isolated worktrees; they are not interchangeable sources for the current renderer. Template synchronization, cross-region function parity, interior-source validation, geometry/collision tests, asset checksum checks and exact-green-main CI deployment protect this work from stale generated-page/cache overwrites; no finite test suite guarantees that all future regressions are impossible.
+
+## October 2 follow-up verification
+
+The pavement CI failure was an audit defect: its copied service-width table lacked
+`access`, producing non-finite widths and fictitious missing pavement. The audit now
+extracts that table from the canonical renderer. All nine committed-baseline checks
+pass without relaxing their thresholds: 23 of 3,340 required pavement sides are
+bare (0.7%), and 91.3% of requested mapped footway length survives clipping.
+
+The final SF closed-door walk stopped at depth 2.4 m behind the facade, before the
+recessed leaf, and did not automatically enter first person on the landing. In
+Oakland the opened entrance transitioned to first person beyond the two-step
+flight/landing. Room checks showed the imported bed frame, kitchen sink/cooktop,
+flooring and interior door leaves; the same physical windows showed the street
+from inside. The storey inventory is six rather than the earlier thirteen-row guess.
+
+SF building 288529259 exposed an empty furnishing result in an irregular fitted
+plan. Placement now searches the clipped room/footprint intersection and tries
+both axes rather than only vertex averages with one orientation. New executable
+tests cover this real concave footprint and a narrow clipped bedroom. The final
+preview showed four accepted furnishing groups and an imported sofa. Unsafe
+placements are still omitted; this is not a claim that every clipped room has a
+complete kitchen or that the inferred plan is the address's real interior.
+
+The opt-in `?inspect=interiors` panel adds safe room viewpoints for manual checks,
+alongside its ordinary swept walking/door controls. It is hidden in the normal app.
+The final remaining camera-dependent street/corner checks were interrupted by the
+Mac locking; promotion remains pending those checks and the final exact-commit CI.
