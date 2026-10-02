@@ -1,6 +1,7 @@
 """Physical visual openings, not view-dependent facade masking."""
 import hashlib
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -145,6 +146,50 @@ def test_furniture_retries_away_from_foyer_but_never_spills_outside_room():
     assert out[0] is not None
     assert out[0]["cx"] < 4 or out[0]["cx"] > 6
     assert out[1] is None
+
+
+def test_furniture_rotates_to_fit_a_narrow_room_and_searches_clipped_intersection():
+    out = run_js(["furnishingPlacement"], """
+      function pointInRing(x,z,r){return x>r[0][0]&&x<r[2][0]&&z>r[0][1]&&z<r[2][1];}
+      function insideFootprint(e,x,z){return x>6&&x<9&&z>0&&z<1.95;}
+      const entry={minX:6,maxX:9,minZ:0,maxZ:1.95,accessZones:[]};
+      console.log(JSON.stringify(furnishingPlacement(entry,[[0,0],[10,0],[10,1.95],[0,1.95]],
+        [1.5,2.0],[])));
+    """)
+    assert out is not None
+    assert 7.15 < out["cx"] < 7.85
+    assert out["yaw"] == pytest.approx(1.5707963267948966)
+
+
+def test_vallejo_concave_home_has_safe_living_and_bedroom_furnishings():
+    data = json.loads((ROOT / "docs/sf-corridor-interiors.json").read_text())
+    fit = data["buildings"]["288529259"]
+    plan = data["library"][fit[0]]
+    way = next(w for w in json.loads((ROOT / "docs/sf-corridor-3d.json").read_text())["ways"]
+               if str(w.get("osm_id")) == "288529259")
+    lon, lat, yaw = fit[4], fit[5], math.radians(fit[6])
+    east = 111320 * math.cos(math.radians(lat))
+    ring = [[(x - lon) * east, -(y - lat) * 111320] for x, y in way["points"]]
+    rooms = []
+    for kind, flat in plan["rooms"]:
+        points = []
+        for k in range(0, len(flat), 2):
+            u = flat[k] / 100 * fit[7] / plan["l"]
+            v = flat[k + 1] / 100 * fit[8] / plan["w"]
+            points.append([u * math.cos(yaw) - v * math.sin(yaw),
+                           -(u * math.sin(yaw) + v * math.cos(yaw))])
+        rooms.append({"kind": data["kinds"][kind], "pts": points})
+    entry = {"local": ring, "accessZones": []}
+    for axis, index in (("X", 0), ("Z", 1)):
+        entry[f"min{axis}"] = min(p[index] for p in ring)
+        entry[f"max{axis}"] = max(p[index] for p in ring)
+    out = run_js(["insideFootprint", "pointInRing", "furnishingPlacement"],
+                 f"const entry={json.dumps(entry)};const rooms={json.dumps(rooms)};" + """
+      const sizes={living:[1.7,.9],bedroom:[1.5,2]};
+      console.log(JSON.stringify(rooms.filter(r=>sizes[r.kind] &&
+        furnishingPlacement(entry,r.pts,sizes[r.kind],[])).map(r=>r.kind)));
+    """)
+    assert "living" in out and out.count("bedroom") >= 2
 
 
 def test_sparse_grass_raster_conservatively_covers_every_ring_bound():

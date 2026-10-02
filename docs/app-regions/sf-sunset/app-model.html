@@ -18267,7 +18267,19 @@ function furnishingPlacement(entry, pts, size, doorsInPlan) {
     candidates.push([mx * 0.55 + centre[0] * 0.45, mz * 0.55 + centre[1] * 0.45]);
   }
   if (longest < 0.2) return null;
-  const yaw = -Math.atan2(direction[1], direction[0]);
+  // A concave room's vertex average can lie outside it; its edge-biased
+  // points can also all lie outside the clipped building. Search the remaining
+  // intersection instead of declaring such rooms unfurnishable. Both axes
+  // matter: a bed fits lengthwise, not sideways, in a narrow bedroom.
+  const minX = Math.max(Math.min(...pts.map((p) => p[0])), entry.minX ?? -Infinity);
+  const maxX = Math.min(Math.max(...pts.map((p) => p[0])), entry.maxX ?? Infinity);
+  const minZ = Math.max(Math.min(...pts.map((p) => p[1])), entry.minZ ?? -Infinity);
+  const maxZ = Math.min(Math.max(...pts.map((p) => p[1])), entry.maxZ ?? Infinity);
+  for (let z = minZ + 0.25; z < maxZ; z += 0.5)
+    for (let x = minX + 0.25; x < maxX; x += 0.5)
+      if (pointInRing(x, z, pts) && insideFootprint(entry, x, z)) candidates.push([x, z]);
+  for (const yaw of [-Math.atan2(direction[1], direction[0]),
+    -Math.atan2(direction[1], direction[0]) + Math.PI / 2]) {
   const cos = Math.cos(yaw), sin = Math.sin(yaw);
   const samplesX = Math.ceil((size[0] + 0.3) / 0.2), samplesZ = Math.ceil((size[1] + 0.3) / 0.2);
   for (const [cx, cz] of candidates) {
@@ -18284,6 +18296,7 @@ function furnishingPlacement(entry, pts, size, doorsInPlan) {
     }
     if (fits) return { cx, cz, yaw };
   }
+  }
   return null;
 }
 
@@ -18299,7 +18312,7 @@ function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
   furniture.position.set(cx, floorY, cz);
   furniture.rotation.y = yaw;
   furniture.userData = { surface: `furnishing:${kind}`, grade: "inferred_from_room_type",
-    source: "fitted_external_floor_plan" };
+    source: "fitted_external_floor_plan", roomRing: pts };
   const box = (w, h, d, x, y, z, material) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
     mesh.position.set(x, y, z);
@@ -18795,6 +18808,7 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
   inspector.innerHTML = '<summary>Interior inspection</summary><button id="inspect-entrance">Visit nearby house entrance</button>'
     + '<button id="inspect-door">Toggle entrance door</button><button id="inspect-step">Walk forward 0.25 m</button>'
     + '<button id="inspect-back">Look behind</button>'
+    + '<button id="inspect-room">Inspect next furnished room</button>'
     + '<pre id="inspect-state" style="white-space:pre-wrap"></pre>';
   document.body.appendChild(inspector);
   for (const button of inspector.querySelectorAll("button"))
@@ -18819,6 +18833,32 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     state.target.copy(avatar.position); placeCamera();
   };
   document.getElementById("inspect-back").onclick = () => { state.yaw += Math.PI; placeCamera(); };
+  let inspectedRoom = 0;
+  document.getElementById("inspect-room").onclick = () => {
+    const b = buildingAt(avatar.position.x, avatar.position.z);
+    const entry = b && footprintById.get(String(b.osm_id));
+    const furnishings = entry?.interior?.group.children
+      .filter((o) => o.userData.surface?.startsWith("furnishing:")) || [];
+    for (let n = 0; n < furnishings.length; n += 1) {
+      const item = furnishings[inspectedRoom++ % furnishings.length];
+      const { x, z } = item.position;
+      const ring = item.userData.roomRing;
+      if (!ring) continue;
+      for (let angle = 0; angle < 8; angle += 1) {
+        const px = x + Math.cos(angle * Math.PI / 4) * 2.1;
+        const pz = z + Math.sin(angle * Math.PI / 4) * 2.1;
+        if (!pointInRing(px, pz, ring) || !insideFootprint(entry, px, pz)
+            || insideEntranceRecess(entry, px, pz)) continue;
+        if (entry.interior.segments.some(([ax, az, bx, bz]) =>
+          distanceToSegmentSquared(px, pz, ax, az, bx, bz) < 0.35 ** 2)) continue;
+        avatar.position.set(px, AVATAR_STAND_Y + walkerGroundAt(px, pz), pz);
+        state.target.copy(avatar.position);
+        state.yaw = Math.atan2(px - x, pz - z); state.look = -0.12;
+        setFirstPerson(true);
+        return;
+      }
+    }
+  };
   setInterval(() => {
     const b = buildingAt(avatar.position.x, avatar.position.z);
     const e = b && footprintById.get(String(b.osm_id));
