@@ -38,3 +38,9 @@ def test_app_build_uses_source_not_an_old_viewer_cache() -> None:
     assert 'renderer = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))' in source
     assert 'template = renderer["tuned"](renderer["HTML"], "app")' in source
     assert 'template = VIEWER.read_text' not in source
+
+
+def test_geometry_audit_uses_the_renderers_service_width_table() -> None:
+    source = (ROOT / "scripts/audit_corridor_render.py").read_text()
+    assert 'const SERVICE_ROAD_M = {' not in source
+    assert 'DRIVER.replace("__SERVICE_ROAD_M__", service_table.group(0))' in source

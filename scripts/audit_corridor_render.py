@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -194,7 +195,7 @@ function xy(lon, lat) { return [(lon - midLon) * metersPerLon, (lat - midLat) * 
 const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
-const SERVICE_ROAD_M = { driveway: 3.4, "drive-through": 3.4, parking_aisle: 6.0 };
+__SERVICE_ROAD_M__
 const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
@@ -813,8 +814,13 @@ def main() -> int:
         return 2
 
     js = page_js()
-    driver = DRIVER.replace("__FUNCTIONS__",
-                            "\n".join(extract(name, js) for name in FUNCTIONS))
+    # A copied service table made access widths NaN after the renderer gained
+    # that category. Audit exactly the same policy, not a second implementation.
+    service_table = re.search(r"const SERVICE_ROAD_M = \{[^;]+;", js)
+    if service_table is None:
+        raise AssertionError("renderer service-width table is missing")
+    driver = DRIVER.replace("__SERVICE_ROAD_M__", service_table.group(0)).replace(
+        "__FUNCTIONS__", "\n".join(extract(name, js) for name in FUNCTIONS))
     out = subprocess.run([node, "-e", driver], capture_output=True, text=True, timeout=900,
                          env={**os.environ, "PAGE_JSON": str(args.page),
                               "GROUND_JSON": str(args.ground),
