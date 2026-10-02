@@ -35,7 +35,10 @@ def test_walker_keeps_metric_speed_and_clicks_move_without_dragging() -> None:
     source = _source()
     assert "const STREET_SPEED = 8.94;" in source
     assert "const FIRST_PERSON_SPEED = 5.36;" in source
-    assert "const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;" in source
+    # In first person a walk by default and the 12 mph run with Shift held; metric either way.
+    assert "const FIRST_PERSON_WALK = 1.5;" in source
+    assert ("const scaled = state.firstPerson ? (running ? FIRST_PERSON_SPEED : FIRST_PERSON_WALK)"
+            " : STREET_SPEED;") in source
     assert "SPEED_REFERENCE_DIST" not in source
     assert "if (!held.size || dragging)" in source
     pointer = source.split('canvas.addEventListener("pointerup", (e) => {', 1)[1]
@@ -649,3 +652,32 @@ def test_a_parking_lane_is_a_block_face_the_city_lets_cars_park_on(tmp_path: Pat
     assert '"parking_sides",' in _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
     assert "function travelSpan(way, roadWidth)" in _source()
     assert "const [left, right] = travelSpan(way, road);" in _source()
+
+
+def test_door_recess_conditionally_skips_stairs_on_flat_ground() -> None:
+    source = _source()
+    # The new doorRecess checks slope, measured status, and rise before building stairs.
+    assert "const PLATEAU_TREADS = 4;" in source
+    assert "const SLOPE_THRESHOLD_M = 1.0;" in source
+    assert "const measuredDoor = door.source === 0 || door.source === 1;" in source
+    assert "const doorAboveGround = Math.abs(rise) > STEP_RISE_M * 1.5;" in source
+    assert "const sharpSlope = slopeRange > SLOPE_THRESHOLD_M;" in source
+    assert "const needStairs =" in source
+    assert "if (!needStairs) {" in source
+    assert "door.recess = { floor: street, street, steps: 0" in source
+
+
+def test_plateau_is_four_treads_wide_before_door() -> None:
+    source = _source()
+    assert "const plateau = PLATEAU_TREADS * STEP_TREAD_M;" in source
+    assert "steps * tread + plateau" in source
+
+
+def test_half_height_window_style_exists_and_is_used_at_roof_line() -> None:
+    source = _source()
+    assert "function halfSash(ctx, seed)" in source
+    assert "pane(ctx, x, 30, 18, 18" in source
+    assert "function facadeTextureFor(material, seed, heightM = null)" in source
+    assert "const frac = (heightM / STOREY_M) % 1.0;" in source
+    assert 'WINDOW_STYLES.findIndex((f) => f.name === "halfSash")' in source
+    assert "facadeTextureFor(material, seed, height)" in source

@@ -5261,6 +5261,14 @@ const WINDOW_STYLES = [
   function tallNarrow(ctx, seed) {
     for (const x of [12, 38]) pane(ctx, x, 8, 14, 42, random(seed + x) < 0.16, seed);
   },
+  function halfSash(ctx, seed) {
+    // A window whose head stops halfway up the storey, so a facade clipped by the roof
+    // never shows a full window sliced in two.
+    for (const x of [9, 35]) {
+      pane(ctx, x, 30, 18, 18, random(seed + x) < 0.16, seed,
+           { bars: [{ vertical: false, at: 0.5 }] });
+    }
+  },
   function squarePair(ctx, seed) {
     for (const x of [12, 38]) pane(ctx, x, 16, 16, 16, random(seed + x) < 0.2, seed);
   },
@@ -5345,12 +5353,23 @@ function facadeFor(material, seed, style) {
 }
 
 const FACADE_CACHE = new Map();
-function facadeTextureFor(material, seed) {
+function facadeTextureFor(material, seed, heightM = null) {
   // Twelve window arrangements times three lighting draws per material: enough that a terrace
   // of forty houses has no two the same next to each other, and few enough that the whole city
   // shares a few dozen canvases.
-  const style = Math.floor(random(seed + 3) * WINDOW_STYLES.length);
+  let style = Math.floor(random(seed + 3) * WINDOW_STYLES.length);
   const variant = Math.floor(random(seed) * 3);
+  // If the building height would slice through a full-height window at the roof, use the
+  // half-height window style instead so the top row is never cut off unrealistically.
+  if (heightM !== null) {
+    const frac = (heightM / STOREY_M) % 1.0;
+    // Full-height windows occupy roughly y=8..50 of the 64-pixel tile; the band between
+    // storeys is y=59..64. A fractional height inside the window band will clip one.
+    if (frac > 0.12 && frac < 0.78) {
+      const halfIndex = WINDOW_STYLES.findIndex((f) => f.name === "halfSash");
+      if (halfIndex >= 0) style = halfIndex;
+    }
+  }
   const key = `${material.name}-${style}-${variant}`;
   if (!FACADE_CACHE.has(key)) {
     FACADE_CACHE.set(key, facadeFor(material, seed + variant * 977, style));
@@ -11602,7 +11621,7 @@ function buildingMesh(feature) {
     roughness: 0.97, metalness: material.name === "metal" ? 0.5 : 0.03,
   });
   const walls = new THREE.MeshStandardMaterial({
-    map: kind === "outbuilding" ? outbuildingTexture(seed) : facadeTextureFor(material, seed),
+    map: kind === "outbuilding" ? outbuildingTexture(seed) : facadeTextureFor(material, seed, height),
     color: tint,
     transparent: opacity < 1,
     opacity,
@@ -16410,7 +16429,9 @@ function placeCamera() {
     // Out of the walker's eyes: the camera stands at eye height where the walker stands and
     // looks the way the arrows walk, so forward is forward. Dragging turns the head.
     const eye = avatar.position.clone();
-    eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
+    // At eye height above the walker's feet -- which are on the ground unless it is falling
+    // or jumping (settleWalker).
+    eye.y = AVATAR_EYE_Y + (avatar.position.y - AVATAR_STAND_Y);
     const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw)).negate();
     const aim = eye.clone().add(forward.multiplyScalar(10)).add(new THREE.Vector3(0, Math.tan(state.look) * 10, 0));
     camera.position.copy(eye);
@@ -16519,9 +16540,11 @@ document.getElementById("reset").addEventListener("click", () => {
     const licences = Object.keys(chunk.licenses || {}).join(", ") || "CC BY-SA 4.0";
     note.innerHTML =
       `<b>Photo facades</b> — chunk ${chunk.key}, ${chunk.textured} of ${chunk.attempted} walls ` +
-      `across ${chunk.buildings} buildings, rectified from street-level frames and merged. ` +
-      `Every other building wears a procedural texture. Imagery by Mapillary and KartaView ` +
-      `contributors, ${licences}. Turn on <b>Chunks</b> for the grid and which square is next.`;
+      `across ${chunk.buildings} buildings: street photographs laid flat onto each wall, a ` +
+      `photo texture and not a 3D reconstruction (the wall is still the footprint's plane). ` +
+      `Only views whose camera orientation was solved, that saw the wall square-on and agreed ` +
+      `with each other, were used; the rest of the city wears a procedural texture. Imagery by ` +
+      `Mapillary contributors, ${licences}. Turn on <b>Chunks</b> for the grid and which square is next.`;
   }
 }
 
@@ -16664,7 +16687,9 @@ resize();
 const STREET_SPEED = 8.94;     // 20 mph in metres per second, at street level, orbiting
 //: In the walker's own eyes the pace is a brisk 12 mph: fast enough to cross a block without
 //: tedium, slow enough that a kerb and a doorway can be looked at as they pass.
-const FIRST_PERSON_SPEED = 5.36;   // 12 mph
+const FIRST_PERSON_SPEED = 5.36;   // 12 mph, with Shift held: a run
+//: Walking pace in first person, without Shift: the speed people walk a city street at.
+const FIRST_PERSON_WALK = 1.5;
 //: The first-person view zooms by narrowing its field: the wheel takes it from the full
 //: 50 degrees down to half that, a 2x look at a sign or a kerb across the street.
 const FIRST_PERSON_FOV = 50;
@@ -16793,6 +16818,177 @@ avatar.position.set(0, AVATAR_STAND_Y, 0);
 root.add(avatar);
 // The camera is first placed once the walker exists: in first person it stands in the walker's eyes.
 placeCamera();
+// ---- the walker's gait, from NVIDIA MotionBricks -------------------------------------------------
+//
+// MotionBricks generates humanoid motion in real time from a direction and a mode; its runtime is
+// PyTorch on a GPU, which a browser is not, so its idle, slow walk, walk and jog were generated
+// offline (tools/motionbricks/bake_clips.py) as one looping cycle each: the joint positions of
+// the Unitree G1 it drives, relative to the pelvis. Here they are put onto this character's own
+// skeleton by matching directions -- the hips to the G1's pelvis frame, each thigh, shin, upper
+// arm and forearm to the G1's matching segment -- once, when the character loads, as ordinary
+// animation clips. Without the file the character keeps its own clips.
+const MB_BONES = {
+  hips: "mixamorigHips", spine: "mixamorigSpine1",
+  l_thigh: "mixamorigLeftUpLeg", l_shin: "mixamorigLeftLeg", r_thigh: "mixamorigRightUpLeg", r_shin: "mixamorigRightLeg",
+  l_arm: "mixamorigLeftArm", l_fore: "mixamorigLeftForeArm", r_arm: "mixamorigRightArm", r_fore: "mixamorigRightForeArm",
+};
+// Which G1 segment each bone follows: [from joint, to joint].
+const MB_SEGMENTS = {
+  spine: ["pelvis", "torso"],
+  l_thigh: ["l_hip", "l_knee"], l_shin: ["l_knee", "l_ankle"], r_thigh: ["r_hip", "r_knee"], r_shin: ["r_knee", "r_ankle"],
+  l_arm: ["l_shoulder", "l_elbow"], l_fore: ["l_elbow", "l_wrist"], r_arm: ["r_shoulder", "r_elbow"], r_fore: ["r_elbow", "r_wrist"],
+};
+const MB_CHILD = { spine: "mixamorigNeck", l_thigh: "mixamorigLeftLeg", l_shin: "mixamorigLeftFoot", r_thigh: "mixamorigRightLeg",
+  r_shin: "mixamorigRightFoot", l_arm: "mixamorigLeftForeArm", l_fore: "mixamorigLeftHand", r_arm: "mixamorigRightForeArm", r_fore: "mixamorigRightHand" };
+let motionBricks = null;   // { clips: {name: {clip, speed}}, scale }
+
+function retargetMotionBricks(model, data) {
+  const bone = (name) => model.getObjectByName(name);
+  const bones = Object.fromEntries(Object.entries(MB_BONES).map(([k, n]) => [k, bone(n)]));
+  if (Object.values(bones).some((b) => !b)) return null;
+  let skinned = null;
+  model.traverse((o) => { if (o.isSkinnedMesh && !skinned) skinned = o; });
+  // The character's own neutral stance -- its bind pose -- is what every frame starts from.
+  const bind = () => { if (skinned) skinned.skeleton.pose(); model.updateMatrixWorld(true); };
+  bind();
+  const world = (o) => new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);
+  const inv = new THREE.Matrix4().copy(model.matrixWorld).invert();
+  const inModel = (o) => world(o).applyMatrix4(inv);
+  // The character's axes in model space: right, up, forward.
+  const right = inModel(bone("mixamorigRightUpLeg")).sub(inModel(bone("mixamorigLeftUpLeg"))).normalize();
+  const up = inModel(bone("mixamorigNeck")).sub(inModel(bones.hips)).normalize();
+  const fwd = new THREE.Vector3().crossVectors(right, up).normalize();
+  up.crossVectors(fwd, right).normalize();
+  const basis = new THREE.Matrix4().makeBasis(right, up, fwd);     // G1 page axes -> model axes
+  const basisQ = new THREE.Quaternion().setFromRotationMatrix(basis);
+  const modelQ = model.getWorldQuaternion(new THREE.Quaternion());
+  const hipsBind = bones.hips.quaternion.clone();
+  const bindPose = [];
+  model.traverse((o) => { if (o.isBone) bindPose.push([o.name, o.quaternion.toArray()]); });
+  const hipsPos = bones.hips.position.clone();
+  // Each driven bone's direction in the bind pose, in world space.
+  const bindDir = {};
+  for (const key of Object.keys(MB_SEGMENTS)) bindDir[key] = world(bone(MB_CHILD[key])).sub(world(bones[key])).normalize();
+  const index = Object.fromEntries(data.joints.map((j, i) => [j, i]));
+  const vec = (row, j) => new THREE.Vector3(row[index[j] * 3], row[index[j] * 3 + 1], row[index[j] * 3 + 2]);
+  const shoulders = (row) => vec(row, "l_shoulder").add(vec(row, "r_shoulder")).multiplyScalar(0.5);
+  // The G1's pelvis frame: its hip line and its spine (to between the shoulders).
+  const pelvisFrame = (row) => {
+    const r = vec(row, "r_hip").sub(vec(row, "l_hip")).normalize();
+    const u = shoulders(row).sub(vec(row, "pelvis")).normalize();
+    const f = new THREE.Vector3().crossVectors(r, u).normalize();
+    u.crossVectors(f, r).normalize();
+    return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(r, u, f));
+  };
+  const segment = (row, key) => {
+    if (key === "spine") return shoulders(row).sub(vec(row, "pelvis")).normalize();
+    const [from, to] = MB_SEGMENTS[key];
+    return vec(row, to).sub(vec(row, from)).normalize();
+  };
+  // The G1 standing still is the neutral every frame is measured from: what is retargeted is
+  // how the G1 moves away from its own stance, not the G1's proportions.
+  const neutral = data.clips.idle ? data.clips.idle.positions[0] : Object.values(data.clips)[0].positions[0];
+  const neutralPelvis = pelvisFrame(neutral);
+  const toWorld = (v) => v.clone().applyQuaternion(basisQ).applyQuaternion(modelQ);
+  const RELATIVE = new Set(["spine", "l_thigh", "l_shin", "r_thigh", "r_shin"]);
+  const clips = {};
+  for (const [name, c] of Object.entries(data.clips)) {
+    const times = [], tracks = Object.fromEntries(Object.keys(MB_BONES).map((k) => [k, []]));
+    const hipY = [];
+    for (let f = 0; f < c.frames; f += 1) {
+      const row = c.positions[f];
+      bind();
+      // Hips: the G1's pelvis turn away from its stance, in the character's axes.
+      const turnG1 = pelvisFrame(row).multiply(neutralPelvis.clone().invert());
+      const turnModel = basisQ.clone().multiply(turnG1).multiply(basisQ.clone().invert());
+      const parentModel = modelQ.clone().invert().multiply(bones.hips.parent.getWorldQuaternion(new THREE.Quaternion()));
+      const hipsModel = parentModel.clone().multiply(hipsBind);
+      bones.hips.quaternion.copy(parentModel.clone().invert().multiply(turnModel.multiply(hipsModel)));
+      bones.hips.updateMatrixWorld(true);
+      // Each segment, parents first. Spine and legs: the bind direction turned as the G1's
+      // segment turned from its stance. Arms: pointing where the G1's point (the bind pose
+      // holds them out level, and they should hang as the G1's do).
+      for (const key of ["spine", "l_thigh", "l_shin", "r_thigh", "r_shin", "l_arm", "l_fore", "r_arm", "r_fore"]) {
+        const b = bones[key];
+        let want;
+        if (RELATIVE.has(key)) {
+          const turn = new THREE.Quaternion().setFromUnitVectors(toWorld(segment(neutral, key)), toWorld(segment(row, key)));
+          want = bindDir[key].clone().applyQuaternion(turn);
+        } else {
+          want = toWorld(segment(row, key)).normalize();
+        }
+        const have = world(bone(MB_CHILD[key])).sub(world(b)).normalize();
+        const turn = new THREE.Quaternion().setFromUnitVectors(have, want);
+        const bw = b.getWorldQuaternion(new THREE.Quaternion());
+        const pw = b.parent.getWorldQuaternion(new THREE.Quaternion());
+        b.quaternion.copy(pw.invert().multiply(turn.multiply(bw)));
+        b.updateMatrixWorld(true);
+      }
+      times.push(f / c.fps);
+      for (const key of Object.keys(MB_BONES)) tracks[key].push(...bones[key].quaternion.toArray());
+      hipY.push(hipsPos.y * (row[index.pelvis * 3 + 1] / c.pelvis_height_m));
+    }
+    // Close the loop: the first frame again at the end.
+    times.push(c.frames / c.fps);
+    for (const key of Object.keys(MB_BONES)) tracks[key].push(...tracks[key].slice(0, 4));
+    hipY.push(hipY[0]);
+    const kfs = Object.keys(MB_BONES).map((key) => new THREE.QuaternionKeyframeTrack(`${MB_BONES[key]}.quaternion`, times, tracks[key]));
+    // Every other bone held at the character's bind pose, so nothing is left in whatever pose
+    // the character's own clips last put it.
+    const driven = new Set(Object.values(MB_BONES));
+    for (const [boneName, q] of bindPose) {
+      if (driven.has(boneName)) continue;
+      kfs.push(new THREE.QuaternionKeyframeTrack(`${boneName}.quaternion`, [0, times[times.length - 1]], [...q, ...q]));
+    }
+    kfs.push(new THREE.VectorKeyframeTrack(`${MB_BONES.hips}.position`, times, hipY.flatMap((y) => [hipsPos.x, y, hipsPos.z])));
+    clips[name] = { clip: new THREE.AnimationClip(`MB:${name}`, times[times.length - 1], kfs), speed: c.speed_m_s };
+  }
+  bind();
+  // How much larger this character is than the G1, for matching stride to ground speed.
+  const g1Hip = Object.values(data.clips)[0].pelvis_height_m;
+  const scale = (world(bones.hips).y - world(bone("mixamorigLeftFoot")).y) / Math.max(0.3, g1Hip);
+  return { clips, scale };
+}
+
+function loadMotionBricks(model, mixer) {
+  const names = [asset("sf-corridor-motionbricks.json"), "sf-corridor-motionbricks.json", "../../sf-corridor-motionbricks.json"];
+  const tryNext = (i) => {
+    if (i >= names.length) return;
+    fetch(names[i], { cache: "no-cache" }).then((r) => (r.ok ? r.json() : Promise.reject())).then((data) => {
+      let made = null;
+      try { made = retargetMotionBricks(model, data); } catch (error) {
+        console.warn("kerbside: MotionBricks gait could not be put on this character; keeping its own clips", error);
+        return;
+      }
+      if (!made) return;
+      motionBricks = made;
+      for (const [name, entry] of Object.entries(made.clips)) avatarActions[`MB:${name}`] = mixer.clipAction(entry.clip);
+      avatarActiveAction = null;
+      setAvatarAction("MB:idle");
+      console.info(`kerbside: MotionBricks gait on the walker (${Object.keys(made.clips).join(", ")}), scale ${made.scale.toFixed(2)}`);
+    }).catch(() => tryNext(i + 1));
+  };
+  tryNext(0);
+}
+
+// The gait for a ground speed: MotionBricks' cycle whose own speed (scaled to this character)
+// is nearest, played faster or slower to match the ground exactly.
+function gaitFor(speed) {
+  if (!motionBricks) return speed > 0 ? "Run" : "Idle";
+  if (speed <= 0.05) return "MB:idle";
+  let best = null;
+  for (const [name, entry] of Object.entries(motionBricks.clips)) {
+    if (name === "idle" || !entry.speed) continue;
+    const own = entry.speed * motionBricks.scale;
+    const ratio = speed / own;
+    if (!best || Math.abs(Math.log(ratio)) < Math.abs(Math.log(best[1]))) best = [name, ratio];
+  }
+  if (!best) return "MB:idle";
+  const action = avatarActions[`MB:${best[0]}`];
+  if (action) action.timeScale = Math.max(0.5, Math.min(2.5, best[1]));
+  return `MB:${best[0]}`;
+}
+
 function setAvatarAction(name) {
   const next = avatarActions[name] || avatarActions.Walk || avatarActions.Run || avatarActions.Idle;
   if (!next || next === avatarActiveAction) return;
@@ -16850,8 +17046,9 @@ function loadDemoCharacterAvatar(rig) {
     }
     rig.userData.demoCharacterLoaded = true;
     rig.userData.demoCharacterSource = DEMO_CHARACTER_SOURCE;
-    rig.userData.motionBridge = "Unreal target: ARDY/MotionBricks policy output retargeted to this avatar rig.";
+    rig.userData.motionBridge = "NVIDIA MotionBricks gait, baked offline and retargeted to this rig (sf-corridor-motionbricks.json).";
     setAvatarAction("Idle");
+    loadMotionBricks(model, avatarMixer);
   }, undefined, (error) => {
     console.warn("Demo character failed to load; keeping procedural walker.", error);
     rig.userData.demoCharacterLoaded = false;
@@ -16877,6 +17074,10 @@ setFirstPerson(state.firstPerson);
 
 const held = new Set();
 const ARROWS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+let running = false;   // Shift held: run rather than walk
+addEventListener("keydown", (e) => { if (e.key === "Shift") running = true; });
+addEventListener("keyup", (e) => { if (e.key === "Shift") running = false; });
+addEventListener("blur", () => { running = false; });
 addEventListener("keydown", (e) => {
   if (!ARROWS.has(e.key)) return;
   // Typing in a field is not steering. Without this, choosing a corner walks the sphere away.
@@ -17144,11 +17345,15 @@ addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
 // every footprint's walls, sliding along them rather than stopping dead. The way in is a door.
 // Each building's doors come with its fitted interior (scripts/build_interiors_fit.py): an
 // entrance a mapper put on the outline in OpenStreetMap, else a door or shopfront the facade
-// survey photographed, else one inferred at the middle of the wall nearest a street. Stand by
-// one and press Enter: it swings open, the gap in the wall is passable, and the rooms behind it
-// are built -- a real plan of somewhere else (a Swiss apartment building, a single dwelling),
-// chosen because its proportions fit this footprint and tiled where the building is several
-// plans long. It is labelled what it is: a stand-in, not this building's interior.
+// survey photographed, else one inferred at the middle of the wall nearest a street.
+//
+// A door is set back in a recess behind the property line, as a city's are: the footway stays
+// clear, and any steps between the street and the floor are inside the recess, not across the
+// pavement. Stand in it and press Enter: the door swings open and the rooms behind it are built
+// -- a real plan of somewhere else (a Swiss apartment building, a single dwelling), chosen
+// because its proportions fit this footprint and tiled where the building is several plans
+// long, furnished by rule and labelled what it is: a stand-in, not this building's interior.
+// Where the plan has stairs they climb to a typical upper storey.
 const WALKER_RADIUS_M = 0.3;
 const WALK_SUBSTEP_M = 0.15;
 const DOOR_REACH_M = 1.8;
@@ -17156,43 +17361,44 @@ const DOOR_HEIGHT_M = 2.1;
 const DOOR_DRAW_M = 60;
 const INTERIOR_KEEP_M = 70;
 const INTERIOR_WALL_INSET_M = 0.08;
-const DOOR_SOURCE = ["mapped (OpenStreetMap)", "photographed", "inferred"];
-const ROOM_FLOOR = {
-  living: 0xb08f6a, kitchen: 0xc9c2b4, bedroom: 0xa98a6b, bathroom: 0xd9dcdc, corridor: 0xb9a68a,
-  stair: 0x9c9488, storage: 0x9f978a, balcony: 0x8f8c86, shaft: 0x77736d, elevator: 0x77736d,
-  dining: 0xb08f6a, office: 0xa7a296, commercial: 0xb6b1a6, outdoor: 0x8a8a7e, other: 0xb0a898,
-};
-var standingSurfaces = new Set();
-//: Steps on a stoop, and how deep each tread is.
+//: The recess a door stands in: at least this deep, this much wider than the leaf, and with a
+//: landing this deep in front of the door above any steps.
+const RECESS_MIN_M = 0.45;
+const RECESS_PAD_M = 0.3;
+const LANDING_M = 0.4;
+//: Plateau in front of the door, expressed as a number of stair treads wide.
+const PLATEAU_TREADS = 4;
+//: A footprint whose ground varies by this much is treated as a sharply sloped lot.
+const SLOPE_THRESHOLD_M = 1.0;
+//: Steps: how high each riser, how deep each tread.
 const STEP_RISE_M = 0.18;
 const STEP_TREAD_M = 0.3;
+//: Inside, the room is this much less tall than the storey (the slab above).
+const INTERIOR_SLAB_M = 0.3;
+const DOOR_SOURCE = ["mapped (OpenStreetMap)", "photographed", "inferred"];
+var standingSurfaces = new Set();
 const footprintById = new Map();
-
-// A building on a hill stands on its highest ground: its floor is level with the ground at the
-// top of the footprint, never under the hillside -- the terrain cannot be cut, so a floor below
-// it would have the street running through the rooms. Where the street at a door is lower, the
-// door has a stoop, as San Francisco's do. (The street's ground, not this, is still what the
-// walker stands on outside.)
-function entryFloorY(entry) {
-  if (entry.floorY !== undefined) return entry.floorY;
-  let top = -Infinity;
-  for (const [x, z] of entry.local) top = Math.max(top, terrainGroundAt(x, z));
-  const step = Math.max(2, Math.hypot(entry.maxX - entry.minX, entry.maxZ - entry.minZ) / 30);
-  for (let x = entry.minX; x <= entry.maxX; x += step) {
-    for (let z = entry.minZ; z <= entry.maxZ; z += step) {
-      if (insideFootprint(entry, x, z)) top = Math.max(top, terrainGroundAt(x, z));
-    }
-  }
-  entry.floorY = top + 0.05;
-  return entry.floorY;
+for (const bucket of footprintGrid.values()) {
+  for (const entry of bucket) footprintById.set(String(entry.way.osm_id), entry);
 }
-// The ground without any interior or stoop on it.
+
+// The ground without any interior or step on it.
 function terrainGroundAt(x, z) {
   const floor = tunnelFloorAt(x, z);
   return floor !== null ? floor : groundLiftAt(x, z);
 }
-for (const bucket of footprintGrid.values()) {
-  for (const entry of bucket) footprintById.set(String(entry.way.osm_id), entry);
+
+// The ground floor is level with the street at the building's main door, one riser up: that is
+// where a building meets its street, hill or no hill. The hillside rising under the rest of
+// the footprint is the terrain, which cannot be cut -- the floor is drawn over it instead (see
+// INTERIOR_FLOOR_ORDER), so the rooms are not crossed by the street.
+function entryFloorY(entry) {
+  if (entry.floorY !== undefined) return entry.floorY;
+  const main = (entry.doors || [])[0];
+  const street = main ? terrainGroundAt(main.cx - main.nx * 0.5, main.cz - main.nz * 0.5)
+    : terrainGroundAt((entry.minX + entry.maxX) / 2, (entry.minZ + entry.maxZ) / 2);
+  entry.floorY = street + STEP_RISE_M;
+  return entry.floorY;
 }
 
 let INTERIORS = null;
@@ -17224,21 +17430,81 @@ function doorOn(entry, edge, t, width, source) {
   if (!a || !b) return null;
   const dx = b[0] - a[0], dz = b[1] - a[1];
   const length = Math.hypot(dx, dz);
-  if (length < width + 0.2) return null;
+  const recessW = width + RECESS_PAD_M;
+  if (length < recessW + 0.3) return null;
   const ux = dx / length, uz = dz / length;
-  // Keep the whole leaf on the edge.
-  const half = width / 2 / length;
+  // Keep the whole recess on the edge.
+  const half = recessW / 2 / length;
   const tc = Math.min(1 - half, Math.max(half, t));
   const cx = a[0] + dx * tc, cz = a[1] + dz * tc;
   // Inward is the side of the edge the footprint is on.
   let nx = -uz, nz = ux;
   if (!insideFootprint(entry, cx + nx * 0.5, cz + nz * 0.5)) { nx = -nx; nz = -nz; }
-  return { entry, edge, t0: tc - half, t1: tc + half, width, source, cx, cz, ux, uz, nx, nz,
-           open: false, angle: 0, mesh: null };
+  // The leaf's own span within the recess, as fractions of the edge.
+  const leafHalf = width / 2 / length;
+  return { entry, edge, t0: tc - leafHalf, t1: tc + leafHalf, r0: tc - half, r1: tc + half,
+           width, recessW, source, cx, cz, ux, uz, nx, nz, open: false, angle: 0, mesh: null };
 }
 
-// The wall segments within reach of a point: footprint edges with open doorways left out, the
-// leaves of closed doors, and the partitions of any interior that has been built.
+// The recess's shape, worked out once the floor is known: how far the street is below (or
+// above) the floor at this door, how many steps that is, and how deep the recess must be to
+// hold them and a landing. Never deeper than a third of the building.
+function doorRecess(door) {
+  if (door.recess) return door.recess;
+  const fitDepth = door.entry.fit ? Math.max(RECESS_MIN_M, door.entry.fit[8] / 3) : 2.5;
+  const floor = entryFloorY(door.entry);
+  const street = terrainGroundAt(door.cx - door.nx * 0.5, door.cz - door.nz * 0.5);
+  const rise = floor - street;
+
+  // Ground slope across the footprint: how much the terrain moves under the building.
+  let slopeRange = 0;
+  const ring = door.entry.local;
+  for (let i = 0; i + 1 < ring.length; i += 1) {
+    const gz = terrainGroundAt(ring[i][0], ring[i][1]);
+    slopeRange = Math.max(slopeRange, Math.abs(gz - street));
+  }
+
+  // Only build an exterior staircase when one is justified: the door is measured and not
+  // flush with the street, the door is clearly above ground height, or the lot is steep
+  // enough that a flat approach needs steps and a plateau.
+  const measuredDoor = door.source === 0 || door.source === 1;
+  const doorAboveGround = Math.abs(rise) > STEP_RISE_M * 1.5;
+  const sharpSlope = slopeRange > SLOPE_THRESHOLD_M;
+  const needStairs = (measuredDoor && Math.abs(rise) > 0.05) || doorAboveGround || sharpSlope;
+
+  if (!needStairs) {
+    // No exterior steps: the door sits on the street in a shallow recess.
+    door.recess = { floor: street, street, steps: 0, each: 0, tread: STEP_TREAD_M, depth: RECESS_MIN_M };
+    return door.recess;
+  }
+
+  let steps = Math.max(1, Math.round(Math.abs(rise) / STEP_RISE_M));
+  if (sharpSlope && !doorAboveGround) {
+    // A sloped lot gets a short flight so the door itself has a flat landing.
+    steps = Math.max(2, steps);
+  }
+
+  const plateau = PLATEAU_TREADS * STEP_TREAD_M;
+  let tread = STEP_TREAD_M;
+  if (steps * tread + plateau > fitDepth) {
+    tread = Math.max(0.2, (fitDepth - plateau) / Math.max(steps, 1));
+  }
+  const depth = Math.max(RECESS_MIN_M, Math.min(fitDepth, steps * tread + plateau));
+  door.recess = { floor, street, steps, each: steps ? rise / steps : 0, tread, depth };
+  return door.recess;
+}
+
+// A point on a door's edge at fraction t, moved `inward` metres into the building.
+function edgePoint(door, t, inward = 0) {
+  const ring = door.entry.local;
+  const [ax, az] = ring[door.edge];
+  const [bx, bz] = ring[door.edge + 1];
+  return [ax + (bx - ax) * t + door.nx * inward, az + (bz - az) * t + door.nz * inward];
+}
+
+// The wall segments within reach of a point: footprint edges with every door's recess left
+// open, the recess's sides and back (its doorway open only while the door is), and the
+// partitions and furniture of any interior that has been built.
 function wallSegmentsNear(x, z) {
   const out = [];
   const seen = new Set();
@@ -17255,16 +17521,26 @@ function wallSegmentsNear(x, z) {
         }
         if (!entry.solid) continue;
         const ring = entry.local;
+        const doors = entry.doors || [];
         for (let i = 0; i + 1 < ring.length; i += 1) {
           const [ax, az] = ring[i];
           const [bx, bz] = ring[i + 1];
-          const gaps = (entry.doors || []).filter((d) => d.edge === i && d.open).sort((p, q) => p.t0 - q.t0);
+          const gaps = doors.filter((d) => d.edge === i).sort((p, q) => p.r0 - q.r0);
           let from = 0;
           for (const gap of gaps) {
-            if (gap.t0 > from) out.push([ax + (bx - ax) * from, az + (bz - az) * from, ax + (bx - ax) * gap.t0, az + (bz - az) * gap.t0]);
-            from = Math.max(from, gap.t1);
+            if (gap.r0 > from) out.push([ax + (bx - ax) * from, az + (bz - az) * from, ax + (bx - ax) * gap.r0, az + (bz - az) * gap.r0]);
+            from = Math.max(from, gap.r1);
           }
           if (from < 1) out.push([ax + (bx - ax) * from, az + (bz - az) * from, bx, bz]);
+        }
+        for (const door of doors) {
+          const { depth } = doorRecess(door);
+          const [p0x, p0z] = edgePoint(door, door.r0), [q0x, q0z] = edgePoint(door, door.r0, depth);
+          const [p1x, p1z] = edgePoint(door, door.r1), [q1x, q1z] = edgePoint(door, door.r1, depth);
+          out.push([p0x, p0z, q0x, q0z], [p1x, p1z, q1x, q1z]);
+          const [l0x, l0z] = edgePoint(door, door.t0, depth), [l1x, l1z] = edgePoint(door, door.t1, depth);
+          out.push([q0x, q0z, l0x, l0z], [l1x, l1z, q1x, q1z]);
+          if (!door.open) out.push([l0x, l0z, l1x, l1z]);
         }
         if (entry.interior) for (const s of entry.interior.segments) out.push(s);
       }
@@ -17300,10 +17576,14 @@ function moveWalker(mx, mz) {
   const steps = Math.max(1, Math.ceil(distance / WALK_SUBSTEP_M));
   const segments = wallSegmentsNear(avatar.position.x + mx / 2, avatar.position.z + mz / 2);
   const p = { x: avatar.position.x, z: avatar.position.z };
+  const feet = avatar.position.y - AVATAR_STAND_Y;
   for (let i = 0; i < steps; i += 1) {
+    const was = { x: p.x, z: p.z };
     p.x += mx / steps;
     p.z += mz / steps;
     if (segments.length) pushOutOfWalls(p, segments);
+    // A step, a kerb or a stair can be climbed; anything taller is a wall to a walker.
+    if (walkerGroundAt(p.x, p.z) - feet > STEP_UP_M) { p.x = was.x; p.z = was.z; break; }
   }
   const moved = Math.hypot(p.x - avatar.position.x, p.z - avatar.position.z);
   avatar.position.x = p.x;
@@ -17311,110 +17591,164 @@ function moveWalker(mx, mz) {
   return moved;
 }
 
+// ---- the walker's weight ---------------------------------------------------------------------------
+//
+// The walker falls: off a kerb, a stoop, a retaining wall or the top of a stairwell it drops
+// under gravity and lands, rather than being set down on whatever is below. It climbs what a
+// person climbs in a stride (STEP_UP_M) and no more, and steps down a stair without falling
+// (STEP_DOWN_M). Space jumps.
+const GRAVITY_M_S2 = 9.81;
+const STEP_UP_M = 0.45;
+const STEP_DOWN_M = 0.3;
+const JUMP_SPEED_M_S = 4.0;
+function settleWalker(dt) {
+  const ground = walkerGroundAt(avatar.position.x, avatar.position.z);
+  let feet = avatar.position.y - AVATAR_STAND_Y;
+  let vy = avatar.userData.vy || 0;
+  const airborne = vy > 0 || feet > ground + STEP_DOWN_M || (avatar.userData.falling && feet > ground + 0.005);
+  if (airborne) {
+    vy -= GRAVITY_M_S2 * dt;
+    feet += vy * dt;
+    if (feet <= ground) { feet = ground; vy = 0; avatar.userData.falling = false; }
+    else avatar.userData.falling = true;
+  } else {
+    feet = ground;
+    vy = 0;
+  }
+  avatar.userData.vy = vy;
+  avatar.position.y = AVATAR_STAND_Y + feet;
+}
+addEventListener("keydown", (e) => {
+  if (e.code !== "Space" || e.repeat) return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  const feet = avatar.position.y - AVATAR_STAND_Y;
+  if (Math.abs(feet - walkerGroundAt(avatar.position.x, avatar.position.z)) < 0.05) {
+    avatar.userData.vy = JUMP_SPEED_M_S;
+    e.preventDefault();
+  }
+});
+
 // ---- doors -------------------------------------------------------------------------------------
 const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x5b3b25, roughness: 0.6, metalness: 0.05 });
 const doorwayMaterial = new THREE.MeshBasicMaterial({ color: 0x2a221b, side: THREE.DoubleSide });
-// The facade is merged into tiles and has no hole where a door is, so an open doorway is a
-// portal: the rooms and the swung leaf are drawn first (INTERIOR_ORDER), then this pane writes
-// depth and no colour at the doorway, so the facade behind it fails the depth test and the rooms
-// show through. Only while the eye is outside that building -- from inside there is nothing to
-// see through (the facade's back faces are not drawn), and the pane would hide the street.
-// After the terrain (-2) and the plazas (-1, drawn without a depth test over the coarse
-// backdrop), before the buildings (0): anything drawn after the plazas is not painted over by
-// them. Groups keep order 0 -- three.js compares a group's order before its members'.
+const recessMaterial = new THREE.MeshStandardMaterial({ color: 0xb9b2a6, roughness: 0.9, side: THREE.DoubleSide });
+const stepMaterial = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 });
+// The facade is merged into tiles and has no hole where a door is, so a door's recess is seen
+// through a portal: the recess and the rooms are drawn first (INTERIOR_ORDER), then this pane
+// writes depth and no colour across the recess's mouth, so the facade there fails the depth
+// test and the recess shows. Only while the eye is outside that building -- from inside there is
+// nothing to see through (the facade's back faces are not drawn), and the pane would hide the
+// street. After the terrain (-2) and the plazas (-1, drawn without a depth test over the coarse
+// backdrop), before the buildings (0). Groups keep order 0 -- three.js compares a group's order
+// before its members'.
 const INTERIOR_ORDER = -0.5;
+// The floors and the recess steps go down first and without a depth test, over the terrain,
+// which cannot be cut and would otherwise rise through the rooms of a building on a hill.
+// Everything else is depth-tested against them, so a wall or a bed in front still hides them.
+const INTERIOR_FLOOR_ORDER = -0.7;
 const portalMaterial = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
 const doorGroup = new THREE.Group();
 doorGroup.name = "doors";
 root.add(doorGroup);
 const doorsShown = new Set();
+
+function quadMesh(a, b, y0, y1, material, order = INTERIOR_ORDER) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute([
+    a[0], y0, a[1], b[0], y0, b[1], b[0], y1, b[1], a[0], y0, a[1], b[0], y1, b[1], a[0], y1, a[1]], 3));
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.renderOrder = order;
+  return mesh;
+}
+
 function showDoor(door) {
   if (door.mesh) return;
-  const ground = entryFloorY(door.entry);
-  const street = terrainGroundAt(door.cx - door.nx * 0.6, door.cz - door.nz * 0.6);
-  addStoop(door, street, ground);
+  const rec = doorRecess(door);
+  const group = new THREE.Group();
+  const top = rec.floor + DOOR_HEIGHT_M + 0.25;          // the recess's soffit
+  const low = Math.min(rec.street, rec.floor) - 0.05;
+  const mouth0 = edgePoint(door, door.r0), mouth1 = edgePoint(door, door.r1);
+  const back0 = edgePoint(door, door.r0, rec.depth), back1 = edgePoint(door, door.r1, rec.depth);
+  const leaf0 = edgePoint(door, door.t0, rec.depth), leaf1 = edgePoint(door, door.t1, rec.depth);
+  // The recess: its two sides, its back either side of and above the door, and its soffit.
+  group.add(quadMesh(mouth0, back0, low, top, recessMaterial), quadMesh(mouth1, back1, low, top, recessMaterial),
+    quadMesh(back0, leaf0, rec.floor, top, recessMaterial), quadMesh(leaf1, back1, rec.floor, top, recessMaterial),
+    quadMesh(leaf0, leaf1, rec.floor + DOOR_HEIGHT_M, top, recessMaterial));
+  const soffit = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(
+    [mouth0, mouth1, back1, back0].map(([px, pz]) => new THREE.Vector2(px, -pz)))), recessMaterial);
+  soffit.rotation.x = -Math.PI / 2;
+  soffit.position.y = top;
+  soffit.renderOrder = INTERIOR_ORDER;
+  group.add(soffit);
+  // Its floor: the steps from the street up (or down) to the landing, then the landing.
+  const yaw = Math.atan2(door.nx, door.nz);            // local z points into the building
+  const [mx, mz] = edgePoint(door, (door.r0 + door.r1) / 2);
+  const treads = [];
+  for (let i = 0; i < rec.steps; i += 1) treads.push([i * rec.tread, (i + 1) * rec.tread, rec.street + rec.each * (i + 1)]);
+  treads.push([rec.steps * rec.tread, rec.depth, rec.floor]);
+  for (const [from, to, y] of treads) {
+    if (to - from < 0.01) continue;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(door.recessW, y - low, to - from), stepMaterial);
+    box.position.set(0, (y + low) / 2, (from + to) / 2);
+    box.renderOrder = INTERIOR_FLOOR_ORDER + 0.05;
+    box.material = stepMaterial;
+    box.receiveShadow = true;
+    const holder = new THREE.Group();
+    holder.position.set(mx, 0, mz);
+    holder.rotation.y = yaw;
+    holder.add(box);
+    group.add(holder);
+  }
+  // The leaf, hinged at its t0 end in the back of the recess.
   const hinge = new THREE.Group();
-  // Hinged at the t0 end, standing a hair outside the wall so it is not lost in it.
-  const hx = door.entry.local[door.edge][0] + (door.entry.local[door.edge + 1][0] - door.entry.local[door.edge][0]) * door.t0;
-  const hz = door.entry.local[door.edge][1] + (door.entry.local[door.edge + 1][1] - door.entry.local[door.edge][1]) * door.t0;
-  hinge.position.set(hx - door.nx * 0.04, ground, hz - door.nz * 0.04);
+  hinge.position.set(leaf0[0] - door.nx * 0.03, rec.floor, leaf0[1] - door.nz * 0.03);
   hinge.rotation.y = Math.atan2(-door.uz, door.ux);
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(door.width, DOOR_HEIGHT_M, 0.05), doorMaterial);
   leaf.position.set(door.width / 2, DOOR_HEIGHT_M / 2, 0);
   leaf.castShadow = true;
   leaf.renderOrder = INTERIOR_ORDER;
   hinge.add(leaf);
-  const portal = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.1, door.width - 0.04), DOOR_HEIGHT_M - 0.02), portalMaterial);
-  portal.position.set(hx + door.ux * door.width / 2 - door.nx * 0.06, ground + DOOR_HEIGHT_M / 2,
-    hz + door.uz * door.width / 2 - door.nz * 0.06);
-  portal.rotation.y = Math.atan2(-door.uz, door.ux);
-  portal.renderOrder = INTERIOR_ORDER + 0.1;
-  portal.visible = false;
-  // The opening behind the leaf: dark until the rooms behind it are built.
-  const opening = new THREE.Mesh(new THREE.PlaneGeometry(door.width, DOOR_HEIGHT_M), doorwayMaterial);
-  opening.position.set(hx + door.ux * door.width / 2 - door.nx * 0.02, ground + DOOR_HEIGHT_M / 2,
-    hz + door.uz * door.width / 2 - door.nz * 0.02);
-  opening.rotation.y = Math.atan2(-door.uz, door.ux) + Math.PI;
+  group.add(hinge);
+  // Behind the open leaf, dark until the rooms behind it are built.
+  const opening = quadMesh(leaf0.map((v, k) => v + [door.nx, door.nz][k] * 0.05),
+    leaf1.map((v, k) => v + [door.nx, door.nz][k] * 0.05), rec.floor, rec.floor + DOOR_HEIGHT_M, doorwayMaterial);
   opening.visible = false;
-  doorGroup.add(hinge, opening, portal);
+  group.add(opening);
+  // The portal across the recess's mouth, standing clear of the facade and of the shopfront
+  // glazing and trim the page lays a few centimetres proud of it: the mouth is an opening.
+  const PORTAL_OUT_M = 0.12;
+  const portal = quadMesh(mouth0.map((v, k) => v - [door.nx, door.nz][k] * PORTAL_OUT_M),
+    mouth1.map((v, k) => v - [door.nx, door.nz][k] * PORTAL_OUT_M), low, top, portalMaterial, INTERIOR_ORDER + 0.1);
+
+  group.add(portal);
+  doorGroup.add(group);
+  door.group = group;
   door.portal = portal;
   door.mesh = hinge;
   door.leaf = leaf;
   door.opening = opening;
-  door.inward = 1;
   // Which way round the leaf swings inward depends on which side of the edge is inside.
   const probe = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), hinge.rotation.y);
   door.inward = probe.x * door.nx + probe.z * door.nz > 0 ? 1 : -1;
-  doorsShown.add(door);
-}
-const stoopMaterial = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 });
-function addStoop(door, street, floor) {
-  const rise = floor - street;
-  if (rise < 0.08) return;
-  const steps = Math.ceil(rise / STEP_RISE_M);
-  const each = rise / steps;
-  const depth = steps * STEP_TREAD_M;
-  const group = new THREE.Group();
-  const width = door.width + 0.4;
-  for (let i = 0; i < steps; i += 1) {
-    // Step i is i+1 risers high and runs from the wall out to the edge of its tread.
-    const top = street + each * (steps - i);
-    const out = (i + 1) * STEP_TREAD_M;
-    const box = new THREE.Mesh(new THREE.BoxGeometry(width, top - street + 0.05, STEP_TREAD_M), stoopMaterial);
-    box.position.set(0, (top + street - 0.05) / 2, -(out - STEP_TREAD_M / 2));
-    box.castShadow = true;
-    box.receiveShadow = true;
-    group.add(box);
-  }
-  // Local z points into the building (its inward normal), x along the wall.
-  group.position.set(door.cx, 0, door.cz);
-  group.rotation.y = Math.atan2(door.nx, door.nz);
-  doorGroup.add(group);
-  door.stoop = group;
-  // The walker climbs it: the height at a point is the tread it stands on.
-  door.stoopSurface = (x, z) => {
-    const dx = x - door.cx, dz = z - door.cz;
+  // The walker climbs the steps: in the recess the ground is the tread underfoot.
+  door.stepSurface = (x, z) => {
+    const dx = x - mx, dz = z - mz;
     const along = dx * door.ux + dz * door.uz;
-    const outward = -(dx * door.nx + dz * door.nz);
-    if (Math.abs(along) > width / 2 || outward < -0.05 || outward > depth) return null;
-    const i = Math.min(steps - 1, Math.max(0, Math.floor(outward / STEP_TREAD_M)));
-    return street + each * (steps - i);
+    const inward = dx * door.nx + dz * door.nz;
+    if (Math.abs(along) > door.recessW / 2 || inward < 0 || inward > rec.depth) return null;
+    const i = Math.floor(inward / rec.tread);
+    return i < rec.steps ? rec.street + rec.each * (i + 1) : rec.floor;
   };
-  standingSurfaces.add(door.stoopSurface);
+  standingSurfaces.add(door.stepSurface);
+  doorsShown.add(door);
 }
 
 function hideDoor(door) {
   if (!door.mesh) return;
-  if (door.stoop) {
-    doorGroup.remove(door.stoop);
-    door.stoop.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
-    standingSurfaces.delete(door.stoopSurface);
-    door.stoop = null;
-  }
-  doorGroup.remove(door.mesh, door.opening, door.portal);
-  door.leaf.geometry.dispose();
-  door.opening.geometry.dispose();
-  door.portal.geometry.dispose();
+  doorGroup.remove(door.group);
+  door.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  standingSurfaces.delete(door.stepSurface);
   door.mesh = null;
   doorsShown.delete(door);
 }
@@ -17431,7 +17765,9 @@ function doorsNear(x, z, reach) {
         if (seen.has(entry) || !entry.doors) continue;
         seen.add(entry);
         for (const door of entry.doors) {
-          const d = Math.hypot(door.cx - x, door.cz - z);
+          // Measured to the leaf, at the back of its recess: a walker in the recess is at it.
+          const depth = door.recess ? door.recess.depth : RECESS_MIN_M;
+          const d = Math.hypot(door.cx + door.nx * depth - x, door.cz + door.nz * depth - z);
           if (d <= reach) found.push([d, door]);
         }
       }
@@ -17476,10 +17812,9 @@ function updateDoors(dt) {
   for (const door of doorsShown) {
     const target = door.open ? Math.PI / 2 * 0.95 : 0;
     door.angle += Math.sign(target - door.angle) * Math.min(Math.abs(target - door.angle), dt * 3.5);
-    door.leaf.parent.rotation.y = Math.atan2(-door.uz, door.ux) - door.inward * door.angle;
+    door.mesh.rotation.y = Math.atan2(-door.uz, door.ux) - door.inward * door.angle;
     door.opening.visible = door.angle > 0.05 && !door.entry.interior;
-    door.portal.visible = door.angle > 0.05 && Boolean(door.entry.interior)
-      && !insideFootprint(door.entry, camera.position.x, camera.position.z);
+    door.portal.visible = !insideFootprint(door.entry, camera.position.x, camera.position.z);
   }
   const door = nearestDoor();
   const inside = buildingAt(x, z);
@@ -17487,13 +17822,15 @@ function updateDoors(dt) {
   if (inside && INTERIORS) {
     const entry = footprintById.get(String(inside.osm_id));
     if (entry && !entry.interior) buildInterior(entry);
+    if (entry && entry.interior) updateStorey(entry);
   }
   if (door) {
     doorHint.textContent = `Enter — ${door.open ? "close" : "open"} the door (${DOOR_SOURCE[door.source]})`;
     doorHint.hidden = false;
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
-    const plan = footprintById.get(String(inside.osm_id)).interior.plan;
-    doorHint.textContent = `Inside: ${plan} — a generic plan fitted to this building's proportions, not its real interior`;
+    const interior = footprintById.get(String(inside.osm_id)).interior;
+    const storey = interior.storey ? `storey ${interior.storey + 1} of ${interior.storeys} · ` : "";
+    doorHint.textContent = `Inside: ${storey}${interior.plan} — a generic plan fitted to this building's proportions, not its real interior`;
     doorHint.hidden = false;
   } else {
     doorHint.hidden = true;
@@ -17510,18 +17847,372 @@ const interiorGroup = new THREE.Group();
 interiorGroup.name = "interiors";
 root.add(interiorGroup);
 const interiorsBuilt = new Set();
-const plasterMaterial = new THREE.MeshStandardMaterial({ color: 0xece6dc, roughness: 0.92, side: THREE.DoubleSide });
-const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.95, side: THREE.DoubleSide });
-const roomFloorMaterials = new Map();
-function roomFloorMaterial(kind) {
-  if (!roomFloorMaterials.has(kind)) {
-    roomFloorMaterials.set(kind, new THREE.MeshStandardMaterial({ color: ROOM_FLOOR[kind] ?? ROOM_FLOOR.other, roughness: 0.8 }));
+
+// Seeded, so a building is furnished the same way every visit.
+function seededRandom(seed) {
+  let s = (seed >>> 0) || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+function pick(rng, list) { return list[Math.floor(rng() * list.length) % list.length]; }
+
+// Paint, by room: a few families each room kind is plausibly painted in.
+const WALL_PAINT = {
+  living: [0xb7c4a5, 0xd9a383, 0xefe3c8, 0xdcb5ad, 0x9fbcb7, 0xc9c1b6, 0xe4d3a8, 0xc7d3dd, 0xf2ede4],
+  bedroom: [0xc6b8d6, 0xaec6dc, 0xe3bcbc, 0xbfdccc, 0xe2cfa9, 0x9aa9b9, 0xb9bd93, 0xf1ece4, 0xd8c3b1],
+  kitchen: [0xf1df9e, 0xc4dcd6, 0xf3efe6, 0xc5d1b5, 0xe9cdb3, 0xd7e2ea],
+  bathroom: [0xa9d4d6, 0xf2f0ea, 0xbfe0d0, 0xefd3d3, 0xd6e3ea, 0xe8e2c6],
+  dining: [0xc98f7f, 0x8fa58f, 0xd9b26f, 0xefe3c8, 0xb8a1b8],
+  office: [0x8796ad, 0x9aa79a, 0xe8e4dc, 0xc9b79a],
+  corridor: [0xefe6d6, 0xd6cfc4, 0xd5e0e6, 0xe6dccb],
+  other: [0xece6dc, 0xe2e0da, 0xd8d2c4, 0xdfe4dc],
+};
+//: One wall in a room, often, in something stronger.
+const ACCENT_PAINT = [0x4a5d7a, 0x8e4a49, 0x56705b, 0xc79a4f, 0x2f4f5f, 0xb85c4b, 0x6b5a7d, 0x3d6b66, 0xd4a33b, 0x7a8f5a];
+// Floors: timber, tile, carpet and concrete in the colours they come in.
+const WOOD = [0xa0774f, 0xb48a5e, 0x8c6542, 0xc49e72, 0x7a5638, 0xb79368];
+const TILE = [0xd9d6cf, 0xc8ccc9, 0xe8e4dc, 0xb7aea2, 0xa9b4b8, 0xd2c1a7];
+const CARPET = [0x8e8a83, 0x7b8796, 0x9c8a7a, 0x6f7d6b, 0xa69c8f, 0x857a8f];
+const FLOOR_FOR = {
+  living: [WOOD, WOOD, CARPET], bedroom: [WOOD, CARPET, CARPET], dining: [WOOD], office: [WOOD, CARPET],
+  corridor: [WOOD, TILE], kitchen: [TILE], bathroom: [TILE], balcony: [[0x9a968e]], stair: [[0x9c9488]],
+  storage: [[0x9f978a]], shaft: [[0x77736d]], elevator: [[0x77736d]],
+};
+const FABRIC = [0x5d6b7a, 0x7a5d5d, 0x8a8170, 0x4f6355, 0xa38f73, 0x6b5f7d, 0x9a6b4f, 0x3f4a5a, 0xb7a58c, 0x7d8a8f];
+const RUG = [0x8b3a3a, 0x3a5a8b, 0x6b7f4a, 0xc2a36b, 0x5a4a6b, 0xa0705a, 0x2f4f4f, 0xd9c7a7];
+const TIMBER = [0x6e4b2e, 0x8a6440, 0x4a3524, 0xb08a5e, 0x2f2a26, 0xd8cfc0];
+const WHITE = 0xf2f1ee;
+const STEEL = 0xa6a9ad;
+
+// Geometry is gathered into one vertex-coloured mesh per interior (one draw call however many
+// pieces of furniture), from boxes and cylinders placed in a room's own frame.
+class PieceBatch {
+  constructor() { this.positions = []; this.normals = []; this.colors = []; }
+  add(geometry, matrix, color) {
+    const g = geometry.index ? geometry.toNonIndexed() : geometry;
+    g.applyMatrix4(matrix);
+    const c = new THREE.Color(color);
+    const p = g.attributes.position.array, n = g.attributes.normal.array;
+    for (let i = 0; i < p.length; i += 3) {
+      this.positions.push(p[i], p[i + 1], p[i + 2]);
+      this.normals.push(n[i], n[i + 1], n[i + 2]);
+      this.colors.push(c.r, c.g, c.b);
+    }
+    g.dispose();
   }
-  return roomFloorMaterials.get(kind);
+  mesh(material) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(this.positions, 3));
+    geometry.setAttribute("normal", new THREE.Float32BufferAttribute(this.normals, 3));
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(this.colors, 3));
+    return new THREE.Mesh(geometry, material);
+  }
+}
+const furnitureMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 });
+const paintMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, side: THREE.DoubleSide });
+const floorMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, depthTest: false });
+const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.95, side: THREE.DoubleSide });
+
+// A room's frame: its centre, its long axis (u) and short axis (v), and its half-extents, so
+// furniture can be placed "against the north wall, 0.3 m from the corner".
+function roomFrame(pts) {
+  let best = 0, ux = 1, uz = 0;
+  for (let k = 0; k < pts.length; k += 1) {
+    const [ax, az] = pts[k], [bx, bz] = pts[(k + 1) % pts.length];
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len > best) { best = len; ux = (bx - ax) / len; uz = (bz - az) / len; }
+  }
+  const vx = -uz, vz = ux;
+  let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+  for (const [x, z] of pts) {
+    const u = x * ux + z * uz, v = x * vx + z * vz;
+    u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v);
+  }
+  return { ux, uz, vx, vz, u0, u1, v0, v1,
+    toWorld: (u, v) => [ux * u + vx * v, uz * u + vz * v] };
 }
 
-// A segment clipped to the inside of a footprint (inset by `inset`): the pieces between its
-// crossings of the outline whose middles lie inside.
+function roomContains(pts, x, z) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i, i += 1) {
+    const [xi, zi] = pts[i], [xj, zj] = pts[j];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / ((zj - zi) || 1e-9) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// One room's furniture, laid out by rule: what the room is for decides the pieces, the room's
+// own shape decides where they can go, and the seed decides among the places they fit -- so no
+// two rooms are furnished alike, and none puts a bed across a doorway.
+function furnishRoom(kind, pts, area, rng, keepClear, fixtures, batch, blockers, floorY, entry, avoid = []) {
+  const f = roomFrame(pts);
+  const placed = [];
+  const fits = (cu, cv, hu, hv) => {
+    for (const [du, dv] of [[-hu, -hv], [hu, -hv], [hu, hv], [-hu, hv], [0, 0]]) {
+      const [x, z] = f.toWorld(cu + du, cv + dv);
+      if (!roomContains(pts, x, z) || !insideFootprint(entry, x, z)) return false;
+    }
+    for (const [x, z, r] of keepClear) {
+      const [cx, cz] = f.toWorld(cu, cv);
+      if (Math.hypot(cx - x, cz - z) < r + Math.max(hu, hv) * 0.7) return false;
+    }
+    for (const p of placed) if (Math.abs(p.cu - cu) < p.hu + hu + 0.05 && Math.abs(p.cv - cv) < p.hv + hv + 0.05) return false;
+    // Nothing on the stairs, nor at their foot.
+    const corners = [[-hu, -hv], [hu, -hv], [hu, hv], [-hu, hv], [0, 0]].map(([du, dv]) => f.toWorld(cu + du, cv + dv));
+    for (const poly of avoid) {
+      if (corners.some(([x, z]) => roomContains(poly, x, z))) return false;
+      if (poly.some(([x, z]) => roomContains(corners.slice(0, 4), x, z))) return false;
+    }
+    return true;
+  };
+  // Place a footprint of `w` along the wall and `d` out from it, against one of the four walls.
+  const againstWall = (w, d, opts = {}) => {
+    const walls = [0, 1, 2, 3].sort(() => rng() - 0.5);
+    for (const side of walls) {
+      const alongU = side < 2;                         // walls 0/1 run along u, 2/3 along v
+      const span = alongU ? [f.u0, f.u1] : [f.v0, f.v1];
+      const hu = alongU ? w / 2 : d / 2, hv = alongU ? d / 2 : w / 2;
+      const inset = 0.06;
+      const fixed = alongU ? (side === 0 ? f.v0 + d / 2 + inset : f.v1 - d / 2 - inset)
+                           : (side === 2 ? f.u0 + d / 2 + inset : f.u1 - d / 2 - inset);
+      for (let k = 0; k < 8; k += 1) {
+        const lo = span[0] + w / 2 + 0.1, hi = span[1] - w / 2 - 0.1;
+        if (hi < lo) break;
+        const at = opts.centre ? (lo + hi) / 2 + (rng() - 0.5) * (hi - lo) * 0.3 : lo + rng() * (hi - lo);
+        const cu = alongU ? at : fixed, cv = alongU ? fixed : at;
+        if (fits(cu, cv, hu, hv)) {
+          // Facing into the room: the direction away from its wall.
+          const face = alongU ? (side === 0 ? [0, 1] : [0, -1]) : (side === 2 ? [1, 0] : [-1, 0]);
+          const p = { cu, cv, hu, hv, face, w, d };
+          placed.push(p);
+          return p;
+        }
+      }
+    }
+    return null;
+  };
+  const free = (w, d) => {
+    for (let k = 0; k < 10; k += 1) {
+      const cu = (f.u0 + f.u1) / 2 + (rng() - 0.5) * (f.u1 - f.u0) * 0.4;
+      const cv = (f.v0 + f.v1) / 2 + (rng() - 0.5) * (f.v1 - f.v0) * 0.4;
+      if (fits(cu, cv, w / 2, d / 2)) { const p = { cu, cv, hu: w / 2, hv: d / 2, face: [0, 1], w, d }; placed.push(p); return p; }
+    }
+    return null;
+  };
+  // Boxes in the piece's frame: x across its face, z out from its wall, y up.
+  const box = (p, x, y, z, w, h, d, color, solid = false) => {
+    const yaw = Math.atan2(p.face[0] * f.ux + p.face[1] * f.vx, p.face[0] * f.uz + p.face[1] * f.vz);
+    const m = new THREE.Matrix4().makeRotationY(yaw);
+    const [cx, cz] = f.toWorld(p.cu, p.cv);
+    const offset = new THREE.Vector3(x, y, z).applyMatrix4(m);
+    m.setPosition(cx + offset.x, floorY + offset.y, cz + offset.z);
+    batch.add(new THREE.BoxGeometry(w, h, d), m, color);
+    if (solid) {
+      const corners = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([a, b]) => {
+        const v = new THREE.Vector3(x + a, 0, z + b).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+        return [cx + v.x, cz + v.z];
+      });
+      for (let k = 0; k < 4; k += 1) blockers.push([...corners[k], ...corners[(k + 1) % 4]]);
+    }
+  };
+  const cyl = (p, x, y, z, r, h, color) => {
+    const [cx, cz] = f.toWorld(p.cu, p.cv);
+    const yaw = Math.atan2(p.face[0] * f.ux + p.face[1] * f.vx, p.face[0] * f.uz + p.face[1] * f.vz);
+    const v = new THREE.Vector3(x, 0, z).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    batch.add(new THREE.CylinderGeometry(r, r, h, 14), new THREE.Matrix4().makeTranslation(cx + v.x, floorY + y, cz + v.z), color);
+  };
+  const rug = (p, w, d, color) => box(p, 0, 0.006, 0, w, 0.012, d, color);
+  const chair = (p, x, z, turn, color, wood) => {
+    const q = { ...p, face: turn };
+    const [cx, cz] = f.toWorld(p.cu, p.cv);
+    const yawP = Math.atan2(p.face[0] * f.ux + p.face[1] * f.vx, p.face[0] * f.uz + p.face[1] * f.vz);
+    const v = new THREE.Vector3(x, 0, z).applyAxisAngle(new THREE.Vector3(0, 1, 0), yawP);
+    const [ccu] = [((cx + v.x) * f.ux + (cz + v.z) * f.uz)];
+    const ccv = (cx + v.x) * f.vx + (cz + v.z) * f.vz;
+    const c = { ...q, cu: ccu, cv: ccv };
+    box(c, 0, 0.45, 0, 0.44, 0.05, 0.44, color);
+    box(c, 0, 0.7, -0.2, 0.44, 0.5, 0.05, color);
+    for (const [a, b] of [[-0.19, -0.19], [0.19, -0.19], [-0.19, 0.19], [0.19, 0.19]]) box(c, a, 0.22, b, 0.04, 0.44, 0.04, wood);
+  };
+  const table = (p, w, d, wood, solid = true) => {
+    box(p, 0, 0.74, 0, w, 0.04, d, wood, solid);
+    for (const [a, b] of [[-w / 2 + 0.06, -d / 2 + 0.06], [w / 2 - 0.06, -d / 2 + 0.06], [-w / 2 + 0.06, d / 2 - 0.06], [w / 2 - 0.06, d / 2 - 0.06]]) box(p, a, 0.36, b, 0.05, 0.72, 0.05, wood);
+  };
+  const wood = pick(rng, TIMBER), fabric = pick(rng, FABRIC);
+  const has = (k) => fixtures.some((fx) => fx === k);
+  if (kind === "bedroom") {
+    const double = area >= 9 && (f.v1 - f.v0) >= 2.5;
+    const bw = double ? pick(rng, [1.4, 1.6, 1.8]) : 0.95, bl = 2.05;
+    const bed = againstWall(bw, bl, { centre: true });
+    if (bed) {
+      box(bed, 0, 0.2, 0, bw, 0.25, bl, wood, true);
+      box(bed, 0, 0.42, 0.02, bw - 0.04, 0.2, bl - 0.1, 0xf4f2ee);
+      box(bed, 0, 0.53, 0.25, bw - 0.02, 0.06, bl - 0.6, pick(rng, FABRIC));
+      box(bed, 0, 0.6, -bl / 2 + 0.25, bw - 0.2, 0.12, 0.35, 0xffffff);
+      box(bed, 0, 0.7, -bl / 2 + 0.03, bw + 0.04, 1.0, 0.06, wood);
+      if (rng() < 0.85) rug(bed, bw + 1.0, 1.6, pick(rng, RUG));
+      for (const sgn of [-1, 1]) {
+        if (!double && sgn > 0) continue;
+        const nx = sgn * (bw / 2 + 0.3);
+        box(bed, nx, 0.28, -bl / 2 + 0.25, 0.45, 0.55, 0.4, wood);
+        cyl(bed, nx, 0.72, -bl / 2 + 0.25, 0.09, 0.3, pick(rng, [0xe8dcc0, 0xd8d8d8, 0xc9b38a]));
+      }
+    }
+    const wardrobe = againstWall(pick(rng, [1.0, 1.4, 1.8]), 0.6);
+    if (wardrobe) { box(wardrobe, 0, 1.0, 0, wardrobe.w, 2.0, 0.6, pick(rng, [wood, WHITE, 0xd9d2c3]), true); }
+    if (area >= 11 && rng() < 0.6) {
+      const desk = againstWall(1.2, 0.6);
+      if (desk) { table(desk, 1.2, 0.6, wood); chair(desk, 0, 0.55, [-desk.face[0], -desk.face[1]], fabric, wood); }
+    }
+  } else if (kind === "living" || kind === "dining" && area > 18) {
+    const sw = pick(rng, [1.9, 2.1, 2.3]);
+    const sofa = againstWall(sw, 0.92, { centre: true });
+    if (sofa) {
+      const c = pick(rng, FABRIC);
+      box(sofa, 0, 0.22, 0.05, sw, 0.42, 0.85, c, true);
+      box(sofa, 0, 0.6, -0.33, sw, 0.5, 0.22, c);
+      box(sofa, -sw / 2 + 0.1, 0.5, 0.05, 0.2, 0.3, 0.85, c);
+      box(sofa, sw / 2 - 0.1, 0.5, 0.05, 0.2, 0.3, 0.85, c);
+      const tableAt = { ...sofa, cu: sofa.cu + sofa.face[0] * 1.0, cv: sofa.cv + sofa.face[1] * 1.0, hu: 0.55, hv: 0.55 };
+      if (fits(tableAt.cu, tableAt.cv, 0.55, 0.3)) {
+        placed.push(tableAt);
+        if (rng() < 0.9) rug(tableAt, pick(rng, [2.0, 2.4]), pick(rng, [1.6, 2.0]), pick(rng, RUG));
+        box(tableAt, 0, 0.4, 0, 1.1, 0.05, 0.6, wood, true);
+        box(tableAt, 0, 0.19, 0, 1.0, 0.38, 0.5, wood);
+      }
+    }
+    for (let k = 0; k < (area > 20 ? 2 : 1); k += 1) {
+      const arm = againstWall(0.85, 0.85);
+      if (arm) {
+        const c = pick(rng, FABRIC);
+        box(arm, 0, 0.22, 0.05, 0.8, 0.42, 0.8, c, true);
+        box(arm, 0, 0.6, -0.3, 0.8, 0.5, 0.2, c);
+      }
+    }
+    const tv = againstWall(1.6, 0.45);
+    if (tv) { box(tv, 0, 0.25, 0, 1.6, 0.5, 0.45, wood, true); box(tv, 0, 0.88, -0.1, 1.2, 0.7, 0.05, 0x111111); }
+    if (rng() < 0.7) { const shelf = againstWall(0.9, 0.35); if (shelf) box(shelf, 0, 0.95, 0, 0.9, 1.9, 0.35, wood, true); }
+    if (rng() < 0.6) { const lamp = againstWall(0.35, 0.35); if (lamp) { cyl(lamp, 0, 0.8, 0, 0.02, 1.6, STEEL); cyl(lamp, 0, 1.62, 0, 0.18, 0.25, 0xefe6d2); } }
+  }
+  if (kind === "dining" || (kind === "kitchen" && area >= 8) || (kind === "living" && area > 26)) {
+    const seats = area > 14 ? pick(rng, [4, 6]) : pick(rng, [2, 4]);
+    const tw = seats > 4 ? 1.8 : (seats > 2 ? 1.2 : 0.8), td = seats > 2 ? 0.85 : 0.75;
+    const t = free(tw + 0.9, td + 0.9);
+    if (t) {
+      t.hu = tw / 2; t.hv = td / 2;
+      if (kind !== "kitchen" && rng() < 0.6) rug(t, tw + 1.4, td + 1.4, pick(rng, RUG));
+      table(t, tw, td, wood);
+      const c = pick(rng, [fabric, wood, 0x2f2f2f, WHITE]);
+      const per = seats / 2;
+      for (let k = 0; k < per; k += 1) {
+        const x = -tw / 2 + (k + 0.5) * (tw / per);
+        chair(t, x, td / 2 + 0.3, [0, -1], c, wood);
+        chair(t, x, -td / 2 - 0.3, [0, 1], c, wood);
+      }
+    }
+  }
+  if (kind === "kitchen" && !has("kitchen")) {
+    const run = Math.min(3.6, Math.max(1.8, (f.u1 - f.u0) - 0.6));
+    const counter = againstWall(run, 0.62);
+    if (counter) {
+      const front = pick(rng, [WHITE, 0x2f3b45, 0x6b7b63, 0xc9b79a, 0x3d3d3d, wood]);
+      box(counter, 0, 0.44, 0, run, 0.88, 0.6, front, true);
+      box(counter, 0, 0.9, 0, run + 0.02, 0.04, 0.62, pick(rng, [0xe8e6e1, 0x3a3a3a, 0xbfb6a8, 0xd9d9d9]));
+      box(counter, 0, 1.85, -0.12, run, 0.7, 0.35, front);
+      box(counter, run / 2 - 0.4, 0.92, 0.0, 0.5, 0.02, 0.4, STEEL);
+      const fridge = againstWall(0.7, 0.7);
+      if (fridge) box(fridge, 0, 0.92, 0, 0.7, 1.85, 0.68, pick(rng, [WHITE, STEEL, 0x222222]), true);
+    }
+  }
+  if (kind === "bathroom" && !has("toilet")) {
+    const wc = againstWall(0.42, 0.68);
+    if (wc) { box(wc, 0, 0.2, 0.05, 0.38, 0.4, 0.5, WHITE, true); box(wc, 0, 0.6, -0.25, 0.4, 0.4, 0.17, WHITE); }
+    const basin = againstWall(0.6, 0.45);
+    if (basin) { box(basin, 0, 0.42, 0, 0.6, 0.84, 0.45, pick(rng, [WHITE, wood])); box(basin, 0, 1.4, -0.2, 0.6, 0.8, 0.02, 0xc9d6dc); }
+    if (area >= 3.5) {
+      if (rng() < 0.55) { const tub = againstWall(1.7, 0.75); if (tub) box(tub, 0, 0.28, 0, 1.7, 0.56, 0.75, WHITE, true); }
+      else { const sh = againstWall(0.9, 0.9); if (sh) { box(sh, 0, 0.03, 0, 0.9, 0.06, 0.9, WHITE); box(sh, 0.45, 1.0, 0, 0.02, 2.0, 0.9, 0xcfe3ea); } }
+    }
+  }
+  if (kind === "office") {
+    const desk = againstWall(1.4, 0.7);
+    if (desk) { table(desk, 1.4, 0.7, wood); chair(desk, 0, 0.6, [-desk.face[0], -desk.face[1]], fabric, wood); }
+    const shelf = againstWall(1.0, 0.35); if (shelf) box(shelf, 0, 0.95, 0, 1.0, 1.9, 0.35, wood, true);
+  }
+  if (kind === "corridor" && (f.u1 - f.u0) > 3 && rng() < 0.7) {
+    const runner = free(Math.min(3, (f.u1 - f.u0) - 1), 0.7);
+    if (runner) rug(runner, runner.w, 0.7, pick(rng, RUG));
+  }
+  if (kind === "storage") { const s = againstWall(Math.min(1.8, (f.u1 - f.u0) - 0.3), 0.45); if (s) box(s, 0, 0.9, 0, s.w, 1.8, 0.45, pick(rng, [0x9b8f7a, STEEL]), true); }
+  if (kind === "balcony") {
+    const t = free(0.7, 0.7);
+    if (t) { cyl(t, 0, 0.36, 0, 0.32, 0.04, STEEL); cyl(t, 0, 0.18, 0, 0.03, 0.36, STEEL); chair(t, 0.6, 0, [-1, 0], STEEL, STEEL); }
+  }
+}
+
+// The plan's own fixtures -- kitchens, sinks, toilets, baths, showers, stairs, lifts -- where
+// the plan has them, shaped by their measured outlines.
+function placeFixture(kind, pts, floorY, batch, blockers, rng, storeyH) {
+  const f = roomFrame(pts);
+  const p = { cu: (f.u0 + f.u1) / 2, cv: (f.v0 + f.v1) / 2, face: [0, 1] };
+  const w = Math.max(0.2, f.u1 - f.u0), d = Math.max(0.2, f.v1 - f.v0);
+  const [cx, cz] = f.toWorld(p.cu, p.cv);
+  const yaw = Math.atan2(f.vx, f.vz);
+  const put = (h, color, y0 = 0, shrink = 0, solid = true) => {
+    const m = new THREE.Matrix4().makeRotationY(yaw);
+    m.setPosition(cx, floorY + y0 + h / 2, cz);
+    batch.add(new THREE.BoxGeometry(Math.max(0.1, w - shrink), h, Math.max(0.1, d - shrink)), m, color);
+    if (solid) for (let k = 0; k < pts.length; k += 1) blockers.push([...pts[k], ...pts[(k + 1) % pts.length]]);
+  };
+  if (kind === "kitchen") { put(0.88, pick(rng, [WHITE, 0x2f3b45, 0x6b7b63, 0xc9b79a])); put(0.04, 0xd9d6d0, 0.88, -0.02, false); }
+  else if (kind === "sink") put(0.86, WHITE);
+  else if (kind === "toilet") { put(0.4, WHITE); }
+  else if (kind === "bathtub") put(0.56, WHITE);
+  else if (kind === "shower") put(0.06, WHITE, 0, 0, false);
+  else if (kind === "washing_machine") put(0.85, WHITE);
+  else if (kind === "elevator") put(storeyH, 0x8f9499);
+  else if (kind === "built_in_furniture") put(2.0, pick(rng, [WHITE, 0xb9a688]));
+}
+
+// A flight of stairs in a stair outline: risers along its long axis, from this storey's floor to
+// the next. Returns the surface the walker stands on while on it.
+function stairFlight(pts, floorY, storeyH, batch) {
+  // From floorY (this storey's floor) up to floorY + storeyH.
+  const f = roomFrame(pts);
+  const run = f.u1 - f.u0, width = f.v1 - f.v0;
+  const steps = Math.max(4, Math.round(storeyH / STEP_RISE_M));
+  const tread = run / steps;
+  const yaw = Math.atan2(f.vx, f.vz);
+  for (let i = 0; i < steps; i += 1) {
+    const u = f.u0 + (i + 0.5) * tread;
+    const top = storeyH * (i + 1) / steps;
+    const [cx, cz] = f.toWorld(u, (f.v0 + f.v1) / 2);
+    const m = new THREE.Matrix4().makeRotationY(yaw);
+    m.setPosition(cx, floorY + top / 2, cz);
+    batch.add(new THREE.BoxGeometry(width - 0.05, top, tread), m, 0xa8a097);
+  }
+  return {
+    pts, f,
+    // The height of the flight at a point: along u, from the bottom (u0) to the top (u1).
+    at(x, z) {
+      if (!roomContains(pts, x, z)) return null;
+      const u = x * f.ux + z * f.uz;
+      return floorY + Math.max(0, Math.min(1, (u - f.u0) / run)) * storeyH;
+    },
+  };
+}
+
+function wallQuadsColoured(segments, bottom, height, batch, colour) {
+  for (const [ax, az, bx, bz] of segments) {
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 1e-3) continue;
+    const m = new THREE.Matrix4().makeRotationY(Math.atan2(-(bz - az), bx - ax));
+    m.setPosition((ax + bx) / 2, bottom + height / 2, (az + bz) / 2);
+    batch.add(new THREE.PlaneGeometry(len, height), m, colour);
+  }
+}
+
+// A segment clipped to the inside of a footprint: the pieces between its crossings of the
+// outline whose middles lie inside.
 function clipToFootprint(entry, ax, az, bx, bz) {
   const ts = [0, 1];
   const ring = entry.local;
@@ -17548,88 +18239,235 @@ function clipToFootprint(entry, ax, az, bx, bz) {
   return out;
 }
 
-function wallQuads(segments, bottom, height) {
-  const positions = [];
-  for (const [ax, az, bx, bz] of segments) {
-    const y0 = bottom, y1 = bottom + height;
-    positions.push(ax, y0, az, bx, y0, bz, bx, y1, bz, ax, y0, az, bx, y1, bz, ax, y1, az);
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geometry.computeVertexNormals();
-  return geometry;
+// Which storey the walker is on, by the height of its feet.
+function storeyAt(entry, y) {
+  const i = entry.interior;
+  return Math.max(0, Math.min(i.storeys - 1, Math.round((y - i.floorY) / i.storeyH)));
 }
 
 function buildInterior(entry) {
   if (entry.interior || !INTERIORS || !entry.fit) return;
-  const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W, storeys, storeyM] = entry.fit;
+  const [ti, , , , , , , L, W, storeys, storeyM] = entry.fit;
   const plan = INTERIORS.library[ti];
   if (!plan) return;
+  const group = new THREE.Group();
+  group.name = `interior:${entry.way.osm_id}`;
+  interiorGroup.add(group);
+  const source = INTERIORS.sources[plan.src] || {};
+  // Floor to floor: the building's storey, but no more than a house's -- the calibrated storey
+  // (height over count) carries the roof and parapet, which no floor inside does.
+  const storeyH = Math.max(2.8, Math.min(storeyM || 3.2, 3.6));
+  entry.interior = {
+    group, segments: [], storey: -1, storeys: Math.max(1, storeys || 1), storeyH,
+    floorY: entryFloorY(entry), plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${entry.fit[2] * entry.fit[3] > 1 ? ` ×${entry.fit[2] * entry.fit[3]}` : ""} (${source.license || ""})`,
+  };
+  // Where the walker stands inside: on a flight of stairs, its height on the flight; else the
+  // floor of the storey its feet are nearest.
+  const surface = (x, z) => {
+    const it = entry.interior;
+    if (!it || !insideFootprint(entry, x, z)) return null;
+    // In a door's recess the walker is on its steps, not on the floor.
+    for (const d of entry.doors || []) if (d.stepSurface && d.stepSurface(x, z) !== null) return null;
+    const feet = avatar.position.y - AVATAR_STAND_Y;
+    // On a flight (the one up from this storey, or the one down to the storey below), the
+    // height of the flight nearest the feet.
+    let best = null;
+    for (const flight of it.flights) {
+      const h = flight.at(x, z);
+      if (h !== null && (best === null || Math.abs(h - feet) < Math.abs(best - feet))) best = h;
+    }
+    if (best !== null) return best;
+    return it.floorY + storeyAt(entry, feet) * it.storeyH;
+  };
+  entry.interior.surface = surface;
+  entry.interior.flights = [];
+  standingSurfaces.add(surface);
+  interiorsBuilt.add(entry);
+  updateStorey(entry, true);
+}
+
+// The rooms of the storey the walker is on (one storey is built at a time).
+function updateStorey(entry, force = false) {
+  const it = entry.interior;
+  const feet = avatar.position.y - AVATAR_STAND_Y;
+  const k = insideFootprint(entry, avatar.position.x, avatar.position.z) ? storeyAt(entry, feet) : 0;
+  if (!force && k === it.storey) return;
+  it.storey = k;
+  for (const child of [...it.group.children]) {
+    it.group.remove(child);
+    child.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  }
+  buildStorey(entry, k);
+}
+
+function buildStorey(entry, k) {
+  const it = entry.interior;
+  const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W] = entry.fit;
+  const plan = INTERIORS.library[ti];
+  // The ground storey's plan, or above it the plan's typical upper storey (or the ground's again).
+  const planFor = (n) => (n > 0 && plan.upper ? plan.upper : plan);
+  const storeyPlan = planFor(k);
   const [cxE, cyN] = xy(lon, lat);
   const yaw = (yawDeg * Math.PI) / 180;
   const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
   const along = rotated ? plan.w : plan.l, across = rotated ? plan.l : plan.w;
   const sx = L / (nx * along), sy = W / (ny * across);
-  // A plan point (u, v), in tile (i, j), to page x, z.
   const place = (u, v, i, j) => {
     const pu = rotated ? v : u, pv = rotated ? -u : v;
     const U = -L / 2 + (i + 0.5) * (L / nx) + pu * sx;
     const V = -W / 2 + (j + 0.5) * (W / ny) + pv * sy;
-    const east = cxE + U * cosY - V * sinY;
-    const north = cyN + U * sinY + V * cosY;
-    return [east, -north];
+    return [cxE + U * cosY - V * sinY, -(cyN + U * sinY + V * cosY)];
   };
-  const centreX = (entry.minX + entry.maxX) / 2, centreZ = (entry.minZ + entry.maxZ) / 2;
-  const floorY = entryFloorY(entry);
-  const height = Math.max(2.4, Math.min(storeyM || 3.0, 4.5)) - 0.06;
-  const group = new THREE.Group();
-  group.name = `interior:${entry.way.osm_id}`;
+  const floorY = it.floorY + k * it.storeyH;
+  const height = it.storeyH - INTERIOR_SLAB_M;
+  const rng = seededRandom(Number(entry.way.osm_id) * 31 + k * 977);
+  const walls = new PieceBatch(), floors = new PieceBatch(), things = new PieceBatch();
   const segments = [];
-  const doorsInPlan = [];
+  const flights = [];
+  const keepClear = [];
+  // The building's own doors, on the ground storey: nothing stands in their recesses or in
+  // front of them, and no wall crosses them.
+  const recesses = [];
+  if (k === 0) for (const d of entry.doors || []) {
+    const rec = doorRecess(d);
+    keepClear.push([d.cx + d.nx * (rec.depth + 0.6), d.cz + d.nz * (rec.depth + 0.6), 0.9]);
+    keepClear.push([d.cx + d.nx * rec.depth / 2, d.cz + d.nz * rec.depth / 2, Math.max(d.recessW, rec.depth) / 2 + 0.3]);
+    recesses.push([edgePoint(d, d.r0), edgePoint(d, d.r1), edgePoint(d, d.r1, rec.depth), edgePoint(d, d.r0, rec.depth)]);
+  }
+  const roomsOut = [];
   for (let i = 0; i < nx; i += 1) {
     for (let j = 0; j < ny; j += 1) {
-      for (const [x, y, w] of plan.doors) {
+      for (const [x, y, w] of storeyPlan.doors) {
         const [px, pz] = place(x, y, i, j);
-        doorsInPlan.push([px, pz, w * Math.max(sx, sy)]);
+        keepClear.push([px, pz, Math.max(0.6, w * Math.max(sx, sy) / 2 + 0.3)]);
       }
-      for (const [kindIndex, flat] of plan.rooms) {
-        const kind = INTERIORS.kinds[kindIndex];
+      for (const [kindIndex, flat] of storeyPlan.rooms) {
         const pts = [];
-        for (let k = 0; k + 1 < flat.length; k += 2) pts.push(place(flat[k] / 100, flat[k + 1] / 100, i, j));
-        if (pts.length < 3) continue;
-        // The room's floor, where the room lies inside the building.
-        const inside = pts.filter(([px, pz]) => insideFootprint(entry, px, pz)).length;
-        if (inside === pts.length) {
-          const shape = new THREE.Shape(pts.map(([px, pz]) => new THREE.Vector2(px, -pz)));
-          const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), roomFloorMaterial(kind));
-          floor.rotation.x = -Math.PI / 2;
-          floor.position.y = floorY + 0.01;
-          floor.receiveShadow = true;
-          group.add(floor);
+        for (let q = 0; q + 1 < flat.length; q += 2) pts.push(place(flat[q] / 100, flat[q + 1] / 100, i, j));
+        if (pts.length >= 3) roomsOut.push([INTERIORS.kinds[kindIndex], pts]);
+      }
+      for (const [fixIndex, flat] of storeyPlan.fixtures || []) {
+        const pts = [];
+        for (let q = 0; q + 1 < flat.length; q += 2) pts.push(place(flat[q] / 100, flat[q + 1] / 100, i, j));
+        const kind = INTERIORS.fixture_kinds[fixIndex];
+        if (pts.length < 3 || !pts.every(([px, pz]) => insideFootprint(entry, px, pz))) continue;
+        if (kind !== "stairs") placeFixture(kind, pts, floorY, things, segments, rng, height);
+      }
+    }
+  }
+  // The stairs: up from this storey (where there is one above), and down to the one below,
+  // whose top arrives through a hole in this floor.
+  const stairsOf = (storeyPlan2) => {
+    const found = [];
+    for (let i = 0; i < nx; i += 1) {
+      for (let j = 0; j < ny; j += 1) {
+        for (const [fixIndex, flat] of storeyPlan2.fixtures || []) {
+          if (INTERIORS.fixture_kinds[fixIndex] !== "stairs") continue;
+          const pts = [];
+          for (let q = 0; q + 1 < flat.length; q += 2) pts.push(place(flat[q] / 100, flat[q + 1] / 100, i, j));
+          if (pts.length >= 3 && pts.every(([px, pz]) => insideFootprint(entry, px, pz))) found.push(pts);
         }
-        // Its walls, clipped to the footprint, with the plan's doorways left open.
-        for (let k = 0; k < pts.length; k += 1) {
-          const [ax, az] = pts[k];
-          const [bx, bz] = pts[(k + 1) % pts.length];
-          const len = Math.hypot(bx - ax, bz - az);
-          if (len < 0.2) continue;
-          let pieces = [[0, 1]];
-          for (const [dx, dz, dw] of doorsInPlan) {
-            const t = ((dx - ax) * (bx - ax) + (dz - az) * (bz - az)) / (len * len);
-            const off = Math.abs((dx - ax) * (bz - az) - (dz - az) * (bx - ax)) / len;
-            if (off > 0.45 || t < 0 || t > 1) continue;
-            const half = Math.max(0.45, dw / 2) / len;
-            pieces = pieces.flatMap(([p, q]) => (t - half > q || t + half < p) ? [[p, q]]
-              : [[p, Math.max(p, t - half)], [Math.min(q, t + half), q]].filter(([r, s]) => s - r > 1e-3));
-          }
-          for (const [p, q] of pieces) {
-            for (const s of clipToFootprint(entry, ax + (bx - ax) * p, az + (bz - az) * p, ax + (bx - ax) * q, az + (bz - az) * q)) segments.push(s);
+      }
+    }
+    if (!found.length) {
+      // No flight drawn as a fixture: a stair room, where the plan has one.
+      for (let i = 0; i < nx; i += 1) {
+        for (let j = 0; j < ny; j += 1) {
+          for (const [kindIndex, flat] of storeyPlan2.rooms) {
+            if (INTERIORS.kinds[kindIndex] !== "stair") continue;
+            const pts = [];
+            for (let q = 0; q + 1 < flat.length; q += 2) pts.push(place(flat[q] / 100, flat[q + 1] / 100, i, j));
+            if (pts.length >= 3 && pts.every(([px, pz]) => insideFootprint(entry, px, pz))) { found.push(pts); break; }
           }
         }
       }
     }
+    if (!found.length && it.storeys > 1) {
+      // No stairs in the plan at all, in a building of several storeys: a straight flight is
+      // put where a house has one -- along the longest wall of its hall, else its living room
+      // -- and is inferred, like the plan.
+      const steps = Math.round(it.storeyH / STEP_RISE_M);
+      const run = steps * 0.25;
+      const rooms = [];
+      for (let i = 0; i < nx; i += 1) for (let j = 0; j < ny; j += 1) {
+        for (const [kindIndex, flat] of storeyPlan2.rooms) {
+          const kind = INTERIORS.kinds[kindIndex];
+          const pts = [];
+          for (let q = 0; q + 1 < flat.length; q += 2) pts.push(place(flat[q] / 100, flat[q + 1] / 100, i, j));
+          if (pts.length >= 3) rooms.push([["corridor", "living", "dining", "other"].indexOf(kind), pts]);
+        }
+      }
+      rooms.sort((a, b) => (a[0] < 0 ? 9 : a[0]) - (b[0] < 0 ? 9 : b[0]));
+      for (const [, pts] of rooms) {
+        const f = roomFrame(pts);
+        if (f.u1 - f.u0 < run + 0.3 || f.v1 - f.v0 < 1.0) continue;
+        for (const [va, vb] of [[f.v0 + 0.05, f.v0 + 1.0], [f.v1 - 1.0, f.v1 - 0.05]]) {
+          const quad = [[f.u0 + 0.15, va], [f.u0 + 0.15 + run, va], [f.u0 + 0.15 + run, vb], [f.u0 + 0.15, vb]].map(([u, v]) => f.toWorld(u, v));
+          if (quad.every(([px, pz]) => roomContains(pts, px, pz) && insideFootprint(entry, px, pz))) { found.push(quad); break; }
+        }
+        if (found.length) break;
+      }
+    }
+    return found;
+  };
+  const upFlights = k < it.storeys - 1 ? stairsOf(storeyPlan).map((pts) => stairFlight(pts, floorY, it.storeyH, things)) : [];
+  const downFlights = k > 0 ? stairsOf(planFor(k - 1)).map((pts) => stairFlight(pts, floorY - it.storeyH, it.storeyH, things)) : [];
+  for (const flight of [...upFlights, ...downFlights]) flights.push(flight);
+  // The flights and a metre at each end are kept clear of furniture and walls.
+  const stairZones = flights.map(({ f }) => [[f.u0 - 1, f.v0], [f.u1 + 1, f.v0], [f.u1 + 1, f.v1], [f.u0 - 1, f.v1]].map(([u, v]) => f.toWorld(u, v)));
+  const offStairs = (s) => !stairZones.some((poly) => roomContains(poly, (s[0] + s[2]) / 2, (s[1] + s[3]) / 2)
+    || roomContains(poly, s[0] * 0.75 + s[2] * 0.25, s[1] * 0.75 + s[3] * 0.25) || roomContains(poly, s[0] * 0.25 + s[2] * 0.75, s[1] * 0.25 + s[3] * 0.75));
+  it.flights = flights;
+  // Rooms: a paint colour each, the floor their kind is laid in, their walls with the plan's
+  // doorways open, and their furniture.
+  const area = (pts) => Math.abs(pts.reduce((s, [x, z], q) => { const [x2, z2] = pts[(q + 1) % pts.length]; return s + x * z2 - x2 * z; }, 0)) / 2;
+  for (const [kind, pts] of roomsOut) {
+    const paint = pick(rng, WALL_PAINT[kind] || WALL_PAINT.other);
+    const floorChoice = pick(rng, FLOOR_FOR[kind] || [WOOD]);
+    const floorColour = pick(rng, floorChoice);
+    const overRecess = recesses.some((r) => r.some(([px, pz]) => roomContains(pts, px, pz)) || pts.some(([px, pz]) => roomContains(r, px, pz)));
+    if (!overRecess && pts.every(([px, pz]) => insideFootprint(entry, px, pz))) {
+      const shape = new THREE.Shape(pts.map(([px, pz]) => new THREE.Vector2(px, -pz)));
+      const m = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
+      m.setPosition(0, floorY + 0.012, 0);
+      floors.add(new THREE.ShapeGeometry(shape), m, floorColour);
+    }
+    const roomWalls = [];
+    for (let q = 0; q < pts.length; q += 1) {
+      const [ax, az] = pts[q];
+      const [bx, bz] = pts[(q + 1) % pts.length];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (len < 0.2) continue;
+      let pieces = [[0, 1]];
+      for (const [dx, dz, r] of keepClear) {
+        const t = ((dx - ax) * (bx - ax) + (dz - az) * (bz - az)) / (len * len);
+        const off = Math.abs((dx - ax) * (bz - az) - (dz - az) * (bx - ax)) / len;
+        if (off > 0.45 || t < 0 || t > 1) continue;
+        const half = Math.max(0.45, r - 0.3) / len;
+        pieces = pieces.flatMap(([p, qq]) => (t - half > qq || t + half < p) ? [[p, qq]]
+          : [[p, Math.max(p, t - half)], [Math.min(qq, t + half), qq]].filter(([r0, r1]) => r1 - r0 > 1e-3));
+      }
+      for (const [p, qq] of pieces) {
+        for (const s of clipToFootprint(entry, ax + (bx - ax) * p, az + (bz - az) * p, ax + (bx - ax) * qq, az + (bz - az) * qq)) roomWalls.push(s);
+      }
+    }
+    // A stairwell has no walls across its flight.
+    const kept = roomWalls.filter(offStairs);
+    if (kind !== "stair") {
+      // The room's longest wall is its feature wall about half the time.
+      let feature = -1;
+      if (["living", "bedroom", "dining", "office"].includes(kind) && rng() < 0.5 && kept.length) {
+        feature = kept.reduce((m, s, q) => (Math.hypot(s[2] - s[0], s[3] - s[1]) > Math.hypot(kept[m][2] - kept[m][0], kept[m][3] - kept[m][1]) ? q : m), 0);
+      }
+      const accent = pick(rng, ACCENT_PAINT);
+      kept.forEach((s, q) => wallQuadsColoured([s], floorY, height, walls, q === feature ? accent : paint));
+      for (const s of kept) segments.push(s);
+    }
+    const fixturesHere = (storeyPlan.fixtures || []).map(([fi]) => INTERIORS.fixture_kinds[fi]);
+    furnishRoom(kind, pts, area(pts), rng, keepClear, fixturesHere, things, segments, floorY, entry, stairZones);
   }
-  // The outside walls' inner face, inset, with the building's own doors open through it.
+  // The outside walls' inner face, inset, painted the house colour, with the building's own
+  // doors (each at the back of its recess) open through it on the ground storey.
   const lining = [];
   const ring = entry.local;
   for (let i = 0; i + 1 < ring.length; i += 1) {
@@ -17642,54 +18480,64 @@ function buildInterior(entry) {
     if (!insideFootprint(entry, mx + nxI * 0.3, mz + nzI * 0.3)) { nxI = -nxI; nzI = -nzI; }
     const ox = nxI * INTERIOR_WALL_INSET_M, oz = nzI * INTERIOR_WALL_INSET_M;
     let from = 0;
-    for (const door of (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.t0 - q.t0)) {
-      if (door.t0 > from) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz]);
-      // Above the doorway.
-      lining.push(null, [ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz, ax + (bx - ax) * door.t1 + ox, az + (bz - az) * door.t1 + oz]);
-      from = door.t1;
+    if (k === 0) {
+      for (const door of (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.r0 - q.r0)) {
+        if (door.r0 > from) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * door.r0 + ox, az + (bz - az) * door.r0 + oz]);
+        from = door.r1;
+      }
     }
     if (from < 1) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, bx + ox, bz + oz]);
   }
-  const full = [], lintels = [];
-  for (let k = 0; k < lining.length; k += 1) {
-    if (lining[k] === null) { lintels.push(lining[k + 1]); k += 1; } else full.push(lining[k]);
+  wallQuadsColoured(lining, floorY, height, walls, pick(rng, WALL_PAINT.other));
+  // The floor slab over the whole footprint, and the ceiling, with the stairwell open in both.
+  // The slab is notched where a door's recess cuts into the building (its steps are there),
+  // and open over the flight arriving from below.
+  const notched = [];
+  for (let i = 0; i + 1 < ring.length; i += 1) {
+    notched.push(ring[i]);
+    if (k !== 0) continue;
+    const onEdge = (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.r0 - q.r0);
+    for (const d of onEdge) {
+      const rec = doorRecess(d);
+      notched.push(edgePoint(d, d.r0), edgePoint(d, d.r0, rec.depth), edgePoint(d, d.r1, rec.depth), edgePoint(d, d.r1));
+    }
   }
-  group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
-  if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
-  if (segments.length) {
-    const partitions = new THREE.Mesh(wallQuads(segments, floorY, height), plasterMaterial);
-    partitions.castShadow = true;
-    group.add(partitions);
-  }
-  // Floor and ceiling over the whole footprint.
-  const outline = new THREE.Shape(ring.slice(0, -1).map(([px, pz]) => new THREE.Vector2(px, -pz)));
-  const slab = new THREE.Mesh(new THREE.ShapeGeometry(outline), roomFloorMaterial("other"));
+  const outline = new THREE.Shape(notched.map(([px, pz]) => new THREE.Vector2(px, -pz)));
+  for (const flight of downFlights) outline.holes.push(new THREE.Path(flight.pts.map(([px, pz]) => new THREE.Vector2(px, -pz))));
+  const slab = new THREE.Mesh(new THREE.ShapeGeometry(outline), floorMaterial);
+  floorMaterial.color.set(0xffffff);
+  slab.geometry.setAttribute("color", new THREE.Float32BufferAttribute(new Array(slab.geometry.attributes.position.count * 3).fill(0.62), 3));
   slab.rotation.x = -Math.PI / 2;
   slab.position.y = floorY;
-  slab.receiveShadow = true;
-  const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(outline), ceilingMaterial);
+  slab.renderOrder = INTERIOR_FLOOR_ORDER;
+  const ceilingShape = new THREE.Shape(ring.slice(0, -1).map(([px, pz]) => new THREE.Vector2(px, -pz)));
+  for (const flight of upFlights) ceilingShape.holes.push(new THREE.Path(flight.pts.map(([px, pz]) => new THREE.Vector2(px, -pz))));
+  const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(ceilingShape), ceilingMaterial);
   ceiling.rotation.x = -Math.PI / 2;
   ceiling.position.y = floorY + height;
-  group.add(slab, ceiling);
-  const light = new THREE.PointLight(0xfff1dc, 1.4, Math.max(12, Math.hypot(L, W)), 1.6);
+  ceiling.renderOrder = INTERIOR_ORDER;
+  const floorMesh = floors.mesh(furnitureMaterial);
+  floorMesh.renderOrder = INTERIOR_ORDER;
+  floorMesh.receiveShadow = true;
+  const wallMesh = walls.mesh(paintMaterial);
+  wallMesh.renderOrder = INTERIOR_ORDER;
+  const thingMesh = things.mesh(furnitureMaterial);
+  thingMesh.renderOrder = INTERIOR_ORDER;
+  thingMesh.castShadow = true;
+  thingMesh.receiveShadow = true;
+  const centreX = (entry.minX + entry.maxX) / 2, centreZ = (entry.minZ + entry.maxZ) / 2;
+  const light = new THREE.PointLight(0xfff1dc, 1.6, Math.max(14, Math.hypot(L, W)), 1.5);
   light.position.set(centreX, floorY + height - 0.3, centreZ);
-  group.add(light);
-  group.traverse((o) => { if (o.isMesh) o.renderOrder = INTERIOR_ORDER; });
-  group.userData = { surface: "interior", grade: "inferred", plan: plan.id, source: plan.src,
-    attribution: (INTERIORS.sources[plan.src] || {}).attribution, storeys, stretch: [entry.fit[11], entry.fit[12]] };
-  interiorGroup.add(group);
-  const source = INTERIORS.sources[plan.src] || {};
-  const floorSurface = (x, z) => (insideFootprint(entry, x, z) ? floorY : null);
-  standingSurfaces.add(floorSurface);
-  entry.interior = { group, segments, floorSurface,
-    plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${nx * ny > 1 ? ` ×${nx * ny}` : ""} (${source.license || ""})` };
-  interiorsBuilt.add(entry);
+  it.group.add(slab, floorMesh, wallMesh, thingMesh, ceiling, light);
+  it.group.userData = { surface: "interior", grade: "inferred", plan: plan.id, source: plan.src,
+    attribution: (INTERIORS.sources[plan.src] || {}).attribution, storey: k, stretch: [entry.fit[11], entry.fit[12]] };
+  it.segments = segments;
 }
 
 function removeInterior(entry) {
   if (!entry.interior) return;
   interiorGroup.remove(entry.interior.group);
-  standingSurfaces.delete(entry.interior.floorSurface);
+  standingSurfaces.delete(entry.interior.surface);
   entry.interior.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   entry.interior = null;
   interiorsBuilt.delete(entry);
@@ -17704,16 +18552,15 @@ function animateAvatar(distance, direction, moving) {
     avatar.userData.walkPhase += distance * 4.8;
   }
   const swing = moving ? Math.sin(avatar.userData.walkPhase) : 0;
-  // Keep the contact plane on the sampled surface.  Limbs and the imported walk
-  // clip carry the gait; lifting the whole rig made both feet hover each step.
-  avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
+  // The rig's height is the walker's weight's business (settleWalker): it stands on the
+  // sampled surface, climbs a step, and falls off an edge.
   avatar.userData.leftLeg.rotation.x = swing * 0.58;
   avatar.userData.rightLeg.rotation.x = -swing * 0.58;
   avatar.userData.leftArm.rotation.x = -swing * 0.48;
   avatar.userData.rightArm.rotation.x = swing * 0.48;
   avatar.userData.leftArm.rotation.z = 0.10;
   avatar.userData.rightArm.rotation.z = -0.10;
-  setAvatarAction(moving ? "Run" : "Idle");
+  setAvatarAction(gaitFor(moving ? (state.firstPerson ? (running ? FIRST_PERSON_SPEED : FIRST_PERSON_WALK) : STREET_SPEED) : 0));
 }
 function updateAvatarMixer(dt) {
   if (!avatarMixer) return;
@@ -17723,9 +18570,12 @@ function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
   updateDoors(dt);
+  const before = avatar.position.y;
+  settleWalker(dt);
   if (!held.size || dragging) {
     animateAvatar(0, new THREE.Vector3(), false);
     updateAvatarMixer(dt);
+    if (state.firstPerson && avatar.position.y !== before) { state.target.copy(avatar.position); placeCamera(); }
     return;
   }
   // Forward is where the camera looks, so the arrows mean what they appear to mean however the
@@ -17738,7 +18588,7 @@ function stepAvatar(now) {
   if (held.has("ArrowRight")) move.add(rightward);
   if (held.has("ArrowLeft")) move.sub(rightward);
   if (!move.lengthSq()) return;
-  const scaled = state.firstPerson ? FIRST_PERSON_SPEED : STREET_SPEED;
+  const scaled = state.firstPerson ? (running ? FIRST_PERSON_SPEED : FIRST_PERSON_WALK) : STREET_SPEED;
   move.normalize().multiplyScalar(scaled * dt);
   requestInteriors();
   // Buildings are solid: the walker slides along their walls and goes in by a door.
@@ -17898,7 +18748,7 @@ window.kerbside = {
   tunnelFloorAt, walkerGroundAt, tunnelBores, terrainHeightAt, groundLiftAt, TERRAIN,
   cutLiftAt, approachRoadAt, wayFollowsCut, APPROACH_CUTS, junctionBoxHulls,
   goTo, setFirstPerson, placeCamera, state, avatar, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
-  xy, insideCarriageway, buildingAt,
+  xy, insideCarriageway, buildingAt, retargetMotionBricks, gaitFor,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
   pickedFeature,
   // The corner pieces: how many cuts were decided and how many pieces laid between them.

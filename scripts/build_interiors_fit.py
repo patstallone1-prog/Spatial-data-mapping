@@ -218,7 +218,8 @@ def build(region: str, lib: list[fit.Template], house_ix: np.ndarray, block_ix: 
         "note": ("A generic plan of somewhere else chosen for this building's proportions -- "
                  "not this building's interior. Doors: mapped (OpenStreetMap), photographed "
                  "(facade survey), else inferred on the wall nearest a street."),
-        "kinds": list(fit.KINDS), "sources": sources, "summary": summary,
+        "kinds": list(fit.KINDS), "fixture_kinds": list(fit.FIXTURES), "sources": sources,
+        "summary": summary,
         "library": [lib[i].to_json() for i in order], "buildings": out,
     }
     (paths.site / OUTPUT).write_text(json.dumps(payload, separators=(",", ":")))

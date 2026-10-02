@@ -52,6 +52,9 @@ ENTRANCE_SNAP_M = 1.5
 KINDS = ("living", "kitchen", "bedroom", "bathroom", "corridor", "stair", "storage", "balcony",
          "shaft", "elevator", "dining", "office", "commercial", "outdoor", "other")
 SOURCE_CODES = {"osm": 0, "photo": 1, "inferred": 2}
+#: Fixtures a plan draws where they are (Swiss Dwellings): placed exactly there, not by rule.
+FIXTURES = ("kitchen", "sink", "toilet", "bathtub", "shower", "stairs", "elevator",
+            "washing_machine", "built_in_furniture")
 
 
 @dataclass
@@ -69,6 +72,7 @@ class Template:
     storey_h: float
     rooms: list[tuple[str, np.ndarray]]
     doors: list[tuple[float, float, float, float]]   # x, y, width, angle (rad)
+    fixtures: list[tuple[str, np.ndarray]] = field(default_factory=list)
     quality: float = 0.0
     extra: dict = field(default_factory=dict)
 
@@ -76,13 +80,20 @@ class Template:
         def flat(poly: np.ndarray) -> list[int]:
             return [round(float(v) * 100) for v in poly.ravel()]
 
-        return {"id": self.id, "src": self.source,
-                "l": round(self.length, 2), "w": round(self.width, 2),
-                "storeys": self.storeys, "storey_h": round(self.storey_h, 2),
-                "rooms": [[KINDS.index(k if k in KINDS else "other"), flat(p)]
-                          for k, p in self.rooms],
-                "doors": [[round(x, 2), round(y, 2), round(wd, 2), round(a, 3)]
-                          for x, y, wd, a in self.doors]}
+        def storey(rooms, doors, fixtures) -> dict:
+            return {"rooms": [[KINDS.index(k if k in KINDS else "other"), flat(p)]
+                              for k, p in rooms],
+                    "doors": [[round(x, 2), round(y, 2), round(wd, 2), round(a, 3)]
+                              for x, y, wd, a in doors],
+                    "fixtures": [[FIXTURES.index(k), flat(p)] for k, p in fixtures]}
+
+        out = {"id": self.id, "src": self.source,
+               "l": round(self.length, 2), "w": round(self.width, 2),
+               "storeys": self.storeys, "storey_h": round(self.storey_h, 2),
+               **storey(self.rooms, self.doors, self.fixtures)}
+        if "upper" in self.extra:
+            out["upper"] = storey(*self.extra["upper"])
+        return out
 
 
 def _simplify(poly: np.ndarray, tol: float = 0.05) -> np.ndarray:
@@ -106,17 +117,38 @@ def _simplify(poly: np.ndarray, tol: float = 0.05) -> np.ndarray:
     return pts
 
 
+def _storey_in_frame(storey: dict, local) -> tuple[list, list, list]:
+    """A storey's rooms, doors and fixtures in a template's rectangle frame."""
+    rooms = [(r["kind"], np.round(_simplify(local(np.asarray(r["poly"], float))), 2))
+             for r in storey.get("rooms", []) if len(r.get("poly", [])) >= 3]
+    doors = []
+    for opening in storey.get("openings", []):
+        if opening.get("kind") not in ("door", "entrance") or len(opening.get("poly", [])) < 3:
+            continue
+        poly = local(np.asarray(opening["poly"], float))
+        oc, oyaw, ol, ow = min_area_rectangle(poly)
+        if ow > ol:
+            ol, oyaw = ow, oyaw + math.pi / 2
+        doors.append((float(oc[0]), float(oc[1]), float(opening.get("width") or ol),
+                      float(oyaw)))
+    fixtures = [(f["kind"], np.round(local(np.asarray(f["poly"], float)), 2))
+                for f in storey.get("fixtures", [])
+                if f.get("kind") in FIXTURES and len(f.get("poly", [])) >= 3]
+    return rooms, doors, fixtures
+
+
 def normalise(raw: dict) -> Template | None:
-    """A template record (``templates.jsonl.gz`` line) as its ground storey in rectangle frame."""
-    storeys = raw.get("storeys") or []
+    """A template record (``templates.jsonl.gz`` line) as its ground storey -- and, where it has
+    more than one, a typical upper storey -- in its ground storey's rectangle frame."""
+    storeys = sorted(raw.get("storeys") or [], key=lambda s: s.get("level", 0))
     if not storeys:
         return None
-    ground = min(storeys, key=lambda s: s.get("level", 0))
-    rooms = [(r["kind"], np.asarray(r["poly"], float)) for r in ground.get("rooms", [])
-             if len(r.get("poly", [])) >= 3]
-    if not rooms:
+    ground = storeys[0]
+    ground_rooms = [np.asarray(r["poly"], float) for r in ground.get("rooms", [])
+                    if len(r.get("poly", [])) >= 3]
+    if not ground_rooms:
         return None
-    outline = np.vstack([p for _, p in rooms]
+    outline = np.vstack(ground_rooms
                         + [np.asarray(s["poly"], float) for s in ground.get("structure", [])
                            if len(s.get("poly", [])) >= 3])
     centre, yaw, length, width = min_area_rectangle(outline)
@@ -130,29 +162,25 @@ def normalise(raw: dict) -> Template | None:
         d = poly - centre
         return np.column_stack([c * d[:, 0] - s * d[:, 1], s * d[:, 0] + c * d[:, 1]])
 
-    doors = []
-    for opening in ground.get("openings", []):
-        if opening.get("kind") not in ("door", "entrance") or len(opening.get("poly", [])) < 3:
-            continue
-        poly = local(np.asarray(opening["poly"], float))
-        oc, oyaw, ol, ow = min_area_rectangle(poly)
-        if ow > ol:
-            ol, oyaw = ow, oyaw + math.pi / 2
-        doors.append((float(oc[0]), float(oc[1]), float(opening.get("width") or ol),
-                      float(oyaw)))
+    rooms, doors, fixtures = _storey_in_frame(ground, local)
+    # The storey above the ground, where the plan has one: upper floors of a block repeat, so
+    # one typical upper storey stands for all of them.
+    upper = _storey_in_frame(storeys[1], local) if len(storeys) > 1 else None
     descriptors = raw.get("descriptors") or {}
     heights = [h for h in descriptors.get("storey_heights_m") or [] if h]
     kinds = {k for k, _ in rooms}
     # A plan with named living rooms and doors is a better stand-in than one of shafts.
     quality = len(doors) * 0.2 + len(kinds & {"living", "kitchen", "bedroom", "bathroom"}) \
         - 0.05 * sum(1 for k, _ in rooms if k == "shaft")
-    return Template(
+    template = Template(
         id=raw["id"], source=raw["source"], license=raw.get("license", ""),
         attribution=raw.get("attribution", ""), length=float(length), width=float(width),
         area=float(length * width), storeys=int(descriptors.get("storeys") or len(storeys)),
         storey_h=float(np.median(heights)) if heights else 2.8,
-        rooms=[(k, np.round(_simplify(local(p)), 2)) for k, p in rooms], doors=doors,
-        quality=quality)
+        rooms=rooms, doors=doors, fixtures=fixtures, quality=quality)
+    if upper is not None and upper[0]:
+        template.extra["upper"] = upper
+    return template
 
 
 def read_templates(path: Path) -> Iterator[Template]:

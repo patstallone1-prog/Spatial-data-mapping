@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as futures
+import dataclasses
 import json
 import math
 import os
@@ -33,7 +34,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pyarrow.parquet as pq  # noqa: E402
 
+from smc.config import load_env_file  # noqa: E402
 from smc.facades.chunks import Chunk, ChunkIndex, chunk_grid  # noqa: E402
+from smc.facades.fingerprint import view_quality  # noqa: E402
 from smc.facades.geometry import (  # noqa: E402
     DEFAULT_CAMERA_HEIGHT_M,
     MAX_STANDOFF_M,
@@ -42,7 +45,15 @@ from smc.facades.geometry import (  # noqa: E402
     score_view,
     walls_of,
 )
+from smc.facades.poses import PoseStore  # noqa: E402
 from smc.facades.rectify import compose, fill_gaps, rectify_wall  # noqa: E402
+from smc.facades.survey import (  # noqa: E402
+    MAX_VEGETATION_SHARE,
+    MIN_RECTILINEARITY,
+    rectilinearity,
+    upside_down,
+    vegetation_share,
+)
 from smc.net import fetch  # noqa: E402
 
 MAP_JSON = ROOT / "docs" / "sf-corridor-3d.json"
@@ -50,6 +61,11 @@ CATALOG = ROOT / "data" / "sf_corridor" / "observations" / "external-000.parquet
 CHUNK_LAYER = ROOT / "docs" / "sf-corridor-chunks.json"
 TEXTURE_ROOT = ROOT / "docs" / "facades"
 CACHE = ROOT / "build" / "facade-cache"
+POSES = ROOT / "data" / "observation_enrichment" / "mapillary_poses.jsonl"
+#: What a texture is, said in every manifest and on the page: a photograph rectified onto the
+#: wall's plane. It is not a reconstructed surface -- the wall is still the footprint's flat
+#: plane, whatever stands out of it is painted on -- and nothing here may call it one.
+TEXTURE_KIND = "photo texture: street photographs rectified onto the wall's plane (not a 3D mesh)"
 
 #: How much disk the image cache may hold. It is a cache and nothing else -- every frame in it
 #: can be fetched again from the provider -- but an unbounded one filled the disk mid-run and
@@ -308,6 +324,25 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
     progress(f"{chunk.key}: {len(chunk.buildings)} buildings, {len(pool)} frames within reach")
     cameras = {i: camera_for(rows, i, frame) for i in pool}
     cameras = {i: c for i, c in cameras.items() if c is not None}
+    # Only frames whose orientation was solved (Mapillary's structure-from-motion): a camera
+    # assumed level and pointing along its compass heading put whatever it was really facing --
+    # the street, the sky, the shop across the road -- on the wall, and a few such panels
+    # passed the agreement test because the wrong views agreed with each other.
+    store = PoseStore(POSES)
+    store.fetch(sorted({str(rows["provider_image_id"][i]) for i in cameras
+                        if rows["provider"][i] == "mapillary"}), progress=progress)
+    for i, camera in list(cameras.items()):
+        pose = store.get(str(rows["provider_image_id"][i])) \
+            if rows["provider"][i] == "mapillary" else None
+        if pose is None:
+            cameras.pop(i)
+            continue
+        width, height = pose.width or camera.width, pose.height or camera.height
+        cameras[i] = dataclasses.replace(camera, rotation=pose.rotation, spherical=pose.spherical,
+                                         width=width, height=height,
+                                         focal_px=pose.focal_px(width, height),
+                                         k1=pose.k1, k2=pose.k2)
+    progress(f"{chunk.key}: {len(cameras)} frames with a solved orientation")
 
     # -- pair every wall with the frames that look at it most squarely -------------------
     jobs: list[dict] = []
@@ -362,10 +397,17 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
             # actually hold rather than the ones the metadata promised.
             actual_h, actual_w = image.shape[:2]
             if (actual_w, actual_h) != (camera.width, camera.height):
-                camera = Camera(camera.x, camera.y, camera.z, camera.yaw_rad,
-                                actual_w, actual_h, camera.spherical, camera.hfov_rad)
+                scale = actual_w / camera.width
+                camera = dataclasses.replace(
+                    camera, width=actual_w, height=actual_h,
+                    focal_px=None if camera.focal_px is None else camera.focal_px * scale)
             view = rectify_wall(image, camera, wall, weight=score)
             if view is None or view.coverage < 0.02:
+                continue
+            # The facade survey's tests of each view: it saw a wall (not sky, not street), and
+            # not through a tree.
+            if not view_quality(view.image, view.mask)["usable"] \
+                    or vegetation_share(view.image, view.mask.astype(bool)) > MAX_VEGETATION_SHARE:
                 continue
             views.append(view)
             used.append(row_index)
@@ -382,6 +424,11 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
             MIN_VISIBLE_M, wall.height_m
         ):
             return {"error": "too little of the wall was in shot"}
+        mask = composite.mask.astype(bool)
+        if rectilinearity(composite.image, mask) < MIN_RECTILINEARITY:
+            return {"error": "not a wall seen square-on (edges not at right angles)"}
+        if upside_down(composite.image, mask):
+            return {"error": "the composite is upside down"}
 
         name = f"{wall.building_index}-{wall.wall_index}.jpg"
         cv2.imwrite(str(out_dir / name), fill_gaps(composite, wall),
@@ -436,7 +483,11 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
         "walls_attempted": len(jobs),
         "walls_textured": len(walls_out),
         "failures": dict(failures),
+        "kind": TEXTURE_KIND,
         "min_agreement": MIN_AGREEMENT,
+        "gates": ["solved orientation", "view sees the wall", "not behind a tree",
+                  f"agreement >= {MIN_AGREEMENT}", f"rectilinearity >= {MIN_RECTILINEARITY}",
+                  "right way up"],
         "spherical_convention": "equirectangular centre column on the reported compass heading",
         "licenses": dict(licenses),
         "walls": sorted(walls_out, key=lambda w: (w["building"], w["wall"])),
@@ -457,6 +508,7 @@ def main() -> int:
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--top", type=int, default=12)
     args = ap.parse_args()
+    load_env_file()   # the Mapillary token, for the frames' solved orientations
 
     def progress(message: str) -> None:
         print(message, flush=True)

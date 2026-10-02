@@ -77,3 +77,32 @@ The product should license derived, verified world geometry and metadata, not re
 - NVIDIA Isaac Lab: https://isaac-sim.github.io/IsaacLab/
 - NVIDIA Warp: https://nvidia.github.io/warp/
 - NVIDIA Newton Physics Engine: https://developer.nvidia.com/newton
+
+## Status (2026-09-30): what is installed, and what this machine cannot run
+
+**MotionBricks — installed, used offline.** NVIDIA's MotionBricks ships inside
+[NVlabs/GR00T-WholeBodyControl](https://github.com/NVlabs/GR00T-WholeBodyControl/tree/main/motionbricks)
+(code Apache-2.0, weights under the NVIDIA Open Model License, which allows commercial use with
+attribution). It is Python/PyTorch only — there is no C++ version — and its documented
+requirement is a CUDA GPU on Linux. It is cloned beside this repository
+(`../vendor/GR00T-WholeBodyControl`, `motionbricks/` only, its own virtual environment
+`.venv-mb`), with its four checkpoints (G1-clip, VQ-VAE, root, pose; 2.2 GB) fetched through the
+Git LFS batch API and checked against their SHA-256. The model drives a Unitree G1 skeleton.
+
+The page is a browser, which cannot run a PyTorch model at 1.6 GB, so MotionBricks is used the
+way this document planned: as a motion-generation stage. `tools/motionbricks/bake_clips.py`
+runs it on this Mac (Apple GPU through MPS, else CPU), drives its own controller straight ahead
+in four modes — idle, slow walk, walk, jog — cuts each to one looping gait cycle, and writes the
+G1's joint positions per frame to `docs/sf-corridor-motionbricks.json`. The page retargets them
+onto its character at load by matching directions (hips to the G1 pelvis frame, each thigh, shin,
+upper arm and forearm to the matching G1 segment) and plays the cycle whose speed, scaled to the
+character's size, is nearest the ground speed, sped up or slowed to match.
+
+**Isaac Lab — not installable here.** Isaac Lab runs on Isaac Sim, which supports Ubuntu and
+Windows with an NVIDIA RTX GPU; this machine is an Apple M4 on macOS. A community fork
+(IsaacLab-MLX) claims to run part of it on Apple Silicon; it is not NVIDIA's and was not
+installed. What Isaac Lab was for here — gravity and the walker's contact with the world — is
+done in the page meanwhile: the walker falls under gravity off any edge and lands, climbs what a
+stride climbs (0.45 m) and no more, steps down stairs without falling, jumps (Space), and is held
+off buildings and furniture. When an RTX machine is available the plan above stands: export the
+tiles to USD, train locomotion in Isaac Lab, and bring policies back.
