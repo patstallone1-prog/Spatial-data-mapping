@@ -88,6 +88,45 @@ def test_avatar_speed_tracks_orbit_pixel_scale_but_not_first_person_zoom() -> No
     assert json.loads(out.stdout) == pytest.approx([8.94, 8.94, 17.88, 35.76, 5.36])
 
 
+def test_facade_window_rows_end_at_roof_even_on_fractional_storeys() -> None:
+    js = _page_js()
+    start = js.index("const FACADE_UV = {")
+    end = js.index("\n};", start) + 3
+    script = "\n".join([
+        "const STOREY_M=3.2, BAY_M=4.0;",
+        "const THREE={Vector2:class {constructor(x,y){this.x=x;this.y=y;}}};",
+        _extract("facadeStoreyMetres", js), js[start:end],
+        "const wall=[0,0,1.7,4,0,1.7,4,0,8.9,0,0,8.9];",
+        "console.log(JSON.stringify(FACADE_UV.generateSideWallUV(null,wall,0,1,2,3).map(v=>v.y)));",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == pytest.approx([0, 0, 2, 2])
+
+
+def test_tactile_warning_is_refined_and_settled_above_ramp_and_sidewalk() -> None:
+    js = _page_js()
+    assert 'above: { tactile_warning: 0.030, curb_ramp: 0.012 }, grid: 0.18' in js
+    assert 'if (rule.grid) o.geometry = refineForTerrain(o.geometry, rule.grid, 0);' in js
+
+
+def test_inferred_vehicle_access_keeps_five_metre_clear_width() -> None:
+    js = _page_js()
+    script = "\n".join([
+        'const SERVICE_ROAD_M={access:5.0};',
+        'const MEASURED_ROAD_SOURCES=new Set(["curb_geometry"]);',
+        'const MIN_RENDER_ROAD_M=2.8,MAX_RENDER_ROAD_M=24,MAX_INFERRED_ROAD_M=16.5;',
+        _extract("laneCountForWay", js), _extract("nominalRoadWidth", js),
+        'console.log(JSON.stringify([nominalRoadWidth({service:"access",road_source:"class_prior",road_m:3.3,lanes:1}),'
+        'nominalRoadWidth({service:"access",road_source:"curb_geometry",road_m:3.3,lanes:1})]));',
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == pytest.approx([5.0, 3.3])
+
+
 def test_avatar_sweep_stops_at_building_even_when_one_frame_crosses_it() -> None:
     js = _page_js()
     script = "\n".join([
@@ -2948,7 +2987,12 @@ def test_grass_excludes_paved_paths_and_hard_courts_but_not_sports_grass() -> No
     assert json.loads(out.stdout) == [True, True, False, True, True, False]
     assert "ringGeometry(rings, PARK_Y, true, excludeParkAt)" in js
     assert "ringGeometry(rings, YARD_Y, true, excludeGrassAt)" in js
-    assert "if (!touchesHard && !(centre && (ra + rb + rc) >= 2))" in js
+    # Grass is clipped to road geometry on the CPU; a fine GPU mask removes paths
+    # and courts without deleting whole boundary triangles from the lawn.
+    assert "const blockedAt = (x, y) => insideCarriageway(x, -y, 0.15);" in js
+    assert "if (!(centre && (ra + rb + rc) >= 2)) kept.push(a, b, c);" in js
+    assert 'maskedGrassMaterial(grassTexture("park", variant), grassMask' in js
+    assert 'maskedGrassMaterial(grassTexture("yard", variant), grassMask' in js
 
 
 def test_grass_fragment_mask_catches_paths_inside_large_triangles() -> None:

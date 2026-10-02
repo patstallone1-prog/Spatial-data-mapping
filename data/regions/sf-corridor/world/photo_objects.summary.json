@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 7364,
+  "attempted_this_run": 7354,
+  "journaled_buildings": 7364,
+  "accepted_buildings": 4240,
+  "reasons_this_run": {
+    "opening_outside_prior": 24879,
+    "invalid_fitted_wall": 253,
+    "no_accepted_openings": 5157,
+    "no_accepted_photo_wall": 2976,
+    "weak_multiview_wall": 1586
+  },
+  "journal": "data/regions/sf-corridor/world/photo_objects.journal.jsonl"
+}

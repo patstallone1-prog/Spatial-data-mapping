@@ -3010,6 +3010,9 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
     .then((r) => r.ok ? r.json() : EMPTY_WORLD_OBJECTS)
     .catch(() => EMPTY_WORLD_OBJECTS),
 ]);
+const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
+  .then((r) => r.ok ? r.json() : { assigned: {} })
+  .catch(() => ({ assigned: {} }));
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
 document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleString();
@@ -4606,7 +4609,9 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
 const SETTLE_CELL_M = 2.0;
 //: What settles onto what: the surfaces stood on, and each standing surface's height above them.
 const SETTLE_RULES = [
-  { onto: new Set(["walk", "walk_narrow"]), above: { tactile_warning: 0.018, curb_ramp: 0.016 }, label: "Setting the pads on the pavement" },
+  // A four-corner pad can span a bowed sidewalk triangle on a steep block. Subdivide it
+  // before settling so concrete cannot poke through the yellow warning field.
+  { onto: new Set(["walk", "walk_narrow"]), above: { tactile_warning: 0.030, curb_ramp: 0.012 }, grid: 0.18, label: "Setting the pads on the pavement" },
   // Junction asphalt comes from several overlapping ribbons. Sample the paint at half-metre
   // spacing so the road cannot rise through the interior of a long triangle; a small lift
   // also absorbs the few-centimetre mismatch between independently triangulated ribbons.
@@ -7884,6 +7889,11 @@ const MATERIALS = [
     colours: [0xc6cac6, 0xaab0ae, 0x8d9694, 0xd2d6d1] },
   { name: "brick",    share: 0.14, grit: 0.26, rough: 0.94, metal: 0.02,
     colours: [0x9c5540, 0x8a4a38, 0xa9614a, 0x7d4433, 0xb06b52, 0x6f4a3c] },
+  // Wood and stone are only selected from photo-supported labels, never at random.
+  { name: "wood",     share: 0, grit: 0.18, rough: 0.89, metal: 0,
+    colours: [0x9a8065, 0xa99174, 0x736959] },
+  { name: "stone",    share: 0, grit: 0.19, rough: 0.94, metal: 0,
+    colours: [0xa59d8e, 0xb4aa96, 0x878b89] },
   { name: "glass",    share: 0.07, grit: 0.03, rough: 0.06, metal: 0.85,
     colours: [0x8fb2c4, 0x7aa0b6, 0xa3c2d0, 0x6d93aa] },
   { name: "metal",    share: 0.05, grit: 0.06, rough: 0.24, metal: 0.95,
@@ -7966,7 +7976,19 @@ function liftSampledColour(hex) {
 //: below it the seeded die still chooses.
 const FACADE_MATCH_MIN_CONFIDENCE = 0.6;
 
-function pickMaterial(seed, height, archetype, facade = null) {
+const PHOTO_CLASS_TO_MATERIAL = {
+  stucco_render: "stucco", concrete: "concrete", brick: "brick",
+  wood_siding: "wood", stone: "stone",
+};
+
+function pickMaterial(seed, height, archetype, facade = null, osmId = null) {
+  const assignment = osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
+  if (assignment && assignment.confidence >= 0.70 &&
+      !(facade && ["glass", "metal"].includes(facade.m) && facade.conf >= 0.6)) {
+    const name = PHOTO_CLASS_TO_MATERIAL[assignment.class];
+    const photographed = MATERIALS.find((material) => material.name === name);
+    if (photographed) return { ...photographed, photoLabel: assignment.class };
+  }
   if (facade && facade.conf >= FACADE_MATCH_MIN_CONFIDENCE) {
     const matched = MATERIALS.find((m) => m.name === facade.m);
     if (matched) return matched;
@@ -8166,17 +8188,23 @@ const WINDOW_STYLES = [
   },
 ];
 
-function facadeFor(material, seed, style) {
+const PHOTO_MATERIAL_IMAGES = new Map();
+
+function facadeFor(material, seed, style, variant = 0) {
   // One canvas per material and window arrangement, not per building. A few hundred buildings
   // share a few dozen textures, and the rest of the variation comes from the tint.
   const w = 64, h = 64;
+  const materialClass = material.photoLabel || null;
+  const photo = (PHOTO_MATERIAL_IMAGES.get(materialClass) || [])[variant];
   const canvas = document.createElement("canvas");
-  canvas.width = w; canvas.height = h;
+  canvas.width = canvas.height = materialClass ? 256 : 64;
   const ctx = canvas.getContext("2d");
+  ctx.scale(canvas.width / w, canvas.height / h);
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, w, h);
+  if (photo) ctx.drawImage(photo, 0, 0, w, h);
 
-  if (material.name === "brick") {
+  if (!photo && material.name === "brick") {
     // Courses, offset every other row. Coarse at this scale, but it is the pattern the eye
     // reads as brick from across a street.
     ctx.fillStyle = "rgba(0,0,0,0.16)";
@@ -8185,7 +8213,7 @@ function facadeFor(material, seed, style) {
       const offset = (y / 4) % 2 ? 4 : 0;
       for (let x = offset; x < w; x += 8) ctx.fillRect(x, y, 1, 4);
     }
-  } else if (material.name === "glass") {
+  } else if (!photo && material.name === "glass") {
     ctx.fillStyle = "rgba(0,0,0,0.22)";
     for (let x = 0; x < w; x += 8) ctx.fillRect(x, 0, 1, h);
     for (let y = 0; y < h; y += 16) ctx.fillRect(0, y, w, 2);
@@ -8200,13 +8228,14 @@ function facadeFor(material, seed, style) {
 
   // Grit. Weathering, soot and patching, which is most of what separates a real wall from a
   // flat fill at this distance.
-  for (let i = 0; i < w * h * material.grit; i += 1) {
+  for (let i = 0; !photo && i < w * h * material.grit; i += 1) {
     ctx.fillStyle = random(seed + i) < 0.5 ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.13)";
     ctx.fillRect(random(seed + i * 3) * w, random(seed + i * 7) * h, 1, 1);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  if (photo) texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 
@@ -8217,12 +8246,53 @@ function facadeTextureFor(material, seed) {
   // shares a few dozen canvases.
   const style = Math.floor(random(seed + 3) * WINDOW_STYLES.length);
   const variant = Math.floor(random(seed) * 3);
-  const key = `${material.name}-${style}-${variant}`;
+  const key = `${material.name}-${material.photoLabel || "prior"}-${style}-${variant}`;
   if (!FACADE_CACHE.has(key)) {
-    FACADE_CACHE.set(key, facadeFor(material, seed + variant * 977, style));
+    const effectiveSeed = seed + variant * 977;
+    const texture = facadeFor(material, effectiveSeed, style, variant);
+    texture.userData = { material, seed: effectiveSeed, style, variant };
+    FACADE_CACHE.set(key, texture);
   }
   return FACADE_CACHE.get(key);
 }
+
+async function loadPhotoMaterialLibrary() {
+  let manifest;
+  try {
+    const response = await fetch(asset("materials/manifest.json"), { cache: "force-cache" });
+    if (!response.ok) return;
+    manifest = await response.json();
+  } catch (_) { return; }
+  const used = new Set(Object.values(MATERIAL_ASSIGNMENTS.assigned || {})
+    .map((assignment) => assignment.class));
+  const byClass = new Map();
+  for (const row of manifest.assets || []) {
+    if (!used.has(row.material_class) || row.license !== "CC0-1.0") continue;
+    if (!byClass.has(row.material_class)) byClass.set(row.material_class, []);
+    byClass.get(row.material_class).push(row);
+  }
+  for (const [materialClass, rows] of byClass) {
+    for (let variant = 0; variant < Math.min(3, rows.length); variant += 1) {
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.src = asset(`materials/${rows[variant].file}`);
+      try { await image.decode(); } catch (_) { continue; }
+      if (!PHOTO_MATERIAL_IMAGES.has(materialClass)) PHOTO_MATERIAL_IMAGES.set(materialClass, []);
+      PHOTO_MATERIAL_IMAGES.get(materialClass)[variant] = image;
+      for (const texture of FACADE_CACHE.values()) {
+        const spec = texture.userData || {};
+        if (spec.material?.photoLabel !== materialClass || spec.variant !== variant) continue;
+        const repainted = facadeFor(spec.material, spec.seed, spec.style, variant);
+        texture.image = repainted.image;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+      }
+      await nextFrame();
+    }
+  }
+}
+
+requestAnimationFrame(() => { loadPhotoMaterialLibrary(); });
 
 function roofTexture(seed, base, archetype) {
   const size = 128;
@@ -8682,7 +8752,10 @@ function nominalRoadWidth(way) {
   // Keep official width metadata intact, but render one OSM way as one carriageway.
   // Broad right-of-way fallbacks and divided street matches otherwise turn a single mapped
   // way into a plaza-wide slab, which is what covers sidewalks/streets at curved junctions.
-  const raw = way.road_m || 8.0;
+  // The 3.3 m class prior for access lanes was defeating the 5 m service
+  // fallback, leaving vehicle approaches (including a fire station's) narrow.
+  const raw = way.service === "access" && way.road_source === "class_prior"
+    ? Math.max(way.road_m || 0, SERVICE_ROAD_M.access) : (way.road_m || 8.0);
   const lanes = laneCountForWay(way);
   // The lane cap reins in a width that was inferred from the right of way. A width measured
   // between the mapped kerbs is not that: Grant Avenue through Chinatown is 7.36 m kerb to
@@ -8693,7 +8766,9 @@ function nominalRoadWidth(way) {
   // as much as the city's own kerb-to-kerb record. The lane cap once reined in Vallejo,
   // Union and Green Street from their measured 12-14 m to 8.1 because only one label counted.
   const measured = way._spans !== undefined || MEASURED_ROAD_SOURCES.has(way.road_source);
-  const laneCap = lanes && !measured ? Math.max(4.2, lanes * 3.35 + 1.4) : MAX_RENDER_ROAD_M;
+  const laneCap = lanes && !measured
+    ? Math.max(4.2, lanes * 3.35 + 1.4, way.service === "access" ? SERVICE_ROAD_M.access : 0)
+    : MAX_RENDER_ROAD_M;
   const sourceCap = measured ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;
   // A driveway or a parking aisle has no right of way of its own to fall back on: the eight
   // metre default is a street's, and drawn that wide beside a house it is the front garden.
@@ -12149,6 +12224,12 @@ indexIntersections(DATA.intersections);
 const STOREY_M = 3.2;
 const BAY_M = 4.0;
 
+function facadeStoreyMetres(height) {
+  // Fit a whole number of window rows between pavement and roof. Fixed 3.2 m
+  // tiling clipped the upper windows on buildings of fractional-storey height.
+  return height / Math.max(1, Math.round(height / STOREY_M));
+}
+
 // ExtrudeGeometry's default UVs come from the footprint's own coordinates, which stretches a
 // facade by however large the building is in world space. This maps side walls to
 // (distance along the wall, height) instead, so windows stay the same size on every building.
@@ -12166,11 +12247,13 @@ const FACADE_UV = {
     const bx = vertices[b * 3], by = vertices[b * 3 + 1], bz = vertices[b * 3 + 2];
     const cz = vertices[c * 3 + 2], dz = vertices[d * 3 + 2];
     const run = Math.hypot(bx - ax, by - ay) / BAY_M;
+    const base = Math.min(az, bz, cz, dz);
+    const storey = facadeStoreyMetres(Math.max(0.1, Math.max(az, bz, cz, dz) - base));
     return [
-      new THREE.Vector2(0, az / STOREY_M),
-      new THREE.Vector2(run, bz / STOREY_M),
-      new THREE.Vector2(run, cz / STOREY_M),
-      new THREE.Vector2(0, dz / STOREY_M),
+      new THREE.Vector2(0, (az - base) / storey),
+      new THREE.Vector2(run, (bz - base) / storey),
+      new THREE.Vector2(run, (cz - base) / storey),
+      new THREE.Vector2(0, (dz - base) / storey),
     ];
   },
 };
@@ -14365,7 +14448,8 @@ function buildingMesh(feature) {
   if (hillLift !== 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
   const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
     || feature.height_source === "overture_height";
-  const material = pickMaterial(seed, height, feature.archetype, feature.facade || null);
+  const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
+                                feature.osm_id);
   const style = ARCHETYPE_STYLE[feature.archetype];
   const palette = style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
@@ -14444,7 +14528,12 @@ function buildingMesh(feature) {
   // BUILDING_LIFT_M itself, so nothing is lifted twice.
   if (hillLift !== 0) group.userData.hillLiftM = feature._hillLiftM;
   const capColour = new THREE.Color(roofTint.getHex());
-  const wallColour = new THREE.Color(tint);
+  // A photographed albedo already contains its own colour. Multiplying it by the whole
+  // sampled facade tint makes brick and plaster almost black; retain only a gentle hint of
+  // building-specific colour while preserving the material image's measured contrast.
+  const wallColour = material.photoLabel
+    ? new THREE.Color(0xffffff).lerp(new THREE.Color(tint), 0.22)
+    : new THREE.Color(tint);
   roof.color.setHex(0xffffff);
   walls.color.setHex(0xffffff);
   roof.vertexColors = true;
@@ -15117,10 +15206,15 @@ function walkerGroundAt(x, z) {
   // Inside a building whose rooms are built, the walker stands on its floor; on a stoop, on
   // its steps (see buildInterior). Declared with var so it is safe before they exist.
   if (typeof standingSurfaces !== "undefined" && standingSurfaces) {
+    let best = null, priority = -Infinity;
     for (const surface of standingSurfaces) {
       const y = surface(x, z);
-      if (y !== null) return y;
+      if (y !== null && (surface.priority || 0) > priority) {
+        best = y;
+        priority = surface.priority || 0;
+      }
     }
+    if (best !== null) return best;
   }
   const floor = tunnelFloorAt(x, z);
   if (floor !== null) return floor;
@@ -16945,8 +17039,10 @@ function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
       const extraPos = [];
       const gx = (i) => i < pos.count ? px(i) : extraPos[(i - pos.count) * 2];
       const gy = (i) => i < pos.count ? py(i) : extraPos[(i - pos.count) * 2 + 1];
-      const blockedAt = (x, y) => insideCarriageway(x, -y, 0.15)
-        || Boolean(excludeAt && excludeAt(x, -y));
+      // Keep road-edge clipping here. Sidewalks, paths and courts are removed
+      // by the sub-metre grass shader mask; rejecting a whole boundary triangle
+      // for one hard-surface corner left jagged bare patches in the lawn.
+      const blockedAt = (x, y) => insideCarriageway(x, -y, 0.15);
       const blockedCache = new Map();
       const road = (i) => {
         if (!blockedCache.has(i)) blockedCache.set(i, blockedAt(gx(i), gy(i)));
@@ -16976,14 +17072,8 @@ function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
           const bc = Math.hypot(gx(b) - gx(c), gy(b) - gy(c));
           const ca = Math.hypot(gx(c) - gx(a), gy(c) - gy(a));
           const longest = Math.max(ab, bc, ca);
-          if (agree || longest < (excludeAt ? 1.5 : RING_CLIP_M)) {
-            // At a hard-surface boundary, a grass sliver with even one point on the path
-            // must lose. The old majority vote kept exactly those green triangles on flags.
-            const touchesHard = excludeAt && (ra || rb || rc || centre
-              || blockedAt((gx(a) + gx(b)) / 2, (gy(a) + gy(b)) / 2)
-              || blockedAt((gx(b) + gx(c)) / 2, (gy(b) + gy(c)) / 2)
-              || blockedAt((gx(c) + gx(a)) / 2, (gy(c) + gy(a)) / 2));
-            if (!touchesHard && !(centre && (ra + rb + rc) >= 2)) kept.push(a, b, c);
+          if (agree || longest < RING_CLIP_M) {
+            if (!(centre && (ra + rb + rc) >= 2)) kept.push(a, b, c);
             continue;
           }
           if (longest === ab) { const m = cutAt(a, b); stack.push(a, m, c, m, b, c); }
@@ -18589,6 +18679,8 @@ const PLATE_STYLES = {
   all_way:     { bg: "#b52127", fg: "#ffffff", shape: "plate", w: 0.46, h: 0.15, border: "#ffffff" },
   yield:       { bg: "#ffffff", fg: "#b52127", shape: "triangle", w: 0.76, h: 0.66, border: "#b52127" },
   warning:     { bg: "#f2c027", fg: "#111111", shape: "diamond", w: 0.76, h: 0.76, border: "#111111" },
+  school:      { bg: "#e4ea4d", fg: "#111111", shape: "pentagon", w: 0.76, h: 0.83, border: "#111111" },
+  speed_limit: { bg: "#ffffff", fg: "#111111", shape: "plate", w: 0.61, h: 0.76, border: "#111111" },
   no_parking:  { bg: "#ffffff", fg: "#b52127", shape: "plate", w: 0.30, h: 0.46, border: "#b52127" },
   parking:     { bg: "#ffffff", fg: "#1e7a3e", shape: "plate", w: 0.30, h: 0.46, border: "#1e7a3e" },
   street_name: { bg: "#1e7a3e", fg: "#ffffff", shape: "plate", w: 0.90, h: 0.23, border: "#ffffff" },
@@ -18607,7 +18699,9 @@ function plateStyleFor(sign) {
   if (sign.sign_kind === "yield" || label.startsWith("YIELD")) return "yield";
   if (category === "STREET NAME") return "street_name";
   if (category.startsWith("ONE WAY")) return "one_way";
-  if (klass === "WARNING" || category.startsWith("SCHOOL") || category.startsWith("PEDESTRIAN")) {
+  if (category.startsWith("SPEED LIMIT")) return "speed_limit";
+  if (category.startsWith("SCHOOL")) return "school";
+  if (klass === "WARNING" || category.startsWith("PEDESTRIAN")) {
     return "warning";
   }
   if (category === "STREET CLEANING" || category.startsWith("TOW") || category.startsWith("PARKING:NPRK")
@@ -18702,6 +18796,10 @@ function plateSlot(sign, forcedStyle = null, silhouette = false) {
     ctx.lineTo(px + pw / 2, py + ph); ctx.lineTo(px, py + ph / 2);
   } else if (spec.shape === "triangle") {
     ctx.moveTo(px, py); ctx.lineTo(px + pw, py); ctx.lineTo(px + pw / 2, py + ph);
+  } else if (spec.shape === "pentagon") {
+    ctx.moveTo(px + pw / 2, py); ctx.lineTo(px + pw, py + ph * 0.38);
+    ctx.lineTo(px + pw * 0.82, py + ph); ctx.lineTo(px + pw * 0.18, py + ph);
+    ctx.lineTo(px, py + ph * 0.38);
   } else {
     ctx.rect(px, py, pw, ph);
   }
@@ -18754,10 +18852,24 @@ function plateMaterial(atlas) {
   return PLATE_MATERIALS.get(atlas.index);
 }
 
+function itemFaceKey(item) {
+  const tags = item.tags || {};
+  const bearing = Number.isFinite(item.bearing) ? Math.round(item.bearing * 10) / 10 : "?";
+  return [item.sign_kind || "", String(item.label || "").trim().toUpperCase(),
+    String(tags.SIGN_CODE || "").toUpperCase(), bearing].join("|");
+}
+
 function addOfficialSignPlates(records) {
   // Every sign on its post, the plates stacked where several share one.
+  const seenFaces = new Set();
   const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
-    .filter((row) => row.anchor);
+    .filter((row) => {
+      if (!row.anchor) return false;
+      const key = `${itemFaceKey(row.item)}:${row.item.p.join(",")}`;
+      if (seenFaces.has(key)) return false;
+      seenFaces.add(key);
+      return true;
+    });
   if (!anchors.length) return { signs: 0, posts: 0, racks: 0 };
   // One post per point: rows within PLATE_SAME_POST_M of an earlier one join it.
   const cell = 2.0;
@@ -18798,19 +18910,18 @@ function addOfficialSignPlates(records) {
     if (post.kind === "bike_rack") { racks.push(post); continue; }
     if (post.kind === "delineator") { delineators.push(post); continue; }
     if (post.kind === "lantern") { lanterns.push(post); continue; }
-    const first = post.rows[0];
-    const yaw = furnitureBearing(first.item, first.index, post.anchor);
-    // The face's normal, and the plate's rightward direction as it is read.
-    const nx = Math.sin(yaw);
-    const nz = Math.cos(yaw);
-    const rx = Math.cos(yaw);
-    const rz = -Math.sin(yaw);
+    const topsByFacing = new Map();
     // Stop first, then its ALL WAY plaque, then the rest, top down.
     const order = { stop: 0, all_way: 1 };
     post.rows.sort((a, b) => (order[plateStyleFor(a.item)] ?? 2) - (order[plateStyleFor(b.item)] ?? 2));
-    let top = post.anchor.y + FURNITURE_PANEL_BOTTOM_M + PLATE_STYLES[plateStyleFor(first.item)].h;
     for (const row of post.rows) {
       const slot = plateSlot(row.item);
+      const yaw = furnitureBearing(row.item, row.index, post.anchor);
+      const face = Math.round(yaw * 12 / Math.PI);
+      const nx = Math.sin(yaw), nz = Math.cos(yaw);
+      const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+      const top = topsByFacing.get(face) ??
+        post.anchor.y + FURNITURE_PANEL_BOTTOM_M + slot.h;
       const cx = post.anchor.x + nx * PLATE_STANDOFF_M;
       const cz = post.anchor.z + nz * PLATE_STANDOFF_M;
       const bottom = top - slot.h;
@@ -18847,7 +18958,7 @@ function addOfficialSignPlates(records) {
         backSink.colours.push(1, 1, 1);
       }
       backSink.indices.push(b2, b2 + 1, b2 + 2, b2, b2 + 2, b2 + 3);
-      top = bottom - PLATE_GAP_M;
+      topsByFacing.set(face, bottom - PLATE_GAP_M);
       signs += 1;
     }
     postAnchors.push(post.anchor);
@@ -18891,6 +19002,124 @@ function addFurniturePostsAt(anchors, height, radius, colour) {
   mesh.userData.surface = "furniture:post";
   groups.furniture.add(mesh);
   return anchors.length;
+}
+
+function addTrafficSignalHeads(records) {
+  // SFMTA's point inventory locates a signalized junction, not the live phase. Render one
+  // conservative three-aspect head per SIGNAL record; no lens asserts a live red/green state.
+  const rows = records.filter((r) => String(r.signal_type || "").toUpperCase() === "SIGNAL")
+    .map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (!rows.length) return 0;
+  addFurniturePostsAt(rows.map((r) => r.anchor), 4.65, 0.075, 0x4b5051);
+  const body = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x202524, roughness: 0.58, metalness: 0.32 }), rows.length);
+  const lamps = [0xb62928, 0xd29a23, 0x248b4b].map((color) =>
+    new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8),
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.08,
+        roughness: 0.22 }), rows.length));
+  const dummy = new THREE.Object3D();
+  rows.forEach((row, index) => {
+    const yaw = furnitureBearing(row.item, row.index, row.anchor);
+    const nx = Math.sin(yaw), nz = Math.cos(yaw);
+    dummy.position.set(row.anchor.x, row.anchor.y + 4.18, row.anchor.z);
+    dummy.rotation.set(0, yaw, 0);
+    dummy.scale.set(0.38, 0.98, 0.26);
+    dummy.updateMatrix();
+    body.setMatrixAt(index, dummy.matrix);
+    [0.31, 0, -0.31].forEach((offset, lamp) => {
+      dummy.position.set(row.anchor.x + nx * 0.145,
+        row.anchor.y + 4.18 + offset, row.anchor.z + nz * 0.145);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.scale.set(0.105, 0.105, 0.048);
+      dummy.updateMatrix();
+      lamps[lamp].setMatrixAt(index, dummy.matrix);
+    });
+  });
+  body.instanceMatrix.needsUpdate = true;
+  body.userData = { surface: "furniture:traffic_signal", phase: "unknown",
+    source: "sfmta_traffic_signals" };
+  groups.furniture.add(body);
+  lamps.forEach((lamp, index) => {
+    lamp.instanceMatrix.needsUpdate = true;
+    lamp.userData = { surface: `furniture:signal_lens:${index}`, phase: "unknown" };
+    groups.furniture.add(lamp);
+  });
+  return rows.length;
+}
+
+function addUtilityPoles(records) {
+  const rows = records.map((item) => ({ item, anchor: furnitureAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (!rows.length) return 0;
+  const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.09, 0.15, 1, 8),
+    new THREE.MeshStandardMaterial({ color: 0x655347, roughness: 0.94 }), rows.length);
+  const arm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x51463c, roughness: 0.88 }), rows.length);
+  const dummy = new THREE.Object3D();
+  rows.forEach(({ item, anchor }, index) => {
+    const height = Math.max(6, Math.min(15, parseFloat(item.height_m) || 9.5));
+    dummy.position.set(anchor.x, anchor.y + height / 2, anchor.z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(1, height, 1);
+    dummy.updateMatrix();
+    pole.setMatrixAt(index, dummy.matrix);
+    dummy.position.set(anchor.x, anchor.y + height - 1.1, anchor.z);
+    dummy.rotation.set(0, furnitureBearing(item, index, anchor), 0);
+    dummy.scale.set(1.6, 0.10, 0.12);
+    dummy.updateMatrix();
+    arm.setMatrixAt(index, dummy.matrix);
+  });
+  for (const mesh of [pole, arm]) {
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.userData = { surface: "furniture:utility_pole", source: "openstreetmap" };
+    groups.furniture.add(mesh);
+  }
+  return rows.length;
+}
+
+function addMappedOverheadWires(records) {
+  // Only mapped overhead way topology supplies spans. Sag and parallel conductors are visual
+  // inferences; unconnected poles do not license invented wires across a city block.
+  const points = [];
+  let spans = 0;
+  for (const record of records) {
+    if (record.power_kind !== "minor_line") continue;
+    const path = (record.points || []).map(([lon, lat]) => {
+      const [x, y] = xy(lon, lat);
+      const z = -y;
+      const base = pavementTopAt(x, z) ?? ROAD_TOP_M;
+      return { x, z, y: base + groundLiftAt(x, z) + 8.8 };
+    });
+    for (let i = 1; i < path.length; i += 1) {
+      const a = path[i - 1], b = path[i];
+      const distance = Math.hypot(b.x - a.x, b.z - a.z);
+      if (distance < 1 || distance > 75) continue;
+      const sideX = -(b.z - a.z) / distance, sideZ = (b.x - a.x) / distance;
+      for (const lane of [-0.22, 0, 0.22]) {
+        let previous = null;
+        for (let step = 0; step <= 10; step += 1) {
+          const t = step / 10;
+          const p = [a.x + (b.x - a.x) * t + sideX * lane,
+            a.y + (b.y - a.y) * t - 0.45 * 4 * t * (1 - t),
+            a.z + (b.z - a.z) * t + sideZ * lane];
+          if (previous) points.push(...previous, ...p);
+          previous = p;
+        }
+      }
+      spans += 1;
+    }
+  }
+  if (points.length) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
+    const wires = new THREE.LineSegments(geometry,
+      new THREE.LineBasicMaterial({ color: 0x353b3a, opacity: 0.85, transparent: true }));
+    wires.userData = { surface: "furniture:overhead_wire", source: "osm_minor_line",
+      sag: "inferred" };
+    groups.furniture.add(wires);
+  }
+  return spans;
 }
 
 function addBikeRacks(anchors) {
@@ -19166,6 +19395,9 @@ function renderStreetFurniture(furniture) {
     posts: addStreetFurniturePosts(posts),
     official_signs: plates.signs,
     official_posts: plates.posts,
+    traffic_signal_heads: addTrafficSignalHeads(official.traffic_signals || []),
+    utility_poles: addUtilityPoles(inferred.utility_poles || []),
+    overhead_wire_spans: addMappedOverheadWires(inferred.power_lines || []),
     bike_racks: plates.racks,
     stop_signs: officialStops.length ? 0 : addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "stop"), 0.72, 0.72, 0xb52127, "furniture:stop"),
     yield_signs: officialSigns.length ? 0 : addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "yield"), 0.86, 0.74, 0xf9fbf8, "furniture:yield"),
@@ -20011,6 +20243,7 @@ var standingSurfaces = new Set();
 //: Steps on a stoop, and how deep each tread is.
 const STEP_RISE_M = 0.18;
 const STEP_TREAD_M = 0.3;
+const STEP_LANDING_TREADS = 4;
 const footprintById = new Map();
 
 // A building on a hill stands on its highest ground: its floor is level with the ground at the
@@ -20177,20 +20410,29 @@ function showDoor(door) {
   if (door.mesh) return;
   const ground = entryFloorY(door.entry);
   const street = terrainGroundAt(door.cx - door.nx * 0.6, door.cz - door.nz * 0.6);
-  addStoop(door, street, ground);
+  const stoopPlan = planInwardStoop(door, street, ground);
+  // A guessed door on a flat frontage is not evidence for a flight of stairs.
+  // Nor can an observed door be drawn floating above the street when its
+  // footprint has no room for an inward flight: leave it unrendered for review.
+  if (ground - street >= 0.08 && !stoopPlan) return;
+  addStoop(door, street, ground, stoopPlan);
   const hinge = new THREE.Group();
   // Hinged at the t0 end, standing a hair outside the wall so it is not lost in it.
   const hx = door.entry.local[door.edge][0] + (door.entry.local[door.edge + 1][0] - door.entry.local[door.edge][0]) * door.t0;
   const hz = door.entry.local[door.edge][1] + (door.entry.local[door.edge + 1][1] - door.entry.local[door.edge][1]) * door.t0;
-  hinge.position.set(hx - door.nx * 0.04, ground, hz - door.nz * 0.04);
+  // A raised entry's leaf belongs at the end of its recessed stair and landing.
+  const leafDepth = door.stoopPlan ? door.stoopPlan.depth : 0;
+  hinge.position.set(hx + door.nx * leafDepth, ground, hz + door.nz * leafDepth);
   hinge.rotation.y = Math.atan2(-door.uz, door.ux);
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(door.width, DOOR_HEIGHT_M, 0.05), doorMaterial);
   leaf.position.set(door.width / 2, DOOR_HEIGHT_M / 2, 0);
   leaf.castShadow = true;
   leaf.renderOrder = INTERIOR_ORDER;
   hinge.add(leaf);
-  const portal = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.1, door.width - 0.04), DOOR_HEIGHT_M - 0.02), portalMaterial);
-  portal.position.set(hx + door.ux * door.width / 2 - door.nx * 0.06, ground + DOOR_HEIGHT_M / 2,
+  const portalBottom = door.stoopPlan ? street : ground;
+  const portalHeight = ground + DOOR_HEIGHT_M - portalBottom;
+  const portal = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.1, door.width - 0.04), portalHeight - 0.02), portalMaterial);
+  portal.position.set(hx + door.ux * door.width / 2 - door.nx * 0.06, portalBottom + portalHeight / 2,
     hz + door.uz * door.width / 2 - door.nz * 0.06);
   portal.rotation.y = Math.atan2(-door.uz, door.ux);
   portal.renderOrder = INTERIOR_ORDER + 0.1;
@@ -20213,24 +20455,63 @@ function showDoor(door) {
   doorsShown.add(door);
 }
 const stoopMaterial = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 });
-function addStoop(door, street, floor) {
+function planInwardStoop(door, street, floor) {
   const rise = floor - street;
-  if (rise < 0.08) return;
+  if (rise < 0.08) return null;
   const steps = Math.ceil(rise / STEP_RISE_M);
-  const each = rise / steps;
-  const depth = steps * STEP_TREAD_M;
-  const group = new THREE.Group();
+  if (door.source === 2) {
+    const uphill = terrainGroundAt(door.cx + door.nx * 1.2, door.cz + door.nz * 1.2);
+    if (steps > 3 || uphill - street < 0.15) return null;
+  }
   const width = door.width + 0.4;
-  for (let i = 0; i < steps; i += 1) {
-    // Step i is i+1 risers high and runs from the wall out to the edge of its tread.
-    const top = street + each * (steps - i);
-    const out = (i + 1) * STEP_TREAD_M;
-    const box = new THREE.Mesh(new THREE.BoxGeometry(width, top - street + 0.05, STEP_TREAD_M), stoopMaterial);
-    box.position.set(0, (top + street - 0.05) / 2, -(out - STEP_TREAD_M / 2));
+  const landingDepth = STEP_LANDING_TREADS * STEP_TREAD_M;
+  const depth = steps * STEP_TREAD_M + landingDepth;
+  const treads = Array.from({ length: steps }, (_, i) => ({
+    near: i * STEP_TREAD_M,
+    far: (i + 1) * STEP_TREAD_M,
+    top: street + rise * (i + 1) / steps,
+  }));
+  treads.push({ near: steps * STEP_TREAD_M, far: depth, top: floor, landing: true });
+  // Sample the whole stairwell, not only four corners: a concave footprint can
+  // leave the building and re-enter it before the landing.
+  for (const tread of treads) {
+    for (let across = 0; across <= Math.ceil(width / 0.2); across += 1) {
+      const along = -width / 2 + width * across / Math.ceil(width / 0.2);
+      for (let n = 0; n <= Math.ceil((tread.far - tread.near) / 0.2); n += 1) {
+        const inward = Math.max(0.03, tread.near + (tread.far - tread.near)
+          * n / Math.ceil((tread.far - tread.near) / 0.2));
+        const x = door.cx + door.ux * along + door.nx * inward;
+        const z = door.cz + door.uz * along + door.nz * inward;
+        if (!insideFootprint(door.entry, x, z)) return null;
+      }
+    }
+  }
+  return { steps, rise, width, depth, landingDepth, street, floor, treads };
+}
+
+function addStoop(door, street, floor, plan = planInwardStoop(door, street, floor)) {
+  door.stoopPlan = plan;
+  if (!plan) return;
+  if (door.entry.interior) {
+    removeInterior(door.entry);
+    buildInterior(door.entry);
+  }
+  const { steps, rise, width, depth } = plan;
+  const each = rise / steps;
+  const group = new THREE.Group();
+  for (const tread of plan.treads.filter((item) => !item.landing)) {
+    // The lowest tread starts at the facade, then rises *into* the property.
+    const box = new THREE.Mesh(new THREE.BoxGeometry(width, tread.top - street + 0.05,
+      tread.far - tread.near), stoopMaterial);
+    box.position.set(0, (tread.top + street - 0.05) / 2, (tread.near + tread.far) / 2);
     box.castShadow = true;
     box.receiveShadow = true;
     group.add(box);
   }
+  const landing = new THREE.Mesh(new THREE.BoxGeometry(width, 0.08, plan.landingDepth), stoopMaterial);
+  landing.position.set(0, floor - 0.04, depth - plan.landingDepth / 2);
+  landing.receiveShadow = true;
+  group.add(landing);
   // Local z points into the building (its inward normal), x along the wall.
   group.position.set(door.cx, 0, door.cz);
   group.rotation.y = Math.atan2(door.nx, door.nz);
@@ -20240,11 +20521,14 @@ function addStoop(door, street, floor) {
   door.stoopSurface = (x, z) => {
     const dx = x - door.cx, dz = z - door.cz;
     const along = dx * door.ux + dz * door.uz;
-    const outward = -(dx * door.nx + dz * door.nz);
-    if (Math.abs(along) > width / 2 || outward < -0.05 || outward > depth) return null;
-    const i = Math.min(steps - 1, Math.max(0, Math.floor(outward / STEP_TREAD_M)));
-    return street + each * (steps - i);
+    const inward = dx * door.nx + dz * door.nz;
+    if (Math.abs(along) > width / 2 || inward < 0 || inward > depth
+        || !insideFootprint(door.entry, x, z)) return null;
+    if (inward >= steps * STEP_TREAD_M) return floor;
+    const i = Math.min(steps - 1, Math.max(0, Math.floor(inward / STEP_TREAD_M)));
+    return street + each * (i + 1);
   };
+  door.stoopSurface.priority = 1;
   standingSurfaces.add(door.stoopSurface);
 }
 
@@ -20303,6 +20587,8 @@ function toggleDoor(door) {
   if (door.open) buildInterior(door.entry);
 }
 
+let lastInsideBuildingId = null;
+
 addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -20328,6 +20614,14 @@ function updateDoors(dt) {
   }
   const door = nearestDoor();
   const inside = buildingAt(x, z);
+  const insideId = inside ? String(inside.osm_id) : null;
+  // An address search can land inside a footprint without a person having crossed
+  // an entrance. Only switching modes after walking through an opened door keeps
+  // a search from unexpectedly zooming into a wall.
+  if (insideId && insideId !== lastInsideBuildingId && !state.firstPerson
+      && doorsNear(x, z, DOOR_DRAW_M).some((candidate) => candidate.open
+        && String(candidate.entry.way.osm_id) === insideId)) setFirstPerson(true);
+  lastInsideBuildingId = insideId;
   // A walker already inside (arrived by search, or a saved position) gets the rooms too.
   if (inside && INTERIORS) {
     const entry = footprintById.get(String(inside.osm_id));
@@ -20358,11 +20652,123 @@ const interiorsBuilt = new Set();
 const plasterMaterial = new THREE.MeshStandardMaterial({ color: 0xece6dc, roughness: 0.92, side: THREE.DoubleSide });
 const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.95, side: THREE.DoubleSide });
 const roomFloorMaterials = new Map();
+const INTERIOR_WALL_PALETTES = [
+  [0xf2eee7, 0xe6eadf, 0xeae3dd, 0xe8edf0, 0xe8e5df],
+  [0xf0e9df, 0xe8e3d6, 0xe5e9e4, 0xe8e4ed, 0xe9e6e0],
+  [0xeeeae4, 0xe0e8e6, 0xe9e2d8, 0xe4e7ec, 0xe8e6df],
+  [0xf1eee9, 0xe7e9de, 0xe9e6e4, 0xe0e8eb, 0xe8e4db],
+];
+const interiorWallMaterials = new Map();
+function interiorWallMaterial(theme, kind) {
+  const family = ["living", "dining", "corridor", "stair"].includes(kind) ? 0
+    : kind === "kitchen" ? 1 : kind === "bedroom" ? 2
+    : ["bathroom", "storage"].includes(kind) ? 3 : 4;
+  const key = `${theme}:${family}`;
+  if (!interiorWallMaterials.has(key)) interiorWallMaterials.set(key,
+    new THREE.MeshStandardMaterial({ color: INTERIOR_WALL_PALETTES[theme][family],
+      roughness: 0.92, side: THREE.DoubleSide }));
+  return interiorWallMaterials.get(key);
+}
+const furnishingMaterials = {
+  wood: new THREE.MeshStandardMaterial({ color: 0x927558, roughness: 0.81 }),
+  fabric: new THREE.MeshStandardMaterial({ color: 0x849089, roughness: 0.94 }),
+  linen: new THREE.MeshStandardMaterial({ color: 0xdcd8cf, roughness: 0.98 }),
+  cabinet: new THREE.MeshStandardMaterial({ color: 0xc6b7a3, roughness: 0.79 }),
+  counter: new THREE.MeshStandardMaterial({ color: 0xddd9d0, roughness: 0.56 }),
+  appliance: new THREE.MeshStandardMaterial({ color: 0xd5d8d7, metalness: 0.12, roughness: 0.4 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x393d3e, roughness: 0.46 }),
+};
+
+function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
+  const dimensions = { living: [1.7, 0.9], dining: [1.3, 0.8], bedroom: [1.5, 2.0],
+    kitchen: [1.8, 0.75], storage: [1.4, 0.75], bathroom: [0.75, 0.65], office: [1.3, 0.7] };
+  const size = dimensions[kind];
+  if (!size) return;
+  const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
+  const cz = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
+  if (doorsInPlan.some(([dx, dz]) => Math.hypot(dx - cx, dz - cz) < 1.7)) return;
+  let longest = -1, direction = [1, 0];
+  for (let i = 0; i < pts.length; i += 1) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length < 0.2) continue;
+    if (length > longest) { longest = length; direction = [(b[0] - a[0]) / length, (b[1] - a[1]) / length]; }
+  }
+  if (longest < 0.2) return;
+  const yaw = -Math.atan2(direction[1], direction[0]);
+  const cos = Math.cos(yaw), sin = Math.sin(yaw);
+  for (const xx of [-size[0] / 2 - 0.15, size[0] / 2 + 0.15]) {
+    for (const zz of [-size[1] / 2 - 0.15, size[1] / 2 + 0.15]) {
+      const x = cx + cos * xx + sin * zz, z = cz - sin * xx + cos * zz;
+      if (!pointInRing(x, z, pts) || !insideFootprint(entry, x, z)) return;
+    }
+  }
+  const furniture = new THREE.Group();
+  furniture.position.set(cx, floorY, cz);
+  furniture.rotation.y = yaw;
+  furniture.userData = { surface: `furnishing:${kind}`, grade: "inferred_from_room_type",
+    source: "fitted_external_floor_plan" };
+  const box = (w, h, d, x, y, z, material) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    furniture.add(mesh);
+  };
+  if (kind === "bedroom") {
+    box(1.5, 0.32, 1.95, 0, 0.33, 0, furnishingMaterials.wood);
+    box(1.42, 0.13, 1.8, 0, 0.56, 0, furnishingMaterials.linen);
+    box(1.36, 0.16, 0.14, 0, 0.49, -0.86, furnishingMaterials.fabric);
+  } else if (kind === "living") {
+    box(1.7, 0.36, 0.8, 0, 0.37, 0, furnishingMaterials.fabric);
+    box(1.7, 0.55, 0.16, 0, 0.75, -0.33, furnishingMaterials.fabric);
+  } else if (kind === "kitchen") {
+    box(1.8, 0.82, 0.65, 0, 0.42, 0, furnishingMaterials.cabinet);
+    box(1.84, 0.06, 0.72, 0, 0.86, 0, furnishingMaterials.counter);
+    box(0.5, 0.01, 0.35, 0.46, 0.90, 0, furnishingMaterials.dark);
+  } else if (kind === "storage") {
+    for (const x of [-0.36, 0.36]) {
+      box(0.67, 0.84, 0.67, x, 0.43, 0, furnishingMaterials.appliance);
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.015, 20), furnishingMaterials.dark);
+      drum.rotation.x = Math.PI / 2;
+      drum.position.set(x, 0.48, 0.34);
+      furniture.add(drum);
+    }
+  } else if (kind === "bathroom") {
+    box(0.7, 0.47, 0.55, 0, 0.42, 0, furnishingMaterials.appliance);
+  } else {
+    box(size[0], 0.08, size[1], 0, 0.74, 0, furnishingMaterials.wood);
+    for (const x of [-size[0] * 0.38, size[0] * 0.38])
+      for (const z of [-size[1] * 0.36, size[1] * 0.36]) box(0.07, 0.7, 0.07, x, 0.35, z, furnishingMaterials.wood);
+  }
+  group.add(furniture);
+}
 function roomFloorMaterial(kind) {
   if (!roomFloorMaterials.has(kind)) {
     roomFloorMaterials.set(kind, new THREE.MeshStandardMaterial({ color: ROOM_FLOOR[kind] ?? ROOM_FLOOR.other, roughness: 0.8 }));
   }
   return roomFloorMaterials.get(kind);
+}
+
+function stoopCutRing(door) {
+  if (!door.stoopPlan) return null;
+  const half = door.stoopPlan.width / 2;
+  const start = 0.03;
+  const end = door.stoopPlan.steps * STEP_TREAD_M + 0.02;
+  return [[-half, start], [half, start], [half, end], [-half, end]]
+    .map(([along, inward]) => [door.cx + door.ux * along + door.nx * inward,
+                               door.cz + door.uz * along + door.nz * inward]);
+}
+
+function floorShapeWithStairCuts(ring, cuts) {
+  const shape = new THREE.Shape(ring.map(([x, z]) => new THREE.Vector2(x, -z)));
+  for (const cut of cuts) {
+    const hole = new THREE.Path();
+    hole.moveTo(cut[0][0], -cut[0][1]);
+    for (const [x, z] of cut.slice(1)) hole.lineTo(x, -z);
+    hole.closePath();
+    shape.holes.push(hole);
+  }
+  return shape;
 }
 
 // A segment clipped to the inside of a footprint (inset by `inset`): the pieces between its
@@ -20430,7 +20836,13 @@ function buildInterior(entry) {
   const group = new THREE.Group();
   group.name = `interior:${entry.way.osm_id}`;
   const segments = [];
+  const colouredSegments = new Map();
+  const drawnPartitions = new Set();
   const doorsInPlan = [];
+  const interiorDoorSpecs = new Map();
+  const roomSpecs = [];
+  const theme = Math.abs(Number(entry.way.osm_id) || 0) % INTERIOR_WALL_PALETTES.length;
+  const stairCuts = (entry.doors || []).map(stoopCutRing).filter(Boolean);
   for (let i = 0; i < nx; i += 1) {
     for (let j = 0; j < ny; j += 1) {
       for (const [x, y, w] of plan.doors) {
@@ -20445,12 +20857,19 @@ function buildInterior(entry) {
         // The room's floor, where the room lies inside the building.
         const inside = pts.filter(([px, pz]) => insideFootprint(entry, px, pz)).length;
         if (inside === pts.length) {
-          const shape = new THREE.Shape(pts.map(([px, pz]) => new THREE.Vector2(px, -pz)));
-          const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), roomFloorMaterial(kind));
-          floor.rotation.x = -Math.PI / 2;
-          floor.position.y = floorY + 0.01;
-          floor.receiveShadow = true;
-          group.add(floor);
+          roomSpecs.push({ kind, pts });
+          // A room polygon that meets the recessed entry cannot paint across
+          // the open stairwell. The common slab below it carries the rest.
+          const intersectsStair = stairCuts.some((cut) => cut.some(([px, pz]) => pointInRing(px, pz, pts))
+            || pts.some(([px, pz]) => pointInRing(px, pz, cut)));
+          if (!intersectsStair) {
+            const shape = new THREE.Shape(pts.map(([px, pz]) => new THREE.Vector2(px, -pz)));
+            const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), roomFloorMaterial(kind));
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = floorY + 0.01;
+            floor.receiveShadow = true;
+            group.add(floor);
+          }
         }
         // Its walls, clipped to the footprint, with the plan's doorways left open.
         for (let k = 0; k < pts.length; k += 1) {
@@ -20463,12 +20882,26 @@ function buildInterior(entry) {
             const t = ((dx - ax) * (bx - ax) + (dz - az) * (bz - az)) / (len * len);
             const off = Math.abs((dx - ax) * (bz - az) - (dz - az) * (bx - ax)) / len;
             if (off > 0.45 || t < 0 || t > 1) continue;
+            const doorKey = `${Math.round(dx * 10)}:${Math.round(dz * 10)}`;
+            if (!interiorDoorSpecs.has(doorKey) && insideFootprint(entry, dx, dz))
+              interiorDoorSpecs.set(doorKey, { x: dx, z: dz, width: Math.min(1.25, Math.max(0.75, dw)),
+                yaw: -Math.atan2(bz - az, bx - ax) });
             const half = Math.max(0.45, dw / 2) / len;
             pieces = pieces.flatMap(([p, q]) => (t - half > q || t + half < p) ? [[p, q]]
               : [[p, Math.max(p, t - half)], [Math.min(q, t + half), q]].filter(([r, s]) => s - r > 1e-3));
           }
           for (const [p, q] of pieces) {
-            for (const s of clipToFootprint(entry, ax + (bx - ax) * p, az + (bz - az) * p, ax + (bx - ax) * q, az + (bz - az) * q)) segments.push(s);
+            for (const s of clipToFootprint(entry, ax + (bx - ax) * p, az + (bz - az) * p,
+                                            ax + (bx - ax) * q, az + (bz - az) * q)) {
+              segments.push(s);
+              const aKey = `${Math.round(s[0] * 100)}:${Math.round(s[1] * 100)}`;
+              const bKey = `${Math.round(s[2] * 100)}:${Math.round(s[3] * 100)}`;
+              const segmentKey = aKey < bKey ? `${aKey}|${bKey}` : `${bKey}|${aKey}`;
+              if (drawnPartitions.has(segmentKey)) continue;
+              drawnPartitions.add(segmentKey);
+              if (!colouredSegments.has(kind)) colouredSegments.set(kind, []);
+              colouredSegments.get(kind).push(s);
+            }
           }
         }
       }
@@ -20501,18 +20934,46 @@ function buildInterior(entry) {
   }
   group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
   if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
-  if (segments.length) {
-    const partitions = new THREE.Mesh(wallQuads(segments, floorY, height), plasterMaterial);
+  for (const [kind, roomSegments] of colouredSegments) {
+    const partitions = new THREE.Mesh(wallQuads(roomSegments, floorY, height),
+                                      interiorWallMaterial(theme, kind));
     partitions.castShadow = true;
     group.add(partitions);
   }
+  for (const spec of interiorDoorSpecs.values()) {
+    const frame = new THREE.Group();
+    frame.position.set(spec.x, floorY, spec.z);
+    frame.rotation.y = spec.yaw;
+    for (const x of [-spec.width / 2, spec.width / 2]) {
+      const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.055, DOOR_HEIGHT_M, 0.09),
+        furnishingMaterials.wood);
+      jamb.position.set(x, DOOR_HEIGHT_M / 2, 0);
+      frame.add(jamb);
+    }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(spec.width, 0.06, 0.09), furnishingMaterials.wood);
+    lintel.position.y = DOOR_HEIGHT_M;
+    frame.add(lintel);
+    const leaf = new THREE.Group();
+    leaf.position.x = -spec.width / 2;
+    leaf.rotation.y = 1.05;
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, DOOR_HEIGHT_M - 0.07, 0.045),
+      doorMaterial);
+    panel.position.set(spec.width * 0.45, DOOR_HEIGHT_M / 2, 0);
+    leaf.add(panel);
+    frame.add(leaf);
+    frame.userData = { surface: "interior_door", grade: "fitted_plan_not_measured" };
+    group.add(frame);
+  }
+  for (const room of roomSpecs) addRoomFurnishing(group, entry, room.kind, room.pts, floorY, doorsInPlan);
   // Floor and ceiling over the whole footprint.
-  const outline = new THREE.Shape(ring.slice(0, -1).map(([px, pz]) => new THREE.Vector2(px, -pz)));
+  const outline = floorShapeWithStairCuts(ring.slice(0, -1), stairCuts);
   const slab = new THREE.Mesh(new THREE.ShapeGeometry(outline), roomFloorMaterial("other"));
   slab.rotation.x = -Math.PI / 2;
   slab.position.y = floorY;
   slab.receiveShadow = true;
-  const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(outline), ceilingMaterial);
+  const ceilingOutline = new THREE.Shape(ring.slice(0, -1)
+    .map(([px, pz]) => new THREE.Vector2(px, -pz)));
+  const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(ceilingOutline), ceilingMaterial);
   ceiling.rotation.x = -Math.PI / 2;
   ceiling.position.y = floorY + height;
   group.add(slab, ceiling);

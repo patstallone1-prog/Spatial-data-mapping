@@ -270,7 +270,7 @@ def test_renderer_clamps_wide_right_of_way_fallbacks() -> None:
             '"divided_half", "tunnel_cut", "curb_profile", "lidar_profile"]);') in source
     assert "const sourceCap = measured ? MAX_RENDER_ROAD_M : MAX_INFERRED_ROAD_M;" in source
     # The lane cap is for inferred widths; a width measured between the kerbs keeps it.
-    assert "const laneCap = lanes && !measured ?" in source
+    assert "const laneCap = lanes && !measured" in source
     # And nothing clamps a way drawn between the city's kerbs, nor a street on another level.
     assert "if (way._spans !== undefined) continue;" in source
     assert "function sameLevel(a, b)" in source

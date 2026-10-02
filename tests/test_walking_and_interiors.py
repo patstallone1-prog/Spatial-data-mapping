@@ -7,6 +7,7 @@ import math
 import shutil
 import subprocess
 import textwrap
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -107,3 +108,119 @@ class TestWalls:
         assert out["slid"][0] == pytest.approx(6.0, abs=1e-6) and out["slid"][1] <= -0.3 + 1e-9
         assert out["through"][2] is True and out["through"][1] == pytest.approx(3.0, abs=1e-6)
         assert out["keptIn"] is True
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
+def test_entry_stairs_and_four_tread_landing_never_leave_the_building() -> None:
+    page = (Path(__file__).resolve().parents[1] / "docs/sf-corridor-3d.html").read_text()
+    js = page[page.index('<script type="module">'):]
+    script = textwrap.dedent("""
+        const STEP_RISE_M = 0.18, STEP_TREAD_M = 0.3, STEP_LANDING_TREADS = 4;
+        const entry = { local: [[0, 0], [10, 0], [10, 8], [0, 8], [0, 0]],
+                        minX: 0, maxX: 10, minZ: 0, maxZ: 8 };
+        const door = { entry, cx: 5, cz: 0, ux: 1, uz: 0, nx: 0, nz: 1, width: 1 };
+        let terrainGroundAt = () => 0;
+    """) + "\n".join(_extract(name, js) for name in ("insideFootprint", "planInwardStoop")) + \
+        "\n" + textwrap.dedent("""
+            const plan = planInwardStoop(door, 0, 0.72);
+            const outside = { ...door, nz: -1 };
+            const shallow = { ...door, entry: { ...entry, local: [[0, 0], [10, 0],
+                [10, 1.5], [0, 1.5], [0, 0]], maxZ: 1.5 } };
+            const concave = { ...door, entry: { ...entry, local: [[0,0],[10,0],
+                [10,8],[5.1,8],[5.1,1.0],[4.9,1.0],[4.9,8],[0,8],[0,0]] } };
+            const corners = plan.treads.flatMap(tread => [-plan.width/2, plan.width/2]
+                .flatMap(along => [Math.max(0.03, tread.near), tread.far]
+                    .map(inward => [door.cx + door.ux*along + door.nx*inward,
+                                    door.cz + door.uz*along + door.nz*inward])));
+            console.log(JSON.stringify({
+                count: plan.steps, landing: plan.landingDepth,
+                allInside: corners.every(([x,z]) => insideFootprint(entry,x,z)),
+                farthest: Math.max(...corners.map(([,z]) => z)),
+                outwardRejected: planInwardStoop(outside,0,0.72) === null,
+                shallowRejected: planInwardStoop(shallow,0,0.72) === null,
+                concaveNotchRejected: planInwardStoop(concave,0,0.72) === null,
+                inferredFlatRejected: planInwardStoop({...door,source:2},0,0.36) === null,
+                inferredTallRejected: (terrainGroundAt=(x,z)=>z*0.2,
+                    planInwardStoop({...door,source:2},0,0.72) === null),
+                inferredHillFewSteps: planInwardStoop({...door,source:2},0,0.36)?.steps === 2,
+            }));
+        """)
+    result = subprocess.run([NODE, "-e", script], capture_output=True, text=True,
+                            timeout=60, check=False)
+    assert result.returncode == 0, result.stderr
+    out = json.loads(result.stdout)
+    assert out == {"count": 4, "landing": pytest.approx(1.2), "allInside": True,
+                   "farthest": pytest.approx(2.4), "outwardRejected": True,
+                   "shallowRejected": True, "concaveNotchRejected": True,
+                   "inferredFlatRejected": True,
+                   "inferredTallRejected": True, "inferredHillFewSteps": True}
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
+def test_recessed_stair_cuts_only_the_interior_floor() -> None:
+    js = _page_js()
+    script = textwrap.dedent("""
+        const STEP_RISE_M=0.18, STEP_TREAD_M=0.3, STEP_LANDING_TREADS=4;
+        const THREE={Vector2:class {constructor(x,y){this.x=x;this.y=y;}},
+          Shape:class {constructor(points){this.points=points;this.holes=[];}},
+          Path:class {constructor(){this.points=[];} moveTo(x,y){this.points.push([x,y]);}
+            lineTo(x,y){this.points.push([x,y]);} closePath(){}}};
+        const entry={local:[[0,0],[10,0],[10,8],[0,8],[0,0]],minX:0,maxX:10,minZ:0,maxZ:8};
+        const door={entry,cx:5,cz:0,ux:1,uz:0,nx:0,nz:1,width:1};
+    """) + "\n".join(_extract(name, js) for name in (
+        "insideFootprint", "planInwardStoop", "stoopCutRing", "floorShapeWithStairCuts")) + \
+        "\n" + textwrap.dedent("""
+            door.stoopPlan=planInwardStoop(door,0,0.72);
+            const cut=stoopCutRing(door);
+            const floor=floorShapeWithStairCuts(entry.local.slice(0,-1),[cut]);
+            console.log(JSON.stringify({holes:floor.holes.length,
+              cutInside:cut.every(([x,z])=>insideFootprint(entry,x,z)),
+              cutDepth:Math.max(...cut.map(([,z])=>z)),
+              unchangedCeiling:entry.local.length-1}));
+        """)
+    result = subprocess.run([NODE, "-e", script], capture_output=True, text=True,
+                            timeout=60, check=False)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"holes": 1, "cutInside": True,
+                                         "cutDepth": pytest.approx(1.22), "unchangedCeiling": 4}
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
+def test_inferred_furniture_fits_room_and_keeps_entry_clear() -> None:
+    js = _page_js()
+    script = textwrap.dedent("""
+        class Group {constructor(){this.children=[];this.position={set(){}};this.rotation={};}
+          add(item){this.children.push(item);}}
+        class Mesh {constructor(geometry,material){this.geometry=geometry;this.material=material;
+          this.position={set(){}};this.rotation={};}}
+        const THREE={Group,Mesh,BoxGeometry:class {},CylinderGeometry:class {}};
+        const furnishingMaterials={wood:{},fabric:{},linen:{},cabinet:{},counter:{},
+          appliance:{},dark:{}};
+        const entry={local:[[0,0],[8,0],[8,6],[0,6],[0,0]],
+          minX:0,maxX:8,minZ:0,maxZ:6};
+    """) + "\n".join(_extract(name, js) for name in (
+        "insideFootprint", "pointInRing", "addRoomFurnishing")) + \
+        "\n" + textwrap.dedent("""
+            const room=[[0,0],[8,0],[8,6],[0,6]];
+            const clear=new Group(), blocked=new Group(), tiny=new Group();
+            addRoomFurnishing(clear,entry,'kitchen',room,0,[]);
+            addRoomFurnishing(blocked,entry,'kitchen',room,0,[[4,3,1]]);
+            addRoomFurnishing(tiny,entry,'bedroom',[[3.5,2.5],[4.5,2.5],[4.5,3.5],[3.5,3.5]],0,[]);
+            console.log(JSON.stringify({clear:clear.children.length,
+              provenance:clear.children[0]?.userData.grade,
+              blocked:blocked.children.length,tiny:tiny.children.length}));
+        """)
+    result = subprocess.run([NODE, "-e", script], capture_output=True, text=True,
+                            timeout=60, check=False)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"clear": 1, "provenance": "inferred_from_room_type",
+                                         "blocked": 0, "tiny": 0}
+
+
+def test_first_person_requires_an_opened_entry_not_an_address_search() -> None:
+    js = _page_js()
+    update = _extract("updateDoors", js)
+    assert "insideId !== lastInsideBuildingId" in update
+    assert "candidate.open" in update
+    assert "setFirstPerson(true)" in update
+    assert "lastInsideBuildingId = insideId" in update

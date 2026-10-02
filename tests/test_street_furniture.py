@@ -5,6 +5,73 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "scripts" / "build_street_furniture.py"
 
 
+def test_duplicate_sign_face_keeps_alias_but_distinct_plate_and_facing() -> None:
+    module = _module()
+    base = {"id": "a", "p": [-122.4, 37.79], "sign_kind": "regulatory",
+            "label": "NO PARKING", "bearing": 90.0,
+            "tags": {"SIGN_CODE": "R7-1"}}
+    records = [base, {**base, "id": "b"},
+               {**base, "id": "c", "label": "TOW AWAY"},
+               {**base, "id": "d", "bearing": 270.0}]
+    result = module.dedupe_sign_faces(records)
+    assert len(result) == 3
+    assert result[0]["source_aliases"] == ["b"]
+
+
+def test_dense_bearingless_inventory_cluster_preserves_aliases_and_distinct_faces() -> None:
+    module = _module()
+    base = {"p": [-122.41810, 37.79455], "sign_kind": "regulatory",
+            "label": "CABLE CAR STOP", "bearing": None,
+            "tags": {"CNN": "25276000", "SIGN_CODE": "R(SF).0336"}}
+    close = [{**base, "id": f"c{i}",
+              "p": [-122.41810 + i * 0.000006, 37.79455 + i * 0.000004]}
+             for i in range(6)]
+    distinct = [
+        {**base, "id": "other-legend", "label": "NO PARKING"},
+        {**base, "id": "other-bearing", "bearing": 90.0},
+        {**base, "id": "distant", "p": [-122.4178, 37.79455]},
+    ]
+    result = module.dedupe_sign_faces(close + distinct)
+    assert len(result) == 4
+    clustered = next(row for row in result if row.get("dedupe_basis"))
+    assert set(clustered.get("source_aliases", [])) | {clustered["id"]} == {
+        f"c{i}" for i in range(6)}
+    assert {row["id"] for row in result if row is not clustered} == {
+        "other-legend", "other-bearing", "distant"}
+
+
+def test_osm_overhead_line_and_pole_keep_distinct_provenance() -> None:
+    module = _module()
+    records = module.records_from_osm([
+        {"type": "node", "id": 1, "lon": -122.4, "lat": 37.79,
+         "tags": {"power": "pole", "material": "wood"}},
+        {"type": "way", "id": 2, "tags": {"power": "minor_line"},
+         "geometry": [{"lon": -122.4, "lat": 37.79},
+                      {"lon": -122.3999, "lat": 37.79}]},
+        {"type": "way", "id": 3,
+         "tags": {"power": "cable", "location": "underground"},
+         "geometry": [{"lon": -122.4, "lat": 37.79},
+                      {"lon": -122.3999, "lat": 37.79}]},
+    ])
+    assert len(records["utility_poles"]) == 1
+    assert len(records["power_lines"]) == 1
+    assert records["power_lines"][0]["geometry_basis"] == "osm_overhead_line_way"
+
+
+def test_osm_map_fallback_extracts_only_overhead_power() -> None:
+    module = _module()
+    raw = b'''<osm>
+      <node id="1" lon="-122.4000" lat="37.7900"><tag k="power" v="pole"/></node>
+      <node id="2" lon="-122.3999" lat="37.7900"/>
+      <way id="3"><nd ref="1"/><nd ref="2"/><tag k="power" v="minor_line"/></way>
+      <way id="4"><nd ref="1"/><nd ref="2"/><tag k="power" v="cable"/>
+        <tag k="location" v="underground"/></way>
+    </osm>'''
+    bbox = {"west": -122.401, "east": -122.399, "south": 37.789, "north": 37.791}
+    rows = module.osm_power_from_xml(raw, bbox)
+    assert {(row["type"], row["id"]) for row in rows} == {("node", 1), ("way", 3)}
+
+
 def _module():
     spec = importlib.util.spec_from_file_location("build_street_furniture", SOURCE)
     assert spec and spec.loader
