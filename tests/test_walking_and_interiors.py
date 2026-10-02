@@ -189,7 +189,7 @@ def test_recessed_stair_cuts_only_the_interior_floor() -> None:
 def test_inferred_furniture_fits_room_and_keeps_entry_clear() -> None:
     js = _page_js()
     script = textwrap.dedent("""
-        class Group {constructor(){this.children=[];this.position={set(){}};this.rotation={};}
+            class Group {constructor(){this.children=[];this.position={set(x,y,z){Object.assign(this,{x,y,z});}};this.rotation={};}
           add(item){this.children.push(item);}}
         class Mesh {constructor(geometry,material){this.geometry=geometry;this.material=material;
           this.position={set(){}};this.rotation={};}}
@@ -200,7 +200,7 @@ def test_inferred_furniture_fits_room_and_keeps_entry_clear() -> None:
         const entry={local:[[0,0],[8,0],[8,6],[0,6],[0,0]],
           minX:0,maxX:8,minZ:0,maxZ:6};
     """) + "\n".join(_extract(name, js) for name in (
-        "insideFootprint", "pointInRing", "addRoomFurnishing")) + \
+        "insideFootprint", "pointInRing", "furnishingPlacement", "addRoomFurnishing")) + \
         "\n" + textwrap.dedent("""
             const room=[[0,0],[8,0],[8,6],[0,6]];
             const clear=new Group(), blocked=new Group(), tiny=new Group();
@@ -209,13 +209,18 @@ def test_inferred_furniture_fits_room_and_keeps_entry_clear() -> None:
             addRoomFurnishing(tiny,entry,'bedroom',[[3.5,2.5],[4.5,2.5],[4.5,3.5],[3.5,3.5]],0,[]);
             console.log(JSON.stringify({clear:clear.children.length,
               provenance:clear.children[0]?.userData.grade,
-              blocked:blocked.children.length,tiny:tiny.children.length}));
+                  blocked:blocked.children.length,tiny:tiny.children.length,
+                  blockedPosition:blocked.children[0]?.position}));
         """)
     result = subprocess.run([NODE, "-e", script], capture_output=True, text=True,
                             timeout=60, check=False)
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {"clear": 1, "provenance": "inferred_from_room_type",
-                                         "blocked": 0, "tiny": 0}
+    output = json.loads(result.stdout)
+    position = output.pop("blockedPosition")
+    assert output == {"clear": 1, "provenance": "inferred_from_room_type", "blocked": 1, "tiny": 0}
+    # The blocked center is not an excuse to leave a large room empty: retry
+    # a safe placement, keeping the entire kitchen fixture clear of the door.
+    assert ((position["x"] - 4) ** 2 + (position["z"] - 3) ** 2) ** 0.5 > 1.2
 
 
 def test_first_person_requires_an_opened_entry_not_an_address_search() -> None:

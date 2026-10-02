@@ -2948,6 +2948,8 @@ import * as THREE from "https://esm.sh/three@0.160.0";
 // git stays small and the data lives where a city's worth of it can.
 const ASSET_BASE = (document.querySelector('meta[name="kerbside-assets"]') || {}).content || "";
 const asset = (name) => (ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
+const sharedAsset = (name) => new URL(name, new URL(
+  document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href;
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 // Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
@@ -8278,7 +8280,7 @@ function facadeTextureFor(material, seed) {
 async function loadPhotoMaterialLibrary() {
   let manifest;
   try {
-    const response = await fetch(asset("materials/manifest.json"), { cache: "force-cache" });
+    const response = await fetch(sharedAsset("materials/manifest.json"), { cache: "force-cache" });
     if (!response.ok) return;
     manifest = await response.json();
   } catch (_) { return; }
@@ -8294,7 +8296,7 @@ async function loadPhotoMaterialLibrary() {
     for (let variant = 0; variant < Math.min(3, rows.length); variant += 1) {
       const image = new Image();
       image.crossOrigin = "anonymous";
-      image.src = asset(`materials/${rows[variant].file}`);
+      image.src = sharedAsset(`materials/${rows[variant].file}`);
       try { await image.decode(); } catch (_) { continue; }
       if (!PHOTO_MATERIAL_IMAGES.has(materialClass)) PHOTO_MATERIAL_IMAGES.set(materialClass, []);
       PHOTO_MATERIAL_IMAGES.get(materialClass)[variant] = image;
@@ -16968,7 +16970,30 @@ function hardGroundExclusion(ground) {
 // clipping alone cannot guarantee that grass stays off paving. Rasterize the same hard-surface
 // footprint once at one metre and discard grass fragments there on the GPU. The CPU clip above
 // still shapes its boundary, but does not need to subdivide whole parks to path-pixel scale.
-function grassHardMask(excludeAt) {
+function grassRasterRows(rings, west, south, width, height, step) {
+  const rows = Array.from({ length: height }, () => []);
+  for (const ring of rings) {
+    const local = ring.map((p) => xy(...p));
+    if (!local.length) continue;
+    const x0 = Math.max(0, Math.floor((Math.min(...local.map((p) => p[0])) - west) / step) - 1);
+    const x1 = Math.min(width, Math.ceil((Math.max(...local.map((p) => p[0])) - west) / step) + 1);
+    const y0 = Math.max(0, Math.floor((Math.min(...local.map((p) => p[1])) - south) / step) - 1);
+    const y1 = Math.min(height, Math.ceil((Math.max(...local.map((p) => p[1])) - south) / step) + 1);
+    if (x1 <= x0) continue;
+    for (let y = y0; y < y1; y += 1) rows[y].push([x0, x1]);
+  }
+  return rows.map((ranges) => {
+    const merged = [];
+    for (const range of ranges.sort((a, b) => a[0] - b[0])) {
+      const last = merged[merged.length - 1];
+      if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
+      else merged.push(range.slice());
+    }
+    return merged;
+  });
+}
+
+function grassHardMask(excludeAt, rings = null) {
   const [bw, bs] = xy(bbox.west, bbox.south), [be, bn] = xy(bbox.east, bbox.north);
   // Three-quarter-metre cells retain the old two-channel mask's memory budget while
   // resolving narrow paths and stair-step edges more faithfully. One channel encodes
@@ -16978,10 +17003,13 @@ function grassHardMask(excludeAt) {
   const width = Math.ceil((be + RING_BOX_MARGIN_M - west) / step);
   const height = Math.ceil((bn + RING_BOX_MARGIN_M - south) / step);
   const east = west + width * step, north = south + height * step;
-  const data = new Uint8Array(width * height);
+  const data = new Uint8Array(width * height).fill(255);
+  // Test only conservative grass bounds. Roads and water miles outside any
+  // grass mesh cannot contribute a fragment; querying them dominated startup.
+  const rows = rings ? grassRasterRows(rings, west, south, width, height, step) : null;
   for (let iy = 0; iy < height; iy += 1) {
     const y = south + (iy + 0.5) * step;
-    for (let ix = 0; ix < width; ix += 1) {
+    for (const [first, end] of rows ? rows[iy] : [[0, width]]) for (let ix = first; ix < end; ix += 1) {
       const x = west + (ix + 0.5) * step, z = -y;
       const hard = excludeAt(x, z) || insideCarriageway(x, z, 0.15);
       data[iy * width + ix] = hard ? 0 : parkPavementAt(x, z) ? 128 : 255;
@@ -17851,7 +17879,12 @@ function buildCourts(ground) {
   // plane and the top of the roadway (0.06), so they cover the black without climbing the kerb.
   const excludeGrassAt = hardGroundExclusion(ground);
   const excludeParkAt = (x, z) => excludeGrassAt(x, z) || parkPavementAt(x, z);
-  const grassMask = grassHardMask(excludeGrassAt);
+  const classifiedGround = ground.lawns || ground.backyards || ground.front_walks || ground.service_yards;
+  const grassRings = classifiedGround
+    ? [...(ground.lawns || []), ...(ground.backyards || [])]
+    : (ground.yards || []);
+  const grassMask = grassHardMask(excludeGrassAt,
+    [...(ground.parks || []), ...grassRings].map((item) => item.p));
   const parkVariants = GRASS_VARIANTS;
   for (let variant = 0; variant < parkVariants; variant += 1) {
     const rings = (ground.parks || [])
@@ -17864,10 +17897,6 @@ function buildCourts(ground) {
     }
   }
 
-  const classifiedGround = ground.lawns || ground.backyards || ground.front_walks || ground.service_yards;
-  const grassRings = classifiedGround
-    ? [...(ground.lawns || []), ...(ground.backyards || [])]
-    : (ground.yards || []);
   const yardVariants = GRASS_VARIANTS;
   for (let variant = 0; variant < yardVariants; variant += 1) {
     const rings = grassRings
@@ -19706,7 +19735,8 @@ document.getElementById("reset").addEventListener("click", () => {
     const [x, y] = xy(place.lon, place.lat);
     // A named place is an explicit destination: unlike pointer view gestures,
     // search is allowed to move the walker and close the distance.
-    goTo(new THREE.Vector3(x, 0, -y), { travel: true });
+    const landing = addressLanding(new THREE.Vector3(x, 0, -y));
+    goTo(landing, { travel: true, zoom: true });
     field.value = place.label;
     showing = [];
     selected = -1;
@@ -20159,6 +20189,21 @@ function eligibleLanding(landing, forceStreet = false) {
   return best || (!buildingAt(landing.x, landing.z) ? landing : null);
 }
 
+function addressLanding(landing) {
+  // An address is not permission to teleport through a wall. Arrive just
+  // outside its available entrance, looking into the same door used by walking.
+  const building = buildingAt(landing.x, landing.z);
+  const entry = building && footprintById.get(String(building.osm_id));
+  for (const door of entry?.doors || []) {
+    const x = door.cx - door.nx * 1.5, z = door.cz - door.nz * 1.5;
+    if (buildingAt(x, z)) continue;
+    state.yaw = Math.atan2(-door.nx, -door.nz);
+    state.look = 0;
+    return new THREE.Vector3(x, 0, z);
+  }
+  return eligibleLanding(landing);
+}
+
 // A click moves the walker without changing zoom. Right-click is the deliberate
 // street-level teleport; dragging and wheel zoom never move the walker.
 function goTo(landing, { travel = false, zoom = false } = {}) {
@@ -20307,7 +20352,7 @@ for (const bucket of footprintGrid.values()) {
 let INTERIORS = null;
 let HOME_OPENINGS = { buildings: {} };
 let HOME_OPENINGS_VERSION = 0;
-fetch(asset("sf-corridor-home-openings.json"), { cache: "no-cache" })
+fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : null).then((data) => {
     if (data) { HOME_OPENINGS = data; HOME_OPENINGS_VERSION += 1; }
   })
@@ -20752,8 +20797,18 @@ function wallPanels(width, bottom, top, openings) {
   return panels;
 }
 
-function regularHomeWindows(length, bottom, top, seed) {
-  const rows = Math.max(1, Math.floor((top - bottom) / 2.8));
+function homeStoreyCount(entry, height) {
+  const mapped = Number(entry.way.tags?.["building:levels"] || entry.way.levels);
+  const fitted = Number(entry.fit?.[9]);
+  const plausible = (n) => Number.isInteger(n) && n > 0 && height / n >= 2.3 && height / n <= 7;
+  if (plausible(mapped)) return mapped;
+  // A default one-storey record is not evidence for a thirty-metre loft.
+  if (plausible(fitted)) return fitted;
+  return Math.max(1, Math.round(height / 3.2));
+}
+
+function regularHomeWindows(length, bottom, top, seed, storeys = null) {
+  const rows = storeys || Math.max(1, Math.floor((top - bottom) / 2.8));
   const storey = (top - bottom) / rows;
   const bays = Math.floor((length - 0.5) / 2.6);
   if (!bays || storey < 2.3) return [];
@@ -20847,7 +20902,7 @@ function buildHomeShell(entry) {
     const observed = HOME_OPENINGS.buildings[id]?.walls[String(edge)];
     const candidates = observed ? observed.map(([u, v, w, h, confidence]) => ({
       u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
-      : regularHomeWindows(length, floor, top, spec.seed + edge * 59);
+      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, homeStoreyCount(entry, top - floor));
     const windows = candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
       && !cuts.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
         && o.v < c.v + c.h + 0.15 && o.v + o.h > c.v - 0.15)
@@ -20891,15 +20946,6 @@ function buildHomeShell(entry) {
         d.cx + ux * b + nx * depth, d.cz + uz * b + nz * depth]);
       group.add(new THREE.Mesh(wallQuads(jambs, floor, DOOR_HEIGHT_M), plasterMaterial));
     }
-  }
-  // Ground-floor interiors and upper-floor slabs stop windows revealing an empty tower.
-  const rows = Math.max(1, Math.floor((top - floor) / 2.8));
-  for (let r = 1; r < rows; r += 1) {
-    const slab = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(entry.local.slice(0, -1)
-      .map(([x, z]) => new THREE.Vector2(x, -z)))), ceilingMaterial);
-    slab.rotation.x = -Math.PI / 2;
-    slab.position.y = floor + r * (top - floor) / rows;
-    group.add(slab);
   }
   group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };
   batchHomeShell(group);
@@ -21000,34 +21046,47 @@ const furnishingMaterials = {
   dark: new THREE.MeshStandardMaterial({ color: 0x393d3e, roughness: 0.46 }),
 };
 
-function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
-  const dimensions = { living: [1.7, 0.9], dining: [1.3, 0.8], bedroom: [1.5, 2.0],
-    kitchen: [1.8, 0.75], storage: [1.4, 0.75], bathroom: [0.75, 0.65], office: [1.3, 0.7] };
-  const size = dimensions[kind];
-  if (!size) return;
-  const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
-  const cz = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
-  if (doorsInPlan.some(([dx, dz]) => Math.hypot(dx - cx, dz - cz) < 1.7)) return;
+function furnishingPlacement(entry, pts, size, doorsInPlan) {
+  const centre = pts.reduce((p, q) => [p[0] + q[0] / pts.length, p[1] + q[1] / pts.length], [0, 0]);
   let longest = -1, direction = [1, 0];
+  const candidates = [centre];
   for (let i = 0; i < pts.length; i += 1) {
     const a = pts[i], b = pts[(i + 1) % pts.length];
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
     if (length < 0.2) continue;
     if (length > longest) { longest = length; direction = [(b[0] - a[0]) / length, (b[1] - a[1]) / length]; }
+    const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+    candidates.push([mx * 0.55 + centre[0] * 0.45, mz * 0.55 + centre[1] * 0.45]);
   }
-  if (longest < 0.2) return;
+  if (longest < 0.2) return null;
   const yaw = -Math.atan2(direction[1], direction[0]);
   const cos = Math.cos(yaw), sin = Math.sin(yaw);
   const samplesX = Math.ceil((size[0] + 0.3) / 0.2), samplesZ = Math.ceil((size[1] + 0.3) / 0.2);
-  for (let ix = 0; ix <= samplesX; ix += 1) {
-    const xx = -size[0] / 2 - 0.15 + (size[0] + 0.3) * ix / samplesX;
-    for (let iz = 0; iz <= samplesZ; iz += 1) {
-      const zz = -size[1] / 2 - 0.15 + (size[1] + 0.3) * iz / samplesZ;
-      const x = cx + cos * xx + sin * zz, z = cz - sin * xx + cos * zz;
-      if (!pointInRing(x, z, pts) || !insideFootprint(entry, x, z)) return;
-      if ((entry.accessZones || []).some((zone) => pointInRing(x, z, zone))) return;
+  for (const [cx, cz] of candidates) {
+    let fits = true;
+    for (let ix = 0; ix <= samplesX && fits; ix += 1) {
+      const xx = -size[0] / 2 - 0.15 + (size[0] + 0.3) * ix / samplesX;
+      for (let iz = 0; iz <= samplesZ; iz += 1) {
+        const zz = -size[1] / 2 - 0.15 + (size[1] + 0.3) * iz / samplesZ;
+        const x = cx + cos * xx + sin * zz, z = cz - sin * xx + cos * zz;
+        if (!pointInRing(x, z, pts) || !insideFootprint(entry, x, z)
+            || (entry.accessZones || []).some((zone) => pointInRing(x, z, zone))
+            || doorsInPlan.some(([dx, dz]) => Math.hypot(dx - x, dz - z) < 0.7)) { fits = false; break; }
+      }
     }
+    if (fits) return { cx, cz, yaw };
   }
+  return null;
+}
+
+function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
+  const dimensions = { living: [1.7, 0.9], dining: [1.3, 0.8], bedroom: [1.5, 2.0],
+    kitchen: [1.8, 0.75], storage: [1.4, 0.75], bathroom: [0.75, 0.65], office: [1.3, 0.7] };
+  const size = dimensions[kind];
+  if (!size) return;
+  const placement = furnishingPlacement(entry, pts, size, doorsInPlan);
+  if (!placement) return;
+  const { cx, cz, yaw } = placement;
   const furniture = new THREE.Group();
   furniture.position.set(cx, floorY, cz);
   furniture.rotation.y = yaw;
@@ -21050,6 +21109,14 @@ function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
     box(1.8, 0.82, 0.65, 0, 0.42, 0, furnishingMaterials.cabinet);
     box(1.84, 0.06, 0.72, 0, 0.86, 0, furnishingMaterials.counter);
     box(0.5, 0.01, 0.35, 0.46, 0.90, 0, furnishingMaterials.dark);
+    // Distinct sink, tap, cooktop and oven faces, rather than an anonymous box.
+    box(0.44, 0.012, 0.36, -0.48, 0.90, 0, furnishingMaterials.appliance);
+    box(0.34, 0.014, 0.26, -0.48, 0.902, 0, furnishingMaterials.dark);
+    box(0.035, 0.22, 0.035, -0.48, 1.0, -0.21, furnishingMaterials.appliance);
+    box(0.035, 0.035, 0.14, -0.48, 1.1, -0.16, furnishingMaterials.appliance);
+    box(0.48, 0.48, 0.025, 0.46, 0.48, 0.337, furnishingMaterials.dark);
+    for (const x of [-0.64, -0.27, 0.45])
+      box(0.25, 0.025, 0.03, x, 0.72, 0.355, furnishingMaterials.appliance);
   } else if (kind === "storage") {
     for (const x of [-0.36, 0.36]) {
       box(0.67, 0.84, 0.67, x, 0.43, 0, furnishingMaterials.appliance);
@@ -21276,7 +21343,7 @@ function buildInterior(entry) {
   const homeSpec = HOME_RENDER.get(String(entry.way.osm_id));
   const visibleHeight = homeSpec ? homeSpec.base + homeSpec.height - floorY : null;
   const height = entry.homeShell && visibleHeight > 2.3
-    ? visibleHeight / Math.max(1, Math.floor(visibleHeight / 2.8)) - 0.06
+    ? visibleHeight / homeStoreyCount(entry, visibleHeight) - 0.06
     : Math.max(2.4, Math.min(storeyM || 3.0, 4.5)) - 0.06;
   const group = new THREE.Group();
   group.name = `interior:${entry.way.osm_id}`;
@@ -21318,7 +21385,6 @@ function buildInterior(entry) {
           return true;
         });
         if (inside === pts.length && edgesInside) {
-          roomSpecs.push({ kind, pts });
           // A room polygon that meets the recessed entry cannot paint across
           // the open stairwell. The common slab below it carries the rest.
           const intersectsStair = stairCuts.some((cut) => cut.some(([px, pz]) => pointInRing(px, pz, pts))
@@ -21332,6 +21398,9 @@ function buildInterior(entry) {
             group.add(floor);
           }
         }
+        // A partly clipped room can still hold a safe furnishing. Placement
+        // tests the entire object's bounds against both room and footprint.
+        roomSpecs.push({ kind, pts });
         // Its walls, clipped to the footprint, with the plan's doorways left open.
         for (let k = 0; k < pts.length; k += 1) {
           const [ax, az] = pts[k];
@@ -21436,6 +21505,9 @@ function buildInterior(entry) {
     frame.userData = { surface: "interior_door", grade: "fitted_plan_not_measured" };
     group.add(frame);
   }
+  // Share static wall/floor batches before repeating storeys; furniture and
+  // door groups remain independent for asset replacement and leaf details.
+  batchHomeShell(group);
   for (const room of roomSpecs) addRoomFurnishing(group, entry, room.kind, room.pts, floorY, doorsInPlan);
   // Floor and ceiling over the whole footprint.
   const outline = floorShapeWithStairCuts(ring.slice(0, -1), stairCuts);
@@ -21443,12 +21515,36 @@ function buildInterior(entry) {
   slab.rotation.x = -Math.PI / 2;
   slab.position.y = floorY;
   slab.receiveShadow = true;
+  slab.userData.surface = "interior_base_floor";
   const ceilingOutline = new THREE.Shape(ring.slice(0, -1)
     .map(([px, pz]) => new THREE.Vector2(px, -pz)));
   const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(ceilingOutline), ceilingMaterial);
   ceiling.rotation.x = -Math.PI / 2;
   ceiling.position.y = floorY + height;
   group.add(slab, ceiling);
+  if (entry.homeShell && visibleHeight > 5.6) {
+    const floors = homeStoreyCount(entry, visibleHeight);
+    const spacing = visibleHeight / floors;
+    const groundObjects = [...group.children];
+    for (let level = 1; level < floors; level += 1) {
+      const upper = new THREE.Group();
+      upper.position.y = level * spacing;
+      upper.userData = { surface: "interior_storey", level, grade: "repeated_fitted_plan_not_measured" };
+      for (const original of groundObjects) {
+        if (original === slab) continue;
+        const copy = original.clone(true);
+        copy.traverse((o) => { if (o.isMesh) o.userData.sharedInteriorAsset = true; });
+        upper.add(copy);
+      }
+      // External entrance recesses belong only to the ground floor.
+      const upperFloor = new THREE.Mesh(new THREE.ShapeGeometry(ceilingOutline), roomFloorMaterial("other"));
+      upperFloor.rotation.x = -Math.PI / 2;
+      upperFloor.position.y = floorY;
+      upperFloor.receiveShadow = true;
+      upper.add(upperFloor);
+      group.add(upper);
+    }
+  }
   const light = new THREE.PointLight(0xfff1dc, 1.4, Math.max(12, Math.hypot(L, W)), 1.6);
   light.position.set(centreX, floorY + height - 0.3, centreZ);
   group.add(light);
@@ -21479,6 +21575,57 @@ window.kerbsideInteriors = () => ({ loaded: Boolean(INTERIORS), built: [...inter
       source: DOOR_SOURCE[d.source], rendered: Boolean(d.mesh), recessed: Boolean(d.stoopPlan),
       steps: d.stoopPlan?.steps, landingDepth: d.stoopPlan?.landingDepth })) })) });
 requestInteriors();
+
+// An opt-in development inspector exercises the same entrance and swept
+// collision path as normal walking. It never opens a wall or substitutes data.
+if (new URLSearchParams(location.search).get("inspect") === "interiors") {
+  const inspector = document.createElement("details");
+  inspector.id = "interior-inspector";
+  inspector.open = true;
+  inspector.style.cssText = "position:fixed;right:8px;top:64px;z-index:30;background:#fff;"
+    + "color:#222;padding:8px;max-width:300px;max-height:70vh;overflow:auto;font:12px system-ui";
+  inspector.innerHTML = '<summary>Interior inspection</summary><button id="inspect-entrance">Visit nearby house entrance</button>'
+    + '<button id="inspect-door">Toggle entrance door</button><button id="inspect-step">Walk forward 0.25 m</button>'
+    + '<button id="inspect-back">Look behind</button>'
+    + '<pre id="inspect-state" style="white-space:pre-wrap"></pre>';
+  document.body.appendChild(inspector);
+  for (const button of inspector.querySelectorAll("button"))
+    button.style.cssText = "display:block;background:#f4f1e8;color:#222;margin:4px 0;border:1px solid #aaa";
+  document.getElementById("inspect-entrance").onclick = () => {
+    const candidates = doorsNear(avatar.position.x, avatar.position.z, 500)
+      .filter((d) => HOME_RENDER.has(String(d.entry.way.osm_id)))
+      .filter((d) => !buildingAt(d.cx - d.nx * 1.5, d.cz - d.nz * 1.5));
+    const residential = candidates.filter((d) => d.entry.way.archetype === "residential"
+      || d.entry.way.address || /RESIDENTIAL|HOUSE|DWELLING/i.test(d.entry.way.land_use || ""));
+    const choices = residential.length ? residential : candidates;
+    const d = choices.find((d) => d.source !== 2) || choices[0];
+    if (!d) return;
+    state.yaw = Math.atan2(-d.nx, -d.nz); state.look = 0;
+    goTo(new THREE.Vector3(d.cx - d.nx * 1.5, 0, d.cz - d.nz * 1.5), { travel: true, zoom: true });
+    setFirstPerson(false);
+  };
+  document.getElementById("inspect-door").onclick = () => { const d = nearestDoor(); if (d) toggleDoor(d); };
+  document.getElementById("inspect-step").onclick = () => {
+    moveWalker(-Math.sin(state.yaw) * 0.25, -Math.cos(state.yaw) * 0.25);
+    avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
+    state.target.copy(avatar.position); placeCamera();
+  };
+  document.getElementById("inspect-back").onclick = () => { state.yaw += Math.PI; placeCamera(); };
+  setInterval(() => {
+    const b = buildingAt(avatar.position.x, avatar.position.z);
+    const e = b && footprintById.get(String(b.osm_id));
+    const d = nearestDoor();
+    const report = { loaded: Boolean(INTERIORS), firstPerson: state.firstPerson,
+      building: b?.osm_id, door: d && { building: d.entry.way.osm_id, source: DOOR_SOURCE[d.source],
+        open: d.open, steps: d.stoopPlan?.steps || 0, landing: d.stoopPlan?.landingDepth || 0 },
+      shells: homeShells.size, windows: [...homeShells].reduce((n, h) => n + h.homeShell.group.userData.windows.length, 0),
+      rooms: e?.interior?.group.userData, furniture: e?.interior?.group.children
+        .filter((o) => o.userData.surface?.startsWith("furnishing:")).length,
+      ground: walkerGroundAt(avatar.position.x, avatar.position.z) };
+    if (d) report.entranceDepth = (avatar.position.x - d.cx) * d.nx + (avatar.position.z - d.cz) * d.nz;
+    document.getElementById("inspect-state").textContent = JSON.stringify(report, null, 2);
+  }, 500);
+}
 
 let previous = performance.now();
 function animateAvatar(distance, direction, moving) {

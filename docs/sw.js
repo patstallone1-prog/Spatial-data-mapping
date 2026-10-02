@@ -4,7 +4,7 @@
  * Documents and data are network-first so fresh geometry is never hidden by
  * an older cached copy.
  */
-const VERSION = "cde650be98d8f75d";
+const VERSION = "421eecf2786cc030";
 const CACHE = "kerbside-" + VERSION;
 const SHELL = [
   "./app.html",

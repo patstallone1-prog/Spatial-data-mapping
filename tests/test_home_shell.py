@@ -45,6 +45,16 @@ def test_whole_windows_fit_non_integer_storeys(height):
         assert o["v"] >= 42 and o["v"] + o["h"] <= 42 + height - 0.1
 
 
+def test_interior_floors_and_window_rows_respect_existing_storey_inventory():
+    counts = run_js(["homeStoreyCount"], """
+      console.log(JSON.stringify([
+        homeStoreyCount({way:{tags:{}},fit:[0,0,0,0,0,0,0,0,0,6]},38.38),
+        homeStoreyCount({way:{tags:{'building:levels':'3'}},fit:[0,0,0,0,0,0,0,0,0,4]},12),
+        homeStoreyCount({way:{tags:{}},fit:[0,0,0,0,0,0,0,0,0,1]},38.38)]));
+    """)
+    assert counts == [6, 3, 12]
+
+
 def test_foyer_removes_partition_and_collision_together():
     out = run_js(["clipOutsideZones"], """
       function pointInRing(x,z,r) { return x>2 && x<4 && z>0 && z<5; }
@@ -85,6 +95,69 @@ def test_front_and_landing_both_reach_recessed_door():
       console.log(JSON.stringify(nearestDoor()===d));
     """)
     assert out
+
+
+def test_address_arrival_stays_outside_house_and_faces_its_door():
+    out = run_js(["addressLanding"], """
+      const state={yaw:0,look:1};
+      const d={cx:5,cz:0,nx:0,nz:1};
+      const footprintById=new Map([['1',{doors:[d]}]]);
+      function buildingAt(x,z){return z>=0?{osm_id:1}:null;}
+      function eligibleLanding(p){return {fallback:true};}
+      const THREE={Vector3:class{constructor(x,y,z){Object.assign(this,{x,y,z});}}};
+      const p=addressLanding({x:5,z:5});
+      console.log(JSON.stringify({p,forward:[-Math.sin(state.yaw),-Math.cos(state.yaw)],look:state.look}));
+    """)
+    assert out["p"] == {"x": 5, "y": 0, "z": -1.5}
+    assert out["forward"] == pytest.approx([0, 1])
+    assert out["look"] == 0
+
+
+def test_all_app_regions_have_usable_provenance_tagged_interior_plans():
+    index = json.loads((ROOT / "docs/app-regions.json").read_text())
+    for region in index["regions"]:
+        if not region.get("built"):
+            continue
+        page = ROOT / "docs" / region["path"]
+        # Oakland has its expanded local payload; the others reuse their own
+        # regional source assets, never SF building IDs.
+        directory = page.parent
+        if region["name"] not in ("sf-corridor", "oakland-downtown"):
+            directory = ROOT / "docs/regions" / region["name"]
+        data = json.loads((directory / "sf-corridor-interiors.json").read_text())
+        assert data["region"] == region["name"]
+        assert data["buildings"] and data["library"] and data["sources"]
+        for record in data["buildings"].values():
+            assert 0 <= record[0] < len(data["library"])
+            for edge, t, width, source in record[13]:
+                assert edge >= 0 and 0 <= t <= 1 and width > 0 and source in (0, 1, 2)
+
+
+def test_furniture_retries_away_from_foyer_but_never_spills_outside_room():
+    out = run_js(["furnishingPlacement"], """
+      function pointInRing(x,z,r){return x>r[0][0]&&x<r[2][0]&&z>r[0][1]&&z<r[2][1];}
+      function insideFootprint(e,x,z){return x>0&&x<10&&z>0&&z<8;}
+      const room=[[0,0],[10,0],[10,8],[0,8]];
+      const entry={accessZones:[[[4,0],[6,0],[6,8],[4,8]]]};
+      console.log(JSON.stringify([furnishingPlacement(entry,room,[1.7,0.9],[]),
+        furnishingPlacement(entry,[[0,0],[0.7,0],[0.7,8],[0,8]],[1.7,0.9],[])]));
+    """)
+    assert out[0] is not None
+    assert out[0]["cx"] < 4 or out[0]["cx"] > 6
+    assert out[1] is None
+
+
+def test_sparse_grass_raster_conservatively_covers_every_ring_bound():
+    out = run_js(["grassRasterRows"], """
+      function xy(x,y){return [x,y];}
+      console.log(JSON.stringify(grassRasterRows([
+        [[2,2],[4,2],[4,4],[2,4]],[[3,3],[5,3],[5,5],[3,5]]],0,0,20,20,1)));
+    """)
+    assert all(not row for row in out[:1] + out[6:])
+    assert out[3] == [[1, 6]]
+    for y in (2, 3, 4):
+        for x in (2, 3, 4):
+            assert any(a <= x < b for a, b in out[y])
 
 
 def test_closed_recess_is_accessible_but_leaf_and_returns_stop_walker():

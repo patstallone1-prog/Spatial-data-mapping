@@ -1,8 +1,8 @@
 """A generated page must not become a newer, unrepeatable renderer version."""
 
 from pathlib import Path
-from tests.test_world_object_renderer import _extract, _page_js
 
+from tests.test_world_object_renderer import _extract, _page_js
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,7 +28,8 @@ def test_every_installed_city_uses_the_current_house_and_collision_code() -> Non
         text = page.read_text()
         for name in ("wallPanels", "regularHomeWindows", "buildHomeShell", "batchHomeShell",
                      "buildInterior", "insideEntranceRecess", "nearestDoor", "wallSegmentsNear",
-                     "planInwardStoop", "moveWalker", "maskedGrassMaterial"):
+                     "planInwardStoop", "moveWalker", "maskedGrassMaterial", "grassRasterRows",
+                     "homeStoreyCount", "furnishingPlacement", "addressLanding"):
             assert _extract(name, text) == _extract(name, current), f"stale {name}: {page}"
 
 
