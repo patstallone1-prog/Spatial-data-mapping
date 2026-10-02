@@ -5944,6 +5944,11 @@ function surfaceMaterial(surface, color, opacity) {
 // What stays separate is what has to: a building is picked by right-clicking it and carries its
 // own address, so it keeps its own mesh.
 const MERGED = new Map();
+// A nearby house can replace its batched facade with a shell cut around the
+// same windows and doors used by its interior. Keep reversible index ranges.
+const BUILDING_VISUAL_RANGES = new Map();
+const HOME_RENDER = new Map();
+let BUILDING_VISUAL_ID = null;
 
 function materialKey(material) {
   // By what it draws, not by which object it is. Every one of these meshes builds its own
@@ -5979,6 +5984,8 @@ function materialKey(material) {
 const CANONICAL_MATERIALS = new Map();
 function addMerged(key, mesh, surface) {
   if (!mesh || !mesh.geometry) return;
+  if (BUILDING_VISUAL_ID !== null && (key === "wall" || key === "plane"))
+    mesh.geometry.userData.homeId = BUILDING_VISUAL_ID;
   const fingerprint = materialKey(mesh.material);
   const full = `${key}|${fingerprint}`;
   let bucket = MERGED.get(full);
@@ -6050,6 +6057,11 @@ function flushMerged(group, match = () => true) {
       const merged = mergeParts(list);
       if (!merged) continue;
       const mesh = new THREE.Mesh(merged, bucket.material);
+      for (const range of merged.userData.homeRanges || []) {
+        let list = BUILDING_VISUAL_RANGES.get(range.id);
+        if (!list) BUILDING_VISUAL_RANGES.set(range.id, list = []);
+        list.push({ mesh, start: range.start, indices: range.indices });
+      }
       // The class survives the merge, so the probe and the audit can still say what is underfoot.
       mesh.userData.surface = bucket.surface;
       // A tile is culled when it is off screen. A bucket small enough to stay one mesh spans the
@@ -6084,6 +6096,7 @@ function mergeParts(parts) {
   const colours = new Float32Array(vertices * 3);
   const merged = vertices > 65535 ? new Uint32Array(indices) : new Uint16Array(indices);
   let v = 0, k = 0;
+  const homeRanges = [];
   for (const geometry of parts) {
     const position = geometry.getAttribute("position");
     const uv = geometry.getAttribute("uv");
@@ -6105,9 +6118,13 @@ function mergeParts(parts) {
       if (colour) { colours[p3] = colour.getX(i); colours[p3 + 1] = colour.getY(i); colours[p3 + 2] = colour.getZ(i); }
       else { colours[p3] = 1; colours[p3 + 1] = 1; colours[p3 + 2] = 1; }
     }
+    const start = k;
     const index = geometry.getIndex();
     if (index) for (let i = 0; i < index.count; i += 1) merged[k++] = v + index.getX(i);
     else for (let i = 0; i < n; i += 1) merged[k++] = v + i;
+    if (geometry.userData.homeId !== undefined)
+      homeRanges.push({ id: String(geometry.userData.homeId), start,
+        indices: merged.slice(start, k) });
     v += n;
     geometry.dispose();
   }
@@ -6117,6 +6134,7 @@ function mergeParts(parts) {
   geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
   geometry.setIndex(new THREE.BufferAttribute(merged, 1));
+  geometry.userData.homeRanges = homeRanges;
   return geometry;
 }
 
@@ -8190,7 +8208,7 @@ const WINDOW_STYLES = [
 
 const PHOTO_MATERIAL_IMAGES = new Map();
 
-function facadeFor(material, seed, style, variant = 0) {
+function facadeFor(material, seed, style, variant = 0, withWindows = true) {
   // One canvas per material and window arrangement, not per building. A few hundred buildings
   // share a few dozen textures, and the rest of the variation comes from the tint.
   const w = 64, h = 64;
@@ -8221,7 +8239,7 @@ function facadeFor(material, seed, style, variant = 0) {
 
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.fillRect(0, h - 5, w, 5);                     // the line between storeys
-  if (material.name !== "glass" && material.name !== "metal") {
+  if (withWindows && material.name !== "glass" && material.name !== "metal") {
     WINDOW_STYLES[style % WINDOW_STYLES.length](ctx, seed);
     trimCourse(ctx, seed, material);
   }
@@ -8240,6 +8258,7 @@ function facadeFor(material, seed, style, variant = 0) {
 }
 
 const FACADE_CACHE = new Map();
+const bareWallMaps = new Map();
 function facadeTextureFor(material, seed) {
   // Twelve window arrangements times three lighting draws per material: enough that a terrace
   // of forty houses has no two the same next to each other, and few enough that the whole city
@@ -8279,10 +8298,10 @@ async function loadPhotoMaterialLibrary() {
       try { await image.decode(); } catch (_) { continue; }
       if (!PHOTO_MATERIAL_IMAGES.has(materialClass)) PHOTO_MATERIAL_IMAGES.set(materialClass, []);
       PHOTO_MATERIAL_IMAGES.get(materialClass)[variant] = image;
-      for (const texture of FACADE_CACHE.values()) {
+      for (const texture of [...FACADE_CACHE.values(), ...bareWallMaps.values()]) {
         const spec = texture.userData || {};
         if (spec.material?.photoLabel !== materialClass || spec.variant !== variant) continue;
-        const repainted = facadeFor(spec.material, spec.seed, spec.style, variant);
+        const repainted = facadeFor(spec.material, spec.seed, spec.style, variant, !spec.bare);
         texture.image = repainted.image;
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.needsUpdate = true;
@@ -14534,6 +14553,13 @@ function buildingMesh(feature) {
   const wallColour = material.photoLabel
     ? new THREE.Color(0xffffff).lerp(new THREE.Color(tint), 0.22)
     : new THREE.Color(tint);
+  if (kind === "building" && ["residential", "generic"].includes(feature.archetype)
+      && !hasStorefront(feature)) {
+    const id = String(feature.osm_id);
+    HOME_RENDER.set(id, { feature, material, seed, tint: wallColour.getHex(),
+      height, base: hillLift });
+    BUILDING_VISUAL_ID = id;
+  }
   roof.color.setHex(0xffffff);
   walls.color.setHex(0xffffff);
   roof.vertexColors = true;
@@ -14573,6 +14599,7 @@ function buildingMesh(feature) {
     addBuildingNamePlaque(group, feature, seed, height, tint);
   }
   BUILDING_LIFT_M = 0;
+  BUILDING_VISUAL_ID = null;
   group.userData = feature;
   // The building itself is merged, so this group holds only whatever detail stayed separate.
   // Returning an empty one adds fifteen thousand objects to the scene graph that draw nothing
@@ -16956,7 +16983,7 @@ function grassHardMask(excludeAt) {
     const y = south + (iy + 0.5) * step;
     for (let ix = 0; ix < width; ix += 1) {
       const x = west + (ix + 0.5) * step, z = -y;
-      const hard = excludeAt(x, z);
+      const hard = excludeAt(x, z) || insideCarriageway(x, z, 0.15);
       data[iy * width + ix] = hard ? 0 : parkPavementAt(x, z) ? 128 : 255;
     }
   }
@@ -16972,7 +16999,7 @@ function maskedGrassMaterial(map, hardMask, roughness, park = false) {
   // exact metres (e.g. 3420), so force every injected coordinate to a float literal.
   const glslFloat = (value) => Number(value).toFixed(8);
   const material = new THREE.MeshStandardMaterial({
-    map, color: 0xffffff, roughness, metalness: 0.0, side: THREE.DoubleSide,
+    map, color: 0xffffff, roughness, metalness: 0.0, side: THREE.DoubleSide, depthTest: false,
   });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.groundHardMask = { value: hardMask.texture };
@@ -17259,6 +17286,10 @@ function fenceMaterial(style) {
 
 function addGround(mesh, what) {
   mesh.userData.surface = what;
+  // Like mapped plazas, fine grass surfaces must replace (not depth-fight) the
+  // coarse terrain backdrop. Hard-surface masks remain authoritative, and roads,
+  // pavements and buildings draw afterward with normal depth testing.
+  if (what === "yard" || what === "park") mesh.renderOrder = -1;
   groups.ground.add(mesh);
   return mesh;
 }
@@ -20274,6 +20305,13 @@ for (const bucket of footprintGrid.values()) {
 }
 
 let INTERIORS = null;
+let HOME_OPENINGS = { buildings: {} };
+let HOME_OPENINGS_VERSION = 0;
+fetch(asset("sf-corridor-home-openings.json"), { cache: "no-cache" })
+  .then((r) => r.ok ? r.json() : null).then((data) => {
+    if (data) { HOME_OPENINGS = data; HOME_OPENINGS_VERSION += 1; }
+  })
+  .catch(() => {});
 let interiorsRequested = false;
 function requestInteriors() {
   if (interiorsRequested) return;
@@ -20336,13 +20374,34 @@ function wallSegmentsNear(x, z) {
         for (let i = 0; i + 1 < ring.length; i += 1) {
           const [ax, az] = ring[i];
           const [bx, bz] = ring[i + 1];
-          const gaps = (entry.doors || []).filter((d) => d.edge === i && d.open).sort((p, q) => p.t0 - q.t0);
+          const edgeLength = Math.hypot(bx - ax, bz - az);
+          const gaps = (entry.doors || []).filter((d) => d.edge === i && (d.open || d.stoopPlan))
+            .map((d) => d.stoopPlan?.width ? { ...d,
+              t0: (d.t0 + d.t1) / 2 - d.stoopPlan.width / (2 * edgeLength),
+              t1: (d.t0 + d.t1) / 2 + d.stoopPlan.width / (2 * edgeLength) } : d)
+            .sort((p, q) => p.t0 - q.t0);
           let from = 0;
           for (const gap of gaps) {
             if (gap.t0 > from) out.push([ax + (bx - ax) * from, az + (bz - az) * from, ax + (bx - ax) * gap.t0, az + (bz - az) * gap.t0]);
             from = Math.max(from, gap.t1);
           }
           if (from < 1) out.push([ax + (bx - ax) * from, az + (bz - az) * from, bx, bz]);
+        }
+        for (const d of entry.doors || []) {
+          if (!d.stoopPlan) continue;
+          const depth = d.stoopPlan.depth;
+          const half = (d.stoopPlan.width || d.width) / 2;
+          for (const sign of [-1, 1]) out.push([
+            d.cx + d.ux * half * sign, d.cz + d.uz * half * sign,
+            d.cx + d.ux * half * sign + d.nx * depth,
+            d.cz + d.uz * half * sign + d.nz * depth]);
+          for (const [a, b] of [[-half, -d.width / 2], [d.width / 2, half]])
+            if (b - a > 0.01) out.push([d.cx + d.ux * a + d.nx * depth,
+              d.cz + d.uz * a + d.nz * depth, d.cx + d.ux * b + d.nx * depth,
+              d.cz + d.uz * b + d.nz * depth]);
+          if (!d.open) out.push([
+            d.cx - d.ux * half + d.nx * depth, d.cz - d.uz * half + d.nz * depth,
+            d.cx + d.ux * half + d.nx * depth, d.cz + d.uz * half + d.nz * depth]);
         }
         if (entry.interior) for (const s of entry.interior.segments) out.push(s);
       }
@@ -20453,6 +20512,7 @@ function showDoor(door) {
   const probe = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), hinge.rotation.y);
   door.inward = probe.x * door.nx + probe.z * door.nz > 0 ? 1 : -1;
   doorsShown.add(door);
+  door.entry.shellNeedsRebuild = true;
 }
 const stoopMaterial = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 });
 function planInwardStoop(door, street, floor) {
@@ -20578,8 +20638,14 @@ doorHint.hidden = true;
 document.body.appendChild(doorHint);
 
 function nearestDoor() {
-  const near = doorsNear(avatar.position.x, avatar.position.z, DOOR_REACH_M);
-  return near.length ? near[0] : null;
+  const x = avatar.position.x, z = avatar.position.z;
+  const near = doorsNear(x, z, DOOR_DRAW_M).filter((d) => d.mesh)
+    .map((d) => {
+      const depth = d.stoopPlan?.depth || 0;
+      return [Math.min(Math.hypot(d.cx - x, d.cz - z),
+        Math.hypot(d.cx + d.nx * depth - x, d.cz + d.nz * depth - z)), d];
+    }).filter(([distance]) => distance <= DOOR_REACH_M).sort((a, b) => a[0] - b[0]);
+  return near.length ? near[0][1] : null;
 }
 
 function toggleDoor(door) {
@@ -20588,6 +20654,16 @@ function toggleDoor(door) {
 }
 
 let lastInsideBuildingId = null;
+
+function insideEntranceRecess(entry, x, z) {
+  return (entry?.doors || []).some((d) => {
+    if (!d.stoopPlan) return false;
+    const dx = x - d.cx, dz = z - d.cz;
+    const across = dx * d.ux + dz * d.uz, inward = dx * d.nx + dz * d.nz;
+    return Math.abs(across) <= d.stoopPlan.width / 2 + 0.1
+      && inward >= -0.1 && inward <= d.stoopPlan.depth + 0.1;
+  });
+}
 
 addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
@@ -20604,17 +20680,19 @@ function updateDoors(dt) {
   for (const door of [...doorsShown]) {
     if (Math.hypot(door.cx - x, door.cz - z) > DOOR_DRAW_M * 1.2 && !door.open) hideDoor(door);
   }
+  updateHomeShells(x, z);
   for (const door of doorsShown) {
     const target = door.open ? Math.PI / 2 * 0.95 : 0;
     door.angle += Math.sign(target - door.angle) * Math.min(Math.abs(target - door.angle), dt * 3.5);
     door.leaf.parent.rotation.y = Math.atan2(-door.uz, door.ux) - door.inward * door.angle;
     door.opening.visible = door.angle > 0.05 && !door.entry.interior;
-    door.portal.visible = door.angle > 0.05 && Boolean(door.entry.interior)
+    door.portal.visible = !door.entry.homeShell && door.angle > 0.05 && Boolean(door.entry.interior)
       && !insideFootprint(door.entry, camera.position.x, camera.position.z);
   }
   const door = nearestDoor();
   const inside = buildingAt(x, z);
-  const insideId = inside ? String(inside.osm_id) : null;
+  const insideEntry = inside && footprintById.get(String(inside.osm_id));
+  const insideId = inside && !insideEntranceRecess(insideEntry, x, z) ? String(inside.osm_id) : null;
   // An address search can land inside a footprint without a person having crossed
   // an entrance. Only switching modes after walking through an opened door keeps
   // a search from unexpectedly zooming into a wall.
@@ -20644,6 +20722,234 @@ function updateDoors(dt) {
   }
 }
 
+// ---- one physical visual shell, shared by both sides of every opening ---------------------------
+// Canonical footprints/heights are untouched. Only nearby residential walls leave the city
+// batch; the original indices are restored verbatim when the detailed shell is retired.
+const homeShellGroup = new THREE.Group();
+homeShellGroup.name = "home-shells";
+root.add(homeShellGroup);
+const homeShells = new Set();
+const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0xd6edf4,
+  transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide,
+  roughness: 0.12, metalness: 0.08, envMapIntensity: 0.5 });
+const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: 0xeee9dd, roughness: 0.65 });
+
+function wallPanels(width, bottom, top, openings) {
+  // A 2D arrangement handles overlapping evidence without bridges across a hole.
+  const holes = openings.map((o) => ({ u: Math.max(0, o.u), v: Math.max(bottom, o.v),
+    w: Math.min(width, o.u + o.w), h: Math.min(top, o.v + o.h) }))
+    .filter((o) => o.w > o.u && o.h > o.v);
+  const xs = [...new Set([0, width, ...holes.flatMap((o) => [o.u, o.w])])].sort((a, b) => a - b);
+  const ys = [...new Set([bottom, top, ...holes.flatMap((o) => [o.v, o.h])])].sort((a, b) => a - b);
+  const panels = [];
+  for (let i = 0; i + 1 < xs.length; i += 1) {
+    for (let j = 0; j + 1 < ys.length; j += 1) {
+      const x = (xs[i] + xs[i + 1]) / 2, y = (ys[j] + ys[j + 1]) / 2;
+      if (!holes.some((o) => x > o.u && x < o.w && y > o.v && y < o.h))
+        panels.push([xs[i], ys[j], xs[i + 1], ys[j + 1]]);
+    }
+  }
+  return panels;
+}
+
+function regularHomeWindows(length, bottom, top, seed) {
+  const rows = Math.max(1, Math.floor((top - bottom) / 2.8));
+  const storey = (top - bottom) / rows;
+  const bays = Math.floor((length - 0.5) / 2.6);
+  if (!bays || storey < 2.3) return [];
+  const pitch = length / bays;
+  const width = Math.min(1.45, pitch * (random(seed + 7) < 0.5 ? 0.52 : 0.62));
+  const height = Math.min(1.65, storey - 1.1);
+  const windows = [];
+  for (let r = 0; r < rows; r += 1) {
+    for (let b = 0; b < bays; b += 1) windows.push({
+      u: (b + 0.5) * pitch - width / 2, v: bottom + r * storey + 0.8,
+      w: width, h: height, kind: "window", grade: "procedural_not_measured" });
+  }
+  return windows;
+}
+
+function setBatchedHomeVisible(id, visible) {
+  for (const { mesh, start, indices } of BUILDING_VISUAL_RANGES.get(String(id)) || []) {
+    const index = mesh.geometry.getIndex();
+    if (!index) continue;
+    index.array.set(visible ? indices : indices.map(() => indices[0]), start);
+    index.needsUpdate = true;
+  }
+}
+
+function homeWallGeometry(a, ux, uz, panels, insetX = 0, insetZ = 0) {
+  const positions = [], uv = [];
+  for (const [u0, v0, u1, v1] of panels) {
+    for (const [u, v] of [[u0, v0], [u1, v0], [u1, v1], [u0, v0], [u1, v1], [u0, v1]]) {
+      positions.push(a[0] + ux * u + insetX, v, a[1] + uz * u + insetZ);
+      uv.push(u / 3, v / 3);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function batchHomeShell(group) {
+  const buckets = new Map();
+  for (const mesh of [...group.children]) {
+    if (!mesh.isMesh || !mesh.geometry) continue;
+    mesh.updateMatrix();
+    mesh.geometry.applyMatrix4(mesh.matrix);
+    if (!buckets.has(mesh.material)) buckets.set(mesh.material, []);
+    buckets.get(mesh.material).push(mesh.geometry);
+    group.remove(mesh);
+  }
+  for (const [material, pieces] of buckets) {
+    const geometry = mergeParts(pieces);
+    if (!geometry) continue;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = !material.transparent;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+}
+
+function buildHomeShell(entry) {
+  const id = String(entry.way.osm_id), spec = HOME_RENDER.get(id);
+  if (!spec || entry.homeShell || !entry.fit || !BUILDING_VISUAL_RANGES.has(id)) return;
+  const bottom = spec.base, top = bottom + spec.height, floor = entryFloorY(entry);
+  if (top - floor < 2.3) return;
+  const key = `${spec.material.name}:${spec.material.photoLabel || ""}:${Math.abs(spec.seed) % 3}`;
+  if (!bareWallMaps.has(key)) {
+    const variant = Math.abs(spec.seed) % 3;
+    const map = facadeFor(spec.material, spec.seed, 0, variant, false);
+    map.userData = { material: spec.material, seed: spec.seed, style: 0, variant, bare: true };
+    bareWallMaps.set(key, map);
+  }
+  const material = new THREE.MeshStandardMaterial({ map: bareWallMaps.get(key),
+    color: spec.tint, roughness: spec.material.rough, metalness: spec.material.metal,
+    side: THREE.DoubleSide });
+  const group = new THREE.Group();
+  group.name = `house-shell:${id}`;
+  const windowRegistry = [];
+  for (let edge = 0; edge + 1 < entry.local.length; edge += 1) {
+    const a = entry.local[edge], b = entry.local[edge + 1];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length < 0.2) continue;
+    const ux = (b[0] - a[0]) / length, uz = (b[1] - a[1]) / length;
+    let nx = -uz, nz = ux;
+    const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+    if (!insideFootprint(entry, mx + nx * 0.2, mz + nz * 0.2)) { nx = -nx; nz = -nz; }
+    const doors = (entry.doors || []).filter((d) => d.edge === edge && d.mesh);
+    const cuts = doors.map((d) => ({ u: (d.t0 + d.t1) / 2 * length - (d.stoopPlan?.width || d.width) / 2,
+      w: d.stoopPlan?.width || d.width,
+      v: d.stoopPlan ? d.stoopPlan.street : floor, h: DOOR_HEIGHT_M + (d.stoopPlan?.rise || 0),
+      kind: "door" }));
+    const observed = HOME_OPENINGS.buildings[id]?.walls[String(edge)];
+    const candidates = observed ? observed.map(([u, v, w, h, confidence]) => ({
+      u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
+      : regularHomeWindows(length, floor, top, spec.seed + edge * 59);
+    const windows = candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
+      && !cuts.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
+        && o.v < c.v + c.h + 0.15 && o.v + o.h > c.v - 0.15)
+      && [0.2, 0.5, 0.8].every((t) => {
+        const neighbour = buildingAt(a[0] + ux * (o.u + o.w * t) - nx * 0.15,
+          a[1] + uz * (o.u + o.w * t) - nz * 0.15);
+        return !neighbour || String(neighbour.osm_id) === id;
+      }));
+    const panels = wallPanels(length, bottom, top, [...cuts, ...windows]);
+    const wall = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels), material);
+    wall.castShadow = wall.receiveShadow = true;
+    group.add(wall);
+    const lining = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels,
+      nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M), plasterMaterial);
+    group.add(lining);
+    for (const o of windows) {
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w, o.h), homeGlassMaterial);
+      pane.position.set(a[0] + ux * (o.u + o.w / 2) + nx * 0.025,
+        o.v + o.h / 2, a[1] + uz * (o.u + o.w / 2) + nz * 0.025);
+      pane.rotation.y = Math.atan2(-uz, ux);
+      pane.userData = { surface: "window", canonicalBuilding: id, edge, ...o };
+      group.add(pane);
+      windowRegistry.push(pane.userData);
+      for (const [u, v, w, h] of [[o.u, o.v + o.h / 2, 0.06, o.h],
+        [o.u + o.w, o.v + o.h / 2, 0.06, o.h], [o.u + o.w / 2, o.v, o.w, 0.06],
+        [o.u + o.w / 2, o.v + o.h, o.w, 0.06], [o.u + o.w / 2, o.v + o.h / 2, 0.035, o.h]]) {
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.12), homeFrameMaterial);
+        frame.position.set(a[0] + ux * u, v, a[1] + uz * u);
+        frame.rotation.y = pane.rotation.y;
+        group.add(frame);
+      }
+    }
+    for (const d of doors.filter((d) => d.stoopPlan)) {
+      const half = d.stoopPlan.width / 2, depth = d.stoopPlan.depth;
+      const sides = [-1, 1].map((s) => [d.cx + ux * half * s, d.cz + uz * half * s,
+        d.cx + ux * half * s + nx * depth, d.cz + uz * half * s + nz * depth]);
+      group.add(new THREE.Mesh(wallQuads(sides, d.stoopPlan.street,
+        floor + DOOR_HEIGHT_M - d.stoopPlan.street), plasterMaterial));
+      const jambs = [[-half, -d.width / 2], [d.width / 2, half]].map(([a, b]) => [
+        d.cx + ux * a + nx * depth, d.cz + uz * a + nz * depth,
+        d.cx + ux * b + nx * depth, d.cz + uz * b + nz * depth]);
+      group.add(new THREE.Mesh(wallQuads(jambs, floor, DOOR_HEIGHT_M), plasterMaterial));
+    }
+  }
+  // Ground-floor interiors and upper-floor slabs stop windows revealing an empty tower.
+  const rows = Math.max(1, Math.floor((top - floor) / 2.8));
+  for (let r = 1; r < rows; r += 1) {
+    const slab = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(entry.local.slice(0, -1)
+      .map(([x, z]) => new THREE.Vector2(x, -z)))), ceilingMaterial);
+    slab.rotation.x = -Math.PI / 2;
+    slab.position.y = floor + r * (top - floor) / rows;
+    group.add(slab);
+  }
+  group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };
+  batchHomeShell(group);
+  homeShellGroup.add(group);
+  entry.homeShell = { group, material, openingsVersion: HOME_OPENINGS_VERSION };
+  entry.shellNeedsRebuild = false;
+  homeShells.add(entry);
+  setBatchedHomeVisible(id, false);
+  if (entry.interior) removeInterior(entry);
+  buildInterior(entry);
+  for (const d of entry.doors || []) if (d.leaf) d.leaf.renderOrder = 0;
+}
+
+function removeHomeShell(entry) {
+  if (!entry.homeShell) return;
+  setBatchedHomeVisible(entry.way.osm_id, true);
+  homeShellGroup.remove(entry.homeShell.group);
+  entry.homeShell.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  entry.homeShell.material.dispose();
+  entry.homeShell = null;
+  homeShells.delete(entry);
+  removeInterior(entry);
+}
+
+let homeShellTick = 0;
+function updateHomeShells(x, z) {
+  if (!INTERIORS || ++homeShellTick % 15) return;
+  const candidates = [...new Set(doorsNear(x, z, 45).map((d) => d.entry))]
+    .filter((e) => HOME_RENDER.has(String(e.way.osm_id)))
+    .sort((a, b) => Math.hypot((a.minX + a.maxX) / 2 - x, (a.minZ + a.maxZ) / 2 - z)
+      - Math.hypot((b.minX + b.maxX) / 2 - x, (b.minZ + b.maxZ) / 2 - z));
+  const inside = buildingAt(x, z);
+  const occupied = inside && footprintById.get(String(inside.osm_id));
+  if (occupied && !candidates.includes(occupied)) candidates.unshift(occupied);
+  const wanted = new Set(candidates.slice(0, 8));
+  for (const e of homeShells) if (!wanted.has(e) || e.shellNeedsRebuild
+      || e.homeShell.openingsVersion !== HOME_OPENINGS_VERSION) removeHomeShell(e);
+  for (const e of wanted) buildHomeShell(e);
+  for (const panel of facadePanels) {
+    const wall = panel.userData.facade;
+    const [ax, ay] = xy(...wall.a), [bx, by] = xy(...wall.b);
+    const length = Math.hypot(bx - ax, by - ay);
+    const mx = (ax + bx) / 2, mz = -(ay + by) / 2;
+    const nx = length ? (by - ay) / length * 0.2 : 0;
+    const nz = length ? (bx - ax) / length * 0.2 : 0;
+    panel.visible = ![buildingAt(mx + nx, mz + nz), buildingAt(mx - nx, mz - nz)]
+      .some((f) => f && footprintById.get(String(f.osm_id))?.homeShell);
+  }
+}
+
 // ---- interiors ---------------------------------------------------------------------------------
 const interiorGroup = new THREE.Group();
 interiorGroup.name = "interiors";
@@ -20659,13 +20965,28 @@ const INTERIOR_WALL_PALETTES = [
   [0xf1eee9, 0xe7e9de, 0xe9e6e4, 0xe0e8eb, 0xe8e4db],
 ];
 const interiorWallMaterials = new Map();
+let interiorPlasterTexture = null;
 function interiorWallMaterial(theme, kind) {
   const family = ["living", "dining", "corridor", "stair"].includes(kind) ? 0
     : kind === "kitchen" ? 1 : kind === "bedroom" ? 2
     : ["bathroom", "storage"].includes(kind) ? 3 : 4;
   const key = `${theme}:${family}`;
+  if (!interiorPlasterTexture) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#f4f1eb"; ctx.fillRect(0, 0, 64, 64);
+    for (let i = 0; i < 900; i += 1) {
+      ctx.fillStyle = i % 2 ? "rgba(255,255,255,.05)" : "rgba(60,48,35,.025)";
+      ctx.fillRect(random(i * 7 + 1) * 64, random(i * 13 + 5) * 64, 1, 1);
+    }
+    interiorPlasterTexture = new THREE.CanvasTexture(canvas);
+    interiorPlasterTexture.colorSpace = THREE.SRGBColorSpace;
+    interiorPlasterTexture.wrapS = interiorPlasterTexture.wrapT = THREE.RepeatWrapping;
+    interiorPlasterTexture.repeat.set(2, 2);
+  }
   if (!interiorWallMaterials.has(key)) interiorWallMaterials.set(key,
-    new THREE.MeshStandardMaterial({ color: INTERIOR_WALL_PALETTES[theme][family],
+    new THREE.MeshStandardMaterial({ map: interiorPlasterTexture, color: INTERIOR_WALL_PALETTES[theme][family],
       roughness: 0.92, side: THREE.DoubleSide }));
   return interiorWallMaterials.get(key);
 }
@@ -20697,10 +21018,14 @@ function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
   if (longest < 0.2) return;
   const yaw = -Math.atan2(direction[1], direction[0]);
   const cos = Math.cos(yaw), sin = Math.sin(yaw);
-  for (const xx of [-size[0] / 2 - 0.15, size[0] / 2 + 0.15]) {
-    for (const zz of [-size[1] / 2 - 0.15, size[1] / 2 + 0.15]) {
+  const samplesX = Math.ceil((size[0] + 0.3) / 0.2), samplesZ = Math.ceil((size[1] + 0.3) / 0.2);
+  for (let ix = 0; ix <= samplesX; ix += 1) {
+    const xx = -size[0] / 2 - 0.15 + (size[0] + 0.3) * ix / samplesX;
+    for (let iz = 0; iz <= samplesZ; iz += 1) {
+      const zz = -size[1] / 2 - 0.15 + (size[1] + 0.3) * iz / samplesZ;
       const x = cx + cos * xx + sin * zz, z = cz - sin * xx + cos * zz;
       if (!pointInRing(x, z, pts) || !insideFootprint(entry, x, z)) return;
+      if ((entry.accessZones || []).some((zone) => pointInRing(x, z, zone))) return;
     }
   }
   const furniture = new THREE.Group();
@@ -20741,10 +21066,68 @@ function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
       for (const z of [-size[1] * 0.36, size[1] * 0.36]) box(0.07, 0.7, 0.07, x, 0.35, z, furnishingMaterials.wood);
   }
   group.add(furniture);
+  loadInteriorAsset(kind).then((template) => {
+    if (!template || !furniture.parent) return;
+    const model = template.clone(true);
+    const bounds = new THREE.Box3().setFromObject(model);
+    const dimensions = bounds.getSize(new THREE.Vector3());
+    const scale = Math.min(1, size[0] / Math.max(dimensions.x, 0.01),
+      size[1] / Math.max(dimensions.z, 0.01), 1.8 / Math.max(dimensions.y, 0.01));
+    const centre = bounds.getCenter(new THREE.Vector3());
+    model.scale.multiplyScalar(scale);
+    model.position.set(-centre.x * scale, -bounds.min.y * scale, -centre.z * scale);
+    model.traverse((o) => { if (o.isMesh) {
+      o.castShadow = o.receiveShadow = true;
+      o.userData.sharedInteriorAsset = true;
+    } });
+    for (const child of [...furniture.children]) {
+      furniture.remove(child);
+      child.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    }
+    furniture.add(model);
+    furniture.userData.assetLicense = "CC0-1.0";
+    furniture.userData.assetSource = "Poly Haven";
+    // The imported bed is a frame, not a mattress.
+    if (kind === "bedroom") box(1.35 * scale, 0.18, 1.8 * scale, 0, 0.5 * scale, 0,
+      furnishingMaterials.linen);
+  });
+}
+const interiorAssetPromises = new Map();
+function loadInteriorAsset(kind) {
+  const ids = { living: "sofa_03", dining: "dining_table", bedroom: "old_bed_frame", office: "modern_arm_chair_01" };
+  const id = ids[kind];
+  if (!id) return Promise.resolve(null);
+  if (!interiorAssetPromises.has(id)) {
+    const registry = document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json";
+    const url = new URL(`interior-assets/${id}/${id}.gltf`, new URL(registry, location.href));
+    interiorAssetPromises.set(id, new GLTFLoader().loadAsync(url.href)
+      .then((gltf) => gltf.scene).catch(() => null));
+  }
+  return interiorAssetPromises.get(id);
 }
 function roomFloorMaterial(kind) {
   if (!roomFloorMaterials.has(kind)) {
-    roomFloorMaterials.set(kind, new THREE.MeshStandardMaterial({ color: ROOM_FLOOR[kind] ?? ROOM_FLOOR.other, roughness: 0.8 }));
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#e0d9cc";
+    ctx.fillRect(0, 0, 128, 128);
+    const tile = ["kitchen", "bathroom", "storage"].includes(kind);
+    ctx.strokeStyle = tile ? "#b9b5ae" : "#9f8f78";
+    ctx.lineWidth = 1;
+    const pitch = tile ? 64 : 16;
+    for (let y = 0; y < 128; y += pitch) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(128, y); ctx.stroke();
+      for (let x = tile ? 0 : ((y / pitch) % 2) * 64; x < 128; x += 64) {
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + pitch); ctx.stroke();
+      }
+    }
+    const map = new THREE.CanvasTexture(canvas);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.repeat.set(0.5, 0.5);
+    roomFloorMaterials.set(kind, new THREE.MeshStandardMaterial({ map,
+      color: ROOM_FLOOR[kind] ?? ROOM_FLOOR.other, roughness: 0.8 }));
   }
   return roomFloorMaterials.get(kind);
 }
@@ -20800,15 +21183,73 @@ function clipToFootprint(entry, ax, az, bx, bz) {
 }
 
 function wallQuads(segments, bottom, height) {
-  const positions = [];
+  const positions = [], uv = [];
   for (const [ax, az, bx, bz] of segments) {
     const y0 = bottom, y1 = bottom + height;
     positions.push(ax, y0, az, bx, y0, bz, bx, y1, bz, ax, y0, az, bx, y1, bz, ax, y1, az);
+    const length = Math.hypot(bx - ax, bz - az);
+    uv.push(0, 0, length, 0, length, height, 0, 0, length, height, 0, height);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   geometry.computeVertexNormals();
   return geometry;
+}
+
+function clipOutsideZones(segment, zones) {
+  const [ax, az, bx, bz] = segment, dx = bx - ax, dz = bz - az;
+  const ts = [0, 1];
+  for (const ring of zones) for (let i = 0; i < ring.length; i += 1) {
+    const c = ring[i], d = ring[(i + 1) % ring.length];
+    const ex = d[0] - c[0], ez = d[1] - c[1], den = dx * ez - dz * ex;
+    if (Math.abs(den) < 1e-9) continue;
+    const t = ((c[0] - ax) * ez - (c[1] - az) * ex) / den;
+    const u = ((c[0] - ax) * dz - (c[1] - az) * dx) / den;
+    if (t > 0 && t < 1 && u >= 0 && u <= 1) ts.push(t);
+  }
+  ts.sort((a, b) => a - b);
+  const pieces = [];
+  for (let i = 0; i + 1 < ts.length; i += 1) {
+    const m = (ts[i] + ts[i + 1]) / 2;
+    if (ts[i + 1] - ts[i] > 1e-6
+        && !zones.some((ring) => pointInRing(ax + dx * m, az + dz * m, ring)))
+      pieces.push([ax + dx * ts[i], az + dz * ts[i], ax + dx * ts[i + 1], az + dz * ts[i + 1]]);
+  }
+  return pieces;
+}
+
+function entryAccessZones(entry, rooms) {
+  const zones = [];
+  const rect = (a, b, half) => {
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length < 0.1) return null;
+    const nx = -(b[1] - a[1]) / length * half, nz = (b[0] - a[0]) / length * half;
+    const ring = [[a[0] + nx, a[1] + nz], [b[0] + nx, b[1] + nz],
+      [b[0] - nx, b[1] - nz], [a[0] - nx, a[1] - nz]];
+    const samples = Math.ceil(length / 0.2);
+    for (let t = 0; t <= samples; t += 1) for (const sign of [-1, 0, 1]) {
+      if (!insideFootprint(entry, a[0] + (b[0] - a[0]) * t / samples + nx * sign,
+        a[1] + (b[1] - a[1]) * t / samples + nz * sign)) return null;
+    }
+    return ring;
+  };
+  for (const door of entry.doors || []) {
+    if (!door.mesh) continue;
+    const depth = door.stoopPlan?.depth || 0;
+    const a = [door.cx + door.nx * 0.05, door.cz + door.nz * 0.05];
+    const b = [door.cx + door.nx * (depth + 2.8), door.cz + door.nz * (depth + 2.8)];
+    const foyer = rect(a, b, 1.4) || rect(a, b, Math.max(0.65, door.width / 2 + 0.12));
+    if (foyer) zones.push(foyer);
+    const targets = rooms.filter((r) => ["living", "dining", "corridor"].includes(r.kind))
+      .map((r) => r.pts.reduce((p, q) => [p[0] + q[0] / r.pts.length, p[1] + q[1] / r.pts.length], [0, 0]))
+      .sort((p, q) => Math.hypot(p[0] - b[0], p[1] - b[1]) - Math.hypot(q[0] - b[0], q[1] - b[1]));
+    for (const target of targets) {
+      const link = rect(b, target, 0.65);
+      if (link) { zones.push(link); break; }
+    }
+  }
+  return zones;
 }
 
 function buildInterior(entry) {
@@ -20832,7 +21273,11 @@ function buildInterior(entry) {
   };
   const centreX = (entry.minX + entry.maxX) / 2, centreZ = (entry.minZ + entry.maxZ) / 2;
   const floorY = entryFloorY(entry);
-  const height = Math.max(2.4, Math.min(storeyM || 3.0, 4.5)) - 0.06;
+  const homeSpec = HOME_RENDER.get(String(entry.way.osm_id));
+  const visibleHeight = homeSpec ? homeSpec.base + homeSpec.height - floorY : null;
+  const height = entry.homeShell && visibleHeight > 2.3
+    ? visibleHeight / Math.max(1, Math.floor(visibleHeight / 2.8)) - 0.06
+    : Math.max(2.4, Math.min(storeyM || 3.0, 4.5)) - 0.06;
   const group = new THREE.Group();
   group.name = `interior:${entry.way.osm_id}`;
   const segments = [];
@@ -20843,6 +21288,14 @@ function buildInterior(entry) {
   const roomSpecs = [];
   const theme = Math.abs(Number(entry.way.osm_id) || 0) % INTERIOR_WALL_PALETTES.length;
   const stairCuts = (entry.doors || []).map(stoopCutRing).filter(Boolean);
+  const accessRooms = [];
+  for (let i = 0; i < nx; i += 1) for (let j = 0; j < ny; j += 1)
+    for (const [kindIndex, flat] of plan.rooms) {
+      const pts = [];
+      for (let k = 0; k + 1 < flat.length; k += 2) pts.push(place(flat[k] / 100, flat[k + 1] / 100, i, j));
+      accessRooms.push({ kind: INTERIORS.kinds[kindIndex], pts });
+    }
+  entry.accessZones = entryAccessZones(entry, accessRooms);
   for (let i = 0; i < nx; i += 1) {
     for (let j = 0; j < ny; j += 1) {
       for (const [x, y, w] of plan.doors) {
@@ -20856,7 +21309,15 @@ function buildInterior(entry) {
         if (pts.length < 3) continue;
         // The room's floor, where the room lies inside the building.
         const inside = pts.filter(([px, pz]) => insideFootprint(entry, px, pz)).length;
-        if (inside === pts.length) {
+        const edgesInside = pts.every((a, edge) => {
+          const b = pts[(edge + 1) % pts.length];
+          const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.2));
+          for (let t = 1; t < n; t += 1)
+            if (!insideFootprint(entry, a[0] + (b[0] - a[0]) * t / n,
+              a[1] + (b[1] - a[1]) * t / n)) return false;
+          return true;
+        });
+        if (inside === pts.length && edgesInside) {
           roomSpecs.push({ kind, pts });
           // A room polygon that meets the recessed entry cannot paint across
           // the open stairwell. The common slab below it carries the rest.
@@ -20892,7 +21353,16 @@ function buildInterior(entry) {
           }
           for (const [p, q] of pieces) {
             for (const s of clipToFootprint(entry, ax + (bx - ax) * p, az + (bz - az) * p,
-                                            ax + (bx - ax) * q, az + (bz - az) * q)) {
+                                            ax + (bx - ax) * q, az + (bz - az) * q)
+              .flatMap((s) => clipOutsideZones(s, entry.accessZones))) {
+              const mx = (s[0] + s[2]) / 2, mz = (s[1] + s[3]) / 2;
+              // Template perimeter walls must not re-cover canonical window holes.
+              if (entry.local.slice(0, -1).some((a, edge) => {
+                const b = entry.local[edge + 1], dx = b[0] - a[0], dz = b[1] - a[1];
+                const len = Math.hypot(dx, dz);
+                const t = ((mx - a[0]) * dx + (mz - a[1]) * dz) / (len * len);
+                return t >= 0 && t <= 1 && Math.abs((mx - a[0]) * dz - (mz - a[1]) * dx) / len < 0.25;
+              })) continue;
               segments.push(s);
               const aKey = `${Math.round(s[0] * 100)}:${Math.round(s[1] * 100)}`;
               const bKey = `${Math.round(s[2] * 100)}:${Math.round(s[3] * 100)}`;
@@ -20932,8 +21402,10 @@ function buildInterior(entry) {
   for (let k = 0; k < lining.length; k += 1) {
     if (lining[k] === null) { lintels.push(lining[k + 1]); k += 1; } else full.push(lining[k]);
   }
-  group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
-  if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
+  if (!entry.homeShell) {
+    group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
+    if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
+  }
   for (const [kind, roomSegments] of colouredSegments) {
     const partitions = new THREE.Mesh(wallQuads(roomSegments, floorY, height),
                                       interiorWallMaterial(theme, kind));
@@ -20980,7 +21452,7 @@ function buildInterior(entry) {
   const light = new THREE.PointLight(0xfff1dc, 1.4, Math.max(12, Math.hypot(L, W)), 1.6);
   light.position.set(centreX, floorY + height - 0.3, centreZ);
   group.add(light);
-  group.traverse((o) => { if (o.isMesh) o.renderOrder = INTERIOR_ORDER; });
+  group.traverse((o) => { if (o.isMesh) o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER; });
   group.userData = { surface: "interior", grade: "inferred", plan: plan.id, source: plan.src,
     attribution: (INTERIORS.sources[plan.src] || {}).attribution, storeys, stretch: [entry.fit[11], entry.fit[12]] };
   interiorGroup.add(group);
@@ -20996,12 +21468,17 @@ function removeInterior(entry) {
   if (!entry.interior) return;
   interiorGroup.remove(entry.interior.group);
   standingSurfaces.delete(entry.interior.floorSurface);
-  entry.interior.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  entry.interior.group.traverse((o) => { if (o.geometry && !o.userData.sharedInteriorAsset) o.geometry.dispose(); });
   entry.interior = null;
   interiorsBuilt.delete(entry);
 }
 window.kerbsideInteriors = () => ({ loaded: Boolean(INTERIORS), built: [...interiorsBuilt].map((e) => e.way.osm_id),
-  summary: INTERIORS && INTERIORS.summary });
+  summary: INTERIORS && INTERIORS.summary, shells: [...homeShells].map((e) => ({
+    id: e.way.osm_id, windows: e.homeShell.group.userData.windows,
+    drawMeshes: e.homeShell.group.children.length, doors: (e.doors || []).map((d) => ({
+      source: DOOR_SOURCE[d.source], rendered: Boolean(d.mesh), recessed: Boolean(d.stoopPlan),
+      steps: d.stoopPlan?.steps, landingDepth: d.stoopPlan?.landingDepth })) })) });
+requestInteriors();
 
 let previous = performance.now();
 function animateAvatar(distance, direction, moving) {

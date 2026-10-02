@@ -196,6 +196,7 @@ def test_inferred_furniture_fits_room_and_keeps_entry_clear() -> None:
         const THREE={Group,Mesh,BoxGeometry:class {},CylinderGeometry:class {}};
         const furnishingMaterials={wood:{},fabric:{},linen:{},cabinet:{},counter:{},
           appliance:{},dark:{}};
+        function loadInteriorAsset() { return Promise.resolve(null); }
         const entry={local:[[0,0],[8,0],[8,6],[0,6],[0,0]],
           minX:0,maxX:8,minZ:0,maxZ:6};
     """) + "\n".join(_extract(name, js) for name in (

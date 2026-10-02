@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import runpy
 import shutil
 from pathlib import Path
 
@@ -68,7 +69,11 @@ def build_visual_support(
 
 
 def main() -> None:
-    template = VIEWER.read_text(encoding="utf-8")
+    # Never ship a stale hand-built app-viewer cache over a newer renderer.
+    renderer = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
+    template = renderer["tuned"](renderer["HTML"], "app")
+    VIEWER.parent.mkdir(parents=True, exist_ok=True)
+    VIEWER.write_text(template, encoding="utf-8")
     index = json.loads((DOCS / "regions.json").read_text(encoding="utf-8"))
     registry = {
         entry["name"]: entry
@@ -128,6 +133,10 @@ def main() -> None:
     (DOCS / "app-regions.json").write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
     digest = hashlib.blake2b(digest_size=8)
     app_assets = [DOCS / "app.html", DOCS / "app-model.html", DOCS / "app-regions.json"]
+    app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
+                                           "sf-corridor-furniture.json") if (DOCS / name).exists()]
+    app_assets += sorted(path for directory in ("interior-assets", "materials")
+                         for path in (DOCS / directory).rglob("*") if path.is_file())
     if (DOCS / "app-sf-corridor-ground.json").exists():
         app_assets.append(DOCS / "app-sf-corridor-ground.json")
     if sf_support:

@@ -3001,6 +3001,7 @@ def test_grass_fragment_mask_catches_paths_inside_large_triangles() -> None:
         "const bbox = {west:0,east:2,south:0,north:2};",
         "const RING_BOX_MARGIN_M = 0; const xy = (x,y) => [x,y];",
         "const parkPavementAt = (x,z) => x < 1 && -z > 1;",
+        "const insideCarriageway = (x,z) => x < 0.5 && -z < 0.5;",
         "const THREE = {RedFormat:'red',NearestFilter:'nearest',DoubleSide:2,",
         "DataTexture: class {constructor(data,width,height,format) {"
         "this.data=data;this.width=width;this.height=height;this.format=format;}},",
@@ -3017,13 +3018,15 @@ def test_grass_fragment_mask_catches_paths_inside_large_triangles() -> None:
         "parkMaterial.onBeforeCompile(parkShader);",
         "console.log(JSON.stringify({pixels:[...mask.texture.data],"
         "vertex:shader.vertexShader,fragment:shader.fragmentShader,"
-        "parkFragment:parkShader.fragmentShader,uniform:!!shader.uniforms.groundHardMask}));",
+        "parkFragment:parkShader.fragmentShader,uniform:!!shader.uniforms.groundHardMask,"
+        "depthTest:material.options.depthTest}));",
     ])
     out = subprocess.run([NODE, "--input-type=module", "-e", script],
                          capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
-    assert result["pixels"] == [255, 255, 255, 128, 0, 0, 128, 0, 0]
+    assert result["pixels"] == [0, 255, 255, 128, 0, 0, 128, 0, 0]
+    assert result["depthTest"] is False
     assert "vGroundHardUv" in result["vertex"]
     assert ").r < 0.25" in result["fragment"] and result["uniform"]
     assert ").r < 0.75" in result["parkFragment"]
