@@ -98,6 +98,27 @@ def test_front_and_landing_both_reach_recessed_door():
     assert out
 
 
+def test_junction_signal_anchor_can_reach_pavement_without_entering_building():
+    out = run_js(["nearestGroundOffRoad", "furnitureAnchor"], """
+      const FURNITURE_SNAP_REACH_M=12,FURNITURE_KERB_SETBACK_M=0.45;
+      const ROAD_TOP_M=0.1,KERB_FALLBACK=0.126;
+      function xy(x,y){return [x,y];}
+      function insideBikeLane(){return false;}
+      function insideCarriageway(x,z){return Math.hypot(x,z)<15;}
+      function insideJunctionBox(){return false;}
+      function nearestKerbAt(){return null;}
+      function buildingAt(x,z){return x>0;}
+      function pavementTopAt(){return 0.226;}
+      function groundLiftAt(){return 7;}
+      console.log(JSON.stringify([furnitureAnchor({p:[0,0]}),
+        furnitureAnchor({p:[0,0]},32)]));
+    """)
+    assert out[0] is None
+    assert out[1]["x"] <= 0
+    assert math.hypot(out[1]["x"], out[1]["z"]) >= 15
+    assert out[1]["y"] == pytest.approx(7.226)
+
+
 def test_address_arrival_stays_outside_house_and_faces_its_door():
     out = run_js(["addressLanding"], """
       const state={yaw:0,look:1};

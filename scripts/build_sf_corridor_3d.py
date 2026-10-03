@@ -18504,13 +18504,17 @@ function nearestGroundOffRoad(x, z, reach) {
       const px = x + Math.cos(a) * r;
       const pz = z + Math.sin(a) * r;
       if (insideCarriageway(px, pz, 0.15) || insideJunctionBox(px, pz)) continue;
-      return [px + Math.cos(a) * FURNITURE_KERB_SETBACK_M, pz + Math.sin(a) * FURNITURE_KERB_SETBACK_M];
+      const sx = px + Math.cos(a) * FURNITURE_KERB_SETBACK_M;
+      const sz = pz + Math.sin(a) * FURNITURE_KERB_SETBACK_M;
+      if (buildingAt(sx, sz) || insideCarriageway(sx, sz, 0.15)
+          || insideJunctionBox(sx, sz)) continue;
+      return [sx, sz];
     }
   }
   return null;
 }
 
-function furnitureAnchor(item) {
+function furnitureAnchor(item, reach = FURNITURE_SNAP_REACH_M) {
   if (!item || !item.p || item.p.length < 2) return null;
   let [x, y] = xy(item.p[0], item.p[1]);
   let z = -y;
@@ -18520,18 +18524,19 @@ function furnitureAnchor(item) {
     // lines put them. They were dropped -- 14,000 of 24,600 signs -- when they are simply
     // on the wrong side of a kerb that is close by. Carried to the nearest kerb and set back
     // from it, a sign stands where a sign stands.
-    const kerb = nearestKerbAt(x, z, FURNITURE_SNAP_REACH_M);
+    const kerb = nearestKerbAt(x, z, reach);
     let moved = false;
     if (kerb) {
       const kx = kerb.x + kerb.nx * FURNITURE_KERB_SETBACK_M;
       const kz = kerb.z + kerb.nz * FURNITURE_KERB_SETBACK_M;
-      if (!insideCarriageway(kx, kz, 0.1) && !insideJunctionBox(kx, kz)) { x = kx; z = kz; moved = true; }
+      if (!insideCarriageway(kx, kz, 0.1) && !insideJunctionBox(kx, kz)
+          && !buildingAt(kx, kz)) { x = kx; z = kz; moved = true; }
     }
     if (!moved) {
       // At a junction the nearest kerb of one street is inside the other, and nearestKerbAt
       // rightly refuses it. The nearest ground that is not roadway is the corner, and that is
       // where a stop sign stands.
-      const spot = nearestGroundOffRoad(x, z, FURNITURE_SNAP_REACH_M);
+      const spot = nearestGroundOffRoad(x, z, reach);
       if (!spot) return null;
       x = spot[0];
       z = spot[1];
@@ -19067,8 +19072,10 @@ function addFurniturePostsAt(anchors, height, radius, colour) {
 function addTrafficSignalHeads(records) {
   // SFMTA's point inventory locates a signalized junction, not the live phase. Render one
   // conservative three-aspect head per SIGNAL record; no lens asserts a live red/green state.
+  // Junction inventory points can be more than 12 m from any pavement corner.
+  // Give signals a bounded wider search; ordinary mapped sign points keep their old reach.
   const rows = records.filter((r) => String(r.signal_type || "").toUpperCase() === "SIGNAL")
-    .map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
+    .map((item, index) => ({ item, index, anchor: furnitureAnchor(item, 32) }))
     .filter((row) => row.anchor);
   if (!rows.length) return 0;
   addFurniturePostsAt(rows.map((r) => r.anchor), 4.65, 0.075, 0x4b5051);
@@ -21661,7 +21668,8 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
       shells: homeShells.size, windows: [...homeShells].reduce((n, h) => n + h.homeShell.group.userData.windows.length, 0),
       rooms: e?.interior?.group.userData, furniture: e?.interior?.group.children
         .filter((o) => o.userData.surface?.startsWith("furnishing:")).length,
-      ground: walkerGroundAt(avatar.position.x, avatar.position.z) };
+      ground: walkerGroundAt(avatar.position.x, avatar.position.z),
+      streetFurniture: document.getElementById("furniturenote")?.userData };
     if (d) report.entranceDepth = (avatar.position.x - d.cx) * d.nx + (avatar.position.z - d.cz) * d.nz;
     document.getElementById("inspect-state").textContent = JSON.stringify(report, null, 2);
   }, 500);
