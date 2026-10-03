@@ -87,6 +87,39 @@ def test_recess_is_not_house_entry_until_past_landing():
     assert out == [True, True, False, False]
 
 
+def test_ceiling_camera_stays_below_walls_and_in_current_room():
+    out = run_js(["roomCameraPose"], """
+      function pointInRing(x,z,r) {return x>r[0][0]&&x<r[2][0]&&z>r[0][1]&&z<r[2][1];}
+      function insideFootprint(e,x,z){return x>0&&x<12&&z>0&&z<8;}
+      function distanceToSegmentSquared(){return 99;}
+      const e={minX:0,maxX:12,minZ:0,maxZ:8,interior:{segments:[]}};
+      const rooms=[{kind:'living',pts:[[0,0],[6,0],[6,8],[0,8]]},
+        {kind:'bedroom',pts:[[6,0],[12,0],[12,8],[6,8]]}];
+      console.log(JSON.stringify([roomCameraPose(e,rooms,2,3,42,2.94,1.6),
+        roomCameraPose(e,rooms,9,3,42,2.94,.7)]));
+    """)
+    for pose, bounds in zip(out, [(0, 6), (6, 12)], strict=True):
+        assert bounds[0] < pose["x"] < bounds[1]
+        assert 0 < pose["z"] < 8
+        assert 42 + 1.9 <= pose["y"] < 42 + 2.94
+        assert 75 <= pose["fov"] <= 165
+    assert [p["kind"] for p in out] == ["living", "bedroom"]
+
+
+def test_ceiling_camera_searches_concave_room_without_escaping_property():
+    out = run_js(["roomCameraPose"], """
+      function pointInRing(x,z,r) {return x>0&&x<10&&z>0&&z<10&&(x<3||z<3);}
+      function insideFootprint(e,x,z){return pointInRing(x,z,[]);}
+      function distanceToSegmentSquared(){return 99;}
+      const e={minX:0,maxX:10,minZ:0,maxZ:10,interior:{segments:[]}};
+      const rooms=[{kind:'living',pts:[[0,0],[10,0],[10,3],[3,3],[3,10],[0,10]]}];
+      const pose=roomCameraPose(e,rooms,1,8,0,2.8,1.6);
+      console.log(JSON.stringify({pose,inside:insideFootprint(e,pose.x,pose.z)}));
+    """)
+    assert out["inside"]
+    assert out["pose"]["kind"] == "living"
+
+
 def test_front_and_landing_both_reach_recessed_door():
     out = run_js(["nearestDoor"], """
       const DOOR_REACH_M=1.8,DOOR_DRAW_M=60;

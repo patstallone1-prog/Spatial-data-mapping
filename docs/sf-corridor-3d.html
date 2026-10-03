@@ -502,11 +502,21 @@ function xy(lon, lat) { return [(lon - midLon) * metersPerLon, (lat - midLat) * 
 
 // ---- the ground -----------------------------------------------------------------------------
 //
-// TERRAIN is the lidar's ground surface on a grid in this same frame (metres east and north of
-// the corridor's middle). Everything that stands on the ground asks it how high the ground is
+// TERRAIN is the lidar's ground surface in its recorded frame, which may differ from
+// the corridor's middle. Everything that stands on the ground asks it how high the ground is
 // there: the merged street surfaces vertex by vertex, a building at the lowest corner of its
 // footprint, a tree or a post at its foot, the walker at each step, the camera where it lands.
 const TERRAIN_FRAME = TERRAIN ? TERRAIN.meta.frame : null;
+// Never assume the payload bounding-box centre equals the survey grid's origin. Convert
+// through geographic coordinates, retaining each frame's longitude scale independently.
+function pageToTerrain(x, z, f) {
+  return [(midLon + x / metersPerLon - f.mid_lon) * f.metres_per_lon,
+          (midLat - z / metersPerLat - f.mid_lat) * f.metres_per_lat];
+}
+function terrainToPage(east, north, f) {
+  return [(f.mid_lon + east / f.metres_per_lon - midLon) * metersPerLon,
+          -(f.mid_lat + north / f.metres_per_lat - midLat) * metersPerLat];
+}
 // Visual land/water identity comes from mapped geometry, never from a low height or absent
 // lidar return.  The original measured grid remains TERRAIN.data; this app-only companion
 // fills unsupported *land* cells for drawing, without exporting them as measurements.
@@ -515,13 +525,15 @@ const LANDWATER = TERRAIN_FRAME && VISUAL_SUPPORT && VISUAL_SUPPORT.length === T
 function mappedWaterAt(x, z) {
   if (!LANDWATER || !TERRAIN_FRAME) return null;
   const f = TERRAIN_FRAME;
-  const c = Math.floor((x - f.x0) / f.step_m), r = Math.floor((-z - f.y0) / f.step_m);
+  const [east, north] = pageToTerrain(x, z, f);
+  const c = Math.floor((east - f.x0) / f.step_m), r = Math.floor((north - f.y0) / f.step_m);
   return r >= 0 && r < f.rows && c >= 0 && c < f.cols ? LANDWATER[r * f.cols + c] === 1 : null;
 }
 function mappedBuiltAt(x, z) {
   if (!LANDWATER || !TERRAIN_FRAME) return false;
   const f = TERRAIN_FRAME;
-  const c = Math.floor((x - f.x0) / f.step_m), r = Math.floor((-z - f.y0) / f.step_m);
+  const [east, north] = pageToTerrain(x, z, f);
+  const c = Math.floor((east - f.x0) / f.step_m), r = Math.floor((north - f.y0) / f.step_m);
   return r >= 0 && r < f.rows && c >= 0 && c < f.cols && LANDWATER[r * f.cols + c] === 2;
 }
 if (LANDWATER) {
@@ -589,8 +601,18 @@ if (LANDWATER) {
 //: would be a few centimetres of nothing, and a step at the boundary is worse than no curve at
 //: all. Written this way it is zero at the edge and matches the real curve well past it.
 const EARTH_RADIUS_M = 6371000.0;
+function terrainFlatRadius(f) {
+  let radius = 0;
+  for (const east of [f.x0, f.x0 + f.cols * f.step_m]) {
+    for (const north of [f.y0, f.y0 + f.rows * f.step_m]) {
+      const [x, z] = terrainToPage(east, north, f);
+      radius = Math.max(radius, Math.hypot(x, z));
+    }
+  }
+  return radius;
+}
 const EARTH_FLAT_M = TERRAIN_FRAME
-  ? Math.hypot(TERRAIN_FRAME.cols * TERRAIN_FRAME.step_m, TERRAIN_FRAME.rows * TERRAIN_FRAME.step_m) / 2
+  ? terrainFlatRadius(TERRAIN_FRAME)
   : 3000.0;
 function earthDrop(x, z) {
   const d2 = x * x + z * z;
@@ -626,8 +648,9 @@ const OPEN_WATER_GROUND_M = SEA_SURFACE_M;
 function rawTerrainHeightAt(x, z) {
   if (!TERRAIN_FRAME) return 0;
   const f = TERRAIN_FRAME;
-  const fx = (x - f.x0) / f.step_m - 0.5;
-  const fy = (-z - f.y0) / f.step_m - 0.5;
+  const [east, north] = pageToTerrain(x, z, f);
+  const fx = (east - f.x0) / f.step_m - 0.5;
+  const fy = (north - f.y0) / f.step_m - 0.5;
   const c0 = Math.max(0, Math.min(f.cols - 2, Math.floor(fx)));
   const r0 = Math.max(0, Math.min(f.rows - 2, Math.floor(fy)));
   const tx = Math.max(0, Math.min(1, fx - c0));
@@ -1445,8 +1468,8 @@ if (TERRAIN_FRAME) {
   const f = TERRAIN_FRAME;
   const cols = Math.floor((f.cols - 1) / TERRAIN_MESH_STRIDE) + 1;
   const rows = Math.floor((f.rows - 1) / TERRAIN_MESH_STRIDE) + 1;
-  const xOf = (c) => f.x0 + (c * TERRAIN_MESH_STRIDE + 0.5) * f.step_m;
-  const zOf = (r) => -(f.y0 + (r * TERRAIN_MESH_STRIDE + 0.5) * f.step_m);
+  const xOf = (c) => terrainToPage(f.x0 + (c * TERRAIN_MESH_STRIDE + 0.5) * f.step_m, f.y0, f)[0];
+  const zOf = (r) => terrainToPage(f.x0, f.y0 + (r * TERRAIN_MESH_STRIDE + 0.5) * f.step_m, f)[1];
   // Tiles share their edge row and column, so there is no seam between them.
   for (let r0 = 0; r0 + 1 < rows; r0 += TERRAIN_TILE_VERTICES - 1) {
     for (let c0 = 0; c0 + 1 < cols; c0 += TERRAIN_TILE_VERTICES - 1) {
@@ -1711,8 +1734,10 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
   const latticeFor = adaptive
     ? (a, b) => Math.min(maxEdge, latticeAt(px(a), pz(a)), latticeAt(px(b), pz(b)))
     : () => maxEdge;
-  const gridX = snapToTerrain && TERRAIN_FRAME ? TERRAIN_FRAME.x0 + TERRAIN_FRAME.step_m / 2 : 0;
-  const gridZ = snapToTerrain && TERRAIN_FRAME ? -(TERRAIN_FRAME.y0 + TERRAIN_FRAME.step_m / 2) : 0;
+  const terrainOrigin = snapToTerrain && TERRAIN_FRAME
+    ? terrainToPage(TERRAIN_FRAME.x0 + TERRAIN_FRAME.step_m / 2,
+                    TERRAIN_FRAME.y0 + TERRAIN_FRAME.step_m / 2, TERRAIN_FRAME) : [0, 0];
+  const [gridX, gridZ] = terrainOrigin;
   const cutAt = (a, b, len) => {
     const lattice = latticeFor(a, b);
     // The hard cap binds here, and only the hard cap. The lattice branch used to have no limit
@@ -16753,8 +16778,22 @@ for (const s of DATA.sequence_paths) {
 //: walker down to a street; the wheel zooms in from here.
 const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0 };
 const MAX_ORBIT_DIST_M = 20000;
-const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false };
+let interiorCameraFootprints = null;
+const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false, ceilingRoom: false };
 function placeCamera() {
+  if (state.ceilingRoom && typeof avatar !== "undefined") {
+    const pose = currentRoomCamera();
+    if (pose) {
+      camera.position.set(pose.x, pose.y, pose.z);
+      camera.up.set(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
+      camera.fov = pose.fov / (state.zoom || 1);
+      camera.near = 0.06;
+      camera.updateProjectionMatrix();
+      camera.lookAt(pose.x, pose.floor, pose.z);
+      return;
+    }
+  }
+  camera.up.set(0, 1, 0);
   if (state.firstPerson && typeof avatar !== "undefined") {
     // Out of the walker's eyes: the camera stands at eye height where the walker stands and
     // looks the way the arrows walk, so forward is forward. Dragging turns the head.
@@ -16773,6 +16812,7 @@ function placeCamera() {
   camera.lookAt(state.target);
 }
 function setFirstPerson(on) {
+  state.ceilingRoom = false;
   state.firstPerson = on;
   if (typeof avatar !== "undefined") {
     // The walker is not drawn from inside its own head.
@@ -16786,6 +16826,20 @@ function setFirstPerson(on) {
   // Leaving the walker's eyes puts the zoom back; entering starts at 1x.
   state.zoom = 1;
   camera.fov = FIRST_PERSON_FOV;
+  camera.updateProjectionMatrix();
+  placeCamera();
+}
+
+function setCeilingView(on) {
+  state.ceilingRoom = Boolean(on);
+  state.firstPerson = false;
+  state.zoom = 1;
+  // A seven-foot character is almost against a domestic ceiling; showing
+  // its head here fills the view and obscures the room we are inspecting.
+  avatar.visible = !on;
+  document.getElementById("firstperson")?.setAttribute("aria-pressed", "false");
+  camera.fov = FIRST_PERSON_FOV;
+  camera.near = on ? 0.06 : 0.5;
   camera.updateProjectionMatrix();
   placeCamera();
 }
@@ -16805,7 +16859,7 @@ canvas.addEventListener("pointermove", (e) => {
   state.yaw -= dx * 0.006;
   if (state.firstPerson) {
     state.look = Math.max(-0.7, Math.min(0.7, state.look - dy * 0.004));
-  } else {
+  } else if (!state.ceilingRoom) {
     state.pitch = Math.max(0.25, Math.min(1.28, state.pitch + dy * 0.004));
   }
   last = [e.clientX, e.clientY];
@@ -16816,9 +16870,10 @@ canvas.addEventListener("pointercancel", () => { dragging = false; held.clear();
 canvas.addEventListener("lostpointercapture", () => { dragging = false; held.clear(); });
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-  if (state.firstPerson) {
+  if (state.firstPerson || state.ceilingRoom) {
     // Zoom by field of view, 1x to 2x; the walker stays where it is.
     state.zoom = Math.max(1, Math.min(FIRST_PERSON_MAX_ZOOM, (state.zoom || 1) * Math.exp(-e.deltaY * 0.001)));
+    if (state.ceilingRoom) { placeCamera(); return; }
     camera.fov = FIRST_PERSON_FOV / state.zoom;
     camera.updateProjectionMatrix();
     return;
@@ -16827,7 +16882,8 @@ canvas.addEventListener("wheel", (e) => {
   placeCamera();
 }, { passive: false });
 document.getElementById("firstperson").addEventListener("click", () => {
-  setFirstPerson(!state.firstPerson);
+  if (state.firstPerson && currentRoomCamera()) setCeilingView(true);
+  else setFirstPerson(!state.firstPerson);
 });
 document.getElementById("reset").addEventListener("click", () => {
   Object.assign(state, OVERVIEW);
@@ -17021,7 +17077,7 @@ const FIRST_PERSON_MAX_ZOOM = 2.0;
 // Keep the apparent screen-space pace stable as the orbit camera moves farther away.
 // First-person remains a fixed 12 mph.
 function avatarMoveSpeed() {
-  if (state.firstPerson) return FIRST_PERSON_SPEED;
+  if (state.firstPerson || state.ceilingRoom) return FIRST_PERSON_SPEED;
   const height = Math.max(1, renderer.domElement.clientHeight);
   const fov = camera.fov * Math.PI / 180;
   const metresPerPixel = 2 * state.dist * Math.tan(fov / 2) / height;
@@ -17561,8 +17617,27 @@ function terrainGroundAt(x, z) {
 for (const bucket of footprintGrid.values()) {
   for (const entry of bucket) footprintById.set(String(entry.way.osm_id), entry);
 }
+interiorCameraFootprints = footprintById;
 
 let INTERIORS = null;
+let SCANNED_INTERIORS = null;
+const scannedInteriorPromises = new Map();
+fetch(sharedAsset("interior-scans/manifest.json"), { cache: "no-cache" })
+  .then((r) => r.ok ? r.json() : null).then((data) => {
+    if (!data || data.schema !== 1) return;
+    const counts = new Map();
+    for (const p of data.placements) {
+      const scan = data.scans[p.scan];
+      const count = (counts.get(p.scan) || 0) + 1;
+      counts.set(p.scan, count);
+      if (!scan || scan.kind !== "real_interior_scan" || count > Math.min(8, scan.max_reuses)
+          || scan.rights?.status !== "approved" || !["derived_mesh", "persistent_hosting", "redistribution"]
+            .every((use) => scan.rights.allowed_uses.includes(use))
+          || p.grade !== "matched_surrogate_not_address_truth" || p.scale < 0.9 || p.scale > 1.1) return;
+    }
+    SCANNED_INTERIORS = data;
+    for (const entry of interiorsBuilt) requestScannedInterior(entry);
+  }).catch(() => {});
 let HOME_OPENINGS = { buildings: {} };
 let HOME_OPENINGS_VERSION = 0;
 fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
@@ -17911,8 +17986,6 @@ function toggleDoor(door) {
   if (door.open) buildInterior(door.entry);
 }
 
-let lastInsideBuildingId = null;
-
 function insideEntranceRecess(entry, x, z) {
   return (entry?.doors || []).some((d) => {
     if (!d.stoopPlan) return false;
@@ -17921,6 +17994,45 @@ function insideEntranceRecess(entry, x, z) {
     return Math.abs(across) <= d.stoopPlan.width / 2 + 0.1
       && inward >= -0.1 && inward <= d.stoopPlan.depth + 0.1;
   });
+}
+
+// The camera stays below the real room ceiling: partitions and adjacent-room
+// ceilings remain opaque. No x-ray clip plane or dollhouse wall hiding is used.
+function roomCameraPose(entry, rooms, x, z, floor, height, aspect) {
+  const room = rooms.find((r) => pointInRing(x, z, r.pts));
+  if (!room) return { x, z, y: floor + height - 0.12, floor, fov: 105, kind: "circulation" };
+  const minX = Math.max(entry.minX, Math.min(...room.pts.map((p) => p[0])));
+  const maxX = Math.min(entry.maxX, Math.max(...room.pts.map((p) => p[0])));
+  const minZ = Math.max(entry.minZ, Math.min(...room.pts.map((p) => p[1])));
+  const maxZ = Math.min(entry.maxZ, Math.max(...room.pts.map((p) => p[1])));
+  const centre = [(minX + maxX) / 2, (minZ + maxZ) / 2];
+  const candidates = [centre, [x, z]];
+  for (let pz = minZ + 0.2; pz < maxZ; pz += 0.5)
+    for (let px = minX + 0.2; px < maxX; px += 0.5) candidates.push([px, pz]);
+  const safe = candidates.filter(([px, pz]) => pointInRing(px, pz, room.pts)
+    && insideFootprint(entry, px, pz)
+    && !(entry.interior?.segments || []).some(([ax, az, bx, bz]) =>
+      distanceToSegmentSquared(px, pz, ax, az, bx, bz) < 0.18 ** 2));
+  safe.sort((a, b) => Math.hypot(a[0] - centre[0], a[1] - centre[1])
+    - Math.hypot(b[0] - centre[0], b[1] - centre[1]));
+  const [cx, cz] = safe[0] || [x, z];
+  // A rotation-independent radius fits the full room in both viewport axes.
+  // A very long room needs a wide lens, not a camera above its walls.
+  const radius = Math.max(...room.pts.filter(([px, pz]) => insideFootprint(entry, px, pz))
+    .map(([px, pz]) => Math.hypot(px - cx, pz - cz)), 1);
+  const cameraHeight = Math.max(1.9, height - 0.12);
+  const fov = Math.min(165, Math.max(75, 2 * Math.atan(radius * 1.08
+    / (cameraHeight * Math.min(1, Math.max(0.2, aspect)))) * 180 / Math.PI));
+  return { x: cx, z: cz, y: floor + cameraHeight, floor, fov, kind: room.kind };
+}
+
+function currentRoomCamera() {
+  if (!interiorCameraFootprints) return null;
+  const b = buildingAt(avatar.position.x, avatar.position.z);
+  const entry = b && interiorCameraFootprints.get(String(b.osm_id));
+  if (!entry?.interior || insideEntranceRecess(entry, avatar.position.x, avatar.position.z)) return null;
+  const { rooms, floorY, height } = entry.interior;
+  return roomCameraPose(entry, rooms, avatar.position.x, avatar.position.z, floorY, height, camera.aspect);
 }
 
 addEventListener("keydown", (e) => {
@@ -17951,24 +18063,25 @@ function updateDoors(dt) {
   const inside = buildingAt(x, z);
   const insideEntry = inside && footprintById.get(String(inside.osm_id));
   const insideId = inside && !insideEntranceRecess(insideEntry, x, z) ? String(inside.osm_id) : null;
-  // An address search can land inside a footprint without a person having crossed
-  // an entrance. Only switching modes after walking through an opened door keeps
-  // a search from unexpectedly zooming into a wall.
-  if (insideId && insideId !== lastInsideBuildingId && !state.firstPerson
-      && doorsNear(x, z, DOOR_DRAW_M).some((candidate) => candidate.open
-        && String(candidate.entry.way.osm_id) === insideId)) setFirstPerson(true);
-  lastInsideBuildingId = insideId;
   // A walker already inside (arrived by search, or a saved position) gets the rooms too.
   if (inside && INTERIORS) {
     const entry = footprintById.get(String(inside.osm_id));
     if (entry && !entry.interior) buildInterior(entry);
   }
+  // The default applies to saved indoor positions as well as doorway entries.
+  // Address search lands outside the building; a stair/landing recess is not a
+  // room. An explicitly selected first-person view remains first-person.
+  if (insideId && insideEntry?.interior && !state.firstPerson && !state.ceilingRoom) setCeilingView(true);
+  if (!insideId && state.ceilingRoom) setCeilingView(false);
   if (door) {
     doorHint.textContent = `Enter — ${door.open ? "close" : "open"} the door (${DOOR_SOURCE[door.source]})`;
     doorHint.hidden = false;
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
     const plan = footprintById.get(String(inside.osm_id)).interior.plan;
-    doorHint.textContent = `Inside: ${plan} — a generic plan fitted to this building's proportions, not its real interior`;
+    const scanned = footprintById.get(String(inside.osm_id)).interior.scan;
+    doorHint.textContent = scanned
+      ? `Matched real scan: Redwood apartment — borrowed layout, NOT this address's actual interior · ${scanned.attribution}`
+      : `Inside: ${plan} — a generic plan fitted to this building's proportions, not its real interior`;
     doorHint.hidden = false;
   } else {
     doorHint.hidden = true;
@@ -18781,9 +18894,161 @@ function buildInterior(entry) {
   const source = INTERIORS.sources[plan.src] || {};
   const floorSurface = (x, z) => (insideFootprint(entry, x, z) ? floorY : null);
   standingSurfaces.add(floorSurface);
-  entry.interior = { group, segments, floorSurface,
+  entry.interior = { group, segments, floorSurface, rooms: roomSpecs, floorY, height,
     plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${nx * ny > 1 ? ` ×${nx * ny}` : ""} (${source.license || ""})` };
   interiorsBuilt.add(entry);
+  requestScannedInterior(entry);
+}
+
+function scanPointToPage(placement, x, z) {
+  const [cx, cy] = xy(...placement.lonlat);
+  const c = Math.cos(placement.yaw), s = Math.sin(placement.yaw);
+  return [cx + placement.scale * (c * x + s * z), -cy + placement.scale * (-s * x + c * z)];
+}
+
+function scanEntrancePlan(entry, door, segments) {
+  if (!door) return null;
+  const start = door.stoopPlan?.depth || 0;
+  const ox = door.cx + door.nx * start, oz = door.cz + door.nz * start;
+  let first = Infinity;
+  for (const [ax, az, bx, bz] of segments) {
+    const sx = bx - ax, sz = bz - az;
+    const den = door.nx * sz - door.nz * sx;
+    if (Math.abs(den) < 1e-8) continue;
+    const dx = ax - ox, dz = az - oz;
+    const t = (dx * sz - dz * sx) / den;
+    const u = (dx * door.nz - dz * door.nx) / den;
+    if (t > 0.05 && t < 1.5 && u >= 0 && u <= 1) first = Math.min(first, t);
+  }
+  if (!Number.isFinite(first)) return null;
+  const half = door.width / 2 + 0.06;
+  const lo = Math.max(0.02, first - 0.3), hi = first + 0.3;
+  const point = (across, depth) => [ox + door.ux * across + door.nx * depth,
+    oz + door.uz * across + door.nz * depth];
+  const ring = [point(-half, lo), point(half, lo), point(half, hi), point(-half, hi)];
+  if (!ring.every(([x, z]) => insideFootprint(entry, x, z))) return null;
+  for (let across = -half; across <= half; across += 0.15)
+    for (let depth = lo; depth <= hi; depth += 0.15)
+      if (!insideFootprint(entry, ...point(across, depth))) return null;
+  return { ox, oz, ux: door.ux, uz: door.uz, nx: door.nx, nz: door.nz,
+    lo, hi, half, ring, height: DOOR_HEIGHT_M + 0.06, grade: "inferred_entry_adapter" };
+}
+
+function scanEntranceContains(plan, x, y, z, floor) {
+  const dx = x - plan.ox, dz = z - plan.oz;
+  const along = dx * plan.nx + dz * plan.nz;
+  return Math.abs(dx * plan.ux + dz * plan.uz) <= plan.half
+    && along >= plan.lo && along <= plan.hi && y >= floor - 0.08 && y <= floor + plan.height;
+}
+
+function adaptScanEntrance(model, plans, floor) {
+  model.updateMatrixWorld(true);
+  let removed = 0;
+  model.traverse((o) => {
+    if (!o.isMesh || !plans.length) return;
+    const geometry = o.geometry, positions = geometry.getAttribute("position");
+    const index = geometry.index?.array || Array.from({length:positions.count}, (_, i) => i);
+    const keep = [], p = new THREE.Vector3();
+    for (let t = 0; t + 2 < index.length; t += 3) {
+      let cut = false;
+      // The source LOD has six-centimetre faces. Removing faces whose centre
+      // lies in the door-sized cut opens this visual copy, not the source asset.
+      p.set(0, 0, 0);
+      for (let j = 0; j < 3; j += 1) {
+        const i = index[t + j];
+        p.x += positions.getX(i) / 3; p.y += positions.getY(i) / 3; p.z += positions.getZ(i) / 3;
+      }
+      p.applyMatrix4(o.matrixWorld);
+      cut = plans.some((plan) => scanEntranceContains(plan, p.x, p.y, p.z, floor));
+      if (cut) removed += 1; else keep.push(index[t], index[t + 1], index[t + 2]);
+    }
+    if (keep.length === index.length) return;
+    o.geometry = geometry.clone();
+    o.geometry.setIndex(keep);
+    o.userData.sharedInteriorAsset = false;
+    o.userData.visualEntryCompletion = "inferred; original scan unchanged";
+  });
+  return removed;
+}
+
+function requestScannedInterior(entry) {
+  const placement = SCANNED_INTERIORS?.placements.find((p) => String(p.building) === String(entry.way.osm_id));
+  if (!placement || entry.interior?.scan) return;
+  const scan = SCANNED_INTERIORS.scans[placement.scan];
+  if (!scannedInteriorPromises.has(scan.id)) {
+    const url = sharedAsset(scan.asset);
+    scannedInteriorPromises.set(scan.id, fetch(url).then(async (r) => {
+      if (!r.ok) throw new Error("scan unavailable");
+      const bytes = await r.arrayBuffer();
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+      if (hash !== scan.sha256 || bytes.byteLength !== scan.bytes) throw new Error("scan checksum mismatch");
+      return new GLTFLoader().parseAsync(bytes, new URL(".", new URL(url, location.href)).href);
+    }).catch((err) => { console.warn("Matched scan refused; keeping procedural interior", err); return null; }));
+  }
+  scannedInteriorPromises.get(scan.id).then((gltf) => {
+    if (!gltf || !entry.interior || entry.interior.scan) return;
+    const rooms = scan.layout.rooms.map((r) => ({ ...r,
+      pts: r.pts.map(([x, z]) => scanPointToPage(placement, x, z)) }));
+    // Independently recheck the compiled geometry against the current page's
+    // footprint. A later footprint update must not leak a surrogate outside it.
+    const model = gltf.scene.clone(true);
+    let contained = true;
+    model.updateMatrixWorld(true);
+    model.traverse((o) => {
+      if (!o.isMesh) return;
+      const positions = o.geometry.getAttribute("position");
+      const point = new THREE.Vector3();
+      for (let i = 0; i < positions.count; i += 1) {
+        point.fromBufferAttribute(positions, i).applyMatrix4(o.matrixWorld);
+        const [x, z] = scanPointToPage(placement, point.x, point.z);
+        if (!insideFootprint(entry, x, z)) { contained = false; break; }
+      }
+      o.userData.sharedInteriorAsset = true;
+      o.castShadow = true; o.receiveShadow = true;
+      o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
+    });
+    if (!contained) return;
+    const floorY = entryFloorY(entry);
+    const [cx, cy] = xy(...placement.lonlat);
+    const group = entry.interior.group;
+    // Replace the ground-storey appearance only. Preserve the already fitted,
+    // labelled upper storeys; repeating the scan there would be both a false
+    // layout claim and additional uses outside this placement's reuse count.
+    for (const child of group.children)
+      if (child.userData.surface !== "interior_storey" && !child.isLight) child.visible = false;
+    group.name = `matched-scan:${entry.way.osm_id}`;
+    model.position.set(cx, floorY + 0.06, -cy);
+    model.rotation.y = placement.yaw;
+    model.scale.setScalar(placement.scale);
+    group.add(model);
+    const sourceSegments = scan.layout.segments.map(([ax, az, bx, bz]) =>
+      [...scanPointToPage(placement, ax, az), ...scanPointToPage(placement, bx, bz)]);
+    const entryAdapters = (entry.doors || []).map((door) => scanEntrancePlan(entry, door, sourceSegments)).filter(Boolean);
+    const removedEntryFaces = adaptScanEntrance(model, entryAdapters, floorY);
+    // A scan has unobserved floor patches under furnishings. A neutral,
+    // explicitly inferred substrate sits BELOW the photographed surface;
+    // it neither repaints source texels nor becomes measured ground truth.
+    const shape = floorShapeWithStairCuts(entry.local.slice(0, -1),
+      (entry.doors || []).map(stoopCutRing).filter(Boolean));
+    const substrate = new THREE.Mesh(new THREE.ShapeGeometry(shape), roomFloorMaterial("other"));
+    substrate.rotation.x = -Math.PI / 2;
+    substrate.position.y = floorY - 0.08;
+    substrate.userData = { surface: "scan_unknown_floor_completion", grade: "inferred" };
+    substrate.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
+    group.add(substrate);
+    group.userData = { surface: "interior", grade: placement.grade, source: scan.id,
+      attribution: scan.attribution, sourceHash: scan.source_sha256, assetHash: scan.sha256,
+      address: placement.address, matchBasis: placement.match_basis,
+      entryAdapters: entryAdapters.length, removedEntryFaces, entryAdapterGrade: "inferred, not scanned evidence",
+      upperStoreys: "inferred fitted plans, not scanned" };
+    const segments = sourceSegments.flatMap((segment) => clipOutsideZones(segment, entryAdapters.map((p) => p.ring)));
+    const floorSurface = entry.interior.floorSurface;
+    entry.interior = { group, segments, floorSurface, rooms, floorY, height: 2.4 * placement.scale,
+      scan, placement, plan: "Redwood scanned apartment (matched surrogate, not address truth)" };
+    interiorsBuilt.add(entry);
+    if (state.ceilingRoom) placeCamera();
+  });
 }
 
 function removeInterior(entry) {
@@ -18814,6 +19079,9 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     + '<button id="inspect-door">Toggle entrance door</button><button id="inspect-step">Walk forward 0.25 m</button>'
     + '<button id="inspect-back">Look behind</button>'
     + '<button id="inspect-room">Inspect next furnished room</button>'
+    + '<button id="inspect-ceiling">Room ceiling view</button>'
+    + '<label>Matched scan home <select id="inspect-scan"></select></label>'
+    + '<button id="inspect-scan-home">Visit selected scan doorway</button>'
     + '<pre id="inspect-state" style="white-space:pre-wrap"></pre>';
   document.body.appendChild(inspector);
   for (const button of inspector.querySelectorAll("button"))
@@ -18838,10 +19106,39 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     state.target.copy(avatar.position); placeCamera();
   };
   document.getElementById("inspect-back").onclick = () => { state.yaw += Math.PI; placeCamera(); };
+  document.getElementById("inspect-ceiling").onclick = () => { setCeilingView(true); };
+  document.getElementById("inspect-scan-home").onclick = () => {
+    const entry = footprintById.get(document.getElementById("inspect-scan").value);
+    const d = entry?.doors?.[0];
+    if (!d) return;
+    state.yaw = Math.atan2(-d.nx, -d.nz); state.look = 0;
+    goTo(new THREE.Vector3(d.cx - d.nx * 1.5, 0, d.cz - d.nz * 1.5), { travel: true, zoom: true });
+    setFirstPerson(false);
+  };
   let inspectedRoom = 0;
   document.getElementById("inspect-room").onclick = () => {
     const b = buildingAt(avatar.position.x, avatar.position.z);
     const entry = b && footprintById.get(String(b.osm_id));
+    if (entry?.interior?.scan) {
+      const rooms = entry.interior.rooms;
+      const room = rooms[inspectedRoom++ % rooms.length];
+      let seed = room.pts.reduce((p, q) => [p[0] + q[0] / room.pts.length,
+        p[1] + q[1] / room.pts.length], [0, 0]);
+      if (!pointInRing(...seed, room.pts)) {
+        const minX = Math.min(...room.pts.map((p) => p[0])), maxX = Math.max(...room.pts.map((p) => p[0]));
+        const minZ = Math.min(...room.pts.map((p) => p[1])), maxZ = Math.max(...room.pts.map((p) => p[1]));
+        searchRoom: for (let z = minZ + 0.25; z < maxZ; z += 0.5)
+          for (let x = minX + 0.25; x < maxX; x += 0.5)
+            if (pointInRing(x, z, room.pts)) { seed = [x, z]; break searchRoom; }
+      }
+      const pose = roomCameraPose(entry, [room], ...seed,
+        entry.interior.floorY, entry.interior.height, camera.aspect);
+      if (pointInRing(pose.x, pose.z, room.pts) && insideFootprint(entry, pose.x, pose.z)) {
+        avatar.position.set(pose.x, AVATAR_STAND_Y + entry.interior.floorY, pose.z);
+        state.target.copy(avatar.position); setCeilingView(true);
+      }
+      return;
+    }
     const furnishings = entry?.interior?.group.children
       .filter((o) => o.userData.surface?.startsWith("furnishing:")) || [];
     for (let n = 0; n < furnishings.length; n += 1) {
@@ -18865,10 +19162,19 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     }
   };
   setInterval(() => {
+    const selector = document.getElementById("inspect-scan");
+    if (SCANNED_INTERIORS && !selector.options.length)
+      for (const p of SCANNED_INTERIORS.placements) {
+        if (!footprintById.has(String(p.building))) continue;
+        const option = document.createElement("option");
+        option.value = p.building; option.textContent = p.address;
+        selector.appendChild(option);
+      }
     const b = buildingAt(avatar.position.x, avatar.position.z);
     const e = b && footprintById.get(String(b.osm_id));
     const d = nearestDoor();
     const report = { loaded: Boolean(INTERIORS), firstPerson: state.firstPerson,
+      ceilingRoom: state.ceilingRoom, roomCamera: state.ceilingRoom ? currentRoomCamera() : null,
       building: b?.osm_id, door: d && { building: d.entry.way.osm_id, source: DOOR_SOURCE[d.source],
         open: d.open, steps: d.stoopPlan?.steps || 0, landing: d.stoopPlan?.landingDepth || 0 },
       shells: homeShells.size, windows: [...homeShells].reduce((n, h) => n + h.homeShell.group.userData.windows.length, 0),

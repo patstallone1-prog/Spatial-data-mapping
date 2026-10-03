@@ -223,10 +223,11 @@ def test_inferred_furniture_fits_room_and_keeps_entry_clear() -> None:
     assert ((position["x"] - 4) ** 2 + (position["z"] - 3) ** 2) ** 0.5 > 1.2
 
 
-def test_first_person_requires_an_opened_entry_not_an_address_search() -> None:
+def test_room_ceiling_default_respects_recess_and_explicit_first_person() -> None:
     js = _page_js()
     update = _extract("updateDoors", js)
-    assert "insideId !== lastInsideBuildingId" in update
-    assert "candidate.open" in update
-    assert "setFirstPerson(true)" in update
-    assert "lastInsideBuildingId = insideId" in update
+    assert "insideEntranceRecess(insideEntry, x, z)" in update
+    assert "insideEntry?.interior && !state.firstPerson && !state.ceilingRoom" in update
+    assert "setCeilingView(true)" in update
+    assert "!insideId && state.ceilingRoom" in update
+    assert update.index("buildInterior(entry)") < update.index("setCeilingView(true)")
