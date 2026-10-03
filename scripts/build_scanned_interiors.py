@@ -103,6 +103,34 @@ def entrance_check(way, fit, sample):
     return None
 
 
+def choose_scan_yaw(source, ring, fit, scale, rooms):
+    """Two equally sized orientations; aim entry toward the largest observed room.
+
+    This matches a borrowed layout to the entrance, never claims the actual
+    address's room plan. Both orientations still require complete containment.
+    """
+    edge, t, _, _ = fit[13][0]
+    a, b = ring[edge:edge + 2]
+    direction = b - a
+    normal = np.array([-direction[1], direction[0]]) / np.linalg.norm(direction)
+    centre = a + t * direction
+    if not contains(np.array([centre + normal * .5]), ring)[0]:
+        normal *= -1
+    access = centre + normal * 2.5
+    open_room = max(rooms, key=lambda r: r.get("area_m2", 0))
+    candidates = []
+    for yaw in (math.radians(fit[6]), math.radians(fit[6]) + math.pi):
+        c, s = math.cos(yaw), math.sin(yaw)
+        rotation = np.array([[c, -s], [s, c]])
+        if not contains(source * scale @ rotation, ring).all():
+            continue
+        local = access @ rotation.T / scale
+        observed = any(contains(local[None, :], np.asarray(r["pts"]))[0] for r in rooms)
+        distance = np.linalg.norm(local - np.asarray(open_room["pts"]).mean(axis=0))
+        candidates.append((distance, not observed, yaw))
+    return min(candidates)[2] if candidates else None
+
+
 def validate_manifest(data: dict) -> None:
     uses = {}
     for placement in data["placements"]:
@@ -201,7 +229,7 @@ def build(asset: Path, count: int = 3) -> dict:
     ):
         if any(p["building"] == ident for p in placements):
             continue
-        lon, lat, yaw = fit[4:7]
+        lon, lat = fit[4:6]
         px = 111412.84 * math.cos(math.radians(lat)) - 93.5 * math.cos(3 * math.radians(lat))
         py = (
             111132.92
@@ -210,7 +238,9 @@ def build(asset: Path, count: int = 3) -> dict:
         )
         ring = np.asarray(way["points"])
         ring = (ring - [lon, lat]) * [px, -py]
-        angle = math.radians(yaw)
+        angle = choose_scan_yaw(source, ring, fit, scale, scan["layout"]["rooms"])
+        if angle is None:
+            continue
         c, s = math.cos(angle), math.sin(angle)
         # glTF x/z -> page east/south, same axes as buildInterior/place().
         rotation = np.array([[c, -s], [s, c]])
@@ -233,7 +263,7 @@ def build(asset: Path, count: int = 3) -> dict:
                 "contained_vertices": len(source),
                 "grade": "matched_surrogate_not_address_truth",
                 "entrance_preflight": entrance,
-                "match_basis": "dwelling class, storeys, footprint dimensions and complete mesh containment; actual house layout unknown",
+                "match_basis": "dwelling class, storeys, footprint dimensions and contained rigid orientation toward the largest observed open-floor region; actual house layout unknown",
             }
         )
         if len(placements) == count:

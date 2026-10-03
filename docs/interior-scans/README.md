@@ -4,7 +4,9 @@ This pilot uses the **real Redwood Apartment reconstruction**, not an authored
 CAD apartment or a catalogue thumbnail. Three house placements share one GLB.
 None depicts the matched address's actual interior. Matching uses residential
 class, storey count, footprint proportions, complete-vertex containment and a
-terrain/entrance preflight. Actual floor-plan similarity cannot be known without
+terrain/entrance preflight. Of the two contained rigid orientations, the matcher
+aims the host doorway toward the largest observed open-floor region rather than
+a small furnished bedroom or an unobserved margin. Actual floor-plan similarity cannot be known without
 an observation of the target house; the manifest states this limitation.
 
 Source: [Redwood Indoor Lidar-RGBD Scan Dataset](http://redwood-data.org/indoor_lidar_rgbd/download.html).

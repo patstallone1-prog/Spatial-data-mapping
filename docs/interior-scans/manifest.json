@@ -1178,7 +1178,7 @@
         -122.2766576,
         37.8107938
       ],
-      "yaw": 1.1238175053591488,
+      "yaw": 4.265410158948942,
       "scale": 0.9578818,
       "shape_match_score": 0.1,
       "contained_vertices": 75724,
@@ -1189,7 +1189,7 @@
         "rise_m": 0.057,
         "steps": 0
       },
-      "match_basis": "dwelling class, storeys, footprint dimensions and complete mesh containment; actual house layout unknown"
+      "match_basis": "dwelling class, storeys, footprint dimensions and contained rigid orientation toward the largest observed open-floor region; actual house layout unknown"
     },
     {
       "region": "oakland-downtown",
@@ -1211,7 +1211,7 @@
         "rise_m": -0.02,
         "steps": 0
       },
-      "match_basis": "dwelling class, storeys, footprint dimensions and complete mesh containment; actual house layout unknown"
+      "match_basis": "dwelling class, storeys, footprint dimensions and contained rigid orientation toward the largest observed open-floor region; actual house layout unknown"
     },
     {
       "region": "sf-sunset",
@@ -1233,7 +1233,7 @@
         "rise_m": 0.062,
         "steps": 0
       },
-      "match_basis": "dwelling class, storeys, footprint dimensions and complete mesh containment; actual house layout unknown"
+      "match_basis": "dwelling class, storeys, footprint dimensions and contained rigid orientation toward the largest observed open-floor region; actual house layout unknown"
     }
   ]
 }

@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from scripts.build_scanned_interiors import contains, validate_manifest
+from scripts.build_scanned_interiors import choose_scan_yaw, contains, validate_manifest
 from smc.scans.readers import read_glb
 from tests.test_home_shell import run_js
 
@@ -35,6 +35,15 @@ def test_borrowed_scan_entry_opens_only_the_attached_door_sized_front_wall():
     assert out["p"]["grade"] == "inferred_entry_adapter"
     assert len(out["walls"]) == 3
     assert out["walls"][-1] == [-3, 4, 3, 4]
+
+
+def test_layout_matching_prefers_observed_floor_behind_the_host_door():
+    source = np.array([[-2, -3], [2, -3], [2, 3], [-2, 3]])
+    ring = np.array([[-2.3, -3.3], [2.3, -3.3], [2.3, 3.3], [-2.3, 3.3]])
+    fit = [0] * 14
+    fit[13] = [[0, .5, 1, 2]]
+    rooms = [{"pts": [[-1, .2], [1, .2], [1, 1.5], [-1, 1.5]]}]
+    assert choose_scan_yaw(source, ring, fit, 1, rooms) == pytest.approx(math.pi)
 
 
 def manifest():
