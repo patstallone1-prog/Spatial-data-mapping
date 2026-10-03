@@ -1,0 +1,285 @@
+{
+  "schema": "kerbside.material_library/1",
+  "source": "Poly Haven",
+  "license": "CC0-1.0",
+  "assets": [
+    {
+      "id": "brick_wall_001",
+      "material_class": "brick",
+      "file": "brick_wall_001.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": "1.5x1.5",
+      "sha256": "aefa7f3743282de2c7df4e4282c868de204239ac3c94e818b1ef74f2a2d74f1a",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/brick_wall_001/brick_wall_001_diffuse_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/brick_wall_001",
+      "source_authors": {
+        "Rob Tuytel": "Processing",
+        "Dimitrios Savva": "Photography"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "brick_wall_003",
+      "material_class": "brick",
+      "file": "brick_wall_003.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": "2x2 M",
+      "sha256": "e9e5695b41dea599460197ff41f908c746bfadf7548d38f8e1f4fd18cee859fc",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/brick_wall_003/brick_wall_003_diffuse_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/brick_wall_003",
+      "source_authors": {
+        "Rob Tuytel": "Processing",
+        "Dimitrios Savva": "Photography"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "brick_wall_005",
+      "material_class": "brick",
+      "file": "brick_wall_005.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "80723d094871de5b34698d828e43c0014a6e4c6db7551ac88639a202c8783dd9",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/brick_wall_005/brick_wall_005_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/brick_wall_005",
+      "source_authors": {
+        "Dario Barresi": "Processing",
+        "Dimitrios Savva": "Photography"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "concrete_wall_001",
+      "material_class": "concrete",
+      "file": "concrete_wall_001.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "6a96c2babde7b65aa11a72e06ea3cc37a76cecc274dfef1125ba33e41d13dd9f",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_wall_001/concrete_wall_001_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/concrete_wall_001",
+      "source_authors": {
+        "Dimitrios Savva": "Photography",
+        "Rico Cilliers": "Processing"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "concrete_wall_004",
+      "material_class": "concrete",
+      "file": "concrete_wall_004.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "f0d2060e3ef503a6458ed94c92d059d794be38b56b3a3965e113922a5947ee39",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_wall_004/concrete_wall_004_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/concrete_wall_004",
+      "source_authors": {
+        "Dario Barresi": "Processing",
+        "Charlotte Baglioni": "Photography"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "concrete_wall_007",
+      "material_class": "concrete",
+      "file": "concrete_wall_007.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "6399f39d4937d07b41a10f592eef5b4c955810545b889c0ba808fae77e394de4",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_wall_007/concrete_wall_007_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/concrete_wall_007",
+      "source_authors": {
+        "Dario Barresi": "Processing",
+        "Rico Cilliers": "Tiling",
+        "Charlotte Baglioni": "Photography"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "plastered_wall_02",
+      "material_class": "stucco_render",
+      "file": "plastered_wall_02.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "caa72056d9157f08912a4c86c844296f93f323f8b30f418895625b052c837d0c",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/plastered_wall_02/plastered_wall_02_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/plastered_wall_02",
+      "source_authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "plastered_wall_04",
+      "material_class": "stucco_render",
+      "file": "plastered_wall_04.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "aaf0e693291d51d13531480625a942f950fed23f6b1d1008ee0e91f2a23a7b1e",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/plastered_wall_04/plastered_wall_04_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/plastered_wall_04",
+      "source_authors": {
+        "Rob Tuytel": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "rough_plaster_03",
+      "material_class": "stucco_render",
+      "file": "rough_plaster_03.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": "1.5M x 1.5M",
+      "sha256": "cf41772dab54818f5f8c58b9297763a7f22480f0147bd8de0668b7732638ac71",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rough_plaster_03/rough_plaster_03_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/rough_plaster_03",
+      "source_authors": {
+        "Rob Tuytel": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "sandstone_brick_wall_01",
+      "material_class": "stone",
+      "file": "sandstone_brick_wall_01.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "88425adbed8114fe96e6d281e4a9169a2c54e5a320082cc084287a864408ce87",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sandstone_brick_wall_01/sandstone_brick_wall_01_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/sandstone_brick_wall_01",
+      "source_authors": {
+        "Rob Tuytel": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "stone_wall",
+      "material_class": "stone",
+      "file": "stone_wall.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "131494c5be0531bb230d4e47c21750d94d44555a66396d2b21da962ef635c0c2",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/stone_wall/stone_wall_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/stone_wall",
+      "source_authors": {
+        "Dario Barresi": "Processing",
+        "Charlotte Baglioni": "Photography"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "stone_wall_03",
+      "material_class": "stone",
+      "file": "stone_wall_03.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "d773961b86206ae005c7c81aeb99df14f828ecf116510cd8016448d4e8d61ab8",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/stone_wall_03/stone_wall_03_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/stone_wall_03",
+      "source_authors": {
+        "eye-candy.xyz": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "wood_plank_wall",
+      "material_class": "wood_siding",
+      "file": "wood_plank_wall.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "4c880b3c5c43c8aecfbfc21115ee345e7e7e0d8893e888171bb131ef83b71cf0",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_plank_wall/wood_plank_wall_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/wood_plank_wall",
+      "source_authors": {
+        "Dimitrios Savva": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "wood_planks_grey",
+      "material_class": "wood_siding",
+      "file": "wood_planks_grey.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "31bdd475c6f1520fccc34a6823bfab8ba61ce5fd6dd97a3d1d868c21295e1000",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_planks_grey/wood_planks_grey_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/wood_planks_grey",
+      "source_authors": {
+        "Rob Tuytel": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    },
+    {
+      "id": "wooden_rough_planks",
+      "material_class": "wood_siding",
+      "file": "wooden_rough_planks.jpg",
+      "pixels": [
+        2048,
+        2048
+      ],
+      "physical_scale": null,
+      "sha256": "a1821c8bbbf705fcca015583d30a2ba6ce83c487a5aefc8a77da146810faa260",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wooden_rough_planks/wooden_rough_planks_diff_2k.jpg",
+      "source_info_url": "https://api.polyhaven.com/info/wooden_rough_planks",
+      "source_authors": {
+        "Rob Tuytel": "All"
+      },
+      "license": "CC0-1.0",
+      "role": "visual_material_reference_only"
+    }
+  ]
+}

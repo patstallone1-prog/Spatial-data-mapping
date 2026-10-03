@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
+import subprocess
 import sys
 import math
 import time
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -95,6 +98,9 @@ OSM_SELECTORS = (
     'way["amenity"="shelter"]',
     'way["shelter_type"="public_transport"]',
     'way["advertising"]',
+    'node["power"="pole"]',
+    'node["man_made"="utility_pole"]',
+    'way["power"~"^(line|minor_line)$"]',
 )
 
 MUNI_STOP_SPECS = {
@@ -154,6 +160,78 @@ def fetch_overpass(bbox: dict[str, float], *, refresh: bool, progress=print) -> 
             progress(f"  overpass {mirror.split('/')[2]}: {exc}")
     progress(f"osm furniture: all Overpass mirrors failed ({last}); publishing empty layer")
     return []
+
+
+def osm_power_from_xml(raw: bytes, bbox: dict[str, float]) -> list[dict[str, Any]]:
+    """Extract only above-ground electrical assets from an OSM map response."""
+    nodes: dict[int, tuple[float, float]] = {}
+    results: list[dict[str, Any]] = []
+    context = ET.iterparse(io.BytesIO(raw), events=("start", "end"))
+    _, root = next(context)
+    for event, element in context:
+        if event != "end":
+            continue
+        if element.tag == "node":
+            lon, lat = float(element.attrib["lon"]), float(element.attrib["lat"])
+            nodes[int(element.attrib["id"])] = (lon, lat)
+            tags = {tag.attrib["k"]: tag.attrib["v"] for tag in element.findall("tag")}
+            if ((tags.get("power") == "pole" or tags.get("man_made") == "utility_pole")
+                    and bbox["west"] <= lon <= bbox["east"]
+                    and bbox["south"] <= lat <= bbox["north"]):
+                results.append({"type": "node", "id": int(element.attrib["id"]),
+                                "lon": lon, "lat": lat, "tags": tags})
+        elif element.tag == "way":
+            tags = {tag.attrib["k"]: tag.attrib["v"] for tag in element.findall("tag")}
+            if tags.get("power") in {"line", "minor_line"}:
+                geometry = [{"lon": nodes[int(nd.attrib["ref"])][0],
+                             "lat": nodes[int(nd.attrib["ref"])][1]}
+                            for nd in element.findall("nd") if int(nd.attrib["ref"]) in nodes]
+                if len(geometry) >= 2:
+                    results.append({"type": "way", "id": int(element.attrib["id"]),
+                                    "tags": tags, "geometry": geometry})
+        if element.tag in {"node", "way", "relation"}:
+            element.clear()
+            root.clear()
+    return results
+
+
+def fetch_osm_power(bbox: dict[str, float], *, refresh: bool, progress=print) -> list[dict[str, Any]]:
+    """Use the main OSM map API when Overpass cannot return the electrical layer."""
+    CACHE.mkdir(parents=True, exist_ok=True)
+    merged: dict[tuple[str, int], dict[str, Any]] = {}
+    def collect(west: float, south: float, east: float, north: float, depth: int) -> None:
+        key = hashlib.blake2b(f"{west},{south},{east},{north}".encode(), digest_size=8).hexdigest()
+        path = CACHE / f"osm_power_map-{key}.xml"
+        if path.exists() and not refresh:
+            raw = path.read_bytes()
+        else:
+            url = ("https://api.openstreetmap.org/api/0.6/map?bbox="
+                   f"{west},{south},{east},{north}")
+            request = urllib.request.Request(url, headers={"User-Agent": "Kerbside power audit"})
+            try:
+                with urllib.request.urlopen(request, timeout=45) as response:
+                    raw = response.read()
+            except Exception as exc:  # noqa: BLE001
+                if depth < 2:
+                    progress(f"OSM power map {key} too large/unavailable; dividing cell")
+                    middle_lon, middle_lat = (west + east) / 2, (south + north) / 2
+                    for left, right in ((west, middle_lon), (middle_lon, east)):
+                        for bottom, top in ((south, middle_lat), (middle_lat, north)):
+                            collect(left, bottom, right, top, depth + 1)
+                else:
+                    progress(f"OSM power map {key} unavailable: {exc}")
+                return
+            path.write_bytes(raw)
+        for item in osm_power_from_xml(raw, bbox):
+            merged[(item["type"], item["id"])] = item
+        progress(f"OSM power map: {len(merged)} distinct assets after {key}")
+
+    mid_lon = (bbox["west"] + bbox["east"]) / 2
+    mid_lat = (bbox["south"] + bbox["north"]) / 2
+    for west, east in ((bbox["west"], mid_lon), (mid_lon, bbox["east"])):
+        for south, north in ((bbox["south"], mid_lat), (mid_lat, bbox["north"])):
+            collect(west, south, east, north, 0)
+    return list(merged.values())
 
 
 def arcgis_query_url(layer: dict[str, Any], bbox: dict[str, float], offset: int) -> str:
@@ -544,7 +622,103 @@ def records_from_official(
             "subject_location": props.get("SUBJECT_LO"),
             "zone_specs": props.get("ZONE_SPECS"),
         })
+    out["street_signs"] = dedupe_sign_faces(out["street_signs"])
     return out
+
+
+def dedupe_sign_faces(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collapse duplicate inventory rows, not distinct plates on a shared post.
+
+    The sign shop has many repeated assets at exactly the same surveyed point. A
+    different legend, sign code, or stated facing remains a separate physical face.
+    Aliases retain every official asset ID for audit and future corrections.
+    """
+    by_face: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for record in records:
+        tags = record.get("tags") or {}
+        bearing = record.get("bearing")
+        key = (tuple(record["p"]), record.get("sign_kind"),
+               " ".join(str(record.get("label") or "").upper().split()),
+               str(tags.get("SIGN_CODE") or "").upper(),
+               round(float(bearing) % 360, 1) if bearing is not None else None)
+        existing = by_face.get(key)
+        if existing is None:
+            by_face[key] = record
+        elif record["id"] != existing["id"]:
+            existing.setdefault("source_aliases", []).append(record["id"])
+    return collapse_dense_sign_inventory_clusters(list(by_face.values()))
+
+
+def collapse_dense_sign_inventory_clusters(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Suppress dense, bearingless duplicates without erasing the source inventory.
+
+    The sign-shop feed sometimes puts dozens of identical assets a metre or two
+    apart at one junction (the Hyde/Jackson cable-car stop is one example). Two
+    nearby signs are *not* enough evidence to merge them. Only a dense group of
+    at least five identical, bearingless faces on the same CNN is collapsed.
+    Different legends, sign codes, approaches, and known bearings remain apart.
+    """
+    groups: dict[tuple[str, str, str, str], list[int]] = {}
+    for index, record in enumerate(records):
+        tags = record.get("tags") or {}
+        cnn = str(tags.get("CNN") or "")
+        if record.get("bearing") is not None or not cnn:
+            continue
+        key = (cnn, str(record.get("sign_kind") or ""),
+               " ".join(str(record.get("label") or "").upper().split()),
+               str(tags.get("SIGN_CODE") or "").upper())
+        groups.setdefault(key, []).append(index)
+
+    suppressed: set[int] = set()
+    for indexes in groups.values():
+        if len(indexes) < 5:
+            continue
+        # A short reach and a density gate avoid merging ordinary repeated
+        # parking signs placed along a block face.
+        neighbours: dict[int, list[int]] = {}
+        for i in indexes:
+            lon, lat = records[i]["p"]
+            adjacent = []
+            for j in indexes:
+                other_lon, other_lat = records[j]["p"]
+                dx = (other_lon - lon) * 87800.0  # local SF longitude metres
+                dy = (other_lat - lat) * 111200.0
+                if dx * dx + dy * dy <= 2.5 * 2.5:
+                    adjacent.append(j)
+            neighbours[i] = adjacent
+        core = {i for i, adjacent in neighbours.items() if len(adjacent) >= 5}
+        visited: set[int] = set()
+        for seed in core:
+            if seed in visited:
+                continue
+            cluster: set[int] = set()
+            stack = [seed]
+            while stack:
+                current = stack.pop()
+                if current in cluster:
+                    continue
+                cluster.add(current)
+                if current in core:
+                    stack.extend(neighbours[current])
+            visited.update(cluster)
+            if len(cluster) < 5:
+                continue
+            # Use a real surveyed point near the cluster centre, not an invented
+            # average coordinate. Preserve every source ID as an alias.
+            medoid = min(cluster, key=lambda i: sum(
+                ((records[i]["p"][0] - records[j]["p"][0]) * 87800.0) ** 2
+                + ((records[i]["p"][1] - records[j]["p"][1]) * 111200.0) ** 2
+                for j in cluster))
+            canonical = records[medoid]
+            aliases = canonical.setdefault("source_aliases", [])
+            for i in sorted(cluster):
+                if i == medoid:
+                    continue
+                aliases.append(records[i]["id"])
+                aliases.extend(records[i].get("source_aliases", []))
+                suppressed.add(i)
+            canonical["dedupe_basis"] = "dense_same_cnn_legend_bearingless_inventory_cluster"
+    return [record for index, record in enumerate(records) if index not in suppressed]
 
 
 #: Curb policies under which a car is parked at the kerb: where these run, the lane beside
@@ -604,14 +778,36 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
         "bus_stops": [],
         "shelters": [],
         "ad_panels": [],
+        "utility_poles": [],
+        "power_lines": [],
     }
     seen: set[str] = set()
     for element in elements:
+        tags = {str(k): str(v) for k, v in (element.get("tags") or {}).items()}
+        if (element.get("type") == "way" and tags.get("power") in {"line", "minor_line"}
+                and tags.get("location") not in {"underground", "submarine"}):
+            coordinates = [[round(float(p["lon"]), 7), round(float(p["lat"]), 7)]
+                           for p in element.get("geometry", []) if "lon" in p and "lat" in p]
+            if len(coordinates) >= 2:
+                out["power_lines"].append({
+                    "id": f"osm:power_line:way:{element['id']}",
+                    "kind": "power_line", "points": coordinates,
+                    "source": "openstreetmap", "license": "ODbL-1.0",
+                    "geometry_basis": "osm_overhead_line_way",
+                    "confidence": 0.60, "wire_count": tags.get("wires"),
+                    "power_kind": tags["power"], "voltage": tags.get("voltage"),
+                })
         located = element_point(element)
         if not located:
             continue
         lon, lat, basis = located
-        tags = {str(k): str(v) for k, v in (element.get("tags") or {}).items()}
+        if tags.get("power") == "pole" or tags.get("man_made") == "utility_pole":
+            record = base_record(element, "utility_pole", lon, lat, basis)
+            record["material"] = tags.get("material", "wood")
+            record["height_m"] = tags.get("height")
+            if record["id"] not in seen:
+                out["utility_poles"].append(record)
+                seen.add(record["id"])
 
         if tags.get("highway") == "bus_stop" or (
             tags.get("public_transport") == "platform" and tags.get("bus") == "yes"
@@ -674,6 +870,23 @@ def main() -> int:
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--region", default=None, help="a region from data/regions/regions.json; the corridor by default")
     args = parser.parse_args()
+    previous: dict[str, Any] = {}
+    if args.out.exists():
+        previous = json.loads(args.out.read_text(encoding="utf-8"))
+    # In a development checkout the current file may already have been damaged by a
+    # transient empty API response. The committed sidecar is the last known-good fallback.
+    if args.out.resolve() == OUT.resolve():
+        baseline = subprocess.run(
+            ["git", "show", "HEAD:docs/sf-corridor-furniture.json"],
+            cwd=ROOT, capture_output=True, text=True, check=False,
+        )
+        if baseline.returncode == 0:
+            committed = json.loads(baseline.stdout)
+            for section in ("inferred", "geometry_based"):
+                old = previous.setdefault(section, {})
+                for key, rows in committed.get(section, {}).items():
+                    if isinstance(rows, list) and not old.get(key):
+                        old[key] = rows
 
     global CORRIDOR
     sfmta = True
@@ -689,14 +902,25 @@ def main() -> int:
 
     elements = fetch_overpass(CORRIDOR, refresh=args.refresh)
     inferred = records_from_osm(elements)
+    if not inferred["utility_poles"] and not inferred["power_lines"]:
+        power = records_from_osm(fetch_osm_power(CORRIDOR, refresh=args.refresh))
+        inferred["utility_poles"] = power["utility_poles"]
+        inferred["power_lines"] = power["power_lines"]
+    for key, rows in previous.get("inferred", {}).items():
+        if isinstance(rows, list) and not inferred.get(key):
+            inferred[key] = rows
     counts = {key: len(value) for key, value in inferred.items()}
     official_features = {
         key: (fetch_arcgis_layer(key, CORRIDOR, refresh=args.refresh) if sfmta else [])
         for key in ARCGIS_LAYERS
     }
     geometry_based = records_from_official(official_features)
+    for key, rows in previous.get("geometry_based", {}).items():
+        if isinstance(rows, list) and not geometry_based.get(key):
+            geometry_based[key] = rows
     geometry_counts = {key: len(value) for key, value in geometry_based.items()}
-    write_parking_zones(official_features.get("sfmta_curb_zones", []))
+    if official_features.get("sfmta_curb_zones"):
+        write_parking_zones(official_features["sfmta_curb_zones"])
     osm_tag_counts = Counter()
     for element in elements:
         for key in (element.get("tags") or {}):

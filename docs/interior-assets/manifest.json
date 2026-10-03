@@ -1,0 +1,183 @@
+{
+  "schema": "kerbside.interior_assets/1",
+  "assets": [
+    {
+      "id": "sofa_03",
+      "kind": "living",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/sofa_03",
+      "attribution": "Poly Haven",
+      "model": "sofa_03/sofa_03.gltf",
+      "files": [
+        {
+          "path": "sofa_03/sofa_03.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/sofa_03/sofa_03_1k.gltf",
+          "bytes": 4465,
+          "sha256": "123f491bef4e9bda153bda770a5d12810bfc9b87ce56aa5973aed041ea17fd92"
+        },
+        {
+          "path": "sofa_03/textures/sofa_03_rough_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/sofa_03/sofa_03_rough_1k.jpg",
+          "bytes": 170206,
+          "sha256": "b03b45c92365cddf787db158d7499915d6ba0d67ec51947453f6598f51361e47"
+        },
+        {
+          "path": "sofa_03/sofa_03.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/sofa_03/sofa_03.bin",
+          "bytes": 228984,
+          "sha256": "e524350933d3d2a84c28f13bc042888a4768adeef88d630111015caede1c2e98"
+        },
+        {
+          "path": "sofa_03/textures/sofa_03_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/sofa_03/sofa_03_diff_1k.jpg",
+          "bytes": 151815,
+          "sha256": "c0bc221e4cacc3de75aff7744dab1600d008bcf70b5c67fb10ad6847b695a84e"
+        },
+        {
+          "path": "sofa_03/textures/sofa_03_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/sofa_03/sofa_03_nor_gl_1k.jpg",
+          "bytes": 112563,
+          "sha256": "b961f9e9f38233bd58cdc5275614d3a1b37d5304f5ab86fd19d110657d386025"
+        }
+      ]
+    },
+    {
+      "id": "modern_arm_chair_01",
+      "kind": "chair",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/modern_arm_chair_01",
+      "attribution": "Poly Haven",
+      "model": "modern_arm_chair_01/modern_arm_chair_01.gltf",
+      "files": [
+        {
+          "path": "modern_arm_chair_01/modern_arm_chair_01.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/modern_arm_chair_01/modern_arm_chair_01_1k.gltf",
+          "bytes": 5121,
+          "sha256": "d31be520add2603447b43acedbdacf9516866f7c89e9ea9230c9edbac9cc6e6a"
+        },
+        {
+          "path": "modern_arm_chair_01/textures/modern_arm_chair_01_pillow_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_arm_chair_01/modern_arm_chair_01_pillow_nor_gl_1k.jpg",
+          "bytes": 302377,
+          "sha256": "2717b9d22e1d3533e3c7436a0230b00b1d25bf396246679825c8db08edaba0a8"
+        },
+        {
+          "path": "modern_arm_chair_01/textures/modern_arm_chair_01_legs_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_arm_chair_01/modern_arm_chair_01_legs_nor_gl_1k.jpg",
+          "bytes": 560864,
+          "sha256": "af328e8530884907cf0d38a675338bb4e2b03c56ed2d21eb5abf505bb67c11de"
+        },
+        {
+          "path": "modern_arm_chair_01/textures/modern_arm_chair_01_pillow_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_arm_chair_01/modern_arm_chair_01_pillow_arm_1k.jpg",
+          "bytes": 321223,
+          "sha256": "fec333290ddfd70e78428251874d30d5410d6d0a956dd84922b0d3f3596e4b7a"
+        },
+        {
+          "path": "modern_arm_chair_01/textures/modern_arm_chair_01_legs_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_arm_chair_01/modern_arm_chair_01_legs_diff_1k.jpg",
+          "bytes": 460937,
+          "sha256": "6291421a8db6cd9bbbc8c141aa087465d698427249f813d24c6e5ccdbf0bf536"
+        },
+        {
+          "path": "modern_arm_chair_01/textures/modern_arm_chair_01_legs_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_arm_chair_01/modern_arm_chair_01_legs_arm_1k.jpg",
+          "bytes": 577931,
+          "sha256": "c76b65200a52cf649a865baf7f879dc34277b923edaac7ec8164eaf7c51c935d"
+        },
+        {
+          "path": "modern_arm_chair_01/modern_arm_chair_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/modern_arm_chair_01/modern_arm_chair_01.bin",
+          "bytes": 240728,
+          "sha256": "8755f2f498c0bb165660379d1b045465751c16bbeaf553c8dd76bb14c16d1ff6"
+        },
+        {
+          "path": "modern_arm_chair_01/textures/modern_arm_chair_01_pillow_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_arm_chair_01/modern_arm_chair_01_pillow_diff_1k.jpg",
+          "bytes": 228851,
+          "sha256": "f1935436b460ad5c03ac7ff9d1e1b4aaedcdc9a503d79c257beb8cdac2e9e1f7"
+        }
+      ]
+    },
+    {
+      "id": "dining_table",
+      "kind": "dining",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/dining_table",
+      "attribution": "Poly Haven",
+      "model": "dining_table/dining_table.gltf",
+      "files": [
+        {
+          "path": "dining_table/dining_table.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/dining_table/dining_table_1k.gltf",
+          "bytes": 4165,
+          "sha256": "6af2b850b0524d364b4c89869c6c70112b8d340317a256cf35fbe739040654c7"
+        },
+        {
+          "path": "dining_table/textures/dining_table_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/dining_table/dining_table_nor_gl_1k.jpg",
+          "bytes": 707020,
+          "sha256": "156d4bd665864b806973290c1c702dda3fc80736c91623311992f2ca2e773d84"
+        },
+        {
+          "path": "dining_table/textures/dining_table_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/dining_table/dining_table_diff_1k.jpg",
+          "bytes": 852259,
+          "sha256": "af239dc33b8444c5d9ca653d502ee1a1f0bac1845a7a522a00eae6c3a0d62b97"
+        },
+        {
+          "path": "dining_table/textures/dining_table_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/dining_table/dining_table_arm_1k.jpg",
+          "bytes": 689497,
+          "sha256": "f50a5105bb4c25985c726b1fa65b04bbfc5972794d08a970bd1a97c435159ad4"
+        },
+        {
+          "path": "dining_table/dining_table.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/dining_table/dining_table.bin",
+          "bytes": 30992,
+          "sha256": "63a493a0bf2eeea4ecc94e5e4cb90c7780fd6cb79e82feed1d3db89ed2b63305"
+        }
+      ]
+    },
+    {
+      "id": "old_bed_frame",
+      "kind": "bedroom",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/old_bed_frame",
+      "attribution": "Poly Haven",
+      "model": "old_bed_frame/old_bed_frame.gltf",
+      "files": [
+        {
+          "path": "old_bed_frame/old_bed_frame.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/old_bed_frame/old_bed_frame_1k.gltf",
+          "bytes": 3326,
+          "sha256": "661055e76d292ae5ec812f05077a6870414527c2d63947574ea8fc739e16de08"
+        },
+        {
+          "path": "old_bed_frame/textures/old_bed_frame_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/old_bed_frame/old_bed_frame_nor_gl_1k.jpg",
+          "bytes": 642790,
+          "sha256": "4c3d5132ae537a70d30216bb6055273fd00735e13b6c9d5064e0e545227ecba1"
+        },
+        {
+          "path": "old_bed_frame/textures/old_bed_frame_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/old_bed_frame/old_bed_frame_diff_1k.jpg",
+          "bytes": 699001,
+          "sha256": "eb9929f07eb43f530562a6ba05d0653f937474ab76e0e5dccea40ec64744a6e0"
+        },
+        {
+          "path": "old_bed_frame/textures/old_bed_frame_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/old_bed_frame/old_bed_frame_arm_1k.jpg",
+          "bytes": 831931,
+          "sha256": "c1f265ff346ede024bd869f7aaab9421212ebc9bedd4e0478cf0c2bec9dd315e"
+        },
+        {
+          "path": "old_bed_frame/old_bed_frame.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/old_bed_frame/old_bed_frame.bin",
+          "bytes": 1864580,
+          "sha256": "1dcb3b5d335bd55d9f5a494adb284260042fc663e5c21b9b581a8b301dfffdd3"
+        }
+      ]
+    }
+  ]
+}
