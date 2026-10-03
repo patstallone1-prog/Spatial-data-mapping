@@ -48,9 +48,10 @@ The stalled build was stopped (exit 130); it is not silently compiling in the ba
 
 ## Verification available now
 
-Nine focused Python tests pass: reversible/idempotent installer, anti-overwrite protection,
+Ten focused Python tests pass: reversible/idempotent installer, anti-overwrite protection,
 source camera/physics contracts, current export paths/frame/hashes, calibration GLB structure,
 axis/scale rejection, collision semantics and corrupt/path-escaping tile rejection.
+Reinstalling the plugin preserves an accepted default city map rather than reverting to OpenWorld.
 Ruff and Node syntax checks pass. Native `Kerbside.World` automation tests were added,
 but **have not run**. Python/source assertions do not establish native physics or image quality.
 The exported pilot was independently decoded with GLTFLoader: 78 meshes, 799,354 triangles,

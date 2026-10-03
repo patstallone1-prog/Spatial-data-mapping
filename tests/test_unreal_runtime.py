@@ -49,6 +49,19 @@ def test_install_rejects_user_edit_without_partial_writes(tmp_path):
     assert header.read_text() == "// my change\n" and project.read_bytes() == original
 
 
+def test_plugin_update_cannot_regress_imported_default_city(tmp_path):
+    project = project_at(tmp_path)
+    installer.install(project)
+    config = tmp_path / "Config/DefaultEngine.ini"
+    maps = ("\n[/Script/EngineSettings.GameMapsSettings]\n"
+            "GameDefaultMap=/Game/KerbsideRuntime/Maps/City.City\n"
+            "EditorStartupMap=/Game/KerbsideRuntime/Maps/City.City\n")
+    config.write_text(installer.managed_config(config.read_text(), installer.ENGINE_CONFIG + maps))
+    before = config.read_text()
+    installer.install(project)
+    assert config.read_text() == before
+
+
 def test_install_rejects_unmanaged_plugin(tmp_path):
     project = project_at(tmp_path)
     path = tmp_path / "Plugins/KerbsideWorld/KerbsideWorld.uplugin"

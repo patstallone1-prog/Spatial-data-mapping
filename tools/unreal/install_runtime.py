@@ -63,6 +63,19 @@ def managed_config(text: str, block: str) -> str:
     return text.rstrip() + "\n\n" + BEGIN + "\n" + block.rstrip() + "\n" + END + "\n"
 
 
+def engine_config(text: str) -> str:
+    """A plugin update must not reset a successfully imported city to OpenWorld."""
+    block = ENGINE_CONFIG
+    if BEGIN in text and END in text:
+        previous = text.split(BEGIN, 1)[1].split(END, 1)[0]
+        maps = [line for line in previous.splitlines() if any(
+            line.startswith(key + "=/Game/KerbsideRuntime/")
+            for key in ("GameDefaultMap", "EditorStartupMap"))]
+        if maps:
+            block += "\n[/Script/EngineSettings.GameMapsSettings]\n" + "\n".join(maps) + "\n"
+    return block
+
+
 def install(project: Path) -> dict:
     project = project.resolve()
     if project.suffix != ".uproject" or not project.is_file():
@@ -108,7 +121,8 @@ def install(project: Path) -> dict:
     for name, block in (("DefaultEngine.ini", ENGINE_CONFIG), ("DefaultInput.ini", INPUT_CONFIG)):
         path = home / "Config" / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(managed_config(path.read_text() if path.exists() else "", block))
+        original = path.read_text() if path.exists() else ""
+        path.write_text(managed_config(original, engine_config(original) if name == "DefaultEngine.ini" else block))
     result = {"schema_version": 1, "source": str(ROOT), "project": str(project),
               "files": {str(p.relative_to(home)): digest(p) for p in copies}}
     registry.parent.mkdir(parents=True, exist_ok=True)
