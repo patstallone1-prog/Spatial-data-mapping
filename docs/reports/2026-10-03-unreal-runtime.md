@@ -17,11 +17,12 @@ existing content or copying EOS credentials. Original project/config files are r
 under the project's `Saved/KerbsideInstall/original/`. Its source hashes are registered in
 `Saved/KerbsideInstall/manifest.json`; repeat installation rejects user-modified source.
 
-**Not compiled, imported, visually accepted, packaged or deployed yet.** Native editor
-inspection failed twice because the Mac was locked. Engine header/build-script reads from
-`/Volumes/HP P700 1/UnrealEngine/UE_5.8` stalled; the first build attempt produced no UBT
-result. These are not successful build results. Do not mark this version release-ready.
-The stalled build was stopped (exit 130); it is not silently compiling in the background.
+**Compiled successfully in UE 5.8.3; not visually accepted, packaged or deployed.**
+The earlier locked-Mac/engine-drive build failure was superseded by successful native
+arm64 Editor builds using Xcode 26.3 and the engine-selected Mac SDK 26.2. Use
+`-NoHotReload -NoUBA`; automatic IDE hot-reload detection failed with an empty process path.
+The already-open user editor remains unresponsive and CPU-heavy. It has not been killed
+or had its unsaved content overwritten. Save/close/reopen it before graphical acceptance.
 
 ## Versioned wiring
 
@@ -38,39 +39,66 @@ The stalled build was stopped (exit 130); it is not silently compiling in the ba
   consumer, not another place to maintain a fork of the city.
 - Exporter now consumes the current full app renderer, including regional app directories,
   and uses its bbox coordinate frame rather than assuming the lidar origin matches it.
-  It hashes the renderer and every tile. A fresh 250 m SF pilot exported 799,354 triangles
-  in 8,883,044 bytes, including 12,017 curb triangles and 10,335 ramp triangles.
+  It hashes the renderer and every tile. The initial 799,354-triangle pilot was rejected:
+  281,412 final triangles had zero area. Sampling the stalled native importer located the
+  expensive overlap processing in `FStaticMeshOperations::FindOverlappingCorners`.
+  Export now honors active draw ranges, excludes zero-area placeholders, and uses exact
+  Float32 attribute indexing instead of millimetre-tolerance welding. No canonical data
+  or measured coordinates are rewritten by this correction.
+  A second sample and decoded-face audit found exact repeated faces: a road vertex appeared
+  in 283,052 corners. Face deduplication now runs within each exact surface/material bucket,
+  preserving UV/colour differences and reverse winding. The deduplicated diagnostic contains
+  181,856 triangles versus 517,942 before deduplication (same nonzero surface coverage).
 - `tools/unreal/setup_world.py`: dedicated, separately saved city map; no stale release
   archive fallback; checksum/source-version checks; per-surface collision policies; an
   axis/units calibration GLB to determine the installed Interchange basis before placement.
   Unknown semantics, unexpected axes, mixed collision policies and empty imports fail closed.
-  Existing saved maps are not replaced. Default city map is selected only after successful import.
+  Existing saved maps are not replaced. `KERBSIDE_WORLD_REVISION` selects an isolated map
+  and tile namespace; invalid revision names and legacy buffer exports are rejected.
+  Default city map is selected only after successful import.
 
 ## Verification available now
 
-Ten focused Python tests pass: reversible/idempotent installer, anti-overwrite protection,
+Twelve focused Python tests pass: reversible/idempotent installer, anti-overwrite protection,
 source camera/physics contracts, current export paths/frame/hashes, calibration GLB structure,
 axis/scale rejection, collision semantics and corrupt/path-escaping tile rejection.
 Reinstalling the plugin preserves an accepted default city map rather than reverting to OpenWorld.
-Ruff and Node syntax checks pass. Native `Kerbside.World` automation tests were added,
-but **have not run**. Python/source assertions do not establish native physics or image quality.
-The exported pilot was independently decoded with GLTFLoader: 78 meshes, 799,354 triangles,
-with roads, sidewalks, curbs, buildings and ramps all present.
+Ruff and Node syntax checks pass. Three real native `Kerbside.World` automation tests pass:
+sky defaults, walker defaults, and isolated-world collision acceptance. The latter simulates
+gravity to floor contact (capsule centre Z=108.830 cm, nominal half-height 106.68 cm; standard
+engine floor clearance), walking into a wall (stops at X=257.899 cm against a wall at X=290 cm
+with a 32 cm capsule radius), and camera rotation without translation. These prove fixture
+physics, **not** imported-city contact or graphical quality. The v3 report contains one
+cleanup warning; explicit EndPlay has been added to the fixture cleanup.
+
+`check_automation.py` inspects actual test states rather than the engine process status:
+Unreal returned exit 0 even for the earlier failing acceptance runs. Missing/failed tests
+now produce a failing validation result.
+
+The next pilot export contained 518,108 triangles, but independent GLB decoding rejected
+166 faces collapsed by the old tolerance-based weld. A separately saved **diagnostic-only**
+recovery removed those zero-area faces: 78 meshes, 517,942 triangles, zero degenerates. It
+retains the original GLB SHA and explicitly does not restore the lost small faces. Never
+publish this recovery as the final native world: perform a fresh exact-index export first.
+The cleaned/deduplicated diagnostic import is used only to test the native import path. Canonical
+payloads and the preceding renderer worktree were not modified.
 
 ## Resume / acceptance / deployment
 
-Unlock the Mac and restore responsive engine-drive access. Save any unsaved editor work
-before restarting to load the newly enabled compiled plugin. From the repo root:
+Save any unsaved editor work before restarting to load the compiled plugin. From the repo root:
 
 ```sh
 .venv/bin/python tools/unreal/install_runtime.py '/Users/elialbukerk/Documents/Unreal Projects/Kerbside/Kerbside.uproject'
-'/Volumes/HP P700 1/UnrealEngine/UE_5.8/Engine/Build/BatchFiles/Mac/Build.sh' KerbsideEditor Mac Development -Project='/Users/elialbukerk/Documents/Unreal Projects/Kerbside/Kerbside.uproject' -WaitMutex -architecture=arm64
+'/Volumes/HP P700 1/UnrealEngine/UE_5.8/Engine/Build/BatchFiles/Mac/Build.sh' KerbsideEditor Mac Development -Project='/Users/elialbukerk/Documents/Unreal Projects/Kerbside/Kerbside.uproject' -WaitMutex -architecture=arm64 -NoHotReload -NoUBA
 ```
 
 After a successful build, run the native automation tests and run `tools/unreal/setup_world.py`
 in a separate UE Python commandlet against the same project (absolute script path). The default
 pilot manifest is `build/unreal-pilot/manifest.json`; `KERBSIDE_TILE_MANIFEST` can select another
-fresh export. Check importer slot names, probe conversion, actual floor traces, walls/fences,
+fresh export. Independently check `node tools/unreal/audit_tiles.mjs <manifest>` and
+`python tools/unreal/check_automation.py <automation-index.json>`; neither a source assertion
+nor a successful engine process exit establishes acceptance. Run commandlet startups serially
+to avoid shared AutoSDK/log races. Check importer slot names, probe conversion, actual floor traces, walls/fences,
 curb/ramp stepping, dynamic primitive contacts, gravity, stationary feet during camera look,
 shadow contact and sky exposure in the editor and packaged game. Then export/import additional
 cells and verify coverage and frame alignment before calling this an entire-city deployment.
@@ -94,5 +122,6 @@ Keep the download site/previous live app intact until the native package passes 
 
 The detected machine is Apple M4 with Xcode 26.3. Software Lumen is the initial conservative
 path; virtual shadows/Nanite require supported Apple Silicon. Hardware Lumen is experimental
-on supported Macs in UE 5.8, not categorically unavailable. Compiler acceptance still needs
-to be checked against the installed engine's SDK requirements.
+on supported Macs in UE 5.8, not categorically unavailable. The native Editor target has
+compiled successfully against the installed SDK. Packaged Game-target and graphical/device
+acceptance are separate outstanding checks.

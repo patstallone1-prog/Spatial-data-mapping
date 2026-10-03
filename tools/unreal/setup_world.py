@@ -10,14 +10,19 @@ import hashlib
 import json
 import math
 import os
+import re
 import sys
 from pathlib import Path
 
 import unreal
 
 ROOT = Path(__file__).resolve().parents[2]
-LEVEL = "/Game/KerbsideRuntime/Maps/City"
-CONTENT = "/Game/KerbsideRuntime/Tiles"
+REVISION = os.environ.get("KERBSIDE_WORLD_REVISION", "")
+if REVISION and not re.fullmatch(r"[A-Za-z0-9_]{1,48}", REVISION):
+    raise ValueError("Invalid world revision")
+MAP_NAME = "City" + ("_" + REVISION if REVISION else "")
+LEVEL = "/Game/KerbsideRuntime/Maps/" + MAP_NAME
+CONTENT = "/Game/KerbsideRuntime/Tiles/" + MAP_NAME
 # Paint, windows, borrowed interiors and effects never create invisible collision walls.
 BLOCKING = {"road", "tunnel_floor", "tunnel_road", "tunnel_walk", "tunnel_portal",
             "walk", "walk_narrow", "walk_underlay", "front_walk", "plaza", "service_yard",
@@ -102,6 +107,8 @@ def validate_manifest(path: Path) -> dict:
     manifest = json.loads(path.read_text())
     if manifest.get("schema_version") != 2 or not manifest.get("renderer_sha256"):
         raise ValueError("Re-export using current exporter; old unversioned tiles rejected")
+    if "degenerate_dropped" not in manifest or manifest.get("geometry_contract", "active-nondegenerate-v1") != "active-nondegenerate-v1":
+        raise ValueError("Re-export active nondegenerate geometry; legacy buffer exports rejected")
     if not manifest.get("tiles"):
         raise ValueError("No tiles; refusing an empty city")
     for tile in manifest["tiles"]:
@@ -185,9 +192,10 @@ def main() -> None:
     from install_runtime import ENGINE_CONFIG, managed_config
     config = Path(unreal.Paths.project_dir()) / "Config/DefaultEngine.ini"
     maps = ("\n[/Script/EngineSettings.GameMapsSettings]\n"
-            f"GameDefaultMap={LEVEL}.City\nEditorStartupMap={LEVEL}.City\n")
+            f"GameDefaultMap={LEVEL}.{MAP_NAME}\nEditorStartupMap={LEVEL}.{MAP_NAME}\n")
     config.write_text(managed_config(config.read_text(), ENGINE_CONFIG + maps))
     report = {"schema_version": 1, "level": LEVEL, "manifest": str(path),
+              "diagnostic_only": manifest.get("diagnostic_only", False),
               "renderer_sha256": manifest["renderer_sha256"], "meshes": meshes,
               "static_colliders": colliders, "spawn_gltf_m": spawn, "import_yaw": yaw,
               "physics": "Chaos static triangle collision + CharacterMovement capsule",

@@ -8,7 +8,16 @@ the safe importer and outstanding native acceptance are documented in the
 [current runtime checkpoint](../docs/reports/2026-10-03-unreal-runtime.md).
 Do not use the older 5.4/EOS setup below as the current desktop deployment path, or replace
 the user's project with this repository's legacy project. Source checks are not a native
-build result. The current native deployment remains blocked pending native verification.
+build result. The native Editor target and isolated-world gravity/wall/camera tests have
+passed; deployment remains blocked pending imported-city and graphical acceptance.
+
+Always audit final exports with `node tools/unreal/audit_tiles.mjs <manifest>` and native
+test reports with `python tools/unreal/check_automation.py <automation-index.json>`.
+The latter is necessary because Unreal can exit 0 after failed automation tests.
+`clean_diagnostic_tiles.mjs` creates a separately tagged diagnostic derivative, not a
+release asset: it cannot restore faces already collapsed by older approximate welding.
+Use a fresh exact-index export for deployment. `KERBSIDE_WORLD_REVISION` prevents retries
+from overwriting saved maps or prior tile namespaces.
 
 The Unreal project is a consumer of the repository's data, not a second copy of it. The page's
 own JavaScript builds the corridor; `tools/unreal/export_tiles.mjs` runs that build headless

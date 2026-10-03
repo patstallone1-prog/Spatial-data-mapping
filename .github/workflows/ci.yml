@@ -33,7 +33,7 @@ jobs:
       - run: pip install "ruff>=0.5"
       # Real errors: undefined names, unused imports, bugbear traps, semicolon-joined statements.
       - name: ruff (blocking)
-        run: ruff check src tests scripts/build_terrain.py scripts/build_scanned_interiors.py scripts/prepare_redwood_interior.py tools/unreal/install_runtime.py tools/unreal/setup_world.py tools/unreal/axis_probe.py --ignore E501 --output-format github
+        run: ruff check src tests scripts/build_terrain.py scripts/build_scanned_interiors.py scripts/prepare_redwood_interior.py tools/unreal/install_runtime.py tools/unreal/setup_world.py tools/unreal/axis_probe.py tools/unreal/check_automation.py tools/unreal/validate_world.py --ignore E501 --output-format github
       # Line length is reported, so the count is visible, but does not fail the build; the
       # renderer's embedded JavaScript has lines no formatter should touch.
       - name: ruff line length (report only)

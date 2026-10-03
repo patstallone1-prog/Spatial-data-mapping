@@ -1,7 +1,9 @@
 """Host installation is reversible, repeatable, and refuses to clobber user source."""
 import importlib.util
 import json
+import shutil
 import struct
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -146,10 +148,16 @@ def test_import_rejects_changed_or_escaping_assets(tmp_path, monkeypatch):
     asset = tmp_path / "tile.glb"
     asset.write_bytes(b"fixture")
     tile = {"file": "tile.glb", "bytes": 7, "sha256": hashlib.sha256(b"fixture").hexdigest()}
-    data = {"schema_version": 2, "renderer_sha256": "a" * 64, "tiles": [tile]}
+    data = {"schema_version": 2, "geometry_contract": "active-nondegenerate-v1", "degenerate_dropped": 0, "renderer_sha256": "a" * 64, "tiles": [tile]}
     path = tmp_path / "manifest.json"
     path.write_text(json.dumps(data))
     assert module.validate_manifest(path) == data
+    data.pop("degenerate_dropped")
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="legacy buffer"):
+        module.validate_manifest(path)
+    data["degenerate_dropped"] = 0
+    path.write_text(json.dumps(data))
     asset.write_bytes(b"changed")
     with pytest.raises(ValueError, match="Stale/corrupt"):
         module.validate_manifest(path)
@@ -157,3 +165,57 @@ def test_import_rejects_changed_or_escaping_assets(tmp_path, monkeypatch):
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="escapes"):
         module.validate_manifest(path)
+
+
+def test_export_excludes_inactive_and_degenerate_buffers_without_losing_small_curbs():
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node required")
+    code = """
+import {triangleRange, usableTriangle, exactIndex, deduplicateFaces} from './tools/unreal/geometry.mjs';
+import assert from 'node:assert/strict';
+assert.deepEqual(triangleRange({drawRange:{start:3,count:6}},12),[3,9]);
+assert.deepEqual(triangleRange({drawRange:{start:0,count:Infinity}},12),[0,12]);
+const position = p => ({getX:i=>p[i][0],getY:i=>p[i][1],getZ:i=>p[i][2]});
+assert.equal(usableTriangle(position([[0,0,0],[0,0,0],[0,0,0]]),0),false);
+assert.equal(usableTriangle(position([[0,0,0],[.01,0,0],[0,.01,0]]),0),true);
+assert.throws(()=>usableTriangle(position([[NaN,0,0],[1,0,0],[0,1,0]]),0));
+assert.throws(()=>triangleRange({drawRange:{start:1,count:3}},6));
+class Attribute {
+  constructor(array,itemSize,normalized=false){this.array=array;this.itemSize=itemSize;this.normalized=normalized;this.count=array.length/itemSize;}
+}
+class Geometry {
+  constructor(){this.attributes={};}
+  getAttribute(name){return this.attributes[name];}
+  setAttribute(name,attribute){this.attributes[name]=attribute;return this;}
+  setIndex(index){this.index=index;return this;}
+}
+const g = new Geometry().setAttribute('position',new Attribute(new Float32Array([0,0,0,.0001,0,0,0,.0001,0,0,0,0]),3));
+const indexed = exactIndex(g);
+assert.deepEqual(indexed.index,[0,1,2,0]);
+assert.deepEqual(Array.from(indexed.getAttribute('position').array),Array.from(g.getAttribute('position').array.slice(0,9)));
+indexed.setIndex([0,1,2,1,2,0,0,2,1]);
+assert.equal(deduplicateFaces(indexed),1);
+assert.deepEqual(indexed.index,[0,1,2,0,2,1]);
+"""
+    result = subprocess.run([node, "--input-type=module", "-e", code], cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_native_acceptance_checks_report_not_engine_exit_code(tmp_path):
+    spec = importlib.util.spec_from_file_location("check_automation", ROOT / "tools/unreal/check_automation.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    path = tmp_path / "index.json"
+    report = {"failed": 0, "notRun": 0, "inProcess": 0, "tests": [
+        {"fullTestPath": name, "state": "Success", "errors": 0} for name in module.REQUIRED]}
+    path.write_text(json.dumps(report), encoding="utf-8-sig")
+    assert module.validate_report(path) == report
+    report["tests"][0]["state"] = "Fail"
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError, match="Native acceptance"):
+        module.validate_report(path)
+    report["tests"] = []
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError, match="Native acceptance"):
+        module.validate_report(path)

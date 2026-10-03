@@ -24,7 +24,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import * as THREE_REAL from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
-import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { triangleRange, usableTriangle, exactIndex, deduplicateFaces } from "./geometry.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -142,7 +143,7 @@ async function main() {
   const only = ONLY ? new Set(ONLY.split(";")) : null;
 
   const m4 = new THREE.Matrix4();
-  let meshes = 0, triangles = 0;
+  let meshes = 0, triangles = 0, degenerateDropped = 0;
   function add(geometry, matrixWorld, material, surface) {
     const g = geometry.index ? geometry.toNonIndexed() : geometry.clone();
     g.applyMatrix4(matrixWorld);
@@ -150,13 +151,16 @@ async function main() {
     // "recompute normals"): shipping them was a third of every tile.
     for (const name of Object.keys(g.attributes)) if (!["position", "uv", "color"].includes(name)) g.deleteAttribute(name);
     const pos = g.getAttribute("position");
+    const [start, end] = triangleRange(geometry, pos.count);
     // Cut by triangle centroid into tiles.
     const byTile = new Map();
-    for (let t = 0; t < pos.count; t += 3) {
+    for (let t = start; t < end; t += 3) {
       const cx = (pos.getX(t) + pos.getX(t + 1) + pos.getX(t + 2)) / 3;
       const cz = (pos.getZ(t) + pos.getZ(t + 1) + pos.getZ(t + 2)) / 3;
+      if (!Number.isFinite(cx) || !Number.isFinite(cz)) throw new Error("Nonfinite world coordinates; export rejected");
       const key = tileKey(cx, cz);
       if (only && !only.has(key)) continue;
+      if (!usableTriangle(pos, t)) { degenerateDropped += 1; continue; }
       let list = byTile.get(key);
       if (!list) byTile.set(key, list = []);
       list.push(t);
@@ -208,13 +212,13 @@ async function main() {
       add(o.geometry, o.matrixWorld, Array.isArray(o.material) ? o.material[0] : o.material, surface);
     });
   }
-  console.log(`${meshes} meshes cut into ${tiles.size} tiles, ${triangles} triangles`);
+  console.log(`${meshes} meshes cut into ${tiles.size} tiles, ${triangles} triangles; ${degenerateDropped} zero-area placeholders excluded`);
 
   const exporter = new GLTFExporter();
-  const manifest = { schema_version: 2, region: REGION || "sf-corridor", tile_m: TILE_M, frame,
+  const manifest = { schema_version: 2, geometry_contract: "active-nondegenerate-v1", region: REGION || "sf-corridor", tile_m: TILE_M, frame,
                      renderer_sha256: createHash("sha256").update(readFileSync(resolve(ROOT, WORLD, PAGE))).digest("hex"),
                      units: "metres, y up (glTF); the importer turns it z up",
-                     tiles: [], surfaces: {} };
+                     degenerate_dropped: degenerateDropped, duplicate_faces_dropped: 0, tiles: [], surfaces: {} };
   mkdirSync(resolve(OUT, "tiles"), { recursive: true });
   for (const [key, buckets] of [...tiles.entries()].sort()) {
     const scene = new THREE.Scene();
@@ -227,7 +231,8 @@ async function main() {
       if (!flat) continue;
       // Indexed, with shared vertices found again: the page's merged surfaces repeat every
       // vertex per triangle, and a tile of them is three times the size it needs to be.
-      const merged = mergeVertices(flat, 1e-3);
+      const merged = exactIndex(flat);
+      manifest.duplicate_faces_dropped += deduplicateFaces(merged);
       flat.dispose();
       const material = new THREE.MeshStandardMaterial({
         color: bucket.colour, roughness: bucket.material?.roughness ?? 0.9, metalness: bucket.material?.metalness ?? 0,
