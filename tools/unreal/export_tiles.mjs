@@ -19,6 +19,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import * as THREE_REAL from "three";
@@ -37,7 +38,8 @@ const ONLY = flag("--only", null);
 // needs nothing but the directory they live in -- it was hard-wired to docs/ and so only the
 // corridor could ever be exported, which is why seven of the eight built worlds had no tiles.
 const REGION = flag("--region", null);
-const WORLD = REGION ? `docs/regions/${REGION}` : "docs";
+const WORLD = REGION ? `docs/app-regions/${REGION}` : "docs";
+const PAGE = "app-model.html";
 const GROUPS = ["streets", "mapped3d", "ground", "furniture"];
 
 // ---- the browser the page expects, minus the drawing ------------------------------------
@@ -109,7 +111,7 @@ globalThis.fetch = async (url) => {
 
 // ---- the page, as a module ---------------------------------------------------------------
 function pageModule() {
-  const html = readFileSync(resolve(ROOT, WORLD, "sf-corridor-3d.html"), "utf8");
+  const html = readFileSync(resolve(ROOT, WORLD, PAGE), "utf8");
   const start = html.indexOf('<script type="module">') + '<script type="module">'.length;
   let js = html.slice(start, html.indexOf("</script>", start));
   js = js.replace(/^import \* as THREE from "[^"]+";/m, "const THREE = globalThis.__THREE;");
@@ -129,7 +131,12 @@ async function main() {
   for (let i = 0; i < 100 && !(k.groups.ground.children.length > 3); i += 1) await new Promise((r) => setTimeout(r, 100));
   console.log(`page built in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${k.DATA.ways.length} ways`);
 
-  const frame = k.TERRAIN ? k.TERRAIN.meta.frame : null;
+  // Mesh coordinates belong to the viewer bbox frame, NOT necessarily the lidar grid.
+  const bounds = k.DATA.bbox;
+  const midLat = (bounds.south + bounds.north) / 2;
+  const frame = { mid_lon: (bounds.west + bounds.east) / 2, mid_lat: midLat,
+    metres_per_lat: 111320, metres_per_lon: 111320 * Math.cos(midLat * Math.PI / 180),
+    vertical_datum: k.TERRAIN?.meta?.vertical_datum || "source terrain datum; verify sidecar" };
   const tiles = new Map();   // "ix:iz" -> Map(materialKey -> {geometries, material, surface})
   const tileKey = (x, z) => `${Math.floor(x / TILE_M)}:${Math.floor(z / TILE_M)}`;
   const only = ONLY ? new Set(ONLY.split(";")) : null;
@@ -204,7 +211,9 @@ async function main() {
   console.log(`${meshes} meshes cut into ${tiles.size} tiles, ${triangles} triangles`);
 
   const exporter = new GLTFExporter();
-  const manifest = { tile_m: TILE_M, frame, units: "metres, y up (glTF); the importer turns it z up",
+  const manifest = { schema_version: 2, region: REGION || "sf-corridor", tile_m: TILE_M, frame,
+                     renderer_sha256: createHash("sha256").update(readFileSync(resolve(ROOT, WORLD, PAGE))).digest("hex"),
+                     units: "metres, y up (glTF); the importer turns it z up",
                      tiles: [], surfaces: {} };
   mkdirSync(resolve(OUT, "tiles"), { recursive: true });
   for (const [key, buckets] of [...tiles.entries()].sort()) {
@@ -212,6 +221,7 @@ async function main() {
     const [ix, iz] = key.split(":").map(Number);
     let tileTris = 0;
     const surfaces = {};
+    let spawn = null;
     for (const [matKey, bucket] of buckets) {
       const flat = mergeGeometries(bucket.geometries, false);
       if (!flat) continue;
@@ -228,6 +238,11 @@ async function main() {
       mesh.name = `${bucket.surface}`;
       mesh.userData = { surface: bucket.surface, material_key: matKey };
       scene.add(mesh);
+      if (!spawn && bucket.surface === "road") {
+        const positions = merged.getAttribute("position");
+        const ids = [merged.index.getX(0), merged.index.getX(1), merged.index.getX(2)];
+        spawn = ["x", "y", "z"].map((_, axis) => ids.reduce((sum, id) => sum + positions.array[id * 3 + axis], 0) / 3);
+      }
       const n = merged.index.count / 3;
       tileTris += n;
       surfaces[bucket.surface] = (surfaces[bucket.surface] || 0) + n;
@@ -240,7 +255,8 @@ async function main() {
     const lonlat = frame ? [[frame.mid_lon + x0 / frame.metres_per_lon, frame.mid_lat - z0 / frame.metres_per_lat],
                             [frame.mid_lon + (x0 + TILE_M) / frame.metres_per_lon, frame.mid_lat - (z0 + TILE_M) / frame.metres_per_lat]] : null;
     manifest.tiles.push({ file: `tiles/${name}`, ix, iz, x0, z0, x1: x0 + TILE_M, z1: z0 + TILE_M, corners_lonlat: lonlat,
-                          triangles: tileTris, surfaces, bytes: glb.byteLength });
+                          triangles: tileTris, surfaces, bytes: glb.byteLength, spawn_gltf_m: spawn,
+                          sha256: createHash("sha256").update(Buffer.from(glb)).digest("hex") });
     console.log(`  ${name}: ${tileTris} triangles, ${(glb.byteLength / 1e6).toFixed(1)} MB`);
   }
   writeFileSync(resolve(OUT, "manifest.json"), JSON.stringify(manifest, null, 1));

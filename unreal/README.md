@@ -1,5 +1,15 @@
 # Kerbside on Unreal
 
+## Current desktop project (UE 5.8)
+
+The existing user-created project now receives the versioned `unreal/Plugins/KerbsideWorld`
+runtime through `tools/unreal/install_runtime.py`. Physics, physical sky and shadow source,
+the safe importer and outstanding native acceptance are documented in the
+[current runtime checkpoint](../docs/reports/2026-10-03-unreal-runtime.md).
+Do not use the older 5.4/EOS setup below as the current desktop deployment path, or replace
+the user's project with this repository's legacy project. Source checks are not a native
+build result. The current native deployment remains blocked pending native verification.
+
 The Unreal project is a consumer of the repository's data, not a second copy of it. The page's
 own JavaScript builds the corridor; `tools/unreal/export_tiles.mjs` runs that build headless
 with the real three.js and writes the result as 250 m glTF tiles; the editor script imports

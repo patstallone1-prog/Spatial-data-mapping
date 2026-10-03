@@ -1,0 +1,10 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0.0",
+  "FriendlyName": "Kerbside World Runtime",
+  "Description": "City collision, grounded movement, physically based atmosphere and dynamic daylight.",
+  "Category": "Kerbside",
+  "CanContainContent": false,
+  "Modules": [{"Name": "KerbsideWorld", "Type": "Runtime", "LoadingPhase": "Default"}]
+}
