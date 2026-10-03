@@ -122,6 +122,11 @@ def test_collision_semantics_include_ramps_fences_not_paint_or_borrowed_scans(mo
     available = {"road": 10, "building": 20, "curb_ramp": 4}
     assert module.canonical_surface("building_2", available) == "building"
     assert module.canonical_surface("curb_ramp", available) == "curb_ramp"
+    assert module.canonical_surface("building2", available) == "building"
+    assert module.canonical_surface("awning_band", {"awning:band": 4}) == "awning:band"
+    assert module.canonical_surface("furniture_post2", {"furniture:post": 4}) == "furniture:post"
+    with pytest.raises(ValueError, match="Unmapped"):
+        module.canonical_surface("a_b", {"a:b": 1, "a/b": 2})
     with pytest.raises(ValueError, match="Unmapped"):
         module.canonical_surface("Material", available)
 

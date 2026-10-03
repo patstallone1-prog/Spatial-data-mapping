@@ -68,8 +68,8 @@ sky defaults, walker defaults, and isolated-world collision acceptance. The latt
 gravity to floor contact (capsule centre Z=108.830 cm, nominal half-height 106.68 cm; standard
 engine floor clearance), walking into a wall (stops at X=257.899 cm against a wall at X=290 cm
 with a 32 cm capsule radius), and camera rotation without translation. These prove fixture
-physics, **not** imported-city contact or graphical quality. The v3 report contains one
-cleanup warning; explicit EndPlay has been added to the fixture cleanup.
+physics, **not** imported-city walking or graphical quality. The fixture cleanup now calls
+EndPlay; all three tests also pass in the final v4 native run.
 
 `check_automation.py` inspects actual test states rather than the engine process status:
 Unreal returned exit 0 even for the earlier failing acceptance runs. Missing/failed tests
@@ -82,6 +82,21 @@ retains the original GLB SHA and explicitly does not restore the lost small face
 publish this recovery as the final native world: perform a fresh exact-index export first.
 The cleaned/deduplicated diagnostic import is used only to test the native import path. Canonical
 payloads and the preceding renderer worktree were not modified.
+
+The diagnostic map `/Game/KerbsideRuntime/Maps/City_diagnostic_ready_v2` is now saved with
+78 mesh actors, 33 static colliders, the physical sky rig, native game mode and road spawn.
+Interchange slot normalization (`awning:band` → `awning_band`, numeric counters) is checked
+against the manifest; unknown or ambiguous names still fail. Commandlet placement uses
+explicit StaticMeshActor creation because asset actor factories were unavailable there.
+Diagnostic retries can reuse an explicitly selected imported revision only after checking
+every mesh's recorded source filename against the checksum-validated input. This reuse path
+is prohibited for production manifests. Default-map selection is conditional on map-save success.
+The actual imported spawn floor trace now passes in a separate UE commandlet, with zero
+errors/warnings. The contact audit waits for async collider mesh compilation before tracing;
+an immediate post-load query previously returned no hit. Python's optional HitResult return
+is handled explicitly. Visual acceptance and actual in-city walking remain outstanding.
+Nanite fallback collision has not been benchmarked against the original canonical surfaces;
+the passing contact test is not a centimeter-accuracy claim.
 
 ## Resume / acceptance / deployment
 

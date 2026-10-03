@@ -19,11 +19,26 @@ def main() -> None:
     if len(starts) != 1:
         raise RuntimeError("No unique grounded PlayerStart")
     start = starts[0].get_actor_location()
+    unreal.log(f"Native floor probe start: {start}")
+    for actor in actors:
+        component = actor.get_component_by_class(unreal.StaticMeshComponent)
+        if not component:
+            continue
+        mesh = component.get_editor_property("static_mesh")
+        # These getters wait on async mesh compilation. A trace issued immediately
+        # after loading can otherwise run before collision meshes are ready.
+        if (mesh and component.get_collision_enabled() != unreal.CollisionEnabled.NO_COLLISION
+                and (mesh.get_num_vertices(0) <= 0 or mesh.get_num_triangles(0) <= 0)):
+            raise RuntimeError(f"Collider has no usable fallback geometry: {mesh.get_name()}")
+        if mesh and mesh.get_name() in {"road", "walk", "terrain"}:
+            unreal.log(f"Contact mesh {mesh.get_name()}: vertices={mesh.get_num_vertices(0)}, triangles={mesh.get_num_triangles(0)}, collision={component.get_collision_enabled()}, profile={component.get_collision_profile_name()}")
     # Begin just beneath the pawn's centre; paint is explicitly non-colliding.
     end = unreal.Vector(start.x, start.y, start.z - 2000)
     result = unreal.SystemLibrary.line_trace_single(world, start, end,
-        unreal.TraceTypeQuery.TRACE_TYPE_QUERY1, True, [], unreal.DrawDebugTrace.NONE, True)
-    if not result[0]:
+        unreal.TraceTypeQuery.ECC_VISIBILITY, True, [], unreal.DrawDebugTrace.NONE, True)
+    # UE Python can map a bool + single out-struct to Optional[HitResult].
+    hit = bool(result[0]) if isinstance(result, tuple) else result is not None
+    if not hit:
         raise RuntimeError("Imported city has no collision under player spawn")
     contact = {"level": report["level"], "spawn_has_static_floor_contact": True,
                "diagnostic_only": report.get("diagnostic_only", False),

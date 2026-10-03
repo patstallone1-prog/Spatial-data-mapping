@@ -41,9 +41,15 @@ def canonical_surface(slot: str, available: dict) -> str:
         return slot
     # Unreal may append a duplicate-name counter. Do not treat arbitrary unknown
     # material slots as non-colliding: that can silently erase building collision.
-    candidates = [name for name in available if any(
-        slot.startswith(name + separator) and slot[len(name) + 1:].isdigit()
-        for separator in ("_", "."))]
+    candidates = []
+    for name in available:
+        # Observed UE 5.8 material slots replace ':' with '_'; asset names can
+        # remove punctuation. Duplicate materials also receive bare numeric counters.
+        aliases = {name, re.sub(r"[^A-Za-z0-9_]", "_", name), re.sub(r"[^A-Za-z0-9_]", "", name)}
+        if any(slot == alias or any(slot.startswith(alias + separator)
+               and slot[len(alias + separator):].isdigit() for separator in ("_", ".", ""))
+               for alias in aliases):
+            candidates.append(name)
     if len(candidates) == 1:
         return candidates[0]
     raise ValueError(f"Unmapped imported surface {slot!r}; inspect Interchange output")
@@ -123,6 +129,9 @@ def validate_manifest(path: Path) -> dict:
 def main() -> None:
     path = Path(os.environ.get("KERBSIDE_TILE_MANIFEST", str(ROOT / "build/unreal-pilot/manifest.json"))).resolve()
     manifest = validate_manifest(path)
+    reuse = os.environ.get("KERBSIDE_REUSE_IMPORTED_REVISION", "")
+    if reuse and (not re.fullmatch(r"[A-Za-z0-9_]{1,48}", reuse) or not manifest.get("diagnostic_only")):
+        raise ValueError("Imported asset reuse is only allowed for explicit diagnostic revisions")
     region = manifest.get("region", "sf-corridor")
     page = ROOT / "docs" / "app-model.html" if region == "sf-corridor" else ROOT / "docs/app-regions" / region / "app-model.html"
     if hashlib.sha256(page.read_bytes()).hexdigest() != manifest["renderer_sha256"]:
@@ -141,18 +150,25 @@ def main() -> None:
     meshes, colliders = 0, 0
     spawn = None
     for tile in manifest["tiles"]:
-        folder = f"{CONTENT}/tile_{tile['ix']}_{tile['iz']}"
-        task = unreal.AssetImportTask()
-        task.filename = str(path.parent / tile["file"])
-        task.destination_path = folder
-        task.automated = True
-        task.replace_existing = False
-        task.save = True
-        unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
+        base = f"/Game/KerbsideRuntime/Tiles/City_{reuse}" if reuse else CONTENT
+        folder = f"{base}/tile_{tile['ix']}_{tile['iz']}"
+        source = (path.parent / tile["file"]).resolve()
+        if not reuse:
+            task = unreal.AssetImportTask()
+            task.filename = str(source)
+            task.destination_path = folder
+            task.automated = True
+            task.replace_existing = False
+            task.save = True
+            unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
         imported = []
         for asset_path in unreal.EditorAssetLibrary.list_assets(folder, recursive=True):
             asset = unreal.EditorAssetLibrary.load_asset(asset_path)
             if isinstance(asset, unreal.StaticMesh):
+                if reuse:
+                    data = asset.get_editor_property("asset_import_data")
+                    if not data or [Path(p).resolve() for p in data.extract_filenames()] != [source]:
+                        raise RuntimeError(f"Diagnostic reuse source mismatch: {asset_path}")
                 imported.append(asset)
         if not imported:
             raise RuntimeError(f"Interchange imported no meshes for {tile['file']}")
@@ -167,11 +183,16 @@ def main() -> None:
             blocking = True in policies
             if not unreal.KerbsideWorldLibrary.configure_world_mesh(mesh, blocking):
                 raise RuntimeError(f"Collision setup failed for {mesh.get_name()}")
-            actor = actors.spawn_actor_from_object(mesh, unreal.Vector(0, 0, 0))
+            # Asset actor factories are not guaranteed to be available in commandlets.
+            actor = actors.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(0, 0, 0))
+            if actor is None:
+                raise RuntimeError(f"Could not spawn static city actor for {mesh.get_name()}")
             actor.set_actor_rotation(unreal.Rotator(pitch=0, yaw=yaw, roll=0), False)
             actor.set_actor_label(f"Kerbside {tile['ix']},{tile['iz']} — {mesh.get_name()}")
             actor.set_folder_path("Kerbside/City")
             component = actor.get_component_by_class(unreal.StaticMeshComponent)
+            if not component.set_static_mesh(mesh):
+                raise RuntimeError(f"Could not attach city mesh {mesh.get_name()}")
             component.set_collision_profile_name("BlockAll" if blocking else "NoCollision")
             component.set_simulate_physics(False)
             component.set_cast_shadow(not all(s in {"marking", "crossing"} for s in surfaces))
@@ -187,7 +208,8 @@ def main() -> None:
     start.set_actor_label("Kerbside — road-grounded spawn")
     world = unreal.EditorLevelLibrary.get_editor_world()
     world.get_world_settings().set_editor_property("default_game_mode", unreal.KerbsideGameMode.static_class())
-    unreal.EditorLevelLibrary.save_current_level()
+    if not unreal.EditorLevelLibrary.save_current_level():
+        raise RuntimeError("City save failed; default map unchanged")
     # Only make the city the default after it actually exists and collision import passed.
     from install_runtime import ENGINE_CONFIG, managed_config
     config = Path(unreal.Paths.project_dir()) / "Config/DefaultEngine.ini"
@@ -196,6 +218,7 @@ def main() -> None:
     config.write_text(managed_config(config.read_text(), ENGINE_CONFIG + maps))
     report = {"schema_version": 1, "level": LEVEL, "manifest": str(path),
               "diagnostic_only": manifest.get("diagnostic_only", False),
+              "diagnostic_reuse_revision": reuse,
               "renderer_sha256": manifest["renderer_sha256"], "meshes": meshes,
               "static_colliders": colliders, "spawn_gltf_m": spawn, "import_yaw": yaw,
               "physics": "Chaos static triangle collision + CharacterMovement capsule",
