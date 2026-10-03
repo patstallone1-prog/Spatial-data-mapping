@@ -1,6 +1,6 @@
-# Visual-world implementation checkpoint
+# Visual-world release notes
 
-This branch is a visual-detail workstream based on `main` commit `48ee3303`. It is not a production deployment. The canonical road, curb, building footprint, and collision data remain separate from photo-derived or inferred appearance.
+This release combines the visual-detail and house-interior workstreams based on `main` commit `48ee3303`, through PR #8. The canonical road, curb, building footprint, and collision data remain separate from photo-derived or inferred appearance. GitHub's Pages deployment history identifies the live revision; local previews and historical checkpoints below do not establish deployment by themselves.
 
 ## Current source of truth
 
@@ -10,7 +10,7 @@ This branch is a visual-detail workstream based on `main` commit `48ee3303`. It 
 - `docs/sf-corridor-furniture.json` is the current furniture sidecar. Sign-face aliases retain source asset IDs after dense duplicate collapse. Signal lamp colour is visual only; real-time phase is unknown.
 - `docs/sf-corridor-interiors.json` fits external dwelling-plan templates to buildings. Room details, furnishings, and most doors are inferred, not scans of those addresses. `data/scans/` currently has catalogues, not usable imported house meshes.
 
-## Interior candidate (October 2, 2026 — not deployed)
+## Interior implementation (October 2, 2026)
 
 - Nearby houses now have real panelled wall holes rather than doorway depth masks. Eight nearby houses are detailed at a time; retiring one restores its exact batched wall indices. Distant city batching is retained. This is render-only geometry on the existing footprint and height.
 - One shared opening registry drives the outside wall, inside lining, double-sided transparent glass and frames. The sidecar `docs/sf-corridor-home-openings.json` supplies accepted photographed windows for 3,897 buildings, with source hashes. Unsupported sides use explicitly procedural whole-window layouts; party-wall contacts suppress windows. No facade image is allowed to cover an active detailed shell.
@@ -57,5 +57,23 @@ complete kitchen or that the inferred plan is the address's real interior.
 
 The opt-in `?inspect=interiors` panel adds safe room viewpoints for manual checks,
 alongside its ordinary swept walking/door controls. It is hidden in the normal app.
-The final remaining camera-dependent street/corner checks were interrupted by the
-Mac locking; promotion remains pending those checks and the final exact-commit CI.
+That preview's remaining camera-dependent checks were interrupted by the Mac
+locking. They were resumed in the release acceptance sweep below.
+
+## Release acceptance sweep — October 2
+
+- Rechecked the fire-station block at 2150 California Street in the final app renderer: the former scattered hillside grass/pavement voids are gone in this view, the access fallback remains car-width, and window layouts do not clip a top row into the roof. Actual paved yards remain paved; this is not a blanket conversion of backyards to measured grass.
+- Reviewed the assigned brick facade at 1355 Sansome, concrete at 1600 Powell and stucco at 1050 Sansome. Whole rows and material/window layering remain intact. These assignments are image-inferred, not measured material truth.
+- Inspected crossing corners at Hyde/Jackson, Broadway/Front and the California block. Yellow warning pads remain above the pavement. At Broadway/Front, inspected all approaches and a close view of the three-aspect head, street-name faces and speed-limit face. Lamp phases remain explicitly unknown. Inventory points describe junctions, not surveyed individual pole installations.
+- Signals now have a bounded 32 m pavement search rather than inheriting the 12 m sign limit. The fallback rejects building interiors and rechecks the final setback position for carriageways/junctions. A regression exercises a junction requiring more than 12 m to reach safe pavement. The final SF diagnostic renders all 363 records typed `SIGNAL`; 16 beacon/flasher/message/pending/future records are not misrepresented as ordinary traffic lights. Safe sign filtering renders 17,390 faces from 21,474 official inventory faces; inventory count must not be presented as placed count.
+- Additional Berkeley entrance check: building 24025427, mapped two-step entry, 1.2 m landing, 37 inferred furnishing groups and two source storeys. Orbit view persists at entrance depth 1.5 m and first person starts by 2.5 m. Viewed flooring, interior door leaves and the street through a physical window. Previous SF and Oakland entrance/collision/window checks remain recorded above.
+- The final SF browser reports no console errors. Its cold full-detail rebuild still takes several minutes in this desktop preview; the raster predicate reduction is not proof of fast startup or a measured FPS target. Performance remains an honest limitation.
+- 49 focused tests pass after the signal follow-up. Before that follow-up, CI passed 1,061 tests (two skipped) plus nine baseline checks. Final promotion additionally requires all checks on the release revision, then exact-green-main CI and the Pages deployment workflow; no direct branch publishing or force-push deployment is used.
+- Checked both live download-site buttons: Android and iPhone instructions link to `https://patstallone1-prog.github.io/Spatial-data-mapping/app.html`. This is a browser-installed app, not a newly published APK/IPA or App Store binary.
+
+Rendered acceptance captures are retained locally under `build/visual-audit/`
+(ignored build artifacts), including the California block, Oakland kitchen,
+Berkeley interior, Broadway/Front signal and install site. No licensed source
+photographs were newly committed for this sweep. Upper-floor navigation, complete
+furnishing of every clipped room, a surveyed interior for each address, actual SF
+utility-wire coverage and a new photogrammetric mesh are not claimed by this release.
