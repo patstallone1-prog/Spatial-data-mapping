@@ -21732,7 +21732,22 @@ function scanEntranceContains(plan, x, y, z, floor) {
   const dx = x - plan.ox, dz = z - plan.oz;
   const along = dx * plan.nx + dz * plan.nz;
   return Math.abs(dx * plan.ux + dz * plan.uz) <= plan.half
-    && along >= plan.lo && along <= plan.hi && y >= floor - 0.08 && y <= floor + plan.height;
+    && along >= plan.lo && along <= plan.hi && y >= (plan.bottom ?? floor - 0.08) && y <= floor + plan.height;
+}
+
+function scanRecessPlan(entry, door) {
+  const s = door.stoopPlan;
+  if (!s) return null;
+  const point = (across, depth) => [door.cx + door.ux * across + door.nx * depth,
+    door.cz + door.uz * across + door.nz * depth];
+  const half = s.width / 2, lo = 0.03, hi = s.depth;
+  const ring = [point(-half, lo), point(half, lo), point(half, hi), point(-half, hi)];
+  for (let across = -half; across <= half; across += 0.15)
+    for (let depth = lo; depth <= hi; depth += 0.15)
+      if (!insideFootprint(entry, ...point(across, depth))) return null;
+  return { ox: door.cx, oz: door.cz, ux: door.ux, uz: door.uz, nx: door.nx, nz: door.nz,
+    half, lo, hi, ring, bottom: s.street - 0.05, height: DOOR_HEIGHT_M + 0.06,
+    grade: "inferred_scan_cut_for_attached_recess" };
 }
 
 function adaptScanEntrance(model, plans, floor) {
@@ -21819,7 +21834,11 @@ function requestScannedInterior(entry) {
     const sourceSegments = scan.layout.segments.map(([ax, az, bx, bz]) =>
       [...scanPointToPage(placement, ax, az), ...scanPointToPage(placement, bx, bz)]);
     const entryAdapters = (entry.doors || []).map((door) => scanEntrancePlan(entry, door, sourceSegments)).filter(Boolean);
-    const removedEntryFaces = adaptScanEntrance(model, entryAdapters, floorY);
+    // The canonical entrance already reserves this inward stairwell. A borrowed
+    // scan must yield to it too, or its floor/wall seals the stairs half-way up.
+    const recessAdapters = (entry.doors || []).map((door) => scanRecessPlan(entry, door)).filter(Boolean);
+    const cutPlans = [...entryAdapters, ...recessAdapters];
+    const removedEntryFaces = adaptScanEntrance(model, cutPlans, floorY);
     // A scan has unobserved floor patches under furnishings. A neutral,
     // explicitly inferred substrate sits BELOW the photographed surface;
     // it neither repaints source texels nor becomes measured ground truth.
@@ -21834,9 +21853,10 @@ function requestScannedInterior(entry) {
     group.userData = { surface: "interior", grade: placement.grade, source: scan.id,
       attribution: scan.attribution, sourceHash: scan.source_sha256, assetHash: scan.sha256,
       address: placement.address, matchBasis: placement.match_basis,
-      entryAdapters: entryAdapters.length, removedEntryFaces, entryAdapterGrade: "inferred, not scanned evidence",
+      entryAdapters: entryAdapters.length, recessAdapters: recessAdapters.length,
+      removedEntryFaces, entryAdapterGrade: "inferred, not scanned evidence",
       upperStoreys: "inferred fitted plans, not scanned" };
-    const segments = sourceSegments.flatMap((segment) => clipOutsideZones(segment, entryAdapters.map((p) => p.ring)));
+    const segments = sourceSegments.flatMap((segment) => clipOutsideZones(segment, cutPlans.map((p) => p.ring)));
     const floorSurface = entry.interior.floorSurface;
     entry.interior = { group, segments, floorSurface, rooms, floorY, height: 2.4 * placement.scale,
       scan, placement, plan: "Redwood scanned apartment (matched surrogate, not address truth)" };

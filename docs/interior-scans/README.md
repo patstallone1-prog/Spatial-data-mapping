@@ -53,6 +53,10 @@ is cut into a per-placement visual copy within 1.5 m of that existing doorway.
 Only that opening's navigation wall is removed; neighboring partitions remain.
 The inspector reports this as an **inferred entry adapter**, not scanned evidence.
 The shared source GLB and its checksum remain unchanged.
+The same visual copy yields to an attached, footprint-contained inward stairwell:
+scan faces and surrogate navigation walls cannot seal the stairs before the
+landing. This recess cut is separately reported as inferred and never extends
+onto the sidewalk. It creates no new stairway or unobserved entrance.
 
 Only the ground-storey appearance is replaced. Existing fitted upper storeys
 remain **inferred**, not scanned. Windows, textures and missing surfaces within

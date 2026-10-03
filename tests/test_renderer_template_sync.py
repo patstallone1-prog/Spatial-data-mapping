@@ -37,7 +37,7 @@ def test_every_installed_city_uses_the_current_house_and_collision_code() -> Non
                      "roomCameraPose", "currentRoomCamera", "setCeilingView", "placeCamera",
                      "scanPointToPage", "requestScannedInterior", "pageToTerrain", "terrainToPage",
                      "rawTerrainHeightAt", "mappedWaterAt", "mappedBuiltAt", "terrainFlatRadius",
-                     "scanEntrancePlan", "scanEntranceContains", "adaptScanEntrance"):
+                     "scanEntrancePlan", "scanEntranceContains", "scanRecessPlan", "adaptScanEntrance"):
             assert _extract(name, text) == _extract(name, current), f"stale {name}: {page}"
 
 

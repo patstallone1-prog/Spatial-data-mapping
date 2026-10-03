@@ -47,6 +47,23 @@ def test_layout_matching_prefers_observed_floor_behind_the_host_door():
     assert choose_scan_yaw(source, ring, fit, 1, [{"pts": [[4, 4], [5, 4], [5, 5], [4, 5]]}]) is None
 
 
+def test_scan_cannot_seal_an_attached_inward_stairwell_or_cut_the_sidewalk():
+    out = run_js(["scanRecessPlan", "scanEntranceContains"], """
+      const DOOR_HEIGHT_M=2.1;
+      function insideFootprint(e,x,z){return x>=-4&&x<=4&&z>0&&z<=8;}
+      const d={cx:0,cz:0,ux:1,uz:0,nx:0,nz:1,width:1,
+        stoopPlan:{width:1.4,depth:2.4,street:10}};
+      const p=scanRecessPlan({},d);
+      console.log(JSON.stringify({p,sourceFloor:scanEntranceContains(p,0,10.5,1.5,10.7),
+        sidewalk:scanEntranceContains(p,0,10,-.1,10.7),
+        beyond:scanEntranceContains(p,0,10.5,3,10.7),
+        absent:scanRecessPlan({},{...d,stoopPlan:null})}));
+    """)
+    assert out["sourceFloor"] and not out["sidewalk"] and not out["beyond"]
+    assert out["absent"] is None
+    assert all(z > 0 for _, z in out["p"]["ring"])
+
+
 def manifest():
     return json.loads((ROOT / "docs/interior-scans/manifest.json").read_text())
 
