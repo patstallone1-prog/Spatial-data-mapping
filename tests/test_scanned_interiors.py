@@ -44,6 +44,7 @@ def test_layout_matching_prefers_observed_floor_behind_the_host_door():
     fit[13] = [[0, .5, 1, 2]]
     rooms = [{"pts": [[-1, .2], [1, .2], [1, 1.5], [-1, 1.5]]}]
     assert choose_scan_yaw(source, ring, fit, 1, rooms) == pytest.approx(math.pi)
+    assert choose_scan_yaw(source, ring, fit, 1, [{"pts": [[4, 4], [5, 4], [5, 5], [4, 5]]}]) is None
 
 
 def manifest():

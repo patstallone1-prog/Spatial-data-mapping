@@ -126,9 +126,11 @@ def choose_scan_yaw(source, ring, fit, scale, rooms):
             continue
         local = access @ rotation.T / scale
         observed = any(contains(local[None, :], np.asarray(r["pts"]))[0] for r in rooms)
+        if not observed:
+            continue
         distance = np.linalg.norm(local - np.asarray(open_room["pts"]).mean(axis=0))
-        candidates.append((distance, not observed, yaw))
-    return min(candidates)[2] if candidates else None
+        candidates.append((distance, yaw))
+    return min(candidates)[1] if candidates else None
 
 
 def validate_manifest(data: dict) -> None:

@@ -8,6 +8,8 @@ terrain/entrance preflight. Of the two contained rigid orientations, the matcher
 aims the host doorway toward the largest observed open-floor region rather than
 a small furnished bedroom or an unobserved margin. Actual floor-plan similarity cannot be known without
 an observation of the target house; the manifest states this limitation.
+The position 2.5 m behind the entrance must lie on a scan's observed room floor;
+a fully contained mesh with an unusable entrance is still rejected.
 
 Source: [Redwood Indoor Lidar-RGBD Scan Dataset](http://redwood-data.org/indoor_lidar_rgbd/download.html).
 The authors' [data licence](http://redwood-data.org/indoor_lidar_rgbd/license.html)

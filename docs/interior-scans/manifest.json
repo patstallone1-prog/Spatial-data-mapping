@@ -1171,28 +1171,6 @@
   "placements": [
     {
       "region": "oakland-downtown",
-      "building": "369017885",
-      "address": "770 19th Street",
-      "scan": "redwood-apartment-2017",
-      "lonlat": [
-        -122.2766576,
-        37.8107938
-      ],
-      "yaw": 4.265410158948942,
-      "scale": 0.9578818,
-      "shape_match_score": 0.1,
-      "contained_vertices": 75724,
-      "grade": "matched_surrogate_not_address_truth",
-      "entrance_preflight": {
-        "edge": 0,
-        "source": 2,
-        "rise_m": 0.057,
-        "steps": 0
-      },
-      "match_basis": "dwelling class, storeys, footprint dimensions and contained rigid orientation toward the largest observed open-floor region; actual house layout unknown"
-    },
-    {
-      "region": "oakland-downtown",
       "building": "308818732",
       "address": "171 Vernon Terrace, Oakland, 94610",
       "scan": "redwood-apartment-2017",
@@ -1232,6 +1210,28 @@
         "source": 2,
         "rise_m": 0.062,
         "steps": 0
+      },
+      "match_basis": "dwelling class, storeys, footprint dimensions and contained rigid orientation toward the largest observed open-floor region; actual house layout unknown"
+    },
+    {
+      "region": "sf-sunset",
+      "building": "276826012",
+      "address": "1366 27th Avenue",
+      "scan": "redwood-apartment-2017",
+      "lonlat": [
+        -122.4853816,
+        37.7619615
+      ],
+      "yaw": 0.05532693728821991,
+      "scale": 0.98613032,
+      "shape_match_score": 0.248,
+      "contained_vertices": 75724,
+      "grade": "matched_surrogate_not_address_truth",
+      "entrance_preflight": {
+        "edge": 0,
+        "source": 1,
+        "rise_m": 0.575,
+        "steps": 4
       },
       "match_basis": "dwelling class, storeys, footprint dimensions and contained rigid orientation toward the largest observed open-floor region; actual house layout unknown"
     }
