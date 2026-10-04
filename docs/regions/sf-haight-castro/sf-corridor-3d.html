@@ -312,6 +312,10 @@ scene.add(root);
 //: which pays for the scan's extra triangles.
 let interiorBlock = null;
 const INTERIOR_BLOCK_RANGE = 0.12;
+//: The street vertices by cell (indexJunctionVertices): read by the junction approaches and by
+//: where a house's front door goes, which is decided while the buildings are built.
+const JUNCTION_CELL_M = 20;
+let junctionVertexGrid = null;
 const groups = {
   streets: new THREE.Group(),
   mapped3d: new THREE.Group(),
@@ -9233,7 +9237,10 @@ function garagePanel(opening, tint) {
   const map = garageTextureFor(opening.s % GARAGE_STYLES, tint);
   const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(width, GARAGE_HEIGHT_M),
-    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.66, metalness: 0.20 })
+    // Drawn in front of whatever lies on the wall behind it -- a facade photograph, a window
+    // panel -- even where depth precision at a distance cannot tell a few centimetres apart.
+    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.66, metalness: 0.20,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })
   );
   mesh.position.set(cx + nx * GARAGE_STANDOFF_M, GARAGE_HEIGHT_M / 2, -cy + nz * GARAGE_STANDOFF_M);
   // A plane faces +z, so pi minus the bearing turns it to face the way the wall does. It was
@@ -10867,6 +10874,23 @@ function emitShopfronts() {
   }
 }
 
+//: The building's garages that stand on this wall: their centre along it and their width.
+function garagesOnWall(feature, wall) {
+  const tx = Math.cos(wall.yaw), tz = -Math.sin(wall.yaw);
+  const out = [];
+  for (const g of feature.garages || []) {
+    const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+    if (!(Math.hypot(bx - ax, by - ay) > 0.5)) continue;
+    const gx = ax + (bx - ax) * g.t, gz = -(ay + (by - ay) * g.t);
+    const off = (gx - wall.x) * wall.nx + (gz - wall.z) * wall.nz;
+    if (Math.abs(off) > 1.0) continue;
+    const along = (gx - wall.x) * tx + (gz - wall.z) * tz;
+    if (Math.abs(along) > wall.span / 2 + 0.5) continue;
+    out.push({ along, w: g.w || 2.6 });
+  }
+  return out;
+}
+
 function addGroundFacadeDetail(group, feature, seed, height, tint) {
   // A building with businesses in it, or of a business's kind, gets its storefronts; a house
   // gets its door.
@@ -10876,25 +10900,80 @@ function addGroundFacadeDetail(group, feature, seed, height, tint) {
   }
   const residential = feature.archetype === "residential" || feature.archetype === "generic";
   if (!residential) return;
-  const wall = bestFacadeWall(feature, true);
-  if (!wall) return;
-  const panelW = Math.min(wall.span * 0.62, 7.2);
+  // Every house has a front door. It stands on the wall the garage is on when there is one --
+  // the street side, where San Francisco's doors sit beside their garages -- otherwise on the
+  // house's best street wall, and on another wall if that one has no room. It is never under a
+  // garage: the door used simply to give way to one, and a house with a garage, which is most
+  // of them, was left with no door at all.
+  const spot = frontDoorSpot(feature);
+  if (!spot) return;
+  const { wall, along } = spot;
+  // The entry picture is a door a third of its width: a 3.2 m panel is a 1.05 m door.
+  const panelW = 3.2;
   const panelH = Math.min(3.35, height - 0.3);
-  // A window cannot overlap a garage door: where one of the building's garages is on this wall
-  // under the entry's windows, the entry's picture gives way and the garage stands alone.
-  const tx = Math.cos(wall.yaw), tz = -Math.sin(wall.yaw);
-  for (const g of feature.garages || []) {
-    const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
-    const glen = Math.hypot(bx - ax, by - ay);
-    if (!(glen > 0.5)) continue;
-    const gx = ax + (bx - ax) * g.t, gz = -(ay + (by - ay) * g.t);
-    const off = (gx - wall.x) * wall.nx + (gz - wall.z) * wall.nz;
-    const along = (gx - wall.x) * tx + (gz - wall.z) * tz;
-    if (Math.abs(off) < 1.0 && Math.abs(along) < panelW / 2 + (g.w || 2.6) / 2) return;
-  }
-  const anchor = wallPoint(wall, 0, 0.11);
+  const anchor = wallPoint(wall, along, 0.11);
   planePart(group, anchor.x, 0.06, anchor.z, panelW, panelH,
             entryTextureFor(seed, feature.archetype), wall.yaw);
+  feature._frontDoor = { x: anchor.x, z: anchor.z, yaw: wall.yaw, nx: wall.nx, nz: wall.nz };
+}
+
+//: How far a wall's outward side is from the nearest street centreline it faces (Infinity when
+//: no street within 60 m lies in front of it).
+function streetDistanceFacing(wall) {
+  if (!junctionVertexGrid) indexJunctionVertices();
+  let best = Infinity;
+  const cx = Math.floor(wall.x / JUNCTION_CELL_M), cz = Math.floor(wall.z / JUNCTION_CELL_M);
+  for (let dx = -3; dx <= 3; dx += 1) {
+    for (let dz = -3; dz <= 3; dz += 1) {
+      for (const v of junctionVertexGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        if (v.i + 1 >= v.pts.length) continue;
+        const [bx, bz] = v.pts[v.i + 1];
+        const d = Math.sqrt(distanceToSegmentSquared(wall.x, wall.z, v.x, v.z, bx, bz));
+        if (d >= best || d > 60) continue;
+        // In front of the wall, not behind it.
+        const px = (v.x + bx) / 2 - wall.x, pz = (v.z + bz) / 2 - wall.z;
+        if (px * wall.nx + pz * wall.nz <= 0) continue;
+        best = d;
+      }
+    }
+  }
+  return best;
+}
+
+//: Clear wall either side of a door and between a door and a garage.
+const DOOR_CLEAR_M = 0.35;
+const DOOR_LEAF_M = 1.05;
+//: Where a house's front door goes: a wall and a position along it, clear of every garage.
+function frontDoorSpot(feature) {
+  const walls = footprintWalls(feature.points).filter((w) => w.span >= DOOR_LEAF_M + 2 * DOOR_CLEAR_M);
+  if (!walls.length) return null;
+  const garageWall = walls.map((w) => ({ w, g: garagesOnWall(feature, w) }))
+    .filter((r) => r.g.length).sort((a, b) => b.g.length - a.g.length)[0];
+  // The street side: walls that face a street, nearest street first. A wall against the
+  // next building (a party wall) or facing away from every street is not where a door goes.
+  const facing = walls.map((w) => ({ w, d: streetDistanceFacing(w) }))
+    .filter((r) => r.d < Infinity && !buildingAt(r.w.x + r.w.nx * 1.0, r.w.z + r.w.nz * 1.0))
+    .sort((a, b) => a.d - b.d).map((r) => r.w);
+  const order = [];
+  if (garageWall) order.push(garageWall.w);
+  order.push(...facing);
+  const best = bestFacadeWall(feature, true);
+  if (best) order.push(best);
+  for (const wall of order) {
+    const garages = garagesOnWall(feature, wall);
+    const free = (u) => Math.abs(u) <= wall.span / 2 - DOOR_LEAF_M / 2 - DOOR_CLEAR_M
+      && garages.every((g) => Math.abs(u - g.along) >= g.w / 2 + DOOR_LEAF_M / 2 + DOOR_CLEAR_M);
+    // Beside the garage first (the side with more wall), then out from the middle.
+    const candidates = [];
+    for (const g of garages) {
+      const gap = g.w / 2 + DOOR_LEAF_M / 2 + DOOR_CLEAR_M;
+      candidates.push(g.along + gap, g.along - gap);
+    }
+    for (let step = 0; step <= wall.span / 2; step += 0.25) candidates.push(step, -step);
+    const u = candidates.find(free);
+    if (u !== undefined) return { wall, along: u };
+  }
+  return null;
 }
 
 // ---- storefronts ----
@@ -11415,10 +11494,16 @@ function addSouthFacadeDetail(group, feature, seed, height) {
   const wall = candidates[0];
   if (!wall) return;
   const panelW = Math.min(wall.span * 0.82, 22);
-  const panelH = Math.min(height - 1.8, Math.max(STOREY_M * 1.6, Math.floor(height / STOREY_M) * STOREY_M));
+  // Windows never overlap a garage: where a garage door is on this wall, the window panel
+  // starts above it instead of at the ground storey. It hung three centimetres behind the
+  // door, and at any distance the two fought and the windows showed through the garage.
+  const bottom = garagesOnWall(feature, wall).length ? GARAGE_HEIGHT_M + 0.35 : 1.2;
+  const panelH = Math.min(height - 0.6 - bottom,
+    Math.max(STOREY_M * 1.6, Math.floor(height / STOREY_M) * STOREY_M));
+  if (panelH < STOREY_M * 0.8) return;
   const x = wall.x + wall.nx * 0.09;
   const z = wall.z + wall.nz * 0.09;
-  planePart(group, x, 1.2, z, panelW, panelH, southWindowTextureFor(seed), wall.yaw);
+  planePart(group, x, bottom, z, panelW, panelH, southWindowTextureFor(seed), wall.yaw);
   if (height > 7.5 && random(seed + 701) < 0.34) {
     balconyPart(group, wall, Math.min(height - 1.1, STOREY_M * 1.2), seed);
   }
@@ -12261,6 +12346,157 @@ FACADES.walls.forEach((wall, i) => {
 function nextFrame() {
   return new Promise((resolve) => requestAnimationFrame(resolve));
 }
+// ---- garages: only the ones the kerb says this house has ----
+//
+// A garage comes from the city's record of a dropped kerb, attached to the building behind it.
+// The match took whichever wall's midpoint was nearest the cut, so on a block of narrow lots a
+// neighbour's driveway landed on this house too, and houses stood with two, three, five garage
+// doors. A garage is kept only where its own cut lies in front of the wall it is drawn on --
+// the cut's centre projects inside that wall -- and two that would overlap are one. Where the
+// wall wears its own photograph, the photograph already shows the real garage where it is, so
+// none is drawn over it.
+function normaliseGarages(ways) {
+  const stats = { kept: 0, neighbour: 0, reassigned: 0, merged: 0, photographed: 0, crowded: 0 };
+  // Every building wall, by cell, so a cut can find the wall it actually lies in front of.
+  const WALL_CELL = 30;
+  const walls = new Map();
+  for (const way of ways) {
+    if (way.kind !== "building" || !way.covered || !way.points) continue;
+    for (let i = 0; i + 1 < way.points.length; i += 1) {
+      const a = way.points[i], b = way.points[i + 1];
+      const [ax, ay] = xy(a[0], a[1]), [bx, by] = xy(b[0], b[1]);
+      const key = `${Math.floor((ax + bx) / 2 / WALL_CELL)}:${Math.floor((ay + by) / 2 / WALL_CELL)}`;
+      if (!walls.has(key)) walls.set(key, []);
+      walls.get(key).push({ way, a, b, ax, ay, bx, by });
+    }
+  }
+  // The kerb's own record stays whole: the driveway drop is the cut's, whoever's door it is.
+  const cuts = [];
+  for (const way of ways) {
+    if (way.kind !== "building" || !Array.isArray(way.garages) || !way.garages.length) continue;
+    way.kerb_cuts = way.garages;
+    for (const g of way.garages) cuts.push({ g, from: way });
+    way.garages = [];
+  }
+  for (const { g, from } of cuts) {
+    const cut = g.cp || [g.a[0] + (g.b[0] - g.a[0]) * g.t, g.a[1] + (g.b[1] - g.a[1]) * g.t];
+    const [cx, cy] = xy(cut[0], cut[1]);
+    let best = null;
+    const kx = Math.floor(cx / WALL_CELL), ky = Math.floor(cy / WALL_CELL);
+    for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (const w of walls.get(`${kx + dx}:${ky + dy}`) || []) {
+          const L = Math.hypot(w.bx - w.ax, w.by - w.ay);
+          if (L < Math.max(2.5, (g.w || 2.6) * 0.9)) continue;
+          const tt = ((cx - w.ax) * (w.bx - w.ax) + (cy - w.ay) * (w.by - w.ay)) / (L * L);
+          if (tt < -0.02 || tt > 1.02) continue;
+          const d = Math.abs((cx - w.ax) * (w.by - w.ay) - (cy - w.ay) * (w.bx - w.ax)) / L;
+          if (d > GARAGE_REACH_PAGE_M) continue;
+          if (!best || d < best.d) best = { d, w, tt };
+        }
+      }
+    }
+    if (!best) { stats.neighbour += 1; continue; }
+    const { w } = best;
+    if (w.way !== from) stats.reassigned += 1;
+    const bearing = w.way === from && g.a[0] === w.a[0] && g.a[1] === w.a[1] ? g.n
+      : (Math.atan2(w.by - w.ay, -(w.bx - w.ax)) * 180 / Math.PI + 360) % 360;
+    (w.way.garages || (w.way.garages = [])).push({ ...g, a: w.a, b: w.b, t: best.tt,
+      n: outwardBearing(w.way, w.a, w.b, bearing) });
+  }
+  for (const way of ways) {
+    if (way.kind !== "building" || !Array.isArray(way.garages) || !way.garages.length) continue;
+    const kept = [];
+    for (const g of way.garages) {
+      const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+      const length = Math.hypot(bx - ax, by - ay);
+      if (!(length > 1)) { stats.neighbour += 1; continue; }
+      const cut = g.cp || [g.a[0] + (g.b[0] - g.a[0]) * g.t, g.a[1] + (g.b[1] - g.a[1]) * g.t];
+      const [cx, cy] = xy(cut[0], cut[1]);
+      const t = ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / (length * length);
+      if (t < -0.02 || t > 1.02) { stats.neighbour += 1; continue; }
+      if (photographedEdge([ax, -ay], [bx, -by])) { stats.photographed += 1; continue; }
+      const w = Math.min(g.w || 2.6, length * 0.9);
+      const centre = Math.min(Math.max(t * length, w / 2), length - w / 2);
+      const wallKey = `${g.a.join(",")}|${g.b.join(",")}`;
+      const clash = kept.find((k) => k.wallKey === wallKey
+        && Math.abs(k.centre - centre) < (k.w + w) / 2 + 0.3);
+      if (clash) { stats.merged += 1; continue; }
+      kept.push({ ...g, t: centre / length, w, centre, wallKey, length });
+    }
+    // Room on the wall for every door kept, with a pier between them.
+    const byWall = new Map();
+    for (const g of kept) {
+      if (!byWall.has(g.wallKey)) byWall.set(g.wallKey, []);
+      byWall.get(g.wallKey).push(g);
+    }
+    const fitted = [];
+    for (const doors of byWall.values()) {
+      // A single house's frontage -- under ten metres -- has one garage. Two cuts in front of
+      // it are one driveway recorded twice or a pair of bays: one door, a double one when the
+      // cuts add up to more than a car's width, centred where they were.
+      if (doors.length > 1 && doors[0].length < 10) {
+        const centre = doors.reduce((s, g) => s + g.centre, 0) / doors.length;
+        const w = Math.min(doors.length > 1 ? 4.9 : doors[0].w, doors[0].length * 0.62);
+        const merged = { ...doors[0], w, centre: Math.min(Math.max(centre, w / 2), doors[0].length - w / 2) };
+        merged.t = merged.centre / merged.length;
+        stats.merged += doors.length - 1;
+        doors.splice(0, doors.length, merged);
+      }
+      doors.sort((p, q) => q.w - p.w);
+      let used = 0;
+      for (const g of doors) {
+        if (used + g.w + 0.6 > g.length) { stats.crowded += 1; continue; }
+        used += g.w + 0.6;
+        fitted.push(g);
+      }
+      // And room for the front door beside them: a house's garage never takes the whole
+      // frontage. The widest door gives up what the front door needs, down to one car's width.
+      const room = GARAGE_DOOR_ROOM_M;
+      const onWall = fitted.filter((g) => doors.includes(g));
+      const spare = onWall.length ? onWall[0].length - onWall.reduce((s, g) => s + g.w + 0.6, 0) : Infinity;
+      if (spare < room && onWall.length) {
+        const g = onWall[0];
+        const w = Math.max(2.4, g.w - (room - spare));
+        if (w < g.w) {
+          g.w = w;
+          // Against the end of the frontage its cut is nearer, so the door's room is all on
+          // the other side rather than split into two slivers neither of which fits a door.
+          g.centre = g.centre >= g.length / 2 ? g.length - w / 2 - 0.25 : w / 2 + 0.25;
+          g.t = g.centre / g.length;
+          stats.narrowed = (stats.narrowed || 0) + 1;
+        }
+      }
+    }
+    way.garages = fitted.map(({ wallKey, length, centre, ...g }) => g);
+    stats.kept += way.garages.length;
+  }
+  return stats;
+}
+//: How far behind its kerb cut a garage door may stand (the footway and a setback).
+const GARAGE_REACH_PAGE_M = 22;
+//: The wall a front door needs beside a garage: the leaf and clear wall either side.
+const GARAGE_DOOR_ROOM_M = 1.05 + 2 * 0.35;
+//: The compass bearing of a footprint edge's outward side, from the footprint itself.
+function outwardBearing(way, a, b, fallback) {
+  const [ax, ay] = xy(a[0], a[1]), [bx, by] = xy(b[0], b[1]);
+  const L = Math.hypot(bx - ax, by - ay) || 1;
+  let nx = (by - ay) / L, ny = -(bx - ax) / L;          // right of a->b, in x east / y north
+  const mx = (ax + bx) / 2 + nx * 0.4, my = (ay + by) / 2 + ny * 0.4;
+  // Outward is the side that is not inside the footprint.
+  const ring = way.points.map((p) => xy(p[0], p[1]));
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > my) !== (yj > my) && mx < (xj - xi) * (my - yi) / ((yj - yi) || 1e-9) + xi) inside = !inside;
+  }
+  if (inside) { nx = -nx; ny = -ny; }
+  const bearing = (Math.atan2(nx, ny) * 180 / Math.PI + 360) % 360;
+  return Number.isFinite(bearing) ? bearing : fallback;
+}
+const garageStats = normaliseGarages(DATA.ways || []);
+window.kerbsideGarages = () => ({ ...garageStats });
+
 const facadeQueue = [];
 let facadeInFlight = 0;
 const facadeStats = { walls: FACADES.walls.length, live: 0, loaded: 0, retired: 0, failed: 0 };
@@ -16027,8 +16263,10 @@ function dropKerbsAtDriveways(ways) {
   const grid = new Map();
   let openings = 0;
   for (const way of ways) {
-    if (way.kind !== "building" || !way.garages) continue;
-    for (const opening of way.garages) {
+    // Every cut the city measured, whichever house's door it turned out to be.
+    const cuts = way.kerb_cuts || way.garages;
+    if (way.kind !== "building" || !cuts) continue;
+    for (const opening of cuts) {
       if (!opening.kp || opening.on === undefined) continue;
       const [kx, ky] = xy(opening.kp[0], opening.kp[1]);
       const bearing = opening.on * Math.PI / 180;
@@ -16803,8 +17041,6 @@ function itemFaceKey(item) {
 // the junction's approaches: the street legs that meet there, read from the streets
 // themselves. On a one-way leg that carries traffic away from the junction there is nothing
 // to face. These placements are inferred, and recorded as inferred.
-const JUNCTION_CELL_M = 20;
-let junctionVertexGrid = null;
 function indexJunctionVertices() {
   junctionVertexGrid = new Map();
   for (const way of DATA.ways || []) {
@@ -17695,6 +17931,9 @@ function dedupeByDistance(records, metres) {
 }
 
 function renderStreetFurniture(furniture) {
+  // The streets have been recentred on the city's kerbs since the buildings were built; the
+  // junctions the signs and signals stand at are read from where the streets are now.
+  junctionVertexGrid = null;
   const inferred = furniture.inferred || {};
   const official = furniture.geometry_based || {};
   const officialSigns = official.street_signs || [];
@@ -18736,11 +18975,80 @@ function requestInteriors() {
         entry.fit = record;
         entry.doors = (record[13] || []).map(([edge, t, width, source]) => doorOn(entry, edge, t, width, source))
           .filter(Boolean);
+        settleDoors(entry);
       }
       console.info(`kerbside: interiors for ${Object.keys(data.buildings).length} buildings, `
         + `${data.library.length} plans (${JSON.stringify(data.summary.stretch)} stretch)`);
     })
     .catch(() => { /* no interiors for this page: buildings stay solid and closed */ });
+}
+
+//: The garages on one footprint edge of an entry, as [centre along the edge, width] in metres.
+function garageSpansOnEdge(entry, edge) {
+  const a = entry.local[edge], b = entry.local[edge + 1];
+  if (!a || !b) return [];
+  const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const ux = (b[0] - a[0]) / length, uz = (b[1] - a[1]) / length;
+  const out = [];
+  for (const g of entry.way.garages || []) {
+    const [gax, gay] = xy(g.a[0], g.a[1]), [gbx, gby] = xy(g.b[0], g.b[1]);
+    const gx = gax + (gbx - gax) * g.t, gz = -(gay + (gby - gay) * g.t);
+    const off = Math.abs((gx - a[0]) * -uz + (gz - a[1]) * ux);
+    const u = (gx - a[0]) * ux + (gz - a[1]) * uz;
+    if (off > 1.0 || u < -0.5 || u > length + 0.5) continue;
+    out.push([u, g.w || 2.6]);
+  }
+  return out;
+}
+
+//: Every house has a usable front door, and no inferred door stands behind a garage door.
+//: A door the interior fit inferred at the middle of the street wall is moved along it to clear
+//: wall beside the garage (or dropped if there is none); a mapped or photographed door stays
+//: where it was seen. A house left with no door gets the one its facade shows (_frontDoor).
+function settleDoors(entry) {
+  const kept = [];
+  for (const door of entry.doors || []) {
+    const a = entry.local[door.edge], b = entry.local[door.edge + 1];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const spans = garageSpansOnEdge(entry, door.edge);
+    const centre = (door.t0 + door.t1) / 2 * length;
+    const clear = (u) => u >= door.width / 2 + 0.2 && u <= length - door.width / 2 - 0.2
+      && spans.every(([g, w]) => Math.abs(u - g) >= w / 2 + door.width / 2 + DOOR_CLEAR_M);
+    if (clear(centre) || door.source !== 2) { kept.push(door); continue; }
+    const candidates = [];
+    for (const [g, w] of spans) {
+      const gap = w / 2 + door.width / 2 + DOOR_CLEAR_M;
+      candidates.push(g + gap, g - gap);
+    }
+    for (let s = 0.25; s <= length; s += 0.25) candidates.push(centre + s, centre - s);
+    const u = candidates.find(clear);
+    if (u === undefined) continue;
+    const moved = doorOn(entry, door.edge, u / length, door.width, door.source);
+    if (moved) kept.push(moved);
+  }
+  // Inferred doors only, and the facade shows a front door: the shell shows that one. The fit
+  // inferred its door on whichever wall it took to face the street, and that was often a side
+  // or the back -- so from the street the house had a door from far off and none up close.
+  if (entry.way._frontDoor && kept.every((door) => door.source === 2)) kept.length = 0;
+  if (!kept.length && entry.way._frontDoor) {
+    // The edge the facade's door is on, and where along it.
+    const { x, z } = entry.way._frontDoor;
+    let best = null;
+    for (let edge = 0; edge + 1 < entry.local.length; edge += 1) {
+      const a = entry.local[edge], b = entry.local[edge + 1];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (L < DOOR_LEAF_M + 0.4) continue;
+      const tt = ((x - a[0]) * (b[0] - a[0]) + (z - a[1]) * (b[1] - a[1])) / (L * L);
+      if (tt < 0 || tt > 1) continue;
+      const d = Math.sqrt(distanceToSegmentSquared(x, z, a[0], a[1], b[0], b[1]));
+      if (!best || d < best.d) best = { d, edge, tt };
+    }
+    if (best && best.d < 1.0) {
+      const door = doorOn(entry, best.edge, best.tt, DOOR_LEAF_M, 2);
+      if (door) kept.push(door);
+    }
+  }
+  entry.doors = kept;
 }
 
 function doorOn(entry, edge, t, width, source) {
@@ -18882,8 +19190,15 @@ function showDoor(door) {
   // A guessed door on a flat frontage is not evidence for a flight of stairs.
   // Nor can an observed door be drawn floating above the street when its
   // footprint has no room for an inward flight: leave it unrendered for review.
-  if (ground - street >= 0.08 && !stoopPlan) return;
-  addStoop(door, street, ground, stoopPlan);
+  // Where the floor is above the street and no inward flight fits the footprint, the door is
+  // the street-level entry San Francisco's hillside houses have -- a door at the pavement with
+  // the stair behind it. It used to be left out altogether, and on the hills that was most
+  // houses: a garage, and no door. It is drawn closed and solid; it does not open onto a floor
+  // a storey up.
+  door.atGrade = ground - street >= 0.08 && !stoopPlan;
+  if (door.atGrade && ground - street > 4.0) return;
+  const leafGround = door.atGrade ? street : ground;
+  if (!door.atGrade) addStoop(door, street, ground, stoopPlan);
   const hinge = new THREE.Group();
   // Hinged at the t0 end, standing a hair outside the wall so it is not lost in it.
   const hx = door.entry.local[door.edge][0] + (door.entry.local[door.edge + 1][0] - door.entry.local[door.edge][0]) * door.t0;
@@ -18892,7 +19207,7 @@ function showDoor(door) {
   // A door on a flat frontage stands in front of the facade's photograph (FACADE_STANDOFF_M)
   // so it is never painted over by the picture of the wall it is in.
   const leafDepth = door.stoopPlan ? door.stoopPlan.depth : -DOOR_STANDOFF_M;
-  hinge.position.set(hx + door.nx * leafDepth, ground, hz + door.nz * leafDepth);
+  hinge.position.set(hx + door.nx * leafDepth, leafGround, hz + door.nz * leafDepth);
   hinge.rotation.y = Math.atan2(-door.uz, door.ux);
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(door.width, DOOR_HEIGHT_M, 0.05), doorMaterial);
   leaf.position.set(door.width / 2, DOOR_HEIGHT_M / 2, 0);
@@ -19064,6 +19379,7 @@ function nearestDoor() {
 }
 
 function toggleDoor(door) {
+  if (door.atGrade) return;                // a street door onto a stair: shown, not walked through
   door.open = !door.open;
   if (door.open) buildInterior(door.entry);
 }
@@ -19163,7 +19479,9 @@ function updateDoors(dt) {
       && (cutawayEntry !== insideEntry || cutawayGroup !== insideEntry.interior.group)) applyCutaway(insideEntry);
   if (!insideId && state.ceilingRoom) setCeilingView(false);
   if (door) {
-    doorHint.textContent = `Enter — ${door.open ? "close" : "open"} the door (${DOOR_SOURCE[door.source]})`;
+    doorHint.textContent = door.atGrade
+      ? `Street door (${DOOR_SOURCE[door.source]}) — the rooms are a storey up`
+      : `Enter — ${door.open ? "close" : "open"} the door (${DOOR_SOURCE[door.source]})`;
     doorHint.hidden = false;
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
     const plan = footprintById.get(String(inside.osm_id)).interior.plan;
@@ -19189,9 +19507,12 @@ const homeShellGroup = new THREE.Group();
 homeShellGroup.name = "home-shells";
 root.add(homeShellGroup);
 const homeShells = new Set();
-const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0xd6edf4,
-  transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide,
-  roughness: 0.12, metalness: 0.08, envMapIntensity: 0.5 });
+// Glass that reads from the street as the batched facade's windows do -- dark panes with a
+// little sky in them -- rather than near-clear panes showing the lit rooms, which turned every
+// house's windows pale as its shell came into range. From inside it is still a window.
+const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0x51656f,
+  transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide,
+  roughness: 0.1, metalness: 0.15, envMapIntensity: 0.9 });
 const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: 0xeee9dd, roughness: 0.65 });
 
 function wallPanels(width, bottom, top, openings) {
@@ -19318,8 +19639,12 @@ function buildHomeShell(entry) {
     map.userData = { material: spec.material, seed: spec.seed, style: 0, variant, bare: true };
     bareWallMaps.set(key, map);
   }
+  // The same response to light as the batched wall it replaces -- including how much of the
+  // sky it reflects. Left at three.js's default of 1.0 against the batch's 0.35, a house went
+  // visibly paler and shinier the moment its shell was built, forty metres ahead of the walker.
   const material = new THREE.MeshStandardMaterial({ map: bareWallMaps.get(key),
     color: spec.tint, roughness: spec.material.rough, metalness: spec.material.metal,
+    envMapIntensity: spec.material.name === "glass" ? 1.6 : spec.material.name === "metal" ? 1.1 : 0.35,
     side: THREE.DoubleSide });
   const group = new THREE.Group();
   group.name = `house-shell:${id}`;
@@ -19346,7 +19671,7 @@ function buildHomeShell(entry) {
     let nx = -uz, nz = ux;
     const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
     if (!insideFootprint(entry, mx + nx * 0.2, mz + nz * 0.2)) { nx = -nx; nz = -nz; }
-    const doors = (entry.doors || []).filter((d) => d.edge === edge && d.mesh);
+    const doors = (entry.doors || []).filter((d) => d.edge === edge && d.mesh && !d.atGrade);
     const cuts = doors.map((d) => ({ u: (d.t0 + d.t1) / 2 * length - (d.stoopPlan?.width || d.width) / 2,
       w: d.stoopPlan?.width || d.width,
       v: d.stoopPlan ? d.stoopPlan.street : floor, h: DOOR_HEIGHT_M + (d.stoopPlan?.rise || 0),
@@ -19354,8 +19679,10 @@ function buildHomeShell(entry) {
     // Every door on this edge reserves its opening, drawn yet or not, and so does every garage
     // the city's kerb cuts put on it: a window never overlaps either -- it simply is not there.
     const reserved = [...cuts];
-    for (const d of (entry.doors || []).filter((d) => d.edge === edge && !d.mesh)) {
-      reserved.push({ u: (d.t0 + d.t1) / 2 * length - d.width / 2, w: d.width, v: floor, h: DOOR_HEIGHT_M, kind: "door" });
+    for (const d of (entry.doors || []).filter((d) => d.edge === edge && (!d.mesh || d.atGrade))) {
+      reserved.push({ u: (d.t0 + d.t1) / 2 * length - d.width / 2, w: d.width,
+        v: d.atGrade ? bottom : floor, h: d.atGrade ? floor - bottom + DOOR_HEIGHT_M : DOOR_HEIGHT_M,
+        kind: "door" });
     }
     for (const g of entry.way.garages || []) {
       const [gax, gay] = xy(g.a[0], g.a[1]), [gbx, gby] = xy(g.b[0], g.b[1]);
