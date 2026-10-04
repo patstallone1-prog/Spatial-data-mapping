@@ -821,7 +821,9 @@ def main() -> int:
         raise AssertionError("renderer service-width table is missing")
     driver = DRIVER.replace("__SERVICE_ROAD_M__", service_table.group(0)).replace(
         "__FUNCTIONS__", "\n".join(extract(name, js) for name in FUNCTIONS))
-    out = subprocess.run([node, "-e", driver], capture_output=True, text=True, timeout=900,
+    # Over stdin, not -e: Linux caps a single argument at 128 KB (MAX_ARG_STRLEN) and the
+    # extracted renderer outgrew it -- CI's "Argument list too long" while macOS ran fine.
+    out = subprocess.run([node, "-"], input=driver, capture_output=True, text=True, timeout=900,
                          env={**os.environ, "PAGE_JSON": str(args.page),
                               "GROUND_JSON": str(args.ground),
             "OFFICIAL_JSON": str(args.official),
