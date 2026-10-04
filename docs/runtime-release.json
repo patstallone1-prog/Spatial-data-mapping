@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "authoritative_branch": "main",
+  "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
+  "renderer_sha256": "a6ca9c257deeb8f8ea2df30ac70cb60d639edcbeda000306ab648dbc92ff9892",
+  "consumers": {
+    "app-model.html": "7780fbd2cbcde4e0df660dd380949a3a716a7438179b7d27617aa1605b30c064",
+    "app-regions/berkeley-downtown/app-model.html": "63158677afee14347ef6ec3ffdb9da409fad63391cbddba6f51dbd39236d7017",
+    "app-regions/oakland-downtown/app-model.html": "da1d074d03efa7a320ae9c1116117c3429d2031d8cd7ff6f24fe552b029455fd",
+    "app-regions/palo-alto-downtown/app-model.html": "21898c751ec377d292055db3356af0b7fe3d8ebd9fb72c4d0b50d37fbf22a2b3",
+    "app-regions/san-jose-downtown/app-model.html": "e027ceecbcfd16ea260dce5d70c1e7b98b32f86904025e6bba73484c18bc1d6f",
+    "app-regions/sf-haight-castro/app-model.html": "b88b837521a7780c81b0eb98e16998620e5ede21822955fa3025b6a9679128be",
+    "app-regions/sf-mission/app-model.html": "40f160e83b1f6ef69bae3122946f71b3bc2e2c4f45a6254793d78f51f7025943",
+    "app-regions/sf-sunset/app-model.html": "1bfc7cfb9e6e1328229a934ded85edf59f15e7ac1fdbfb44f161432210d926a6"
+  },
+  "native_source": "unreal/Plugins/KerbsideWorld",
+  "native_sources_sha256": {
+    "unreal/Plugins/KerbsideWorld/KerbsideWorld.uplugin": "a0d2e3eff5fc29f52ede9db9cc1a9df52562eead3de300d8290b7fe4929e0b61",
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/KerbsideWorld.Build.cs": "26dcca8c200a04186aacc3cdad355f22de542f416e019a2d3865a5c2259e4e5f",
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorld.cpp": "43abbe9b20a7972a3ab9248b1d29e144d82fad1964b680f5ad32a7b019efde24",
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldActors.cpp": "b2b917a5b0150466d3a084b9bfee469f24a70e716df76c7a497f21d3565e0b20",
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldTests.cpp": "2425948896016752d2012d65e818221ba93c02b9008d3e1db94d4bce20a95d32",
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Public/KerbsideWorldActors.h": "16b7a92e88a3d7fa29baf1d9738d99c87aa2cb0c35c87e33547ba6378933ae93"
+  },
+  "app_shell_sha256": "50f91e3724c889e020a38e834a1c655dd3645f304c2bf586c805500588ce7df7",
+  "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
+  "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates."
+}
