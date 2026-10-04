@@ -16423,7 +16423,7 @@ for (const s of DATA.sequence_paths) {
 //: walker down to a street; the wheel zooms in from here.
 const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0 };
 const MAX_ORBIT_DIST_M = 20000;
-const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false };
+const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false, interiorOverview: false };
 function placeCamera() {
   if (state.firstPerson && typeof avatar !== "undefined") {
     // Out of the walker's eyes: the camera stands at eye height where the walker stands and
@@ -16438,6 +16438,20 @@ function placeCamera() {
     camera.lookAt(aim);
     return;
   }
+  if (state.interiorOverview && typeof avatar !== "undefined") {
+    const inside = buildingAt(avatar.position.x, avatar.position.z);
+    if (inside) {
+      const entry = footprintById.get(String(inside.osm_id));
+      const cx = (entry.minX + entry.maxX) / 2;
+      const cz = (entry.minZ + entry.maxZ) / 2;
+      const size = Math.max(entry.maxX - entry.minX, entry.maxZ - entry.minZ);
+      const dist = Math.max(6, size * 1.3);
+      camera.position.set(cx, avatar.position.y + dist, cz);
+      camera.lookAt(cx, avatar.position.y, cz);
+      state.target.set(cx, avatar.position.y, cz);
+      return;
+    }
+  }
   const x = Math.sin(state.yaw) * Math.cos(state.pitch) * state.dist;
   const z = Math.cos(state.yaw) * Math.cos(state.pitch) * state.dist;
   const y = Math.sin(state.pitch) * state.dist;
@@ -16446,6 +16460,7 @@ function placeCamera() {
 }
 function setFirstPerson(on) {
   state.firstPerson = on;
+  if (on) state.interiorOverview = false;
   if (typeof avatar !== "undefined") {
     // The walker is not drawn from inside its own head.
     avatar.visible = !on;
@@ -16503,6 +16518,7 @@ document.getElementById("firstperson").addEventListener("click", () => {
 });
 document.getElementById("reset").addEventListener("click", () => {
   Object.assign(state, OVERVIEW);
+  state.interiorOverview = false;
   if (typeof avatar !== "undefined") {
     avatar.position.set(0, AVATAR_STAND_Y, 0);
     state.target.copy(avatar.position);
@@ -17791,7 +17807,12 @@ function nearestDoor() {
 
 function toggleDoor(door) {
   door.open = !door.open;
-  if (door.open) buildInterior(door.entry);
+  if (door.open) {
+    buildInterior(door.entry);
+    state.interiorOverview = true;
+    state.firstPerson = false;
+    placeCamera();
+  }
 }
 
 addEventListener("keydown", (e) => {
@@ -17818,6 +17839,7 @@ function updateDoors(dt) {
   }
   const door = nearestDoor();
   const inside = buildingAt(x, z);
+  if (!inside && state.interiorOverview) state.interiorOverview = false;
   // A walker already inside (arrived by search, or a saved position) gets the rooms too.
   if (inside && INTERIORS) {
     const entry = footprintById.get(String(inside.osm_id));
@@ -17857,14 +17879,14 @@ function pick(rng, list) { return list[Math.floor(rng() * list.length) % list.le
 
 // Paint, by room: a few families each room kind is plausibly painted in.
 const WALL_PAINT = {
-  living: [0xb7c4a5, 0xd9a383, 0xefe3c8, 0xdcb5ad, 0x9fbcb7, 0xc9c1b6, 0xe4d3a8, 0xc7d3dd, 0xf2ede4],
-  bedroom: [0xc6b8d6, 0xaec6dc, 0xe3bcbc, 0xbfdccc, 0xe2cfa9, 0x9aa9b9, 0xb9bd93, 0xf1ece4, 0xd8c3b1],
-  kitchen: [0xf1df9e, 0xc4dcd6, 0xf3efe6, 0xc5d1b5, 0xe9cdb3, 0xd7e2ea],
-  bathroom: [0xa9d4d6, 0xf2f0ea, 0xbfe0d0, 0xefd3d3, 0xd6e3ea, 0xe8e2c6],
-  dining: [0xc98f7f, 0x8fa58f, 0xd9b26f, 0xefe3c8, 0xb8a1b8],
-  office: [0x8796ad, 0x9aa79a, 0xe8e4dc, 0xc9b79a],
-  corridor: [0xefe6d6, 0xd6cfc4, 0xd5e0e6, 0xe6dccb],
-  other: [0xece6dc, 0xe2e0da, 0xd8d2c4, 0xdfe4dc],
+  living: [0x7fb069, 0xa8d16e, 0xe6c85e, 0x5fa8a3, 0x8fb8c9, 0xd4a373],
+  bedroom: [0x9b7ede, 0xc49cde, 0xe88c8c, 0x7ec4cf, 0xe6a8d0, 0x8fa3c9],
+  kitchen: [0xffd93d, 0x6fcf97, 0xff9f43, 0x4ecdc4, 0xff6b6b, 0xa8e6cf],
+  bathroom: [0x48cae4, 0x90e0ef, 0xffb4a2, 0x74c69d, 0xffd6a5, 0x9d8189],
+  dining: [0xe76f51, 0xf4a261, 0x2a9d8f, 0xe9c46a, 0x9b2335, 0x8ab17a],
+  office: [0x577590, 0x7d8597, 0xb5c2b7, 0x8d99ae, 0x6b705c],
+  corridor: [0xe5e5e5, 0xd4d4d4, 0xc2b280, 0xbcaaa4, 0xcfdbd5],
+  other: [0xd8d8d8, 0xcacaca, 0xbbbbbb, 0xdddddd],
 };
 //: One wall in a room, often, in something stronger.
 const ACCENT_PAINT = [0x4a5d7a, 0x8e4a49, 0x56705b, 0xc79a4f, 0x2f4f5f, 0xb85c4b, 0x6b5a7d, 0x3d6b66, 0xd4a33b, 0x7a8f5a];

@@ -4,8 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="kerbside-assets" content="" />
-<meta name="kerbside-app-mode" content="full-regional-view" />
-<meta name="kerbside-regions" content="app-regions.json" />
+<meta name="kerbside-regions" content="regions.json" />
 <title>Kerbside SF Corridor 3D</title>
 <style>
 :root { color-scheme: light; --bg:#edf3f4; --panel:#fffdf9; --line:#c8d8dc; --ink:#21363b; --muted:#577076; --accent:#8c844c; --green:#288660; --amber:#aa772b; --cyan:#237d9a; }
@@ -14899,7 +14898,7 @@ function buildCourts(ground) {
 (async () => {
   let ground;
   try {
-    ground = await fetch("app-sf-corridor-ground.json", { cache: "no-cache" }).then((r) => r.json());
+    ground = await fetch(asset("sf-corridor-ground.json"), { cache: "no-cache" }).then((r) => r.json());
     // The lattice asks how much is drawn on a cell before it decides how finely to cut it.
     GROUND = ground;
     latticeCover = null;
