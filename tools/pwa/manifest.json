@@ -2,7 +2,7 @@
   "id": "/__REPO__/",
   "name": "Kerbside",
   "short_name": "Kerbside",
-  "description": "Measures kerb height and footway width from ordinary camera frames, on the phone, before anything is sent.",
+  "description": "A walkable 3D model of the Bay Area's streets, down to the kerb: crossings, kerb ramps, bike lanes and front steps where the city measured them.",
   "start_url": "./app.html?from=home",
   "scope": "./",
   "display": "standalone",

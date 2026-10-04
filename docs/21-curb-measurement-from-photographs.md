@@ -1,5 +1,5 @@
-<!-- Moved here from the Curb-measurements repository, which now serves nothing but the
-published 3D map. The code this describes is in src/smc/curbmeasure/ and scripts/curbmeasure/;
+<!-- Moved here from the Curb-measurements repository, which has since been retired: this
+repository is the whole project. The code this describes is in src/smc/curbmeasure/ and scripts/curbmeasure/;
 the measurements it produced are in data/curb_measurement/photo_vs_lidar.jsonl. -->
 
 # Curb measurements from street photography

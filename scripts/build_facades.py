@@ -39,6 +39,7 @@ from smc.facades.geometry import (  # noqa: E402
     MAX_STANDOFF_M,
     Camera,
     LocalFrame,
+    Wall,
     score_view,
     walls_of,
 )
@@ -298,38 +299,68 @@ def candidates_for(rows: dict, frame: LocalFrame, chunk: Chunk) -> list[int]:
 
 
 def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
-            progress) -> dict:
+            progress, rerender: list[dict] | None = None) -> dict:
     payload, buildings, rows = state["payload"], state["buildings"], state["rows"]
     bbox = payload["bbox"]
     frame = LocalFrame((bbox["south"] + bbox["north"]) / 2.0,
                        (bbox["west"] + bbox["east"]) / 2.0)
 
-    pool = candidates_for(rows, frame, chunk)
-    progress(f"{chunk.key}: {len(chunk.buildings)} buildings, {len(pool)} frames within reach")
-    cameras = {i: camera_for(rows, i, frame) for i in pool}
-    cameras = {i: c for i, c in cameras.items() if c is not None}
-
-    # -- pair every wall with the frames that look at it most squarely -------------------
-    jobs: list[dict] = []
-    skipped = Counter()
-    for building_index in chunk.buildings:
-        building = buildings[building_index]
-        ring = [frame.to_xy(lon, lat) for lon, lat in building["points"]]
-        height = float(building.get("height_m") or 10.5)
-        for wall in walls_of(ring, height, building_index):
-            if wall.length_m > MAX_WALL_M:
-                skipped["wall too long"] += 1
-                continue
-            scored = []
-            for i, camera in cameras.items():
+    if rerender is not None:
+        # The published walls, exactly as they were published: each from its own recorded ends,
+        # height and facing, with the frames that made it -- not re-derived from today's
+        # payload, whose building numbering has moved on since the chunk was textured.
+        by_uid = {uid: i for i, uid in enumerate(rows["observation_uid"])}
+        skipped = Counter()
+        jobs = []
+        cameras = {}
+        for record in rerender:
+            a = frame.to_xy(*record["a"])
+            b = frame.to_xy(*record["b"])
+            bearing = math.radians(record["normal_deg"])
+            wall = Wall(record["building"], record["wall"], a, b,
+                        (math.sin(bearing), math.cos(bearing)), record["height_m"])
+            views = []
+            for rank, uid in enumerate(record["observations"]):
+                i = by_uid.get(uid)
+                if i is None:
+                    continue
+                camera = cameras.get(i) or camera_for(rows, i, frame)
+                if camera is None:
+                    continue
+                cameras[i] = camera
                 score = score_view(wall, camera)
-                if score is not None:
-                    scored.append((score * (1.0 if camera.spherical else PERSPECTIVE_TRUST), i))
-            if not scored:
-                skipped["no camera in front of it"] += 1
-                continue
-            scored.sort(reverse=True)
-            jobs.append({"wall": wall, "views": scored[:VIEWS_PER_WALL]})
+                views.append(((score or 0.0) - rank * 1e-6, i))
+            if views:
+                jobs.append({"wall": wall, "views": views})
+        progress(f"{chunk.key}: re-rendering {len(jobs)} of {len(rerender)} published walls")
+    else:
+        pool = candidates_for(rows, frame, chunk)
+        progress(f"{chunk.key}: {len(chunk.buildings)} buildings, {len(pool)} frames within reach")
+        cameras = {i: camera_for(rows, i, frame) for i in pool}
+        cameras = {i: c for i, c in cameras.items() if c is not None}
+
+    if rerender is None:
+        # -- pair every wall with the frames that look at it most squarely -------------------
+        jobs: list[dict] = []
+        skipped = Counter()
+        for building_index in chunk.buildings:
+            building = buildings[building_index]
+            ring = [frame.to_xy(lon, lat) for lon, lat in building["points"]]
+            height = float(building.get("height_m") or 10.5)
+            for wall in walls_of(ring, height, building_index):
+                if wall.length_m > MAX_WALL_M:
+                    skipped["wall too long"] += 1
+                    continue
+                scored = []
+                for i, camera in cameras.items():
+                    score = score_view(wall, camera)
+                    if score is not None:
+                        scored.append((score * (1.0 if camera.spherical else PERSPECTIVE_TRUST), i))
+                if not scored:
+                    skipped["no camera in front of it"] += 1
+                    continue
+                scored.sort(reverse=True)
+                jobs.append({"wall": wall, "views": scored[:VIEWS_PER_WALL]})
 
     if limit:
         jobs = sorted(jobs, key=lambda j: -j["views"][0][0])[:limit]
@@ -339,8 +370,9 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
     out_dir.mkdir(parents=True, exist_ok=True)
     # A rerun with a tighter gate leaves the textures it no longer believes in on disk, and the
     # directory stops matching its own manifest.
-    for stale in out_dir.glob("*.jpg"):
-        stale.unlink()
+    if rerender is None:
+        for stale in out_dir.glob("*.jpg"):
+            stale.unlink()
 
     walls_out: list[dict] = []
     failures = Counter()
@@ -385,7 +417,7 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
 
         name = f"{wall.building_index}-{wall.wall_index}.jpg"
         cv2.imwrite(str(out_dir / name), fill_gaps(composite, wall),
-                    [cv2.IMWRITE_JPEG_QUALITY, 80])
+                    [cv2.IMWRITE_JPEG_QUALITY, 88 if rerender is not None else 80])
         a_lon, a_lat = frame.to_lonlat(*wall.a)
         b_lon, b_lat = frame.to_lonlat(*wall.b)
         return {
@@ -441,7 +473,8 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
         "licenses": dict(licenses),
         "walls": sorted(walls_out, key=lambda w: (w["building"], w["wall"])),
     }
-    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    if rerender is None:
+        (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1))
     return manifest
 
 
@@ -456,6 +489,10 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=None, help="cap walls, for a quick look")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--top", type=int, default=12)
+    ap.add_argument("--rerender", action="store_true",
+                    help="re-render the chunk's published walls at FACADE_PIXELS_PER_M / "
+                         "FACADE_MAX_EDGE_PX, keeping its manifest, its wall set and the chunk "
+                         "layer; a wall that no longer passes the gates keeps its old texture")
     args = ap.parse_args()
 
     def progress(message: str) -> None:
@@ -475,7 +512,8 @@ def main() -> int:
             for c in chunks.values() if c.buildings or c.observations
         ],
     }
-    CHUNK_LAYER.write_text(json.dumps(layer, separators=(",", ":")))
+    if not args.rerender:
+        CHUNK_LAYER.write_text(json.dumps(layer, separators=(",", ":")))
     progress(f"{len(layer['chunks'])} chunks with anything in them "
              f"(of {len(chunks)} over the region); wrote {CHUNK_LAYER.name}")
     for chunk in ranked[: args.top]:
@@ -489,8 +527,12 @@ def main() -> int:
     if chosen is None:
         progress(f"no such chunk: {args.chunk}")
         return 2
+    keep = None
+    if args.rerender:
+        published = json.loads((TEXTURE_ROOT / chosen.key / "manifest.json").read_text())
+        keep = published["walls"]
     manifest = extract(chosen, state, limit=args.limit, workers=args.workers,
-                       progress=progress)
+                       progress=progress, rerender=keep)
     progress(f"{chosen.key}: {manifest['walls_textured']} of {manifest['walls_attempted']} "
              f"walls textured; failures {manifest['failures']}")
     return 0

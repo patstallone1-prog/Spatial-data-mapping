@@ -125,7 +125,8 @@ def _pad(data: bytes, fill: bytes = b"\x00") -> bytes:
 
 def chunk_glb(positions, normals, colours, triangles) -> bytes:
     """One quantized glTF binary: SHORT millimetre positions under a node scale, BYTE normals,
-    UNSIGNED_BYTE colours, UNSIGNED_INT indices."""
+    UNSIGNED_BYTE colours, and UNSIGNED_SHORT indices where the chunk has few enough vertices
+    (UNSIGNED_INT otherwise) -- half the index bytes."""
     origin = positions.min(axis=0)
     quantized = np.round((positions - origin) / MM)
     if quantized.max() > 32767:
@@ -137,7 +138,9 @@ def chunk_glb(positions, normals, colours, triangles) -> bytes:
     col = np.zeros((len(positions), 4), "u1")
     col[:, :3] = colours
     views, blobs, offset = [], [], 0
-    for blob, stride, target in ((triangles.astype("<u4").tobytes(), None, 34963),
+    short = len(positions) <= 65535
+    index_bytes = triangles.astype("<u2" if short else "<u4").tobytes()
+    for blob, stride, target in ((index_bytes, None, 34963),
                                  (pos.tobytes(), 8, 34962), (nrm.tobytes(), 4, 34962),
                                  (col.tobytes(), 4, 34962)):
         view = {"buffer": 0, "byteOffset": offset, "byteLength": len(blob), "target": target}
@@ -159,7 +162,8 @@ def chunk_glb(positions, normals, colours, triangles) -> bytes:
                                                 "metallicFactor": 0.0, "roughnessFactor": 0.9},
                        "doubleSided": False}],
         "accessors": [
-            {"bufferView": 0, "componentType": 5125, "count": int(triangles.size), "type": "SCALAR",
+            {"bufferView": 0, "componentType": 5123 if short else 5125,
+             "count": int(triangles.size), "type": "SCALAR",
              "min": [int(triangles.min())], "max": [int(triangles.max())]},
             {"bufferView": 1, "componentType": 5122, "count": len(pos), "type": "VEC3",
              "min": q.min(axis=0).tolist(), "max": q.max(axis=0).tolist()},
@@ -178,7 +182,13 @@ def chunk_glb(positions, normals, colours, triangles) -> bytes:
             + text + struct.pack("<II", len(binary), 0x004E4942) + binary)
 
 
-def build(source: Path, voxel: float) -> dict:
+#: The levels: "detail" for phones and the first upgrade, "full" (finer, 16-bit indexed
+#: chunks) for a desktop's GPU. Each is its own directory and its own manifest entry.
+LEVELS = {"detail": (0.012, MAX_CHUNK_TRIANGLES), "full": (0.008, 110_000)}
+
+
+def build(source: Path, voxel: float, level: str = "detail",
+          chunk_triangles: int | None = None) -> dict:
     manifest = json.loads((SCANS / "manifest.json").read_text())
     scan = manifest["scans"][SCAN_ID]
     if scan["source_sha256"] != SOURCE_SHA256:
@@ -211,29 +221,30 @@ def build(source: Path, voxel: float) -> dict:
         raise ValueError("Detail level does not register with the first look")
     normals = vertex_normals(positions, triangles)
     centres = positions[triangles].mean(axis=1)
-    out = SCANS / "detail"
+    out = SCANS / level
     out.mkdir(exist_ok=True)
-    for old in out.glob("apartment-detail-*.glb"):
+    for old in out.glob(f"apartment-{level}-*.glb"):
         old.unlink()
     chunks = []
-    for k, ids in enumerate(sorted(split(triangles, centres, MAX_CHUNK_TRIANGLES),
+    limit = chunk_triangles or LEVELS[level][1]
+    for k, ids in enumerate(sorted(split(triangles, centres, limit),
                                    key=lambda ids: tuple(centres[ids].mean(0).round(2)))):
         tri = triangles[ids]
         used, local = np.unique(tri.ravel(), return_inverse=True)
         glb = chunk_glb(positions[used], normals[used], colours[used],
                         local.reshape(-1, 3).astype("u4"))
         digest = hashlib.sha256(glb).hexdigest()
-        name = f"apartment-detail-{k}-{digest[:12]}.glb"
+        name = f"apartment-{level}-{k}-{digest[:12]}.glb"
         (out / name).write_bytes(glb)
-        chunks.append({"asset": f"interior-scans/detail/{name}", "sha256": digest,
+        chunks.append({"asset": f"interior-scans/{level}/{name}", "sha256": digest,
                        "bytes": len(glb), "triangles": len(tri), "vertices": len(used)})
         print(name, len(tri), "triangles", round(len(glb) / 1e6, 1), "MB", flush=True)
     detail = {"voxel_m": voxel, "triangles": len(triangles), "vertices": len(positions),
               "bytes": sum(c["bytes"] for c in chunks), "encoding": "KHR_mesh_quantization",
               "registration": "first-look gravity_alignment applied unchanged",
               "grade": "display_level_of_detail_not_new_measurement", "chunks": chunks}
-    (out / "detail.json").write_text(json.dumps(detail, indent=2) + "\n")
-    scan["detail"] = detail
+    (out / f"{level}.json").write_text(json.dumps(detail, indent=2) + "\n")
+    scan[level] = detail
     (SCANS / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return detail
 
@@ -241,7 +252,8 @@ def build(source: Path, voxel: float) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="Apartment/scene/integrated.ply")
-    parser.add_argument("--voxel", type=float, default=0.012)
+    parser.add_argument("--level", choices=sorted(LEVELS), default="detail")
+    parser.add_argument("--voxel", type=float, default=None, help="default: the level's own")
     args = parser.parse_args()
-    summary = build(args.source, args.voxel)
+    summary = build(args.source, args.voxel or LEVELS[args.level][0], args.level)
     print(json.dumps({k: v for k, v in summary.items() if k != "chunks"}, indent=2))

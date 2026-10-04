@@ -22591,14 +22591,31 @@ async function cachedVerifiedBytes(url, sha256, size) {
   return bytes;
 }
 
+//: Which of a scan's detail levels this device draws. "full" (0.8 cm, about seven million
+//: triangles) is for a desktop's GPU; a phone, or anything short of memory, takes "detail"
+//: (1.2 cm, about three and a half million), which is already a different scan from the
+//: blurred first look.
+function scanLevel(scan) {
+  const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const memory = navigator.deviceMemory || 8;
+  const level = scan.full && scan.full.chunks && !coarse && memory >= 8 ? scan.full : scan.detail;
+  return level && level.chunks && level.chunks.length ? level : null;
+}
+//: The installed app keeps its scans; a visit to the website fetches one only on walking in.
+function appMode() {
+  return Boolean(document.querySelector('meta[name="kerbside-app-mode"]'))
+    || Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+}
 const scanDetailPromises = new Map();
 function loadScanDetail(scan) {
-  if (!scan.detail || !scan.detail.chunks || !scan.detail.chunks.length) return Promise.resolve(null);
+  const level = scanLevel(scan);
+  if (!level) return Promise.resolve(null);
   if (!scanDetailPromises.has(scan.id)) {
     scanDetailPromises.set(scan.id, (async () => {
       const group = new THREE.Group();
+      group.userData.level = level;
       // One chunk at a time: an even load on the network and on memory.
-      for (const chunk of scan.detail.chunks) {
+      for (const chunk of level.chunks) {
         const url = sharedAsset(chunk.asset);
         const bytes = await cachedVerifiedBytes(url, chunk.sha256, chunk.bytes);
         const gltf = await new GLTFLoader().parseAsync(bytes, new URL(".", new URL(url, location.href)).href);
@@ -22614,6 +22631,7 @@ function upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY) {
   loadScanDetail(scan).then((detail) => {
     const group = model.parent;
     if (!detail || !group || entry.interior?.group !== group) return;
+    const level = detail.userData.level;
     // Checked in the scan's own frame, as the first look was, before it is placed in the house.
     const fine = detail.clone(true);
     fine.updateMatrixWorld(true);
@@ -22650,7 +22668,9 @@ function upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY) {
       o.userData.sharedInteriorAsset = !o.userData.trimmedToFootprint;
       o.userData.scanMesh = true;
       o.material = o.material.clone();
-      o.castShadow = true; o.receiveShadow = true;
+      // Indoors the sun's shadow of a scanned armchair is nothing anyone sees, and casting it
+      // drew millions of triangles a second time into the shadow map every frame.
+      o.castShadow = false; o.receiveShadow = true;
       o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
     });
     if (!total || dropped > total * 0.01) {
@@ -22664,8 +22684,8 @@ function upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY) {
     fine.updateMatrixWorld(true);
     adaptScanEntrance(fine, cutPlans, floorY);
     model.visible = false;
-    group.userData.detail = { triangles: scan.detail.triangles - dropped, voxel_m: scan.detail.voxel_m,
-      trimmedToFootprint: dropped, grade: scan.detail.grade };
+    group.userData.detail = { triangles: level.triangles - dropped, voxel_m: level.voxel_m,
+      trimmedToFootprint: dropped, grade: level.grade };
     if (cutawayEntry === entry) { applyCutaway(null); applyCutaway(entry); }
   });
 }
@@ -22673,12 +22693,12 @@ function upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY) {
 //: Once a region with a scanned home has opened, its scans' detail is fetched into the local
 //: cache in the background, so walking into one later is instant and works offline.
 function prefetchScanDetail() {
-  if (!SCANNED_INTERIORS || navigator.connection?.saveData) return;
+  if (!SCANNED_INTERIORS || navigator.connection?.saveData || !appMode()) return;
   const here = SCANNED_INTERIORS.placements.some((p) => footprintById.has(String(p.building)));
   if (!here) return;
   (async () => {
     for (const scan of Object.values(SCANNED_INTERIORS.scans)) {
-      for (const chunk of scan.detail?.chunks || []) {
+      for (const chunk of scanLevel(scan)?.chunks || []) {
         try { await cachedVerifiedBytes(sharedAsset(chunk.asset), chunk.sha256, chunk.bytes); }
         catch (err) { return; }
       }

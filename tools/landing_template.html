@@ -2,405 +2,335 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#0b0e12" />
-<meta name="description" content="Kerbside measures kerb height and footway width from ordinary camera frames." />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Kerbside" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kerbside — the Bay Area, down to the kerb</title>
+<meta name="description" content="Kerbside is a walkable 3D model of the Bay Area's streets: every crossing, kerb ramp, bike lane and front step, built from city records, lidar and street-level photographs." />
+<meta name="theme-color" content="#11140f" />
+<meta property="og:title" content="Kerbside — the Bay Area, down to the kerb" />
+<meta property="og:description" content="Walk the streets of San Francisco, Oakland, Berkeley, Palo Alto and San Jose in 3D — every crossing, kerb and lane line where the city put it." />
+<meta property="og:image" content="landing/hero.jpg" />
 <link rel="manifest" href="manifest.webmanifest" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="icon" href="icon-192.png" />
-<title>Kerbside</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --paper: #f6f4f1;
-    --paper-2: #efece7;
-    --card: #ffffff;
-    --rule: #ddd8d1;
-    --rule-soft: #e8e4de;
-    --ink: #16181c;
-    --ink-2: #555c66;
-    --ink-3: #8a919b;
-    --accent: #8c844c;
-    --accent-soft: rgba(140, 132, 76, 0.10);
-    --shadow: 0 1px 2px rgba(22, 24, 28, 0.05), 0 16px 44px rgba(22, 24, 28, 0.09);
-
-    --display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
-    --body: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --ink: #11140f;
+    --ink-2: #2a2f27;
+    --paper: #f4f2ea;
+    --paper-2: #ebe8dc;
+    --muted: #6b6e63;
+    --earth: #8c844c;      /* the Kerbside mark */
+    --earth-deep: #6e6838;
+    --lane: #2f9e6e;       /* bike-lane green */
+    --line: rgba(17, 20, 15, 0.12);
+    --radius: 18px;
+    --max: 1180px;
   }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --paper: #101216;
-      --paper-2: #171b21;
-      --card: #191e25;
-      --rule: #2a323b;
-      --rule-soft: #222a33;
-      --ink: #eceff3;
-      --ink-2: #a2acb8;
-      --ink-3: #74808d;
-      --accent: #8c844c;
-      --accent-soft: rgba(140, 132, 76, 0.14);
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 48px rgba(0, 0, 0, 0.4);
-    }
-  }
-  :root[data-theme="dark"] {
-    --paper: #101216;
-    --paper-2: #171b21;
-    --card: #191e25;
-    --rule: #2a323b;
-    --rule-soft: #222a33;
-    --ink: #eceff3;
-    --ink-2: #a2acb8;
-    --ink-3: #74808d;
-    --accent: #8c844c;
-    --accent-soft: rgba(140, 132, 76, 0.14);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 48px rgba(0, 0, 0, 0.4);
-  }
-
   * { box-sizing: border-box; }
-  [hidden] { display: none !important; }
-
+  html { scroll-behavior: smooth; }
   body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: var(--body);
-    font-size: 17px;
-    line-height: 1.62;
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 400 17px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 26px; }
-  .narrow { max-width: 660px; }
-
-  h1, h2, h3 { margin: 0; font-family: var(--display); text-wrap: balance; }
-  h1 {
-    font-size: clamp(42px, 8.4vw, 82px);
-    line-height: 0.98;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-    font-variation-settings: "opsz" 128;
-  }
-  h2 {
-    font-size: clamp(26px, 3.6vw, 34px);
-    line-height: 1.14;
-    font-weight: 600;
-    letter-spacing: -0.021em;
-    font-variation-settings: "opsz" 72;
-  }
-  h3 { font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -0.012em; }
-  p { margin: 0; }
-
+  img { display: block; max-width: 100%; }
+  a { color: inherit; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+  h1, h2, h3 { font-family: Fraunces, Georgia, serif; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
+  h2 { font-size: clamp(30px, 4.2vw, 48px); line-height: 1.08; }
+  h3 { font-size: 23px; line-height: 1.2; }
   .eyebrow {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.19em;
-    text-transform: uppercase;
-    color: var(--accent);
+    font: 600 12px/1 Inter, sans-serif; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--earth-deep); margin: 0 0 16px;
   }
+  .lede { font-size: 19px; color: var(--ink-2); max-width: 640px; }
 
-  /* ---------- masthead ---------- */
-  header.top {
-    display: flex; align-items: center; gap: 12px;
-    padding: 26px 0 0;
+  /* ---------- nav ---------- */
+  nav {
+    position: absolute; inset: 0 0 auto 0; z-index: 5; color: #fff;
   }
-  .mark {
-    width: 30px; height: 30px; border-radius: 7px; background: var(--accent);
-    display: grid; place-items: center; color: #171910;
-    font-family: var(--display); font-weight: 700; font-size: 17px; flex: none;
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .brand { display: flex; align-items: center; gap: 10px; font: 600 18px/1 Inter, sans-serif; text-decoration: none; }
+  .brand .mark {
+    width: 30px; height: 30px; border-radius: 8px; background: var(--earth);
+    display: grid; place-items: center; font: 600 16px/1 Fraunces, serif; color: #fff;
   }
-  .brand { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.02em; }
-  header.top .right { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .navlinks { display: flex; gap: 22px; align-items: center; font-size: 15px; }
+  .navlinks a { text-decoration: none; opacity: 0.88; }
+  .navlinks a:hover { opacity: 1; }
+  .pill { padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); backdrop-filter: blur(6px); }
+  #devicetag { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
 
   /* ---------- hero ---------- */
-  .hero { padding: 62px 0 30px; display: flex; flex-direction: column; gap: 24px; }
-  .lede {
-    font-size: clamp(19px, 2.3vw, 22px);
-    line-height: 1.5;
-    color: var(--ink-2);
-    max-width: 30em;
+  .hero {
+    position: relative; min-height: min(92vh, 860px); color: #fff; display: flex; align-items: flex-end;
+    background: var(--ink) url("landing/hero.jpg") center 40% / cover no-repeat;
   }
-  .lede em { font-family: var(--display); font-style: italic; color: var(--ink); }
-
-  .cta { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, rgba(10,12,9,0.72) 0%, rgba(10,12,9,0.45) 38%, rgba(10,12,9,0) 70%),
+      linear-gradient(180deg, rgba(10,12,9,0.55) 0%, rgba(10,12,9,0.05) 35%, rgba(10,12,9,0.2) 55%, rgba(10,12,9,0.88) 100%);
+  }
+  .hero .wrap { position: relative; padding-bottom: 72px; padding-top: 140px; width: 100%; }
+  .hero .eyebrow { color: #e4dfbf; }
+  .hero h1 { font-size: clamp(44px, 7.4vw, 92px); line-height: 0.98; max-width: 900px; }
+  .hero h1 em { font-style: normal; color: #d9d2a0; }
+  .hero p.sub { font-size: clamp(17px, 2vw, 21px); max-width: 640px; color: rgba(255,255,255,0.88); margin: 22px 0 32px; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
   .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 11px;
-    background: var(--accent); color: #171910; border: 1px solid var(--accent);
-    padding: 17px 30px; border-radius: 10px;
-    font-family: var(--body); font-size: 17px; font-weight: 600;
-    cursor: pointer; text-decoration: none;
-    box-shadow: 0 2px 5px rgba(140, 132, 76, 0.22), 0 14px 30px rgba(140, 132, 76, 0.18);
-    transition: transform 0.14s ease;
+    appearance: none; border: 0; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    font: 600 16px/1 Inter, sans-serif; padding: 16px 22px; border-radius: 999px;
+    background: var(--earth); color: #fff; transition: transform .15s ease, background .15s ease;
   }
-  .btn:hover { transform: translateY(-1px); }
-  .btn:active { transform: translateY(0); }
-  .btn.ghost {
-    background: transparent; color: var(--ink); border-color: var(--rule);
-    box-shadow: none; padding: 15px 24px; font-size: 15.5px;
-  }
-  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
-  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
-  .btn:focus-visible, .shot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-
-  .ctarow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-  .ctanote { font-size: 14px; color: var(--ink-3); font-family: var(--mono); }
-  .ctanote b { color: var(--ink-2); font-weight: 500; }
-  .steps {
-    margin: 4px 0 0; padding-left: 21px; max-width: 34em;
-    color: var(--ink-2); font-size: 15px; line-height: 1.62;
-  }
-  .steps li { margin: 6px 0; }
-  .steps b { color: var(--ink); font-weight: 600; }
-  .steps code {
-    font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere;
-    background: var(--paper-2); padding: 1px 5px; border-radius: 4px;
-  }
-
-  /* ---------- scan viewer ---------- */
-  .viewer {
-    margin-top: 14px;
-    border: 1px solid var(--rule); border-radius: 14px; overflow: hidden;
-    background: var(--card); box-shadow: var(--shadow);
-  }
-  .frame { position: relative; aspect-ratio: 4 / 3; background: #0c1015; }
-  .frame img {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-    opacity: 0; transition: opacity 0.5s ease;
-  }
-  .frame img.on { opacity: 1; }
-  @media (prefers-reduced-motion: reduce) { .frame img { transition: none; } }
-  .frame .tag {
-    position: absolute; left: 14px; bottom: 14px;
-    background: rgba(8, 11, 15, 0.72); color: #eef2f6;
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
-    padding: 6px 11px; border-radius: 6px;
-  }
-  .shots { display: flex; gap: 8px; padding: 11px 12px; border-top: 1px solid var(--rule-soft); overflow-x: auto; }
-  .shot {
-    flex: none; width: 74px; border: 2px solid transparent; border-radius: 7px;
-    overflow: hidden; padding: 0; background: none; cursor: pointer; line-height: 0;
-  }
-  .shot img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
-  .shot[aria-pressed="true"] { border-color: var(--accent); }
+  .btn:hover { background: var(--earth-deep); transform: translateY(-1px); }
+  .btn.ghost { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.35); }
+  .btn.ghost:hover { background: rgba(255,255,255,0.22); }
+  .btn.dark { background: var(--ink); }
+  .btn.dark:hover { background: var(--ink-2); }
+  .btn.outline { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn.outline:hover { background: var(--paper-2); }
+  .ctanote { font-size: 14px; color: var(--muted); margin: 14px 0 0; }
+  .hero .ctanote { color: rgba(255,255,255,0.7); }
+  .facts { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 44px; font-size: 14px; color: rgba(255,255,255,0.78); }
+  .facts b { display: block; font: 600 26px/1.1 Fraunces, serif; color: #fff; }
 
   /* ---------- sections ---------- */
-  section { padding-top: 74px; display: flex; flex-direction: column; gap: 20px; }
-  .rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+  section { padding: 104px 0; }
+  section.tight { padding: 72px 0; }
+  .head { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: end; margin-bottom: 48px; }
+  .head .lede { margin: 0; }
 
-  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 22px; }
-  .col { display: flex; flex-direction: column; gap: 9px; }
-  .col .n {
-    font-family: var(--mono); font-size: 11px; color: var(--accent);
-    letter-spacing: 0.12em;
-  }
-  .col p { color: var(--ink-2); font-size: 15.5px; line-height: 1.58; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .tile { background: #fff; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .tile figure { margin: 0; aspect-ratio: 4 / 3; overflow: hidden; background: var(--paper-2); }
+  .tile figure img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
+  .tile:hover figure img { transform: scale(1.04); }
+  .tile .body { padding: 24px 24px 28px; }
+  .tile p { margin: 10px 0 0; color: var(--ink-2); font-size: 16px; }
+  .tag { display: inline-block; margin-top: 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--earth-deep); }
 
-  .figures {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1px; background: var(--rule);
-    border: 1px solid var(--rule); border-radius: 11px; overflow: hidden;
-  }
-  .fig { background: var(--card); padding: 17px 19px; display: flex; flex-direction: column; gap: 4px; }
-  .fig .v {
-    font-family: var(--display); font-size: 30px; font-weight: 600;
-    letter-spacing: -0.02em; line-height: 1;
-  }
-  .fig .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .band { position: relative; color: #fff; border-radius: 28px; overflow: hidden; min-height: 520px; display: flex; align-items: flex-end;
+          background: var(--ink) url("landing/bay.jpg") center / cover no-repeat; }
+  .band::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,12,9,0.85) 0%, rgba(10,12,9,0.35) 60%, rgba(10,12,9,0.1) 100%); }
+  .band .inner { position: relative; padding: 56px; max-width: 620px; }
+  .band p { color: rgba(255,255,255,0.86); font-size: 18px; }
 
-  .callout {
-    border-left: 3px solid var(--accent); background: var(--accent-soft);
-    padding: 18px 22px; border-radius: 0 10px 10px 0;
-    display: flex; flex-direction: column; gap: 8px;
-  }
-  .callout p { color: var(--ink-2); font-size: 15.5px; }
-  .callout b { color: var(--ink); }
+  .sources { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .source { background: var(--paper); padding: 28px 24px 30px; }
+  .source .k { font: 600 13px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lane); }
+  .source h3 { font-size: 20px; margin: 12px 0 8px; }
+  .source p { margin: 0; color: var(--muted); font-size: 15px; }
+  .honest { margin-top: 28px; display: flex; gap: 14px; align-items: flex-start; color: var(--ink-2); max-width: 820px; }
+  .honest .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--earth); margin-top: 9px; }
 
-  .devicelist { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--rule);
-    border-radius: 11px; overflow: hidden; background: var(--card); }
-  .devrow {
-    display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center;
-    padding: 15px 19px; border-bottom: 1px solid var(--rule-soft);
-  }
-  .devrow:last-child { border-bottom: 0; }
-  .devrow .what { font-size: 15.5px; }
-  .devrow .what a { color: var(--ink); font-weight: 600; text-decoration: none; }
-  .devrow .what a:hover, .devrow .what a:focus-visible { color: var(--accent); text-decoration: underline; }
-  .devrow .what span { display: block; color: var(--ink-3); font-size: 13.5px; }
-  .tick {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase;
-    font-weight: 600; padding: 4px 10px; border-radius: 5px; white-space: nowrap;
-  }
-  .tick.yes { color: #17734a; background: rgba(23, 115, 74, 0.12); }
-  a.tick { text-decoration: none; white-space: nowrap; }
-  a.tick:hover, a.tick:focus-visible { text-decoration: underline; }
-  .tick.no { color: #a53a30; background: rgba(165, 58, 48, 0.12); }
-  :root[data-theme="dark"] .tick.yes,
-  :root:not([data-theme="light"]) .tick.yes { color: #62c894; background: rgba(98, 200, 148, 0.14); }
-  :root[data-theme="dark"] .tick.no,
-  :root:not([data-theme="light"]) .tick.no { color: #ed8074; background: rgba(237, 128, 116, 0.14); }
+  .split { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+  .split img { border-radius: var(--radius); border: 1px solid var(--line); }
+  .points { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 16px; }
+  .points li { padding-left: 28px; position: relative; color: var(--ink-2); }
+  .points li::before { content: ""; position: absolute; left: 0; top: 10px; width: 14px; height: 3px; border-radius: 2px; background: var(--lane); }
+  .points b { color: var(--ink); }
 
-  footer {
-    margin-top: 84px; padding: 26px 0 70px; border-top: 1px solid var(--rule);
-    display: flex; flex-wrap: wrap; gap: 10px 28px;
-    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  .devicelist { border-top: 1px solid var(--line); }
+  .devrow { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .devrow .what strong { display: block; font-weight: 600; }
+  .devrow .what span { color: var(--muted); font-size: 14px; }
+  .tick { flex: none; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 7px 12px; border-radius: 999px; }
+  .tick.yes { background: rgba(47, 158, 110, 0.12); color: #1f7a52; }
+
+  .install { background: var(--ink); color: #fff; border-radius: 28px; padding: 64px 56px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: start; }
+  .install h2 { color: #fff; }
+  .install p { color: rgba(255,255,255,0.78); }
+  .install .ctanote { color: rgba(255,255,255,0.62); }
+  .steps { margin: 22px 0 0; padding-left: 22px; color: rgba(255,255,255,0.86); display: grid; gap: 10px; }
+  .steps a { color: #e4dfbf; }
+  .steps code { background: rgba(255,255,255,0.1); padding: 1px 6px; border-radius: 6px; }
+
+  footer { padding: 56px 0 72px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; border-top: 1px solid var(--line); padding-top: 32px; }
+  footer .credits { display: grid; gap: 6px; max-width: 760px; }
+
+  @media (max-width: 900px) {
+    .head, .split, .install { grid-template-columns: 1fr; }
+    .tiles { grid-template-columns: 1fr; }
+    .sources { grid-template-columns: 1fr 1fr; }
+    .navlinks a.hide-sm { display: none; }
+    .band .inner, .install { padding: 36px 26px; }
+    section { padding: 72px 0; }
   }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 16px; }
+    .sources { grid-template-columns: 1fr; }
+    .hero .wrap { padding-bottom: 48px; }
+    .facts { gap: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <header class="top">
-    <div class="mark">K</div>
-    <div class="brand">Kerbside</div>
-    <div class="right" id="devicetag"></div>
-  </header>
-
-  <div class="hero">
-    <p class="eyebrow">A map of the walkable world</p>
-    <h1>The pavement is<br />missing from the map.</h1>
-    <p class="lede">
-      Every navigation system knows the roads to the centimetre and almost nothing about the
-      three feet beside them. Kerbside builds that missing layer from ordinary photographs &mdash;
-      <em>how high the kerb is, how wide the footway, whether the ramp is really passable</em> &mdash;
-      captured by people already walking past.
-    </p>
-
-    <div class="cta">
-      <div class="ctarow">
-        <button class="btn" id="get-android">Install on Android</button>
-        <button class="btn" id="get-ios">Install on iPhone</button>
-      </div>
-      <ol class="steps" id="steps" hidden></ol>
-      <p class="ctanote" id="ctanote"></p>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="./"><span class="mark">K</span>Kerbside</a>
+    <div class="navlinks">
+      <a class="hide-sm" href="#explore">Explore</a>
+      <a class="hide-sm" href="#how">How it's built</a>
+      <a class="hide-sm" href="#coverage">Coverage</a>
+      <span id="devicetag"></span>
+      <a class="pill" href="#install">Get the app</a>
     </div>
   </div>
+</nav>
 
-  <div class="viewer">
-    <div class="frame" id="frame">
-      <span class="tag" id="frametag"></span>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">San Francisco · Oakland · Berkeley · Palo Alto · San Jose</p>
+    <h1>The Bay Area,<br /><em>down to the kerb.</em></h1>
+    <p class="sub">Kerbside is a walkable 3D model of the streets — every crossing, kerb ramp, bike lane and front step, placed where the city measured it. Walk a block before you get there, or step through a door and look around.</p>
+    <div class="ctas">
+      <a class="btn" id="open-map" href="app.html">Open the map</a>
+      <a class="btn ghost" href="#install">Install on your phone</a>
     </div>
-    <div class="shots" id="shots"></div>
+    <p class="ctanote" id="ctanote"></p>
+    <div class="facts">
+      <div><b id="facts-areas">8 areas</b>built in full detail</div>
+      <div><b>Kerb to kerb</b>from city records and lidar</div>
+      <div><b>No account</b>installs from the browser</div>
+    </div>
   </div>
+</header>
 
-  <section id="how">
-    <hr class="rule" />
-    <div class="narrow">
-      <p class="eyebrow">How it works</p>
-      <h2>Depth without a depth sensor.</h2>
+<section id="explore">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <p class="eyebrow">Explore</p>
+        <h2>A map you can walk around in.</h2>
+      </div>
+      <p class="lede">Most maps stop at the centre line of the road. Kerbside keeps going: the width of the footway, the height of the kerb, which corners have ramps and where the paint says you can cross.</p>
     </div>
-    <div class="cols">
-      <div class="col">
-        <span class="n">01</span>
-        <h3>It photographs when you move</h3>
-        <p>
-          Not on a timer. A frame is taken once you have walked far enough for it to show
-          something new, so the spacing between frames holds whether you dawdle or stride &mdash;
-          and that even spacing is what lets two views be turned into geometry.
-        </p>
-      </div>
-      <div class="col">
-        <span class="n">02</span>
-        <h3>It works out where you stood</h3>
-        <p>
-          A phone's GPS is accurate to several metres, which is the width of the entire footway.
-          Matching what the camera saw against surveyed imagery of the same place recovers the
-          position and the direction you faced, to within centimetres.
-        </p>
-      </div>
-      <div class="col">
-        <span class="n">03</span>
-        <h3>It measures, and admits doubt</h3>
-        <p>
-          Overlapping views give kerb height, footway width and surface. Every figure carries how
-          confident it is and when it was last seen. Where a measurement contradicts the plan, the
-          measurement wins and the disagreement is recorded.
-        </p>
-      </div>
+    <div class="tiles">
+      <article class="tile">
+        <figure><img src="landing/streets.jpg" alt="A street in Oakland with protected bike lanes, crossbike markings and a double yellow centre line" loading="lazy" /></figure>
+        <div class="body">
+          <h3>Streets as they're painted</h3>
+          <p>Bike lanes, double yellows, crosswalks and stop bars follow the city's own cross-sections — solid where it's solid, dashed where it's dashed.</p>
+          <span class="tag">Measured · city &amp; lidar</span>
+        </div>
+      </article>
+      <article class="tile">
+        <figure><img src="landing/inside.jpg" alt="Looking down into a house with its roof lifted off, showing a real 3D-scanned apartment and the walker" loading="lazy" /></figure>
+        <div class="body">
+          <h3>Step through the door</h3>
+          <p>Doors open and houses have rooms. Walk in and the roof lifts away so you can see the walker from above. A few homes carry a real 3D scan, borrowed from a public dataset and labelled as exactly that.</p>
+          <span class="tag">Illustrative interiors · labelled</span>
+        </div>
+      </article>
+      <article class="tile">
+        <figure><img src="landing/ground.jpg" alt="Nob Hill in San Francisco from the air: parks, crosswalks and street trees on the measured ground" loading="lazy" /></figure>
+        <div class="body">
+          <h3>Built on the real ground</h3>
+          <p>Hills, building heights and kerb edges come from airborne lidar and city surveys, so a street climbs where it climbs and a tower stands as tall as it was measured. Where photographs agree, a building wears its own facade.</p>
+          <span class="tag">Measured · lidar &amp; surveys</span>
+        </div>
+      </article>
     </div>
+  </div>
+</section>
 
-    <div class="figures">
-      <div class="fig"><span class="v">13 mm</span><span class="k">Kerb height error</span></div>
-      <div class="fig"><span class="v">11 mm</span><span class="k">Position after anchoring</span></div>
-      <div class="fig"><span class="v">50&times;</span><span class="k">Culled before upload</span></div>
-      <div class="fig"><span class="v">1&times;/day</span><span class="k">Times the radio wakes</span></div>
-    </div>
-  </section>
-
-  <section>
-    <hr class="rule" />
-    <div class="narrow">
-      <p class="eyebrow">On your phone</p>
-      <h2>Most of what it photographs, it throws away.</h2>
-      <p class="lede" style="font-size: 17px; margin-top: 10px">
-        Uploading everything would flatten a battery and a data plan for almost no return. So the
-        judging happens where the photographs already are.
-      </p>
-    </div>
-
-    <div class="cols">
-      <div class="col">
-        <h3>Nightly, on a charger</h3>
-        <p>
-          At two in the morning the app reviews the day and drops what carries no information:
-          too dark, blown out, blurred, near-identical to a sharper frame, or surplus to a place
-          already well covered.
-        </p>
-      </div>
-      <div class="col">
-        <h3>People are deleted, not blurred</h3>
-        <p>
-          A photograph whose subject is a person says nothing about a kerb. Those frames are
-          deleted on the device before anything is compressed or sent. Where the phone cannot
-          judge automatically, it asks you, and sends nothing unless you say so.
-        </p>
-      </div>
-      <div class="col">
-        <h3>One batch, then erased</h3>
-        <p>
-          What survives is compressed and sent once. Local copies are erased only after the
-          batch is safely written &mdash; until then your phone holds the only copy, and it is
-          treated that way.
-        </p>
+<section class="tight">
+  <div class="wrap">
+    <div class="band">
+      <div class="inner">
+        <p class="eyebrow" style="color:#e4dfbf">From the skyline to the step</p>
+        <h2>One model, every scale.</h2>
+        <p>Fly over the bay, drop onto a street corner, follow a bike lane for a mile. The blocks around you load in full detail and the city beyond stays as its outlines, so it keeps up as you walk.</p>
       </div>
     </div>
+  </div>
+</section>
 
-    <div class="callout">
-      <p><b>Nothing is uploaded without you.</b></p>
-      <p>
-        Photographs live in the app's own storage on your device. The nightly run produces a
-        batch that you choose to save. There is no silent background upload, and no account.
-      </p>
+<section id="how">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <p class="eyebrow">How it's built</p>
+        <h2>Measured first. Modelled second.</h2>
+      </div>
+      <p class="lede">Kerbside is assembled from public records and open data, layer by layer. What was measured is kept apart from what was inferred.</p>
     </div>
-  </section>
+    <div class="sources">
+      <div class="source"><span class="k">City records</span><h3>Kerbs &amp; ramps</h3><p>Kerb lines, kerb ramps, driveway cuts and kerb-side rules, from the cities' own surveys.</p></div>
+      <div class="source"><span class="k">Airborne lidar</span><h3>Ground &amp; height</h3><p>The shape of the hills, building heights, and the kerb edge where no survey reaches.</p></div>
+      <div class="source"><span class="k">OpenStreetMap</span><h3>Streets &amp; paths</h3><p>Lanes, crossings, footways, bike routes, doors and the buildings themselves.</p></div>
+      <div class="source"><span class="k">Street imagery</span><h3>Facades &amp; colour</h3><p>Frames from Mapillary, KartaView and Panoramax, cross-checked before a wall is dressed.</p></div>
+    </div>
+    <p class="honest"><span class="dot"></span><span><b>Nothing invented is passed off as measured.</b> A building height nobody recorded is drawn greyer, and an interior is a fitted stand-in unless it says otherwise. Borrowed scans are labelled as not being that address. Every gap we filled is marked as filled.</span></p>
+  </div>
+</section>
 
-  <section id="regions">
-    <hr class="rule" />
-    <div class="narrow">
-      <p class="eyebrow">Live coverage</p>
-      <h2>Live app coverage.</h2>
-      <p class="lede" style="font-size: 16px">Full-detail areas are available in the Kerbside app. Each note says whether the reconstruction is grounded in city records, lidar, or map data.</p>
+<section class="tight">
+  <div class="wrap split">
+    <img src="landing/pavement.jpg" alt="A San Francisco footway with its kerb, street trees and tree pits, and the walker" loading="lazy" />
+    <div>
+      <p class="eyebrow">Help map it</p>
+      <h2>Your walk makes the map better.</h2>
+      <p class="lede" style="font-size:17px">The Kerbside app can photograph the pavement as you walk and turn those frames into kerb heights and footway widths. It does the judging on your phone, not on a server.</p>
+      <ul class="points">
+        <li><b>Nothing uploads without you.</b> Frames stay in the app until you choose to send a batch.</li>
+        <li><b>People are deleted, not blurred,</b> on the device, before anything is compressed.</li>
+        <li><b>One small batch a day.</b> Dark, blurred and duplicate frames are dropped overnight.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="coverage">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <p class="eyebrow">Coverage</p>
+        <h2>Where you can walk today.</h2>
+      </div>
+      <p class="lede">Each area is built in full detail in the app. The note says what it's grounded in: city records, lidar or map data.</p>
     </div>
     <p class="ctanote" id="coverage-status" role="status">Loading live coverage…</p>
     <div class="devicelist" id="regionlist"></div>
     <script>
+      // "kerbs from lidar; building_height from lidar" -> "Kerbs, building heights and terrain from lidar."
+      function plainNote(note) {
+        if (!note || !/ from /.test(note)) return note || "";
+        const NAMES = { kerbs: "kerbs", building_height: "building heights", terrain: "terrain" };
+        const SOURCES = { lidar: "airborne lidar", official: "city records", osm: "map data" };
+        const bySource = new Map();
+        for (const part of note.split(";")) {
+          const [what, source] = part.trim().split(" from ");
+          if (!what || !source) continue;
+          if (!bySource.has(source)) bySource.set(source, []);
+          bySource.get(source).push(NAMES[what] || what.replace(/_/g, " "));
+        }
+        const list = (items) => items.length > 1 ? items.slice(0, -1).join(", ") + " and " + items[items.length - 1] : items[0];
+        const sentences = [...bySource].map(([source, items]) => list(items) + " from " + (SOURCES[source] || source));
+        const text = sentences.join("; ");
+        return text.charAt(0).toUpperCase() + text.slice(1) + ".";
+      }
       fetch("app-regions.json", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((index) => {
         const list = document.getElementById("regionlist");
         const status = document.getElementById("coverage-status");
         if (!index || !Array.isArray(index.regions) || !list) throw new Error("coverage unavailable");
         const available = index.regions.filter((region) => region.built &&
           /^(app-model\.html|app-regions\/[a-z0-9-]+\/app-model\.html)$/.test(region.path || ""));
-        status.textContent = `${available.length} full-detail areas available now.`;
+        status.textContent = `${available.length} areas in full detail, live now.`;
+        document.getElementById("facts-areas").textContent = `${available.length} areas`;
         for (const region of available) {
           const row = document.createElement("div"); row.className = "devrow";
           const what = document.createElement("div"); what.className = "what";
           const title = document.createElement("strong"); title.textContent = region.title;
           what.appendChild(title);
-          const sub = document.createElement("span"); sub.textContent = region.note || region.description || ""; what.appendChild(sub);
+          const sub = document.createElement("span"); sub.textContent = plainNote(region.note) || region.description || ""; what.appendChild(sub);
           const tick = document.createElement("span"); tick.className = "tick yes";
           tick.textContent = "In app";
           row.appendChild(what); row.appendChild(tick); list.appendChild(row);
@@ -410,114 +340,52 @@
           "Live coverage is temporarily unavailable. Open the app to browse the map.";
       });
     </script>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <hr class="rule" />
-    <div class="narrow">
-      <p class="eyebrow">What it runs on</p>
-      <h2>The camera matters more than the phone.</h2>
-    </div>
-
-    <div class="devicelist">
-      <div class="devrow">
-        <div class="what">Smart glasses<span>Ray-Ban Meta and similar. The app opens the shutter itself.</span></div>
-        <span class="tick yes">Automatic</span>
+<section id="install" class="tight">
+  <div class="wrap">
+    <div class="install">
+      <div>
+        <p class="eyebrow" style="color:#e4dfbf">Get the app</p>
+        <h2>It installs from the browser.</h2>
+        <p>No store, no account, no sign-up. Add Kerbside to your home screen and it opens like any other app — the areas you visit are kept on the phone.</p>
+        <div class="ctas" style="margin-top:26px">
+          <button class="btn" id="get-android">Install on Android</button>
+          <button class="btn ghost" id="get-ios">Install on iPhone</button>
+        </div>
+        <ol class="steps" id="steps" hidden></ol>
       </div>
-      <div class="devrow">
-        <div class="what">Mounted camera<span>A rig on a vehicle. Full shutter control, survey-grade position.</span></div>
-        <span class="tick yes">Automatic</span>
-      </div>
-      <div class="devrow">
-        <div class="what">Android phone<span>Captures while the app is open and you are walking.</span></div>
-        <span class="tick yes">Automatic</span>
-      </div>
-      <div class="devrow">
-        <div class="what">iPhone<span>iOS forbids camera access in the background &mdash; for every app, with no exception to request. You shoot; the rest is automatic.</span></div>
-        <span class="tick no">Manual shutter</span>
-      </div>
-    </div>
-
-    <p class="narrow" style="color: var(--ink-2); font-size: 15.5px">
-      Glasses are the point. A wider frame, taken hands-free while you walk somewhere you were
-      going anyway, is worth far more than a better phone camera you have to hold up.
-    </p>
-  </section>
-
-  <section>
-    <hr class="rule" />
-    <div class="narrow" style="display: flex; flex-direction: column; gap: 20px">
-      <p class="eyebrow">Start</p>
-      <h2>It installs from the browser. There is no store, and no account.</h2>
-      <div class="cta">
-        <div class="ctarow">
+      <div>
+        <p>On a computer, the map opens right here and can be installed from the address bar.</p>
+        <div class="ctas" style="margin-top:18px">
+          <a class="btn ghost" href="app.html">Open the map</a>
+        </div>
+        <div class="ctas" style="margin-top:28px; display:none" aria-hidden="true">
           <button class="btn" id="get-android2">Install on Android</button>
-          <button class="btn" id="get-ios2">Install on iPhone</button>
+          <button class="btn ghost" id="get-ios2">Install on iPhone</button>
         </div>
         <ol class="steps" id="steps2" hidden></ol>
         <p class="ctanote" id="ctanote2"></p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <footer>
-    <span>Street data &copy; OpenStreetMap contributors (ODbL)</span>
-    <span>Reference imagery via Panoramax (CC BY-SA)</span>
-    <span>Photographs stay on your device</span>
-  </footer>
-</div>
+<footer>
+  <div class="wrap">
+    <div class="credits">
+      <span>Street data &copy; OpenStreetMap contributors (ODbL). Street-level imagery from Mapillary, KartaView and Panoramax contributors (CC BY-SA), credited per facade in the app.</span>
+      <span>Interior scan: Redwood Indoor Lidar-RGBD dataset (Park, Zhou &amp; Koltun, ICCV 2017), shown as a borrowed example, not any address's real interior.</span>
+      <span>Kerb, ramp and lidar data from the cities and counties that publish them.</span>
+    </div>
+    <a class="brand" href="./" style="color:var(--ink)"><span class="mark">K</span>Kerbside</a>
+  </div>
+</footer>
 
 <script>
-  const SHOTS = __SHOTS__;
-  const APP_URL = "__APP_URL__";
-
-  /* ---------- scan viewer ---------- */
-  const frame = document.getElementById("frame");
-  const shots = document.getElementById("shots");
-  const frametag = document.getElementById("frametag");
-  const images = [];
-
-  SHOTS.forEach((s, i) => {
-    const img = document.createElement("img");
-    img.src = s.src;
-    img.alt = s.alt;
-    if (i === 0) img.classList.add("on");
-    frame.insertBefore(img, frametag);
-    images.push(img);
-
-    const b = document.createElement("button");
-    b.className = "shot";
-    b.type = "button";
-    b.setAttribute("aria-pressed", String(i === 0));
-    b.setAttribute("aria-label", s.alt);
-    b.innerHTML = `<img src="${s.src}" alt="" />`;
-    b.addEventListener("click", () => show(i));
-    shots.append(b);
-  });
-
-  let current = 0;
-  let timer = null;
-
-  function show(i) {
-    current = i;
-    images.forEach((img, k) => img.classList.toggle("on", k === i));
-    shots.querySelectorAll(".shot").forEach((b, k) => b.setAttribute("aria-pressed", String(k === i)));
-    frametag.textContent = SHOTS[i].tag;
-    // A person choosing a frame means they are reading it; stop cycling under them.
-    if (timer) { clearInterval(timer); timer = null; }
-  }
-  show(0);
-
-  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    timer = setInterval(() => {
-      if (!timer) return;
-      const next = (current + 1) % SHOTS.length;
-      images.forEach((img, k) => img.classList.toggle("on", k === next));
-      shots.querySelectorAll(".shot").forEach((b, k) => b.setAttribute("aria-pressed", String(k === next)));
-      frametag.textContent = SHOTS[next].tag;
-      current = next;
-    }, 3800);
-  }
+  // Wherever the site is hosted, the app is beside this page.
+  const APP_URL = new URL("app.html", location.href).href;
 
   /* ---------- device ---------- */
   function detect() {
@@ -529,21 +397,19 @@
   }
   const DEVICE = detect();
   const NOTES = {
-    ios: "iPhone \u00b7 installs to the home screen through <b>Share \u2192 Add to Home Screen</b>. Apple gives no site a button that does it, so the iPhone button shows the three taps.",
-    android: "Android \u00b7 installs straight from the browser. Camera and location work once installed; choose <b>While using the app</b>.",
-    desktop: "Desktop \u00b7 opens in this browser and can be installed from the address bar. The field tool is a phone.",
+    ios: "On iPhone, Kerbside installs through <b>Share → Add to Home Screen</b> in Safari.",
+    android: "On Android, Kerbside installs straight from the browser.",
+    desktop: "Opens in this browser. On a phone it installs to the home screen.",
   };
-  const TAGS = { ios: "iPhone", android: "Android", desktop: "Desktop" };
+  const TAGS = { ios: "iPhone", android: "Android", desktop: "" };
   document.getElementById("devicetag").textContent = TAGS[DEVICE];
   document.getElementById("ctanote").innerHTML = NOTES[DEVICE];
   document.getElementById("ctanote2").innerHTML = NOTES[DEVICE];
 
   /* ---------- install ---------- */
-  // There is no .apk and no .ipa to hand out: this is a web app, and the thing that actually
-  // lands an icon on a phone's home screen is an install, not a file. Android exposes that as an
-  // event a button can fire. iOS does not expose it at all -- Apple routes every install through
-  // the Share menu and offers no API -- so the honest iPhone button shows the taps rather than
-  // pretending to perform them.
+  // This is a web app: what lands an icon on a home screen is an install, not a file. Android
+  // exposes that as an event a button can fire; iOS routes every install through the Share
+  // menu and offers no API, so the iPhone button shows the taps rather than pretending.
   let installPrompt = null;
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
@@ -558,25 +424,25 @@
 
   const STEPS = {
     ios: [
-      "Open <code>" + APP_URL + "</code> in <b>Safari</b>. Chrome on iPhone and in-app browsers cannot add to the home screen.",
-      "Tap <b>Share</b> \u2014 the square with the arrow coming out of the top.",
+      "Open <code>" + APP_URL + "</code> in <b>Safari</b> — Chrome on iPhone and in-app browsers cannot add to the home screen.",
+      "Tap <b>Share</b>, the square with the arrow coming out of the top.",
       "Scroll down, tap <b>Add to Home Screen</b>, then <b>Add</b>.",
-      "Open it from the home screen. The first shutter asks for the camera and for location: choose <b>While Using the App</b>, which is what lets every frame carry a position.",
+      "Open Kerbside from the home screen. If you help map, choose <b>While Using the App</b> for camera and location.",
     ],
     android: [
       "Open <code>" + APP_URL + "</code> in <b>Chrome</b> or <b>Samsung Internet</b>.",
-      "Open the <b>\u22ee</b> menu, then tap <b>Install app</b> or <b>Add to Home screen</b>.",
+      "Open the <b>⋮</b> menu, then tap <b>Install app</b> or <b>Add to Home screen</b>.",
       "Confirm <b>Install</b>.",
-      "Open it from the app drawer. The first shutter asks for the camera and for location: choose <b>While using the app</b>, which is what lets every frame carry a position.",
+      "Open Kerbside from the app drawer. If you help map, choose <b>While using the app</b> for camera and location.",
     ],
   };
 
   function showSteps(kind) {
     ["steps", "steps2"].forEach((id) => {
       const ol = document.getElementById(id);
-    ol.innerHTML = STEPS[kind].map((t) => "<li>" + t.replace(
-      "<code>" + APP_URL + "</code>", "<a href=\"" + APP_URL + "\">Open Kerbside</a>") + "</li>").join("");
-      ol.hidden = false;
+      ol.innerHTML = STEPS[kind].map((t) => "<li>" + t.replace(
+        "<code>" + APP_URL + "</code>", "<a href=\"" + APP_URL + "\">Open Kerbside</a>") + "</li>").join("");
+      ol.hidden = id === "steps2";
     });
   }
 
@@ -588,7 +454,7 @@
   function paintButtons() {
     ["get-android", "get-android2"].forEach((id) => {
       document.getElementById(id).textContent =
-      installPrompt ? "Install on this phone" : "Install on Android";
+        installPrompt ? "Install on this phone" : "Install on Android";
     });
   }
 

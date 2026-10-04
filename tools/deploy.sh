@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Push the project to GitHub. Safe to run from any directory, and safe to re-run.
+# Push the project to GitHub, which deploys it on Vercel. Safe to run from any directory,
+# and safe to re-run.
 #
 # Order matters: the secret scan runs before anything is pushed, because a credential that
 # reaches a remote has to be treated as compromised even if the commit is deleted a minute
@@ -58,25 +59,16 @@ git branch -M main
 say "Pushing to $OWNER/$REPO"
 git push -u origin main || die "Push failed. If it mentions history, run: git push -u origin main --force-with-lease"
 
-# Pages is what makes the download a download. Without it the install buttons point at a 404,
-# so this is part of deploying rather than a separate setup step somebody has to remember.
-say "Publishing docs/ to GitHub Pages"
-if gh api "repos/$OWNER/$REPO/pages" >/dev/null 2>&1; then
-  gh api -X PUT "repos/$OWNER/$REPO/pages" \
-    -f 'source[branch]=main' -f 'source[path]=/docs' >/dev/null \
-    && echo "  source set to main /docs"
-else
-  gh api -X POST "repos/$OWNER/$REPO/pages" \
-    -f 'source[branch]=main' -f 'source[path]=/docs' >/dev/null \
-    && echo "  Pages enabled on main /docs" \
-    || echo "  Could not enable Pages. A private repository needs a paid plan for it."
-fi
+# Vercel is connected to this repository: a push to main is the deploy. It builds nothing and
+# serves docs/ as committed (vercel.json, .vercelignore), so what was built and checked above is
+# exactly what goes out. GitHub Pages is no longer the host.
+say "Vercel deploys main from GitHub; watch it with: gh api repos/$OWNER/$REPO/deployments"
 
-SITE="https://$(echo "$OWNER" | tr '[:upper:]' '[:lower:]').github.io/$REPO/"
+SITE="${KERBSIDE_SITE_URL:-https://spatial-data-mapping.vercel.app/}"
 say "Done"
 echo "  repository  https://github.com/$OWNER/$REPO"
 echo "  site        $SITE"
 echo "  app         ${SITE}app.html"
 git log --oneline -1 | sed 's/^/  latest:     /'
 echo
-echo "  The first build takes a minute or two. Until it finishes the address returns 404."
+echo "  Vercel takes a minute or two to publish a push. Until then the previous deployment is live."

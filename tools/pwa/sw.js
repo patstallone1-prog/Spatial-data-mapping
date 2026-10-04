@@ -44,7 +44,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   // The page caches and verifies scan detail itself; a second copy here would double it.
-  if (url.pathname.includes("/interior-scans/detail/")) return;
+  if (/\/interior-scans\/(detail|full)\//.test(url.pathname)) return;
 
   // Data is not shell. The 3D map's payload is rebuilt every time the catalogue grows, and
   // serving it cache-first meant the page could load this week's code against last week's

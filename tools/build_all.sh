@@ -15,6 +15,9 @@ $PY scripts/publish_visual_pilot.py
 # renderer source: without this the deploy re-copied whichever build/app-viewer.html was made
 # by hand last, and the app shipped a viewer older than the site's.
 $PY scripts/build_sf_corridor_3d.py --page-only --detail app --out build/app-viewer.html
+# And the website's own viewer, which every region page is cut from: without this the site's
+# pages kept whatever renderer was last built by hand while the app moved on.
+$PY scripts/build_sf_corridor_3d.py --page-only
 $PY tools/build_pages.py
 # And the app-only regional viewers made from it (docs/app-model.html, docs/app-regions/).
 $PY tools/build_app_worlds.py

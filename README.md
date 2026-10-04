@@ -4,8 +4,13 @@ A map of the walkable world, built from ordinary photographs and the city's own 
 
 Navigation systems know the roads to the centimetre and almost nothing about the three feet
 beside them. This builds that missing layer — kerb height, footway width, surface, whether a
-ramp is really passable — and renders one San Francisco corridor as a walkable 3D model you can
-open in a browser: <https://patstallone1-prog.github.io/Curb-measurements/>
+ramp is really passable — and renders the Bay Area's streets as a walkable 3D model you can
+open in a browser: <https://spatial-data-mapping.vercel.app/> (Vercel serves `docs/` as
+committed; see `vercel.json`).
+
+This repository is the whole project. The former `Curb-measurements` repository only ever held
+built copies of `docs/`; its research code already lives here (`src/smc/curbmeasure/`,
+`scripts/curbmeasure/`), and it is no longer published to.
 
 ## What is here
 
@@ -268,7 +273,8 @@ make check                                   # lint + tests
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
 .venv/bin/python scripts/build_perimeter.py                    # the five-mile country round every region
 .venv/bin/python scripts/build_tiles.py                        # the Bay Area as a tile tree
-python tools/build_pages.py --map-only --out ../Curb-measurements/docs   # publish the map
+tools/build_all.sh                                           # build every page into docs/
+# Deploy: push main. Vercel builds nothing; it serves docs/ (vercel.json, .vercelignore).
 tools/shots/shoot.sh docs/sf-corridor-3d.html spots.json sheet.png       # photograph it before deploying
 ```
 
