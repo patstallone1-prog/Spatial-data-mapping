@@ -86,7 +86,7 @@ def test_batched_building_is_not_treated_as_missing_ground() -> None:
 def test_crossing_paint_tracks_overlapping_road_triangles() -> None:
     """The crossing mesh is dense enough to stay above independently joined road ribbons."""
     source = _source()
-    assert 'above: { crossing: 0.06, crossing_edges: 0.06 }, grid: 0.5' in source
+    assert 'above: { crossing: 0.06, crossing_edges: 0.06, marking: 0.030 }, grid: 0.5' in source
     assert "if (rule.grid) o.geometry = refineForTerrain(o.geometry, rule.grid, 0);" in source
 
 

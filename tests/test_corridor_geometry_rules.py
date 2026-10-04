@@ -714,7 +714,7 @@ def test_lane_markings_are_painted_with_a_width() -> None:
     js = _page_js()
     assert "function paintedLine(points, width, color, y" in js
     marking = _extract("paintedLine", js)
-    assert "mitredEdges(points, width)" in marking, "the marking has no width"
+    assert "mitredEdges(run, width)" in marking, "the marking has no width"
     assert "new THREE.Mesh(" in marking, "the marking is not geometry"
     # Every marking -- lane line, both halves of the double yellow, taper -- is one paint from
     # laneMarkingPaints handed to paintedLine at MARK_W, per junction-clear run.

@@ -34,6 +34,10 @@ def app_page(
     visual_support: str = "",
 ) -> str:
     page = template.replace("Kerbside SF Corridor 3D", f"Kerbside {html.escape(title)} 3D")
+    # Identifies the shared source, not a region's last hand-edited/generated copy.
+    source_hash = hashlib.sha256(template.encode()).hexdigest()
+    page = page.replace("</head>",
+                        f'<meta name="kerbside-renderer-sha256" content="{source_hash}" />\n</head>', 1)
     page = page.replace(
         '<meta name="kerbside-regions" content="regions.json" />',
         f'<meta name="kerbside-regions" content="{index}" />',
@@ -131,8 +135,28 @@ def main() -> None:
         region["path"] = f"app-regions/{name}/app-model.html"
         published += 1
     (DOCS / "app-regions.json").write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
+    viewers = [DOCS / "app-model.html", *sorted(APP_REGIONS.glob("*/app-model.html"))]
+    release = {
+        "schema": 1,
+        "authoritative_branch": "main",
+        "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
+        "renderer_sha256": hashlib.sha256(template.encode()).hexdigest(),
+        "consumers": {str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
+                      for path in viewers},
+        "native_source": "unreal/Plugins/KerbsideWorld",
+        "native_sources_sha256": {
+            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted((ROOT / "unreal/Plugins/KerbsideWorld").rglob("*"))
+            if path.is_file() and path.suffix in (".cpp", ".h", ".cs", ".uplugin")
+        },
+        "app_shell_sha256": hashlib.sha256((DOCS / "app.html").read_bytes()).hexdigest(),
+        "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
+        "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates.",
+    }
+    (DOCS / "runtime-release.json").write_text(json.dumps(release, indent=2) + "\n")
     digest = hashlib.blake2b(digest_size=8)
-    app_assets = [DOCS / "app.html", DOCS / "app-model.html", DOCS / "app-regions.json"]
+    app_assets = [DOCS / "app.html", DOCS / "app-model.html", DOCS / "app-regions.json",
+                  DOCS / "runtime-release.json"]
     app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
     app_assets += sorted(path for directory in ("interior-assets", "materials", "interior-scans")

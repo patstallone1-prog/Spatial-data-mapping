@@ -1,5 +1,9 @@
 """A generated page must not become a newer, unrepeatable renderer version."""
 
+import hashlib
+import json
+import re
+import runpy
 import shutil
 import subprocess
 from pathlib import Path
@@ -64,3 +68,29 @@ def test_geometry_audit_uses_the_renderers_service_width_table() -> None:
     source = (ROOT / "scripts/audit_corridor_render.py").read_text()
     assert 'const SERVICE_ROAD_M = {' not in source
     assert 'DRIVER.replace("__SERVICE_ROAD_M__", service_table.group(0))' in source
+
+
+def test_entire_app_module_and_release_manifest_match_authoritative_source() -> None:
+    """An old road/furniture/tile implementation cannot hide behind current house functions."""
+    builder = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
+    template = builder["tuned"](builder["HTML"], "app")
+    expected = template.split('<script type="module">', 1)[1].split("</script>", 1)[0]
+    release = json.loads((ROOT / "docs/runtime-release.json").read_text())
+    source_hash = hashlib.sha256(template.encode()).hexdigest()
+    assert release["renderer_sha256"] == source_hash
+    assert release["app_shell_sha256"] == hashlib.sha256((ROOT / "docs/app.html").read_bytes()).hexdigest()
+    assert release["native_sources_sha256"]
+    for name, expected_hash in release["native_sources_sha256"].items():
+        assert hashlib.sha256((ROOT / name).read_bytes()).hexdigest() == expected_hash, f"stale native release: {name}"
+    pages = [ROOT / "docs/app-model.html", *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]
+    assert set(release["consumers"]) == {str(p.relative_to(ROOT / "docs")) for p in pages}
+    for page in pages:
+        text = page.read_text()
+        assert f'name="kerbside-renderer-sha256" content="{source_hash}"' in text
+        assert release["consumers"][str(page.relative_to(ROOT / "docs"))] == hashlib.sha256(page.read_bytes()).hexdigest()
+        module = text.split('<script type="module">', 1)[1].split("</script>", 1)[0]
+        # These three routes are the only supported consumer substitutions.
+        module = module.replace('fetch("sf-corridor-3d.json"', 'fetch(asset("sf-corridor-3d.json")')
+        module = module.replace('fetch("app-sf-corridor-ground.json"', 'fetch(asset("sf-corridor-ground.json")')
+        module = re.sub(r'const TILE_BASE = "[^"]*";', 'const TILE_BASE = "tiles/";', module)
+        assert module == expected, f"stale shared renderer module: {page}"

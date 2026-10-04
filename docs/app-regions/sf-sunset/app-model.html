@@ -68,6 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
+<meta name="kerbside-renderer-sha256" content="a6ca9c257deeb8f8ea2df30ac70cb60d639edcbeda000306ab648dbc92ff9892" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -1850,7 +1851,11 @@ const SETTLE_RULES = [
   // Junction asphalt comes from several overlapping ribbons. Sample the paint at half-metre
   // spacing so the road cannot rise through the interior of a long triangle; a small lift
   // also absorbs the few-centimetre mismatch between independently triangulated ribbons.
-  { onto: new Set(["road"]), above: { crossing: 0.06, crossing_edges: 0.06 }, grid: 0.5, label: "Painting the crossings on the road" },
+  // Lane/centre/turn paint must use the very same rendered triangles. Independent terrain
+  // lifts buried lane lines on Bush Street by up to 72 mm after the terrain-frame correction.
+  { onto: new Set(["road"]), above: { crossing: 0.06, crossing_edges: 0.06, marking: 0.030 }, grid: 0.5,
+    occlude: new Set(["walk", "walk_narrow", "kerb", "divider_block", "median"]),
+    label: "Painting the crossings and lanes on the road" },
 ];
 const settleKey = (x, z) => Math.floor(x / SETTLE_CELL_M) * 1048576 + Math.floor(z / SETTLE_CELL_M);
 const SETTLE_COARSE_M = 8.0;
@@ -1860,6 +1865,8 @@ async function settleOnto(rule) {
   const coarseBuckets = new Map();
   const coarseByX = new Map();
   const tops = new Map();
+  const coverTops = new Map();
+  const probes = new Map();
   const standing = [];
   groups.streets.traverse((o) => { if (o.isMesh && o.geometry && rule.above[o.userData.surface] !== undefined) standing.push(o); });
   if (!standing.length) return 0;
@@ -1869,15 +1876,31 @@ async function settleOnto(rule) {
     // so between those two vertices the road rose through the paint as a dark notch.
     if (rule.grid) o.geometry = refineForTerrain(o.geometry, rule.grid, 0);
     const position = o.geometry.getAttribute("position");
-    const best = new Float32Array(position.count).fill(NaN);
-    tops.set(position, best);
-    for (let i = 0; i < position.count; i += 1) {
-      const key = settleKey(position.getX(i), position.getZ(i));
+    const samples = [position];
+    if (rule.occlude) {
+      // Vertices alone miss a higher road triangle wholly inside a paint
+      // triangle. Probe its centre too, without refining the whole city again.
+      const index = o.geometry.getIndex(), n = index ? index.count : position.count;
+      const centres = new Float32Array(Math.floor(n / 3) * 2);
+      for (let t = 0; t + 2 < n; t += 3) {
+        const a = index ? index.getX(t) : t, b = index ? index.getX(t + 1) : t + 1, c = index ? index.getX(t + 2) : t + 2;
+        centres[t / 3 * 2] = (position.getX(a) + position.getX(b) + position.getX(c)) / 3;
+        centres[t / 3 * 2 + 1] = (position.getZ(a) + position.getZ(b) + position.getZ(c)) / 3;
+      }
+      const probe = { count: centres.length / 2, getX: (i) => centres[i * 2], getZ: (i) => centres[i * 2 + 1] };
+      probes.set(o, probe);
+      samples.push(probe);
+    }
+    for (const sample of samples) {
+     tops.set(sample, new Float32Array(sample.count).fill(NaN));
+     coverTops.set(sample, new Float32Array(sample.count).fill(NaN));
+     for (let i = 0; i < sample.count; i += 1) {
+      const key = settleKey(sample.getX(i), sample.getZ(i));
       let list = buckets.get(key);
       if (!list) buckets.set(key, list = []);
-      list.push(position, i);
-      const coarseX = Math.floor(position.getX(i) / SETTLE_COARSE_M);
-      const coarseZ = Math.floor(position.getZ(i) / SETTLE_COARSE_M);
+      list.push(sample, i);
+      const coarseX = Math.floor(sample.getX(i) / SETTLE_COARSE_M);
+      const coarseZ = Math.floor(sample.getZ(i) / SETTLE_COARSE_M);
       const coarseKey = coarseX * 1048576 + coarseZ;
       let coarseList = coarseBuckets.get(coarseKey);
       if (!coarseList) {
@@ -1886,7 +1909,8 @@ async function settleOnto(rule) {
         if (!column) coarseByX.set(coarseX, column = new Map());
         column.set(coarseZ, coarseList);
       }
-      coarseList.push(position, i);
+      coarseList.push(sample, i);
+     }
     }
   }
   const coarseXs = [...coarseByX.keys()].sort((a, b) => a - b);
@@ -1900,8 +1924,9 @@ async function settleOnto(rule) {
     return lo;
   };
   const bases = [];
-  groups.streets.traverse((o) => { if (o.isMesh && o.geometry && rule.onto.has(o.userData.surface)) bases.push(o); });
+  groups.streets.traverse((o) => { if (o.isMesh && o.geometry && (rule.onto.has(o.userData.surface) || rule.occlude?.has(o.userData.surface))) bases.push(o); });
   for (const o of bases) {
+    const targetTops = rule.onto.has(o.userData.surface) ? tops : coverTops;
     const position = o.geometry.getAttribute("position");
     const index = o.geometry.getIndex();
     const n = index ? index.count : position.count;
@@ -1948,7 +1973,7 @@ async function settleOnto(rule) {
             const w = 1 - u - v;
             if (u < -1e-3 || v < -1e-3 || w < -1e-3) continue;
             const y = u * ay + v * by + w * cy;
-            const best = tops.get(pos);
+            const best = targetTops.get(pos);
             if (Number.isNaN(best[vi]) || y > best[vi]) best[vi] = y;
           }
       }
@@ -1965,6 +1990,31 @@ async function settleOnto(rule) {
       if (Number.isNaN(best[i])) continue;
       position.setY(i, best[i] + above);
       settled += 1;
+    }
+    const probe = probes.get(o);
+    if (probe) {
+      const index = o.geometry.getIndex(), n = index ? index.count : position.count;
+      const centreTops = tops.get(probe), centreCover = coverTops.get(probe), vertexCover = coverTops.get(position);
+      const raises = new Float32Array(position.count), kept = [];
+      for (let t = 0; t + 2 < n; t += 3) {
+        const ids = [0, 1, 2].map((j) => index ? index.getX(t + j) : t + j);
+        const top = centreTops[t / 3], paintY = ids.reduce((s, i) => s + position.getY(i), 0) / 3;
+        // Asphalt-only paint clipping is local to this triangle, never to
+        // another crossing's bounding box. A physical island/corner is not paint.
+        const centreBlocked = centreCover[t / 3] > (Number.isNaN(top) ? paintY : top + above) + 0.002;
+        const edgeBlocked = ids.some((i) => vertexCover[i] > position.getY(i) + 0.002);
+        if (centreBlocked || edgeBlocked) continue;
+        kept.push(...ids);
+        const delta = Number.isNaN(top) ? 0 : Math.max(0, top + above - paintY);
+        for (const i of ids) raises[i] = Math.max(raises[i], delta);
+      }
+      for (let i = 0; i < position.count; i += 1) {
+        if (raises[i] > 1e-5) position.setY(i, position.getY(i) + raises[i]);
+      }
+      if (kept.length < n) {
+        o.geometry.setIndex(kept);
+        o.userData.clippedPaintTriangles = (n - kept.length) / 3;
+      }
     }
     position.needsUpdate = true;
     o.geometry.computeBoundingSphere();
@@ -3299,6 +3349,7 @@ function flushMerged(group, match = () => true) {
       }
       // The class survives the merge, so the probe and the audit can still say what is underfoot.
       mesh.userData.surface = bucket.surface;
+      mesh.userData.mergeKey = key;
       // A tile is culled when it is off screen. A bucket small enough to stay one mesh spans the
       // corridor and is always on screen; culling it would only cost the test.
       mesh.frustumCulled = tiles.size > 1;
@@ -3938,6 +3989,11 @@ function crossingRoadSpanPoints(points) {
   }
   const curbSpan = officialCurbCrossingSpan(best.x, best.z, ux, uz, best.half, wayLength(points));
   if (curbSpan) return endCrossingOnDrawnKerb(curbSpan);
+  // At an acute junction the road's rounded index caps also cover the short
+  // ramp-to-ramp connector around the corner. Its 3.8 m mapped link was being
+  // expanded into an 8.4 m ladder through concrete at Broadway/Telegraph.
+  // Without actual curb evidence, do not invent more than 40% of the span.
+  if (wayLength(points) < best.half * 2 * 0.60) return null;
   const fallback = [
     lonLatFromXZ(best.x - best.nx * best.half, best.z - best.nz * best.half),
     lonLatFromXZ(best.x + best.nx * best.half, best.z + best.nz * best.half),
@@ -4470,23 +4526,21 @@ function paintedLine(points, width, color, y,
   //
   // Painted as geometry it has the width it has in the street, it takes the light the road
   // takes, and it goes away with distance the way paint does rather than staying one pixel.
-  const edges = mitredEdges(points, width);
-  if (!edges) return null;
-  const { left, right, distances } = edges;
   const position = [];
   const index = [];
-  const cycle = dashM + gapM;
-  for (let i = 1; i < left.length; i += 1) {
-    if (dash) {
-      // Broken lines are broken in the world, not in screen space: the dash pattern is measured
-      // along the way in metres, so it stays 3.05 m of paint and 9.14 m of road at any zoom.
-      const mid = (distances[i - 1] + distances[i]) / 2;
-      if (mid % cycle > dashM) continue;
+  // Split at the actual stripe/gap boundaries, not at segment midpoints. A sparse way
+  // whose midpoint falls in a gap used to lose its entire lane line (or paint one long slab).
+  const runs = dash ? dashRuns(points, dashM, gapM) : [points];
+  for (const run of runs) {
+    const edges = mitredEdges(run, width);
+    if (!edges) continue;
+    const { left, right } = edges;
+    for (let i = 1; i < left.length; i += 1) {
+      const base = position.length / 3;
+      position.push(left[i - 1][0], y, left[i - 1][1], right[i - 1][0], y, right[i - 1][1],
+                    left[i][0], y, left[i][1], right[i][0], y, right[i][1]);
+      index.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
     }
-    const base = position.length / 3;
-    position.push(left[i - 1][0], y, left[i - 1][1], right[i - 1][0], y, right[i - 1][1],
-                  left[i][0], y, left[i][1], right[i][0], y, right[i][1]);
-    index.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
   }
   if (!index.length) return null;
   const geometry = new THREE.BufferGeometry();
@@ -4973,12 +5027,9 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
       if (fill) addMerged("bike:fill", fill, "bike");
       // Both edges, every metre of the way, whether or not there is green under them: the lines
       // are the lane and the colour is a treatment on top of it.
-      const outer = paintedLine(offsetWay(run.points, side * (BIKE_LANE_M / 2)),
+      const outer = paintedLine(offsetWay(run.points, side * bikePaintEdgeOffset(BIKE_LANE_M)),
                                 BIKE_EDGE_W_M, 0xf2f5ef, roadTop + 0.030);
-      // paintedLine keeps or drops whole quads, so a broken line needs points closer together
-      // than the pattern it is drawing -- otherwise the skip line aliases the same way the
-      // crossbike did and comes out solid, or gone.
-      const innerPoints = offsetWay(run.points, -side * (BIKE_LANE_M / 2));
+      const innerPoints = offsetWay(run.points, -side * bikePaintEdgeOffset(BIKE_LANE_M));
       const inner = run.label === "mixing"
         ? paintedLine(densifyWay(innerPoints, BIKE_SKIP_M / 3), BIKE_EDGE_W_M, 0xf2f5ef,
                       roadTop + 0.032, { dash: true, dashM: BIKE_SKIP_M, gapM: BIKE_SKIP_GAP_M })
@@ -8351,7 +8402,11 @@ function markingRunsClearOfJunctions(points, way) {
   let run = [];
   const flush = () => { if (run.length >= 2) runs.push(run); run = []; };
   for (let i = 0; i < dense.length; i += 1) {
-    if (clear[i]) flush();
+    // Cross-section offsets and bike transitions can outlive a road-width change.
+    // Those samples are not paintable asphalt even when no junction crosses them.
+    // Keep the sidewalk; do not raise displaced paint above it to hide the error.
+    const [x, y] = xy(dense[i][0], dense[i][1]);
+    if (clear[i] || !insideCarriageway(x, -y, MARK_W / 2)) flush();
     else run.push(dense[i]);
   }
   flush();
@@ -9454,6 +9509,12 @@ const BIKE_LANE_M = 1.75;
 //: A two-way track mapped as its own way, where the map gives no width.
 const BIKE_TRACK_TWO_WAY_M = 2.4;
 const BIKE_EDGE_W_M = 0.18;
+
+function bikePaintEdgeOffset(width) {
+  // The stripe's whole width belongs *inside* the lane. Centering it on the
+  // kerb buried its outer half under concrete, producing another partial line.
+  return Math.max(0, width / 2 - BIKE_EDGE_W_M / 2 - 0.02);
+}
 
 // Which lane ends are joins and which are ends. Has to run after the widths are clamped, since
 // the lane centre it keys on is measured from the carriageway edge, and after BIKE_LANE_M is
@@ -13161,7 +13222,7 @@ for (const way of DRAW_ORDER) {
     const fill = ribbon(lane, trackWidth, 0xffffff, 1.0, ROAD_TOP_M + 0.010, 0.012, "bike");
     if (fill) addMerged("bike:fill", fill, "bike");
     for (const side of [1, -1]) {
-      const edge = paintedLine(offsetWay(lane, side * (trackWidth / 2)), BIKE_EDGE_W_M, 0xf2f5ef, ROAD_TOP_M + 0.030);
+      const edge = paintedLine(offsetWay(lane, side * bikePaintEdgeOffset(trackWidth)), BIKE_EDGE_W_M, 0xf2f5ef, ROAD_TOP_M + 0.030);
       if (edge) addMerged("bike:edge", edge, "marking");
     }
     continue;
@@ -13225,10 +13286,11 @@ for (const way of DRAW_ORDER) {
   // ``continental`` flag still records the 817 the city confirms.
   if (isSidewalk || isPath) {
     addSidewalkCrossingReplacements(renderPoints, roadTop + 0.024);
-    // A surveyed width is a measurement and is drawn as it stands; a fallback width is a guess,
-    // and a guess gives way to the measured kerb beside it.
-    const fitted = way.walk_m ? widthMeters
-      : walkWidthAgainstMeasuredKerbs(surfacePoints, widthMeters);
+    // walk_m is often inherited from the neighbouring street record, not a survey
+    // of this mapped footway's position. Preserve that record, but fit *every*
+    // placed ribbon to the measured carriageway; a valid width cannot justify
+    // laying its inner edge over asphalt and hiding a crossing.
+    const fitted = walkWidthAgainstMeasuredKerbs(surfacePoints, widthMeters);
     addPavementRibbon(surfacePoints, fitted, color, opacity,
                       surfaceY, surfaceThickness,
                       fitted <= NARROW_WALK_M ? "walk_narrow" : surfaceKind, true);
