@@ -101,6 +101,13 @@ OSM_SELECTORS = (
     'node["power"="pole"]',
     'node["man_made"="utility_pole"]',
     'way["power"~"^(line|minor_line)$"]',
+    # Transmission towers, and the cell and broadcast masts: communication towers and masts
+    # mapped as points or as the outline of their base.
+    'node["power"="tower"]',
+    'node["tower:type"="communication"]',
+    'node["man_made"="mast"]',
+    'way["man_made"="mast"]',
+    'way["man_made"="tower"]["tower:type"="communication"]',
 )
 
 MUNI_STOP_SPECS = {
@@ -152,6 +159,11 @@ def fetch_overpass(bbox: dict[str, float], *, refresh: bool, progress=print) -> 
             with urllib.request.urlopen(request, timeout=240) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             elements = payload.get("elements") or []
+            # A mirror that answers with nothing for a city's worth of streets has failed
+            # (a stale or truncated database), not found an empty city -- and cached, that
+            # emptiness was served back on every later run.
+            if not elements or payload.get("remark"):
+                raise RuntimeError(f"empty answer ({payload.get('remark') or 'no elements'})")
             path.write_text(json.dumps(elements, separators=(",", ":")), encoding="utf-8")
             progress(f"osm furniture: {len(elements)} elements from {mirror.split('/')[2]}")
             return elements
@@ -766,7 +778,8 @@ def base_record(element: dict[str, Any], kind: str, lon: float, lat: float, basi
         "tags": {k: tags[k] for k in sorted(tags) if k in {
             "advertising", "advertising:medium", "amenity", "direction", "highway",
             "name", "network", "operator", "public_transport", "ref", "route_ref",
-            "shelter", "shelter_type", "traffic_sign",
+            "shelter", "shelter_type", "traffic_sign", "stop", "height",
+            "tower:type", "communication:mobile_phone",
         }},
     }
 
@@ -780,6 +793,8 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
         "ad_panels": [],
         "utility_poles": [],
         "power_lines": [],
+        "power_towers": [],
+        "comm_towers": [],
     }
     seen: set[str] = set()
     for element in elements:
@@ -807,6 +822,21 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
             record["height_m"] = tags.get("height")
             if record["id"] not in seen:
                 out["utility_poles"].append(record)
+                seen.add(record["id"])
+        if tags.get("power") == "tower":
+            record = base_record(element, "power_tower", lon, lat, basis)
+            record["height_m"] = tags.get("height")
+            record["structure"] = tags.get("structure") or tags.get("design")
+            if record["id"] not in seen:
+                out["power_towers"].append(record)
+                seen.add(record["id"])
+        if (tags.get("tower:type") == "communication" or tags.get("man_made") == "mast"):
+            record = base_record(element, "comm_tower", lon, lat, basis)
+            record["height_m"] = tags.get("height")
+            record["structure"] = tags.get("tower:construction") or tags.get("man_made")
+            record["mobile"] = tags.get("communication:mobile_phone") == "yes"
+            if record["id"] not in seen:
+                out["comm_towers"].append(record)
                 seen.add(record["id"])
 
         if tags.get("highway") == "bus_stop" or (

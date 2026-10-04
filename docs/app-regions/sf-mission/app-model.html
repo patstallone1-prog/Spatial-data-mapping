@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="2f28a08d39fa599b36ac215fad464c0615146750ed427633c77f5b1ef5aff184" />
+<meta name="kerbside-renderer-sha256" content="9d5c5af2c6500689cf2a8be70c26fd5689d8540e98efbd6cbc76bcaf254154fa" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -12232,46 +12232,72 @@ function facadePanel(wall) {
   return mesh;
 }
 
-const facadePanels = [];
-for (const wall of FACADES.walls) {
-  const panel = facadePanel(wall);
-  if (panel) {
-    groups.facades.add(panel);
-    facadePanels.push(panel);
-  }
-}
-
-// Textures are fetched after the city is on screen and a few at a time. Two hundred and twenty
-// JPEGs is several megabytes, and blocking the first frame on them would trade the whole map
-// for one block of it.
-const FACADE_TEXTURE_CONCURRENCY = 3;
+// ---- photographed facades, streamed ----
+//
+// There were two hundred and twenty photographed walls and every one was hung, and its picture
+// fetched, at startup. There are thirteen and a half thousand now, across two hundred chunks:
+// hung all at once they were thirteen thousand draw calls and three hundred megabytes for
+// every visitor. So a wall is hung only near where you are -- the walker, or the point the map
+// camera orbits -- nearest first, and taken down again, texture and all, once it is well
+// behind you. Up high, looking at the map rather than a street, none are hung.
+const FACADE_NEAR_M = 260;
+const FACADE_FAR_M = 380;
+const FACADE_MAX_LIVE = 700;
+const FACADE_HIGH_M = 900;
+const FACADE_CELL_M = 120;
+const FACADE_TEXTURE_CONCURRENCY = 4;
 const FACADE_FADE_MS = 450;
-const FACADE_TEXTURE_YIELD_EVERY = 8;
-
+//: The panels hung now (the cutaway and the shells read this list).
+const facadePanels = [];
+const facadeLive = new Map();
+const facadeGrid = new Map();
+FACADES.walls.forEach((wall, i) => {
+  const [ax, ay] = xy(wall.a[0], wall.a[1]);
+  const [bx, by] = xy(wall.b[0], wall.b[1]);
+  wall._x = (ax + bx) / 2;
+  wall._z = -(ay + by) / 2;
+  wall._i = i;
+  const key = `${Math.floor(wall._x / FACADE_CELL_M)}:${Math.floor(wall._z / FACADE_CELL_M)}`;
+  if (!facadeGrid.has(key)) facadeGrid.set(key, []);
+  facadeGrid.get(key).push(wall);
+});
 function nextFrame() {
   return new Promise((resolve) => requestAnimationFrame(resolve));
 }
+const facadeQueue = [];
+let facadeInFlight = 0;
+const facadeStats = { walls: FACADES.walls.length, live: 0, loaded: 0, retired: 0, failed: 0 };
 
-function facadeLoadPriority(panel) {
-  const dx = panel.position.x - camera.position.x;
-  const dz = panel.position.z - camera.position.z;
-  const wall = panel.userData.facade || {};
-  const usefulArea = (wall.h || 0) * Math.max(1, wall.w || wall.l || 1);
-  return dx * dx + dz * dz - usefulArea * 4;
+function retireFacade(i) {
+  const panel = facadeLive.get(i);
+  if (!panel) return;
+  facadeLive.delete(i);
+  groups.facades.remove(panel);
+  const k = facadePanels.indexOf(panel);
+  if (k >= 0) facadePanels.splice(k, 1);
+  if (panel.material.map) panel.material.map.dispose();
+  panel.material.dispose();
+  panel.geometry.dispose();
+  panel.userData.retired = true;
+  facadeStats.retired += 1;
 }
 
 async function loadFacadeTexture(panel) {
   const wall = panel.userData.facade;
   try {
     const texture = await facadeLoader.loadAsync(asset(`facades/${wall.c}/${wall.t}`));
+    if (panel.userData.retired) { texture.dispose(); return; }
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     panel.material.map = texture;
     panel.material.needsUpdate = true;
+    panel.visible = true;
+    facadeStats.loaded += 1;
     // Faded in rather than switched on, so a photograph arriving reads as the wall coming into
     // focus and not as a picture popping up in front of it; then opaque, out of the sorted queue.
     const from = performance.now();
     const fade = () => {
+      if (panel.userData.retired) return;
       const k = Math.min(1, (performance.now() - from) / FACADE_FADE_MS);
       panel.material.opacity = k;
       if (k < 1) { requestAnimationFrame(fade); return; }
@@ -12280,27 +12306,59 @@ async function loadFacadeTexture(panel) {
     };
     requestAnimationFrame(fade);
   } catch (err) {
-    panel.userData.failed = true;
-    panel.visible = false;
+    wall._failed = true;
+    facadeStats.failed += 1;
+    retireFacade(wall._i);
   }
 }
 
-async function loadFacadeTextures() {
-  const queue = facadePanels.slice().sort((a, b) => facadeLoadPriority(a) - facadeLoadPriority(b));
-  const worker = async () => {
-    let loaded = 0;
-    while (queue.length) {
-      await loadFacadeTexture(queue.shift());
-      loaded += 1;
-      if (loaded % FACADE_TEXTURE_YIELD_EVERY === 0) await nextFrame();
-    }
-  };
-  await Promise.all(Array.from(
-    { length: Math.min(FACADE_TEXTURE_CONCURRENCY, queue.length) },
-    () => worker()
-  ));
+function pumpFacadeQueue() {
+  while (facadeInFlight < FACADE_TEXTURE_CONCURRENCY && facadeQueue.length) {
+    const panel = facadeQueue.shift();
+    if (panel.userData.retired) continue;
+    facadeInFlight += 1;
+    loadFacadeTexture(panel).finally(() => { facadeInFlight -= 1; pumpFacadeQueue(); });
+  }
 }
-requestAnimationFrame(() => { loadFacadeTextures(); });
+
+function updateFacadeStreaming(focus, eyeHeight) {
+  const near = eyeHeight > FACADE_HIGH_M ? 0 : FACADE_NEAR_M;
+  const far = near ? FACADE_FAR_M : 0;
+  for (const [i, panel] of facadeLive) {
+    const wall = panel.userData.facade;
+    if (Math.hypot(wall._x - focus.x, wall._z - focus.z) > far) retireFacade(i);
+  }
+  if (near) {
+    const wanted = [];
+    const reach = Math.ceil(near / FACADE_CELL_M);
+    const cx = Math.floor(focus.x / FACADE_CELL_M), cz = Math.floor(focus.z / FACADE_CELL_M);
+    for (let dx = -reach; dx <= reach; dx += 1) {
+      for (let dz = -reach; dz <= reach; dz += 1) {
+        for (const wall of facadeGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+          if (wall._failed || facadeLive.has(wall._i)) continue;
+          const d = Math.hypot(wall._x - focus.x, wall._z - focus.z);
+          if (d <= near) wanted.push([d, wall]);
+        }
+      }
+    }
+    wanted.sort((a, b) => a[0] - b[0]);
+    for (const [, wall] of wanted) {
+      if (facadeLive.size >= FACADE_MAX_LIVE) break;
+      const panel = facadePanel(wall);
+      if (!panel) { wall._failed = true; continue; }
+      panel.visible = false;          // until its photograph has arrived
+      facadeLive.set(wall._i, panel);
+      groups.facades.add(panel);
+      facadePanels.push(panel);
+      facadeQueue.push(panel);
+    }
+    facadeQueue.sort((a, b) => Math.hypot(a.userData.facade._x - focus.x, a.userData.facade._z - focus.z)
+      - Math.hypot(b.userData.facade._x - focus.x, b.userData.facade._z - focus.z));
+    pumpFacadeQueue();
+  }
+  facadeStats.live = facadeLive.size;
+}
+window.kerbsideFacades = () => ({ ...facadeStats, queued: facadeQueue.length, inFlight: facadeInFlight });
 
 // ---- what the city recorded ----
 //
@@ -16467,8 +16525,10 @@ const PLATE_PER_ATLAS = PLATE_PER_ROW * PLATE_PER_ROW;
 const PLATE_STANDOFF_M = 0.05;
 //: Plates on one post are this far apart, and the topmost sits at the panel height.
 const PLATE_GAP_M = 0.06;
-//: Points closer than this are one post.
-const PLATE_SAME_POST_M = 0.35;
+//: Points closer than this are one post. The inventory digitises each plate as its own point,
+//: and two plates on one pole come back a metre or so apart; at 0.35 m they stood on two
+//: poles side by side, each refusing the other's plate.
+const PLATE_SAME_POST_M = 1.2;
 
 const plateAtlases = [];
 const PLATE_SLOTS = new Map();
@@ -16504,6 +16564,11 @@ const PLATE_STYLES = {
   guide:       { bg: "#1e7a3e", fg: "#ffffff", shape: "plate", w: 0.60, h: 0.45, border: "#ffffff" },
   bike:        { bg: "#ffffff", fg: "#111111", shape: "plate", w: 0.45, h: 0.60, border: "#111111" },
   regulatory:  { bg: "#ffffff", fg: "#111111", shape: "plate", w: 0.45, h: 0.60, border: "#111111" },
+  // MUTCD R5-1: a red disc with a white bar on a white square.
+  do_not_enter: { bg: "#ffffff", fg: "#ffffff", shape: "do_not_enter", w: 0.76, h: 0.76, border: "#111111" },
+  // MUTCD R3-1/R3-2/R3-4 (and R10-11 with ON RED): the turn arrow under a red circle and slash.
+  no_turn:     { bg: "#ffffff", fg: "#111111", shape: "plate", w: 0.61, h: 0.76, border: "#111111", symbol: "no_turn" },
+  accessible_parking: { bg: "#ffffff", fg: "#1f4fa3", shape: "plate", w: 0.30, h: 0.46, border: "#1f4fa3" },
 };
 
 function plateStyleFor(sign) {
@@ -16524,6 +16589,10 @@ function plateStyleFor(sign) {
       || category.startsWith("PARKING:NO DBL") || label.startsWith("NPRK") || label.startsWith("TANP")) {
     return "no_parking";
   }
+  if (label.startsWith("DO NOT ENTER")) return "do_not_enter";
+  if (/\bNO (RIGHT|LEFT|U) TURN\b/.test(label)) return "no_turn";
+  if (label.includes("(H/C SYM)")) return "accessible_parking";
+  if (label.startsWith("TANS")) return "no_parking";
   if (category.startsWith("PARKING")) return "parking";
   if (klass === "GUIDE" && !category.startsWith("BIKE")) return "guide";
   if (category.startsWith("BIKE")) return "bike";
@@ -16612,6 +16681,8 @@ function plateSlot(sign, forcedStyle = null, silhouette = false) {
     ctx.lineTo(px + pw / 2, py + ph); ctx.lineTo(px, py + ph / 2);
   } else if (spec.shape === "triangle") {
     ctx.moveTo(px, py); ctx.lineTo(px + pw, py); ctx.lineTo(px + pw / 2, py + ph);
+  } else if (spec.shape === "do_not_enter") {
+    ctx.rect(px, py, pw, ph);
   } else if (spec.shape === "pentagon") {
     ctx.moveTo(px + pw / 2, py); ctx.lineTo(px + pw, py + ph * 0.38);
     ctx.lineTo(px + pw * 0.82, py + ph); ctx.lineTo(px + pw * 0.18, py + ph);
@@ -16626,6 +16697,57 @@ function plateSlot(sign, forcedStyle = null, silhouette = false) {
   ctx.strokeStyle = silhouette ? "#6f7477" : spec.border;
   ctx.stroke();
   ctx.clip();
+  let words = text;
+  let textTop = py, textH = ph;
+  if (!silhouette && spec.shape === "do_not_enter") {
+    // The red disc, the white bar, DO NOT above it and ENTER below.
+    const r = pw * 0.42;
+    ctx.fillStyle = "#b52127";
+    ctx.beginPath(); ctx.arc(px + pw / 2, py + ph / 2, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(px + pw / 2 - r * 0.78, py + ph / 2 - r * 0.15, r * 1.56, r * 0.3);
+    ctx.font = `bold ${Math.round(r * 0.28)}px Helvetica, Arial, sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("DO NOT", px + pw / 2, py + ph / 2 - r * 0.45);
+    ctx.fillText("ENTER", px + pw / 2, py + ph / 2 + r * 0.45);
+    words = "";
+  } else if (!silhouette && spec.symbol === "no_turn") {
+    // The arrow, then the red circle and slash over it, in the top of the plate; whatever the
+    // legend says beyond the turn itself ("ON RED", "7AM-9AM") is set underneath.
+    const label = String(sign.label || "").toUpperCase();
+    const which = /NO U TURN/.test(label) && !/NO (LEFT|RIGHT) TURN/.test(label) ? "u"
+      : /NO LEFT TURN/.test(label) ? "left" : "right";
+    const cx = px + pw / 2, cy = py + ph * 0.36, r = Math.min(pw, ph) * 0.3;
+    ctx.strokeStyle = "#111111"; ctx.fillStyle = "#111111";
+    ctx.lineWidth = r * 0.22; ctx.lineCap = "butt"; ctx.lineJoin = "miter";
+    const dir = which === "left" ? -1 : 1;
+    ctx.beginPath();
+    if (which === "u") {
+      ctx.moveTo(cx + r * 0.35, cy + r * 0.75);
+      ctx.lineTo(cx + r * 0.35, cy - r * 0.1);
+      ctx.arc(cx, cy - r * 0.1, r * 0.35, 0, Math.PI, true);
+      ctx.lineTo(cx - r * 0.35, cy + r * 0.3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.62, cy + r * 0.25); ctx.lineTo(cx - r * 0.08, cy + r * 0.25);
+      ctx.lineTo(cx - r * 0.35, cy + r * 0.65); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.moveTo(cx - dir * r * 0.3, cy + r * 0.75);
+      ctx.lineTo(cx - dir * r * 0.3, cy - r * 0.15);
+      ctx.lineTo(cx + dir * r * 0.25, cy - r * 0.15);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + dir * r * 0.7, cy - r * 0.15); ctx.lineTo(cx + dir * r * 0.22, cy - r * 0.48);
+      ctx.lineTo(cx + dir * r * 0.22, cy + r * 0.18); ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = "#b52127"; ctx.lineWidth = r * 0.16;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.7071, cy - r * 0.7071); ctx.lineTo(cx + r * 0.7071, cy + r * 0.7071);
+    ctx.stroke();
+    words = text.replace(/NO (RIGHT|LEFT|U) TURN/g, "").replace(/^[\s/]+|[\s/]+$/g, "").trim();
+    textTop = py + ph * 0.68; textH = ph * 0.3;
+  }
   // The words. Set as large as fits: one line for a short legend, up to six for a parking
   // regulation, smaller until the longest line fits the plate.
   ctx.fillStyle = spec.fg;
@@ -16633,18 +16755,18 @@ function plateSlot(sign, forcedStyle = null, silhouette = false) {
   ctx.textBaseline = "middle";
   const inset = spec.shape === "plate" ? 0.08 : 0.24;
   const maxW = pw * (1 - 2 * inset);
-  const maxH = ph * (1 - 2 * (spec.shape === "triangle" ? 0.3 : inset));
+  const maxH = textH * (1 - 2 * (spec.shape === "triangle" ? 0.3 : inset));
   let lines = [];
   let size = Math.max(10, Math.min(ph * 0.5, pw * 0.34));
   for (let attempt = 0; attempt < 16; attempt += 1) {
     ctx.font = `bold ${Math.round(size)}px Helvetica, Arial, sans-serif`;
-    lines = wrapLegend(ctx, text, maxW, 6);
+    lines = wrapLegend(ctx, words, maxW, 6);
     const widest = Math.max(...lines.map((l) => ctx.measureText(l).width), 1);
     if (lines.length * size * 1.12 <= maxH && widest <= maxW) break;
     size *= 0.88;
   }
   const lineH = size * 1.12;
-  const y0 = py + ph / 2 - ((lines.length - 1) * lineH) / 2 + (spec.shape === "triangle" ? -ph * 0.14 : 0);
+  const y0 = textTop + textH / 2 - ((lines.length - 1) * lineH) / 2 + (spec.shape === "triangle" ? -ph * 0.14 : 0);
   lines.forEach((line, i) => ctx.fillText(line, px + pw / 2, y0 + i * lineH));
   ctx.restore();
   atlas.texture.needsUpdate = true;
@@ -16675,6 +16797,178 @@ function itemFaceKey(item) {
     String(tags.SIGN_CODE || "").toUpperCase(), bearing].join("|");
 }
 
+// ---- the approaches to a junction: where a sign or a signal stands for each way in ----
+//
+// OpenStreetMap marks a stop or a signal as one point -- usually the junction node itself --
+// and that point was drawn as one sign at the nearest bit of pavement. A four-way stop is
+// four signs, one at the right-hand kerb of each approach facing the traffic coming in; a
+// signalised crossroads has a head for every approach. So each such point is expanded into
+// the junction's approaches: the street legs that meet there, read from the streets
+// themselves. On a one-way leg that carries traffic away from the junction there is nothing
+// to face. These placements are inferred, and recorded as inferred.
+const JUNCTION_CELL_M = 20;
+let junctionVertexGrid = null;
+function indexJunctionVertices() {
+  junctionVertexGrid = new Map();
+  for (const way of DATA.ways || []) {
+    if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+    if (isUnmarkedService(way) || isTunnelWay(way)) continue;
+    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    pts.forEach(([x, z], i) => {
+      const key = `${Math.floor(x / JUNCTION_CELL_M)}:${Math.floor(z / JUNCTION_CELL_M)}`;
+      if (!junctionVertexGrid.has(key)) junctionVertexGrid.set(key, []);
+      junctionVertexGrid.get(key).push({ way, pts, i, x, z });
+    });
+  }
+}
+function onewaySign(way) {
+  const v = String(way.osm_oneway ?? way.oneway ?? "").toLowerCase();
+  if (v === "-1" || v === "reverse") return -1;
+  if (v === "yes" || v === "true" || v === "1" || way.oneway === true) return 1;
+  return 0;
+}
+//: The legs meeting within ``reach`` of a point: each a direction away from the junction.
+function approachLegs(x, z, reach = 6) {
+  if (!junctionVertexGrid) indexJunctionVertices();
+  const legs = [];
+  const cx = Math.floor(x / JUNCTION_CELL_M), cz = Math.floor(z / JUNCTION_CELL_M);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (const v of junctionVertexGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        if (Math.hypot(v.x - x, v.z - z) > reach) continue;
+        for (const step of [-1, 1]) {
+          let k = v.i + step;
+          if (k < 0 || k >= v.pts.length) continue;
+          // Read the direction a few metres out, past any kink at the node itself.
+          while (k + step >= 0 && k + step < v.pts.length
+                 && Math.hypot(v.pts[k][0] - v.x, v.pts[k][1] - v.z) < 6) k += step;
+          const ex = v.pts[k][0] - v.x, ez = v.pts[k][1] - v.z;
+          const len = Math.hypot(ex, ez);
+          if (len < 0.5) continue;
+          const ux = ex / len, uz = ez / len;
+          const bearing = Math.atan2(ux, uz);
+          if (legs.some((l) => {
+            let d = Math.abs(l.bearing - bearing) % (2 * Math.PI);
+            if (d > Math.PI) d = 2 * Math.PI - d;
+            return d < 0.35;
+          })) continue;
+          // Traffic on this leg comes *in* unless the way is one-way running outward.
+          const oneway = onewaySign(v.way);
+          const inbound = oneway === 0 || oneway === -step;
+          legs.push({ way: v.way, x: v.x, z: v.z, ux, uz, bearing, inbound,
+            half: renderedRoadWidth(v.way) / 2 });
+        }
+      }
+    }
+  }
+  return legs;
+}
+//: Where a post stands for traffic arriving along ``leg``: on the driver's right, behind the
+//: crossing street's kerb, on pavement. Returns {x, z, yaw} with the face toward the traffic.
+function approachPlacement(junction, leg, legs, kerbClear = 0.9) {
+  const crossing = Math.max(4, ...legs.filter((l) => l !== leg).map((l) => l.half));
+  const setback = crossing + 2.0;
+  // Arriving traffic travels along -u; its right-hand side is (uz, -ux).
+  const rx = leg.uz, rz = -leg.ux;
+  for (let extra = 0; extra <= 3.01; extra += 0.5) {
+    const off = leg.half + kerbClear + extra;
+    const x = junction.x + leg.ux * setback + rx * off;
+    const z = junction.z + leg.uz * setback + rz * off;
+    if (insideCarriageway(x, z, 0.1) || insideJunctionBox(x, z) || buildingAt(x, z)) continue;
+    return { x, z, yaw: Math.atan2(leg.ux, leg.uz) };
+  }
+  return null;
+}
+//: The junction a point belongs to: the street vertex within ``reach`` with the most legs.
+function junctionNear(x, z, reach = 20) {
+  if (!junctionVertexGrid) indexJunctionVertices();
+  let best = null;
+  const cx = Math.floor(x / JUNCTION_CELL_M), cz = Math.floor(z / JUNCTION_CELL_M);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (const v of junctionVertexGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        const d = Math.hypot(v.x - x, v.z - z);
+        if (d > reach) continue;
+        const legs = approachLegs(v.x, v.z, 2.5);
+        if (legs.length < 3) continue;
+        if (!best || legs.length > best.legs.length || (legs.length === best.legs.length && d < best.d)) {
+          best = { x: v.x, z: v.z, legs, d };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+//: OpenStreetMap stop and give-way points, as one plate per approach they govern.
+function expandApproachSigns(records) {
+  const out = [];
+  const done = new Set();
+  for (const item of records) {
+    if (!item || !item.p) continue;
+    const kind = item.sign_kind;
+    const [x0, y0] = xy(item.p[0], item.p[1]);
+    const z0 = -y0;
+    const junction = junctionNear(x0, z0, 18);
+    if (!junction) { out.push(item); continue; }       // not at a junction: as mapped
+    const key = `${kind}:${Math.round(junction.x)}:${Math.round(junction.z)}`;
+    if (done.has(key)) continue;                        // one point per junction is enough
+    done.add(key);
+    const tags = item.tags || {};
+    const inbound = junction.legs.filter((l) => l.inbound);
+    let governed;
+    if (String(tags.stop || "").toLowerCase() === "all") governed = inbound;
+    else if (Math.hypot(junction.x - x0, junction.z - z0) > 4) {
+      // Mapped on an approach, short of the junction: that approach alone.
+      const along = inbound.map((l) => ({ l, d: Math.hypot(junction.x + l.ux * 8 - x0, junction.z + l.uz * 8 - z0) }))
+        .sort((a, b) => a.d - b.d);
+      governed = along.length ? [along[0].l] : [];
+    } else {
+      // On the junction node: the minor road's approaches -- the narrower of the streets
+      // meeting there -- or every approach where they are all alike (the all-way stop).
+      const widest = Math.max(...inbound.map((l) => l.half));
+      const narrower = inbound.filter((l) => l.half < widest - 0.6);
+      governed = narrower.length ? narrower : inbound;
+    }
+    const allWay = kind === "stop" && governed.length >= 3 && governed.length === inbound.length;
+    for (const leg of governed) {
+      const spot = approachPlacement(junction, leg, junction.legs);
+      if (!spot) continue;
+      const [lon, lat] = lonLatFromXZ(spot.x, spot.z);
+      const base = { ...item, id: `${item.id}:approach:${Math.round(leg.bearing * 100)}`,
+        p: [lon, lat], bearing: spot.yaw * 180 / Math.PI,
+        geometry_basis: "inferred_junction_approach", label: kind === "yield" ? "YIELD" : "STOP" };
+      out.push(base);
+      if (allWay) out.push({ ...base, id: `${base.id}:all_way`, sign_kind: "all_way", label: "ALL WAY" });
+    }
+  }
+  return out;
+}
+
+//: Signal records (SFMTA junction points, OpenStreetMap nodes) as one head per approach.
+function expandSignalApproaches(records) {
+  const heads = [];
+  const done = new Set();
+  for (const item of records) {
+    if (!item || !item.p) continue;
+    const [x0, y0] = xy(item.p[0], item.p[1]);
+    const junction = junctionNear(x0, -y0, 22);
+    if (!junction) continue;
+    const key = `${Math.round(junction.x / 4)}:${Math.round(junction.z / 4)}`;
+    if (done.has(key)) continue;
+    done.add(key);
+    for (const leg of junction.legs.filter((l) => l.inbound)) {
+      const spot = approachPlacement(junction, leg, junction.legs, 0.7);
+      if (!spot) continue;
+      const top = pavementTopAt(spot.x, spot.z);
+      heads.push({ x: spot.x, z: spot.z, yaw: spot.yaw,
+        y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(spot.x, spot.z),
+        source: item.source || "openstreetmap" });
+    }
+  }
+  return heads;
+}
+
 function addOfficialSignPlates(records) {
   // Every sign on its post, the plates stacked where several share one.
   const seenFaces = new Set();
@@ -16694,21 +16988,26 @@ function addOfficialSignPlates(records) {
   for (const row of anchors) {
     const kind = plateAssetKind(row.item);
     const key = `${Math.floor(row.anchor.x / cell)}:${Math.floor(row.anchor.z / cell)}`;
+    // Where the inventory put it, as well as where it was carried to: two plates the city
+    // recorded a metre apart belong on one pole even when one of them had to be moved off
+    // the roadway and the other did not.
+    const [rx0, ry0] = xy(row.item.p[0], row.item.p[1]);
+    row.raw = { x: rx0, z: -ry0 };
     let post = null;
     if (kind === "sign") {
       for (let dx = -1; dx <= 1 && !post; dx += 1) {
         for (let dz = -1; dz <= 1 && !post; dz += 1) {
           for (const other of grid.get(`${Math.floor(row.anchor.x / cell) + dx}:${Math.floor(row.anchor.z / cell) + dz}`) || []) {
-            if (Math.hypot(other.anchor.x - row.anchor.x, other.anchor.z - row.anchor.z) <= PLATE_SAME_POST_M) {
-              post = other;
-              break;
-            }
+            if (other.kind !== "sign") continue;
+            const near = Math.hypot(other.anchor.x - row.anchor.x, other.anchor.z - row.anchor.z) <= PLATE_SAME_POST_M
+              || Math.hypot(other.raw.x - row.raw.x, other.raw.z - row.raw.z) <= PLATE_SAME_POST_M;
+            if (near) { post = other; break; }
           }
         }
       }
     }
     if (post) { post.rows.push(row); continue; }
-    post = { anchor: row.anchor, rows: [row], kind };
+    post = { anchor: row.anchor, raw: row.raw, rows: [row], kind };
     posts.push(post);
     let bucket = grid.get(key);
     if (!bucket) grid.set(key, bucket = []);
@@ -16730,10 +17029,16 @@ function addOfficialSignPlates(records) {
     // Stop first, then its ALL WAY plaque, then the rest, top down.
     const order = { stop: 0, all_way: 1 };
     post.rows.sort((a, b) => (order[plateStyleFor(a.item)] ?? 2) - (order[plateStyleFor(b.item)] ?? 2));
+    // The same plate twice on one pole, facing the same way, is one plate recorded twice: the
+    // inventory and OpenStreetMap both, or two survey passes. It was drawn twice, stacked.
+    const platesHere = new Set();
     for (const row of post.rows) {
       const slot = plateSlot(row.item);
       const yaw = furnitureBearing(row.item, row.index, post.anchor);
       const face = Math.round(yaw * 12 / Math.PI);
+      const same = `${slot.style}|${plateLegend(row.item.label)}|${face}`;
+      if (platesHere.has(same)) continue;
+      platesHere.add(same);
       const nx = Math.sin(yaw), nz = Math.cos(yaw);
       const rx = Math.cos(yaw), rz = -Math.sin(yaw);
       const top = topsByFacing.get(face) ??
@@ -16821,13 +17126,11 @@ function addFurniturePostsAt(anchors, height, radius, colour) {
 }
 
 function addTrafficSignalHeads(records) {
-  // SFMTA's point inventory locates a signalized junction, not the live phase. Render one
-  // conservative three-aspect head per SIGNAL record; no lens asserts a live red/green state.
-  // Junction inventory points can be more than 12 m from any pavement corner.
-  // Give signals a bounded wider search; ordinary mapped sign points keep their old reach.
-  const rows = records.filter((r) => String(r.signal_type || "").toUpperCase() === "SIGNAL")
-    .map((item, index) => ({ item, index, anchor: furnitureAnchor(item, 32) }))
-    .filter((row) => row.anchor);
+  // A head for each approach of each signalised junction (expandSignalApproaches): SFMTA's
+  // points in San Francisco, OpenStreetMap's elsewhere. Each locates a junction, not a live
+  // phase, so no lens claims a red or a green.
+  const rows = records.map((head) => ({ item: { bearing: head.yaw * 180 / Math.PI }, index: 0,
+    anchor: { x: head.x, y: head.y, z: head.z } }));
   if (!rows.length) return 0;
   addFurniturePostsAt(rows.map((r) => r.anchor), 4.65, 0.075, 0x4b5051);
   const body = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
@@ -16856,7 +17159,7 @@ function addTrafficSignalHeads(records) {
   });
   body.instanceMatrix.needsUpdate = true;
   body.userData = { surface: "furniture:traffic_signal", phase: "unknown",
-    source: "sfmta_traffic_signals" };
+    placement: "inferred_junction_approach" };
   groups.furniture.add(body);
   lamps.forEach((lamp, index) => {
     lamp.instanceMatrix.needsUpdate = true;
@@ -16866,78 +17169,281 @@ function addTrafficSignalHeads(records) {
   return rows.length;
 }
 
-function addUtilityPoles(records) {
-  const rows = records.map((item) => ({ item, anchor: furnitureAnchor(item) }))
-    .filter((row) => row.anchor);
-  if (!rows.length) return 0;
-  const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.09, 0.15, 1, 8),
-    new THREE.MeshStandardMaterial({ color: 0x655347, roughness: 0.94 }), rows.length);
-  const arm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0x51463c, roughness: 0.88 }), rows.length);
-  const dummy = new THREE.Object3D();
-  rows.forEach(({ item, anchor }, index) => {
-    const height = Math.max(6, Math.min(15, parseFloat(item.height_m) || 9.5));
-    dummy.position.set(anchor.x, anchor.y + height / 2, anchor.z);
-    dummy.rotation.set(0, 0, 0);
-    dummy.scale.set(1, height, 1);
-    dummy.updateMatrix();
-    pole.setMatrixAt(index, dummy.matrix);
-    dummy.position.set(anchor.x, anchor.y + height - 1.1, anchor.z);
-    dummy.rotation.set(0, furnitureBearing(item, index, anchor), 0);
-    dummy.scale.set(1.6, 0.10, 0.12);
-    dummy.updateMatrix();
-    arm.setMatrixAt(index, dummy.matrix);
-  });
-  for (const mesh of [pole, arm]) {
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.userData = { surface: "furniture:utility_pole", source: "openstreetmap" };
-    groups.furniture.add(mesh);
+// ---- the electrical network: poles, towers, masts and the wires between them ----
+//
+// Poles, transmission towers and power lines come from OpenStreetMap; so do the cell and
+// broadcast masts. A mapped line is strung along its own vertices. Poles no mapped line
+// joins are strung to each other -- inferred, and recorded as inferred -- the way a
+// distribution line runs: pole to pole along a street, a span of fifteen to sixty-five
+// metres, carrying straight on rather than zig-zagging, never through a building.
+//
+// A conductor hangs as a catenary, y = a cosh(x / a), where a is its horizontal tension over
+// its weight per metre. One realistic starting point sets it: a forty-metre distribution span
+// sags about a metre (2.5 per cent), which is a = 40^2 / (8 x 1.0) = 200 m. Holding the tension
+// fixed, the sag then grows with the square of the span -- 0.4 m over 25 m, 2.3 m over 60 m --
+// which is how a real line hangs, and spans between points at different heights are solved
+// as the true asymmetric catenary through both.
+const WIRE_CATENARY_A_M = 200;
+const WIRE_SPAN_MIN_M = 15;
+const WIRE_SPAN_MAX_M = 65;
+const WIRE_SAMPLES = 14;
+const POLE_DEFAULT_M = 10.5;
+const TOWER_DEFAULT_M = 32;
+const MAST_DEFAULT_M = 30;
+
+function catenaryPoints(a, b, out, parameter = WIRE_CATENARY_A_M) {
+  // Points of the conductor from a to b ({x, y, z}), as line-segment pairs pushed onto out.
+  const L = Math.hypot(b.x - a.x, b.z - a.z);
+  if (L < 0.5) return;
+  const h = b.y - a.y;
+  const A = parameter;
+  // The lowest point's offset along the span, for ends at different heights.
+  const x0 = L / 2 - A * Math.asinh(h / (2 * A * Math.sinh(L / (2 * A))));
+  const c = a.y - A * Math.cosh((0 - x0) / A);
+  let prev = null;
+  for (let i = 0; i <= WIRE_SAMPLES; i += 1) {
+    const s = (i / WIRE_SAMPLES) * L;
+    const p = [a.x + (b.x - a.x) * (s / L), A * Math.cosh((s - x0) / A) + c, a.z + (b.z - a.z) * (s / L)];
+    if (prev) out.push(...prev, ...p);
+    prev = p;
   }
-  return rows.length;
 }
 
-function addMappedOverheadWires(records) {
-  // Only mapped overhead way topology supplies spans. Sag and parallel conductors are visual
-  // inferences; unconnected poles do not license invented wires across a city block.
-  const points = [];
-  let spans = 0;
-  for (const record of records) {
-    if (record.power_kind !== "minor_line") continue;
-    const path = (record.points || []).map(([lon, lat]) => {
-      const [x, y] = xy(lon, lat);
-      const z = -y;
-      const base = pavementTopAt(x, z) ?? ROAD_TOP_M;
-      return { x, z, y: base + groundLiftAt(x, z) + 8.8 };
-    });
-    for (let i = 1; i < path.length; i += 1) {
-      const a = path[i - 1], b = path[i];
-      const distance = Math.hypot(b.x - a.x, b.z - a.z);
-      if (distance < 1 || distance > 75) continue;
-      const sideX = -(b.z - a.z) / distance, sideZ = (b.x - a.x) / distance;
-      for (const lane of [-0.22, 0, 0.22]) {
-        let previous = null;
-        for (let step = 0; step <= 10; step += 1) {
-          const t = step / 10;
-          const p = [a.x + (b.x - a.x) * t + sideX * lane,
-            a.y + (b.y - a.y) * t - 0.45 * 4 * t * (1 - t),
-            a.z + (b.z - a.z) * t + sideZ * lane];
-          if (previous) points.push(...previous, ...p);
-          previous = p;
-        }
-      }
-      spans += 1;
+function electricalAnchor(item) {
+  const anchor = furnitureAnchor(item);
+  if (anchor) return anchor;
+  if (!item || !item.p) return null;
+  const [x, y] = xy(item.p[0], item.p[1]);
+  return { x, z: -y, y: groundLiftAt(x, -y) + ROAD_TOP_M };
+}
+
+function addElectricalNetwork(furniture) {
+  const inferred = furniture.inferred || {};
+  const poleRows = (inferred.utility_poles || []).map((item) => ({ item, anchor: furnitureAnchor(item) }))
+    .filter((row) => row.anchor);
+  poleRows.forEach((row) => {
+    row.height = Math.max(7, Math.min(16, parseFloat(row.item.height_m) || POLE_DEFAULT_M));
+    row.links = [];
+  });
+  const lines = (inferred.power_lines || []).map((line) => ({ line,
+    path: (line.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return { x, z: -y }; }) }));
+  // Poles a mapped line runs through are its supports; only the rest are strung by inference.
+  const nearLine = (x, z) => lines.some(({ path }) => path.some((p) => Math.hypot(p.x - x, p.z - z) < 3));
+  const free = poleRows.filter((row) => !nearLine(row.anchor.x, row.anchor.z));
+  const pairs = [];
+  for (let i = 0; i < free.length; i += 1) {
+    for (let j = i + 1; j < free.length; j += 1) {
+      const d = Math.hypot(free[i].anchor.x - free[j].anchor.x, free[i].anchor.z - free[j].anchor.z);
+      if (d >= WIRE_SPAN_MIN_M && d <= WIRE_SPAN_MAX_M) pairs.push([d, free[i], free[j]]);
     }
   }
-  if (points.length) {
+  pairs.sort((p, q) => p[0] - q[0]);
+  const straightOn = (row, ux, uz) => row.links.every((link) => {
+    // A second span must carry on from the first, not double back or turn a sharp corner.
+    const dot = link.ux * ux + link.uz * uz;
+    return dot < -0.55;
+  });
+  const crossesBuilding = (a, b) => {
+    for (let k = 1; k < 8; k += 1) {
+      const x = a.x + (b.x - a.x) * k / 8, z = a.z + (b.z - a.z) * k / 8;
+      if (buildingAt(x, z)) return true;
+    }
+    return false;
+  };
+  const inferredSpans = [];
+  for (const [d, A, B] of pairs) {
+    if (A.links.length >= 2 || B.links.length >= 2) continue;
+    const ux = (B.anchor.x - A.anchor.x) / d, uz = (B.anchor.z - A.anchor.z) / d;
+    if (!straightOn(A, ux, uz) || !straightOn(B, -ux, -uz)) continue;
+    if (crossesBuilding(A.anchor, B.anchor)) continue;
+    A.links.push({ ux, uz });
+    B.links.push({ ux: -ux, uz: -uz });
+    inferredSpans.push([A, B]);
+  }
+  // Each pole's crossarm square to the line through it.
+  poleRows.forEach((row) => {
+    if (row.links.length) {
+      const ux = row.links.reduce((s, l, k) => s + (k ? -l.ux : l.ux), 0);
+      const uz = row.links.reduce((s, l, k) => s + (k ? -l.uz : l.uz), 0);
+      row.yaw = Math.atan2(ux, uz) + Math.PI / 2;
+    } else {
+      row.yaw = furnitureBearing(row.item, 0, row.anchor);
+    }
+  });
+  // Poles.
+  const dummy = new THREE.Object3D();
+  if (poleRows.length) {
+    const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.16, 1, 8),
+      new THREE.MeshStandardMaterial({ color: 0x5f4d3f, roughness: 0.95 }), poleRows.length);
+    const arm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0x4d4237, roughness: 0.9 }), poleRows.length * 2);
+    const insulators = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.06, 1, 6),
+      new THREE.MeshStandardMaterial({ color: 0x8a9a8f, roughness: 0.4 }), poleRows.length * 3);
+    poleRows.forEach((row, index) => {
+      const { anchor, height, yaw } = row;
+      dummy.position.set(anchor.x, anchor.y + height / 2, anchor.z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, height, 1);
+      dummy.updateMatrix();
+      pole.setMatrixAt(index, dummy.matrix);
+      // Primary crossarm near the top; a short secondary arm lower down for the service drop.
+      [[height - 0.9, 2.4], [height - 3.2, 1.2]].forEach(([h, w], k) => {
+        dummy.position.set(anchor.x, anchor.y + h, anchor.z);
+        dummy.rotation.set(0, yaw, 0);
+        dummy.scale.set(w, 0.11, 0.11);
+        dummy.updateMatrix();
+        arm.setMatrixAt(index * 2 + k, dummy.matrix);
+      });
+      const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+      [-1.05, 0, 1.05].forEach((off, k) => {
+        dummy.position.set(anchor.x + rx * off, anchor.y + height - 0.9 + 0.14, anchor.z + rz * off);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 0.22, 1);
+        dummy.updateMatrix();
+        insulators.setMatrixAt(index * 3 + k, dummy.matrix);
+      });
+    });
+    for (const mesh of [pole, arm, insulators]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData = { surface: "furniture:utility_pole", source: "openstreetmap" };
+      groups.furniture.add(mesh);
+    }
+  }
+  // Transmission towers: four battered legs, cross-bracing levels and two arms.
+  const towerRows = (inferred.power_towers || []).map((item) => ({ item, anchor: electricalAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (towerRows.length) {
+    const steel = new THREE.MeshStandardMaterial({ color: 0x8e9496, roughness: 0.55, metalness: 0.6 });
+    const legs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), steel, towerRows.length * 4);
+    const bars = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), steel, towerRows.length * 6);
+    towerRows.forEach((row, index) => {
+      const H = Math.max(18, Math.min(60, parseFloat(row.item.height_m) || TOWER_DEFAULT_M));
+      row.height = H;
+      const base = 3.2, top = 0.9;
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz], k) => {
+        const bx = sx * base, bz = sz * base, tx = sx * top, tz = sz * top;
+        const len = Math.hypot(H, bx - tx, bz - tz);
+        dummy.position.set(row.anchor.x + (bx + tx) / 2, row.anchor.y + H / 2, row.anchor.z + (bz + tz) / 2);
+        dummy.lookAt(row.anchor.x + tx, row.anchor.y + H, row.anchor.z + tz);
+        dummy.rotateX(Math.PI / 2);
+        dummy.scale.set(0.16, len, 0.16);
+        dummy.updateMatrix();
+        legs.setMatrixAt(index * 4 + k, dummy.matrix);
+      });
+      const yaw = furnitureBearing(row.item, 0, row.anchor);
+      [[0.35, 2.2 * 2], [0.6, 1.6 * 2], [0.8, 1.2 * 2], [0.86, 9], [0.94, 6.5], [0.99, 1.5]].forEach(([f, w], k) => {
+        dummy.position.set(row.anchor.x, row.anchor.y + H * f, row.anchor.z);
+        dummy.rotation.set(0, yaw, 0);
+        dummy.scale.set(w, 0.18, 0.18);
+        dummy.updateMatrix();
+        bars.setMatrixAt(index * 6 + k, dummy.matrix);
+      });
+    });
+    for (const mesh of [legs, bars]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData = { surface: "furniture:power_tower", source: "openstreetmap" };
+      groups.furniture.add(mesh);
+    }
+  }
+  // Cell and broadcast masts: a tapering monopole with three sectors of panel antennas.
+  const mastRows = (inferred.comm_towers || []).map((item) => ({ item, anchor: electricalAnchor(item) }))
+    .filter((row) => row.anchor);
+  if (mastRows.length) {
+    const mast = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.32, 0.6, 1, 10),
+      new THREE.MeshStandardMaterial({ color: 0x9aa0a2, roughness: 0.5, metalness: 0.55 }), mastRows.length);
+    const panels = new THREE.InstancedMesh(new THREE.BoxGeometry(0.35, 1.6, 0.14),
+      new THREE.MeshStandardMaterial({ color: 0xe8e8e3, roughness: 0.6 }), mastRows.length * 9);
+    mastRows.forEach((row, index) => {
+      // A mast on a roof stands on the roof: shorter, and from the roof up.
+      const roof = buildingAt(row.anchor.x, row.anchor.z);
+      const H = Math.max(6, Math.min(80, parseFloat(row.item.height_m) || (roof ? 6 : MAST_DEFAULT_M)));
+      const baseY = roof ? row.anchor.y + (roof.height_m || 0) : row.anchor.y;
+      dummy.position.set(row.anchor.x, baseY + H / 2, row.anchor.z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(roof ? 0.4 : 1, H, roof ? 0.4 : 1);
+      dummy.updateMatrix();
+      mast.setMatrixAt(index, dummy.matrix);
+      for (let sector = 0; sector < 3; sector += 1) {
+        for (let k = 0; k < 3; k += 1) {
+          const yaw = sector * (2 * Math.PI / 3) + (k - 1) * 0.35;
+          const r = 0.75;
+          dummy.position.set(row.anchor.x + Math.sin(yaw) * r, baseY + H - 1.2, row.anchor.z + Math.cos(yaw) * r);
+          dummy.rotation.set(0, yaw, 0);
+          dummy.scale.set(1, 1, 1);
+          dummy.updateMatrix();
+          panels.setMatrixAt(index * 9 + sector * 3 + k, dummy.matrix);
+        }
+      }
+    });
+    for (const mesh of [mast, panels]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData = { surface: "furniture:comm_tower", source: "openstreetmap" };
+      groups.furniture.add(mesh);
+    }
+  }
+  // The conductors.
+  const mapped = [], guessed = [];
+  const supportsNear = (x, z) => {
+    let best = null;
+    for (const row of poleRows.concat(towerRows)) {
+      const d = Math.hypot(row.anchor.x - x, row.anchor.z - z);
+      if (d < 4 && (!best || d < best.d)) best = { d, row };
+    }
+    return best && best.row;
+  };
+  let mappedSpans = 0;
+  for (const { line, path } of lines) {
+    const tower = line.power_kind === "line";
+    const offsets = tower ? [-3.6, 0, 3.6] : [-1.05, 0, 1.05];
+    for (let i = 1; i < path.length; i += 1) {
+      const a = path[i - 1], b = path[i];
+      const d = Math.hypot(b.x - a.x, b.z - a.z);
+      if (d < 1 || d > (tower ? 450 : 90)) continue;
+      const sa = supportsNear(a.x, a.z), sb = supportsNear(b.x, b.z);
+      // A transmission line is strung only between supports that are mapped: its height is
+      // the tower's, and guessed at both ends it flew across the city at roof height. An
+      // unsupported distribution span is kept short enough to be a span at all.
+      if (tower && !(sa && sb)) continue;
+      if (!tower && !(sa && sb) && d > 60) continue;
+      const ground = (p) => (pavementTopAt(p.x, p.z) ?? ROAD_TOP_M) + groundLiftAt(p.x, p.z);
+      const ya = sa ? sa.anchor.y + (sa.height || POLE_DEFAULT_M) - (tower ? 0.14 * sa.height : 0.76) : ground(a) + (tower ? 27 : 9.6);
+      const yb = sb ? sb.anchor.y + (sb.height || POLE_DEFAULT_M) - (tower ? 0.14 * sb.height : 0.76) : ground(b) + (tower ? 27 : 9.6);
+      const rx = -(b.z - a.z) / d, rz = (b.x - a.x) / d;
+      for (const off of offsets) {
+        catenaryPoints({ x: a.x + rx * off, y: ya, z: a.z + rz * off },
+          { x: b.x + rx * off, y: yb, z: b.z + rz * off }, mapped, tower ? 900 : WIRE_CATENARY_A_M);
+      }
+      mappedSpans += 1;
+    }
+  }
+  for (const [A, B] of inferredSpans) {
+    const attach = (row, side) => {
+      const rx = Math.cos(row.yaw), rz = -Math.sin(row.yaw);
+      return { x: row.anchor.x + rx * side, y: row.anchor.y + row.height - 0.76, z: row.anchor.z + rz * side };
+    };
+    // The three conductors on the crossarm, matched end to end so they do not cross.
+    const d = Math.hypot(B.anchor.x - A.anchor.x, B.anchor.z - A.anchor.z);
+    const ux = (B.anchor.x - A.anchor.x) / d, uz = (B.anchor.z - A.anchor.z) / d;
+    const flipA = Math.cos(A.yaw) * -uz + -Math.sin(A.yaw) * ux < 0 ? -1 : 1;
+    const flipB = Math.cos(B.yaw) * -uz + -Math.sin(B.yaw) * ux < 0 ? -1 : 1;
+    for (const side of [-1.05, 0, 1.05]) {
+      catenaryPoints(attach(A, side * flipA), attach(B, side * flipB), guessed);
+    }
+    // And the lower communications cable, a little slacker.
+    const low = (row) => ({ x: row.anchor.x, y: row.anchor.y + row.height - 3.2, z: row.anchor.z });
+    catenaryPoints(low(A), low(B), guessed, WIRE_CATENARY_A_M * 0.7);
+  }
+  const wireMaterial = new THREE.LineBasicMaterial({ color: 0x2c302f, opacity: 0.9, transparent: true });
+  for (const [points, basis] of [[mapped, "osm_mapped_line"], [guessed, "inferred_pole_to_pole"]]) {
+    if (!points.length) continue;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
-    const wires = new THREE.LineSegments(geometry,
-      new THREE.LineBasicMaterial({ color: 0x353b3a, opacity: 0.85, transparent: true }));
-    wires.userData = { surface: "furniture:overhead_wire", source: "osm_minor_line",
-      sag: "inferred" };
+    const wires = new THREE.LineSegments(geometry, wireMaterial);
+    wires.userData = { surface: "furniture:overhead_wire", basis, sag: "catenary_a200m_inferred" };
     groups.furniture.add(wires);
   }
-  return spans;
+  return { utility_poles: poleRows.length, power_towers: towerRows.length, comm_towers: mastRows.length,
+    mapped_wire_spans: mappedSpans, inferred_wire_spans: inferredSpans.length };
 }
 
 function addBikeRacks(anchors) {
@@ -17195,9 +17701,23 @@ function renderStreetFurniture(furniture) {
   const inferred = furniture.inferred || {};
   const official = furniture.geometry_based || {};
   const officialSigns = official.street_signs || [];
-  const officialStops = officialSigns.filter((s) => s.sign_kind === "stop");
   const officialOtherSigns = officialSigns.filter((s) => s.sign_kind !== "stop");
-  const signs = officialSigns.length ? [] : (inferred.street_signs || []);
+  // OpenStreetMap's stop and give-way points, one plate per approach they govern. Where the
+  // city's own inventory has a stop or all-way sign within 25 m, the city's stands alone; the
+  // inferred ones fill the junctions it does not list.
+  const officialStopPoints = officialSigns.filter((s) => ["stop", "all_way"].includes(s.sign_kind) && s.p)
+    .map((s) => { const [x, y] = xy(s.p[0], s.p[1]); return [x, -y]; });
+  const osmApproach = expandApproachSigns((inferred.street_signs || [])
+    .filter((s) => s.sign_kind === "stop" || s.sign_kind === "yield"))
+    .filter((s) => {
+      const [x, y] = xy(s.p[0], s.p[1]);
+      return !officialStopPoints.some(([ox, oz]) => Math.hypot(ox - x, oz + y) < 25);
+    });
+  const signs = officialSigns.length ? [] : (inferred.street_signs || [])
+    .filter((s) => !["stop", "yield", "traffic_signal"].includes(s.sign_kind));
+  const signalRecords = (official.traffic_signals || []).filter((r) => String(r.signal_type || "").toUpperCase() === "SIGNAL");
+  const signalHeads = expandSignalApproaches(signalRecords.length ? signalRecords
+    : (inferred.street_signs || []).filter((s) => s.sign_kind === "traffic_signal"));
   const stops = inferred.bus_stops || [];
   // One shelter to a stop.
   //
@@ -17208,18 +17728,16 @@ function renderStreetFurniture(furniture) {
   const shelters = dedupeByDistance(inferred.shelters || [], SHELTER_CLUSTER_M);
   const ads = inferred.ad_panels || [];
   const posts = signs.concat(stops, ads);
-  const plates = addOfficialSignPlates(officialSigns);
+  const plates = addOfficialSignPlates(officialSigns.concat(osmApproach));
   const placed = {
     posts: addStreetFurniturePosts(posts),
     official_signs: plates.signs,
     official_posts: plates.posts,
-    traffic_signal_heads: addTrafficSignalHeads(official.traffic_signals || []),
-    utility_poles: addUtilityPoles(inferred.utility_poles || []),
-    overhead_wire_spans: addMappedOverheadWires(inferred.power_lines || []),
+    traffic_signal_heads: addTrafficSignalHeads(signalHeads),
+    inferred_approach_signs: osmApproach.length,
+    electrical: addElectricalNetwork(furniture),
     bike_racks: plates.racks,
-    stop_signs: officialStops.length ? 0 : addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "stop"), 0.72, 0.72, 0xb52127, "furniture:stop"),
-    yield_signs: officialSigns.length ? 0 : addInstancedFurniturePanels(signs.filter((s) => s.sign_kind === "yield"), 0.86, 0.74, 0xf9fbf8, "furniture:yield"),
-    generic_signs: officialOtherSigns.length ? 0 : addInstancedFurniturePanels(signs.filter((s) => !["stop", "yield"].includes(s.sign_kind)), 0.44, 0.62, 0xf3f5ef, "furniture:generic"),
+    generic_signs: officialOtherSigns.length ? 0 : addInstancedFurniturePanels(signs, 0.44, 0.62, 0xf3f5ef, "furniture:generic"),
     bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25),
     ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55),
     shelters: addMuniShelters(shelters),
@@ -18768,6 +19286,27 @@ function batchHomeShell(group) {
   }
 }
 
+//: Whether a photographed facade hangs on the footprint edge from a to b ([x, z] pairs).
+function photographedEdge(a, b) {
+  const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+  const ux = (b[0] - a[0]) / len, uz = (b[1] - a[1]) / len;
+  const cx = Math.floor(mx / FACADE_CELL_M), cz = Math.floor(mz / FACADE_CELL_M);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (const wall of facadeGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        const [ax, ay] = xy(wall.a[0], wall.a[1]), [bx, by] = xy(wall.b[0], wall.b[1]);
+        const wl = Math.hypot(bx - ax, by - ay) || 1;
+        const parallel = Math.abs(((bx - ax) * ux + (-(by - ay)) * uz) / wl) > 0.95;
+        // The photograph's middle lies on this edge's line, within its length.
+        const off = Math.abs((wall._x - a[0]) * -uz + (wall._z - a[1]) * ux);
+        const along = (wall._x - a[0]) * ux + (wall._z - a[1]) * uz;
+        if (parallel && off < 1.0 && along > -0.5 && along < len + 0.5) return true;
+      }
+    }
+  }
+  return false;
+}
 //: A house whose ground rises more than this across its footprint stands into its hill.
 const HILLSIDE_RISE_M = 1.2;
 function buildHomeShell(entry) {
@@ -18831,10 +19370,13 @@ function buildHomeShell(entry) {
       reserved.push({ u: u - w / 2, w, v: bottom, h: GARAGE_HEIGHT_M + 0.2, kind: "garage" });
     }
     const observed = HOME_OPENINGS.buildings[id]?.walls[String(edge)];
+    // A wall that wears its own photograph shows its own windows: the shell adds none there,
+    // or their frames stand out through the picture of the real ones.
+    const photographed = photographedEdge(a, b);
     const candidates = observed ? observed.map(([u, v, w, h, confidence]) => ({
       u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
       : regularHomeWindows(length, floor, top, spec.seed + edge * 59, homeStoreyCount(entry, top - floor));
-    const windows = candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
+    const windows = photographed ? [] : candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
       && !reserved.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
         && o.v < c.v + c.h + 0.15 && o.v + o.h > c.v - 0.15)
       // A house on a steep hill is partly in the hill on its ground storey: no window is
@@ -20246,6 +20788,10 @@ function animate(now) {
   stepAvatar(now || performance.now());
   cullDetailByDistance(frameCount);
   cullLabelsByDistance(frameCount++);
+  if (frameCount % 20 === 0) {
+    const focus = state.firstPerson || state.ceilingRoom ? avatar.position : state.target;
+    updateFacadeStreaming(focus, camera.position.y - focus.y);
+  }
   tileGroupRoot.visible = !interiorBlock;
   if (!interiorBlock) updateTileTree(now || performance.now());
   renderer.render(scene, camera);

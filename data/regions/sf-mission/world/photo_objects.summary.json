@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 1954,
+  "attempted_this_run": 1954,
+  "journaled_buildings": 1954,
+  "accepted_buildings": 803,
+  "reasons_this_run": {
+    "weak_multiview_wall": 905,
+    "no_accepted_photo_wall": 1142,
+    "opening_outside_prior": 3377,
+    "no_accepted_openings": 634,
+    "invalid_fitted_wall": 11
+  },
+  "journal": "data/regions/sf-mission/world/photo_objects.journal.jsonl"
+}

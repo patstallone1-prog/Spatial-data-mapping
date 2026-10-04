@@ -1,0 +1,110 @@
+{
+ "chunk": "c19r04",
+ "bbox": {
+  "west": -122.39349961319542,
+  "south": 37.7949831528412,
+  "east": -122.39065748757413,
+  "north": 37.79722894105149
+ },
+ "generated_at": "2026-10-02T11:27:04Z",
+ "buildings_in_chunk": 5,
+ "walls_attempted": 11,
+ "walls_textured": 2,
+ "failures": {
+  "no frame held any of the wall": 6,
+  "not a wall seen square-on (edges not at right angles)": 2,
+  "too few views to check against each other": 1
+ },
+ "kind": "photo texture: street photographs rectified onto the wall's plane (not a 3D mesh)",
+ "min_agreement": 0.75,
+ "gates": [
+  "solved orientation",
+  "view sees the wall",
+  "not behind a tree",
+  "agreement >= 0.75",
+  "rectilinearity >= 0.4",
+  "right way up"
+ ],
+ "spherical_convention": "equirectangular centre column on the reported compass heading",
+ "licenses": {
+  "CC-BY-SA-4.0": 2
+ },
+ "walls": [
+  {
+   "texture": "15035-43.webp",
+   "building": 15035,
+   "wall": 43,
+   "a": [
+    -122.3938787,
+    37.7955279
+   ],
+   "b": [
+    -122.3937282,
+    37.7953657
+   ],
+   "normal_deg": 233.8,
+   "height_m": 15.0,
+   "photo_height_m": 15.0,
+   "coverage": 1.0,
+   "agreement": 0.852,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "c8032119919ea4ca773e30d26964b5f5",
+    "1548c2b7035c93d125a084b5ddc2b334",
+    "71afca3d2f1f82b906c9cad7779b31d9",
+    "50bd6432c005601d2d669d1936292a04",
+    "997bfb709aaed6ad9762b158c4667a7f",
+    "3846e20a23daa6140cebb731bf7db042",
+    "4a453dd611fb58355bb0241d75b0ef70",
+    "9dd27465256cf1f1e0559a2b0f6c96ce"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "15035-44.webp",
+   "building": 15035,
+   "wall": 44,
+   "a": [
+    -122.3937282,
+    37.7953657
+   ],
+   "b": [
+    -122.3935879,
+    37.7952139
+   ],
+   "normal_deg": 233.9,
+   "height_m": 15.0,
+   "photo_height_m": 15.0,
+   "coverage": 1.0,
+   "agreement": 0.799,
+   "views": 4,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "26a22c917f46ace51c22b5e063452c9f",
+    "1548c2b7035c93d125a084b5ddc2b334",
+    "c8032119919ea4ca773e30d26964b5f5",
+    "6502917ff2bdc1b2168b6b81ff631e64",
+    "71afca3d2f1f82b906c9cad7779b31d9",
+    "50bd6432c005601d2d669d1936292a04"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  }
+ ]
+}

@@ -59,11 +59,32 @@ def compile_openings(rows: list[dict], ways: dict[str, dict]) -> dict:
 
 
 def build() -> dict:
-    journal = ROOT / "data/regions/sf-corridor/world/photo_objects.journal.jsonl"
-    ways = {str(w["osm_id"]): w for w in json.loads((ROOT / "docs/sf-corridor-3d.json").read_text())["ways"]
-            if w.get("kind") == "building"}
-    result = compile_openings([json.loads(line) for line in journal.read_text().splitlines()], ways)
-    (ROOT / "docs/sf-corridor-home-openings.json").write_text(json.dumps(result, separators=(",", ":")) + "\n")
+    """One shared sidecar for every region (the pages fetch it from the site root), merged from
+    each region's own photo-object journal against that region's own prior buildings. OSM ids
+    are global, so a building two regions both hold keeps the first accepted evidence, the
+    corridor's first."""
+    sources = [(ROOT / "data/regions/sf-corridor/world/photo_objects.journal.jsonl",
+                ROOT / "docs/sf-corridor-3d.json")]
+    for journal in sorted((ROOT / "data/regions").glob("*/world/photo_objects.journal.jsonl")):
+        region = journal.parts[-3]
+        if region != "sf-corridor":
+            sources.append((journal, ROOT / "docs/regions" / region / "sf-corridor-3d.json"))
+    buildings: dict = {}
+    used = []
+    for journal, model in sources:
+        if not journal.exists() or not model.exists():
+            continue
+        ways = {str(w["osm_id"]): w for w in json.loads(model.read_text())["ways"]
+                if w.get("kind") == "building"}
+        rows = [json.loads(line) for line in journal.read_text().splitlines()]
+        for key, value in compile_openings(rows, ways)["buildings"].items():
+            buildings.setdefault(key, value)
+        used.append(str(journal.relative_to(ROOT)))
+    result = {"schema": "kerbside.home_openings/1", "buildings": buildings,
+              "source": used[0] if len(used) == 1 else used,
+              "note": "Image-backed openings on prior footprints/heights; not measured collision."}
+    (ROOT / "docs/sf-corridor-home-openings.json").write_text(
+        json.dumps(result, separators=(",", ":")) + "\n")
     return result
 
 

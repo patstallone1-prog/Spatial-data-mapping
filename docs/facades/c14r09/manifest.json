@@ -1,0 +1,74 @@
+{
+ "chunk": "c14r09",
+ "bbox": {
+  "west": -122.40771024130188,
+  "south": 37.80621209389269,
+  "east": -122.4048681156806,
+  "north": 37.80845788210299
+ },
+ "generated_at": "2026-10-02T11:23:25Z",
+ "buildings_in_chunk": 5,
+ "walls_attempted": 11,
+ "walls_textured": 1,
+ "failures": {
+  "too few views to check against each other": 2,
+  "no frame held any of the wall": 1,
+  "the views disagree -- a pose is wrong": 4,
+  "not a wall seen square-on (edges not at right angles)": 3
+ },
+ "kind": "photo texture: street photographs rectified onto the wall's plane (not a 3D mesh)",
+ "min_agreement": 0.75,
+ "gates": [
+  "solved orientation",
+  "view sees the wall",
+  "not behind a tree",
+  "agreement >= 0.75",
+  "rectilinearity >= 0.4",
+  "right way up"
+ ],
+ "spherical_convention": "equirectangular centre column on the reported compass heading",
+ "licenses": {
+  "CC-BY-SA-4.0": 1
+ },
+ "walls": [
+  {
+   "texture": "469-4.webp",
+   "building": 469,
+   "wall": 4,
+   "a": [
+    -122.4057509,
+    37.8070454
+   ],
+   "b": [
+    -122.405813,
+    37.8069672
+   ],
+   "normal_deg": 122.1,
+   "height_m": 10.5,
+   "photo_height_m": 10.5,
+   "coverage": 1.0,
+   "agreement": 0.833,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "c8747ac244cc5473dfc5796dcff8632f",
+    "126e7a620c11fa5dc1b2828647dc7d7d",
+    "a3f84d50e50d7aeaf9c8bf6f5d9f7744",
+    "6ef9f7eb605e0cc68cd00d2deb84c87a",
+    "ab648c530ca4c8756234fa8d30187b48",
+    "4fce852dcc89f8f833c14b214e93dd6d",
+    "de7189abecd74d66226e09124ac010cb",
+    "e7f9233d01dd965c2ce3be01cfe12879"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  }
+ ]
+}

@@ -371,7 +371,7 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
     # A rerun with a tighter gate leaves the textures it no longer believes in on disk, and the
     # directory stops matching its own manifest.
     if rerender is None:
-        for stale in out_dir.glob("*.jpg"):
+        for stale in [*out_dir.glob("*.jpg"), *out_dir.glob("*.webp")]:
             stale.unlink()
 
     walls_out: list[dict] = []
@@ -415,9 +415,11 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
         ):
             return {"error": "too little of the wall was in shot"}
 
-        name = f"{wall.building_index}-{wall.wall_index}.jpg"
+        # WebP: the same picture at about half a JPEG's bytes, which is what lets every chunk's
+        # walls be published at once (the site is served whole, with a size ceiling).
+        name = f"{wall.building_index}-{wall.wall_index}.webp"
         cv2.imwrite(str(out_dir / name), fill_gaps(composite, wall),
-                    [cv2.IMWRITE_JPEG_QUALITY, 88 if rerender is not None else 80])
+                    [cv2.IMWRITE_WEBP_QUALITY, 88 if rerender is not None else 80])
         a_lon, a_lat = frame.to_lonlat(*wall.a)
         b_lon, b_lat = frame.to_lonlat(*wall.b)
         return {

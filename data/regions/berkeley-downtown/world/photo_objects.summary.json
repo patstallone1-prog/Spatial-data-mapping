@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 396,
+  "attempted_this_run": 396,
+  "journaled_buildings": 396,
+  "accepted_buildings": 112,
+  "reasons_this_run": {
+    "weak_multiview_wall": 246,
+    "no_accepted_photo_wall": 278,
+    "opening_outside_prior": 574,
+    "invalid_fitted_wall": 12,
+    "no_accepted_openings": 104
+  },
+  "journal": "data/regions/berkeley-downtown/world/photo_objects.journal.jsonl"
+}

@@ -1,0 +1,2456 @@
+{
+ "chunk": "c02r04",
+ "bbox": {
+  "west": -122.44181574875742,
+  "south": 37.7949831528412,
+  "east": -122.43897362313612,
+  "north": 37.79722894105149
+ },
+ "generated_at": "2026-10-02T10:20:11Z",
+ "buildings_in_chunk": 121,
+ "walls_attempted": 333,
+ "walls_textured": 63,
+ "failures": {
+  "not a wall seen square-on (edges not at right angles)": 139,
+  "the views disagree -- a pose is wrong": 93,
+  "too few views to check against each other": 31,
+  "no frame held any of the wall": 7
+ },
+ "kind": "photo texture: street photographs rectified onto the wall's plane (not a 3D mesh)",
+ "min_agreement": 0.75,
+ "gates": [
+  "solved orientation",
+  "view sees the wall",
+  "not behind a tree",
+  "agreement >= 0.75",
+  "rectilinearity >= 0.4",
+  "right way up"
+ ],
+ "spherical_convention": "equirectangular centre column on the reported compass heading",
+ "licenses": {
+  "CC-BY-SA-4.0": 63
+ },
+ "walls": [
+  {
+   "texture": "6786-5.webp",
+   "building": 6786,
+   "wall": 5,
+   "a": [
+    -122.4404651,
+    37.7971653
+   ],
+   "b": [
+    -122.4404035,
+    37.7971721
+   ],
+   "normal_deg": 352.0,
+   "height_m": 10.74,
+   "photo_height_m": 10.74,
+   "coverage": 1.0,
+   "agreement": 0.796,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "db21e699f0e61dba8636d14bef2f2dbe",
+    "8f96a0a53b34d374b79e483124d4dbf9",
+    "3590325bd89010bcc228b2a3e64d6e48",
+    "4f8b222151c3ff653c04575e153653c6",
+    "f83755a2e66fa89c32f2b9264d46be9e",
+    "9caf831dd8f6786b18b06dc5f5e903f0",
+    "494e2f010705e9303274ceb350725709",
+    "952f948a8eb72494c7289e2d732f2bf4"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6790-0.webp",
+   "building": 6790,
+   "wall": 0,
+   "a": [
+    -122.4404523,
+    37.7970301
+   ],
+   "b": [
+    -122.44039,
+    37.7970371
+   ],
+   "normal_deg": 351.9,
+   "height_m": 13.0,
+   "photo_height_m": 13.0,
+   "coverage": 1.0,
+   "agreement": 0.786,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "db21e699f0e61dba8636d14bef2f2dbe",
+    "3590325bd89010bcc228b2a3e64d6e48",
+    "8f96a0a53b34d374b79e483124d4dbf9",
+    "f83755a2e66fa89c32f2b9264d46be9e",
+    "4f8b222151c3ff653c04575e153653c6",
+    "cb74fb874c7c4a8c990635adf05eb391",
+    "0ba924d53db3304c9a2d214c7bdd76ab",
+    "494e2f010705e9303274ceb350725709"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6790-11.webp",
+   "building": 6790,
+   "wall": 11,
+   "a": [
+    -122.4404395,
+    37.7969584
+   ],
+   "b": [
+    -122.4404523,
+    37.7970301
+   ],
+   "normal_deg": 262.0,
+   "height_m": 13.0,
+   "photo_height_m": 13.0,
+   "coverage": 1.0,
+   "agreement": 0.765,
+   "views": 4,
+   "rejected_views": 4,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "22fa12cd8efb5033df5f1b6b9663d176",
+    "5b6a063ff4f12474c7b31499418f0be5",
+    "d188e9998776b18f76ad5d82585d5329",
+    "3418d71da76d1486bf28ab9f21777c5d",
+    "c814c2cea5bc419fa038263d51b2fd98",
+    "f864b5702153ca8ddafe67208ff31174",
+    "292eaca5d35c80b2a8fc26f593681706",
+    "eb7a2d72db172f20d522c27d8ac91e62"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6793-0.webp",
+   "building": 6793,
+   "wall": 0,
+   "a": [
+    -122.43932,
+    37.7967163
+   ],
+   "b": [
+    -122.4393338,
+    37.7967966
+   ],
+   "normal_deg": 262.3,
+   "height_m": 9.24,
+   "photo_height_m": 9.24,
+   "coverage": 1.0,
+   "agreement": 0.805,
+   "views": 5,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "7889cc432fc6e04bad1bb3561624d2fa",
+    "0e4ae6fdca4921443fec8b68ebf1ab90",
+    "4f966384db919ce5a95b242b1627f111",
+    "83b5c7726c3fe065333e1112c666d375",
+    "b8a1fbbc92c367d963c495b372abad86",
+    "bb0b10c57480e688ad4e0c7791a0bc08",
+    "32e13d8f08ac0499fddf03114c51c355"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6795-0.webp",
+   "building": 6795,
+   "wall": 0,
+   "a": [
+    -122.4392663,
+    37.7970868
+   ],
+   "b": [
+    -122.4390366,
+    37.7971153
+   ],
+   "normal_deg": 351.1,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.816,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "26a9ad217ad1fe0666068b5f09dd1db3",
+    "3b2e42c42fced19563daafd1b2616cdd",
+    "2a7599896056386b1d6487bad696411f",
+    "ce26f3348bf6afc4754a614702ce0caa",
+    "a092881b15368e174cd6862b575811ce",
+    "6b33d0552fffc434f827d16a219fd4b2",
+    "df93d75bc070dbd3452ac84b45a0bbac",
+    "c93e4f295f030632083042da403dd62c"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6798-16.webp",
+   "building": 6798,
+   "wall": 16,
+   "a": [
+    -122.440236,
+    37.7966707
+   ],
+   "b": [
+    -122.4402434,
+    37.7967156
+   ],
+   "normal_deg": 262.6,
+   "height_m": 13.0,
+   "photo_height_m": 13.0,
+   "coverage": 1.0,
+   "agreement": 0.758,
+   "views": 4,
+   "rejected_views": 4,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1145fce7dc040cabc1852ec6c18bdfc7",
+    "5eed5cbe8c7489628eda09cc37c8e47e",
+    "c17955a5859db39291dd110b3b6c60ed",
+    "1cdc767ac734cc15550cc9e9f6daa6bc",
+    "272c50eb99e5b093418815f419820a85",
+    "648a9199b12ca1db04407198a5455ab8",
+    "9f8cfe5b8f6eb6baa1677b3cfa1c892f",
+    "e0af956a7233af9722c95769f7d41d43"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6801-11.webp",
+   "building": 6801,
+   "wall": 11,
+   "a": [
+    -122.4392259,
+    37.7972392
+   ],
+   "b": [
+    -122.4391371,
+    37.7972493
+   ],
+   "normal_deg": 351.8,
+   "height_m": 9.0,
+   "photo_height_m": 9.0,
+   "coverage": 1.0,
+   "agreement": 0.81,
+   "views": 5,
+   "rejected_views": 3,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "26a9ad217ad1fe0666068b5f09dd1db3",
+    "86214e2c5b11e25634077d4ca70c282b",
+    "fe581cb79d1cda3c6be0df0a2a6a48e7",
+    "baeab62267bed7f8091521a4282987f8",
+    "2ad6bb0da4981a5a6b611c64ca1dcb52",
+    "f1f6a4d10f90ef4629afc996e6bb9812",
+    "a3160f5611e947da8c3311a83c55c310",
+    "3b2e42c42fced19563daafd1b2616cdd"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6801-13.webp",
+   "building": 6801,
+   "wall": 13,
+   "a": [
+    -122.4391352,
+    37.7972408
+   ],
+   "b": [
+    -122.4390756,
+    37.7972488
+   ],
+   "normal_deg": 350.4,
+   "height_m": 9.0,
+   "photo_height_m": 9.0,
+   "coverage": 1.0,
+   "agreement": 0.811,
+   "views": 5,
+   "rejected_views": 3,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "2ad6bb0da4981a5a6b611c64ca1dcb52",
+    "f1f6a4d10f90ef4629afc996e6bb9812",
+    "fe581cb79d1cda3c6be0df0a2a6a48e7",
+    "89d05d90a256dec756be3cdc40725961",
+    "26a9ad217ad1fe0666068b5f09dd1db3",
+    "86214e2c5b11e25634077d4ca70c282b",
+    "2702eb524991f4df7fead24901be8ffb",
+    "aa680e07983900e03db7bda65fde54f7"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6810-4.webp",
+   "building": 6810,
+   "wall": 4,
+   "a": [
+    -122.4403882,
+    37.7971799
+   ],
+   "b": [
+    -122.4404655,
+    37.7971712
+   ],
+   "normal_deg": 171.9,
+   "height_m": 10.74,
+   "photo_height_m": 10.74,
+   "coverage": 1.0,
+   "agreement": 0.774,
+   "views": 5,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "70181b54f8ddee65cbe52cd7b95bf10a",
+    "3418d71da76d1486bf28ab9f21777c5d",
+    "bfaccb1ae9e67fdbb9ae0d3860e820e3",
+    "13d572c5e82024753fb9bc8b1a78f878",
+    "5e62c41cc78d6f89a1c9e19298496eef",
+    "0ba54d53e9f0915c15549046f539a7f4",
+    "ddf791cfe66208b74bb60ffe18a9080e"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6813-0.webp",
+   "building": 6813,
+   "wall": 0,
+   "a": [
+    -122.4392324,
+    37.796712
+   ],
+   "b": [
+    -122.4392485,
+    37.7968057
+   ],
+   "normal_deg": 262.3,
+   "height_m": 9.24,
+   "photo_height_m": 9.24,
+   "coverage": 1.0,
+   "agreement": 0.811,
+   "views": 5,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "7889cc432fc6e04bad1bb3561624d2fa",
+    "0e4ae6fdca4921443fec8b68ebf1ab90",
+    "4f966384db919ce5a95b242b1627f111",
+    "83b5c7726c3fe065333e1112c666d375",
+    "b8a1fbbc92c367d963c495b372abad86",
+    "bb0b10c57480e688ad4e0c7791a0bc08",
+    "32e13d8f08ac0499fddf03114c51c355"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6813-8.webp",
+   "building": 6813,
+   "wall": 8,
+   "a": [
+    -122.4391598,
+    37.7967197
+   ],
+   "b": [
+    -122.4392324,
+    37.796712
+   ],
+   "normal_deg": 172.4,
+   "height_m": 9.24,
+   "photo_height_m": 9.24,
+   "coverage": 1.0,
+   "agreement": 0.755,
+   "views": 6,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "a897e6363d0376fc249a93d66a7e0982",
+    "4a36870e3c921446ee25250aa9439af1",
+    "081548a44b7c1094365784bfafb3b3a3",
+    "ba266e44e86a1a2c56e727fbd7d8fe35",
+    "824c89c261cf98f6a35c743aec50cc27",
+    "4fdda661f9ed917725d9a33b9c2a47f1",
+    "8d57f64b0e1fecb07fad3f36e1713159",
+    "c3e86973faab370d6b78b7e8f17a84ff"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6814-6.webp",
+   "building": 6814,
+   "wall": 6,
+   "a": [
+    -122.4389423,
+    37.7967506
+   ],
+   "b": [
+    -122.439066,
+    37.7967373
+   ],
+   "normal_deg": 172.3,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.812,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "06bfb2adb615706cbc1f1874b767f62d",
+    "a897e6363d0376fc249a93d66a7e0982",
+    "b9f1404f89566b0d5143d0cb41a90aa9",
+    "39e2d36e1ac8a6ae3821e637cb1e59b4",
+    "62d3cf577e64f1aa5efe2d3a6c07743f",
+    "7702776fbeb754a0101aedb81c82db23",
+    "16bbb6f0b557c06b30fd7ecea4bb2681",
+    "91ce8487fe095b6f2e87cf3b8f944596"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6819-5.webp",
+   "building": 6819,
+   "wall": 5,
+   "a": [
+    -122.440925,
+    37.7967094
+   ],
+   "b": [
+    -122.44087,
+    37.7967161
+   ],
+   "normal_deg": 351.2,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.838,
+   "views": 4,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "5db62c60340ac6b8d9c4e2b8257c24bc",
+    "292eaca5d35c80b2a8fc26f593681706",
+    "5b6a063ff4f12474c7b31499418f0be5",
+    "22fa12cd8efb5033df5f1b6b9663d176"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6819-9.webp",
+   "building": 6819,
+   "wall": 9,
+   "a": [
+    -122.440868,
+    37.7966102
+   ],
+   "b": [
+    -122.4408561,
+    37.7965494
+   ],
+   "normal_deg": 81.2,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.858,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1145fce7dc040cabc1852ec6c18bdfc7",
+    "c7f35c25c26a902cc9b004ded57f699d",
+    "49941bb6c3c8d8d2decfe8250647fc6b",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b",
+    "19d42855418342cc80b1fe2f8556f341",
+    "2afd8d0173b7e909cac2df821dd0fc5e",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8",
+    "e0af956a7233af9722c95769f7d41d43"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6821-6.webp",
+   "building": 6821,
+   "wall": 6,
+   "a": [
+    -122.4409929,
+    37.7966667
+   ],
+   "b": [
+    -122.4409677,
+    37.7965372
+   ],
+   "normal_deg": 81.3,
+   "height_m": 9.71,
+   "photo_height_m": 9.71,
+   "coverage": 1.0,
+   "agreement": 0.839,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1145fce7dc040cabc1852ec6c18bdfc7",
+    "c7f35c25c26a902cc9b004ded57f699d",
+    "c17955a5859db39291dd110b3b6c60ed",
+    "272c50eb99e5b093418815f419820a85",
+    "5eed5cbe8c7489628eda09cc37c8e47e",
+    "648a9199b12ca1db04407198a5455ab8",
+    "1cdc767ac734cc15550cc9e9f6daa6bc",
+    "e0af956a7233af9722c95769f7d41d43"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6824-3.webp",
+   "building": 6824,
+   "wall": 3,
+   "a": [
+    -122.4408948,
+    37.7972615
+   ],
+   "b": [
+    -122.4408203,
+    37.7972696
+   ],
+   "normal_deg": 352.2,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.859,
+   "views": 4,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "6d14c1c1dba239de9803cf90a0b10891",
+    "cb74fb874c7c4a8c990635adf05eb391",
+    "0d5a50a9ac478f2b0377da16beb597f3",
+    "4ab7ebb0ed6fba160bd55ba6938df5b3"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6824-4.webp",
+   "building": 6824,
+   "wall": 4,
+   "a": [
+    -122.4408203,
+    37.7972696
+   ],
+   "b": [
+    -122.4408003,
+    37.7971544
+   ],
+   "normal_deg": 82.2,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.829,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "0ba924d53db3304c9a2d214c7bdd76ab",
+    "db21e699f0e61dba8636d14bef2f2dbe",
+    "e65241cf05fa33472d1db199fbb2ffb3",
+    "4f8b222151c3ff653c04575e153653c6",
+    "de053cd00e62c7c069fbb9dcfe0fd3ca",
+    "758d648fb9664be19c9fd0b644730df6",
+    "782e71aa03ab5beb4c7b3f8b80710559",
+    "b21b014f61602ededc6304da9999fcca"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6832-5.webp",
+   "building": 6832,
+   "wall": 5,
+   "a": [
+    -122.4406606,
+    37.7969509
+   ],
+   "b": [
+    -122.4406535,
+    37.7969124
+   ],
+   "normal_deg": 81.7,
+   "height_m": 9.0,
+   "photo_height_m": 9.0,
+   "coverage": 1.0,
+   "agreement": 0.784,
+   "views": 6,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "22fa12cd8efb5033df5f1b6b9663d176",
+    "d188e9998776b18f76ad5d82585d5329",
+    "c814c2cea5bc419fa038263d51b2fd98",
+    "f864b5702153ca8ddafe67208ff31174",
+    "5b6a063ff4f12474c7b31499418f0be5",
+    "eb7a2d72db172f20d522c27d8ac91e62",
+    "d5afad34ff058cd978999295d1257d8f"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6832-7.webp",
+   "building": 6832,
+   "wall": 7,
+   "a": [
+    -122.4406556,
+    37.7969118
+   ],
+   "b": [
+    -122.4407024,
+    37.7969068
+   ],
+   "normal_deg": 172.3,
+   "height_m": 9.0,
+   "photo_height_m": 9.0,
+   "coverage": 1.0,
+   "agreement": 0.907,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "5e62c41cc78d6f89a1c9e19298496eef",
+    "13d572c5e82024753fb9bc8b1a78f878",
+    "bfaccb1ae9e67fdbb9ae0d3860e820e3",
+    "ddf791cfe66208b74bb60ffe18a9080e",
+    "08a0d68d82a364a489b5d46de5ad3150",
+    "53f80c223c1a9e3e9e689c59790a2440",
+    "3e4b27b844b23a2797d9e14ce91db768",
+    "59473c4e823e5113f5a147d2cf32ce54"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6832-13.webp",
+   "building": 6832,
+   "wall": 13,
+   "a": [
+    -122.440857,
+    37.7968906
+   ],
+   "b": [
+    -122.4409139,
+    37.7968841
+   ],
+   "normal_deg": 171.8,
+   "height_m": 9.0,
+   "photo_height_m": 9.0,
+   "coverage": 1.0,
+   "agreement": 0.809,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "c7f35c25c26a902cc9b004ded57f699d",
+    "b91fcdd6a824b8da905d2a994d1f867f",
+    "26b9a3e582f7e5807b80672211ff5cbd",
+    "2afd8d0173b7e909cac2df821dd0fc5e",
+    "49941bb6c3c8d8d2decfe8250647fc6b",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b",
+    "19d42855418342cc80b1fe2f8556f341",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6833-0.webp",
+   "building": 6833,
+   "wall": 0,
+   "a": [
+    -122.4410299,
+    37.7970224
+   ],
+   "b": [
+    -122.4409087,
+    37.7970363
+   ],
+   "normal_deg": 351.7,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.863,
+   "views": 6,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "6d14c1c1dba239de9803cf90a0b10891",
+    "7139396c19ff15c05f5b317d68928539",
+    "189e468e19465acaaad1303ced03c828",
+    "0d5a50a9ac478f2b0377da16beb597f3",
+    "56b63951e2db3b24d1e54bad542fd047",
+    "4ab7ebb0ed6fba160bd55ba6938df5b3"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6833-21.webp",
+   "building": 6833,
+   "wall": 21,
+   "a": [
+    -122.4409182,
+    37.7969591
+   ],
+   "b": [
+    -122.4409706,
+    37.7969537
+   ],
+   "normal_deg": 172.6,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.805,
+   "views": 7,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "b91fcdd6a824b8da905d2a994d1f867f",
+    "26b9a3e582f7e5807b80672211ff5cbd",
+    "2afd8d0173b7e909cac2df821dd0fc5e",
+    "49941bb6c3c8d8d2decfe8250647fc6b",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b",
+    "19d42855418342cc80b1fe2f8556f341",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6834-9.webp",
+   "building": 6834,
+   "wall": 9,
+   "a": [
+    -122.4411472,
+    37.7966581
+   ],
+   "b": [
+    -122.4411386,
+    37.7966142
+   ],
+   "normal_deg": 81.2,
+   "height_m": 8.95,
+   "photo_height_m": 8.95,
+   "coverage": 1.0,
+   "agreement": 0.771,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "59473c4e823e5113f5a147d2cf32ce54",
+    "ab40c492bfa357bd50b15b4cecea766e",
+    "3e4b27b844b23a2797d9e14ce91db768",
+    "555fe0b1f34876b135c346f85c2d61e0",
+    "08a0d68d82a364a489b5d46de5ad3150",
+    "c7a5893201662f2e39dba826798916f5",
+    "ddf791cfe66208b74bb60ffe18a9080e",
+    "d78694cbca4768cc3a5f2c8217d0f90a"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6834-10.webp",
+   "building": 6834,
+   "wall": 10,
+   "a": [
+    -122.4411386,
+    37.7966142
+   ],
+   "b": [
+    -122.4411287,
+    37.7965635
+   ],
+   "normal_deg": 81.2,
+   "height_m": 8.95,
+   "photo_height_m": 8.95,
+   "coverage": 1.0,
+   "agreement": 0.85,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "5eed5cbe8c7489628eda09cc37c8e47e",
+    "c17955a5859db39291dd110b3b6c60ed",
+    "1cdc767ac734cc15550cc9e9f6daa6bc",
+    "272c50eb99e5b093418815f419820a85",
+    "648a9199b12ca1db04407198a5455ab8",
+    "9f8cfe5b8f6eb6baa1677b3cfa1c892f",
+    "e0af956a7233af9722c95769f7d41d43",
+    "6a0e00b4c3d32b31154d35af19086877"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6834-11.webp",
+   "building": 6834,
+   "wall": 11,
+   "a": [
+    -122.4411287,
+    37.7965635
+   ],
+   "b": [
+    -122.4411207,
+    37.7965224
+   ],
+   "normal_deg": 81.3,
+   "height_m": 8.95,
+   "photo_height_m": 8.95,
+   "coverage": 1.0,
+   "agreement": 0.904,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "49941bb6c3c8d8d2decfe8250647fc6b",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b",
+    "2afd8d0173b7e909cac2df821dd0fc5e",
+    "19d42855418342cc80b1fe2f8556f341",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8",
+    "26b9a3e582f7e5807b80672211ff5cbd",
+    "e0af956a7233af9722c95769f7d41d43",
+    "b91fcdd6a824b8da905d2a994d1f867f"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6835-22.webp",
+   "building": 6835,
+   "wall": 22,
+   "a": [
+    -122.4406499,
+    37.79688
+   ],
+   "b": [
+    -122.4406371,
+    37.7968195
+   ],
+   "normal_deg": 80.5,
+   "height_m": 14.0,
+   "photo_height_m": 14.0,
+   "coverage": 1.0,
+   "agreement": 0.922,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "bd892e2f9eb061e829786ae3d3e05e60",
+    "d5afad34ff058cd978999295d1257d8f",
+    "cf06453442edaf3a850b09df66d8b140",
+    "eb7a2d72db172f20d522c27d8ac91e62",
+    "f864b5702153ca8ddafe67208ff31174",
+    "72b750c5cf23f9ae926e4115d7117632",
+    "3418d71da76d1486bf28ab9f21777c5d",
+    "9eea8a407ff1726f3ebf2c2a0fbdedbe"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6835-26.webp",
+   "building": 6835,
+   "wall": 26,
+   "a": [
+    -122.4406329,
+    37.7967966
+   ],
+   "b": [
+    -122.4406259,
+    37.7967586
+   ],
+   "normal_deg": 81.7,
+   "height_m": 14.0,
+   "photo_height_m": 14.0,
+   "coverage": 1.0,
+   "agreement": 0.843,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "d6089b1246745259c81a141abf230d2f",
+    "0dbd7ad3e3e91a964d379ea1b67cd2c8",
+    "70181b54f8ddee65cbe52cd7b95bf10a",
+    "a796dd633c73474e4af970e83158f8fe",
+    "69a104e522c4b78fb464a17179d60b6b",
+    "0ba54d53e9f0915c15549046f539a7f4",
+    "756a51a3de1460dce6951b9b6a89c5b6",
+    "53f80c223c1a9e3e9e689c59790a2440"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6835-34.webp",
+   "building": 6835,
+   "wall": 34,
+   "a": [
+    -122.4406062,
+    37.7966674
+   ],
+   "b": [
+    -122.440595,
+    37.7966162
+   ],
+   "normal_deg": 80.2,
+   "height_m": 14.0,
+   "photo_height_m": 14.0,
+   "coverage": 1.0,
+   "agreement": 0.909,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "648a9199b12ca1db04407198a5455ab8",
+    "272c50eb99e5b093418815f419820a85",
+    "e0af956a7233af9722c95769f7d41d43",
+    "c17955a5859db39291dd110b3b6c60ed",
+    "1145fce7dc040cabc1852ec6c18bdfc7",
+    "5eed5cbe8c7489628eda09cc37c8e47e",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8",
+    "1cdc767ac734cc15550cc9e9f6daa6bc"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6841-1.webp",
+   "building": 6841,
+   "wall": 1,
+   "a": [
+    -122.440933,
+    37.797251
+   ],
+   "b": [
+    -122.4409263,
+    37.7972123
+   ],
+   "normal_deg": 82.2,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.783,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "db21e699f0e61dba8636d14bef2f2dbe",
+    "6d14c1c1dba239de9803cf90a0b10891",
+    "4f8b222151c3ff653c04575e153653c6",
+    "3590325bd89010bcc228b2a3e64d6e48",
+    "8f96a0a53b34d374b79e483124d4dbf9",
+    "0ba924d53db3304c9a2d214c7bdd76ab",
+    "f83755a2e66fa89c32f2b9264d46be9e",
+    "1a2b26c653cc89a52d62d044052b0344"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6841-5.webp",
+   "building": 6841,
+   "wall": 5,
+   "a": [
+    -122.4408875,
+    37.7971141
+   ],
+   "b": [
+    -122.440968,
+    37.7971053
+   ],
+   "normal_deg": 172.1,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.923,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "3e4b27b844b23a2797d9e14ce91db768",
+    "08a0d68d82a364a489b5d46de5ad3150",
+    "70181b54f8ddee65cbe52cd7b95bf10a",
+    "ddf791cfe66208b74bb60ffe18a9080e",
+    "bfaccb1ae9e67fdbb9ae0d3860e820e3",
+    "5e62c41cc78d6f89a1c9e19298496eef",
+    "13d572c5e82024753fb9bc8b1a78f878",
+    "53f80c223c1a9e3e9e689c59790a2440"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6845-0.webp",
+   "building": 6845,
+   "wall": 0,
+   "a": [
+    -122.4406419,
+    37.7957822
+   ],
+   "b": [
+    -122.4405419,
+    37.7957954
+   ],
+   "normal_deg": 350.5,
+   "height_m": 9.39,
+   "photo_height_m": 9.39,
+   "coverage": 1.0,
+   "agreement": 0.779,
+   "views": 7,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "f031390574c7612b10f9df3498e210b9",
+    "9e5fd259564a280c07460c89f3b4a42a",
+    "10c4e4a41d7ebe8cbb556003783a9733",
+    "63231f3213800f5c6514d2ec467f48bc",
+    "6ae2989604e4793c9c2cae6ded89ad3e",
+    "110c82b3c2ddc5447aeb40d159b808fb",
+    "269809fdfb70c1699cb412ba4272093e"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6850-2.webp",
+   "building": 6850,
+   "wall": 2,
+   "a": [
+    -122.4416331,
+    37.7959837
+   ],
+   "b": [
+    -122.4417584,
+    37.7959688
+   ],
+   "normal_deg": 171.4,
+   "height_m": 9.0,
+   "photo_height_m": 9.0,
+   "coverage": 1.0,
+   "agreement": 0.95,
+   "views": 3,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "e67d8b9e537aa99ae377d6a76e9d8732",
+    "f43f8fa7ee6082987b91968f434a1298",
+    "abad3c3c49b7c9017649d37dbd8b2fe7"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6851-5.webp",
+   "building": 6851,
+   "wall": 5,
+   "a": [
+    -122.440912,
+    37.7963185
+   ],
+   "b": [
+    -122.4407734,
+    37.7963351
+   ],
+   "normal_deg": 351.4,
+   "height_m": 7.92,
+   "photo_height_m": 7.92,
+   "coverage": 1.0,
+   "agreement": 0.914,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "0ba54d53e9f0915c15549046f539a7f4",
+    "53f80c223c1a9e3e9e689c59790a2440",
+    "13d572c5e82024753fb9bc8b1a78f878",
+    "5e62c41cc78d6f89a1c9e19298496eef",
+    "bfaccb1ae9e67fdbb9ae0d3860e820e3",
+    "ddf791cfe66208b74bb60ffe18a9080e",
+    "08a0d68d82a364a489b5d46de5ad3150",
+    "3e4b27b844b23a2797d9e14ce91db768"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6851-6.webp",
+   "building": 6851,
+   "wall": 6,
+   "a": [
+    -122.4407734,
+    37.7963351
+   ],
+   "b": [
+    -122.4407651,
+    37.7962917
+   ],
+   "normal_deg": 81.4,
+   "height_m": 7.92,
+   "photo_height_m": 7.92,
+   "coverage": 1.0,
+   "agreement": 0.81,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "65ac8bafd3eb6d608169464547465a74",
+    "91137c17bf3f40100d60ac107c7f6510",
+    "ae88f08d1071520a39f9fa727ba02d2c",
+    "dfbc2fa5806f059e788a8afc60943711",
+    "f07a2f30add8c8cda0c3eb345380c9ac",
+    "4549b9aae2295425eff362212c314ad2",
+    "690fe776182809209d6288d99aed4343",
+    "502ccf040039dac777730d61e2b92efa"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6854-6.webp",
+   "building": 6854,
+   "wall": 6,
+   "a": [
+    -122.4409881,
+    37.7963046
+   ],
+   "b": [
+    -122.4409162,
+    37.7963133
+   ],
+   "normal_deg": 351.3,
+   "height_m": 7.92,
+   "photo_height_m": 7.92,
+   "coverage": 1.0,
+   "agreement": 0.857,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "d78694cbca4768cc3a5f2c8217d0f90a",
+    "02731a8f326ae7691a626f20ac763ac0",
+    "6a0e00b4c3d32b31154d35af19086877",
+    "9f8cfe5b8f6eb6baa1677b3cfa1c892f",
+    "1cdc767ac734cc15550cc9e9f6daa6bc",
+    "5eed5cbe8c7489628eda09cc37c8e47e",
+    "c17955a5859db39291dd110b3b6c60ed",
+    "272c50eb99e5b093418815f419820a85"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6855-0.webp",
+   "building": 6855,
+   "wall": 0,
+   "a": [
+    -122.4408091,
+    37.7961811
+   ],
+   "b": [
+    -122.4406628,
+    37.7961984
+   ],
+   "normal_deg": 351.5,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.89,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "c17955a5859db39291dd110b3b6c60ed",
+    "272c50eb99e5b093418815f419820a85",
+    "648a9199b12ca1db04407198a5455ab8",
+    "e0af956a7233af9722c95769f7d41d43",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8",
+    "19d42855418342cc80b1fe2f8556f341",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b",
+    "49941bb6c3c8d8d2decfe8250647fc6b"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6855-2.webp",
+   "building": 6855,
+   "wall": 2,
+   "a": [
+    -122.4406287,
+    37.7962025
+   ],
+   "b": [
+    -122.4405166,
+    37.796218
+   ],
+   "normal_deg": 350.1,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.909,
+   "views": 6,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "c7f35c25c26a902cc9b004ded57f699d",
+    "1145fce7dc040cabc1852ec6c18bdfc7",
+    "b91fcdd6a824b8da905d2a994d1f867f",
+    "26b9a3e582f7e5807b80672211ff5cbd",
+    "2afd8d0173b7e909cac2df821dd0fc5e",
+    "49941bb6c3c8d8d2decfe8250647fc6b",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b",
+    "19d42855418342cc80b1fe2f8556f341"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6861-16.webp",
+   "building": 6861,
+   "wall": 16,
+   "a": [
+    -122.4416513,
+    37.7955024
+   ],
+   "b": [
+    -122.4417106,
+    37.7954959
+   ],
+   "normal_deg": 172.1,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.89,
+   "views": 3,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1ef3487f73ec80aec95cffe4ceab4b31",
+    "f31723d8e213f4f22ef77f525d8ee7ec",
+    "8f6c8b692b1b01dba1ab47149689f394",
+    "613b1e45c847cead8a1b466d0bfab3a9",
+    "b6028fb49510f9d6bbda1f3ed4de8e92"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6861-18.webp",
+   "building": 6861,
+   "wall": 18,
+   "a": [
+    -122.4417085,
+    37.7954837
+   ],
+   "b": [
+    -122.4417561,
+    37.7954785
+   ],
+   "normal_deg": 172.1,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.854,
+   "views": 5,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1ef3487f73ec80aec95cffe4ceab4b31",
+    "f31723d8e213f4f22ef77f525d8ee7ec",
+    "8f6c8b692b1b01dba1ab47149689f394",
+    "33e0adc7484486ef435985927a34ea48",
+    "907ac61df87ae0913836ffe547e4bb91"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6861-20.webp",
+   "building": 6861,
+   "wall": 20,
+   "a": [
+    -122.4417582,
+    37.7954907
+   ],
+   "b": [
+    -122.4418179,
+    37.7954841
+   ],
+   "normal_deg": 172.0,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.874,
+   "views": 7,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1ef3487f73ec80aec95cffe4ceab4b31",
+    "f31723d8e213f4f22ef77f525d8ee7ec",
+    "8f6c8b692b1b01dba1ab47149689f394",
+    "33e0adc7484486ef435985927a34ea48",
+    "907ac61df87ae0913836ffe547e4bb91",
+    "2f95edaecc7a2e36f96dbe733a81c550",
+    "3288fa2a9fa7ca568e70f479899cb005"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6863-0.webp",
+   "building": 6863,
+   "wall": 0,
+   "a": [
+    -122.4405806,
+    37.7961449
+   ],
+   "b": [
+    -122.4405342,
+    37.7961504
+   ],
+   "normal_deg": 351.5,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.91,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "c7f35c25c26a902cc9b004ded57f699d",
+    "b91fcdd6a824b8da905d2a994d1f867f",
+    "26b9a3e582f7e5807b80672211ff5cbd",
+    "2afd8d0173b7e909cac2df821dd0fc5e",
+    "49941bb6c3c8d8d2decfe8250647fc6b",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b",
+    "19d42855418342cc80b1fe2f8556f341",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6864-23.webp",
+   "building": 6864,
+   "wall": 23,
+   "a": [
+    -122.4406882,
+    37.7963488
+   ],
+   "b": [
+    -122.4405306,
+    37.7963697
+   ],
+   "normal_deg": 350.5,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.882,
+   "views": 6,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "70181b54f8ddee65cbe52cd7b95bf10a",
+    "1145fce7dc040cabc1852ec6c18bdfc7",
+    "cdd9b7fcc8a8e4ebfd9e73abe5c87fc8",
+    "e0af956a7233af9722c95769f7d41d43",
+    "648a9199b12ca1db04407198a5455ab8",
+    "19d42855418342cc80b1fe2f8556f341",
+    "272c50eb99e5b093418815f419820a85",
+    "30dfed4a188dd8e9f1a799c9cf53ba7b"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6867-4.webp",
+   "building": 6867,
+   "wall": 4,
+   "a": [
+    -122.44039,
+    37.7956608
+   ],
+   "b": [
+    -122.4404842,
+    37.7956483
+   ],
+   "normal_deg": 170.5,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.832,
+   "views": 4,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1b0e03c722066a3f1b5a31c7e749c20d",
+    "030b45b2c4b78cdf03e0a73064198e9c",
+    "f139c28461dab75f4849c98ed6c38edf",
+    "b284831058d4c18668d7c1ebff9dd396"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6868-5.webp",
+   "building": 6868,
+   "wall": 5,
+   "a": [
+    -122.4404637,
+    37.7959117
+   ],
+   "b": [
+    -122.4405905,
+    37.795896
+   ],
+   "normal_deg": 171.1,
+   "height_m": 9.0,
+   "photo_height_m": 9.0,
+   "coverage": 1.0,
+   "agreement": 0.804,
+   "views": 3,
+   "rejected_views": 5,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "71139f63520be81a8765e1d30812125b",
+    "59631970c0a345ef9c8d8dc009eef29b",
+    "5cf78c5630443c1c0ed2475d7e15e230",
+    "3b96f6a47c401928eab72f3350c3fc3a",
+    "5dd22ad3dd871a3eba072e485b2c26fb",
+    "8517c403e6e695602223d3cb8bcc7c90",
+    "44faecf26079b7f68867b69238855812",
+    "e3188b7e38c8464254b48c93517882dc"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6870-0.webp",
+   "building": 6870,
+   "wall": 0,
+   "a": [
+    -122.4398771,
+    37.7958224
+   ],
+   "b": [
+    -122.4400289,
+    37.7958032
+   ],
+   "normal_deg": 170.9,
+   "height_m": 14.0,
+   "photo_height_m": 14.0,
+   "coverage": 1.0,
+   "agreement": 0.825,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "8517c403e6e695602223d3cb8bcc7c90",
+    "5dd22ad3dd871a3eba072e485b2c26fb",
+    "9bddc2eb0d98bf0440cbe174658113b4",
+    "3b96f6a47c401928eab72f3350c3fc3a",
+    "a2685a02263db1b837a756bc40c803a9",
+    "46b755f54cb65127c81f14b7bae23752",
+    "31aa6a9907e29f5d60af9f92c4255e54",
+    "b284831058d4c18668d7c1ebff9dd396"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6879-27.webp",
+   "building": 6879,
+   "wall": 27,
+   "a": [
+    -122.4393024,
+    37.7963571
+   ],
+   "b": [
+    -122.4393151,
+    37.796418
+   ],
+   "normal_deg": 260.6,
+   "height_m": 13.0,
+   "photo_height_m": 13.0,
+   "coverage": 1.0,
+   "agreement": 0.832,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "6f115a6c424c3de6f13ad08aaee16ce3",
+    "0e4ae6fdca4921443fec8b68ebf1ab90",
+    "7889cc432fc6e04bad1bb3561624d2fa",
+    "32e13d8f08ac0499fddf03114c51c355",
+    "bb0b10c57480e688ad4e0c7791a0bc08",
+    "b8a1fbbc92c367d963c495b372abad86",
+    "83b5c7726c3fe065333e1112c666d375",
+    "4f966384db919ce5a95b242b1627f111"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6881-0.webp",
+   "building": 6881,
+   "wall": 0,
+   "a": [
+    -122.4397957,
+    37.7961459
+   ],
+   "b": [
+    -122.4396488,
+    37.7961634
+   ],
+   "normal_deg": 351.4,
+   "height_m": 4.79,
+   "photo_height_m": 4.79,
+   "coverage": 1.0,
+   "agreement": 0.814,
+   "views": 6,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "7889cc432fc6e04bad1bb3561624d2fa",
+    "0e4ae6fdca4921443fec8b68ebf1ab90",
+    "cbad1bf1924408ac9ce2c9603e8821fc",
+    "32e13d8f08ac0499fddf03114c51c355",
+    "bb0b10c57480e688ad4e0c7791a0bc08",
+    "b8a1fbbc92c367d963c495b372abad86",
+    "d0f01506210d82ce936e5dafa7f362fc",
+    "6f115a6c424c3de6f13ad08aaee16ce3"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6881-3.webp",
+   "building": 6881,
+   "wall": 3,
+   "a": [
+    -122.4397769,
+    37.7960475
+   ],
+   "b": [
+    -122.4397957,
+    37.7961459
+   ],
+   "normal_deg": 261.4,
+   "height_m": 4.79,
+   "photo_height_m": 4.79,
+   "coverage": 1.0,
+   "agreement": 0.76,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "f031390574c7612b10f9df3498e210b9",
+    "9e5fd259564a280c07460c89f3b4a42a",
+    "10c4e4a41d7ebe8cbb556003783a9733",
+    "63231f3213800f5c6514d2ec467f48bc",
+    "6ae2989604e4793c9c2cae6ded89ad3e",
+    "110c82b3c2ddc5447aeb40d159b808fb",
+    "269809fdfb70c1699cb412ba4272093e",
+    "69573480843d240543521bf15b363f2e"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6887-0.webp",
+   "building": 6887,
+   "wall": 0,
+   "a": [
+    -122.4391966,
+    37.795886
+   ],
+   "b": [
+    -122.4390173,
+    37.7959068
+   ],
+   "normal_deg": 351.6,
+   "height_m": 8.0,
+   "photo_height_m": 8.0,
+   "coverage": 1.0,
+   "agreement": 0.762,
+   "views": 3,
+   "rejected_views": 5,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "99d09f886e76c65802137e1abf860557",
+    "3a19aff765570241ce728642ff608be8",
+    "54d626933130a9d3fc86222a2a481553",
+    "05a40174c2ca9510b83f8986b35a169f",
+    "4a59a9b284ab48c5aed4a410ed9d0db8",
+    "3c5e2c35b4ba6ec8cf5c74b63e61d803",
+    "0ee408fc4d5a9cb2ed989a6b27d265d8",
+    "e851c136219efd0e41eda8857aa44c79"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6915-1.webp",
+   "building": 6915,
+   "wall": 1,
+   "a": [
+    -122.4417466,
+    37.7952253
+   ],
+   "b": [
+    -122.4416693,
+    37.7952336
+   ],
+   "normal_deg": 352.3,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.853,
+   "views": 5,
+   "rejected_views": 3,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1ef3487f73ec80aec95cffe4ceab4b31",
+    "f31723d8e213f4f22ef77f525d8ee7ec",
+    "8f6c8b692b1b01dba1ab47149689f394",
+    "33e0adc7484486ef435985927a34ea48",
+    "907ac61df87ae0913836ffe547e4bb91",
+    "abad3c3c49b7c9017649d37dbd8b2fe7",
+    "f43f8fa7ee6082987b91968f434a1298",
+    "e67d8b9e537aa99ae377d6a76e9d8732"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6916-0.webp",
+   "building": 6916,
+   "wall": 0,
+   "a": [
+    -122.4412577,
+    37.7951372
+   ],
+   "b": [
+    -122.4412689,
+    37.7952023
+   ],
+   "normal_deg": 262.3,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.776,
+   "views": 6,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "edf173af9f25b67771ef22c1e4951127",
+    "6b6926a893b2ab2820242b98f7ec6c36",
+    "54a6e2f18f6baccd6df5e937c4b9d301",
+    "5462a55150372a9c8e63d69c75da4146",
+    "347b4fd912937447cbffe8e87dc4e39c",
+    "0f97a327ef1b4e3b94c1eed92b49e290",
+    "44e5f8280d1ade8c3ed256dafb9f8ec6",
+    "72753e7e624a9cad64ef3bd530615bab"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6919-1.webp",
+   "building": 6919,
+   "wall": 1,
+   "a": [
+    -122.4416943,
+    37.7950533
+   ],
+   "b": [
+    -122.4414943,
+    37.7950767
+   ],
+   "normal_deg": 351.6,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.808,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1ef3487f73ec80aec95cffe4ceab4b31",
+    "f31723d8e213f4f22ef77f525d8ee7ec",
+    "8f6c8b692b1b01dba1ab47149689f394",
+    "33e0adc7484486ef435985927a34ea48",
+    "907ac61df87ae0913836ffe547e4bb91",
+    "2f95edaecc7a2e36f96dbe733a81c550",
+    "93b03f02e1907039f2f82dc44de55e1f",
+    "3288fa2a9fa7ca568e70f479899cb005"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6920-1.webp",
+   "building": 6920,
+   "wall": 1,
+   "a": [
+    -122.4408324,
+    37.7953356
+   ],
+   "b": [
+    -122.4408153,
+    37.7952364
+   ],
+   "normal_deg": 82.2,
+   "height_m": 8.0,
+   "photo_height_m": 8.0,
+   "coverage": 1.0,
+   "agreement": 0.763,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "8517c403e6e695602223d3cb8bcc7c90",
+    "5dd22ad3dd871a3eba072e485b2c26fb",
+    "3b96f6a47c401928eab72f3350c3fc3a",
+    "71139f63520be81a8765e1d30812125b",
+    "59631970c0a345ef9c8d8dc009eef29b",
+    "5cf78c5630443c1c0ed2475d7e15e230",
+    "44faecf26079b7f68867b69238855812",
+    "a2685a02263db1b837a756bc40c803a9"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6920-2.webp",
+   "building": 6920,
+   "wall": 2,
+   "a": [
+    -122.4408153,
+    37.7952364
+   ],
+   "b": [
+    -122.4408058,
+    37.7951811
+   ],
+   "normal_deg": 82.3,
+   "height_m": 8.0,
+   "photo_height_m": 8.0,
+   "coverage": 1.0,
+   "agreement": 0.882,
+   "views": 6,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "8517c403e6e695602223d3cb8bcc7c90",
+    "5dd22ad3dd871a3eba072e485b2c26fb",
+    "3b96f6a47c401928eab72f3350c3fc3a",
+    "71139f63520be81a8765e1d30812125b",
+    "59631970c0a345ef9c8d8dc009eef29b",
+    "5cf78c5630443c1c0ed2475d7e15e230",
+    "9bddc2eb0d98bf0440cbe174658113b4",
+    "a2685a02263db1b837a756bc40c803a9"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6922-8.webp",
+   "building": 6922,
+   "wall": 8,
+   "a": [
+    -122.4404766,
+    37.7951405
+   ],
+   "b": [
+    -122.4404274,
+    37.7951465
+   ],
+   "normal_deg": 351.2,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.826,
+   "views": 6,
+   "rejected_views": 2,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "44faecf26079b7f68867b69238855812",
+    "5cf78c5630443c1c0ed2475d7e15e230",
+    "59631970c0a345ef9c8d8dc009eef29b",
+    "71139f63520be81a8765e1d30812125b",
+    "3b96f6a47c401928eab72f3350c3fc3a",
+    "95a84f09b3adc1be433ed36c59cdcaaf",
+    "5dd22ad3dd871a3eba072e485b2c26fb",
+    "8517c403e6e695602223d3cb8bcc7c90"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6925-10.webp",
+   "building": 6925,
+   "wall": 10,
+   "a": [
+    -122.4409412,
+    37.7952789
+   ],
+   "b": [
+    -122.4409338,
+    37.7952358
+   ],
+   "normal_deg": 82.3,
+   "height_m": 11.0,
+   "photo_height_m": 11.0,
+   "coverage": 1.0,
+   "agreement": 0.764,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "8517c403e6e695602223d3cb8bcc7c90",
+    "5dd22ad3dd871a3eba072e485b2c26fb",
+    "3b96f6a47c401928eab72f3350c3fc3a",
+    "71139f63520be81a8765e1d30812125b",
+    "59631970c0a345ef9c8d8dc009eef29b",
+    "5cf78c5630443c1c0ed2475d7e15e230",
+    "44faecf26079b7f68867b69238855812",
+    "95a84f09b3adc1be433ed36c59cdcaaf"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6926-10.webp",
+   "building": 6926,
+   "wall": 10,
+   "a": [
+    -122.4403498,
+    37.7952836
+   ],
+   "b": [
+    -122.440397,
+    37.7952778
+   ],
+   "normal_deg": 171.2,
+   "height_m": 12.0,
+   "photo_height_m": 12.0,
+   "coverage": 1.0,
+   "agreement": 0.779,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "58e6445e6a8880e7bc40528c4d8455b7",
+    "0b5751c0760072eb7e05b4799562c1d8",
+    "753977379dabb89fd8d33d1ac7ff33ea",
+    "95671423dc14534f3e8a8167248ba453",
+    "b1340c152f521a5d87982ab7df3fada7",
+    "21b12bd045d767fe8ac77c446b1155f9",
+    "958353ccfbbe70cb7319c0875a673626",
+    "8d86bbb4241f02ad6ef712468b94192c"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6929-0.webp",
+   "building": 6929,
+   "wall": 0,
+   "a": [
+    -122.4417192,
+    37.7951439
+   ],
+   "b": [
+    -122.441511,
+    37.7951661
+   ],
+   "normal_deg": 352.3,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.797,
+   "views": 5,
+   "rejected_views": 3,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "1ef3487f73ec80aec95cffe4ceab4b31",
+    "f31723d8e213f4f22ef77f525d8ee7ec",
+    "8f6c8b692b1b01dba1ab47149689f394",
+    "33e0adc7484486ef435985927a34ea48",
+    "abad3c3c49b7c9017649d37dbd8b2fe7",
+    "f43f8fa7ee6082987b91968f434a1298",
+    "907ac61df87ae0913836ffe547e4bb91",
+    "e67d8b9e537aa99ae377d6a76e9d8732"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6929-17.webp",
+   "building": 6929,
+   "wall": 17,
+   "a": [
+    -122.4417181,
+    37.7950612
+   ],
+   "b": [
+    -122.4417245,
+    37.7950989
+   ],
+   "normal_deg": 262.4,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.785,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "edf173af9f25b67771ef22c1e4951127",
+    "4c85f1f67b1cd6a988ae7c96f1e32e03",
+    "ee3c68a9b01ba4ee3f23dcd5f43c9919",
+    "329e6d54834c90798d9def25037e3b51",
+    "2a88f676106caca015678341e0da8051",
+    "72753e7e624a9cad64ef3bd530615bab",
+    "14aa49f371409af819493ee35b9f7c89",
+    "3a0994804df4e84a9506dde2d1bbcf2a"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6929-19.webp",
+   "building": 6929,
+   "wall": 19,
+   "a": [
+    -122.4417314,
+    37.7950982
+   ],
+   "b": [
+    -122.4417381,
+    37.7951372
+   ],
+   "normal_deg": 262.3,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.893,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "5462a55150372a9c8e63d69c75da4146",
+    "347b4fd912937447cbffe8e87dc4e39c",
+    "0f97a327ef1b4e3b94c1eed92b49e290",
+    "72753e7e624a9cad64ef3bd530615bab",
+    "44e5f8280d1ade8c3ed256dafb9f8ec6",
+    "05de4b15d42a551ca9bb9421c448bd56",
+    "21bccacc45e5baaa166f6bb80ca8a026",
+    "329e6d54834c90798d9def25037e3b51"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "6962-10.webp",
+   "building": 6962,
+   "wall": 10,
+   "a": [
+    -122.4397987,
+    37.795311
+   ],
+   "b": [
+    -122.4398114,
+    37.7953766
+   ],
+   "normal_deg": 261.3,
+   "height_m": 10.0,
+   "photo_height_m": 10.0,
+   "coverage": 1.0,
+   "agreement": 0.972,
+   "views": 4,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "31aa6a9907e29f5d60af9f92c4255e54",
+    "46b755f54cb65127c81f14b7bae23752",
+    "a2685a02263db1b837a756bc40c803a9",
+    "9bddc2eb0d98bf0440cbe174658113b4"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "15072-5.webp",
+   "building": 15072,
+   "wall": 5,
+   "a": [
+    -122.4388464,
+    37.7964092
+   ],
+   "b": [
+    -122.4388175,
+    37.7962543
+   ],
+   "normal_deg": 81.6,
+   "height_m": 16.5,
+   "photo_height_m": 16.5,
+   "coverage": 1.0,
+   "agreement": 0.888,
+   "views": 7,
+   "rejected_views": 1,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "16bbb6f0b557c06b30fd7ecea4bb2681",
+    "62d3cf577e64f1aa5efe2d3a6c07743f",
+    "df49314662674468e0acb1cfb2b50b71",
+    "b9f1404f89566b0d5143d0cb41a90aa9",
+    "06bfb2adb615706cbc1f1874b767f62d",
+    "53e5f63ceb1e6bb8728bcc116ff78862",
+    "39e2d36e1ac8a6ae3821e637cb1e59b4",
+    "af175fdbc8b38e09105308e60cae8f21"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "15073-1.webp",
+   "building": 15073,
+   "wall": 1,
+   "a": [
+    -122.4388756,
+    37.7965663
+   ],
+   "b": [
+    -122.4388464,
+    37.7964092
+   ],
+   "normal_deg": 81.6,
+   "height_m": 16.2,
+   "photo_height_m": 16.2,
+   "coverage": 1.0,
+   "agreement": 0.865,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "2e069aaf58120a2f83926f3a1bba35a3",
+    "ad6b737152e0e82f489c2e99ac610357",
+    "909d7884e8a9e7ed750a839ae3e2418a",
+    "ab3f9a2c925e852a384682618bea7264",
+    "aa190a0a975db66d13d547b9cf50c06e",
+    "4d91e30e72e573c2cae790a5b283dbe9",
+    "f347fc1f990e51a1c450b9afcacca0a7",
+    "174fc2276ac9d7bc1982a7e2565f555e"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  }
+ ]
+}

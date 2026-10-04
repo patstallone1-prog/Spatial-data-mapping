@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 131,
+  "attempted_this_run": 131,
+  "journaled_buildings": 131,
+  "accepted_buildings": 50,
+  "reasons_this_run": {
+    "opening_outside_prior": 564,
+    "no_accepted_openings": 105,
+    "weak_multiview_wall": 50,
+    "no_accepted_photo_wall": 78,
+    "invalid_fitted_wall": 3
+  },
+  "journal": "data/regions/san-jose-downtown/world/photo_objects.journal.jsonl"
+}

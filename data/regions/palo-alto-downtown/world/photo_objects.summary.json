@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 529,
+  "attempted_this_run": 529,
+  "journaled_buildings": 529,
+  "accepted_buildings": 191,
+  "reasons_this_run": {
+    "opening_outside_prior": 1060,
+    "no_accepted_openings": 277,
+    "weak_multiview_wall": 189,
+    "no_accepted_photo_wall": 319,
+    "invalid_fitted_wall": 25
+  },
+  "journal": "data/regions/palo-alto-downtown/world/photo_objects.journal.jsonl"
+}
