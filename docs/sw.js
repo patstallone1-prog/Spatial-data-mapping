@@ -1,11 +1,14 @@
 /* Kerbside service worker.
  * Keeps the installed app shell launchable without a connection. The 3D world
- * streams on demand; there is no full-world offline package or bulk download.
+ * streams on demand. Scanned interiors at full detail are the exception: the page
+ * keeps their content-hashed chunks in their own "kerbside-scans" cache, which
+ * outlives releases, so a scanned home is downloaded once and is local after.
  * Documents and data are network-first so fresh geometry is never hidden by
  * an older cached copy.
  */
-const VERSION = "fc08111b64241b25";
+const VERSION = "f8ad954ab014d4db";
 const CACHE = "kerbside-" + VERSION;
+const SCAN_CACHE = "kerbside-scans";
 const SHELL = [
   "./app.html",
   "./app-model.html",
@@ -28,7 +31,8 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== SCAN_CACHE)
+        .map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -39,6 +43,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // The page caches and verifies scan detail itself; a second copy here would double it.
+  if (url.pathname.includes("/interior-scans/detail/")) return;
 
   // Data is not shell. The 3D map's payload is rebuilt every time the catalogue grows, and
   // serving it cache-first meant the page could load this week's code against last week's
