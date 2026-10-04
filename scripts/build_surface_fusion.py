@@ -35,6 +35,7 @@ def main() -> int:
     ap.add_argument("--run-id", default="sf-pilot-visual-v1")
     ap.add_argument("--inputs", type=Path, help="rights-checked local image and mask manifest")
     ap.add_argument("--work-dir", type=Path, help="scratch directory for SfM/MVS outputs")
+    ap.add_argument("--dense-backend", choices=("colmap", "fvdb"), default="colmap")
     ap.add_argument("--validate", action="store_true")
     args = ap.parse_args()
     if args.region != "sf-corridor":
@@ -49,6 +50,7 @@ def main() -> int:
             ROOT / "data/reconstruction/source_rights.json",
             benchmark,
             args.work_dir,
+            dense_backend=args.dense_backend,
         )
     elif args.validate:
         result = validate_pilot_output(args.out, args.canonical, benchmark)

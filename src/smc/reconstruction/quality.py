@@ -22,6 +22,20 @@ def _distribution(values: list[float], *, minimum: int) -> tuple[float, float]:
 def evaluate_metrics(metrics: dict[str, Any]) -> list[str]:
     failures: list[str] = []
 
+    # JSON permits NaN in Python. Comparing NaN with a threshold returns False,
+    # which previously allowed a non-measurement to bypass scalar quality gates.
+    scalar_limits = {
+        "maximum_seam_gap_m": (0, 0.01), "material_macro_f1": (0.85, 1),
+        "visible_facade_observed_fraction": (0.70, 1),
+        "desktop_fps": (60, math.inf), "mobile_fps": (30, math.inf),
+        "desktop_decoded_mb": (0, 350), "mobile_decoded_mb": (0, 180),
+    }
+    for name, (lower, upper) in scalar_limits.items():
+        value = metrics.get(name)
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or \
+                not math.isfinite(value) or not lower <= value <= upper:
+            failures.append(f"{name}: missing, non-finite, or outside [{lower}, {upper}]")
+
     def check_distribution(name: str, minimum: int, median_limit: float, p95_limit: float) -> None:
         try:
             median, p95 = _distribution(metrics.get(name) or [], minimum=minimum)
@@ -38,26 +52,16 @@ def evaluate_metrics(metrics: dict[str, Any]) -> list[str]:
         failures.append("facade_residual_error_m: needs 100 valid lidar comparisons")
     elif float(np.mean(residual)) > 0.05 or float(np.percentile(residual, 95)) > 0.15:
         failures.append("facade residual exceeds MAE 0.05 m or P95 0.15 m")
-    if float(metrics.get("maximum_seam_gap_m", math.inf)) > 0.01:
-        failures.append("visual cell or canonical-surface seam gap exceeds 0.01 m")
     masks = metrics.get("dynamic_mask_confusion") or {}
     tp, fp, fn = (int(masks.get(key, 0)) for key in ("tp", "fp", "fn"))
     if tp < 100 or tp / max(tp + fp, 1) < 0.98 or tp / max(tp + fn, 1) < 0.95:
         failures.append("dynamic mask precision <0.98, recall <0.95, or sample too small")
     if int(metrics.get("published_unredacted_face_or_plate_count", -1)) != 0:
         failures.append("unredacted face or plate in published audit")
-    if float(metrics.get("material_macro_f1", 0.0)) < 0.85:
-        failures.append("material macro-F1 below 0.85")
     if not metrics.get("material_building_and_block_disjoint", False):
         failures.append("material evaluation is not building and block disjoint")
-    if float(metrics.get("visible_facade_observed_fraction", 0.0)) < 0.70:
-        failures.append("observed visible facade area below 70%")
     if not metrics.get("all_texels_provenanced", False):
         failures.append("not every visual texel carries coverage provenance")
-    if float(metrics.get("desktop_fps", 0.0)) < 60 or float(metrics.get("mobile_fps", 0.0)) < 30:
-        failures.append("pilot frame rate below 60 desktop / 30 mobile FPS")
-    if int(metrics.get("desktop_decoded_mb", 10_000)) > 350 or int(metrics.get("mobile_decoded_mb", 10_000)) > 180:
-        failures.append("decoded tile memory exceeds 350 MB desktop / 180 MB mobile")
     return failures
 
 
