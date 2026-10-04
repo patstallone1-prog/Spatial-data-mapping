@@ -1,0 +1,27 @@
+{
+ "chunk": "c18r08",
+ "bbox": {
+  "west": -122.39634173881672,
+  "south": 37.803966305682394,
+  "east": -122.39349961319542,
+  "north": 37.80621209389269
+ },
+ "generated_at": "2026-10-02T11:30:37Z",
+ "buildings_in_chunk": 0,
+ "walls_attempted": 0,
+ "walls_textured": 0,
+ "failures": {},
+ "kind": "photo texture: street photographs rectified onto the wall's plane (not a 3D mesh)",
+ "min_agreement": 0.75,
+ "gates": [
+  "solved orientation",
+  "view sees the wall",
+  "not behind a tree",
+  "agreement >= 0.75",
+  "rectilinearity >= 0.4",
+  "right way up"
+ ],
+ "spherical_convention": "equirectangular centre column on the reported compass heading",
+ "licenses": {},
+ "walls": []
+}

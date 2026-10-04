@@ -1,0 +1,113 @@
+{
+ "chunk": "c07r09",
+ "bbox": {
+  "west": -122.42760512065095,
+  "south": 37.80621209389269,
+  "east": -122.42476299502965,
+  "north": 37.80845788210299
+ },
+ "generated_at": "2026-10-02T11:13:17Z",
+ "buildings_in_chunk": 13,
+ "walls_attempted": 35,
+ "walls_textured": 2,
+ "failures": {
+  "no frame held any of the wall": 4,
+  "not a wall seen square-on (edges not at right angles)": 20,
+  "too few views to check against each other": 3,
+  "the views disagree -- a pose is wrong": 6
+ },
+ "kind": "photo texture: street photographs rectified onto the wall's plane (not a 3D mesh)",
+ "min_agreement": 0.75,
+ "gates": [
+  "solved orientation",
+  "view sees the wall",
+  "not behind a tree",
+  "agreement >= 0.75",
+  "rectilinearity >= 0.4",
+  "right way up"
+ ],
+ "spherical_convention": "equirectangular centre column on the reported compass heading",
+ "licenses": {
+  "CC-BY-SA-4.0": 2
+ },
+ "walls": [
+  {
+   "texture": "513-5.webp",
+   "building": 513,
+   "wall": 5,
+   "a": [
+    -122.4261114,
+    37.8074642
+   ],
+   "b": [
+    -122.4260124,
+    37.8075198
+   ],
+   "normal_deg": 324.6,
+   "height_m": 5.58,
+   "photo_height_m": 5.58,
+   "coverage": 1.0,
+   "agreement": 0.967,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "629bbc81c002ce546698a12132344db6",
+    "9113a0adb636efdb3cd031cf90240efa",
+    "41a56aba1acac8ae8cb3755df63183f4",
+    "df492bb49a75c4d865f7e33883a385a1",
+    "1cae996d1a54dd7f8061df09ef2df003",
+    "25338779615561887f1b3ee76031375d",
+    "1b7b80b3ed310062c75d49ce3c1695ac",
+    "7934c64f9d010ff55aff533d481454be"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "5062-1.webp",
+   "building": 5062,
+   "wall": 1,
+   "a": [
+    -122.4251515,
+    37.8063452
+   ],
+   "b": [
+    -122.4251106,
+    37.8061364
+   ],
+   "normal_deg": 81.2,
+   "height_m": 5.97,
+   "photo_height_m": 5.97,
+   "coverage": 1.0,
+   "agreement": 0.857,
+   "views": 8,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "feb85ea6d12bde3de1819598c6b30380",
+    "d3455a0667b22686762b63a079148a15",
+    "ae99199591267bb041622e27512794a3",
+    "df52c759499de2b16023d4235dbd80ea",
+    "995003b0f7cfbbdd04b4cb8f19bf4b73",
+    "f2394c6b2ed573f830c80236b5d28d40",
+    "0785f081db8120f9cadf64ce32291d22",
+    "8947aee427e082d5b3ae75f49774988d"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  }
+ ]
+}

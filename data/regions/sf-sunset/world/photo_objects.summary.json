@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 7101,
+  "attempted_this_run": 7101,
+  "journaled_buildings": 7101,
+  "accepted_buildings": 2338,
+  "reasons_this_run": {
+    "opening_outside_prior": 14807,
+    "no_accepted_openings": 3024,
+    "weak_multiview_wall": 3906,
+    "no_accepted_photo_wall": 4758,
+    "invalid_fitted_wall": 5
+  },
+  "journal": "data/regions/sf-sunset/world/photo_objects.journal.jsonl"
+}

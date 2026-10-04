@@ -21,7 +21,7 @@
  },
  "walls": [
   {
-   "texture": "291-0.jpg",
+   "texture": "291-0.webp",
    "building": 291,
    "wall": 0,
    "a": [
@@ -60,7 +60,7 @@
    "normal_deg": 261.2
   },
   {
-   "texture": "291-1.jpg",
+   "texture": "291-1.webp",
    "building": 291,
    "wall": 1,
    "a": [
@@ -99,7 +99,7 @@
    "normal_deg": 171.1
   },
   {
-   "texture": "296-1.jpg",
+   "texture": "296-1.webp",
    "building": 296,
    "wall": 1,
    "a": [
@@ -138,7 +138,7 @@
    "normal_deg": 260.5
   },
   {
-   "texture": "1861-0.jpg",
+   "texture": "1861-0.webp",
    "building": 1861,
    "wall": 0,
    "a": [
@@ -177,7 +177,7 @@
    "normal_deg": 260.2
   },
   {
-   "texture": "1861-1.jpg",
+   "texture": "1861-1.webp",
    "building": 1861,
    "wall": 1,
    "a": [
@@ -216,7 +216,7 @@
    "normal_deg": 350.4
   },
   {
-   "texture": "1861-3.jpg",
+   "texture": "1861-3.webp",
    "building": 1861,
    "wall": 3,
    "a": [
@@ -257,7 +257,7 @@
    "normal_deg": 170.1
   },
   {
-   "texture": "1863-1.jpg",
+   "texture": "1863-1.webp",
    "building": 1863,
    "wall": 1,
    "a": [
@@ -296,7 +296,7 @@
    "normal_deg": 260.6
   },
   {
-   "texture": "1866-1.jpg",
+   "texture": "1866-1.webp",
    "building": 1866,
    "wall": 1,
    "a": [
@@ -335,7 +335,7 @@
    "normal_deg": 260.0
   },
   {
-   "texture": "1866-3.jpg",
+   "texture": "1866-3.webp",
    "building": 1866,
    "wall": 3,
    "a": [
@@ -374,7 +374,7 @@
    "normal_deg": 80.0
   },
   {
-   "texture": "1868-0.jpg",
+   "texture": "1868-0.webp",
    "building": 1868,
    "wall": 0,
    "a": [
@@ -413,7 +413,7 @@
    "normal_deg": 172.4
   },
   {
-   "texture": "1869-4.jpg",
+   "texture": "1869-4.webp",
    "building": 1869,
    "wall": 4,
    "a": [
@@ -452,7 +452,7 @@
    "normal_deg": 80.5
   },
   {
-   "texture": "1870-0.jpg",
+   "texture": "1870-0.webp",
    "building": 1870,
    "wall": 0,
    "a": [
@@ -491,7 +491,7 @@
    "normal_deg": 170.3
   },
   {
-   "texture": "1871-3.jpg",
+   "texture": "1871-3.webp",
    "building": 1871,
    "wall": 3,
    "a": [
@@ -530,7 +530,7 @@
    "normal_deg": 350.6
   },
   {
-   "texture": "1872-5.jpg",
+   "texture": "1872-5.webp",
    "building": 1872,
    "wall": 5,
    "a": [
@@ -569,7 +569,7 @@
    "normal_deg": 350.5
   },
   {
-   "texture": "2012-0.jpg",
+   "texture": "2012-0.webp",
    "building": 2012,
    "wall": 0,
    "a": [
@@ -608,7 +608,7 @@
    "normal_deg": 262.0
   },
   {
-   "texture": "2013-4.jpg",
+   "texture": "2013-4.webp",
    "building": 2013,
    "wall": 4,
    "a": [
@@ -647,7 +647,7 @@
    "normal_deg": 261.9
   },
   {
-   "texture": "2013-8.jpg",
+   "texture": "2013-8.webp",
    "building": 2013,
    "wall": 8,
    "a": [
@@ -686,7 +686,7 @@
    "normal_deg": 171.8
   },
   {
-   "texture": "2014-1.jpg",
+   "texture": "2014-1.webp",
    "building": 2014,
    "wall": 1,
    "a": [
@@ -725,7 +725,7 @@
    "normal_deg": 351.8
   },
   {
-   "texture": "2015-0.jpg",
+   "texture": "2015-0.webp",
    "building": 2015,
    "wall": 0,
    "a": [
@@ -764,7 +764,7 @@
    "normal_deg": 262.1
   },
   {
-   "texture": "2015-4.jpg",
+   "texture": "2015-4.webp",
    "building": 2015,
    "wall": 4,
    "a": [
@@ -803,7 +803,7 @@
    "normal_deg": 171.8
   },
   {
-   "texture": "2017-1.jpg",
+   "texture": "2017-1.webp",
    "building": 2017,
    "wall": 1,
    "a": [
@@ -842,7 +842,7 @@
    "normal_deg": 80.7
   },
   {
-   "texture": "2018-0.jpg",
+   "texture": "2018-0.webp",
    "building": 2018,
    "wall": 0,
    "a": [
@@ -881,7 +881,7 @@
    "normal_deg": 351.3
   },
   {
-   "texture": "2018-4.jpg",
+   "texture": "2018-4.webp",
    "building": 2018,
    "wall": 4,
    "a": [
@@ -920,7 +920,7 @@
    "normal_deg": 261.0
   },
   {
-   "texture": "2019-6.jpg",
+   "texture": "2019-6.webp",
    "building": 2019,
    "wall": 6,
    "a": [
@@ -959,7 +959,7 @@
    "normal_deg": 261.4
   },
   {
-   "texture": "2020-0.jpg",
+   "texture": "2020-0.webp",
    "building": 2020,
    "wall": 0,
    "a": [
@@ -998,7 +998,7 @@
    "normal_deg": 351.1
   },
   {
-   "texture": "2021-1.jpg",
+   "texture": "2021-1.webp",
    "building": 2021,
    "wall": 1,
    "a": [
@@ -1037,7 +1037,7 @@
    "normal_deg": 80.8
   },
   {
-   "texture": "2021-7.jpg",
+   "texture": "2021-7.webp",
    "building": 2021,
    "wall": 7,
    "a": [
@@ -1076,7 +1076,7 @@
    "normal_deg": 260.5
   },
   {
-   "texture": "2022-0.jpg",
+   "texture": "2022-0.webp",
    "building": 2022,
    "wall": 0,
    "a": [
@@ -1115,7 +1115,7 @@
    "normal_deg": 351.8
   },
   {
-   "texture": "2024-1.jpg",
+   "texture": "2024-1.webp",
    "building": 2024,
    "wall": 1,
    "a": [
@@ -1154,7 +1154,7 @@
    "normal_deg": 352.1
   },
   {
-   "texture": "2025-5.jpg",
+   "texture": "2025-5.webp",
    "building": 2025,
    "wall": 5,
    "a": [
@@ -1193,7 +1193,7 @@
    "normal_deg": 261.9
   },
   {
-   "texture": "2027-0.jpg",
+   "texture": "2027-0.webp",
    "building": 2027,
    "wall": 0,
    "a": [
@@ -1232,7 +1232,7 @@
    "normal_deg": 261.7
   },
   {
-   "texture": "2027-4.jpg",
+   "texture": "2027-4.webp",
    "building": 2027,
    "wall": 4,
    "a": [
@@ -1271,7 +1271,7 @@
    "normal_deg": 172.1
   },
   {
-   "texture": "2028-0.jpg",
+   "texture": "2028-0.webp",
    "building": 2028,
    "wall": 0,
    "a": [
@@ -1310,7 +1310,7 @@
    "normal_deg": 262.1
   },
   {
-   "texture": "2028-4.jpg",
+   "texture": "2028-4.webp",
    "building": 2028,
    "wall": 4,
    "a": [
@@ -1349,7 +1349,7 @@
    "normal_deg": 172.0
   },
   {
-   "texture": "2028-8.jpg",
+   "texture": "2028-8.webp",
    "building": 2028,
    "wall": 8,
    "a": [
@@ -1388,7 +1388,7 @@
    "normal_deg": 172.6
   },
   {
-   "texture": "2029-0.jpg",
+   "texture": "2029-0.webp",
    "building": 2029,
    "wall": 0,
    "a": [
@@ -1427,7 +1427,7 @@
    "normal_deg": 171.9
   },
   {
-   "texture": "2029-1.jpg",
+   "texture": "2029-1.webp",
    "building": 2029,
    "wall": 1,
    "a": [
@@ -1466,7 +1466,7 @@
    "normal_deg": 261.7
   },
   {
-   "texture": "2029-2.jpg",
+   "texture": "2029-2.webp",
    "building": 2029,
    "wall": 2,
    "a": [
@@ -1505,7 +1505,7 @@
    "normal_deg": 262.0
   },
   {
-   "texture": "2030-0.jpg",
+   "texture": "2030-0.webp",
    "building": 2030,
    "wall": 0,
    "a": [
@@ -1544,7 +1544,7 @@
    "normal_deg": 262.5
   },
   {
-   "texture": "2030-4.jpg",
+   "texture": "2030-4.webp",
    "building": 2030,
    "wall": 4,
    "a": [
@@ -1583,7 +1583,7 @@
    "normal_deg": 171.8
   },
   {
-   "texture": "2032-0.jpg",
+   "texture": "2032-0.webp",
    "building": 2032,
    "wall": 0,
    "a": [
@@ -1622,7 +1622,7 @@
    "normal_deg": 262.2
   },
   {
-   "texture": "2032-4.jpg",
+   "texture": "2032-4.webp",
    "building": 2032,
    "wall": 4,
    "a": [
@@ -1661,7 +1661,7 @@
    "normal_deg": 171.9
   },
   {
-   "texture": "2033-0.jpg",
+   "texture": "2033-0.webp",
    "building": 2033,
    "wall": 0,
    "a": [
@@ -1696,7 +1696,7 @@
    "normal_deg": 172.3
   },
   {
-   "texture": "2033-5.jpg",
+   "texture": "2033-5.webp",
    "building": 2033,
    "wall": 5,
    "a": [
@@ -1735,7 +1735,7 @@
    "normal_deg": 261.6
   },
   {
-   "texture": "2033-11.jpg",
+   "texture": "2033-11.webp",
    "building": 2033,
    "wall": 11,
    "a": [
@@ -1774,7 +1774,7 @@
    "normal_deg": 81.6
   },
   {
-   "texture": "2034-6.jpg",
+   "texture": "2034-6.webp",
    "building": 2034,
    "wall": 6,
    "a": [
@@ -1813,7 +1813,7 @@
    "normal_deg": 262.1
   },
   {
-   "texture": "2035-5.jpg",
+   "texture": "2035-5.webp",
    "building": 2035,
    "wall": 5,
    "a": [
@@ -1852,7 +1852,7 @@
    "normal_deg": 82.2
   },
   {
-   "texture": "2036-0.jpg",
+   "texture": "2036-0.webp",
    "building": 2036,
    "wall": 0,
    "a": [
@@ -1890,7 +1890,7 @@
    "normal_deg": 261.2
   },
   {
-   "texture": "2036-4.jpg",
+   "texture": "2036-4.webp",
    "building": 2036,
    "wall": 4,
    "a": [
@@ -1929,7 +1929,7 @@
    "normal_deg": 171.9
   },
   {
-   "texture": "2037-0.jpg",
+   "texture": "2037-0.webp",
    "building": 2037,
    "wall": 0,
    "a": [
@@ -1968,7 +1968,7 @@
    "normal_deg": 262.0
   },
   {
-   "texture": "2037-6.jpg",
+   "texture": "2037-6.webp",
    "building": 2037,
    "wall": 6,
    "a": [
@@ -2007,7 +2007,7 @@
    "normal_deg": 351.5
   },
   {
-   "texture": "2038-3.jpg",
+   "texture": "2038-3.webp",
    "building": 2038,
    "wall": 3,
    "a": [
@@ -2046,7 +2046,7 @@
    "normal_deg": 352.0
   },
   {
-   "texture": "2038-5.jpg",
+   "texture": "2038-5.webp",
    "building": 2038,
    "wall": 5,
    "a": [
@@ -2085,7 +2085,7 @@
    "normal_deg": 82.1
   },
   {
-   "texture": "2038-7.jpg",
+   "texture": "2038-7.webp",
    "building": 2038,
    "wall": 7,
    "a": [
@@ -2124,7 +2124,7 @@
    "normal_deg": 171.9
   },
   {
-   "texture": "2039-4.jpg",
+   "texture": "2039-4.webp",
    "building": 2039,
    "wall": 4,
    "a": [
@@ -2163,7 +2163,7 @@
    "normal_deg": 171.9
   },
   {
-   "texture": "2040-3.jpg",
+   "texture": "2040-3.webp",
    "building": 2040,
    "wall": 3,
    "a": [
@@ -2202,7 +2202,7 @@
    "normal_deg": 351.8
   },
   {
-   "texture": "2041-0.jpg",
+   "texture": "2041-0.webp",
    "building": 2041,
    "wall": 0,
    "a": [
@@ -2241,7 +2241,7 @@
    "normal_deg": 351.8
   },
   {
-   "texture": "2041-2.jpg",
+   "texture": "2041-2.webp",
    "building": 2041,
    "wall": 2,
    "a": [
@@ -2280,7 +2280,7 @@
    "normal_deg": 171.0
   },
   {
-   "texture": "2042-4.jpg",
+   "texture": "2042-4.webp",
    "building": 2042,
    "wall": 4,
    "a": [
@@ -2319,7 +2319,7 @@
    "normal_deg": 171.7
   },
   {
-   "texture": "2044-1.jpg",
+   "texture": "2044-1.webp",
    "building": 2044,
    "wall": 1,
    "a": [
@@ -2358,7 +2358,7 @@
    "normal_deg": 170.8
   },
   {
-   "texture": "2045-0.jpg",
+   "texture": "2045-0.webp",
    "building": 2045,
    "wall": 0,
    "a": [
@@ -2397,7 +2397,7 @@
    "normal_deg": 351.3
   },
   {
-   "texture": "2045-2.jpg",
+   "texture": "2045-2.webp",
    "building": 2045,
    "wall": 2,
    "a": [
@@ -2436,7 +2436,7 @@
    "normal_deg": 82.3
   },
   {
-   "texture": "2045-3.jpg",
+   "texture": "2045-3.webp",
    "building": 2045,
    "wall": 3,
    "a": [
@@ -2475,7 +2475,7 @@
    "normal_deg": 172.3
   },
   {
-   "texture": "2045-4.jpg",
+   "texture": "2045-4.webp",
    "building": 2045,
    "wall": 4,
    "a": [
@@ -2514,7 +2514,7 @@
    "normal_deg": 262.2
   },
   {
-   "texture": "2047-1.jpg",
+   "texture": "2047-1.webp",
    "building": 2047,
    "wall": 1,
    "a": [
@@ -2553,7 +2553,7 @@
    "normal_deg": 82.1
   },
   {
-   "texture": "2047-2.jpg",
+   "texture": "2047-2.webp",
    "building": 2047,
    "wall": 2,
    "a": [
@@ -2592,7 +2592,7 @@
    "normal_deg": 351.7
   },
   {
-   "texture": "2047-5.jpg",
+   "texture": "2047-5.webp",
    "building": 2047,
    "wall": 5,
    "a": [
@@ -2631,7 +2631,7 @@
    "normal_deg": 81.8
   },
   {
-   "texture": "2047-6.jpg",
+   "texture": "2047-6.webp",
    "building": 2047,
    "wall": 6,
    "a": [
@@ -2670,7 +2670,7 @@
    "normal_deg": 171.3
   },
   {
-   "texture": "2048-0.jpg",
+   "texture": "2048-0.webp",
    "building": 2048,
    "wall": 0,
    "a": [
@@ -2709,7 +2709,7 @@
    "normal_deg": 81.5
   },
   {
-   "texture": "2048-1.jpg",
+   "texture": "2048-1.webp",
    "building": 2048,
    "wall": 1,
    "a": [
@@ -2748,7 +2748,7 @@
    "normal_deg": 171.4
   },
   {
-   "texture": "2048-2.jpg",
+   "texture": "2048-2.webp",
    "building": 2048,
    "wall": 2,
    "a": [
@@ -2787,7 +2787,7 @@
    "normal_deg": 261.5
   },
   {
-   "texture": "2231-4.jpg",
+   "texture": "2231-4.webp",
    "building": 2231,
    "wall": 4,
    "a": [
@@ -2826,7 +2826,7 @@
    "normal_deg": 261.6
   },
   {
-   "texture": "2231-7.jpg",
+   "texture": "2231-7.webp",
    "building": 2231,
    "wall": 7,
    "a": [
@@ -2865,7 +2865,7 @@
    "normal_deg": 352.1
   },
   {
-   "texture": "2232-0.jpg",
+   "texture": "2232-0.webp",
    "building": 2232,
    "wall": 0,
    "a": [
@@ -2904,7 +2904,7 @@
    "normal_deg": 351.5
   },
   {
-   "texture": "2232-1.jpg",
+   "texture": "2232-1.webp",
    "building": 2232,
    "wall": 1,
    "a": [
@@ -2943,7 +2943,7 @@
    "normal_deg": 81.8
   },
   {
-   "texture": "2233-0.jpg",
+   "texture": "2233-0.webp",
    "building": 2233,
    "wall": 0,
    "a": [
@@ -2982,7 +2982,7 @@
    "normal_deg": 261.5
   },
   {
-   "texture": "2233-9.jpg",
+   "texture": "2233-9.webp",
    "building": 2233,
    "wall": 9,
    "a": [
@@ -3021,7 +3021,7 @@
    "normal_deg": 171.5
   },
   {
-   "texture": "2235-7.jpg",
+   "texture": "2235-7.webp",
    "building": 2235,
    "wall": 7,
    "a": [
@@ -3060,7 +3060,7 @@
    "normal_deg": 82.1
   },
   {
-   "texture": "2235-12.jpg",
+   "texture": "2235-12.webp",
    "building": 2235,
    "wall": 12,
    "a": [
@@ -3099,7 +3099,7 @@
    "normal_deg": 171.9
   },
   {
-   "texture": "2236-0.jpg",
+   "texture": "2236-0.webp",
    "building": 2236,
    "wall": 0,
    "a": [
@@ -3138,7 +3138,7 @@
    "normal_deg": 261.9
   },
   {
-   "texture": "2236-1.jpg",
+   "texture": "2236-1.webp",
    "building": 2236,
    "wall": 1,
    "a": [
@@ -3177,7 +3177,7 @@
    "normal_deg": 352.1
   },
   {
-   "texture": "2236-3.jpg",
+   "texture": "2236-3.webp",
    "building": 2236,
    "wall": 3,
    "a": [
@@ -3216,7 +3216,7 @@
    "normal_deg": 81.5
   },
   {
-   "texture": "2238-2.jpg",
+   "texture": "2238-2.webp",
    "building": 2238,
    "wall": 2,
    "a": [
@@ -3255,7 +3255,7 @@
    "normal_deg": 262.3
   },
   {
-   "texture": "2238-4.jpg",
+   "texture": "2238-4.webp",
    "building": 2238,
    "wall": 4,
    "a": [
@@ -3294,7 +3294,7 @@
    "normal_deg": 351.6
   },
   {
-   "texture": "5702-0.jpg",
+   "texture": "5702-0.webp",
    "building": 5702,
    "wall": 0,
    "a": [
@@ -3333,7 +3333,7 @@
    "normal_deg": 351.2
   },
   {
-   "texture": "5702-1.jpg",
+   "texture": "5702-1.webp",
    "building": 5702,
    "wall": 1,
    "a": [
@@ -3372,7 +3372,7 @@
    "normal_deg": 81.1
   },
   {
-   "texture": "5702-6.jpg",
+   "texture": "5702-6.webp",
    "building": 5702,
    "wall": 6,
    "a": [
@@ -3411,7 +3411,7 @@
    "normal_deg": 260.8
   },
   {
-   "texture": "5702-7.jpg",
+   "texture": "5702-7.webp",
    "building": 5702,
    "wall": 7,
    "a": [
@@ -3450,7 +3450,7 @@
    "normal_deg": 171.8
   },
   {
-   "texture": "5703-2.jpg",
+   "texture": "5703-2.webp",
    "building": 5703,
    "wall": 2,
    "a": [
@@ -3489,7 +3489,7 @@
    "normal_deg": 170.6
   },
   {
-   "texture": "5703-5.jpg",
+   "texture": "5703-5.webp",
    "building": 5703,
    "wall": 5,
    "a": [
@@ -3528,7 +3528,7 @@
    "normal_deg": 261.4
   },
   {
-   "texture": "5704-1.jpg",
+   "texture": "5704-1.webp",
    "building": 5704,
    "wall": 1,
    "a": [
@@ -3567,7 +3567,7 @@
    "normal_deg": 260.2
   },
   {
-   "texture": "5704-2.jpg",
+   "texture": "5704-2.webp",
    "building": 5704,
    "wall": 2,
    "a": [
@@ -3606,7 +3606,7 @@
    "normal_deg": 170.4
   },
   {
-   "texture": "5704-3.jpg",
+   "texture": "5704-3.webp",
    "building": 5704,
    "wall": 3,
    "a": [
@@ -3645,7 +3645,7 @@
    "normal_deg": 79.3
   },
   {
-   "texture": "5704-8.jpg",
+   "texture": "5704-8.webp",
    "building": 5704,
    "wall": 8,
    "a": [
@@ -3684,7 +3684,7 @@
    "normal_deg": 348.9
   },
   {
-   "texture": "5704-11.jpg",
+   "texture": "5704-11.webp",
    "building": 5704,
    "wall": 11,
    "a": [
@@ -3723,7 +3723,7 @@
    "normal_deg": 350.4
   },
   {
-   "texture": "5704-12.jpg",
+   "texture": "5704-12.webp",
    "building": 5704,
    "wall": 12,
    "a": [
@@ -3762,7 +3762,7 @@
    "normal_deg": 80.1
   },
   {
-   "texture": "5705-2.jpg",
+   "texture": "5705-2.webp",
    "building": 5705,
    "wall": 2,
    "a": [
@@ -3801,7 +3801,7 @@
    "normal_deg": 81.1
   },
   {
-   "texture": "5706-0.jpg",
+   "texture": "5706-0.webp",
    "building": 5706,
    "wall": 0,
    "a": [
@@ -3840,7 +3840,7 @@
    "normal_deg": 351.0
   },
   {
-   "texture": "5707-3.jpg",
+   "texture": "5707-3.webp",
    "building": 5707,
    "wall": 3,
    "a": [
@@ -3879,7 +3879,7 @@
    "normal_deg": 351.2
   },
   {
-   "texture": "5708-0.jpg",
+   "texture": "5708-0.webp",
    "building": 5708,
    "wall": 0,
    "a": [
@@ -3918,7 +3918,7 @@
    "normal_deg": 351.4
   },
   {
-   "texture": "5711-0.jpg",
+   "texture": "5711-0.webp",
    "building": 5711,
    "wall": 0,
    "a": [
@@ -3957,7 +3957,7 @@
    "normal_deg": 351.5
   },
   {
-   "texture": "5712-2.jpg",
+   "texture": "5712-2.webp",
    "building": 5712,
    "wall": 2,
    "a": [
@@ -3996,7 +3996,7 @@
    "normal_deg": 351.2
   },
   {
-   "texture": "5712-6.jpg",
+   "texture": "5712-6.webp",
    "building": 5712,
    "wall": 6,
    "a": [
@@ -4035,7 +4035,7 @@
    "normal_deg": 261.2
   },
   {
-   "texture": "5713-2.jpg",
+   "texture": "5713-2.webp",
    "building": 5713,
    "wall": 2,
    "a": [
@@ -4074,7 +4074,7 @@
    "normal_deg": 171.2
   },
   {
-   "texture": "5716-1.jpg",
+   "texture": "5716-1.webp",
    "building": 5716,
    "wall": 1,
    "a": [
@@ -4113,7 +4113,7 @@
    "normal_deg": 349.7
   },
   {
-   "texture": "5716-2.jpg",
+   "texture": "5716-2.webp",
    "building": 5716,
    "wall": 2,
    "a": [
@@ -4152,7 +4152,7 @@
    "normal_deg": 79.9
   },
   {
-   "texture": "5716-5.jpg",
+   "texture": "5716-5.webp",
    "building": 5716,
    "wall": 5,
    "a": [
@@ -4191,7 +4191,7 @@
    "normal_deg": 169.6
   },
   {
-   "texture": "5718-0.jpg",
+   "texture": "5718-0.webp",
    "building": 5718,
    "wall": 0,
    "a": [
@@ -4230,7 +4230,7 @@
    "normal_deg": 261.3
   },
   {
-   "texture": "5718-5.jpg",
+   "texture": "5718-5.webp",
    "building": 5718,
    "wall": 5,
    "a": [
@@ -4269,7 +4269,7 @@
    "normal_deg": 351.1
   },
   {
-   "texture": "5718-9.jpg",
+   "texture": "5718-9.webp",
    "building": 5718,
    "wall": 9,
    "a": [
@@ -4308,7 +4308,7 @@
    "normal_deg": 171.1
   },
   {
-   "texture": "5719-0.jpg",
+   "texture": "5719-0.webp",
    "building": 5719,
    "wall": 0,
    "a": [
@@ -4347,7 +4347,7 @@
    "normal_deg": 261.4
   },
   {
-   "texture": "5719-4.jpg",
+   "texture": "5719-4.webp",
    "building": 5719,
    "wall": 4,
    "a": [
@@ -4386,7 +4386,7 @@
    "normal_deg": 81.0
   },
   {
-   "texture": "5719-5.jpg",
+   "texture": "5719-5.webp",
    "building": 5719,
    "wall": 5,
    "a": [
@@ -4425,7 +4425,7 @@
    "normal_deg": 171.5
   },
   {
-   "texture": "5719-7.jpg",
+   "texture": "5719-7.webp",
    "building": 5719,
    "wall": 7,
    "a": [
@@ -4464,7 +4464,7 @@
    "normal_deg": 171.5
   },
   {
-   "texture": "5721-6.jpg",
+   "texture": "5721-6.webp",
    "building": 5721,
    "wall": 6,
    "a": [
@@ -4503,7 +4503,7 @@
    "normal_deg": 350.5
   },
   {
-   "texture": "5721-7.jpg",
+   "texture": "5721-7.webp",
    "building": 5721,
    "wall": 7,
    "a": [
@@ -4542,7 +4542,7 @@
    "normal_deg": 80.2
   },
   {
-   "texture": "5721-9.jpg",
+   "texture": "5721-9.webp",
    "building": 5721,
    "wall": 9,
    "a": [
@@ -4581,7 +4581,7 @@
    "normal_deg": 170.1
   },
   {
-   "texture": "5722-0.jpg",
+   "texture": "5722-0.webp",
    "building": 5722,
    "wall": 0,
    "a": [
@@ -4620,7 +4620,7 @@
    "normal_deg": 351.6
   },
   {
-   "texture": "5722-2.jpg",
+   "texture": "5722-2.webp",
    "building": 5722,
    "wall": 2,
    "a": [
@@ -4659,7 +4659,7 @@
    "normal_deg": 170.3
   },
   {
-   "texture": "5722-4.jpg",
+   "texture": "5722-4.webp",
    "building": 5722,
    "wall": 4,
    "a": [
@@ -4698,7 +4698,7 @@
    "normal_deg": 351.3
   },
   {
-   "texture": "5722-5.jpg",
+   "texture": "5722-5.webp",
    "building": 5722,
    "wall": 5,
    "a": [
@@ -4737,7 +4737,7 @@
    "normal_deg": 81.1
   },
   {
-   "texture": "5722-8.jpg",
+   "texture": "5722-8.webp",
    "building": 5722,
    "wall": 8,
    "a": [
@@ -4776,7 +4776,7 @@
    "normal_deg": 261.1
   },
   {
-   "texture": "5723-7.jpg",
+   "texture": "5723-7.webp",
    "building": 5723,
    "wall": 7,
    "a": [
@@ -4815,7 +4815,7 @@
    "normal_deg": 261.1
   },
   {
-   "texture": "5723-13.jpg",
+   "texture": "5723-13.webp",
    "building": 5723,
    "wall": 13,
    "a": [
@@ -4854,7 +4854,7 @@
    "normal_deg": 351.1
   },
   {
-   "texture": "5723-14.jpg",
+   "texture": "5723-14.webp",
    "building": 5723,
    "wall": 14,
    "a": [
@@ -4893,7 +4893,7 @@
    "normal_deg": 81.3
   },
   {
-   "texture": "5723-18.jpg",
+   "texture": "5723-18.webp",
    "building": 5723,
    "wall": 18,
    "a": [
@@ -4932,7 +4932,7 @@
    "normal_deg": 260.9
   },
   {
-   "texture": "5723-19.jpg",
+   "texture": "5723-19.webp",
    "building": 5723,
    "wall": 19,
    "a": [
@@ -4971,7 +4971,7 @@
    "normal_deg": 170.7
   },
   {
-   "texture": "5724-1.jpg",
+   "texture": "5724-1.webp",
    "building": 5724,
    "wall": 1,
    "a": [
@@ -5010,7 +5010,7 @@
    "normal_deg": 260.7
   },
   {
-   "texture": "5724-5.jpg",
+   "texture": "5724-5.webp",
    "building": 5724,
    "wall": 5,
    "a": [
@@ -5049,7 +5049,7 @@
    "normal_deg": 261.0
   },
   {
-   "texture": "5724-10.jpg",
+   "texture": "5724-10.webp",
    "building": 5724,
    "wall": 10,
    "a": [
@@ -5088,7 +5088,7 @@
    "normal_deg": 351.0
   },
   {
-   "texture": "5725-7.jpg",
+   "texture": "5725-7.webp",
    "building": 5725,
    "wall": 7,
    "a": [
@@ -5127,7 +5127,7 @@
    "normal_deg": 171.1
   },
   {
-   "texture": "5725-10.jpg",
+   "texture": "5725-10.webp",
    "building": 5725,
    "wall": 10,
    "a": [
@@ -5166,7 +5166,7 @@
    "normal_deg": 260.8
   },
   {
-   "texture": "5725-11.jpg",
+   "texture": "5725-11.webp",
    "building": 5725,
    "wall": 11,
    "a": [
@@ -5205,7 +5205,7 @@
    "normal_deg": 351.2
   },
   {
-   "texture": "5727-1.jpg",
+   "texture": "5727-1.webp",
    "building": 5727,
    "wall": 1,
    "a": [
@@ -5244,7 +5244,7 @@
    "normal_deg": 171.3
   },
   {
-   "texture": "5727-3.jpg",
+   "texture": "5727-3.webp",
    "building": 5727,
    "wall": 3,
    "a": [
@@ -5283,7 +5283,7 @@
    "normal_deg": 260.8
   },
   {
-   "texture": "5731-0.jpg",
+   "texture": "5731-0.webp",
    "building": 5731,
    "wall": 0,
    "a": [
@@ -5322,7 +5322,7 @@
    "normal_deg": 261.2
   },
   {
-   "texture": "5731-4.jpg",
+   "texture": "5731-4.webp",
    "building": 5731,
    "wall": 4,
    "a": [
@@ -5361,7 +5361,7 @@
    "normal_deg": 171.0
   },
   {
-   "texture": "5733-1.jpg",
+   "texture": "5733-1.webp",
    "building": 5733,
    "wall": 1,
    "a": [
@@ -5400,7 +5400,7 @@
    "normal_deg": 260.9
   },
   {
-   "texture": "5733-3.jpg",
+   "texture": "5733-3.webp",
    "building": 5733,
    "wall": 3,
    "a": [
@@ -5439,7 +5439,7 @@
    "normal_deg": 80.9
   },
   {
-   "texture": "5733-4.jpg",
+   "texture": "5733-4.webp",
    "building": 5733,
    "wall": 4,
    "a": [
@@ -5478,7 +5478,7 @@
    "normal_deg": 170.9
   },
   {
-   "texture": "5734-5.jpg",
+   "texture": "5734-5.webp",
    "building": 5734,
    "wall": 5,
    "a": [
@@ -5517,7 +5517,7 @@
    "normal_deg": 351.2
   },
   {
-   "texture": "5752-9.jpg",
+   "texture": "5752-9.webp",
    "building": 5752,
    "wall": 9,
    "a": [
@@ -5556,7 +5556,7 @@
    "normal_deg": 171.3
   },
   {
-   "texture": "5753-0.jpg",
+   "texture": "5753-0.webp",
    "building": 5753,
    "wall": 0,
    "a": [
@@ -5595,7 +5595,7 @@
    "normal_deg": 260.9
   },
   {
-   "texture": "5753-6.jpg",
+   "texture": "5753-6.webp",
    "building": 5753,
    "wall": 6,
    "a": [
@@ -5634,7 +5634,7 @@
    "normal_deg": 171.1
   },
   {
-   "texture": "5753-8.jpg",
+   "texture": "5753-8.webp",
    "building": 5753,
    "wall": 8,
    "a": [
@@ -5673,7 +5673,7 @@
    "normal_deg": 171.0
   },
   {
-   "texture": "5754-5.jpg",
+   "texture": "5754-5.webp",
    "building": 5754,
    "wall": 5,
    "a": [
@@ -5712,7 +5712,7 @@
    "normal_deg": 171.2
   },
   {
-   "texture": "5754-6.jpg",
+   "texture": "5754-6.webp",
    "building": 5754,
    "wall": 6,
    "a": [
@@ -5751,7 +5751,7 @@
    "normal_deg": 261.2
   },
   {
-   "texture": "5754-8.jpg",
+   "texture": "5754-8.webp",
    "building": 5754,
    "wall": 8,
    "a": [
@@ -5790,7 +5790,7 @@
    "normal_deg": 260.6
   },
   {
-   "texture": "5754-10.jpg",
+   "texture": "5754-10.webp",
    "building": 5754,
    "wall": 10,
    "a": [
@@ -5829,7 +5829,7 @@
    "normal_deg": 260.9
   },
   {
-   "texture": "5755-1.jpg",
+   "texture": "5755-1.webp",
    "building": 5755,
    "wall": 1,
    "a": [
@@ -5868,7 +5868,7 @@
    "normal_deg": 260.7
   },
   {
-   "texture": "5755-2.jpg",
+   "texture": "5755-2.webp",
    "building": 5755,
    "wall": 2,
    "a": [
@@ -5907,7 +5907,7 @@
    "normal_deg": 260.8
   },
   {
-   "texture": "5755-3.jpg",
+   "texture": "5755-3.webp",
    "building": 5755,
    "wall": 3,
    "a": [
@@ -5946,7 +5946,7 @@
    "normal_deg": 261.2
   },
   {
-   "texture": "5756-1.jpg",
+   "texture": "5756-1.webp",
    "building": 5756,
    "wall": 1,
    "a": [
@@ -5985,7 +5985,7 @@
    "normal_deg": 350.7
   },
   {
-   "texture": "5757-0.jpg",
+   "texture": "5757-0.webp",
    "building": 5757,
    "wall": 0,
    "a": [
@@ -6024,7 +6024,7 @@
    "normal_deg": 261.3
   },
   {
-   "texture": "5758-1.jpg",
+   "texture": "5758-1.webp",
    "building": 5758,
    "wall": 1,
    "a": [
@@ -6063,7 +6063,7 @@
    "normal_deg": 261.0
   },
   {
-   "texture": "5758-2.jpg",
+   "texture": "5758-2.webp",
    "building": 5758,
    "wall": 2,
    "a": [
@@ -6102,7 +6102,7 @@
    "normal_deg": 350.9
   },
   {
-   "texture": "5759-5.jpg",
+   "texture": "5759-5.webp",
    "building": 5759,
    "wall": 5,
    "a": [
@@ -6141,7 +6141,7 @@
    "normal_deg": 170.7
   },
   {
-   "texture": "5760-0.jpg",
+   "texture": "5760-0.webp",
    "building": 5760,
    "wall": 0,
    "a": [
@@ -6180,7 +6180,7 @@
    "normal_deg": 170.8
   },
   {
-   "texture": "5760-1.jpg",
+   "texture": "5760-1.webp",
    "building": 5760,
    "wall": 1,
    "a": [
@@ -6219,7 +6219,7 @@
    "normal_deg": 261.0
   },
   {
-   "texture": "5760-2.jpg",
+   "texture": "5760-2.webp",
    "building": 5760,
    "wall": 2,
    "a": [
@@ -6258,7 +6258,7 @@
    "normal_deg": 350.9
   },
   {
-   "texture": "5761-0.jpg",
+   "texture": "5761-0.webp",
    "building": 5761,
    "wall": 0,
    "a": [
@@ -6297,7 +6297,7 @@
    "normal_deg": 261.0
   },
   {
-   "texture": "5761-1.jpg",
+   "texture": "5761-1.webp",
    "building": 5761,
    "wall": 1,
    "a": [
@@ -6336,7 +6336,7 @@
    "normal_deg": 351.3
   },
   {
-   "texture": "5761-3.jpg",
+   "texture": "5761-3.webp",
    "building": 5761,
    "wall": 3,
    "a": [
@@ -6375,7 +6375,7 @@
    "normal_deg": 81.2
   },
   {
-   "texture": "5761-8.jpg",
+   "texture": "5761-8.webp",
    "building": 5761,
    "wall": 8,
    "a": [
@@ -6414,7 +6414,7 @@
    "normal_deg": 171.0
   },
   {
-   "texture": "5762-5.jpg",
+   "texture": "5762-5.webp",
    "building": 5762,
    "wall": 5,
    "a": [
@@ -6453,7 +6453,7 @@
    "normal_deg": 351.4
   },
   {
-   "texture": "5763-2.jpg",
+   "texture": "5763-2.webp",
    "building": 5763,
    "wall": 2,
    "a": [
@@ -6492,7 +6492,7 @@
    "normal_deg": 81.1
   },
   {
-   "texture": "5767-0.jpg",
+   "texture": "5767-0.webp",
    "building": 5767,
    "wall": 0,
    "a": [
@@ -6531,7 +6531,7 @@
    "normal_deg": 261.1
   },
   {
-   "texture": "5767-1.jpg",
+   "texture": "5767-1.webp",
    "building": 5767,
    "wall": 1,
    "a": [
@@ -6570,7 +6570,7 @@
    "normal_deg": 350.6
   },
   {
-   "texture": "5767-5.jpg",
+   "texture": "5767-5.webp",
    "building": 5767,
    "wall": 5,
    "a": [
@@ -6609,7 +6609,7 @@
    "normal_deg": 171.8
   },
   {
-   "texture": "5768-4.jpg",
+   "texture": "5768-4.webp",
    "building": 5768,
    "wall": 4,
    "a": [
@@ -6648,7 +6648,7 @@
    "normal_deg": 351.2
   },
   {
-   "texture": "5771-5.jpg",
+   "texture": "5771-5.webp",
    "building": 5771,
    "wall": 5,
    "a": [
@@ -6687,7 +6687,7 @@
    "normal_deg": 261.0
   },
   {
-   "texture": "5772-0.jpg",
+   "texture": "5772-0.webp",
    "building": 5772,
    "wall": 0,
    "a": [
@@ -6726,7 +6726,7 @@
    "normal_deg": 350.9
   },
   {
-   "texture": "5774-2.jpg",
+   "texture": "5774-2.webp",
    "building": 5774,
    "wall": 2,
    "a": [
@@ -6763,7 +6763,7 @@
    "normal_deg": 351.2
   },
   {
-   "texture": "5774-3.jpg",
+   "texture": "5774-3.webp",
    "building": 5774,
    "wall": 3,
    "a": [
@@ -6802,7 +6802,7 @@
    "normal_deg": 81.1
   },
   {
-   "texture": "5774-4.jpg",
+   "texture": "5774-4.webp",
    "building": 5774,
    "wall": 4,
    "a": [
@@ -6841,7 +6841,7 @@
    "normal_deg": 171.2
   },
   {
-   "texture": "5776-2.jpg",
+   "texture": "5776-2.webp",
    "building": 5776,
    "wall": 2,
    "a": [
@@ -6880,7 +6880,7 @@
    "normal_deg": 351.8
   },
   {
-   "texture": "5777-2.jpg",
+   "texture": "5777-2.webp",
    "building": 5777,
    "wall": 2,
    "a": [
@@ -6919,7 +6919,7 @@
    "normal_deg": 261.1
   },
   {
-   "texture": "5777-3.jpg",
+   "texture": "5777-3.webp",
    "building": 5777,
    "wall": 3,
    "a": [
@@ -6958,7 +6958,7 @@
    "normal_deg": 350.8
   },
   {
-   "texture": "5777-5.jpg",
+   "texture": "5777-5.webp",
    "building": 5777,
    "wall": 5,
    "a": [
@@ -6997,7 +6997,7 @@
    "normal_deg": 81.1
   },
   {
-   "texture": "5777-6.jpg",
+   "texture": "5777-6.webp",
    "building": 5777,
    "wall": 6,
    "a": [
@@ -7036,7 +7036,7 @@
    "normal_deg": 170.8
   },
   {
-   "texture": "5778-0.jpg",
+   "texture": "5778-0.webp",
    "building": 5778,
    "wall": 0,
    "a": [
@@ -7075,7 +7075,7 @@
    "normal_deg": 350.7
   },
   {
-   "texture": "5778-1.jpg",
+   "texture": "5778-1.webp",
    "building": 5778,
    "wall": 1,
    "a": [
@@ -7114,7 +7114,7 @@
    "normal_deg": 80.9
   },
   {
-   "texture": "5778-8.jpg",
+   "texture": "5778-8.webp",
    "building": 5778,
    "wall": 8,
    "a": [
@@ -7153,7 +7153,7 @@
    "normal_deg": 261.5
   },
   {
-   "texture": "5779-6.jpg",
+   "texture": "5779-6.webp",
    "building": 5779,
    "wall": 6,
    "a": [
@@ -7192,7 +7192,7 @@
    "normal_deg": 261.0
   },
   {
-   "texture": "5781-4.jpg",
+   "texture": "5781-4.webp",
    "building": 5781,
    "wall": 4,
    "a": [
@@ -7231,7 +7231,7 @@
    "normal_deg": 81.5
   },
   {
-   "texture": "5782-4.jpg",
+   "texture": "5782-4.webp",
    "building": 5782,
    "wall": 4,
    "a": [
@@ -7270,7 +7270,7 @@
    "normal_deg": 81.5
   },
   {
-   "texture": "5782-6.jpg",
+   "texture": "5782-6.webp",
    "building": 5782,
    "wall": 6,
    "a": [
@@ -7309,7 +7309,7 @@
    "normal_deg": 172.0
   },
   {
-   "texture": "5783-1.jpg",
+   "texture": "5783-1.webp",
    "building": 5783,
    "wall": 1,
    "a": [
@@ -7345,7 +7345,7 @@
    "normal_deg": 261.5
   },
   {
-   "texture": "5783-9.jpg",
+   "texture": "5783-9.webp",
    "building": 5783,
    "wall": 9,
    "a": [
@@ -7384,7 +7384,7 @@
    "normal_deg": 81.9
   },
   {
-   "texture": "5784-3.jpg",
+   "texture": "5784-3.webp",
    "building": 5784,
    "wall": 3,
    "a": [
@@ -7423,7 +7423,7 @@
    "normal_deg": 262.9
   },
   {
-   "texture": "5784-4.jpg",
+   "texture": "5784-4.webp",
    "building": 5784,
    "wall": 4,
    "a": [
@@ -7462,7 +7462,7 @@
    "normal_deg": 351.6
   },
   {
-   "texture": "5785-11.jpg",
+   "texture": "5785-11.webp",
    "building": 5785,
    "wall": 11,
    "a": [
@@ -7501,7 +7501,7 @@
    "normal_deg": 172.1
   },
   {
-   "texture": "5785-12.jpg",
+   "texture": "5785-12.webp",
    "building": 5785,
    "wall": 12,
    "a": [
@@ -7542,7 +7542,7 @@
    "normal_deg": 261.8
   },
   {
-   "texture": "5786-2.jpg",
+   "texture": "5786-2.webp",
    "building": 5786,
    "wall": 2,
    "a": [
@@ -7581,7 +7581,7 @@
    "normal_deg": 171.6
   },
   {
-   "texture": "5787-3.jpg",
+   "texture": "5787-3.webp",
    "building": 5787,
    "wall": 3,
    "a": [
@@ -7620,7 +7620,7 @@
    "normal_deg": 351.5
   },
   {
-   "texture": "5791-3.jpg",
+   "texture": "5791-3.webp",
    "building": 5791,
    "wall": 3,
    "a": [
@@ -7659,7 +7659,7 @@
    "normal_deg": 352.5
   },
   {
-   "texture": "5792-3.jpg",
+   "texture": "5792-3.webp",
    "building": 5792,
    "wall": 3,
    "a": [
@@ -7698,7 +7698,7 @@
    "normal_deg": 351.5
   },
   {
-   "texture": "5793-0.jpg",
+   "texture": "5793-0.webp",
    "building": 5793,
    "wall": 0,
    "a": [
@@ -7739,7 +7739,7 @@
    "normal_deg": 261.7
   },
   {
-   "texture": "5793-6.jpg",
+   "texture": "5793-6.webp",
    "building": 5793,
    "wall": 6,
    "a": [
@@ -7778,7 +7778,7 @@
    "normal_deg": 171.5
   },
   {
-   "texture": "5796-5.jpg",
+   "texture": "5796-5.webp",
    "building": 5796,
    "wall": 5,
    "a": [
@@ -7817,7 +7817,7 @@
    "normal_deg": 81.2
   },
   {
-   "texture": "5797-6.jpg",
+   "texture": "5797-6.webp",
    "building": 5797,
    "wall": 6,
    "a": [
@@ -7856,7 +7856,7 @@
    "normal_deg": 171.8
   },
   {
-   "texture": "5799-7.jpg",
+   "texture": "5799-7.webp",
    "building": 5799,
    "wall": 7,
    "a": [
@@ -7897,7 +7897,7 @@
    "normal_deg": 171.9
   },
   {
-   "texture": "5800-4.jpg",
+   "texture": "5800-4.webp",
    "building": 5800,
    "wall": 4,
    "a": [
@@ -7936,7 +7936,7 @@
    "normal_deg": 81.6
   },
   {
-   "texture": "5800-6.jpg",
+   "texture": "5800-6.webp",
    "building": 5800,
    "wall": 6,
    "a": [
@@ -7975,7 +7975,7 @@
    "normal_deg": 82.3
   },
   {
-   "texture": "5877-1.jpg",
+   "texture": "5877-1.webp",
    "building": 5877,
    "wall": 1,
    "a": [
@@ -8014,7 +8014,7 @@
    "normal_deg": 171.0
   },
   {
-   "texture": "5877-2.jpg",
+   "texture": "5877-2.webp",
    "building": 5877,
    "wall": 2,
    "a": [
@@ -8053,7 +8053,7 @@
    "normal_deg": 261.3
   },
   {
-   "texture": "5877-11.jpg",
+   "texture": "5877-11.webp",
    "building": 5877,
    "wall": 11,
    "a": [
@@ -8092,7 +8092,7 @@
    "normal_deg": 350.6
   },
   {
-   "texture": "5891-1.jpg",
+   "texture": "5891-1.webp",
    "building": 5891,
    "wall": 1,
    "a": [
@@ -8131,7 +8131,7 @@
    "normal_deg": 261.2
   },
   {
-   "texture": "5891-3.jpg",
+   "texture": "5891-3.webp",
    "building": 5891,
    "wall": 3,
    "a": [
@@ -8170,7 +8170,7 @@
    "normal_deg": 261.8
   },
   {
-   "texture": "14928-3.jpg",
+   "texture": "14928-3.webp",
    "building": 14928,
    "wall": 3,
    "a": [
@@ -8209,7 +8209,7 @@
    "normal_deg": 351.3
   },
   {
-   "texture": "14973-0.jpg",
+   "texture": "14973-0.webp",
    "building": 14973,
    "wall": 0,
    "a": [
@@ -8248,7 +8248,7 @@
    "normal_deg": 261.3
   },
   {
-   "texture": "14973-13.jpg",
+   "texture": "14973-13.webp",
    "building": 14973,
    "wall": 13,
    "a": [
@@ -8287,7 +8287,7 @@
    "normal_deg": 170.7
   },
   {
-   "texture": "14974-2.jpg",
+   "texture": "14974-2.webp",
    "building": 14974,
    "wall": 2,
    "a": [
@@ -8326,7 +8326,7 @@
    "normal_deg": 81.1
   },
   {
-   "texture": "14974-3.jpg",
+   "texture": "14974-3.webp",
    "building": 14974,
    "wall": 3,
    "a": [
@@ -8365,7 +8365,7 @@
    "normal_deg": 170.9
   },
   {
-   "texture": "14975-1.jpg",
+   "texture": "14975-1.webp",
    "building": 14975,
    "wall": 1,
    "a": [
@@ -8404,7 +8404,7 @@
    "normal_deg": 81.0
   },
   {
-   "texture": "14975-4.jpg",
+   "texture": "14975-4.webp",
    "building": 14975,
    "wall": 4,
    "a": [
@@ -8443,7 +8443,7 @@
    "normal_deg": 260.9
   },
   {
-   "texture": "14978-3.jpg",
+   "texture": "14978-3.webp",
    "building": 14978,
    "wall": 3,
    "a": [
@@ -8482,7 +8482,7 @@
    "normal_deg": 81.4
   },
   {
-   "texture": "14979-1.jpg",
+   "texture": "14979-1.webp",
    "building": 14979,
    "wall": 1,
    "a": [
@@ -8521,7 +8521,7 @@
    "normal_deg": 170.6
   },
   {
-   "texture": "14979-2.jpg",
+   "texture": "14979-2.webp",
    "building": 14979,
    "wall": 2,
    "a": [
@@ -8560,7 +8560,7 @@
    "normal_deg": 81.2
   },
   {
-   "texture": "15132-2.jpg",
+   "texture": "15132-2.webp",
    "building": 15132,
    "wall": 2,
    "a": [

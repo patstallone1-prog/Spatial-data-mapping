@@ -34,6 +34,20 @@ from smc.world.object import (  # noqa: E402
 SURVEY = ROOT / "data/sf_public_works/facade_survey.json"
 MODEL = ROOT / "docs/sf-corridor-3d.json"
 OUT = ROOT / "data/regions/sf-corridor/world"
+#: Journal ids are "<prefix>:building:<osm id>"; the corridor's stay "sf" so its journal resumes.
+PREFIX = "sf"
+
+
+def configure_region(region: str) -> None:
+    """Point the survey, the prior model and the journal at another built region. Every region
+    has its own facade survey (scripts/build_facade_survey.py) beside its official records."""
+    global SURVEY, MODEL, OUT, PREFIX
+    if region == "sf-corridor":
+        return
+    SURVEY = ROOT / "data/regions" / region / "official/facade_survey.json"
+    MODEL = ROOT / "docs/regions" / region / "sf-corridor-3d.json"
+    OUT = ROOT / "data/regions" / region / "world"
+    PREFIX = region
 MIN_VIEWS = 3
 MIN_AGREEMENT = 0.75
 MIN_COVERAGE = 0.70
@@ -164,7 +178,7 @@ def build(limit: int | None = None) -> dict:
             if way is None:
                 reasons["missing_prior_building"] += 1
                 continue
-            object_id = f"sf:building:{osm_id}"
+            object_id = f"{PREFIX}:building:{osm_id}"
             source_hash = _digest(way, surveyed)
             if latest.get(object_id, {}).get("source_hash") == source_hash:
                 continue
@@ -194,7 +208,10 @@ def build(limit: int | None = None) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--region", default="sf-corridor",
+                        help="a built region with its own official/facade_survey.json")
     args = parser.parse_args()
+    configure_region(args.region)
     print(json.dumps(build(args.limit), indent=2))
 
 

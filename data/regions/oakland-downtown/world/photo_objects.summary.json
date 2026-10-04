@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 1023,
+  "attempted_this_run": 1023,
+  "journaled_buildings": 1023,
+  "accepted_buildings": 551,
+  "reasons_this_run": {
+    "opening_outside_prior": 4802,
+    "no_accepted_openings": 330,
+    "no_accepted_photo_wall": 394,
+    "weak_multiview_wall": 481,
+    "invalid_fitted_wall": 118
+  },
+  "journal": "data/regions/oakland-downtown/world/photo_objects.journal.jsonl"
+}

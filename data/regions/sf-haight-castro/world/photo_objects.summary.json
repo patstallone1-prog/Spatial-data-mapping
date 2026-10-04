@@ -1,0 +1,14 @@
+{
+  "surveyed_buildings": 1446,
+  "attempted_this_run": 1446,
+  "journaled_buildings": 1446,
+  "accepted_buildings": 584,
+  "reasons_this_run": {
+    "weak_multiview_wall": 752,
+    "no_accepted_photo_wall": 859,
+    "opening_outside_prior": 2231,
+    "no_accepted_openings": 447,
+    "invalid_fitted_wall": 3
+  },
+  "journal": "data/regions/sf-haight-castro/world/photo_objects.journal.jsonl"
+}

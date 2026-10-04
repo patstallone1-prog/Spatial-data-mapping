@@ -1,0 +1,102 @@
+{
+ "chunk": "c03r09",
+ "bbox": {
+  "west": -122.43897362313612,
+  "south": 37.80621209389269,
+  "east": -122.43613149751484,
+  "north": 37.80845788210299
+ },
+ "generated_at": "2026-10-02T11:19:18Z",
+ "buildings_in_chunk": 10,
+ "walls_attempted": 18,
+ "walls_textured": 2,
+ "failures": {
+  "too few views to check against each other": 13,
+  "no frame held any of the wall": 2,
+  "the views disagree -- a pose is wrong": 1
+ },
+ "kind": "photo texture: street photographs rectified onto the wall's plane (not a 3D mesh)",
+ "min_agreement": 0.75,
+ "gates": [
+  "solved orientation",
+  "view sees the wall",
+  "not behind a tree",
+  "agreement >= 0.75",
+  "rectilinearity >= 0.4",
+  "right way up"
+ ],
+ "spherical_convention": "equirectangular centre column on the reported compass heading",
+ "licenses": {
+  "CC-BY-SA-4.0": 2
+ },
+ "walls": [
+  {
+   "texture": "12246-2.webp",
+   "building": 12246,
+   "wall": 2,
+   "a": [
+    -122.4370002,
+    37.8063206
+   ],
+   "b": [
+    -122.4369761,
+    37.8061889
+   ],
+   "normal_deg": 81.8,
+   "height_m": 8.86,
+   "photo_height_m": 8.86,
+   "coverage": 1.0,
+   "agreement": 0.753,
+   "views": 3,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "bdb7a4691ea500e8794cb29779d613fc",
+    "8f8c4b95d56ba18437ae17858c519296",
+    "75f2a1e51554eea26a3dd60a9c878547"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  },
+  {
+   "texture": "12253-6.webp",
+   "building": 12253,
+   "wall": 6,
+   "a": [
+    -122.4364065,
+    37.8063201
+   ],
+   "b": [
+    -122.4363948,
+    37.8063821
+   ],
+   "normal_deg": 278.5,
+   "height_m": 9.51,
+   "photo_height_m": 9.51,
+   "coverage": 1.0,
+   "agreement": 0.752,
+   "views": 3,
+   "rejected_views": 0,
+   "providers": [
+    "mapillary"
+   ],
+   "observations": [
+    "0d0d2c5f59e7cbd46cee51b027ad3e53",
+    "1d3529d01c30672262efa9e4d6ace066",
+    "e6306a93b073ed02aea307f38c7df05c"
+   ],
+   "licenses": [
+    "CC-BY-SA-4.0"
+   ],
+   "attribution": [
+    "\u00a9 Mapillary contributors, CC BY-SA 4.0"
+   ]
+  }
+ ]
+}
