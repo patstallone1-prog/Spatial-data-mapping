@@ -1,6 +1,10 @@
 """A generated page must not become a newer, unrepeatable renderer version."""
 
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from tests.test_world_object_renderer import _extract, _page_js
 
@@ -29,8 +33,24 @@ def test_every_installed_city_uses_the_current_house_and_collision_code() -> Non
         for name in ("wallPanels", "regularHomeWindows", "buildHomeShell", "batchHomeShell",
                      "buildInterior", "insideEntranceRecess", "nearestDoor", "wallSegmentsNear",
                      "planInwardStoop", "moveWalker", "maskedGrassMaterial", "grassRasterRows",
-                     "homeStoreyCount", "furnishingPlacement", "addressLanding"):
+                     "homeStoreyCount", "furnishingPlacement", "addressLanding",
+                     "roomCameraPose", "currentRoomCamera", "setCeilingView", "placeCamera",
+                     "scanPointToPage", "requestScannedInterior", "pageToTerrain", "terrainToPage",
+                     "rawTerrainHeightAt", "mappedWaterAt", "mappedBuiltAt", "terrainFlatRadius",
+                     "scanEntrancePlan", "scanEntranceContains", "scanRecessPlan", "adaptScanEntrance"):
             assert _extract(name, text) == _extract(name, current), f"stale {name}: {page}"
+
+
+def test_every_published_viewer_has_valid_module_syntax():
+    if not shutil.which("node"):
+        pytest.skip("Node required for published JavaScript syntax checking")
+    pages = [ROOT / "docs/sf-corridor-3d.html", ROOT / "docs/app-model.html",
+             *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]
+    for page in pages:
+        module = page.read_text().split('<script type="module">', 1)[1].split("</script>", 1)[0]
+        result = subprocess.run(["node", "--check", "--input-type=module"], input=module,
+                                text=True, capture_output=True, timeout=15, check=False)
+        assert result.returncode == 0, f"{page}: {result.stderr}"
 
 
 def test_app_build_uses_source_not_an_old_viewer_cache() -> None:
