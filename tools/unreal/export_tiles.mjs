@@ -19,11 +19,13 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import * as THREE_REAL from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
-import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { triangleRange, usableTriangle, exactIndex, deduplicateFaces } from "./geometry.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -37,7 +39,8 @@ const ONLY = flag("--only", null);
 // needs nothing but the directory they live in -- it was hard-wired to docs/ and so only the
 // corridor could ever be exported, which is why seven of the eight built worlds had no tiles.
 const REGION = flag("--region", null);
-const WORLD = REGION ? `docs/regions/${REGION}` : "docs";
+const WORLD = REGION ? `docs/app-regions/${REGION}` : "docs";
+const PAGE = "app-model.html";
 const GROUPS = ["streets", "mapped3d", "ground", "furniture"];
 
 // ---- the browser the page expects, minus the drawing ------------------------------------
@@ -109,7 +112,7 @@ globalThis.fetch = async (url) => {
 
 // ---- the page, as a module ---------------------------------------------------------------
 function pageModule() {
-  const html = readFileSync(resolve(ROOT, WORLD, "sf-corridor-3d.html"), "utf8");
+  const html = readFileSync(resolve(ROOT, WORLD, PAGE), "utf8");
   const start = html.indexOf('<script type="module">') + '<script type="module">'.length;
   let js = html.slice(start, html.indexOf("</script>", start));
   js = js.replace(/^import \* as THREE from "[^"]+";/m, "const THREE = globalThis.__THREE;");
@@ -129,13 +132,18 @@ async function main() {
   for (let i = 0; i < 100 && !(k.groups.ground.children.length > 3); i += 1) await new Promise((r) => setTimeout(r, 100));
   console.log(`page built in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${k.DATA.ways.length} ways`);
 
-  const frame = k.TERRAIN ? k.TERRAIN.meta.frame : null;
+  // Mesh coordinates belong to the viewer bbox frame, NOT necessarily the lidar grid.
+  const bounds = k.DATA.bbox;
+  const midLat = (bounds.south + bounds.north) / 2;
+  const frame = { mid_lon: (bounds.west + bounds.east) / 2, mid_lat: midLat,
+    metres_per_lat: 111320, metres_per_lon: 111320 * Math.cos(midLat * Math.PI / 180),
+    vertical_datum: k.TERRAIN?.meta?.vertical_datum || "source terrain datum; verify sidecar" };
   const tiles = new Map();   // "ix:iz" -> Map(materialKey -> {geometries, material, surface})
   const tileKey = (x, z) => `${Math.floor(x / TILE_M)}:${Math.floor(z / TILE_M)}`;
   const only = ONLY ? new Set(ONLY.split(";")) : null;
 
   const m4 = new THREE.Matrix4();
-  let meshes = 0, triangles = 0;
+  let meshes = 0, triangles = 0, degenerateDropped = 0;
   function add(geometry, matrixWorld, material, surface) {
     const g = geometry.index ? geometry.toNonIndexed() : geometry.clone();
     g.applyMatrix4(matrixWorld);
@@ -143,13 +151,16 @@ async function main() {
     // "recompute normals"): shipping them was a third of every tile.
     for (const name of Object.keys(g.attributes)) if (!["position", "uv", "color"].includes(name)) g.deleteAttribute(name);
     const pos = g.getAttribute("position");
+    const [start, end] = triangleRange(geometry, pos.count);
     // Cut by triangle centroid into tiles.
     const byTile = new Map();
-    for (let t = 0; t < pos.count; t += 3) {
+    for (let t = start; t < end; t += 3) {
       const cx = (pos.getX(t) + pos.getX(t + 1) + pos.getX(t + 2)) / 3;
       const cz = (pos.getZ(t) + pos.getZ(t + 1) + pos.getZ(t + 2)) / 3;
+      if (!Number.isFinite(cx) || !Number.isFinite(cz)) throw new Error("Nonfinite world coordinates; export rejected");
       const key = tileKey(cx, cz);
       if (only && !only.has(key)) continue;
+      if (!usableTriangle(pos, t)) { degenerateDropped += 1; continue; }
       let list = byTile.get(key);
       if (!list) byTile.set(key, list = []);
       list.push(t);
@@ -201,23 +212,27 @@ async function main() {
       add(o.geometry, o.matrixWorld, Array.isArray(o.material) ? o.material[0] : o.material, surface);
     });
   }
-  console.log(`${meshes} meshes cut into ${tiles.size} tiles, ${triangles} triangles`);
+  console.log(`${meshes} meshes cut into ${tiles.size} tiles, ${triangles} triangles; ${degenerateDropped} zero-area placeholders excluded`);
 
   const exporter = new GLTFExporter();
-  const manifest = { tile_m: TILE_M, frame, units: "metres, y up (glTF); the importer turns it z up",
-                     tiles: [], surfaces: {} };
+  const manifest = { schema_version: 2, geometry_contract: "active-nondegenerate-v1", region: REGION || "sf-corridor", tile_m: TILE_M, frame,
+                     renderer_sha256: createHash("sha256").update(readFileSync(resolve(ROOT, WORLD, PAGE))).digest("hex"),
+                     units: "metres, y up (glTF); the importer turns it z up",
+                     degenerate_dropped: degenerateDropped, duplicate_faces_dropped: 0, tiles: [], surfaces: {} };
   mkdirSync(resolve(OUT, "tiles"), { recursive: true });
   for (const [key, buckets] of [...tiles.entries()].sort()) {
     const scene = new THREE.Scene();
     const [ix, iz] = key.split(":").map(Number);
     let tileTris = 0;
     const surfaces = {};
+    let spawn = null;
     for (const [matKey, bucket] of buckets) {
       const flat = mergeGeometries(bucket.geometries, false);
       if (!flat) continue;
       // Indexed, with shared vertices found again: the page's merged surfaces repeat every
       // vertex per triangle, and a tile of them is three times the size it needs to be.
-      const merged = mergeVertices(flat, 1e-3);
+      const merged = exactIndex(flat);
+      manifest.duplicate_faces_dropped += deduplicateFaces(merged);
       flat.dispose();
       const material = new THREE.MeshStandardMaterial({
         color: bucket.colour, roughness: bucket.material?.roughness ?? 0.9, metalness: bucket.material?.metalness ?? 0,
@@ -228,6 +243,11 @@ async function main() {
       mesh.name = `${bucket.surface}`;
       mesh.userData = { surface: bucket.surface, material_key: matKey };
       scene.add(mesh);
+      if (!spawn && bucket.surface === "road") {
+        const positions = merged.getAttribute("position");
+        const ids = [merged.index.getX(0), merged.index.getX(1), merged.index.getX(2)];
+        spawn = ["x", "y", "z"].map((_, axis) => ids.reduce((sum, id) => sum + positions.array[id * 3 + axis], 0) / 3);
+      }
       const n = merged.index.count / 3;
       tileTris += n;
       surfaces[bucket.surface] = (surfaces[bucket.surface] || 0) + n;
@@ -240,7 +260,8 @@ async function main() {
     const lonlat = frame ? [[frame.mid_lon + x0 / frame.metres_per_lon, frame.mid_lat - z0 / frame.metres_per_lat],
                             [frame.mid_lon + (x0 + TILE_M) / frame.metres_per_lon, frame.mid_lat - (z0 + TILE_M) / frame.metres_per_lat]] : null;
     manifest.tiles.push({ file: `tiles/${name}`, ix, iz, x0, z0, x1: x0 + TILE_M, z1: z0 + TILE_M, corners_lonlat: lonlat,
-                          triangles: tileTris, surfaces, bytes: glb.byteLength });
+                          triangles: tileTris, surfaces, bytes: glb.byteLength, spawn_gltf_m: spawn,
+                          sha256: createHash("sha256").update(Buffer.from(glb)).digest("hex") });
     console.log(`  ${name}: ${tileTris} triangles, ${(glb.byteLength / 1e6).toFixed(1)} MB`);
   }
   writeFileSync(resolve(OUT, "manifest.json"), JSON.stringify(manifest, null, 1));

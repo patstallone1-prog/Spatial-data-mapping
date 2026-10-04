@@ -1,11 +1,34 @@
 # Kerbside on Unreal
 
+## Current desktop project (UE 5.8)
+
+The existing user-created project now receives the versioned `unreal/Plugins/KerbsideWorld`
+runtime through `tools/unreal/install_runtime.py`. Physics, physical sky and shadow source,
+the safe importer and outstanding native acceptance are documented in the
+[current runtime checkpoint](../docs/reports/2026-10-03-unreal-runtime.md).
+Do not use the older 5.4/EOS setup below as the current desktop deployment path, or replace
+the user's project with this repository's legacy project. Source checks are not a native
+build result. The native Editor target and isolated-world gravity/wall/camera tests have
+passed; deployment remains blocked pending imported-city and graphical acceptance.
+
+Always audit final exports with `node tools/unreal/audit_tiles.mjs <manifest>` and native
+test reports with `python tools/unreal/check_automation.py <automation-index.json>`.
+The latter is necessary because Unreal can exit 0 after failed automation tests.
+`clean_diagnostic_tiles.mjs` creates a separately tagged diagnostic derivative, not a
+release asset: it cannot restore faces already collapsed by older approximate welding.
+Use a fresh exact-index export for deployment. `KERBSIDE_WORLD_REVISION` prevents retries
+from overwriting saved maps or prior tile namespaces.
+Blocking mesh fallbacks now retain 100% of source triangles with zero relative-error trimming;
+the importer rejects a difference between exported and fallback blocking-face totals.
+This preserves source geometry, not independently measured accuracy. The fresh pilot export
+passed final GLB decoding, but full regional coverage and native visual acceptance remain open.
+
 The Unreal project is a consumer of the repository's data, not a second copy of it. The page's
 own JavaScript builds the corridor; `tools/unreal/export_tiles.mjs` runs that build headless
 with the real three.js and writes the result as 250 m glTF tiles; the editor script imports
 them. Nothing about the city is authored in Unreal.
 
-## What is here
+## Legacy UE 5.4 setup (not the current deployment path)
 
 - `Kerbside/Kerbside.uproject` — UE 5.4 project: EOS (Online Subsystem EOS, EOS Shared,
   Online Services EOS), Interchange glTF import, World Partition HLOD, Enhanced Input, Python
@@ -31,7 +54,8 @@ them. Nothing about the city is authored in Unreal.
    set -a; source .env.local; set +a; .venv/bin/python tools/unreal/write_config.py
    ```
 
-4. The tiles: either export them here (a minute or two; ~500 MB under `build/unreal/`) --
+4. The tiles: either export them here (legacy estimates no longer apply; the current full-app
+   scene build took about 18 minutes even when selecting one cell on this machine) --
 
    ```bash
    node --max-old-space-size=14000 tools/unreal/export_tiles.mjs
