@@ -37,10 +37,10 @@ def test_install_controls_reach_the_published_app() -> None:
     manifest = json.loads((DOCS / "manifest.webmanifest").read_text())
     assert (DOCS / "app.html").is_file()
     assert manifest["start_url"].startswith("./app.html")
-    assert (
-        'const APP_URL = "https://patstallone1-prog.github.io/Spatial-data-mapping/app.html";'
-        in page
-    )
+    # The app is beside the page wherever the site is hosted (Vercel at the root of its
+    # domain, or a GitHub Pages project path): the link is resolved, not written in.
+    assert 'const APP_URL = new URL("app.html", location.href).href;' in page
+    assert "github.io" not in page
     for suffix in ("", "2"):
         assert f'id="open-app{suffix}"' not in page
         assert f'id="save-app{suffix}"' not in page

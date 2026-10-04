@@ -276,6 +276,12 @@ def build(asset: Path, count: int = 3) -> dict:
     out.mkdir(exist_ok=True)
     shutil.copyfile(asset, out / asset.name)
     scan["asset"] = "interior-scans/" + asset.name
+    # The detail level (scripts/build_redwood_detail.py) registers to this first look and is
+    # carried with it, so rebuilding the placements does not drop it.
+    for level in ("detail", "full"):
+        record = out / level / f"{level}.json"
+        if record.exists():
+            scan[level] = json.loads(record.read_text())
     data = {
         "schema": 1,
         "note": "Real borrowed scans; none depicts the matched address's actual interior.",

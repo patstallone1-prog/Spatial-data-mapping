@@ -11,7 +11,7 @@
 #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY        (an R2 API token with object write)
 # Then:
 #   ./tools/publish_assets.sh
-#   .venv/bin/python tools/build_pages.py --map-only --out ../Curb-measurements/docs --assets-base "$R2_PUBLIC"
+#   .venv/bin/python tools/build_pages.py --assets-base "$R2_PUBLIC"
 set -euo pipefail
 : "${R2_ENDPOINT:?set R2_ENDPOINT}" "${R2_BUCKET:?set R2_BUCKET}"
 command -v aws >/dev/null || { echo "aws cli is needed (brew install awscli)"; exit 2; }

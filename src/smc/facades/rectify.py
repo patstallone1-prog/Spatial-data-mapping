@@ -16,6 +16,7 @@ absent in the next three, and outvoted.
 from __future__ import annotations
 
 import math
+import os
 import warnings
 from dataclasses import dataclass
 
@@ -26,12 +27,15 @@ from smc.facades.geometry import Camera, Wall, project
 
 #: Output resolution. Fifty pixels to the metre puts a window mullion on two or three pixels,
 #: which is about as fine as street-level imagery of a facade twenty metres away can support.
-PIXELS_PER_M = 50.0
+PIXELS_PER_M = float(os.environ.get("FACADE_PIXELS_PER_M", "50"))
 # A texture is shipped to every visitor of the map and stored in every clone of the repository
 # forever, so it is sized for a building seen from the street rather than for inspection. Six
 # hundred and forty pixels across a fifteen-metre frontage is forty to the metre, which is
 # finer than the imagery supports at twenty metres anyway.
-MAX_EDGE_PX = 640
+#: Both are overridable (FACADE_PIXELS_PER_M, FACADE_MAX_EDGE_PX) for a host without the old
+#: hundred-megabyte-a-file ceiling: scripts/build_facades.py --rerender re-renders the same
+#: walls finer without changing which walls are photographed.
+MAX_EDGE_PX = int(os.environ.get("FACADE_MAX_EDGE_PX", "640"))
 MIN_EDGE_PX = 48
 
 

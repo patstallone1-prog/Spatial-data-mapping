@@ -1,0 +1,67 @@
+{
+  "voxel_m": 0.012,
+  "triangles": 3424478,
+  "vertices": 1746796,
+  "bytes": 69173440,
+  "encoding": "KHR_mesh_quantization",
+  "registration": "first-look gravity_alignment applied unchanged",
+  "grade": "display_level_of_detail_not_new_measurement",
+  "chunks": [
+    {
+      "asset": "interior-scans/detail/apartment-detail-0-bff692d7cff2.glb",
+      "sha256": "bff692d7cff2db2b6550b4e79b6bbbdb0d596e9f3b4c9ed6cbdf730c360b5b3e",
+      "bytes": 8651080,
+      "triangles": 428059,
+      "vertices": 219564
+    },
+    {
+      "asset": "interior-scans/detail/apartment-detail-1-1a65d097f08c.glb",
+      "sha256": "1a65d097f08c2a1136a2533eb78a4ac740bd9f2503b7471110f0fc366dd856a7",
+      "bytes": 8643108,
+      "triangles": 428060,
+      "vertices": 219065
+    },
+    {
+      "asset": "interior-scans/detail/apartment-detail-2-ecbddbe291f2.glb",
+      "sha256": "ecbddbe291f2d4d0fb0cccf89dc82e535011a0e504f8d46a11e4d0e38467cd16",
+      "bytes": 8631380,
+      "triangles": 428060,
+      "vertices": 218332
+    },
+    {
+      "asset": "interior-scans/detail/apartment-detail-3-4d0029a8b1c1.glb",
+      "sha256": "4d0029a8b1c1a2323b4bb2b3c84abfd22156c3f0b4317432d9a7c39e4e98e66e",
+      "bytes": 8644980,
+      "triangles": 428060,
+      "vertices": 219182
+    },
+    {
+      "asset": "interior-scans/detail/apartment-detail-4-d3c1db402278.glb",
+      "sha256": "d3c1db4022780fcd5cbf5197401b99b623d4517848e53c99d2548ca66f367c90",
+      "bytes": 8651080,
+      "triangles": 428059,
+      "vertices": 219564
+    },
+    {
+      "asset": "interior-scans/detail/apartment-detail-5-05fccf000964.glb",
+      "sha256": "05fccf000964c456e59eab80584adb3192c59bddfdf45b86a4c4d678bd36d8de",
+      "bytes": 8639200,
+      "triangles": 428060,
+      "vertices": 218821
+    },
+    {
+      "asset": "interior-scans/detail/apartment-detail-6-e08bad862295.glb",
+      "sha256": "e08bad862295b89d3ce4b5316c701afd3e25fec3e87c10cbbb42942d571b4a28",
+      "bytes": 8684596,
+      "triangles": 428060,
+      "vertices": 221658
+    },
+    {
+      "asset": "interior-scans/detail/apartment-detail-7-1b0ecc544bc0.glb",
+      "sha256": "1b0ecc544bc03ecbe2042e523f130d2ff1e2aed9a1f113de6443817d546f93ff",
+      "bytes": 8628016,
+      "triangles": 428060,
+      "vertices": 218122
+    }
+  ]
+}

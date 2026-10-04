@@ -17,12 +17,26 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import make_icons  # noqa: E402
-from site_config import APP_URL, REPO, SITE_URL  # noqa: E402
+from site_config import APP_URL, SITE_PATH, SITE_URL  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs"
 BUILD = ROOT / "build"
 
+
+
+def copy_if_newer(source: pathlib.Path, target: pathlib.Path) -> bool:
+    """Publish a region's data file unless what is already published is newer.
+
+    The local region builds under data/regions/ are not versioned, and one can be older than
+    what another checkout built and committed to docs/ -- copying it over wholesale reverted a
+    published ground-cover fix. A region rebuilt here is newer than its published copy and
+    still goes out; an old local copy no longer overwrites newer published work.
+    """
+    if target.exists() and target.stat().st_mtime >= source.stat().st_mtime:
+        return False
+    shutil.copy2(source, target)
+    return True
 
 def need(path: pathlib.Path) -> str:
     if not path.exists():
@@ -122,7 +136,7 @@ def publish_regions(out: pathlib.Path) -> list[dict]:
             target.mkdir(parents=True, exist_ok=True)
             for data in sorted(site.iterdir()):
                 if data.is_file() and data.suffix in (".json", ".bin"):
-                    shutil.copyfile(data, target / data.name)
+                    copy_if_newer(data, target / data.name)
             page = region_page(entry, site)
             (target / "sf-corridor-3d.html").write_text(page)
             (target / "index.html").write_text(page)
@@ -204,12 +218,18 @@ def main(out: pathlib.Path | None = None) -> None:
     if app_model.exists():
         (out / "app-model.html").write_text(app_model.read_text())
     (out / "index.html").write_text(landing)
+    # The landing page's pictures: renders of the model itself, kept as source in tools/landing.
+    pictures = ROOT / "tools" / "landing"
+    if pictures.is_dir():
+        (out / "landing").mkdir(exist_ok=True)
+        for picture in sorted(pictures.glob("*.jpg")):
+            shutil.copyfile(picture, out / "landing" / picture.name)
     publish_regions(out)
 
     make_icons.main(out)
 
     manifest = json.loads((ROOT / "tools/pwa/manifest.json").read_text())
-    manifest["id"] = f"/{REPO}/"
+    manifest["id"] = SITE_PATH
     (out / "manifest.webmanifest").write_text(json.dumps(manifest, indent=2) + "\n")
 
     # The cache name carries a digest of what is being served. Without it a phone that has

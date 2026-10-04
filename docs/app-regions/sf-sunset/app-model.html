@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="a6ca9c257deeb8f8ea2df30ac70cb60d639edcbeda000306ab648dbc92ff9892" />
+<meta name="kerbside-renderer-sha256" content="2f28a08d39fa599b36ac215fad464c0615146750ed427633c77f5b1ef5aff184" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -309,6 +309,12 @@ function renderedKerbHeight(way) {
 
 const root = new THREE.Group();
 scene.add(root);
+//: The scanned home the walker is in, if any. People stay a while in a home scanned at full
+//: detail, so while they are in one it is treated as its own block: the tile tree beyond the
+//: region is let go and the fine surfaces outside are drawn only a short way round the house,
+//: which pays for the scan's extra triangles.
+let interiorBlock = null;
+const INTERIOR_BLOCK_RANGE = 0.12;
 const groups = {
   streets: new THREE.Group(),
   mapped3d: new THREE.Group(),
@@ -1848,12 +1854,22 @@ const SETTLE_RULES = [
   // A four-corner pad can span a bowed sidewalk triangle on a steep block. Subdivide it
   // before settling so concrete cannot poke through the yellow warning field.
   { onto: new Set(["walk", "walk_narrow"]), above: { tactile_warning: 0.030, curb_ramp: 0.012 }, grid: 0.18, label: "Setting the pads on the pavement" },
+  // The green of a bike lane is paint too. Lifted onto the terrain by itself it lay a few
+  // centimetres under the road ribbons of the ways around it wherever their triangles bowed
+  // differently over the hill, and the asphalt showed through it in jagged patches that came
+  // and went with the camera -- the "pixel cutouts" in the lane. It is set on the very road
+  // surface it is painted on, before the lane's own edge lines, which are then set on top of
+  // it. Not clipped by the kerb: a lane runs against it, and a clipped triangle would be the
+  // very hole to close.
+  { onto: new Set(["road"]), above: { bike: 0.015 }, grid: 0.5,
+    label: "Painting the bike lanes on the road" },
   // Junction asphalt comes from several overlapping ribbons. Sample the paint at half-metre
   // spacing so the road cannot rise through the interior of a long triangle; a small lift
   // also absorbs the few-centimetre mismatch between independently triangulated ribbons.
   // Lane/centre/turn paint must use the very same rendered triangles. Independent terrain
   // lifts buried lane lines on Bush Street by up to 72 mm after the terrain-frame correction.
-  { onto: new Set(["road"]), above: { crossing: 0.06, crossing_edges: 0.06, marking: 0.030 }, grid: 0.5,
+  // Onto the bike lane's green as well as the asphalt: its edge lines are painted on it.
+  { onto: new Set(["road", "bike"]), above: { crossing: 0.06, crossing_edges: 0.06, marking: 0.030 }, grid: 0.5,
     occlude: new Set(["walk", "walk_narrow", "kerb", "divider_block", "median"]),
     label: "Painting the crossings and lanes on the road" },
 ];
@@ -2816,18 +2832,77 @@ function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMater
 //: visibly wrong, and only where the children are already here. A parent stays up until every
 //: child that is on screen has its geometry -- which is what makes the swap silent rather
 //: than a hole that fills in.
+// ---- near the walker: whole blocks, then core shapes ----
+//
+// The screen-error rule refined whatever the camera happened to be looking at, so turning
+// round on a street corner asked for a different set of tiles, and the blocks beside you
+// arrived only once you faced them. Near the ground the rule is now the simple one: the block
+// you are on and the blocks round it are loaded in full (the finest tiles within
+// TILE_FULL_RING_M, whichever way you face), a few rounds of blocks beyond that as their core
+// building shapes, and the next ring of full blocks is fetched ahead so walking into it costs
+// nothing. Up high, looking at the map rather than a street, the screen-error rule stands.
+const TILE_FULL_DEPTH = 8;
+const TILE_CORE_DEPTH = 6;
+const TILE_FULL_RING_M = 320;
+const TILE_CORE_RING_M = 1500;
+const TILE_PREFETCH_RING_M = 650;
+const TILE_RING_HEIGHT_M = 700;
+const tileFocus = new THREE.Vector3();
+let tileRingsActive = false;
+function tileRect(tile) {
+  if (!tile.rect) {
+    const [west, south, east, north] = tile.bbox;
+    const [x0, y0] = xy(west, south), [x1, y1] = xy(east, north);
+    tile.rect = [Math.min(x0, x1), Math.min(-y0, -y1), Math.max(x0, x1), Math.max(-y0, -y1)];
+  }
+  return tile.rect;
+}
+function tileRingDistance(tile) {
+  const [x0, z0, x1, z1] = tileRect(tile);
+  const dx = Math.max(x0 - tileFocus.x, 0, tileFocus.x - x1);
+  const dz = Math.max(z0 - tileFocus.z, 0, tileFocus.z - z1);
+  return Math.hypot(dx, dz);
+}
+//: The depth this tile should be drawn to near the walker, or null where the screen-error
+//: rule decides.
+function tileRingDepth(tile) {
+  if (!tileRingsActive) return null;
+  const d = tileRingDistance(tile);
+  if (d <= TILE_FULL_RING_M) return TILE_FULL_DEPTH;
+  if (d <= TILE_CORE_RING_M) return TILE_CORE_DEPTH;
+  return null;
+}
+
 function selectTiles(tile, out, eye = camera) {
-  if (!tileInView(tile)) return;
+  const ring = tileRingDepth(tile);
+  if (ring === null && !tileInView(tile)) return;
   const error = tileScreenErrorPx(tile, eye);
-  if (error <= TILE_MAX_SCREEN_ERROR_PX || !tile.children.length) { out.push(tile); return; }
+  const refine = tile.children.length > 0 && (ring !== null ? tile.depth < ring
+    // Outside the rings, near the ground: nothing finer than core shapes.
+    : error > TILE_MAX_SCREEN_ERROR_PX && (!tileRingsActive || tile.depth < TILE_CORE_DEPTH));
+  if (!refine) { out.push(tile); return; }
   const kids = tile.children.map((id) => TILES.get(id)).filter(Boolean);
   let ready = true;
   for (const kid of kids) {
-    if (!tileInView(kid)) continue;
-    if (!tileHasContent(kid)) { requestTile(kid, error, true, tileAheadness(kid, eye), eye); ready = false; }
+    const wanted = tileRingDepth(kid) !== null;
+    if (!wanted && !tileInView(kid)) continue;
+    if (!tileHasContent(kid)) { requestTile(kid, error, tileInView(kid), tileAheadness(kid, eye), eye); ready = false; }
   }
   if (!ready) { out.push(tile); return; }
   for (const kid of kids) selectTiles(kid, out, eye);
+}
+
+//: The next ring of full blocks, fetched before the walker reaches it.
+function prefetchRing(tile, eye = camera) {
+  if (tileRingDistance(tile) > TILE_PREFETCH_RING_M) return;
+  if (tile.depth >= TILE_FULL_DEPTH) {
+    if (!tileHasContent(tile) && !tilePending(tile)) requestTile(tile, 0, false, tileAheadness(tile, eye), eye);
+    return;
+  }
+  for (const id of tile.children) {
+    const kid = TILES.get(id);
+    if (kid) prefetchRing(kid, eye);
+  }
 }
 
 //: How far a tile lies in the direction the camera is moving, from -1 (behind) to 1 (ahead).
@@ -2913,9 +2988,13 @@ function updateTileTree(now, eye = camera) {
   TILE_MATRIX.multiplyMatrices(eye.projectionMatrix, eye.matrixWorldInverse);
   TILE_FRUSTUM.setFromProjectionMatrix(TILE_MATRIX);
 
+  // Where the walker is, or the point the map camera orbits; the rings apply near the ground.
+  tileFocus.copy(typeof state !== "undefined" ? (state.firstPerson || state.ceilingRoom ? avatar.position : state.target) : eye.position);
+  tileRingsActive = eye.position.y - tileFocus.y < TILE_RING_HEIGHT_M;
   const drawn = [];
   const rootTile = TILES.get("0/0/0");
   if (rootTile) selectTiles(rootTile, drawn, eye);
+  if (rootTile && tileRingsActive && tileInFlight < TILE_MAX_CONCURRENT) prefetchRing(rootTile, eye);
   const wanted = new Set(drawn.map((t) => t.id));
   for (const tile of TILES.values()) {
     if (!tile.group) { tile.drawn = false; continue; }
@@ -3269,8 +3348,11 @@ function materialKey(material) {
 const CANONICAL_MATERIALS = new Map();
 function addMerged(key, mesh, surface) {
   if (!mesh || !mesh.geometry) return;
+  // A copy, never the object itself: BufferGeometry.clone() shares userData between a
+  // geometry and its clones, so tagging a wall slice tagged the roof sliced from the same
+  // extrusion -- and every nearby house shell then hid its roof with its walls.
   if (BUILDING_VISUAL_ID !== null && (key === "wall" || key === "plane"))
-    mesh.geometry.userData.homeId = BUILDING_VISUAL_ID;
+    mesh.geometry.userData = { ...mesh.geometry.userData, homeId: BUILDING_VISUAL_ID };
   const fingerprint = materialKey(mesh.material);
   const full = `${key}|${fingerprint}`;
   let bucket = MERGED.get(full);
@@ -4395,8 +4477,21 @@ function crossSectionBands(way, along, half) {
   const travel = bands.filter((b) => b.kind === "travel" || b.kind === "turn");
   if (!travel.length) return null;
   const fixed = bands.filter((b) => !(b.kind === "travel" || b.kind === "turn")).reduce((sum, b) => sum + b.width, 0);
-  const lane = (2 * half - fixed) / travel.length;
-  if (lane < CROSS_SECTION_LANE_MIN_M || lane > CROSS_SECTION_LANE_MAX_M) return null;
+  let lane = (2 * half - fixed) / travel.length;
+  if (lane < CROSS_SECTION_LANE_MIN_M || lane > CROSS_SECTION_LANE_MAX_M) {
+    // The page's width for the way can be a recorded figure narrower than the street it draws
+    // -- Telegraph's protected tracks are drawn at the section's own offsets, 18 m apart, on a
+    // way whose recorded width is 9 m -- and closing to it left lanes under two metres, so the
+    // whole block went unpainted. The section's own widths are the measurement; they are used
+    // where the page's cannot close, and paint off the drawn roadway is still clipped there.
+    // Only for a page width narrower than the section: a far wider one is a street the facts
+    // do not describe, and is left unpainted.
+    const own = bands.reduce((sum, b) => sum + b.width, 0) / 2;
+    if (own <= half) return null;
+    lane = (2 * own - fixed) / travel.length;
+    if (lane < CROSS_SECTION_LANE_MIN_M || lane > CROSS_SECTION_LANE_MAX_M) return null;
+    half = own;
+  }
   let edge = half;
   const out = [];
   for (const b of bands) {
@@ -4439,35 +4534,59 @@ function crossSectionMarkKind(a, b) {
 
 //: The paint for a way from its cross-sections: runs of boundary polylines, each with a kind.
 //: `points` is the polyline to paint along and `cutStart` how far along the way it begins.
-function crossSectionMarks(way, points, cutStart) {
-  if (!way.xs || !points || points.length < 2) return null;
+function crossSectionMarks(way, sparse, cutStart) {
+  if (!way.xs || !sparse || sparse.length < 2) return null;
+  // Sampled every few metres, not only at the way's own vertices -- which can be a block
+  // apart, so a change of cross-section between two of them cost the whole segment its line.
+  const points = densifyWay(sparse, 4.0);
   const alongs = alongDistances(points);
   const marks = [];
-  let open = new Map();              // boundary index -> {kind, points}
-  const close = () => { for (const run of open.values()) if (run.points.length >= 2) marks.push(run); open = new Map(); };
-  let signature = null;
+  // A line is one line for as long as a line of its kind carries on at about the same offset.
+  // Closing every run whenever the cross-section changed anywhere -- a parking lane starting,
+  // a bike lane's buffer ending -- broke the double yellow at each change, and the new run only
+  // began at the next sample, which left a bare stretch of centreline mid-block.
+  let open = [];                     // {kind, offset, points}
+  const CONTINUE_M = 1.2;
   for (let i = 0; i < points.length; i += 1) {
     const along = cutStart + alongs[i];
     const bands = crossSectionBands(way, along, halfWidthAt(way, along));
-    if (!bands) { close(); signature = null; continue; }
-    const sig = bands.map((b) => `${b.kind}${b.dir}${b.sub}`).join("|");
-    if (sig !== signature) { close(); signature = sig; }
-    for (let k = 0; k < bands.length - 1; k += 1) {
+    const [x, y] = xy(points[i][0], points[i][1]);
+    const [ax, ay] = xy(points[Math.max(0, i - 1)][0], points[Math.max(0, i - 1)][1]);
+    const [bx, by] = xy(points[Math.min(points.length - 1, i + 1)][0], points[Math.min(points.length - 1, i + 1)][1]);
+    const len = Math.hypot(bx - ax, by - ay) || 1;
+    const nx = -(by - ay) / len, ny = (bx - ax) / len;   // left of travel
+    const at = (offset) => lonLatFromXZ(x + nx * offset, -(y + ny * offset));
+    const here = [];
+    for (let k = 0; bands && k < bands.length - 1; k += 1) {
       const kind = crossSectionMarkKind(bands[k], bands[k + 1]);
-      if (!kind) continue;
-      const offset = bands[k].right;
-      const [x, y] = xy(points[i][0], points[i][1]);
-      const [ax, ay] = xy(points[Math.max(0, i - 1)][0], points[Math.max(0, i - 1)][1]);
-      const [bx, by] = xy(points[Math.min(points.length - 1, i + 1)][0], points[Math.min(points.length - 1, i + 1)][1]);
-      const len = Math.hypot(bx - ax, by - ay) || 1;
-      const nx = -(by - ay) / len, ny = (bx - ax) / len;   // left of travel
-      let run = open.get(k);
-      if (!run) open.set(k, run = { kind, points: [] });
-      run.points.push(lonLatFromXZ(x + nx * offset, -(y + ny * offset)));
+      if (kind) here.push({ kind, offset: bands[k].right });
     }
+    const next = [];
+    for (const mark of here) {
+      const j = open.findIndex((run) => run.kind === mark.kind
+        && Math.abs(run.offset - mark.offset) <= CONTINUE_M);
+      if (j >= 0) {
+        const run = open.splice(j, 1)[0];
+        run.offset = mark.offset;
+        run.points.push(at(mark.offset));
+        next.push(run);
+      } else {
+        // A line that begins where another ended starts from the sample before, at its own
+        // offset, so the change of marking happens on the road rather than a gap apart.
+        const run = { kind: mark.kind, offset: mark.offset, points: [] };
+        if (i > 0 && open.length) {
+          const [px, py] = xy(points[i - 1][0], points[i - 1][1]);
+          run.points.push(lonLatFromXZ(px + nx * mark.offset, -(py + ny * mark.offset)));
+        }
+        run.points.push(at(mark.offset));
+        next.push(run);
+      }
+    }
+    for (const run of open) if (run.points.length >= 2) marks.push(run);
+    open = next;
   }
-  close();
-  return marks;
+  for (const run of open) if (run.points.length >= 2) marks.push(run);
+  return marks.map(({ kind, points: p }) => ({ kind, points: p }));
 }
 
 //: The travel lanes of a way: the carriageway less its parking lanes, as [left edge offset,
@@ -4572,7 +4691,70 @@ function cyclewaySides(way) {
     if (way.oneway || way.osm_oneway) add(-1);
     else { add(1); add(-1); }
   }
+  if (!sides.length && way._bikeInferred) for (const side of way._bikeInferred) add(side);
   return sides;
+}
+
+// ---- a short piece of street between two pieces with a bike lane ----
+//
+// A lane painted block to block is one lane, but OpenStreetMap carries its tag on the pieces of
+// the street it was mapped on, and a short piece left untagged between two tagged ones -- a
+// bridge, a split at a driveway, a stretch somebody retraced -- was drawn as a hole in the
+// lane, a cutout that seemed to pop up for no reason. Where a piece shorter than about a third
+// of a block runs straight on from a lane at both ends, on the same side, the lane is taken to
+// run through it too. It is recorded as inferred, and never overrides a tag saying "no".
+const BIKE_GAP_INFER_M = 45.0;
+const BIKE_GAP_STRAIGHT_DEG = 20.0;
+const bikeInferenceStats = { ways: 0, metres: 0 };
+function inferBikeLaneGaps(ways) {
+  const ends = new Map();
+  const keyOf = (p) => `${p[0].toFixed(6)},${p[1].toFixed(6)}`;
+  const bearingAt = (pts, atStart) => {
+    const [a, b] = atStart ? [pts[0], pts[1]] : [pts[pts.length - 2], pts[pts.length - 1]];
+    const [ax, ay] = xy(a[0], a[1]), [bx, by] = xy(b[0], b[1]);
+    return Math.atan2(by - ay, bx - ax);
+  };
+  const streets = ways.filter((w) => w.kind === "street" && w.points && w.points.length >= 2);
+  for (const way of streets) {
+    for (const atStart of [true, false]) {
+      const p = atStart ? way.points[0] : way.points[way.points.length - 1];
+      const key = keyOf(p);
+      if (!ends.has(key)) ends.set(key, []);
+      ends.get(key).push({ way, atStart });
+    }
+  }
+  const said = (v) => v !== undefined && v !== null && v !== "";
+  for (const way of streets) {
+    if (cyclewaySides(way).length) continue;
+    if ([way.cycleway, way.cycleway_both, way.cycleway_left, way.cycleway_right].some(said)) continue;
+    if (wayLength(way.points) > BIKE_GAP_INFER_M) continue;
+    // The side a neighbour's lane is on, in this way's own direction, at each of its two ends.
+    const sidesAt = (atStart) => {
+      const mine = bearingAt(way.points, atStart);
+      const found = new Set();
+      for (const end of ends.get(keyOf(atStart ? way.points[0] : way.points[way.points.length - 1])) || []) {
+        // Only a lane somebody mapped carries one through: inferred pieces do not chain.
+        if (end.way === way || end.way._bikeInferred) continue;
+        const theirs = cyclewaySides(end.way);
+        if (!theirs.length) continue;
+        // Their direction where they meet this way; running the other way round flips sides.
+        const along = bearingAt(end.way.points, end.atStart);
+        const same = end.atStart === !atStart;
+        const heading = same ? along : along + Math.PI;
+        let turn = Math.abs(heading - mine) % (2 * Math.PI);
+        if (turn > Math.PI) turn = 2 * Math.PI - turn;
+        if (turn > BIKE_GAP_STRAIGHT_DEG * Math.PI / 180) continue;
+        for (const s of theirs) found.add(same ? s : -s);
+      }
+      return found;
+    };
+    const head = sidesAt(true), tail = sidesAt(false);
+    const both = [...head].filter((s) => tail.has(s));
+    if (!both.length) continue;
+    way._bikeInferred = both;
+    bikeInferenceStats.ways += 1;
+    bikeInferenceStats.metres += wayLength(way.points);
+  }
 }
 
 // ---- bike lanes ------------------------------------------------------------------------------
@@ -4852,7 +5034,7 @@ function trimWayEnds(points, cutStart, cutEnd) {
   return out.length >= 2 ? out : points;
 }
 
-function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0, ownWay = null) {
+function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0, ownWay = null, minorToo = true) {
   // Is this point standing in a street that crosses the one it belongs to? insideCarriageway
   // cannot answer it: a lane is inside its own carriageway everywhere along its length. What
   // separates a junction from the rest of the block is that the carriageway covering the point
@@ -4867,6 +5049,9 @@ function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0, ownWay = null) {
       for (const [ax, az, bx, bz, half, other, source] of bucket) {
         if (ownWay && source === ownWay) continue;
         if (other === undefined) continue;
+        // A driveway or a parking aisle meets the street; it does not cross it. The street's
+        // paint carries on past it, as the double yellow does past every garage on a block.
+        if (!minorToo && source && SERVICE_ROAD_M[source.service] !== undefined) continue;
         let difference = Math.abs(other - bearing) % Math.PI;
         if (difference > Math.PI / 2) difference = Math.PI - difference;
         if (difference < limitAngle) continue;
@@ -4952,6 +5137,8 @@ function dashRuns(points, markM, gapM) {
 }
 
 function bikeLaneZones(lane, ownWay = null) {
+  //: Narrower than any street a lane could cross: a break this short is a gap, not a junction.
+  const BIKE_MIN_CROSSING_M = 6.0;
   // Every sample along the lane labelled crossing, mixing or lane, and then gathered into runs.
   const labels = [];
   const spans = [0];
@@ -4967,6 +5154,19 @@ function bikeLaneZones(lane, ownWay = null) {
       const [px, py] = xy(lane[i - 1][0], lane[i - 1][1]);
       spans.push(spans[i - 1] + Math.hypot(x - px, y - py));
     }
+  }
+  // A "crossing" too short to be a street -- a sample or two clipping a driveway's carriageway
+  // or a mapped crossing's corner -- with lane on both sides of it is lane: it was a gap in the
+  // paint, a few metres of bare road that seemed to pop up in the middle of a block.
+  for (let i = 0; i < labels.length;) {
+    if (labels[i] !== "crossing") { i += 1; continue; }
+    let j = i;
+    while (j + 1 < labels.length && labels[j + 1] === "crossing") j += 1;
+    const inside = i > 0 && j < labels.length - 1;
+    if (inside && spans[j] - spans[i] < BIKE_MIN_CROSSING_M) {
+      for (let k = i; k <= j; k += 1) labels[k] = "lane";
+    }
+    i = j + 1;
   }
   // The mixing zone is the stretch of ordinary lane within twenty-five feet of a crossing, on
   // either side of it: two-way streets have right-turning traffic merging on both approaches.
@@ -5884,82 +6084,104 @@ function crossingMarkingKind(way) {
   return null;
 }
 
-//: Six ways San Francisco closes a ground-floor garage. Drawn in the building's own colour --
-//: a door is part of the house and is nearly always painted to match it -- with white banding
-//: on the configurations that carry it.
+//: Six garage doors. Four are painted the house's own colour -- a door is part of the house and
+//: is nearly always painted to match it -- with their panel pattern drawn in white on a dark
+//: house and black on a light one: a grid of small raised panels, long horizontal panels, a
+//: carriage-house board door, and panels under a row of lights. Two are stained wood, their
+//: pattern lines a darker shade of the same wood.
 const GARAGE_STYLES = 6;
 //: A roller door's clear height. San Francisco's ground-floor garages sit just under three
 //: metres; the city records the width of every cut but not its height.
 const GARAGE_HEIGHT_M = 2.7;
+const GARAGE_WOODS = ["#8a5a35", "#a46f43", "#6f4a2e", "#b8875a"];
 
 function garageTexture(variant, base) {
-  const size = 64;
+  const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = base;
+  const wood = variant >= 4;
+  // A wood door takes its stain from the colour bucket, so neighbouring houses differ.
+  const fill = wood ? GARAGE_WOODS[parseInt(base.slice(1, 3), 16) % GARAGE_WOODS.length] : base;
+  ctx.fillStyle = fill;
   ctx.fillRect(0, 0, size, size);
-  const shadow = "rgba(0,0,0,0.34)";
-  const lip = "rgba(255,255,255,0.12)";
-  const paint = "rgba(248,248,244,0.92)";
-
-  if (variant === 0) {                                  // roller shutter
-    for (let y = 0; y < size; y += 4) {
-      ctx.fillStyle = shadow; ctx.fillRect(0, y, size, 1);
-      ctx.fillStyle = lip; ctx.fillRect(0, y + 1, size, 1);
+  const rgb = [1, 3, 5].map((i) => parseInt(fill.slice(i, i + 2), 16) / 255);
+  const light = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] > 0.5;
+  // The pattern's lines: white on a dark door, black on a light one; on wood, darker wood.
+  const shade = (k) => "#" + rgb.map((v) => Math.min(255, Math.round(v * k * 255)).toString(16).padStart(2, "0")).join("");
+  const line = wood ? shade(0.62) : light ? "rgba(20,20,20,0.85)" : "rgba(250,250,246,0.9)";
+  const soft = wood ? shade(0.8) : light ? "rgba(20,20,20,0.35)" : "rgba(250,250,246,0.35)";
+  ctx.lineWidth = 2;
+  if (wood) {
+    // Grain: long streaks in lighter and darker tones of the stain.
+    for (let i = 0; i < 260; i += 1) {
+      ctx.strokeStyle = random(i * 17) < 0.5 ? shade(0.86) : shade(1.12);
+      ctx.globalAlpha = 0.25 + random(i * 5) * 0.3;
+      const y = random(i * 3) * size;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(size * 0.3, y + random(i * 7) * 3 - 1.5, size * 0.7, y - random(i * 11) * 3 + 1.5, size, y);
+      ctx.stroke();
     }
-  } else if (variant === 1 || variant === 2) {          // sectional panels, 2 x 4
-    for (let row = 0; row < 4; row += 1) {
-      for (let col = 0; col < 2; col += 1) {
-        const x = 4 + col * 28, y = 3 + row * 15;
-        ctx.fillStyle = shadow; ctx.fillRect(x, y, 24, 12);
-        ctx.fillStyle = base; ctx.fillRect(x + 2, y + 2, 20, 8);
-        ctx.fillStyle = lip; ctx.fillRect(x + 2, y + 2, 20, 1);
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 2;
+  }
+  const grid = (cols, rows, top = 0) => {
+    // Raised panels: each a rectangle outlined in the line colour, with a soft inner bevel.
+    const pw = size / cols, ph = (size - top) / rows;
+    for (let r = 0; r < rows; r += 1) {
+      for (let c = 0; c < cols; c += 1) {
+        const x = c * pw + 4, y = top + r * ph + 4;
+        ctx.strokeStyle = line;
+        ctx.strokeRect(x, y, pw - 8, ph - 8);
+        ctx.strokeStyle = soft;
+        ctx.strokeRect(x + 4, y + 4, pw - 16, ph - 16);
       }
     }
-    if (variant === 2) {                                // banded
-      ctx.fillStyle = paint;
-      ctx.fillRect(0, 17, size, 3);
-      ctx.fillRect(0, 47, size, 3);
+  };
+  if (variant === 0) {
+    grid(4, 6);                                         // a grid of small raised panels
+  } else if (variant === 1) {
+    grid(1, 4);                                         // long horizontal panels
+    ctx.strokeStyle = soft;
+    for (let y = size / 8; y < size; y += size / 4) { ctx.beginPath(); ctx.moveTo(6, y); ctx.lineTo(size - 6, y); ctx.stroke(); }
+  } else if (variant === 2) {                           // carriage house: boards, two leaves, braces
+    ctx.strokeStyle = soft;
+    for (let x = 8; x < size; x += 10) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, size); ctx.stroke(); }
+    ctx.strokeStyle = line;
+    ctx.strokeRect(4, 4, size / 2 - 6, size - 8);
+    ctx.strokeRect(size / 2 + 2, 4, size / 2 - 6, size - 8);
+    for (const x0 of [4, size / 2 + 2]) {
+      ctx.beginPath(); ctx.moveTo(x0, size - 4); ctx.lineTo(x0 + size / 2 - 6, 4); ctx.stroke();
     }
-  } else if (variant === 3) {                           // flush, one broad stripe
-    ctx.fillStyle = paint;
-    ctx.fillRect(0, size * 0.42, size, size * 0.16);
-    ctx.fillStyle = shadow;
-    ctx.fillRect(0, size * 0.42 - 1, size, 1);
-    ctx.fillRect(0, size * 0.58, size, 1);
-  } else if (variant === 4) {                           // board and batten, vertical
-    for (let x = 0; x < size; x += 6) {
-      ctx.fillStyle = shadow; ctx.fillRect(x, 0, 1, size);
-      ctx.fillStyle = lip; ctx.fillRect(x + 1, 0, 1, size);
+  } else if (variant === 3) {                           // panels under a row of lights
+    const top = size * 0.24;
+    for (let c = 0; c < 4; c += 1) {
+      const x = c * size / 4 + 6;
+      ctx.fillStyle = "rgba(38,50,58,0.92)";
+      ctx.fillRect(x, 8, size / 4 - 12, top - 14);
+      ctx.strokeStyle = line;
+      ctx.strokeRect(x, 8, size / 4 - 12, top - 14);
     }
-  } else {                                              // shutter with a light row
-    for (let y = 0; y < size; y += 4) {
-      ctx.fillStyle = shadow; ctx.fillRect(0, y, size, 1);
-    }
-    for (let x = 6; x < size - 6; x += 14) {
-      ctx.fillStyle = "rgba(40,54,62,0.90)";
-      ctx.fillRect(x, 8, 10, 7);
-      ctx.fillStyle = lip;
-      ctx.strokeStyle = lip; ctx.lineWidth = 1;
-      ctx.strokeRect(x + 0.5, 8.5, 9, 6);
-    }
-    ctx.fillStyle = paint;
-    ctx.fillRect(0, 20, size, 2);
+    grid(4, 3, top);
+  } else if (variant === 4) {
+    grid(4, 6);                                         // wood, small panels in darker wood
+  } else {
+    grid(2, 4);                                         // wood, large panels in darker wood
   }
-
-  // The frame, and a handle-height rail. Both are what stop a door reading as a flat panel.
-  ctx.strokeStyle = "rgba(0,0,0,0.45)";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(1, 1, size - 2, size - 2);
+  // The frame, and a little wear, so the door does not read as a flat sticker.
+  ctx.strokeStyle = "rgba(0,0,0,0.5)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
   for (let i = 0; i < size * 6; i += 1) {
-    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.06)";
+    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
     ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
   }
-
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
   return texture;
 }
 
@@ -7062,7 +7284,41 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
     }
   }
   finish(false);
-  return runs;
+  // A break in the pavement shorter than WALK_GAP_FILL_M is a cutout, not a street: a few
+  // samples where the guard flickered over a kerb bulge or a driveway apron left a notch in the
+  // footway a metre or two long. It is bridged, unless a carriageway lies *across* the
+  // footway there -- the one thing that really does break a pavement.
+  const WALK_GAP_FILL_M = 5.0;
+  const crossedAt = (x, z, bearing) => {
+    const cx = Math.floor(x / CARRIAGEWAY_CELL), cz = Math.floor(z / CARRIAGEWAY_CELL);
+    for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dz = -1; dz <= 1; dz += 1) {
+        for (const [sax, saz, sbx, sbz, half, other] of carriagewayGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+          if (other === undefined) continue;
+          let difference = Math.abs(other - bearing) % Math.PI;
+          if (difference > Math.PI / 2) difference = Math.PI - difference;
+          if (difference < Math.PI / 7) continue;
+          const reach = half + 0.5;
+          if (distanceToSegmentSquared(x, z, sax, saz, sbx, sbz) < reach * reach) return true;
+        }
+      }
+    }
+    return false;
+  };
+  const bridged = runs.length ? [runs[0]] : [];
+  for (let i = 1; i < runs.length; i += 1) {
+    const prev = bridged[bridged.length - 1], next = runs[i];
+    const [ax, ay] = xy(prev[prev.length - 1][0], prev[prev.length - 1][1]);
+    const [bx, by] = xy(next[0][0], next[0][1]);
+    const mx = (ax + bx) / 2, mz = -(ay + by) / 2;
+    if (Math.hypot(bx - ax, by - ay) < WALK_GAP_FILL_M && !insideJunctionBox(mx, mz)
+        && !crossedAt(mx, mz, Math.atan2(-(by - ay), bx - ax))) {
+      bridged[bridged.length - 1] = prev.concat(next);
+    } else {
+      bridged.push(next);
+    }
+  }
+  return bridged;
 }
 
 //: Where pavement was actually laid, as a coarse grid. A tree pit belongs in a footway and
@@ -8375,6 +8631,9 @@ function markingRunsClearOfJunctions(points, way) {
   const dense = densifyWay(points, 2.0);
   if (dense.length < 2) return [];
   const blocked = [];
+  // An intersection's radius already includes the setback (JUNCTION_CLEAR_M); counted again
+  // the paint stopped nine metres short of the cross street instead of at its crosswalk.
+  const inJunction = [];
   const station = [0];
   for (let i = 0; i < dense.length; i += 1) {
     const before = dense[Math.max(0, i - 1)];
@@ -8383,7 +8642,8 @@ function markingRunsClearOfJunctions(points, way) {
     const [bx, by] = xy(before[0], before[1]);
     const [ax, ay] = xy(after[0], after[1]);
     const bearing = Math.atan2(-ay + by, ax - bx);
-    blocked.push(crosswiseCarriagewayAt(x, -y, bearing, 0.2, way) || insideIntersection(x, -y));
+    blocked.push(crosswiseCarriagewayAt(x, -y, bearing, 0.2, way, false));
+    inJunction.push(insideIntersection(x, -y));
     if (i) {
       const [px, py] = xy(dense[i - 1][0], dense[i - 1][1]);
       station.push(station[i - 1] + Math.hypot(x - px, y - py));
@@ -8391,7 +8651,7 @@ function markingRunsClearOfJunctions(points, way) {
   }
   // The paint stops short of the junction, not at its edge: the crosswalk and the stop bar in
   // front of it take the last few metres.
-  const clear = blocked.slice();
+  const clear = blocked.map((b, i) => b || inJunction[i]);
   for (let i = 0; i < blocked.length; i += 1) {
     if (!blocked[i]) continue;
     for (let j = 0; j < blocked.length; j += 1) {
@@ -8978,7 +9238,7 @@ function garagePanel(opening, tint) {
     new THREE.PlaneGeometry(width, GARAGE_HEIGHT_M),
     new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.66, metalness: 0.20 })
   );
-  mesh.position.set(cx + nx * 0.07, GARAGE_HEIGHT_M / 2, -cy + nz * 0.07);
+  mesh.position.set(cx + nx * GARAGE_STANDOFF_M, GARAGE_HEIGHT_M / 2, -cy + nz * GARAGE_STANDOFF_M);
   // A plane faces +z, so pi minus the bearing turns it to face the way the wall does. It was
   // atan2(nx, ny) + pi/2, which is ninety degrees out: every door stood side-on to its own
   // building, and read from the street as a grey slab planted on the pavement.
@@ -9519,6 +9779,7 @@ function bikePaintEdgeOffset(width) {
 // Which lane ends are joins and which are ends. Has to run after the widths are clamped, since
 // the lane centre it keys on is measured from the carriageway edge, and after BIKE_LANE_M is
 // declared, which is why it is here rather than beside the carriageway grid it reads.
+inferBikeLaneGaps(DATA.ways);
 indexBikeLaneEnds(DATA.ways);
 
 // And which street ends are junctions rather than splits in the tagging, so the pavement is
@@ -10622,6 +10883,18 @@ function addGroundFacadeDetail(group, feature, seed, height, tint) {
   if (!wall) return;
   const panelW = Math.min(wall.span * 0.62, 7.2);
   const panelH = Math.min(3.35, height - 0.3);
+  // A window cannot overlap a garage door: where one of the building's garages is on this wall
+  // under the entry's windows, the entry's picture gives way and the garage stands alone.
+  const tx = Math.cos(wall.yaw), tz = -Math.sin(wall.yaw);
+  for (const g of feature.garages || []) {
+    const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+    const glen = Math.hypot(bx - ax, by - ay);
+    if (!(glen > 0.5)) continue;
+    const gx = ax + (bx - ax) * g.t, gz = -(ay + (by - ay) * g.t);
+    const off = (gx - wall.x) * wall.nx + (gz - wall.z) * wall.nz;
+    const along = (gx - wall.x) * tx + (gz - wall.z) * tz;
+    if (Math.abs(off) < 1.0 && Math.abs(along) < panelW / 2 + (g.w || 2.6) / 2) return;
+  }
   const anchor = wallPoint(wall, 0, 0.11);
   planePart(group, anchor.x, 0.06, anchor.z, panelW, panelH,
             entryTextureFor(seed, feature.archetype), wall.yaw);
@@ -11862,6 +12135,10 @@ function buildingMesh(feature) {
   walls.vertexColors = true;
   for (const part of geom.groups) {
     const slice = geom.clone();
+    // Its own userData (clone() shares the source's). A roof is tagged with its building so
+    // the cutaway view can lift the roof off the one building being looked into.
+    slice.userData = part.materialIndex === 0 && feature.osm_id != null
+      ? { homeId: `roof:${feature.osm_id}` } : {};
     slice.clearGroups();
     // ExtrudeGeometry comes back non-indexed, in which case a group's start and count are a
     // straight run of vertices rather than a run of indices into them.
@@ -11923,6 +12200,11 @@ const facadeLoader = new THREE.TextureLoader();
 //: Clear of the wall behind it. Coplanar with the extrusion, the two would fight for every
 //: pixel and flicker, which is the same bug the kerb bands had.
 const FACADE_STANDOFF_M = 0.06;
+//: Doors, garage doors and doorway portals stand clear in front of the facade photograph, so
+//: a picture of the wall never covers the door you walk through.
+const DOOR_STANDOFF_M = 0.09;
+const GARAGE_STANDOFF_M = 0.12;
+const PORTAL_STANDOFF_M = 0.11;
 
 function facadePanel(wall) {
   const [ax, ay] = xy(wall.a[0], wall.a[1]);
@@ -11963,6 +12245,7 @@ for (const wall of FACADES.walls) {
 // JPEGs is several megabytes, and blocking the first frame on them would trade the whole map
 // for one block of it.
 const FACADE_TEXTURE_CONCURRENCY = 3;
+const FACADE_FADE_MS = 450;
 const FACADE_TEXTURE_YIELD_EVERY = 8;
 
 function nextFrame() {
@@ -11984,9 +12267,20 @@ async function loadFacadeTexture(panel) {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     panel.material.map = texture;
-    panel.material.opacity = 1;
     panel.material.needsUpdate = true;
+    // Faded in rather than switched on, so a photograph arriving reads as the wall coming into
+    // focus and not as a picture popping up in front of it; then opaque, out of the sorted queue.
+    const from = performance.now();
+    const fade = () => {
+      const k = Math.min(1, (performance.now() - from) / FACADE_FADE_MS);
+      panel.material.opacity = k;
+      if (k < 1) { requestAnimationFrame(fade); return; }
+      panel.material.transparent = false;
+      panel.material.needsUpdate = true;
+    };
+    requestAnimationFrame(fade);
   } catch (err) {
+    panel.userData.failed = true;
     panel.visible = false;
   }
 }
@@ -12724,17 +13018,16 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
 //: street loop that draws car parks runs before that block does.
 const PARKING_Y = 0.0275;      // a surface car park's asphalt, between the frontages and the courts
 const PARKING_LINE_Y = 0.046;  // the bays painted on it
-const PARKING_BAY_W_M = 2.5;
-const PARKING_BAY_L_M = 5.0;
-//: Stalls lean this far from the row they are painted along -- sixty degrees is the common
-//: angled layout, and the aisle between two angled rows is one way and narrower than the
-//: aisle between two rows of stalls nosed in square.
-const PARKING_STALL_ANGLE_DEG = 60;
-const PARKING_ANGLED_AISLE_M = 5.0;
+//: A surface lot as Bay Area lots are striped: stalls nosed in square to the aisle, 2.7 m wide
+//: and 5.5 m deep, two-way aisles 7.3 m wide between rows, a drive aisle across each end so a
+//: car can circle the rows, and the front row broken where the lot's entrance is.
+const PARKING_BAY_W_M = 2.7;
+const PARKING_BAY_L_M = 5.5;
+const PARKING_AISLE_M = 7.3;
+const PARKING_END_AISLE_M = 6.5;
+const PARKING_ENTRY_M = 7.0;
 //: No line is painted closer than this to the lot's edge.
 const PARKING_EDGE_M = 0.3;
-//: The two lines between one stall and the next are this far apart.
-const PARKING_STRIPE_GAP_M = 0.22;
 //: How far a lot's mapped edge may stand from the street's kerb and still be that street's
 //: frontage, and the footway allowed between them before the lot's asphalt begins.
 const PARKING_FORECOURT_MAX_M = 14.0;
@@ -12745,15 +13038,17 @@ function parkingAsphaltTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#4a4c4e";                                 // paler than the roadway: it sees less traffic
+  // Weathered asphalt: grey, paler than the roadway -- a lot sees less traffic and more sun.
+  // (It was #4a4c4e under dark oil patches, which the lighting took to near black.)
+  ctx.fillStyle = "#77797a";
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < size * size * 0.22; i += 1) {
-    ctx.fillStyle = random(i * 19) < 0.5 ? "rgba(0,0,0,0.16)" : "rgba(255,255,255,0.08)";
+    ctx.fillStyle = random(i * 19) < 0.5 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.07)";
     ctx.fillRect(random(i * 3) * size, random(i * 7) * size, 1, 1);
   }
-  // Patching and oil: a car park is where cars sit.
-  for (let i = 0; i < 24; i += 1) {
-    ctx.fillStyle = "rgba(20,20,22,0.18)";
+  // A few oil marks where cars sit, faint.
+  for (let i = 0; i < 10; i += 1) {
+    ctx.fillStyle = "rgba(30,30,32,0.10)";
     ctx.beginPath();
     ctx.ellipse(random(i * 11) * size, random(i * 13) * size, 4 + random(i * 17) * 10, 3 + random(i * 23) * 6, random(i) * 3, 0, Math.PI * 2);
     ctx.fill();
@@ -12880,12 +13175,11 @@ function addParkingLot(way) {
   }
 
   // The stalls. A lot is laid out from its frontage -- the edge that faces the street it opens
-  // onto -- in rows parallel to it: one row nosed in against the frontage, an aisle, and
-  // then double rows back to back with an aisle between each pair, the last row against the
-  // back. The stalls are angled at PARKING_STALL_ANGLE_DEG to the row, all leaning the same
-  // way so the aisles are one way, and each is divided from the next by a pair of lines a
-  // hand apart, a car length long, which is how a lot is striped. A stall is only painted
-  // where the whole of it is lot: inside the ring, on nothing else.
+  // onto -- in rows parallel to it: a row nosed in along the frontage (broken at the entrance),
+  // a two-way aisle, then double rows back to back with an aisle between each pair, and a row
+  // against the back. A drive aisle runs across each end so the aisles join into a loop. Each
+  // stall is divided from the next by one painted line and has a wheel stop at its head. A
+  // stall is only kept where the whole of it is lot: inside the ring, on nothing else.
   const inside = (x, z) => {
     let hit = false;
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -12896,74 +13190,105 @@ function addParkingLot(way) {
     return hit;
   };
   const stripes = [];
+  const stops = [];
+  const accessible = [];
   const layout = parkingLayout(ring, PARKING_FORECOURT_MAX_M);
   const rejected = { ring: 0, carriageway: 0, pavement: 0 };
   if (layout) {
     const { ox, oz, ex, ez, nx, nz, u0, u1, depth } = layout;
-    const L = PARKING_BAY_L_M;
-    const theta = PARKING_STALL_ANGLE_DEG * Math.PI / 180;
-    const sinT = Math.sin(theta), cosT = Math.cos(theta);
-    const R = L * sinT;                                          // a row's depth, across it
-    const pitch = PARKING_BAY_W_M / sinT;                        // one stall along the row
-    const A = PARKING_ANGLED_AISLE_M;
-    // Rows as [near v, far v, +1 stalls run away from the frontage / -1 toward it], set in
-    // from the lot's edges by a margin: a line painted on the boundary itself is half off
-    // the lot, and the ring test throws the whole stall away for it.
+    const R = PARKING_BAY_L_M, W = PARKING_BAY_W_M, A = PARKING_AISLE_M;
+    const at = (u, v) => [ox + ex * u + nx * v, oz + ez * u + nz * v];
     const m = PARKING_EDGE_M;
-    const room = depth - 2 * m;
+    // Rows as [near v, far v, +1 heads toward the frontage side / -1 toward the back].
     const rows = [];
+    const room = depth - 2 * m;
     if (room >= 2 * R + A) {
-      rows.push([m, m + R, +1], [depth - m - R, depth - m, -1]);
+      rows.push({ va: m, vb: m + R, head: m, front: true });
       const between = room - 2 * R;
-      const doubles = Math.floor((between - A) / (2 * R + A));
-      const slack = between - A - doubles * (2 * R + A);       // spread into the aisles
-      const aisle = A + slack / (doubles + 1);
+      const doubles = Math.max(0, Math.floor((between - A) / (2 * R + A)));
+      const aisle = (between - doubles * 2 * R) / (doubles + 1);
       let v = m + R + aisle;
       for (let d = 0; d < doubles; d += 1) {
-        rows.push([v, v + R, +1], [v + R, v + 2 * R, -1]);
+        rows.push({ va: v, vb: v + R, head: v + R }, { va: v + R, vb: v + 2 * R, head: v + R });
         v += 2 * R + aisle;
       }
-    } else if (room >= R + 3.0) {
-      rows.push([depth - m - R, depth - m, -1]);                 // one row, nosed in from the front
+      rows.push({ va: depth - m - R, vb: depth - m, head: depth - m });
+    } else if (room >= R + 4.0) {
+      rows.push({ va: depth - m - R, vb: depth - m, head: depth - m });   // one row, at the back
     }
-    const at = (u, v) => [ox + ex * u + nx * v, oz + ez * u + nz * v];
-    for (const [va, vb, dir] of rows) {
-      // The aisle side of the row is where the stall lines start.
-      const base = dir > 0 ? va : vb;
-      // The stall direction in (u, v): a lean of cos(theta) along the row, sin(theta) across.
-      const du = cosT, dv = dir * sinT;
-      // The pair's offset, perpendicular to the line, in (u, v).
-      const pu = -dv * PARKING_STRIPE_GAP_M / 2, pv = du * PARKING_STRIPE_GAP_M / 2;
-      for (let u = u0 + pitch; u <= u1 - pitch + 1e-6; u += pitch) {
-        for (const sign of [-1, +1]) {
-          const su = u + sign * pu, sv = base + sign * pv;
-          const [ax, az] = at(su, sv);
-          const [bx, bz] = at(su + du * L, sv + dv * L);
-          if (!inside(ax, az) || !inside(bx, bz)) { rejected.ring += 1; continue; }
-          if (insideCarriageway(ax, az, 0.2) || insideCarriageway(bx, bz, 0.2)) { rejected.carriageway += 1; continue; }
-          // Under a footway is not lot; under the low concrete underlay is, since that is
-          // laid toward every property line and the lot's asphalt sits over it. Asked of the
-          // outer half of the line: OpenStreetMap's footway line and its car park outline
-          // overlap by a metre along Broadway, the paved grid's cells are a metre and a half,
-          // and a stall whose nose is under the footway's edge is still a stall.
-          let paved = false;
-          for (const t of [0.55, 0.8, 1.0]) {
-            if ((pavementTopAt(ax + (bx - ax) * t, az + (bz - az) * t) || 0) > 0.1) { paved = true; break; }
-          }
-          if (paved) { rejected.pavement += 1; continue; }
-          stripes.push([ax, az, bx, bz]);
+    // End aisles: a lot long enough to circle keeps a drive aisle clear across each end.
+    const span = u1 - u0;
+    const ends = span > 4 * W + 2 * PARKING_END_AISLE_M ? PARKING_END_AISLE_M : 0.5;
+    const ua = u0 + ends, ub = u1 - ends;
+    // The entrance: where a mapped driveway or aisle meets the frontage, else its middle.
+    let entryU = (u0 + u1) / 2;
+    if (layout.frontage) {
+      let best = Infinity;
+      for (const w of DATA.ways) {
+        if (w.kind !== "street" || !["driveway", "parking_aisle", "access"].includes(w.service) || !w.points) continue;
+        for (const p of [w.points[0], w.points[w.points.length - 1]]) {
+          const [px, py] = xy(p[0], p[1]);
+          const du = (px - ox) * ex + (-py - oz) * ez, dv = (px - ox) * nx + (-py - oz) * nz;
+          if (du < u0 || du > u1 || Math.abs(dv) > 8 || Math.abs(dv) >= best) continue;
+          best = Math.abs(dv);
+          entryU = du;
         }
       }
     }
+    const usable = (corners) => {
+      for (const [x, z] of corners) {
+        if (!inside(x, z)) { rejected.ring += 1; return false; }
+        if (insideCarriageway(x, z, 0.2)) { rejected.carriageway += 1; return false; }
+      }
+      // Under a footway is not lot (the outer, head end may tuck under its edge).
+      for (const [x, z] of corners.slice(0, 2)) {
+        if ((pavementTopAt(x, z) || 0) > 0.1) { rejected.pavement += 1; return false; }
+      }
+      return true;
+    };
+    let firstAccessible = true;
+    for (const row of rows) {
+      const count = Math.floor((ub - ua) / W);
+      if (count < 1) continue;
+      const start = ua + ((ub - ua) - count * W) / 2;
+      const keep = [];
+      for (let s = 0; s < count; s += 1) {
+        const sa = start + s * W, sb = sa + W;
+        // The entrance gap in the front row.
+        if (row.front && sb > entryU - PARKING_ENTRY_M / 2 && sa < entryU + PARKING_ENTRY_M / 2) { keep.push(false); continue; }
+        // Aisle end (open to the aisle) first in the list, head end last.
+        const aisleV = row.head === row.va ? row.vb : row.va;
+        keep.push(usable([at(sa, row.head), at(sb, row.head), at(sb, aisleV), at(sa, aisleV), at((sa + sb) / 2, (row.va + row.vb) / 2)]));
+      }
+      for (let s = 0; s <= count; s += 1) {
+        // A dividing line wherever a kept stall has an edge.
+        if (!keep[s - 1] && !keep[s]) continue;
+        const u = start + s * W;
+        const [ax, az] = at(u, row.va), [bx, bz] = at(u, row.vb);
+        stripes.push([ax, az, bx, bz]);
+      }
+      for (let s = 0; s < count; s += 1) {
+        if (!keep[s]) continue;
+        const uc = start + (s + 0.5) * W;
+        const inward = row.head === row.va ? 1 : -1;
+        const [sx, sz] = at(uc, row.head + inward * 0.75);
+        stops.push([sx, sz]);
+        // One accessible stall, on the front row beside the entrance, painted blue.
+        if (firstAccessible && row.front && Math.abs(uc - entryU) < PARKING_ENTRY_M / 2 + W * 1.6) {
+          accessible.push([at(uc - W / 2 + 0.06, row.va), at(uc + W / 2 - 0.06, row.va),
+                           at(uc + W / 2 - 0.06, row.vb), at(uc - W / 2 + 0.06, row.vb)]);
+          firstAccessible = false;
+        }
+      }
+    }
+    way._parking = { layout, rows: rows.length, entryU, endAisles: ends };
   }
-  way._parking = { layout, stripes: stripes.length, rejected };
-  if (stripes.length) {
-    const positions = [];
-    const index = [];
-    for (const [ax, az, bx, bz] of stripes) {
+  const lineGeometry = (segments, width) => {
+    const positions = [], index = [];
+    for (const [ax, az, bx, bz] of segments) {
       const dx = bx - ax, dz = bz - az;
       const len = Math.hypot(dx, dz) || 1;
-      const px = -dz / len * MARK_W / 2, pz = dx / len * MARK_W / 2;
+      const px = -dz / len * width / 2, pz = dx / len * width / 2;
       const base = positions.length / 3;
       positions.push(ax + px, PARKING_LINE_Y, az + pz, ax - px, PARKING_LINE_Y, az - pz,
                      bx - px, PARKING_LINE_Y, bz - pz, bx + px, PARKING_LINE_Y, bz + pz);
@@ -12973,7 +13298,45 @@ function addParkingLot(way) {
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
     geometry.setIndex(index);
     geometry.computeVertexNormals();
-    const lines = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    return geometry;
+  };
+  if (accessible.length) {
+    const positions = [], index = [];
+    for (const quad of accessible) {
+      const base = positions.length / 3;
+      for (const [x, z] of quad) positions.push(x, PARKING_LINE_Y - 0.004, z);
+      index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setIndex(index);
+    geometry.computeVertexNormals();
+    const blue = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+      color: 0x2a5d9f, roughness: 0.8, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 }));
+    blue.userData.surface = "parking_bays";
+    group.add(blue);
+  }
+  if (stops.length) {
+    const parts = [];
+    for (const [sx, sz] of stops) {
+      const box = new THREE.BoxGeometry(1.8, 0.12, 0.15);
+      const yaw = layout ? Math.atan2(-layout.ez, layout.ex) : 0;
+      box.rotateY(yaw);
+      box.translate(sx, PARKING_Y + 0.06, sz);
+      parts.push(box);
+    }
+    const merged = mergeParts(parts);
+    if (merged) {
+      const stopsMesh = new THREE.Mesh(merged, new THREE.MeshStandardMaterial({ color: 0xc9c6bd, roughness: 0.9 }));
+      stopsMesh.userData.surface = "parking_wheel_stop";
+      stopsMesh.castShadow = true;
+      group.add(stopsMesh);
+    }
+  }
+  way._parking = { ...(way._parking || {}), stripes: stripes.length, stops: stops.length, rejected };
+  if (stripes.length) {
+    const lines = new THREE.Mesh(lineGeometry(stripes, MARK_W), new THREE.MeshStandardMaterial({
       color: 0xe9ebe6, roughness: 0.8, metalness: 0.0, side: THREE.DoubleSide,
       polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
     }));
@@ -13384,6 +13747,18 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
                                    roadTop + mark.y, mark.kind === "lane" ? { dash: true } : {});
           if (line) addMerged(`marking:${mark.kind}`, line, "marking");
         }
+      }
+    }
+    // Half of a divided road (one-way, with its opposite-direction twin across a median): the
+    // edge of its travel lanes on the median side is a solid yellow line -- the line that says
+    // the traffic beyond runs the other way. Without it a divided street (Broadway in Oakland,
+    // the Embarcadero) read as dashed white and nothing else, as if one-way.
+    if (way._twin === true && markingRuns.length) {
+      const profile = laneMarkingProfile(way, road);
+      const edge = (profile.left ?? road / 2) - MARK_W * 1.5;
+      for (const run of markingRuns) {
+        const line = paintedLine(offsetWay(run, edge), MARK_W, 0xd8a92e, roadTop + 0.02);
+        if (line) addMerged("marking:median-edge", line, "marking");
       }
     }
     addLaneTransitionMarkings(way, renderPoints, road, roadTop);
@@ -15519,6 +15894,79 @@ if (worldSweepsDrawn || worldMeshesDrawn) {
 // pavement and its kerb tile are lowered here, on their own vertices, along the city's 14,130
 // dropped kerbs: the kerb edge to the gutter, rising to footway level at the property line,
 // flared over APRON_FLARE_M beyond the door on each side.
+//: Longest triangle edge left over a driveway's drop, so the ramp has vertices to bend on.
+const DROP_MAX_EDGE_M = 0.9;
+function subdivideNearDrops(geometry, grid, cell) {
+  const source = geometry.getAttribute("position");
+  // Quick test first: does any triangle of this mesh reach into a driveway at all?
+  const index = geometry.getIndex();
+  const triangles = index ? index.count / 3 : source.count / 3;
+  const vertexOf = (t, k) => (index ? index.getX(t * 3 + k) : t * 3 + k);
+  const dropsFor = (minX, maxX, minZ, maxZ) => {
+    const found = new Set();
+    for (let ix = Math.floor(minX / cell); ix <= Math.floor(maxX / cell); ix += 1) {
+      for (let iz = Math.floor(minZ / cell); iz <= Math.floor(maxZ / cell); iz += 1) {
+        for (const d of grid.get(`${ix}:${iz}`) || []) {
+          if (d.maxX >= minX && d.minX <= maxX && d.maxZ >= minZ && d.minZ <= maxZ) found.add(d);
+        }
+      }
+    }
+    return found.size;
+  };
+  const near = new Uint8Array(triangles);
+  let any = false;
+  for (let t = 0; t < triangles; t += 1) {
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, high = false;
+    for (let k = 0; k < 3; k += 1) {
+      const v = vertexOf(t, k);
+      const x = source.getX(v), z = source.getZ(v);
+      if (source.getY(v) >= ROAD_TOP_M + 0.03) high = true;
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+    }
+    if (!high || (maxX - minX <= DROP_MAX_EDGE_M && maxZ - minZ <= DROP_MAX_EDGE_M)) continue;
+    if (dropsFor(minX, maxX, minZ, maxZ)) { near[t] = 1; any = true; }
+  }
+  if (!any) return geometry;
+  const names = Object.keys(geometry.attributes);
+  const sizes = names.map((n) => geometry.getAttribute(n).itemSize);
+  const out = names.map(() => []);
+  const read = (v) => names.map((n, a) => {
+    const attr = geometry.getAttribute(n), row = [];
+    for (let c = 0; c < sizes[a]; c += 1) row.push(attr.getComponent(v, c));
+    return row;
+  });
+  const write = (p) => p.forEach((row, a) => out[a].push(...row));
+  const mid = (p, q) => p.map((row, a) => row.map((value, c) => (value + q[a][c]) / 2));
+  const span = (p, q) => Math.hypot(p[0][0] - q[0][0], p[0][1] - q[0][1], p[0][2] - q[0][2]);
+  const split = (p, q, r, depth) => {
+    const e0 = span(p, q), e1 = span(q, r), e2 = span(r, p);
+    const longest = Math.max(e0, e1, e2);
+    if (longest <= DROP_MAX_EDGE_M || depth > 14) { write(p); write(q); write(r); return; }
+    // Halve the longest edge, keeping the winding.
+    if (longest === e0) { const m = mid(p, q); split(p, m, r, depth + 1); split(m, q, r, depth + 1); }
+    else if (longest === e1) { const m = mid(q, r); split(p, q, m, depth + 1); split(p, m, r, depth + 1); }
+    else { const m = mid(r, p); split(p, q, m, depth + 1); split(m, q, r, depth + 1); }
+  };
+  const attrs = names.map((n) => geometry.getAttribute(n));
+  for (let t = 0; t < triangles; t += 1) {
+    if (near[t]) { split(read(vertexOf(t, 0)), read(vertexOf(t, 1)), read(vertexOf(t, 2)), 0); continue; }
+    for (let k = 0; k < 3; k += 1) {
+      const v = vertexOf(t, k);
+      for (let a = 0; a < attrs.length; a += 1) {
+        for (let c = 0; c < sizes[a]; c += 1) out[a].push(attrs[a].getComponent(v, c));
+      }
+    }
+  }
+  const finer = new THREE.BufferGeometry();
+  names.forEach((n, a) => {
+    const attr = geometry.getAttribute(n);
+    finer.setAttribute(n, new THREE.BufferAttribute(new attr.array.constructor(out[a]), sizes[a],
+                                                    attr.normalized));
+  });
+  finer.userData = { ...geometry.userData };
+  return finer;
+}
 function dropKerbsAtDriveways(ways) {
   const cell = 6.0;
   const grid = new Map();
@@ -15544,6 +15992,8 @@ function dropKerbsAtDriveways(ways) {
       drop.ox = kerb.nx;
       drop.oz = kerb.nz;
       const reach = drop.half + APRON_FLARE_M + drop.depth;
+      drop.minX = drop.x - reach; drop.maxX = drop.x + reach;
+      drop.minZ = drop.z - reach; drop.maxZ = drop.z + reach;
       for (let ix = Math.floor((drop.x - reach) / cell); ix <= Math.floor((drop.x + reach) / cell); ix += 1) {
         for (let iz = Math.floor((drop.z - reach) / cell); iz <= Math.floor((drop.z + reach) / cell); iz += 1) {
           const key = `${ix}:${iz}`;
@@ -15560,6 +16010,12 @@ function dropKerbsAtDriveways(ways) {
   let lowered = 0;
   groups.streets.traverse((o) => {
     if (!o.isMesh || !["walk", "walk_narrow", "kerb"].includes(o.userData.surface)) return;
+    // The kerb and the pavement carry a vertex every few metres along the street. Lowering only
+    // the ones inside a driveway let the drop run on, as one long slope, to the next vertex
+    // outside it -- a diagonal slice out of the kerb metres long. The triangles over a driveway
+    // are split first, so the drop is made exactly where the driveway is and nowhere else.
+    const finer = subdivideNearDrops(o.geometry, grid, cell);
+    if (finer !== o.geometry) { o.geometry.dispose(); o.geometry = finer; }
     const pos = o.geometry.getAttribute("position");
     let touched = false;
     for (let i = 0; i < pos.count; i += 1) {
@@ -16843,9 +17299,36 @@ for (const s of DATA.sequence_paths) {
 const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0 };
 const MAX_ORBIT_DIST_M = 20000;
 let interiorCameraFootprints = null;
-const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false, ceilingRoom: false };
+const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false, ceilingRoom: false,
+  interiorPitch: 1.32, interiorDist: 14 };
+//: The view on entering a building: nearly straight down into it.
+const INTERIOR_VIEW_PITCH = 1.32;
+//: The building the cutaway is open on, and its interior group (see applyCutaway). Declared
+//: here, before the first placeCamera() reads it.
+let cutawayEntry = null;
+let cutawayGroup = null;
+//: The roof furniture instances lifted off with the roof: [mesh, index, matrix].
+let cutawayRoofParts = [];
 function placeCamera() {
   if (state.ceilingRoom && typeof avatar !== "undefined") {
+    // Inside a building: looking down into it from above, the roof lifted off and the walls
+    // cut at this storey's ceiling (applyCutaway), orbiting the walker -- drag to tilt and
+    // turn, the wheel to come closer or stand off. Where no cutaway could be made, the
+    // camera stands under the room's ceiling instead.
+    const cut = cutawayEntry && cutawayEntry.interior ? cutawayEntry : null;
+    if (cut) {
+      const feet = avatar.position.y - AVATAR_STAND_Y;
+      const target = new THREE.Vector3(avatar.position.x, feet + 1.0, avatar.position.z);
+      const pitch = state.interiorPitch, dist = state.interiorDist / (state.zoom || 1);
+      camera.position.set(target.x + Math.sin(state.yaw) * Math.cos(pitch) * dist,
+        target.y + Math.sin(pitch) * dist, target.z + Math.cos(state.yaw) * Math.cos(pitch) * dist);
+      camera.up.set(0, 1, 0);
+      camera.fov = FIRST_PERSON_FOV;
+      camera.near = 0.1;
+      camera.updateProjectionMatrix();
+      camera.lookAt(target);
+      return;
+    }
     const pose = currentRoomCamera();
     if (pose) {
       camera.position.set(pose.x, pose.y, pose.z);
@@ -16898,9 +17381,15 @@ function setCeilingView(on) {
   state.ceilingRoom = Boolean(on);
   state.firstPerson = false;
   state.zoom = 1;
-  // A seven-foot character is almost against a domestic ceiling; showing
-  // its head here fills the view and obscures the room we are inspecting.
-  avatar.visible = !on;
+  // Looking down from above the cut walls, the walker is part of the view.
+  avatar.visible = true;
+  const b = on ? buildingAt(avatar.position.x, avatar.position.z) : null;
+  applyCutaway(b ? footprintById.get(String(b.osm_id)) : null);
+  if (on && cutawayEntry) {
+    const size = Math.hypot(cutawayEntry.maxX - cutawayEntry.minX, cutawayEntry.maxZ - cutawayEntry.minZ);
+    state.interiorDist = Math.max(9, Math.min(40, size * 0.9));
+    state.interiorPitch = INTERIOR_VIEW_PITCH;
+  }
   document.getElementById("firstperson")?.setAttribute("aria-pressed", "false");
   camera.fov = FIRST_PERSON_FOV;
   camera.near = on ? 0.06 : 0.5;
@@ -16923,7 +17412,9 @@ canvas.addEventListener("pointermove", (e) => {
   state.yaw -= dx * 0.006;
   if (state.firstPerson) {
     state.look = Math.max(-0.7, Math.min(0.7, state.look - dy * 0.004));
-  } else if (!state.ceilingRoom) {
+  } else if (state.ceilingRoom) {
+    state.interiorPitch = Math.max(0.35, Math.min(1.5, state.interiorPitch + dy * 0.004));
+  } else {
     state.pitch = Math.max(0.25, Math.min(1.28, state.pitch + dy * 0.004));
   }
   last = [e.clientX, e.clientY];
@@ -16937,7 +17428,12 @@ canvas.addEventListener("wheel", (e) => {
   if (state.firstPerson || state.ceilingRoom) {
     // Zoom by field of view, 1x to 2x; the walker stays where it is.
     state.zoom = Math.max(1, Math.min(FIRST_PERSON_MAX_ZOOM, (state.zoom || 1) * Math.exp(-e.deltaY * 0.001)));
-    if (state.ceilingRoom) { placeCamera(); return; }
+    if (state.ceilingRoom) {
+      state.interiorDist = Math.max(3, Math.min(60, state.interiorDist * Math.exp(e.deltaY * 0.001)));
+      state.zoom = 1;
+      placeCamera();
+      return;
+    }
     camera.fov = FIRST_PERSON_FOV / state.zoom;
     camera.updateProjectionMatrix();
     return;
@@ -17701,6 +18197,7 @@ fetch(sharedAsset("interior-scans/manifest.json"), { cache: "no-cache" })
     }
     SCANNED_INTERIORS = data;
     for (const entry of interiorsBuilt) requestScannedInterior(entry);
+    setTimeout(() => (window.requestIdleCallback || setTimeout)(prefetchScanDetail), 12000);
   }).catch(() => {});
 let HOME_OPENINGS = { buildings: {} };
 let HOME_OPENINGS_VERSION = 0;
@@ -17877,7 +18374,9 @@ function showDoor(door) {
   const hx = door.entry.local[door.edge][0] + (door.entry.local[door.edge + 1][0] - door.entry.local[door.edge][0]) * door.t0;
   const hz = door.entry.local[door.edge][1] + (door.entry.local[door.edge + 1][1] - door.entry.local[door.edge][1]) * door.t0;
   // A raised entry's leaf belongs at the end of its recessed stair and landing.
-  const leafDepth = door.stoopPlan ? door.stoopPlan.depth : 0;
+  // A door on a flat frontage stands in front of the facade's photograph (FACADE_STANDOFF_M)
+  // so it is never painted over by the picture of the wall it is in.
+  const leafDepth = door.stoopPlan ? door.stoopPlan.depth : -DOOR_STANDOFF_M;
   hinge.position.set(hx + door.nx * leafDepth, ground, hz + door.nz * leafDepth);
   hinge.rotation.y = Math.atan2(-door.uz, door.ux);
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(door.width, DOOR_HEIGHT_M, 0.05), doorMaterial);
@@ -17888,8 +18387,10 @@ function showDoor(door) {
   const portalBottom = door.stoopPlan ? street : ground;
   const portalHeight = ground + DOOR_HEIGHT_M - portalBottom;
   const portal = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.1, door.width - 0.04), portalHeight - 0.02), portalMaterial);
-  portal.position.set(hx + door.ux * door.width / 2 - door.nx * 0.06, portalBottom + portalHeight / 2,
-    hz + door.uz * door.width / 2 - door.nz * 0.06);
+  // In front of the facade photograph and its glazing details, so the recess it reveals is
+  // not hidden behind a picture of the wall.
+  portal.position.set(hx + door.ux * door.width / 2 - door.nx * PORTAL_STANDOFF_M, portalBottom + portalHeight / 2,
+    hz + door.uz * door.width / 2 - door.nz * PORTAL_STANDOFF_M);
   portal.rotation.y = Math.atan2(-door.uz, door.ux);
   portal.renderOrder = INTERIOR_ORDER + 0.1;
   portal.visible = false;
@@ -17972,6 +18473,8 @@ function addStoop(door, street, floor, plan = planInwardStoop(door, street, floo
   // Local z points into the building (its inward normal), x along the wall.
   group.position.set(door.cx, 0, door.cz);
   group.rotation.y = Math.atan2(door.nx, door.nz);
+  // Drawn before the doorway portal, which reveals it through the facade.
+  group.traverse((o) => { if (o.isMesh) o.renderOrder = INTERIOR_ORDER; });
   doorGroup.add(group);
   door.stoop = group;
   // The walker climbs it: the height at a point is the tread it stands on.
@@ -18120,13 +18623,17 @@ function updateDoors(dt) {
     door.angle += Math.sign(target - door.angle) * Math.min(Math.abs(target - door.angle), dt * 3.5);
     door.leaf.parent.rotation.y = Math.atan2(-door.uz, door.ux) - door.inward * door.angle;
     door.opening.visible = door.angle > 0.05 && !door.entry.interior;
-    door.portal.visible = !door.entry.homeShell && door.angle > 0.05 && Boolean(door.entry.interior)
+    // A recessed entry is open to the street whether or not its door is: its stair and landing
+    // show through the facade always; a flat doorway only once its door stands open.
+    door.portal.visible = !door.entry.homeShell
+      && (Boolean(door.stoopPlan) || (door.angle > 0.05 && Boolean(door.entry.interior)))
       && !insideFootprint(door.entry, camera.position.x, camera.position.z);
   }
   const door = nearestDoor();
   const inside = buildingAt(x, z);
   const insideEntry = inside && footprintById.get(String(inside.osm_id));
   const insideId = inside && !insideEntranceRecess(insideEntry, x, z) ? String(inside.osm_id) : null;
+  interiorBlock = insideId && insideEntry?.interior?.scan ? insideEntry : null;
   // A walker already inside (arrived by search, or a saved position) gets the rooms too.
   if (inside && INTERIORS) {
     const entry = footprintById.get(String(inside.osm_id));
@@ -18136,6 +18643,9 @@ function updateDoors(dt) {
   // Address search lands outside the building; a stair/landing recess is not a
   // room. An explicitly selected first-person view remains first-person.
   if (insideId && insideEntry?.interior && !state.firstPerson && !state.ceilingRoom) setCeilingView(true);
+  // The occupied interior was rebuilt (a scan arrived, a shell was redone): cut it again.
+  if (state.ceilingRoom && insideEntry?.interior
+      && (cutawayEntry !== insideEntry || cutawayGroup !== insideEntry.interior.group)) applyCutaway(insideEntry);
   if (!insideId && state.ceilingRoom) setCeilingView(false);
   if (door) {
     doorHint.textContent = `Enter — ${door.open ? "close" : "open"} the door (${DOOR_SOURCE[door.source]})`;
@@ -18258,6 +18768,8 @@ function batchHomeShell(group) {
   }
 }
 
+//: A house whose ground rises more than this across its footprint stands into its hill.
+const HILLSIDE_RISE_M = 1.2;
 function buildHomeShell(entry) {
   const id = String(entry.way.osm_id), spec = HOME_RENDER.get(id);
   if (!spec || entry.homeShell || !entry.fit || !BUILDING_VISUAL_RANGES.has(id)) return;
@@ -18275,7 +18787,21 @@ function buildHomeShell(entry) {
     side: THREE.DoubleSide });
   const group = new THREE.Group();
   group.name = `house-shell:${id}`;
+  // This shell's own copies of the shared lining, glass and frame materials: the cutaway view
+  // clips the walls of the one house being looked into, and a clipping plane on a shared
+  // material would cut the upper windows off every house around it too.
+  const shellPlaster = plasterMaterial.clone();
+  const shellGlass = homeGlassMaterial.clone();
+  const shellFrame = homeFrameMaterial.clone();
   const windowRegistry = [];
+  // How steep the ground is under the house: the rise across its footprint's corners.
+  let lowest = Infinity, highest = -Infinity;
+  for (const [px, pz] of entry.local) {
+    const g = terrainGroundAt(px, pz);
+    lowest = Math.min(lowest, g); highest = Math.max(highest, g);
+  }
+  const hillside = highest - lowest > HILLSIDE_RISE_M;
+  const groundStoreyM = (top - floor) / Math.max(1, homeStoreyCount(entry, top - floor));
   for (let edge = 0; edge + 1 < entry.local.length; edge += 1) {
     const a = entry.local[edge], b = entry.local[edge + 1];
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -18289,13 +18815,31 @@ function buildHomeShell(entry) {
       w: d.stoopPlan?.width || d.width,
       v: d.stoopPlan ? d.stoopPlan.street : floor, h: DOOR_HEIGHT_M + (d.stoopPlan?.rise || 0),
       kind: "door" }));
+    // Every door on this edge reserves its opening, drawn yet or not, and so does every garage
+    // the city's kerb cuts put on it: a window never overlaps either -- it simply is not there.
+    const reserved = [...cuts];
+    for (const d of (entry.doors || []).filter((d) => d.edge === edge && !d.mesh)) {
+      reserved.push({ u: (d.t0 + d.t1) / 2 * length - d.width / 2, w: d.width, v: floor, h: DOOR_HEIGHT_M, kind: "door" });
+    }
+    for (const g of entry.way.garages || []) {
+      const [gax, gay] = xy(g.a[0], g.a[1]), [gbx, gby] = xy(g.b[0], g.b[1]);
+      const gx = gax + (gbx - gax) * g.t, gz = -(gay + (gby - gay) * g.t);
+      const off = (gx - a[0]) * nx + (gz - a[1]) * nz;
+      const u = (gx - a[0]) * ux + (gz - a[1]) * uz;
+      if (Math.abs(off) > 1.0 || u < -0.5 || u > length + 0.5) continue;
+      const w = Math.min(g.w || 2.6, length);
+      reserved.push({ u: u - w / 2, w, v: bottom, h: GARAGE_HEIGHT_M + 0.2, kind: "garage" });
+    }
     const observed = HOME_OPENINGS.buildings[id]?.walls[String(edge)];
     const candidates = observed ? observed.map(([u, v, w, h, confidence]) => ({
       u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
       : regularHomeWindows(length, floor, top, spec.seed + edge * 59, homeStoreyCount(entry, top - floor));
     const windows = candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
-      && !cuts.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
+      && !reserved.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
         && o.v < c.v + c.h + 0.15 && o.v + o.h > c.v - 0.15)
+      // A house on a steep hill is partly in the hill on its ground storey: no window is
+      // guessed there; only a window measured in a photograph stands on that storey.
+      && !(hillside && o.grade !== "image_on_prior_geometry" && o.v < floor + groundStoreyM)
       && [0.2, 0.5, 0.8].every((t) => {
         const neighbour = buildingAt(a[0] + ux * (o.u + o.w * t) - nx * 0.15,
           a[1] + uz * (o.u + o.w * t) - nz * 0.15);
@@ -18306,10 +18850,10 @@ function buildHomeShell(entry) {
     wall.castShadow = wall.receiveShadow = true;
     group.add(wall);
     const lining = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels,
-      nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M), plasterMaterial);
+      nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M), shellPlaster);
     group.add(lining);
     for (const o of windows) {
-      const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w, o.h), homeGlassMaterial);
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w, o.h), shellGlass);
       pane.position.set(a[0] + ux * (o.u + o.w / 2) + nx * 0.025,
         o.v + o.h / 2, a[1] + uz * (o.u + o.w / 2) + nz * 0.025);
       pane.rotation.y = Math.atan2(-uz, ux);
@@ -18319,7 +18863,7 @@ function buildHomeShell(entry) {
       for (const [u, v, w, h] of [[o.u, o.v + o.h / 2, 0.06, o.h],
         [o.u + o.w, o.v + o.h / 2, 0.06, o.h], [o.u + o.w / 2, o.v, o.w, 0.06],
         [o.u + o.w / 2, o.v + o.h, o.w, 0.06], [o.u + o.w / 2, o.v + o.h / 2, 0.035, o.h]]) {
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.12), homeFrameMaterial);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.12), shellFrame);
         frame.position.set(a[0] + ux * u, v, a[1] + uz * u);
         frame.rotation.y = pane.rotation.y;
         group.add(frame);
@@ -18330,17 +18874,18 @@ function buildHomeShell(entry) {
       const sides = [-1, 1].map((s) => [d.cx + ux * half * s, d.cz + uz * half * s,
         d.cx + ux * half * s + nx * depth, d.cz + uz * half * s + nz * depth]);
       group.add(new THREE.Mesh(wallQuads(sides, d.stoopPlan.street,
-        floor + DOOR_HEIGHT_M - d.stoopPlan.street), plasterMaterial));
+        floor + DOOR_HEIGHT_M - d.stoopPlan.street), shellPlaster));
       const jambs = [[-half, -d.width / 2], [d.width / 2, half]].map(([a, b]) => [
         d.cx + ux * a + nx * depth, d.cz + uz * a + nz * depth,
         d.cx + ux * b + nx * depth, d.cz + uz * b + nz * depth]);
-      group.add(new THREE.Mesh(wallQuads(jambs, floor, DOOR_HEIGHT_M), plasterMaterial));
+      group.add(new THREE.Mesh(wallQuads(jambs, floor, DOOR_HEIGHT_M), shellPlaster));
     }
   }
   group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };
   batchHomeShell(group);
   homeShellGroup.add(group);
-  entry.homeShell = { group, material, openingsVersion: HOME_OPENINGS_VERSION };
+  entry.homeShell = { group, material, materials: [material, shellPlaster, shellGlass, shellFrame],
+    openingsVersion: HOME_OPENINGS_VERSION };
   entry.shellNeedsRebuild = false;
   homeShells.add(entry);
   setBatchedHomeVisible(id, false);
@@ -18349,12 +18894,89 @@ function buildHomeShell(entry) {
   for (const d of entry.doors || []) if (d.leaf) d.leaf.renderOrder = 0;
 }
 
+// ---- the cutaway: looking down into the building the walker is in ---------------------------
+//
+// Its roof is lifted off (its slice of the merged roofs collapsed, as a house shell collapses
+// its walls), its upper storeys and ceiling are hidden, and a house's own shell -- walls,
+// lining, glass, frames, all its own material copies -- is clipped at this storey's ceiling.
+// Everything comes back when the walker leaves or the view changes.
+renderer.localClippingEnabled = true;
+function applyCutaway(entry) {
+  if (cutawayEntry && cutawayEntry !== entry) {
+    setBatchedHomeVisible(`roof:${cutawayEntry.way.osm_id}`, true);
+    for (const m of cutawayEntry.homeShell?.materials || []) { m.clippingPlanes = []; m.needsUpdate = true; }
+    for (const panel of facadePanels) {
+      if (!panel.userData.cutawayClipped) continue;
+      panel.material.clippingPlanes = [];
+      panel.material.needsUpdate = true;
+      delete panel.userData.cutawayClipped;
+    }
+    cutawayGroup?.traverse((o) => {
+      if (o.userData.cutawayHidden) { o.visible = true; delete o.userData.cutawayHidden; }
+      if (o.isMesh && o.userData.cutawayClipped) { o.material.clippingPlanes = []; o.material.needsUpdate = true; delete o.userData.cutawayClipped; }
+    });
+    for (const [mesh, i, matrix] of cutawayRoofParts) { mesh.setMatrixAt(i, matrix); mesh.instanceMatrix.needsUpdate = true; }
+    cutawayRoofParts = [];
+    cutawayEntry = null;
+    cutawayGroup = null;
+  }
+  if (!entry || !entry.interior) return;
+  cutawayEntry = entry;
+  setBatchedHomeVisible(`roof:${entry.way.osm_id}`, false);
+  // What stands on the roof goes with it: a deck, its planters, a solar array. They are
+  // instanced across the whole city, so this building's instances are collapsed one by one.
+  {
+    const matrix = new THREE.Matrix4(), at = new THREE.Vector3(), none = new THREE.Matrix4().makeScale(0, 0, 0);
+    groups.mapped3d.traverse((o) => {
+      if (!o.isInstancedMesh || o.userData.surface !== "roof_furniture") return;
+      let touched = false;
+      for (let i = 0; i < o.count; i += 1) {
+        o.getMatrixAt(i, matrix);
+        at.setFromMatrixPosition(matrix).applyMatrix4(o.matrixWorld);
+        if (at.x < entry.minX || at.x > entry.maxX || at.z < entry.minZ || at.z > entry.maxZ) continue;
+        if (!insideFootprint(entry, at.x, at.z)) continue;
+        cutawayRoofParts.push([o, i, matrix.clone()]);
+        o.setMatrixAt(i, none);
+        touched = true;
+      }
+      if (touched) o.instanceMatrix.needsUpdate = true;
+    });
+  }
+  const floor = entry.interior.floorY ?? entryFloorY(entry);
+  const ceilingY = floor + (entry.interior.height || 2.6) + 0.05;
+  const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), ceilingY);
+  for (const m of entry.homeShell?.materials || []) { m.clippingPlanes = [plane]; m.needsUpdate = true; }
+  const buildingId = String(entry.way.osm_id);
+  for (const panel of facadePanels) {
+    if (facadePanelBuilding(panel) !== buildingId) continue;
+    panel.material.clippingPlanes = [plane];
+    panel.material.needsUpdate = true;
+    panel.userData.cutawayClipped = true;
+  }
+  cutawayGroup = entry.interior.group;
+  // A borrowed scan carries its own scanned ceiling: it is cut just above head height.
+  const scanPlane = entry.interior.scan ? new THREE.Plane(new THREE.Vector3(0, -1, 0), floor + 2.1) : null;
+  cutawayGroup.traverse((o) => {
+    if (scanPlane && o.isMesh && o.userData.scanMesh && o.material && !o.userData.cutawayClipped) {
+      o.material.clippingPlanes = [scanPlane];
+      o.material.needsUpdate = true;
+      o.userData.cutawayClipped = true;
+    }
+    if (o === cutawayGroup || !o.visible) return;
+    if (o.userData.surface === "interior_storey" || o.userData.surface === "interior_ceiling") {
+      o.visible = false;
+      o.userData.cutawayHidden = true;
+    }
+  });
+}
+
 function removeHomeShell(entry) {
   if (!entry.homeShell) return;
   setBatchedHomeVisible(entry.way.osm_id, true);
   homeShellGroup.remove(entry.homeShell.group);
   entry.homeShell.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
-  entry.homeShell.material.dispose();
+  if (cutawayEntry === entry) applyCutaway(null);
+  for (const m of entry.homeShell.materials || [entry.homeShell.material]) m.dispose();
   entry.homeShell = null;
   homeShells.delete(entry);
   removeInterior(entry);
@@ -18374,16 +18996,23 @@ function updateHomeShells(x, z) {
   for (const e of homeShells) if (!wanted.has(e) || e.shellNeedsRebuild
       || e.homeShell.openingsVersion !== HOME_OPENINGS_VERSION) removeHomeShell(e);
   for (const e of wanted) buildHomeShell(e);
-  for (const panel of facadePanels) {
-    const wall = panel.userData.facade;
-    const [ax, ay] = xy(...wall.a), [bx, by] = xy(...wall.b);
-    const length = Math.hypot(bx - ax, by - ay);
-    const mx = (ax + bx) / 2, mz = -(ay + by) / 2;
-    const nx = length ? (by - ay) / length * 0.2 : 0;
-    const nz = length ? (bx - ax) / length * 0.2 : 0;
-    panel.visible = ![buildingAt(mx + nx, mz + nz), buildingAt(mx - nx, mz - nz)]
-      .some((f) => f && footprintById.get(String(f.osm_id))?.homeShell);
-  }
+  // A house's photographs stay on it while its shell stands: hiding them whenever the walker
+  // came within a shell's reach made the photograph vanish on approach and pop back on leaving.
+  // The panel faces the street and is culled from inside, and the doors stand in front of it.
+}
+
+//: The building a photographed wall belongs to: the footprint just behind the panel.
+function facadePanelBuilding(panel) {
+  if (panel.userData.buildingId !== undefined) return panel.userData.buildingId;
+  const wall = panel.userData.facade;
+  const [ax, ay] = xy(...wall.a), [bx, by] = xy(...wall.b);
+  const length = Math.hypot(bx - ax, by - ay);
+  const mx = (ax + bx) / 2, mz = -(ay + by) / 2;
+  const nx = length ? (by - ay) / length * 0.2 : 0;
+  const nz = length ? (bx - ax) / length * 0.2 : 0;
+  const f = buildingAt(mx + nx, mz + nz) || buildingAt(mx - nx, mz - nz);
+  panel.userData.buildingId = f ? String(f.osm_id) : null;
+  return panel.userData.buildingId;
 }
 
 // ---- interiors ---------------------------------------------------------------------------------
@@ -18924,6 +19553,7 @@ function buildInterior(entry) {
   const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(ceilingOutline), ceilingMaterial);
   ceiling.rotation.x = -Math.PI / 2;
   ceiling.position.y = floorY + height;
+  ceiling.userData.surface = "interior_ceiling";
   group.add(slab, ceiling);
   if (entry.homeShell && visibleHeight > 5.6) {
     const floors = homeStoreyCount(entry, visibleHeight);
@@ -19056,14 +19686,9 @@ function requestScannedInterior(entry) {
   const scan = SCANNED_INTERIORS.scans[placement.scan];
   if (!scannedInteriorPromises.has(scan.id)) {
     const url = sharedAsset(scan.asset);
-    scannedInteriorPromises.set(scan.id, fetch(url).then(async (r) => {
-      if (!r.ok) throw new Error("scan unavailable");
-      const bytes = await r.arrayBuffer();
-      const digest = await crypto.subtle.digest("SHA-256", bytes);
-      const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
-      if (hash !== scan.sha256 || bytes.byteLength !== scan.bytes) throw new Error("scan checksum mismatch");
-      return new GLTFLoader().parseAsync(bytes, new URL(".", new URL(url, location.href)).href);
-    }).catch((err) => { console.warn("Matched scan refused; keeping procedural interior", err); return null; }));
+    scannedInteriorPromises.set(scan.id, cachedVerifiedBytes(url, scan.sha256, scan.bytes).then((bytes) =>
+      new GLTFLoader().parseAsync(bytes, new URL(".", new URL(url, location.href)).href)
+    ).catch((err) => { console.warn("Matched scan refused; keeping procedural interior", err); return null; }));
   }
   scannedInteriorPromises.get(scan.id).then((gltf) => {
     if (!gltf || !entry.interior || entry.interior.scan) return;
@@ -19084,6 +19709,10 @@ function requestScannedInterior(entry) {
         if (!insideFootprint(entry, x, z)) { contained = false; break; }
       }
       o.userData.sharedInteriorAsset = true;
+      o.userData.scanMesh = true;
+      // This home's own material: the cutaway clips the scan of the one home being looked into,
+      // and the same scan placed in a house down the street must keep its ceiling.
+      o.material = o.material.clone();
       o.castShadow = true; o.receiveShadow = true;
       o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
     });
@@ -19132,7 +19761,158 @@ function requestScannedInterior(entry) {
       scan, placement, plan: "Redwood scanned apartment (matched surrogate, not address truth)" };
     interiorsBuilt.add(entry);
     if (state.ceilingRoom) placeCamera();
+    upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY);
   });
+}
+
+// ---- the scan at full detail ------------------------------------------------------------------
+//
+// The first look is the scan averaged into 6 cm voxels: quick to fetch, and blurred, because
+// its colour rides on its vertices. The detail level is the same scan at 1.2 cm -- about
+// 3.4 million triangles in a few chunks -- registered to the first look, so it drops into the
+// same place. Every chunk is checked against its hash and kept in the browser's own cache,
+// which outlives app releases: fetched once (in the background, as soon as a region with a
+// scanned home opens), it is local from then on, and stepping into the house costs no download.
+const SCAN_CACHE = "kerbside-scans";
+async function cachedVerifiedBytes(url, sha256, size) {
+  let cache = null;
+  try { cache = await caches.open(SCAN_CACHE); } catch (err) { cache = null; }
+  const verified = async (bytes) => {
+    if (bytes.byteLength !== size) return false;
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("") === sha256;
+  };
+  if (cache) {
+    try {
+      const hit = await cache.match(url);
+      if (hit) {
+        const bytes = await hit.arrayBuffer();
+        if (await verified(bytes)) return bytes;
+        await cache.delete(url);
+      }
+    } catch (err) { /* an unreadable cache entry is fetched again */ }
+  }
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("scan unavailable");
+  const bytes = await response.arrayBuffer();
+  if (!(await verified(bytes))) throw new Error("scan checksum mismatch");
+  if (cache) cache.put(url, new Response(bytes.slice(0), { headers: { "Content-Type": "model/gltf-binary" } })).catch(() => {});
+  return bytes;
+}
+
+//: Which of a scan's detail levels this device draws. "full" (0.8 cm, about seven million
+//: triangles) is for a desktop's GPU; a phone, or anything short of memory, takes "detail"
+//: (1.2 cm, about three and a half million), which is already a different scan from the
+//: blurred first look.
+function scanLevel(scan) {
+  const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const memory = navigator.deviceMemory || 8;
+  const level = scan.full && scan.full.chunks && !coarse && memory >= 8 ? scan.full : scan.detail;
+  return level && level.chunks && level.chunks.length ? level : null;
+}
+//: The installed app keeps its scans; a visit to the website fetches one only on walking in.
+function appMode() {
+  return Boolean(document.querySelector('meta[name="kerbside-app-mode"]'))
+    || Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+}
+const scanDetailPromises = new Map();
+function loadScanDetail(scan) {
+  const level = scanLevel(scan);
+  if (!level) return Promise.resolve(null);
+  if (!scanDetailPromises.has(scan.id)) {
+    scanDetailPromises.set(scan.id, (async () => {
+      const group = new THREE.Group();
+      group.userData.level = level;
+      // One chunk at a time: an even load on the network and on memory.
+      for (const chunk of level.chunks) {
+        const url = sharedAsset(chunk.asset);
+        const bytes = await cachedVerifiedBytes(url, chunk.sha256, chunk.bytes);
+        const gltf = await new GLTFLoader().parseAsync(bytes, new URL(".", new URL(url, location.href)).href);
+        group.add(gltf.scene);
+      }
+      return group;
+    })().catch((err) => { console.warn("Scan detail refused; keeping the first look", err); return null; }));
+  }
+  return scanDetailPromises.get(scan.id);
+}
+
+function upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY) {
+  loadScanDetail(scan).then((detail) => {
+    const group = model.parent;
+    if (!detail || !group || entry.interior?.group !== group) return;
+    const level = detail.userData.level;
+    // Checked in the scan's own frame, as the first look was, before it is placed in the house.
+    const fine = detail.clone(true);
+    fine.updateMatrixWorld(true);
+    // The same rule the first look passed -- nothing of the scan outside this footprint -- kept
+    // by trimming rather than refusing. The first look's vertices are 6 cm averages, pulled a
+    // few centimetres in from the surfaces they average; at 1.2 cm the outermost wall faces
+    // stand those centimetres further out, and a footprint the first look fitted exactly is
+    // crossed by a sliver of them. Those triangles are dropped; more than a sliver means the
+    // placement does not hold, and the first look stays.
+    const point = new THREE.Vector3();
+    let total = 0, dropped = 0;
+    fine.traverse((o) => {
+      if (!o.isMesh) return;
+      const positions = o.geometry.getAttribute("position");
+      const outside = new Uint8Array(positions.count);
+      for (let i = 0; i < positions.count; i += 1) {
+        point.fromBufferAttribute(positions, i).applyMatrix4(o.matrixWorld);
+        const [x, z] = scanPointToPage(placement, point.x, point.z);
+        outside[i] = insideFootprint(entry, x, z) ? 0 : 1;
+      }
+      const index = o.geometry.getIndex();
+      const keep = [];
+      for (let k = 0; k + 2 < index.count; k += 3) {
+        const a = index.getX(k), b = index.getX(k + 1), c = index.getX(k + 2);
+        if (outside[a] || outside[b] || outside[c]) dropped += 1;
+        else keep.push(a, b, c);
+      }
+      total += index.count / 3;
+      if (keep.length < index.count) {
+        o.geometry = o.geometry.clone();
+        o.geometry.setIndex(keep);
+        o.userData.trimmedToFootprint = (index.count - keep.length) / 3;
+      }
+      o.userData.sharedInteriorAsset = !o.userData.trimmedToFootprint;
+      o.userData.scanMesh = true;
+      o.material = o.material.clone();
+      // Indoors the sun's shadow of a scanned armchair is nothing anyone sees, and casting it
+      // drew millions of triangles a second time into the shadow map every frame.
+      o.castShadow = false; o.receiveShadow = true;
+      o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
+    });
+    if (!total || dropped > total * 0.01) {
+      console.warn(`Scan detail does not fit this footprint (${dropped} of ${total} triangles outside); keeping the first look`);
+      return;
+    }
+    fine.position.copy(model.position);
+    fine.rotation.copy(model.rotation);
+    fine.scale.copy(model.scale);
+    group.add(fine);
+    fine.updateMatrixWorld(true);
+    adaptScanEntrance(fine, cutPlans, floorY);
+    model.visible = false;
+    group.userData.detail = { triangles: level.triangles - dropped, voxel_m: level.voxel_m,
+      trimmedToFootprint: dropped, grade: level.grade };
+    if (cutawayEntry === entry) { applyCutaway(null); applyCutaway(entry); }
+  });
+}
+
+//: Once a region with a scanned home has opened, its scans' detail is fetched into the local
+//: cache in the background, so walking into one later is instant and works offline.
+function prefetchScanDetail() {
+  if (!SCANNED_INTERIORS || navigator.connection?.saveData || !appMode()) return;
+  const here = SCANNED_INTERIORS.placements.some((p) => footprintById.has(String(p.building)));
+  if (!here) return;
+  (async () => {
+    for (const scan of Object.values(SCANNED_INTERIORS.scans)) {
+      for (const chunk of scanLevel(scan)?.chunks || []) {
+        try { await cachedVerifiedBytes(sharedAsset(chunk.asset), chunk.sha256, chunk.bytes); }
+        catch (err) { return; }
+      }
+    }
+  })();
 }
 
 function removeInterior(entry) {
@@ -19425,7 +20205,7 @@ function cullDetailByDistance(frame, eye = camera) {
       if (o.isInstancedMesh ? o.boundingSphere : o.geometry.boundingSphere) detailTiles.push(o);
     });
   }
-  const zoom = FIRST_PERSON_FOV / eye.fov;
+  const zoom = FIRST_PERSON_FOV / eye.fov * (interiorBlock ? INTERIOR_BLOCK_RANGE : 1);
   for (const tile of detailTiles) {
     const sphere = tile.isInstancedMesh ? tile.boundingSphere : tile.geometry.boundingSphere;
     detailCentre.copy(sphere.center).applyMatrix4(tile.matrixWorld);
@@ -19466,7 +20246,8 @@ function animate(now) {
   stepAvatar(now || performance.now());
   cullDetailByDistance(frameCount);
   cullLabelsByDistance(frameCount++);
-  updateTileTree(now || performance.now());
+  tileGroupRoot.visible = !interiorBlock;
+  if (!interiorBlock) updateTileTree(now || performance.now());
   renderer.render(scene, camera);
   adaptResolution(now || performance.now());
 }

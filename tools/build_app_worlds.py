@@ -109,8 +109,12 @@ def main() -> None:
             site = ROOT / "data" / "regions" / name / "site"
             if (site / "sf-corridor-3d.json").exists():
                 for source in site.glob("sf-corridor-*"):
-                    if source.suffix in (".json", ".bin"):
-                        shutil.copy2(source, target / source.name)
+                    # Never an older local build over newer published app data.
+                    already = target / source.name
+                    if source.suffix in (".json", ".bin") and not (
+                        already.exists() and already.stat().st_mtime >= source.stat().st_mtime
+                    ):
+                        shutil.copy2(source, already)
             elif not (target / "sf-corridor-3d.json").exists():
                 raise FileNotFoundError("expanded Oakland app world has not been built")
             # A clean checkout already carries the published app data. Rebuilding the

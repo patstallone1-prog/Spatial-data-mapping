@@ -1263,9 +1263,13 @@ function tile(id, depth, error, cx, cz, radius, children, state) {
 def _run_tiles(js_body: str) -> dict:
     js = _page_js()
     names = ("tileFocalPx", "tileScreenErrorPx", "tilePriority", "tileHasContent",
-             "tilePending", "selectTiles")
+             "tilePending", "tileRect", "tileRingDistance", "tileRingDepth", "selectTiles")
     parts = [TILE_PREAMBLE]
     parts.append(re.search(r"const TILE_MAX_SCREEN_ERROR_PX = [0-9.]+;", js).group(0))
+    for constant in ("TILE_FULL_DEPTH", "TILE_CORE_DEPTH", "TILE_FULL_RING_M", "TILE_CORE_RING_M"):
+        parts.append(re.search(rf"const {constant} = [0-9.]+;", js).group(0))
+    # The rings are off unless a test turns them on: up high, the screen-error rule alone.
+    parts.append("const tileFocus = { x: 0, y: 0, z: 0 };\nlet tileRingsActive = false;")
     parts += [_extract(name, js) for name in names]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
@@ -1299,6 +1303,35 @@ def test_a_tile_refines_by_the_pixels_it_is_wrong_by_not_by_how_far_away_it_is()
     # under budget at a kilometre -- which is why the skyline is enough from far off.
     assert errors["1000"]["coarse"] > 3.0 and errors["30000"]["coarse"] < 3.0
     assert errors["1000"]["fine"] < 3.0 and errors["200"]["fine"] > 3.0
+
+
+def test_near_the_ground_the_walkers_block_and_its_neighbours_load_in_full_whichever_way_it_faces() -> None:
+    """The simplified rule near the walker. The finest tiles within the full ring are wanted
+    even off screen; beyond it, out to the core ring, nothing finer than core building shapes,
+    however much the screen error asks for; and up high the screen-error rule is unchanged."""
+    result = _run_tiles("""
+    // A depth-5 tile over the walker, its depth-6 child, and that child's depth-7/8 descendants.
+    const r = (x0, z0, x1, z1) => [x0, z0, x1, z1];
+    const t5 = tile("5/0/0", 5, 3.0, 0, 0, 1700, ["6/0/0", "6/9/9"]); t5.rect = r(-1200, -1200, 1200, 1200);
+    const near6 = tile("6/0/0", 6, 1.2, 0, 0, 860, ["7/0/0"]); near6.rect = r(-600, -600, 600, 600);
+    const far6 = tile("6/9/9", 6, 1.2, 1000, 0, 860, ["7/9/9"]); far6.rect = r(700, -600, 1900, 600);
+    const near7 = tile("7/0/0", 7, 0.5, 0, 0, 430, ["8/0/0"]); near7.rect = r(-300, -300, 300, 300);
+    const far7 = tile("7/9/9", 7, 0.5, 1000, 0, 430, []); far7.rect = r(850, -300, 1450, 300);
+    const near8 = tile("8/0/0", 8, 0.15, 0, 0, 215, []); near8.rect = r(-150, -150, 150, 150);
+    for (const t of TILES.values()) t.state = "cpu";
+    inView = (t) => t.id !== "8/0/0" && t.id !== "7/0/0";   // the walker faces away from its block
+    VIEW.position = { x: 0, y: 2, z: 0 };
+    const draw = () => { const out = []; selectTiles(t5, out); return out.map((t) => t.id).sort(); };
+    tileRingsActive = true;
+    const rings = draw();
+    tileRingsActive = false;
+    const high = draw();
+    console.log(JSON.stringify({ rings, high }));
+    """)
+    # Its own block in full though it is behind the camera; the far tile only as core shapes.
+    assert result["rings"] == ["6/9/9", "8/0/0"], result
+    # With the rings off, what is off screen is not drawn and the far tile refines by error.
+    assert "8/0/0" not in result["high"], result
 
 
 def test_a_parent_stays_drawn_until_every_child_on_screen_has_its_geometry() -> None:
@@ -2667,12 +2700,16 @@ def test_the_page_reads_its_paint_from_the_cross_sections_and_closes_them_to_its
     const bands = crossSectionBands(way, 2.0, 6.7);
     const wider = crossSectionBands(way, 2.0, 7.0);        // the page drew it 60 cm wider
     const absurd = crossSectionBands(way, 2.0, 10.0);      // 6.6 m wider: no lane closes that
+    // A recorded width far narrower than the section (Telegraph's 9 m against 18 m of bands):
+    // the section's own widths stand, rather than leaving the block unpainted.
+    const narrower = crossSectionBands(way, 2.0, 4.0);
     const marks = [];
     for (let k = 0; k < bands.length - 1; k += 1) marks.push(crossSectionMarkKind(bands[k], bands[k + 1]));
     console.log(JSON.stringify({{
       kinds: bands.map((b) => b.kind), edges: bands.map((b) => [+b.left.toFixed(2), +b.right.toFixed(2)]),
       widerLane: +(wider[2].left - wider[2].right).toFixed(2), widerParking: +(wider[0].left - wider[0].right).toFixed(2),
-      absurd, unresolved: crossSectionBands(way, 6.0, 6.7), marks,
+      absurd, narrower: narrower && narrower.map((b) => [+b.left.toFixed(2), +b.right.toFixed(2)]),
+      unresolved: crossSectionBands(way, 6.0, 6.7), marks,
       span: travelSpanAt(way, 2.0, 6.7), profile: laneMarkingProfile(way, 13.4),
       bike: bikeLaneOffset(13.4, way, 1),
     }}));
@@ -2682,6 +2719,7 @@ def test_the_page_reads_its_paint_from_the_cross_sections_and_closes_them_to_its
     # The travel lanes absorb the page's extra 60 cm; the parking band does not.
     assert result["widerLane"] == 3.85 and result["widerParking"] == 2.3
     assert result["absurd"] is None and result["unresolved"] is None
+    assert result["narrower"] == result["edges"], result["narrower"]
     assert result["marks"] == ["edge", "edge", "centre", None]  # both edges of the bike lane; none at the parking
     assert result["span"] == [2.7, -4.4]
     assert result["profile"]["total"] == 2 and result["profile"]["opposing"] is True

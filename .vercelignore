@@ -1,0 +1,6 @@
+# Vercel serves docs/ as it is committed (vercel.json: outputDirectory docs, no build).
+# Nothing else in the repository is part of the site: the source, the tests, the Unreal
+# project and the data pipeline stay out of the deployment.
+/*
+!/docs
+!/vercel.json

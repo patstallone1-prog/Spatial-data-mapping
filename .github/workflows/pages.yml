@@ -1,12 +1,10 @@
-name: Deploy Pages after CI
+name: Deploy Pages (retired, manual only)
 
-# Pages must use build_type=workflow. The old branch-based /docs source publishes
-# immediately on a main push, before CI has finished.
+# The site is hosted on Vercel now (vercel.json at the repository root serves docs/). This
+# workflow no longer runs on every green main; it is kept, manual only, so the old GitHub Pages
+# address can be refreshed or retired deliberately rather than left to drift.
 on:
-  workflow_run:
-    workflows: [ci]
-    types: [completed]
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,11 +17,6 @@ concurrency:
 
 jobs:
   deploy:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -31,16 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
-      - name: Require the exact green main commit
-        env:
-          GREEN_SHA: ${{ github.event.workflow_run.head_sha }}
+      - name: Require a built site
         run: |
-          test "$(git rev-parse HEAD)" = "$GREEN_SHA"
-          # A newer main push may have arrived while this CI run was finishing.
-          # Never publish an older green run over a newer version (or a failed one).
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GREEN_SHA"
           test -s docs/index.html
           test -s docs/app.html
           test -s docs/sf-corridor-3d.html
