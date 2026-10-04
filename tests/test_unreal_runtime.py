@@ -85,6 +85,21 @@ def test_camera_axes_cannot_translate_player_and_world_not_simulated():
     assert "SetRealTimeCaptureEnabled(true)" in source
 
 
+def test_complex_collision_cannot_use_reduced_nanite_fallback():
+    source = (ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldActors.cpp").read_text()
+    for setting in ("GenerateFallback = ENaniteGenerateFallback::Enabled",
+                    "FallbackTarget = ENaniteFallbackTarget::PercentTriangles",
+                    "FallbackPercentTriangles = 1.f", "FallbackRelativeError = 0.f",
+                    "KeepPercentTriangles = 1.f", "TrimRelativeError = 0.f"):
+        assert setting in source
+    assert source.index("NotifyNaniteSettingsChanged()") < source.index("Body->CreatePhysicsMeshes()")
+    assert source.index("FinishCompilation(PendingMeshes)") < source.index("Body->CreatePhysicsMeshes()")
+    audit = (ROOT / "tools/unreal/validate_world.py").read_text()
+    assert "Collider has reduced/automatic Nanite fallback" in audit
+    importer = (ROOT / "tools/unreal/setup_world.py").read_text()
+    assert "fallback_triangles != expected_triangles" in importer
+
+
 def test_export_uses_current_app_and_viewer_frame_and_hashes():
     source = (ROOT / "tools/unreal/export_tiles.mjs").read_text()
     assert "docs/app-regions/${REGION}" in source

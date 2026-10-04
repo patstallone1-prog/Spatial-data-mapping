@@ -9,6 +9,9 @@
 #include "Engine/StaticMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "PhysicsEngine/BodySetup.h"
+#if WITH_EDITOR
+#include "StaticMeshCompiler.h"
+#endif
 
 AKerbsideSky::AKerbsideSky()
 {
@@ -91,6 +94,29 @@ AKerbsideGameMode::AKerbsideGameMode() { DefaultPawnClass = AKerbsideWalker::Sta
 bool UKerbsideWorldLibrary::ConfigureWorldMesh(UStaticMesh* Mesh, bool BlocksPlayer)
 {
     if (!Mesh) return false;
+#if WITH_EDITOR
+    if (BlocksPlayer)
+    {
+        // Complex collision uses the Nanite fallback, not its visible clusters.
+        // Automatic relative-error simplification can erase curbs and ramp lips.
+        FMeshNaniteSettings Settings = Mesh->GetNaniteSettings();
+        const FMeshNaniteSettings Previous = Settings;
+        Settings.GenerateFallback = ENaniteGenerateFallback::Enabled;
+        Settings.FallbackTarget = ENaniteFallbackTarget::PercentTriangles;
+        Settings.FallbackPercentTriangles = 1.f;
+        Settings.FallbackRelativeError = 0.f;
+        Settings.KeepPercentTriangles = 1.f;
+        Settings.TrimRelativeError = 0.f;
+        Mesh->SetNaniteSettings(Settings);
+        if (Settings.bEnabled && !(Settings == Previous))
+        {
+            Mesh->NotifyNaniteSettingsChanged();
+            // Cook collision only after the full-detail fallback replaces the old one.
+            TArray<UStaticMesh*> PendingMeshes = {Mesh};
+            FStaticMeshCompilingManager::Get().FinishCompilation(PendingMeshes);
+        }
+    }
+#endif
     Mesh->CreateBodySetup();
     UBodySetup* Body = Mesh->GetBodySetup();
     if (!Body) return false;

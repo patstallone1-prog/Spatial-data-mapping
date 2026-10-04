@@ -141,13 +141,15 @@ def main() -> None:
     yaw = import_probe()
     # All failures before this point are non-mutating. The user's currently open world
     # is untouched when this script runs in a separate commandlet process.
-    if not unreal.EditorLevelLibrary.new_level(LEVEL):
+    levels = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+    if not levels.new_level(LEVEL):
         raise RuntimeError("Could not create dedicated Kerbside map")
     actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
     scene = actors.spawn_actor_from_class(unreal.KerbsideSky, unreal.Vector(0, 0, 0))
     scene.set_actor_label("Kerbside — physical sky and sun")
     scene.update_daylight()
     meshes, colliders = 0, 0
+    collision_audit = []
     spawn = None
     for tile in manifest["tiles"]:
         base = f"/Game/KerbsideRuntime/Tiles/City_{reuse}" if reuse else CONTENT
@@ -172,6 +174,7 @@ def main() -> None:
                 imported.append(asset)
         if not imported:
             raise RuntimeError(f"Interchange imported no meshes for {tile['file']}")
+        fallback_triangles = 0
         for mesh in imported:
             slots = mesh.get_editor_property("static_materials")
             surfaces = [canonical_surface(str(s.material_slot_name).split("|")[0], tile["surfaces"]) for s in slots]
@@ -183,6 +186,8 @@ def main() -> None:
             blocking = True in policies
             if not unreal.KerbsideWorldLibrary.configure_world_mesh(mesh, blocking):
                 raise RuntimeError(f"Collision setup failed for {mesh.get_name()}")
+            if blocking:
+                fallback_triangles += mesh.get_num_triangles(0)
             # Asset actor factories are not guaranteed to be available in commandlets.
             actor = actors.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(0, 0, 0))
             if actor is None:
@@ -199,6 +204,12 @@ def main() -> None:
             unreal.EditorAssetLibrary.save_loaded_asset(mesh)
             meshes += 1
             colliders += int(blocking)
+        expected_triangles = sum(n for surface, n in tile["surfaces"].items() if blocks(surface))
+        if fallback_triangles != expected_triangles:
+            raise RuntimeError(f"Collision lost/changed source faces in {tile['file']}: "
+                               f"{fallback_triangles} fallback vs {expected_triangles} exported")
+        collision_audit.append({"tile": tile["file"], "exported_blocking_triangles": expected_triangles,
+                                "fallback_blocking_triangles": fallback_triangles})
         if spawn is None and tile.get("spawn_gltf_m"):
             spawn = tile["spawn_gltf_m"]
     if colliders == 0 or spawn is None:
@@ -206,9 +217,9 @@ def main() -> None:
     # Probe-calibrated actor rotation makes world X=east, Y=south, Z=up in cm.
     start = actors.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(spawn[0] * 100, spawn[2] * 100, spawn[1] * 100 + 120))
     start.set_actor_label("Kerbside — road-grounded spawn")
-    world = unreal.EditorLevelLibrary.get_editor_world()
+    world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
     world.get_world_settings().set_editor_property("default_game_mode", unreal.KerbsideGameMode.static_class())
-    if not unreal.EditorLevelLibrary.save_current_level():
+    if not levels.save_current_level():
         raise RuntimeError("City save failed; default map unchanged")
     # Only make the city the default after it actually exists and collision import passed.
     from install_runtime import ENGINE_CONFIG, managed_config
@@ -221,6 +232,7 @@ def main() -> None:
               "diagnostic_reuse_revision": reuse,
               "renderer_sha256": manifest["renderer_sha256"], "meshes": meshes,
               "static_colliders": colliders, "spawn_gltf_m": spawn, "import_yaw": yaw,
+              "collision_triangle_audit": collision_audit,
               "physics": "Chaos static triangle collision + CharacterMovement capsule",
               "lighting": "SkyAtmosphere + atmospheric DirectionalLight + realtime SkyLight + volumetric fog",
               "validation_state": "requires native walking/shadow/spawn acceptance; NOT release approved"}

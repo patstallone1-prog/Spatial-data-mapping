@@ -30,6 +30,16 @@ def main() -> None:
         if (mesh and component.get_collision_enabled() != unreal.CollisionEnabled.NO_COLLISION
                 and (mesh.get_num_vertices(0) <= 0 or mesh.get_num_triangles(0) <= 0)):
             raise RuntimeError(f"Collider has no usable fallback geometry: {mesh.get_name()}")
+        if mesh and component.get_collision_enabled() != unreal.CollisionEnabled.NO_COLLISION:
+            settings = mesh.get_editor_property("nanite_settings")
+            if (settings.get_editor_property("enabled")
+                    and (settings.get_editor_property("fallback_target") != unreal.NaniteFallbackTarget.PERCENT_TRIANGLES
+                         or settings.get_editor_property("generate_fallback") != unreal.NaniteGenerateFallback.ENABLED
+                         or settings.get_editor_property("fallback_percent_triangles") != 1
+                         or settings.get_editor_property("fallback_relative_error") != 0
+                         or settings.get_editor_property("keep_percent_triangles") != 1
+                         or settings.get_editor_property("trim_relative_error") != 0)):
+                raise RuntimeError(f"Collider has reduced/automatic Nanite fallback: {mesh.get_name()}")
         if mesh and mesh.get_name() in {"road", "walk", "terrain"}:
             unreal.log(f"Contact mesh {mesh.get_name()}: vertices={mesh.get_num_vertices(0)}, triangles={mesh.get_num_triangles(0)}, collision={component.get_collision_enabled()}, profile={component.get_collision_profile_name()}")
     # Begin just beneath the pawn's centre; paint is explicitly non-colliding.
@@ -42,6 +52,7 @@ def main() -> None:
         raise RuntimeError("Imported city has no collision under player spawn")
     contact = {"level": report["level"], "spawn_has_static_floor_contact": True,
                "diagnostic_only": report.get("diagnostic_only", False),
+               "nanite_collision_reduction_disabled": True,
                "validation_state": "floor trace only; graphics/walking/device acceptance still required"}
     target = path.with_name("floor-contact.json")
     target.write_text(json.dumps(contact, indent=2) + "\n")

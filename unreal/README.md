@@ -18,13 +18,17 @@ The latter is necessary because Unreal can exit 0 after failed automation tests.
 release asset: it cannot restore faces already collapsed by older approximate welding.
 Use a fresh exact-index export for deployment. `KERBSIDE_WORLD_REVISION` prevents retries
 from overwriting saved maps or prior tile namespaces.
+Blocking mesh fallbacks now retain 100% of source triangles with zero relative-error trimming;
+the importer rejects a difference between exported and fallback blocking-face totals.
+This preserves source geometry, not independently measured accuracy. The fresh pilot export
+passed final GLB decoding, but full regional coverage and native visual acceptance remain open.
 
 The Unreal project is a consumer of the repository's data, not a second copy of it. The page's
 own JavaScript builds the corridor; `tools/unreal/export_tiles.mjs` runs that build headless
 with the real three.js and writes the result as 250 m glTF tiles; the editor script imports
 them. Nothing about the city is authored in Unreal.
 
-## What is here
+## Legacy UE 5.4 setup (not the current deployment path)
 
 - `Kerbside/Kerbside.uproject` — UE 5.4 project: EOS (Online Subsystem EOS, EOS Shared,
   Online Services EOS), Interchange glTF import, World Partition HLOD, Enhanced Input, Python
@@ -50,7 +54,8 @@ them. Nothing about the city is authored in Unreal.
    set -a; source .env.local; set +a; .venv/bin/python tools/unreal/write_config.py
    ```
 
-4. The tiles: either export them here (a minute or two; ~500 MB under `build/unreal/`) --
+4. The tiles: either export them here (legacy estimates no longer apply; the current full-app
+   scene build took about 18 minutes even when selecting one cell on this machine) --
 
    ```bash
    node --max-old-space-size=14000 tools/unreal/export_tiles.mjs

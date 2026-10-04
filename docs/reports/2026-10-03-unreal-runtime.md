@@ -5,8 +5,8 @@ checkpoint. The preceding renderer branch/PR remains unchanged by native runtime
 
 ## Status
 
-The renderer pass was committed and pushed as `f7695970`; its draft PR #9 CI passed
-all three jobs. The borrowed scan limitations and deployment deferral are recorded in
+The renderer pass was committed and pushed as `f7695970`; PR #9 CI passed
+all three jobs and it merged on 2026-10-04 UTC. The borrowed scan limitations and deployment deferral are recorded in
 [the interior checkpoint](2026-10-03-interior-handoff.md).
 
 The user's existing project is
@@ -59,7 +59,7 @@ or had its unsaved content overwritten. Save/close/reopen it before graphical ac
 
 ## Verification available now
 
-Twelve focused Python tests pass: reversible/idempotent installer, anti-overwrite protection,
+Thirteen focused Python tests pass: reversible/idempotent installer, anti-overwrite protection,
 source camera/physics contracts, current export paths/frame/hashes, calibration GLB structure,
 axis/scale rejection, collision semantics and corrupt/path-escaping tile rejection.
 Reinstalling the plugin preserves an accepted default city map rather than reverting to OpenWorld.
@@ -69,7 +69,8 @@ gravity to floor contact (capsule centre Z=108.830 cm, nominal half-height 106.6
 engine floor clearance), walking into a wall (stops at X=257.899 cm against a wall at X=290 cm
 with a 32 cm capsule radius), and camera rotation without translation. These prove fixture
 physics, **not** imported-city walking or graphical quality. The fixture cleanup now calls
-EndPlay; all three tests also pass in the final v4 native run.
+EndPlay; all three tests also pass with zero warnings in the v5 native run after the
+full-detail collision policy compiled successfully.
 
 `check_automation.py` inspects actual test states rather than the engine process status:
 Unreal returned exit 0 even for the earlier failing acceptance runs. Missing/failed tests
@@ -97,6 +98,38 @@ an immediate post-load query previously returned no hit. Python's optional HitRe
 is handled explicitly. Visual acceptance and actual in-city walking remain outstanding.
 Nanite fallback collision has not been benchmarked against the original canonical surfaces;
 the passing contact test is not a centimeter-accuracy claim.
+
+### Full-detail collision follow-up
+
+Epic's [Nanite technical documentation](https://dev.epicgames.com/documentation/unreal-engine/nanite-technical-details?lang=en-US)
+confirms that complex collision uses the fallback mesh. The installed 5.8 source also
+showed automatic relative-error reduction. Blocking surfaces now force fallback generation,
+100% fallback/source triangles and zero relative-error trimming. Compilation finishes before
+physics cooking. Non-blocking visual surfaces retain their existing rendering policy.
+The importer compares fallback triangle totals with each tile's exported blocking faces
+and refuses to save/select a map if the counts differ.
+
+An actual diagnostic import into `/Game/KerbsideRuntime/Maps/City_diagnostic_fullcollision_v1`
+passed: **146,250 exported blocking faces = 146,250 fallback faces**, across 33 colliders.
+Its separate floor/setting audit passed with zero errors or warnings. For example, the
+road fallback now has 7,094 triangles rather than 2,651 before; the sidewalk has 9,233
+rather than 5,272. These are retained-face counts, not measured geometric-error estimates.
+The diagnostic source still has the earlier weld limitation and remains unsuitable for release.
+
+A fresh current exact-index export at `build/unreal-pilot-exact/manifest.json` completed in
+1,107 seconds under editor CPU contention. Independent final GLB decoding passed: 78 meshes,
+182,037 triangles, 5,181,956 bytes, zero degenerate faces and zero repeated indexed faces.
+Tile SHA-256 is `7f4909bb450baa934a3e18beb5a5f9c38f31359380f03cfdc4d6880dc393d421`.
+It removed 281,246 inactive/zero-area placeholders and 336,071 exact duplicate faces in the
+selected cell without approximate coordinate welding. It is one 250 m pilot cell, not full
+regional coverage. The fresh native import into
+`/Game/KerbsideRuntime/Maps/City_pilot_exact_v1` passed with 78 mesh actors and 33
+colliders: **146,357 exported blocking faces = 146,357 fallback faces**. The two
+import warnings concerned the material-free axis probe and duplicate asset-name
+normalization; neither bypassed semantic validation. Its separate floor-contact and
+full-fallback-settings audit passed with zero errors or warnings. The generated project
+now selects this fresh pilot map. Graphical, in-city walking and packaged-device
+acceptance remain outstanding; this is not an entire-city native deployment.
 
 ## Resume / acceptance / deployment
 
