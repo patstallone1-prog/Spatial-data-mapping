@@ -65,10 +65,24 @@ def test_click_moves_and_right_click_has_distant_safe_landing():
     assert 'goTo(landing, { travel: true });' in source
     assert 'goTo(landing, { travel: true, zoom: true });' in source
     assert 'const distant = !state.firstPerson && state.dist > 1200;' in source
-    assert 'const feature = distant ? null : pickedFeature' in source
+    # Right click is a zoomed teleport only; looking a place up is the S key.
+    menu = source[source.index('canvas.addEventListener("contextmenu"'):]
+    menu = menu[:menu.index("});")]
+    assert "showAddress" not in menu
+    assert 'if (e.key !== "s" && e.key !== "S") return;' in source
+    assert 'if (feature && feature.kind === "building" && showAddress(feature, cx, cy)) {' in source
+    assert 'const name = ground ? streetNameAt(ground.x, ground.z) : null;' in source
+    # No street names floating over the roads.
+    assert 'labelAt(way.name' not in source
     assert 'if (d2 >= bestD2 || buildingAt(x, z)) continue;' in source
     assert 'const mappedWet = apron > 0 ? null : mappedWaterAt(x, z);' in source
-    assert 'ground.clone().lerp(TERRAIN_LAND, Math.exp(-apron / TERRAIN_APRON_COLOUR_M))' in source
+    # Past the last street: plain grass at once, no grey fade and no grey town.
+    assert 'const colour = sandy ? TERRAIN_SAND : TERRAIN_PLATE;' in source
+    assert 'TERRAIN_APRON_COLOUR_M' not in source
+    # Past the last street, inside the survey too: grass, and the apron's inner edge is grass,
+    # so no grey is blended into the green over the first apron cell.
+    assert 'if (!inCity(x, z)) return TERRAIN_PLATE;' in source
+    assert 'const shade = apronOf && at.colour !== TERRAIN_SEA && at.colour !== TERRAIN_SAND ? TERRAIN_PLATE : at.colour;' in source
 
 
 def test_published_app_viewers_and_shell_have_the_new_controls():

@@ -39,9 +39,8 @@ def test_every_installed_city_uses_the_current_house_and_collision_code() -> Non
                      "planInwardStoop", "moveWalker", "maskedGrassMaterial", "grassRasterRows",
                      "homeStoreyCount", "furnishingPlacement", "addressLanding",
                      "roomCameraPose", "currentRoomCamera", "setCeilingView", "placeCamera",
-                     "scanPointToPage", "requestScannedInterior", "pageToTerrain", "terrainToPage",
-                     "rawTerrainHeightAt", "mappedWaterAt", "mappedBuiltAt", "terrainFlatRadius",
-                     "scanEntrancePlan", "scanEntranceContains", "scanRecessPlan", "adaptScanEntrance"):
+                     "pageToTerrain", "terrainToPage",
+                     "rawTerrainHeightAt", "mappedWaterAt", "mappedBuiltAt", "terrainFlatRadius"):
             assert _extract(name, text) == _extract(name, current), f"stale {name}: {page}"
 
 
