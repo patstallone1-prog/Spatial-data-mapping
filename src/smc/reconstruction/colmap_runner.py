@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +45,9 @@ class InputImage:
     lat: float
     altitude_m_ellipsoid: float
     reprojection_sigma_px: float
+    masks_sha256: str = ""
+    privacy_review_id: str = ""
+    captured_at: str = ""
 
     @classmethod
     def from_json(cls, row: dict[str, Any]) -> InputImage:
@@ -54,6 +59,9 @@ class InputImage:
             camera_group=str(row["camera_group"]), lon=float(row["lon"]),
             lat=float(row["lat"]), altitude_m_ellipsoid=float(row["altitude_m_ellipsoid"]),
             reprojection_sigma_px=float(row["reprojection_sigma_px"]),
+            masks_sha256=str(row.get("masks_sha256", "")),
+            privacy_review_id=str(row.get("privacy_review_id", "")),
+            captured_at=str(row.get("captured_at", "")),
         )
 
 
@@ -63,14 +71,17 @@ def preflight_inputs(input_manifest: Path, rights_path: Path,
     if document.get("vertical_datum") != "WGS84_ellipsoid":
         raise ValueError("camera altitudes must be converted to the WGS84 ellipsoid")
     origin = document["enu_origin_wgs84"]
+    if len(origin) != 3 or not all(math.isfinite(float(value)) for value in origin) or \
+            not (-180 <= float(origin[0]) <= 180 and -90 <= float(origin[1]) <= 90):
+        raise ValueError("invalid metric frame origin")
     frame = EnuFrame(float(origin[0]), float(origin[1]), float(origin[2]))
     rows = [InputImage.from_json(row) for row in document["images"]]
     if len(rows) < MIN_IMAGES or len({r.sequence_id for r in rows}) < MIN_INDEPENDENT_SEQUENCES:
         raise ValueError("SfM needs at least 20 images from three independent sequences")
     if len({r.observation_uid for r in rows}) != len(rows):
         raise ValueError("duplicate observation in reconstruction input")
-    withheld = {r["observation_uid"] for r in json.loads(benchmark_path.read_text())[
-        "held_out_observations"]}
+    held_out = json.loads(benchmark_path.read_text())["held_out_observations"]
+    withheld = {r["observation_uid"] for r in held_out}
     if withheld & {r.observation_uid for r in rows}:
         raise ValueError("held-out benchmark image used in reconstruction")
     rights = load_rights(rights_path)
@@ -84,12 +95,32 @@ def preflight_inputs(input_manifest: Path, rights_path: Path,
         ))
         if item.license_id != source.license_id or not item.attribution:
             raise ValueError(f"license or attribution mismatch on {item.observation_uid}")
+        if not all(re.fullmatch(r"[A-Za-z0-9_-]+", value)
+                   for value in (item.observation_uid, item.camera_group)) or not item.sequence_id:
+            raise ValueError("image/camera IDs must be safe path components; sequence ID is required")
         if not item.image_path.is_file() or not item.masks_npz.is_file():
             raise FileNotFoundError(f"missing image or mask for {item.observation_uid}")
         if sha256_file(item.image_path) != item.image_sha256:
             raise ValueError(f"image hash mismatch on {item.observation_uid}")
+        if not item.privacy_review_id or sha256_file(item.masks_npz) != item.masks_sha256:
+            raise ValueError(f"mask hash or privacy review missing on {item.observation_uid}")
         if not all(math.isfinite(v) for v in (item.lon, item.lat, item.altitude_m_ellipsoid)):
             raise ValueError(f"non-finite camera position on {item.observation_uid}")
+        if not (-180 <= item.lon <= 180 and -90 <= item.lat <= 90):
+            raise ValueError("camera position is not WGS84 longitude/latitude")
+        if not math.isfinite(item.reprojection_sigma_px) or item.reprojection_sigma_px < 0:
+            raise ValueError("reprojection uncertainty must be finite and non-negative")
+        captured = datetime.fromisoformat(item.captured_at)
+        if captured.utcoffset() is None:
+            raise ValueError("capture timestamp needs a timezone")
+        for held in held_out:
+            if held.get("provider") != item.source_id:
+                continue
+            if held.get("provider_sequence_id") == item.sequence_id or \
+                    str(held.get("captured_at", ""))[:10] == item.captured_at[:10]:
+                raise ValueError("held-out capture date/sequence used in reconstruction")
+    if len({item.image_sha256 for item in rows}) < MIN_IMAGES:
+        raise ValueError("duplicate source aliases cannot supply 20 independent image inputs")
     return rows, frame
 
 
@@ -142,8 +173,16 @@ def _run(args: list[str]) -> None:
 
 
 def reconstruct_cell(input_manifest: Path, rights_path: Path, benchmark_path: Path,
-                     work_dir: Path) -> dict[str, Any]:
+                     work_dir: Path, *, dense_backend: str = "colmap") -> dict[str, Any]:
+    if dense_backend not in {"colmap", "fvdb"}:
+        raise ValueError(f"unsupported dense backend: {dense_backend}")
     rows, frame = preflight_inputs(input_manifest, rights_path, benchmark_path)
+    if dense_backend == "fvdb":
+        from smc.reconstruction.dense_backends import fvdb_preflight
+
+        failures = fvdb_preflight()
+        if failures:
+            raise RuntimeError("; ".join(failures))
     if shutil.which("colmap") is None:
         raise RuntimeError("COLMAP executable is required for dense reconstruction")
     try:
@@ -151,6 +190,9 @@ def reconstruct_cell(input_manifest: Path, rights_path: Path, benchmark_path: Pa
         from hloc import extract_features, match_features, reconstruction
     except ImportError as exc:
         raise RuntimeError("pinned PyCOLMAP and hloc (ALIKED/LightGlue) are required") from exc
+    # HLoc reuses old feature caches; a fresh run must never inherit a changed mask/input.
+    if work_dir.exists() and any(work_dir.iterdir()):
+        raise FileExistsError("use a new reconstruction work directory; existing evidence is immutable")
     work_dir.mkdir(parents=True, exist_ok=True)
     image_dir, positions = _redact_inputs(rows, work_dir)
     names = sorted(positions)
@@ -159,7 +201,7 @@ def reconstruct_cell(input_manifest: Path, rights_path: Path, benchmark_path: Pa
     features = extract_features.main(extract_features.confs["aliked-n16"], image_dir,
                                      export_dir=work_dir, image_list=names)
     matches = match_features.main(match_features.confs["aliked+lightglue"], pairs_path,
-                                  features, export_dir=work_dir)
+                                  features, matches=work_dir / "matches-aliked-lightglue.h5")
     sparse_dir = work_dir / "sparse"
     model = reconstruction.main(sparse_dir, image_dir, pairs_path, features, matches,
                                 camera_mode=pycolmap.CameraMode.PER_FOLDER, image_list=names)
@@ -180,6 +222,17 @@ def reconstruct_cell(input_manifest: Path, rights_path: Path, benchmark_path: Pa
     _run(["colmap", "image_undistorter", "--image_path", str(image_dir),
           "--input_path", str(aligned), "--output_path", str(dense),
           "--output_type", "COLMAP"])
+    if dense_backend == "fvdb":
+        from smc.reconstruction.dense_backends import reconstruct_fvdb
+
+        summary = reconstruct_fvdb(dense, dense / "fvdb-mesh.ply")
+        summary.update({"input_images": len(rows), "candidate_pairs": pair_count,
+                        "registered_images": model.num_reg_images(),
+                        "coordinate_frame": "ENU_m_WGS84_ellipsoid",
+                        "input_manifest_sha256": sha256_file(input_manifest),
+                        "enu_origin_wgs84": [frame.lon, frame.lat, frame.height_m]})
+        (work_dir / "reconstruction.json").write_text(json.dumps(summary, indent=2) + "\n")
+        return summary
     _run(["colmap", "patch_match_stereo", "--workspace_path", str(dense),
           "--workspace_format", "COLMAP", "--PatchMatchStereo.geom_consistency", "true"])
     cloud = dense / "fused.ply"
@@ -189,10 +242,13 @@ def reconstruct_cell(input_manifest: Path, rights_path: Path, benchmark_path: Pa
     if not cloud.exists() or cloud.stat().st_size < 1024:
         raise ValueError("dense stereo yielded no usable point cloud")
     summary = {
+        "backend": "colmap",
         "input_images": len(rows), "candidate_pairs": pair_count,
         "registered_images": model.num_reg_images(),
         "dense_cloud": str(cloud), "dense_cloud_sha256": sha256_file(cloud),
         "coordinate_frame": "ENU_m_WGS84_ellipsoid",
+        "enu_origin_wgs84": [frame.lon, frame.lat, frame.height_m],
+        "input_manifest_sha256": sha256_file(input_manifest),
         "promotion_state": "unvalidated",
     }
     (work_dir / "reconstruction.json").write_text(json.dumps(summary, indent=2) + "\n")

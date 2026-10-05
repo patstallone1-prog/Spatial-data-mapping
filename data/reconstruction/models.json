@@ -9,7 +9,8 @@
     {"id": "lightglue", "repository": "cvg/LightGlue", "revision": "eb42fee2d71449efb0aa5c10549752b5d75384d8", "license": "Apache-2.0", "role": "feature_matching"},
     {"id": "hloc", "repository": "cvg/Hierarchical-Localization", "revision": "c13273bd0ecc2917a35910fd843712a1c6243193", "license": "Apache-2.0", "role": "reconstruction_harness"},
     {"id": "colmap", "repository": "colmap/colmap", "revision": "8f23d8ec4ca2f71c7fe42f42d63dde9536793d91", "license": "BSD-3-Clause", "role": "sfm_and_dense_stereo"},
-    {"id": "gltfpack", "repository": "zeux/meshoptimizer", "revision": "717ca3489b457f781e5cd3e3a8bbc0229619415c", "license": "MIT", "role": "meshopt_and_ktx2_compilation"}
+    {"id": "gltfpack", "repository": "zeux/meshoptimizer", "revision": "717ca3489b457f781e5cd3e3a8bbc0229619415c", "license": "MIT", "role": "meshopt_and_ktx2_compilation"},
+    {"id": "fvdb-reality-capture-0.4.0", "repository": "openvdb/fvdb-reality-capture", "revision": "b94d1c9bbdd9b41d1c6c7eb643d126d968c92c47", "license": "Apache-2.0", "role": "experimental_dense_mesh_backend_not_truth", "runtime": {"fvdb-core": "0.3.0+pt28.cu128", "torch": "2.8.0", "cuda": "12.8", "platform": "Linux", "minimum_compute_capability": "8.0"}}
   ],
   "disallowed": ["google-imagery", "google-photorealistic-3d-tiles", "sam3", "openmvs", "realesrgan", "superpoint", "superglue"]
 }
