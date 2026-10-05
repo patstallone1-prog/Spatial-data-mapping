@@ -6,7 +6,7 @@
  * Documents and data are network-first so fresh geometry is never hidden by
  * an older cached copy.
  */
-const VERSION = "0b3abafec5b08922";
+const VERSION = "37008cc20bc985cc";
 const CACHE = "kerbside-" + VERSION;
 const SCAN_CACHE = "kerbside-scans";
 const SHELL = [
