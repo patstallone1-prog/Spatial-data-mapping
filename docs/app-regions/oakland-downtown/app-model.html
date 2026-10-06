@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="b5d9b2e368168b712d3163cc327432cc3f226c8e8eae4f9e841835e25d7bb02f" />
+<meta name="kerbside-renderer-sha256" content="05016cda99c1e55f760b2eecd7dd648b4669717d212382fa04e9bb0126df3153" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -1709,9 +1709,9 @@ const TERRAIN_REFINE_BY_SURFACE = {
   // grass and frontages win over it, so its own sag is never what anybody sees -- and it is
   // the widest surface in the model, 7.35 M triangles of the corridor's 25.5 M when it was
   // given the adaptive lattice. It keeps one spacing.
-  walk_underlay: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M, undefined, false, true],
+  walk_underlay: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M],
   footprint: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M], garage: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M],
-  parking_lot: [12.0, 0, undefined, false, true], front_walk: [12.0, 0, undefined, false, true],
+  parking_lot: [12.0, 0], front_walk: [12.0, 0],
   tree_pit: [12.0, 0], pier: [12.0, 0],
   // Visible plaza paving must follow the 2 m terrain grid. A 12 m chord fell 40 cm below
   // that grid around 600 Montgomery, exposing dark terrain as angular holes in the paving.
@@ -1763,16 +1763,16 @@ const LATTICE_CELL_M = 32.0;
 //: unmodified model comfortably -- for a last few centimetres nobody can see. Four metres is
 //: where the sag stops being visible and the frame rate survives.
 const LATTICE_BY_INCLINE = [
-  [300, 1.5],   // finer than the terrain grid, where the grid earns it
-  [150, 2.0],
-  [60, 3.0],
-  [20, 4.0],
-  [0, 8.0],     // flat ground, still cut four times finer
+  [600, 4.0],   // a cliff, a stair, a retaining wall
+  [300, 6.0],
+  [150, 8.0],
+  [60, 12.0],
+  [0, 16.0],    // flat ground: as it was
 ];
 //: Cover rings over a cell that count as "much is drawn here", and the step finer it earns.
-const LATTICE_BUSY_RINGS = 3;
+const LATTICE_BUSY_RINGS = 6;
 //: Never coarser than this where anything is drawn at all.
-const LATTICE_DRAWN_MAX_M = 6.0;
+const LATTICE_DRAWN_MAX_M = 12.0;
 
 const latticeField = new Map();
 let latticeCover = null;

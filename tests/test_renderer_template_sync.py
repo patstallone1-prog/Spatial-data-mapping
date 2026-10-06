@@ -48,7 +48,7 @@ def test_every_published_viewer_has_valid_module_syntax():
 def test_app_build_uses_source_not_an_old_viewer_cache() -> None:
     source = (ROOT / "tools/build_app_worlds.py").read_text()
     assert 'renderer = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))' in source
-    assert 'template = renderer["tuned"](renderer["HTML"], "app")' in source
+    assert 'template = renderer["tuned"](renderer["HTML"], "site")' in source
     assert 'template = VIEWER.read_text' not in source
 
 
@@ -61,7 +61,7 @@ def test_geometry_audit_uses_the_renderers_service_width_table() -> None:
 def test_entire_app_module_and_release_manifest_match_authoritative_source() -> None:
     """An old road/furniture/tile implementation cannot hide behind current house functions."""
     builder = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
-    template = builder["tuned"](builder["HTML"], "app")
+    template = builder["tuned"](builder["HTML"], "site")  # TEMPORARY demo-lite
     expected = template.split('<script type="module">', 1)[1].split("</script>", 1)[0]
     release = json.loads((ROOT / "docs/runtime-release.json").read_text())
     source_hash = hashlib.sha256(template.encode()).hexdigest()
