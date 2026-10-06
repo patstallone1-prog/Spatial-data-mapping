@@ -75,15 +75,6 @@ def furniture() -> dict:
             "last": last_line(log)}
 
 
-def scans() -> dict:
-    manifest = json.loads((ROOT / "docs/interior-scans/manifest.json").read_text())
-    scan = manifest["scans"]["redwood-apartment-2017"]
-    levels = {k: scan[k]["triangles"] for k in ("detail", "full") if k in scan}
-    return {"task": "interior scan detail levels", "state": "complete",
-            "progress": ", ".join(f"{k} {v:,} triangles" for k, v in levels.items()),
-            "journal": "docs/interior-scans/manifest.json", "last": ""}
-
-
 def photo_mesh() -> dict:
     # The dense photogrammetric mesh needs COLMAP (src/smc/reconstruction/colmap_runner.py)
     # and the source frames; neither is on this machine.
@@ -97,7 +88,7 @@ def photo_mesh() -> dict:
 
 
 def main() -> None:
-    rows = [facades(), *photo_objects(), furniture(), scans(), photo_mesh()]
+    rows = [facades(), *photo_objects(), furniture(), photo_mesh()]
     report = {"generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "tasks": rows}
     BUILD.mkdir(exist_ok=True)
     (BUILD / "background-status.json").write_text(json.dumps(report, indent=2) + "\n")

@@ -10,7 +10,6 @@
 | Photo objects (openings per building) | `scripts/build_photo_world_objects.py --region R` | `data/regions/R/world/photo_objects.journal.jsonl` (fsynced per building) and `photo_objects.summary.json` | the journal's source hash: an unchanged building is not redone |
 | Window sidecar | `scripts/build_home_openings.py` | `docs/sf-corridor-home-openings.json` (merged from every region's journal) | re-running it |
 | Street furniture & electrical | `build/furniture-refresh.sh` driving `scripts/build_street_furniture.py --region R --refresh` | `build/furniture-refresh.log` | re-running a region (an empty Overpass answer is now a failure, not cached) |
-| Interior scan levels | `scripts/build_redwood_detail.py --level detail|full` | `docs/interior-scans/<level>/<level>.json` and the scan manifest | re-running a level |
 | Photogrammetric mesh | `src/smc/reconstruction/colmap_runner.py` | `docs/photogrammetry-audit-2026-09.md` | blocked: COLMAP is not installed and the source frame corpus is not on this machine |
 
 ## State on 2026-10-04
@@ -24,6 +23,13 @@
   pole by inference (spans 15-65 m, catenary a = 200 m: about 1 m of sag over 40 m).
 - Signals: one head per approach of each signalised junction (SFMTA in San Francisco,
   OpenStreetMap elsewhere). Stop and give-way points become one plate per governed approach.
+- Signs (renderer, 2026-10-04): every plate goes through one placement. Plates on a post are
+  one stack, each at its own height; no plate meets another; no post stands on a crossing or a
+  kerb ramp (`window.kerbsideSigns()` reports `clashes` and `onCrossing`, both 0 in the SF
+  corridor). Each junction of two named streets has one corner post with a blade along each
+  street (1,095 in the corridor). No ALL WAY plaques; the inventory's street-name points give
+  way to the corner posts.
+- Interior scans: removed (assets, page code, scripts and tests).
 
 ## Unreal
 

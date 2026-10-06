@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="6ef238bb5536692e606abda6daed7b4df9d1ce3a3fcd8e28e16a0c7db25c363f" />
+<meta name="kerbside-renderer-sha256" content="0fe539b9a0671823995131c4952a3e481117dcebdab5df9691c3293812e41675" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -309,12 +309,6 @@ function renderedKerbHeight(way) {
 
 const root = new THREE.Group();
 scene.add(root);
-//: The scanned home the walker is in, if any. People stay a while in a home scanned at full
-//: detail, so while they are in one it is treated as its own block: the tile tree beyond the
-//: region is let go and the fine surfaces outside are drawn only a short way round the house,
-//: which pays for the scan's extra triangles.
-let interiorBlock = null;
-const INTERIOR_BLOCK_RANGE = 0.12;
 //: The street vertices by cell (indexJunctionVertices): read by the junction approaches and by
 //: where a house's front door goes, which is decided while the buildings are built.
 const JUNCTION_CELL_M = 20;
@@ -1313,15 +1307,9 @@ const TERRAIN_LAND = new THREE.Color(0x62645b);
 const TERRAIN_SEA = new THREE.Color(0x2c6187);
 //: Sand: the map's beaches in the atlas, and the low ground beside a beach in the grid.
 const TERRAIN_SAND = new THREE.Color(0xc9b98a);
-//: The town: the atlas's cells with mapped buildings in them. A city drawn on the same green
-//: as the hills behind it stood in a meadow from any height worth the name.
-const TERRAIN_BUILT = new THREE.Color(0x6e7263);
 const TERRAIN_CONCRETE = new THREE.Color(0x85867e);
 //: The country beyond the survey: grass, plainly, so the edge of what was measured is legible.
 const TERRAIN_PLATE = new THREE.Color(0x4a6f3c);
-//: The backdrop's grey gives way to the grass over this distance past the grid's edge; the
-//: height eases over TERRAIN_APRON_DECAY_M.
-const TERRAIN_APRON_COLOUR_M = 300.0;
 function terrainNoise(x, z, scale) {
   const u = x / scale, v = z / scale, ix = Math.floor(u), iz = Math.floor(v);
   const hash = (a, b) => { const h = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return h - Math.floor(h); };
@@ -1331,7 +1319,41 @@ function terrainNoise(x, z, scale) {
   const b = hash(ix, iz + 1) * (1 - sx) + hash(ix + 1, iz + 1) * sx;
   return a * (1 - sz) + b * sz;
 }
+//: The city's ground: within this reach of a mapped street, pavement, crossing, car park, pier
+//: or building. Past it -- the end of the city, where no street goes -- the ground is the
+//: country's plain grass at once, with no grey fading into the green.
+const CITY_REACH_M = 30.0;
+const CITY_CELL_M = 10.0;
+const CITY_KINDS = new Set(["street", "sidewalk", "crossing", "parking_aisle", "parking_lot", "pier", "building"]);
+const cityCells = (() => {
+  const cells = new Set();
+  const reach = Math.ceil(CITY_REACH_M / CITY_CELL_M);
+  const mark = (x, z) => {
+    const cx = Math.floor(x / CITY_CELL_M), cz = Math.floor(z / CITY_CELL_M);
+    if (cells.has(`${cx}:${cz}`)) return;
+    for (let dx = -reach; dx <= reach; dx += 1) {
+      for (let dz = -reach; dz <= reach; dz += 1) {
+        if (dx * dx + dz * dz <= (reach + 0.5) ** 2) cells.add(`${cx + dx}:${cz + dz}`);
+      }
+    }
+  };
+  for (const way of DATA.ways || []) {
+    if (!CITY_KINDS.has(way.kind) || !way.points) continue;
+    for (let i = 0; i < way.points.length; i += 1) {
+      const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+      if (i === 0) { mark(bx, -by); continue; }
+      const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / (CITY_CELL_M / 2)));
+      for (let k = 1; k <= n; k += 1) mark(ax + (bx - ax) * k / n, -(ay + (by - ay) * k / n));
+    }
+  }
+  return cells;
+})();
+function inCity(x, z) {
+  return cityCells.has(`${Math.floor(x / CITY_CELL_M)}:${Math.floor(z / CITY_CELL_M)}`);
+}
 function terrainLandColourAt(x, z) {
+  if (!inCity(x, z)) return TERRAIN_PLATE;
   // A hard class edge made each OSM parcel a huge, squared-off grey slab. Feather just
   // its *colour* across a few metres; mapped water and measured heights stay exact.
   const built = (2 * Number(mappedBuiltAt(x, z))
@@ -1398,12 +1420,11 @@ function backdropAt(x, z, apron = 0) {
   const cls = apron > 0 ? perimeterClassAt(x, z) : null;
   const sandy = cls === 2 || (edge < SEA_SURFACE_M + BEACH_RISE_M && nearBeach(x, z));
   if (apron > 0) {
-    // Height and colour both ease out to the plate's, so the apron is neither a cliff nor a
-    // grey ring round the city.
+    // The height eases out to the plate's, so the apron is not a cliff; the colour does not:
+    // past the last street the ground is plain grass at once, a sharp edge with no grey fade.
     const s = Math.exp(-apron / TERRAIN_APRON_DECAY_M);
     h = PENINSULA_Y + (h - PENINSULA_Y) * s;
-    const ground = cls === 3 ? TERRAIN_BUILT : TERRAIN_PLATE;
-    const colour = sandy ? TERRAIN_SAND : ground.clone().lerp(TERRAIN_LAND, Math.exp(-apron / TERRAIN_APRON_COLOUR_M));
+    const colour = sandy ? TERRAIN_SAND : TERRAIN_PLATE;
     return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour };
   }
   return { y: h - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: sandy ? TERRAIN_SAND : terrainLandColourAt(x, z) };
@@ -1439,8 +1460,11 @@ function addBackdropTile(xs, zs, apronOf) {
     for (let c = 0; c < w; c += 1) {
       const i = (r * w + c) * 3;
       const at = backdropAt(xs[c], zs[r], apronOf ? apronOf(xs[c], zs[r]) : 0);
+      // The apron's inner edge stands on the grid's edge at the grid's height, but in the
+      // country's colour: coloured as the city, it blended grey into green over its first cell.
+      const shade = apronOf && at.colour !== TERRAIN_SEA && at.colour !== TERRAIN_SAND ? TERRAIN_PLATE : at.colour;
       position[i] = xs[c]; position[i + 1] = at.y; position[i + 2] = zs[r];
-      colour[i] = at.colour.r; colour[i + 1] = at.colour.g; colour[i + 2] = at.colour.b;
+      colour[i] = shade.r; colour[i + 1] = shade.g; colour[i + 2] = shade.b;
       const j = (r * w + c) * 2;
       uv[j] = xs[c] / 64; uv[j + 1] = zs[r] / 64;
     }
@@ -2187,7 +2211,7 @@ if (PERIMETER) {
   const apronWest = g ? g.x0 - TERRAIN_APRON_M : Infinity, apronEast = g ? g.x0 + g.cols * g.step_m + TERRAIN_APRON_M : -Infinity;
   const apronSouth = g ? g.y0 - TERRAIN_APRON_M : Infinity, apronNorth = g ? g.y0 + g.rows * g.step_m + TERRAIN_APRON_M : -Infinity;
   const underApron = (x, y) => x > apronWest && x < apronEast && y > apronSouth && y < apronNorth;
-  const grass = TERRAIN_PLATE, sea = TERRAIN_SEA, sand = TERRAIN_SAND, town = TERRAIN_BUILT;
+  const grass = TERRAIN_PLATE, sea = TERRAIN_SEA, sand = TERRAIN_SAND;
   // A cell corner in the atlas's frame, here: through lon/lat, since the frames differ.
   const here = (c, r) => {
     const lon = f.mid_lon + (f.x0 + c * f.step_m) / f.metres_per_lon;
@@ -2218,7 +2242,7 @@ if (PERIMETER) {
           if (!under) {
             const [xb, yb] = here(end, r + 1);
             const h = (wet === 1 ? SEA_Y - 0.02 : PENINSULA_Y) - PERIMETER_UNDER_M;
-            const col = wet === 1 ? sea : wet === 2 ? sand : wet === 3 ? town : grass;
+            const col = wet === 1 ? sea : wet === 2 ? sand : grass;
             const base = position.length / 3;
             for (const [x, y] of [[xa, ya], [xb, ya], [xb, yb], [xa, yb]]) {
               position.push(x, h - earthDrop(x, -y), -y);
@@ -4331,6 +4355,8 @@ function shouldDrawCrossing(points, width, tag = null) {
   if (!pose) return false;
   if (crossingDrawConflict(pose, width)) return false;
   if (tag) pose.tag = tag;
+  // Its width too: a sign post is kept off the paint (onCrossingGround).
+  pose.width = width || 3.7;
   const key = `${Math.floor(pose.x / CROSSING_DEDUPE_CELL_M)}:${Math.floor(pose.z / CROSSING_DEDUPE_CELL_M)}`;
   let bucket = crossingDrawGrid.get(key);
   if (!bucket) crossingDrawGrid.set(key, bucket = []);
@@ -13640,8 +13666,6 @@ function addParkingLot(way) {
   return group;
 }
 
-const streetNames = new Set();
-let streetLabelCount = 0;
 // Mapped footways first, then everything else.
 //
 // Pavement comes from two places: the footways OpenStreetMap maps, and the pavement derived from
@@ -14106,14 +14130,7 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     groups.kerbs.add(ribbon(renderPoints, isCrossing ? 0.8 : 0.45, 0xff4d8f,
       0.95, roadTop + KERB + 0.03, 0.05));
   }
-  if (!isCrossing && !isSidewalk && way.name && !streetNames.has(way.name) && streetLabelCount < 90) {
-    const midpoint = longestMidpoint(way.points);
-    if (midpoint) {
-      streetNames.add(way.name);
-      streetLabelCount += 1;
-      labelAt(way.name, midpoint[0], midpoint[1], 28, groups.streets, "#d6e7ea", "street");
-    }
-  }
+  // No street names floating over the roads: point at a street and press S.
 }
 WAY_LIFT = null;   // nothing built after the streets belongs to one way's cut
 
@@ -16620,9 +16637,29 @@ function panelMaterial(color, opacity = 1) {
   });
 }
 
-function addInstancedFurniturePanels(records, width, height, color, name, yBottom = FURNITURE_PANEL_BOTTOM_M) {
+function addInstancedFurniturePanels(records, width, height, color, name, yBottom = FURNITURE_PANEL_BOTTOM_M,
+                                      clash = null) {
   const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
     .filter((row) => row.anchor);
+  // A panel is a sign too: it is placed against the plates already standing, lowered under one
+  // it would meet ("lower") or left out ("skip"), never drawn through it.
+  if (clash) {
+    for (const row of anchors) {
+      const yaw = furnitureBearing(row.item, row.index, row.anchor);
+      const top = row.anchor.y + yBottom + height;
+      let rect = null;
+      if (clash === "lower") rect = placePlate(null, row.anchor.x, row.anchor.z, yaw, width, height, top, row.anchor.y + PLATE_MIN_BOTTOM_M);
+      else {
+        const trial = plateRect(null, row.anchor.x, row.anchor.z, yaw, width, top - height, top);
+        if (!plateClash(trial)) rect = registerPlate(trial);
+      }
+      if (!rect) { row.anchor = null; signStats.droppedPanels += 1; continue; }
+      row.bottom = rect.bottom - row.anchor.y;
+    }
+  }
+  const kept = anchors.filter((row) => row.anchor);
+  anchors.length = 0;
+  anchors.push(...kept);
   if (!anchors.length) return 0;
   const mesh = new THREE.InstancedMesh(
     new THREE.PlaneGeometry(width, height),
@@ -16630,7 +16667,7 @@ function addInstancedFurniturePanels(records, width, height, color, name, yBotto
     anchors.length);
   const dummy = new THREE.Object3D();
   anchors.forEach((row, i) => {
-    dummy.position.set(row.anchor.x, row.anchor.y + yBottom + height / 2, row.anchor.z);
+    dummy.position.set(row.anchor.x, row.anchor.y + (row.bottom ?? yBottom) + height / 2, row.anchor.z);
     dummy.rotation.set(0, furnitureBearing(row.item, row.index, row.anchor), 0);
     dummy.scale.set(1, 1, 1);
     dummy.updateMatrix();
@@ -17103,14 +17140,23 @@ function approachLegs(x, z, reach = 6) {
 //: crossing street's kerb, on pavement. Returns {x, z, yaw} with the face toward the traffic.
 function approachPlacement(junction, leg, legs, kerbClear = 0.9) {
   const crossing = Math.max(4, ...legs.filter((l) => l !== leg).map((l) => l.half));
-  const setback = crossing + 2.0;
   // Arriving traffic travels along -u; its right-hand side is (uz, -ux).
   const rx = leg.uz, rz = -leg.ux;
-  for (let extra = 0; extra <= 3.01; extra += 0.5) {
+  // Never on the crossing's paint or its kerb ramp: back along the approach until the post is
+  // clear of them, as a stop sign stands behind the crosswalk -- preferred to standing further
+  // from the kerb, where a driver looks for it less.
+  const tries = [];
+  for (let back = 0; back <= 4.01; back += 1.0) {
+    for (let extra = 0; extra <= 3.01; extra += 0.5) tries.push([back, extra, back + 1.5 * extra]);
+  }
+  tries.sort((a, b) => a[2] - b[2]);
+  for (const [back, extra] of tries) {
+    const setback = crossing + 2.0 + back;
     const off = leg.half + kerbClear + extra;
     const x = junction.x + leg.ux * setback + rx * off;
     const z = junction.z + leg.uz * setback + rz * off;
     if (insideCarriageway(x, z, 0.1) || insideJunctionBox(x, z) || buildingAt(x, z)) continue;
+    if (onCrossingGround(x, z)) continue;
     return { x, z, yaw: Math.atan2(leg.ux, leg.uz) };
   }
   return null;
@@ -17166,7 +17212,7 @@ function expandApproachSigns(records) {
       const narrower = inbound.filter((l) => l.half < widest - 0.6);
       governed = narrower.length ? narrower : inbound;
     }
-    const allWay = kind === "stop" && governed.length >= 3 && governed.length === inbound.length;
+    // One plate per approach and nothing under it: no ALL WAY plaque is inferred.
     for (const leg of governed) {
       const spot = approachPlacement(junction, leg, junction.legs);
       if (!spot) continue;
@@ -17175,7 +17221,6 @@ function expandApproachSigns(records) {
         p: [lon, lat], bearing: spot.yaw * 180 / Math.PI,
         geometry_basis: "inferred_junction_approach", label: kind === "yield" ? "YIELD" : "STOP" };
       out.push(base);
-      if (allWay) out.push({ ...base, id: `${base.id}:all_way`, sign_kind: "all_way", label: "ALL WAY" });
     }
   }
   return out;
@@ -17205,8 +17250,251 @@ function expandSignalApproaches(records) {
   return heads;
 }
 
-function addOfficialSignPlates(records) {
+// ---- no sign inside another, and none on a crossing ----
+//
+// A plate is a vertical rectangle: the line it runs along in plan, and its bottom and top.
+// Plates on one post are stacked one under another whatever way each faces -- two plates at
+// one height on one pole stood inside each other wherever their facings crossed -- and every
+// plate is checked against the plates already standing near it before it is drawn.
+const SIGN_CELL_M = 3.0;
+//: Two plates nearer than this in plan, at heights that overlap, are one inside the other.
+const SIGN_PLATE_CLEAR_M = 0.03;
+//: A post keeps this far off a crossing's paint and off a kerb ramp and its warning pad.
+const SIGN_CROSSING_CLEAR_M = 0.3;
+//: The lowest a plate goes on its post: below this a sign is at a pedestrian's knees.
+const PLATE_MIN_BOTTOM_M = 0.9;
+//: A street-name blade's two faces either side of the post they are fixed to the top of.
+const BLADE_FACE_OFFSET_M = 0.03;
+//: The bottom of the lowest blade on a signal pole: under the signal head, above a lorry.
+const SIGNAL_BLADE_BOTTOM_M = 3.0;
+//: The signal head's box on its pole (addTrafficSignalHeads): middle and height, width.
+const SIGNAL_HEAD_MID_M = 4.18;
+const SIGNAL_HEAD_H_M = 0.98;
+const SIGNAL_HEAD_W_M = 0.38;
+let signPlateGrid = new Map();
+const signStats = { plates: 0, blades: 0, cornerJunctions: 0, cornerPosts: 0, lowered: 0,
+  overflowPosts: 0, dropped: 0, droppedPanels: 0, movedOffCrossing: 0, droppedOnCrossing: 0,
+  clashes: 0, onCrossing: 0 };
+window.kerbsideSigns = () => ({ ...signStats });
+
+//: The gap between two segments in plan; zero where they cross.
+function segmentGap2D(a0x, a0z, a1x, a1z, b0x, b0z, b1x, b1z) {
+  const side = (px, pz, qx, qz, rx, rz) => (qx - px) * (rz - pz) - (qz - pz) * (rx - px);
+  const d1 = side(a0x, a0z, a1x, a1z, b0x, b0z), d2 = side(a0x, a0z, a1x, a1z, b1x, b1z);
+  const d3 = side(b0x, b0z, b1x, b1z, a0x, a0z), d4 = side(b0x, b0z, b1x, b1z, a1x, a1z);
+  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return 0;
+  return Math.sqrt(Math.min(
+    distanceToSegmentSquared(a0x, a0z, b0x, b0z, b1x, b1z),
+    distanceToSegmentSquared(a1x, a1z, b0x, b0z, b1x, b1z),
+    distanceToSegmentSquared(b0x, b0z, a0x, a0z, a1x, a1z),
+    distanceToSegmentSquared(b1x, b1z, a0x, a0z, a1x, a1z)));
+}
+//: A plate of width ``w`` whose middle is at (cx, cz), facing ``yaw``, from bottom to top.
+function plateRect(post, cx, cz, yaw, w, bottom, top) {
+  const rx = Math.cos(yaw), rz = -Math.sin(yaw), hw = w / 2;
+  return { post, cx, cz, x0: cx - rx * hw, z0: cz - rz * hw, x1: cx + rx * hw, z1: cz + rz * hw,
+    bottom, top };
+}
+//: Whether two plates would stand in each other. Two on one post never share a height, so
+//: no two of them are ever at the same elevation, whichever ways they face.
+function platesMeet(a, b) {
+  if (a.bottom >= b.top || b.bottom >= a.top) return false;
+  if (a.post !== null && a.post === b.post) return true;
+  return segmentGap2D(a.x0, a.z0, a.x1, a.z1, b.x0, b.z0, b.x1, b.z1) < SIGN_PLATE_CLEAR_M;
+}
+//: The cells a plate's run touches, widened by the clearance so two plates that nearly touch
+//: across a cell's edge still share one.
+function signCellsOf(rect) {
+  const keys = [], m = SIGN_PLATE_CLEAR_M;
+  for (let gx = Math.floor((Math.min(rect.x0, rect.x1) - m) / SIGN_CELL_M); gx <= Math.floor((Math.max(rect.x0, rect.x1) + m) / SIGN_CELL_M); gx += 1) {
+    for (let gz = Math.floor((Math.min(rect.z0, rect.z1) - m) / SIGN_CELL_M); gz <= Math.floor((Math.max(rect.z0, rect.z1) + m) / SIGN_CELL_M); gz += 1) keys.push(`${gx}:${gz}`);
+  }
+  return keys;
+}
+//: The first standing plate this one would meet, or null: every plate on its own post first,
+//: wherever its run lies, then every plate near it.
+function plateClash(rect) {
+  for (const other of rect.post?.plates || []) if (platesMeet(rect, other)) return other;
+  for (const key of signCellsOf(rect)) {
+    for (const other of signPlateGrid.get(key) || []) if (platesMeet(rect, other)) return other;
+  }
+  return null;
+}
+function registerPlate(rect) {
+  if (rect.post) (rect.post.plates || (rect.post.plates = [])).push(rect);
+  for (const key of signCellsOf(rect)) {
+    let bucket = signPlateGrid.get(key);
+    if (!bucket) signPlateGrid.set(key, bucket = []);
+    bucket.push(rect);
+  }
+  return rect;
+}
+//: A plate placed as high as ``top`` allows and lowered under anything it would meet; null
+//: when it would have to go below ``floor``.
+function placePlate(post, cx, cz, yaw, w, h, top, floor) {
+  for (let tries = 0; tries < 12; tries += 1) {
+    if (top - h < floor) return null;
+    const rect = plateRect(post, cx, cz, yaw, w, top - h, top);
+    const other = plateClash(rect);
+    if (!other) return registerPlate(rect);
+    top = other.bottom - PLATE_GAP_M;
+    signStats.lowered += 1;
+  }
+  return null;
+}
+
+//: A kerb ramp and its warning pad, as one quadrilateral: the pad's street edge, then back
+//: across the ramp to its flared footway edge (addTactileWarningPad).
+function rampFootprint(c) {
+  const [c0, c1, c2, c3] = c;
+  const width = Math.hypot(c1[0] - c0[0], c1[1] - c0[1]) || 1;
+  const depth = Math.hypot(c3[0] - c0[0], c3[1] - c0[1]) || 1;
+  const ax = (c1[0] - c0[0]) / width, az = (c1[1] - c0[1]) / width;
+  const ox = (c3[0] - c0[0]) / depth, oz = (c3[1] - c0[1]) / depth;
+  const back = Math.max(0, CURB_RAMP_DEPTH_M - depth), flare = CURB_RAMP_FLARE_M;
+  return [c0, c1, [c2[0] + ax * flare + ox * back, c2[1] + az * flare + oz * back],
+    [c3[0] - ax * flare + ox * back, c3[1] - az * flare + oz * back]];
+}
+let rampGrid = null;
+function rampGridNow() {
+  if (rampGrid && rampGrid.count === tactileWarningPads.length) return rampGrid;
+  rampGrid = new Map();
+  rampGrid.count = tactileWarningPads.length;
+  for (const pad of tactileWarningPads) {
+    const ring = rampFootprint(pad);
+    const xs = ring.map((p) => p[0]), zs = ring.map((p) => p[1]);
+    for (let gx = Math.floor(Math.min(...xs) / 4); gx <= Math.floor(Math.max(...xs) / 4); gx += 1) {
+      for (let gz = Math.floor(Math.min(...zs) / 4); gz <= Math.floor(Math.max(...zs) / 4); gz += 1) {
+        const key = `${gx}:${gz}`;
+        if (!rampGrid.has(key)) rampGrid.set(key, []);
+        rampGrid.get(key).push(ring);
+      }
+    }
+  }
+  return rampGrid;
+}
+//: Whether a post at (x, z) would stand on a crossing's paint or on a kerb ramp's warning
+//: pad (or the ramp itself), or within SIGN_CROSSING_CLEAR_M of either.
+function onCrossingGround(x, z, clear = SIGN_CROSSING_CLEAR_M) {
+  const grid = rampGridNow();
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (const ring of grid.get(`${Math.floor(x / 4) + dx}:${Math.floor(z / 4) + dz}`) || []) {
+        if (pointInRing(x, z, ring)) return true;
+        for (let i = 0; i < ring.length; i += 1) {
+          const a = ring[i], b = ring[(i + 1) % ring.length];
+          if (distanceToSegmentSquared(x, z, a[0], a[1], b[0], b[1]) < clear * clear) return true;
+        }
+      }
+    }
+  }
+  const cx = Math.floor(x / CROSSING_DEDUPE_CELL_M), cz = Math.floor(z / CROSSING_DEDUPE_CELL_M);
+  for (let dx = -5; dx <= 5; dx += 1) {
+    for (let dz = -5; dz <= 5; dz += 1) {
+      for (const pose of crossingDrawGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        const c = Math.cos(pose.bearing), s = Math.sin(pose.bearing);
+        const along = (x - pose.x) * c + (z - pose.z) * s;
+        const across = -(x - pose.x) * s + (z - pose.z) * c;
+        if (Math.abs(along) <= pose.length / 2 + clear && Math.abs(across) <= (pose.width || 3.7) / 2 + clear) return true;
+      }
+    }
+  }
+  return false;
+}
+//: The nearest ground within ``reach`` of (x, z) a post may stand on, or null.
+function clearPostSpot(x, z, reach = 3.0) {
+  if (!onCrossingGround(x, z)) return { x, z };
+  for (let r = 0.5; r <= reach + 1e-6; r += 0.5) {
+    for (let k = 0; k < 16; k += 1) {
+      const a = k * Math.PI / 8;
+      const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+      if (insideCarriageway(px, pz, 0.1) || insideJunctionBox(px, pz) || buildingAt(px, pz)) continue;
+      if (!onCrossingGround(px, pz)) return { x: px, z: pz };
+    }
+  }
+  return null;
+}
+
+//: A street's name as its blade says it: "Hyde Street" is HYDE ST.
+const BLADE_SUFFIXES = { STREET: "ST", AVENUE: "AVE", BOULEVARD: "BLVD", PLACE: "PL", DRIVE: "DR",
+  ROAD: "RD", LANE: "LN", TERRACE: "TER", COURT: "CT", ALLEY: "ALY", HIGHWAY: "HWY", PARKWAY: "PKWY",
+  EXPRESSWAY: "EXPY", CIRCLE: "CIR", SQUARE: "SQ" };
+function bladeName(way) {
+  const name = String(way && way.name || "").trim().toUpperCase();
+  if (!name) return "";
+  const words = name.split(/\s+/);
+  const last = words[words.length - 1];
+  if (BLADE_SUFFIXES[last]) words[words.length - 1] = BLADE_SUFFIXES[last];
+  return words.join(" ");
+}
+//: Each junction of two differently named streets: one post on one corner and a blade for
+//: each street, each blade running the way its street runs. Inferred from the streets.
+function cornerStreetNameSigns() {
+  if (!junctionVertexGrid) indexJunctionVertices();
+  // Where two differently named streets meet: a vertex of one with a vertex of the other within
+  // a few metres. Each street is recentred on its own kerbs, so the node they shared in the map
+  // is seldom one point any more.
+  const meets = [];
+  for (const [key, bucket] of junctionVertexGrid) {
+    const [cx, cz] = key.split(":").map(Number);
+    for (const v of bucket) {
+      const name = bladeName(v.way);
+      if (!name) continue;
+      let met = false;
+      for (let dx = -1; dx <= 1 && !met; dx += 1) {
+        for (let dz = -1; dz <= 1 && !met; dz += 1) {
+          for (const o of junctionVertexGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+            if (o.way === v.way || Math.abs(o.x - v.x) > 3 || Math.abs(o.z - v.z) > 3) continue;
+            const other = bladeName(o.way);
+            if (other && other !== name) { met = true; break; }
+          }
+        }
+      }
+      if (met) meets.push(v);
+    }
+  }
+  const done = new Map();
+  const near = (x, z) => {
+    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) {
+      for (const [px, pz] of done.get(`${Math.floor(x / 20) + dx}:${Math.floor(z / 20) + dz}`) || []) {
+        if (Math.hypot(px - x, pz - z) < 20) return true;
+      }
+    }
+    return false;
+  };
+  const out = [];
+  for (const m of meets) {
+    if (near(m.x, m.z)) continue;
+    const legs = approachLegs(m.x, m.z, 4).filter((l) => bladeName(l.way));
+    if (new Set(legs.map((l) => bladeName(l.way))).size < 2) continue;
+    const cell = `${Math.floor(m.x / 20)}:${Math.floor(m.z / 20)}`;
+    if (!done.has(cell)) done.set(cell, []);
+    done.get(cell).push([m.x, m.z]);
+    signStats.cornerJunctions += 1;
+    const junction = { x: m.x, z: m.z };
+    legs.sort((a, b) => a.bearing - b.bearing);
+    for (const leg of legs) {
+      const other = legs.find((l) => bladeName(l.way) !== bladeName(leg.way));
+      const spot = approachPlacement(junction, leg, legs);
+      if (!spot || !other) continue;
+      const [lon, lat] = lonLatFromXZ(spot.x, spot.z);
+      const id = `corner:${Math.round(m.x)}:${Math.round(m.z)}`;
+      // A blade runs along its street: its face is square to the street's direction.
+      for (const [i, l] of [leg, other].entries()) {
+        out.push({ id: `${id}:${i}`, p: [lon, lat], sign_kind: "street_name", label: bladeName(l.way),
+          bearing: Math.atan2(l.uz, -l.ux) * 180 / Math.PI, tags: { SIGN_CATEGORY: "STREET NAME" },
+          geometry_basis: "inferred_junction_corner", blade: i });
+      }
+      signStats.cornerPosts += 1;
+      break;
+    }
+  }
+  return out;
+}
+
+function addOfficialSignPlates(records, signalHeads = []) {
   // Every sign on its post, the plates stacked where several share one.
+  signPlateGrid = new Map();
   const seenFaces = new Set();
   const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
     .filter((row) => {
@@ -17216,14 +17504,28 @@ function addOfficialSignPlates(records) {
       seenFaces.add(key);
       return true;
     });
-  if (!anchors.length) return { signs: 0, posts: 0, racks: 0 };
-  // One post per point: rows within PLATE_SAME_POST_M of an earlier one join it.
+  // One post per point: rows within PLATE_SAME_POST_M of an earlier one join it. A signal
+  // pole is a post already standing, and a sign beside one is fixed to it.
   const cell = 2.0;
   const grid = new Map();
   const posts = [];
+  const file = (post) => {
+    const key = `${Math.floor(post.anchor.x / cell)}:${Math.floor(post.anchor.z / cell)}`;
+    let bucket = grid.get(key);
+    if (!bucket) grid.set(key, bucket = []);
+    bucket.push(post);
+  };
+  for (const head of signalHeads) {
+    const post = { anchor: { x: head.x, y: head.y, z: head.z }, raw: { x: head.x, z: head.z },
+      rows: [], kind: "sign", signal: head };
+    posts.push(post);
+    file(post);
+    // The head itself stands on the pole: nothing is drawn through it.
+    registerPlate(plateRect(post, head.x, head.z, head.yaw, SIGNAL_HEAD_W_M,
+      head.y + SIGNAL_HEAD_MID_M - SIGNAL_HEAD_H_M / 2, head.y + SIGNAL_HEAD_MID_M + SIGNAL_HEAD_H_M / 2));
+  }
   for (const row of anchors) {
     const kind = plateAssetKind(row.item);
-    const key = `${Math.floor(row.anchor.x / cell)}:${Math.floor(row.anchor.z / cell)}`;
     // Where the inventory put it, as well as where it was carried to: two plates the city
     // recorded a metre apart belong on one pole even when one of them had to be moved off
     // the roadway and the other did not.
@@ -17244,81 +17546,150 @@ function addOfficialSignPlates(records) {
     }
     if (post) { post.rows.push(row); continue; }
     post = { anchor: row.anchor, raw: row.raw, rows: [row], kind };
+    if (kind === "sign") {
+      // Not on a crossing's paint, nor on the kerb ramp at its end: the nearest clear ground.
+      const clear = clearPostSpot(row.anchor.x, row.anchor.z);
+      if (!clear) { signStats.droppedOnCrossing += 1; continue; }
+      if (clear.x !== row.anchor.x || clear.z !== row.anchor.z) {
+        const top = pavementTopAt(clear.x, clear.z);
+        post.anchor = { x: clear.x, z: clear.z,
+          y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(clear.x, clear.z) };
+        signStats.movedOffCrossing += 1;
+      }
+    }
     posts.push(post);
-    let bucket = grid.get(key);
-    if (!bucket) grid.set(key, bucket = []);
-    bucket.push(post);
+    file(post);
   }
   // The backs read the same atlas for their outline and are painted over it in grey, so
   // they are sunk by atlas as the faces are.
   const backSinks = new Map();
   let signs = 0;
-  const postAnchors = [];
+  const postsByHeight = new Map();
   const racks = [];
   const delineators = [];
   const lanterns = [];
-  for (const post of posts) {
+  // One face of a plate: a quad reading ``slot`` from ``sink``, facing ``yaw``.
+  const quad = (sink, slot, cx, cz, yaw, bottom, top, mirrored = false) => {
+    const rx = Math.cos(yaw), rz = -Math.sin(yaw), hw = slot.w / 2;
+    const s = mirrored ? -1 : 1;
+    const base = sink.positions.length / 3;
+    const corners = [[cx - s * rx * hw, bottom, cz - s * rz * hw], [cx + s * rx * hw, bottom, cz + s * rz * hw],
+      [cx + s * rx * hw, top, cz + s * rz * hw], [cx - s * rx * hw, top, cz - s * rz * hw]];
+    const uv = mirrored
+      ? [[slot.u1, slot.v0], [slot.u0, slot.v0], [slot.u0, slot.v1], [slot.u1, slot.v1]]
+      : [[slot.u0, slot.v0], [slot.u1, slot.v0], [slot.u1, slot.v1], [slot.u0, slot.v1]];
+    for (let i = 0; i < 4; i += 1) {
+      sink.positions.push(corners[i][0], corners[i][1], corners[i][2]);
+      sink.uvs.push(uv[i][0], uv[i][1]);
+      sink.colours.push(1, 1, 1);
+    }
+    sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  // A post holds what fits on it between the panel height and a pedestrian's knee; what does
+  // not goes on a second post beside it along the kerb, as the city puts up a second pole.
+  const overflowSpot = (post, yaw) => {
+    const ax = Math.cos(yaw), az = -Math.sin(yaw);
+    for (const d of [1.4, -1.4, 2.0, -2.0, 2.7, -2.7]) {
+      const x = post.anchor.x + ax * d, z = post.anchor.z + az * d;
+      if (insideCarriageway(x, z, 0.1) || insideJunctionBox(x, z) || buildingAt(x, z) || onCrossingGround(x, z)) continue;
+      const top = pavementTopAt(x, z);
+      return { x, z, y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(x, z) };
+    }
+    return null;
+  };
+  for (let k = 0; k < posts.length; k += 1) {
+    const post = posts[k];
     if (post.kind === "bike_rack") { racks.push(post); continue; }
     if (post.kind === "delineator") { delineators.push(post); continue; }
     if (post.kind === "lantern") { lanterns.push(post); continue; }
-    const topsByFacing = new Map();
-    // Stop first, then its ALL WAY plaque, then the rest, top down.
-    const order = { stop: 0, all_way: 1 };
+    // Stop first, then the rest, top down; the street-name blades go on top of the post.
+    const order = { stop: 0 };
     post.rows.sort((a, b) => (order[plateStyleFor(a.item)] ?? 2) - (order[plateStyleFor(b.item)] ?? 2));
+    const blades = post.rows.filter((row) => plateStyleFor(row.item) === "street_name")
+      .sort((a, b) => (a.item.blade ?? 0) - (b.item.blade ?? 0));
     // The same plate twice on one pole, facing the same way, is one plate recorded twice: the
     // inventory and OpenStreetMap both, or two survey passes. It was drawn twice, stacked.
     const platesHere = new Set();
+    let top = post.anchor.y + FURNITURE_PANEL_BOTTOM_M;
+    let first = true;
+    let highest = post.anchor.y + FURNITURE_PANEL_BOTTOM_M;
+    const overflow = [];
+    let overflowYaw = 0;
     for (const row of post.rows) {
+      if (plateStyleFor(row.item) === "street_name") continue;
       const slot = plateSlot(row.item);
       const yaw = furnitureBearing(row.item, row.index, post.anchor);
-      const face = Math.round(yaw * 12 / Math.PI);
-      const same = `${slot.style}|${plateLegend(row.item.label)}|${face}`;
+      const same = `${slot.style}|${plateLegend(row.item.label)}|${Math.round(yaw * 12 / Math.PI)}`;
       if (platesHere.has(same)) continue;
       platesHere.add(same);
+      if (first) top += slot.h;
+      first = false;
       const nx = Math.sin(yaw), nz = Math.cos(yaw);
-      const rx = Math.cos(yaw), rz = -Math.sin(yaw);
-      const top = topsByFacing.get(face) ??
-        post.anchor.y + FURNITURE_PANEL_BOTTOM_M + slot.h;
       const cx = post.anchor.x + nx * PLATE_STANDOFF_M;
       const cz = post.anchor.z + nz * PLATE_STANDOFF_M;
-      const bottom = top - slot.h;
-      if (bottom < post.anchor.y + 0.9) break;          // no room lower on the post
-      const hw = slot.w / 2;
-      const corners = [
-        [cx - rx * hw, bottom, cz - rz * hw], [cx + rx * hw, bottom, cz + rz * hw],
-        [cx + rx * hw, top, cz + rz * hw], [cx - rx * hw, top, cz - rz * hw],
-      ];
-      const sink = slot.atlas.sink;
-      const base = sink.positions.length / 3;
-      const uv = [[slot.u0, slot.v0], [slot.u1, slot.v0], [slot.u1, slot.v1], [slot.u0, slot.v1]];
-      for (let i = 0; i < 4; i += 1) {
-        sink.positions.push(corners[i][0], corners[i][1], corners[i][2]);
-        sink.uvs.push(uv[i][0], uv[i][1]);
-        sink.colours.push(1, 1, 1);
+      const rect = placePlate(post, cx, cz, yaw, slot.w, slot.h, top, post.anchor.y + PLATE_MIN_BOTTOM_M);
+      if (!rect) {
+        if (!overflow.length) overflowYaw = yaw;
+        overflow.push(row);
+        platesHere.delete(same);
+        continue;
       }
-      sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      highest = Math.max(highest, rect.top);
+      quad(slot.atlas.sink, slot, cx, cz, yaw, rect.bottom, rect.top);
       // The back: aluminium, the same outline, a hair behind the face, wound the other way.
       const shadow = plateSilhouetteSlot(slot.style);
-      const bx = cx - nx * 0.004;
-      const bz = cz - nz * 0.004;
       let backSink = backSinks.get(shadow.atlas.index);
       if (!backSink) backSinks.set(shadow.atlas.index, backSink = newSink());
-      const b2 = backSink.positions.length / 3;
-      const back = [
-        [bx + rx * hw, bottom, bz + rz * hw], [bx - rx * hw, bottom, bz - rz * hw],
-        [bx - rx * hw, top, bz - rz * hw], [bx + rx * hw, top, bz + rz * hw],
-      ];
-      const buv = [[shadow.u1, shadow.v0], [shadow.u0, shadow.v0], [shadow.u0, shadow.v1], [shadow.u1, shadow.v1]];
-      for (let i = 0; i < 4; i += 1) {
-        backSink.positions.push(back[i][0], back[i][1], back[i][2]);
-        backSink.uvs.push(buv[i][0], buv[i][1]);
-        backSink.colours.push(1, 1, 1);
-      }
-      backSink.indices.push(b2, b2 + 1, b2 + 2, b2, b2 + 2, b2 + 3);
-      topsByFacing.set(face, bottom - PLATE_GAP_M);
+      quad(backSink, shadow, cx - nx * 0.004, cz - nz * 0.004, yaw, rect.bottom, rect.top, true);
+      top = rect.bottom - PLATE_GAP_M;
       signs += 1;
+      signStats.plates += 1;
     }
-    postAnchors.push(post.anchor);
+    if (overflow.length) {
+      const spot = (post.depth || 0) < 3 ? overflowSpot(post, overflowYaw) : null;
+      if (spot) {
+        const sibling = { anchor: spot, raw: { x: spot.x, z: spot.z }, rows: overflow, kind: "sign",
+          depth: (post.depth || 0) + 1 };
+        posts.push(sibling);
+        signStats.overflowPosts += 1;
+      } else signStats.dropped += overflow.length;
+    }
+    // The blades: on top of the post, above every plate on it, one over the other -- or on a
+    // signal pole under its head. Each reads the same both sides, as a street blade does.
+    let bladeBottom = post.signal ? post.anchor.y + SIGNAL_BLADE_BOTTOM_M
+      : Math.max(post.anchor.y + FURNITURE_POST_H_M - 0.3, highest + PLATE_GAP_M);
+    const namesHere = new Set();
+    for (const row of blades) {
+      const name = plateLegend(row.item.label);
+      if (namesHere.has(name)) continue;
+      namesHere.add(name);
+      const slot = plateSlot(row.item);
+      const yaw = furnitureBearing(row.item, row.index, post.anchor);
+      // Upward only: a blade that would meet something is raised over it, never lowered
+      // onto the plates under it.
+      let rect = null;
+      for (let tries = 0; tries < 6 && !rect; tries += 1) {
+        const trial = plateRect(post, post.anchor.x, post.anchor.z, yaw, slot.w, bladeBottom, bladeBottom + slot.h);
+        const other = plateClash(trial);
+        if (!other) rect = registerPlate(trial);
+        else bladeBottom = other.top + PLATE_GAP_M;
+      }
+      if (!rect) { signStats.dropped += 1; continue; }
+      const nx = Math.sin(yaw), nz = Math.cos(yaw);
+      quad(slot.atlas.sink, slot, post.anchor.x + nx * BLADE_FACE_OFFSET_M, post.anchor.z + nz * BLADE_FACE_OFFSET_M,
+        yaw, rect.bottom, rect.top);
+      quad(slot.atlas.sink, slot, post.anchor.x - nx * BLADE_FACE_OFFSET_M, post.anchor.z - nz * BLADE_FACE_OFFSET_M,
+        yaw + Math.PI, rect.bottom, rect.top);
+      bladeBottom = rect.top + PLATE_GAP_M;
+      highest = Math.max(highest, rect.top);
+      signs += 1;
+      signStats.blades += 1;
+    }
+    if (post.signal) continue;                              // the signal draws its own pole
+    // The post reaches the top of whatever is on it.
+    const height = Math.max(FURNITURE_POST_H_M, Math.ceil((highest - post.anchor.y + 0.05) * 10) / 10);
+    if (!postsByHeight.has(height)) postsByHeight.set(height, []);
+    postsByHeight.get(height).push(post.anchor);
   }
   for (const atlas of plateAtlases) {
     const mesh = flushSink(atlas.sink, plateMaterial(atlas), "furniture:sign_plate");
@@ -17334,11 +17705,34 @@ function addOfficialSignPlates(records) {
     if (mesh) groups.furniture.add(mesh);
   }
   // The posts, at the points, with the plates in front of them.
-  addFurniturePostsAt(postAnchors, FURNITURE_POST_H_M, 0.026, 0x9aa1a3);
+  let postCount = 0;
+  for (const [height, list] of postsByHeight) postCount += addFurniturePostsAt(list, height, 0.026, 0x9aa1a3);
   addBikeRacks(racks.map((p) => p.anchor));
   addFurniturePostsAt(delineators.map((p) => p.anchor), 1.1, 0.04, 0xf4f4f0);
   addFurniturePostsAt(lanterns.map((p) => p.anchor), 3.2, 0.05, 0x2f3436);
-  return { signs, posts: postAnchors.length, racks: racks.length, delineators: delineators.length };
+  return { signs, posts: postCount, racks: racks.length, delineators: delineators.length,
+    spots: posts.filter((p) => p.kind === "sign" && !p.signal).map((p) => p.anchor) };
+}
+
+//: The audit of what was drawn: any two plates that meet, and any post on a crossing. Both
+//: must be zero; window.kerbsideSigns() reports them.
+function auditSignPlates(postSpots) {
+  let clashes = 0;
+  const seen = new Set();
+  for (const bucket of signPlateGrid.values()) {
+    for (let i = 0; i < bucket.length; i += 1) {
+      for (let j = i + 1; j < bucket.length; j += 1) {
+        if (!platesMeet(bucket[i], bucket[j])) continue;
+        const key = [bucket[i], bucket[j]].map((r) => `${r.cx.toFixed(2)},${r.cz.toFixed(2)},${r.bottom.toFixed(2)}`).sort().join("|");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        clashes += 1;
+      }
+    }
+  }
+  signStats.clashes = clashes;
+  signStats.onCrossing = postSpots.filter((p) => onCrossingGround(p.x, p.z, 0)).length;
+  return signStats;
 }
 
 function addFurniturePostsAt(anchors, height, radius, colour) {
@@ -17939,12 +18333,15 @@ function renderStreetFurniture(furniture) {
   junctionVertexGrid = null;
   const inferred = furniture.inferred || {};
   const official = furniture.geometry_based || {};
-  const officialSigns = official.street_signs || [];
-  const officialOtherSigns = officialSigns.filter((s) => s.sign_kind !== "stop");
+  // No ALL WAY plaques, and the street names come from the corner posts below: one post on a
+  // corner of each junction with a blade for each street, rather than the inventory's blades
+  // wherever each was digitised.
+  const officialSigns = (official.street_signs || [])
+    .filter((s) => !["all_way", "street_name"].includes(plateStyleFor(s)));
   // OpenStreetMap's stop and give-way points, one plate per approach they govern. Where the
   // city's own inventory has a stop or all-way sign within 25 m, the city's stands alone; the
   // inferred ones fill the junctions it does not list.
-  const officialStopPoints = officialSigns.filter((s) => ["stop", "all_way"].includes(s.sign_kind) && s.p)
+  const officialStopPoints = (official.street_signs || []).filter((s) => ["stop", "all_way"].includes(s.sign_kind) && s.p)
     .map((s) => { const [x, y] = xy(s.p[0], s.p[1]); return [x, -y]; });
   const osmApproach = expandApproachSigns((inferred.street_signs || [])
     .filter((s) => s.sign_kind === "stop" || s.sign_kind === "yield"))
@@ -17966,8 +18363,12 @@ function renderStreetFurniture(furniture) {
   // the same corner arrived as two shelters standing inside each other.
   const shelters = dedupeByDistance(inferred.shelters || [], SHELTER_CLUSTER_M);
   const ads = inferred.ad_panels || [];
-  const posts = signs.concat(stops, ads);
-  const plates = addOfficialSignPlates(officialSigns.concat(osmApproach));
+  // Every plate goes through one placement, so none is drawn inside another: the city's, the
+  // approach plates, the corner blades, and OpenStreetMap's other signs where the city has none.
+  const generic = officialSigns.length ? [] : signs.filter((s) => s.p);
+  const corners = cornerStreetNameSigns();
+  const plates = addOfficialSignPlates(officialSigns.concat(osmApproach, generic, corners), signalHeads);
+  const posts = stops.concat(ads);
   const placed = {
     posts: addStreetFurniturePosts(posts),
     official_signs: plates.signs,
@@ -17976,9 +18377,10 @@ function renderStreetFurniture(furniture) {
     inferred_approach_signs: osmApproach.length,
     electrical: addElectricalNetwork(furniture),
     bike_racks: plates.racks,
-    generic_signs: officialOtherSigns.length ? 0 : addInstancedFurniturePanels(signs, 0.44, 0.62, 0xf3f5ef, "furniture:generic"),
-    bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25),
-    ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55),
+    generic_signs: generic.length,
+    corner_name_posts: signStats.cornerPosts,
+    bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
+    ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55, "skip"),
     shelters: addMuniShelters(shelters),
     benches: addBenches(inferred.benches || []),
     // The paint inventory first, then the policy zones that are paint by definition.
@@ -17986,6 +18388,9 @@ function renderStreetFurniture(furniture) {
     bus_zone_paint: addBusZonePaint((official.curb_zones || [])
       .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
   };
+  // Checked once everything stands: no two plates meet, no post is on a crossing.
+  placed.sign_audit = auditSignPlates(plates.spots);
+  if (signStats.clashes || signStats.onCrossing) console.warn("sign placement", { ...signStats });
   const note = document.getElementById("furniturenote");
   if (note) {
     const counts = furniture.summary?.inferred_counts || {};
@@ -18856,18 +19261,12 @@ function showAddress(feature, clientX, clientY) {
 }
 
 canvas.addEventListener("contextmenu", async (e) => {
-  // At close range a building click inspects its address. At overview scale,
-  // snap to the nearest safe surface street.
+  // A right click goes there, zoomed in: the walker lands on the nearest safe ground under the
+  // pointer (a street at overview scale) and the camera closes in. Looking a place up is the S
+  // key now.
   e.preventDefault();
   if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
   const distant = !state.firstPerson && state.dist > 1200;
-  const feature = distant ? null : pickedFeature(e.clientX, e.clientY);
-  if (feature) {
-    showAddress(feature, e.clientX, e.clientY);
-    const summary = await featureSummary(feature);
-    if (summary && tip) tip.innerHTML = summary;
-    return;
-  }
   hideAddress();
   const landing = eligibleLanding(groundAt(e.clientX, e.clientY), distant);
   if (!landing) return;
@@ -18876,6 +19275,46 @@ canvas.addEventListener("contextmenu", async (e) => {
 });
 canvas.addEventListener("pointerdown", hideAddress);
 addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
+
+// S: what is under the pointer. A building gives its address; a street its name. Only with
+// the map panel closed -- with it open, S is a letter typed into the search.
+let pointerAt = null;
+canvas.addEventListener("pointermove", (e) => { pointerAt = [e.clientX, e.clientY]; });
+function streetNameAt(x, z) {
+  let best = null;
+  for (const way of DATA.ways) {
+    if (way.kind !== "street" || !way.name || !way.points) continue;
+    for (let i = 1; i < way.points.length; i += 1) {
+      const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+      const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+      const d = distanceToSegmentSquared(x, z, ax, -ay, bx, -by);
+      if (!best || d < best.d) best = { d, name: way.name, half: renderedRoadWidth(way) / 2 };
+    }
+  }
+  return best && Math.sqrt(best.d) <= best.half + 4 ? best.name : null;
+}
+addEventListener("keydown", async (e) => {
+  if (e.key !== "s" && e.key !== "S") return;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (document.getElementById("hud")?.dataset.open === "true" || !pointerAt || !addrBox) return;
+  const [cx, cy] = pointerAt;
+  const feature = pickedFeature(cx, cy);
+  if (feature && feature.kind === "building" && showAddress(feature, cx, cy)) {
+    // And everything known about it, in the panel: its full record is fetched on demand.
+    const summary = await featureSummary(feature);
+    if (summary && tip) tip.innerHTML = summary;
+    return;
+  }
+  const ground = groundAt(cx, cy);
+  const name = ground ? streetNameAt(ground.x, ground.z) : null;
+  if (!name) { hideAddress(); return; }
+  addrBox.innerHTML = `<b>${name.replace(/[<>&]/g, "")}</b>`;
+  addrBox.hidden = false;
+  const box = addrBox.getBoundingClientRect();
+  addrBox.style.left = `${Math.min(cx + 12, innerWidth - box.width - 12)}px`;
+  addrBox.style.top = `${Math.min(cy + 12, innerHeight - box.height - 12)}px`;
+});
 
 // ---- solid buildings, doors that open, and the rooms behind them ------------------------------
 //
@@ -18937,25 +19376,6 @@ for (const bucket of footprintGrid.values()) {
 interiorCameraFootprints = footprintById;
 
 let INTERIORS = null;
-let SCANNED_INTERIORS = null;
-const scannedInteriorPromises = new Map();
-fetch(sharedAsset("interior-scans/manifest.json"), { cache: "no-cache" })
-  .then((r) => r.ok ? r.json() : null).then((data) => {
-    if (!data || data.schema !== 1) return;
-    const counts = new Map();
-    for (const p of data.placements) {
-      const scan = data.scans[p.scan];
-      const count = (counts.get(p.scan) || 0) + 1;
-      counts.set(p.scan, count);
-      if (!scan || scan.kind !== "real_interior_scan" || count > Math.min(8, scan.max_reuses)
-          || scan.rights?.status !== "approved" || !["derived_mesh", "persistent_hosting", "redistribution"]
-            .every((use) => scan.rights.allowed_uses.includes(use))
-          || p.grade !== "matched_surrogate_not_address_truth" || p.scale < 0.9 || p.scale > 1.1) return;
-    }
-    SCANNED_INTERIORS = data;
-    for (const entry of interiorsBuilt) requestScannedInterior(entry);
-    setTimeout(() => (window.requestIdleCallback || setTimeout)(prefetchScanDetail), 12000);
-  }).catch(() => {});
 let HOME_OPENINGS = { buildings: {} };
 let HOME_OPENINGS_VERSION = 0;
 fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
@@ -19467,7 +19887,6 @@ function updateDoors(dt) {
   const inside = buildingAt(x, z);
   const insideEntry = inside && footprintById.get(String(inside.osm_id));
   const insideId = inside && !insideEntranceRecess(insideEntry, x, z) ? String(inside.osm_id) : null;
-  interiorBlock = insideId && insideEntry?.interior?.scan ? insideEntry : null;
   // A walker already inside (arrived by search, or a saved position) gets the rooms too.
   if (inside && INTERIORS) {
     const entry = footprintById.get(String(inside.osm_id));
@@ -19477,7 +19896,7 @@ function updateDoors(dt) {
   // Address search lands outside the building; a stair/landing recess is not a
   // room. An explicitly selected first-person view remains first-person.
   if (insideId && insideEntry?.interior && !state.firstPerson && !state.ceilingRoom) setCeilingView(true);
-  // The occupied interior was rebuilt (a scan arrived, a shell was redone): cut it again.
+  // The occupied interior was rebuilt (a shell was redone): cut it again.
   if (state.ceilingRoom && insideEntry?.interior
       && (cutawayEntry !== insideEntry || cutawayGroup !== insideEntry.interior.group)) applyCutaway(insideEntry);
   if (!insideId && state.ceilingRoom) setCeilingView(false);
@@ -19488,10 +19907,7 @@ function updateDoors(dt) {
     doorHint.hidden = false;
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
     const plan = footprintById.get(String(inside.osm_id)).interior.plan;
-    const scanned = footprintById.get(String(inside.osm_id)).interior.scan;
-    doorHint.textContent = scanned
-      ? `Matched real scan: Redwood apartment — borrowed layout, NOT this address's actual interior · ${scanned.attribution}`
-      : `Inside: ${plan} — a generic plan fitted to this building's proportions, not its real interior`;
+    doorHint.textContent = `Inside: ${plan} — a generic plan fitted to this building's proportions, not its real interior`;
     doorHint.hidden = false;
   } else {
     doorHint.hidden = true;
@@ -19513,10 +19929,19 @@ const homeShells = new Set();
 // Glass that reads from the street as the batched facade's windows do -- dark panes with a
 // little sky in them -- rather than near-clear panes showing the lit rooms, which turned every
 // house's windows pale as its shell came into range. From inside it is still a window.
-const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0x51656f,
-  transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide,
-  roughness: 0.1, metalness: 0.15, envMapIntensity: 0.9 });
-const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: 0xeee9dd, roughness: 0.65 });
+//: A window seen from the street is dark: the room behind it is lit far less than the street.
+//: The room here is lit by the same sun as the street, so a half-clear pane showed its white
+//: plaster and every window went white. The pane is two faces: dark glass facing out, and a
+//: clear one facing in, so the street can still be seen from inside.
+const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0x26333b,
+  transparent: true, opacity: 0.9, depthWrite: false, side: THREE.FrontSide,
+  roughness: 0.08, metalness: 0.2, envMapIntensity: 1.0 });
+const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: 0xa9bcc4,
+  transparent: true, opacity: 0.28, depthWrite: false, side: THREE.FrontSide,
+  roughness: 0.1, metalness: 0.0, envMapIntensity: 0.4 });
+//: The frames dark, as the batched facade paints its windows: cream frames were a white grid
+//: that appeared on a house the moment its shell was built.
+const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x3d4347, roughness: 0.65, envMapIntensity: 0.35 });
 
 function wallPanels(width, bottom, top, openings) {
   // A 2D arrangement handles overlapping evidence without bridges across a hole.
@@ -19572,9 +19997,21 @@ function setBatchedHomeVisible(id, visible) {
   }
 }
 
-function homeWallGeometry(a, ux, uz, panels, insetX = 0, insetZ = 0) {
+//: Each panel of a shell wall overlaps its neighbours by this much, inside the wall's own
+//: outline: panels that only met edge to edge could leave hairline cracks.
+const HOME_PANEL_OVERLAP_M = 0.012;
+//: ``trim`` shortens the wall at both ends. The lining stands INTERIOR_WALL_INSET_M inside its
+//: wall, so at a corner its full length ran out to the neighbouring wall's face and showed
+//: through it from the street as a dotted line down the corner.
+function homeWallGeometry(a, ux, uz, panels, insetX = 0, insetZ = 0, trim = 0) {
   const positions = [], uv = [];
-  for (const [u0, v0, u1, v1] of panels) {
+  const e = HOME_PANEL_OVERLAP_M;
+  const uMin = Math.min(...panels.map((p) => p[0])) + trim, uMax = Math.max(...panels.map((p) => p[2])) - trim;
+  const vMin = Math.min(...panels.map((p) => p[1])), vMax = Math.max(...panels.map((p) => p[3]));
+  for (const [p0, q0, p1, q1] of panels) {
+    const u0 = Math.max(uMin, p0 - e), v0 = Math.max(vMin, q0 - e);
+    const u1 = Math.min(uMax, p1 + e), v1 = Math.min(vMax, q1 + e);
+    if (u1 <= u0 || v1 <= v0) continue;
     for (const [u, v] of [[u0, v0], [u1, v0], [u1, v1], [u0, v0], [u1, v1], [u0, v1]]) {
       positions.push(a[0] + ux * u + insetX, v, a[1] + uz * u + insetZ);
       uv.push(u / 3, v / 3);
@@ -19628,6 +20065,26 @@ function photographedEdge(a, b) {
   }
   return false;
 }
+//: A footprint ring (open, [x, z] points) moved ``d`` inward, corner by corner along the two
+//: edges' inward normals (mitred, the mitre capped at a sharp corner).
+function insetRing(entry, pts, d) {
+  const n = pts.length;
+  if (n < 3) return pts;
+  const normals = [];
+  for (let i = 0; i < n; i += 1) {
+    const [ax, az] = pts[i], [bx, bz] = pts[(i + 1) % n];
+    const len = Math.hypot(bx - ax, bz - az) || 1;
+    let nx = -(bz - az) / len, nz = (bx - ax) / len;
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+    if (!insideFootprint(entry, mx + nx * 0.05, mz + nz * 0.05)) { nx = -nx; nz = -nz; }
+    normals.push([nx, nz]);
+  }
+  return pts.map(([x, z], i) => {
+    const [n1x, n1z] = normals[(i - 1 + n) % n], [n2x, n2z] = normals[i];
+    const k = d / Math.max(0.35, 1 + n1x * n2x + n1z * n2z);
+    return [x + (n1x + n2x) * k, z + (n1z + n2z) * k];
+  });
+}
 //: A house whose ground rises more than this across its footprint stands into its hill.
 const HILLSIDE_RISE_M = 1.2;
 function buildHomeShell(entry) {
@@ -19656,6 +20113,7 @@ function buildHomeShell(entry) {
   // material would cut the upper windows off every house around it too.
   const shellPlaster = plasterMaterial.clone();
   const shellGlass = homeGlassMaterial.clone();
+  const shellGlassInside = homeGlassInsideMaterial.clone();
   const shellFrame = homeFrameMaterial.clone();
   const windowRegistry = [];
   // How steep the ground is under the house: the rise across its footprint's corners.
@@ -19719,15 +20177,21 @@ function buildHomeShell(entry) {
     wall.castShadow = wall.receiveShadow = true;
     group.add(wall);
     const lining = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels,
-      nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M), shellPlaster);
+      nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, INTERIOR_WALL_INSET_M + 0.01), shellPlaster);
     group.add(lining);
     for (const o of windows) {
+      // The outer face looks out of the house (n points in), the inner one in.
       const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w, o.h), shellGlass);
       pane.position.set(a[0] + ux * (o.u + o.w / 2) + nx * 0.025,
         o.v + o.h / 2, a[1] + uz * (o.u + o.w / 2) + nz * 0.025);
-      pane.rotation.y = Math.atan2(-uz, ux);
+      pane.rotation.y = Math.atan2(-nx, -nz);
       pane.userData = { surface: "window", canonicalBuilding: id, edge, ...o };
       group.add(pane);
+      // Its own geometry: batchHomeShell bakes each mesh's matrix into its geometry.
+      const inner = new THREE.Mesh(pane.geometry.clone(), shellGlassInside);
+      inner.position.copy(pane.position);
+      inner.rotation.y = pane.rotation.y + Math.PI;
+      group.add(inner);
       windowRegistry.push(pane.userData);
       for (const [u, v, w, h] of [[o.u, o.v + o.h / 2, 0.06, o.h],
         [o.u + o.w, o.v + o.h / 2, 0.06, o.h], [o.u + o.w / 2, o.v, o.w, 0.06],
@@ -19753,7 +20217,7 @@ function buildHomeShell(entry) {
   group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };
   batchHomeShell(group);
   homeShellGroup.add(group);
-  entry.homeShell = { group, material, materials: [material, shellPlaster, shellGlass, shellFrame],
+  entry.homeShell = { group, material, materials: [material, shellPlaster, shellGlass, shellGlassInside, shellFrame],
     openingsVersion: HOME_OPENINGS_VERSION };
   entry.shellNeedsRebuild = false;
   homeShells.add(entry);
@@ -19823,14 +20287,7 @@ function applyCutaway(entry) {
     panel.userData.cutawayClipped = true;
   }
   cutawayGroup = entry.interior.group;
-  // A borrowed scan carries its own scanned ceiling: it is cut just above head height.
-  const scanPlane = entry.interior.scan ? new THREE.Plane(new THREE.Vector3(0, -1, 0), floor + 2.1) : null;
   cutawayGroup.traverse((o) => {
-    if (scanPlane && o.isMesh && o.userData.scanMesh && o.material && !o.userData.cutawayClipped) {
-      o.material.clippingPlanes = [scanPlane];
-      o.material.needsUpdate = true;
-      o.userData.cutawayClipped = true;
-    }
     if (o === cutawayGroup || !o.visible) return;
     if (o.userData.surface === "interior_storey" || o.userData.surface === "interior_ceiling") {
       o.visible = false;
@@ -19852,16 +20309,23 @@ function removeHomeShell(entry) {
 }
 
 let homeShellTick = 0;
+//: A house's shell -- its walls cut round real openings, its interior behind them -- stands
+//: only for the house the walker is in or at the door of. Built for every house within 45 m,
+//: each one visibly changed as the walker came up the street: its painted windows became
+//: panes onto a lit interior and read as white squares, forty metres ahead, house after house.
+//: From the pavement every house now stays exactly as the city draws it.
+const HOME_SHELL_REACH_M = 6.0;
+const HOME_SHELL_MAX = 2;
 function updateHomeShells(x, z) {
   if (!INTERIORS || ++homeShellTick % 15) return;
-  const candidates = [...new Set(doorsNear(x, z, 45).map((d) => d.entry))]
+  const candidates = [...new Set(doorsNear(x, z, HOME_SHELL_REACH_M).map((d) => d.entry))]
     .filter((e) => HOME_RENDER.has(String(e.way.osm_id)))
     .sort((a, b) => Math.hypot((a.minX + a.maxX) / 2 - x, (a.minZ + a.maxZ) / 2 - z)
       - Math.hypot((b.minX + b.maxX) / 2 - x, (b.minZ + b.maxZ) / 2 - z));
   const inside = buildingAt(x, z);
   const occupied = inside && footprintById.get(String(inside.osm_id));
   if (occupied && !candidates.includes(occupied)) candidates.unshift(occupied);
-  const wanted = new Set(candidates.slice(0, 8));
+  const wanted = new Set(candidates.slice(0, HOME_SHELL_MAX));
   for (const e of homeShells) if (!wanted.has(e) || e.shellNeedsRebuild
       || e.homeShell.openingsVersion !== HOME_OPENINGS_VERSION) removeHomeShell(e);
   for (const e of wanted) buildHomeShell(e);
@@ -20411,14 +20875,17 @@ function buildInterior(entry) {
   batchHomeShell(group);
   for (const room of roomSpecs) addRoomFurnishing(group, entry, room.kind, room.pts, floorY, doorsInPlan);
   // Floor and ceiling over the whole footprint.
-  const outline = floorShapeWithStairCuts(ring.slice(0, -1), stairCuts);
+  // The floors and ceilings stop at the lining, INTERIOR_WALL_INSET_M inside the outer wall:
+  // run out to the footprint, their edges lay in the wall's own plane and showed through it
+  // from the street as a dashed white line along every storey.
+  const slabRing = insetRing(entry, ring.slice(0, -1), INTERIOR_WALL_INSET_M);
+  const outline = floorShapeWithStairCuts(slabRing, stairCuts);
   const slab = new THREE.Mesh(new THREE.ShapeGeometry(outline), roomFloorMaterial("other"));
   slab.rotation.x = -Math.PI / 2;
   slab.position.y = floorY;
   slab.receiveShadow = true;
   slab.userData.surface = "interior_base_floor";
-  const ceilingOutline = new THREE.Shape(ring.slice(0, -1)
-    .map(([px, pz]) => new THREE.Vector2(px, -pz)));
+  const ceilingOutline = new THREE.Shape(slabRing.map(([px, pz]) => new THREE.Vector2(px, -pz)));
   const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(ceilingOutline), ceilingMaterial);
   ceiling.rotation.x = -Math.PI / 2;
   ceiling.position.y = floorY + height;
@@ -20460,328 +20927,6 @@ function buildInterior(entry) {
   entry.interior = { group, segments, floorSurface, rooms: roomSpecs, floorY, height,
     plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${nx * ny > 1 ? ` ×${nx * ny}` : ""} (${source.license || ""})` };
   interiorsBuilt.add(entry);
-  requestScannedInterior(entry);
-}
-
-function scanPointToPage(placement, x, z) {
-  const [cx, cy] = xy(...placement.lonlat);
-  const c = Math.cos(placement.yaw), s = Math.sin(placement.yaw);
-  return [cx + placement.scale * (c * x + s * z), -cy + placement.scale * (-s * x + c * z)];
-}
-
-function scanEntrancePlan(entry, door, segments) {
-  if (!door) return null;
-  const start = door.stoopPlan?.depth || 0;
-  const ox = door.cx + door.nx * start, oz = door.cz + door.nz * start;
-  let first = Infinity;
-  for (const [ax, az, bx, bz] of segments) {
-    const sx = bx - ax, sz = bz - az;
-    const den = door.nx * sz - door.nz * sx;
-    if (Math.abs(den) < 1e-8) continue;
-    const dx = ax - ox, dz = az - oz;
-    const t = (dx * sz - dz * sx) / den;
-    const u = (dx * door.nz - dz * door.nx) / den;
-    if (t > 0.05 && t < 1.5 && u >= 0 && u <= 1) first = Math.min(first, t);
-  }
-  if (!Number.isFinite(first)) return null;
-  const half = door.width / 2 + 0.06;
-  const lo = Math.max(0.02, first - 0.3), hi = first + 0.3;
-  const point = (across, depth) => [ox + door.ux * across + door.nx * depth,
-    oz + door.uz * across + door.nz * depth];
-  const ring = [point(-half, lo), point(half, lo), point(half, hi), point(-half, hi)];
-  if (!ring.every(([x, z]) => insideFootprint(entry, x, z))) return null;
-  for (let across = -half; across <= half; across += 0.15)
-    for (let depth = lo; depth <= hi; depth += 0.15)
-      if (!insideFootprint(entry, ...point(across, depth))) return null;
-  return { ox, oz, ux: door.ux, uz: door.uz, nx: door.nx, nz: door.nz,
-    lo, hi, half, ring, height: DOOR_HEIGHT_M + 0.06, grade: "inferred_entry_adapter" };
-}
-
-function scanEntranceContains(plan, x, y, z, floor) {
-  const dx = x - plan.ox, dz = z - plan.oz;
-  const along = dx * plan.nx + dz * plan.nz;
-  return Math.abs(dx * plan.ux + dz * plan.uz) <= plan.half
-    && along >= plan.lo && along <= plan.hi && y >= (plan.bottom ?? floor - 0.08) && y <= floor + plan.height;
-}
-
-function scanRecessPlan(entry, door) {
-  const s = door.stoopPlan;
-  if (!s) return null;
-  const point = (across, depth) => [door.cx + door.ux * across + door.nx * depth,
-    door.cz + door.uz * across + door.nz * depth];
-  const half = s.width / 2, lo = 0.03, hi = s.depth;
-  const ring = [point(-half, lo), point(half, lo), point(half, hi), point(-half, hi)];
-  for (let across = -half; across <= half; across += 0.15)
-    for (let depth = lo; depth <= hi; depth += 0.15)
-      if (!insideFootprint(entry, ...point(across, depth))) return null;
-  return { ox: door.cx, oz: door.cz, ux: door.ux, uz: door.uz, nx: door.nx, nz: door.nz,
-    half, lo, hi, ring, bottom: s.street - 0.05, height: DOOR_HEIGHT_M + 0.06,
-    grade: "inferred_scan_cut_for_attached_recess" };
-}
-
-function adaptScanEntrance(model, plans, floor) {
-  model.updateMatrixWorld(true);
-  let removed = 0;
-  model.traverse((o) => {
-    if (!o.isMesh || !plans.length) return;
-    const geometry = o.geometry, positions = geometry.getAttribute("position");
-    const index = geometry.index?.array || Array.from({length:positions.count}, (_, i) => i);
-    const keep = [], p = new THREE.Vector3();
-    for (let t = 0; t + 2 < index.length; t += 3) {
-      let cut = false;
-      // The source LOD has six-centimetre faces. Removing faces whose centre
-      // lies in the door-sized cut opens this visual copy, not the source asset.
-      p.set(0, 0, 0);
-      for (let j = 0; j < 3; j += 1) {
-        const i = index[t + j];
-        p.x += positions.getX(i) / 3; p.y += positions.getY(i) / 3; p.z += positions.getZ(i) / 3;
-      }
-      p.applyMatrix4(o.matrixWorld);
-      cut = plans.some((plan) => scanEntranceContains(plan, p.x, p.y, p.z, floor));
-      if (cut) removed += 1; else keep.push(index[t], index[t + 1], index[t + 2]);
-    }
-    if (keep.length === index.length) return;
-    o.geometry = geometry.clone();
-    o.geometry.setIndex(keep);
-    o.userData.sharedInteriorAsset = false;
-    o.userData.visualEntryCompletion = "inferred; original scan unchanged";
-  });
-  return removed;
-}
-
-function requestScannedInterior(entry) {
-  const placement = SCANNED_INTERIORS?.placements.find((p) => String(p.building) === String(entry.way.osm_id));
-  if (!placement || entry.interior?.scan) return;
-  const scan = SCANNED_INTERIORS.scans[placement.scan];
-  if (!scannedInteriorPromises.has(scan.id)) {
-    const url = sharedAsset(scan.asset);
-    scannedInteriorPromises.set(scan.id, cachedVerifiedBytes(url, scan.sha256, scan.bytes).then((bytes) =>
-      new GLTFLoader().parseAsync(bytes, new URL(".", new URL(url, location.href)).href)
-    ).catch((err) => { console.warn("Matched scan refused; keeping procedural interior", err); return null; }));
-  }
-  scannedInteriorPromises.get(scan.id).then((gltf) => {
-    if (!gltf || !entry.interior || entry.interior.scan) return;
-    const rooms = scan.layout.rooms.map((r) => ({ ...r,
-      pts: r.pts.map(([x, z]) => scanPointToPage(placement, x, z)) }));
-    // Independently recheck the compiled geometry against the current page's
-    // footprint. A later footprint update must not leak a surrogate outside it.
-    const model = gltf.scene.clone(true);
-    let contained = true;
-    model.updateMatrixWorld(true);
-    model.traverse((o) => {
-      if (!o.isMesh) return;
-      const positions = o.geometry.getAttribute("position");
-      const point = new THREE.Vector3();
-      for (let i = 0; i < positions.count; i += 1) {
-        point.fromBufferAttribute(positions, i).applyMatrix4(o.matrixWorld);
-        const [x, z] = scanPointToPage(placement, point.x, point.z);
-        if (!insideFootprint(entry, x, z)) { contained = false; break; }
-      }
-      o.userData.sharedInteriorAsset = true;
-      o.userData.scanMesh = true;
-      // This home's own material: the cutaway clips the scan of the one home being looked into,
-      // and the same scan placed in a house down the street must keep its ceiling.
-      o.material = o.material.clone();
-      o.castShadow = true; o.receiveShadow = true;
-      o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
-    });
-    if (!contained) return;
-    const floorY = entryFloorY(entry);
-    const [cx, cy] = xy(...placement.lonlat);
-    const group = entry.interior.group;
-    // Replace the ground-storey appearance only. Preserve the already fitted,
-    // labelled upper storeys; repeating the scan there would be both a false
-    // layout claim and additional uses outside this placement's reuse count.
-    for (const child of group.children)
-      if (child.userData.surface !== "interior_storey" && !child.isLight) child.visible = false;
-    group.name = `matched-scan:${entry.way.osm_id}`;
-    model.position.set(cx, floorY + 0.06, -cy);
-    model.rotation.y = placement.yaw;
-    model.scale.setScalar(placement.scale);
-    group.add(model);
-    const sourceSegments = scan.layout.segments.map(([ax, az, bx, bz]) =>
-      [...scanPointToPage(placement, ax, az), ...scanPointToPage(placement, bx, bz)]);
-    const entryAdapters = (entry.doors || []).map((door) => scanEntrancePlan(entry, door, sourceSegments)).filter(Boolean);
-    // The canonical entrance already reserves this inward stairwell. A borrowed
-    // scan must yield to it too, or its floor/wall seals the stairs half-way up.
-    const recessAdapters = (entry.doors || []).map((door) => scanRecessPlan(entry, door)).filter(Boolean);
-    const cutPlans = [...entryAdapters, ...recessAdapters];
-    const removedEntryFaces = adaptScanEntrance(model, cutPlans, floorY);
-    // A scan has unobserved floor patches under furnishings. A neutral,
-    // explicitly inferred substrate sits BELOW the photographed surface;
-    // it neither repaints source texels nor becomes measured ground truth.
-    const shape = floorShapeWithStairCuts(entry.local.slice(0, -1),
-      (entry.doors || []).map(stoopCutRing).filter(Boolean));
-    const substrate = new THREE.Mesh(new THREE.ShapeGeometry(shape), roomFloorMaterial("other"));
-    substrate.rotation.x = -Math.PI / 2;
-    substrate.position.y = floorY - 0.08;
-    substrate.userData = { surface: "scan_unknown_floor_completion", grade: "inferred" };
-    substrate.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
-    group.add(substrate);
-    group.userData = { surface: "interior", grade: placement.grade, source: scan.id,
-      attribution: scan.attribution, sourceHash: scan.source_sha256, assetHash: scan.sha256,
-      address: placement.address, matchBasis: placement.match_basis,
-      entryAdapters: entryAdapters.length, recessAdapters: recessAdapters.length,
-      removedEntryFaces, entryAdapterGrade: "inferred, not scanned evidence",
-      upperStoreys: "inferred fitted plans, not scanned" };
-    const segments = sourceSegments.flatMap((segment) => clipOutsideZones(segment, cutPlans.map((p) => p.ring)));
-    const floorSurface = entry.interior.floorSurface;
-    entry.interior = { group, segments, floorSurface, rooms, floorY, height: 2.4 * placement.scale,
-      scan, placement, plan: "Redwood scanned apartment (matched surrogate, not address truth)" };
-    interiorsBuilt.add(entry);
-    if (state.ceilingRoom) placeCamera();
-    upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY);
-  });
-}
-
-// ---- the scan at full detail ------------------------------------------------------------------
-//
-// The first look is the scan averaged into 6 cm voxels: quick to fetch, and blurred, because
-// its colour rides on its vertices. The detail level is the same scan at 1.2 cm -- about
-// 3.4 million triangles in a few chunks -- registered to the first look, so it drops into the
-// same place. Every chunk is checked against its hash and kept in the browser's own cache,
-// which outlives app releases: fetched once (in the background, as soon as a region with a
-// scanned home opens), it is local from then on, and stepping into the house costs no download.
-const SCAN_CACHE = "kerbside-scans";
-async function cachedVerifiedBytes(url, sha256, size) {
-  let cache = null;
-  try { cache = await caches.open(SCAN_CACHE); } catch (err) { cache = null; }
-  const verified = async (bytes) => {
-    if (bytes.byteLength !== size) return false;
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("") === sha256;
-  };
-  if (cache) {
-    try {
-      const hit = await cache.match(url);
-      if (hit) {
-        const bytes = await hit.arrayBuffer();
-        if (await verified(bytes)) return bytes;
-        await cache.delete(url);
-      }
-    } catch (err) { /* an unreadable cache entry is fetched again */ }
-  }
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("scan unavailable");
-  const bytes = await response.arrayBuffer();
-  if (!(await verified(bytes))) throw new Error("scan checksum mismatch");
-  if (cache) cache.put(url, new Response(bytes.slice(0), { headers: { "Content-Type": "model/gltf-binary" } })).catch(() => {});
-  return bytes;
-}
-
-//: Which of a scan's detail levels this device draws. "full" (0.8 cm, about seven million
-//: triangles) is for a desktop's GPU; a phone, or anything short of memory, takes "detail"
-//: (1.2 cm, about three and a half million), which is already a different scan from the
-//: blurred first look.
-function scanLevel(scan) {
-  const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  const memory = navigator.deviceMemory || 8;
-  const level = scan.full && scan.full.chunks && !coarse && memory >= 8 ? scan.full : scan.detail;
-  return level && level.chunks && level.chunks.length ? level : null;
-}
-//: The installed app keeps its scans; a visit to the website fetches one only on walking in.
-function appMode() {
-  return Boolean(document.querySelector('meta[name="kerbside-app-mode"]'))
-    || Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
-}
-const scanDetailPromises = new Map();
-function loadScanDetail(scan) {
-  const level = scanLevel(scan);
-  if (!level) return Promise.resolve(null);
-  if (!scanDetailPromises.has(scan.id)) {
-    scanDetailPromises.set(scan.id, (async () => {
-      const group = new THREE.Group();
-      group.userData.level = level;
-      // One chunk at a time: an even load on the network and on memory.
-      for (const chunk of level.chunks) {
-        const url = sharedAsset(chunk.asset);
-        const bytes = await cachedVerifiedBytes(url, chunk.sha256, chunk.bytes);
-        const gltf = await new GLTFLoader().parseAsync(bytes, new URL(".", new URL(url, location.href)).href);
-        group.add(gltf.scene);
-      }
-      return group;
-    })().catch((err) => { console.warn("Scan detail refused; keeping the first look", err); return null; }));
-  }
-  return scanDetailPromises.get(scan.id);
-}
-
-function upgradeScanDetail(entry, scan, placement, model, cutPlans, floorY) {
-  loadScanDetail(scan).then((detail) => {
-    const group = model.parent;
-    if (!detail || !group || entry.interior?.group !== group) return;
-    const level = detail.userData.level;
-    // Checked in the scan's own frame, as the first look was, before it is placed in the house.
-    const fine = detail.clone(true);
-    fine.updateMatrixWorld(true);
-    // The same rule the first look passed -- nothing of the scan outside this footprint -- kept
-    // by trimming rather than refusing. The first look's vertices are 6 cm averages, pulled a
-    // few centimetres in from the surfaces they average; at 1.2 cm the outermost wall faces
-    // stand those centimetres further out, and a footprint the first look fitted exactly is
-    // crossed by a sliver of them. Those triangles are dropped; more than a sliver means the
-    // placement does not hold, and the first look stays.
-    const point = new THREE.Vector3();
-    let total = 0, dropped = 0;
-    fine.traverse((o) => {
-      if (!o.isMesh) return;
-      const positions = o.geometry.getAttribute("position");
-      const outside = new Uint8Array(positions.count);
-      for (let i = 0; i < positions.count; i += 1) {
-        point.fromBufferAttribute(positions, i).applyMatrix4(o.matrixWorld);
-        const [x, z] = scanPointToPage(placement, point.x, point.z);
-        outside[i] = insideFootprint(entry, x, z) ? 0 : 1;
-      }
-      const index = o.geometry.getIndex();
-      const keep = [];
-      for (let k = 0; k + 2 < index.count; k += 3) {
-        const a = index.getX(k), b = index.getX(k + 1), c = index.getX(k + 2);
-        if (outside[a] || outside[b] || outside[c]) dropped += 1;
-        else keep.push(a, b, c);
-      }
-      total += index.count / 3;
-      if (keep.length < index.count) {
-        o.geometry = o.geometry.clone();
-        o.geometry.setIndex(keep);
-        o.userData.trimmedToFootprint = (index.count - keep.length) / 3;
-      }
-      o.userData.sharedInteriorAsset = !o.userData.trimmedToFootprint;
-      o.userData.scanMesh = true;
-      o.material = o.material.clone();
-      // Indoors the sun's shadow of a scanned armchair is nothing anyone sees, and casting it
-      // drew millions of triangles a second time into the shadow map every frame.
-      o.castShadow = false; o.receiveShadow = true;
-      o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER;
-    });
-    if (!total || dropped > total * 0.01) {
-      console.warn(`Scan detail does not fit this footprint (${dropped} of ${total} triangles outside); keeping the first look`);
-      return;
-    }
-    fine.position.copy(model.position);
-    fine.rotation.copy(model.rotation);
-    fine.scale.copy(model.scale);
-    group.add(fine);
-    fine.updateMatrixWorld(true);
-    adaptScanEntrance(fine, cutPlans, floorY);
-    model.visible = false;
-    group.userData.detail = { triangles: level.triangles - dropped, voxel_m: level.voxel_m,
-      trimmedToFootprint: dropped, grade: level.grade };
-    if (cutawayEntry === entry) { applyCutaway(null); applyCutaway(entry); }
-  });
-}
-
-//: Once a region with a scanned home has opened, its scans' detail is fetched into the local
-//: cache in the background, so walking into one later is instant and works offline.
-function prefetchScanDetail() {
-  if (!SCANNED_INTERIORS || navigator.connection?.saveData || !appMode()) return;
-  const here = SCANNED_INTERIORS.placements.some((p) => footprintById.has(String(p.building)));
-  if (!here) return;
-  (async () => {
-    for (const scan of Object.values(SCANNED_INTERIORS.scans)) {
-      for (const chunk of scanLevel(scan)?.chunks || []) {
-        try { await cachedVerifiedBytes(sharedAsset(chunk.asset), chunk.sha256, chunk.bytes); }
-        catch (err) { return; }
-      }
-    }
-  })();
 }
 
 function removeInterior(entry) {
@@ -20813,8 +20958,6 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     + '<button id="inspect-back">Look behind</button>'
     + '<button id="inspect-room">Inspect next furnished room</button>'
     + '<button id="inspect-ceiling">Room ceiling view</button>'
-    + '<label>Matched scan home <select id="inspect-scan"></select></label>'
-    + '<button id="inspect-scan-home">Visit selected scan doorway</button>'
     + '<pre id="inspect-state" style="white-space:pre-wrap"></pre>';
   document.body.appendChild(inspector);
   for (const button of inspector.querySelectorAll("button"))
@@ -20840,38 +20983,10 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
   };
   document.getElementById("inspect-back").onclick = () => { state.yaw += Math.PI; placeCamera(); };
   document.getElementById("inspect-ceiling").onclick = () => { setCeilingView(true); };
-  document.getElementById("inspect-scan-home").onclick = () => {
-    const entry = footprintById.get(document.getElementById("inspect-scan").value);
-    const d = entry?.doors?.[0];
-    if (!d) return;
-    state.yaw = Math.atan2(-d.nx, -d.nz); state.look = 0;
-    goTo(new THREE.Vector3(d.cx - d.nx * 1.5, 0, d.cz - d.nz * 1.5), { travel: true, zoom: true });
-    setFirstPerson(false);
-  };
   let inspectedRoom = 0;
   document.getElementById("inspect-room").onclick = () => {
     const b = buildingAt(avatar.position.x, avatar.position.z);
     const entry = b && footprintById.get(String(b.osm_id));
-    if (entry?.interior?.scan) {
-      const rooms = entry.interior.rooms;
-      const room = rooms[inspectedRoom++ % rooms.length];
-      let seed = room.pts.reduce((p, q) => [p[0] + q[0] / room.pts.length,
-        p[1] + q[1] / room.pts.length], [0, 0]);
-      if (!pointInRing(...seed, room.pts)) {
-        const minX = Math.min(...room.pts.map((p) => p[0])), maxX = Math.max(...room.pts.map((p) => p[0]));
-        const minZ = Math.min(...room.pts.map((p) => p[1])), maxZ = Math.max(...room.pts.map((p) => p[1]));
-        searchRoom: for (let z = minZ + 0.25; z < maxZ; z += 0.5)
-          for (let x = minX + 0.25; x < maxX; x += 0.5)
-            if (pointInRing(x, z, room.pts)) { seed = [x, z]; break searchRoom; }
-      }
-      const pose = roomCameraPose(entry, [room], ...seed,
-        entry.interior.floorY, entry.interior.height, camera.aspect);
-      if (pointInRing(pose.x, pose.z, room.pts) && insideFootprint(entry, pose.x, pose.z)) {
-        avatar.position.set(pose.x, AVATAR_STAND_Y + entry.interior.floorY, pose.z);
-        state.target.copy(avatar.position); setCeilingView(true);
-      }
-      return;
-    }
     const furnishings = entry?.interior?.group.children
       .filter((o) => o.userData.surface?.startsWith("furnishing:")) || [];
     for (let n = 0; n < furnishings.length; n += 1) {
@@ -20895,14 +21010,6 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     }
   };
   setInterval(() => {
-    const selector = document.getElementById("inspect-scan");
-    if (SCANNED_INTERIORS && !selector.options.length)
-      for (const p of SCANNED_INTERIORS.placements) {
-        if (!footprintById.has(String(p.building))) continue;
-        const option = document.createElement("option");
-        option.value = p.building; option.textContent = p.address;
-        selector.appendChild(option);
-      }
     const b = buildingAt(avatar.position.x, avatar.position.z);
     const e = b && footprintById.get(String(b.osm_id));
     const d = nearestDoor();
@@ -21074,7 +21181,7 @@ function cullDetailByDistance(frame, eye = camera) {
       if (o.isInstancedMesh ? o.boundingSphere : o.geometry.boundingSphere) detailTiles.push(o);
     });
   }
-  const zoom = FIRST_PERSON_FOV / eye.fov * (interiorBlock ? INTERIOR_BLOCK_RANGE : 1);
+  const zoom = FIRST_PERSON_FOV / eye.fov;
   for (const tile of detailTiles) {
     const sphere = tile.isInstancedMesh ? tile.boundingSphere : tile.geometry.boundingSphere;
     detailCentre.copy(sphere.center).applyMatrix4(tile.matrixWorld);
@@ -21119,8 +21226,7 @@ function animate(now) {
     const focus = state.firstPerson || state.ceilingRoom ? avatar.position : state.target;
     updateFacadeStreaming(focus, camera.position.y - focus.y);
   }
-  tileGroupRoot.visible = !interiorBlock;
-  if (!interiorBlock) updateTileTree(now || performance.now());
+  updateTileTree(now || performance.now());
   renderer.render(scene, camera);
   adaptResolution(now || performance.now());
 }

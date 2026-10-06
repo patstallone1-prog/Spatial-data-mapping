@@ -129,3 +129,33 @@ def test_a_house_shell_lights_like_the_batched_house_it_replaces() -> None:
     glass = re.search(r"const homeGlassMaterial = new THREE\.MeshStandardMaterial\(\{ "
                       r"color: (0x[0-9a-f]+),\s*transparent: true, opacity: ([0-9.]+)", js)
     assert glass and float(glass.group(2)) >= 0.4, "shell glass must read as the batch's dark panes"
+
+
+def test_houses_ahead_of_the_walker_never_change_and_shell_windows_read_dark() -> None:
+    """Houses went white ahead of the walker: every house within 45 m swapped its batched walls
+    for a shell whose half-clear panes showed the sunlit plaster behind them. A shell now
+    stands only at the house the walker is at, and its glass is dark from the street."""
+    js = _page_js()
+    reach = float(re.search(r"const HOME_SHELL_REACH_M = ([0-9.]+);", js).group(1))
+    assert reach <= 8.0, "only the house at hand gets a shell"
+    shells = _extract("updateHomeShells", js)
+    assert "doorsNear(x, z, HOME_SHELL_REACH_M)" in shells
+    assert "candidates.slice(0, HOME_SHELL_MAX)" in shells
+    glass = re.search(r"const homeGlassMaterial = new THREE\.MeshStandardMaterial\(\{ color: 0x([0-9a-f]{6}),"
+                      r"\s*transparent: true, opacity: ([0-9.]+),[^}]*side: THREE\.FrontSide", js)
+    assert glass, "the street face of a pane is its own one-sided material"
+    r, g, b = (int(glass.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    assert 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25 and float(glass.group(2)) >= 0.85
+    build = _extract("buildHomeShell", js)
+    assert "pane.rotation.y = Math.atan2(-nx, -nz);" in build, "the dark face looks out of the house"
+    assert "shellGlassInside" in build
+    frame = re.search(r"const homeFrameMaterial = new THREE\.MeshStandardMaterial\(\{ color: 0x([0-9a-f]{6})", js)
+    r, g, b = (int(frame.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    assert 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.35, "window frames are not a white grid"
+    # The rooms' floors and ceilings stop at the lining, and the lining short of the corners:
+    # in the outer wall's plane their edges showed through the house as dashed white lines.
+    # (The page draws with a logarithmic depth buffer, so a polygon offset cannot do this.)
+    interior = _extract("buildInterior", js)
+    assert "const slabRing = insetRing(entry, ring.slice(0, -1), INTERIOR_WALL_INSET_M);" in interior
+    assert "floorShapeWithStairCuts(slabRing, stairCuts)" in interior
+    assert "nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, INTERIOR_WALL_INSET_M + 0.01), shellPlaster)" in build

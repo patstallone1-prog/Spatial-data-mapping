@@ -163,7 +163,7 @@ def main() -> None:
                   DOCS / "runtime-release.json"]
     app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
-    app_assets += sorted(path for directory in ("interior-assets", "materials", "interior-scans")
+    app_assets += sorted(path for directory in ("interior-assets", "materials")
                          for path in (DOCS / directory).rglob("*") if path.is_file())
     if (DOCS / "app-sf-corridor-ground.json").exists():
         app_assets.append(DOCS / "app-sf-corridor-ground.json")
