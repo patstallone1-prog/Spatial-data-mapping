@@ -8,3 +8,11 @@
 !/tools
 /tools/*
 !/tools/vercel
+# Inside docs/, only what the app and its install page use is served: the project's notes and
+# reports, and the build's own indexes, are kept in the repository and never published.
+/docs/*.md
+/docs/reports
+/docs/regions.json
+/docs/sf-corridor-chunks.json
+/docs/sf-corridor-priority.json
+/docs/sf-corridor-3d.html

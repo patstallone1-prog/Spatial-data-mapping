@@ -112,7 +112,7 @@ class TestWalls:
 
 @pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
 def test_entry_stairs_and_four_tread_landing_never_leave_the_building() -> None:
-    page = (Path(__file__).resolve().parents[1] / "docs/sf-corridor-3d.html").read_text()
+    page = (Path(__file__).resolve().parents[1] / "docs/app-model.html").read_text()
     js = page[page.index('<script type="module">'):]
     script = textwrap.dedent("""
         const STEP_RISE_M = 0.18, STEP_TREAD_M = 0.3, STEP_LANDING_TREADS = 4;

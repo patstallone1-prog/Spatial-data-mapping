@@ -54,7 +54,7 @@ def test_the_page_can_fetch_its_data_from_an_asset_origin_instead_of_beside_itse
     spec = importlib.util.spec_from_file_location("build_pages", root / "tools" / "build_pages.py")
     build_pages = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(build_pages)
-    page = (root / "docs" / "sf-corridor-3d.html").read_text()
+    page = (root / "docs" / "app-model.html").read_text()
     assert '<meta name="kerbside-assets" content="" />' in page
     assert page.count("fetch(asset(") >= 5 and 'fetch("sf-corridor-3d.json"' not in page
     pointed = build_pages.point_assets_at(page, "https://assets.example.org/")

@@ -145,9 +145,6 @@
   .install h2 { color: #fff; }
   .install p { color: rgba(255,255,255,0.78); }
   .install .ctanote { color: rgba(255,255,255,0.62); }
-  .steps { margin: 22px 0 0; padding-left: 22px; color: rgba(255,255,255,0.86); display: grid; gap: 10px; }
-  .steps a { color: #e4dfbf; }
-  .steps code { background: rgba(255,255,255,0.1); padding: 1px 6px; border-radius: 6px; }
 
   footer { padding: 56px 0 72px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; border-top: 1px solid var(--line); padding-top: 32px; }
@@ -351,16 +348,13 @@
         <p>No store, no account, no sign-up. Kerbside installs straight from your browser onto your home screen and opens like any other app; the areas you visit are kept on your device and it updates itself.</p>
         <div class="ctas" style="margin-top:26px">
           <button class="btn" id="get-android">Install on Android</button>
-          <button class="btn ghost" id="get-ios">Install on Apple</button>
         </div>
-        <ol class="steps" id="steps" hidden></ol>
       </div>
       <div>
-        <p>On a computer, Kerbside installs as a desktop app from Chrome, Edge or Safari.</p>
+        <p>On a computer, Kerbside installs as a desktop app from Chrome or Edge.</p>
         <div class="ctas" style="margin-top:18px">
           <button class="btn ghost" id="get-desktop">Install on this computer</button>
         </div>
-        <ol class="steps" id="steps2" hidden></ol>
         <p class="ctanote" id="ctanote2"></p>
       </div>
     </div>
@@ -394,19 +388,18 @@
   }
   const DEVICE = detect();
   const NOTES = {
-    ios: "On iPhone, Kerbside installs through <b>Share → Add to Home Screen</b> in Safari.",
+    ios: "",
     android: "On Android, Kerbside installs straight from the browser.",
-    desktop: "Installs on this computer from Chrome, Edge or Safari, and on a phone to the home screen.",
+    desktop: "Installs on this computer from Chrome or Edge, and on Android to the home screen.",
   };
-  const TAGS = { ios: "iPhone", android: "Android", desktop: "" };
+  const TAGS = { ios: "", android: "Android", desktop: "" };
   document.getElementById("devicetag").textContent = TAGS[DEVICE];
   document.getElementById("ctanote").innerHTML = NOTES[DEVICE];
   document.getElementById("ctanote2").innerHTML = NOTES[DEVICE];
 
   /* ---------- install ---------- */
-  // This is a web app: what lands an icon on a home screen is an install, not a file. Android
-  // exposes that as an event a button can fire; iOS routes every install through the Share
-  // menu and offers no API, so the iPhone button shows the taps rather than pretending.
+  // This is a web app: what lands an icon on a home screen is an install, not a file. Chrome and
+  // Edge expose that as an event a button can fire; the buttons fire it, and nothing else.
   let installPrompt = null;
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
@@ -419,32 +412,11 @@
     setNote("Installed. Open Kerbside from the home screen.");
   });
 
-  const STEPS = {
-    ios: [
-      "Open this page in <b>Safari</b> — Chrome on iPhone and in-app browsers cannot add to the home screen.",
-      "Tap <b>Share</b>, the square with the arrow coming out of the top.",
-      "Scroll down, tap <b>Add to Home Screen</b>, then <b>Add</b>.",
-      "Open Kerbside from the home screen. If you help map, choose <b>While Using the App</b> for camera and location.",
-    ],
-    android: [
-      "Open this page in <b>Chrome</b> or <b>Samsung Internet</b>.",
-      "Tap <b>Install on Android</b> above, or open the <b>⋮</b> menu and tap <b>Install app</b>.",
-      "Confirm <b>Install</b>.",
-      "Open Kerbside from the app drawer. If you help map, choose <b>While using the app</b> for camera and location.",
-    ],
-    desktop: [
-      "In <b>Chrome</b> or <b>Edge</b>: click <b>Install on this computer</b>, or the install icon at the right of the address bar.",
-      "In <b>Safari</b> on a Mac: choose <b>File → Add to Dock</b>.",
-      "Open Kerbside from your apps, like any other.",
-    ],
+  //: Where the browser cannot install on its own, the one thing to do instead.
+  const FALLBACK = {
+    android: "In Chrome, open the <b>⋮</b> menu and tap <b>Install app</b>.",
+    desktop: "In Chrome or Edge, click the install icon at the right of the address bar.",
   };
-
-  function showSteps(kind) {
-    const id = kind === "desktop" ? "steps2" : "steps";
-    const ol = document.getElementById(id);
-    ol.innerHTML = STEPS[kind].map((t) => "<li>" + t + "</li>").join("");
-    ol.hidden = false;
-  }
 
   function setNote(text) {
     document.getElementById("ctanote").innerHTML = text;
@@ -463,16 +435,15 @@
       installPrompt = null;
       paintButtons();
       if (choice && choice.outcome === "accepted") { setNote("Installing."); return; }
-      setNote("Not installed. The steps below still work.");
+      setNote("Not installed.");
+      return;
     }
-    showSteps(kind);
+    setNote(FALLBACK[kind]);
   }
 
   document.getElementById("get-android").addEventListener("click", () => install("android"));
-  document.getElementById("get-ios").addEventListener("click", () => showSteps("ios"));
   document.getElementById("get-desktop").addEventListener("click", () => install("desktop"));
 
-  showSteps(DEVICE);
   paintButtons();
 
   // Registering this is what makes the site installable at all: Chrome will not raise an install

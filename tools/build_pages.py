@@ -59,26 +59,6 @@ def region_title(entry: dict) -> str:
     return (entry.get("description") or entry["name"]).split(":")[0]
 
 
-def region_page(entry: dict, site: pathlib.Path) -> str:
-    """The current corridor page, named for the region, as scripts/build_sf_corridor_3d.py
-    names it. A region's own site/ page is whatever renderer built it last; a deploy that
-    copied it shipped eight pages without the region switcher. The page is data-driven and the
-    same for every region, so the one in docs/ is the one every region gets."""
-    page = need(OUT / "sf-corridor-3d.html")
-    page = page.replace("Kerbside SF Corridor 3D", f"Kerbside {region_title(entry)} 3D")
-    try:
-        ways = json.loads((site / "sf-corridor-3d.json").read_text()).get("ways", [])
-        streets = sorted({w.get("name") for w in ways if w.get("kind") == "street" and w.get("name")})
-    except (OSError, ValueError):
-        streets = []
-    hint = " &amp; ".join(streets[:2]) if len(streets) >= 2 else "a corner or an address"
-    page = page.replace('placeholder="Columbus &amp; Broadway, or 600 Montgomery"', f'placeholder="{hint}, or an address"', 1)
-    # One tile tree a site, at its root: a region's page is two folders down from it.
-    page = page.replace('const TILE_BASE = "tiles/";', 'const TILE_BASE = "../../tiles/";', 1)
-    return page.replace('<meta name="kerbside-regions" content="regions.json" />',
-                        '<meta name="kerbside-regions" content="../../regions.json" />', 1)
-
-
 def region_build_ready(site: pathlib.Path, published: pathlib.Path) -> bool:
     """A viewer-only refresh may use the large payload already published in docs."""
     return (site / "sf-corridor-3d.html").exists() and (
@@ -151,44 +131,6 @@ def publish_regions(out: pathlib.Path) -> list[dict]:
     built = sum(1 for r in index if r["built"])
     print(f"  regions {built} built of {len(index)} listed -> {out.name}/regions/")
     return index
-
-
-def publish_map(out: pathlib.Path, assets_base: str | None = None) -> None:
-    """The 3D corridor on its own, as the front page of wherever it is published.
-
-    A second, otherwise empty repository serves the map by itself. It gets the page and its data
-    and nothing else -- no capture app, no landing page, and deliberately no service worker. The
-    worker exists to make the capture app installable and to let it open with no signal, neither
-    of which is a thing the map needs, and a caching layer is the last thing to add to a site
-    somebody has gone looking for because the first one felt slow.
-    """
-    out.mkdir(parents=True, exist_ok=True)
-    page = point_assets_at(need(OUT / "sf-corridor-3d.html"), assets_base)
-    # With an assets origin the data is not copied here at all: it is published to object
-    # storage by tools/publish_assets.sh and the page fetches it from there. Without one the
-    # data sits beside the page, which is what GitHub Pages serves today.
-    if not assets_base:
-        # The JSON sidecars and the terrain grid's binary: everything the page fetches.
-        for data in sorted(OUT.glob("sf-corridor-*")):
-            if data.is_file() and data.suffix in (".json", ".bin"):
-                target = out / data.name
-                if data.resolve() != target.resolve():
-                    shutil.copyfile(data, target)
-        # The facades, and the tile tree the page draws the rest of the Bay Area from.
-        for folder in ("facades", "tiles"):
-            source = OUT / folder
-            if source.is_dir() and source.resolve() != (out / folder).resolve():
-                shutil.copytree(source, out / folder, dirs_exist_ok=True)
-    # index.html and the old name both, so that the short URL works and any link anybody already
-    # has to the page by its own name keeps working too.
-    (out / "index.html").write_text(page)
-    (out / "sf-corridor-3d.html").write_text(page)
-    publish_regions(out)
-    make_icons.main(out)
-    (out / ".nojekyll").write_text("")
-    total = sum(f.stat().st_size for f in out.iterdir() if f.is_file())
-    print(f"{out.name}/ -> {total / 1e6:.2f} MB, map only")
-    print(f"  site    {SITE_URL}")
 
 
 def main(out: pathlib.Path | None = None) -> None:
@@ -273,19 +215,9 @@ def main(out: pathlib.Path | None = None) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--map-only", action="store_true",
-                    help="publish the 3D corridor by itself, as index.html, without the "
-                         "capture app, the landing page or the service worker.")
     ap.add_argument("--out", type=pathlib.Path, default=None,
                     help="publish into this directory instead of docs/. Set GITHUB_REPO to "
                          "match the repository it will be served from, or every link in the "
                          "manifest and the service worker will point back at the other site.")
-    ap.add_argument("--assets-base", default=None,
-                    help="origin the page fetches its data from (an R2/S3 bucket's public URL). "
-                         "The JSON and facades are then not copied into --out; publish them "
-                         "with tools/publish_assets.sh.")
     args = ap.parse_args()
-    if args.map_only:
-        publish_map(args.out or OUT, args.assets_base)
-    else:
-        main(args.out)
+    main(args.out)
