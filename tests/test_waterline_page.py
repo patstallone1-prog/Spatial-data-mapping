@@ -80,10 +80,10 @@ def test_regions_are_published_beside_the_corridor_with_an_index(tmp_path: Path)
     assert names[0] == "sf-corridor" and "oakland-downtown" in names
     built = [r for r in index if r["built"] and r["name"] != "sf-corridor"]
     for record in built:
-        page = tmp_path / record["path"]
-        assert page.exists(), record["path"]
-        assert (page.parent / "sf-corridor-3d.json").exists()
-        assert 'content="../../regions.json"' in page.read_text()
+        # The region's data is published for the app; its browser map page is not (retired).
+        folder = tmp_path / "regions" / record["name"]
+        assert (folder / "sf-corridor-3d.json").exists()
+        assert not (folder / "sf-corridor-3d.html").exists() and not (folder / "index.html").exists()
     listed = json.loads((tmp_path / "regions.json").read_text())["regions"]
     assert len(listed) == len(index)
     # The page and the landing template both read the index.

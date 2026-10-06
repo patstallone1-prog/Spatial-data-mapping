@@ -7,6 +7,38 @@
   "outputDirectory": "docs",
   "cleanUrls": false,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/sf-corridor-3d.html",
+      "destination": "/#install",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/regions/:region",
+      "destination": "/#install",
+      "permanent": true
+    },
+    {
+      "source": "/regions/:region/",
+      "destination": "/#install",
+      "permanent": true
+    },
+    {
+      "source": "/regions/:region/index.html",
+      "destination": "/#install",
+      "permanent": true
+    },
+    {
+      "source": "/regions/:region/sf-corridor-3d.html",
+      "destination": "/#install",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/sw.js",

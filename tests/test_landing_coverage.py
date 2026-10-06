@@ -37,17 +37,17 @@ def test_install_controls_reach_the_published_app() -> None:
     manifest = json.loads((DOCS / "manifest.webmanifest").read_text())
     assert (DOCS / "app.html").is_file()
     assert manifest["start_url"].startswith("./app.html")
-    # The app is beside the page wherever the site is hosted (Vercel at the root of its
-    # domain, or a GitHub Pages project path): the link is resolved, not written in.
-    assert 'const APP_URL = new URL("app.html", location.href).href;' in page
+    # The app installs from this page (its manifest starts the app); the page never sends anyone
+    # to the browser map website, which is retired, and an installed icon goes into the app.
+    assert '<link rel="manifest" href="manifest.webmanifest"' in page
+    assert 'location.replace("app.html?from=home")' in page
     assert "github.io" not in page
-    for suffix in ("", "2"):
-        assert f'id="open-app{suffix}"' not in page
-        assert f'id="save-app{suffix}"' not in page
-        assert f'id="get-android{suffix}"' in page
-        assert f'id="get-ios{suffix}"' in page
-    assert '"<a href=\\"" + APP_URL + "\\">Open Kerbside</a>"' in page
+    assert "Open the map" not in page and "sf-corridor-3d.html" not in page
+    assert 'href="app.html"' not in page
+    for control in ("get-android", "get-ios", "get-desktop"):
+        assert f'id="{control}"' in page
     assert "Install on Android" in page and "Install on iPhone" in page
+    assert "Install on this computer" in page
     assert "Download for Samsung" not in page and "Download for iPhone" not in page
 
 
@@ -57,3 +57,14 @@ def test_app_startup_does_not_write_removed_2d_map_counters() -> None:
         assert 'id="model"' in source
         assert 'getElementById("m-walk").textContent' not in source
         assert 'getElementById("m-cover").textContent' not in source
+
+
+def test_the_browser_map_website_is_retired() -> None:
+    """The site is the page that installs the app. The browser map's old addresses lead there,
+    and no region publishes a map page of its own."""
+    vercel = json.loads((ROOT / "vercel.json").read_text())
+    sources = {r["source"]: r["destination"] for r in vercel["redirects"]}
+    for path in ("/sf-corridor-3d.html", "/regions/:region/sf-corridor-3d.html", "/regions/:region/index.html"):
+        assert sources.get(path) == "/#install", path
+    assert not list((DOCS / "regions").glob("*/sf-corridor-3d.html"))
+    assert not list((DOCS / "regions").glob("*/index.html"))
