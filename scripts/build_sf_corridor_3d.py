@@ -3040,7 +3040,7 @@ const renderer = new THREE.WebGLRenderer({
 // the driver to finish compiling it: a whole-second stall the first time a house's windows,
 // a sign or a tree kind came into view. The shaders are the library's own; the check is off.
 if (renderer.debug) renderer.debug.checkShaderErrors = false;
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1));  // TEMPORARY demo-lite: was 2 (restore tag restore-before-demo-lite)
 // Without tone mapping the renderer clips: anything the lights push past 1.0 lands on pure
 // white and everything above that threshold flattens into the same colour. With a bright sky
 // and a bright sun that was most of the ground, which is why making the carriageway texture
