@@ -46,7 +46,7 @@ def test_install_controls_reach_the_published_app() -> None:
     assert 'href="app.html"' not in page
     for control in ("get-android", "get-ios", "get-desktop"):
         assert f'id="{control}"' in page
-    assert "Install on Android" in page and "Install on iPhone" in page
+    assert "Install on Android" in page and "Install on Apple" in page
     assert "Install on this computer" in page
     assert "Download for Samsung" not in page and "Download for iPhone" not in page
 
