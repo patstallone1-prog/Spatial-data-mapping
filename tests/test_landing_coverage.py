@@ -68,3 +68,9 @@ def test_the_browser_map_website_is_retired() -> None:
         assert sources.get(path) == "/#install", path
     assert not list((DOCS / "regions").glob("*/sf-corridor-3d.html"))
     assert not list((DOCS / "regions").glob("*/index.html"))
+
+
+def test_the_app_names_no_page_of_the_retired_map() -> None:
+    regions = json.loads((DOCS / "app-regions.json").read_text())["regions"]
+    for region in regions:
+        assert region["path"] is None or region["path"].endswith("app-model.html"), region
