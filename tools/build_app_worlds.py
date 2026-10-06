@@ -100,6 +100,9 @@ def main() -> None:
             region["path"] = "app-model.html"
             continue
         if not region.get("built"):
+            # Listed, not yet built: no page to open (the browser map's page it used to name is
+            # retired), and the app's area menu shows it disabled.
+            region["path"] = None
             continue
         name = region["name"]
         target = APP_REGIONS / name

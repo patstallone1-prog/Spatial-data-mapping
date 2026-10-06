@@ -52,7 +52,7 @@
   {
    "name": "sf-soma",
    "title": "South of Market",
-   "path": "regions/sf-soma/sf-corridor-3d.html",
+   "path": null,
    "built": false,
    "city": "san-francisco",
    "description": "South of Market: wide one-way arterials, warehouses, new towers, freeway ramps",
@@ -110,7 +110,7 @@
   {
    "name": "sf-richmond",
    "title": "Inner and Central Richmond",
-   "path": "regions/sf-richmond/sf-corridor-3d.html",
+   "path": null,
    "built": false,
    "city": "san-francisco",
    "description": "Inner and Central Richmond: the avenues, Geary, fog, few tall buildings",
