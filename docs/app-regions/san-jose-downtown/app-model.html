@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="0fe539b9a0671823995131c4952a3e481117dcebdab5df9691c3293812e41675" />
+<meta name="kerbside-renderer-sha256" content="9087104c64d1f6233449811a668a21fb00dc650108d06d7e322c1d8c02d0fde7" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -3017,7 +3017,7 @@ function updateTileTree(now, eye = camera) {
   TILE_FRUSTUM.setFromProjectionMatrix(TILE_MATRIX);
 
   // Where the walker is, or the point the map camera orbits; the rings apply near the ground.
-  tileFocus.copy(typeof state !== "undefined" ? (state.firstPerson || state.ceilingRoom ? avatar.position : state.target) : eye.position);
+  tileFocus.copy(typeof state !== "undefined" ? (state.firstPerson ? avatar.position : state.target) : eye.position);
   tileRingsActive = eye.position.y - tileFocus.y < TILE_RING_HEIGHT_M;
   const drawn = [];
   const rootTile = TILES.get("0/0/0");
@@ -5513,11 +5513,18 @@ const FACADE_MATCH_MIN_CONFIDENCE = 0.6;
 const PHOTO_CLASS_TO_MATERIAL = {
   stucco_render: "stucco", concrete: "concrete", brick: "brick",
   wood_siding: "wood", stone: "stone",
+  vinyl_siding: "wood", painted_brick: "brick", ceramic_tile: "concrete", metal_panel: "metal",
 };
+//: Photographed variants per material class (docs/materials): a terrace of houses in one
+//: class shows up to this many different walls.
+const MATERIAL_VARIANTS = 5;
 
 function pickMaterial(seed, height, archetype, facade = null, osmId = null) {
   const assignment = osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
-  if (assignment && assignment.confidence >= 0.70 &&
+  // A class read off this building's photographs: the matcher's at 0.70 and up, CLIP's where
+  // its reading was clear (scripts/build_material_assignments.py decided that).
+  if (assignment && assignment.class
+      && (assignment.basis === "image_clip_zero_shot" || assignment.confidence >= 0.70) &&
       !(facade && ["glass", "metal"].includes(facade.m) && facade.conf >= 0.6)) {
     const name = PHOTO_CLASS_TO_MATERIAL[assignment.class];
     const photographed = MATERIALS.find((material) => material.name === name);
@@ -5724,12 +5731,35 @@ const WINDOW_STYLES = [
 
 const PHOTO_MATERIAL_IMAGES = new Map();
 
+//: Photographed materials that are painted or stained in life -- the house's own colour is the
+//: paint -- against those whose colour is the material itself. A painted one is drawn as its
+//: photograph's light and shade only, on which the building's measured colour is laid in full;
+//: brick and stone keep their photographed colour, with only a hint of the building's.
+const PAINTABLE_PHOTO_CLASSES = new Set(["stucco_render", "wood_siding", "concrete", "vinyl_siding",
+  "wood_shingle", "board_and_batten", "painted_brick"]);
+//: The mean of a painted material's light and shade: a little under white, so the building's
+//: colour reads as itself with the grain of the material over it.
+const PAINTABLE_DETAIL_MEAN = 0.86;
+function toPaintableDetail(ctx, canvas) {
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const px = image.data;
+  let sum = 0;
+  for (let i = 0; i < px.length; i += 4) sum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+  const mean = sum / (px.length / 4) || 1;
+  for (let i = 0; i < px.length; i += 4) {
+    const lum = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+    const v = Math.max(0, Math.min(255, lum / mean * PAINTABLE_DETAIL_MEAN * 255));
+    px[i] = px[i + 1] = px[i + 2] = v;
+  }
+  ctx.putImageData(image, 0, 0);
+}
 function facadeFor(material, seed, style, variant = 0, withWindows = true) {
   // One canvas per material and window arrangement, not per building. A few hundred buildings
   // share a few dozen textures, and the rest of the variation comes from the tint.
   const w = 64, h = 64;
   const materialClass = material.photoLabel || null;
-  const photo = (PHOTO_MATERIAL_IMAGES.get(materialClass) || [])[variant];
+  const photos = (PHOTO_MATERIAL_IMAGES.get(materialClass) || []).filter(Boolean);
+  const photo = photos.length ? photos[variant % photos.length] : null;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = materialClass ? 256 : 64;
   const ctx = canvas.getContext("2d");
@@ -5737,6 +5767,7 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, w, h);
   if (photo) ctx.drawImage(photo, 0, 0, w, h);
+  if (photo && PAINTABLE_PHOTO_CLASSES.has(materialClass)) toPaintableDetail(ctx, canvas);
 
   if (!photo && material.name === "brick") {
     // Courses, offset every other row. Coarse at this scale, but it is the pattern the eye
@@ -5780,7 +5811,7 @@ function facadeTextureFor(material, seed) {
   // of forty houses has no two the same next to each other, and few enough that the whole city
   // shares a few dozen canvases.
   const style = Math.floor(random(seed + 3) * WINDOW_STYLES.length);
-  const variant = Math.floor(random(seed) * 3);
+  const variant = Math.floor(random(seed) * MATERIAL_VARIANTS);
   const key = `${material.name}-${material.photoLabel || "prior"}-${style}-${variant}`;
   if (!FACADE_CACHE.has(key)) {
     const effectiveSeed = seed + variant * 977;
@@ -5789,6 +5820,21 @@ function facadeTextureFor(material, seed) {
     FACADE_CACHE.set(key, texture);
   }
   return FACADE_CACHE.get(key);
+}
+
+//: The same wall as facadeTextureFor -- the same material, variant and seed -- with no windows
+//: painted on it. A house is drawn on this, its windows real ones (homeWindowLayout), so the
+//: house the street sees and the house the walker opens are one surface.
+function bareFacadeTextureFor(material, seed) {
+  const variant = Math.floor(random(seed) * MATERIAL_VARIANTS);
+  const key = `${material.name}-${material.photoLabel || "prior"}-${variant}-bare`;
+  if (!bareWallMaps.has(key)) {
+    const effectiveSeed = seed + variant * 977;
+    const texture = facadeFor(material, effectiveSeed, 0, variant, false);
+    texture.userData = { material, seed: effectiveSeed, style: 0, variant, bare: true };
+    bareWallMaps.set(key, texture);
+  }
+  return bareWallMaps.get(key);
 }
 
 async function loadPhotoMaterialLibrary() {
@@ -5807,7 +5853,7 @@ async function loadPhotoMaterialLibrary() {
     byClass.get(row.material_class).push(row);
   }
   for (const [materialClass, rows] of byClass) {
-    for (let variant = 0; variant < Math.min(3, rows.length); variant += 1) {
+    for (let variant = 0; variant < Math.min(MATERIAL_VARIANTS, rows.length); variant += 1) {
       const image = new Image();
       image.crossOrigin = "anonymous";
       image.src = sharedAsset(`materials/${rows[variant].file}`);
@@ -5816,7 +5862,9 @@ async function loadPhotoMaterialLibrary() {
       PHOTO_MATERIAL_IMAGES.get(materialClass)[variant] = image;
       for (const texture of [...FACADE_CACHE.values(), ...bareWallMaps.values()]) {
         const spec = texture.userData || {};
-        if (spec.material?.photoLabel !== materialClass || spec.variant !== variant) continue;
+        // Every texture of the class: a variant beyond the photographs there are takes one of
+        // them (facadeFor), and which it takes changes as they arrive.
+        if (spec.material?.photoLabel !== materialClass) continue;
         const repainted = facadeFor(spec.material, spec.seed, spec.style, variant, !spec.bare);
         texture.image = repainted.image;
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -11532,7 +11580,9 @@ function addSouthFacadeDetail(group, feature, seed, height) {
   if (panelH < STOREY_M * 0.8) return;
   const x = wall.x + wall.nx * 0.09;
   const z = wall.z + wall.nz * 0.09;
-  planePart(group, x, bottom, z, panelW, panelH, southWindowTextureFor(seed), wall.yaw);
+  // A house's windows are its own (homeWindowLayout); the panel of painted windows is only for a
+  // building with a shop in it.
+  if (hasStorefront(feature)) planePart(group, x, bottom, z, panelW, panelH, southWindowTextureFor(seed), wall.yaw);
   if (height > 7.5 && random(seed + 701) < 0.34) {
     balconyPart(group, wall, Math.min(height - 1.1, STOREY_M * 1.2), seed);
   }
@@ -12153,10 +12203,14 @@ function buildingMesh(feature) {
   const palette = style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
   // which is a statement about San Francisco's building stock and not about this building.
-  let tint = feature.colour !== undefined
-    ? liftSampledColour(feature.colour)
+  // The colour sampled across the building's frames where there is one; else the colour read off
+  // its photographed walls (facade_photo_materials, via the material assignments).
+  const photoColour = feature.colour !== undefined ? feature.colour
+    : (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)]?.colour;
+  let tint = photoColour !== undefined
+    ? liftSampledColour(photoColour)
     : palette[Math.floor(random(seed + 11) * palette.length)];
-  const sampled = feature.colour !== undefined;
+  const sampled = photoColour !== undefined;
   // Solid, both of them. Transparency was carrying a meaning -- an inferred height was drawn
   // see-through so it could not be mistaken for a measured one -- and it was paying far too much
   // for it. A translucent building shows the buildings behind it through its own roof, puts
@@ -12203,8 +12257,13 @@ function buildingMesh(feature) {
     color: 0xffffff, transparent: opacity < 1, opacity,
     roughness: 0.97, metalness: material.name === "metal" ? 0.5 : 0.03,
   });
+  // A house: a home with no shop in it. Its walls carry no painted windows; its real windows are
+  // drawn on them (homeWindowLayout), the same ones its shell opens when the walker is there.
+  const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
+    && !hasStorefront(feature);
   const walls = new THREE.MeshStandardMaterial({
-    map: kind === "outbuilding" ? outbuildingTexture(seed) : facadeTextureFor(material, seed),
+    map: kind === "outbuilding" ? outbuildingTexture(seed)
+      : isHome ? bareFacadeTextureFor(material, seed) : facadeTextureFor(material, seed),
     color: tint,
     transparent: opacity < 1,
     opacity,
@@ -12230,14 +12289,20 @@ function buildingMesh(feature) {
   // A photographed albedo already contains its own colour. Multiplying it by the whole
   // sampled facade tint makes brick and plaster almost black; retain only a gentle hint of
   // building-specific colour while preserving the material image's measured contrast.
-  const wallColour = material.photoLabel
+  //
+  // A painted material (stucco, siding, shingle...) is drawn as light and shade only
+  // (toPaintableDetail), so it takes the building's colour in full: the house is its own colour
+  // with the grain of its cladding. Brick and stone keep their photographed colour.
+  const wallColour = material.photoLabel && !PAINTABLE_PHOTO_CLASSES.has(material.photoLabel)
     ? new THREE.Color(0xffffff).lerp(new THREE.Color(tint), 0.22)
     : new THREE.Color(tint);
-  if (kind === "building" && ["residential", "generic"].includes(feature.archetype)
-      && !hasStorefront(feature)) {
+  if (isHome) {
     const id = String(feature.osm_id);
+    // Which way round ExtrudeGeometry walked the outline (it makes every outline clockwise):
+    // the shell maps its walls' texture from the same end, so the pattern does not shift.
+    const clockwise = THREE.ShapeUtils.isClockWise(feature.points.map(([lon, lat]) => new THREE.Vector2(...xy(lon, lat))));
     HOME_RENDER.set(id, { feature, material, seed, tint: wallColour.getHex(),
-      height, base: hillLift });
+      height, base: hillLift, clockwise });
     BUILDING_VISUAL_ID = id;
   }
   roof.color.setHex(0xffffff);
@@ -12246,10 +12311,10 @@ function buildingMesh(feature) {
   walls.vertexColors = true;
   for (const part of geom.groups) {
     const slice = geom.clone();
-    // Its own userData (clone() shares the source's). A roof is tagged with its building so
-    // the cutaway view can lift the roof off the one building being looked into.
-    slice.userData = part.materialIndex === 0 && feature.osm_id != null
-      ? { homeId: `roof:${feature.osm_id}` } : {};
+    // Its own userData (clone() shares the source's), and no building tag on the roof: nothing
+    // ever hides a roof. (A view from above into a house used to lift it off, and the roof was
+    // left missing when that view did not come back cleanly.)
+    slice.userData = {};
     slice.clearGroups();
     // ExtrudeGeometry comes back non-indexed, in which case a group's start and count are a
     // straight run of vertices rather than a run of indices into them.
@@ -12358,7 +12423,7 @@ const FACADE_HIGH_M = 900;
 const FACADE_CELL_M = 120;
 const FACADE_TEXTURE_CONCURRENCY = 4;
 const FACADE_FADE_MS = 450;
-//: The panels hung now (the cutaway and the shells read this list).
+//: The panels hung now (the shells read this list).
 const facadePanels = [];
 const facadeLive = new Map();
 const facadeGrid = new Map();
@@ -15143,32 +15208,175 @@ function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
   return merged;
 }
 
-function treeVariant(kind) {
-  // Five shapes, because five is enough to stop a street looking cloned. Each is a trunk and a
-  // crown; the crown's proportions are what tells a palm from a plane tree at a distance.
-  const group = new THREE.Group();
-  const trunkHeight = kind === "palm" ? 0.78 : kind === "columnar" ? 0.32 : 0.36;
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.055, 0.085, trunkHeight, 6),
-    new THREE.MeshStandardMaterial({ color: 0x4a3f33, roughness: 0.95 })
-  );
-  trunk.position.y = trunkHeight / 2;
-  group.add(trunk);
+// ---- trees: a trunk, limbs, and leaves ----
+//
+// Each kind is built once at unit size -- a trunk that forks into limbs and twigs, with clusters
+// of leaf cards at the twigs' ends -- and instanced over the city's trees, scaled by the trunk
+// the city measured. The kinds are built differently, not just proportioned differently: a
+// street tree is a rounded crown on a few spreading limbs, a broad tree a wide flat-topped one,
+// a columnar tree a narrow spire of upright limbs, a conifer a tiered cone of drooping whorls
+// of needles, and a palm a bare ringed trunk with a crown of long arching fronds.
+const TREE_LEAF_TEXTURES = new Map();
+function treeLeafTexture(kind) {
+  if (TREE_LEAF_TEXTURES.has(kind)) return TREE_LEAF_TEXTURES.get(kind);
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  const rnd = (i) => random(i * 7919 + kind.length * 31);
+  if (kind === "palm") {
+    // A frond: a rib down the middle and narrow leaflets angled off it, longest mid-way.
+    ctx.strokeStyle = "#5c6b33"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(size / 2, size); ctx.lineTo(size / 2, 2); ctx.stroke();
+    for (let i = 0; i < 26; i += 1) {
+      const y = size - 4 - i * 4.6, reach = Math.sin((i / 26) * Math.PI) * size * 0.46 + 4;
+      for (const side of [-1, 1]) {
+        ctx.strokeStyle = rnd(i * 2 + side) < 0.5 ? "#4f7a35" : "#5f8a3c"; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(size / 2, y); ctx.lineTo(size / 2 + side * reach, y - reach * 0.45); ctx.stroke();
+      }
+    }
+  } else if (kind === "conifer") {
+    // Needles: short dark strokes fanning off twigs.
+    for (let t = 0; t < 14; t += 1) {
+      const x0 = rnd(t) * size, y0 = rnd(t + 50) * size, ang = rnd(t + 99) * Math.PI;
+      for (let n = 0; n < 34; n += 1) {
+        const a = ang + (rnd(t * 40 + n) - 0.5) * 1.6, len = 8 + rnd(t * 40 + n + 7) * 12;
+        ctx.strokeStyle = rnd(t * 40 + n + 3) < 0.5 ? "#2a4a2c" : "#35573a"; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + Math.cos(a) * len, y0 + Math.sin(a) * len); ctx.stroke();
+      }
+    }
+  } else {
+    // Broad leaves: thirty-odd pointed ovals at angles, lit a little on top.
+    for (let i = 0; i < 34; i += 1) {
+      const x = 14 + rnd(i) * (size - 28), y = 14 + rnd(i + 30) * (size - 28);
+      const a = rnd(i + 60) * Math.PI * 2, l = 13 + rnd(i + 90) * 9;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      const g = ctx.createLinearGradient(0, -l / 2, 0, l / 2);
+      g.addColorStop(0, rnd(i + 120) < 0.5 ? "#6f9a48" : "#5f8a3e");
+      g.addColorStop(1, "#3e6229");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(0, 0, l * 0.36, l / 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(30,50,20,0.55)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, -l / 2); ctx.lineTo(0, l / 2); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  TREE_LEAF_TEXTURES.set(kind, texture);
+  return texture;
+}
 
-  const leaf = new THREE.MeshStandardMaterial({
-    color: kind === "conifer" ? 0x2c4630 : kind === "palm" ? 0x3f6136 : 0x3a5a30,
-    roughness: 0.92, metalness: 0.0,
-  });
-  let crown;
-  if (kind === "conifer") crown = new THREE.ConeGeometry(0.30, 0.86, 7);
-  else if (kind === "palm") crown = new THREE.ConeGeometry(0.42, 0.30, 6, 1, true);
-  else if (kind === "columnar") crown = new THREE.CylinderGeometry(0.22, 0.16, 0.82, 6);
-  else if (kind === "broad") crown = new THREE.SphereGeometry(0.40, 8, 6);
-  else crown = new THREE.SphereGeometry(0.33, 7, 5);
-  const canopy = new THREE.Mesh(crown, leaf);
-  canopy.position.y = trunkHeight + (kind === "conifer" ? 0.40 : kind === "palm" ? 0.12 : 0.34);
-  if (kind === "broad" || kind === "street") canopy.scale.set(1, 0.82, 1);
-  group.add(canopy);
+//: A tapered cylinder from p to q (unit-tree coordinates).
+function branchGeometry(p, q, r0, r1, sides = 5) {
+  const dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
+  const length = Math.hypot(dx, dy, dz) || 1e-3;
+  const geometry = new THREE.CylinderGeometry(r1, r0, length, sides, 1, true);
+  geometry.translate(0, length / 2, 0);
+  // Up the y axis, tipped over by the branch's angle from the vertical, turned to its bearing.
+  geometry.rotateX(Math.acos(Math.max(-1, Math.min(1, dy / length))));
+  geometry.rotateY(Math.atan2(dx, dz));
+  geometry.translate(p.x, p.y, p.z);
+  return geometry;
+}
+//: A leaf card: a square of leaves, centred at c, facing a random way, with a colour of its own
+//: (the leaves of one tree are not all one green).
+function leafCard(c, size, rnd, tint, droop = 0) {
+  const geometry = new THREE.PlaneGeometry(size, size);
+  geometry.rotateX(-Math.PI / 2 + (rnd() - 0.5) * 1.4 + droop);
+  geometry.rotateY(rnd() * Math.PI * 2);
+  geometry.translate(c.x, c.y, c.z);
+  const shade = 0.82 + rnd() * 0.3;
+  const colours = new Float32Array(geometry.getAttribute("position").count * 3);
+  for (let i = 0; i < colours.length; i += 3) {
+    colours[i] = tint.r * shade; colours[i + 1] = tint.g * shade; colours[i + 2] = tint.b * shade;
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
+  return geometry;
+}
+
+function treeVariant(kind) {
+  let s = 1 + kind.length * 101;
+  const rnd = () => { s += 1; return random(s * 2654435761 % 1000003); };
+  const bark = [], leaves = [];
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const tint = new THREE.Color(kind === "broad" ? 0xe0ffd0 : kind === "columnar" ? 0xd0f0c0 : 0xffffff);
+  // A cluster of leaf cards in an ellipsoid round c.
+  const cluster = (c, rx, ry, cards, size, droop = 0) => {
+    for (let i = 0; i < cards; i += 1) {
+      const a = rnd() * Math.PI * 2, e = (rnd() - 0.5) * Math.PI, r = Math.cbrt(rnd());
+      leaves.push(leafCard(V(c.x + Math.cos(a) * Math.cos(e) * rx * r, c.y + Math.sin(e) * ry * r,
+        c.z + Math.sin(a) * Math.cos(e) * rx * r), size, rnd, tint, droop));
+    }
+  };
+  if (kind === "palm") {
+    // A tall slender trunk, a little bent, and fronds arching out and down from the top.
+    const top = V(0.05, 1.05, 0.02);
+    bark.push(branchGeometry(V(0, 0, 0), V(0.02, 0.55, 0.01), 0.06, 0.05, 7));
+    bark.push(branchGeometry(V(0.02, 0.55, 0.01), top, 0.05, 0.045, 7));
+    for (let i = 0; i < 11; i += 1) {
+      const a = (i / 11) * Math.PI * 2 + rnd() * 0.3, len = 0.5 + rnd() * 0.14;
+      const frond = new THREE.PlaneGeometry(0.3, len);
+      frond.translate(0, len / 2, 0);
+      frond.rotateX(-Math.PI / 2 - (0.12 + rnd() * 0.5));    // out from the crown, tips falling
+      frond.rotateY(a);
+      frond.translate(top.x, top.y, top.z);
+      const colours = new Float32Array(frond.getAttribute("position").count * 3).fill(0.9 + rnd() * 0.1);
+      frond.setAttribute("color", new THREE.BufferAttribute(colours, 3));
+      leaves.push(frond);
+    }
+  } else if (kind === "conifer") {
+    // A trunk to the tip and whorls of branches shortening up it, needles along each.
+    bark.push(branchGeometry(V(0, 0, 0), V(0, 1.15, 0), 0.07, 0.015, 6));
+    const whorls = 7;
+    for (let w = 0; w < whorls; w += 1) {
+      const y = 0.28 + w * 0.12, reach = 0.36 * (1 - w / whorls) + 0.05;
+      for (let b = 0; b < 4; b += 1) {
+        const a = (b / 4) * Math.PI * 2 + w * 0.7 + rnd() * 0.4;
+        const tip = V(Math.cos(a) * reach, y - reach * 0.35, Math.sin(a) * reach);
+        bark.push(branchGeometry(V(0, y, 0), tip, 0.018, 0.006, 4));
+        cluster(V(tip.x * 0.6, y - reach * 0.18, tip.z * 0.6), reach * 0.55, 0.06, 4, reach * 1.1, 0.5);
+      }
+    }
+    cluster(V(0, 1.12, 0), 0.05, 0.08, 2, 0.14);
+  } else {
+    // A trunk that forks into limbs, each limb into twigs, leaves at the twigs' ends.
+    const shape = {
+      street:   { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.30, crown: [0.20, 0.17], cards: 11 },
+      broad:    { trunk: 0.34, limbs: 5, spread: 1.05, rise: 0.22, reach: 0.40, crown: [0.26, 0.15], cards: 11 },
+      columnar: { trunk: 0.26, limbs: 4, spread: 0.22, rise: 0.62, reach: 0.12, crown: [0.11, 0.26], cards: 10 },
+    }[kind] || { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.30, crown: [0.20, 0.17], cards: 11 };
+    const fork = V(0, shape.trunk, 0);
+    bark.push(branchGeometry(V(0, 0, 0), fork, 0.07, 0.05, 6));
+    for (let l = 0; l < shape.limbs; l += 1) {
+      const a = (l / shape.limbs) * Math.PI * 2 + rnd() * 0.6;
+      const out = shape.reach * (0.8 + rnd() * 0.4);
+      const tip = V(Math.cos(a) * out * shape.spread / 0.75, fork.y + shape.rise * (0.8 + rnd() * 0.4),
+        Math.sin(a) * out * shape.spread / 0.75);
+      bark.push(branchGeometry(fork, tip, 0.04, 0.022, 5));
+      for (let t = 0; t < 2; t += 1) {
+        const b = a + (t ? 0.6 : -0.6) + (rnd() - 0.5) * 0.3;
+        const twig = V(tip.x + Math.cos(b) * shape.reach * 0.45, tip.y + shape.rise * 0.35 * (0.6 + rnd() * 0.6),
+          tip.z + Math.sin(b) * shape.reach * 0.45);
+        bark.push(branchGeometry(tip, twig, 0.02, 0.008, 4));
+        cluster(twig, shape.crown[0], shape.crown[1], shape.cards, kind === "columnar" ? 0.22 : 0.32);
+      }
+    }
+    // The middle of the crown, so it is not hollow from below.
+    cluster(V(0, fork.y + shape.rise * 1.15, 0), shape.crown[0] * 1.4, shape.crown[1] * 1.2, 14, 0.34);
+  }
+  const group = new THREE.Group();
+  const barkMesh = new THREE.Mesh(mergeParts(bark), new THREE.MeshStandardMaterial({
+    color: kind === "palm" ? 0x7a6a55 : kind === "conifer" ? 0x4a3a2c : 0x5a4a3a, roughness: 0.95 }));
+  barkMesh.geometry.computeBoundingSphere();
+  group.add(barkMesh);
+  const leafMesh = new THREE.Mesh(mergeParts(leaves), new THREE.MeshStandardMaterial({
+    map: treeLeafTexture(kind === "palm" ? "palm" : kind === "conifer" ? "conifer" : "broad"),
+    vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.85, metalness: 0.0 }));
+  leafMesh.geometry.computeBoundingSphere();
+  group.add(leafMesh);
   return group;
 }
 
@@ -18460,48 +18668,11 @@ for (const s of DATA.sequence_paths) {
 //: walker down to a street; the wheel zooms in from here.
 const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0 };
 const MAX_ORBIT_DIST_M = 20000;
-let interiorCameraFootprints = null;
-const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false, ceilingRoom: false,
-  interiorPitch: 1.32, interiorDist: 14 };
-//: The view on entering a building: nearly straight down into it.
-const INTERIOR_VIEW_PITCH = 1.32;
-//: The building the cutaway is open on, and its interior group (see applyCutaway). Declared
-//: here, before the first placeCamera() reads it.
-let cutawayEntry = null;
-let cutawayGroup = null;
-//: The roof furniture instances lifted off with the roof: [mesh, index, matrix].
-let cutawayRoofParts = [];
+//: ``autoFirstPerson``: the walker went into a building and the view went to its eyes by
+//: itself; walking out puts back the view it had. There is no view from above into a house:
+//: a house keeps its roof, always.
+const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false, autoFirstPerson: false };
 function placeCamera() {
-  if (state.ceilingRoom && typeof avatar !== "undefined") {
-    // Inside a building: looking down into it from above, the roof lifted off and the walls
-    // cut at this storey's ceiling (applyCutaway), orbiting the walker -- drag to tilt and
-    // turn, the wheel to come closer or stand off. Where no cutaway could be made, the
-    // camera stands under the room's ceiling instead.
-    const cut = cutawayEntry && cutawayEntry.interior ? cutawayEntry : null;
-    if (cut) {
-      const feet = avatar.position.y - AVATAR_STAND_Y;
-      const target = new THREE.Vector3(avatar.position.x, feet + 1.0, avatar.position.z);
-      const pitch = state.interiorPitch, dist = state.interiorDist / (state.zoom || 1);
-      camera.position.set(target.x + Math.sin(state.yaw) * Math.cos(pitch) * dist,
-        target.y + Math.sin(pitch) * dist, target.z + Math.cos(state.yaw) * Math.cos(pitch) * dist);
-      camera.up.set(0, 1, 0);
-      camera.fov = FIRST_PERSON_FOV;
-      camera.near = 0.1;
-      camera.updateProjectionMatrix();
-      camera.lookAt(target);
-      return;
-    }
-    const pose = currentRoomCamera();
-    if (pose) {
-      camera.position.set(pose.x, pose.y, pose.z);
-      camera.up.set(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
-      camera.fov = pose.fov / (state.zoom || 1);
-      camera.near = 0.06;
-      camera.updateProjectionMatrix();
-      camera.lookAt(pose.x, pose.floor, pose.z);
-      return;
-    }
-  }
   camera.up.set(0, 1, 0);
   if (state.firstPerson && typeof avatar !== "undefined") {
     // Out of the walker's eyes: the camera stands at eye height where the walker stands and
@@ -18521,8 +18692,8 @@ function placeCamera() {
   camera.lookAt(state.target);
 }
 function setFirstPerson(on) {
-  state.ceilingRoom = false;
   state.firstPerson = on;
+  if (!on) state.autoFirstPerson = false;
   if (typeof avatar !== "undefined") {
     // The walker is not drawn from inside its own head.
     avatar.visible = !on;
@@ -18535,26 +18706,6 @@ function setFirstPerson(on) {
   // Leaving the walker's eyes puts the zoom back; entering starts at 1x.
   state.zoom = 1;
   camera.fov = FIRST_PERSON_FOV;
-  camera.updateProjectionMatrix();
-  placeCamera();
-}
-
-function setCeilingView(on) {
-  state.ceilingRoom = Boolean(on);
-  state.firstPerson = false;
-  state.zoom = 1;
-  // Looking down from above the cut walls, the walker is part of the view.
-  avatar.visible = true;
-  const b = on ? buildingAt(avatar.position.x, avatar.position.z) : null;
-  applyCutaway(b ? footprintById.get(String(b.osm_id)) : null);
-  if (on && cutawayEntry) {
-    const size = Math.hypot(cutawayEntry.maxX - cutawayEntry.minX, cutawayEntry.maxZ - cutawayEntry.minZ);
-    state.interiorDist = Math.max(9, Math.min(40, size * 0.9));
-    state.interiorPitch = INTERIOR_VIEW_PITCH;
-  }
-  document.getElementById("firstperson")?.setAttribute("aria-pressed", "false");
-  camera.fov = FIRST_PERSON_FOV;
-  camera.near = on ? 0.06 : 0.5;
   camera.updateProjectionMatrix();
   placeCamera();
 }
@@ -18574,8 +18725,6 @@ canvas.addEventListener("pointermove", (e) => {
   state.yaw -= dx * 0.006;
   if (state.firstPerson) {
     state.look = Math.max(-0.7, Math.min(0.7, state.look - dy * 0.004));
-  } else if (state.ceilingRoom) {
-    state.interiorPitch = Math.max(0.35, Math.min(1.5, state.interiorPitch + dy * 0.004));
   } else {
     state.pitch = Math.max(0.25, Math.min(1.28, state.pitch + dy * 0.004));
   }
@@ -18587,15 +18736,9 @@ canvas.addEventListener("pointercancel", () => { dragging = false; held.clear();
 canvas.addEventListener("lostpointercapture", () => { dragging = false; held.clear(); });
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-  if (state.firstPerson || state.ceilingRoom) {
+  if (state.firstPerson) {
     // Zoom by field of view, 1x to 2x; the walker stays where it is.
     state.zoom = Math.max(1, Math.min(FIRST_PERSON_MAX_ZOOM, (state.zoom || 1) * Math.exp(-e.deltaY * 0.001)));
-    if (state.ceilingRoom) {
-      state.interiorDist = Math.max(3, Math.min(60, state.interiorDist * Math.exp(e.deltaY * 0.001)));
-      state.zoom = 1;
-      placeCamera();
-      return;
-    }
     camera.fov = FIRST_PERSON_FOV / state.zoom;
     camera.updateProjectionMatrix();
     return;
@@ -18604,8 +18747,7 @@ canvas.addEventListener("wheel", (e) => {
   placeCamera();
 }, { passive: false });
 document.getElementById("firstperson").addEventListener("click", () => {
-  if (state.firstPerson && currentRoomCamera()) setCeilingView(true);
-  else setFirstPerson(!state.firstPerson);
+  setFirstPerson(!state.firstPerson);
 });
 document.getElementById("reset").addEventListener("click", () => {
   Object.assign(state, OVERVIEW);
@@ -18799,7 +18941,7 @@ const FIRST_PERSON_MAX_ZOOM = 2.0;
 // Keep the apparent screen-space pace stable as the orbit camera moves farther away.
 // First-person remains a fixed 12 mph.
 function avatarMoveSpeed() {
-  if (state.firstPerson || state.ceilingRoom) return FIRST_PERSON_SPEED;
+  if (state.firstPerson) return FIRST_PERSON_SPEED;
   const height = Math.max(1, renderer.domElement.clientHeight);
   const fov = camera.fov * Math.PI / 180;
   const metresPerPixel = 2 * state.dist * Math.tan(fov / 2) / height;
@@ -19331,7 +19473,8 @@ const WALKER_RADIUS_M = 0.3;
 const WALK_SUBSTEP_M = 0.15;
 const DOOR_REACH_M = 1.8;
 const DOOR_HEIGHT_M = 2.1;
-const DOOR_DRAW_M = 60;
+//: Doors are drawn this far from the walker: far enough that one is not seen to appear.
+const DOOR_DRAW_M = 120;
 const INTERIOR_KEEP_M = 70;
 const INTERIOR_WALL_INSET_M = 0.08;
 const DOOR_SOURCE = ["mapped (OpenStreetMap)", "photographed", "inferred"];
@@ -19373,16 +19516,19 @@ function terrainGroundAt(x, z) {
 for (const bucket of footprintGrid.values()) {
   for (const entry of bucket) footprintById.set(String(entry.way.osm_id), entry);
 }
-interiorCameraFootprints = footprintById;
 
 let INTERIORS = null;
 let HOME_OPENINGS = { buildings: {} };
 let HOME_OPENINGS_VERSION = 0;
+//: Whether the photographed openings and the interiors (with their doors) have come back, or
+//: failed to: the house windows are first laid out once both have.
+let HOME_OPENINGS_SETTLED = false, INTERIORS_SETTLED = false;
 fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : null).then((data) => {
     if (data) { HOME_OPENINGS = data; HOME_OPENINGS_VERSION += 1; }
   })
-  .catch(() => {});
+  .catch(() => {})
+  .finally(() => { HOME_OPENINGS_SETTLED = true; });
 let interiorsRequested = false;
 function requestInteriors() {
   if (interiorsRequested) return;
@@ -19403,7 +19549,8 @@ function requestInteriors() {
       console.info(`kerbside: interiors for ${Object.keys(data.buildings).length} buildings, `
         + `${data.library.length} plans (${JSON.stringify(data.summary.stretch)} stretch)`);
     })
-    .catch(() => { /* no interiors for this page: buildings stay solid and closed */ });
+    .catch(() => { /* no interiors for this page: buildings stay solid and closed */ })
+    .finally(() => { INTERIORS_SETTLED = true; });
 }
 
 //: The garages on one footprint edge of an entry, as [centre along the edge, width] in metres.
@@ -19817,45 +19964,6 @@ function insideEntranceRecess(entry, x, z) {
   });
 }
 
-// The camera stays below the real room ceiling: partitions and adjacent-room
-// ceilings remain opaque. No x-ray clip plane or dollhouse wall hiding is used.
-function roomCameraPose(entry, rooms, x, z, floor, height, aspect) {
-  const room = rooms.find((r) => pointInRing(x, z, r.pts));
-  if (!room) return { x, z, y: floor + height - 0.12, floor, fov: 105, kind: "circulation" };
-  const minX = Math.max(entry.minX, Math.min(...room.pts.map((p) => p[0])));
-  const maxX = Math.min(entry.maxX, Math.max(...room.pts.map((p) => p[0])));
-  const minZ = Math.max(entry.minZ, Math.min(...room.pts.map((p) => p[1])));
-  const maxZ = Math.min(entry.maxZ, Math.max(...room.pts.map((p) => p[1])));
-  const centre = [(minX + maxX) / 2, (minZ + maxZ) / 2];
-  const candidates = [centre, [x, z]];
-  for (let pz = minZ + 0.2; pz < maxZ; pz += 0.5)
-    for (let px = minX + 0.2; px < maxX; px += 0.5) candidates.push([px, pz]);
-  const safe = candidates.filter(([px, pz]) => pointInRing(px, pz, room.pts)
-    && insideFootprint(entry, px, pz)
-    && !(entry.interior?.segments || []).some(([ax, az, bx, bz]) =>
-      distanceToSegmentSquared(px, pz, ax, az, bx, bz) < 0.18 ** 2));
-  safe.sort((a, b) => Math.hypot(a[0] - centre[0], a[1] - centre[1])
-    - Math.hypot(b[0] - centre[0], b[1] - centre[1]));
-  const [cx, cz] = safe[0] || [x, z];
-  // A rotation-independent radius fits the full room in both viewport axes.
-  // A very long room needs a wide lens, not a camera above its walls.
-  const radius = Math.max(...room.pts.filter(([px, pz]) => insideFootprint(entry, px, pz))
-    .map(([px, pz]) => Math.hypot(px - cx, pz - cz)), 1);
-  const cameraHeight = Math.max(1.9, height - 0.12);
-  const fov = Math.min(165, Math.max(75, 2 * Math.atan(radius * 1.08
-    / (cameraHeight * Math.min(1, Math.max(0.2, aspect)))) * 180 / Math.PI));
-  return { x: cx, z: cz, y: floor + cameraHeight, floor, fov, kind: room.kind };
-}
-
-function currentRoomCamera() {
-  if (!interiorCameraFootprints) return null;
-  const b = buildingAt(avatar.position.x, avatar.position.z);
-  const entry = b && interiorCameraFootprints.get(String(b.osm_id));
-  if (!entry?.interior || insideEntranceRecess(entry, avatar.position.x, avatar.position.z)) return null;
-  const { rooms, floorY, height } = entry.interior;
-  return roomCameraPose(entry, rooms, avatar.position.x, avatar.position.z, floorY, height, camera.aspect);
-}
-
 addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -19871,7 +19979,9 @@ function updateDoors(dt) {
   for (const door of [...doorsShown]) {
     if (Math.hypot(door.cx - x, door.cz - z) > DOOR_DRAW_M * 1.2 && !door.open) hideDoor(door);
   }
+  pumpHomeDecals();
   updateHomeShells(x, z);
+  updateShellGlass();
   for (const door of doorsShown) {
     const target = door.open ? Math.PI / 2 * 0.95 : 0;
     door.angle += Math.sign(target - door.angle) * Math.min(Math.abs(target - door.angle), dt * 3.5);
@@ -19892,14 +20002,15 @@ function updateDoors(dt) {
     const entry = footprintById.get(String(inside.osm_id));
     if (entry && !entry.interior) buildInterior(entry);
   }
-  // The default applies to saved indoor positions as well as doorway entries.
-  // Address search lands outside the building; a stair/landing recess is not a
-  // room. An explicitly selected first-person view remains first-person.
-  if (insideId && insideEntry?.interior && !state.firstPerson && !state.ceilingRoom) setCeilingView(true);
-  // The occupied interior was rebuilt (a shell was redone): cut it again.
-  if (state.ceilingRoom && insideEntry?.interior
-      && (cutawayEntry !== insideEntry || cutawayGroup !== insideEntry.interior.group)) applyCutaway(insideEntry);
-  if (!insideId && state.ceilingRoom) setCeilingView(false);
+  // Inside a house the view is the walker's own eyes: the house keeps its roof and its walls,
+  // and the rooms are seen as they would be. This applies to saved indoor positions as well as
+  // doorway entries; a stair or landing recess is not a room. Walking out puts back the view
+  // the walker had, unless they chose first person themselves.
+  if (insideId && insideEntry?.interior && !state.firstPerson) {
+    setFirstPerson(true);
+    state.autoFirstPerson = true;
+  }
+  if (!insideId && state.autoFirstPerson) setFirstPerson(false);
   if (door) {
     doorHint.textContent = door.atGrade
       ? `Street door (${DOOR_SOURCE[door.source]}) — the rooms are a storey up`
@@ -19941,7 +20052,7 @@ const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: 0xa9bcc4
   roughness: 0.1, metalness: 0.0, envMapIntensity: 0.4 });
 //: The frames dark, as the batched facade paints its windows: cream frames were a white grid
 //: that appeared on a house the moment its shell was built.
-const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x3d4347, roughness: 0.65, envMapIntensity: 0.35 });
+const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x353a3e, roughness: 0.9, envMapIntensity: 0.2 });
 
 function wallPanels(width, bottom, top, openings) {
   // A 2D arrangement handles overlapping evidence without bridges across a hole.
@@ -20003,7 +20114,8 @@ const HOME_PANEL_OVERLAP_M = 0.012;
 //: ``trim`` shortens the wall at both ends. The lining stands INTERIOR_WALL_INSET_M inside its
 //: wall, so at a corner its full length ran out to the neighbouring wall's face and showed
 //: through it from the street as a dotted line down the corner.
-function homeWallGeometry(a, ux, uz, panels, insetX = 0, insetZ = 0, trim = 0) {
+//: ``uvMap`` (u along the wall, v height) -> [s, t]; three-metre tiles when there is none.
+function homeWallGeometry(a, ux, uz, panels, insetX = 0, insetZ = 0, trim = 0, uvMap = null) {
   const positions = [], uv = [];
   const e = HOME_PANEL_OVERLAP_M;
   const uMin = Math.min(...panels.map((p) => p[0])) + trim, uMax = Math.max(...panels.map((p) => p[2])) - trim;
@@ -20014,7 +20126,7 @@ function homeWallGeometry(a, ux, uz, panels, insetX = 0, insetZ = 0, trim = 0) {
     if (u1 <= u0 || v1 <= v0) continue;
     for (const [u, v] of [[u0, v0], [u1, v0], [u1, v1], [u0, v0], [u1, v1], [u0, v1]]) {
       positions.push(a[0] + ux * u + insetX, v, a[1] + uz * u + insetZ);
-      uv.push(u / 3, v / 3);
+      if (uvMap) uv.push(...uvMap(u, v)); else uv.push(u / 3, v / 3);
     }
   }
   const geometry = new THREE.BufferGeometry();
@@ -20087,35 +20199,22 @@ function insetRing(entry, pts, d) {
 }
 //: A house whose ground rises more than this across its footprint stands into its hill.
 const HILLSIDE_RISE_M = 1.2;
-function buildHomeShell(entry) {
-  const id = String(entry.way.osm_id), spec = HOME_RENDER.get(id);
-  if (!spec || entry.homeShell || !entry.fit || !BUILDING_VISUAL_RANGES.has(id)) return;
+//: A window's sill stands at least this far above the ground outside it. No window touches the
+//: ground: on a hill the low end of a wall is in the slope, and a guessed window there, or a
+//: photographed one carried onto ground the model has higher than the photograph did, was a
+//: pane half under the pavement.
+const WINDOW_GROUND_CLEAR_M = 0.45;
+//: The picture of the front door on the street wall (addGroundFacadeDetail) is this wide.
+const FRONT_DOOR_PANEL_W_M = 3.2;
+//: The windows of a house, wall by wall. One answer for the house as the street sees it (its
+//: window decals, drawn from far off) and for the house the walker is at (its shell, with real
+//: glass and the rooms behind it), so the one never changes into the other on screen. It depends
+//: only on what is known before anyone walks up: the footprint, the doors (each reserving its
+//: opening with room for a stoop), the garages, the photographed openings, the ground.
+function homeWindowLayout(entry, spec) {
+  const id = String(entry.way.osm_id);
   const bottom = spec.base, top = bottom + spec.height, floor = entryFloorY(entry);
-  if (top - floor < 2.3) return;
-  const key = `${spec.material.name}:${spec.material.photoLabel || ""}:${Math.abs(spec.seed) % 3}`;
-  if (!bareWallMaps.has(key)) {
-    const variant = Math.abs(spec.seed) % 3;
-    const map = facadeFor(spec.material, spec.seed, 0, variant, false);
-    map.userData = { material: spec.material, seed: spec.seed, style: 0, variant, bare: true };
-    bareWallMaps.set(key, map);
-  }
-  // The same response to light as the batched wall it replaces -- including how much of the
-  // sky it reflects. Left at three.js's default of 1.0 against the batch's 0.35, a house went
-  // visibly paler and shinier the moment its shell was built, forty metres ahead of the walker.
-  const material = new THREE.MeshStandardMaterial({ map: bareWallMaps.get(key),
-    color: spec.tint, roughness: spec.material.rough, metalness: spec.material.metal,
-    envMapIntensity: spec.material.name === "glass" ? 1.6 : spec.material.name === "metal" ? 1.1 : 0.35,
-    side: THREE.DoubleSide });
-  const group = new THREE.Group();
-  group.name = `house-shell:${id}`;
-  // This shell's own copies of the shared lining, glass and frame materials: the cutaway view
-  // clips the walls of the one house being looked into, and a clipping plane on a shared
-  // material would cut the upper windows off every house around it too.
-  const shellPlaster = plasterMaterial.clone();
-  const shellGlass = homeGlassMaterial.clone();
-  const shellGlassInside = homeGlassInsideMaterial.clone();
-  const shellFrame = homeFrameMaterial.clone();
-  const windowRegistry = [];
+  if (top - floor < 2.3) return null;
   // How steep the ground is under the house: the rise across its footprint's corners.
   let lowest = Infinity, highest = -Infinity;
   for (const [px, pz] of entry.local) {
@@ -20123,7 +20222,10 @@ function buildHomeShell(entry) {
     lowest = Math.min(lowest, g); highest = Math.max(highest, g);
   }
   const hillside = highest - lowest > HILLSIDE_RISE_M;
-  const groundStoreyM = (top - floor) / Math.max(1, homeStoreyCount(entry, top - floor));
+  const storeys = homeStoreyCount(entry, top - floor);
+  const groundStoreyM = (top - floor) / Math.max(1, storeys);
+  const front = entry.way._frontDoor;
+  const edges = [];
   for (let edge = 0; edge + 1 < entry.local.length; edge += 1) {
     const a = entry.local[edge], b = entry.local[edge + 1];
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -20132,18 +20234,22 @@ function buildHomeShell(entry) {
     let nx = -uz, nz = ux;
     const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
     if (!insideFootprint(entry, mx + nx * 0.2, mz + nz * 0.2)) { nx = -nx; nz = -nz; }
-    const doors = (entry.doors || []).filter((d) => d.edge === edge && d.mesh && !d.atGrade);
-    const cuts = doors.map((d) => ({ u: (d.t0 + d.t1) / 2 * length - (d.stoopPlan?.width || d.width) / 2,
-      w: d.stoopPlan?.width || d.width,
-      v: d.stoopPlan ? d.stoopPlan.street : floor, h: DOOR_HEIGHT_M + (d.stoopPlan?.rise || 0),
-      kind: "door" }));
-    // Every door on this edge reserves its opening, drawn yet or not, and so does every garage
-    // the city's kerb cuts put on it: a window never overlaps either -- it simply is not there.
-    const reserved = [...cuts];
-    for (const d of (entry.doors || []).filter((d) => d.edge === edge && (!d.mesh || d.atGrade))) {
-      reserved.push({ u: (d.t0 + d.t1) / 2 * length - d.width / 2, w: d.width,
-        v: d.atGrade ? bottom : floor, h: d.atGrade ? floor - bottom + DOOR_HEIGHT_M : DOOR_HEIGHT_M,
-        kind: "door" });
+    // Every door on this edge reserves its opening from the ground to above the door -- with
+    // room either side for a stoop's walls -- and so does every garage the city's kerb cuts put
+    // on it, and the front door's picture: a window never overlaps any of them.
+    const reserved = [];
+    for (const d of (entry.doors || []).filter((d) => d.edge === edge)) {
+      const w = Math.max(d.width + 0.9, 1.9);
+      reserved.push({ u: (d.t0 + d.t1) / 2 * length - w / 2, w, v: bottom,
+        h: floor - bottom + DOOR_HEIGHT_M + 0.3, kind: "door" });
+    }
+    if (front) {
+      const off = (front.x - a[0]) * nx + (front.z - a[1]) * nz;
+      const u = (front.x - a[0]) * ux + (front.z - a[1]) * uz;
+      if (Math.abs(off) < 0.6 && u > -0.5 && u < length + 0.5) {
+        reserved.push({ u: u - FRONT_DOOR_PANEL_W_M / 2, w: FRONT_DOOR_PANEL_W_M, v: bottom,
+          h: Math.max(3.35, floor - bottom + DOOR_HEIGHT_M + 0.3), kind: "door" });
+      }
     }
     for (const g of entry.way.garages || []) {
       const [gax, gay] = xy(g.a[0], g.a[1]), [gbx, gby] = xy(g.b[0], g.b[1]);
@@ -20155,15 +20261,18 @@ function buildHomeShell(entry) {
       reserved.push({ u: u - w / 2, w, v: bottom, h: GARAGE_HEIGHT_M + 0.2, kind: "garage" });
     }
     const observed = HOME_OPENINGS.buildings[id]?.walls[String(edge)];
-    // A wall that wears its own photograph shows its own windows: the shell adds none there,
-    // or their frames stand out through the picture of the real ones.
+    // A wall that wears its own photograph shows its own windows: none is added there, or its
+    // frame stands out through the picture of the real one.
     const photographed = photographedEdge(a, b);
     const candidates = observed ? observed.map(([u, v, w, h, confidence]) => ({
       u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
-      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, homeStoreyCount(entry, top - floor));
+      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, storeys);
+    const groundOut = (u) => terrainGroundAt(a[0] + ux * u - nx * 0.3, a[1] + uz * u - nz * 0.3);
     const windows = photographed ? [] : candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
       && !reserved.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
         && o.v < c.v + c.h + 0.15 && o.v + o.h > c.v - 0.15)
+      // No window touches the ground, at either end of its sill.
+      && o.v >= Math.max(groundOut(o.u), groundOut(o.u + o.w)) + WINDOW_GROUND_CLEAR_M
       // A house on a steep hill is partly in the hill on its ground storey: no window is
       // guessed there; only a window measured in a photograph stands on that storey.
       && !(hillside && o.grade !== "image_on_prior_geometry" && o.v < floor + groundStoreyM)
@@ -20172,8 +20281,65 @@ function buildHomeShell(entry) {
           a[1] + uz * (o.u + o.w * t) - nz * 0.15);
         return !neighbour || String(neighbour.osm_id) === id;
       }));
+    edges.push({ edge, a, b, length, ux, uz, nx, nz, windows });
+  }
+  return { bottom, top, floor, edges };
+}
+
+//: How opaque a shell's glass is, by the camera's distance from the house. From the street the
+//: glass reads as the window decals do -- dark, all but opaque -- and it clears as the walker
+//: comes up to it, so the rooms behind show only close to, and never by a sudden change.
+const SHELL_GLASS_CLEAR_M = 6.0;
+const SHELL_GLASS_DECAL_M = 25.0;
+function shellGlassOpacity(distance) {
+  const t = Math.max(0, Math.min(1, (distance - SHELL_GLASS_CLEAR_M) / (SHELL_GLASS_DECAL_M - SHELL_GLASS_CLEAR_M)));
+  return 0.55 + (0.98 - 0.55) * t * t * (3 - 2 * t);
+}
+function updateShellGlass() {
+  for (const entry of homeShells) {
+    const glass = entry.homeShell?.glass;
+    if (!glass) continue;
+    const d = Math.hypot((entry.minX + entry.maxX) / 2 - camera.position.x,
+      (entry.minZ + entry.maxZ) / 2 - camera.position.z);
+    glass.opacity = shellGlassOpacity(d);
+  }
+}
+
+function buildHomeShell(entry) {
+  const id = String(entry.way.osm_id), spec = HOME_RENDER.get(id);
+  if (!spec || entry.homeShell || !entry.fit || !BUILDING_VISUAL_RANGES.has(id)) return;
+  // The windows the street is already shown, where they are drawn; otherwise worked out now.
+  const layout = entry.decalLayout || homeWindowLayout(entry, spec);
+  if (!layout) return;
+  const { bottom, top, floor } = layout;
+  // The same wall as the batched one it replaces: the same texture, mapped from the same end of
+  // each wall at the same scale (FACADE_UV), and the same response to light -- including how
+  // much of the sky it reflects. Any of these different and the house visibly changed the
+  // moment its shell was built.
+  const storeyM = facadeStoreyMetres(spec.height);
+  const material = new THREE.MeshStandardMaterial({ map: bareFacadeTextureFor(spec.material, spec.seed),
+    color: spec.tint, roughness: spec.material.rough, metalness: spec.material.metal,
+    envMapIntensity: spec.material.name === "glass" ? 1.6 : spec.material.name === "metal" ? 1.1 : 0.35,
+    side: THREE.DoubleSide });
+  const group = new THREE.Group();
+  group.name = `house-shell:${id}`;
+  // This shell's own copies of the shared lining, glass and frame materials, disposed with it.
+  const shellPlaster = plasterMaterial.clone();
+  const shellGlass = homeGlassMaterial.clone();
+  const shellGlassInside = homeGlassInsideMaterial.clone();
+  const shellFrame = homeFrameMaterial.clone();
+  // As the decal reads until updateShellGlass sets it for the camera, the next frame.
+  shellGlass.opacity = shellGlassOpacity(Infinity);
+  const windowRegistry = [];
+  for (const { edge, a, length, ux, uz, nx, nz, windows } of layout.edges) {
+    const doors = (entry.doors || []).filter((d) => d.edge === edge && d.mesh && !d.atGrade);
+    const cuts = doors.map((d) => ({ u: (d.t0 + d.t1) / 2 * length - (d.stoopPlan?.width || d.width) / 2,
+      w: d.stoopPlan?.width || d.width,
+      v: d.stoopPlan ? d.stoopPlan.street : floor, h: DOOR_HEIGHT_M + (d.stoopPlan?.rise || 0),
+      kind: "door" }));
+    const uvMap = (u, v) => [(spec.clockwise ? length - u : u) / BAY_M, (v - bottom) / storeyM];
     const panels = wallPanels(length, bottom, top, [...cuts, ...windows]);
-    const wall = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels), material);
+    const wall = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels, 0, 0, 0, uvMap), material);
     wall.castShadow = wall.receiveShadow = true;
     group.add(wall);
     const lining = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels,
@@ -20196,7 +20362,8 @@ function buildHomeShell(entry) {
       for (const [u, v, w, h] of [[o.u, o.v + o.h / 2, 0.06, o.h],
         [o.u + o.w, o.v + o.h / 2, 0.06, o.h], [o.u + o.w / 2, o.v, o.w, 0.06],
         [o.u + o.w / 2, o.v + o.h, o.w, 0.06], [o.u + o.w / 2, o.v + o.h / 2, 0.035, o.h]]) {
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.12), shellFrame);
+        // Shallow, so its lit edges do not stand out from the decal's flat frame.
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), shellFrame);
         frame.position.set(a[0] + ux * u, v, a[1] + uz * u);
         frame.rotation.y = pane.rotation.y;
         group.add(frame);
@@ -20217,91 +20384,23 @@ function buildHomeShell(entry) {
   group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };
   batchHomeShell(group);
   homeShellGroup.add(group);
-  entry.homeShell = { group, material, materials: [material, shellPlaster, shellGlass, shellGlassInside, shellFrame],
-    openingsVersion: HOME_OPENINGS_VERSION };
+  entry.homeShell = { group, material, glass: shellGlass, layout,
+    materials: [material, shellPlaster, shellGlass, shellGlassInside, shellFrame] };
   entry.shellNeedsRebuild = false;
   homeShells.add(entry);
   setBatchedHomeVisible(id, false);
+  setHomeDecalsVisible(id, false);
   if (entry.interior) removeInterior(entry);
   buildInterior(entry);
   for (const d of entry.doors || []) if (d.leaf) d.leaf.renderOrder = 0;
 }
 
-// ---- the cutaway: looking down into the building the walker is in ---------------------------
-//
-// Its roof is lifted off (its slice of the merged roofs collapsed, as a house shell collapses
-// its walls), its upper storeys and ceiling are hidden, and a house's own shell -- walls,
-// lining, glass, frames, all its own material copies -- is clipped at this storey's ceiling.
-// Everything comes back when the walker leaves or the view changes.
-renderer.localClippingEnabled = true;
-function applyCutaway(entry) {
-  if (cutawayEntry && cutawayEntry !== entry) {
-    setBatchedHomeVisible(`roof:${cutawayEntry.way.osm_id}`, true);
-    for (const m of cutawayEntry.homeShell?.materials || []) { m.clippingPlanes = []; m.needsUpdate = true; }
-    for (const panel of facadePanels) {
-      if (!panel.userData.cutawayClipped) continue;
-      panel.material.clippingPlanes = [];
-      panel.material.needsUpdate = true;
-      delete panel.userData.cutawayClipped;
-    }
-    cutawayGroup?.traverse((o) => {
-      if (o.userData.cutawayHidden) { o.visible = true; delete o.userData.cutawayHidden; }
-      if (o.isMesh && o.userData.cutawayClipped) { o.material.clippingPlanes = []; o.material.needsUpdate = true; delete o.userData.cutawayClipped; }
-    });
-    for (const [mesh, i, matrix] of cutawayRoofParts) { mesh.setMatrixAt(i, matrix); mesh.instanceMatrix.needsUpdate = true; }
-    cutawayRoofParts = [];
-    cutawayEntry = null;
-    cutawayGroup = null;
-  }
-  if (!entry || !entry.interior) return;
-  cutawayEntry = entry;
-  setBatchedHomeVisible(`roof:${entry.way.osm_id}`, false);
-  // What stands on the roof goes with it: a deck, its planters, a solar array. They are
-  // instanced across the whole city, so this building's instances are collapsed one by one.
-  {
-    const matrix = new THREE.Matrix4(), at = new THREE.Vector3(), none = new THREE.Matrix4().makeScale(0, 0, 0);
-    groups.mapped3d.traverse((o) => {
-      if (!o.isInstancedMesh || o.userData.surface !== "roof_furniture") return;
-      let touched = false;
-      for (let i = 0; i < o.count; i += 1) {
-        o.getMatrixAt(i, matrix);
-        at.setFromMatrixPosition(matrix).applyMatrix4(o.matrixWorld);
-        if (at.x < entry.minX || at.x > entry.maxX || at.z < entry.minZ || at.z > entry.maxZ) continue;
-        if (!insideFootprint(entry, at.x, at.z)) continue;
-        cutawayRoofParts.push([o, i, matrix.clone()]);
-        o.setMatrixAt(i, none);
-        touched = true;
-      }
-      if (touched) o.instanceMatrix.needsUpdate = true;
-    });
-  }
-  const floor = entry.interior.floorY ?? entryFloorY(entry);
-  const ceilingY = floor + (entry.interior.height || 2.6) + 0.05;
-  const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), ceilingY);
-  for (const m of entry.homeShell?.materials || []) { m.clippingPlanes = [plane]; m.needsUpdate = true; }
-  const buildingId = String(entry.way.osm_id);
-  for (const panel of facadePanels) {
-    if (facadePanelBuilding(panel) !== buildingId) continue;
-    panel.material.clippingPlanes = [plane];
-    panel.material.needsUpdate = true;
-    panel.userData.cutawayClipped = true;
-  }
-  cutawayGroup = entry.interior.group;
-  cutawayGroup.traverse((o) => {
-    if (o === cutawayGroup || !o.visible) return;
-    if (o.userData.surface === "interior_storey" || o.userData.surface === "interior_ceiling") {
-      o.visible = false;
-      o.userData.cutawayHidden = true;
-    }
-  });
-}
-
 function removeHomeShell(entry) {
   if (!entry.homeShell) return;
   setBatchedHomeVisible(entry.way.osm_id, true);
+  setHomeDecalsVisible(String(entry.way.osm_id), true);
   homeShellGroup.remove(entry.homeShell.group);
   entry.homeShell.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
-  if (cutawayEntry === entry) applyCutaway(null);
   for (const m of entry.homeShell.materials || [entry.homeShell.material]) m.dispose();
   entry.homeShell = null;
   homeShells.delete(entry);
@@ -20309,29 +20408,139 @@ function removeHomeShell(entry) {
 }
 
 let homeShellTick = 0;
-//: A house's shell -- its walls cut round real openings, its interior behind them -- stands
-//: only for the house the walker is in or at the door of. Built for every house within 45 m,
-//: each one visibly changed as the walker came up the street: its painted windows became
-//: panes onto a lit interior and read as white squares, forty metres ahead, house after house.
-//: From the pavement every house now stays exactly as the city draws it.
-const HOME_SHELL_REACH_M = 6.0;
-const HOME_SHELL_MAX = 2;
+//: A house's shell -- its walls cut round real openings, glass in its windows, its rooms behind
+//: them -- stands for the houses near the walker, so the walker passing can see into their
+//: windows. It is built on the window decals the street already shows (homeWindowLayout): the
+//: same walls, the same windows in the same places, and glass that reads as the decal does from
+//: further than SHELL_GLASS_DECAL_M and clears only close to. Nothing about a house changes
+//: on screen when its shell is built or taken down.
+const HOME_SHELL_REACH_M = 40.0;
+const HOME_SHELL_MAX = 8;
 function updateHomeShells(x, z) {
   if (!INTERIORS || ++homeShellTick % 15) return;
   const candidates = [...new Set(doorsNear(x, z, HOME_SHELL_REACH_M).map((d) => d.entry))]
-    .filter((e) => HOME_RENDER.has(String(e.way.osm_id)))
+    // Only on decals already drawn: a shell is never the first the street sees of a house.
+    .filter((e) => HOME_RENDER.has(String(e.way.osm_id)) && e.decalLayout)
     .sort((a, b) => Math.hypot((a.minX + a.maxX) / 2 - x, (a.minZ + a.maxZ) / 2 - z)
       - Math.hypot((b.minX + b.maxX) / 2 - x, (b.minZ + b.maxZ) / 2 - z));
   const inside = buildingAt(x, z);
   const occupied = inside && footprintById.get(String(inside.osm_id));
   if (occupied && !candidates.includes(occupied)) candidates.unshift(occupied);
   const wanted = new Set(candidates.slice(0, HOME_SHELL_MAX));
+  // A shell is redone when the decals are: a photographed window or a door arrived since.
   for (const e of homeShells) if (!wanted.has(e) || e.shellNeedsRebuild
-      || e.homeShell.openingsVersion !== HOME_OPENINGS_VERSION) removeHomeShell(e);
+      || (e.decalLayout && e.homeShell.layout !== e.decalLayout)) removeHomeShell(e);
   for (const e of wanted) buildHomeShell(e);
   // A house's photographs stay on it while its shell stands: hiding them whenever the walker
   // came within a shell's reach made the photograph vanish on approach and pop back on leaving.
   // The panel faces the street and is culled from inside, and the doors stand in front of it.
+}
+
+// ---- the windows of every house, as the street sees them ----------------------------------------
+//
+// One instanced quad per window -- glass and frame drawn in one small picture -- laid out by
+// homeWindowLayout for every house, a few hundred houses a frame. They are laid out again (and
+// swapped in whole) when what decides them arrives: the doors with the interiors, the
+// photographed openings. A house whose shell stands has its decals hidden; the shell has the
+// same windows in the same places.
+const HOME_DECAL_SLICE = 300;
+const HOME_DECAL_OUT_M = 0.02;
+let homeDecalMesh = null;
+let homeDecalIndex = new Map();
+let homeDecalVersion = null;
+let homeDecalJob = null;
+const homeDecalHidden = new Set();
+const homeDecalStats = { houses: 0, windows: 0, passes: 0 };
+window.kerbsideWindows = () => ({ ...homeDecalStats, version: homeDecalVersion, hidden: homeDecalHidden.size });
+const homeWindowTexture = (() => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64; canvas.height = 96;
+  const ctx = canvas.getContext("2d");
+  // The frame: the shell's frame colour (homeFrameMaterial), a sash bar across and a mullion.
+  ctx.fillStyle = "#3d4347";
+  ctx.fillRect(0, 0, 64, 96);
+  // The glass: the shell's dark glass, a little lighter toward the top where it takes the sky.
+  const sky = ctx.createLinearGradient(0, 0, 0, 96);
+  sky.addColorStop(0, "#3a4b56");
+  sky.addColorStop(0.55, "#2a3740");
+  sky.addColorStop(1, "#222d34");
+  ctx.fillStyle = sky;
+  ctx.fillRect(3, 3, 27, 90);
+  ctx.fillRect(34, 3, 27, 90);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+})();
+const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTexture, roughness: 0.14,
+  metalness: 0.2, envMapIntensity: 1.0 });
+const HOME_DECAL_ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+function homeDecalInputs() {
+  return `${INTERIORS ? "doors" : "no-doors"}:${HOME_OPENINGS_VERSION}`;
+}
+function setHomeDecalsVisible(id, visible) {
+  if (visible) homeDecalHidden.delete(id); else homeDecalHidden.add(id);
+  const list = homeDecalIndex.get(id);
+  if (!homeDecalMesh || !list) return;
+  for (const i of list) homeDecalMesh.setMatrixAt(i, visible ? homeDecalMesh.userData.matrices[i] : HOME_DECAL_ZERO);
+  homeDecalMesh.instanceMatrix.needsUpdate = true;
+}
+function pumpHomeDecals() {
+  if (!homeDecalJob) {
+    const inputs = homeDecalInputs();
+    if (inputs === homeDecalVersion) return;
+    // The first pass waits a little for the doors and the photographed openings, so a house's
+    // windows are laid out once as the page opens rather than twice.
+    if (homeDecalVersion === null && !(INTERIORS_SETTLED && HOME_OPENINGS_SETTLED)) return;
+    homeDecalJob = { inputs, ids: [...HOME_RENDER.keys()], next: 0, matrices: [], index: new Map(),
+      layouts: new Map() };
+  }
+  const job = homeDecalJob;
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
+  for (const end = Math.min(job.ids.length, job.next + HOME_DECAL_SLICE); job.next < end; job.next += 1) {
+    const id = job.ids[job.next];
+    const entry = footprintById.get(id), spec = HOME_RENDER.get(id);
+    if (!entry || !spec) continue;
+    const layout = homeWindowLayout(entry, spec);
+    if (!layout) continue;
+    job.layouts.set(id, layout);
+    const list = [];
+    for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
+      q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
+      for (const o of windows) {
+        p.set(a[0] + ux * (o.u + o.w / 2) - nx * HOME_DECAL_OUT_M, o.v + o.h / 2,
+          a[1] + uz * (o.u + o.w / 2) - nz * HOME_DECAL_OUT_M);
+        sc.set(o.w, o.h, 1);
+        list.push(job.matrices.length);
+        job.matrices.push(m.compose(p, q, sc).clone());
+      }
+    }
+    if (list.length) job.index.set(id, list);
+  }
+  if (job.next < job.ids.length) return;
+  // The pass is done: swap it in whole.
+  const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), homeDecalMaterial, Math.max(1, job.matrices.length));
+  mesh.count = job.matrices.length;
+  mesh.userData = { surface: "house_window", matrices: job.matrices, grade: "procedural_or_photographed_openings" };
+  for (let i = 0; i < job.matrices.length; i += 1) mesh.setMatrixAt(i, job.matrices[i]);
+  for (const id of homeDecalHidden) for (const i of job.index.get(id) || []) mesh.setMatrixAt(i, HOME_DECAL_ZERO);
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.receiveShadow = true;
+  mesh.computeBoundingSphere();
+  if (homeDecalMesh) { root.remove(homeDecalMesh); homeDecalMesh.geometry.dispose(); homeDecalMesh.dispose(); }
+  homeDecalMesh = mesh;
+  root.add(mesh);
+  homeDecalIndex = job.index;
+  homeDecalVersion = job.inputs;
+  for (const [id, layout] of job.layouts) {
+    const entry = footprintById.get(id);
+    if (entry) entry.decalLayout = layout;
+  }
+  homeDecalStats.houses = job.index.size;
+  homeDecalStats.windows = job.matrices.length;
+  homeDecalStats.passes += 1;
+  homeDecalJob = null;
 }
 
 //: The building a photographed wall belongs to: the footprint just behind the panel.
@@ -20957,7 +21166,6 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     + '<button id="inspect-door">Toggle entrance door</button><button id="inspect-step">Walk forward 0.25 m</button>'
     + '<button id="inspect-back">Look behind</button>'
     + '<button id="inspect-room">Inspect next furnished room</button>'
-    + '<button id="inspect-ceiling">Room ceiling view</button>'
     + '<pre id="inspect-state" style="white-space:pre-wrap"></pre>';
   document.body.appendChild(inspector);
   for (const button of inspector.querySelectorAll("button"))
@@ -20982,7 +21190,6 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     state.target.copy(avatar.position); placeCamera();
   };
   document.getElementById("inspect-back").onclick = () => { state.yaw += Math.PI; placeCamera(); };
-  document.getElementById("inspect-ceiling").onclick = () => { setCeilingView(true); };
   let inspectedRoom = 0;
   document.getElementById("inspect-room").onclick = () => {
     const b = buildingAt(avatar.position.x, avatar.position.z);
@@ -21014,7 +21221,6 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
     const e = b && footprintById.get(String(b.osm_id));
     const d = nearestDoor();
     const report = { loaded: Boolean(INTERIORS), firstPerson: state.firstPerson,
-      ceilingRoom: state.ceilingRoom, roomCamera: state.ceilingRoom ? currentRoomCamera() : null,
       building: b?.osm_id, door: d && { building: d.entry.way.osm_id, source: DOOR_SOURCE[d.source],
         open: d.open, steps: d.stoopPlan?.steps || 0, landing: d.stoopPlan?.landingDepth || 0 },
       shells: homeShells.size, windows: [...homeShells].reduce((n, h) => n + h.homeShell.group.userData.windows.length, 0),
@@ -21223,7 +21429,7 @@ function animate(now) {
   cullDetailByDistance(frameCount);
   cullLabelsByDistance(frameCount++);
   if (frameCount % 20 === 0) {
-    const focus = state.firstPerson || state.ceilingRoom ? avatar.position : state.target;
+    const focus = state.firstPerson ? avatar.position : state.target;
     updateFacadeStreaming(focus, camera.position.y - focus.y);
   }
   updateTileTree(now || performance.now());
@@ -21266,7 +21472,7 @@ window.kerbside = {
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
   tunnelFloorAt, walkerGroundAt, tunnelBores, terrainHeightAt, groundLiftAt, TERRAIN,
   cutLiftAt, approachRoadAt, wayFollowsCut, APPROACH_CUTS, junctionBoxHulls,
-  goTo, setFirstPerson, placeCamera, state, avatar, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
+  goTo, setFirstPerson, placeCamera, state, avatar, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
   pickedFeature,

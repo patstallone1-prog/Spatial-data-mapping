@@ -133,13 +133,12 @@ def test_a_house_shell_lights_like_the_batched_house_it_replaces() -> None:
 
 def test_houses_ahead_of_the_walker_never_change_and_shell_windows_read_dark() -> None:
     """Houses went white ahead of the walker: every house within 45 m swapped its batched walls
-    for a shell whose half-clear panes showed the sunlit plaster behind them. A shell now
-    stands only at the house the walker is at, and its glass is dark from the street."""
+    for a shell whose half-clear panes showed the sunlit plaster behind them. A shell now stands
+    only on window decals already drawn in the same places (tests/test_house_windows.py), and
+    its glass is dark from the street, clearing only close to."""
     js = _page_js()
-    reach = float(re.search(r"const HOME_SHELL_REACH_M = ([0-9.]+);", js).group(1))
-    assert reach <= 8.0, "only the house at hand gets a shell"
     shells = _extract("updateHomeShells", js)
-    assert "doorsNear(x, z, HOME_SHELL_REACH_M)" in shells
+    assert "doorsNear(x, z, HOME_SHELL_REACH_M)" in shells and "e.decalLayout" in shells
     assert "candidates.slice(0, HOME_SHELL_MAX)" in shells
     glass = re.search(r"const homeGlassMaterial = new THREE\.MeshStandardMaterial\(\{ color: 0x([0-9a-f]{6}),"
                       r"\s*transparent: true, opacity: ([0-9.]+),[^}]*side: THREE\.FrontSide", js)

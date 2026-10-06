@@ -223,11 +223,15 @@ def test_inferred_furniture_fits_room_and_keeps_entry_clear() -> None:
     assert ((position["x"] - 4) ** 2 + (position["z"] - 3) ** 2) ** 0.5 > 1.2
 
 
-def test_room_ceiling_default_respects_recess_and_explicit_first_person() -> None:
+def test_inside_a_house_the_view_is_first_person_and_the_roof_stays() -> None:
     js = _page_js()
     update = _extract("updateDoors", js)
     assert "insideEntranceRecess(insideEntry, x, z)" in update
-    assert "insideEntry?.interior && !state.firstPerson && !state.ceilingRoom" in update
-    assert "setCeilingView(true)" in update
-    assert "!insideId && state.ceilingRoom" in update
-    assert update.index("buildInterior(entry)") < update.index("setCeilingView(true)")
+    assert "if (insideId && insideEntry?.interior && !state.firstPerson) {" in update
+    assert "state.autoFirstPerson = true;" in update
+    assert "if (!insideId && state.autoFirstPerson) setFirstPerson(false);" in update
+    assert update.index("buildInterior(entry)") < update.index("setFirstPerson(true)")
+    # No view from above into a house: nothing lifts a roof off, so no roof can go missing.
+    for gone in ("ceilingRoom", "setCeilingView", "applyCutaway", "cutawayEntry", "roomCameraPose"):
+        assert gone not in js, gone
+    assert "homeId: `roof:" not in js, "roofs carry no tag anything could hide them by"

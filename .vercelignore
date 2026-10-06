@@ -4,3 +4,7 @@
 /*
 !/docs
 !/vercel.json
+# The deploy gate (vercel.json ignoreCommand) runs from the clone before anything is served.
+!/tools
+/tools/*
+!/tools/vercel
