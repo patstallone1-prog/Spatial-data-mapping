@@ -108,12 +108,18 @@ def photo_mesh() -> dict:
     # The dense photogrammetric mesh needs COLMAP (src/smc/reconstruction/colmap_runner.py)
     # and the source frames; neither is on this machine.
     have_colmap = subprocess.run(["which", "colmap"], capture_output=True).returncode == 0
-    return {"task": "photogrammetric mesh (COLMAP)",
-            "state": "ready" if have_colmap else "blocked",
-            "progress": "not started" if have_colmap else
-            "COLMAP not installed; needs the source frame corpus "
-            "(docs/photogrammetry-audit-2026-09.md)",
-            "journal": "docs/photogrammetry-audit-2026-09.md", "last": ""}
+    journal = BUILD / "photo-mesh" / "journal.jsonl"
+    cells = [json.loads(line) for line in journal.read_text().splitlines()] if journal.exists() else []
+    posed = [c for c in cells if (c.get("best") or {}).get("registered", 0) >= 10]
+    if cells:
+        progress = (f"sparse pilot: {len(cells)} cells, {len(posed)} with 10+ frames posed, "
+                    f"{sum(c['best']['points'] for c in posed)} points; dense stereo needs CUDA")
+    else:
+        progress = "not started" if have_colmap else "COLMAP not installed (brew install colmap)"
+    state = ("running" if running("run_photo_mesh_pilot.py") else "pilot done" if cells
+             else "ready" if have_colmap else "blocked")
+    return {"task": "photogrammetric mesh (COLMAP)", "state": state, "progress": progress,
+            "journal": "build/photo-mesh/journal.jsonl", "last": ""}
 
 
 def main() -> None:
