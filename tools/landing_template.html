@@ -191,8 +191,7 @@
     <h1>The Bay Area,<br /><em>down to the kerb.</em></h1>
     <p class="sub">Kerbside is a walkable 3D model of the streets — every crossing, kerb ramp, bike lane and front step, placed where the city measured it. Walk a block before you get there, or step through a door and look around.</p>
     <div class="ctas">
-      <a class="btn" id="open-map" href="app.html">Open the map</a>
-      <a class="btn ghost" href="#install">Install on your phone</a>
+      <a class="btn" href="#install">Get the app</a>
     </div>
     <p class="ctanote" id="ctanote"></p>
     <div class="facts">
@@ -222,10 +221,10 @@
         </div>
       </article>
       <article class="tile">
-        <figure><img src="landing/inside.jpg" alt="Looking down into a house with its roof lifted off, showing a generic room plan, its front door and garage, and the walker" loading="lazy" /></figure>
+        <figure><img src="landing/inside.jpg" alt="Inside a house in first person: a room of a generic plan, a doorway through to the next" loading="lazy" /></figure>
         <div class="body">
           <h3>Step through the door</h3>
-          <p>Doors open and houses have rooms. Walk in and the roof lifts away so you can see the walker from above. The rooms are a generic plan fitted to each house, and labelled as exactly that.</p>
+          <p>Doors open and houses have rooms. Walk in and look around in first person, and see into the windows of the houses you pass. The rooms are a generic plan fitted to each house, and labelled as exactly that.</p>
           <span class="tag">Illustrative interiors · labelled</span>
         </div>
       </article>
@@ -297,7 +296,7 @@
       </div>
       <p class="lede">Each area is built in full detail in the app. The note says what it's grounded in: city records, lidar or map data.</p>
     </div>
-    <p class="ctanote" id="coverage-status" role="status">Loading live coverage…</p>
+    <p class="ctanote" id="coverage-status" role="status">Loading coverage…</p>
     <div class="devicelist" id="regionlist"></div>
     <script>
       // "kerbs from lidar; building_height from lidar" -> "Kerbs, building heights and terrain from lidar."
@@ -323,7 +322,7 @@
         if (!index || !Array.isArray(index.regions) || !list) throw new Error("coverage unavailable");
         const available = index.regions.filter((region) => region.built &&
           /^(app-model\.html|app-regions\/[a-z0-9-]+\/app-model\.html)$/.test(region.path || ""));
-        status.textContent = `${available.length} areas in full detail, live now.`;
+        status.textContent = `${available.length} areas in full detail in the app.`;
         document.getElementById("facts-areas").textContent = `${available.length} areas`;
         for (const region of available) {
           const row = document.createElement("div"); row.className = "devrow";
@@ -337,7 +336,7 @@
         }
       }).catch(() => {
         document.getElementById("coverage-status").textContent =
-          "Live coverage is temporarily unavailable. Open the app to browse the map.";
+          "Coverage is temporarily unavailable. Install the app to see every area.";
       });
     </script>
   </div>
@@ -348,22 +347,18 @@
     <div class="install">
       <div>
         <p class="eyebrow" style="color:#e4dfbf">Get the app</p>
-        <h2>It installs from the browser.</h2>
-        <p>No store, no account, no sign-up. Add Kerbside to your home screen and it opens like any other app — the areas you visit are kept on the phone.</p>
+        <h2>Install it from this page.</h2>
+        <p>No store, no account, no sign-up. Kerbside installs straight from your browser onto your home screen and opens like any other app; the areas you visit are kept on your device and it updates itself.</p>
         <div class="ctas" style="margin-top:26px">
           <button class="btn" id="get-android">Install on Android</button>
-          <button class="btn ghost" id="get-ios">Install on iPhone</button>
+          <button class="btn ghost" id="get-ios">Install on Apple</button>
         </div>
         <ol class="steps" id="steps" hidden></ol>
       </div>
       <div>
-        <p>On a computer, the map opens right here and can be installed from the address bar.</p>
+        <p>On a computer, Kerbside installs as a desktop app from Chrome, Edge or Safari.</p>
         <div class="ctas" style="margin-top:18px">
-          <a class="btn ghost" href="app.html">Open the map</a>
-        </div>
-        <div class="ctas" style="margin-top:28px; display:none" aria-hidden="true">
-          <button class="btn" id="get-android2">Install on Android</button>
-          <button class="btn ghost" id="get-ios2">Install on iPhone</button>
+          <button class="btn ghost" id="get-desktop">Install on this computer</button>
         </div>
         <ol class="steps" id="steps2" hidden></ol>
         <p class="ctanote" id="ctanote2"></p>
@@ -383,8 +378,11 @@
 </footer>
 
 <script>
-  // Wherever the site is hosted, the app is beside this page.
-  const APP_URL = new URL("app.html", location.href).href;
+  // Opened from an installed icon, this page is only the way in: go straight to the app. (iOS
+  // adds the page it was on to the home screen, which is this one.)
+  if ((window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone) {
+    location.replace("app.html?from=home");
+  }
 
   /* ---------- device ---------- */
   function detect() {
@@ -398,7 +396,7 @@
   const NOTES = {
     ios: "On iPhone, Kerbside installs through <b>Share → Add to Home Screen</b> in Safari.",
     android: "On Android, Kerbside installs straight from the browser.",
-    desktop: "Opens in this browser. On a phone it installs to the home screen.",
+    desktop: "Installs on this computer from Chrome, Edge or Safari, and on a phone to the home screen.",
   };
   const TAGS = { ios: "iPhone", android: "Android", desktop: "" };
   document.getElementById("devicetag").textContent = TAGS[DEVICE];
@@ -423,26 +421,29 @@
 
   const STEPS = {
     ios: [
-      "Open <code>" + APP_URL + "</code> in <b>Safari</b> — Chrome on iPhone and in-app browsers cannot add to the home screen.",
+      "Open this page in <b>Safari</b> — Chrome on iPhone and in-app browsers cannot add to the home screen.",
       "Tap <b>Share</b>, the square with the arrow coming out of the top.",
       "Scroll down, tap <b>Add to Home Screen</b>, then <b>Add</b>.",
       "Open Kerbside from the home screen. If you help map, choose <b>While Using the App</b> for camera and location.",
     ],
     android: [
-      "Open <code>" + APP_URL + "</code> in <b>Chrome</b> or <b>Samsung Internet</b>.",
-      "Open the <b>⋮</b> menu, then tap <b>Install app</b> or <b>Add to Home screen</b>.",
+      "Open this page in <b>Chrome</b> or <b>Samsung Internet</b>.",
+      "Tap <b>Install on Android</b> above, or open the <b>⋮</b> menu and tap <b>Install app</b>.",
       "Confirm <b>Install</b>.",
       "Open Kerbside from the app drawer. If you help map, choose <b>While using the app</b> for camera and location.",
+    ],
+    desktop: [
+      "In <b>Chrome</b> or <b>Edge</b>: click <b>Install on this computer</b>, or the install icon at the right of the address bar.",
+      "In <b>Safari</b> on a Mac: choose <b>File → Add to Dock</b>.",
+      "Open Kerbside from your apps, like any other.",
     ],
   };
 
   function showSteps(kind) {
-    ["steps", "steps2"].forEach((id) => {
-      const ol = document.getElementById(id);
-      ol.innerHTML = STEPS[kind].map((t) => "<li>" + t.replace(
-        "<code>" + APP_URL + "</code>", "<a href=\"" + APP_URL + "\">Open Kerbside</a>") + "</li>").join("");
-      ol.hidden = id === "steps2";
-    });
+    const id = kind === "desktop" ? "steps2" : "steps";
+    const ol = document.getElementById(id);
+    ol.innerHTML = STEPS[kind].map((t) => "<li>" + t + "</li>").join("");
+    ol.hidden = false;
   }
 
   function setNote(text) {
@@ -451,13 +452,11 @@
   }
 
   function paintButtons() {
-    ["get-android", "get-android2"].forEach((id) => {
-      document.getElementById(id).textContent =
-        installPrompt ? "Install on this phone" : "Install on Android";
-    });
+    document.getElementById("get-android").textContent =
+      installPrompt && DEVICE === "android" ? "Install on this phone" : "Install on Android";
   }
 
-  async function android() {
+  async function install(kind) {
     if (installPrompt) {
       installPrompt.prompt();
       const choice = await installPrompt.userChoice.catch(() => null);
@@ -466,13 +465,14 @@
       if (choice && choice.outcome === "accepted") { setNote("Installing."); return; }
       setNote("Not installed. The steps below still work.");
     }
-    showSteps("android");
+    showSteps(kind);
   }
 
-  ["get-android", "get-android2"].forEach((id) => document.getElementById(id).addEventListener("click", android));
-  ["get-ios", "get-ios2"].forEach((id) => document.getElementById(id).addEventListener("click", () => showSteps("ios")));
+  document.getElementById("get-android").addEventListener("click", () => install("android"));
+  document.getElementById("get-ios").addEventListener("click", () => showSteps("ios"));
+  document.getElementById("get-desktop").addEventListener("click", () => install("desktop"));
 
-  if (DEVICE !== "desktop") showSteps(DEVICE === "ios" ? "ios" : "android");
+  showSteps(DEVICE);
   paintButtons();
 
   // Registering this is what makes the site installable at all: Chrome will not raise an install

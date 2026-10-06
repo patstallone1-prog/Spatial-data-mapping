@@ -8,8 +8,7 @@
 # and when it does the baseline is regenerated on purpose
 # (`python scripts/audit_corridor_render.py --baseline`); it may not make them worse.
 #
-# Deployment is Vercel's: it serves docs/ from every push to main (vercel.json). The old
-# GitHub Pages workflow (pages.yml) is manual only.
+# Deployment is Vercel's: it serves docs/ from main once a merged PR has passed (vercel.json, tools/vercel/gate.mjs).
 name: ci
 
 on:

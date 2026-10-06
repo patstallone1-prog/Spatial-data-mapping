@@ -137,9 +137,12 @@ def publish_regions(out: pathlib.Path) -> list[dict]:
             for data in sorted(site.iterdir()):
                 if data.is_file() and data.suffix in (".json", ".bin"):
                     copy_if_newer(data, target / data.name)
-            page = region_page(entry, site)
-            (target / "sf-corridor-3d.html").write_text(page)
-            (target / "index.html").write_text(page)
+            # Only the region's data: the app reads it from here (app-regions/<name>/app-model.html
+            # points its assets at this folder). The browser map website is retired, so no
+            # viewer page is published beside it (vercel.json sends its old addresses to the
+            # page that installs the app).
+            for stale in ("sf-corridor-3d.html", "index.html"):
+                (target / stale).unlink(missing_ok=True)
             facades = site / "facades"
             if facades.is_dir():
                 shutil.copytree(facades, target / "facades", dirs_exist_ok=True)
