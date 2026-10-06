@@ -17,7 +17,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGE = ROOT / "docs" / "sf-corridor-3d.html"
+# The app's own viewer (the browser map page it was cut from is no longer published).
+PAGE = ROOT / "docs" / "app-model.html"
 NODE = shutil.which("node")
 
 

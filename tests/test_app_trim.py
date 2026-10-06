@@ -27,7 +27,7 @@ def test_install_help_lives_on_landing_page_without_direct_map_links() -> None:
     for path in (ROOT / "tools/landing_template.html", ROOT / "docs/index.html"):
         page = path.read_text()
         assert 'id="get-android"' in page
-        assert 'id="get-ios"' in page
+        assert 'id="get-ios"' not in page
         assert 'id="open-app"' not in page
         assert 'id="save-app"' not in page
         assert 'fetch("app-regions.json"' in page

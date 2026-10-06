@@ -113,3 +113,7 @@ data/scans/*/inbox/
 # The retired Curb-measurements repository's stereo working set (six Mapillary frames and their
 # solved poses), kept on this machine for the curbmeasure research and, as there, not versioned.
 data/curbmeasure/curb-measurements-work/
+
+# The browser map page is retired: the builder still writes it beside its data, but it is
+# never published (the app is docs/app.html + docs/app-model.html).
+docs/sf-corridor-3d.html

@@ -2859,17 +2859,20 @@ function terrainHeightAt(x, z) {
   return 36;
 }
 const asLonLat = (xm, zm) => [xm / metersPerLon, -zm / metersPerLat];
+// Bush Street, across the cut on the deck over the mouth.
 const DATA = { ways: [{ tunnel_approach: "start", tunnel_approach_road_z: 29.3, road_m: 14,
-                        points: [asLonLat(60, 0), asLonLat(100, 0)] }] };
+                        points: [asLonLat(60, 0), asLonLat(100, 0)] },
+                      { kind: "street", road_m: 10, points: [asLonLat(97, -30), asLonLat(97, 30)] }] };
 """]
     parts += [_extract(name, js) for name in ("approachRoadAt", "groundLiftAt", "cutLiftAt", "wayFollowsCut")]
     parts.append(re.search(r"const CUT_ALONG_COS = [^;]+;", js).group(0))
-    for constant in ("APPROACH_CUT_MARGIN_M", "APPROACH_CUT_DECK_M"):
+    for constant in ("APPROACH_CUT_MARGIN_M",):
         found = re.search(rf"const {constant} = [0-9.]+;", js)
         assert found, constant
         parts.append(found.group(0))
     cuts = js[js.index("const APPROACH_CUT_REACH_M = "):]
-    parts.append(cuts[:cuts.index("\n});\n") + 4])
+    # The cuts, the mouths given cuts of their own, and how far a crossing street's deck reaches.
+    parts.append(cuts[:cuts.index("//: The cut's road level at a point inside a cut")])
     parts.append("""
 console.log(JSON.stringify({
   underDeck: cutLiftAt(97, 0), atMouth: cutLiftAt(100, 0), farEnd: cutLiftAt(61, 0),

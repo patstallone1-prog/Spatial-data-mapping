@@ -3036,6 +3036,10 @@ const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({
   canvas, antialias: true, alpha: false, logarithmicDepthBuffer: true,
 });
+// Each new shader was checked for errors by reading its program log at once, which waits for
+// the driver to finish compiling it: a whole-second stall the first time a house's windows,
+// a sign or a tree kind came into view. The shaders are the library's own; the check is off.
+if (renderer.debug) renderer.debug.checkShaderErrors = false;
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 // Without tone mapping the renderer clips: anything the lights push past 1.0 lands on pure
 // white and everything above that threshold flattens into the same colour. With a bright sky
@@ -3495,11 +3499,103 @@ const APPROACH_CUTS = (DATA.ways || []).flatMap((way) => {
   const reach = Math.max(away, APPROACH_CUT_REACH_M);
   const mouthZ = way.tunnel_approach_road_z;
   const farZ = terrainHeightAt(mx + ux * reach, mz + uz * reach);
-  return [{ mx, mz, ux, uz, reach, mouthZ, farZ, half: (way.road_m || 12) / 2 + APPROACH_CUT_MARGIN_M }];
+  return [{ mx, mz, ux, uz, reach, mouthZ, farZ, half: (way.road_m || 12) / 2 + APPROACH_CUT_MARGIN_M,
+            way }];
 });
-//: The mouth is the first lidar station with cover over the road, so the deck's edge may lie
-//: up to a station's spacing outside it: within this of the mouth a point may be on the deck.
-const APPROACH_CUT_DECK_M = 4.0;
+//: The retaining wall either side of a cut is drawn as a block this thick, its top at the
+//: ground outside: the terrain is lowered under it too, so the hill's slope down to the road
+//: lies behind the wall rather than in front of it.
+const CUT_WALL_T_M = 4.5;
+//: How steep a road outside a mouth may climb to meet the ground (a cut is ended there).
+const CUT_ROAD_GRADE = 0.09;
+// Every road tunnel's mouth has its cut, whether or not the map drew an approach piece for it:
+// the Stockton Tunnel's north mouth had none, and the hill ran down over its road.
+for (const way of (TERRAIN_FRAME ? DATA.ways || [] : [])) {
+  if (way.tunnel_kind !== "road" || !way.tunnel_mouths || !way.tunnel_road_z || !way.points || way.points.length < 2) continue;
+  const pts = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+  for (const end of ["start", "end"]) {
+    const mouth = way.tunnel_mouths[end], mouthZ = way.tunnel_road_z[end];
+    if (!mouth || mouthZ === undefined) continue;
+    const [x, y] = xy(mouth[0], mouth[1]);
+    const mx = x, mz = -y;
+    if (APPROACH_CUTS.some((c) => Math.hypot(c.mx - mx, c.mz - mz) < 15)) continue;
+    // Outward: from the bore's far end through this mouth.
+    const far = end === "start" ? pts[pts.length - 1] : pts[0];
+    let ux = mx - far[0], uz = mz - far[1];
+    const len = Math.hypot(ux, uz);
+    if (!(len > 1)) continue;
+    ux /= len; uz /= len;
+    // Out to where the ground comes down to a road that has climbed from the mouth at no more
+    // than a street's grade.
+    let reach = 60;
+    for (let r = 6; r <= 60; r += 2) {
+      if (terrainHeightAt(mx + ux * r, mz + uz * r) <= mouthZ + CUT_ROAD_GRADE * r + 0.4) { reach = Math.max(10, r + 4); break; }
+    }
+    const farZ = Math.min(terrainHeightAt(mx + ux * reach, mz + uz * reach), mouthZ + CUT_ROAD_GRADE * reach);
+    APPROACH_CUTS.push({ mx, mz, ux, uz, reach, mouthZ, farZ,
+      half: (way.road_m || 12) / 2 + APPROACH_CUT_MARGIN_M, way, synthesised: true });
+  }
+}
+// Every cut runs straight out along its own tunnel's line from that tunnel's mouth. A cut taken
+// from its approach piece pointed wherever the piece's far end lay -- Broadway's west approach
+// bends -- and its walls ran across the road at an angle to the headwall.
+for (const cut of APPROACH_CUTS) {
+  if (cut.synthesised) continue;
+  let best = null;
+  for (const way of DATA.ways || []) {
+    if (way.tunnel_kind !== "road" || !way.tunnel_mouths || !way.points || way.points.length < 2) continue;
+    const pts = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+    for (const end of ["start", "end"]) {
+      const m = way.tunnel_mouths[end];
+      if (!m) continue;
+      const [x, y] = xy(m[0], m[1]);
+      const d = Math.hypot(x - cut.mx, -y - cut.mz);
+      if (d < 15 && (!best || d < best.d)) {
+        const far = end === "start" ? pts[pts.length - 1] : pts[0];
+        best = { d, mx: x, mz: -y, far };
+      }
+    }
+  }
+  if (!best) continue;
+  let ux = best.mx - best.far[0], uz = best.mz - best.far[1];
+  const len = Math.hypot(ux, uz);
+  if (!(len > 1)) continue;
+  cut.mx = best.mx; cut.mz = best.mz; cut.ux = ux / len; cut.uz = uz / len;
+  cut.farZ = terrainHeightAt(cut.mx + cut.ux * cut.reach, cut.mz + cut.uz * cut.reach);
+}
+// A street carried over the mouth on a deck (Bush Street over the Stockton Tunnel's south mouth)
+// stands on the deck; the first metres outside a mouth with no such street are the cut's road.
+// ``deck`` is how far out from the mouth a crossing street's deck reaches; zero where none does.
+for (const cut of APPROACH_CUTS) {
+  let deck = 0, overhead = false;
+  for (const way of DATA.ways || []) {
+    if (way.kind !== "street" || way === cut.way || way.tunnel || way.tunnel_approach || !way.points) continue;
+    const pts = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+    for (let i = 1; i < pts.length; i += 1) {
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
+      const l = Math.hypot(bx - ax, bz - az);
+      if (!(l > 0.5)) continue;
+      if (Math.abs(((bx - ax) * cut.ux + (bz - az) * cut.uz) / l) > 0.6) continue;     // runs along the cut
+      const samples = Math.max(2, Math.ceil(l / 2));
+      for (let q = 0; q <= samples; q += 1) {
+        const t = q / samples;
+        const x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+        const along = (x - cut.mx) * cut.ux + (z - cut.mz) * cut.uz;
+        const off = Math.abs((x - cut.mx) * cut.uz - (z - cut.mz) * cut.ux);
+        if (along < -APPROACH_CUT_INSIDE_M - 2 || along > 14 || off > cut.half + 6) continue;
+        // A street across the cut whose road is up at the hill, not down in the cut.
+        if (terrainHeightAt(x, z) < cut.mouthZ + 2) continue;
+        overhead = true;
+        deck = Math.max(deck, Math.min(14, along + (way.road_m || 10) / 2));
+      }
+    }
+  }
+  // Where no street passes over the mouth there is one ground there, the cut's road, from a
+  // few metres inside the mouth out: the approach's own pieces run into the mouth, and given
+  // the hill's height there by one rule and the road's by another, the terrain fitting that
+  // subdivides them afterwards stretched them into ramps up the headwall.
+  cut.deck = overhead ? Math.max(0, deck) : -APPROACH_CUT_INSIDE_M;
+}
 //: The cut's road level at a point inside a cut, else null. ``outsideOnly`` leaves out the
 //: metres under and beside the deck's edge, where a point has two heights.
 function approachRoadAt(x, z, outsideOnly = false) {
@@ -3508,7 +3604,7 @@ function approachRoadAt(x, z, outsideOnly = false) {
     const along = dx * cut.ux + dz * cut.uz;
     // A few metres into the bore as well: the approach's own geometry runs a little past
     // the mouth, and under the deck there is nothing else at ground level.
-    if (along < (outsideOnly ? APPROACH_CUT_DECK_M : -APPROACH_CUT_INSIDE_M) || along > cut.reach + 0.5) continue;
+    if (along < (outsideOnly ? cut.deck : -APPROACH_CUT_INSIDE_M) || along > cut.reach + 0.5) continue;
     if (Math.abs(dx * cut.uz - dz * cut.ux) > cut.half) continue;
     const t = Math.max(0, Math.min(1, along / cut.reach));
     return cut.mouthZ + (cut.farZ - cut.mouthZ) * t;
@@ -3535,6 +3631,25 @@ function cutLiftAt(x, z) {
   const ground = terrainHeightAt(x, z);
   const road = approachRoadAt(x, z);
   return road === null ? ground : Math.min(ground, road);
+}
+//: The ground the terrain itself is drawn at. In the cut, from the mouth out, it is the cut's
+//: road -- under the retaining walls too, so the hill comes down behind them and not in front
+//: of them. Behind the mouth it is the hill, untouched: the headwall stands against it. (It
+//: used to be lowered six metres into the hill as well, which left a pit over the bore.)
+function trenchGroundAt(x, z) {
+  const ground = terrainHeightAt(x, z);
+  for (const cut of APPROACH_CUTS) {
+    const dx = x - cut.mx, dz = z - cut.mz;
+    const along = dx * cut.ux + dz * cut.uz;
+    // From just behind the headwall's face (which hides it): the grid runs at an angle to
+    // the cut, and a cell in front of the mouth whose far corner was on the hill stood up
+    // in the arch.
+    if (along < -1.5 || along > cut.reach + 0.5) continue;
+    if (Math.abs(dx * cut.uz - dz * cut.ux) > cut.half + CUT_WALL_T_M) continue;
+    const road = cut.mouthZ + (cut.farZ - cut.mouthZ) * Math.max(0, Math.min(1, along / cut.reach));
+    return Math.min(ground, road);
+  }
+  return ground;
 }
 //: Does this way run along a cut rather than over it? The approach pieces do; so does the
 //: street that continues out of the cut, whose bearing inside the strip is the cut's.
@@ -4200,7 +4315,7 @@ function backdropAt(x, z, apron = 0) {
   // Outside the grid the lookup clamps to the grid's edge cell, so the apron carries that
   // cell's land or water outward: water past a wet edge, land past a dry one -- unless the
   // perimeter, which has the map's coastline, says otherwise.
-  const edge = cutLiftAt(x, z);
+  const edge = trenchGroundAt(x, z);
   const wet = apron > 0 ? perimeterWaterAt(x, z) : null;
   const mappedWet = apron > 0 ? null : mappedWaterAt(x, z);
   if (mappedWet === true || (mappedWet === null && (wet === true || (wet === null && edge < WATERLINE_M)))) {
@@ -4234,7 +4349,19 @@ const TUBE_PORTAL_CUTS = (DATA.ways || []).flatMap((way) => {
                half: (way.road_m || 8.9) / 2 + 1.0 };
     });
 });
+//: How far into the hill the ground is opened behind a land tunnel's headwall, and how far out
+//: in front of it. The terrain is a 2 m grid and cannot step: across the mouth it ran as one
+//: slope from the cut's road up to the hill, and that slope stood in both arches as a grey
+//: fill. Opened, the arches show the bore; the headwall's crown cap closes the gap from above.
+const PORTAL_OPEN_IN_M = 4.0;
+const PORTAL_OPEN_OUT_M = 1.0;
 function inTubePortalOpening(x, z) {
+  for (const cut of APPROACH_CUTS) {
+    const dx = x - cut.mx, dz = z - cut.mz;
+    const along = dx * cut.ux + dz * cut.uz;
+    if (along < -PORTAL_OPEN_IN_M || along > PORTAL_OPEN_OUT_M) continue;
+    if (Math.abs(dx * cut.uz - dz * cut.ux) <= cut.half) return true;
+  }
   return TUBE_PORTAL_CUTS.some((cut) => {
     const dx = x - cut.x, dz = z - cut.z;
     const along = dx * cut.ux + dz * cut.uz;
@@ -4474,9 +4601,11 @@ function latticeAt(x, z) {
   if (!TERRAIN_FRAME) return TERRAIN_REFINE_M;
   const cx = Math.floor(x / LATTICE_CELL_M);
   const cz = Math.floor(z / LATTICE_CELL_M);
-  const key = `${cx}:${cz}`;
-  const known = latticeField.get(key);
+  // A number for the hot lookup (twice per edge cut, millions of times); the string only for
+  // the once-per-cell count of rings.
+  const known = latticeField.get(cx * 1048576 + cz);
   if (known !== undefined) return known;
+  const key = `${cx}:${cz}`;
   // Total incline: the angle of every step of the terrain grid across the cell, added up.
   const step = TERRAIN_FRAME.step_m;
   const x0 = cx * LATTICE_CELL_M;
@@ -4509,7 +4638,7 @@ function latticeAt(x, z) {
     const finer = LATTICE_BY_INCLINE.find(([, m]) => m < spacing);
     if (finer) spacing = finer[1];
   }
-  latticeField.set(key, spacing);
+  latticeField.set(cx * 1048576 + cz, spacing);
   return spacing;
 }
 
@@ -4521,7 +4650,14 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
   if (!position || (geometry.groups && geometry.groups.length)) return geometry;
   const names = ["position", "normal", "uv", "color"].filter((n) => geometry.getAttribute(n));
   const sources = names.map((n) => geometry.getAttribute(n));
-  const arrays = names.map((n, i) => Array.from(sources[i].array.subarray(0, sources[i].count * sources[i].itemSize)));
+  // Growable double arrays: the same values a plain array held, without the garbage its
+  // pushes made (the cut runs millions of times while the city is built).
+  const lengths = sources.map((a) => a.count * a.itemSize);
+  const arrays = sources.map((a, i) => {
+    const out = new Float64Array(Math.max(64, lengths[i] * 2));
+    out.set(a.array.subarray(0, lengths[i]));
+    return out;
+  });
   const sizes = sources.map((a) => a.itemSize);
   const index = geometry.index ? Array.from(geometry.index.array) : Array.from({ length: position.count }, (_, i) => i);
   let count = position.count;
@@ -4583,7 +4719,9 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
     if (count > REFINE_VERTEX_CAP) return -1;
     if (len >= Math.min(minEdge, lattice)) {
       let best = -1, bestOff = Infinity;
-      for (const [pa, pb, origin] of [[px(a), px(b), gridX], [pz(a), pz(b), gridZ]]) {
+      // Both axes in turn, x then z (no per-call arrays: this runs millions of times).
+      for (let axis = 0; axis < 2; axis += 1) {
+        const pa = axis ? pz(a) : px(a), pb = axis ? pz(b) : px(b), origin = axis ? gridZ : gridX;
         const lo = Math.min(pa, pb), hi = Math.max(pa, pb);
         for (let k = Math.floor((lo - origin) / lattice) + 1; origin + k * lattice < hi; k += 1) {
           const t0 = (origin + k * lattice - pa) / (pb - pa);
@@ -4617,7 +4755,14 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
     count += 1;
     for (let k = 0; k < arrays.length; k += 1) {
       const n = sizes[k];
-      for (let c = 0; c < n; c += 1) arrays[k].push(arrays[k][lo * n + c] * (1 - s) + arrays[k][hi * n + c] * s);
+      if (lengths[k] + n > arrays[k].length) {
+        const grown = new Float64Array(arrays[k].length * 2);
+        grown.set(arrays[k]);
+        arrays[k] = grown;
+      }
+      const arr = arrays[k];
+      for (let c = 0; c < n; c += 1) arr[lengths[k] + c] = arr[lo * n + c] * (1 - s) + arr[hi * n + c] * s;
+      lengths[k] += n;
     }
     cuts.set(key, m);
     return m;
@@ -4632,10 +4777,15 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
       const ab = Math.hypot(px(a) - px(b), pz(a) - pz(b));
       const bc = Math.hypot(px(b) - px(c), pz(b) - pz(c));
       const ca = Math.hypot(px(c) - px(a), pz(c) - pz(a));
-      // The longest edge that wants a cut is cut; the others come round again.
-      const order = [[ab, 0], [bc, 1], [ca, 2]].sort((u, v) => v[0] - u[0]);
+      // The longest edge that wants a cut is cut; the others come round again. (Longest first,
+      // ties in edge order, as the stable sort this replaces gave them -- without allocating.)
+      let e0 = 0, e1 = 1, e2 = 2, l0 = ab, l1 = bc, l2 = ca, tmp;
+      if (l1 > l0) { tmp = l0; l0 = l1; l1 = tmp; tmp = e0; e0 = e1; e1 = tmp; }
+      if (l2 > l1) { tmp = l1; l1 = l2; l2 = tmp; tmp = e1; e1 = e2; e2 = tmp; }
+      if (l1 > l0) { tmp = l0; l0 = l1; l1 = tmp; tmp = e0; e0 = e1; e1 = tmp; }
       let edge = -1, at = -1;
-      for (const [len, which] of order) {
+      for (let o = 0; o < 3; o += 1) {
+        const which = o === 0 ? e0 : o === 1 ? e1 : e2, len = o === 0 ? l0 : o === 1 ? l1 : l2;
         const t0 = which === 0 ? cutAt(a, b, len) : which === 1 ? cutAt(b, c, len) : cutAt(c, a, len);
         if (t0 >= 0) { edge = which; at = t0; break; }
       }
@@ -4648,7 +4798,7 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
   }
   if (!split) return geometry;
   const refined = new THREE.BufferGeometry();
-  names.forEach((n, k) => refined.setAttribute(n, new THREE.Float32BufferAttribute(arrays[k], sizes[k])));
+  names.forEach((n, k) => refined.setAttribute(n, new THREE.Float32BufferAttribute(arrays[k].subarray(0, lengths[k]), sizes[k])));
   refined.setIndex(out);
   refined.userData = geometry.userData;
   geometry.dispose();
@@ -4702,6 +4852,7 @@ async function settleOnto(rule) {
   const tops = new Map();
   const coverTops = new Map();
   const probes = new Map();
+  const topArrays = [], coverArrays = [];
   const standing = [];
   groups.streets.traverse((o) => { if (o.isMesh && o.geometry && rule.above[o.userData.surface] !== undefined) standing.push(o); });
   if (!standing.length) return 0;
@@ -4729,13 +4880,20 @@ async function settleOnto(rule) {
     for (const sample of samples) {
      tops.set(sample, new Float32Array(sample.count).fill(NaN));
      coverTops.set(sample, new Float32Array(sample.count).fill(NaN));
+     // Each vertex goes into the cells as (x, z, which sample, which vertex): the triangles are
+     // streamed past millions of these, and reading the position back through its attribute
+     // and the tops through a Map on every test was most of this pass's time.
+     const sid = topArrays.length;
+     topArrays.push(tops.get(sample));
+     coverArrays.push(coverTops.get(sample));
      for (let i = 0; i < sample.count; i += 1) {
-      const key = settleKey(sample.getX(i), sample.getZ(i));
+      const sx = sample.getX(i), sz = sample.getZ(i);
+      const key = settleKey(sx, sz);
       let list = buckets.get(key);
       if (!list) buckets.set(key, list = []);
-      list.push(sample, i);
-      const coarseX = Math.floor(sample.getX(i) / SETTLE_COARSE_M);
-      const coarseZ = Math.floor(sample.getZ(i) / SETTLE_COARSE_M);
+      list.push(sx, sz, sid, i);
+      const coarseX = Math.floor(sx / SETTLE_COARSE_M);
+      const coarseZ = Math.floor(sz / SETTLE_COARSE_M);
       const coarseKey = coarseX * 1048576 + coarseZ;
       let coarseList = coarseBuckets.get(coarseKey);
       if (!coarseList) {
@@ -4744,7 +4902,7 @@ async function settleOnto(rule) {
         if (!column) coarseByX.set(coarseX, column = new Map());
         column.set(coarseZ, coarseList);
       }
-      coarseList.push(sample, i);
+      coarseList.push(sx, sz, sid, i);
      }
     }
   }
@@ -4761,7 +4919,7 @@ async function settleOnto(rule) {
   const bases = [];
   groups.streets.traverse((o) => { if (o.isMesh && o.geometry && (rule.onto.has(o.userData.surface) || rule.occlude?.has(o.userData.surface))) bases.push(o); });
   for (const o of bases) {
-    const targetTops = rule.onto.has(o.userData.surface) ? tops : coverTops;
+    const targetArrays = rule.onto.has(o.userData.surface) ? topArrays : coverArrays;
     const position = o.geometry.getAttribute("position");
     const index = o.geometry.getIndex();
     const n = index ? index.count : position.count;
@@ -4800,15 +4958,14 @@ async function settleOnto(rule) {
         }
       }
       for (const list of candidates) {
-          for (let k = 0; k < list.length; k += 2) {
-            const pos = list[k], vi = list[k + 1];
-            const x = pos.getX(vi), z = pos.getZ(vi);
+          for (let k = 0; k < list.length; k += 4) {
+            const x = list[k], z = list[k + 1];
             const u = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d;
             const v = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d;
             const w = 1 - u - v;
             if (u < -1e-3 || v < -1e-3 || w < -1e-3) continue;
             const y = u * ay + v * by + w * cy;
-            const best = targetTops.get(pos);
+            const best = targetArrays[list[k + 2]], vi = list[k + 3];
             if (Number.isNaN(best[vi]) || y > best[vi]) best[vi] = y;
           }
       }
@@ -6355,11 +6512,12 @@ function inheritMesh(piece, mesh) {
   piece.frustumCulled = true;
   return piece;
 }
-function tileMesh(mesh) {
+function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_M],
+                  minVertices = MERGE_TILE_MIN_VERTICES) {
   const geometry = mesh.geometry;
   const position = geometry.getAttribute("position");
   // A multi-material geometry's index ranges are its material groups; cutting would move them.
-  if (!position || position.count < 2 * MERGE_TILE_MIN_VERTICES || (geometry.groups && geometry.groups.length)) return null;
+  if (!position || position.count < 2 * minVertices || (geometry.groups && geometry.groups.length)) return null;
   mesh.updateMatrixWorld(true);
   const index = geometry.getIndex();
   const triangles = Math.floor((index ? index.count : position.count) / 3);
@@ -6377,15 +6535,15 @@ function tileMesh(mesh) {
     centres[t * 2] = cx / 3; centres[t * 2 + 1] = cz / 3;
   }
   let byTile = null;
-  for (const size of [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_M]) {
+  for (const size of sizes) {
     const attempt = new Map();
     for (let t = 0; t < triangles; t += 1) {
-      const key = `${Math.floor(centres[t * 2] / size)}:${Math.floor(centres[t * 2 + 1] / size)}`;
+      const key = Math.floor(centres[t * 2] / size) * 1048576 + Math.floor(centres[t * 2 + 1] / size);
       let list = attempt.get(key);
       if (!list) attempt.set(key, list = []);
       list.push(t);
     }
-    if (position.count / attempt.size >= MERGE_TILE_MIN_VERTICES) { byTile = attempt; break; }
+    if (position.count / attempt.size >= minVertices) { byTile = attempt; break; }
   }
   if (!byTile || byTile.size < 2) return null;
   const names = ["position", "normal", "uv", "color"].filter((n) => geometry.getAttribute(n));
@@ -6419,6 +6577,33 @@ function tileMesh(mesh) {
   }
   geometry.dispose();
   return pieces;
+}
+//: The fine paint and kerb work is cut to a few decimetres so it lies on the hill (settleOnto,
+//: refineForTerrain), and was then drawn in four-hundred-metre tiles: a tile was drawn whole
+//: if any of it was in range, so crossings and lane lines a kilometre off -- under a pixel, or
+//: behind the blocks -- cost as much as the ones underfoot. Cut into these cells after it is
+//: laid, the same triangles are drawn only where DETAIL_RANGE_M says they can be seen.
+const FINE_SURFACE_CELL_M = {
+  crossing: 150, crossing_edges: 150, marking: 150, tactile_warning: 150, curb_ramp: 150,
+  kerb: 150, walk_underlay: 200, bike: 200, court_line: 200,
+};
+const FINE_SURFACE_MIN_VERTICES = 4000;
+function cellFineSurfaces(group) {
+  const meshes = [];
+  group.traverse((o) => {
+    if (o.isMesh && !o.isInstancedMesh && o.geometry && FINE_SURFACE_CELL_M[o.userData.surface]) meshes.push(o);
+  });
+  let cut = 0;
+  for (const mesh of meshes) {
+    const size = FINE_SURFACE_CELL_M[mesh.userData.surface];
+    const pieces = tileMesh(mesh, [size, 2 * size, 4 * size], FINE_SURFACE_MIN_VERTICES);
+    if (!pieces) continue;
+    const parent = mesh.parent;
+    parent.remove(mesh);
+    for (const piece of pieces) parent.add(piece);
+    cut += pieces.length;
+  }
+  return cut;
 }
 //: An instanced mesh is split where a tile would still hold this many instances: a tile of
 //: three conifers is a draw call for three trees.
@@ -6840,7 +7025,7 @@ function crossingRoadSpanPoints(points) {
   const seen = new Set();
   for (let gx = -1; gx <= 1; gx += 1) {
     for (let gz = -1; gz <= 1; gz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + gx}:${cz + gz}`);
+      const bucket = carriagewayGrid.get((cx + gx) * 1048576 + (cz + gz));
       if (!bucket) continue;
       for (const [rx0, rz0, rx1, rz1, half] of bucket) {
         const key = `${rx0}:${rz0}:${rx1}:${rz1}:${half}`;
@@ -7865,7 +8050,7 @@ function crosswiseCarriagewayAt(x, z, bearing, slack = 0.0, ownWay = null, minor
   const limitAngle = (BIKE_CROSS_ANGLE_DEG * Math.PI) / 180;
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half, other, source] of bucket) {
         if (ownWay && source === ownWay) continue;
@@ -7896,7 +8081,7 @@ function bikeCrossingBreakAt(x, z, bearing, slack = 0.0, ownWay = null) {
   let after = false;
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half, other, source] of bucket) {
         if (ownWay && source === ownWay) continue;
@@ -9358,7 +9543,8 @@ function addCarriagewaySegment(ax, az, bx, bz, half, source = null) {
   const maxZ = Math.floor((Math.max(az, bz) + half) / CARRIAGEWAY_CELL);
   for (let ix = minX; ix <= maxX; ix += 1) {
     for (let iz = minZ; iz <= maxZ; iz += 1) {
-      const key = `${ix}:${iz}`;
+      // A number, not a string: this grid is asked millions of times while the city is built.
+      const key = ix * 1048576 + iz;
       let bucket = carriagewayGrid.get(key);
       if (!bucket) carriagewayGrid.set(key, bucket = []);
       bucket.push([ax, az, bx, bz, half, bearing, source]);
@@ -10000,7 +10186,7 @@ function insideMeasuredCarriageway(x, z, slack) {
   const cz = Math.floor(z / CARRIAGEWAY_CELL);
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half, , source] of bucket) {
         if (!source || !MEASURED_ROAD_SOURCES.has(source.road_source)) continue;
@@ -10017,7 +10203,7 @@ function insideCarriageway(x, z, slack = 0.4) {
   const cz = Math.floor(z / CARRIAGEWAY_CELL);
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (bucket) {
         for (const [ax, az, bx, bz, half] of bucket) {
           const limit = Math.max(0, half - slack);
@@ -10043,7 +10229,7 @@ function onAnotherCarriageway(x, z, slack, exclude) {
   const cz = Math.floor(z / CARRIAGEWAY_CELL);
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half, , source] of bucket) {
         if (source && exclude.includes(source)) continue;
@@ -10162,7 +10348,7 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
     const cx = Math.floor(x / CARRIAGEWAY_CELL), cz = Math.floor(z / CARRIAGEWAY_CELL);
     for (let dx = -1; dx <= 1; dx += 1) {
       for (let dz = -1; dz <= 1; dz += 1) {
-        for (const [sax, saz, sbx, sbz, half, other] of carriagewayGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        for (const [sax, saz, sbx, sbz, half, other] of carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz)) || []) {
           if (other === undefined) continue;
           let difference = Math.abs(other - bearing) % Math.PI;
           if (difference > Math.PI / 2) difference = Math.PI - difference;
@@ -11383,7 +11569,7 @@ function junctionReachAt(x, z, bearing) {
   let reach = 0;
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half, other] of bucket) {
         if (other === undefined) continue;
@@ -11455,7 +11641,7 @@ function indexIntersections(nodes) {
     const cz = Math.floor(z / CARRIAGEWAY_CELL);
     for (let dx = -1; dx <= 1; dx += 1) {
       for (let dz = -1; dz <= 1; dz += 1) {
-        const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+        const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
         if (!bucket) continue;
         for (const [ax, az, bx, bz, wide] of bucket) {
           const slack = wide + 2.0;
@@ -15977,7 +16163,21 @@ const tunnelBores = [];
 //: The bore floor under (x, z), or null when (x, z) is in no bore.
 function tunnelFloorAt(x, z) {
   let best = null;
-  for (const { stations, half } of tunnelBores) {
+  for (const bore of tunnelBores) {
+    const { stations, half } = bore;
+    // Each bore's box, once: every height in the city is asked through here, and a point away
+    // from the bore is answered without walking its stations.
+    if (!bore._box || bore._box.n !== stations.length) {
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const st of stations) {
+        if (st.x < minX) minX = st.x; if (st.x > maxX) maxX = st.x;
+        if (st.z < minZ) minZ = st.z; if (st.z > maxZ) maxZ = st.z;
+      }
+      const pad = half + 0.3;
+      bore._box = { n: stations.length, minX: minX - pad, maxX: maxX + pad, minZ: minZ - pad, maxZ: maxZ + pad };
+    }
+    const box = bore._box;
+    if (x < box.minX || x > box.maxX || z < box.minZ || z > box.maxZ) continue;
     for (let i = 1; i < stations.length; i += 1) {
       const a = stations[i - 1], b = stations[i];
       const dx = b.x - a.x, dz = b.z - a.z;
@@ -16013,6 +16213,86 @@ function walkerGroundAt(x, z) {
   if (floor !== null) return floor;
   return groundLiftAt(x, z);
 }
+//: Whether a mapped wall runs in a cut's wall band (within a few metres of either side).
+function insideCutBand(way) {
+  if (!APPROACH_CUTS.length || !way.points) return false;
+  return way.points.every((p) => {
+    const [x, y] = xy(p[0], p[1]);
+    return APPROACH_CUTS.some((cut) => {
+      const dx = x - cut.mx, dz = -y - cut.mz;
+      const along = dx * cut.ux + dz * cut.uz;
+      const off = Math.abs(dx * cut.uz - dz * cut.ux);
+      return along > -3 && along < cut.reach + 3 && off > cut.half - 3 && off < cut.half + CUT_WALL_T_M + 3;
+    });
+  });
+}
+//: The cut's road level at ``along`` metres out from its mouth.
+function cutRoadAt(cut, along) {
+  return cut.mouthZ + (cut.farZ - cut.mouthZ) * Math.max(0, Math.min(1, along / cut.reach));
+}
+//: The retaining walls of every cut: on each side a block from the road up to the ground
+//: outside, CUT_WALL_T_M thick and capped, from the mouth out to where the ground has come down
+//: to the road. The terrain under the block is lowered with the cut (trenchGroundAt), so what
+//: stands either side of a tunnel's approach is a wall, not a slope of grass and asphalt.
+const CUT_WALL_STEP_M = 2.0;
+function addCutWalls() {
+  if (!APPROACH_CUTS.length) return 0;
+  const material = new THREE.MeshStandardMaterial({
+    map: WALL_TEXTURES.stone || (WALL_TEXTURES.stone = stoneWallTexture()),
+    color: 0xd2cec6, roughness: 0.95, metalness: 0.0, side: THREE.DoubleSide,
+  });
+  const positions = [], uvs = [], indices = [];
+  const quad = (a, b, c, d, uLen, vLen) => {
+    const base = positions.length / 3;
+    positions.push(...a, ...b, ...c, ...d);
+    uvs.push(0, 0, uLen / 3, 0, uLen / 3, vLen / 3, 0, vLen / 3);
+    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  let walls = 0;
+  for (const cut of APPROACH_CUTS) {
+    const { mx, mz, ux, uz } = cut;
+    for (const side of [-1, 1]) {
+      // n points across the cut, out to this side.
+      const nx = uz * side, nz = -ux * side;
+      const inner = cut.half, outer = cut.half + CUT_WALL_T_M;
+      const at = (along, off) => [mx + ux * along + nx * off, mz + uz * along + nz * off];
+      const steps = Math.max(2, Math.ceil(cut.reach / CUT_WALL_STEP_M));
+      let prev = null;
+      for (let k = 0; k <= steps; k += 1) {
+        const along = Math.min(cut.reach, k * CUT_WALL_STEP_M);
+        const road = cutRoadAt(cut, along);
+        const [ox, oz] = at(along, outer + 1.0);
+        const top = Math.max(road, terrainHeightAt(ox, oz));
+        const here = { along, road, top, i: at(along, inner), o: at(along, outer) };
+        if (prev && (prev.top - prev.road > 0.15 || here.top - here.road > 0.15)) {
+          const len = here.along - prev.along;
+          // The face to the cut, the cap, and the back.
+          quad([prev.i[0], prev.road - 0.3, prev.i[1]], [here.i[0], here.road - 0.3, here.i[1]],
+               [here.i[0], here.top, here.i[1]], [prev.i[0], prev.top, prev.i[1]], len, here.top - here.road);
+          quad([prev.i[0], prev.top, prev.i[1]], [here.i[0], here.top, here.i[1]],
+               [here.o[0], here.top, here.o[1]], [prev.o[0], prev.top, prev.o[1]], len, CUT_WALL_T_M);
+          quad([prev.o[0], prev.top, prev.o[1]], [here.o[0], here.top, here.o[1]],
+               [here.o[0], here.road - 0.3, here.o[1]], [prev.o[0], prev.road - 0.3, prev.o[1]], len, here.top - here.road);
+          walls += 1;
+        }
+        prev = here;
+      }
+    }
+  }
+  if (!indices.length) return 0;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  // "tunnel_*": built at its own heights, never lifted onto the ground again.
+  mesh.userData.surface = "tunnel_cut_wall";
+  mesh.castShadow = mesh.receiveShadow = true;
+  groups.streets.add(mesh);
+  return walls;
+}
+
 function addTunnel(way, renderPoints, roadWidth, roadTop) {
   // A road tunnel is the bore through the hill, at the level the lidar read for its road:
   // the ground less the cover measured over it at each station (measure_tunnel_portals.py).
@@ -16030,9 +16310,11 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   const covered = tunnelAxis(way, tunnelCoveredPoints(way, renderPoints));
   if (covered.length < 2) return null;
   const group = new THREE.Group();
+  // Darker than daylight concrete, as a bore is seen from the street: the lighter lining read
+  // as a grey slab filling the arch.
   const lining = new THREE.MeshStandardMaterial({
-    color: 0x6b6e72, roughness: 0.9, metalness: 0.02, side: THREE.DoubleSide,
-    emissive: 0x1c1d1f,
+    color: 0x45484c, roughness: 0.9, metalness: 0.02, side: THREE.DoubleSide,
+    emissive: 0x0b0c0d,
   });
   const concrete = new THREE.MeshStandardMaterial({
     color: 0x9d9e9a, roughness: 0.92, metalness: 0.0, side: THREE.DoubleSide, emissive: 0x141414,
@@ -16161,10 +16443,25 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
     const yaw = Math.atan2(inward.x, inward.z);
     const base = (mouthFloor[label] !== undefined ? mouthFloor[label] : groundLiftAt(here.x, here.z) + TUNNEL_FLOOR_M) - TUNNEL_FLOOR_M;
     // The headwall: one design at both ends, the arches cut through it, standing against
-    // the hillside at the bore's own level.
-    const W = width / 2 + TUNNEL_PORTAL_MARGIN_M;
+    // the hillside at the bore's own level. Across the whole cut and its retaining walls where
+    // the mouth has a cut, so the walls run into it, and up to the hill over the mouth, which
+    // it holds back: a fixed-height wall left the hillside showing above and around it.
+    const cut = APPROACH_CUTS.map((c) => ({ c, d: Math.hypot(c.mx - here.x, c.mz - here.z) }))
+      .filter((e) => e.d < 20).sort((a, b) => a.d - b.d)[0]?.c || null;
+    const W = cut ? Math.max(width / 2 + TUNNEL_PORTAL_MARGIN_M, cut.half + CUT_WALL_T_M)
+      : width / 2 + TUNNEL_PORTAL_MARGIN_M;
+    let hill = 0;
+    for (let off = -W; off <= W + 1e-6; off += W / 6) {
+      // Inside the mouth, across the wall's width and as far in as the ground is opened
+      // behind it: the ground the wall and its crown cap stand against.
+      for (const inM of cut ? [1.5, PORTAL_OPEN_IN_M + 1] : [1.5]) {
+        const sx = here.x - inward.z * off + inward.x * inM, sz = here.z + inward.x * off + inward.z * inM;
+        hill = Math.max(hill, terrainHeightAt(sx, sz) + 0.5 - (base + roadTop));
+      }
+    }
+    const HW = Math.min(30, Math.max(H, hill));
     const face = new THREE.Shape();
-    face.moveTo(-W, -0.3); face.lineTo(W, -0.3); face.lineTo(W, H); face.lineTo(-W, H); face.lineTo(-W, -0.3);
+    face.moveTo(-W, -0.3); face.lineTo(W, -0.3); face.lineTo(W, HW); face.lineTo(-W, HW); face.lineTo(-W, -0.3);
     for (const off of offsets) {
       const arch = tunnelArchShape(half, false, crown, spring).getPoints(28).map((q) => new THREE.Vector2(q.x + off, q.y));
       face.holes.push(new THREE.Path(arch));
@@ -16177,11 +16474,20 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
     portal.position.set(here.x, base + roadTop, here.z);
     portal.rotation.y = yaw;
     portal.userData.surface = "tunnel_portal";
-    portal.userData.headwallM = H;
+    portal.userData.headwallM = +HW.toFixed(2);
     portal.userData.boreWidthM = +boreWidth.toFixed(2);
     portal.userData.bores = bores;
     portal.userData.widthSource = approaches.length ? "sfmta_curbs_on_approach" : "road_width";
     portal.userData.coverM = measured[label] || null;
+    if (cut) {
+      // The crown cap: the ground behind the headwall is opened so the arches show the bore
+      // (inTubePortalOpening), and this closes that opening from above at the hill's level.
+      const depth = PORTAL_OPEN_IN_M + 1;
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(2 * W, 0.6, depth), portal.material);
+      cap.position.set(0, HW - 0.3, depth / 2);
+      cap.userData.surface = "tunnel_portal";
+      portal.add(cap);
+    }
     group.add(portal);
     halves.push({ label, width, bores, cover: measured[label] || null });
   }
@@ -16702,6 +17008,10 @@ for (const way of DRAW_ORDER) {
   // fell through to the street branch here and was drawn as a six-metre road across the lot.
   if (way.kind === "parking_aisle") continue;
   if (way.kind === "wall") {
+    // A wall the map draws along a tunnel's cut is that cut's retaining wall, which addCutWalls
+    // builds to the cut's own road and the ground above it; stood on the ground here it leaned
+    // across the cut, its foot on the road and its head on the hill.
+    if (insideCutBand(way)) continue;
     const wall = addWall(way);
     if (wall) addMerged(`wall:${/brick/i.test(way.material || "") ? "brick" : "stone"}`, wall, "wall");
     continue;
@@ -16989,6 +17299,7 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
   // No street names floating over the roads: point at a street and press S.
 }
 WAY_LIFT = null;   // nothing built after the streets belongs to one way's cut
+addCutWalls();
 
 //: Where the roadway between the kerbs has been filled (medians, islands, asphalt), in half
 //: metre cells, so nothing fills it twice.
@@ -17014,7 +17325,7 @@ function twinInnerEdgeAt(way, x, z, nx, nz) {
   let best = null;
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half, , source] of bucket) {
         // The other half, or the piece of the same street it becomes for its last metres
@@ -17232,7 +17543,7 @@ function carriagewaySourceAt(x, z, slack = 0.1) {
   let best = null;
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half, bearing, source] of bucket) {
         const d = Math.sqrt(distanceToSegmentSquared(x, z, ax, az, bx, bz));
@@ -19386,9 +19697,14 @@ for (const [name, label] of [["kerbs", "Standing the measured kerbs on the groun
   }
 }
 await settleOntoPavement();
+cellFineSurfaces(groups.streets);
 //: For anything driving the page -- the audit's photographs, a test -- the moment the streets
 //: are finished; the ground cover sets its own flag when it is down (see the ground fetch).
 window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { streets: true });
+// Every material's shader compiled now, in the background where the driver can (parallel
+// compile), rather than the first frame each thing comes into view -- a stall of up to a
+// second, every time, the first time a house, a sign or a tree kind appeared.
+if (renderer.compileAsync) renderer.compileAsync(scene, camera).catch(() => {});
 
 const districtColors = [0x1d4d58, 0x355038, 0x4a3e61, 0x5a4930, 0x533749, 0x29475f];
 DATA.districts.forEach((d, i) => {
@@ -19454,7 +19770,7 @@ function nearestKerbAt(x, z, reach = CURB_SNAP_REACH_M, alongX = null, alongZ = 
   let best = null;
   for (let dx = -span; dx <= span; dx += 1) {
     for (let dz = -span; dz <= span; dz += 1) {
-      const bucket = carriagewayGrid.get(`${cx + dx}:${cz + dz}`);
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (const [ax, az, bx, bz, half] of bucket) {
         const ux = bx - ax;
@@ -23236,7 +23552,10 @@ function updateHomeShells(x, z) {
 // same windows in the same places.
 const HOME_DECAL_SLICE = 300;
 const HOME_DECAL_OUT_M = 0.02;
-let homeDecalMesh = null;
+//: The decals are drawn in cells of this size, one instanced mesh each, so that the windows of
+//: houses beyond DETAIL_RANGE_M.house_window are not drawn at all.
+const HOME_DECAL_CELL_M = 250;
+let homeDecalMeshes = [];
 let homeDecalIndex = new Map();
 let homeDecalVersion = null;
 let homeDecalJob = null;
@@ -23272,9 +23591,12 @@ function homeDecalInputs() {
 function setHomeDecalsVisible(id, visible) {
   if (visible) homeDecalHidden.delete(id); else homeDecalHidden.add(id);
   const list = homeDecalIndex.get(id);
-  if (!homeDecalMesh || !list) return;
-  for (const i of list) homeDecalMesh.setMatrixAt(i, visible ? homeDecalMesh.userData.matrices[i] : HOME_DECAL_ZERO);
-  homeDecalMesh.instanceMatrix.needsUpdate = true;
+  if (!list) return;
+  for (let k = 0; k < list.length; k += 2) {
+    const mesh = list[k], i = list[k + 1];
+    mesh.setMatrixAt(i, visible ? mesh.userData.matrices[i] : HOME_DECAL_ZERO);
+    mesh.instanceMatrix.needsUpdate = true;
+  }
 }
 function pumpHomeDecals() {
   if (!homeDecalJob) {
@@ -23283,8 +23605,8 @@ function pumpHomeDecals() {
     // The first pass waits a little for the doors and the photographed openings, so a house's
     // windows are laid out once as the page opens rather than twice.
     if (homeDecalVersion === null && !(INTERIORS_SETTLED && HOME_OPENINGS_SETTLED)) return;
-    homeDecalJob = { inputs, ids: [...HOME_RENDER.keys()], next: 0, matrices: [], index: new Map(),
-      layouts: new Map() };
+    homeDecalJob = { inputs, ids: [...HOME_RENDER.keys()], next: 0, cells: new Map(), index: new Map(),
+      layouts: new Map(), windows: 0 };
   }
   const job = homeDecalJob;
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3();
@@ -23296,32 +23618,46 @@ function pumpHomeDecals() {
     const layout = homeWindowLayout(entry, spec);
     if (!layout) continue;
     job.layouts.set(id, layout);
-    const list = [];
+    // A house's windows all go in the cell of its first corner, so they come and go together.
+    const cellKey = Math.floor(entry.local[0][0] / HOME_DECAL_CELL_M) * 1048576 + Math.floor(entry.local[0][1] / HOME_DECAL_CELL_M);
+    let cell = job.cells.get(cellKey);
+    if (!cell) job.cells.set(cellKey, cell = { matrices: [], owners: [] });
     for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
       q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
       for (const o of windows) {
         p.set(a[0] + ux * (o.u + o.w / 2) - nx * HOME_DECAL_OUT_M, o.v + o.h / 2,
           a[1] + uz * (o.u + o.w / 2) - nz * HOME_DECAL_OUT_M);
         sc.set(o.w, o.h, 1);
-        list.push(job.matrices.length);
-        job.matrices.push(m.compose(p, q, sc).clone());
+        cell.owners.push(id);
+        cell.matrices.push(m.compose(p, q, sc).clone());
+        job.windows += 1;
       }
     }
-    if (list.length) job.index.set(id, list);
   }
   if (job.next < job.ids.length) return;
-  // The pass is done: swap it in whole.
-  const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), homeDecalMaterial, Math.max(1, job.matrices.length));
-  mesh.count = job.matrices.length;
-  mesh.userData = { surface: "house_window", matrices: job.matrices, grade: "procedural_or_photographed_openings" };
-  for (let i = 0; i < job.matrices.length; i += 1) mesh.setMatrixAt(i, job.matrices[i]);
-  for (const id of homeDecalHidden) for (const i of job.index.get(id) || []) mesh.setMatrixAt(i, HOME_DECAL_ZERO);
-  mesh.instanceMatrix.needsUpdate = true;
-  mesh.receiveShadow = true;
-  mesh.computeBoundingSphere();
-  if (homeDecalMesh) { root.remove(homeDecalMesh); homeDecalMesh.geometry.dispose(); homeDecalMesh.dispose(); }
-  homeDecalMesh = mesh;
-  root.add(mesh);
+  // The pass is done: swap it in whole, a mesh a cell.
+  const geometry = new THREE.PlaneGeometry(1, 1);
+  const meshes = [];
+  for (const cell of job.cells.values()) {
+    if (!cell.matrices.length) continue;
+    const mesh = new THREE.InstancedMesh(geometry, homeDecalMaterial, cell.matrices.length);
+    mesh.userData = { surface: "house_window", matrices: cell.matrices, grade: "procedural_or_photographed_openings" };
+    for (let i = 0; i < cell.matrices.length; i += 1) {
+      const id = cell.owners[i];
+      mesh.setMatrixAt(i, homeDecalHidden.has(id) ? HOME_DECAL_ZERO : cell.matrices[i]);
+      let list = job.index.get(id);
+      if (!list) job.index.set(id, list = []);
+      list.push(mesh, i);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.receiveShadow = true;
+    mesh.computeBoundingSphere();
+    meshes.push(mesh);
+  }
+  for (const old of homeDecalMeshes) { root.remove(old); old.dispose(); }
+  if (homeDecalMeshes.length) homeDecalMeshes[0].geometry.dispose();
+  homeDecalMeshes = meshes;
+  for (const mesh of meshes) root.add(mesh);
   homeDecalIndex = job.index;
   homeDecalVersion = job.inputs;
   for (const [id, layout] of job.layouts) {
@@ -23329,7 +23665,7 @@ function pumpHomeDecals() {
     if (entry) entry.decalLayout = layout;
   }
   homeDecalStats.houses = job.index.size;
-  homeDecalStats.windows = job.matrices.length;
+  homeDecalStats.windows = job.windows;
   homeDecalStats.passes += 1;
   homeDecalJob = null;
 }
@@ -24156,6 +24492,9 @@ window.kerbsideFrameStats = () => ({ samples: frameSamples ? frameSamples.length
 const DETAIL_RANGE_M = {
   kerb: 500, marking: 400, crossing_edges: 400, crossing: 700, walk_underlay: 600, footprint: 600,
   wall: 800, front_walk: 700, tree_pit: 400, "tree:street": 1200, "tree:broad": 1500, "tree:columnar": 1200,
+  // A warning pad is under a metre across and a ramp not much more: past these they are under
+  // a pixel. A court's lines are five centimetres; a bike lane's green reads further off.
+  tactile_warning: 300, curb_ramp: 350, court_line: 500, bike: 900, house_window: 900,
   "furniture:post": 500, "furniture:sign_plate": 400, "furniture:sign_back": 400, "furniture:bike_rack": 300,
   "furniture:shelter": 900, "furniture:curb_zone": 500, "furniture:bus_zone": 700, sign: 400, detail: 700,
   roof_furniture: 600,

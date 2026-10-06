@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGE = ROOT / "docs" / "sf-corridor-3d.html"
+PAGE = ROOT / "docs" / "app-model.html"
 GRID = ROOT / "docs" / "sf-corridor-terrain.bin"
 PAYLOAD = ROOT / "docs" / "sf-corridor-3d.json"
 

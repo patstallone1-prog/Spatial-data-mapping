@@ -44,10 +44,13 @@ def test_install_controls_reach_the_published_app() -> None:
     assert "github.io" not in page
     assert "Open the map" not in page and "sf-corridor-3d.html" not in page
     assert 'href="app.html"' not in page
-    for control in ("get-android", "get-ios", "get-desktop"):
+    for control in ("get-android", "get-desktop"):
         assert f'id="{control}"' in page
-    assert "Install on Android" in page and "Install on Apple" in page
-    assert "Install on this computer" in page
+    assert "Install on Android" in page and "Install on this computer" in page
+    # No Apple install path, and no menu of instructions: the buttons install, nothing else.
+    assert 'id="get-ios"' not in page and "Install on Apple" not in page and "Install on iPhone" not in page
+    assert "Add to Home Screen" not in page and "Add to Dock" not in page
+    assert 'class="steps"' not in page and "STEPS" not in page
     assert "Download for Samsung" not in page and "Download for iPhone" not in page
 
 
