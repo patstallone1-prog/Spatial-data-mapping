@@ -36,7 +36,7 @@ def test_walker_scales_orbit_speed_and_clicks_move_without_dragging() -> None:
     assert "const STREET_SPEED = 8.94;" in source
     assert "const FIRST_PERSON_SPEED = 5.36;" in source
     assert "const scaled = avatarMoveSpeed();" in source
-    assert "if (state.firstPerson || state.ceilingRoom) return FIRST_PERSON_SPEED;" in source
+    assert "if (state.firstPerson) return FIRST_PERSON_SPEED;" in source
     assert "firstBuildingCollision(" in source
     assert "if (!held.size || dragging)" in source
     pointer = source.split('canvas.addEventListener("pointerup",', 1)[1]

@@ -3,6 +3,7 @@
   "framework": null,
   "installCommand": "",
   "buildCommand": "echo 'docs/ is built locally by tools/build_all.sh and committed; nothing to build'",
+  "ignoreCommand": "node tools/vercel/gate.mjs",
   "outputDirectory": "docs",
   "cleanUrls": false,
   "trailingSlash": false,
@@ -10,21 +11,42 @@
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache" },
-        { "key": "Service-Worker-Allowed", "value": "/" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
       ]
     },
     {
       "source": "/manifest.webmanifest",
-      "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        }
+      ]
     },
     {
       "source": "/(.*)\\.glb",
-      "headers": [{ "key": "Content-Type", "value": "model/gltf-binary" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
     },
     {
       "source": "/tiles/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
     }
   ]
 }

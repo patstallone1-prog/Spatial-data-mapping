@@ -39,7 +39,7 @@ def facades() -> dict:
     done = [c for c in chunks if (ROOT / f"docs/facades/{c['key']}/manifest.json").exists()]
     manifests = [ROOT / f"docs/facades/{c['key']}/manifest.json" for c in done]
     walls = sum(len(json.loads(m.read_text())["walls"]) for m in manifests)
-    state = "running" if running("run_facades_background.sh|build_facades.py") else (
+    state = "running" if running("run_facades_background.sh") else (
         "complete" if len(done) == len(chunks) else "idle")
     return {"task": "photographed facades", "state": state,
             "progress": f"{len(done)}/{len(chunks)} chunks, {walls} walls textured",
@@ -75,6 +75,35 @@ def furniture() -> dict:
             "last": last_line(log)}
 
 
+def facades_regions() -> dict:
+    status = BUILD / "facades-regions.status.json"
+    data = json.loads(status.read_text()) if status.exists() else {}
+    rows = data.get("regions", {})
+    done = sum(r["chunks_done"] for r in rows.values())
+    total = sum(r["chunks_total"] for r in rows.values())
+    walls = sum(r["walls"] for r in rows.values())
+    state = "running" if running("run_facades_regions_background.sh") else data.get("state", "not started")
+    return {"task": "photographed facades: other regions", "state": state,
+            "progress": f"{done}/{total} chunks done, {walls} walls textured"
+                        + (f"; now {data['current']}" if data.get("current") else ""),
+            "journal": "build/facades-regions.log", "last": last_line(BUILD / "facades-regions.log")}
+
+
+def photo_materials() -> dict:
+    out = ROOT / "data/sf_public_works/facade_photo_materials.json"
+    data = json.loads(out.read_text()) if out.exists() else {}
+    buildings = data.get("buildings", {})
+    classed = sum(1 for b in buildings.values() if b.get("class"))
+    coloured = sum(1 for b in buildings.values() if b.get("colour"))
+    state = "running" if running("build_facade_photo_materials.py") else (
+        "complete" if data and data.get("walls_read") == data.get("walls_total") else "partial")
+    return {"task": "wall cladding & colour from photos", "state": state,
+            "progress": f"{data.get('walls_read', 0)}/{data.get('walls_total', 0)} walls read; "
+                        f"{classed} buildings classed, {coloured} coloured",
+            "journal": "build/facade-photo-materials/sf-corridor.jsonl",
+            "last": last_line(BUILD / "facade-photo-materials.log")}
+
+
 def photo_mesh() -> dict:
     # The dense photogrammetric mesh needs COLMAP (src/smc/reconstruction/colmap_runner.py)
     # and the source frames; neither is on this machine.
@@ -88,7 +117,7 @@ def photo_mesh() -> dict:
 
 
 def main() -> None:
-    rows = [facades(), *photo_objects(), furniture(), photo_mesh()]
+    rows = [facades(), facades_regions(), photo_materials(), *photo_objects(), furniture(), photo_mesh()]
     report = {"generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "tasks": rows}
     BUILD.mkdir(exist_ok=True)
     (BUILD / "background-status.json").write_text(json.dumps(report, indent=2) + "\n")

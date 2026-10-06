@@ -52,6 +52,23 @@ CHUNK_LAYER = ROOT / "docs" / "sf-corridor-chunks.json"
 TEXTURE_ROOT = ROOT / "docs" / "facades"
 CACHE = ROOT / "build" / "facade-cache"
 
+
+def configure_region(region: str) -> None:
+    """Point the survey, the catalogue and the output at another built region: its page's
+    payload and imagery under data/regions/<region>/, its chunks and textures in its site
+    folder, where the region's page build reads them (build_sf_corridor_3d.py --region)."""
+    global MAP_JSON, CATALOG, CHUNK_LAYER, TEXTURE_ROOT
+    if region == "sf-corridor":
+        return
+    base = ROOT / "data" / "regions" / region
+    MAP_JSON = base / "site" / "sf-corridor-3d.json"
+    CATALOG = base / "catalog" / "observations" / "external-000.parquet"
+    CHUNK_LAYER = base / "site" / "sf-corridor-chunks.json"
+    TEXTURE_ROOT = base / "site" / "facades"
+    for path in (MAP_JSON, CATALOG):
+        if not path.exists():
+            raise SystemExit(f"{region}: {path} is missing")
+
 #: How much disk the image cache may hold. It is a cache and nothing else -- every frame in it
 #: can be fetched again from the provider -- but an unbounded one filled the disk mid-run and
 #: killed a colour sample that was two thirds of the way through. Sampling the corridor's twelve
@@ -486,6 +503,8 @@ def extract(chunk: Chunk, state: dict, *, limit: int | None, workers: int,
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--survey", action="store_true", help="rank every chunk and stop")
+    ap.add_argument("--region", default="sf-corridor",
+                    help="a built region under data/regions/ (default: the corridor)")
     ap.add_argument("--chunk", help="chunk key to texture, or 'best'")
     ap.add_argument("--size-m", type=float, default=250.0)
     ap.add_argument("--limit", type=int, default=None, help="cap walls, for a quick look")
@@ -496,6 +515,7 @@ def main() -> int:
                          "FACADE_MAX_EDGE_PX, keeping its manifest, its wall set and the chunk "
                          "layer; a wall that no longer passes the gates keeps its old texture")
     args = ap.parse_args()
+    configure_region(args.region)
 
     def progress(message: str) -> None:
         print(message, flush=True)

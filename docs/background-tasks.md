@@ -10,7 +10,9 @@
 | Photo objects (openings per building) | `scripts/build_photo_world_objects.py --region R` | `data/regions/R/world/photo_objects.journal.jsonl` (fsynced per building) and `photo_objects.summary.json` | the journal's source hash: an unchanged building is not redone |
 | Window sidecar | `scripts/build_home_openings.py` | `docs/sf-corridor-home-openings.json` (merged from every region's journal) | re-running it |
 | Street furniture & electrical | `build/furniture-refresh.sh` driving `scripts/build_street_furniture.py --region R --refresh` | `build/furniture-refresh.log` | re-running a region (an empty Overpass answer is now a failure, not cached) |
-| Photogrammetric mesh | `src/smc/reconstruction/colmap_runner.py` | `docs/photogrammetry-audit-2026-09.md` | blocked: COLMAP is not installed and the source frame corpus is not on this machine |
+| Photographed facades, other regions | `scripts/run_facades_regions_background.sh` driving `scripts/build_facades.py --region R --chunk K` | `build/facades-regions.log`, `build/facades-regions.status.json`, each chunk's `data/regions/R/site/facades/<chunk>/manifest.json` | skipping every chunk with a manifest (and any listed in `.failed`) |
+| Wall cladding and colour from photos | `scripts/build_facade_photo_materials.py --region R` (CLIP zero-shot + median wall colour per photographed wall) | `build/facade-photo-materials/R.jsonl` (one line per wall, flushed), then `facade_photo_materials.json` | skipping walls already in the journal; `scripts/build_material_assignments.py` publishes the result |
+| Photogrammetric mesh (sparse pilot) | `scripts/run_photo_mesh_pilot.py --region R` (COLMAP SfM over the cached street frames, densest 60 m cells first) | `build/photo-mesh/journal.jsonl`, `build/photo-mesh.log` | skipping cells in the journal; dense stereo needs a CUDA machine |
 
 ## State on 2026-10-04
 
@@ -30,6 +32,10 @@
   street (1,095 in the corridor). No ALL WAY plaques; the inventory's street-name points give
   way to the corner posts.
 - Interior scans: removed (assets, page code, scripts and tests).
+- Houses (2026-10-05): every house's windows are one layout (`homeWindowLayout`) drawn as decals
+  from the street and as real glass in the shell near the walker; none touches the ground.
+- Wall classification: 13,567 corridor walls read; 7,302 buildings, 2,230 classed by CLIP
+  (150 clapboard, 119 vinyl siding among them), 7,080 given a photographed colour.
 
 ## Unreal
 
