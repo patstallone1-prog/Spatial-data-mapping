@@ -287,14 +287,23 @@ def test_photo_openings_reversed_wall_keeps_original_edge_coordinates():
 def test_imported_furniture_hashes_and_gltf_dependencies():
     root = ROOT / "docs/interior-assets"
     manifest = json.loads((root / "manifest.json").read_text())
-    assert len(manifest["assets"]) >= 4
+    assert len(manifest["assets"]) >= 30
+    roles = {asset["role"] for asset in manifest["assets"]}
+    for role in ("sofa", "bed", "dresser", "nightstand", "tv_stand", "coffee_table", "ceiling_lamp", "bulb"):
+        assert role in roles, role
     for asset in manifest["assets"]:
-        assert asset["license"] == "CC0-1.0"
+        # Poly Haven's are CC0; Google's scans are CC BY and carry their credit.
+        assert asset["license"] in ("CC0-1.0", "CC-BY-4.0")
+        if asset["license"] == "CC-BY-4.0":
+            assert "Google" in asset["attribution"] and asset["source"].startswith("https://")
         for file in asset["files"]:
             data = (root / file["path"]).read_bytes()
             assert len(data) == file["bytes"]
             assert hashlib.sha256(data).hexdigest() == file["sha256"]
         model = root / asset["model"]
+        if model.suffix == ".glb":
+            assert model.read_bytes()[:4] == b"glTF"
+            continue
         gltf = json.loads(model.read_text())
         for row in gltf.get("buffers", []) + gltf.get("images", []):
             assert (model.parent / row["uri"]).is_file()
