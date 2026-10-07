@@ -3245,7 +3245,20 @@ Object.values(groups).forEach((g) => root.add(g));
   });
   const current = list.find((r) => new URL(root + r.path, location.href).pathname.replace(/[^/]*$/, "") === here);
   document.getElementById("regionnote").textContent = current && current.note ? current.note : "";
-  group.hidden = false;
+  // One world: there is no region to choose. Every built region is in the model -- in full where
+  // you are, as the tile tree's simple blocks everywhere else -- and wherever you go, by search,
+  // on foot, or by bringing the camera down over a place and letting it settle, the place you
+  // arrive in is drawn in full (its region's model is loaded, arriving where you were looking).
+  group.hidden = true;
+  setInterval(() => {
+    // Not until the page is built and drawing (the timers below are declared with it).
+    if (!window.kerbside || !window.kerbsideOpenFullRegionAt) return;
+    if (state.firstPerson || state.dist > REGION_ENTER_DIST_M) return;
+    if (performance.now() - Math.max(lastMovedAt, lastInputAt) < REGION_SETTLE_MS) return;
+    const lon = midLon + state.target.x / metersPerLon;
+    const lat = midLat - state.target.z / metersPerLat;
+    window.kerbsideOpenFullRegionAt(lon, lat);
+  }, 1000);
   //: How much of the screen a region should fill when you are flown to it: far enough out that
   //: its whole box is in view, which for a two-kilometre district is about two kilometres up.
   const REGION_FRAME = 1.4;
@@ -3312,6 +3325,10 @@ Object.values(groups).forEach((g) => root.add(g));
 //: Closer than this to a region's marker you are at the region, and the tile tree is drawing
 //: its streets: the label comes off.
 const REGION_MARKER_HIDE_M = 2500.0;
+//: Brought down within this of the ground over another region, and left there this long, the
+//: camera is somewhere: that region's full model is loaded.
+const REGION_ENTER_DIST_M = 700;
+const REGION_SETTLE_MS = 1500;
 const regionMarkers = new THREE.Group();
 regionMarkers.name = "regionMarkers";
 scene.add(regionMarkers);
@@ -22082,6 +22099,29 @@ document.getElementById("reset").addEventListener("click", () => {
       lon: way.centroid[0], lat: way.centroid[1],
     });
   }
+  // Every other region's corners and addresses (tools/build_search_index.py), fetched the first
+  // time anyone types: a place across the bay is found the same way as one down the street, and
+  // travelling to it hands over to that region's full model -- no region to choose first.
+  const elsewhere = { corners: [], addresses: [], loading: null };
+  function loadElsewhere() {
+    if (elsewhere.loading) return elsewhere.loading;
+    const index = document.querySelector('meta[name="kerbside-regions"]')?.content;
+    if (!index) return (elsewhere.loading = Promise.resolve());
+    const url = new URL("search-index.json", new URL(index, location.href));
+    elsewhere.loading = fetch(url.href).then((r) => (r.ok ? r.json() : null)).then((all) => {
+      if (!all) return;
+      const titles = (all.regions || []).map((r) => r.title);
+      const take = (rows) => rows
+        // This region's own places are searched from its own payload above.
+        .filter(([, lon, lat]) => !tileOwnGround(lon, lat))
+        .map(([label, lon, lat, r]) => ({ label: `${label} · ${titles[r] || ""}`,
+          hay: `${label} ${titles[r] || ""}`.toLowerCase(), lon, lat }));
+      elsewhere.corners = take(all.corners || []);
+      elsewhere.addresses = take(all.addresses || []);
+      if (field.value) { showing = search(field.value); selected = showing.length ? 0 : -1; paint(); }
+    }).catch(() => {});
+    return elsewhere.loading;
+  }
   let selected = -1;
   let showing = [];
 
@@ -22100,12 +22140,16 @@ document.getElementById("reset").addEventListener("click", () => {
     const words = query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
     if (!words.length) return [];
     const numbered = /^\d/.test(words[0]);
-    const first = numbered ? match(addresses, words, 8) : match(corners, words, 8);
-    if (first.length >= 8) return first;
-    const second = numbered
-      ? match(corners, words, 8 - first.length)
-      : match(addresses, words, 8 - first.length);
-    return first.concat(second);
+    // Here first, then everywhere else that is mapped.
+    const order = numbered
+      ? [addresses, corners, elsewhere.addresses, elsewhere.corners]
+      : [corners, addresses, elsewhere.corners, elsewhere.addresses];
+    let found = [];
+    for (const list of order) {
+      if (found.length >= 8) break;
+      found = found.concat(match(list, words, 8 - found.length));
+    }
+    return found;
   }
 
   function paint() {
@@ -22133,7 +22177,9 @@ document.getElementById("reset").addEventListener("click", () => {
     paint();
   }
 
+  field.addEventListener("focus", loadElsewhere);
   field.addEventListener("input", () => {
+    loadElsewhere();
     showing = search(field.value);
     selected = showing.length ? 0 : -1;
     paint();

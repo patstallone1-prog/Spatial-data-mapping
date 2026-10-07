@@ -18,3 +18,5 @@ $PY scripts/build_sf_corridor_3d.py --page-only --detail app --out build/app-vie
 $PY tools/build_pages.py
 # And the app-only regional viewers made from it (docs/app-model.html, docs/app-regions/).
 $PY tools/build_app_worlds.py
+# One search across every built region (docs/search-index.json).
+$PY tools/build_search_index.py

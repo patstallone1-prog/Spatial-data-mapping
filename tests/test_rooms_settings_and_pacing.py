@@ -147,3 +147,20 @@ def test_model_glass_never_turns_on_the_transmission_pass() -> None:
     assert "m.transmission > 0" in glass
     assert "plainGlass(gltf.scene)" in _extract("interiorModel", js)
     assert "plainGlass(gltf.scene)" in _extract("loadInteriorAsset", js)
+
+
+def test_one_world_search_reaches_every_region_and_no_region_is_chosen() -> None:
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    index = json.loads((root / "docs/search-index.json").read_text())
+    built = [r for r in json.loads((root / "docs/app-regions.json").read_text())["regions"] if r.get("built")]
+    assert len(index["regions"]) == len(built) >= 2
+    names = {r["name"] for r in index["regions"]}
+    regions_with_rows = {index["regions"][row[3]]["name"] for row in index["addresses"]}
+    assert regions_with_rows == names, "every built region's addresses are searchable"
+    js = _page_js()
+    assert "new URL(\"search-index.json\"" in js and "elsewhere.addresses" in js
+    # Travelling to a hit elsewhere loads that region's full model; no picker to choose it from.
+    assert "window.kerbsideOpenFullRegionAt(place.lon, place.lat)" in js
+    assert "group.hidden = true;" in js and "group.hidden = false;" not in js
+    assert "state.dist > REGION_ENTER_DIST_M" in js and "REGION_SETTLE_MS" in js
