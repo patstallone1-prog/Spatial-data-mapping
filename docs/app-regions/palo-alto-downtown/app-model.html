@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="f003560e7b14ef40f8b326f55fb21eee5236b69c5b021ab3168ade37f545a474" />
+<meta name="kerbside-renderer-sha256" content="20719ff96eaf7904cb9a88343e370443a3d659aec300d9b481f72763bb398c53" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -155,7 +155,19 @@ import * as THREE from "https://esm.sh/three@0.160.0";
 // are served from. Empty means beside this page (GitHub Pages); tools/build_pages.py sets it
 // to an object-storage origin when the assets are published there instead, so the page in
 // git stays small and the data lives where a city's worth of it can.
-const ASSET_BASE = (document.querySelector('meta[name="kerbside-assets"]') || {}).content || "";
+// One world, many regions: this same code runs again, in the same page, for every region the
+// walker goes to (attachRegion, below). Run that way -- "attached" -- it is handed the page's
+// renderer and its region's asset folder, builds its region's world into a group the page places
+// in its own scene, and draws nothing, listens to nothing and shows nothing of its own; its
+// document and window are stand-ins the page gives it (see guestSource).
+const ATTACH = globalThis.__kerbsideGuest || null;
+//: The region drawn in full besides this page's own, once the walker has gone there; whether this
+//: page's own world is still drawn; and the built regions, from the page's region index.
+let activeGuest = null;
+let hostWorldActive = true;
+const REGION_INDEX = { list: [], root: "", host: null };
+const ASSET_BASE = ATTACH ? ATTACH.assets
+  : (document.querySelector('meta[name="kerbside-assets"]') || {}).content || "";
 const asset = (name) => (ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
 const sharedAsset = (name) => new URL(name, new URL(
   document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href;
@@ -166,7 +178,8 @@ import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GL
 // still leaves the renderer's local-road-width fallback available.
 const EMPTY_DETAIL_MANIFEST = { shards: [], offline_assets: [] };
 const EMPTY_WORLD_OBJECTS = { objects: [] };
-const VISUAL_SUPPORT_URL = (document.querySelector('meta[name="kerbside-visual-support"]') || {}).content || "";
+const VISUAL_SUPPORT_URL = ATTACH ? ATTACH.visualSupport || ""
+  : (document.querySelector('meta[name="kerbside-visual-support"]') || {}).content || "";
 const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS] = await Promise.all([
   fetch("sf-corridor-3d.json", { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
@@ -195,8 +208,9 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
   // the regions (scripts/build_perimeter.py). One file for every page, in a frame of its own;
   // each row is run lengths, land first, alternating. Without it the page ends at its box in
   // a plate and a disc.
-  fetch(asset("sf-corridor-perimeter.json"), { cache: "no-cache" })
-    .then((r) => r.ok ? r.json() : null)
+  // An attached region leaves the country round it to the page that holds it.
+  (ATTACH ? Promise.resolve(null) : fetch(asset("sf-corridor-perimeter.json"), { cache: "no-cache" })
+    .then((r) => r.ok ? r.json() : null))
     .then((p) => {
       if (!p || !p.runs) return null;
       const f = p.frame;
@@ -242,7 +256,7 @@ const canvas = document.getElementById("scene");
 // the ordinary buffer, precision falls with the square of distance -- at a thousand metres it is
 // about 0.6 m, and street markings separated by two centimetres flickered in and out as the
 // depth test picked a different winner each frame.
-const renderer = new THREE.WebGLRenderer({
+const renderer = ATTACH ? ATTACH.renderer : new THREE.WebGLRenderer({
   canvas, antialias: true, alpha: false, logarithmicDepthBuffer: true,
 });
 // Each new shader was checked for errors by reading its program log at once, which waits for
@@ -350,7 +364,7 @@ function renderedKerbHeight(way) {
 }
 
 const root = new THREE.Group();
-scene.add(root);
+if (ATTACH) ATTACH.onRoot(root); else scene.add(root);
 //: The street vertices by cell (indexJunctionVertices): read by the junction approaches and by
 //: where a house's front door goes, which is decided while the buildings are built.
 const JUNCTION_CELL_M = 20;
@@ -390,6 +404,7 @@ Object.values(groups).forEach((g) => root.add(g));
 // where that index is by the meta tag; without one, or where it is missing, the switcher stays
 // hidden and the page is the one region it was built for.
 (async () => {
+  if (ATTACH) return;
   const meta = document.querySelector('meta[name="kerbside-regions"]');
   const index = meta && meta.content;
   if (!index) return;
@@ -418,15 +433,15 @@ Object.values(groups).forEach((g) => root.add(g));
     } catch (error) { /* navigation also works when storage is unavailable */ }
     location.assign(url.href);
   }
+  REGION_INDEX.list = fullRegions;
+  REGION_INDEX.root = root;
+  // Arriving somewhere drawn only as the simple city: its region is built here, in this page,
+  // while you carry on (attachRegion). Nothing reloads; the caller goes on to travel there.
   window.kerbsideOpenFullRegionAt = (lon, lat) => {
     if (tileOwnGround(lon, lat)) return false;
-    const destination = fullRegions.find((region) => {
-      const [south, west, north, east] = region.bbox;
-      return lon >= west && lon <= east && lat >= south && lat <= north;
-    });
-    if (!destination) return false;
-    openFullRegion(destination, lon, lat);
-    return true;
+    const destination = regionAt(lon, lat);
+    if (destination) attachRegion(destination);
+    return false;
   };
   for (const region of list) {
     const option = document.createElement("option");
@@ -448,6 +463,7 @@ Object.values(groups).forEach((g) => root.add(g));
     else location.href = select.value;
   });
   const current = list.find((r) => new URL(root + r.path, location.href).pathname.replace(/[^/]*$/, "") === here);
+  REGION_INDEX.host = current || null;
   document.getElementById("regionnote").textContent = current && current.note ? current.note : "";
   // One world: there is no region to choose. Every built region is in the model -- in full where
   // you are, as the tile tree's simple blocks everywhere else -- and wherever you go, by search,
@@ -883,6 +899,10 @@ function approachRoadAt(x, z, outsideOnly = false) {
 //: has two heights, the deck's and the road's, and only what runs through the cut (WAY_LIFT,
 //: cutLiftAt) takes the road's; everything else there stands on the deck.
 function groundLiftAt(x, z) {
+  if (typeof guestUnder === "function" && activeGuest) {
+    const guest = guestUnder(x, z);
+    if (guest) { const [gx, gz] = hostToGuest(guest, x, z); return guest.api.groundLiftAt(gx, gz) + guest.oy; }
+  }
   const ground = terrainHeightAt(x, z);
   const road = approachRoadAt(x, z, true);
   return road === null ? ground : Math.min(ground, road);
@@ -1699,11 +1719,15 @@ const indoorCut = {
   ring: { value: Array.from({ length: INDOOR_CUT_MAX }, () => new THREE.Vector2()) },
   count: { value: 0 },
   floor: { value: 0 },
+  //: Where another region is drawn in full in this page: the country under it is not drawn
+  //: (x0, z0, x1, z1 in this page's metres; empty when x1 < x0).
+  guestBox: { value: new THREE.Vector4(1, 1, 0, 0) },
 };
 TERRAIN_MATERIAL.onBeforeCompile = (shader) => {
   shader.uniforms.uCutRing = indoorCut.ring;
   shader.uniforms.uCutCount = indoorCut.count;
   shader.uniforms.uCutFloor = indoorCut.floor;
+  shader.uniforms.uGuestBox = indoorCut.guestBox;
   shader.vertexShader = shader.vertexShader
     .replace("#include <common>", "#include <common>\nvarying vec3 vCutWorld;")
     .replace("#include <project_vertex>",
@@ -1713,8 +1737,10 @@ TERRAIN_MATERIAL.onBeforeCompile = (shader) => {
 varying vec3 vCutWorld;
 uniform vec2 uCutRing[${INDOOR_CUT_MAX}];
 uniform int uCutCount;
-uniform float uCutFloor;`)
+uniform float uCutFloor;
+uniform vec4 uGuestBox;`)
     .replace("void main() {", `void main() {
+  if (vCutWorld.x > uGuestBox.x && vCutWorld.x < uGuestBox.z && vCutWorld.z > uGuestBox.y && vCutWorld.z < uGuestBox.w) discard;
   if (uCutCount > 2 && vCutWorld.y > uCutFloor - 0.02) {
     bool inside = false;
     for (int i = 0; i < ${INDOOR_CUT_MAX}; i++) {
@@ -2373,6 +2399,10 @@ async function liftOntoGroundAsync(object, label) {
     if (pieces) {
       const parent = mesh.parent;
       parent.remove(mesh);
+      // The whole is not needed once it is in pieces: let it go now, not at the end of the pass.
+      mesh.geometry.dispose();
+      mesh.geometry = null;
+      meshes[i] = null;
       for (const piece of pieces) {
         parent.add(piece);
         piece.updateMatrixWorld(true);
@@ -2473,7 +2503,7 @@ const PERIMETER_PIER_M = 160.0;
 //: straddles the apron's edge the apron is drawn and not a fight between the two: at three
 //: kilometres the depth buffer tells planes apart by the metre, not the centimetre.
 const PERIMETER_UNDER_M = 2.0;
-if (!PERIMETER) {
+if (!PERIMETER && !ATTACH) {
   // No perimeter built: a disc of sea round the city, and the plate of land the city sits on,
   // over the middle of it. With the perimeter the disc lies wholly inside the atlas and would
   // only fight it for the pixels.
@@ -2499,6 +2529,9 @@ if (!PERIMETER) {
     root.add(land);
   }
 }
+//: The atlas under this page's own region (see the perimeter tiles below): hidden while the
+//: region is drawn here in full, shown once it has been let go for another region.
+const PERIMETER_FILL = [];
 if (PERIMETER) {
   // The country round the region as the map has it: grass where the land is, sea where the
   // water is, in tiles, with the cells under the grid and its apron left to them.
@@ -2518,6 +2551,7 @@ if (PERIMETER) {
     for (let c0 = 0; c0 < f.cols; c0 += PERIMETER_TILE_CELLS) {
       const r1 = Math.min(f.rows, r0 + PERIMETER_TILE_CELLS), c1 = Math.min(f.cols, c0 + PERIMETER_TILE_CELLS);
       const position = [], colour = [], index = [];
+      const fillPosition = [], fillColour = [], fillIndex = [];
       for (let r = r0; r < r1; r += 1) {
         // The row's runs: one quad per run of one kind, cut where the apron begins and ends.
         let c = c0;
@@ -2535,31 +2569,39 @@ if (PERIMETER) {
             if (whollyUnder(xe, ye) !== under) break;
             end += 1;
           }
-          if (!under) {
+          {
+            // Under the apron the cell goes into the fill: the country under this page's own
+            // region, drawn only once that region's world has been let go for another's.
+            const [P, C, I] = under ? [fillPosition, fillColour, fillIndex] : [position, colour, index];
             const [xb, yb] = here(end, r + 1);
             const h = (wet === 1 ? SEA_Y - 0.02 : PENINSULA_Y) - PERIMETER_UNDER_M;
             const col = wet === 1 ? sea : wet === 2 ? sand : grass;
-            const base = position.length / 3;
+            const base = P.length / 3;
             for (const [x, y] of [[xa, ya], [xb, ya], [xb, yb], [xa, yb]]) {
-              position.push(x, h - earthDrop(x, -y), -y);
-              colour.push(col.r, col.g, col.b);
+              P.push(x, h - earthDrop(x, -y), -y);
+              C.push(col.r, col.g, col.b);
             }
             // Wound to face up (+y): z runs to -north.
-            index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+            I.push(base, base + 1, base + 2, base, base + 2, base + 3);
           }
           c = end;
         }
       }
-      if (!index.length) continue;
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
-      geometry.setAttribute("color", new THREE.Float32BufferAttribute(colour, 3));
-      geometry.setIndex(index);
-      geometry.computeVertexNormals();
-      geometry.computeBoundingSphere();
-      const tile = new THREE.Mesh(geometry, TERRAIN_MATERIAL);
-      tile.userData.surface = "perimeter";
-      root.add(tile);
+      for (const [P, C, I, fill] of [[position, colour, index, false], [fillPosition, fillColour, fillIndex, true]]) {
+        if (!I.length) continue;
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+        geometry.setAttribute("color", new THREE.Float32BufferAttribute(C, 3));
+        geometry.setIndex(I);
+        geometry.computeVertexNormals();
+        geometry.computeBoundingSphere();
+        const tile = new THREE.Mesh(geometry, TERRAIN_MATERIAL);
+        tile.userData.surface = fill ? "perimeter_fill" : "perimeter";
+        tile.userData.bayWide = true;
+        tile.visible = !fill;
+        if (fill) PERIMETER_FILL.push(tile);
+        root.add(tile);
+      }
     }
   }
   // The bridges: a deck over the water at clearance height, down to the ground at each end
@@ -2603,6 +2645,7 @@ if (PERIMETER) {
     const deck = new THREE.Mesh(geometry, deckMaterial);
     deck.userData.surface = "bridge";
     deck.userData.name = bridge.name;
+    deck.userData.bayWide = true;
     root.add(deck);
     decks += 1;
     let next = PERIMETER_PIER_M / 2;
@@ -2622,6 +2665,7 @@ if (PERIMETER) {
     pierBoxes.forEach(([x, y, z, w, hgt, d], i) => { dummy.position.set(x, y + hgt / 2, z); dummy.scale.set(w, hgt, d); dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix); });
     mesh.instanceMatrix.needsUpdate = true;
     mesh.userData.surface = "bridge_pier";
+    mesh.userData.bayWide = true;
     root.add(mesh);
   }
   console.info(`kerbside: perimeter ${PERIMETER.frame.cols}x${PERIMETER.frame.rows} cells, ${decks} bridge decks on ${piers} piers (${PERIMETER.source})`);
@@ -2682,7 +2726,9 @@ const tileStats = { built: 0, drawn: 0, requested: 0, failed: 0, evicted: 0, byt
 //: The region this page draws in full. Inside it the street renderer has every kerb, so the
 //: tree draws nothing there -- feature by feature, since a coarse tile is far bigger than the
 //: region and its other half is wanted.
-const TILE_OWN_BOX = DATA.bbox ? [DATA.bbox.west, DATA.bbox.south, DATA.bbox.east, DATA.bbox.north] : null;
+//: Which region that is changes as the walker goes (attachRegion); the tree then rebuilds the
+//: tiles over the old region and the new.
+let TILE_OWN_BOX = DATA.bbox ? [DATA.bbox.west, DATA.bbox.south, DATA.bbox.east, DATA.bbox.north] : null;
 function tileOwnGround(lon, lat) {
   return TILE_OWN_BOX !== null && lon >= TILE_OWN_BOX[0] && lon <= TILE_OWN_BOX[2]
       && lat >= TILE_OWN_BOX[1] && lat <= TILE_OWN_BOX[3];
@@ -6222,7 +6268,9 @@ async function loadPhotoMaterialLibrary() {
   }
 }
 
-requestAnimationFrame(() => { loadPhotoMaterialLibrary(); });
+// The photographed materials are laid on after the city is built and drawing (see animate's
+// caller): decoding forty-odd photographs in the middle of the build was a second at once of
+// every core, on top of the build itself.
 
 function roofTexture(seed, base, archetype) {
   const size = 128;
@@ -13573,6 +13621,12 @@ function tunnelFloorAt(x, z) {
 //: What the walker stands on at (x, z): the bore's floor inside a tunnel, the hill over a
 //: mouth on top of it, and the flat ground everywhere else -- as a height above the ground.
 function walkerGroundAt(x, z) {
+  // (Guarded: these ground and wall functions are also run on their own, by the tests.)
+  const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
+  if (guest) {
+    const [gx, gz] = hostToGuest(guest, x, z);
+    return guest.api.walkerGroundAt(gx, gz) + guest.oy;
+  }
   // Inside a building whose rooms are built, the walker stands on its floor; on a stoop, on
   // its steps (see buildInterior). Declared with var so it is safe before they exist.
   if (typeof standingSurfaces !== "undefined" && standingSurfaces) {
@@ -19581,6 +19635,8 @@ function buildCharacterAvatar() {
   return rig;
 }
 const avatar = buildCharacterAvatar();
+// An attached region's walker is the page's: its own stands in for it unseen (guestTick moves it).
+if (ATTACH) avatar.visible = false;
 avatar.scale.setScalar(AVATAR_SCALE);
 avatar.position.set(0, AVATAR_STAND_Y, 0);
 root.add(avatar);
@@ -19800,7 +19856,8 @@ function groundAt(clientX, clientY) {
   // The ground is the terrain where there is one -- a click on Russian Hill lands on the
   // hill, not on the sea-level plane under it -- and the flat plane elsewhere.
   if (terrainMesh) {
-    const hits = ray.intersectObjects(terrainTiles, false);
+    const hits = ray.intersectObjects(activeGuest && activeGuest.ready
+      ? [...terrainTiles, ...activeGuest.api.terrainTiles] : terrainTiles, false);
     if (hits.length) {
       const hit = hits[0].point.clone();
       hit.y += TERRAIN_MESH_UNDER_M;
@@ -20160,6 +20217,12 @@ function doorOn(entry, edge, t, width, source) {
 // leaves of closed doors, and the partitions of any interior that has been built.
 function wallSegmentsNear(x, z) {
   const out = [];
+  const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
+  if (guest) {
+    const [gx, gz] = hostToGuest(guest, x, z);
+    for (const [ax, az, bx, bz] of guest.api.wallSegmentsNear(gx, gz))
+      out.push([guest.ox + ax * guest.sx, guest.oz + az, guest.ox + bx * guest.sx, guest.oz + bz]);
+  }
   const seen = new Set();
   for (let ix = -1; ix <= 1; ix += 1) {
     for (let iz = -1; iz <= 1; iz += 1) {
@@ -20517,6 +20580,10 @@ function insideEntranceRecess(entry, x, z) {
 addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (!hostWorldActive && activeGuest && activeGuest.ready) {
+    if (activeGuest.api.toggleNearestDoor()) e.preventDefault();
+    return;
+  }
   const door = nearestDoor();
   if (!door) return;
   toggleDoor(door);
@@ -20565,6 +20632,8 @@ function updateIndoorGroundCut(x, z) {
 }
 
 function updateDoors(dt) {
+  // This page's own region let go for another: the doors are the attached region's (guestFrame).
+  if (!hostWorldActive) return;
   const x = avatar.position.x, z = avatar.position.z;
   for (const door of doorsNear(x, z, DOOR_DRAW_M)) showDoor(door);
   for (const door of [...doorsShown]) {
@@ -20613,6 +20682,7 @@ function updateDoors(dt) {
   }
   updateIndoorGroundCut(x, z);
   updateIndoorLight(insideEntry, x, z);
+  if (modelWaiters.length) releaseNearModels();
   // Interiors nobody is near are taken down again.
   for (const entry of interiorsBuilt) {
     const cx = (entry.minX + entry.maxX) / 2, cz = (entry.minZ + entry.maxZ) / 2;
@@ -21400,8 +21470,35 @@ function plainGlass(scene) {
   });
   return scene;
 }
+//: The furniture's models are fetched only for a house the walker is at: the rooms of a house
+//: seen through its windows from the street stand as plain blocks, and the eight or so houses
+//: round the starting point no longer each pull a sofa, a bed and their textures in while the
+//: city is still being built. MODEL_NEAR_M from the house, or inside it, the models come.
+const MODEL_NEAR_M = 30;
+const modelWaiters = [];
+let modelEntry = null;
+function nearModelEntry(entry) {
+  if (!entry || typeof avatar === "undefined") return false;
+  const x = avatar.position.x, z = avatar.position.z;
+  return Math.hypot(Math.max(entry.minX - x, 0, x - entry.maxX), Math.max(entry.minZ - z, 0, z - entry.maxZ)) < MODEL_NEAR_M;
+}
+function whenNear(entry, run) {
+  if (!entry || nearModelEntry(entry)) return run();
+  return new Promise((resolve) => modelWaiters.push({ entry, go: () => resolve(run()) }));
+}
+function releaseNearModels() {
+  for (let i = modelWaiters.length - 1; i >= 0; i -= 1) {
+    const waiter = modelWaiters[i];
+    if (!waiter.entry.interior) { modelWaiters.splice(i, 1); continue; }
+    if (nearModelEntry(waiter.entry)) { modelWaiters.splice(i, 1); waiter.go(); }
+  }
+}
 //: The model for a role, chosen by seed among those the manifest has for it.
 function interiorModel(role, seed) {
+  if (modelEntry) { const entry = modelEntry; return whenNear(entry, () => loadInteriorModel(role, seed)); }
+  return loadInteriorModel(role, seed);
+}
+function loadInteriorModel(role, seed) {
   return interiorManifest().then((manifest) => {
     const rows = (manifest.assets || []).filter((row) => (row.role || row.kind) === role);
     if (!rows.length) return null;
@@ -21977,6 +22074,11 @@ function furnishAgainstWall(group, entry, layout, kind, pts, floorY, doorsInPlan
 
 //: Lays a room out by its kind; returns where its light hangs, if it has one.
 function furnishRoom(group, entry, room, floorY, height, doorsInPlan, index) {
+  modelEntry = entry;
+  try { return furnishRoomFor(group, entry, room, floorY, height, doorsInPlan, index); }
+  finally { modelEntry = null; }
+}
+function furnishRoomFor(group, entry, room, floorY, height, doorsInPlan, index) {
   const { kind, pts } = room;
   const seed = (Math.abs(Number(entry.way.osm_id) || 0) * 31 + index * 7919) | 0;
   const layout = roomLayout(entry, pts, doorsInPlan);
@@ -22750,7 +22852,7 @@ function cullDetailByDistance(frame, eye = camera) {
     for (const tile of cell.tiles) {
       if (hidden(tile.userData.surface)) { tile.visible = false; continue; }
       const sphere = tile.isInstancedMesh ? tile.boundingSphere : tile.geometry.boundingSphere;
-      detailCentre.copy(sphere.center).applyMatrix4(tile.matrixWorld);
+      detailCentre.copy(sphere.center).applyMatrix4(tile.matrixWorld).applyMatrix4(ROOT_INVERSE);
       const gap = eye.position.distanceTo(detailCentre) - sphere.radius;
       tile.visible = gap < DETAIL_RANGE_M[tile.userData.surface] * zoom;
     }
@@ -22761,12 +22863,15 @@ function cullDetailByDistance(frame, eye = camera) {
 //: longest range any of them is drawn to.
 const DETAIL_CELL_M = 400;
 let detailCells = null;
+//: From the scene's frame to this world's own: the identity on a page drawing its own region; an
+//: attached region's world stands in the page's scene at an offset (see attachRegion).
+const ROOT_INVERSE = new THREE.Matrix4();
 const cullFrustum = new THREE.Frustum(), cullMatrix = new THREE.Matrix4();
 function indexDetailCells() {
   const cells = new Map();
   for (const tile of detailTiles) {
     const sphere = tile.isInstancedMesh ? tile.boundingSphere : tile.geometry.boundingSphere;
-    const centre = sphere.center.clone().applyMatrix4(tile.matrixWorld);
+    const centre = sphere.center.clone().applyMatrix4(tile.matrixWorld).applyMatrix4(ROOT_INVERSE);
     const key = `${Math.floor(centre.x / DETAIL_CELL_M)}:${Math.floor(centre.z / DETAIL_CELL_M)}`;
     if (!cells.has(key)) cells.set(key, { tiles: [], spheres: [], maxRange: 0, active: true });
     const cell = cells.get(key);
@@ -22798,7 +22903,7 @@ function cullLabelsByDistance(frame, eye = camera) {
   // A sprite h of the viewport high, at distance d, is 2 d tan(fov/2) h metres tall.
   const perMetre = 2 * Math.tan((eye.fov * Math.PI) / 360);
   for (const sprite of labelSprites) {
-    labelCentre.setFromMatrixPosition(sprite.matrixWorld);
+    labelCentre.setFromMatrixPosition(sprite.matrixWorld).applyMatrix4(ROOT_INVERSE);
     const away = eye.position.distanceTo(labelCentre);
     sprite.visible = away < sprite.userData.labelRange;
     if (!sprite.visible) continue;
@@ -22838,6 +22943,7 @@ function animate(now) {
     const focus = state.firstPerson ? avatar.position : state.target;
     updateFacadeStreaming(focus, camera.position.y - focus.y);
   }
+  if (activeGuest && activeGuest.ready) guestFrame(now);
   updateTileTree(now);
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
@@ -22907,7 +23013,8 @@ window.kerbsideSettings = {
   }
   console.info(`kerbside: built in ${(performance.now() / 1000).toFixed(1)} s; merged ${mergeStats.parts.toLocaleString()} parts into ${mergeStats.meshes.toLocaleString()} tiled meshes; triangles by group`, byGroup);
 }
-animate();
+if (!ATTACH) animate();
+setTimeout(() => { loadPhotoMaterialLibrary(); }, 1500);
 
 // ---- memory: the ground's own copy given back once the GPU has it ----
 //
@@ -22963,7 +23070,7 @@ function releaseSomeGeometry() {
 // ground. Between them a caller with no screen can both see the model and measure it.
 // The Bay Area, from the root down. Loaded after the region's own world so the street the
 // page opens on is never waiting behind the country round it.
-await loadTileTree();
+if (!ATTACH) await loadTileTree();
 
 window.kerbside = {
   scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,
@@ -23189,6 +23296,307 @@ window.kerbside = {
       if (stack.length >= 6) break;
     }
     return stack;
+  },
+};
+
+// ---- one world: a region built in this page, wherever the walker goes ------------------------
+//
+// Every region was its own page, and crossing from one to another loaded the next page: a blank
+// screen and a rebuild. Now the next region is built in this page, from its own page's code run
+// "attached" (see ATTACH at the top): handed this page's renderer, it builds its region's world
+// into a group this page places in its scene at that region's offset -- in the same frame as the
+// tile tree's simple city -- and gives back the few things this page asks of it: the ground
+// under the walker, the walls to walk round, the doors, and its own culling each frame.
+//
+// One region is drawn in full at a time: the one the walker went to. The one left behind is let
+// go -- its world, geometry, textures and all -- and the tile tree draws it as the simple city
+// again, so the page holds one region's detail however far it is taken.
+
+//: An attached region's world: where it stands in this page, and what it answers.
+function hostToGuest(g, x, z) { return [(x - g.ox) / g.sx, z - g.oz]; }
+function guestUnder(x, z) {
+  const g = activeGuest;
+  if (!g || !g.ready) return null;
+  const [gx, gz] = hostToGuest(g, x, z);
+  return gx >= g.box[0] && gx <= g.box[2] && gz >= g.box[1] && gz <= g.box[3] ? g : null;
+}
+function regionAt(lon, lat) {
+  let best = null, bestD = Infinity;
+  for (const region of REGION_INDEX.list) {
+    const [south, west, north, east] = region.bbox;
+    if (lon < west || lon > east || lat < south || lat > north) continue;
+    const d = Math.hypot(lon - (west + east) / 2, lat - (south + north) / 2);
+    if (d < bestD) { best = region; bestD = d; }
+  }
+  return best;
+}
+function disposeTree(object) {
+  object.traverse((o) => {
+    if (o.geometry && !o.userData.sharedInteriorAsset) o.geometry.dispose();
+    for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
+      for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap"])
+        if (m[key] && m[key].dispose) m[key].dispose();
+      m.dispose();
+    }
+  });
+}
+//: The tiles over a region rebuilt, for which region is now drawn in full.
+function invalidateTilesTouching(boxes) {
+  for (const tile of TILES.values()) {
+    if (!tile.group) continue;
+    const [w, s, e, n] = tile.bbox;
+    if (!boxes.some((b) => b && w < b[2] && e > b[0] && s < b[3] && n > b[1])) continue;
+    tileGroupRoot.remove(tile.group);
+    tile.group.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });
+    for (const material of tile.materials || []) material.dispose();
+    tile.materials = null;
+    tile.group = null;
+    tile.state = "unavailable";
+    tileResidentBytes -= tile.bytes;
+  }
+}
+//: This page's own region let go: everything of its world but the tile tree, the walker, and
+//: the country and bridges round the whole Bay; the atlas fills the hole its ground leaves.
+function releaseHostWorld() {
+  if (!hostWorldActive) return;
+  hostWorldActive = false;
+  for (const child of [...root.children]) {
+    if (child === tileGroupRoot || child === avatar || child.userData.bayWide) continue;
+    root.remove(child);
+    disposeTree(child);
+  }
+  for (const fill of PERIMETER_FILL) fill.visible = true;
+  terrainTiles.length = 0;
+  detailTiles = [];
+  detailCells = null;
+  labelSprites = [];
+  footprintGrid.clear();
+  MERGED.clear();
+  BUILDING_VISUAL_RANGES.clear();
+  indoorCutEntry = null;
+  indoorCut.count.value = 0;
+}
+function releaseGuest(g) {
+  if (!g) return;
+  if (g.root) { scene.remove(g.root); disposeTree(g.root); }
+  try { if (g.api && g.api.release) g.api.release(); } catch (error) { /* what is left is collected */ }
+  if (g.url) URL.revokeObjectURL(g.url);
+  g.api = null;
+  g.root = null;
+}
+//: The page's code, ready to run attached: its document and window are stand-ins, so whatever
+//: it shows or listens for goes nowhere, and it shares this page's three.js (the same URL).
+function guestStandIns(page, metas) {
+  const elements = new Map();
+  const body = document.createElement("div");
+  const element = (id) => {
+    if (!elements.has(id)) {
+      const tag = id === "scene" ? "canvas" : id === "find" ? "input" : id === "region" ? "select" : id === "hits" ? "ul" : "div";
+      elements.set(id, document.createElement(tag));
+    }
+    return elements.get(id);
+  };
+  const doc = new Proxy({}, {
+    get(_, prop) {
+      if (prop === "getElementById") return element;
+      if (prop === "body") return body;
+      if (prop === "querySelector") return (selector) => {
+        const name = /meta\[name="([^"]+)"\]/.exec(selector || "");
+        return name && metas[name[1]] !== undefined ? { content: metas[name[1]] } : null;
+      };
+      if (prop === "querySelectorAll") return () => [];
+      if (prop === "addEventListener" || prop === "removeEventListener") return () => {};
+      const value = Reflect.get(document, prop);
+      return typeof value === "function" ? value.bind(document) : value;
+    },
+  });
+  const own = {};
+  const win = new Proxy(own, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      if (prop === "addEventListener" || prop === "removeEventListener") return () => {};
+      const value = Reflect.get(window, prop);
+      return typeof value === "function" ? value.bind(window) : value;
+    },
+    set(target, prop, value) { target[prop] = value; return true; },
+  });
+  return { document: doc, window: win, own };
+}
+const regionBadge = document.createElement("div");
+regionBadge.id = "region-loading";
+regionBadge.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:30;background:rgba(20,20,20,.78);color:#fff;"
+  + "font:12px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;pointer-events:none;transition:opacity .5s";
+regionBadge.hidden = true;
+document.body.appendChild(regionBadge);
+let attaching = null, attachWanted = null;
+async function attachRegion(region) {
+  if (ATTACH || !region) return;
+  const isHost = REGION_INDEX.host && region.name === REGION_INDEX.host.name;
+  if ((isHost && hostWorldActive) || (activeGuest && activeGuest.region === region)) return;
+  if (attaching) { attachWanted = region; return; }
+  attaching = region;
+  regionBadge.textContent = `Loading ${region.title} in full…`;
+  regionBadge.style.opacity = "1";
+  regionBadge.hidden = false;
+  const previous = activeGuest;
+  const previousBox = TILE_OWN_BOX;
+  try {
+    // The region left behind is let go first: the page holds one region's detail at a time,
+    // and the simple city stands in while the next is built.
+    if (hostWorldActive) releaseHostWorld();
+    if (previous) { releaseGuest(previous); activeGuest = null; }
+    indoorCut.guestBox.value.set(1, 1, 0, 0);
+    TILE_OWN_BOX = null;
+    invalidateTilesTouching([previousBox]);
+    const pageUrl = new URL(REGION_INDEX.root + region.path, location.href);
+    const html = await fetch(pageUrl.href, { cache: "no-cache" }).then((r) => {
+      if (!r.ok) throw new Error(`${region.name} page ${r.status}`);
+      return r.text();
+    });
+    const meta = (name) => (new RegExp(`<meta name="${name}" content="([^"]*)"`).exec(html) || [])[1];
+    const code = (/<script type="module">([\s\S]*?)<\/script>/.exec(html) || [])[1];
+    if (!code) throw new Error(`${region.name} page has no renderer`);
+    const absolute = (value) => new URL(value || "./", pageUrl).href;
+    const metas = {
+      "kerbside-assets": absolute(meta("kerbside-assets")),
+      "kerbside-visual-support": meta("kerbside-visual-support") ? absolute(meta("kerbside-visual-support")) : "",
+      "kerbside-regions": absolute(meta("kerbside-regions") || "app-regions.json"),
+      "kerbside-app-mode": meta("kerbside-app-mode") || "",
+    };
+    const stand = guestStandIns(pageUrl, metas);
+    const holder = { region, ready: false };
+    globalThis.__kerbsideGuest = {
+      renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
+      document: stand.document, window: stand.window,
+      onRoot(groupRoot) {
+        holder.root = groupRoot;
+        groupRoot.visible = false;
+        scene.add(groupRoot);
+        globalThis.__kerbsideGuest = null;
+      },
+    };
+    globalThis.__kerbsideGuest.resolve = (path) => new URL(path, pageUrl).href;
+    const prelude = "const __kerbsideGuestIn = globalThis.__kerbsideGuest;\n"
+      + "const document = __kerbsideGuestIn.document, window = __kerbsideGuestIn.window;\n"
+      + "const addEventListener = () => {}, removeEventListener = () => {};\n";
+    // A region page fetches some files by a path relative to itself; run from this page those
+    // paths would be this page's, and the region would be built from this region's data.
+    const located = code.replace(/fetch\("(?!https?:)([^"]+)"/g, 'fetch(__kerbsideGuestIn.resolve("$1")');
+    holder.url = URL.createObjectURL(new Blob([prelude + located], { type: "text/javascript" }));
+    await import(holder.url);
+    const api = stand.own.kerbsideGuestApi;
+    if (!api || !holder.root) throw new Error(`${region.name} did not build`);
+    holder.api = api;
+    // Where its world stands in this page: its middle at that place in this page's metres, its
+    // east-west metres scaled to this page's (the two differ by the cosine of their latitudes),
+    // and lowered by the Earth's curve between the two middles, as the simple city is.
+    const [hx, hy] = xy(api.midLon, api.midLat);
+    holder.ox = hx;
+    holder.oz = -hy;
+    holder.sx = metersPerLon / api.metersPerLon;
+    holder.oy = -earthDrop(hx, -hy);
+    holder.root.position.set(holder.ox, holder.oy, holder.oz);
+    holder.root.scale.set(holder.sx, 1, 1);
+    holder.root.updateMatrixWorld(true);
+    api.setRootInverse(holder.root.matrixWorld.clone().invert());
+    holder.box = api.groundBox;
+    holder.lastAt = performance.now();
+    holder.ready = true;
+    holder.root.visible = true;
+    activeGuest = holder;
+    // The tree draws the simple city everywhere but here, and the country under it gives way.
+    const b = api.bbox;
+    TILE_OWN_BOX = [b.west, b.south, b.east, b.north];
+    invalidateTilesTouching([TILE_OWN_BOX]);
+    const [x0, z0, x1, z1] = holder.box;
+    indoorCut.guestBox.value.set(holder.ox + x0 * holder.sx, holder.oz + z0, holder.ox + x1 * holder.sx, holder.oz + z1);
+    cullForced = true;
+    regionBadge.textContent = `${region.title}`;
+    setTimeout(() => { regionBadge.style.opacity = "0"; }, 2500);
+  } catch (error) {
+    console.warn("kerbside: could not build", region.name, error);
+    regionBadge.textContent = `Could not load ${region.title}`;
+    setTimeout(() => { regionBadge.style.opacity = "0"; }, 4000);
+    globalThis.__kerbsideGuest = null;
+  } finally {
+    attaching = null;
+    const next = attachWanted;
+    attachWanted = null;
+    if (next) attachRegion(next);
+  }
+}
+window.kerbsideAttachRegion = (name) => attachRegion(REGION_INDEX.list.find((r) => r.name === name));
+window.kerbsideActiveRegion = () => (activeGuest ? { name: activeGuest.region.name, ready: activeGuest.ready,
+  offset: [activeGuest.ox, activeGuest.oy, activeGuest.oz], scale: activeGuest.sx } : { name: REGION_INDEX.host?.name, host: hostWorldActive });
+//: Each frame the attached region is shown the page's eye and walker, culls its own detail and
+//: works its own doors; what it says back -- indoors, a message -- is shown by this page.
+const guestAvatarAt = new THREE.Vector3();
+function guestFrame(now) {
+  const g = activeGuest;
+  const dt = Math.min(0.1, (now - g.lastAt) / 1000);
+  g.lastAt = now;
+  const [gx, gz] = hostToGuest(g, avatar.position.x, avatar.position.z);
+  guestAvatarAt.set(gx, avatar.position.y - g.oy, gz);
+  const said = g.api.tick({ eye: camera, dist: state.dist, firstPerson: state.firstPerson, at: guestAvatarAt, dt });
+  if (hostWorldActive) return;
+  state.indoors = said.indoors;
+  setHint(said.hint);
+  if (said.indoors && !state.firstPerson) { setFirstPerson(true); state.autoFirstPerson = true; }
+  if (!said.indoors && state.autoFirstPerson) setFirstPerson(false);
+  // The lamp of the room the walker is in, from the attached region's.
+  indoorLight.intensity = said.light ? INDOOR_LIGHT_CD : 0;
+  if (said.light) indoorLight.position.set(g.ox + said.light[0] * g.sx, said.light[1] + g.oy, g.oz + said.light[2]);
+}
+
+// What this world gives a page that holds it attached (read by attachRegion).
+function guestTick({ eye, dist, firstPerson, at, dt }) {
+  camera.fov = eye.fov; camera.aspect = eye.aspect; camera.near = eye.near; camera.far = eye.far;
+  camera.updateProjectionMatrix();
+  camera.position.copy(eye.position).applyMatrix4(ROOT_INVERSE);
+  camera.quaternion.copy(eye.quaternion);
+  camera.updateMatrixWorld(true);
+  state.dist = dist;
+  state.firstPerson = firstPerson;
+  avatar.position.copy(at);
+  if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
+  frameCount += 1;
+  updateDoors(dt);
+  return {
+    indoors: Boolean(state.indoors),
+    hint: doorHint.hidden || doorHint.style.opacity === "0" ? null : doorHint.textContent,
+    light: indoorLight.intensity > 0 ? [indoorLight.position.x, indoorLight.position.y, indoorLight.position.z] : null,
+  };
+}
+window.kerbsideGuestApi = {
+  root, bbox: DATA.bbox, midLon, midLat, metersPerLon,
+  // The ground this world draws, in its own metres: its terrain grid and the apron round it.
+  groundBox: TERRAIN_FRAME ? (() => {
+    const f = TERRAIN_FRAME;
+    const corners = [[f.x0 - TERRAIN_APRON_M, f.y0 - TERRAIN_APRON_M],
+                     [f.x0 + f.cols * f.step_m + TERRAIN_APRON_M, f.y0 + f.rows * f.step_m + TERRAIN_APRON_M]]
+      .map(([e, n]) => terrainToPage(e, n, f));
+    return [Math.min(corners[0][0], corners[1][0]), Math.min(corners[0][1], corners[1][1]),
+            Math.max(corners[0][0], corners[1][0]), Math.max(corners[0][1], corners[1][1])];
+  })() : (() => { const [x0, y0] = xy(DATA.bbox.west, DATA.bbox.south); const [x1, y1] = xy(DATA.bbox.east, DATA.bbox.north);
+    return [x0, -y1, x1, -y0]; })(),
+  walkerGroundAt, groundLiftAt, wallSegmentsNear, terrainTiles,
+  tick: guestTick,
+  toggleNearestDoor() { const door = nearestDoor(); if (door) toggleDoor(door); return Boolean(door); },
+  setRootInverse(matrix) { ROOT_INVERSE.copy(matrix); detailCells = null; cullForced = true; },
+  // Let go: what this world holds is emptied, since the code that built it stays loaded.
+  release() {
+    terrainTiles.length = 0;
+    detailTiles = [];
+    detailCells = null;
+    labelSprites = [];
+    footprintGrid.clear();
+    footprintById.clear();
+    MERGED.clear();
+    BUILDING_VISUAL_RANGES.clear();
+    HOME_RENDER.clear();
+    interiorsBuilt.clear();
+    if (DATA.ways) DATA.ways.length = 0;
+    if (TERRAIN) { TERRAIN.data = null; TERRAIN.visualData = null; }
   },
 };
 </script>
