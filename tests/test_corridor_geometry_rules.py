@@ -233,6 +233,7 @@ def _run_crossing(js_body: str) -> dict:
         "cornerOf",
         "rampRecordAt",
         "crossingPaintLegs",
+        "acrossTheWholeRoad",
         "crossingRoadSpanPoints",
         "crossingRectanglePoints",
         "sidewalkCrossingReplacementSpans",
@@ -2658,7 +2659,8 @@ console.log(JSON.stringify({
     assert "avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
     assert "const lift = moving ?" not in js
     pointer_look = js.split('canvas.addEventListener("pointerdown", (e) => {', 1)[1].split("});", 1)[0]
-    assert "held.clear();" in pointer_look, "changing the view must cancel, never initiate, movement"
+    # Turning the view while walking keeps the walk going; a drag never starts one.
+    assert "held.clear();" not in pointer_look and "held.add" not in pointer_look
     assert "eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
 
 

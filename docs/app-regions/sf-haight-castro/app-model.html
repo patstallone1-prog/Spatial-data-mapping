@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="a0ac280059bd8fb9323dc854fc309f002e94a8674e43cfcba7cfcf27fb58c5a9" />
+<meta name="kerbside-renderer-sha256" content="de513b39db0f36429ad1c47bfd2e1c44ced013ed0c60ae50d7adedc2cbcbb69f" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -140,7 +140,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
       <p id="furniturenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
       <p id="detailnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
     </div>
-    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom; when close, right-click a building for its address. Drag to look around, use arrow keys to walk, and wheel or pinch to zoom. The survey layers are off by default; enable them here to inspect coverage.</div>
+    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom; when close, right-click a building for its address. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, and wheel or pinch to zoom. The survey layers are off by default; enable them here to inspect coverage.</div>
     </div>
   </div>
 </div>
@@ -4889,6 +4889,51 @@ function crossingPaintLegs(points) {
 
 indexOfficialCurbGeometry(OFFICIAL_GEOMETRY.curb_lines || []);
 
+//: A crossing mapped straight across a divided avenue -- both carriageways and the median or
+//: the busway between -- is one crossing kerb to kerb. Its span was read from its longest piece
+//: on the road out to the nearest kerbs, and on Van Ness those are the median's: the bars ran
+//: across one carriageway and stopped, and the other carriageway and the busway were bare. The
+//: whole mapped line is cast to the kerbs at its two ends; the legs then break only at a real
+//: island (crossingPaintLegs).
+function acrossTheWholeRoad(span, points) {
+  // No vertex of the mapped line further than this off its chord: straight across.
+  const CROSSING_STRAIGHT_M = 2.0;
+  if (!span || span.length < 2 || !points || points.length < 3) return span;
+  const [ax, ay] = xy(points[0][0], points[0][1]);
+  const [bx, by] = xy(points[points.length - 1][0], points[points.length - 1][1]);
+  const az = -ay, bz = -by, length = Math.hypot(bx - ax, bz - az);
+  if (!(length > 14)) return span;
+  const ux = (bx - ax) / length, uz = (bz - az) / length;
+  for (const [lon, lat] of points) {
+    const [x, y] = xy(lon, lat);
+    if (Math.abs((x - ax) * uz - (-y - az) * ux) > CROSSING_STRAIGHT_M) return span;
+  }
+  const along = (p) => { const [x, y] = xy(p[0], p[1]); return (x - ax) * ux + (-y - az) * uz; };
+  const s0 = Math.min(along(span[0]), along(span[span.length - 1]));
+  const s1 = Math.max(along(span[0]), along(span[span.length - 1]));
+  if (s1 - s0 >= length - 6) return span;
+  // Only where the line goes on across more roadway: another carriageway, or a busway, beyond
+  // the span. A line that runs on onto the pavement keeps the span it has.
+  let more = false;
+  for (let t = 1; t < length - 1 && !more; t += 0.5) {
+    if (t > s0 - 1.5 && t < s1 + 1.5) continue;
+    more = insideCarriageway(ax + ux * t, az + uz * t, 0.0);
+  }
+  if (!more) return span;
+  // The kerbs nearest the mapped line's two ends.
+  const hits = rayCurbIntersections(ax, az, ux, uz, length + 4, officialCurbGrid);
+  const near = (target) => hits.filter((h) => Math.abs(h - target) <= 4)
+    .sort((a, b) => Math.abs(a - target) - Math.abs(b - target))[0];
+  // Where the city drew no kerb there, the mapped line's own end: it ends on the kerb's node,
+  // and endCrossingOnDrawnKerb brings it to the kerb as drawn.
+  const h0 = near(0) ?? 0, h1 = near(length) ?? length;
+  const from = Math.min(h0, s0), to = Math.max(h1, s1);
+  if (to - from > 42.0) return span;
+  const wide = [lonLatFromXZ(ax + ux * from, az + uz * from), lonLatFromXZ(ax + ux * to, az + uz * to)];
+  wide.provenance = `${span.provenance || "sfmta_curbs"}_across_divided`;
+  return wide;
+}
+
 //: How much of a crossing way has to lie on the carriageway before it is a crossing of it.
 const CROSSING_MIN_ON_ROAD_M = 2.5;
 function crossingRoadSpanPoints(points) {
@@ -4991,7 +5036,7 @@ function crossingRoadSpanPoints(points) {
     best.nz *= -1;
   }
   const curbSpan = officialCurbCrossingSpan(best.x, best.z, ux, uz, best.half, wayLength(points));
-  if (curbSpan) return endCrossingOnDrawnKerb(curbSpan);
+  if (curbSpan) return endCrossingOnDrawnKerb(acrossTheWholeRoad(curbSpan, points));
   // At an acute junction the road's rounded index caps also cover the short
   // ramp-to-ramp connector around the corner. Its 3.8 m mapped link was being
   // expanded into an 8.4 m ladder through concrete at Broadway/Telegraph.
@@ -5002,7 +5047,8 @@ function crossingRoadSpanPoints(points) {
     lonLatFromXZ(best.x + best.nx * best.half, best.z + best.nz * best.half),
   ];
   fallback.provenance = "road_width_fallback";
-  return fallback;
+  const across = acrossTheWholeRoad(fallback, points);
+  return across === fallback ? fallback : endCrossingOnDrawnKerb(across);
 }
 
 // ---- the curb ramps the inventory says are at each corner --------------------------------
@@ -7693,6 +7739,8 @@ function recentreOnKerbEnvelope(way) {
   // in near the corner -- so each vertex takes the offset and width of the stations around
   // it, where they agree.
   if (!way.points || way.points.length < 2) return false;
+  // A busway's kerbs are the whole avenue's: it is its own lanes, in the middle of them.
+  if (way.busway) return false;
   const length = wayLength(way.points);
   if (length < ENVELOPE_MIN_WAY_M) return false;
   // Clear of the curb returns at each end -- eight metres on a block, a quarter of the way
@@ -14885,6 +14933,55 @@ for (const way of DATA.ways) {
 // street are the abutments, and the deck's height anywhere along them is drawn from the
 // ground's height at those (weighted by nearness). Each deck has a concrete parapet along both
 // edges, and piers down to the ground wherever it stands clear of it.
+// ---- busways and the stations in the middle of the road --------------------------------------
+//
+// A busway (OpenStreetMap highway=busway: Van Ness's rapid transit) is the lanes down the middle
+// of another street. It is drawn as a street of its own lanes' width (the payload's busway_lanes),
+// painted red between junctions. A station on it is an island: the map draws its canopy as a building
+// (building=yes, amenity=shelter) and the page drew that as a ten-metre house in the road. A
+// structure tagged a shelter, or a small one with no measured height standing beside a busway,
+// is drawn as what it is: a raised platform with its tactile edges, the canopy on its posts, a
+// windscreen and benches; the agencies' stops on it stand on it rather than at the far kerb.
+const BUSWAY_WAYS = (DATA.ways || []).filter((way) => way.busway && way.points && way.points.length >= 2);
+const BUSWAY_SEGMENTS = BUSWAY_WAYS.flatMap((way) => {
+  const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  return pts.slice(1).map((b, i) => [pts[i][0], pts[i][1], b[0], b[1], (way.road_m || 7.2) / 2]);
+});
+function nearBusway(x, z, reach) {
+  for (const [ax, az, bx, bz] of BUSWAY_SEGMENTS) {
+    const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2));
+    if (Math.hypot(ax + dx * t - x, az + dz * t - z) < reach) return true;
+  }
+  return false;
+}
+//: The busway nearest a point: where on it, its direction, its half width, and which side of it
+//: the point lies.
+function nearestBuswayAt(x, z, reach) {
+  let best = null;
+  for (const [ax, az, bx, bz, half] of BUSWAY_SEGMENTS) {
+    const dx = bx - ax, dz = bz - az, l = Math.hypot(dx, dz) || 1;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (l * l)));
+    const px = ax + dx * t, pz = az + dz * t, d = Math.hypot(px - x, pz - z);
+    if (d < reach && (!best || d < best.distance)) {
+      const ux = dx / l, uz = dz / l;
+      best = { x: px, z: pz, ux, uz, half, distance: d, side: ((x - px) * -uz + (z - pz) * ux) >= 0 ? 1 : -1 };
+    }
+  }
+  return best;
+}
+const TRANSIT_CANOPIES = [];
+function isTransitCanopy(way) {
+  const tags = way.tags || {};
+  if (tags.amenity === "shelter" || tags.shelter_type === "public_transport") return true;
+  if (!BUSWAY_SEGMENTS.length || !way.points || !way.centroid) return false;
+  // A measured height over a storey is a building; a guessed one says nothing.
+  if (way.height_source && !String(way.height_source).startsWith("inferred") && way.height_m > 6) return false;
+  const area = footprintArea(way.points);
+  if (!(area < 90)) return false;
+  const [x, y] = xy(way.centroid[0], way.centroid[1]);
+  return nearBusway(x, -y, 9);
+}
 const REGION_BRIDGE_WAYS = (DATA.ways || []).filter((way) => way.kind === "street" && way.bridge && !way.tunnel
   && way.points && way.points.length >= 2 && !CENTRAL_FREEWAY_WAYS.includes(way)
   && !/Transbay|Bus Ramp/i.test(way.name || "") && !(Number(way.layer) >= 2));
@@ -14988,6 +15085,68 @@ function addRegionBridgeStructures() {
   }
   return { decks: BRIDGE_LIFTS.size, piers: pierMatrices.length };
 }
+
+//: The islands and their canopies (TRANSIT_CANOPIES), and the busways' paint.
+function addTransitIslands() {
+  const concrete = new THREE.MeshStandardMaterial({ color: 0xc4c0b6, roughness: 0.88 });
+  const tactile = new THREE.MeshStandardMaterial({ color: 0xe2bf3c, roughness: 0.7 });
+  const roof = new THREE.MeshStandardMaterial({ color: 0xb9c0c4, roughness: 0.35, metalness: 0.55 });
+  const post = new THREE.MeshStandardMaterial({ color: 0x5f676b, roughness: 0.45, metalness: 0.55 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0xcfe3ea, roughness: 0.05, transparent: true, opacity: 0.3,
+    side: THREE.DoubleSide, depthWrite: false });
+  const seat = new THREE.MeshStandardMaterial({ color: 0x8c949a, roughness: 0.5, metalness: 0.4 });
+  const parts = new Map();
+  const add = (material, x, y, z, w, h, d, yaw) => {
+    if (!parts.has(material)) parts.set(material, []);
+    parts.get(material).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z),
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(w, h, d)));
+  };
+  const islands = [];
+  for (const way of TRANSIT_CANOPIES) {
+    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    // The canopy's long axis, from its longest edge.
+    let best = 0, ux = 1, uz = 0;
+    for (let i = 1; i < pts.length; i += 1) {
+      const dx = pts[i][0] - pts[i - 1][0], dz = pts[i][1] - pts[i - 1][1], l = Math.hypot(dx, dz);
+      if (l > best) { best = l; ux = dx / l; uz = dz / l; }
+    }
+    const nx = -uz, nz = ux;
+    const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cz = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    let along = 0, across = 0;
+    for (const [x, z] of pts) {
+      along = Math.max(along, Math.abs((x - cx) * ux + (z - cz) * uz));
+      across = Math.max(across, Math.abs((x - cx) * nx + (z - cz) * nz));
+    }
+    const yaw = Math.atan2(-uz, ux);
+    const ground = groundLiftAt(cx, cz) + ROAD_TOP_M;
+    // The platform: the canopy's length and more, kerb high, with a tactile strip down each edge.
+    const length = Math.max(2 * along + 14, 30), width = Math.max(2 * across + 1.6, 3.2);
+    add(concrete, cx, ground + 0.11, cz, length, 0.22, width, yaw);
+    for (const sgn of [-1, 1]) add(tactile, cx + nx * sgn * (width / 2 - 0.35), ground + 0.225, cz + nz * sgn * (width / 2 - 0.35), length - 0.4, 0.01, 0.6, yaw);
+    // The canopy over it, on posts.
+    const top = ground + 0.22 + 3.0;
+    add(roof, cx, top, cz, 2 * along + 0.6, 0.14, 2 * across + 0.6, yaw);
+    for (let a = -along; a <= along + 0.01; a += Math.max(3, along)) {
+      add(post, cx + ux * a, ground + 0.22 + 1.5, cz + uz * a, 0.14, 3.0, 0.14, yaw);
+    }
+    // A windscreen down the middle, and benches either side of it.
+    add(glass, cx, ground + 0.22 + 1.2, cz, 2 * along - 0.4, 1.9, 0.03, yaw);
+    for (const sgn of [-1, 1]) add(seat, cx + nx * sgn * 0.45, ground + 0.22 + 0.45, cz + nz * sgn * 0.45, Math.max(1.6, along), 0.06, 0.42, yaw);
+    islands.push([cx, cz, length / 2 + 2]);
+  }
+  for (const [material, list] of parts) {
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), material, list.length);
+    list.forEach((m, i) => mesh.setMatrixAt(i, m));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    mesh.userData = { surface: "transit_island", liftedOntoGround: true };
+    groups.streets.add(mesh);
+  }
+  TRANSIT_ISLAND_SPOTS.push(...islands);
+  return { islands: islands.length, busways: BUSWAY_WAYS.length };
+}
+var TRANSIT_ISLAND_SPOTS = [];
+
 const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
   const rank = (w) => w.kind === "divider" ? 2
     : (w.kind === "sidewalk" || w.kind === "path" ? 0 : 1);
@@ -15087,6 +15246,10 @@ for (const way of DRAW_ORDER) {
     if (lot) groups.streets.add(lot);
     continue;
   }
+  if (way.kind === "building" && isTransitCanopy(way)) {
+    TRANSIT_CANOPIES.push(way);
+    continue;
+  }
   if (way.kind === "building") {
     // This OSM footprint is the Posey headhouse around the tunnel mouth, not a solid
     // obstruction. The dedicated arched portal already represents its street face.
@@ -15118,6 +15281,26 @@ for (const way of DRAW_ORDER) {
       }
     }
     continue;
+  }
+  if (way.busway && way.points && way.points.length > 1) {
+    // The busway's lanes painted red the way a bike lane is painted green, stopped at each
+    // junction's box so the crosswalks run across it unbroken. The way still draws its own
+    // asphalt below. It stands a few centimetres clear of the asphalt rather than one: the
+    // carriageways' ribbons are long flat triangles laid on a hill, and between their vertices
+    // they rise through a red that follows the ground -- the lane came out in torn patches.
+    let run = [];
+    const paintRun = () => {
+      if (run.length > 1) {
+        const fill = ribbon(run, Math.max(3.0, (way.road_m || 7.2) - 0.5), 0xa23a2c, 1.0, ROAD_TOP_M + 0.034, 0.012, "busway");
+        if (fill) addMerged("busway:fill", fill, "busway");
+      }
+      run = [];
+    };
+    for (const point of densifyWay(way.points, 1.5)) {
+      const [x, y] = xy(point[0], point[1]);
+      if (insideJunctionBox(x, -y)) paintRun(); else run.push(point);
+    }
+    paintRun();
   }
   if (way.kind === "cycleway") {
     // A cycle track mapped as its own way (a road's cycleway=separate): the green and its two
@@ -15366,6 +15549,8 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
 }
 WAY_LIFT = null;   // nothing built after the streets belongs to one way's cut
 const regionBridges = addRegionBridgeStructures();
+const transitIslands = addTransitIslands();
+if (transitIslands.busways) console.info(`kerbside: ${transitIslands.busways} busway pieces, ${transitIslands.islands} island stations`);
 if (regionBridges.decks) console.info(`kerbside: ${regionBridges.decks} bridge decks carried between their abutments, ${regionBridges.piers} piers`);
 addCutWalls();
 
@@ -18259,6 +18444,9 @@ function busStopText() {
     polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
   return busStopTextMaterial;
 }
+//: A stop's island in the road: eighteen metres of kerb, 2.4 m across, its bus side edged yellow.
+const STOP_ISLAND_HALF_LENGTH_M = 9.0;
+const STOP_ISLAND_HALF_M = 1.2;
 function addTransitStops(transit) {
   const stops = (transit.stops || []).filter((stop) => Number.isFinite(stop.lon) && Number.isFinite(stop.lat));
   const shelters = [], benches = [], poles = [], islands = [];
@@ -18274,6 +18462,37 @@ function addTransitStops(transit) {
     const item = { p: [stop.lon, stop.lat], bearing: null, source: `gtfs:${stop.agency}`, provenance: stop.physical_source };
     let [x, y] = xy(stop.lon, stop.lat);
     let z = -y;
+    // A stop on an island station stands on the island, which has its own canopy and benches.
+    if (TRANSIT_ISLAND_SPOTS.some(([ix, iz, r]) => Math.hypot(ix - x, iz - z) < r + 6)) {
+      poles.push(item);
+      continue;
+    }
+    // A stop on an island beside a busway: the island runs along the busway, just clear of its
+    // lane on the stop's side, and short of the junction and its crosswalks. Turned to the
+    // nearest kerb it lay across the avenue wherever that kerb was the cross street's corner.
+    const lane = stop.type === "SI" ? nearestBuswayAt(x, z, 14) : null;
+    if (lane) {
+      const nx = -lane.uz * lane.side, nz = lane.ux * lane.side;
+      const out = lane.half + STOP_ISLAND_HALF_M + 0.15;
+      let at = null;
+      for (const shift of [0, 3, -3, 6, -6, 9, -9, 12, -12, 15, -15]) {
+        const cx = lane.x + nx * out + lane.ux * shift, cz = lane.z + nz * out + lane.uz * shift;
+        const clear = [-STOP_ISLAND_HALF_LENGTH_M, 0, STOP_ISLAND_HALF_LENGTH_M].every((a) =>
+          !insideJunctionBox(cx + lane.ux * a, cz + lane.uz * a));
+        if (clear) { at = [cx, cz]; break; }
+      }
+      // The other agencies' stops at the same island: one island, one shelter.
+      if (!at || islands.some((island) => Math.hypot(island.x - at[0], island.z - at[1]) < 2 * STOP_ISLAND_HALF_LENGTH_M)) {
+        poles.push(item);
+        continue;
+      }
+      const [cx, cz] = at, ground = groundLiftAt(cx, cz) + ROAD_TOP_M, yaw = Math.atan2(-lane.uz, lane.ux);
+      // The island's yellow edge is its local +z side: the side the bus pulls up to.
+      islands.push({ x: cx, y: ground, z: cz, yaw: lane.side > 0 ? yaw + Math.PI : yaw });
+      if (stop.physical === "shelter") shelters.push({ x: cx + nx * 0.3, y: ground + 0.25, z: cz + nz * 0.3, yaw: lane.side > 0 ? yaw + Math.PI : yaw });
+      poles.push({ ...item, p: [lonOf(cx + lane.ux * (STOP_ISLAND_HALF_LENGTH_M - 1.5)), latOf(cz + lane.uz * (STOP_ISLAND_HALF_LENGTH_M - 1.5))] });
+      continue;
+    }
     const onIsland = stop.type === "SI" && insideCarriageway(x, z, 0.0);
     const kerb = nearestKerbAt(x, z, 25);
     if (!kerb) continue;
@@ -18366,7 +18585,8 @@ function addTransitStops(transit) {
     flags: addInstancedFurniturePanels(poles, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
     shelters: instanceParts(SHELTER_PARTS, shelters, "furniture:shelter"),
     benches: instanceParts(BENCH_PARTS, benches, "furniture:bench"),
-    islands: instanceParts([["island", 0, 0.12, 0, 18, 0.25, 2.4], ["islandEdge", 0, 0.251, 1.1, 18, 0.01, 0.3]], islands, "furniture:shelter"),
+    islands: instanceParts([["island", 0, 0.12, 0, 2 * STOP_ISLAND_HALF_LENGTH_M, 0.25, 2 * STOP_ISLAND_HALF_M],
+      ["islandEdge", 0, 0.251, STOP_ISLAND_HALF_M - 0.1, 2 * STOP_ISLAND_HALF_LENGTH_M, 0.01, 0.3]], islands, "furniture:shelter"),
     painted: texts.index ? texts.index.length / 6 : 0,
     entrances: addStationEntrances(transit.entrances || []),
   };
@@ -20277,9 +20497,8 @@ function setFirstPerson(on) {
 
 let dragging = false, last = [0, 0];
 canvas.addEventListener("pointerdown", (e) => {
-  // Looking around is never a movement command.  Cancel a held key whose
-  // keyup may have been lost while the canvas or browser regained focus.
-  held.clear();
+  // Looking around while walking: the arrows held keep walking while the view is dragged round,
+  // and the walk turns with the view. (A key whose release was lost is cleared on blur.)
   dragging = true;
   last = [e.clientX, e.clientY];
   canvas.setPointerCapture(e.pointerId);
@@ -20298,7 +20517,7 @@ canvas.addEventListener("pointermove", (e) => {
 });
 canvas.addEventListener("pointerup", () => { dragging = false; });
 canvas.addEventListener("pointercancel", () => { dragging = false; held.clear(); });
-canvas.addEventListener("lostpointercapture", () => { dragging = false; held.clear(); });
+canvas.addEventListener("lostpointercapture", () => { dragging = false; });
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
   if (state.firstPerson) {
@@ -20754,6 +20973,15 @@ setFirstPerson(state.firstPerson);
 const held = new Set();
 const ARROWS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 addEventListener("keydown", (e) => {
+  // F: into the walker's own eyes, or back out.
+  if ((e.key === "f" || e.key === "F") && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey
+      && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)
+      && !(e.target instanceof HTMLSelectElement)) {
+    setFirstPerson(!state.firstPerson);
+    state.autoFirstPerson = false;
+    e.preventDefault();
+    return;
+  }
   if (!ARROWS.has(e.key)) return;
   // Typing in a field is not steering. Without this, choosing a corner walks the sphere away.
   if (e.target instanceof HTMLInputElement) return;
@@ -21577,6 +21805,29 @@ function setHint(text) {
   }
 }
 
+//: The door of a room in the house the walker is in, within reach.
+function nearestRoomDoor() {
+  if (!state.indoors) return null;
+  let best = null, bestD = 1.7;
+  for (const entry of interiorsBuilt) {
+    for (const d of entry.interior?.roomDoors || []) {
+      const dist = Math.hypot(d.x - avatar.position.x, d.z - avatar.position.z);
+      if (dist < bestD) { best = d; bestD = dist; }
+    }
+  }
+  return best;
+}
+function swingRoomDoors(dt) {
+  for (const entry of interiorsBuilt) {
+    for (const d of entry.interior?.roomDoors || []) {
+      const target = d.open ? 1.45 : 0;
+      if (Math.abs(target - d.angle) < 1e-3) continue;
+      d.angle += Math.sign(target - d.angle) * Math.min(Math.abs(target - d.angle), dt * 3.0);
+      d.leaf.rotation.y = d.angle;
+    }
+  }
+}
+
 function nearestDoor() {
   const x = avatar.position.x, z = avatar.position.z;
   const near = doorsNear(x, z, DOOR_DRAW_M).filter((d) => d.mesh)
@@ -21611,6 +21862,8 @@ addEventListener("keydown", (e) => {
     if (activeGuest.api.toggleNearestDoor()) e.preventDefault();
     return;
   }
+  const roomDoor = nearestRoomDoor();
+  if (roomDoor) { roomDoor.open = !roomDoor.open; e.preventDefault(); return; }
   const door = nearestDoor();
   if (!door) return;
   toggleDoor(door);
@@ -21699,7 +21952,11 @@ function updateDoors(dt) {
   }
   if (!insideId && state.autoFirstPerson) setFirstPerson(false);
   state.indoors = Boolean(insideId && insideEntry?.interior);
-  if (door) {
+  swingRoomDoors(dt);
+  const roomDoor = nearestRoomDoor();
+  if (roomDoor) {
+    setHint(`Enter — ${roomDoor.open ? "close" : "open"} the door`);
+  } else if (door) {
     setHint(door.atGrade ? "No house interior"
       : `Enter — ${door.open ? "close" : "open"} the door`);
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
@@ -22013,6 +22270,8 @@ function buildHomeShell(entry) {
   group.name = `house-shell:${id}`;
   // This shell's own copies of the shared lining, glass and frame materials, disposed with it.
   const shellPlaster = plasterMaterial.clone();
+  // The inside of the outside walls in the house's own paint, not plaster white.
+  shellPlaster.color.setHex(WALL_PAINTS[roomPaint(Math.abs(Number(entry.way.osm_id) || 0), 99)]);
   const shellGlass = homeGlassMaterial.clone();
   const shellGlassInside = homeGlassInsideMaterial.clone();
   const shellFrame = homeFrameMaterial.clone();
@@ -22281,6 +22540,76 @@ const INTERIOR_WALL_PALETTES = [
 ];
 const interiorWallMaterials = new Map();
 let interiorPlasterTexture = null;
+//: Interior paint: real wall colours, not shades of white. Every room in a house its own, and
+//: every house its own set (roomPaint).
+const WALL_PAINTS = [
+  0xc9d6c3, 0xe3b8a0, 0x9db4c8, 0xe8d39a, 0xd9a6a6, 0xa9c4bd, 0xc4b5d9, 0xb7c9a8, 0xf0c9a9, 0x8fa7b8,
+  0xd8c3a5, 0xa8b9a0, 0xc98f7a, 0x7f9aa9, 0xe2d6c2, 0xb4a7c9, 0x92b0a0, 0xd6b38f, 0xa7c0d6, 0xc7a6b8,
+  0x6f8f86, 0x8a9fc4, 0xd8cf9e, 0xb8b0a5, 0x5f7d95, 0xe6c3c3, 0x9fb28a, 0xcfb08c,
+];
+function roomPaint(houseSeed, roomIndex, avoid = -1) {
+  let i = Math.floor(random(houseSeed * 13 + roomIndex * 101 + 7) * WALL_PAINTS.length) % WALL_PAINTS.length;
+  if (i === avoid) i = (i + 5) % WALL_PAINTS.length;
+  return i;
+}
+const paintMaterials = new Map();
+function paintMaterial(index) {
+  if (!paintMaterials.has(index)) {
+    interiorWallMaterial(0, "living");          // makes the shared plaster grain
+    paintMaterials.set(index, new THREE.MeshStandardMaterial({ map: interiorPlasterTexture, color: WALL_PAINTS[index],
+      roughness: 0.9, side: THREE.DoubleSide }));
+  }
+  return paintMaterials.get(index);
+}
+//: Fitted carpet, cut to the room: plush, berber loop, a small geometric, a stripe; in a range of
+//: colours. Tiled at its own size in metres (the room floor's UVs are metres), so it is never
+//: stretched to a room.
+const CARPET_COLOURS = [0xb9ab92, 0x8d8f8c, 0x3f4a63, 0x7a3a3c, 0x8f9f86, 0x4a4b4d, 0xe0d6c4, 0x9a5b3e, 0x3f6d6d, 0xb38b8b, 0x6d5f7a, 0xcab88f];
+const CARPET_STYLES = ["plush", "berber", "geometric", "stripe"];
+const carpetMaterials = new Map();
+function carpetMaterial(style, colourIndex) {
+  const key = `${style}:${colourIndex}`;
+  if (carpetMaterials.has(key)) return carpetMaterials.get(key);
+  const base = new THREE.Color(CARPET_COLOURS[colourIndex]);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = `#${base.getHexString()}`; ctx.fillRect(0, 0, 128, 128);
+  const seed = colourIndex * 17 + CARPET_STYLES.indexOf(style) * 5;
+  if (style === "plush" || style === "berber") {
+    for (let i = 0; i < (style === "plush" ? 5000 : 2200); i += 1) {
+      ctx.fillStyle = random(seed + i) < 0.5 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.08)";
+      const sz = style === "plush" ? 1 : 2;
+      ctx.fillRect(random(seed + i * 3) * 128, random(seed + i * 7) * 128, sz, sz);
+    }
+    if (style === "berber") {
+      ctx.fillStyle = "rgba(0,0,0,0.07)";
+      for (let y = 0; y < 128; y += 4) for (let x = (y / 4) % 2 ? 2 : 0; x < 128; x += 4) ctx.fillRect(x, y, 2, 2);
+    }
+  } else if (style === "geometric") {
+    ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 3;
+    for (let x = 0; x <= 128; x += 32) for (let y = 0; y <= 128; y += 32) {
+      ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x + 12, y); ctx.lineTo(x, y + 12); ctx.lineTo(x - 12, y); ctx.closePath(); ctx.stroke();
+    }
+  } else {
+    for (let y = 0; y < 128; y += 16) { ctx.fillStyle = (y / 16) % 2 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.06)"; ctx.fillRect(0, y, 128, 8); }
+  }
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  // A tile is 0.6 m of carpet, the floor's UVs being metres.
+  map.repeat.set(1 / 0.6, 1 / 0.6);
+  const material = new THREE.MeshStandardMaterial({ map, roughness: 1.0,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  carpetMaterials.set(key, material);
+  return material;
+}
+//: How often a room of each kind is carpeted wall to wall.
+const CARPET_SHARE = { bedroom: 0.7, living: 0.45, office: 0.55, dining: 0.2, corridor: 0.35 };
+//: The rooms that open into each other: no wall between a kitchen, a living room and a dining room.
+const OPEN_PLAN = new Set(["living", "dining", "kitchen"]);
+//: The rooms that close: a door you open.
+const PRIVATE_ROOMS = new Set(["bedroom", "bathroom", "office", "storage"]);
 function interiorWallMaterial(theme, kind) {
   const family = ["living", "dining", "corridor", "stair"].includes(kind) ? 0
     : kind === "kitchen" ? 1 : kind === "bedroom" ? 2
@@ -22657,116 +22986,6 @@ function roomLayout(entry, pts, doorsInPlan) {
   return { walls, placed, fits, occupy, alongWall, centroid, clear };
 }
 
-//: Rugs: six weaves, eight colourings, chosen per room and per house.
-const RUG_PALETTES = [
-  ["#8e2a2a", "#1f2d4a", "#e8dcc2", "#c9a24a"], ["#24345a", "#e9e0cc", "#b5552f", "#7a8a9a"],
-  ["#7f8f6a", "#efe6d2", "#c06a45", "#4a5a3a"], ["#3b3d40", "#8a8c8f", "#e7e7e2", "#5f6266"],
-  ["#c49a2c", "#1f6f6f", "#f1e9d6", "#7a4b2a"], ["#d8a7a0", "#6b3a52", "#f3ebe1", "#a86a6a"],
-  ["#4a6a8f", "#22314f", "#eef0f2", "#9bb0c8"], ["#d7c9ad", "#6a4a32", "#2b2622", "#a68b67"],
-];
-const RUG_KINDS = ["medallion", "kilim", "shag", "trellis", "stripe", "braided"];
-const rugMaterials = new Map();
-function rugMaterial(kind, paletteIndex) {
-  const key = `${kind}:${paletteIndex}`;
-  if (rugMaterials.has(key)) return rugMaterials.get(key);
-  const [field, border, light, accent] = RUG_PALETTES[paletteIndex];
-  const n = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = n;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = field; ctx.fillRect(0, 0, n, n);
-  const seed = paletteIndex * 31 + RUG_KINDS.indexOf(kind) * 7;
-  if (kind === "medallion") {
-    // A field with a border of three bands and a lozenge medallion at the middle.
-    for (const [inset, colour] of [[6, border], [20, light], [26, border]]) {
-      ctx.strokeStyle = colour; ctx.lineWidth = inset === 20 ? 4 : 12;
-      ctx.strokeRect(inset, inset, n - inset * 2, n - inset * 2);
-    }
-    ctx.fillStyle = border;
-    ctx.beginPath(); ctx.moveTo(n / 2, 60); ctx.lineTo(n - 70, n / 2); ctx.lineTo(n / 2, n - 60);
-    ctx.lineTo(70, n / 2); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = light;
-    ctx.beginPath(); ctx.moveTo(n / 2, 92); ctx.lineTo(n - 102, n / 2); ctx.lineTo(n / 2, n - 92);
-    ctx.lineTo(102, n / 2); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = accent;
-    ctx.beginPath(); ctx.arc(n / 2, n / 2, 16, 0, Math.PI * 2); ctx.fill();
-    for (const [x, y] of [[52, 52], [n - 52, 52], [52, n - 52], [n - 52, n - 52]]) {
-      ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill();
-    }
-  } else if (kind === "kilim") {
-    // Bands of stepped diamonds.
-    for (let y = 0; y < n; y += 32) {
-      ctx.fillStyle = (y / 32) % 2 ? light : border;
-      ctx.fillRect(0, y, n, 6);
-      ctx.fillStyle = (y / 32) % 2 ? accent : light;
-      for (let x = 0; x < n; x += 32) {
-        ctx.beginPath(); ctx.moveTo(x + 16, y + 8); ctx.lineTo(x + 28, y + 19); ctx.lineTo(x + 16, y + 30);
-        ctx.lineTo(x + 4, y + 19); ctx.closePath(); ctx.fill();
-      }
-    }
-  } else if (kind === "shag") {
-    // One colour, deep pile: fine speckle of light and shade, a plain bound edge.
-    for (let i = 0; i < 9000; i += 1) {
-      ctx.fillStyle = random(seed + i) < 0.5 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.10)";
-      ctx.fillRect(random(seed + i * 3) * n, random(seed + i * 7) * n, 2, 2);
-    }
-    ctx.strokeStyle = border; ctx.lineWidth = 6; ctx.strokeRect(3, 3, n - 6, n - 6);
-  } else if (kind === "trellis") {
-    // A Moroccan trellis: interlocking ogees in a light line on the field.
-    ctx.strokeStyle = light; ctx.lineWidth = 5;
-    for (let x = -32; x < n + 32; x += 64) {
-      for (let y = -32; y < n + 32; y += 64) {
-        ctx.beginPath(); ctx.ellipse(x + 32, y + 32, 30, 30, 0, 0, Math.PI * 2); ctx.stroke();
-      }
-    }
-    ctx.strokeStyle = border; ctx.lineWidth = 10; ctx.strokeRect(5, 5, n - 10, n - 10);
-  } else if (kind === "stripe") {
-    const colours = [field, light, border, light, accent];
-    let y = 0, k = 0;
-    while (y < n) {
-      const h = 10 + Math.floor(random(seed + k) * 28);
-      ctx.fillStyle = colours[k % colours.length]; ctx.fillRect(0, y, n, h);
-      y += h; k += 1;
-    }
-  } else {
-    // Braided: concentric rings of plait.
-    for (let r = n / 2; r > 4; r -= 9) {
-      ctx.strokeStyle = [border, light, accent, field][Math.floor(r / 9) % 4];
-      ctx.lineWidth = 8;
-      ctx.beginPath(); ctx.arc(n / 2, n / 2, r - 4, 0, Math.PI * 2); ctx.stroke();
-    }
-  }
-  // Every weave has a weave: a faint cross-hatch so it is cloth and not paint.
-  ctx.fillStyle = "rgba(0,0,0,0.06)";
-  for (let i = 0; i < n; i += 3) { ctx.fillRect(i, 0, 1, n); ctx.fillRect(0, i, n, 1); }
-  const map = new THREE.CanvasTexture(canvas);
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 4;
-  const material = new THREE.MeshStandardMaterial({ map, roughness: 1.0, metalness: 0,
-    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  rugMaterials.set(key, material);
-  return material;
-}
-//: A rug of about w x d centred at (cx, cz), shrunk until it lies wholly in the room.
-function addRug(group, layout, seed, cx, cz, yaw, w, d, floorY, kinds = RUG_KINDS) {
-  let scale = 1;
-  while (scale > 0.45 && !layout.fits(cx, cz, yaw, w * scale, d * scale, true)) scale -= 0.08;
-  if (scale <= 0.45) return null;
-  const kind = kinds[Math.floor(random(seed) * kinds.length) % kinds.length];
-  const palette = Math.floor(random(seed + 13) * RUG_PALETTES.length) % RUG_PALETTES.length;
-  const rw = w * scale, rd = d * scale;
-  const geometry = kind === "braided"
-    ? new THREE.CircleGeometry(Math.min(rw, rd) / 2, 40).rotateX(-Math.PI / 2)
-    : new THREE.PlaneGeometry(rw, rd).rotateX(-Math.PI / 2);
-  const rug = new THREE.Mesh(geometry, rugMaterial(kind, palette));
-  rug.position.set(cx, floorY + 0.022, cz);
-  rug.rotation.y = yaw;
-  rug.receiveShadow = true;
-  rug.userData = { surface: "furnishing:rug", rug: kind, palette, grade: "inferred_from_room_type" };
-  group.add(rug);
-  return rug;
-}
-
 //: A ceiling light: a fitting from the library at the ceiling, a lit bulb in it.
 const bulbMaterial = new THREE.MeshBasicMaterial({ color: 0xfff1d0 });
 const cordMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
@@ -22913,8 +23132,6 @@ function furnishLiving(group, entry, layout, seed, floorY) {
     furniturePiece(group, "coffee_table", seed + 3, tableX, tableZ, sofa.yaw, floorY, 1.1, ctD, 0.42,
       furnishingMaterials.wood, { onModel: setOnTop("table_item", seed + 31, [[0.15, 0]]) });
   }
-  addRug(group, layout, seed + 4, sofa.cx + nx * 1.05, sofa.cz + nz * 1.05, sofa.yaw,
-    Math.min(2.8, sofa.w + 0.7), 1.9, floorY);
   // An armchair against a side wall, turned to the coffee table.
   for (const wall of layout.walls) {
     if (Math.abs(wall.nx * nx + wall.nz * nz) > 0.35) continue;
@@ -22954,7 +23171,13 @@ function furnishLiving(group, entry, layout, seed, floorY) {
   group.add(picture);
   return true;
 }
-//: Abstract paintings, a few dozen of them: fields of colour, a horizon, blocks.
+//: Abstract paintings, a few dozen of them: fields of colour, a horizon, blocks, in these colourings.
+const PAINTING_PALETTES = [
+  ["#8e2a2a", "#1f2d4a", "#e8dcc2", "#c9a24a"], ["#24345a", "#e9e0cc", "#b5552f", "#7a8a9a"],
+  ["#7f8f6a", "#efe6d2", "#c06a45", "#4a5a3a"], ["#3b3d40", "#8a8c8f", "#e7e7e2", "#5f6266"],
+  ["#c49a2c", "#1f6f6f", "#f1e9d6", "#7a4b2a"], ["#d8a7a0", "#6b3a52", "#f3ebe1", "#a86a6a"],
+  ["#4a6a8f", "#22314f", "#eef0f2", "#9bb0c8"], ["#d7c9ad", "#6a4a32", "#2b2622", "#a68b67"],
+];
 const paintingMaterials = new Map();
 function paintingMaterial(seed) {
   const key = Math.floor(random(seed) * 24);
@@ -22962,7 +23185,7 @@ function paintingMaterial(seed) {
   const canvas = document.createElement("canvas");
   canvas.width = 192; canvas.height = 132;
   const ctx = canvas.getContext("2d");
-  const palette = RUG_PALETTES[key % RUG_PALETTES.length];
+  const palette = PAINTING_PALETTES[key % PAINTING_PALETTES.length];
   ctx.fillStyle = palette[2]; ctx.fillRect(0, 0, 192, 132);
   const style = key % 3;
   if (style === 0) {
@@ -23049,8 +23272,6 @@ function furnishBedroom(group, entry, layout, seed, floorY) {
     }
     if (done) break;
   }
-  addRug(group, layout, seed + 4, bed.cx + wall.nx * 0.5, bed.cz + wall.nz * 0.5, bed.yaw,
-    bed.w + 1.1, Math.min(2.2, bed.d * 0.8), floorY);
   return true;
 }
 
@@ -23074,7 +23295,6 @@ function furnishDining(group, entry, layout, seed, floorY, doorsInPlan, pts) {
         furnishingMaterials.wood, { orient: true, maxH: 1.1 });
     }
   }
-  addRug(group, layout, seed + 3, cx, cz, yaw, 2.8, 2.3, floorY, ["medallion", "kilim", "trellis", "stripe"]);
   return true;
 }
 
@@ -23111,7 +23331,6 @@ function furnishOffice(group, entry, layout, seed, floorY) {
     }
     if (done) break;
   }
-  addRug(group, layout, seed + 4, chairX, chairZ, desk.yaw, 1.6, 1.3, floorY, ["shag", "stripe", "trellis"]);
   return true;
 }
 
@@ -23155,20 +23374,7 @@ function furnishRoomFor(group, entry, room, floorY, height, doorsInPlan, index) 
     furnished = furnishAgainstWall(group, entry, layout, kind, pts, floorY, doorsInPlan, seed);
   if (!furnished && ["living", "bedroom", "dining", "office"].includes(kind))
     addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan);
-  if (kind === "bathroom") addRug(group, layout, seed + 9, layout.centroid[0], layout.centroid[1],
-    layout.walls[0] ? Math.atan2(layout.walls[0].nx, layout.walls[0].nz) : 0, 0.8, 0.5, floorY, ["shag", "stripe"]);
-  if (["corridor", "stair", "other"].includes(kind) && layout.walls[0] && layout.walls[0].len > 2.2) {
-    const wall = layout.walls[0];
-    // A runner down the hall's length, in its middle.
-    let width = 0;
-    for (const off of [0.5, 0.7, 0.9, 1.2]) {
-      if (pointInRing(layout.centroid[0] + wall.nx * off, layout.centroid[1] + wall.nz * off, pts)
-          && pointInRing(layout.centroid[0] - wall.nx * off, layout.centroid[1] - wall.nz * off, pts)) width = off * 2;
-    }
-    if (width >= 1.0) addRug(group, layout, seed + 11, layout.centroid[0], layout.centroid[1],
-      Math.atan2(wall.nx, wall.nz), Math.min(wall.len * 0.7, 4.5), Math.min(0.8, width * 0.6), floorY,
-      ["medallion", "kilim", "stripe"]);
-  }
+  // Carpet is fitted to the room it is in (buildInterior), not laid as a rug.
   if (["balcony", "shaft", "elevator", "outdoor"].includes(kind)) return null;
   return addCeilingLight(group, layout, seed + 21, floorY, height, kind);
 }
@@ -23364,6 +23570,16 @@ function buildInterior(entry) {
       accessRooms.push({ kind: INTERIORS.kinds[kindIndex], pts });
     }
   entry.accessZones = entryAccessZones(entry, accessRooms);
+  const houseSeed = Math.abs(Number(entry.way.osm_id) || 0);
+  const roomKindAt = (x, z) => (accessRooms.find((r) => pointInRing(x, z, r.pts)) || {}).kind || null;
+  // Which rooms a line between two rooms divides (sampled a little either side of its middle).
+  const sidesOf = (ax, az, bx, bz) => {
+    const len = Math.hypot(bx - ax, bz - az) || 1;
+    const nx = -(bz - az) / len * 0.3, nz = (bx - ax) / len * 0.3;
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+    return [roomKindAt(mx + nx, mz + nz), roomKindAt(mx - nx, mz - nz)];
+  };
+  let roomCounter = 0, lastPaint = -1;
   for (let i = 0; i < nx; i += 1) {
     for (let j = 0; j < ny; j += 1) {
       for (const [x, y, w] of plan.doors) {
@@ -23397,11 +23613,26 @@ function buildInterior(entry) {
             floor.position.y = floorY + 0.01;
             floor.receiveShadow = true;
             group.add(floor);
+            // Fitted carpet in some rooms: the room's own shape, the pattern at its own size.
+            const carpetSeed = houseSeed * 7 + roomCounter * 31;
+            if (random(carpetSeed) < (CARPET_SHARE[kind] || 0)) {
+              const style = CARPET_STYLES[Math.floor(random(carpetSeed + 3) * CARPET_STYLES.length) % CARPET_STYLES.length];
+              const colour = Math.floor(random(carpetSeed + 9) * CARPET_COLOURS.length) % CARPET_COLOURS.length;
+              const carpet = new THREE.Mesh(new THREE.ShapeGeometry(shape), carpetMaterial(style, colour));
+              carpet.rotation.x = -Math.PI / 2;
+              carpet.position.y = floorY + 0.022;
+              carpet.receiveShadow = true;
+              carpet.userData = { surface: "furnishing:carpet", carpet: style, colour };
+              group.add(carpet);
+            }
           }
         }
         // A partly clipped room can still hold a safe furnishing. Placement
         // tests the entire object's bounds against both room and footprint.
-        roomSpecs.push({ kind, pts });
+        const paint = roomPaint(houseSeed, roomCounter, lastPaint);
+        lastPaint = paint;
+        roomCounter += 1;
+        roomSpecs.push({ kind, pts, paint });
         // Its walls, clipped to the footprint, with the plan's doorways left open.
         for (let k = 0; k < pts.length; k += 1) {
           const [ax, az] = pts[k];
@@ -23414,9 +23645,14 @@ function buildInterior(entry) {
             const off = Math.abs((dx - ax) * (bz - az) - (dz - az) * (bx - ax)) / len;
             if (off > 0.45 || t < 0 || t > 1) continue;
             const doorKey = `${Math.round(dx * 10)}:${Math.round(dz * 10)}`;
-            if (!interiorDoorSpecs.has(doorKey) && insideFootprint(entry, dx, dz))
+            if (!interiorDoorSpecs.has(doorKey) && insideFootprint(entry, dx, dz)) {
+              const sides = sidesOf(ax, az, bx, bz);
               interiorDoorSpecs.set(doorKey, { x: dx, z: dz, width: Math.min(1.25, Math.max(0.75, dw)),
-                yaw: -Math.atan2(bz - az, bx - ax) });
+                yaw: -Math.atan2(bz - az, bx - ax),
+                // A door into a bedroom or a bathroom is a door, shut; between the open rooms none.
+                kind: sides.some((k) => PRIVATE_ROOMS.has(k)) ? "private"
+                  : sides.every((k) => OPEN_PLAN.has(k)) ? "open_plan" : "doorway" });
+            }
             const half = Math.max(0.45, dw / 2) / len;
             pieces = pieces.flatMap(([p, q]) => (t - half > q || t + half < p) ? [[p, q]]
               : [[p, Math.max(p, t - half)], [Math.min(q, t + half), q]].filter(([r, s]) => s - r > 1e-3));
@@ -23433,14 +23669,17 @@ function buildInterior(entry) {
                 const t = ((mx - a[0]) * dx + (mz - a[1]) * dz) / (len * len);
                 return t >= 0 && t <= 1 && Math.abs((mx - a[0]) * dz - (mz - a[1]) * dx) / len < 0.25;
               })) continue;
+              // Open plan: no wall between the kitchen, the living room and the dining room.
+              const [sideA, sideB] = sidesOf(s[0], s[1], s[2], s[3]);
+              if (OPEN_PLAN.has(sideA) && OPEN_PLAN.has(sideB)) continue;
               segments.push(s);
               const aKey = `${Math.round(s[0] * 100)}:${Math.round(s[1] * 100)}`;
               const bKey = `${Math.round(s[2] * 100)}:${Math.round(s[3] * 100)}`;
               const segmentKey = aKey < bKey ? `${aKey}|${bKey}` : `${bKey}|${aKey}`;
               if (drawnPartitions.has(segmentKey)) continue;
               drawnPartitions.add(segmentKey);
-              if (!colouredSegments.has(kind)) colouredSegments.set(kind, []);
-              colouredSegments.get(kind).push(s);
+              if (!colouredSegments.has(paint)) colouredSegments.set(paint, []);
+              colouredSegments.get(paint).push(s);
             }
           }
         }
@@ -23476,13 +23715,15 @@ function buildInterior(entry) {
     group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
     if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
   }
-  for (const [kind, roomSegments] of colouredSegments) {
-    const partitions = new THREE.Mesh(wallQuads(roomSegments, floorY, height),
-                                      interiorWallMaterial(theme, kind));
+  for (const [paint, roomSegments] of colouredSegments) {
+    const partitions = new THREE.Mesh(wallQuads(roomSegments, floorY, height), paintMaterial(paint));
     partitions.castShadow = true;
     group.add(partitions);
   }
+  const roomDoors = [];
   for (const spec of interiorDoorSpecs.values()) {
+    // Between the open rooms there is no door at all: they are one space.
+    if (spec.kind === "open_plan") continue;
     const frame = new THREE.Group();
     frame.position.set(spec.x, floorY, spec.z);
     frame.rotation.y = spec.yaw;
@@ -23497,7 +23738,8 @@ function buildInterior(entry) {
     frame.add(lintel);
     const leaf = new THREE.Group();
     leaf.position.x = -spec.width / 2;
-    leaf.rotation.y = 1.05;
+    // A bedroom's or a bathroom's door is shut until it is opened (Enter, next to it).
+    leaf.rotation.y = spec.kind === "private" ? 0 : 1.05;
     const panel = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, DOOR_HEIGHT_M - 0.07, 0.045),
       doorMaterial);
     panel.position.set(spec.width * 0.45, DOOR_HEIGHT_M / 2, 0);
@@ -23505,6 +23747,7 @@ function buildInterior(entry) {
     frame.add(leaf);
     frame.userData = { surface: "interior_door", grade: "fitted_plan_not_measured" };
     group.add(frame);
+    if (spec.kind === "private") roomDoors.push({ x: spec.x, z: spec.z, leaf, open: false, angle: 0 });
   }
   // Share static wall/floor batches before repeating storeys; furniture and
   // door groups remain independent for asset replacement and leaf details.
@@ -23561,7 +23804,7 @@ function buildInterior(entry) {
   const source = INTERIORS.sources[plan.src] || {};
   const floorSurface = (x, z) => (insideFootprint(entry, x, z) ? floorY : null);
   standingSurfaces.add(floorSurface);
-  entry.interior = { group, segments, floorSurface, rooms: roomSpecs, lights, floorY, height,
+  entry.interior = { group, segments, floorSurface, rooms: roomSpecs, lights, roomDoors, floorY, height,
     plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${nx * ny > 1 ? ` ×${nx * ny}` : ""} (${source.license || ""})` };
   interiorsBuilt.add(entry);
 }
@@ -23722,7 +23965,7 @@ function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
   updateDoors(dt);
-  if (!held.size || dragging) {
+  if (!held.size) {
     animateAvatar(0, new THREE.Vector3(), false);
     updateAvatarMixer(dt);
     return;

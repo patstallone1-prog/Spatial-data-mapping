@@ -88,3 +88,52 @@ def test_a_region_bridge_is_carried_between_its_abutments() -> None:
     assert "WAY_LIFT = centralDeck || BRIDGE_LIFTS.get(way) ||" in js
     assert "counts.get(keyOf(x, z)) === 1" in js            # an end no other bridge way shares
     assert 'userData = { surface: "bridge_parapet"' in js
+
+
+def test_a_busway_is_its_own_lanes_down_the_middle() -> None:
+    spec = importlib.util.spec_from_file_location("builder", ROOT / "scripts/build_sf_corridor_3d.py")
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+
+    class Frame:
+        def to_xy(self, lon, lat):
+            return lon * 88000.0, lat * 111320.0
+
+    # Two one-lane busways side by side are each a lane, not a street's width.
+    ways = [{"busway": True, "points": [[-122.4232, 37.7940], [-122.4232, 37.7950]]},
+            {"busway": True, "points": [[-122.42324, 37.7940], [-122.42324, 37.7950]]}]
+    builder.busway_widths(ways, Frame())
+    assert all(way["road_m"] < 4.0 for way in ways)
+    corridor = json.loads((ROOT / "docs/sf-corridor-3d.json").read_text())
+    busways = [w for w in corridor["ways"] if w.get("busway")]
+    assert busways and all(w["road_m"] <= 7.2 and not w.get("osm_walk_sides") for w in busways)
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_the_busway_is_painted_and_its_stations_are_islands() -> None:
+    js = _page_js()
+    # The kerbs either side of the avenue never widen a busway to the avenue.
+    assert "if (way.busway) return false;" in _extract("recentreOnKerbEnvelope", js)
+    # Red between junctions, so the crosswalks run across it.
+    assert 'if (insideJunctionBox(x, -y)) paintRun(); else run.push(point);' in js
+    assert 'addMerged("busway:fill", fill, "busway")' in js
+    canopy = _extract("isTransitCanopy", js)
+    assert 'tags.shelter_type === "public_transport"' in canopy and "nearBusway(x, -y, 9)" in canopy
+    assert "TRANSIT_CANOPIES.push(way);" in js
+    islands = _extract("addTransitIslands", js)
+    assert "TRANSIT_ISLAND_SPOTS.push(...islands)" in islands
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_a_crossing_mapped_across_a_divided_avenue_is_painted_kerb_to_kerb() -> None:
+    js = _page_js()
+    across = _extract("acrossTheWholeRoad", js)
+    # Straight across, cast to the kerbs at the mapped line's two ends, not the median's.
+    assert "CROSSING_STRAIGHT_M" in across and "near(length) ?? length" in across
+    assert "more = insideCarriageway(ax + ux * t, az + uz * t, 0.0);" in across
+    span = _extract("crossingRoadSpanPoints", js)
+    assert "endCrossingOnDrawnKerb(acrossTheWholeRoad(curbSpan, points))" in span
+    assert "acrossTheWholeRoad(fallback, points)" in span
+    # Island stops are laid along the busway, beside its lane, out of the junction.
+    stops = _extract("addTransitStops", js)
+    assert "nearestBuswayAt(x, z, 14)" in stops and "insideJunctionBox(cx + lane.ux * a, cz + lane.uz * a)" in stops

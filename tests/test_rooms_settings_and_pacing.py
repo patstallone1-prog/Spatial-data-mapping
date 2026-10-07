@@ -65,9 +65,9 @@ def test_the_living_room_and_bedroom_rules() -> None:
     # The television is on a wall facing the sofa, at a viewing distance, square to it.
     assert "if (wall.nx * nx + wall.nz * nz > -0.85) continue;" in living
     assert "spot.distance >= 1.9 && spot.distance <= 5.8" in living
-    assert '"coffee_table"' in living and "addRug(" in living and '"armchair"' in living
+    assert '"coffee_table"' in living and '"armchair"' in living
     bedroom = _extract("furnishBedroom", js)
-    assert '"nightstand"' in bedroom and '"dresser"' in bedroom and "addRug(" in bedroom
+    assert '"nightstand"' in bedroom and '"dresser"' in bedroom
     # The chest of drawers goes on another wall than the bed's.
     assert "layout.walls.filter((w) => w !== wall)" in bedroom
     room = _extract("furnishRoomFor", js)
@@ -79,14 +79,24 @@ def test_the_living_room_and_bedroom_rules() -> None:
     assert "scene.add(indoorLight);" in js
 
 
-def test_rugs_vary_by_room_and_house() -> None:
+def test_rooms_are_painted_carpeted_and_opened_to_each_other() -> None:
     js = _page_js()
-    kinds = re.search(r"const RUG_KINDS = \[([^\]]+)\]", js).group(1)
-    assert len(kinds.split(",")) >= 6
-    palettes = js[js.index("const RUG_PALETTES = ["):js.index("const RUG_KINDS")]
-    assert palettes.count("[\"#") >= 8
-    room = _extract("furnishRoomFor", js)
-    assert "Number(entry.way.osm_id)" in room and "index * 7919" in room
+    # Every room its own colour, never the one next to it; the same house the same each visit.
+    paints = js[js.index("const WALL_PAINTS = ["):js.index("function roomPaint")]
+    assert paints.count("0x") >= 24
+    assert "if (i === avoid)" in _extract("roomPaint", js)
+    build = _extract("buildInterior", js)
+    assert "roomPaint(houseSeed, roomCounter, lastPaint)" in build
+    assert "paintMaterial(paint)" in build
+    # Carpet is the room's own shape, the pattern at its own scale -- no rugs laid on top.
+    assert "new THREE.Mesh(new THREE.ShapeGeometry(shape), carpetMaterial(style, colour))" in build
+    assert "map.repeat.set(1 / 0.6, 1 / 0.6)" in _extract("carpetMaterial", js)
+    assert "addRug(" not in js
+    # No wall between the kitchen, the living room and the dining room; a door into a bedroom.
+    assert "if (OPEN_PLAN.has(sideA) && OPEN_PLAN.has(sideB)) continue;" in build
+    assert 'sides.some((k) => PRIVATE_ROOMS.has(k)) ? "private"' in build
+    assert "roomDoors.push(" in build
+    assert "nearestRoomDoor()" in js and "swingRoomDoors(dt)" in _extract("updateDoors", js)
 
 
 def test_inside_a_house_the_walker_walks() -> None:
