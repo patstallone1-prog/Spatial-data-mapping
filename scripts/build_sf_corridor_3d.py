@@ -461,14 +461,19 @@ DETAIL_TUNING = {
     "app": {
         "const LATTICE_BY_INCLINE = [\n  [600, 4.0],   // a cliff, a stair, a retaining wall\n"
         "  [300, 6.0],\n  [150, 8.0],\n  [60, 12.0],\n  [0, 16.0],    // flat ground: as it was\n];":
-        "const LATTICE_BY_INCLINE = [\n  [300, 1.5],   // finer than the terrain grid, where the grid earns it\n"
-        "  [150, 2.0],\n  [60, 3.0],\n  [20, 4.0],\n  [0, 8.0],     // flat ground, still cut four times finer\n];",
-        "const LATTICE_DRAWN_MAX_M = 12.0;": "const LATTICE_DRAWN_MAX_M = 6.0;",
-        "const LATTICE_BUSY_RINGS = 6;": "const LATTICE_BUSY_RINGS = 3;",
+        # The fine cut at High and Max; Low and Medium keep the site's (QUALITY_PRESETS.fineGround),
+        # so a machine that cannot hold the fine ground can be told to load the lighter one.
+        "const LATTICE_BY_INCLINE = QUALITY().fineGround ? [\n  [300, 1.5],   // finer than the terrain grid, where the grid earns it\n"
+        "  [150, 2.0],\n  [60, 3.0],\n  [20, 4.0],\n  [0, 8.0],     // flat ground, still cut four times finer\n] : [\n"
+        "  [600, 4.0],\n  [300, 6.0],\n  [150, 8.0],\n  [60, 12.0],\n  [0, 16.0],\n];",
+        "const LATTICE_DRAWN_MAX_M = 12.0;": "const LATTICE_DRAWN_MAX_M = QUALITY().fineGround ? 6.0 : 12.0;",
+        "const LATTICE_BUSY_RINGS = 6;": "const LATTICE_BUSY_RINGS = QUALITY().fineGround ? 3 : 6;",
         "  walk_underlay: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M],":
-        "  walk_underlay: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M, undefined, false, true],",
+        "  walk_underlay: QUALITY().fineGround ? [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M, undefined, false, true]"
+        " : [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M],",
         "  parking_lot: [12.0, 0], front_walk: [12.0, 0],":
-        "  parking_lot: [12.0, 0, undefined, false, true], front_walk: [12.0, 0, undefined, false, true],",
+        "  parking_lot: QUALITY().fineGround ? [12.0, 0, undefined, false, true] : [12.0, 0],"
+        " front_walk: QUALITY().fineGround ? [12.0, 0, undefined, false, true] : [12.0, 0],",
     },
     "site": {},
 }
@@ -3040,7 +3045,45 @@ const renderer = new THREE.WebGLRenderer({
 // the driver to finish compiling it: a whole-second stall the first time a house's windows,
 // a sign or a tree kind came into view. The shaders are the library's own; the check is off.
 if (renderer.debug) renderer.debug.checkShaderErrors = false;
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1));  // TEMPORARY demo-lite: was 2 (restore tag restore-before-demo-lite)
+// ---- settings: frame rate, quality, and how hard the build may work the machine ------------
+//
+// Opened from the gear at the top right, and from the console: kerbsideSettings.set({ fps: 30,
+// quality: "low" }). Kept in this browser (localStorage), read before anything is built, so the
+// build itself is paced by them. Quality is four presets; each sets the drawing resolution, how
+// far small things are drawn (detail range), how close the camera must be before windows, doors
+// and materials are drawn (zoom detail), and how the build is paced: it works for budgetMs, then
+// rests for restMs, so the machine's load is level rather than a minute at full stretch.
+const QUALITY_PRESETS = {
+  low: { label: "Low", fineGround: false, pixelRatio: 0.75, detailScale: 0.55, lodScale: 0.55, budgetMs: 14, restMs: 22 },
+  medium: { label: "Medium", fineGround: false, pixelRatio: 1, detailScale: 0.8, lodScale: 0.8, budgetMs: 20, restMs: 14 },
+  high: { label: "High", fineGround: true, pixelRatio: 1, detailScale: 1, lodScale: 1, budgetMs: 28, restMs: 10 },
+  max: { label: "Max", fineGround: true, pixelRatio: 2, detailScale: 1.4, lodScale: 1.6, budgetMs: 60, restMs: 0 },
+};
+const FPS_CHOICES = [15, 30, 45, 60, 0];
+const SETTINGS_KEY = "kerbside:settings";
+//: The default: High, except where the device says it is small -- under 8 GB of memory (Chrome
+//: reports it), or a phone or tablet -- where the fine ground is more than it can hold: Medium.
+const SMALL_DEVICE = (typeof navigator !== "undefined")
+  && ((navigator.deviceMemory && navigator.deviceMemory < 8)
+      || /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent || "")
+      || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent || "")));
+const SETTINGS = { fps: 30, quality: SMALL_DEVICE ? "medium" : "high" };
+try {
+  const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+  if (FPS_CHOICES.includes(saved.fps)) SETTINGS.fps = saved.fps;
+  if (QUALITY_PRESETS[saved.quality]) SETTINGS.quality = saved.quality;
+} catch (error) { /* settings are a convenience; the defaults stand without storage */ }
+// And from the address, for this visit: ?quality=medium&fps=60.
+{
+  const query = new URLSearchParams(location.search);
+  if (QUALITY_PRESETS[query.get("quality")]) SETTINGS.quality = query.get("quality");
+  if (FPS_CHOICES.includes(Number(query.get("fps")))) SETTINGS.fps = Number(query.get("fps"));
+}
+const QUALITY = () => QUALITY_PRESETS[SETTINGS.quality];
+// Drawn at the preset's resolution: one pixel per CSS pixel at High. At a Retina display's 2x the
+// GPU shades four times the pixels, and that is what was bringing laptops down while the world
+// loaded; Max draws at the display's own resolution.
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY().pixelRatio));
 // Without tone mapping the renderer clips: anything the lights push past 1.0 lands on pure
 // white and everything above that threshold flattens into the same colour. With a bright sky
 // and a bright sun that was most of the ground, which is why making the carriageway texture
@@ -3707,7 +3750,9 @@ function groundBaseFor(points) {
 //: How long the build may hold the thread before it hands a frame back. Long enough that
 //: the yields themselves cost little (a frame is sixteen milliseconds), short enough that the
 //: page scrolls and the progress reads.
-const YIELD_BUDGET_MS = 60;
+//: How long the build may hold the thread before it hands a frame back, and how long it then
+//: rests: from the quality preset.
+let YIELD_BUDGET_MS = QUALITY().budgetMs;
 let lastYieldAt = performance.now();
 function yieldFrame(progress) {
   const box = document.getElementById("progress");
@@ -3722,8 +3767,10 @@ function yieldFrame(progress) {
     let settled = false;
     const go = () => { if (!settled) { settled = true; resolve(); } };
     if (typeof document !== "undefined" && document.hidden) { yieldWaiters.push(go); yieldChannel.port2.postMessage(0); return; }
-    requestAnimationFrame(() => setTimeout(go, 0));
-    setTimeout(go, 50);
+    // The rest: the build gives the machine this long between slices of work.
+    const rest = QUALITY().restMs;
+    requestAnimationFrame(() => setTimeout(go, rest));
+    setTimeout(go, 50 + rest);
   });
 }
 const yieldChannel = new MessageChannel();
@@ -4419,6 +4466,44 @@ const TERRAIN_GRAIN = LANDWATER ? noiseTexture("#ffffff", "#777771", 512, 0.09) 
 if (TERRAIN_GRAIN) TERRAIN_GRAIN.colorSpace = THREE.SRGBColorSpace;
 const TERRAIN_MATERIAL = new THREE.MeshStandardMaterial({ map: TERRAIN_GRAIN, color: 0xffffff,
   vertexColors: true, roughness: 0.99, metalness: 0.0, side: THREE.DoubleSide });
+//: A house whose rooms were brought down to its street door (ROOMS_LOWERED_MAX_M) has a floor
+//: below the hill it stands on. While the walker is in or at such a house, the terrain inside
+//: its footprint and above its floor is not drawn: one footprint, as a ring of up to
+//: INDOOR_CUT_MAX points, tested per fragment. Inactive (count 0) everywhere else.
+const INDOOR_CUT_MAX = 32;
+const indoorCut = {
+  ring: { value: Array.from({ length: INDOOR_CUT_MAX }, () => new THREE.Vector2()) },
+  count: { value: 0 },
+  floor: { value: 0 },
+};
+TERRAIN_MATERIAL.onBeforeCompile = (shader) => {
+  shader.uniforms.uCutRing = indoorCut.ring;
+  shader.uniforms.uCutCount = indoorCut.count;
+  shader.uniforms.uCutFloor = indoorCut.floor;
+  shader.vertexShader = shader.vertexShader
+    .replace("#include <common>", "#include <common>\nvarying vec3 vCutWorld;")
+    .replace("#include <project_vertex>",
+      "#include <project_vertex>\nvCutWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+  shader.fragmentShader = shader.fragmentShader
+    .replace("#include <common>", `#include <common>
+varying vec3 vCutWorld;
+uniform vec2 uCutRing[${INDOOR_CUT_MAX}];
+uniform int uCutCount;
+uniform float uCutFloor;`)
+    .replace("void main() {", `void main() {
+  if (uCutCount > 2 && vCutWorld.y > uCutFloor - 0.02) {
+    bool inside = false;
+    for (int i = 0; i < ${INDOOR_CUT_MAX}; i++) {
+      if (i >= uCutCount) break;
+      vec2 a = uCutRing[i];
+      vec2 b = uCutRing[i == 0 ? uCutCount - 1 : i - 1];
+      if (((a.y > vCutWorld.z) != (b.y > vCutWorld.z))
+          && (vCutWorld.x < (b.x - a.x) * (vCutWorld.z - a.y) / (b.y - a.y) + a.x)) inside = !inside;
+    }
+    if (inside) discard;
+  }`);
+};
+TERRAIN_MATERIAL.customProgramCacheKey = () => "terrain-indoor-cut";
 if (TERRAIN_FRAME) {
   const f = TERRAIN_FRAME;
   const cols = Math.floor((f.cols - 1) / TERRAIN_MESH_STRIDE) + 1;
@@ -4857,6 +4942,7 @@ async function settleOnto(rule) {
   groups.streets.traverse((o) => { if (o.isMesh && o.geometry && rule.above[o.userData.surface] !== undefined) standing.push(o); });
   if (!standing.length) return 0;
   for (const o of standing) {
+    await maybeYield(rule.label);
     // Cut to a metre first, across as well as along: a crossing's paint had two vertices across
     // its width, and the road under a junction is several ribbons folding at their own stations,
     // so between those two vertices the road rose through the paint as a dark notch.
@@ -4969,12 +5055,13 @@ async function settleOnto(rule) {
             if (Number.isNaN(best[vi]) || y > best[vi]) best[vi] = y;
           }
       }
-      if ((i & 8191) === 0) await maybeYield(rule.label);
+      if ((i & 255) === 0) await maybeYield(rule.label);
     }
     await maybeYield(rule.label);
   }
   let settled = 0;
   for (const o of standing) {
+    await maybeYield(rule.label);
     const above = rule.above[o.userData.surface];
     const position = o.geometry.getAttribute("position");
     const best = tops.get(position);
@@ -5040,11 +5127,42 @@ async function liftOntoGroundAsync(object, label) {
   const meshes = [];
   object.traverse((o) => { if (o.isMesh) meshes.push(o); });
   for (let i = 0; i < meshes.length; i += 1) {
-    lifted += liftOneMesh(meshes[i]);
+    // A very large mesh is cut into pieces first, and the pieces stood on the ground one at a
+    // time with the browser given a turn between them: one street mesh stood on the hill in a
+    // single call held the page for ten seconds.
+    const mesh = meshes[i];
+    const position = !mesh.isInstancedMesh && mesh.geometry?.getAttribute("position");
+    let wide = false;
+    if (position && position.count > 2 * LIFT_SPLIT_MIN_VERTICES) {
+      if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+      const b = mesh.geometry.boundingBox;
+      wide = Math.max(b.max.x - b.min.x, b.max.z - b.min.z) > 2 * LIFT_SPLIT_M;
+    }
+    const pieces = position && (position.count > LIFT_SPLIT_VERTICES || wide) && mesh.parent
+      ? tileMesh(mesh, [LIFT_SPLIT_M, 2 * LIFT_SPLIT_M], LIFT_SPLIT_MIN_VERTICES) : null;
+    if (pieces) {
+      const parent = mesh.parent;
+      parent.remove(mesh);
+      for (const piece of pieces) {
+        parent.add(piece);
+        piece.updateMatrixWorld(true);
+        lifted += liftOneMesh(piece);
+        await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
+      }
+      continue;
+    }
+    const started = performance.now();
+    lifted += liftOneMesh(mesh);
+    const took = performance.now() - started;
+    if (took > 500) console.info(`kerbside: standing one ${mesh.userData.surface || "mesh"} took ${Math.round(took)} ms`,
+      { vertices: position ? position.count : 0, groups: mesh.geometry?.groups?.length || 0, instanced: Boolean(mesh.isInstancedMesh) });
     await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
   }
   return lifted;
 }
+const LIFT_SPLIT_VERTICES = 40000;
+const LIFT_SPLIT_M = 120;
+const LIFT_SPLIT_MIN_VERTICES = 3000;
 const LIFT_M4 = new THREE.Matrix4(), LIFT_Q = new THREE.Quaternion(), LIFT_POS = new THREE.Vector3(), LIFT_SCL = new THREE.Vector3();
 function liftOneMesh(o) {
   const m = LIFT_M4, q = LIFT_Q, pos = LIFT_POS, scl = LIFT_SCL;
@@ -8494,8 +8612,23 @@ const PHOTO_CLASS_TO_MATERIAL = {
 //: Photographed variants per material class (docs/materials): a terrace of houses in one
 //: class shows up to this many different walls.
 const MATERIAL_VARIANTS = 5;
+//: The claddings of the city's houses, as shares, for a house whose photographs gave no reading:
+//: each house gets one of the photographed material libraries (docs/materials) laid across all
+//: of its walls, not the procedural fill. Painted classes take the house's own colour.
+const HOME_CLADDING_SHARES = [
+  ["stucco_render", 0.36], ["wood_siding", 0.30], ["vinyl_siding", 0.08], ["brick", 0.08],
+  ["painted_brick", 0.08], ["stone", 0.03], ["concrete", 0.05], ["ceramic_tile", 0.02],
+];
+function homeCladdingFor(seed) {
+  let roll = random(seed + 4243);
+  for (const [cls, share] of HOME_CLADDING_SHARES) {
+    roll -= share;
+    if (roll <= 0) return cls;
+  }
+  return HOME_CLADDING_SHARES[0][0];
+}
 
-function pickMaterial(seed, height, archetype, facade = null, osmId = null) {
+function pickMaterial(seed, height, archetype, facade = null, osmId = null, home = false) {
   const assignment = osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
   // A class read off this building's photographs: the matcher's at 0.70 and up, CLIP's where
   // its reading was clear (scripts/build_material_assignments.py decided that).
@@ -8505,6 +8638,14 @@ function pickMaterial(seed, height, archetype, facade = null, osmId = null) {
     const name = PHOTO_CLASS_TO_MATERIAL[assignment.class];
     const photographed = MATERIALS.find((material) => material.name === name);
     if (photographed) return { ...photographed, photoLabel: assignment.class };
+  }
+  if (home) {
+    // A house is clad in one material over all of it: what its photographs read where they
+    // read anything, else a draw from the city's houses.
+    const read = assignment && assignment.class && PHOTO_CLASS_TO_MATERIAL[assignment.class]
+      ? assignment.class : homeCladdingFor(seed);
+    const named = MATERIALS.find((material) => material.name === PHOTO_CLASS_TO_MATERIAL[read]);
+    if (named) return { ...named, photoLabel: read };
   }
   if (facade && facade.conf >= FACADE_MATCH_MIN_CONFIDENCE) {
     const matched = MATERIALS.find((m) => m.name === facade.m);
@@ -8820,8 +8961,8 @@ async function loadPhotoMaterialLibrary() {
     if (!response.ok) return;
     manifest = await response.json();
   } catch (_) { return; }
-  const used = new Set(Object.values(MATERIAL_ASSIGNMENTS.assigned || {})
-    .map((assignment) => assignment.class));
+  const used = new Set([...Object.values(MATERIAL_ASSIGNMENTS.assigned || {})
+    .map((assignment) => assignment.class), ...HOME_CLADDING_SHARES.map(([cls]) => cls)]);
   const byClass = new Map();
   for (const row of manifest.assets || []) {
     if (!used.has(row.material_class) || row.license !== "CC0-1.0") continue;
@@ -15174,8 +15315,12 @@ function buildingMesh(feature) {
   if (hillLift !== 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
   const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
     || feature.height_source === "overture_height";
+  // A house: a home with no shop in it. Its walls carry no painted windows; its real windows are
+  // drawn on them (homeWindowLayout), the same ones its shell opens when the walker is there.
+  const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
+    && !hasStorefront(feature);
   const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
-                                feature.osm_id);
+                                feature.osm_id, isHome);
   const style = ARCHETYPE_STYLE[feature.archetype];
   const palette = style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
@@ -15234,10 +15379,6 @@ function buildingMesh(feature) {
     color: 0xffffff, transparent: opacity < 1, opacity,
     roughness: 0.97, metalness: material.name === "metal" ? 0.5 : 0.03,
   });
-  // A house: a home with no shop in it. Its walls carry no painted windows; its real windows are
-  // drawn on them (homeWindowLayout), the same ones its shell opens when the walker is there.
-  const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
-    && !hasStorefront(feature);
   const walls = new THREE.MeshStandardMaterial({
     map: kind === "outbuilding" ? outbuildingTexture(seed)
       : isHome ? bareFacadeTextureFor(material, seed) : facadeTextureFor(material, seed),
@@ -15400,6 +15541,12 @@ const FACADE_HIGH_M = 900;
 const FACADE_CELL_M = 120;
 const FACADE_TEXTURE_CONCURRENCY = 4;
 const FACADE_FADE_MS = 450;
+//: Whether photographed walls are hung on the buildings. Off: a photograph of one particular
+//: wall carried its sky, its camera's angle and whatever stood in front of it, and often covered
+//: only one face or a strip of a wall. Every building is drawn in its material instead (the
+//: material libraries, chosen from what the photographs read -- see pickMaterial). The survey's
+//: readings of cladding and colour are still used; only the pictures themselves are not hung.
+const FACADE_PHOTOS = false;
 //: The panels hung now (the shells read this list).
 const facadePanels = [];
 const facadeLive = new Map();
@@ -15626,7 +15773,7 @@ function pumpFacadeQueue() {
 }
 
 function updateFacadeStreaming(focus, eyeHeight) {
-  const near = eyeHeight > FACADE_HIGH_M ? 0 : FACADE_NEAR_M;
+  const near = eyeHeight > FACADE_HIGH_M || !FACADE_PHOTOS ? 0 : FACADE_NEAR_M;
   const far = near ? FACADE_FAR_M : 0;
   for (const [i, panel] of facadeLive) {
     const wall = panel.userData.facade;
@@ -22047,7 +22194,10 @@ const FIRST_PERSON_FOV = 50;
 const FIRST_PERSON_MAX_ZOOM = 2.0;
 // Keep the apparent screen-space pace stable as the orbit camera moves farther away.
 // First-person remains a fixed 12 mph.
+//: Inside a house the walker goes at a walking pace, 3 mph.
+const INDOOR_SPEED = 1.341;
 function avatarMoveSpeed() {
+  if (state.indoors) return INDOOR_SPEED;
   if (state.firstPerson) return FIRST_PERSON_SPEED;
   const height = Math.max(1, renderer.domElement.clientHeight);
   const fov = camera.fov * Math.PI / 180;
@@ -22873,6 +23023,15 @@ function showDoor(door) {
   // houses: a garage, and no door. It is drawn closed and solid; it does not open onto a floor
   // a storey up.
   door.atGrade = ground - street >= 0.08 && !stoopPlan;
+  // Where the floor is only a little above the street, the rooms are brought down to the door:
+  // the house is entered at street level and its floor is the street's (the hill inside the
+  // footprint is hidden while the walker is in it -- see indoorGroundCut). A house whose floor
+  // is a full storey up keeps its closed street door, and says it has no interior.
+  if (door.atGrade && ground - street <= ROOMS_LOWERED_MAX_M && !door.entry.interior) {
+    door.entry.floorY = street + 0.05;
+    door.entry.roomsLowered = true;
+    door.atGrade = false;
+  }
   if (door.atGrade && ground - street > 4.0) return;
   const leafGround = door.atGrade ? street : ground;
   if (!door.atGrade) addStoop(door, street, ground, stoopPlan);
@@ -23044,6 +23203,31 @@ doorHint.style.cssText = "position:fixed;left:50%;bottom:72px;transform:translat
 doorHint.hidden = true;
 document.body.appendChild(doorHint);
 
+//: The most the rooms are brought down to meet a street door below the house's floor.
+const ROOMS_LOWERED_MAX_M = 1.6;
+//: Messages over the view fade after this long; the same message is not shown again until
+//: something else has been shown or the walker has moved on.
+const HINT_SHOW_MS = 4000;
+doorHint.style.transition = "opacity .6s";
+let hintText = null, hintSince = 0;
+function setHint(text) {
+  if (!text) {
+    doorHint.hidden = true;
+    hintText = null;
+    return;
+  }
+  const now = performance.now();
+  if (text !== hintText) {
+    hintText = text;
+    hintSince = now;
+    doorHint.textContent = text;
+    doorHint.style.opacity = "1";
+    doorHint.hidden = false;
+  } else if (now - hintSince > HINT_SHOW_MS) {
+    doorHint.style.opacity = "0";
+  }
+}
+
 function nearestDoor() {
   const x = avatar.position.x, z = avatar.position.z;
   const near = doorsNear(x, z, DOOR_DRAW_M).filter((d) => d.mesh)
@@ -23079,6 +23263,47 @@ addEventListener("keydown", (e) => {
   toggleDoor(door);
   e.preventDefault();
 });
+
+//: The light of the room the walker is in: one lamp, moved to the ceiling light of whichever
+//: room that is and out when the walker is outdoors. One light that stays in the scene, not one
+//: per house: adding or removing a light recompiles every material in view, and each house the
+//: walker came near used to do both.
+const INDOOR_LIGHT_CD = 9;
+const indoorLight = new THREE.PointLight(0xffe7c4, 0, 9, 2);
+indoorLight.name = "indoor-light";
+scene.add(indoorLight);
+function updateIndoorLight(entry, x, z) {
+  let target = null;
+  if (state.indoors && entry?.interior) {
+    for (const room of entry.interior.rooms || []) {
+      if (room.light && pointInRing(x, z, room.pts)) { target = room.light; break; }
+    }
+    if (!target && entry.interior.lights?.length) {
+      target = entry.interior.lights.reduce((best, l) =>
+        (!best || Math.hypot(l[0] - x, l[2] - z) < Math.hypot(best[0] - x, best[2] - z) ? l : best), null);
+    }
+  }
+  indoorLight.intensity = target ? INDOOR_LIGHT_CD : 0;
+  if (target) indoorLight.position.set(target[0], target[1] - 0.12, target[2]);
+}
+
+//: Points the terrain cut at the lowered house the walker is in or at the door of.
+let indoorCutEntry = null;
+function updateIndoorGroundCut(x, z) {
+  let best = null, bestD = 30;
+  for (const entry of interiorsBuilt) {
+    if (!entry.roomsLowered) continue;
+    const d = Math.hypot(Math.max(entry.minX - x, 0, x - entry.maxX), Math.max(entry.minZ - z, 0, z - entry.maxZ));
+    if (d < bestD) { best = entry; bestD = d; }
+  }
+  if (best === indoorCutEntry) return;
+  indoorCutEntry = best;
+  const ring = best ? best.local.slice(0, -1) : [];
+  if (!best || ring.length > INDOOR_CUT_MAX) { indoorCut.count.value = 0; return; }
+  ring.forEach(([px, pz], i) => indoorCut.ring.value[i].set(px, pz));
+  indoorCut.count.value = ring.length;
+  indoorCut.floor.value = best.floorY;
+}
 
 function updateDoors(dt) {
   const x = avatar.position.x, z = avatar.position.z;
@@ -23118,18 +23343,17 @@ function updateDoors(dt) {
     state.autoFirstPerson = true;
   }
   if (!insideId && state.autoFirstPerson) setFirstPerson(false);
+  state.indoors = Boolean(insideId && insideEntry?.interior);
   if (door) {
-    doorHint.textContent = door.atGrade
-      ? `Street door (${DOOR_SOURCE[door.source]}) — the rooms are a storey up`
-      : `Enter — ${door.open ? "close" : "open"} the door (${DOOR_SOURCE[door.source]})`;
-    doorHint.hidden = false;
+    setHint(door.atGrade ? "No house interior"
+      : `Enter — ${door.open ? "close" : "open"} the door`);
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
-    const plan = footprintById.get(String(inside.osm_id)).interior.plan;
-    doorHint.textContent = `Inside: ${plan} — a generic plan fitted to this building's proportions, not its real interior`;
-    doorHint.hidden = false;
+    setHint("Inside — rooms laid out from a generic plan fitted to this house");
   } else {
-    doorHint.hidden = true;
+    setHint(null);
   }
+  updateIndoorGroundCut(x, z);
+  updateIndoorLight(insideEntry, x, z);
   // Interiors nobody is near are taken down again.
   for (const entry of interiorsBuilt) {
     const cx = (entry.minX + entry.maxX) / 2, cz = (entry.minZ + entry.maxZ) / 2;
@@ -23265,6 +23489,7 @@ function batchHomeShell(group) {
 
 //: Whether a photographed facade hangs on the footprint edge from a to b ([x, z] pairs).
 function photographedEdge(a, b) {
+  if (!FACADE_PHOTOS) return false;
   const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
   const ux = (b[0] - a[0]) / len, uz = (b[1] - a[1]) / len;
@@ -23780,12 +24005,12 @@ function furnishingPlacement(entry, pts, size, doorsInPlan) {
   return null;
 }
 
-function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan) {
+function addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan, at = null) {
   const dimensions = { living: [1.7, 0.9], dining: [1.3, 0.8], bedroom: [1.5, 2.0],
     kitchen: [1.8, 0.75], storage: [1.4, 0.75], bathroom: [0.75, 0.65], office: [1.3, 0.7] };
   const size = dimensions[kind];
   if (!size) return;
-  const placement = furnishingPlacement(entry, pts, size, doorsInPlan);
+  const placement = at || furnishingPlacement(entry, pts, size, doorsInPlan);
   if (!placement) return;
   const { cx, cz, yaw } = placement;
   const furniture = new THREE.Group();
@@ -23869,10 +24094,661 @@ function loadInteriorAsset(kind) {
     const registry = document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json";
     const url = new URL(`interior-assets/${id}/${id}.gltf`, new URL(registry, location.href));
     interiorAssetPromises.set(id, new GLTFLoader().loadAsync(url.href)
-      .then((gltf) => gltf.scene).catch(() => null));
+      .then((gltf) => plainGlass(gltf.scene)).catch(() => null));
   }
   return interiorAssetPromises.get(id);
 }
+// ---- rooms laid out as rooms: what goes against which wall, facing which way ----------------
+//
+// A room used to hold one piece of furniture wherever it fitted, turned whichever way fitted: a
+// sofa could stand in the middle of the floor facing a wall. Each room is now laid out by the
+// rules a room is furnished by. A sofa's back is to a wall and it faces into the room; the
+// television is on the wall opposite, facing it, at a viewing distance, with a coffee table
+// between and a rug under that; an armchair beside them turns to the table. A bed's head is to
+// a wall, with a nightstand either side and a chest of drawers on another wall. Dining chairs
+// face their table. Every piece is tested whole against the room, the building, the doorways,
+// the stair and everything placed before it; what does not fit is left out, not squeezed in.
+//
+// The models are Poly Haven's (CC0) and scans from Google Scanned Objects (CC BY 4.0), listed in
+// interior-assets/manifest.json. Each piece is drawn as a plain block until its model arrives.
+// A piece's front is its local +z: a model is turned so its back (a sofa's or bed's tall side)
+// is at -z.
+const ROOM_DOOR_CLEAR_M = 0.8;
+let interiorManifestPromise = null;
+function interiorAssetBase() {
+  const registry = document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json";
+  return new URL("interior-assets/", new URL(registry, location.href));
+}
+function interiorManifest() {
+  if (!interiorManifestPromise) {
+    interiorManifestPromise = fetch(new URL("manifest.json", interiorAssetBase()).href)
+      .then((r) => (r.ok ? r.json() : { assets: [] })).catch(() => ({ assets: [] }));
+  }
+  return interiorManifestPromise;
+}
+const interiorModelPromises = new Map();
+//: Glass in a model (a bulb, a lamp's shade) is drawn as plain see-through glass, not as
+//: three.js's transmission: one transmissive material anywhere in view makes the renderer draw
+//: the whole scene a second time, every frame, into a buffer for it to refract -- the city twice
+//: over for a light bulb, and every building material's shader looked up again for each pass.
+const modelGlass = new THREE.MeshStandardMaterial({ color: 0xfff6e8, transparent: true, opacity: 0.35,
+  roughness: 0.05, metalness: 0, emissive: 0xffe2b0, emissiveIntensity: 0.6, depthWrite: false });
+function plainGlass(scene) {
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    const swap = (m) => (m && (m.transmission > 0 || m.isMeshPhysicalMaterial && m.thickness > 0) ? modelGlass : m);
+    o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material);
+  });
+  return scene;
+}
+//: The model for a role, chosen by seed among those the manifest has for it.
+function interiorModel(role, seed) {
+  return interiorManifest().then((manifest) => {
+    const rows = (manifest.assets || []).filter((row) => (row.role || row.kind) === role);
+    if (!rows.length) return null;
+    const row = rows[Math.floor(random(seed) * rows.length) % rows.length];
+    if (!interiorModelPromises.has(row.id)) {
+      const url = new URL(row.model, interiorAssetBase()).href;
+      interiorModelPromises.set(row.id, new GLTFLoader().loadAsync(url).then((gltf) => {
+        const scene = plainGlass(gltf.scene);
+        scene.userData.row = row;
+        return scene;
+      }).catch(() => null));
+    }
+    return interiorModelPromises.get(row.id);
+  });
+}
+//: Which way a model's back is: the side its tallest parts are on (a sofa's back, a bed's head,
+//: a chair's back). Returns true when that side is +z, so the model must be turned round.
+function modelBackIsPlusZ(template) {
+  if (template.userData.backPlusZ !== undefined) return template.userData.backPlusZ;
+  template.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(template);
+  const cut = box.min.y + (box.max.y - box.min.y) * 0.75;
+  const centre = (box.min.z + box.max.z) / 2;
+  let sum = 0, n = 0;
+  const v = new THREE.Vector3();
+  template.traverse((o) => {
+    if (!o.isMesh || !o.geometry?.attributes?.position) return;
+    const pos = o.geometry.attributes.position;
+    const step = Math.max(1, Math.floor(pos.count / 4000));
+    for (let i = 0; i < pos.count; i += step) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+      if (v.y >= cut) { sum += v.z - centre; n += 1; }
+    }
+  });
+  template.userData.backPlusZ = n > 0 && sum / n > 0.02 * (box.max.z - box.min.z);
+  return template.userData.backPlusZ;
+}
+//: A piece: a holder at its place on the floor, drawn as a block until its model is in, the
+//: model then scaled to sit inside the w x d x h the layout gave it.
+function furniturePiece(group, role, seed, cx, cz, yaw, floorY, w, d, h, block, opts = {}) {
+  const holder = new THREE.Group();
+  holder.position.set(cx, floorY + (opts.lift || 0), cz);
+  holder.rotation.y = yaw;
+  holder.userData = { surface: `furnishing:${role}`, grade: "inferred_from_room_type",
+    source: "fitted_external_floor_plan" };
+  const placeholder = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, h, d * 0.92), block);
+  placeholder.position.y = h / 2;
+  placeholder.castShadow = true;
+  holder.add(placeholder);
+  group.add(holder);
+  interiorModel(role, seed).then((template) => {
+    if (!template || !holder.parent) return;
+    const model = template.clone(true);
+    const turn = opts.orient && modelBackIsPlusZ(template) ? Math.PI : 0;
+    model.rotation.y = turn;
+    model.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(model);
+    const size = bounds.getSize(new THREE.Vector3());
+    const scale = Math.min(opts.grow || 1, w / Math.max(size.x, 0.01), d / Math.max(size.z, 0.01),
+      (opts.maxH || h * 1.6) / Math.max(size.y, 0.01));
+    const centre = bounds.getCenter(new THREE.Vector3());
+    model.scale.multiplyScalar(scale);
+    model.position.set(-centre.x * scale, -bounds.min.y * scale, -centre.z * scale);
+    model.traverse((o) => { if (o.isMesh) {
+      o.castShadow = o.receiveShadow = true;
+      o.userData.sharedInteriorAsset = true;
+    } });
+    holder.remove(placeholder);
+    placeholder.geometry.dispose();
+    holder.add(model);
+    holder.userData.assetLicense = template.userData.row?.license;
+    holder.userData.assetSource = template.userData.row?.attribution;
+    holder.userData.topY = size.y * scale;
+    if (opts.onModel) opts.onModel(holder, size.y * scale);
+  });
+  return holder;
+}
+
+//: The room as walls with inward normals, and a test for whether a w x d piece at (cx, cz)
+//: turned to yaw stands clear of everything.
+function roomLayout(entry, pts, doorsInPlan) {
+  const walls = [];
+  for (let i = 0; i < pts.length; i += 1) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (len < 0.6) continue;
+    const ux = (b[0] - a[0]) / len, uz = (b[1] - a[1]) / len;
+    let nx = -uz, nz = ux;
+    const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+    if (!pointInRing(mx + nx * 0.3, mz + nz * 0.3, pts)) { nx = -nx; nz = -nz; }
+    walls.push({ a, b, len, ux, uz, nx, nz, index: i });
+  }
+  walls.sort((p, q) => q.len - p.len);
+  const placed = [];
+  const corners = (cx, cz, yaw, w, d) => {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    // Local x is along (cos, -sin) and local z along (sin, cos) for a rotation.y of yaw.
+    return [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]
+      .map(([lx, lz]) => [cx + c * lx + s * lz, cz - s * lx + c * lz]);
+  };
+  const clear = (x, z, ignorePlaced) => pointInRing(x, z, pts) && insideFootprint(entry, x, z)
+    && !(entry.accessZones || []).some((zone) => pointInRing(x, z, zone))
+    && !doorsInPlan.some(([dx, dz]) => Math.hypot(dx - x, dz - z) < ROOM_DOOR_CLEAR_M)
+    && (ignorePlaced || !placed.some((ring) => pointInRing(x, z, ring)));
+  const fits = (cx, cz, yaw, w, d, ignorePlaced = false) => {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const nxs = Math.max(2, Math.ceil(w / 0.2)), nzs = Math.max(2, Math.ceil(d / 0.2));
+    for (let i = 0; i <= nxs; i += 1) {
+      for (let j = 0; j <= nzs; j += 1) {
+        const lx = -w / 2 + w * i / nxs, lz = -d / 2 + d * j / nzs;
+        if (!clear(cx + c * lx + s * lz, cz - s * lx + c * lz, ignorePlaced)) return false;
+      }
+    }
+    return true;
+  };
+  const occupy = (cx, cz, yaw, w, d) => placed.push(corners(cx, cz, yaw, w, d));
+  //: Places along a wall for a w x d piece backed onto it, middle of the wall first.
+  const alongWall = (wall, w, d) => {
+    const spots = [];
+    for (let t = w / 2 + 0.06; t <= wall.len - w / 2 - 0.06; t += 0.2) spots.push(t);
+    spots.sort((p, q) => Math.abs(p - wall.len / 2) - Math.abs(q - wall.len / 2));
+    return spots.map((t) => ({
+      cx: wall.a[0] + wall.ux * t + wall.nx * (d / 2 + 0.06),
+      cz: wall.a[1] + wall.uz * t + wall.nz * (d / 2 + 0.06),
+      yaw: Math.atan2(wall.nx, wall.nz), wall, t,
+    }));
+  };
+  const centroid = pts.reduce((p, q) => [p[0] + q[0] / pts.length, p[1] + q[1] / pts.length], [0, 0]);
+  return { walls, placed, fits, occupy, alongWall, centroid, clear };
+}
+
+//: Rugs: six weaves, eight colourings, chosen per room and per house.
+const RUG_PALETTES = [
+  ["#8e2a2a", "#1f2d4a", "#e8dcc2", "#c9a24a"], ["#24345a", "#e9e0cc", "#b5552f", "#7a8a9a"],
+  ["#7f8f6a", "#efe6d2", "#c06a45", "#4a5a3a"], ["#3b3d40", "#8a8c8f", "#e7e7e2", "#5f6266"],
+  ["#c49a2c", "#1f6f6f", "#f1e9d6", "#7a4b2a"], ["#d8a7a0", "#6b3a52", "#f3ebe1", "#a86a6a"],
+  ["#4a6a8f", "#22314f", "#eef0f2", "#9bb0c8"], ["#d7c9ad", "#6a4a32", "#2b2622", "#a68b67"],
+];
+const RUG_KINDS = ["medallion", "kilim", "shag", "trellis", "stripe", "braided"];
+const rugMaterials = new Map();
+function rugMaterial(kind, paletteIndex) {
+  const key = `${kind}:${paletteIndex}`;
+  if (rugMaterials.has(key)) return rugMaterials.get(key);
+  const [field, border, light, accent] = RUG_PALETTES[paletteIndex];
+  const n = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = n;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = field; ctx.fillRect(0, 0, n, n);
+  const seed = paletteIndex * 31 + RUG_KINDS.indexOf(kind) * 7;
+  if (kind === "medallion") {
+    // A field with a border of three bands and a lozenge medallion at the middle.
+    for (const [inset, colour] of [[6, border], [20, light], [26, border]]) {
+      ctx.strokeStyle = colour; ctx.lineWidth = inset === 20 ? 4 : 12;
+      ctx.strokeRect(inset, inset, n - inset * 2, n - inset * 2);
+    }
+    ctx.fillStyle = border;
+    ctx.beginPath(); ctx.moveTo(n / 2, 60); ctx.lineTo(n - 70, n / 2); ctx.lineTo(n / 2, n - 60);
+    ctx.lineTo(70, n / 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath(); ctx.moveTo(n / 2, 92); ctx.lineTo(n - 102, n / 2); ctx.lineTo(n / 2, n - 92);
+    ctx.lineTo(102, n / 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.beginPath(); ctx.arc(n / 2, n / 2, 16, 0, Math.PI * 2); ctx.fill();
+    for (const [x, y] of [[52, 52], [n - 52, 52], [52, n - 52], [n - 52, n - 52]]) {
+      ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "kilim") {
+    // Bands of stepped diamonds.
+    for (let y = 0; y < n; y += 32) {
+      ctx.fillStyle = (y / 32) % 2 ? light : border;
+      ctx.fillRect(0, y, n, 6);
+      ctx.fillStyle = (y / 32) % 2 ? accent : light;
+      for (let x = 0; x < n; x += 32) {
+        ctx.beginPath(); ctx.moveTo(x + 16, y + 8); ctx.lineTo(x + 28, y + 19); ctx.lineTo(x + 16, y + 30);
+        ctx.lineTo(x + 4, y + 19); ctx.closePath(); ctx.fill();
+      }
+    }
+  } else if (kind === "shag") {
+    // One colour, deep pile: fine speckle of light and shade, a plain bound edge.
+    for (let i = 0; i < 9000; i += 1) {
+      ctx.fillStyle = random(seed + i) < 0.5 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.10)";
+      ctx.fillRect(random(seed + i * 3) * n, random(seed + i * 7) * n, 2, 2);
+    }
+    ctx.strokeStyle = border; ctx.lineWidth = 6; ctx.strokeRect(3, 3, n - 6, n - 6);
+  } else if (kind === "trellis") {
+    // A Moroccan trellis: interlocking ogees in a light line on the field.
+    ctx.strokeStyle = light; ctx.lineWidth = 5;
+    for (let x = -32; x < n + 32; x += 64) {
+      for (let y = -32; y < n + 32; y += 64) {
+        ctx.beginPath(); ctx.ellipse(x + 32, y + 32, 30, 30, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = border; ctx.lineWidth = 10; ctx.strokeRect(5, 5, n - 10, n - 10);
+  } else if (kind === "stripe") {
+    const colours = [field, light, border, light, accent];
+    let y = 0, k = 0;
+    while (y < n) {
+      const h = 10 + Math.floor(random(seed + k) * 28);
+      ctx.fillStyle = colours[k % colours.length]; ctx.fillRect(0, y, n, h);
+      y += h; k += 1;
+    }
+  } else {
+    // Braided: concentric rings of plait.
+    for (let r = n / 2; r > 4; r -= 9) {
+      ctx.strokeStyle = [border, light, accent, field][Math.floor(r / 9) % 4];
+      ctx.lineWidth = 8;
+      ctx.beginPath(); ctx.arc(n / 2, n / 2, r - 4, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+  // Every weave has a weave: a faint cross-hatch so it is cloth and not paint.
+  ctx.fillStyle = "rgba(0,0,0,0.06)";
+  for (let i = 0; i < n; i += 3) { ctx.fillRect(i, 0, 1, n); ctx.fillRect(0, i, n, 1); }
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 4;
+  const material = new THREE.MeshStandardMaterial({ map, roughness: 1.0, metalness: 0,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  rugMaterials.set(key, material);
+  return material;
+}
+//: A rug of about w x d centred at (cx, cz), shrunk until it lies wholly in the room.
+function addRug(group, layout, seed, cx, cz, yaw, w, d, floorY, kinds = RUG_KINDS) {
+  let scale = 1;
+  while (scale > 0.45 && !layout.fits(cx, cz, yaw, w * scale, d * scale, true)) scale -= 0.08;
+  if (scale <= 0.45) return null;
+  const kind = kinds[Math.floor(random(seed) * kinds.length) % kinds.length];
+  const palette = Math.floor(random(seed + 13) * RUG_PALETTES.length) % RUG_PALETTES.length;
+  const rw = w * scale, rd = d * scale;
+  const geometry = kind === "braided"
+    ? new THREE.CircleGeometry(Math.min(rw, rd) / 2, 40).rotateX(-Math.PI / 2)
+    : new THREE.PlaneGeometry(rw, rd).rotateX(-Math.PI / 2);
+  const rug = new THREE.Mesh(geometry, rugMaterial(kind, palette));
+  rug.position.set(cx, floorY + 0.022, cz);
+  rug.rotation.y = yaw;
+  rug.receiveShadow = true;
+  rug.userData = { surface: "furnishing:rug", rug: kind, palette, grade: "inferred_from_room_type" };
+  group.add(rug);
+  return rug;
+}
+
+//: A ceiling light: a fitting from the library at the ceiling, a lit bulb in it.
+const bulbMaterial = new THREE.MeshBasicMaterial({ color: 0xfff1d0 });
+const cordMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
+function addCeilingLight(group, layout, seed, floorY, height, kind) {
+  let [x, z] = layout.centroid;
+  if (!layout.clear(x, z, true)) {
+    const found = layout.walls.length ? (() => {
+      for (const wall of layout.walls) {
+        const px = (wall.a[0] + wall.b[0]) / 2 + wall.nx * 1.0, pz = (wall.a[1] + wall.b[1]) / 2 + wall.nz * 1.0;
+        if (layout.clear(px, pz, true)) return [px, pz];
+      }
+      return null;
+    })() : null;
+    if (!found) return null;
+    [x, z] = found;
+  }
+  const ceiling = floorY + height;
+  const fixture = new THREE.Group();
+  fixture.position.set(x, ceiling, z);
+  fixture.userData = { surface: "furnishing:ceiling_light", grade: "inferred_from_room_type" };
+  const pendant = ["living", "dining", "bedroom"].includes(kind);
+  const drop = pendant ? 0.55 : 0.32;
+  const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, drop, 6), cordMaterial);
+  cord.position.y = -drop / 2;
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 10), bulbMaterial);
+  bulb.position.y = -drop - 0.05;
+  fixture.add(cord, bulb);
+  group.add(fixture);
+  // The shade (or, in a hall or bathroom, the bulb's own glass) from the library, hung on the cord.
+  interiorModel(pendant ? "ceiling_lamp" : "bulb", seed).then((template) => {
+    if (!template || !fixture.parent) return;
+    const model = template.clone(true);
+    const bounds = new THREE.Box3().setFromObject(model);
+    const size = bounds.getSize(new THREE.Vector3());
+    const target = pendant ? 0.55 : 0.12;
+    const scale = target / Math.max(size.x, size.z, 0.01);
+    const centre = bounds.getCenter(new THREE.Vector3());
+    model.scale.multiplyScalar(scale);
+    // Hung by its top from the end of the cord.
+    model.position.set(-centre.x * scale, -drop - bounds.max.y * scale + (pendant ? 0.05 : 0.04), -centre.z * scale);
+    model.traverse((o) => { if (o.isMesh) o.userData.sharedInteriorAsset = true; });
+    fixture.add(model);
+  });
+  return [x, ceiling - drop - 0.05, z];
+}
+
+//: Small scanned things set on a surface once the surface's model (and so its height) is in.
+function setOnTop(role, seed, offsets) {
+  return (h, top) => {
+    offsets.forEach(([lx, lz], i) => {
+      interiorModel(role, seed + i * 17).then((template) => {
+        if (!template || !h.parent) return;
+        const model = template.clone(true);
+        const bounds = new THREE.Box3().setFromObject(model);
+        const size = bounds.getSize(new THREE.Vector3());
+        // Scans are at their real size; only an outsized one is brought down.
+        const scale = Math.min(1, 0.35 / Math.max(size.x, size.z, 0.01));
+        const centre = bounds.getCenter(new THREE.Vector3());
+        model.scale.multiplyScalar(scale);
+        model.position.set(lx - centre.x * scale, top - bounds.min.y * scale + 0.002, lz - centre.z * scale);
+        model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.userData.sharedInteriorAsset = true; } });
+        h.add(model);
+      });
+    });
+  };
+}
+
+//: A flat-screen television: a thin black panel in a bezel on a foot. Drawn, not a model: the
+//: library's sets are old cathode-ray boxes.
+const tvMaterials = {
+  screen: new THREE.MeshStandardMaterial({ color: 0x0b0d10, roughness: 0.18, metalness: 0.4 }),
+  bezel: new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.5 }),
+};
+function addTelevision(holder, width) {
+  const tv = new THREE.Group();
+  const h = width * 0.5625;
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(width, h, 0.045), tvMaterials.bezel);
+  panel.position.y = 0.07 + h / 2;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(width - 0.03, h - 0.03), tvMaterials.screen);
+  screen.position.set(0, 0.07 + h / 2, 0.0235);
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(width * 0.35, 0.02, 0.22), tvMaterials.bezel);
+  foot.position.y = 0.01;
+  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.03), tvMaterials.bezel);
+  neck.position.set(0, 0.05, -0.01);
+  tv.add(panel, screen, foot, neck);
+  tv.userData = { surface: "furnishing:television", grade: "inferred_from_room_type" };
+  holder.add(tv);
+  return tv;
+}
+
+function furnishLiving(group, entry, layout, seed, floorY) {
+  let sofa = null;
+  for (const width of [2.1, 1.7]) {
+    for (const wall of layout.walls) {
+      for (const spot of layout.alongWall(wall, width, 0.95)) {
+        if (layout.fits(spot.cx, spot.cz, spot.yaw, width, 0.95)) { sofa = { ...spot, w: width }; break; }
+      }
+      if (sofa) break;
+    }
+    if (sofa) break;
+  }
+  if (!sofa) return false;
+  layout.occupy(sofa.cx, sofa.cz, sofa.yaw, sofa.w, 0.95);
+  furniturePiece(group, "sofa", seed + 1, sofa.cx, sofa.cz, sofa.yaw, floorY, sofa.w, 0.95, 0.85,
+    furnishingMaterials.fabric, { orient: true, grow: 1.05 });
+  const nx = sofa.wall.nx, nz = sofa.wall.nz;
+  // The television: on the wall the sofa faces, square to it and across a viewing distance.
+  let tv = null;
+  for (const wall of layout.walls) {
+    if (wall.nx * nx + wall.nz * nz > -0.85) continue;
+    const spots = layout.alongWall(wall, 1.5, 0.48).map((spot) => {
+      const dx = spot.cx - sofa.cx, dz = spot.cz - sofa.cz;
+      return { ...spot, distance: dx * nx + dz * nz, lateral: Math.abs(dx * -nz + dz * nx) };
+    }).filter((spot) => spot.distance >= 1.9 && spot.distance <= 5.8)
+      .sort((p, q) => p.lateral - q.lateral);
+    for (const spot of spots) {
+      if (spot.lateral > 1.2) break;
+      if (layout.fits(spot.cx, spot.cz, spot.yaw, 1.5, 0.48)) { tv = spot; break; }
+    }
+    if (tv) break;
+  }
+  if (!tv) {
+    // No wall opposite: the set stands free in front of the sofa, its back to the room's middle.
+    for (const distance of [2.8, 2.4, 3.2, 2.1]) {
+      const cx = sofa.cx + nx * distance, cz = sofa.cz + nz * distance;
+      const yaw = Math.atan2(-nx, -nz);
+      if (layout.fits(cx, cz, yaw, 1.5, 0.48)) { tv = { cx, cz, yaw }; break; }
+    }
+  }
+  if (tv) {
+    layout.occupy(tv.cx, tv.cz, tv.yaw, 1.5, 0.48);
+    const stand = furniturePiece(group, "tv_stand", seed + 2, tv.cx, tv.cz, tv.yaw, floorY, 1.5, 0.48, 0.55,
+      furnishingMaterials.wood, { maxH: 0.75, onModel: (holder, top) => { set.position.y = top; } });
+    const set = addTelevision(stand, 1.25);
+    set.position.y = 0.55;
+  }
+  // The coffee table, in front of the sofa; the rug under it and the sofa's front feet.
+  const ctD = 0.6, gap = 0.42;
+  const tableX = sofa.cx + nx * (0.95 / 2 + gap + ctD / 2), tableZ = sofa.cz + nz * (0.95 / 2 + gap + ctD / 2);
+  if (layout.fits(tableX, tableZ, sofa.yaw, 1.1, ctD)) {
+    layout.occupy(tableX, tableZ, sofa.yaw, 1.1, ctD);
+    furniturePiece(group, "coffee_table", seed + 3, tableX, tableZ, sofa.yaw, floorY, 1.1, ctD, 0.42,
+      furnishingMaterials.wood, { onModel: setOnTop("table_item", seed + 31, [[0.15, 0]]) });
+  }
+  addRug(group, layout, seed + 4, sofa.cx + nx * 1.05, sofa.cz + nz * 1.05, sofa.yaw,
+    Math.min(2.8, sofa.w + 0.7), 1.9, floorY);
+  // An armchair against a side wall, turned to the coffee table.
+  for (const wall of layout.walls) {
+    if (Math.abs(wall.nx * nx + wall.nz * nz) > 0.35) continue;
+    let done = false;
+    for (const spot of layout.alongWall(wall, 0.85, 0.85)) {
+      if (Math.hypot(spot.cx - tableX, spot.cz - tableZ) > 2.6) continue;
+      const yaw = Math.atan2(tableX - spot.cx, tableZ - spot.cz);
+      if (!layout.fits(spot.cx, spot.cz, yaw, 0.85, 0.85)) continue;
+      layout.occupy(spot.cx, spot.cz, yaw, 0.85, 0.85);
+      furniturePiece(group, "armchair", seed + 5, spot.cx, spot.cz, yaw, floorY, 0.85, 0.85, 0.85,
+        furnishingMaterials.fabric, { orient: true, grow: 1.05 });
+      done = true;
+      break;
+    }
+    if (done) break;
+  }
+  addCornerPlant(group, layout, seed + 6, floorY);
+  // A picture over the sofa.
+  const picture = new THREE.Group();
+  picture.position.set(sofa.wall.a[0] + sofa.wall.ux * sofa.t + nx * 0.03, floorY + 1.55,
+    sofa.wall.a[1] + sofa.wall.uz * sofa.t + nz * 0.03);
+  picture.rotation.y = sofa.yaw;
+  group.add(picture);
+  interiorModel("picture", seed + 7).then((template) => {
+    if (!template || !picture.parent) return;
+    const model = template.clone(true);
+    const bounds = new THREE.Box3().setFromObject(model);
+    const size = bounds.getSize(new THREE.Vector3());
+    const scale = Math.min(0.9 / Math.max(size.x, 0.01), 0.7 / Math.max(size.y, 0.01));
+    const centre = bounds.getCenter(new THREE.Vector3());
+    model.scale.multiplyScalar(scale);
+    model.position.set(-centre.x * scale, -centre.y * scale, -bounds.min.z * scale);
+    model.traverse((o) => { if (o.isMesh) o.userData.sharedInteriorAsset = true; });
+    picture.add(model);
+  });
+  return true;
+}
+
+function addCornerPlant(group, layout, seed, floorY) {
+  for (const wall of layout.walls) {
+    for (const t of [0.4, wall.len - 0.4]) {
+      const cx = wall.a[0] + wall.ux * t + wall.nx * 0.4, cz = wall.a[1] + wall.uz * t + wall.nz * 0.4;
+      if (!layout.fits(cx, cz, 0, 0.5, 0.5)) continue;
+      layout.occupy(cx, cz, 0, 0.5, 0.5);
+      furniturePiece(group, "plant", seed, cx, cz, random(seed) * Math.PI * 2, floorY, 0.5, 0.5, 1.0,
+        furnishingMaterials.fabric, { grow: 1.0, maxH: 1.3 });
+      return true;
+    }
+  }
+  return false;
+}
+
+function furnishBedroom(group, entry, layout, seed, floorY) {
+  let bed = null;
+  for (const [w, d] of [[1.6, 2.1], [1.4, 2.05], [1.0, 2.0]]) {
+    for (const wall of layout.walls) {
+      for (const spot of layout.alongWall(wall, w, d)) {
+        if (layout.fits(spot.cx, spot.cz, spot.yaw, w, d)) { bed = { ...spot, w, d }; break; }
+      }
+      if (bed) break;
+    }
+    if (bed) break;
+  }
+  if (!bed) return false;
+  layout.occupy(bed.cx, bed.cz, bed.yaw, bed.w, bed.d);
+  const frame = furniturePiece(group, "bed", seed + 1, bed.cx, bed.cz, bed.yaw, floorY, bed.w, bed.d, 0.6,
+    furnishingMaterials.wood, { orient: true, grow: 1.05, maxH: 1.4, onModel: (holder, top) => {
+      // A frame is a frame: the mattress and the bedding go on it.
+      const mattress = new THREE.Mesh(new THREE.BoxGeometry(bed.w * 0.9, 0.2, bed.d * 0.86), furnishingMaterials.linen);
+      mattress.position.set(0, Math.min(top, 0.62) - 0.02, 0.04);
+      const pillow = new THREE.Mesh(new THREE.BoxGeometry(bed.w * 0.7, 0.12, 0.34), furnishingMaterials.linen);
+      pillow.position.set(0, Math.min(top, 0.62) + 0.13, -bed.d * 0.36);
+      holder.add(mattress, pillow);
+    } });
+  frame.userData.bed = true;
+  const { wall, t } = bed;
+  for (const side of [-1, 1]) {
+    const along = t + side * (bed.w / 2 + 0.3);
+    if (along < 0.25 || along > wall.len - 0.25) continue;
+    const cx = wall.a[0] + wall.ux * along + wall.nx * 0.26, cz = wall.a[1] + wall.uz * along + wall.nz * 0.26;
+    if (!layout.fits(cx, cz, bed.yaw, 0.45, 0.4)) continue;
+    layout.occupy(cx, cz, bed.yaw, 0.45, 0.4);
+    furniturePiece(group, "nightstand", seed + 2, cx, cz, bed.yaw, floorY, 0.45, 0.4, 0.55,
+      furnishingMaterials.wood, { maxH: 0.7 });
+  }
+  // The chest of drawers on another wall, the one facing the bed first.
+  const others = layout.walls.filter((w) => w !== wall)
+    .sort((p, q) => (p.nx * wall.nx + p.nz * wall.nz) - (q.nx * wall.nx + q.nz * wall.nz));
+  for (const other of others) {
+    let done = false;
+    for (const spot of layout.alongWall(other, 1.1, 0.5)) {
+      if (!layout.fits(spot.cx, spot.cz, spot.yaw, 1.1, 0.5)) continue;
+      layout.occupy(spot.cx, spot.cz, spot.yaw, 1.1, 0.5);
+      furniturePiece(group, "dresser", seed + 3, spot.cx, spot.cz, spot.yaw, floorY, 1.1, 0.5, 0.9,
+        furnishingMaterials.wood, { maxH: 1.3, onModel: setOnTop("shelf_item", seed + 41, [[-0.3, 0]]) });
+      done = true;
+      break;
+    }
+    if (done) break;
+  }
+  addRug(group, layout, seed + 4, bed.cx + wall.nx * 0.5, bed.cz + wall.nz * 0.5, bed.yaw,
+    bed.w + 1.1, Math.min(2.2, bed.d * 0.8), floorY);
+  return true;
+}
+
+function furnishDining(group, entry, layout, seed, floorY, doorsInPlan, pts) {
+  const placement = furnishingPlacement(entry, pts, [1.6, 1.0], doorsInPlan)
+    || furnishingPlacement(entry, pts, [1.2, 0.8], doorsInPlan);
+  if (!placement) return false;
+  const { cx, cz, yaw } = placement;
+  layout.occupy(cx, cz, yaw, 1.5, 0.9);
+  furniturePiece(group, "dining_table", seed + 1, cx, cz, yaw, floorY, 1.5, 0.9, 0.75,
+    furnishingMaterials.wood, { grow: 1.0, onModel: setOnTop("table_item", seed + 51, [[0, 0]]) });
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  for (const side of [-1, 1]) {
+    for (const lx of [-0.4, 0.4]) {
+      const lz = side * 0.78;
+      const x = cx + c * lx + s * lz, z = cz - s * lx + c * lz;
+      const face = Math.atan2(cx + c * lx - x, cz - s * lx - z);
+      if (!layout.fits(x, z, face, 0.48, 0.5)) continue;
+      layout.occupy(x, z, face, 0.48, 0.5);
+      furniturePiece(group, "dining_chair", seed + 2, x, z, face, floorY, 0.48, 0.5, 0.9,
+        furnishingMaterials.wood, { orient: true, maxH: 1.1 });
+    }
+  }
+  addRug(group, layout, seed + 3, cx, cz, yaw, 2.8, 2.3, floorY, ["medallion", "kilim", "trellis", "stripe"]);
+  return true;
+}
+
+function furnishOffice(group, entry, layout, seed, floorY) {
+  let desk = null;
+  for (const wall of layout.walls) {
+    for (const spot of layout.alongWall(wall, 1.3, 0.65)) {
+      if (layout.fits(spot.cx, spot.cz, spot.yaw, 1.3, 0.65)) { desk = spot; break; }
+    }
+    if (desk) break;
+  }
+  if (!desk) return false;
+  layout.occupy(desk.cx, desk.cz, desk.yaw, 1.3, 0.65);
+  // A desk is worked at facing the wall: its back is to the wall, the chair on the room side.
+  furniturePiece(group, "desk", seed + 1, desk.cx, desk.cz, desk.yaw, floorY, 1.3, 0.65, 0.75,
+    furnishingMaterials.wood, { maxH: 0.85 });
+  const chairX = desk.cx + desk.wall.nx * 0.68, chairZ = desk.cz + desk.wall.nz * 0.68;
+  const chairYaw = Math.atan2(-desk.wall.nx, -desk.wall.nz);
+  if (layout.fits(chairX, chairZ, chairYaw, 0.55, 0.55)) {
+    layout.occupy(chairX, chairZ, chairYaw, 0.55, 0.55);
+    furniturePiece(group, "dining_chair", seed + 2, chairX, chairZ, chairYaw, floorY, 0.55, 0.55, 0.9,
+      furnishingMaterials.wood, { orient: true, maxH: 1.1 });
+  }
+  for (const wall of layout.walls) {
+    if (wall === desk.wall) continue;
+    let done = false;
+    for (const spot of layout.alongWall(wall, 0.9, 0.35)) {
+      if (!layout.fits(spot.cx, spot.cz, spot.yaw, 0.9, 0.35)) continue;
+      layout.occupy(spot.cx, spot.cz, spot.yaw, 0.9, 0.35);
+      furniturePiece(group, "bookshelf", seed + 3, spot.cx, spot.cz, spot.yaw, floorY, 0.9, 0.35, 1.8,
+        furnishingMaterials.wood, { maxH: 2.0 });
+      done = true;
+      break;
+    }
+    if (done) break;
+  }
+  addRug(group, layout, seed + 4, chairX, chairZ, desk.yaw, 1.6, 1.3, floorY, ["shag", "stripe", "trellis"]);
+  return true;
+}
+
+//: A fixture that goes against a wall (a kitchen's counters, a laundry's machines, a bathroom's
+//: basin) is drawn as before (addRoomFurnishing), backed onto the longest wall that takes it.
+function furnishAgainstWall(group, entry, layout, kind, pts, floorY, doorsInPlan, seed) {
+  const sizes = { kitchen: [1.8, 0.75], storage: [1.4, 0.75], bathroom: [0.75, 0.65] };
+  const [w, d] = sizes[kind];
+  for (const wall of layout.walls) {
+    for (const spot of layout.alongWall(wall, w, d)) {
+      if (!layout.fits(spot.cx, spot.cz, spot.yaw, w, d)) continue;
+      layout.occupy(spot.cx, spot.cz, spot.yaw, w, d);
+      const before = group.children.length;
+      addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan, spot);
+      const holder = group.children[before];
+      if (holder && kind === "kitchen") setOnTop("counter_item", seed + 61, [[-0.1, 0.05], [0.7, -0.1]])(holder, 0.89);
+      if (holder && kind === "bathroom") setOnTop("bath_item", seed + 71, [[0, 0]])(holder, 0.84);
+      return true;
+    }
+  }
+  return false;
+}
+
+//: Lays a room out by its kind; returns where its light hangs, if it has one.
+function furnishRoom(group, entry, room, floorY, height, doorsInPlan, index) {
+  const { kind, pts } = room;
+  const seed = (Math.abs(Number(entry.way.osm_id) || 0) * 31 + index * 7919) | 0;
+  const layout = roomLayout(entry, pts, doorsInPlan);
+  if (!layout.walls.length) return null;
+  let furnished = false;
+  if (kind === "living") furnished = furnishLiving(group, entry, layout, seed, floorY);
+  else if (kind === "bedroom") furnished = furnishBedroom(group, entry, layout, seed, floorY);
+  else if (kind === "dining") furnished = furnishDining(group, entry, layout, seed, floorY, doorsInPlan, pts);
+  else if (kind === "office") furnished = furnishOffice(group, entry, layout, seed, floorY);
+  else if (["kitchen", "storage", "bathroom"].includes(kind))
+    furnished = furnishAgainstWall(group, entry, layout, kind, pts, floorY, doorsInPlan, seed);
+  if (!furnished && ["living", "bedroom", "dining", "office"].includes(kind))
+    addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan);
+  if (kind === "bathroom") addRug(group, layout, seed + 9, layout.centroid[0], layout.centroid[1],
+    layout.walls[0] ? Math.atan2(layout.walls[0].nx, layout.walls[0].nz) : 0, 0.8, 0.5, floorY, ["shag", "stripe"]);
+  if (["corridor", "stair", "other"].includes(kind) && layout.walls[0] && layout.walls[0].len > 2.2) {
+    const wall = layout.walls[0];
+    // A runner down the hall's length, in its middle.
+    let width = 0;
+    for (const off of [0.5, 0.7, 0.9, 1.2]) {
+      if (pointInRing(layout.centroid[0] + wall.nx * off, layout.centroid[1] + wall.nz * off, pts)
+          && pointInRing(layout.centroid[0] - wall.nx * off, layout.centroid[1] - wall.nz * off, pts)) width = off * 2;
+    }
+    if (width >= 1.0) addRug(group, layout, seed + 11, layout.centroid[0], layout.centroid[1],
+      Math.atan2(wall.nx, wall.nz), Math.min(wall.len * 0.7, 4.5), Math.min(0.8, width * 0.6), floorY,
+      ["medallion", "kilim", "stripe"]);
+  }
+  if (["balcony", "shaft", "elevator", "outdoor"].includes(kind)) return null;
+  return addCeilingLight(group, layout, seed + 21, floorY, height, kind);
+}
+
 function roomFloorMaterial(kind) {
   if (!roomFloorMaterials.has(kind)) {
     const canvas = document.createElement("canvas");
@@ -24209,7 +25085,11 @@ function buildInterior(entry) {
   // Share static wall/floor batches before repeating storeys; furniture and
   // door groups remain independent for asset replacement and leaf details.
   batchHomeShell(group);
-  for (const room of roomSpecs) addRoomFurnishing(group, entry, room.kind, room.pts, floorY, doorsInPlan);
+  const lights = [];
+  roomSpecs.forEach((room, index) => {
+    room.light = furnishRoom(group, entry, room, floorY, height, doorsInPlan, index);
+    if (room.light) lights.push(room.light);
+  });
   // Floor and ceiling over the whole footprint.
   // The floors and ceilings stop at the lining, INTERIOR_WALL_INSET_M inside the outer wall:
   // run out to the footprint, their edges lay in the wall's own plane and showed through it
@@ -24250,9 +25130,6 @@ function buildInterior(entry) {
       group.add(upper);
     }
   }
-  const light = new THREE.PointLight(0xfff1dc, 1.4, Math.max(12, Math.hypot(L, W)), 1.6);
-  light.position.set(centreX, floorY + height - 0.3, centreZ);
-  group.add(light);
   group.traverse((o) => { if (o.isMesh) o.renderOrder = entry.homeShell ? 0 : INTERIOR_ORDER; });
   group.userData = { surface: "interior", grade: "inferred", plan: plan.id, source: plan.src,
     attribution: (INTERIORS.sources[plan.src] || {}).attribution, storeys, stretch: [entry.fit[11], entry.fit[12]] };
@@ -24260,7 +25137,7 @@ function buildInterior(entry) {
   const source = INTERIORS.sources[plan.src] || {};
   const floorSurface = (x, z) => (insideFootprint(entry, x, z) ? floorY : null);
   standingSurfaces.add(floorSurface);
-  entry.interior = { group, segments, floorSurface, rooms: roomSpecs, floorY, height,
+  entry.interior = { group, segments, floorSurface, rooms: roomSpecs, lights, floorY, height,
     plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${nx * ny > 1 ? ` ×${nx * ny}` : ""} (${source.license || ""})` };
   interiorsBuilt.add(entry);
 }
@@ -24501,13 +25378,91 @@ const DETAIL_RANGE_M = {
 };
 let detailTiles = [];
 let detailTilesFrame = 0;
-const DETAIL_REINDEX_FRAMES = 60;
+//: The detail index walks the whole scene; it is rebuilt every few seconds, for what has loaded.
+const DETAIL_REINDEX_FRAMES = 240;
 const detailCentre = new THREE.Vector3();
+// ---- detail by zoom: the city first as shapes, then as materials, then as doors and windows ----
+//
+// From far out a house is its shape in its colour: no material, no windows, no door, and a street
+// is its asphalt and its pavement at their heights, without kerb blocks, paint or furniture. Come
+// closer and the materials are laid on and the trees, kerbs and crossings come; closer again the
+// windows, doors, signs and street furniture. ZOOM_TIERS_M are camera distances (to the point
+// the camera looks at), scaled by the quality preset; each tier is entered a little closer than
+// it is left, so standing at a boundary does not flicker.
+const ZOOM_TIERS_M = { materials: 1300, doorsAndWindows: 520 };
+const ZOOM_HIDDEN = {
+  0: (surface) => surface === "house_window" || surface.startsWith("furniture:") || surface === "sign"
+    || surface === "roof_furniture" || surface === "detail" || surface === "kerb" || surface === "marking"
+    || surface === "crossing_edges" || surface === "crossing" || surface === "tactile_warning"
+    || surface === "curb_ramp" || surface === "court_line" || surface === "bike" || surface === "tree_pit"
+    || surface === "walk_underlay" || surface.startsWith("tree:"),
+  1: (surface) => surface === "house_window" || surface.startsWith("furniture:") || surface === "sign"
+    || surface === "roof_furniture" || surface === "detail" || surface === "tactile_warning"
+    || surface === "curb_ramp",
+  2: () => false,
+};
+let zoomTier = 2;
+const PLAIN_MAP = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+PLAIN_MAP.needsUpdate = true;
+let plainMaterials = null;
+function setBuildingsPlain(plain) {
+  if (!plainMaterials) {
+    plainMaterials = new Set();
+    root.traverse((o) => {
+      if (!o.isMesh || !["wall", "roof"].includes(o.userData.surface)) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m && m.map) plainMaterials.add(m);
+    });
+  }
+  // The texture is swapped, not removed: a material without a map is a different shader, and
+  // two hundred of them recompiling at once is the stall this is meant to avoid.
+  for (const m of plainMaterials) {
+    if (plain && m.map !== PLAIN_MAP) { m.userData.fullMap = m.map; m.map = PLAIN_MAP; }
+    else if (!plain && m.map === PLAIN_MAP && m.userData.fullMap) m.map = m.userData.fullMap;
+  }
+}
+function updateZoomTier() {
+  const scale = QUALITY().lodScale;
+  const d = state.firstPerson ? 0 : state.dist;
+  const enter = (tier) => (tier === 1 ? ZOOM_TIERS_M.materials : ZOOM_TIERS_M.doorsAndWindows) * scale;
+  let tier = zoomTier;
+  if (tier < 2 && d < enter(2) * 0.9) tier = 2;
+  else if (tier < 1 && d < enter(1) * 0.9) tier = 1;
+  else if (tier === 2 && d > enter(2) * 1.1) tier = d > enter(1) * 1.1 ? 0 : 1;
+  else if (tier === 1 && d > enter(1) * 1.1) tier = 0;
+  if (tier === zoomTier) return false;
+  zoomTier = tier;
+  setBuildingsPlain(tier === 0);
+  return true;
+}
+//: The view the detail was last culled for: the culling only runs again once the camera has
+//: moved or turned, or the zoom tier or quality has changed -- a still view costs nothing.
+const lastCullEye = new THREE.Matrix4();
+let cullForced = true;
+function viewChanged(eye) {
+  const a = eye.matrixWorld.elements, b = lastCullEye.elements;
+  let moved = false;
+  for (let i = 0; i < 16; i += 1) if (Math.abs(a[i] - b[i]) > (i >= 12 ? 0.5 : 0.002)) { moved = true; break; }
+  if (moved) lastCullEye.copy(eye.matrixWorld);
+  return moved;
+}
 function cullDetailByDistance(frame, eye = camera) {
   // The ground and the furniture arrive after the first frame: the list is rebuilt now and then.
-  if (frame % DETAIL_REINDEX_FRAMES === 0) {
+  const reindex = frame % DETAIL_REINDEX_FRAMES === 0;
+  const tierChanged = eye === camera && updateZoomTier();
+  if (eye === camera && !reindex && !tierChanged && !cullForced && !viewChanged(eye)) return false;
+  cullForced = false;
+  if (reindex) {
     detailTiles = [];
     root.traverse((o) => {
+      // A transparent two-sided material is drawn by three.js in two passes, back faces then
+      // front, and it flags the material for a new shader before each: with fifty such
+      // materials (signs, footprints) that was the shader cache key rebuilt on every draw, every
+      // frame -- a gigabyte of strings a minute and the collector running flat out. These are
+      // flat plates; one pass draws them the same.
+      if ((o.isMesh || o.isSprite) && o.material) {
+        for (const m of Array.isArray(o.material) ? o.material : [o.material])
+          if (m.transparent && m.side === THREE.DoubleSide && !m.forceSinglePass) m.forceSinglePass = true;
+      }
       if (!o.isMesh || !o.frustumCulled || !o.geometry || DETAIL_RANGE_M[o.userData.surface] === undefined) return;
       // An instanced mesh's bounds are its own, over its instances; its geometry's are the one
       // unit box at the origin, and read as the tile's they culled every sign post, planter
@@ -24517,13 +25472,56 @@ function cullDetailByDistance(frame, eye = camera) {
       if (o.isInstancedMesh ? o.boundingSphere : o.geometry.boundingSphere) detailTiles.push(o);
     });
   }
-  const zoom = FIRST_PERSON_FOV / eye.fov;
+  const zoom = FIRST_PERSON_FOV / eye.fov * QUALITY().detailScale;
+  const hidden = ZOOM_HIDDEN[eye === camera ? zoomTier : 2];
+  if (reindex || !detailCells) indexDetailCells();
+  // Cell by cell: a cell wholly out of sight or out of reach has its detail hidden once, and is
+  // then passed over until it comes back -- the work follows what can be seen, not the city.
+  cullFrustum.setFromProjectionMatrix(cullMatrix.multiplyMatrices(eye.projectionMatrix, eye.matrixWorldInverse));
+  for (const cell of detailCells) {
+    const reach = cell.maxRange * zoom;
+    const active = eye.position.distanceTo(cell.sphere.center) - cell.sphere.radius < reach
+      && (eye !== camera || cullFrustum.intersectsSphere(cell.sphere));
+    if (!active) {
+      if (cell.active || reindex || tierChanged) for (const tile of cell.tiles) tile.visible = false;
+      cell.active = false;
+      continue;
+    }
+    cell.active = true;
+    for (const tile of cell.tiles) {
+      if (hidden(tile.userData.surface)) { tile.visible = false; continue; }
+      const sphere = tile.isInstancedMesh ? tile.boundingSphere : tile.geometry.boundingSphere;
+      detailCentre.copy(sphere.center).applyMatrix4(tile.matrixWorld);
+      const gap = eye.position.distanceTo(detailCentre) - sphere.radius;
+      tile.visible = gap < DETAIL_RANGE_M[tile.userData.surface] * zoom;
+    }
+  }
+  return true;
+}
+//: The detail tiles by DETAIL_CELL_M cell, each cell with the sphere round all its tiles and the
+//: longest range any of them is drawn to.
+const DETAIL_CELL_M = 400;
+let detailCells = null;
+const cullFrustum = new THREE.Frustum(), cullMatrix = new THREE.Matrix4();
+function indexDetailCells() {
+  const cells = new Map();
   for (const tile of detailTiles) {
     const sphere = tile.isInstancedMesh ? tile.boundingSphere : tile.geometry.boundingSphere;
-    detailCentre.copy(sphere.center).applyMatrix4(tile.matrixWorld);
-    const gap = eye.position.distanceTo(detailCentre) - sphere.radius;
-    tile.visible = gap < DETAIL_RANGE_M[tile.userData.surface] * zoom;
+    const centre = sphere.center.clone().applyMatrix4(tile.matrixWorld);
+    const key = `${Math.floor(centre.x / DETAIL_CELL_M)}:${Math.floor(centre.z / DETAIL_CELL_M)}`;
+    if (!cells.has(key)) cells.set(key, { tiles: [], spheres: [], maxRange: 0, active: true });
+    const cell = cells.get(key);
+    cell.tiles.push(tile);
+    cell.spheres.push(new THREE.Sphere(centre, sphere.radius));
+    cell.maxRange = Math.max(cell.maxRange, DETAIL_RANGE_M[tile.userData.surface] || 0);
   }
+  detailCells = [...cells.values()].map((cell) => {
+    const box = new THREE.Box3();
+    for (const sphere of cell.spheres) box.union(sphere.getBoundingBox(new THREE.Box3()));
+    cell.sphere = box.getBoundingSphere(new THREE.Sphere());
+    delete cell.spheres;
+    return cell;
+  });
 }
 let frameCount = 0;
 
@@ -24550,22 +25548,91 @@ function cullLabelsByDistance(frame, eye = camera) {
   }
 }
 
+//: When nothing has moved and nobody has touched anything for IDLE_AFTER_MS, the view is drawn
+//: only every IDLE_FRAME_MS -- enough to show what streams in -- instead of at the full rate.
+const IDLE_AFTER_MS = 1500;
+const IDLE_FRAME_MS = 250;
+let lastInputAt = performance.now();
+for (const type of ["pointerdown", "pointermove", "wheel", "keydown", "touchstart"])
+  addEventListener(type, () => { lastInputAt = performance.now(); }, { passive: true });
+let lastFrameDrawnAt = 0, lastMovedAt = performance.now();
+const lastDrawnEye = new THREE.Matrix4();
 function animate(now) {
   requestAnimationFrame(animate);
+  now = now || performance.now();
+  // The frame-rate cap, and the idle rate when nothing moves.
+  const eye = camera.matrixWorld.elements, drawn = lastDrawnEye.elements;
+  for (let i = 0; i < 16; i += 1) if (Math.abs(eye[i] - drawn[i]) > 1e-4) { lastMovedAt = now; break; }
+  const idle = now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors;
+  const interval = Math.max(SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0, idle ? IDLE_FRAME_MS : 0);
+  if (interval && now - lastFrameDrawnAt < interval - 2) return;
+  lastFrameDrawnAt = now;
+  lastDrawnEye.copy(camera.matrixWorld);
   // The first frame drawn is the end of loading.
   const progress = document.getElementById("progress");
   if (progress && !progress.hidden) progress.hidden = true;
-  stepAvatar(now || performance.now());
-  cullDetailByDistance(frameCount);
-  cullLabelsByDistance(frameCount++);
+  stepAvatar(now);
+  // Labels are re-sized and culled with the detail: only when the view has changed.
+  if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
+  frameCount += 1;
   if (frameCount % 20 === 0) {
     const focus = state.firstPerson ? avatar.position : state.target;
     updateFacadeStreaming(focus, camera.position.y - focus.y);
   }
-  updateTileTree(now || performance.now());
+  updateTileTree(now);
   renderer.render(scene, camera);
-  adaptResolution(now || performance.now());
+  // Only an uncapped rate is a measure of how long a frame takes to draw.
+  if (SETTINGS.fps === 0) adaptResolution(now);
 }
+
+// The settings panel: the gear at the top right.
+function applySettings(changes = {}) {
+  if (FPS_CHOICES.includes(changes.fps)) SETTINGS.fps = changes.fps;
+  if (QUALITY_PRESETS[changes.quality]) SETTINGS.quality = changes.quality;
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SETTINGS)); } catch (error) { /* this visit only */ }
+  YIELD_BUDGET_MS = QUALITY().budgetMs;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY().pixelRatio));
+  resize();
+  cullForced = true;
+  zoomTier = 2;
+  setBuildingsPlain(false);
+  updateZoomTier();
+  settingsForm.fps.value = String(SETTINGS.fps);
+  settingsForm.quality.value = SETTINGS.quality;
+  return { ...SETTINGS, ...QUALITY() };
+}
+const settingsButton = document.createElement("button");
+settingsButton.id = "settings-toggle";
+settingsButton.type = "button";
+settingsButton.title = "Settings: frame rate and quality";
+settingsButton.setAttribute("aria-label", "Settings");
+settingsButton.textContent = "⚙";
+settingsButton.style.cssText = "position:fixed;top:10px;right:10px;z-index:40;width:36px;height:36px;border-radius:8px;"
+  + "border:1px solid rgba(0,0,0,.18);background:rgba(255,255,255,.92);font:20px/1 system-ui;cursor:pointer";
+const settingsForm = document.createElement("form");
+settingsForm.id = "settings-panel";
+settingsForm.hidden = true;
+settingsForm.style.cssText = "position:fixed;top:52px;right:10px;z-index:40;background:rgba(255,255,255,.97);"
+  + "border:1px solid rgba(0,0,0,.15);border-radius:10px;padding:12px 14px;font:13px/1.5 system-ui,sans-serif;"
+  + "color:#222;box-shadow:0 6px 20px rgba(0,0,0,.18);min-width:220px";
+settingsForm.innerHTML = `<div style="font-weight:600;margin-bottom:6px">Settings</div>
+  <label style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">Frame rate
+    <select name="fps">${FPS_CHOICES.map((f) => `<option value="${f}">${f ? `${f} fps` : "Unlimited"}</option>`).join("")}</select></label>
+  <label style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">Quality
+    <select name="quality">${Object.entries(QUALITY_PRESETS).map(([k, q]) => `<option value="${k}">${q.label}</option>`).join("")}</select></label>
+  <div style="color:#666;font-size:12px;max-width:240px">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</div>`;
+settingsForm.addEventListener("change", () => applySettings({
+  fps: Number(settingsForm.fps.value), quality: settingsForm.quality.value }));
+settingsForm.addEventListener("submit", (e) => e.preventDefault());
+settingsButton.addEventListener("click", () => { settingsForm.hidden = !settingsForm.hidden; });
+document.body.append(settingsButton, settingsForm);
+settingsForm.fps.value = String(SETTINGS.fps);
+settingsForm.quality.value = SETTINGS.quality;
+window.kerbsideSettings = {
+  get: () => ({ ...SETTINGS, ...QUALITY(), zoomTier }),
+  set: (changes) => applySettings(changes),
+  presets: QUALITY_PRESETS, fpsChoices: FPS_CHOICES,
+};
 {
   // What was built, for anyone reading the console: the merge's parts and meshes, the triangles
   // by group, the time. Measured on this machine; the same page on another will differ.
@@ -24582,6 +25649,48 @@ function animate(now) {
   console.info(`kerbside: built in ${(performance.now() / 1000).toFixed(1)} s; merged ${mergeStats.parts.toLocaleString()} parts into ${mergeStats.meshes.toLocaleString()} tiled meshes; triangles by group`, byGroup);
 }
 animate();
+
+// ---- memory: the ground's own copy given back once the GPU has it ----
+//
+// Every mesh keeps its vertices in the page as well as on the GPU, and the corridor's pavements,
+// their underlay, the road and its paint came to two gigabytes of the page's memory -- the same
+// again on the GPU -- which is what was taking machines down. Nothing reads those surfaces once
+// the ground is built (picking uses the footprints and the terrain; the kerbs, which the curb
+// paint recolours later, keep theirs), so each one's copy is dropped as it is next uploaded. A
+// few meshes are marked per frame, so the uploads are spread out rather than all at once.
+const RELEASE_SURFACES = new Set(["walk", "walk_underlay", "walk_narrow", "marking", "crossing_edges",
+  "road", "crossing", "bike", "curb_ramp", "tactile_warning", "parking_lot", "median"]);
+const RELEASE_BYTES_PER_FRAME = 24 << 20;
+function releaseArray() { this.array = null; }
+const releaseQueue = [];
+groups.streets.traverse((o) => {
+  if (o.isMesh && !o.isInstancedMesh && o.geometry && RELEASE_SURFACES.has(o.userData.surface)) releaseQueue.push(o);
+});
+function noRaycast() {}
+function releaseSomeGeometry() {
+  let bytes = 0;
+  while (releaseQueue.length && bytes < RELEASE_BYTES_PER_FRAME) {
+    const mesh = releaseQueue.pop();
+    const g = mesh.geometry;
+    if (!g || g.userData.released) continue;
+    // A ray has nothing to test against once the vertices are gone.
+    mesh.raycast = noRaycast;
+    // Culling needs the bounds; they are taken while the vertices are still here.
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    if (!g.boundingBox) g.computeBoundingBox();
+    g.userData.released = true;
+    for (const a of [...Object.values(g.attributes), g.index]) {
+      if (!a || !a.array) continue;
+      bytes += a.array.byteLength;
+      a.onUpload(releaseArray);
+      a.needsUpdate = true;
+    }
+  }
+  return releaseQueue.length;
+}
+(function releasePump() {
+  if (releaseSomeGeometry()) setTimeout(releasePump, 120);
+})();
 
 // ---- inspection ----
 //

@@ -14,8 +14,7 @@ $PY scripts/publish_visual_pilot.py
 # The app's own copy of the viewer, cut finer than the site's (--detail app), from the same
 # renderer source: without this the deploy re-copied whichever build/app-viewer.html was made
 # by hand last, and the app shipped a viewer older than the site's.
-# TEMPORARY demo-lite: the app uses the site cut (was --detail app; restore tag restore-before-demo-lite)
-$PY scripts/build_sf_corridor_3d.py --page-only --detail site --out build/app-viewer.html
+$PY scripts/build_sf_corridor_3d.py --page-only --detail app --out build/app-viewer.html
 $PY tools/build_pages.py
 # And the app-only regional viewers made from it (docs/app-model.html, docs/app-regions/).
 $PY tools/build_app_worlds.py

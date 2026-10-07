@@ -75,8 +75,7 @@ def build_visual_support(
 def main() -> None:
     # Never ship a stale hand-built app-viewer cache over a newer renderer.
     renderer = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
-    # TEMPORARY demo-lite: the site cut (was "app"; restore tag restore-before-demo-lite)
-    template = renderer["tuned"](renderer["HTML"], "site")
+    template = renderer["tuned"](renderer["HTML"], "app")
     VIEWER.parent.mkdir(parents=True, exist_ok=True)
     VIEWER.write_text(template, encoding="utf-8")
     index = json.loads((DOCS / "regions.json").read_text(encoding="utf-8"))

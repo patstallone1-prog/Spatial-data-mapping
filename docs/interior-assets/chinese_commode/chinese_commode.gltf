@@ -1,0 +1,392 @@
+{
+  "asset": {
+    "generator": "Khronos glTF Blender I/O v4.1.63",
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        3
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "chinese_commode_drawer_01"
+    },
+    {
+      "mesh": 1,
+      "name": "chinese_commode_drawer_02"
+    },
+    {
+      "mesh": 2,
+      "name": "chinese_commode_drawer_03"
+    },
+    {
+      "children": [
+        0,
+        1,
+        2
+      ],
+      "mesh": 3,
+      "name": "chinese_commode"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "chinese_commode",
+      "normalTexture": {
+        "index": 0
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Plane.006",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "Plane.007",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 4,
+            "NORMAL": 5,
+            "TEXCOORD_0": 6
+          },
+          "indices": 7,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "Plane.011",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 8,
+            "NORMAL": 9,
+            "TEXCOORD_0": 10
+          },
+          "indices": 11,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "Plane.004",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 12,
+            "NORMAL": 13,
+            "TEXCOORD_0": 14
+          },
+          "indices": 15,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    }
+  ],
+  "images": [
+    {
+      "mimeType": "image/jpeg",
+      "name": "chinese_commode_nor_gl",
+      "uri": "textures/chinese_commode_nor_gl_1k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "chinese_commode_diff",
+      "uri": "textures/chinese_commode_diff_1k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "chinese_commode_metal-chinese_commode_rough",
+      "uri": "textures/chinese_commode_arm_1k.jpg"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 1478,
+      "max": [
+        -0.5589028000831604,
+        1.8699666261672974,
+        0.5098515748977661
+      ],
+      "min": [
+        -1.4589331150054932,
+        1.487499713897705,
+        -0.4111367166042328
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 1478,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 1478,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 5835,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5126,
+      "count": 1465,
+      "max": [
+        0.4324296712875366,
+        1.8699668645858765,
+        0.509446382522583
+      ],
+      "min": [
+        -0.4324340224266052,
+        1.4877291917800903,
+        -0.41284114122390747
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 1465,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 1465,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5123,
+      "count": 5805,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5126,
+      "count": 1476,
+      "max": [
+        1.4544882774353027,
+        1.8699666261672974,
+        0.5098464488983154
+      ],
+      "min": [
+        0.5544581413269043,
+        1.487499713897705,
+        -0.4111369252204895
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 9,
+      "componentType": 5126,
+      "count": 1476,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 10,
+      "componentType": 5126,
+      "count": 1476,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 11,
+      "componentType": 5123,
+      "count": 5835,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 12,
+      "componentType": 5126,
+      "count": 1054,
+      "max": [
+        2.2438840866088867,
+        2.019874095916748,
+        0.5508769750595093
+      ],
+      "min": [
+        -2.2466022968292236,
+        0,
+        -0.6190232038497925
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 13,
+      "componentType": 5126,
+      "count": 1054,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 14,
+      "componentType": 5126,
+      "count": 1054,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 15,
+      "componentType": 5123,
+      "count": 2850,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 17736,
+      "byteOffset": 0,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 17736,
+      "byteOffset": 17736,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 11824,
+      "byteOffset": 35472,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 11670,
+      "byteOffset": 47296,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 17580,
+      "byteOffset": 58968,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 17580,
+      "byteOffset": 76548,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 11720,
+      "byteOffset": 94128,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 11610,
+      "byteOffset": 105848,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 17712,
+      "byteOffset": 117460,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 17712,
+      "byteOffset": 135172,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 11808,
+      "byteOffset": 152884,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 11670,
+      "byteOffset": 164692,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 12648,
+      "byteOffset": 176364,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 12648,
+      "byteOffset": 189012,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 8432,
+      "byteOffset": 201660,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 5700,
+      "byteOffset": 210092,
+      "target": 34963
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 215792,
+      "uri": "chinese_commode.bin"
+    }
+  ]
+}
