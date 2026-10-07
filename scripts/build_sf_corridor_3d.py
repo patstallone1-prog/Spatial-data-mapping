@@ -5394,71 +5394,594 @@ if (PERIMETER) {
       }
     }
   }
-  // The bridges: a deck over the water at clearance height, down to the ground at each end
-  // no steeper than the grade, on piers. The map's ways, whole, so a span that leaves the
-  // region reaches the other shore -- Oakland's, or Marin's.
-  const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x5a5c5e, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide });
-  const pierMaterial = new THREE.MeshStandardMaterial({ color: 0x8a8d90, roughness: 0.85, metalness: 0.05 });
-  const pierUnit = new THREE.BoxGeometry(1, 1, 1);
-  const groundOutside = (x, z) => {
+  const bridgeCounts = buildBayBridges(g);
+  console.info(`kerbside: perimeter ${PERIMETER.frame.cols}x${PERIMETER.frame.rows} cells, ${bridgeCounts.structures} bridges, ${bridgeCounts.towers} towers, ${bridgeCounts.piers} piers, ${bridgeCounts.ramps} viaducts down to the ground, ${bridgeCounts.headlands} headlands (${PERIMETER.source})`);
+}
+
+// ---- the Bay's bridges, built as they are built ------------------------------------------------
+//
+// Every bridge the atlas has over the water, from the map's own ways: a deck of lanes with a
+// walkway and a railing either side, a structure under it, and piers to the water. The great
+// crossings are built to their designs and in their colours, each as one structure from the
+// map's carriageways (which it draws a way for each direction or each deck):
+//
+// * the Golden Gate: International Orange, two stepped Art Deco towers 227 m over the water with
+//   their four portal struts above the deck, the main cables over the tower tops and the
+//   suspenders down from them every 15 m, the stiffening truss under the deck, six lanes, and a
+//   red walkway each side behind an orange railing, from one headland to the other;
+// * the Bay Bridge: the west span's twin suspension spans in grey, X-braced steel towers and the
+//   double deck, from Rincon Hill to Yerba Buena Island; the east span's white self-anchored
+//   tower and the Skyway's twin concrete girders down to the Oakland shore;
+// * Richmond-San Rafael's grey cantilever trusses over the channels on a long trestle;
+// * San Mateo-Hayward and the Dumbarton: long low trestles with a high-rise over the channel.
+//
+// Every end meets the ground it lands on at the ground's own height: where the map's way stops on
+// a headland (the Golden Gate's bluffs, Yerba Buena Island) the headland is there, at the deck's
+// level; everywhere else the deck comes down on a viaduct, no steeper than a road, to the ground
+// beside it. Heights are the atlas's (the sea and the land as drawn round the regions), lowered
+// with the Earth's curve like everything else out there.
+// (A function: buildBayBridges runs, from the perimeter, before this part of the page has.)
+function bridgePaint() { return {
+  goldenGate: 0xc0362c, bayGrey: 0x9aa3a8, sasWhite: 0xe4e6e3, concrete: 0xbab6ad, steelGrey: 0x7d868c,
+  asphalt: 0x3a3d40, walkRed: 0xa4402e, walkGrey: 0x9a978f, railGrey: 0xa9aeb1,
+}; }
+//: What a bridge is, from its name.
+function bridgeDesign(name) {
+  if (/Golden Gate Bridge/.test(name || "")) return "golden_gate";
+  if (/Eisenhower/.test(name || "")) return "bay";
+  if (/Richmond-San Rafael/.test(name || "")) return "richmond";
+  if (/San Mateo - Hayward|Dumbarton/.test(name || "")) return "trestle";
+  return "girder";
+}
+//: A line resampled to n points at equal spacing along it.
+function resampleLine(pts, n) {
+  const ds = [0];
+  for (let i = 1; i < pts.length; i += 1) ds.push(ds[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const total = ds[ds.length - 1] || 1;
+  const out = [];
+  let j = 1;
+  for (let k = 0; k < n; k += 1) {
+    const s = total * k / (n - 1);
+    while (j < pts.length - 1 && ds[j] < s) j += 1;
+    const t = (s - ds[j - 1]) / ((ds[j] - ds[j - 1]) || 1);
+    out.push([pts[j - 1][0] + (pts[j][0] - pts[j - 1][0]) * t, pts[j - 1][1] + (pts[j][1] - pts[j - 1][1]) * t]);
+  }
+  return { pts: out, length: total };
+}
+//: The middle line of a bridge drawn as several parallel ways (a way a direction, or a deck).
+function bridgeCentreline(ways) {
+  const n = 200;
+  const lines = ways.map((w) => w.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }));
+  const ref = lines[0];
+  const aligned = lines.map((line) => {
+    // Every way run the same way as the first.
+    const d0 = Math.hypot(line[0][0] - ref[0][0], line[0][1] - ref[0][1]);
+    const d1 = Math.hypot(line[line.length - 1][0] - ref[0][0], line[line.length - 1][1] - ref[0][1]);
+    return d1 < d0 ? line.slice().reverse() : line;
+  });
+  const sampled = aligned.map((line) => resampleLine(line, n).pts);
+  const pts = [];
+  for (let k = 0; k < n; k += 1) {
+    let sx = 0, sz = 0;
+    for (const line of sampled) { sx += line[k][0]; sz += line[k][1]; }
+    pts.push([sx / sampled.length, sz / sampled.length]);
+  }
+  return resampleLine(pts, n);
+}
+
+function buildBayBridges(g) {
+  const BRIDGE_PAINT = bridgePaint();
+  const ROAD_TOP_BRIDGE_M = 0.08;
+  const BOX = new THREE.BoxGeometry(1, 1, 1);
+  const water = SEA_Y - 0.02 - PERIMETER_UNDER_M;      // the sea as the atlas draws it
+  const land = PENINSULA_Y - PERIMETER_UNDER_M;          // the land as the atlas draws it
+  const groundAt = (x, z) => {
     const inside = g && x >= g.x0 && x <= g.x0 + g.cols * g.step_m && -z >= g.y0 && -z <= g.y0 + g.rows * g.step_m;
-    if (inside) return cutLiftAt(x, z);
-    const wet = perimeterWaterAt(x, z);
-    return wet ? SEA_Y : PENINSULA_Y;
+    if (inside) return cutLiftAt(x, z) + ROAD_TOP_BRIDGE_M;
+    return (perimeterWaterAt(x, z) ? water : land) + 0.15;
   };
-  let decks = 0, piers = 0;
-  const pierBoxes = [];
-  for (const bridge of PERIMETER.bridges) {
-    if (!bridge.over_water.some(Boolean)) continue;          // a road bridge over a road: not this
-    const pts = bridge.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
-    if (pts.length < 2) continue;
-    const width = bridge.lanes ? bridge.lanes * 3.5 + 3 : 18;
-    const ds = [0];
-    for (let i = 1; i < pts.length; i += 1) ds.push(ds[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-    const target = pts.map(([x, z], i) => bridge.over_water[i] ? SEA_Y + PERIMETER_BRIDGE_CLEARANCE_M : groundOutside(x, z) + 1.0);
-    const h = target.slice();
-    for (let i = 1; i < h.length; i += 1) h[i] = Math.max(h[i], h[i - 1] - PERIMETER_BRIDGE_GRADE * (ds[i] - ds[i - 1]));
-    for (let i = h.length - 2; i >= 0; i -= 1) h[i] = Math.max(h[i], h[i + 1] - PERIMETER_BRIDGE_GRADE * (ds[i + 1] - ds[i]));
-    const position = [], index = [];
-    for (let i = 0; i < pts.length; i += 1) {
-      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
-      const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1;
-      const nx = -dz / len * width / 2, nz = dx / len * width / 2;
-      position.push(pts[i][0] + nx, h[i], pts[i][1] + nz, pts[i][0] - nx, h[i], pts[i][1] - nz);
-      if (i) { const k = i * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+  const materials = new Map();
+  const mat = (color, opts = {}) => {
+    const key = `${color}:${JSON.stringify(opts)}`;
+    if (!materials.has(key)) materials.set(key, new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0.1, ...opts }));
+    return materials.get(key);
+  };
+  const out = new THREE.Group();
+  out.name = "bridges";
+  out.userData.bayWide = true;
+  const counts = { structures: 0, piers: 0, towers: 0, ramps: 0, headlands: 0 };
+  // Everything is built in the atlas's heights, then lowered by the Earth's curve where it stands.
+  const drop = (geometry) => {
+    const p = geometry.getAttribute("position");
+    for (let i = 0; i < p.count; i += 1) p.setY(i, p.getY(i) - earthDrop(p.getX(i), p.getZ(i)));
+    p.needsUpdate = true;
+    geometry.computeBoundingSphere();
+    return geometry;
+  };
+  const boxes = new Map();       // material -> [matrix]
+  const addBox = (material, x, y, z, w, h, d, yaw = 0) => {
+    if (!boxes.has(material)) boxes.set(material, []);
+    const e = earthDrop(x, z);
+    boxes.get(material).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y - e, z),
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(w, h, d)));
+  };
+  // A lane texture: asphalt and the white lines between the lanes, repeating down the deck.
+  const laneMaps = new Map();
+  const lanesMaterial = (lanes, median) => {
+    const key = `${lanes}:${median}`;
+    if (laneMaps.has(key)) return laneMaps.get(key);
+    const canvas = document.createElement("canvas");
+    canvas.width = 256; canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#3d4043"; ctx.fillRect(0, 0, 256, 128);
+    for (let i = 0; i < 2600; i += 1) { ctx.fillStyle = i % 2 ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.06)"; ctx.fillRect(random(i * 7) * 256, random(i * 13) * 128, 2, 2); }
+    for (let lane = 1; lane < lanes; lane += 1) {
+      const u = lane / lanes * 256;
+      if (median && lane === lanes / 2) { ctx.fillStyle = "#c9b23c"; ctx.fillRect(u - 5, 0, 10, 128); continue; }
+      ctx.fillStyle = "#e9e9e4"; ctx.fillRect(u - 1.5, 0, 3, 64);
+    }
+    ctx.fillStyle = "#e9e9e4"; ctx.fillRect(2, 0, 3, 128); ctx.fillRect(251, 0, 3, 128);
+    const map = new THREE.CanvasTexture(canvas);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.anisotropy = 8;
+    const m = new THREE.MeshStandardMaterial({ map, roughness: 0.9, side: THREE.DoubleSide });
+    laneMaps.set(key, m);
+    return m;
+  };
+  // A lattice for the trusses: the steel as bars with the sky between them.
+  const trussMaps = new Map();
+  const trussMaterial = (color) => {
+    if (trussMaps.has(color)) return trussMaps.get(color);
+    const canvas = document.createElement("canvas");
+    canvas.width = 128; canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 128, 64);
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 7;
+    ctx.strokeRect(3, 3, 122, 58);
+    ctx.beginPath(); ctx.moveTo(0, 64); ctx.lineTo(64, 0); ctx.lineTo(128, 64); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(64, 0); ctx.lineTo(64, 64); ctx.stroke();
+    const map = new THREE.CanvasTexture(canvas);
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    const m = new THREE.MeshStandardMaterial({ color, map, alphaTest: 0.4, transparent: false, roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide });
+    trussMaps.set(color, m);
+    return m;
+  };
+  //: A strip swept along the deck: across from a to b, at heights ya and yb over the deck.
+  const strip = (stations, a, b, ya, yb, material, vRepeatM = 12) => {
+    const position = [], uv = [], index = [];
+    let s = 0;
+    stations.forEach((st, i) => {
+      if (i) s += Math.hypot(st.x - stations[i - 1].x, st.z - stations[i - 1].z);
+      position.push(st.x + st.rx * a, st.y + ya, st.z + st.rz * a, st.x + st.rx * b, st.y + yb, st.z + st.rz * b);
+      uv.push(0, s / vRepeatM, 1, s / vRepeatM);
+      if (i) { const k = i * 2; index.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+    });
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    geometry.setIndex(index);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(drop(geometry), material);
+    mesh.userData.surface = "bridge";
+    out.add(mesh);
+    return mesh;
+  };
+  //: A tube along a curve: a cable.
+  const cable = (points, radius, material) => {
+    const curve = new THREE.CatmullRomCurve3(points.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
+    const mesh = new THREE.Mesh(drop(new THREE.TubeGeometry(curve, Math.max(16, points.length * 2), radius, 6, false)), material);
+    mesh.userData.surface = "bridge_cable";
+    out.add(mesh);
+  };
+  //: The deck along a line, at heights h, with its lanes, walkways, railings and its underside.
+  const deck = (stations, spec) => {
+    const { width, lanes, walk, walkColor, railColor, depth = 2.2, median = false, structure = null } = spec;
+    const half = width / 2, road = half - walk;
+    strip(stations, -road, road, 0, 0, lanesMaterial(lanes, median), 14);
+    for (const side of [-1, 1]) {
+      strip(stations, side * road, side * half, 0.22, 0.22, mat(walkColor, { roughness: 0.85, side: THREE.DoubleSide }));
+      strip(stations, side * road, side * road, 0, 0.22, mat(BRIDGE_PAINT.concrete, { side: THREE.DoubleSide }));
+      // The railing: a rail and the bars under it.
+      strip(stations, side * half, side * half, 1.25, 1.35, mat(railColor, { metalness: 0.5, roughness: 0.4, side: THREE.DoubleSide }));
+      strip(stations, side * half, side * half, 0.22, 1.25, trussMaterial(railColor), 1.4);
+      // The deck's edge.
+      strip(stations, side * half, side * half, -depth, 0.22, mat(structure || BRIDGE_PAINT.concrete, { side: THREE.DoubleSide }));
+    }
+    strip(stations, -half, half, -depth, -depth, mat(structure || BRIDGE_PAINT.concrete, { side: THREE.DoubleSide }));
+  };
+  //: Stations along a line: position, height, the way across (r) and the way along (u).
+  const stationsFor = (line, heights) => line.map(([x, z], i) => {
+    const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const ux = (b[0] - a[0]) / len, uz = (b[1] - a[1]) / len;
+    return { x, z, y: heights[i], ux, uz, rx: -uz, rz: ux };
+  });
+  //: Piers from the deck to the water or the ground every spacing metres.
+  const piers = (stations, spacing, width, color, skip = () => false) => {
+    let s = 0, next = spacing / 2;
+    for (let i = 1; i < stations.length; i += 1) {
+      const a = stations[i - 1], b = stations[i];
+      const len = Math.hypot(b.x - a.x, b.z - a.z);
+      while (next <= s + len) {
+        const t = (next - s) / (len || 1);
+        const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t, top = a.y + (b.y - a.y) * t - 2.2;
+        const base = perimeterWaterAt(x, z) ? water - 2 : groundAt(x, z) - 0.5;
+        if (top - base > 1.5 && !skip(next)) {
+          for (const side of [-1, 1]) addBox(mat(color), x + a.rx * side * width * 0.3, (top + base) / 2, z + a.rz * side * width * 0.3, 2.2, top - base, 2.2, Math.atan2(a.ux, a.uz));
+          addBox(mat(color), x, top - 0.8, z, 2.2, 1.6, width * 0.8, Math.atan2(a.ux, a.uz));
+          counts.piers += 1;
+        }
+        next += spacing;
+      }
+      s += len;
+    }
+  };
+  //: A headland under a bridge's end: the ground up to the deck, falling away round it.
+  const headland = (x, z, top, radius) => {
+    const rings = 24, segs = 48, plateau = radius * 0.32;
+    const position = [], colour = [], index = [];
+    const green = new THREE.Color(0x5d7a45), dry = new THREE.Color(0x8a7d55);
+    for (let r = 0; r <= rings; r += 1) {
+      const rr = radius * r / rings;
+      const t = Math.max(0, (rr - plateau) / (radius - plateau));
+      const h = land + (top - land) * (0.5 + 0.5 * Math.cos(Math.PI * Math.min(1, t)));
+      for (let k = 0; k < segs; k += 1) {
+        const a = k / segs * Math.PI * 2;
+        const wobble = 1 + 0.12 * Math.sin(a * 3 + x * 0.01) * (r / rings);
+        position.push(x + Math.cos(a) * rr * wobble, h - 0.6, z + Math.sin(a) * rr * wobble);
+        const c = green.clone().lerp(dry, 0.35 * Math.sin(a * 5) * Math.sin(a * 5) + 0.15 * t);
+        colour.push(c.r, c.g, c.b);
+        if (r) {
+          const i0 = (r - 1) * segs + k, i1 = (r - 1) * segs + (k + 1) % segs, i2 = r * segs + k, i3 = r * segs + (k + 1) % segs;
+          index.push(i0, i2, i1, i1, i2, i3);
+        }
+      }
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colour, 3));
     geometry.setIndex(index);
     geometry.computeVertexNormals();
-    geometry.computeBoundingSphere();
-    const deck = new THREE.Mesh(geometry, deckMaterial);
-    deck.userData.surface = "bridge";
-    deck.userData.name = bridge.name;
-    deck.userData.bayWide = true;
-    root.add(deck);
-    decks += 1;
-    let next = PERIMETER_PIER_M / 2;
-    for (let i = 1; i < pts.length; i += 1) {
-      while (next <= ds[i]) {
-        const t0 = (next - ds[i - 1]) / ((ds[i] - ds[i - 1]) || 1);
-        const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t0, z = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t0;
-        const top = h[i - 1] + (h[i] - h[i - 1]) * t0;
-        if (bridge.over_water[i] && top - SEA_Y > 8) { pierBoxes.push([x, SEA_Y - 2, z, 5, top - SEA_Y + 2, width * 0.6]); piers += 1; }
-        next += PERIMETER_PIER_M;
+    const mesh = new THREE.Mesh(drop(geometry), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide }));
+    mesh.userData.surface = "bridge_headland";
+    out.add(mesh);
+    counts.headlands += 1;
+  };
+  //: Where an end comes down: a viaduct on, at a road's grade, to the ground beside it.
+  const RAMP_GRADE = 0.045;
+  const ramp = (end, before, top, spec) => {
+    const ux = end[0] - before[0], uz = end[1] - before[1], len = Math.hypot(ux, uz) || 1;
+    const line = [], heights = [];
+    let y = top, s = 0;
+    while (s < 3000) {
+      const x = end[0] + ux / len * s, z = end[1] + uz / len * s;
+      const g0 = groundAt(x, z);
+      line.push([x, z]);
+      heights.push(Math.max(g0, y));
+      if (y <= g0) break;
+      s += 10; y -= RAMP_GRADE * 10;
+    }
+    if (line.length < 2) return;
+    const st = stationsFor(line, heights);
+    deck(st, spec);
+    piers(st, 30, spec.width, BRIDGE_PAINT.concrete);
+    counts.ramps += 1;
+  };
+  // ---- the bridges, by design ----
+  const ways = PERIMETER.bridges.filter((b) => b.over_water.some(Boolean) && b.points.length >= 2);
+  const named = new Map();
+  for (const way of ways) {
+    const design = bridgeDesign(way.name);
+    if (design === "girder" || design === "trestle") continue;
+    // The Bay Bridge's west span and its east span are two structures either side of the island.
+    const key = design === "bay" ? (Math.min(...way.points.map((p) => p[0])) < -122.366 ? "bay_west" : "bay_east") : design;
+    if (!named.has(key)) named.set(key, []);
+    named.get(key).push(way);
+  }
+  const endsShared = (pt, self) => ways.some((w) => w !== self && w.points.some(([lon, lat]) => {
+    const [x, y] = xy(lon, lat);
+    return Math.hypot(x - pt[0], -y - pt[1]) < 15;
+  }));
+
+  // The Golden Gate.
+  if (named.has("golden_gate")) {
+    const { pts, length } = bridgeCentreline(named.get("golden_gate"));
+    // Run it south to north: its south anchorage is the end with the smaller latitude.
+    const line = pts[0][1] > pts[pts.length - 1][1] ? pts : pts.slice().reverse();
+    const ds = [0];
+    for (let i = 1; i < line.length; i += 1) ds.push(ds[i - 1] + Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]));
+    const total = ds[ds.length - 1];
+    const side = 343 * total / 1966, main = total - 2 * side, mid = total / 2;
+    const deckAt = (s) => {
+      if (s < side) return water + 60 + (s / side);
+      if (s > total - side) return water + 60 + ((total - s) / side);
+      const t = (s - mid) / (main / 2);
+      return water + 61 + 6 * (1 - t * t);
+    };
+    const st = stationsFor(line, ds.map(deckAt));
+    const spec = { width: 27.4, lanes: 6, walk: 3.0, walkColor: BRIDGE_PAINT.walkRed, railColor: BRIDGE_PAINT.goldenGate,
+                   structure: BRIDGE_PAINT.goldenGate, depth: 2.4, median: true };
+    deck(st, spec);
+    // The stiffening truss under the deck, 7.6 m deep, along the suspended spans.
+    for (const sgn of [-1, 1]) strip(st, sgn * 13.7, sgn * 13.7, -9.9, -2.4, trussMaterial(BRIDGE_PAINT.goldenGate), 15);
+    strip(st, -13.7, 13.7, -9.9, -9.9, trussMaterial(BRIDGE_PAINT.goldenGate), 15);
+    const orange = mat(BRIDGE_PAINT.goldenGate, { roughness: 0.55, metalness: 0.25 });
+    const at = (s) => {
+      let i = 1; while (i < ds.length - 1 && ds[i] < s) i += 1;
+      const t = (s - ds[i - 1]) / ((ds[i] - ds[i - 1]) || 1);
+      const a = st[i - 1], b = st[i];
+      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, y: a.y + (b.y - a.y) * t, rx: a.rx, rz: a.rz, ux: a.ux, uz: a.uz };
+    };
+    const towerTop = water + 227, legOff = 16.6;
+    for (const s of [side, total - side]) {
+      const p = at(s);
+      const yaw = Math.atan2(p.ux, p.uz);
+      // The pier the tower stands on, in the water.
+      addBox(mat(BRIDGE_PAINT.concrete), p.x, water + 6, p.z, 50, 16, 34, yaw);
+      // Each leg in setbacks: narrower as it rises, the Art Deco stepping of the original.
+      for (const sgn of [-1, 1]) {
+        const lx = p.x + p.rx * sgn * legOff, lz = p.z + p.rz * sgn * legOff;
+        const steps = [[water + 14, water + 75, 10.4, 16.2], [water + 75, water + 130, 9.4, 14.6], [water + 130, water + 175, 8.4, 12.8],
+                       [water + 175, water + 210, 7.4, 11.2], [water + 210, towerTop, 6.4, 9.6]];
+        for (const [y0, y1, wAcross, dAlong] of steps) {
+          addBox(orange, lx, (y0 + y1) / 2, lz, wAcross, y1 - y0, dAlong, yaw);
+          // The vertical recesses that make the towers read as fluted.
+          addBox(mat(0x9c2a22, { roughness: 0.6 }), lx, (y0 + y1) / 2, lz, wAcross + 0.3, y1 - y0 - 2, dAlong * 0.42, yaw);
+        }
+        addBox(orange, lx, towerTop + 2, lz, 7.0, 4, 10.4, yaw);          // the saddle housing
+      }
+      // The portal struts over the deck, and the one under it.
+      for (const [y, h] of [[water + 92, 9], [water + 132, 8], [water + 170, 7], [water + 208, 7], [water + 52, 6]]) {
+        addBox(orange, p.x, y, p.z, legOff * 2 + 2, h, 6.5, yaw);
+        addBox(mat(0x9c2a22), p.x, y, p.z, legOff * 2 - 9, h - 3, 6.8, yaw);
+      }
+      counts.towers += 1;
+    }
+    // The main cables: over the tower tops, down to the deck at mid-span, and to the anchorages.
+    for (const sgn of [-1, 1]) {
+      const pts3 = [];
+      for (let s = 0; s <= total; s += total / 120) {
+        let y;
+        if (s <= side) { const t = s / side; y = water + 64 + (towerTop - water - 64) * t * t; }
+        else if (s >= total - side) { const t = (total - s) / side; y = water + 64 + (towerTop - water - 64) * t * t; }
+        else { const t = (s - mid) / (main / 2); y = deckAt(s) + 4 + (towerTop - deckAt(s) - 4) * t * t; }
+        const p = at(s);
+        pts3.push([p.x + p.rx * sgn * legOff, y, p.z + p.rz * sgn * legOff]);
+      }
+      cable(pts3, 0.46, orange);
+      // The suspenders, every 15 m: from the cable down to the deck's edge.
+      for (let s = 15; s < total - 5; s += 15) {
+        if (Math.abs(s - side) < 8 || Math.abs(s - (total - side)) < 8) continue;
+        const p = at(s);
+        const k = Math.round(s / (total / 120));
+        const cy = pts3[Math.min(pts3.length - 1, k)][1];
+        if (cy - p.y < 1) continue;
+        addBox(orange, p.x + p.rx * sgn * legOff, (cy + p.y) / 2, p.z + p.rz * sgn * legOff, 0.12, cy - p.y, 0.12);
       }
     }
+    // The lamps along the walkways.
+    for (let s = 20; s < total; s += 50) {
+      const p = at(s);
+      for (const sgn of [-1, 1]) {
+        addBox(orange, p.x + p.rx * sgn * 13.2, p.y + 4.2, p.z + p.rz * sgn * 13.2, 0.25, 8.4, 0.25);
+        addBox(mat(0xfff1c8, { emissive: 0x9a8a60 }), p.x + p.rx * sgn * 12.4, p.y + 8.3, p.z + p.rz * sgn * 12.4, 0.5, 0.25, 0.5);
+      }
+    }
+    // The anchorages, and the headlands the bridge lands on at either end.
+    for (const [s, back] of [[0, -1], [total, 1]]) {
+      const p = at(s);
+      addBox(mat(BRIDGE_PAINT.concrete), p.x + p.ux * back * 20, p.y - 12, p.z + p.uz * back * 20, 40, 30, 50, Math.atan2(p.ux, p.uz));
+      // Clear of the towers, which stand in the water off Fort Point and Lime Point.
+      headland(p.x + p.ux * back * 230, p.z + p.uz * back * 230, p.y - 0.15, 300);
+      // The roadway on across the headland's top.
+      const runOn = [[p.x, p.z], [p.x + p.ux * back * 180, p.z + p.uz * back * 180]];
+      deck(stationsFor(runOn, [p.y, p.y]), { ...spec, structure: BRIDGE_PAINT.concrete });
+    }
+    counts.structures += 1;
   }
-  if (pierBoxes.length) {
-    const mesh = new THREE.InstancedMesh(pierUnit, pierMaterial, pierBoxes.length);
-    const dummy = new THREE.Object3D();
-    pierBoxes.forEach(([x, y, z, w, hgt, d], i) => { dummy.position.set(x, y + hgt / 2, z); dummy.scale.set(w, hgt, d); dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix); });
+
+  // The Bay Bridge's west span: twin suspension spans, double deck, grey.
+  if (named.has("bay_west")) {
+    const { pts } = bridgeCentreline(named.get("bay_west"));
+    // San Francisco to the island: west to east.
+    const line = pts[0][0] < pts[pts.length - 1][0] ? pts : pts.slice().reverse();
+    const ds = [0];
+    for (let i = 1; i < line.length; i += 1) ds.push(ds[i - 1] + Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]));
+    const total = ds[ds.length - 1], centre = total / 2;
+    const top = water + 58;
+    // On to the deck at the San Francisco end from the ground at a road's grade; level over the water.
+    const sfGround = groundAt(...line[0]);
+    const heights = ds.map((s) => Math.min(top, sfGround + s * 0.05));
+    const st = stationsFor(line, heights);
+    const grey = mat(BRIDGE_PAINT.bayGrey, { roughness: 0.5, metalness: 0.35 });
+    const spec = { width: 22, lanes: 5, walk: 0.8, walkColor: BRIDGE_PAINT.walkGrey, railColor: BRIDGE_PAINT.railGrey, structure: BRIDGE_PAINT.bayGrey, depth: 1.2 };
+    deck(st, spec);
+    // The lower deck, 10 m under, in the truss between the two.
+    const lower = st.map((p) => ({ ...p, y: p.y - 10.5 }));
+    deck(lower, spec);
+    for (const sgn of [-1, 1]) strip(st, sgn * 11, sgn * 11, -12, -1.2, trussMaterial(BRIDGE_PAINT.bayGrey), 12);
+    const at = (s) => {
+      let i = 1; while (i < ds.length - 1 && ds[i] < s) i += 1;
+      const t = (s - ds[i - 1]) / ((ds[i] - ds[i - 1]) || 1);
+      const a = st[i - 1], b = st[i];
+      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, y: a.y + (b.y - a.y) * t, rx: a.rx, rz: a.rz, ux: a.ux, uz: a.uz };
+    };
+    const towerTop = water + 160, legOff = 13;
+    const towers = [-1058, -354, 354, 1058].map((d) => centre + d * total / 3200);
+    for (const s of towers) {
+      const p = at(s), yaw = Math.atan2(p.ux, p.uz);
+      addBox(mat(BRIDGE_PAINT.concrete), p.x, water + 5, p.z, 40, 14, 28, yaw);
+      for (const sgn of [-1, 1]) addBox(grey, p.x + p.rx * sgn * legOff, (water + 12 + towerTop) / 2, p.z + p.rz * sgn * legOff, 4.5, towerTop - water - 12, 7, yaw);
+      // The X-bracing between the legs, panel by panel.
+      for (let y = water + 72; y < towerTop - 10; y += 22) {
+        addBox(grey, p.x, y, p.z, legOff * 2, 1.6, 2.2, yaw);
+        for (const tilt of [-1, 1]) {
+          const brace = new THREE.Matrix4().compose(new THREE.Vector3(p.x, y + 11 - earthDrop(p.x, p.z), p.z),
+            new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, tilt * Math.atan2(22, legOff * 2), "YXZ")),
+            new THREE.Vector3(Math.hypot(22, legOff * 2), 1.0, 1.4));
+          if (!boxes.has(grey)) boxes.set(grey, []);
+          boxes.get(grey).push(brace);
+        }
+      }
+      counts.towers += 1;
+    }
+    // The central anchorage, where the two spans meet.
+    { const p = at(centre); addBox(mat(BRIDGE_PAINT.concrete), p.x, (water + top + 20) / 2, p.z, 60, top + 20 - water, 46, Math.atan2(p.ux, p.uz)); }
+    // The cables of the two spans.
+    for (const sgn of [-1, 1]) {
+      for (const [a0, t0, t1, a1] of [[0, towers[0], towers[1], centre], [centre, towers[2], towers[3], total]]) {
+        const pts3 = [];
+        for (let k = 0; k <= 60; k += 1) {
+          const s = a0 + (a1 - a0) * k / 60;
+          let y;
+          if (s <= t0) { const t = (s - a0) / (t0 - a0); y = top + 4 + (towerTop - top - 4) * t * t; }
+          else if (s >= t1) { const t = (a1 - s) / (a1 - t1); y = top + 4 + (towerTop - top - 4) * t * t; }
+          else { const m = (t0 + t1) / 2, t = (s - m) / ((t1 - t0) / 2); y = top + 4 + (towerTop - top - 4) * t * t; }
+          const p = at(s);
+          pts3.push([p.x + p.rx * sgn * legOff, y, p.z + p.rz * sgn * legOff]);
+        }
+        cable(pts3, 0.45, grey);
+      }
+    }
+    piers(st, 60, 22, BRIDGE_PAINT.concrete, (s) => s > 300 && s < total - 50);
+    // Yerba Buena Island, where it is, over the deck, with the tunnel's portal.
+    const end = at(total);
+    { const [ix, iy] = xy(-122.3655, 37.8105); headland(ix, -iy, water + 80, 560); }
+    addBox(mat(BRIDGE_PAINT.concrete), end.x + end.ux * 8, top + 6, end.z + end.uz * 8, 30, 26, 6, Math.atan2(end.ux, end.uz));
+    addBox(mat(0x0c0c0c), end.x + end.ux * 5, top + 3.5, end.z + end.uz * 5, 18, 6, 1, Math.atan2(end.ux, end.uz));
+    addBox(mat(0x0c0c0c), end.x + end.ux * 5, top - 7, end.z + end.uz * 5, 18, 6, 1, Math.atan2(end.ux, end.uz));
+    counts.structures += 1;
+  }
+
+  // The Bay Bridge's east span: the self-anchored suspension span and the Skyway, white.
+  if (named.has("bay_east")) {
+    const { pts } = bridgeCentreline(named.get("bay_east"));
+    const line = pts[0][0] < pts[pts.length - 1][0] ? pts : pts.slice().reverse();   // the island to Oakland
+    const ds = [0];
+    for (let i = 1; i < line.length; i += 1) ds.push(ds[i - 1] + Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]));
+    const total = ds[ds.length - 1];
+    const oakGround = groundAt(...line[line.length - 1]);
+    const top = water + 52;
+    const heights = ds.map((s) => s < 1000 ? top : Math.max(oakGround, top - (s - 1000) * ((top - oakGround) / Math.max(1, total - 1050))));
+    const st = stationsFor(line, heights);
+    const white = mat(BRIDGE_PAINT.sasWhite, { roughness: 0.45, metalness: 0.2 });
+    // Two decks side by side, the tower between them on the self-anchored span.
+    for (const sgn of [-1, 1]) {
+      const offset = st.map((p) => ({ ...p, x: p.x + p.rx * sgn * 15, z: p.z + p.rz * sgn * 15 }));
+      deck(offset, { width: 23, lanes: 5, walk: sgn > 0 ? 4.5 : 0.6, walkColor: BRIDGE_PAINT.walkGrey, railColor: BRIDGE_PAINT.sasWhite, structure: BRIDGE_PAINT.sasWhite, depth: 5.5 });
+      piers(offset, 160, 20, BRIDGE_PAINT.sasWhite, (s) => s < 860);
+    }
+    const at = (s) => {
+      let i = 1; while (i < ds.length - 1 && ds[i] < s) i += 1;
+      const t = (s - ds[i - 1]) / ((ds[i] - ds[i - 1]) || 1);
+      const a = st[i - 1], b = st[i];
+      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, y: a.y + (b.y - a.y) * t, rx: a.rx, rz: a.rz, ux: a.ux, uz: a.uz };
+    };
+    // The self-anchored span: its tower out in the water east of the island.
+    const sasFrom = 240, sasTo = 860, towerS = 560, towerTop = water + 160;
+    const p = at(towerS), yaw = Math.atan2(p.ux, p.uz);
+    for (const [ox, oz] of [[-2.5, -2.5], [2.5, -2.5], [-2.5, 2.5], [2.5, 2.5]])
+      addBox(white, p.x + p.rx * ox + p.ux * oz, (water + towerTop) / 2, p.z + p.rz * ox + p.uz * oz, 3.6, towerTop - water, 3.6, yaw);
+    addBox(white, p.x, towerTop - 4, p.z, 10, 8, 10, yaw);
+    counts.towers += 1;
+    // The single cable, looping over the tower and down to each deck's outer edge at both ends.
+    for (const sgn of [-1, 1]) {
+      const pts3 = [];
+      for (let k = 0; k <= 50; k += 1) {
+        const s = sasFrom + (sasTo - sasFrom) * k / 50;
+        const q = at(s);
+        const t = s < towerS ? (towerS - s) / (towerS - sasFrom) : (s - towerS) / (sasTo - towerS);
+        const y = towerTop - 4 - (towerTop - 4 - (q.y + 2)) * Math.sqrt(Math.min(1, t));
+        pts3.push([q.x + q.rx * sgn * 26, y, q.z + q.rz * sgn * 26]);
+      }
+      cable(pts3, 0.4, white);
+    }
+    counts.structures += 1;
+    ramp(line[line.length - 1], line[line.length - 2], heights[heights.length - 1], { width: 52, lanes: 10, walk: 1, walkColor: BRIDGE_PAINT.walkGrey, railColor: BRIDGE_PAINT.sasWhite });
+  }
+
+  // Richmond-San Rafael: grey cantilever trusses over the channels, double-decked, on a trestle.
+  if (named.has("richmond")) {
+    const { pts } = bridgeCentreline(named.get("richmond"));
+    const line = pts[0][0] > pts[pts.length - 1][0] ? pts : pts.slice().reverse();   // Richmond (east) first
+    const ds = [0];
+    for (let i = 1; i < line.length; i += 1) ds.push(ds[i - 1] + Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]));
+    const total = ds[ds.length - 1];
+    const humps = [0.24, 0.44].map((f) => f * total);
+    const heights = ds.map((s) => {
+      const near = Math.min(...humps.map((h) => Math.abs(s - h)));
+      const high = near < 350 ? 1 : near < 1200 ? 1 - (near - 350) / 850 : 0;
+      const base = water + 14 + 34 * high;
+      // Up from the shore at a road's grade.
+      const fromEnd = Math.min(s, total - s);
+      const shore = groundAt(...line[s < total / 2 ? 0 : line.length - 1]);
+      return Math.min(base, shore + fromEnd * 0.04);
+    });
+    const st = stationsFor(line, heights);
+    const steel = mat(BRIDGE_PAINT.steelGrey, { roughness: 0.55, metalness: 0.35 });
+    deck(st, { width: 16, lanes: 3, walk: 1.8, walkColor: BRIDGE_PAINT.walkGrey, railColor: BRIDGE_PAINT.railGrey, structure: BRIDGE_PAINT.concrete, depth: 1.5 });
+    const lower = st.map((p) => ({ ...p, y: p.y - 8 }));
+    deck(lower, { width: 16, lanes: 3, walk: 0.6, walkColor: BRIDGE_PAINT.walkGrey, railColor: BRIDGE_PAINT.railGrey, structure: BRIDGE_PAINT.concrete, depth: 1.2 });
+    // The cantilever trusses: deep over the piers, shallow at mid-span.
+    for (const h of humps) {
+      const span = st.filter((p, i) => Math.abs(ds[i] - h) < 520);
+      for (const sgn of [-1, 1]) strip(span, sgn * 8, sgn * 8, -10, 18, trussMaterial(BRIDGE_PAINT.steelGrey), 10);
+      strip(span, -8, 8, 18, 18, trussMaterial(BRIDGE_PAINT.steelGrey), 10);
+      counts.towers += 1;
+    }
+    piers(st, 90, 16, BRIDGE_PAINT.concrete);
+    void steel;
+    counts.structures += 1;
+  }
+
+  // Every other bridge over the water: a girder deck on piers, or a trestle with its high-rise.
+  for (const way of ways) {
+    const design = bridgeDesign(way.name);
+    if (design !== "girder" && design !== "trestle") continue;
+    const line = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    const ds = [0];
+    for (let i = 1; i < line.length; i += 1) ds.push(ds[i - 1] + Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]));
+    const total = ds[ds.length - 1];
+    const major = way.highway === "motorway" || way.highway === "trunk";
+    const clearance = design === "trestle" ? 10 : major ? 14 : 7;
+    // A trestle's high-rise over its channel; a girder's level span.
+    const hump = design === "trestle" ? (/Dumbarton/.test(way.name) ? 0.5 : 0.15) * total : -1;
+    const target = line.map(([x, z], i) => {
+      const wet = way.over_water[i];
+      let y = wet ? water + clearance : groundAt(x, z);
+      if (hump >= 0 && wet) y += Math.max(0, 1 - Math.abs(ds[i] - hump) / 900) * (/Dumbarton/.test(way.name) ? 18 : 30);
+      return y;
+    });
+    // No steeper than a road, either way.
+    const h = target.slice();
+    for (let i = 1; i < h.length; i += 1) h[i] = Math.max(h[i], h[i - 1] - RAMP_GRADE * (ds[i] - ds[i - 1]));
+    for (let i = h.length - 2; i >= 0; i -= 1) h[i] = Math.max(h[i], h[i + 1] - RAMP_GRADE * (ds[i + 1] - ds[i]));
+    const lanes = Math.max(1, Number(way.lanes) || (major ? 3 : 2));
+    const spec = { width: lanes * 3.6 + 3.2, lanes, walk: major ? 0.8 : 1.6, walkColor: BRIDGE_PAINT.walkGrey,
+                   railColor: BRIDGE_PAINT.railGrey, structure: BRIDGE_PAINT.concrete, depth: design === "trestle" ? 1.4 : 1.8 };
+    const st = stationsFor(line, h);
+    deck(st, spec);
+    piers(st, design === "trestle" ? 36 : 45, spec.width, BRIDGE_PAINT.concrete);
+    // Where an end is left in the air -- the map's way stops where the bridge is still high --
+    // a viaduct carries the road on down to the ground; an end that meets another bridge stays.
+    if (!endsShared(line[0], way) && h[0] - groundAt(...line[0]) > 0.5) ramp(line[0], line[1], h[0], spec);
+    if (!endsShared(line[line.length - 1], way) && h[h.length - 1] - groundAt(...line[line.length - 1]) > 0.5)
+      ramp(line[line.length - 1], line[line.length - 2], h[h.length - 1], spec);
+    counts.structures += 1;
+    void total;
+  }
+  for (const [material, list] of boxes) {
+    const mesh = new THREE.InstancedMesh(BOX, material, list.length);
+    list.forEach((m, i) => mesh.setMatrixAt(i, m));
     mesh.instanceMatrix.needsUpdate = true;
-    mesh.userData.surface = "bridge_pier";
-    mesh.userData.bayWide = true;
-    root.add(mesh);
+    mesh.computeBoundingSphere();
+    mesh.userData.surface = "bridge";
+    out.add(mesh);
   }
-  console.info(`kerbside: perimeter ${PERIMETER.frame.cols}x${PERIMETER.frame.rows} cells, ${decks} bridge decks on ${piers} piers (${PERIMETER.source})`);
+  out.traverse((o) => { if (o.isMesh) { o.userData.bayWide = true; o.userData.liftedOntoGround = true; } });
+  root.add(out);
+  return counts;
 }
 
 // ---- the tile tree ---------------------------------------------------------------------------
@@ -17143,6 +17666,118 @@ for (const way of DATA.ways) {
   const crossingWidth = way.crossing_m || 3.7;
   addCrossingAsphaltBackstop(span, crossingWidth, ROAD_TOP_M);
 }
+// ---- the region's own bridges: decks carried between their abutments -------------------------
+//
+// A street on a bridge was laid on the ground like any other, and the lidar's ground under an
+// overpass is whatever the bridge crosses: Oakland's streets over the I-980 cutting went down
+// into it and up out of it. A bridge is now carried on a straight deck between its abutments:
+// the bridge ways that meet end to end are taken together, the ends where they meet ordinary
+// street are the abutments, and the deck's height anywhere along them is drawn from the
+// ground's height at those (weighted by nearness). Each deck has a concrete parapet along both
+// edges, and piers down to the ground wherever it stands clear of it.
+const REGION_BRIDGE_WAYS = (DATA.ways || []).filter((way) => way.kind === "street" && way.bridge && !way.tunnel
+  && way.points && way.points.length >= 2 && !CENTRAL_FREEWAY_WAYS.includes(way)
+  && !/Transbay|Bus Ramp/i.test(way.name || "") && !(Number(way.layer) >= 2));
+const BRIDGE_LIFTS = (() => {
+  const lifts = new Map();
+  if (!REGION_BRIDGE_WAYS.length) return lifts;
+  const keyOf = (x, z) => `${Math.round(x * 2)}:${Math.round(z * 2)}`;
+  const parent = REGION_BRIDGE_WAYS.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const ends = REGION_BRIDGE_WAYS.map((way) => [way.points[0], way.points[way.points.length - 1]]
+    .map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }));
+  const byKey = new Map();
+  ends.forEach((pair, i) => pair.forEach(([x, z]) => {
+    const key = keyOf(x, z);
+    if (byKey.has(key)) parent[find(i)] = find(byKey.get(key)); else byKey.set(key, i);
+  }));
+  const counts = new Map();
+  ends.forEach((pair) => pair.forEach(([x, z]) => { const key = keyOf(x, z); counts.set(key, (counts.get(key) || 0) + 1); }));
+  const groups = new Map();
+  REGION_BRIDGE_WAYS.forEach((way, i) => { const g = find(i); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(i); });
+  for (const members of groups.values()) {
+    const abutments = [];
+    for (const i of members) for (const [x, z] of ends[i]) if (counts.get(keyOf(x, z)) === 1) abutments.push([x, z, groundLiftAt(x, z)]);
+    if (!abutments.length) continue;
+    const lift = (x, z) => {
+      let sum = 0, weight = 0;
+      for (const [ax, az, ah] of abutments) {
+        const d = Math.hypot(ax - x, az - z);
+        if (d < 0.5) return ah;
+        const w = 1 / (d * d);
+        sum += w * ah; weight += w;
+      }
+      return sum / weight;
+    };
+    lift.abutments = abutments;
+    for (const i of members) lifts.set(REGION_BRIDGE_WAYS[i], lift);
+  }
+  return lifts;
+})();
+function addRegionBridgeStructures() {
+  const concrete = new THREE.MeshStandardMaterial({ color: 0xb8b5ad, roughness: 0.9 });
+  const position = [], index = [];
+  const pierMatrices = [];
+  const quad = (a, b, c, d) => {
+    const base = position.length / 3;
+    position.push(...a, ...b, ...c, ...d);
+    index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  for (const [way, lift] of BRIDGE_LIFTS) {
+    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    const half = (way.road_m || 7) / 2 + 0.2;
+    let s = 0, nextPier = 10;
+    for (let i = 1; i < pts.length; i += 1) {
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (len < 0.05) continue;
+      const nx = -(bz - az) / len, nz = (bx - ax) / len;
+      const ya = lift(ax, az) + ROAD_TOP_M, yb = lift(bx, bz) + ROAD_TOP_M;
+      for (const side of [-1, 1]) {
+        const o = side * half;
+        // The parapet: its outer face down to the deck's underside, its top a metre over the road.
+        quad([ax + nx * o, ya - 1.2, az + nz * o], [bx + nx * o, yb - 1.2, bz + nz * o], [bx + nx * o, yb + 1.0, bz + nz * o], [ax + nx * o, ya + 1.0, az + nz * o]);
+        quad([ax + nx * (o - side * 0.3), ya + 1.0, az + nz * (o - side * 0.3)], [bx + nx * (o - side * 0.3), yb + 1.0, bz + nz * (o - side * 0.3)],
+             [bx + nx * o, yb + 1.0, bz + nz * o], [ax + nx * o, ya + 1.0, az + nz * o]);
+        quad([ax + nx * (o - side * 0.3), ya, az + nz * (o - side * 0.3)], [bx + nx * (o - side * 0.3), yb, bz + nz * (o - side * 0.3)],
+             [bx + nx * (o - side * 0.3), yb + 1.0, bz + nz * (o - side * 0.3)], [ax + nx * (o - side * 0.3), ya + 1.0, az + nz * (o - side * 0.3)]);
+      }
+      // The deck's underside.
+      quad([ax - nx * half, ya - 1.2, az - nz * half], [bx - nx * half, yb - 1.2, bz - nz * half], [bx + nx * half, yb - 1.2, bz + nz * half], [ax + nx * half, ya - 1.2, az + nz * half]);
+      while (nextPier <= s + len) {
+        const t = (nextPier - s) / len;
+        const x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+        const top = ya + (yb - ya) * t - 1.2, base = terrainHeightAt(x, z);
+        if (top - base > 2.5) {
+          pierMatrices.push(new THREE.Matrix4().compose(new THREE.Vector3(x, (top + base) / 2, z),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(nx, nz)),
+            new THREE.Vector3(Math.max(1.2, half * 1.2), top - base, 1.1)));
+        }
+        nextPier += 18;
+      }
+      s += len;
+    }
+  }
+  if (index.length) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.setIndex(index);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xb8b5ad, roughness: 0.9, side: THREE.DoubleSide }));
+    mesh.userData = { surface: "bridge_parapet", liftedOntoGround: true };
+    groups.streets.add(mesh);
+  }
+  if (pierMatrices.length) {
+    const piers = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), concrete, pierMatrices.length);
+    pierMatrices.forEach((m, i) => piers.setMatrixAt(i, m));
+    piers.instanceMatrix.needsUpdate = true;
+    piers.computeBoundingSphere();
+    piers.userData = { surface: "bridge_pier", liftedOntoGround: true };
+    groups.streets.add(piers);
+  }
+  return { decks: BRIDGE_LIFTS.size, piers: pierMatrices.length };
+}
 const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
   const rank = (w) => w.kind === "divider" ? 2
     : (w.kind === "sidewalk" || w.kind === "path" ? 0 : 1);
@@ -17152,7 +17787,7 @@ let builtWays = 0;
 for (const way of DRAW_ORDER) {
  if ((++builtWays & 31) === 0) await maybeYield(`Building the streets: ${Math.round(100 * builtWays / DRAW_ORDER.length)}%`);
  const centralDeck = CENTRAL_FREEWAY_WAYS.includes(way) ? centralFreewayProfile(way) : null;
- WAY_LIFT = centralDeck || (way.kind === "street" && wayFollowsCut(way) ? cutLiftAt
+ WAY_LIFT = centralDeck || BRIDGE_LIFTS.get(way) || (way.kind === "street" && wayFollowsCut(way) ? cutLiftAt
    : way.kind === "crossing" && way.points && way.points.length >= 2 ? lineLiftFor(way.points) : null);
  if (way.kind === "beach") {
  const shape = footprintShape(way.points);
@@ -17520,6 +18155,8 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
   // No street names floating over the roads: point at a street and press S.
 }
 WAY_LIFT = null;   // nothing built after the streets belongs to one way's cut
+const regionBridges = addRegionBridgeStructures();
+if (regionBridges.decks) console.info(`kerbside: ${regionBridges.decks} bridge decks carried between their abutments, ${regionBridges.piers} piers`);
 addCutWalls();
 
 //: Where the roadway between the kerbs has been filled (medians, islands, asphalt), in half
@@ -20315,6 +20952,390 @@ function addMuniShelters(records) {
   return added;
 }
 
+
+// ---- transit stops, as the agencies publish them ----------------------------------------------
+//
+// Every stop of every agency in the region (scripts/ingest_transit.py: transit-stops.json), each
+// drawn as what stands there. A shelter: a roof on four posts, glass at the back and the upstream
+// end, a bench inside and a route panel. A bench: a seat beside the pole. Every stop: the pole and
+// its flag. Where the stop has a marked zone in the road (SFMTA's bus zones and bulbs), the zone is
+// painted: a white box in the curb lane behind the stop, with BUS STOP lettered in it to read in
+// the bus's direction of travel. A rail stop on a safety island stands on its island in the road.
+//
+// The shelters used to be built from parts queued for the buildings' merge, which had already
+// been made by the time the furniture arrived: they were never drawn, anywhere. These are
+// instanced, one mesh a part, placed stop by stop.
+const STOP_SHELTER = { length: 4.0, depth: 1.5, height: 2.65 };
+const STOP_ZONE = { behind: 18.0, ahead: 2.0, from: 0.25, width: 3.0, line: 0.15 };
+const stopMaterials = {
+  frame: new THREE.MeshStandardMaterial({ color: 0x5f676b, roughness: 0.45, metalness: 0.55 }),
+  roof: new THREE.MeshStandardMaterial({ color: 0xc9d1d4, roughness: 0.4, metalness: 0.35 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0xcfe3ea, roughness: 0.05, metalness: 0.1, transparent: true,
+    opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }),
+  seat: new THREE.MeshStandardMaterial({ color: 0x8c949a, roughness: 0.5, metalness: 0.4 }),
+  panel: new THREE.MeshStandardMaterial({ color: 0xf1f2ee, roughness: 0.6, emissive: 0x30302c }),
+  island: new THREE.MeshStandardMaterial({ color: 0xb9b6ad, roughness: 0.9 }),
+  islandEdge: new THREE.MeshStandardMaterial({ color: 0xe8c547, roughness: 0.7 }),
+};
+//: A part of a stop as a unit box scaled and placed in the stop's own frame: x along the kerb,
+//: y up, z towards the road (the open side of a shelter faces the road).
+const SHELTER_PARTS = [
+  ["roof", 0, STOP_SHELTER.height, 0, STOP_SHELTER.length + 0.2, 0.1, STOP_SHELTER.depth + 0.25],
+  ["frame", -STOP_SHELTER.length / 2, STOP_SHELTER.height / 2, -STOP_SHELTER.depth / 2, 0.07, STOP_SHELTER.height, 0.07],
+  ["frame", STOP_SHELTER.length / 2, STOP_SHELTER.height / 2, -STOP_SHELTER.depth / 2, 0.07, STOP_SHELTER.height, 0.07],
+  ["frame", -STOP_SHELTER.length / 2, STOP_SHELTER.height / 2, STOP_SHELTER.depth / 2, 0.07, STOP_SHELTER.height, 0.07],
+  ["frame", STOP_SHELTER.length / 2, STOP_SHELTER.height / 2, STOP_SHELTER.depth / 2, 0.07, STOP_SHELTER.height, 0.07],
+  ["glass", 0, 1.3, -STOP_SHELTER.depth / 2, STOP_SHELTER.length - 0.1, 2.0, 0.02],
+  ["glass", -STOP_SHELTER.length / 2, 1.3, 0, 0.02, 2.0, STOP_SHELTER.depth - 0.1],
+  ["seat", -0.4, 0.46, -STOP_SHELTER.depth / 2 + 0.28, 2.2, 0.05, 0.42],
+  ["frame", -1.4, 0.23, -STOP_SHELTER.depth / 2 + 0.28, 0.06, 0.46, 0.36],
+  ["frame", 0.6, 0.23, -STOP_SHELTER.depth / 2 + 0.28, 0.06, 0.46, 0.36],
+  ["panel", STOP_SHELTER.length / 2 - 0.6, 1.25, -STOP_SHELTER.depth / 2 + 0.03, 1.0, 1.7, 0.05],
+];
+const BENCH_PARTS = [
+  ["seat", 0, 0.46, 0, 1.8, 0.05, 0.45],
+  ["seat", 0, 0.75, -0.2, 1.8, 0.4, 0.04],
+  ["frame", -0.8, 0.23, 0, 0.06, 0.46, 0.4],
+  ["frame", 0.8, 0.23, 0, 0.06, 0.46, 0.4],
+];
+const unitBox = new THREE.BoxGeometry(1, 1, 1);
+function instanceParts(parts, placements, surface) {
+  if (!placements.length) return 0;
+  const byMaterial = new Map();
+  for (const part of parts) {
+    if (!byMaterial.has(part[0])) byMaterial.set(part[0], []);
+    byMaterial.get(part[0]).push(part);
+  }
+  const local = new THREE.Matrix4(), world = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+  for (const [materialName, list] of byMaterial) {
+    const mesh = new THREE.InstancedMesh(unitBox, stopMaterials[materialName], placements.length * list.length);
+    let i = 0;
+    for (const { x, y, z, yaw } of placements) {
+      world.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(up, yaw), new THREE.Vector3(1, 1, 1));
+      for (const [, px, py, pz, w, h, d] of list) {
+        local.compose(new THREE.Vector3(px, py, pz), new THREE.Quaternion(), new THREE.Vector3(w, h, d));
+        mesh.setMatrixAt(i, new THREE.Matrix4().multiplyMatrices(world, local));
+        i += 1;
+      }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    mesh.userData.surface = surface;
+    mesh.userData.liftedOntoGround = true;
+    groups.furniture.add(mesh);
+  }
+  return placements.length;
+}
+//: BUS STOP, white, in a tile the road text quads all share.
+let busStopTextMaterial = null;
+function busStopText() {
+  if (busStopTextMaterial) return busStopTextMaterial;
+  const canvas = document.createElement("canvas");
+  canvas.width = 256; canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 256, 512);
+  ctx.fillStyle = "#f4f4ef";
+  // Road lettering is drawn long: tall letters, as a driver sees them foreshortened.
+  ctx.font = "bold 150px system-ui, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.save(); ctx.translate(128, 140); ctx.scale(0.62, 1.55); ctx.fillText("STOP", 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(128, 380); ctx.scale(0.62, 1.55); ctx.fillText("BUS", 0, 0); ctx.restore();
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 8;
+  busStopTextMaterial = new THREE.MeshStandardMaterial({ map, transparent: true, alphaTest: 0.35, roughness: 0.75,
+    side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+  return busStopTextMaterial;
+}
+function addTransitStops(transit) {
+  const stops = (transit.stops || []).filter((stop) => Number.isFinite(stop.lon) && Number.isFinite(stop.lat));
+  const shelters = [], benches = [], poles = [], islands = [];
+  const borders = [], texts = [];
+  const quad = (list, corners, y) => {
+    const base = list.length / 5;
+    // Corners: [x, z, u, v] x4.
+    for (const [x, z, u, v] of corners) list.push(x, y + (list === texts ? 0.004 : 0), z, u, v);
+    return base;
+  };
+  const lonOf = (x) => midLon + x / metersPerLon, latOf = (z) => midLat - z / metersPerLat;
+  for (const stop of stops) {
+    const item = { p: [stop.lon, stop.lat], bearing: null, source: `gtfs:${stop.agency}`, provenance: stop.physical_source };
+    let [x, y] = xy(stop.lon, stop.lat);
+    let z = -y;
+    const onIsland = stop.type === "SI" && insideCarriageway(x, z, 0.0);
+    const kerb = nearestKerbAt(x, z, 25);
+    if (!kerb) continue;
+    // Along the kerb, and out of the road (n): the bus travels with the kerb on its right.
+    const nx = kerb.nx, nz = kerb.nz;
+    const dx = nz, dz = -nx;
+    if (onIsland) {
+      const ground = groundLiftAt(x, z) + ROAD_TOP_M;
+      // Its length along the street: local x turned onto the direction of travel.
+      islands.push({ x, y: ground, z, yaw: Math.atan2(-dz, dx) });
+      const at = { x, y: ground + 0.25, z, yaw: Math.atan2(-dz, dx) };
+      if (stop.physical === "shelter") shelters.push(at);
+      else poles.push({ ...item, p: [lonOf(x), latOf(z)] });
+      continue;
+    }
+    const anchor = furnitureAnchor(item);
+    if (!anchor) continue;
+    // Facing the road: the shelter's open side, the bench's seat.
+    const yaw = Math.atan2(-nx, -nz);
+    poles.push(item);
+    if (stop.physical === "shelter") {
+      // The shelter stands back from the kerb by its own depth, upstream of the pole.
+      const sx = anchor.x + nx * (STOP_SHELTER.depth / 2 + 0.25) - dx * 3.0, sz = anchor.z + nz * (STOP_SHELTER.depth / 2 + 0.25) - dz * 3.0;
+      if (!buildingAt(sx, sz) && !insideCarriageway(sx, sz, 0.1)) shelters.push({ x: sx, y: anchor.y, z: sz, yaw });
+    } else if (stop.physical === "bench") {
+      const bx = anchor.x + nx * 0.6 - dx * 1.8, bz = anchor.z + nz * 0.6 - dz * 1.8;
+      if (!buildingAt(bx, bz) && !insideCarriageway(bx, bz, 0.1)) benches.push({ x: bx, y: anchor.y, z: bz, yaw });
+    }
+    if (stop.painted) {
+      // The zone, in the curb lane behind the stop: a box of white line and the words in it.
+      // Slid back up the kerb until none of it is in the junction or its crosswalks: a zone ends
+      // short of the corner.
+      let kx = kerb.x, kz = kerb.z, fits = false;
+      for (const back of [0, 4, 8, 12, 16, 20]) {
+        const bx = kerb.x - dx * back, bz = kerb.z - dz * back;
+        let clear = true;
+        for (let along = -STOP_ZONE.behind; along <= STOP_ZONE.ahead + 1.5 && clear; along += 2) {
+          for (const across of [STOP_ZONE.from + 0.2, STOP_ZONE.from + STOP_ZONE.width - 0.2]) {
+            const px = bx + dx * along - nx * across, pz = bz + dz * along - nz * across;
+            if (!insideCarriageway(px, pz, 0) || insideJunctionBox(px, pz)) { clear = false; break; }
+          }
+        }
+        if (clear) { kx = bx; kz = bz; fits = true; break; }
+      }
+      if (!fits) continue;
+      const centreX = kx - nx * (STOP_ZONE.from + STOP_ZONE.width / 2) - dx * (STOP_ZONE.behind - STOP_ZONE.ahead) / 2;
+      const centreZ = kz - nz * (STOP_ZONE.from + STOP_ZONE.width / 2) - dz * (STOP_ZONE.behind - STOP_ZONE.ahead) / 2;
+      const roadY = groundLiftAt(centreX, centreZ) + ROAD_TOP_M + 0.034;
+      const at = (along, across) => [kx + dx * along - nx * across, kz + dz * along - nz * across];
+      const { behind, ahead, from, width, line } = STOP_ZONE;
+      for (const [a0, a1, c0, c1] of [[-behind, ahead, from, from + line], [-behind, ahead, from + width - line, from + width],
+                                       [-behind, -behind + line, from, from + width], [ahead - line, ahead, from, from + width]]) {
+        const [p0, p1, p2, p3] = [at(a0, c0), at(a1, c0), at(a1, c1), at(a0, c1)];
+        const base = quad(borders, [[...p0, 0, 0], [...p1, 0, 0], [...p2, 0, 0], [...p3, 0, 0]], roadY);
+        borders.index = borders.index || [];
+        borders.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      }
+      // The words: 5 m long down the lane, 2.4 m across, reading towards where the bus is going.
+      const t0 = -behind / 2 - 2.5, t1 = -behind / 2 + 2.5, c0 = from + width / 2 - 1.2, c1 = from + width / 2 + 1.2;
+      const [q0, q1, q2, q3] = [at(t0, c1), at(t0, c0), at(t1, c0), at(t1, c1)];
+      const base = quad(texts, [[...q0, 0, 0], [...q1, 1, 0], [...q2, 1, 1], [...q3, 0, 1]], roadY);
+      texts.index = texts.index || [];
+      texts.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
+  }
+  const emit = (list, material, surface) => {
+    if (!list.index || !list.index.length) return;
+    const n = list.length / 5;
+    const position = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+    for (let i = 0; i < n; i += 1) {
+      position[i * 3] = list[i * 5]; position[i * 3 + 1] = list[i * 5 + 1]; position[i * 3 + 2] = list[i * 5 + 2];
+      uv[i * 2] = list[i * 5 + 3]; uv[i * 2 + 1] = list[i * 5 + 4];
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
+    geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    geometry.setIndex(list.index);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.userData = { surface, source: "gtfs+sfmta_stop_type", liftedOntoGround: true };
+    groups.furniture.add(mesh);
+  };
+  emit(borders, new THREE.MeshStandardMaterial({ color: 0xf2f5ef, roughness: 0.8, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 }), "furniture:bus_zone");
+  emit(texts, busStopText(), "furniture:bus_zone");
+  const placed = {
+    stops: stops.length,
+    poles: addStreetFurniturePosts(poles),
+    flags: addInstancedFurniturePanels(poles, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
+    shelters: instanceParts(SHELTER_PARTS, shelters, "furniture:shelter"),
+    benches: instanceParts(BENCH_PARTS, benches, "furniture:bench"),
+    islands: instanceParts([["island", 0, 0.12, 0, 18, 0.25, 2.4], ["islandEdge", 0, 0.251, 1.1, 18, 0.01, 0.3]], islands, "furniture:shelter"),
+    painted: texts.index ? texts.index.length / 6 : 0,
+    entrances: addStationEntrances(transit.entrances || []),
+  };
+  transitStats.placed = placed;
+  return placed;
+}
+const transitStats = { placed: null };
+window.kerbsideTransit = () => ({ ...transitStats });
+
+
+// ---- station entrances: a stair down, and a wall at the bottom ------------------------------
+//
+// Every station entrance the agencies publish (GTFS entrances: BART's, which Muni Metro shares
+// under Market Street) is a stairwell cut into the pavement beside the kerb: a stair of real
+// treads and risers down a concrete well, a railing round the three sides you cannot enter by,
+// and at the bottom a short landing and a black wall. The walker can go down; there is no
+// station to go into.
+//
+// The pavement over the well is drawn as solid ground like any other, so the well is shown
+// through it: the opening is marked in the stencil, the depth in it cleared, the well drawn
+// there, and the depth of the pavement's surface put back, so nothing drawn afterwards covers
+// the hole and nothing in front of it is lost.
+const STATION_STAIR = { width: 2.6, rise: 0.17, tread: 0.29, steps: 24, landing: 1.6, kerbGap: 1.4, wall: 0.2 };
+const stationMaterials = {
+  concrete: new THREE.MeshStandardMaterial({ color: 0xb8b4ab, roughness: 0.92 }),
+  tread: new THREE.MeshStandardMaterial({ color: 0x8f8a80, roughness: 0.85 }),
+  nosing: new THREE.MeshStandardMaterial({ color: 0xd9b23a, roughness: 0.6 }),
+  rail: new THREE.MeshStandardMaterial({ color: 0xb9bec2, roughness: 0.3, metalness: 0.8 }),
+  dark: new THREE.MeshBasicMaterial({ color: 0x000000 }),
+};
+const STATION_ORDER = { mark: -0.97, clear: -0.96, well: -0.95, seal: -0.94 };
+function portalMaterialFor(stage) {
+  const m = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
+  m.stencilWrite = true;
+  m.stencilRef = 1;
+  if (stage === "mark") {
+    m.depthWrite = false;
+    m.stencilFunc = THREE.AlwaysStencilFunc;
+    m.stencilZPass = THREE.ReplaceStencilOp;
+  } else {
+    m.depthTest = true;
+    m.depthFunc = THREE.AlwaysDepth;
+    m.depthWrite = true;
+    m.stencilFunc = THREE.EqualStencilFunc;
+    m.stencilZPass = THREE.KeepStencilOp;
+    if (stage === "clear") {
+      // As far as depth goes: the well behind the opening is drawn whatever the pavement wrote.
+      m.onBeforeCompile = (shader) => {
+        shader.fragmentShader = shader.fragmentShader.replace(/}\s*$/, "  gl_FragDepth = 1.0;\n}");
+      };
+      m.customProgramCacheKey = () => "station-clear";
+    }
+  }
+  return m;
+}
+// (var: the walls are asked for by wallSegmentsNear, which can run before this line has.)
+var stationWalls = [];
+function stationWallsNear(x, z) {
+  return stationWalls.filter(([ax, az, bx, bz]) => Math.min(Math.hypot(ax - x, az - z), Math.hypot(bx - x, bz - z)) < 20);
+}
+function addStationEntrances(entrances) {
+  const S = STATION_STAIR;
+  const run = S.steps * S.tread, depth = S.steps * S.rise, length = run + S.landing;
+  const portals = { mark: portalMaterialFor("mark"), clear: portalMaterialFor("clear"), seal: portalMaterialFor("seal") };
+  const wellMaterials = new Map();
+  const forWell = (m) => {
+    if (!wellMaterials.has(m)) {
+      const c = m.clone();
+      c.stencilWrite = true; c.stencilRef = 1; c.stencilFunc = THREE.EqualStencilFunc;
+      wellMaterials.set(m, c);
+    }
+    return wellMaterials.get(m);
+  };
+  let built = 0;
+  const seen = [];
+  for (const entrance of entrances || []) {
+    let [x, y] = xy(entrance.lon, entrance.lat);
+    let z = -y;
+    // One stair to an entrance point; the feed gives some entrances twice.
+    if (seen.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 6)) continue;
+    const kerb = nearestKerbAt(x, z, 30);
+    if (!kerb) continue;
+    const nx = kerb.nx, nz = kerb.nz, ux = nz, uz = -nx;
+    // The well's centre line runs along the pavement, a little in from the kerb; it goes down
+    // whichever way along the kerb, and from wherever along it near the entrance, keeps all of
+    // it on the pavement.
+    let dir = 0, cx0 = 0, cz0 = 0;
+    search: for (const gap of [S.kerbGap, 0.9, 2.2]) {
+      const off = gap + S.width / 2;
+      for (const shift of [0, -3, 3, -6, 6]) {
+        for (const sign of [1, -1]) {
+          const bx = kerb.x + nx * off + ux * shift, bz = kerb.z + nz * off + uz * shift;
+          let clear = true;
+          for (let t = 0; t <= length && clear; t += 1) {
+            for (const w of [-S.width / 2 - 0.1, 0, S.width / 2 + 0.1]) {
+              const px = bx + ux * sign * t + nx * w, pz = bz + uz * sign * t + nz * w;
+              if (buildingAt(px, pz) || insideCarriageway(px, pz, 0.05)) { clear = false; break; }
+            }
+          }
+          if (clear) { dir = sign; cx0 = bx; cz0 = bz; break search; }
+        }
+      }
+    }
+    if (!dir) { transitStats.entrancesSkipped = (transitStats.entrancesSkipped || 0) + 1; continue; }
+    seen.push([x, z]);
+    const ax = ux * dir, az = uz * dir;                 // down the stair
+    const top = pavementTopAt(cx0, cz0);
+    const ground = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(cx0, cz0);
+    const group = new THREE.Group();
+    group.position.set(cx0, ground, cz0);
+    group.rotation.y = Math.atan2(ax, az);              // local +z: down the stair; local x: across
+    group.userData = { surface: "furniture:station_entrance", source: `gtfs:${entrance.agency}`, name: entrance.name };
+    const box = (w, h, d, px, py, pz, material, order = STATION_ORDER.well) => {
+      const mesh = new THREE.Mesh(unitBox, forWell(material));
+      mesh.scale.set(w, h, d);
+      mesh.position.set(px, py, pz);
+      mesh.renderOrder = order;
+      group.add(mesh);
+      return mesh;
+    };
+    // The treads, each a block from the one above's level down to its own.
+    for (let i = 0; i < S.steps; i += 1) {
+      const level = -(i + 1) * S.rise;
+      box(S.width, S.rise, S.tread, 0, level + S.rise / 2 - S.rise, (i + 0.5) * S.tread, stationMaterials.tread);
+      box(S.width, 0.02, 0.05, 0, level + 0.005, i * S.tread + 0.03, stationMaterials.nosing);
+    }
+    box(S.width, 0.2, S.landing, 0, -depth - 0.1, run + S.landing / 2, stationMaterials.tread);
+    // The well's walls and its end: concrete down the sides, black across the bottom.
+    for (const side of [-1, 1]) box(S.wall, depth + 2.6, length, side * (S.width / 2 + S.wall / 2), -(depth + 2.6) / 2 + 0.02, length / 2, stationMaterials.concrete);
+    box(S.width, depth + 2.6, S.wall, 0, -(depth + 2.6) / 2 + 0.02, length + S.wall / 2, stationMaterials.dark);
+    // The ceiling over the lower part: the pavement's underside, seen from the stair.
+    box(S.width, 0.15, length - 2.4, 0, -0.1, 2.4 + (length - 2.4) / 2, stationMaterials.concrete);
+    // The opening: marked, cleared, and sealed again at the pavement's surface.
+    for (const stage of ["mark", "clear", "seal"]) {
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(S.width + 2 * S.wall, length + S.wall).rotateX(-Math.PI / 2), portals[stage]);
+      mesh.position.set(0, 0.03, (length + S.wall) / 2);
+      mesh.renderOrder = STATION_ORDER[stage];
+      group.add(mesh);
+    }
+    // The railing round the three closed sides, on the pavement.
+    const rail = (w, d, px, pz) => {
+      const top = new THREE.Mesh(unitBox, stationMaterials.rail);
+      top.scale.set(w, 0.05, d); top.position.set(px, 1.05, pz);
+      const mid = new THREE.Mesh(unitBox, stationMaterials.rail);
+      mid.scale.set(w, 0.03, d); mid.position.set(px, 0.55, pz);
+      group.add(top, mid);
+    };
+    rail(0.05, length, -S.width / 2 - S.wall / 2, length / 2);
+    rail(0.05, length, S.width / 2 + S.wall / 2, length / 2);
+    rail(S.width + S.wall, 0.05, 0, length + S.wall / 2);
+    for (const [px, pz] of [[-1, 0], [1, 0], [-1, 1], [1, 1], [-1, 0.5], [1, 0.5]]) {
+      const post = new THREE.Mesh(unitBox, stationMaterials.rail);
+      post.scale.set(0.06, 1.08, 0.06);
+      post.position.set(px * (S.width / 2 + S.wall / 2), 0.54, pz * length);
+      group.add(post);
+    }
+    groups.furniture.add(group);
+    // Walking: the stair's surface, and walls along its sides and across its foot.
+    const across = [az, -ax];                            // local +x in the page's frame
+    const P = (lx, lz) => [cx0 + across[0] * lx + ax * lz, cz0 + across[1] * lx + az * lz];
+    const surface = (wx, wz) => {
+      const dx = wx - cx0, dz = wz - cz0;
+      const lz = dx * ax + dz * az, lx = dx * across[0] + dz * across[1];
+      if (Math.abs(lx) > S.width / 2 || lz < 0 || lz > length) return null;
+      if (lz >= run) return ground - depth;
+      return ground - Math.min(S.steps, Math.floor(lz / S.tread) + 1) * S.rise;
+    };
+    surface.priority = 2;
+    standingSurfaces.add(surface);
+    const hw = S.width / 2;
+    for (const [a, b] of [[P(-hw, 0), P(-hw, length)], [P(hw, 0), P(hw, length)], [P(-hw, length), P(hw, length)]])
+      stationWalls.push([a[0], a[1], b[0], b[1]]);
+    built += 1;
+    (transitStats.entranceAt = transitStats.entranceAt || []).push([+(midLon + cx0 / metersPerLon).toFixed(6), +(midLat - cz0 / metersPerLat).toFixed(6), entrance.name]);
+  }
+  transitStats.entrances = built;
+  return built;
+}
+
 // ---- the signs, saying what they say ----
 //
 // SFMTA's sign inventory carries the legend of every sign: "SPEED LIMIT 25", "NPRK 2AM-6AM
@@ -21863,7 +22884,7 @@ function dedupeByDistance(records, metres) {
   return kept.map((row) => row.item);
 }
 
-function renderStreetFurniture(furniture) {
+function renderStreetFurniture(furniture, transit = null) {
   // The streets have been recentred on the city's kerbs since the buildings were built; the
   // junctions the signs and signals stand at are read from where the streets are now.
   junctionVertexGrid = null;
@@ -21890,14 +22911,17 @@ function renderStreetFurniture(furniture) {
   const signalRecords = (official.traffic_signals || []).filter((r) => String(r.signal_type || "").toUpperCase() === "SIGNAL");
   const signalHeads = expandSignalApproaches(signalRecords.length ? signalRecords
     : (inferred.street_signs || []).filter((s) => s.sign_kind === "traffic_signal"));
-  const stops = inferred.bus_stops || [];
+  // The agencies' own stops, where the region has them, in place of OpenStreetMap's: every stop,
+  // drawn as what stands there (addTransitStops). OpenStreetMap's shelters fed that reading.
+  const transitStops = transit && (transit.stops || []).length ? transit : null;
+  const stops = transitStops ? [] : inferred.bus_stops || [];
   // One shelter to a stop.
   //
   // A bus moves through an intersection two to four ways and each direction has its own stop,
   // but the shelter is built for one of them -- the others are a flag on a pole and paint on the
   // road. OpenStreetMap maps the structures individually, so two nodes twelve metres apart on
   // the same corner arrived as two shelters standing inside each other.
-  const shelters = dedupeByDistance(inferred.shelters || [], SHELTER_CLUSTER_M);
+  const shelters = transitStops ? [] : dedupeByDistance(inferred.shelters || [], SHELTER_CLUSTER_M);
   const ads = inferred.ad_panels || [];
   // Every plate goes through one placement, so none is drawn inside another: the city's, the
   // approach plates, the corner blades, and OpenStreetMap's other signs where the city has none.
@@ -21918,6 +22942,7 @@ function renderStreetFurniture(furniture) {
     bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
     ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55, "skip"),
     shelters: addMuniShelters(shelters),
+    transit: transitStops ? addTransitStops(transitStops) : null,
     benches: addBenches(inferred.benches || []),
     // The paint inventory first, then the policy zones that are paint by definition.
     curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [])),
@@ -21952,7 +22977,9 @@ registerLazyLayer("furniture", async () => {
     console.warn("Could not load street furniture", err);
     return;
   }
-  renderStreetFurniture(furniture);
+  const transit = await fetch(asset("transit-stops.json"), { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  renderStreetFurniture(furniture, transit);
 });
 
 registerLazyLayer("coverage", () => {
@@ -23006,7 +24033,7 @@ function doorOn(entry, edge, t, width, source) {
 // The wall segments within reach of a point: footprint edges with open doorways left out, the
 // leaves of closed doors, and the partitions of any interior that has been built.
 function wallSegmentsNear(x, z) {
-  const out = [];
+  const out = typeof stationWallsNear === "function" && stationWalls && stationWalls.length ? stationWallsNear(x, z) : [];
   const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
   if (guest) {
     const [gx, gz] = hostToGuest(guest, x, z);

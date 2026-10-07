@@ -117,3 +117,6 @@ data/curbmeasure/curb-measurements-work/
 # The browser map page is retired: the builder still writes it beside its data, but it is
 # never published (the app is docs/app.html + docs/app-model.html).
 docs/sf-corridor-3d.html
+
+# Transit schedules ingested for navigation (scripts/ingest_transit.py): large, refreshed daily.
+data/transit/
