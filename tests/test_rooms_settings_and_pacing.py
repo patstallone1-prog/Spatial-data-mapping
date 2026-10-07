@@ -70,7 +70,7 @@ def test_the_living_room_and_bedroom_rules() -> None:
     assert '"nightstand"' in bedroom and '"dresser"' in bedroom and "addRug(" in bedroom
     # The chest of drawers goes on another wall than the bed's.
     assert "layout.walls.filter((w) => w !== wall)" in bedroom
-    room = _extract("furnishRoom", js)
+    room = _extract("furnishRoomFor", js)
     assert "addCeilingLight(" in room
     build = _extract("buildInterior", js)
     assert "furnishRoom(group, entry, room, floorY, height, doorsInPlan, index)" in build
@@ -85,7 +85,7 @@ def test_rugs_vary_by_room_and_house() -> None:
     assert len(kinds.split(",")) >= 6
     palettes = js[js.index("const RUG_PALETTES = ["):js.index("const RUG_KINDS")]
     assert palettes.count("[\"#") >= 8
-    room = _extract("furnishRoom", js)
+    room = _extract("furnishRoomFor", js)
     assert "Number(entry.way.osm_id)" in room and "index * 7919" in room
 
 
@@ -145,7 +145,9 @@ def test_model_glass_never_turns_on_the_transmission_pass() -> None:
     js = _page_js()
     glass = _extract("plainGlass", js)
     assert "m.transmission > 0" in glass
-    assert "plainGlass(gltf.scene)" in _extract("interiorModel", js)
+    assert "plainGlass(gltf.scene)" in _extract("loadInteriorModel", js)
+    # The models come only for the house the walker is at.
+    assert "whenNear(entry, () => loadInteriorModel(role, seed))" in _extract("interiorModel", js)
     assert "plainGlass(gltf.scene)" in _extract("loadInteriorAsset", js)
 
 
@@ -164,3 +166,23 @@ def test_one_world_search_reaches_every_region_and_no_region_is_chosen() -> None
     assert "window.kerbsideOpenFullRegionAt(place.lon, place.lat)" in js
     assert "group.hidden = true;" in js and "group.hidden = false;" not in js
     assert "state.dist > REGION_ENTER_DIST_M" in js and "REGION_SETTLE_MS" in js
+
+
+def test_regions_are_built_in_this_page_not_loaded_as_another() -> None:
+    js = _page_js()
+    # The same code, attached: the page's renderer, its own assets, no frame loop, tile tree,
+    # region markers or bay of its own, and a world placed in the page's scene.
+    assert "const ATTACH = globalThis.__kerbsideGuest || null;" in js
+    assert "const renderer = ATTACH ? ATTACH.renderer : new THREE.WebGLRenderer(" in js
+    assert "if (ATTACH) ATTACH.onRoot(root); else scene.add(root);" in js
+    assert "if (!ATTACH) animate();" in js and "if (!ATTACH) await loadTileTree();" in js
+    attach = _extract("attachRegion", js)
+    assert "location.assign" not in attach and "await import(holder.url)" in attach
+    # A region page's own relative fetches are resolved against that page, not this one.
+    assert "__kerbsideGuestIn.resolve" in attach
+    # One region in full at a time: the one left behind is let go.
+    assert "releaseHostWorld()" in attach and "releaseGuest(previous)" in attach
+    assert "earthDrop(hx, -hy)" in attach and "metersPerLon / api.metersPerLon" in attach
+    # The walker stands on, and walks round, the attached region's ground and walls.
+    assert "guest.api.walkerGroundAt(gx, gz) + guest.oy" in _extract("walkerGroundAt", js)
+    assert "guest.api.wallSegmentsNear(gx, gz)" in _extract("wallSegmentsNear", js)
