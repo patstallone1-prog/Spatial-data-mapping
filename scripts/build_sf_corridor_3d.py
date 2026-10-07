@@ -24551,7 +24551,9 @@ function addCeilingLight(group, layout, seed, floorY, height, kind) {
   fixture.position.set(x, ceiling, z);
   fixture.userData = { surface: "furnishing:ceiling_light", grade: "inferred_from_room_type" };
   const pendant = ["living", "dining", "bedroom"].includes(kind);
-  const drop = pendant ? 0.55 : 0.32;
+  // Close to the ceiling: a seven-foot walker's eyes are near two metres up, and a shade hung
+  // lower filled the view in every room.
+  const drop = pendant ? 0.16 : 0.2;
   const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, drop, 6), cordMaterial);
   cord.position.y = -drop / 2;
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 10), bulbMaterial);
@@ -24564,8 +24566,8 @@ function addCeilingLight(group, layout, seed, floorY, height, kind) {
     const model = template.clone(true);
     const bounds = new THREE.Box3().setFromObject(model);
     const size = bounds.getSize(new THREE.Vector3());
-    const target = pendant ? 0.55 : 0.12;
-    const scale = target / Math.max(size.x, size.z, 0.01);
+    const target = pendant ? 0.4 : 0.12;
+    const scale = Math.min(target / Math.max(size.x, size.z, 0.01), (pendant ? 0.32 : 0.16) / Math.max(size.y, 0.01));
     const centre = bounds.getCenter(new THREE.Vector3());
     model.scale.multiplyScalar(scale);
     // Hung by its top from the end of the cord.
@@ -24698,20 +24700,54 @@ function furnishLiving(group, entry, layout, seed, floorY) {
   picture.position.set(sofa.wall.a[0] + sofa.wall.ux * sofa.t + nx * 0.03, floorY + 1.55,
     sofa.wall.a[1] + sofa.wall.uz * sofa.t + nz * 0.03);
   picture.rotation.y = sofa.yaw;
+  // A framed picture, its painting made here: the library's frames were modelled with the art
+  // on the side that turned out to face the wall.
+  const frameMaterial = furnishingMaterials.wood;
+  const pw = 0.9, ph = 0.62;
+  for (const [w, h, x, y] of [[pw + 0.08, 0.04, 0, ph / 2 + 0.02], [pw + 0.08, 0.04, 0, -ph / 2 - 0.02],
+                              [0.04, ph, -pw / 2 - 0.02, 0], [0.04, ph, pw / 2 + 0.02, 0]]) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.03), frameMaterial);
+    bar.position.set(x, y, 0.015);
+    picture.add(bar);
+  }
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), paintingMaterial(seed + 7));
+  art.position.z = 0.012;
+  picture.add(art);
+  picture.userData = { surface: "furnishing:picture", grade: "inferred_from_room_type" };
   group.add(picture);
-  interiorModel("picture", seed + 7).then((template) => {
-    if (!template || !picture.parent) return;
-    const model = template.clone(true);
-    const bounds = new THREE.Box3().setFromObject(model);
-    const size = bounds.getSize(new THREE.Vector3());
-    const scale = Math.min(0.9 / Math.max(size.x, 0.01), 0.7 / Math.max(size.y, 0.01));
-    const centre = bounds.getCenter(new THREE.Vector3());
-    model.scale.multiplyScalar(scale);
-    model.position.set(-centre.x * scale, -centre.y * scale, -bounds.min.z * scale);
-    model.traverse((o) => { if (o.isMesh) o.userData.sharedInteriorAsset = true; });
-    picture.add(model);
-  });
   return true;
+}
+//: Abstract paintings, a few dozen of them: fields of colour, a horizon, blocks.
+const paintingMaterials = new Map();
+function paintingMaterial(seed) {
+  const key = Math.floor(random(seed) * 24);
+  if (paintingMaterials.has(key)) return paintingMaterials.get(key);
+  const canvas = document.createElement("canvas");
+  canvas.width = 192; canvas.height = 132;
+  const ctx = canvas.getContext("2d");
+  const palette = RUG_PALETTES[key % RUG_PALETTES.length];
+  ctx.fillStyle = palette[2]; ctx.fillRect(0, 0, 192, 132);
+  const style = key % 3;
+  if (style === 0) {
+    // A horizon: sky and ground in two bands, a sun.
+    ctx.fillStyle = palette[1]; ctx.fillRect(0, 70 + (key % 20), 192, 80);
+    ctx.fillStyle = palette[3]; ctx.beginPath(); ctx.arc(40 + key * 5 % 110, 40, 14, 0, Math.PI * 2); ctx.fill();
+  } else if (style === 1) {
+    // Blocks of colour.
+    for (let i = 0; i < 6; i += 1) {
+      ctx.fillStyle = palette[i % 4];
+      ctx.fillRect(random(key * 13 + i) * 150, random(key * 7 + i) * 100, 30 + random(key + i) * 60, 20 + random(key * 3 + i) * 50);
+    }
+  } else {
+    // Soft vertical fields.
+    for (let i = 0; i < 4; i += 1) { ctx.fillStyle = palette[i]; ctx.globalAlpha = 0.85; ctx.fillRect(i * 48, 0, 48, 132); }
+    ctx.globalAlpha = 1;
+  }
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.MeshStandardMaterial({ map, roughness: 0.85 });
+  paintingMaterials.set(key, material);
+  return material;
 }
 
 function addCornerPlant(group, layout, seed, floorY) {
