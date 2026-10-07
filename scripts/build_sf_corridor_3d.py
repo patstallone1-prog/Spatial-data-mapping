@@ -3768,9 +3768,12 @@ function yieldFrame(progress) {
     const go = () => { if (!settled) { settled = true; resolve(); } };
     if (typeof document !== "undefined" && document.hidden) { yieldWaiters.push(go); yieldChannel.port2.postMessage(0); return; }
     // The rest: the build gives the machine this long between slices of work.
+    // A frame when one comes, but never waiting on one: a browser on battery, or a tab it has
+    // decided is in the background, stops handing out frames, and a build that waited fifty
+    // milliseconds for each of thousands of yields then took the better part of an hour.
     const rest = QUALITY().restMs;
     requestAnimationFrame(() => setTimeout(go, rest));
-    setTimeout(go, 50 + rest);
+    setTimeout(go, rest + 8);
   });
 }
 const yieldChannel = new MessageChannel();

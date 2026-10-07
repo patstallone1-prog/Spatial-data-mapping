@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="33dd927261d10a99db1217eb0d6d0ab290f037898aa20cec916627b016236f80" />
+<meta name="kerbside-renderer-sha256" content="515c975fc9072d4ccd0664f4fafb696f055536b1239ff94fbd3f42ad509e6391" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -972,9 +972,12 @@ function yieldFrame(progress) {
     const go = () => { if (!settled) { settled = true; resolve(); } };
     if (typeof document !== "undefined" && document.hidden) { yieldWaiters.push(go); yieldChannel.port2.postMessage(0); return; }
     // The rest: the build gives the machine this long between slices of work.
+    // A frame when one comes, but never waiting on one: a browser on battery, or a tab it has
+    // decided is in the background, stops handing out frames, and a build that waited fifty
+    // milliseconds for each of thousands of yields then took the better part of an hour.
     const rest = QUALITY().restMs;
     requestAnimationFrame(() => setTimeout(go, rest));
-    setTimeout(go, 50 + rest);
+    setTimeout(go, rest + 8);
   });
 }
 const yieldChannel = new MessageChannel();
