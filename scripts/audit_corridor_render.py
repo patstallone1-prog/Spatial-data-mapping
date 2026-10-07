@@ -82,6 +82,7 @@ FUNCTIONS = (
     "rayCurbIntersections",
     "officialCurbCrossingSpan",
     "crossingPaintLegs",
+    "acrossTheWholeRoad",
     "crossingRoadSpanPoints",
     "endCrossingOnDrawnKerb",
     "indexOsmCurbRamps",
@@ -346,6 +347,9 @@ const widthRows = [];
 for (const way of DATA.ways) {
   if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
   if (way.tunnel_kind || UNMARKED.has(way.service)) continue;
+  // A busway is its own lanes in the middle of an avenue: the kerbs either side are the
+  // avenue's, not its own, and it is drawn at its lanes' width on purpose.
+  if (way.busway) continue;
   const dense = densifyWay(way.points, 8);
   const spans = [];
   for (let i = 1; i + 1 < dense.length; i += 1) {
@@ -491,8 +495,8 @@ for (const way of DATA.ways) {
   const span = crossingRectanglePoints(way.points);
   if (!span || span.length < 2) continue;
   crossingRendered += 1;
-  if (span.provenance === "sfmta_curbs") crossingOfficial += 1;
-  if (span.provenance === "road_width_fallback") crossingFallback += 1;
+  if (String(span.provenance).startsWith("sfmta_curbs")) crossingOfficial += 1;
+  if (String(span.provenance).startsWith("road_width_fallback")) crossingFallback += 1;
   const legs = crossingPaintLegs(span);
   if (focusCrossingIds.has(Number(way.osm_id))) focusCrossings.push({
     osmId: way.osm_id, mapped: way.points, span, legs,

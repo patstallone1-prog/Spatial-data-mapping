@@ -38,7 +38,9 @@ def test_walker_scales_orbit_speed_and_clicks_move_without_dragging() -> None:
     assert "const scaled = avatarMoveSpeed();" in source
     assert "if (state.firstPerson) return FIRST_PERSON_SPEED;" in source
     assert "firstBuildingCollision(" in source
-    assert "if (!held.size || dragging)" in source
+    # The walker keeps walking while the view is dragged round, and F is first person.
+    assert "if (!held.size) {" in source and "if (!held.size || dragging)" not in source
+    assert 'e.key === "f" || e.key === "F"' in source
     pointer = source.split('canvas.addEventListener("pointerup",', 1)[1]
     pointer = pointer.split("// The address, where the building is.", 1)[0]
     assert 'goTo(landing, { travel: true });' in pointer
