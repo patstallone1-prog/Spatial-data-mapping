@@ -186,3 +186,11 @@ def test_regions_are_built_in_this_page_not_loaded_as_another() -> None:
     # The walker stands on, and walks round, the attached region's ground and walls.
     assert "guest.api.walkerGroundAt(gx, gz) + guest.oy" in _extract("walkerGroundAt", js)
     assert "guest.api.wallSegmentsNear(gx, gz)" in _extract("wallSegmentsNear", js)
+
+
+def test_lamps_hang_clear_of_the_walker_and_pictures_face_the_room() -> None:
+    js = _page_js()
+    light = _extract("addCeilingLight", js)
+    assert "const drop = pendant ? 0.16 : 0.2;" in light and "const target = pendant ? 0.4 : 0.12;" in light
+    living = _extract("furnishLiving", js)
+    assert "paintingMaterial(seed + 7)" in living and 'interiorModel("picture"' not in living
