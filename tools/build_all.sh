@@ -20,3 +20,5 @@ $PY tools/build_pages.py
 $PY tools/build_app_worlds.py
 # One search across every built region (docs/search-index.json).
 $PY tools/build_search_index.py
+# The 500 m cells a lighter build fetches instead of whole files (tools/build_window_cells.py).
+$PY tools/build_window_cells.py

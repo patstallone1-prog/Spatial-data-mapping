@@ -3033,13 +3033,142 @@ const EMPTY_DETAIL_MANIFEST = { shards: [], offline_assets: [] };
 const EMPTY_WORLD_OBJECTS = { objects: [] };
 const VISUAL_SUPPORT_URL = ATTACH ? ATTACH.visualSupport || ""
   : (document.querySelector('meta[name="kerbside-visual-support"]') || {}).content || "";
+// ---- the lighter build, for a device that cannot hold the whole region -------------------------
+//
+// Built whole, the corridor is twelve square kilometres of kerbs, footways, buildings and ground:
+// about three gigabytes while it builds and two after. A phone or a small laptop cannot hold
+// that; the browser kills the page and loads it again, and it builds again, and is killed again
+// -- the page "loading, showing its first frame, failing and reloading". Nothing here depends on
+// the computer it was made on; it is the size.
+//
+// So a page on such a device builds the square round the walker in full, and the city's tile
+// tree -- the simple, streamed model of every region -- draws the rest; going further than the
+// square builds the square round the new place. It fetches only the 500 m cells of each large
+// file that the square touches (tools/build_window_cells.py): parsing the whole files first was
+// a gigabyte and a half on its own. A page that dies while it loads (a mark is left in storage as
+// it starts and taken away once it has drawn and held for half a minute) loads lighter next
+// time, a step at a time, whatever the device said about itself.
+const LOAD_MARK_KEY = "kerbside:loading";
+const LIGHT_KEY = "kerbside:light";
+//: Half the side of the square built in full, by level: 0 is the whole region.
+const LIGHT_RADII_M = [0, 1000, 650, 420];
+//: Under 8 GB of memory (Chrome reports it), or a phone or a tablet.
+function deviceIsSmall() {
+  return (typeof navigator !== "undefined")
+    && ((navigator.deviceMemory && navigator.deviceMemory < 8)
+        || /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent || "")
+        || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent || "")));
+}
+const LIGHT_LEVEL = (() => {
+  if (ATTACH) return 0;
+  // A choice made in the settings stands; otherwise the device's own say. Either way a load
+  // that died takes the next one a step lighter.
+  let level = deviceIsSmall() ? 1 : 0;
+  try {
+    const chosen = localStorage.getItem(LIGHT_KEY);
+    if (chosen !== null && Number.isFinite(Number(chosen))) level = Number(chosen);
+    const mark = JSON.parse(localStorage.getItem(LOAD_MARK_KEY) || "null");
+    if (mark && Date.now() - mark.at < 15 * 60 * 1000) {
+      level = Math.min(LIGHT_RADII_M.length - 1, Math.max(level, mark.level || 0) + 1);
+      localStorage.setItem(LIGHT_KEY, String(level));
+    }
+  } catch (error) { /* without storage, the device's own say is all there is */ }
+  const query = new URLSearchParams(location.search);
+  if (query.has("full")) level = 0;
+  if (query.has("light")) level = Math.max(0, Math.min(LIGHT_RADII_M.length - 1, Number(query.get("light")) || 1));
+  return level;
+})();
+if (!ATTACH) {
+  try { localStorage.setItem(LOAD_MARK_KEY, JSON.stringify({ at: Date.now(), level: LIGHT_LEVEL })); }
+  catch (error) { /* no mark: a crash goes unnoticed, and the device's own say stands */ }
+}
+//: Called once the page has drawn and held: the load survived.
+function markLoadSurvived() {
+  setTimeout(() => { try { localStorage.removeItem(LOAD_MARK_KEY); } catch (error) { /* ignore */ } }, 30000);
+}
+//: The square: round the place asked for (?at=lon,lat), or where a hand-over arrives, or the
+//: middle of the region; kept inside the region's box.
+function windowSpec(bbox) {
+  if (!bbox) return null;
+  let lon = (bbox.west + bbox.east) / 2, lat = (bbox.south + bbox.north) / 2;
+  try {
+    const at = new URLSearchParams(location.search).get("at");
+    const arrival = JSON.parse(sessionStorage.getItem("kerbside:region-arrival") || "null");
+    if (at && at.split(",").length === 2 && at.split(",").every((v) => Number.isFinite(Number(v)))) [lon, lat] = at.split(",").map(Number);
+    else if (arrival && arrival.path === location.pathname && Number.isFinite(arrival.lon)) [lon, lat] = [arrival.lon, arrival.lat];
+  } catch (error) { /* the middle of the region */ }
+  const radius = LIGHT_RADII_M[LIGHT_LEVEL];
+  const kLon = 111320 * Math.cos(lat * Math.PI / 180), kLat = 111320;
+  const box = [Math.max(bbox.west, lon - radius / kLon), Math.max(bbox.south, lat - radius / kLat),
+               Math.min(bbox.east, lon + radius / kLon), Math.min(bbox.north, lat + radius / kLat)];
+  return { lon, lat, radius, box };
+}
+function makeWindow(spec) {
+  if (!spec) return null;
+  const { box } = spec;
+  const inside = (x, y) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3];
+  // Anything with a position: a [lon, lat] pair, or an object or list holding them anywhere.
+  const near = (value, depth = 0) => {
+    if (depth > 5 || value === null || typeof value !== "object") return false;
+    if (Array.isArray(value)) {
+      if (value.length >= 2 && typeof value[0] === "number" && typeof value[1] === "number") return inside(value[0], value[1]);
+      return value.some((v) => near(v, depth + 1));
+    }
+    if (typeof value.lon === "number" && typeof value.lat === "number") return inside(value.lon, value.lat);
+    for (const key of ["centroid", "p", "points", "c", "anchor", "lines", "position"]) {
+      if (key in value && near(value[key], depth + 1)) return true;
+    }
+    return false;
+  };
+  return { ...spec, inside, near };
+}
+//: The cells of a file the square touches, put back together as the file was; the whole file
+//: where it has no cells. ``full`` fetches it whole.
+async function fetchWindowed(url, full) {
+  if (!LIGHT_SPEC) return full();
+  const folder = url.replace(/([^/]+)\.json$/, "cells/$1/");
+  try {
+    const manifest = await fetch(`${folder}manifest.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null));
+    if (!manifest) return full();
+    const doc = await fetch(`${folder}base.json`, { cache: "no-cache" }).then((r) => r.json());
+    const [ox, oy] = manifest.origin, [dx, dy] = manifest.cell, box = LIGHT_SPEC.box;
+    const keys = ["any"];
+    for (let cx = Math.floor((box[0] - ox) / dx); cx <= Math.floor((box[2] - ox) / dx); cx += 1) {
+      for (let cy = Math.floor((box[1] - oy) / dy); cy <= Math.floor((box[3] - oy) / dy); cy += 1) keys.push(`${cx}_${cy}`);
+    }
+    const gathered = new Map(manifest.paths.map((path) => [path, new Map()]));
+    // One at a time: each is parsed and folded in before the next arrives.
+    for (const key of keys) {
+      if (!(key in manifest.cells)) continue;
+      const cell = await fetch(`${folder}${key}.json`, { cache: "no-cache" }).then((r) => r.json());
+      for (const [path, rows] of Object.entries(cell)) {
+        const into = gathered.get(path);
+        if (into) for (const [index, item] of rows) into.set(index, item);
+      }
+    }
+    for (const [path, items] of gathered) {
+      const list = [...items.entries()].sort((a, b) => a[0] - b[0]).map(([, item]) => item);
+      const [head, tail] = path.split(".");
+      if (tail) doc[head][tail] = list; else doc[head] = list;
+    }
+    return doc;
+  } catch (error) {
+    return full();
+  }
+}
+//: The payload's and the ground's own URLs, which the app's pages point at their own copies.
+const PAYLOAD_URL = asset("sf-corridor-3d.json");
+const GROUND_URL = asset("sf-corridor-ground.json");
+//: Where the square is, read from the payload's cells before anything is fetched.
+const LIGHT_SPEC = LIGHT_LEVEL ? await fetch(PAYLOAD_URL.replace(/([^/]+)\.json$/, "cells/$1/manifest.json"), { cache: "no-cache" })
+  .then((r) => (r.ok ? r.json() : null)).then((m) => windowSpec(m && m.bbox)).catch(() => null) : null;
 const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS] = await Promise.all([
-  fetch(asset("sf-corridor-3d.json"), { cache: "no-cache" }).then((r) => {
+  fetchWindowed(PAYLOAD_URL, () => fetch(PAYLOAD_URL, { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
-  }),
-  fetch(asset("sf-corridor-official.json"), { cache: "no-cache" })
-    .then((r) => r.ok ? r.json() : { curb_lines: [], curb_ramps: [] })
+  })),
+  fetchWindowed(asset("sf-corridor-official.json"), () => fetch(asset("sf-corridor-official.json"), { cache: "no-cache" })
+    .then((r) => r.ok ? r.json() : { curb_lines: [], curb_ramps: [] }))
     .catch(() => ({ curb_lines: [], curb_ramps: [] })),
   fetch(asset("sf-corridor-detail-manifest.json"), { cache: "no-cache" })
     .then((r) => r.ok ? r.json() : EMPTY_DETAIL_MANIFEST)
@@ -3084,8 +3213,8 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
     .then((bytes) => bytes ? new Uint8Array(bytes) : null)
     .catch(() => null) : Promise.resolve(null),
   // Reconstructed visual objects are optional; canonical geometry remains separate.
-  fetch(asset("sf-corridor-world-objects.json"), { cache: "no-cache" })
-    .then((r) => r.ok ? r.json() : EMPTY_WORLD_OBJECTS)
+  fetchWindowed(asset("sf-corridor-world-objects.json"), () => fetch(asset("sf-corridor-world-objects.json"), { cache: "no-cache" })
+    .then((r) => r.ok ? r.json() : EMPTY_WORLD_OBJECTS))
     .catch(() => EMPTY_WORLD_OBJECTS),
 ]);
 const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
@@ -3134,10 +3263,7 @@ const FPS_CHOICES = [15, 30, 45, 60, 0];
 const SETTINGS_KEY = "kerbside:settings";
 //: The default: High, except where the device says it is small -- under 8 GB of memory (Chrome
 //: reports it), or a phone or tablet -- where the fine ground is more than it can hold: Medium.
-const SMALL_DEVICE = (typeof navigator !== "undefined")
-  && ((navigator.deviceMemory && navigator.deviceMemory < 8)
-      || /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent || "")
-      || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent || "")));
+const SMALL_DEVICE = deviceIsSmall();
 const SETTINGS = { fps: 30, quality: SMALL_DEVICE ? "medium" : "high" };
 try {
   const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
@@ -3151,6 +3277,70 @@ try {
   if (FPS_CHOICES.includes(Number(query.get("fps")))) SETTINGS.fps = Number(query.get("fps"));
 }
 const QUALITY = () => QUALITY_PRESETS[SETTINGS.quality];
+
+//: The square built in full on a lighter build, round the place decided before the fetches.
+const BUILD_WINDOW = LIGHT_LEVEL ? makeWindow(LIGHT_SPEC || windowSpec(DATA.bbox)) : null;
+if (BUILD_WINDOW) {
+  const before = DATA.ways.length;
+  DATA.ways = DATA.ways.filter((way) => BUILD_WINDOW.near(way.kind === "building" && way.centroid ? way.centroid : way.points));
+  for (const key of ["intersections", "observations", "coverage", "sequence_paths", "gaps"]) {
+    if (Array.isArray(DATA[key])) DATA[key] = DATA[key].filter((item) => BUILD_WINDOW.near(item));
+  }
+  if (OFFICIAL_GEOMETRY) {
+    for (const key of ["curb_lines", "curb_ramps"]) {
+      if (Array.isArray(OFFICIAL_GEOMETRY[key])) OFFICIAL_GEOMETRY[key] = OFFICIAL_GEOMETRY[key].filter((item) => BUILD_WINDOW.near(item));
+    }
+  }
+  if (WORLD_OBJECTS && Array.isArray(WORLD_OBJECTS.objects)) WORLD_OBJECTS.objects = WORLD_OBJECTS.objects.filter((o) => BUILD_WINDOW.near(o));
+  console.info(`kerbside: lighter build (level ${LIGHT_LEVEL}): ${DATA.ways.length.toLocaleString()} of `
+    + `${before.toLocaleString()} ways, the ${(2 * BUILD_WINDOW.radius / 1000).toFixed(1)} km square round `
+    + `${BUILD_WINDOW.lon.toFixed(5)}, ${BUILD_WINDOW.lat.toFixed(5)}; the tile tree draws the rest`);
+}
+//: Past the square's edge, less this, the square is built again round the walker.
+const LIGHT_EDGE_M = 120;
+let lightRebuilding = false;
+//: Build the square again, round a place in this region: the page reloads there, arriving as a
+//: region hand-over arrives, where it was and looking the way it looked.
+function rebuildRoundHere(lon, lat) {
+  if (lightRebuilding) return;
+  lightRebuilding = true;
+  try {
+    sessionStorage.setItem("kerbside:region-arrival", JSON.stringify({
+      path: location.pathname, lon, lat, yaw: state.yaw, pitch: state.pitch,
+      dist: state.dist, firstPerson: state.firstPerson,
+    }));
+  } catch (error) { /* it arrives in the middle of the new square */ }
+  const url = new URL(location.href);
+  url.searchParams.set("at", `${lon.toFixed(6)},${lat.toFixed(6)}`);
+  location.replace(url.href);
+}
+//: The walker has walked, or been taken, near the edge of the square: build round it again.
+function checkLightWindow(frame) {
+  if (!BUILD_WINDOW || lightRebuilding || frame % 30 !== 0) return;
+  const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
+  const b = DATA.bbox;
+  if (b && (lon < b.west || lon > b.east || lat < b.south || lat > b.north)) return;   // another region's: its own page
+  const kLon = metersPerLon, kLat = metersPerLat;
+  const [w, s0, e, n] = BUILD_WINDOW.box;
+  const margin = Math.min((lon - w) * kLon, (e - lon) * kLon, (lat - s0) * kLat, (n - lat) * kLat);
+  // Only where the square is not already the region's own edge.
+  const atRegionEdge = b && ((lon - b.west) * kLon < LIGHT_EDGE_M || (b.east - lon) * kLon < LIGHT_EDGE_M
+    || (lat - b.south) * kLat < LIGHT_EDGE_M || (b.north - lat) * kLat < LIGHT_EDGE_M);
+  if (margin < LIGHT_EDGE_M && !atRegionEdge) rebuildRoundHere(lon, lat);
+}
+//: The ground cover, the furniture: each kept to the square, list by list.
+function windowLists(container) {
+  if (!BUILD_WINDOW || !container) return container;
+  for (const [key, value] of Object.entries(container)) {
+    if (Array.isArray(value)) container[key] = value.filter((item) => BUILD_WINDOW.near(item));
+    else if (value && typeof value === "object" && !Array.isArray(value)) {
+      for (const [inner, list] of Object.entries(value)) {
+        if (Array.isArray(list) && list.length && typeof list[0] === "object") value[inner] = list.filter((item) => BUILD_WINDOW.near(item));
+      }
+    }
+  }
+  return container;
+}
 // Drawn at the preset's resolution: one pixel per CSS pixel at High. At a Retina display's 2x the
 // GPU shades four times the pixels, and that is what was bringing laptops down while the world
 // loaded; Max draws at the display's own resolution.
@@ -3293,6 +3483,16 @@ Object.values(groups).forEach((g) => root.add(g));
   window.kerbsideOpenFullRegionAt = (lon, lat) => {
     if (tileOwnGround(lon, lat)) return false;
     const destination = regionAt(lon, lat);
+    // A lighter build never builds a second region beside its own -- that is twice the memory
+    // it could not hold once. Elsewhere in its own region, or in another, it opens the page for
+    // the place, built round it.
+    if (BUILD_WINDOW) {
+      const host = REGION_INDEX.host;
+      const inOwn = DATA.bbox && lon >= DATA.bbox.west && lon <= DATA.bbox.east && lat >= DATA.bbox.south && lat <= DATA.bbox.north;
+      if (inOwn) { rebuildRoundHere(lon, lat); return true; }
+      if (destination && destination !== host) { openFullRegion(destination, lon, lat); return true; }
+      return false;
+    }
     if (destination) attachRegion(destination);
     return false;
   };
@@ -6098,7 +6298,8 @@ const tileStats = { built: 0, drawn: 0, requested: 0, failed: 0, evicted: 0, byt
 //: region and its other half is wanted.
 //: Which region that is changes as the walker goes (attachRegion); the tree then rebuilds the
 //: tiles over the old region and the new.
-let TILE_OWN_BOX = DATA.bbox ? [DATA.bbox.west, DATA.bbox.south, DATA.bbox.east, DATA.bbox.north] : null;
+let TILE_OWN_BOX = BUILD_WINDOW ? BUILD_WINDOW.box.slice()
+  : DATA.bbox ? [DATA.bbox.west, DATA.bbox.south, DATA.bbox.east, DATA.bbox.north] : null;
 function tileOwnGround(lon, lat) {
   return TILE_OWN_BOX !== null && lon >= TILE_OWN_BOX[0] && lon <= TILE_OWN_BOX[2]
       && lat >= TILE_OWN_BOX[1] && lat <= TILE_OWN_BOX[3];
@@ -20274,7 +20475,7 @@ function buildCourts(ground) {
 (async () => {
   let ground;
   try {
-    ground = await fetch(asset("sf-corridor-ground.json"), { cache: "no-cache" }).then((r) => r.json());
+    ground = windowLists(await fetchWindowed(GROUND_URL, () => fetch(GROUND_URL, { cache: "no-cache" }).then((r) => r.json())));
     // The lattice asks how much is drawn on a cell before it decides how finely to cut it.
     GROUND = ground;
     latticeCover = null;
@@ -23297,13 +23498,14 @@ function renderStreetFurniture(furniture, transit = null) {
 registerLazyLayer("furniture", async () => {
   let furniture;
   try {
-    furniture = await fetch(asset("sf-corridor-furniture.json"), { cache: "no-cache" }).then((r) => r.json());
+    furniture = windowLists(await fetchWindowed(asset("sf-corridor-furniture.json"),
+      () => fetch(asset("sf-corridor-furniture.json"), { cache: "no-cache" }).then((r) => r.json())));
   } catch (err) {
     console.warn("Could not load street furniture", err);
     return;
   }
-  const transit = await fetch(asset("transit-stops.json"), { cache: "no-cache" })
-    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const transit = windowLists(await fetch(asset("transit-stops.json"), { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null));
   renderStreetFurniture(furniture, transit);
 });
 
@@ -27280,9 +27482,10 @@ function animate(now) {
   lastDrawnEye.copy(camera.matrixWorld);
   // The first frame drawn is the end of loading.
   const progress = document.getElementById("progress");
-  if (progress && !progress.hidden) progress.hidden = true;
+  if (progress && !progress.hidden) { progress.hidden = true; markLoadSurvived(); }
   stepAvatar(now);
   updateCompass(now);
+  checkLightWindow(frameCount);
   // Labels are re-sized and culled with the detail: only when the view has changed.
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
   frameCount += 1;
@@ -27332,14 +27535,26 @@ settingsForm.innerHTML = `<div style="font-weight:600;margin-bottom:6px">Setting
     <select name="fps">${FPS_CHOICES.map((f) => `<option value="${f}">${f ? `${f} fps` : "Unlimited"}</option>`).join("")}</select></label>
   <label style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">Quality
     <select name="quality">${Object.entries(QUALITY_PRESETS).map(([k, q]) => `<option value="${k}">${q.label}</option>`).join("")}</select></label>
+  <label style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">Build
+    <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}">${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region"}</option>`).join("")}</select></label>
   <div style="color:#666;font-size:12px;max-width:240px">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</div>`;
-settingsForm.addEventListener("change", () => applySettings({
-  fps: Number(settingsForm.fps.value), quality: settingsForm.quality.value }));
+settingsForm.addEventListener("change", (e) => {
+  if (e.target === settingsForm.world) {
+    // How much is built is decided before anything is: the page builds again.
+    try { localStorage.setItem(LIGHT_KEY, settingsForm.world.value); } catch (error) { /* this visit only */ }
+    const url = new URL(location.href);
+    url.searchParams.delete("full"); url.searchParams.delete("light");
+    location.replace(url.href);
+    return;
+  }
+  applySettings({ fps: Number(settingsForm.fps.value), quality: settingsForm.quality.value });
+});
 settingsForm.addEventListener("submit", (e) => e.preventDefault());
 settingsButton.addEventListener("click", () => { settingsForm.hidden = !settingsForm.hidden; });
 document.body.append(settingsButton, settingsForm);
 settingsForm.fps.value = String(SETTINGS.fps);
 settingsForm.quality.value = SETTINGS.quality;
+settingsForm.world.value = String(LIGHT_LEVEL);
 window.kerbsideSettings = {
   get: () => ({ ...SETTINGS, ...QUALITY(), zoomTier }),
   set: (changes) => applySettings(changes),

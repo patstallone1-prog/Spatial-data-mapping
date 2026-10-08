@@ -78,7 +78,7 @@ def test_entire_app_module_and_release_manifest_match_authoritative_source() -> 
         assert release["consumers"][str(page.relative_to(ROOT / "docs"))] == hashlib.sha256(page.read_bytes()).hexdigest()
         module = text.split('<script type="module">', 1)[1].split("</script>", 1)[0]
         # These three routes are the only supported consumer substitutions.
-        module = module.replace('fetch("sf-corridor-3d.json"', 'fetch(asset("sf-corridor-3d.json")')
-        module = module.replace('fetch("app-sf-corridor-ground.json"', 'fetch(asset("sf-corridor-ground.json")')
+        module = module.replace('const PAYLOAD_URL = "sf-corridor-3d.json";', 'const PAYLOAD_URL = asset("sf-corridor-3d.json");')
+        module = module.replace('const GROUND_URL = "app-sf-corridor-ground.json";', 'const GROUND_URL = asset("sf-corridor-ground.json");')
         module = re.sub(r'const TILE_BASE = "[^"]*";', 'const TILE_BASE = "tiles/";', module)
         assert module == expected, f"stale shared renderer module: {page}"
