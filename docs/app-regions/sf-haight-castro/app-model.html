@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="6380356b77dd94d2cc35d94756ed37e413ef5ff4c83937ef70413c25845b073e" />
+<meta name="kerbside-renderer-sha256" content="f5338ab3a4f53213ec593acfa3582022e1ae1d1b30185a1a111249ed8ba5efe0" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -20648,22 +20648,28 @@ document.getElementById("reset").addEventListener("click", () => {
   }));
   // Built once from the footprints rather than shipped a second time: the address is already on
   // the building, and so is the centroid to travel to.
+  // And by name: a building's own name, and the name of every shop and place in it, each found
+  // where the building stands -- "Transamerica Pyramid", "Pyramid Cafe".
   const addresses = [];
+  const places = [];
   for (const way of DATA.ways) {
     if (way.kind !== "building" || !way.centroid) continue;
     const address = way.address || {};
     const label = address.formatted
       || [address.house_number, address.street].filter(Boolean).join(" ");
-    if (!label) continue;
-    addresses.push({
-      label, hay: `${label} ${way.name || ""}`.toLowerCase(),
-      lon: way.centroid[0], lat: way.centroid[1],
-    });
+    const [lon, lat] = way.centroid;
+    if (label) addresses.push({ label, hay: `${label} ${way.name || ""}`.toLowerCase(), lon, lat });
+    const where = label ? ` · ${label}` : "";
+    if (way.name) places.push({ label: `${way.name}${where}`, hay: `${way.name} ${label}`.toLowerCase(), lon, lat });
+    for (const shop of way.shops || []) {
+      if (!shop.n || shop.n === way.name) continue;
+      places.push({ label: `${shop.n}${where}`, hay: `${shop.n} ${shop.t || ""} ${label}`.toLowerCase(), lon, lat });
+    }
   }
   // Every other region's corners and addresses (tools/build_search_index.py), fetched the first
   // time anyone types: a place across the bay is found the same way as one down the street, and
   // travelling to it hands over to that region's full model -- no region to choose first.
-  const elsewhere = { corners: [], addresses: [], loading: null };
+  const elsewhere = { corners: [], addresses: [], places: [], loading: null };
   function loadElsewhere() {
     if (elsewhere.loading) return elsewhere.loading;
     const index = document.querySelector('meta[name="kerbside-regions"]')?.content;
@@ -20679,6 +20685,7 @@ document.getElementById("reset").addEventListener("click", () => {
           hay: `${label} ${titles[r] || ""}`.toLowerCase(), lon, lat }));
       elsewhere.corners = take(all.corners || []);
       elsewhere.addresses = take(all.addresses || []);
+      elsewhere.places = take(all.places || []);
       if (field.value) { showing = search(field.value); selected = showing.length ? 0 : -1; paint(); }
     }).catch(() => {});
     return elsewhere.loading;
@@ -20703,12 +20710,31 @@ document.getElementById("reset").addEventListener("click", () => {
     const numbered = /^\d/.test(words[0]);
     // Here first, then everywhere else that is mapped.
     const order = numbered
-      ? [addresses, corners, elsewhere.addresses, elsewhere.corners]
-      : [corners, addresses, elsewhere.corners, elsewhere.addresses];
+      ? [addresses, corners, places, elsewhere.addresses, elsewhere.corners, elsewhere.places]
+      : [places, corners, addresses, elsewhere.places, elsewhere.corners, elsewhere.addresses];
     let found = [];
     for (const list of order) {
       if (found.length >= 8) break;
       found = found.concat(match(list, words, 8 - found.length));
+    }
+    // A house number nobody mapped: the nearest numbers on that street ("2400 mission" finds
+    // 2410 Mission Street), here and elsewhere.
+    if (!found.length && numbered && words.length > 1) {
+      const wanted = Number(words[0]);
+      const rest = words.slice(1);
+      const near = [];
+      for (const list of [addresses, elsewhere.addresses]) {
+        for (const entry of list) {
+          // The street, not the region's name: "mission" is a street and a district.
+          const street = entry.label.split(" · ")[0].toLowerCase();
+          if (!rest.every((w) => street.includes(w))) continue;
+          const numbers = (entry.label.match(/^[\d;\-\s]+/) || [""])[0].match(/\d+/g);
+          if (!numbers) continue;
+          const gap = Math.min(...numbers.map((n) => Math.abs(Number(n) - wanted)));
+          if (gap <= 200) near.push([gap, entry]);
+        }
+      }
+      found = near.sort((a, b) => a[0] - b[0]).slice(0, 8).map(([, entry]) => entry);
     }
     return found;
   }
@@ -21304,7 +21330,8 @@ canvas.addEventListener("pointermove", (e) => { pointerAt = [e.clientX, e.client
 function streetNameAt(x, z) {
   let best = null;
   for (const way of DATA.ways) {
-    if (way.kind !== "street" || !way.name || !way.points) continue;
+    // The bus lanes down Van Ness are not the street a walker is on: the avenue is.
+    if (way.kind !== "street" || !way.name || !way.points || way.busway) continue;
     for (let i = 1; i < way.points.length; i += 1) {
       const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
       const [bx, by] = xy(way.points[i][0], way.points[i][1]);
@@ -21314,6 +21341,55 @@ function streetNameAt(x, z) {
   }
   return best && Math.sqrt(best.d) <= best.half + 4 ? best.name : null;
 }
+//: The busways' own names: lanes down the middle of an avenue, never a cross street.
+const BUSWAY_NAMES = new Set(BUSWAY_WAYS.map((way) => way.name).filter(Boolean));
+//: The cross streets either side of a point on a street: the corners at the ends of its block.
+//: Within a corner's width the point is at that corner, and the next corners each way are given.
+const AT_CORNER_M = 18;
+function crossStreetsAt(x, z, name) {
+  // The street's own direction here, from its nearest segment.
+  let best = null;
+  for (const way of DATA.ways) {
+    if (way.kind !== "street" || way.name !== name || !way.points) continue;
+    for (let i = 1; i < way.points.length; i += 1) {
+      const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
+      const [bx, by] = xy(way.points[i][0], way.points[i][1]);
+      const d = distanceToSegmentSquared(x, z, ax, -ay, bx, -by);
+      if (!best || d < best.d) best = { d, ux: bx - ax, uz: -(by - ay) };
+    }
+  }
+  const out = { at: null, ahead: null, behind: null, next: [] };
+  if (!best) return out;
+  const length = Math.hypot(best.ux, best.uz) || 1;
+  const ux = best.ux / length, uz = best.uz / length;
+  const sides = { ahead: new Map(), behind: new Map() };
+  let atCorner = null;
+  for (const c of DATA.intersections || []) {
+    if (c.a !== name && c.b !== name) continue;
+    const other = c.a === name ? c.b : c.a;
+    if (!other || other === name || BUSWAY_NAMES.has(other)) continue;
+    const [cx, cy] = xy(c.lon, c.lat);
+    const dx = cx - x, dz = -cy - z;
+    const along = dx * ux + dz * uz;
+    // A corner of this street, not of a namesake a few blocks over or across a bend.
+    if (Math.abs(dx * uz - dz * ux) > 40 || Math.abs(along) > 600) continue;
+    const distance = Math.hypot(dx, dz);
+    if (distance <= AT_CORNER_M && (!atCorner || distance < atCorner.distance)) atCorner = { other, distance, along };
+    const side = along >= 0 ? sides.ahead : sides.behind;
+    if (!side.has(other) || Math.abs(along) < side.get(other)) side.set(other, Math.abs(along));
+  }
+  const nearest = (side, skip) => [...side.entries()].filter(([n]) => n !== skip)
+    .sort((p, q) => p[1] - q[1]).map(([n]) => n);
+  if (atCorner) {
+    out.at = atCorner.other;
+    out.next = [nearest(sides.behind, atCorner.other)[0], nearest(sides.ahead, atCorner.other)[0]].filter(Boolean);
+  } else {
+    out.ahead = nearest(sides.ahead)[0] || null;
+    out.behind = nearest(sides.behind)[0] || null;
+  }
+  return out;
+}
+
 addEventListener("keydown", async (e) => {
   if (e.key !== "s" && e.key !== "S") return;
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
@@ -21330,12 +21406,73 @@ addEventListener("keydown", async (e) => {
   const ground = groundAt(cx, cy);
   const name = ground ? streetNameAt(ground.x, ground.z) : null;
   if (!name) { hideAddress(); return; }
-  addrBox.innerHTML = `<b>${name.replace(/[<>&]/g, "")}</b>`;
+  const clean = (text) => text.replace(/[<>&]/g, "");
+  const cross = crossStreetsAt(ground.x, ground.z, name);
+  const detail = cross.at
+    ? `at ${clean(cross.at)}${cross.next.length ? `<br><span style="opacity:.75">next: ${cross.next.map(clean).join(" · ")}</span>` : ""}`
+    : cross.behind && cross.ahead ? `between ${clean(cross.behind)} and ${clean(cross.ahead)}`
+    : cross.behind || cross.ahead ? `near ${clean(cross.behind || cross.ahead)}` : "";
+  addrBox.innerHTML = `<b>${clean(name)}</b>${detail ? `<br>${detail}` : ""}`;
   addrBox.hidden = false;
   const box = addrBox.getBoundingClientRect();
   addrBox.style.left = `${Math.min(cx + 12, innerWidth - box.width - 12)}px`;
   addrBox.style.top = `${Math.min(cy + 12, innerHeight - box.height - 12)}px`;
 });
+
+// ---- the compass ------------------------------------------------------------------------------
+//
+// A compass rose in the corner, turned so its north is the world's north as the view looks, and
+// a red arrow that is the way the walker is going: up the middle when it walks the way the view
+// looks or stands still, turned with it when it walks another way. The bearing is under it.
+// Only the page's own: a region drawn as a guest in it has no screen of its own to put one on.
+const compass = ATTACH ? null : document.createElement("div");
+if (compass) {
+  compass.id = "compass";
+  compass.setAttribute("aria-label", "Compass");
+  compass.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:25;width:92px;height:112px;"
+    + "pointer-events:none;font:600 11px/1 system-ui,sans-serif;color:#1d2a33;text-align:center";
+  compass.innerHTML = `<svg viewBox="-50 -50 100 100" width="92" height="92">
+  <circle r="47" fill="rgba(255,255,255,.88)" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/>
+  <g id="compass-rose">
+    <path d="M0,-38 L6,-6 L38,0 L6,6 L0,38 L-6,6 L-38,0 L-6,-6 Z" fill="#c8d0d6" stroke="#7d8a93" stroke-width="0.8"/>
+    <path d="M0,-38 L6,-6 L0,0 Z M38,0 L6,6 L0,0 Z M0,38 L-6,6 L0,0 Z M-38,0 L-6,-6 L0,0 Z" fill="#7d8a93"/>
+    <path d="M27,-27 L4,-4 L-27,27 L-4,4 Z M-27,-27 L-4,4 L27,27 L4,-4 Z" fill="#dfe4e7" opacity=".9"/>
+    <text y="-40" font-size="11" text-anchor="middle" dominant-baseline="middle" fill="#b4282e">N</text>
+    <text x="40" font-size="9" text-anchor="middle" dominant-baseline="middle">E</text>
+    <text y="41" font-size="9" text-anchor="middle" dominant-baseline="middle">S</text>
+    <text x="-40" font-size="9" text-anchor="middle" dominant-baseline="middle">W</text>
+  </g>
+  <path id="compass-arrow" d="M0,-30 L7,-12 L2,-14 L2,10 L-2,10 L-2,-14 L-7,-12 Z" fill="#d23a2c" stroke="#7a1c14" stroke-width="0.8"/>
+</svg><div id="compass-reading" style="margin-top:2px;background:rgba(255,255,255,.88);border-radius:6px;padding:3px 0"></div>`;
+  document.body.append(compass);
+}
+const compassRose = compass?.querySelector("#compass-rose");
+const compassReading = compass?.querySelector("#compass-reading");
+const compassArrow = compass?.querySelector("#compass-arrow");
+const COMPASS_POINTS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const compassForward = new THREE.Vector3();
+let compassShown = null;
+const bearingOf = (east, north) => (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
+//: The way the view looks and the way the walker is going, in degrees clockwise from north.
+function compassBearings(now = performance.now()) {
+  camera.getWorldDirection(compassForward);
+  const view = Math.hypot(compassForward.x, compassForward.z) > 1e-6
+    ? bearingOf(compassForward.x, -compassForward.z) : (compassShown?.view ?? 0);
+  const move = avatar.userData.lastMove;
+  const going = move && now - move[2] < 600 ? bearingOf(move[0], -move[1]) : view;
+  return { view, going };
+}
+function updateCompass(now) {
+  if (!compass) return;
+  const { view, going } = compassBearings(now);
+  const key = `${Math.round(view)}:${Math.round(going)}`;
+  if (compassShown && compassShown.key === key) return;
+  compassShown = { key, view };
+  compassRose.setAttribute("transform", `rotate(${-view})`);
+  compassArrow.setAttribute("transform", `rotate(${going - view})`);
+  const heading = Math.round(going) % 360;
+  compassReading.textContent = `${COMPASS_POINTS[Math.round(heading / 45) % 8]} ${heading}°`;
+}
 
 // ---- solid buildings, doors that open, and the rooms behind them ------------------------------
 //
@@ -23966,6 +24103,7 @@ let previous = performance.now();
 function animateAvatar(distance, direction, moving) {
   if (moving && direction.lengthSq()) {
     avatar.rotation.y = Math.atan2(direction.x, direction.z);
+    avatar.userData.lastMove = [direction.x, direction.z, performance.now()];
     avatar.userData.walkPhase += distance * 4.8;
   }
   const swing = moving ? Math.sin(avatar.userData.walkPhase) : 0;
@@ -24300,6 +24438,7 @@ function animate(now) {
   const progress = document.getElementById("progress");
   if (progress && !progress.hidden) progress.hidden = true;
   stepAvatar(now);
+  updateCompass(now);
   // Labels are re-sized and culled with the detail: only when the view has changed.
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
   frameCount += 1;
