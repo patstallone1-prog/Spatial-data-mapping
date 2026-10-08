@@ -1,10 +1,13 @@
-"""One search across every built region: its corners and its addresses, wherever they are.
+"""One search across every built region: its corners, its addresses and its named places.
 
 Each region's page could only find what was in its own payload, so a place across the bay could
 not be searched for until its region had been chosen from a list. This gathers every built
 region's intersections and addressed buildings into docs/search-index.json; the page searches it
 alongside its own, and a hit in another region hands the walker over to that region's full model
 (window.kerbsideOpenFullRegionAt), arriving at the place searched for.
+
+Places are found by name: a building's own name, and the shops and places in it, each at the
+building -- so "Transamerica Pyramid" or a cafe's name finds the building as its address does.
 
 Compact by design -- it is fetched the first time someone types: each row is
 [label, lon, lat, region index], coordinates to six decimals (about ten centimetres).
@@ -24,8 +27,8 @@ def payload_for(region: dict) -> pathlib.Path | None:
     return path if path.exists() else None
 
 
-def rows_for(payload: dict, index: int) -> tuple[list, list]:
-    corners, addresses = [], []
+def rows_for(payload: dict, index: int) -> tuple[list, list, list]:
+    corners, addresses, places = [], [], []
     seen = set()
     for c in payload.get("intersections") or []:
         if not (c.get("a") and c.get("b")) or c.get("lon") is None:
@@ -42,18 +45,23 @@ def rows_for(payload: dict, index: int) -> tuple[list, list]:
         address = way.get("address") or {}
         label = address.get("formatted") or " ".join(
             str(v) for v in (address.get("house_number"), address.get("street")) if v)
+        name = way.get("name") or ""
+        lon, lat = round(way["centroid"][0], 6), round(way["centroid"][1], 6)
+        where = f" · {label}" if label else ""
+        if name:
+            places.append([f"{name}{where}", lon, lat, index])
+        for shop in way.get("shops") or []:
+            if shop.get("n") and shop["n"] != name:
+                places.append([f"{shop['n']}{where}", lon, lat, index])
         if not label:
             continue
-        name = way.get("name") or ""
-        lon, lat = way["centroid"]
-        row = [label if not name else f"{label} ({name})", round(lon, 6), round(lat, 6), index]
-        addresses.append(row)
-    return corners, addresses
+        addresses.append([label if not name else f"{label} ({name})", lon, lat, index])
+    return corners, addresses, places
 
 
 def main() -> None:
     index = json.loads((DOCS / "app-regions.json").read_text())["regions"]
-    regions, corners, addresses = [], [], []
+    regions, corners, addresses, places = [], [], [], []
     for region in index:
         if not region.get("built"):
             continue
@@ -62,13 +70,16 @@ def main() -> None:
             continue
         i = len(regions)
         regions.append({"name": region["name"], "title": region.get("title") or region["name"]})
-        c, a = rows_for(json.loads(path.read_text()), i)
+        c, a, p = rows_for(json.loads(path.read_text()), i)
         corners += c
         addresses += a
-    out = {"schema": "kerbside.search_index/1", "regions": regions, "corners": corners, "addresses": addresses}
+        places += p
+    out = {"schema": "kerbside.search_index/1", "regions": regions, "corners": corners,
+           "addresses": addresses, "places": places}
     target = DOCS / "search-index.json"
     target.write_text(json.dumps(out, separators=(",", ":")) + "\n")
     print(f"search index: {len(regions)} regions, {len(corners):,} corners, {len(addresses):,} addresses, "
+          f"{len(places):,} places, "
           f"{target.stat().st_size / 1e6:.1f} MB")
 
 
