@@ -51,12 +51,14 @@ def app_page(
         1,
     )
     page = page.replace('const TILE_BASE = "tiles/";', f'const TILE_BASE = "{tile_base}";', 1)
+    # Every fetch of the payload and of the ground -- whole, or in its window cells -- goes to
+    # the one URL the page names for each.
     if local_payload:
-        page = page.replace('fetch(asset("sf-corridor-3d.json")', 'fetch("sf-corridor-3d.json"', 1)
+        page = page.replace('const PAYLOAD_URL = asset("sf-corridor-3d.json");',
+                            'const PAYLOAD_URL = "sf-corridor-3d.json";', 1)
     if local_ground:
-        page = page.replace(
-            'fetch(asset("sf-corridor-ground.json")', 'fetch("app-sf-corridor-ground.json"', 1
-        )
+        page = page.replace('const GROUND_URL = asset("sf-corridor-ground.json");',
+                            'const GROUND_URL = "app-sf-corridor-ground.json";', 1)
     return page
 
 
