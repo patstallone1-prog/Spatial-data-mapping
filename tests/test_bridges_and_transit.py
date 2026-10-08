@@ -115,7 +115,7 @@ def test_the_busway_is_painted_and_its_stations_are_islands() -> None:
     # The kerbs either side of the avenue never widen a busway to the avenue.
     assert "if (way.busway) return false;" in _extract("recentreOnKerbEnvelope", js)
     # Red between junctions, so the crosswalks run across it.
-    assert 'if (insideJunctionBox(x, -y)) paintRun(); else run.push(point);' in js
+    assert 'if (insideJunctionBox(x, -y) || crossStreetAt(x, -y, qx - px, -(qy - py))) paintRun();' in js
     assert 'addMerged("busway:fill", fill, "busway")' in js
     canopy = _extract("isTransitCanopy", js)
     assert 'tags.shelter_type === "public_transport"' in canopy and "nearBusway(x, -y, 9)" in canopy
@@ -137,3 +137,16 @@ def test_a_crossing_mapped_across_a_divided_avenue_is_painted_kerb_to_kerb() -> 
     # Island stops are laid along the busway, beside its lane, out of the junction.
     stops = _extract("addTransitStops", js)
     assert "nearestBuswayAt(x, z, 14)" in stops and "insideJunctionBox(cx + lane.ux * a, cz + lane.uz * a)" in stops
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_stops_have_red_roofs_and_the_red_lane_stops_at_cross_streets() -> None:
+    js = _page_js()
+    assert "const STOP_ROOF_RED = 0xb4282e;" in js
+    assert js.index("const STOP_ROOF_RED") < js.index("function addTransitIslands")
+    assert "roof: new THREE.MeshStandardMaterial({ color: STOP_ROOF_RED" in js
+    assert "color: STOP_ROOF_RED" in _extract("addTransitIslands", js)
+    cross = _extract("crossStreetAt", js)
+    assert "if (source && source.busway) continue;" in cross
+    # A busway's pieces joining round a platform are not a junction.
+    assert "isTunnelWay(way) || way.busway) continue;" in _extract("indexPavementCorners", js)
