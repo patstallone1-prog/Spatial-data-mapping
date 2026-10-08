@@ -3001,6 +3001,9 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
      and browsers cache it between visits. -->
 <script type="module">
 import * as THREE from "https://esm.sh/three@0.160.0";
+//: Muni's red: the roof of every shelter and of every station canopy. Up here because the
+//: stops are built from a fetch that can land while the module is still running.
+const STOP_ROOF_RED = 0xb4282e;
 // Where the payload, the official geometry, the detail shards and the facade photographs
 // are served from. Empty means beside this page (GitHub Pages); tools/build_pages.py sets it
 // to an object-storage origin when the assets are published there instead, so the page in
@@ -11996,8 +11999,10 @@ function indexPavementCorners(ways) {
   for (const way of ways) {
     if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
     // A driveway has no pavement of its own; the street's runs across its mouth as an apron.
-    // A tunnel's pavement is inside the hill.
-    if (isUnmarkedService(way) || isTunnelWay(way)) continue;
+    // A tunnel's pavement is inside the hill. A busway is lanes in the middle of an avenue: no
+    // pavement, no corners, and where its pieces split round a platform and join again that
+    // is not a junction -- it was boxed as one, and the red lane stopped at every station.
+    if (isUnmarkedService(way) || isTunnelWay(way) || way.busway) continue;
     const n = way.points.length;
     const walk = renderedWalkWidth(way, 4.0);
     const length = wayLength(way.points);
@@ -17799,6 +17804,23 @@ function nearBusway(x, z, reach) {
   }
   return false;
 }
+//: Is a street lying across this direction here -- a cross street over the busway? A divided
+//: avenue meets its cross streets at two T junctions, one each side, and neither junction's
+//: box reaches the busway between them: the red ran on through the crossroads.
+function crossStreetAt(x, z, dx, dz) {
+  const length = Math.hypot(dx, dz);
+  if (!(length > 1e-6)) return false;
+  const ux = dx / length, uz = dz / length;
+  const bucket = carriagewayGrid.get(Math.floor(x / CARRIAGEWAY_CELL) * 1048576 + Math.floor(z / CARRIAGEWAY_CELL));
+  if (!bucket) return false;
+  for (const [ax, az, bx, bz, half, bearing, source] of bucket) {
+    if (source && source.busway) continue;
+    if (Math.abs(Math.cos(bearing) * ux + Math.sin(bearing) * uz) > 0.6) continue;
+    if (distanceToSegmentSquared(x, z, ax, az, bx, bz) <= half * half) return true;
+  }
+  return false;
+}
+
 //: The busway nearest a point: where on it, its direction, its half width, and which side of it
 //: the point lies.
 function nearestBuswayAt(x, z, reach) {
@@ -17934,7 +17956,7 @@ function addRegionBridgeStructures() {
 function addTransitIslands() {
   const concrete = new THREE.MeshStandardMaterial({ color: 0xc4c0b6, roughness: 0.88 });
   const tactile = new THREE.MeshStandardMaterial({ color: 0xe2bf3c, roughness: 0.7 });
-  const roof = new THREE.MeshStandardMaterial({ color: 0xb9c0c4, roughness: 0.35, metalness: 0.55 });
+  const roof = new THREE.MeshStandardMaterial({ color: STOP_ROOF_RED, roughness: 0.45, metalness: 0.25 });
   const post = new THREE.MeshStandardMaterial({ color: 0x5f676b, roughness: 0.45, metalness: 0.55 });
   const glass = new THREE.MeshStandardMaterial({ color: 0xcfe3ea, roughness: 0.05, transparent: true, opacity: 0.3,
     side: THREE.DoubleSide, depthWrite: false });
@@ -18140,10 +18162,12 @@ for (const way of DRAW_ORDER) {
       }
       run = [];
     };
-    for (const point of densifyWay(way.points, 1.5)) {
+    const dense = densifyWay(way.points, 1.5);
+    dense.forEach((point, i) => {
       const [x, y] = xy(point[0], point[1]);
-      if (insideJunctionBox(x, -y)) paintRun(); else run.push(point);
-    }
+      const [px, py] = xy(...dense[Math.max(0, i - 1)]), [qx, qy] = xy(...dense[Math.min(dense.length - 1, i + 1)]);
+      if (insideJunctionBox(x, -y) || crossStreetAt(x, -y, qx - px, -(qy - py))) paintRun(); else run.push(point);
+    });
     paintRun();
   }
   if (way.kind === "cycleway") {
@@ -18896,6 +18920,7 @@ const officialIslandsLaid = addClosedOfficialIslandSurfaces();
 // that came out as green tearing through grey in stripes, which is what a coincidence of two
 // constants looks like from the street. GROUND_STACK below is checked at load, so a future
 // collision stops the build rather than reappearing as a glitch nobody can place.
+const INFERRED_Y = 0.011;      // ground no record describes, inferred from what surrounds it
 const PLAZA_Y = 0.014;         // the paved remainder of a commercial or public lot
 const YARD_Y = 0.016;          // a parcel's grass remainder
 const SERVICE_YARD_Y = 0.019;  // the neutral slivers between buildings
@@ -20268,6 +20293,12 @@ function buildCourts(ground) {
   const excludeGrassAt = hardGroundExclusion(ground);
   const excludeParkAt = (x, z) => excludeGrassAt(x, z) || parkPavementAt(x, z);
   const classifiedGround = ground.lawns || ground.backyards || ground.front_walks || ground.service_yards;
+  // Ground no record describes, given the surface around it (tools/infer_ground_gaps.py): a
+  // sliver behind a row of houses, the strip between a kerb and a frontage the parcels stop
+  // short of. Drawn below everything, so no mask is needed to keep it off a footway: the
+  // footway is drawn over it.
+  const inferred = ground.inferred || [];
+  const inferredOf = (k) => inferred.filter((item) => item.k === k);
   const grassRings = classifiedGround
     ? [...(ground.lawns || []), ...(ground.backyards || [])]
     : (ground.yards || []);
@@ -20337,6 +20368,26 @@ function buildCourts(ground) {
     addGround(new THREE.Mesh(serviceGeom, new THREE.MeshStandardMaterial({
       color: 0x3d403d, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide,
     })), "service_yard");
+  }
+
+  for (const [k, material] of [
+    ["grass", { map: grassTexture("yard", 0), color: 0xffffff, roughness: 0.98 }],
+    ["paving", { map: SIDEWALK, color: 0xd2cfc6, roughness: 0.96 }],
+    ["asphalt", { map: ROAD, color: 0xffffff, roughness: 0.92 }],
+    ["service", { map: SIDEWALK, color: 0xa6a39a, roughness: 0.98 }],
+  ]) {
+    // Not clipped to the carriageway: it lies under the road surface, and the strip the clip
+    // would cut away at a road's edge is exactly the bare ground it is there to cover. Drawn
+    // as the yards and plazas are, straight after the terrain and without a depth test: the
+    // terrain is a coarse backdrop that bridges above the finer ground in places, and depth
+    // tested against it whole patches of the fill vanished -- a fifth of a square kilometre in
+    // Oakland. Before the yards and plazas, so a mapped surface always paints over a fill.
+    const geom = ringGeometry(inferredOf(k).map((item) => item.p), INFERRED_Y, false);
+    if (geom) {
+      const mesh = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+        ...material, metalness: 0.0, side: THREE.DoubleSide, depthTest: false })), `inferred:${k}`);
+      mesh.renderOrder = -1.5;
+    }
   }
 
   buildFences(ground);
@@ -21208,7 +21259,7 @@ const STOP_SHELTER = { length: 4.0, depth: 1.5, height: 2.65 };
 const STOP_ZONE = { behind: 18.0, ahead: 2.0, from: 0.25, width: 3.0, line: 0.15 };
 const stopMaterials = {
   frame: new THREE.MeshStandardMaterial({ color: 0x5f676b, roughness: 0.45, metalness: 0.55 }),
-  roof: new THREE.MeshStandardMaterial({ color: 0xc9d1d4, roughness: 0.4, metalness: 0.35 }),
+  roof: new THREE.MeshStandardMaterial({ color: STOP_ROOF_RED, roughness: 0.45, metalness: 0.25 }),
   glass: new THREE.MeshStandardMaterial({ color: 0xcfe3ea, roughness: 0.05, metalness: 0.1, transparent: true,
     opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }),
   seat: new THREE.MeshStandardMaterial({ color: 0x8c949a, roughness: 0.5, metalness: 0.4 }),
@@ -24150,11 +24201,6 @@ const DOOR_DRAW_M = 120;
 const INTERIOR_KEEP_M = 70;
 const INTERIOR_WALL_INSET_M = 0.08;
 const DOOR_SOURCE = ["mapped (OpenStreetMap)", "photographed", "inferred"];
-const ROOM_FLOOR = {
-  living: 0xb08f6a, kitchen: 0xc9c2b4, bedroom: 0xa98a6b, bathroom: 0xd9dcdc, corridor: 0xb9a68a,
-  stair: 0x9c9488, storage: 0x9f978a, balcony: 0x8f8c86, shaft: 0x77736d, elevator: 0x77736d,
-  dining: 0xb08f6a, office: 0xa7a296, commercial: 0xb6b1a6, outdoor: 0x8a8a7e, other: 0xb0a898,
-};
 var standingSurfaces = new Set();
 //: Steps on a stoop, and how deep each tread is.
 const STEP_RISE_M = 0.18;
@@ -25375,7 +25421,6 @@ root.add(interiorGroup);
 const interiorsBuilt = new Set();
 const plasterMaterial = new THREE.MeshStandardMaterial({ color: 0xece6dc, roughness: 0.92, side: THREE.DoubleSide });
 const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.95, side: THREE.DoubleSide });
-const roomFloorMaterials = new Map();
 const INTERIOR_WALL_PALETTES = [
   [0xf2eee7, 0xe6eadf, 0xeae3dd, 0xe8edf0, 0xe8e5df],
   [0xf0e9df, 0xe8e3d6, 0xe5e9e4, 0xe8e4ed, 0xe9e6e0],
@@ -26223,31 +26268,44 @@ function furnishRoomFor(group, entry, room, floorY, height, doorsInPlan, index) 
   return addCeilingLight(group, layout, seed + 21, floorY, height, kind);
 }
 
-function roomFloorMaterial(kind) {
-  if (!roomFloorMaterials.has(kind)) {
+//: One floor through a house: a wood, chosen per house, under every room and the slab between
+//: them. Floors by room kind laid concrete, tile and three woods side by side in one flat, and
+//: where a room's plan stopped short of the walls the bare slab showed as a different ground.
+//: The rooms differ by their carpets and their paint, not by what the floor is made of.
+const HOUSE_FLOORS = [
+  { base: "#b48a5e", line: "#8c6a45" }, { base: "#c9a57a", line: "#a3825b" },
+  { base: "#8a6040", line: "#664530" }, { base: "#d8c3a0", line: "#b49e7c" },
+  { base: "#a0714a", line: "#7a5436" }, { base: "#c2b39a", line: "#9c8d74" },
+];
+const houseFloorMaterials = new Map();
+function houseFloorMaterial(houseSeed) {
+  const index = Math.floor(random(houseSeed * 3 + 17) * HOUSE_FLOORS.length) % HOUSE_FLOORS.length;
+  if (!houseFloorMaterials.has(index)) {
+    const { base, line } = HOUSE_FLOORS[index];
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 128;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#e0d9cc";
+    ctx.fillStyle = base;
     ctx.fillRect(0, 0, 128, 128);
-    const tile = ["kitchen", "bathroom", "storage"].includes(kind);
-    ctx.strokeStyle = tile ? "#b9b5ae" : "#9f8f78";
+    // Planks: a row every 16 px, joints staggered, a little grain in each.
+    for (let i = 0; i < 900; i += 1) {
+      ctx.fillStyle = random(index * 1000 + i) < 0.5 ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.05)";
+      ctx.fillRect(random(index * 7 + i * 3) * 128, random(index * 11 + i * 5) * 128, 6 + random(i) * 18, 1);
+    }
+    ctx.strokeStyle = line;
     ctx.lineWidth = 1;
-    const pitch = tile ? 64 : 16;
-    for (let y = 0; y < 128; y += pitch) {
+    for (let y = 0; y < 128; y += 16) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(128, y); ctx.stroke();
-      for (let x = tile ? 0 : ((y / pitch) % 2) * 64; x < 128; x += 64) {
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + pitch); ctx.stroke();
-      }
+      const x = ((y / 16) % 2) * 64 + 20;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 16); ctx.stroke();
     }
     const map = new THREE.CanvasTexture(canvas);
     map.colorSpace = THREE.SRGBColorSpace;
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set(0.5, 0.5);
-    roomFloorMaterials.set(kind, new THREE.MeshStandardMaterial({ map,
-      color: ROOM_FLOOR[kind] ?? ROOM_FLOOR.other, roughness: 0.8 }));
+    houseFloorMaterials.set(index, new THREE.MeshStandardMaterial({ map, roughness: 0.7 }));
   }
-  return roomFloorMaterials.get(kind);
+  return houseFloorMaterials.get(index);
 }
 
 function stoopCutRing(door) {
@@ -26452,7 +26510,7 @@ function buildInterior(entry) {
             || pts.some(([px, pz]) => pointInRing(px, pz, cut)));
           if (!intersectsStair) {
             const shape = new THREE.Shape(pts.map(([px, pz]) => new THREE.Vector2(px, -pz)));
-            const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), roomFloorMaterial(kind));
+            const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), houseFloorMaterial(houseSeed));
             floor.rotation.x = -Math.PI / 2;
             floor.position.y = floorY + 0.01;
             floor.receiveShadow = true;
@@ -26607,7 +26665,7 @@ function buildInterior(entry) {
   // from the street as a dashed white line along every storey.
   const slabRing = insetRing(entry, ring.slice(0, -1), INTERIOR_WALL_INSET_M);
   const outline = floorShapeWithStairCuts(slabRing, stairCuts);
-  const slab = new THREE.Mesh(new THREE.ShapeGeometry(outline), roomFloorMaterial("other"));
+  const slab = new THREE.Mesh(new THREE.ShapeGeometry(outline), houseFloorMaterial(houseSeed));
   slab.rotation.x = -Math.PI / 2;
   slab.position.y = floorY;
   slab.receiveShadow = true;
@@ -26633,7 +26691,7 @@ function buildInterior(entry) {
         upper.add(copy);
       }
       // External entrance recesses belong only to the ground floor.
-      const upperFloor = new THREE.Mesh(new THREE.ShapeGeometry(ceilingOutline), roomFloorMaterial("other"));
+      const upperFloor = new THREE.Mesh(new THREE.ShapeGeometry(ceilingOutline), houseFloorMaterial(houseSeed));
       upperFloor.rotation.x = -Math.PI / 2;
       upperFloor.position.y = floorY;
       upperFloor.receiveShadow = true;

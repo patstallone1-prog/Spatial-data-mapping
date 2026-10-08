@@ -204,3 +204,12 @@ def test_lamps_hang_clear_of_the_walker_and_pictures_face_the_room() -> None:
     assert "const drop = pendant ? 0.16 : 0.2;" in light and "const target = pendant ? 0.4 : 0.12;" in light
     living = _extract("furnishLiving", js)
     assert "paintingMaterial(seed + 7)" in living and 'interiorModel("picture"' not in living
+
+
+def test_a_house_has_one_floor_under_every_room() -> None:
+    js = _page_js()
+    build = _extract("buildInterior", js)
+    # The rooms, the slab between them and the floors above: all the house's one wood.
+    assert build.count("houseFloorMaterial(houseSeed)") == 3
+    assert "roomFloorMaterial" not in js
+    assert "HOUSE_FLOORS[index]" in _extract("houseFloorMaterial", js)
