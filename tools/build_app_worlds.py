@@ -181,6 +181,11 @@ def main() -> None:
         # A same-sized edit must invalidate the installed app's cache too.
         digest.update(hashlib.blake2b(path.read_bytes(), digest_size=8).digest())
     worker = (ROOT / "tools" / "pwa" / "sw.js").read_text(encoding="utf-8")
+    # A worker-policy change must migrate returning visitors even with unchanged world data.
+    digest.update(worker.encode("utf-8"))
+    for name in ("manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png"):
+        digest.update(name.encode())
+        digest.update((DOCS / name).read_bytes())
     (DOCS / "sw.js").write_text(worker.replace("__VERSION__", digest.hexdigest()), encoding="utf-8")
     print(f"App-only worlds: {published} regional viewers; website files untouched")
 

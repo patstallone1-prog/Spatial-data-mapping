@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -49,9 +50,11 @@ def test_cells_put_back_together_are_the_file(tmp_path: Path) -> None:
 @pytest.mark.skipif(NODE is None, reason="node is not installed")
 def test_a_page_that_died_loads_lighter_and_never_builds_two_regions() -> None:
     js = _page_js()
-    level = js[js.index("const LIGHT_LEVEL = (() => {"):js.index("if (!ATTACH) {\n  try { localStorage.setItem(LOAD_MARK_KEY")]
-    assert "mark && Date.now() - mark.at < 15 * 60 * 1000" in level and "Math.max(level, mark.level || 0) + 1" in level
-    assert "progress.hidden = true; markLoadSurvived();" in js
+    level = js[js.index("const LIGHT_LEVEL = (() => {"):js.index("if (!ATTACH) {\n  try { sessionStorage.setItem(LOAD_MARK_KEY")]
+    assert "age >= 0 && age < 15 * 60 * 1000" in level
+    assert "Math.max(level, validLightLevel(mark.level)) + 1" in level
+    assert "markLoadSurvived(); // only after BOTH" in js
+    assert "!window.kerbsideReady?.streets || !window.kerbsideReady?.ground" in js
     # Decided before anything is fetched, and only the cells the square touches are.
     assert js.index("const LIGHT_SPEC") < js.index("const [DATA, OFFICIAL_GEOMETRY")
     assert "fetchWindowed(PAYLOAD_URL," in js and "fetchWindowed(GROUND_URL," in js
@@ -70,3 +73,39 @@ def test_app_pages_fetch_their_own_payload_whole_or_in_cells() -> None:
     corridor = (ROOT / "docs/app-model.html").read_text()
     assert 'const GROUND_URL = "app-sf-corridor-ground.json";' in corridor
     assert (ROOT / "docs/cells/app-sf-corridor-ground/manifest.json").exists()
+
+
+def test_the_service_worker_keeps_only_the_shell() -> None:
+    worker = (ROOT / "tools/pwa/sw.js").read_text()
+    # Nothing but the shell is stored: no copy of the payload, the cells, tiles or textures.
+    assert "if (!shell && request.mode !== \"navigate\") return;" in worker
+    assert "if (shell && response.ok)" in worker
+    assert "caches.match(request).then((hit) =>\n      hit ||" not in worker      # no cache-first data
+    js = _page_js()
+    # Recovery is scoped and awaited; normal reloads and other tabs are not crashes.
+    assert "await runtimeCacheRecovery;" in js
+    assert 'addEventListener("pagehide", clearLoadMark)' in js
+    assert 'sessionStorage.getItem(LOAD_MARK_KEY)' in js
+    assert 'localStorage.getItem(LOAD_MARK_KEY)' not in js
+    assert "key => /^kerbside-[0-9a-f]{16}$/.test(key)" in js
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_a_stationary_restored_spawn_cannot_trigger_an_endless_window_reload():
+    js = _page_js()
+    script = """
+const BUILD_WINDOW={box:[-2,-2,2,2]},LIGHT_EDGE_M=120;
+let lightRebuilding=false,lightWindowStart=null;
+const midLon=0,midLat=0,metersPerLon=100,metersPerLat=100;
+const DATA={bbox:{west:-5,south:-5,east:5,north:5}};
+const avatar={position:{x:199,z:0}};
+let reloads=0;function rebuildRoundHere(){reloads++;lightRebuilding=true;}
+""" + _extract("checkLightWindow", js) + """
+checkLightWindow(0);checkLightWindow(30);checkLightWindow(60);
+const stationary=reloads;
+avatar.position.x+=2;checkLightWindow(90);checkLightWindow(120);
+console.log(JSON.stringify({stationary,moved:reloads}));
+"""
+    out = subprocess.run([NODE, "-"], input=script, text=True, capture_output=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == {"stationary": 0, "moved": 1}
