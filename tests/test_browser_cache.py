@@ -41,3 +41,16 @@ def test_mutable_detail_shards_revalidate_across_all_app_consumers():
     for page in pages:
         assert 'fetch(asset(shard.file), { cache: "no-cache" })' in page.read_text(), page
         assert 'cache: "force-cache"' not in page.read_text(), page
+
+
+def test_installed_apps_check_updates_on_resume_without_automatic_reloads():
+    root = Path(__file__).resolve().parents[1]
+    for path in (root / "tools/app_template.html", root / "docs/app.html"):
+        code = path.read_text().split('/* ============ installed app shell ============ */')[1]
+        code = code.split('/* ============ boot ============ */')[0]
+        assert 'updateViaCache: "none"' in code
+        assert 'workerRegistration.update()' in code
+        assert 'addEventListener("visibilitychange", checkInstalledUpgrade)' in code
+        assert 'addEventListener("focus", checkInstalledUpgrade)' in code
+        assert 'setInterval(checkInstalledUpgrade, 300000)' in code
+        assert 'button.addEventListener("click", () => window.location.reload())' in code

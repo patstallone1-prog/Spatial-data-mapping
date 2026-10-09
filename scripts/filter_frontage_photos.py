@@ -476,11 +476,37 @@ def review_samples(args, summaries, policy):
     rows.sort(key=lambda r: (r[1]["pose_status"] == "provider_solved", *r[1]["rank"]), reverse=True)
     samples = args.output / "review"
     samples.mkdir(parents=True, exist_ok=True)
+    # Keep the entire review journal; each hourly cycle advances to new evidence,
+    # rather than redownloading the same rejected top 24 photographs forever.
     records = []
-    for row, candidate, region, run_id in rows[: args.sample]:
+    for path in sorted(samples.glob("*.json")):
+        previous = json.loads(path.read_text())
+        if isinstance(previous, dict) and previous.get("building_id"):
+            previous.setdefault("review_key", path.stem)
+            records.append(previous)
+    seen_views = {
+        (
+            r["region"],
+            r["building_id"],
+            r.get("candidate", {}).get("observation", {}).get("observation_uid"),
+        )
+        for r in records
+        if r.get("status") != "download_or_decode_failed"
+    }
+    pending = []
+    for row, candidate, region, run_id in rows:
+        for candidate in row["candidates"]:
+            if (
+                region,
+                row["building_id"],
+                candidate["observation"]["observation_uid"],
+            ) not in seen_views:
+                pending.append((row, candidate, region, run_id))
+                break
+    for row, candidate, region, run_id in pending[: args.sample]:
         obs = candidate["observation"]
         uid = obs["observation_uid"]
-        report_path = samples / f"{region}-{row['building_id']}.json"
+        report_path = samples / f"{region}-{row['building_id']}-{uid[:16]}.json"
         if report_path.exists() and not args.reviews:
             previous = json.loads(report_path.read_text())
             if (
@@ -499,6 +525,7 @@ def review_samples(args, summaries, policy):
             "address": row["address"],
             "candidate": candidate,
             "status": "not_downloaded",
+            "review_key": report_path.stem,
         }
         try:
             if shutil.disk_usage(args.output).free < 4 * 1024**3:
@@ -627,21 +654,34 @@ def review_samples(args, summaries, policy):
         emit(report_path, report)
         records.append(report)
         print(f"review {region}/{row['building_id']}: {report['status']}", flush=True)
+    from smc.facades.frontage_retention import prune_rejected
+
+    cleanup = prune_rejected(args.output)
+    emit(args.output / "retention.json", cleanup)
+    for r in records:
+        if r["status"] == "pixel_rejected":
+            r["local_pixels_deleted"] = True
     emit(samples / "index.json", records)
     cards = []
     for r in records:
         address = (r.get("address") or {}).get("formatted") or r["building_id"]
         candidate = r["candidate"]
-        key = f"{r['region']}-{r['building_id']}"
+        key = r.get("review_key") or f"{r['region']}-{r['building_id']}"
         credit = candidate["observation"].get("attribution") or "Attribution unknown"
         reasons = (r.get("pixel_screen") or {}).get("reasons", [])
+        photograph = (
+            "<p>Rejected pixels removed; audit metadata retained.</p>"
+            if r.get("local_pixels_deleted")
+            else f'<a href="{key}.context.jpg"><img src="{key}.context.jpg" alt="Facade context" /></a>'
+            f'<a href="{key}.jpg">Canonical-prior crop</a> · '
+        )
         cards.append(
             f"<article><h2>{html.escape(address)}</h2><p>{html.escape(r['status'])}"
             f" — {html.escape(', '.join(reasons))}</p>"
             f"<p>{candidate['angle_deg']}° · {candidate['distance_m']} m · "
             f"{html.escape(str(candidate['observation']['captured_at']))}</p>"
-            f'<a href="{key}.context.jpg"><img src="{key}.context.jpg" alt="Facade context" /></a>'
-            f'<a href="{key}.jpg">Canonical-prior crop</a> · <a href="{key}.json">Evidence</a>'
+            + photograph
+            + f'<a href="{key}.json">Evidence</a>'
             f"<p>{html.escape(credit)}</p></article>"
         )
     gallery = (
@@ -710,6 +750,7 @@ def main():
         Path(__file__),
         ROOT / "src/smc/facades/frontage.py",
         ROOT / "src/smc/facades/frontage_pixels.py",
+        ROOT / "src/smc/facades/frontage_retention.py",
     ]
     args.code_hash = hashlib.sha256(
         "".join(file_hash(p) for p in implementation).encode()

@@ -3259,6 +3259,20 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
 const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : { assigned: {} })
   .catch(() => ({ assigned: {} }));
+// Image-derived visual fits are optional and reviewed, never canonical replacements.
+const FRONTAGE_FITS = await fetch(sharedAsset("sf-corridor-frontage-fits.json"), { cache: "no-cache" })
+  .then((r) => r.ok ? r.json() : { buildings: {} }).catch(() => ({ buildings: {} }));
+function frontageFitFor(feature) {
+  if (FRONTAGE_FITS.schema !== "kerbside.facade_fits/1") return null;
+  const fit = FRONTAGE_FITS.buildings?.[String(feature.osm_id)];
+  if (!fit || fit.review_status !== "reviewed_inferred_visual_parameters"
+      || fit.canonical_geometry_modified || fit.conflicts?.length
+      || !Array.isArray(fit.canonical_footprint) || !Array.isArray(feature.points)
+      || JSON.stringify(fit.canonical_footprint) !== JSON.stringify(feature.points)
+      || !Number.isFinite(fit.height_m) || !Number.isFinite(Number(feature.height_m))
+      || Math.abs(Number(feature.height_m) - fit.height_m) > 0.05) return null;
+  return fit;
+}
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
 document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleString();
@@ -9571,12 +9585,15 @@ function homeCladdingFor(seed) {
   return HOME_CLADDING_SHARES[0][0];
 }
 
-function pickMaterial(seed, height, archetype, facade = null, osmId = null, home = false) {
-  const assignment = osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
+function pickMaterial(seed, height, archetype, facade = null, osmId = null, home = false, feature = null) {
+  const fit = feature ? frontageFitFor(feature) : null;
+  const assignment = fit?.appearance?.material && fit.appearance.material !== "unknown"
+    ? { class: fit.appearance.material, basis: "reviewed_image_visual_fit" }
+    : osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
   // A class read off this building's photographs: the matcher's at 0.70 and up, CLIP's where
   // its reading was clear (scripts/build_material_assignments.py decided that).
   if (assignment && assignment.class
-      && (assignment.basis === "image_clip_zero_shot" || assignment.confidence >= 0.70) &&
+      && (assignment.basis === "image_clip_zero_shot" || assignment.basis === "reviewed_image_visual_fit" || assignment.confidence >= 0.70) &&
       !(facade && ["glass", "metal"].includes(facade.m) && facade.conf >= 0.6)) {
     const name = PHOTO_CLASS_TO_MATERIAL[assignment.class];
     const photographed = MATERIALS.find((material) => material.name === name);
@@ -16269,15 +16286,15 @@ function buildingMesh(feature) {
   const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
     && !hasStorefront(feature);
   const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
-                                feature.osm_id, isHome);
+                                feature.osm_id, isHome, feature);
   const style = ARCHETYPE_STYLE[feature.archetype];
   const palette = style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
   // which is a statement about San Francisco's building stock and not about this building.
   // The colour sampled across the building's frames where there is one; else the colour read off
   // its photographed walls (facade_photo_materials, via the material assignments).
-  const photoColour = feature.colour !== undefined ? feature.colour
-    : (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)]?.colour;
+  const photoColour = frontageFitFor(feature)?.appearance?.colour || (feature.colour !== undefined ? feature.colour
+    : (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)]?.colour);
   let tint = photoColour !== undefined
     ? liftSampledColour(photoColour)
     : palette[Math.floor(random(seed + 11) * palette.length)];
@@ -25435,6 +25452,30 @@ const FRONT_DOOR_PANEL_W_M = 3.2;
 //: glass and the rooms behind it), so the one never changes into the other on screen. It depends
 //: only on what is known before anyone walks up: the footprint, the doors (each reserving its
 //: opening with room for a stoop), the garages, the photographed openings, the ground.
+function frontageWindowsOnEdge(entry, a, b, length, bottom) {
+  const fit = frontageFitFor(entry.way);
+  if (!fit || !fit.a || !fit.b || ![...fit.a,...fit.b].every(Number.isFinite)) return null;
+  const [ax, ay] = xy(...fit.a), [bx, by] = xy(...fit.b);
+  const f = [ax, -ay], g = [bx, -by], span = Math.hypot(g[0]-f[0], g[1]-f[1]);
+  if (span < .2) return null;
+  const tx = (g[0]-f[0])/span, tz = (g[1]-f[1])/span;
+  const ex = (b[0]-a[0])/length, ez = (b[1]-a[1])/length;
+  const aligned = ex*tx + ez*tz;
+  const normalError = Math.max(Math.abs((a[0]-f[0])*-tz+(a[1]-f[1])*tx),
+    Math.abs((b[0]-f[0])*-tz+(b[1]-f[1])*tx));
+  // Bay-return edges and party walls must not receive a front photograph's layout.
+  if (Math.abs(aligned) < .96 || normalError > .8) return null;
+  const start = (a[0]-f[0])*tx+(a[1]-f[1])*tz;
+  const end = start + length*aligned;
+  if (Math.max(start,end) < -.1 || Math.min(start,end) > span+.1) return null;
+  return (fit.openings || []).filter(o=>o.kind === "window" && [o.u,o.v,o.w,o.h].every(Number.isFinite)
+    && o.w > 0 && o.h > 0).map(o => ({ ...o,
+    u: aligned > 0 ? (o.u-start)/aligned : (o.u+o.w-start)/aligned,
+    design: o.design && { ...o.design, vertical_bars: (o.design.vertical_bars || []).map(t=>aligned > 0 ? t : 1-t) },
+    w: o.w/Math.abs(aligned), v: bottom+o.v, grade: "image_on_prior_geometry" }))
+    .filter(o=>o.u >= .08 && o.u+o.w <= length-.08);
+}
+
 function homeWindowLayout(entry, spec) {
   const id = String(entry.way.osm_id);
   const bottom = spec.base, top = bottom + spec.height, floor = entryFloorY(entry);
@@ -25488,9 +25529,10 @@ function homeWindowLayout(entry, spec) {
     // A wall that wears its own photograph shows its own windows: none is added there, or its
     // frame stands out through the picture of the real one.
     const photographed = photographedEdge(a, b);
-    const candidates = observed ? observed.map(([u, v, w, h, confidence]) => ({
+    const fitted = frontageWindowsOnEdge(entry, a, b, length, bottom);
+    const candidates = fitted || (observed ? observed.map(([u, v, w, h, confidence]) => ({
       u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
-      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, storeys);
+      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, storeys));
     const groundOut = (u) => terrainGroundAt(a[0] + ux * u - nx * 0.3, a[1] + uz * u - nz * 0.3);
     const windows = photographed ? [] : candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
       && !reserved.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
@@ -25585,9 +25627,13 @@ function buildHomeShell(entry) {
       inner.rotation.y = pane.rotation.y + Math.PI;
       group.add(inner);
       windowRegistry.push(pane.userData);
+      const divisions = o.design ? [
+        ...(o.design.vertical_bars || []).map(t=>[o.u+o.w*t,o.v+o.h/2,.035,o.h]),
+        ...(o.design.horizontal_bars || []).map(t=>[o.u+o.w/2,o.v+o.h*(1-t),o.w,.035])]
+        : [[o.u+o.w/2,o.v+o.h/2,.035,o.h]];
       for (const [u, v, w, h] of [[o.u, o.v + o.h / 2, 0.06, o.h],
         [o.u + o.w, o.v + o.h / 2, 0.06, o.h], [o.u + o.w / 2, o.v, o.w, 0.06],
-        [o.u + o.w / 2, o.v + o.h, o.w, 0.06], [o.u + o.w / 2, o.v + o.h / 2, 0.035, o.h]]) {
+        [o.u + o.w / 2, o.v + o.h, o.w, 0.06], ...divisions]) {
         // Shallow, so its lit edges do not stand out from the decal's flat frame.
         const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), shellFrame);
         frame.position.set(a[0] + ux * u, v, a[1] + uz * u);
@@ -25703,6 +25749,22 @@ const homeWindowTexture = (() => {
 })();
 const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTexture, roughness: 0.14,
   metalness: 0.2, envMapIntensity: 1.0 });
+const homeDesignMaterials = new Map();
+function homeDesignMaterial(design) {
+  if (!design) return homeDecalMaterial;
+  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || []]);
+  if (homeDesignMaterials.has(key)) return homeDesignMaterials.get(key);
+  const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#3d4347"; ctx.fillRect(0,0,128,128);
+  ctx.fillStyle = "#2a3740"; ctx.fillRect(4,4,120,120);
+  ctx.fillStyle = "#3d4347";
+  for (const t of design.vertical_bars || []) ctx.fillRect(t*128-1.5,4,3,120);
+  for (const t of design.horizontal_bars || []) ctx.fillRect(4,t*128-1.5,120,3);
+  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.14,metalness:.2 });
+  homeDesignMaterials.set(key,material); return material;
+}
 const HOME_DECAL_ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 function homeDecalInputs() {
   return `${INTERIORS ? "doors" : "no-doors"}:${HOME_OPENINGS_VERSION}`;
@@ -25739,11 +25801,13 @@ function pumpHomeDecals() {
     job.layouts.set(id, layout);
     // A house's windows all go in the cell of its first corner, so they come and go together.
     const cellKey = Math.floor(entry.local[0][0] / HOME_DECAL_CELL_M) * 1048576 + Math.floor(entry.local[0][1] / HOME_DECAL_CELL_M);
-    let cell = job.cells.get(cellKey);
-    if (!cell) job.cells.set(cellKey, cell = { matrices: [], owners: [] });
     for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
       q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
       for (const o of windows) {
+        const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || []]) : "default";
+        const key = `${cellKey}:${designKey}`;
+        let cell = job.cells.get(key);
+        if (!cell) job.cells.set(key, cell = { matrices: [], owners: [], material: homeDesignMaterial(o.design) });
         p.set(a[0] + ux * (o.u + o.w / 2) - nx * HOME_DECAL_OUT_M, o.v + o.h / 2,
           a[1] + uz * (o.u + o.w / 2) - nz * HOME_DECAL_OUT_M);
         sc.set(o.w, o.h, 1);
@@ -25759,7 +25823,7 @@ function pumpHomeDecals() {
   const meshes = [];
   for (const cell of job.cells.values()) {
     if (!cell.matrices.length) continue;
-    const mesh = new THREE.InstancedMesh(geometry, homeDecalMaterial, cell.matrices.length);
+    const mesh = new THREE.InstancedMesh(geometry, cell.material, cell.matrices.length);
     mesh.userData = { surface: "house_window", matrices: cell.matrices, grade: "procedural_or_photographed_openings" };
     for (let i = 0; i < cell.matrices.length; i += 1) {
       const id = cell.owners[i];
@@ -25777,6 +25841,10 @@ function pumpHomeDecals() {
   if (homeDecalMeshes.length) homeDecalMeshes[0].geometry.dispose();
   homeDecalMeshes = meshes;
   for (const mesh of meshes) root.add(mesh);
+  const usedMaterials = new Set(meshes.map(mesh=>mesh.material));
+  for (const [key, material] of homeDesignMaterials) if (!usedMaterials.has(material)) {
+    material.map.dispose(); material.dispose(); homeDesignMaterials.delete(key);
+  }
   homeDecalIndex = job.index;
   homeDecalVersion = job.inputs;
   for (const [id, layout] of job.layouts) {

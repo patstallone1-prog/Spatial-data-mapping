@@ -25,6 +25,7 @@ PREAMBLE = """
 const xy = (lon, lat) => [lon * 100000, lat * 100000];
 const DOOR_HEIGHT_M = 2.1, GARAGE_HEIGHT_M = 2.7, HILLSIDE_RISE_M = 1.2;
 const HOME_OPENINGS = { buildings: {} };
+const FRONTAGE_FITS = { schema: "kerbside.facade_fits/1", buildings: {} };
 let slope = 0;
 function terrainGroundAt(x, z) { return slope * x; }
 function entryFloorY(entry) { return 0.05; }
@@ -44,7 +45,8 @@ def _run(body: str) -> dict:
     consts = "\n".join(re.search(rf"const {n} = [^;]+;", js).group(0)
                        for n in ("WINDOW_GROUND_CLEAR_M", "FRONT_DOOR_PANEL_W_M"))
     script = PREAMBLE + consts + "\n" + "\n".join(
-        _extract(n, js) for n in ("regularHomeWindows", "homeWindowLayout")) + "\n" + body
+        _extract(n, js) for n in ("frontageFitFor", "frontageWindowsOnEdge",
+                                 "regularHomeWindows", "homeWindowLayout")) + "\n" + body
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)
