@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="1b49e89421b5cdfcfe14b2dad0c58b0c13a4a5fda7b319e1fda0378ac87081c2" />
+<meta name="kerbside-renderer-sha256" content="97cffb4dc6019a3d3d09e3ecf93707241a254ace357e9074b1255dec59091f29" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -417,6 +417,7 @@ function frontageFitFor(feature) {
   const fit = FRONTAGE_FITS.buildings?.[String(feature.osm_id)];
   if (!fit || fit.review_status !== "reviewed_inferred_visual_parameters"
       || fit.canonical_geometry_modified || fit.conflicts?.length
+      || (fit.openings || []).some(o=>o.kind === "garage_candidate" && o.recess?.render_steps)
       || !Array.isArray(fit.canonical_footprint) || !Array.isArray(feature.points)
       || JSON.stringify(fit.canonical_footprint) !== JSON.stringify(feature.points)
       || !Number.isFinite(fit.height_m) || !Number.isFinite(Number(feature.height_m))

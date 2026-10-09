@@ -3267,6 +3267,7 @@ function frontageFitFor(feature) {
   const fit = FRONTAGE_FITS.buildings?.[String(feature.osm_id)];
   if (!fit || fit.review_status !== "reviewed_inferred_visual_parameters"
       || fit.canonical_geometry_modified || fit.conflicts?.length
+      || (fit.openings || []).some(o=>o.kind === "garage_candidate" && o.recess?.render_steps)
       || !Array.isArray(fit.canonical_footprint) || !Array.isArray(feature.points)
       || JSON.stringify(fit.canonical_footprint) !== JSON.stringify(feature.points)
       || !Number.isFinite(fit.height_m) || !Number.isFinite(Number(feature.height_m))

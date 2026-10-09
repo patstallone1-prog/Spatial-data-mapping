@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 import cv2
@@ -59,7 +60,12 @@ def cycle(args) -> dict:
     controls = json.loads(args.controls.read_text()) if args.controls else {}
     payloads, materials, builds, cards = {}, {}, {}, {}
     fitted, rejected = 0, 0
-    code_hash = hashlib.sha256((ROOT / "src/smc/facades/fit.py").read_bytes()).hexdigest()
+    code_hash = hashlib.sha256(
+        b"".join(
+            (ROOT / p).read_bytes()
+            for p in ("src/smc/facades/fit.py", "src/smc/facades/opening_reasoning.py")
+        )
+    ).hexdigest()
     for review_root in args.inputs:
         for path in sorted((review_root / "review").glob("*.json")):
             row = json.loads(path.read_text())
@@ -107,6 +113,7 @@ def cycle(args) -> dict:
             supplied = dict(controls.get(key, {}))
             if supplied and supplied.get("image_sha256") != row["pixel_sha256"]:
                 supplied = {}  # Controls for another image must never be silently reused.
+            supplied["image_sha256"] = row["pixel_sha256"]
             if (row.get("ground_reference") or {}).get("frame") == "relative_to_facade_foot":
                 supplied.setdefault("ground_reference", row["ground_reference"])
             detection = None
@@ -236,6 +243,15 @@ def cycle(args) -> dict:
         "conflicts_rejected": rejected,
         "watch_seconds": args.watch_seconds,
         "status": "watching" if args.watch_seconds else "complete",
+        "stage": "prior_constrained_visual_facade_fitting_not_dense_reconstruction",
+        "opening_decision_counts": dict(
+            Counter(d["class"] for fit in builds.values() for d in fit.get("opening_decisions", []))
+        ),
+        "quarantined_stair_proposals": sum(
+            d.get("source_kind") == "stairs" and d["kind"] == "opening_review_candidate"
+            for fit in builds.values()
+            for d in fit.get("details", [])
+        ),
     }
     atomic(args.output / "status.json", status)
     return status
@@ -274,6 +290,7 @@ if __name__ == "__main__":
         Path(__file__),
         ROOT / "src/smc/facades/fit.py",
         ROOT / "src/smc/facades/detail_detection.py",
+        ROOT / "src/smc/facades/opening_reasoning.py",
     ]
     source_hash = hashlib.sha256(b"".join(p.read_bytes() for p in implementation)).hexdigest()
     while True:

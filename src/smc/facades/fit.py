@@ -12,6 +12,7 @@ import math
 import cv2
 import numpy as np
 
+from smc.facades.opening_reasoning import reason_opening, reason_proposals
 from smc.facades.survey import openings as dark_openings
 
 
@@ -79,6 +80,8 @@ def opening_design(bgr: np.ndarray, width: float, height: float) -> dict:
 
 def entry_recess(door: dict, controls: dict, storey: dict) -> dict:
     """A category is appearance; a flight requires observed/controlled rise and depth."""
+    if door.get("kind") == "garage_candidate":
+        return {"render_steps": False, "reason": "vehicle_opening_is_not_a_pedestrian_stairwell"}
     evidence = controls.get("recess") or {}
     hidden = evidence.get("door_visible") is False
     if evidence.get("door_id") != door["id"]:
@@ -224,6 +227,15 @@ def extract_front(
     # They replace dark blobs, which routinely confuse fire escapes with windows.
     details = controls.get("detector_proposals")
     if details is not None:
+        details = reason_proposals(
+            bgr,
+            details,
+            width,
+            height,
+            image_sha256=controls.get("image_sha256"),
+            reviews=controls.get("step_reviews"),
+        )
+    if details is not None:
         for item in details:
             kind = item.get("kind")
             if kind not in {"window", "door", "garage door"}:
@@ -322,7 +334,12 @@ def extract_front(
             continue
         decorative.append(
             {
-                "kind": item["kind"],
+                "kind": "opening_review_candidate"
+                if item["kind"] == "stairs"
+                and item.get("opening_reasoning", {}).get("class") != "stair_recess_candidate"
+                else item["kind"],
+                "source_kind": item["kind"],
+                "opening_reasoning": item.get("opening_reasoning"),
                 "box": box,
                 "score": item["score"],
                 "u": x0 * width,
@@ -351,10 +368,43 @@ def extract_front(
             rgb = np.median(pixels[:, ::-1], axis=0).astype(int)
             appearance["colour"] = "#" + "".join(f"{v:02x}" for v in rgb)
     for door in (o for o in found if o["kind"] == "door"):
-        door["recess"] = entry_recess(door, controls, storey)
-        if door["w"] >= 2.2:
+        x0, x1 = round(door["u"] * ppm_x), round((door["u"] + door["w"]) * ppm_x)
+        y0, y1 = (
+            round((height - door["v"] - door["h"]) * ppm_y),
+            round((height - door["v"]) * ppm_y),
+        )
+        source = next(
+            (
+                p["kind"]
+                for p in details or []
+                if p["kind"] in {"door", "garage door"}
+                and abs(p["box"][0] * width - door["u"]) < 0.02
+                and abs((p["box"][2] - p["box"][0]) * width - door["w"]) < 0.02
+            ),
+            "door",
+        )
+        recess_control = controls.get("recess") or {}
+        review = (
+            recess_control.get("stairs") if recess_control.get("door_id") == door["id"] else None
+        )
+        decision = reason_opening(
+            bgr[y0:y1, x0:x1],
+            door["w"],
+            door["h"],
+            source,
+            image_sha256=controls.get("image_sha256"),
+            step_review=review,
+        )
+        door["opening_reasoning"] = decision
+        if decision["class"] == "garage_candidate":
             door["kind"] = "garage_candidate"
             door["type_requires_review"] = True
+            door["recess"] = {
+                "render_steps": False,
+                "reason": "vehicle_opening_candidate_requires_separate_entry_evidence",
+            }
+        else:
+            door["recess"] = entry_recess(door, controls, storey)
     hidden_entry = controls.get("hidden_entrance")
     if (
         hidden_entry
@@ -418,4 +468,8 @@ def extract_front(
         "canonical_geometry_modified": False,
         "unseen_sides": "inferred",
         "inch_accuracy_verified": False,
+        "opening_logic_schema": "kerbside.opening_reasoning/1",
+        "opening_decisions": [
+            p["opening_reasoning"] for p in details or [] if p.get("opening_reasoning")
+        ],
     }

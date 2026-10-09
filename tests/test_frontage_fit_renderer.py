@@ -49,6 +49,9 @@ def test_only_reviewed_fits_map_to_correct_edge_with_same_window_design():
       if(frontageFitFor({...entry.way,points:[[0,0],[9,0],[9,10]]})!==null) throw Error("stale footprint accepted");
       if(frontageWindowsOnEdge(entry,[0,0],[0,10],10,0)!==null) throw Error("party wall claimed");
       if(frontageFitFor({osm_id:1,height_m:7})!==null) throw Error("stale height accepted");
+      FRONTAGE_FITS.buildings[1].openings.push({kind:"garage_candidate",recess:{render_steps:true}});
+      if(frontageFitFor(entry.way)!==null) throw Error("garage stair conflict rendered");
+      FRONTAGE_FITS.buildings[1].openings.pop();
       FRONTAGE_FITS.buildings[1].review_status="needs_visual_alignment_review";
       if(frontageFitFor(entry.way)!==null) throw Error("unreviewed promoted");
       const MATERIAL_ASSIGNMENTS={assigned:{}};
