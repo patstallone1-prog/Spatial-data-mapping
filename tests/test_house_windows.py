@@ -131,7 +131,7 @@ def test_painted_materials_take_the_house_colour_and_brick_and_stone_keep_theirs
     assert '"wood_siding"' in paintable and '"stucco_render"' in paintable
     assert '"brick"' not in paintable and '"stone"' not in paintable
     assert "material.photoLabel && !PAINTABLE_PHOTO_CLASSES.has(material.photoLabel)" in js
-    assert "if (photo && PAINTABLE_PHOTO_CLASSES.has(materialClass)) toPaintableDetail(ctx, canvas);" in js
+    assert "if (photo && (PAINTABLE_PHOTO_CLASSES.has(materialClass) || material.neutralColourDetail)) toPaintableDetail(ctx, canvas);" in js
     library = (ROOT / "scripts/build_material_library.py").read_text()
     for cls in ("vinyl_siding", "painted_brick", "ceramic_tile", "metal_panel"):
         assert f'"{cls}"' in library and f"{cls}:" in js

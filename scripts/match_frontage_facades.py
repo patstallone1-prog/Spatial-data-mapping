@@ -43,16 +43,24 @@ def diagram(fit: dict) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">',
         f'<rect width="{width}" height="{height}" fill="{fit["appearance"]["colour"] or "#b9b4a8"}"/>',
     ]
+    for band in fit["appearance"].get("bands", []):
+        if band.get("colour"):
+            colour = html.escape(band["colour"], quote=True)
+            out.append(
+                f'<rect y="{height - band["top_m"]}" width="{width}" '
+                f'height="{band["top_m"] - band["bottom_m"]}" fill="{colour}"/>'
+            )
     for o in fit["openings"]:
         x, y, w, h = o["u"], height - o["v"] - o["h"], o["w"], o["h"]
         fill = "#26333b" if o["kind"] == "window" else "#5b4632"
+        trim = html.escape(o["design"].get("trim", {}).get("colour", "#626568"), quote=True)
         out.append(
-            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="#626568" stroke-width=".06"/>'
+            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="{trim}" stroke-width=".06"/>'
         )
         for v in o["design"]["vertical_bars"]:
-            out.append(f'<path d="M{x + w * v},{y} v{h}" stroke="#b9b6ad" stroke-width=".035"/>')
+            out.append(f'<path d="M{x + w * v},{y} v{h}" stroke="{trim}" stroke-width=".035"/>')
         for v in o["design"]["horizontal_bars"]:
-            out.append(f'<path d="M{x},{y + h * v} h{w}" stroke="#b9b6ad" stroke-width=".035"/>')
+            out.append(f'<path d="M{x},{y + h * v} h{w}" stroke="{trim}" stroke-width=".035"/>')
     return "".join(out) + "</svg>"
 
 
@@ -61,9 +69,15 @@ def cycle(args) -> dict:
     payloads, materials, builds, cards = {}, {}, {}, {}
     fitted, rejected = 0, 0
     code_hash = hashlib.sha256(
-        b"".join(
+        Path(__file__).read_bytes()
+        + b"".join(
             (ROOT / p).read_bytes()
-            for p in ("src/smc/facades/fit.py", "src/smc/facades/opening_reasoning.py")
+            for p in (
+                "src/smc/facades/fit.py",
+                "src/smc/facades/opening_reasoning.py",
+                "src/smc/facades/appearance_bands.py",
+                "src/smc/facades/detail_detection.py",
+            )
         )
     ).hexdigest()
     for review_root in args.inputs:
@@ -195,6 +209,7 @@ def cycle(args) -> dict:
             if (
                 not fit
                 or check.get("image_sha256") != fit["image_sha256"]
+                or check.get("implementation_sha256") != fit["implementation_sha256"]
                 or not check.get("visual_alignment")
                 or not all(
                     check.get(gate)
@@ -224,6 +239,11 @@ def cycle(args) -> dict:
                     any(d.get("render") for d in fit.get("details", []))
                     and not check.get("details_verified")
                 )
+                or (fit["appearance"].get("bands") and not check.get("appearance_bands_verified"))
+                or (
+                    any(o.get("design", {}).get("trim") for o in fit["openings"])
+                    and not check.get("window_trim_verified")
+                )
             ):
                 raise ValueError(f"missing image-bound visual review for {key}")
             fit["review_status"] = "reviewed_inferred_visual_parameters"
@@ -251,6 +271,17 @@ def cycle(args) -> dict:
             d.get("source_kind") == "stairs" and d["kind"] == "opening_review_candidate"
             for fit in builds.values()
             for d in fit.get("details", [])
+        ),
+        "buildings_with_appearance_bands": sum(
+            bool(f["appearance"].get("bands")) for f in builds.values()
+        ),
+        "reviewed_band_materials": sum(
+            b.get("material", "unknown") != "unknown"
+            for f in builds.values()
+            for b in f["appearance"].get("bands", [])
+        ),
+        "window_trim_candidates": sum(
+            bool(o.get("design", {}).get("trim")) for f in builds.values() for o in f["openings"]
         ),
     }
     atomic(args.output / "status.json", status)
@@ -291,6 +322,7 @@ if __name__ == "__main__":
         ROOT / "src/smc/facades/fit.py",
         ROOT / "src/smc/facades/detail_detection.py",
         ROOT / "src/smc/facades/opening_reasoning.py",
+        ROOT / "src/smc/facades/appearance_bands.py",
     ]
     source_hash = hashlib.sha256(b"".join(p.read_bytes() for p in implementation)).hexdigest()
     while True:

@@ -12,6 +12,7 @@ import math
 import cv2
 import numpy as np
 
+from smc.facades.appearance_bands import appearance_bands, window_trim
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
 from smc.facades.survey import openings as dark_openings
 
@@ -447,6 +448,14 @@ def extract_front(
                         checks.append(f"threshold_conflict:{o['id']}")
     if storey["status"] == "conflict":
         checks.append(storey["reason"])
+    appearance.update(
+        appearance_bands(bgr, labels, height, storey, found, {**controls, "facade_width_m": width})
+    )
+    for opening in found:
+        if opening["kind"] == "window":
+            trim = window_trim(bgr, opening, width, height, appearance["bands"])
+            if trim:
+                opening["design"]["trim"] = trim
     return {
         "schema": "kerbside.facade_fit/1",
         "width_m": width,

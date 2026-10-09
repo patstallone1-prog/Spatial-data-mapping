@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="97cffb4dc6019a3d3d09e3ecf93707241a254ace357e9074b1255dec59091f29" />
+<meta name="kerbside-renderer-sha256" content="391eaad12e2e808dbaca3f49c37d2dafcefb21c49b1b261b0d0c4f427c673a38" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -6752,6 +6752,62 @@ function homeCladdingFor(seed) {
   return HOME_CLADDING_SHARES[0][0];
 }
 
+function facadeAppearanceBands(feature, fallback) {
+  const fit=frontageFitFor(feature), raw=fit?.appearance?.bands;
+  if(!Array.isArray(raw) || !raw.length) return [fallback];
+  const valid=raw.filter(b=>Number.isFinite(b.bottom_m) && Number.isFinite(b.top_m)
+    && b.bottom_m>=0 && b.bottom_m<fallback.height && b.top_m>b.bottom_m && b.top_m<=fallback.height+.01
+    && (b.colour==null || /^#[0-9a-f]{6}$/i.test(b.colour)))
+    .map(b=>({...b,top_m:Math.min(b.top_m,fallback.height)}));
+  if(!valid.length) return [fallback];
+  const cuts=[...new Set([0,fallback.height,...valid.flatMap(b=>[b.bottom_m,b.top_m])])].sort((a,b)=>a-b);
+  const result=[];
+  for(let i=1;i<cuts.length;i++) {
+    const low=cuts[i-1],high=cuts[i],mid=(low+high)/2;
+    const matching=valid.filter(b=>b.bottom_m<=mid && b.top_m>=mid);
+    const band=matching.length===1 ? matching[0] : null;
+    const name=band && (PHOTO_CLASS_TO_MATERIAL[band.material] || (band.material==="glass" ? "glass" : null));
+    const selected=name && MATERIALS.find(m=>m.name===name);
+    const material=selected ? {...selected,photoLabel:band.material} : fallback.material;
+    result.push({...fallback, bottom:low,top:high,
+      material:band?.colour ? {...material,neutralColourDetail:true} : material,
+      tint:band?.colour ? Number.parseInt(band.colour.slice(1),16) : fallback.tint,
+      frontBasis:band?.front_basis || "fallback_inferred",otherSidesBasis:"inferred_same_height_band"});
+  }
+  return result.length ? result : [fallback];
+}
+
+function clipFacadeBand(geometry, indices, bottom, top) {
+  const position=geometry.getAttribute("position"), normal=geometry.getAttribute("normal"),uv=geometry.getAttribute("uv");
+  const output={position:[],normal:[],uv:[]};
+  const vertex=i=>({p:[position.getX(i),position.getY(i),position.getZ(i)],
+    n:[normal.getX(i),normal.getY(i),normal.getZ(i)],u:[uv.getX(i),uv.getY(i)]});
+  const cut=(poly,height,above)=>{
+    const result=[];
+    for(let i=0;i<poly.length;i++) {
+      const a=poly[i],b=poly[(i+1)%poly.length],ain=above ? a.p[1]>=height : a.p[1]<=height,
+        bin=above ? b.p[1]>=height : b.p[1]<=height;
+      if(ain) result.push(a);
+      if(ain!==bin) {
+        const t=(height-a.p[1])/(b.p[1]-a.p[1]);
+        const lerp=(x,y)=>x.map((v,k)=>v+(y[k]-v)*t);
+        const crossing={p:lerp(a.p,b.p),n:lerp(a.n,b.n),u:lerp(a.u,b.u)};
+        crossing.p[1]=height;result.push(crossing);
+      }
+    }
+    return result;
+  };
+  for(let i=0;i<indices.length;i+=3) {
+    const poly=cut(cut(indices.slice(i,i+3).map(vertex),bottom,true),top,false);
+    for(let k=1;k+1<poly.length;k++) for(const v of [poly[0],poly[k],poly[k+1]]) {
+      output.position.push(...v.p);output.normal.push(...v.n);output.uv.push(...v.u);
+    }
+  }
+  const result=new THREE.BufferGeometry();
+  for(const [key,size] of [["position",3],["normal",3],["uv",2]]) result.setAttribute(key,new THREE.Float32BufferAttribute(output[key],size));
+  return result;
+}
+
 function pickMaterial(seed, height, archetype, facade = null, osmId = null, home = false, feature = null) {
   const fit = feature ? frontageFitFor(feature) : null;
   const assignment = fit?.appearance?.material && fit.appearance.material !== "unknown"
@@ -6767,8 +6823,8 @@ function pickMaterial(seed, height, archetype, facade = null, osmId = null, home
     if (photographed) return { ...photographed, photoLabel: assignment.class };
   }
   if (home) {
-    // A house is clad in one material over all of it: what its photographs read where they
-    // read anything, else a draw from the city's houses.
+    // Fallback cladding only. Reviewed height bands can replace it independently,
+    // including a shop's ground floor and different residential floors above it.
     const read = assignment && assignment.class && PHOTO_CLASS_TO_MATERIAL[assignment.class]
       ? assignment.class : homeCladdingFor(seed);
     const named = MATERIALS.find((material) => material.name === PHOTO_CLASS_TO_MATERIAL[read]);
@@ -7011,7 +7067,7 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, w, h);
   if (photo) ctx.drawImage(photo, 0, 0, w, h);
-  if (photo && PAINTABLE_PHOTO_CLASSES.has(materialClass)) toPaintableDetail(ctx, canvas);
+  if (photo && (PAINTABLE_PHOTO_CLASSES.has(materialClass) || material.neutralColourDetail)) toPaintableDetail(ctx, canvas);
 
   if (!photo && material.name === "brick") {
     // Courses, offset every other row. Coarse at this scale, but it is the pattern the eye
@@ -7056,7 +7112,7 @@ function facadeTextureFor(material, seed) {
   // shares a few dozen canvases.
   const style = Math.floor(random(seed + 3) * WINDOW_STYLES.length);
   const variant = Math.floor(random(seed) * MATERIAL_VARIANTS);
-  const key = `${material.name}-${material.photoLabel || "prior"}-${style}-${variant}`;
+  const key = `${material.name}-${material.photoLabel || "prior"}-${material.neutralColourDetail ? "band" : "original"}-${style}-${variant}`;
   if (!FACADE_CACHE.has(key)) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, style, variant);
@@ -7071,7 +7127,7 @@ function facadeTextureFor(material, seed) {
 //: house the street sees and the house the walker opens are one surface.
 function bareFacadeTextureFor(material, seed) {
   const variant = Math.floor(random(seed) * MATERIAL_VARIANTS);
-  const key = `${material.name}-${material.photoLabel || "prior"}-${variant}-bare`;
+  const key = `${material.name}-${material.photoLabel || "prior"}-${material.neutralColourDetail ? "band" : "original"}-${variant}-bare`;
   if (!bareWallMaps.has(key)) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, 0, variant, false);
@@ -7089,7 +7145,8 @@ async function loadPhotoMaterialLibrary() {
     manifest = await response.json();
   } catch (_) { return; }
   const used = new Set([...Object.values(MATERIAL_ASSIGNMENTS.assigned || {})
-    .map((assignment) => assignment.class), ...HOME_CLADDING_SHARES.map(([cls]) => cls)]);
+    .map((assignment) => assignment.class), ...HOME_CLADDING_SHARES.map(([cls]) => cls),
+    ...Object.values(FRONTAGE_FITS.buildings || {}).flatMap(f=>(f.appearance?.bands || []).map(b=>b.material))]);
   const byClass = new Map();
   for (const row of manifest.assets || []) {
     if (!used.has(row.material_class) || row.license !== "CC0-1.0") continue;
@@ -12467,8 +12524,8 @@ function shopBays(feature, wall) {
 const STOREFRONT_TEXTURES = new Map();
 const STOREFRONT_VARIANTS = 4;
 
-function storefrontTexture(trade, variant, frameHex, standalone) {
-  const key = `${trade}|${variant}|${frameHex}|${standalone ? "s" : "u"}`;
+function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = false) {
+  const key = `${trade}|${variant}|${frameHex}|${standalone ? "s" : "u"}|${preserveWall ? "photo-band" : "fallback"}`;
   if (STOREFRONT_TEXTURES.has(key)) return STOREFRONT_TEXTURES.get(key);
   const W = 256;
   const H = 128;
@@ -12490,7 +12547,7 @@ function storefrontTexture(trade, variant, frameHex, standalone) {
   // glazing high and finishes in a fascia; one under flats has a stall riser and a transom
   // under the storey above.
   ctx.fillStyle = frame;
-  ctx.fillRect(0, 0, W, H);
+  if (!preserveWall) ctx.fillRect(0, 0, W, H);
   const riser = standalone ? 10 : 16;            // the stall riser at the foot of the glass
   const head = standalone ? 30 : 22;             // the fascia above the glass
   const top = head;
@@ -12709,7 +12766,7 @@ function storefrontTexture(trade, variant, frameHex, standalone) {
     case "bank": {
       // Stone: pilasters between tall windows, a heavy door, nothing lit.
       ctx.fillStyle = frame;
-      ctx.fillRect(0, 0, W, H);
+      if (!preserveWall) ctx.fillRect(0, 0, W, H);
       for (const [x0, x1] of panes) {
         const n = Math.max(1, Math.floor((x1 - x0) / 44));
         for (let i = 0; i < n; i += 1) {
@@ -12838,9 +12895,14 @@ function addStorefronts(group, feature, seed, height, tint) {
   const standalone = height <= STOREFRONT_STANDALONE_MAX_M;
   const bays = shopBays(feature, wall);
   const lead = bays[0].trade;
-  const frame = storefrontColour(tint, lead, seed);
+  const groundBand = frontageFitFor(feature)?.appearance?.bands?.find(b=>b.bottom_m===0
+    && Number.isFinite(b.top_m) && b.top_m>0 && b.top_m<=height
+    && (/^#[0-9a-f]{6}$/i.test(b.colour || "") || PHOTO_CLASS_TO_MATERIAL[b.material]));
+  const frame = groundBand?.colour ? new THREE.Color(groundBand.colour) : storefrontColour(tint, lead, seed);
   const frameHex = frame.getHex();
-  const bandH = standalone ? Math.max(3.0, height - 0.15) : Math.min(STOREFRONT_BAND_M, height * 0.36);
+  const bandH = groundBand ? Math.min(groundBand.top_m,height-.15)
+    : standalone ? Math.max(3.0, height - 0.15) : Math.min(STOREFRONT_BAND_M, height * 0.36);
+  if (bandH <= .5) return;
   // The ground storey's own colour across the whole street wall, just proud of it, on its
   // vertices so every building's frame merges into one mesh.
   const sink = awningSink("band");
@@ -12848,14 +12910,14 @@ function addStorefronts(group, feature, seed, height, tint) {
     const q = wallPoint(wall, along, out);
     return [q.x, y, q.z];
   };
-  awningQuad(sink, [
+  if (!groundBand) awningQuad(sink, [
     corner(-wall.span / 2, 0.02), corner(wall.span / 2, 0.02),
     corner(wall.span / 2, bandH), corner(-wall.span / 2, bandH),
   ], [frame]);
   // A cornice line where the frame meets the storeys above, or the parapet cap on a
   // standalone shop.
   const capColour = frame.clone().multiplyScalar(0.72);
-  awningQuad(sink, [
+  if (!groundBand) awningQuad(sink, [
     corner(-wall.span / 2, bandH, 0.14), corner(wall.span / 2, bandH, 0.14),
     corner(wall.span / 2, bandH + 0.18, 0.14), corner(-wall.span / 2, bandH + 0.18, 0.14),
   ], [capColour]);
@@ -12872,7 +12934,7 @@ function addStorefronts(group, feature, seed, height, tint) {
       const centre = bay.centre - bay.share / 2 + each * (f + 0.5);
       const at = wallPoint(wall, centre, 0.11);
       planePart(group, at.x, 0.05, at.z, each * 0.97, panelH,
-                storefrontTexture(bay.trade, variant, frameHex, standalone), wall.yaw);
+                storefrontTexture(bay.trade, variant, frameHex, standalone, !!groundBand), wall.yaw);
     }
   }
 }
@@ -13612,13 +13674,14 @@ function buildingMesh(feature) {
   const wallColour = material.photoLabel && !PAINTABLE_PHOTO_CLASSES.has(material.photoLabel)
     ? new THREE.Color(0xffffff).lerp(new THREE.Color(tint), 0.22)
     : new THREE.Color(tint);
+  const appearanceBands=facadeAppearanceBands(feature,{material,seed,tint:wallColour.getHex(),height,bottom:0,top:height});
   if (isHome) {
     const id = String(feature.osm_id);
     // Which way round ExtrudeGeometry walked the outline (it makes every outline clockwise):
     // the shell maps its walls' texture from the same end, so the pattern does not shift.
     const clockwise = THREE.ShapeUtils.isClockWise(feature.points.map(([lon, lat]) => new THREE.Vector2(...xy(lon, lat))));
     HOME_RENDER.set(id, { feature, material, seed, tint: wallColour.getHex(),
-      height, base: hillLift, clockwise });
+      height, base: hillLift, clockwise, appearanceBands });
     BUILDING_VISUAL_ID = id;
   }
   roof.color.setHex(0xffffff);
@@ -13640,6 +13703,23 @@ function buildingMesh(feature) {
       taken.push(index ? index.getX(i) : i);
     }
     slice.setIndex(taken);
+    if(part.materialIndex !== 0 && appearanceBands.some(b=>b.frontBasis)) {
+      for(const band of appearanceBands) {
+        const clipped=clipFacadeBand(geom,taken,hillLift+band.bottom,hillLift+band.top);
+        if(!clipped.getAttribute("position").count) {clipped.dispose();continue;}
+        clipped.userData={};
+        const bandWalls=walls.clone();
+        bandWalls.map=isHome ? bareFacadeTextureFor(band.material,seed) : facadeTextureFor(band.material,seed);
+        bandWalls.roughness=band.material.rough;bandWalls.metalness=band.material.metal;
+        bandWalls.envMapIntensity=band.material.name==="glass" ? 1.6 : band.material.name==="metal" ? 1.1 : .35;
+        const colour=new THREE.Color(band.tint),count=clipped.getAttribute("position").count;
+        const colours=new Float32Array(count*3);
+        for(let i=0;i<count;i++) colours.set([colour.r,colour.g,colour.b],i*3);
+        clipped.setAttribute("color",new THREE.BufferAttribute(colours,3));
+        addMerged("wall",new THREE.Mesh(clipped,bandWalls),"building");
+      }
+      slice.dispose();continue;
+    }
     const colour = part.materialIndex === 0 ? capColour : wallColour;
     const count = slice.getAttribute("position").count;
     const colours = new Float32Array(count * 3);
@@ -22833,6 +22913,11 @@ function buildHomeShell(entry) {
   const shellGlass = homeGlassMaterial.clone();
   const shellGlassInside = homeGlassInsideMaterial.clone();
   const shellFrame = homeFrameMaterial.clone();
+  const bands=spec.appearanceBands || [{material:spec.material,tint:spec.tint,bottom:0,top:spec.height}];
+  const bandMaterials=bands.map(b=>b.frontBasis ? new THREE.MeshStandardMaterial({
+    map:bareFacadeTextureFor(b.material,spec.seed),color:b.tint,roughness:b.material.rough,metalness:b.material.metal,
+    envMapIntensity:b.material.name==="glass" ? 1.6 : b.material.name==="metal" ? 1.1 : .35,side:THREE.DoubleSide}) : material);
+  const trimMaterials=new Map();
   // As the decal reads until updateShellGlass sets it for the camera, the next frame.
   shellGlass.opacity = shellGlassOpacity(Infinity);
   const windowRegistry = [];
@@ -22844,13 +22929,23 @@ function buildHomeShell(entry) {
       kind: "door" }));
     const uvMap = (u, v) => [(spec.clockwise ? length - u : u) / BAY_M, (v - bottom) / storeyM];
     const panels = wallPanels(length, bottom, top, [...cuts, ...windows]);
-    const wall = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels, 0, 0, 0, uvMap), material);
-    wall.castShadow = wall.receiveShadow = true;
-    group.add(wall);
+    for(let i=0;i<bands.length;i++) {
+      const low=bottom+bands[i].bottom, high=bottom+bands[i].top;
+      const bandPanels=panels.map(([x0,y0,x1,y1])=>[x0,Math.max(y0,low),x1,Math.min(y1,high)]).filter(p=>p[3]>p[1]);
+      if(!bandPanels.length) continue;
+      const wall = new THREE.Mesh(homeWallGeometry(a, ux, uz, bandPanels, 0, 0, 0, uvMap), bandMaterials[i]);
+      wall.castShadow = wall.receiveShadow = true;
+      group.add(wall);
+    }
     const lining = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels,
       nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, INTERIOR_WALL_INSET_M + 0.01), shellPlaster);
     group.add(lining);
     for (const o of windows) {
+      const trimColour=/^#[0-9a-f]{6}$/i.test(o.design?.trim?.colour || "") ? o.design.trim.colour : null;
+      if(trimColour && !trimMaterials.has(trimColour)) {
+        const m=homeFrameMaterial.clone();m.color.set(trimColour);trimMaterials.set(trimColour,m);
+      }
+      const frameMaterial=trimColour ? trimMaterials.get(trimColour) : shellFrame;
       // The outer face looks out of the house (n points in), the inner one in.
       const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w, o.h), shellGlass);
       pane.position.set(a[0] + ux * (o.u + o.w / 2) + nx * 0.025,
@@ -22872,7 +22967,7 @@ function buildHomeShell(entry) {
         [o.u + o.w, o.v + o.h / 2, 0.06, o.h], [o.u + o.w / 2, o.v, o.w, 0.06],
         [o.u + o.w / 2, o.v + o.h, o.w, 0.06], ...divisions]) {
         // Shallow, so its lit edges do not stand out from the decal's flat frame.
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), shellFrame);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), frameMaterial);
         frame.position.set(a[0] + ux * u, v, a[1] + uz * u);
         frame.rotation.y = pane.rotation.y;
         group.add(frame);
@@ -22894,7 +22989,7 @@ function buildHomeShell(entry) {
   batchHomeShell(group);
   homeShellGroup.add(group);
   entry.homeShell = { group, material, glass: shellGlass, layout,
-    materials: [material, shellPlaster, shellGlass, shellGlassInside, shellFrame] };
+    materials: [...new Set([material, shellPlaster, shellGlass, shellGlassInside, shellFrame,...bandMaterials,...trimMaterials.values()])] };
   entry.shellNeedsRebuild = false;
   homeShells.add(entry);
   setBatchedHomeVisible(id, false);
@@ -22989,13 +23084,14 @@ const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTextur
 const homeDesignMaterials = new Map();
 function homeDesignMaterial(design) {
   if (!design) return homeDecalMaterial;
-  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || []]);
+  const trimColour=/^#[0-9a-f]{6}$/i.test(design.trim?.colour || "") ? design.trim.colour : "#3d4347";
+  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || [],trimColour]);
   if (homeDesignMaterials.has(key)) return homeDesignMaterials.get(key);
   const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#3d4347"; ctx.fillRect(0,0,128,128);
+  ctx.fillStyle = trimColour; ctx.fillRect(0,0,128,128);
   ctx.fillStyle = "#2a3740"; ctx.fillRect(4,4,120,120);
-  ctx.fillStyle = "#3d4347";
+  ctx.fillStyle = trimColour;
   for (const t of design.vertical_bars || []) ctx.fillRect(t*128-1.5,4,3,120);
   for (const t of design.horizontal_bars || []) ctx.fillRect(4,t*128-1.5,120,3);
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
@@ -23041,7 +23137,7 @@ function pumpHomeDecals() {
     for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
       q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
       for (const o of windows) {
-        const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || []]) : "default";
+        const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || [],o.design.trim?.colour || "#3d4347"]) : "default";
         const key = `${cellKey}:${designKey}`;
         let cell = job.cells.get(key);
         if (!cell) job.cells.set(key, cell = { matrices: [], owners: [], material: homeDesignMaterial(o.design) });
