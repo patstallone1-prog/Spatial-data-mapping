@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="d719567ca0218bfe75f9d467ac9599c9d6805955a158a37941b89ce5ea648750" />
+<meta name="kerbside-renderer-sha256" content="a10cf502eab778483d332d38d02205740517fe4e31a85d3efc5b97c80fd789ab" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -21361,7 +21361,7 @@ async function fullDetailFeature(feature) {
   if (!shard) return feature;
   let records = detailShardCache.get(shard.id);
   if (!records) {
-    records = fetch(asset(shard.file), { cache: "force-cache" })
+    records = fetch(asset(shard.file), { cache: "no-cache" })
       .then((response) => {
         if (!response.ok) throw new Error(`detail shard ${response.status}`);
         return response.json();

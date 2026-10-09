@@ -24205,7 +24205,7 @@ async function fullDetailFeature(feature) {
   if (!shard) return feature;
   let records = detailShardCache.get(shard.id);
   if (!records) {
-    records = fetch(asset(shard.file), { cache: "force-cache" })
+    records = fetch(asset(shard.file), { cache: "no-cache" })
       .then((response) => {
         if (!response.ok) throw new Error(`detail shard ${response.status}`);
         return response.json();
