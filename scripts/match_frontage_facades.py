@@ -263,6 +263,10 @@ if __name__ == "__main__":
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         parser.error("a facade matcher already owns this output")
+    atomic(
+        args.output / "status.json",
+        {"pid": os.getpid(), "status": "initialising_model", "watch_seconds": args.watch_seconds},
+    )
     args.detector = (
         FacadeDetailDetector(args.detail_model_cache) if args.detail_model_cache else None
     )
@@ -274,6 +278,14 @@ if __name__ == "__main__":
     source_hash = hashlib.sha256(b"".join(p.read_bytes() for p in implementation)).hexdigest()
     while True:
         try:
+            atomic(
+                args.output / "status.json",
+                {
+                    "pid": os.getpid(),
+                    "status": "matching_private_evidence",
+                    "watch_seconds": args.watch_seconds,
+                },
+            )
             print(json.dumps(cycle(args)), flush=True)
         except (OSError, ValueError, KeyError) as error:
             atomic(
