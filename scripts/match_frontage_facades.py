@@ -21,6 +21,7 @@ import cv2
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from smc.facades.detail_detection import FacadeDetailDetector  # noqa: E402
 from smc.facades.fit import extract_front  # noqa: E402
 from smc.facades.geometry import LocalFrame  # noqa: E402
 
@@ -56,7 +57,7 @@ def diagram(fit: dict) -> str:
 
 def cycle(args) -> dict:
     controls = json.loads(args.controls.read_text()) if args.controls else {}
-    payloads, materials, builds, cards = {}, {}, {}, []
+    payloads, materials, builds, cards = {}, {}, {}, {}
     fitted, rejected = 0, 0
     code_hash = hashlib.sha256((ROOT / "src/smc/facades/fit.py").read_bytes()).hexdigest()
     for review_root in args.inputs:
@@ -104,6 +105,21 @@ def cycle(args) -> dict:
                 continue
             wall = candidate["wall"]
             supplied = dict(controls.get(key, {}))
+            if supplied and supplied.get("image_sha256") != row["pixel_sha256"]:
+                supplied = {}  # Controls for another image must never be silently reused.
+            if (row.get("ground_reference") or {}).get("frame") == "relative_to_facade_foot":
+                supplied.setdefault("ground_reference", row["ground_reference"])
+            detection = None
+            if args.detector is not None:
+                digest = hashlib.sha256(photo.read_bytes()).hexdigest()
+                detection_path = args.output / "detections" / f"{digest}.json"
+                if detection_path.exists():
+                    detection = json.loads(detection_path.read_text())
+                else:
+                    detection = args.detector.detect(image)
+                    detection["image_file_sha256"] = digest
+                    atomic(detection_path, detection)
+                supplied["detector_proposals"] = detection["objects"]
             levels = way.get("levels") or way.get("tags", {}).get("building:levels")
             if levels and str(levels).isdigit():
                 supplied.setdefault("levels", int(levels))
@@ -132,6 +148,7 @@ def cycle(args) -> dict:
                     "review_status": "needs_visual_alignment_review",
                     "pixel_publication": "forbidden_without_privacy_review",
                     "fit_rank": candidate["rank"],
+                    "detector": detection.get("model") if detection else None,
                 }
             )
             if fit["conflicts"]:
@@ -148,7 +165,7 @@ def cycle(args) -> dict:
             # Private side-by-side review, linking local evidence rather than republishing it.
             relative_photo = os.path.relpath(photo, args.output)
             address = (row.get("address") or {}).get("formatted") or key
-            cards.append(
+            cards[key] = (
                 f"<article><h2>{html.escape(address)}</h2><p>Prior metric placement; not inch-certified. "
                 f'{len(fit["openings"])} opening proposals.</p><div class="pair">'
                 f'<img src="{html.escape(relative_photo, quote=True)}" alt="Source facade"/>'
@@ -159,7 +176,7 @@ def cycle(args) -> dict:
         '<!doctype html><meta charset="utf-8"><title>Facade alignment audit</title>'
         "<style>body{font:16px system-ui;background:#eee;margin:24px}.pair{display:flex;gap:20px}.pair img{width:45%;max-height:680px;object-fit:contain}article{background:white;padding:18px;margin:20px 0}</style>"
         "<h1>Private photo-to-facade audit</h1><p>Appearance proposals on canonical priors; neither hidden depth nor inch-scale accuracy is certified.</p>"
-        + "".join(cards)
+        + "".join(cards.values())
     )
     (args.output / "index.html").write_text(page)
     if args.publish_reviewed:
@@ -183,6 +200,23 @@ def cycle(args) -> dict:
                     )
                 )
                 or not check.get("reviewer")
+                or not all(
+                    check.get(gate)
+                    for gate in (
+                        "render_3d_verified",
+                        "higher_accuracy_than_baseline",
+                        "certainty_reviewed",
+                        "privacy_reviewed",
+                    )
+                )
+                or (
+                    any(o.get("recess", {}).get("render_steps") for o in fit["openings"])
+                    and not check.get("stairs_verified")
+                )
+                or (
+                    any(d.get("render") for d in fit.get("details", []))
+                    and not check.get("details_verified")
+                )
             ):
                 raise ValueError(f"missing image-bound visual review for {key}")
             fit["review_status"] = "reviewed_inferred_visual_parameters"
@@ -215,6 +249,11 @@ if __name__ == "__main__":
     parser.add_argument("--reviews", type=Path)
     parser.add_argument("--publish-reviewed", nargs="+")
     parser.add_argument("--watch-seconds", type=int, default=0)
+    parser.add_argument(
+        "--detail-model-cache",
+        type=Path,
+        help="optional pinned upstream detector for private proposals",
+    )
     args = parser.parse_args()
     if args.watch_seconds < 0 or (args.watch_seconds and args.publish_reviewed):
         parser.error("watching may not automatically publish; nonnegative interval required")
@@ -224,7 +263,14 @@ if __name__ == "__main__":
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         parser.error("a facade matcher already owns this output")
-    implementation = [Path(__file__), ROOT / "src/smc/facades/fit.py"]
+    args.detector = (
+        FacadeDetailDetector(args.detail_model_cache) if args.detail_model_cache else None
+    )
+    implementation = [
+        Path(__file__),
+        ROOT / "src/smc/facades/fit.py",
+        ROOT / "src/smc/facades/detail_detection.py",
+    ]
     source_hash = hashlib.sha256(b"".join(p.read_bytes() for p in implementation)).hexdigest()
     while True:
         try:

@@ -3273,6 +3273,16 @@ function frontageFitFor(feature) {
       || Math.abs(Number(feature.height_m) - fit.height_m) > 0.05) return null;
   return fit;
 }
+function houseCertainty(feature) {
+  const fit = frontageFitFor(feature);
+  const appearance = (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)];
+  return {
+    front: fit ? "reviewed photo-derived visual layout (not surveyed)" : "inferred facade layout",
+    appearance: fit ? "reviewed image appearance" : appearance ? "photo-classified appearance" : "procedural appearance",
+    height: feature.height_source || "unknown height source",
+    unseenSides: "inferred", metricAccuracy: fit?.inch_accuracy_verified ? "independently verified" : "not inch-verified",
+  };
+}
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
 document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleString();
@@ -14438,6 +14448,71 @@ function balconyPart(group, wall, y, seed) {
   }
 }
 
+function photoDetailParts(group, feature) {
+  const fit = frontageFitFor(feature);
+  if (!fit?.a || !fit?.b) return;
+  const [ax, ay] = xy(...fit.a), [bx, by] = xy(...fit.b);
+  const dx = bx-ax, dz = ay-by, L = Math.hypot(dx,dz);
+  if (L < .2) return;
+  const tx=dx/L, tz=dz/L, nx=-tz, nz=tx, yaw=-Math.atan2(tz,tx);
+  const at = (u,n) => [ax+tx*u+nx*n,-ay+tz*u+nz*n];
+  for (const detail of fit.details || []) {
+    if (!detail.render || !detail.visible || !detail.reviewer || detail.image_sha256 !== fit.image_sha256
+        || !["balcony","fire_escape"].includes(detail.kind)
+        || ![detail.u,detail.w,detail.depth_m].every(Number.isFinite)
+        || detail.u < 0 || detail.w <= 0 || detail.u+detail.w > L+.05
+        || detail.depth_m <= 0 || detail.depth_m > 2.5
+        || !/^#[0-9a-f]{6}$/i.test(detail.colour || "")) continue;
+    const heights = detail.platform_heights_m || [];
+    if (!heights.length || !heights.every(y=>Number.isFinite(y) && y>0 && y<=fit.height_m-1.2)) continue;
+    const colour = Number.parseInt(detail.colour.slice(1),16);
+    const roughness = detail.material === "metal" ? .48 : .82;
+    const center = detail.u+detail.w/2, depth=detail.depth_m;
+    const part = (u,y,n,w,h,d) => {
+      const p=at(u,n);
+      const mesh=makeBox(p[0],y+BUILDING_LIFT_M,p[1],w,h,d,colour,roughness);
+      mesh.material.metalness=detail.material === "metal" ? .65 : .04;
+      mesh.rotation.y=yaw;
+      addMerged("part",mesh,"detail");
+      return mesh;
+    };
+    const railBeam = (u0,y0,u1,y1,n) => {
+      const a=at(u0,n), b=at(u1,n);
+      const direction=new THREE.Vector3(b[0]-a[0],y1-y0,b[1]-a[1]);
+      const length=direction.length();
+      if(length<.01) return;
+      const beam=makeBox(0,0,0,.025,length,.025,colour,roughness);
+      beam.material.metalness=detail.material === "metal" ? .65 : .04;
+      beam.position.set((a[0]+b[0])/2,(y0+y1)/2+BUILDING_LIFT_M,(a[1]+b[1])/2);
+      beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
+      addMerged("part",beam,"detail");
+    };
+    for (const y of heights) {
+      part(center,y-.10,depth/2,detail.w,.10,depth);
+      part(center,y+1.0,depth,detail.w,.045,.045);
+      if (detail.style === "solid_panel") part(center,y+.05,depth,detail.w,.95,.05);
+      else if(detail.style === "lattice") for(let u=detail.u;u<detail.u+detail.w;u+=.45) {
+        const end=Math.min(detail.u+detail.w,u+.45);
+        railBeam(u,y+.10,end,y+.95,depth); railBeam(u,y+.95,end,y+.10,depth);
+      }
+      else for(let u=detail.u;u<=detail.u+detail.w;u+=.18) part(u,y,depth,.025,1.0,.025);
+      for(const u of [detail.u,detail.u+detail.w]) {
+        part(u,y+1.0,depth/2,.045,.045,depth);
+        for(let n=.1;n<depth;n+=.18) part(u,y,n,.025,1.0,.025);
+      }
+    }
+    if(detail.kind === "fire_escape") for(let i=1;i<heights.length;i++) {
+      const low=heights[i-1], high=heights[i], stairWidth=Math.min(.65,detail.w*.35);
+      const run=detail.w-stairWidth;
+      const count=Math.ceil((high-low)/.18);
+      for(let k=0;k<count;k++) {
+        const u=detail.u+stairWidth/2+run*(k+.5)/count;
+        part(u,low+(high-low)*(k+1)/count-.04,depth/2,run/count,.04,Math.min(.75,depth));
+      }
+    }
+  }
+}
+
 // ---- shopfronts ----
 //
 // Two thousand seven hundred and twenty eight businesses in this corridor, each with a name and
@@ -15667,7 +15742,7 @@ function addSouthFacadeDetail(group, feature, seed, height) {
   // A house's windows are its own (homeWindowLayout); the panel of painted windows is only for a
   // building with a shop in it.
   if (hasStorefront(feature)) planePart(group, x, bottom, z, panelW, panelH, southWindowTextureFor(seed), wall.yaw);
-  if (height > 7.5 && random(seed + 701) < 0.34) {
+  if (!frontageFitFor(feature) && height > 7.5 && random(seed + 701) < 0.34) {
     balconyPart(group, wall, Math.min(height - 1.1, STOREY_M * 1.2), seed);
   }
 }
@@ -16427,6 +16502,7 @@ function buildingMesh(feature) {
   } else {
     addGroundFacadeDetail(group, feature, seed, height, tint);
     addSouthFacadeDetail(group, feature, seed, height);
+    photoDetailParts(group, feature);
     addRoofFurniture(group, feature, seed, height, areaM2);
     addShopfronts(feature, seed, height, tint);
     addBuildingNamePlaque(group, feature, seed, height, tint);
@@ -24261,8 +24337,11 @@ async function featureSummary(feature) {
   const zoning = full.zoning || {};
   const lidar = full.datasf_building_height || {};
   const title = place.name || full.name || address.formatted || "Building";
+  const certainty = houseCertainty(full);
   const lines = [
     `<b>${title}</b>`,
+    `Certainty: ${certainty.front}; ${certainty.appearance}; ${certainty.metricAccuracy}`,
+    `Height basis: ${certainty.height}; unseen sides: ${certainty.unseenSides}`,
     address.formatted || place.formatted_address || "",
     full.archetype ? `Type: ${full.archetype.replaceAll("_", " ")}` : "",
     place.primary_type ? `Business: ${place.primary_type.replaceAll("_", " ")}` : "",
@@ -24404,13 +24483,14 @@ function showAddress(feature, clientX, clientY) {
   const parcel = feature.parcel || {};
   const line = address.formatted
     || [address.house_number, address.street].filter(Boolean).join(" ");
-  if (!line && !feature.name) return false;
+  if (!line && !feature.name && feature.kind !== "building") return false;
   const rest = [
     feature.name && line ? feature.name : "",
     parcel.blklot ? `Parcel ${parcel.blklot}` : "",
     parcel.analysis_neighborhood || "",
+    `Certainty: ${houseCertainty(feature).front}; ${houseCertainty(feature).metricAccuracy}`,
   ].filter(Boolean);
-  addrBox.innerHTML = `<b>${line || feature.name}</b>`
+  addrBox.innerHTML = `<b>${line || feature.name || `Building ${feature.osm_id}`}</b>`
     + (rest.length ? `<br><span class="sub">${rest.join(" &middot; ")}</span>` : "");
   addrBox.hidden = false;
   // Placed after it is measurable, and kept inside the window rather than half off the edge.

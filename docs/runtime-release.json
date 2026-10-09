@@ -2,16 +2,16 @@
   "schema": 1,
   "authoritative_branch": "main",
   "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
-  "renderer_sha256": "e7ca80e7dc0f44c4e8eb9923e8f19783db18d9db10b68fce0600ae923740b193",
+  "renderer_sha256": "1b49e89421b5cdfcfe14b2dad0c58b0c13a4a5fda7b319e1fda0378ac87081c2",
   "consumers": {
-    "app-model.html": "2f6220956214a74a37c834a7b416c76018275841afd559fc951aba7244d09499",
-    "app-regions/berkeley-downtown/app-model.html": "cde03446d41e6c8b8a88d2993e7716766011d5fceeefb83838f38a7b2381612c",
-    "app-regions/oakland-downtown/app-model.html": "8bceb5ce7387c8d148a056e643c24c79dd4544bfcbd093502eb1d1a0f64aab45",
-    "app-regions/palo-alto-downtown/app-model.html": "128631f263c677148ded5385c474f1eb37b6788b5e85907da3d511c414ef9d40",
-    "app-regions/san-jose-downtown/app-model.html": "a8415533ba2cecfe3a2503623946f52c023119926f7fe449f0580edee806a127",
-    "app-regions/sf-haight-castro/app-model.html": "93479555f77ae39b8b84d52f3f2f6ded621329df928e0be6daf2c7db0daa8514",
-    "app-regions/sf-mission/app-model.html": "05ecd9fb3b3502a64bad7b93eda3acab147214d69d29aa8888813967cb308067",
-    "app-regions/sf-sunset/app-model.html": "cd2a305e1c9242cee466870830d4930bd40394d5745065724f8760886c89184b"
+    "app-model.html": "f65fc7b649ece7d7b5ea087a1d12ca89b99fb27a0f254f4b0551eb20a862b502",
+    "app-regions/berkeley-downtown/app-model.html": "e28e2df8464248f9ab23a04ec6ab7a05317ffabe989e4fba909b0804d372e957",
+    "app-regions/oakland-downtown/app-model.html": "d7fc385b39191619e03bef3e865a18ab303d3549d8a50ee8ead03a111849b45c",
+    "app-regions/palo-alto-downtown/app-model.html": "57cd7afb5a9a08c339144f6ce1801e0e215075528780a67090b99d51cd133bf6",
+    "app-regions/san-jose-downtown/app-model.html": "eb13e721898357e27c7930215b78b8a622f2b3a1c2ccdb8be4b964156e099cbb",
+    "app-regions/sf-haight-castro/app-model.html": "a86ed77e1ec74c33d0e6e3100a32841e84685406756ae055bc4eb8a2305cb678",
+    "app-regions/sf-mission/app-model.html": "e5490958ed636c975490a9ad6c706dba2b3930840e5c119db201c3d1a043982d",
+    "app-regions/sf-sunset/app-model.html": "8fef39a9b7dadcfa3b6d8f94ae8347e23cab32fefe3009f70980af695b16afa7"
   },
   "native_source": "unreal/Plugins/KerbsideWorld",
   "native_sources_sha256": {

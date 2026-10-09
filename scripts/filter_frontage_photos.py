@@ -248,12 +248,23 @@ def scan_region(args, region, poses, landmarks, now, policy):
     page, catalogs = paths_for(args.data_root, region)
     if not page.exists() or not catalogs:
         return {"status": "missing_input", "region": region}
+    from smc.facades.grounding import TerrainReference, street_readable_wall
+
+    terrain_path = page.parent / "sf-corridor-terrain.json"
+    terrain_binary = terrain_path.with_suffix(".bin")
+    terrain = (
+        TerrainReference(terrain_path)
+        if terrain_path.exists() and terrain_binary.exists()
+        else None
+    )
     stamp = {
         "method": METHOD,
         "implementation_sha256": args.code_hash,
         "policy": dataclasses.asdict(policy),
         "date": now.date().isoformat(),
         "world_sha256": file_hash(page),
+        "terrain_sha256": file_hash(terrain_path) if terrain else None,
+        "terrain_pixels_sha256": file_hash(terrain_binary) if terrain else None,
         "catalogs": [file_hash(p) for p in catalogs],
         "poses_sha256": args.pose_hash,
         "building_limit": args.limit,
@@ -361,6 +372,7 @@ def scan_region(args, region, poses, landmarks, now, policy):
         if not frontages:
             rejected["no_complete_street_frontage"] += 1
         for wall, road in frontages:
+            wall = street_readable_wall(wall)
             mx, my = wall.midpoint
             indices = {
                 n for cell in cells([(mx, my)], policy.max_distance_m) for n in grid.get(cell, ())
@@ -374,6 +386,11 @@ def scan_region(args, region, poses, landmarks, now, policy):
                 ):
                     rejected["distance_or_oblique_prefilter"] += 1
                     continue
+                camera, ground_reference = (
+                    terrain.ground_camera(camera, wall, frame)
+                    if terrain
+                    else (camera, {"status": "unknown"})
+                )
                 result = assess_view(
                     wall, camera, row, now=now, policy=policy, landmark=landmark, posed=posed
                 )
@@ -393,6 +410,7 @@ def scan_region(args, region, poses, landmarks, now, policy):
                         "street": road[1],
                         "wall": dataclasses.asdict(wall),
                         "camera": dataclasses.asdict(camera),
+                        "ground_reference": ground_reference,
                     }
                 )
         candidates.sort(key=lambda r: r["rank"], reverse=True)
@@ -618,6 +636,7 @@ def review_samples(args, summaries, policy):
                 {
                     "status": "awaiting_review",
                     "pixel_sha256": digest,
+                    "ground_reference": candidate.get("ground_reference"),
                     "crop": str(report_path.with_suffix(".jpg")),
                     "pixel_frame_coverage": view.coverage,
                     "vegetation_heuristic": vegetation_share(view.image, view.mask),
@@ -751,6 +770,7 @@ def main():
         ROOT / "src/smc/facades/frontage.py",
         ROOT / "src/smc/facades/frontage_pixels.py",
         ROOT / "src/smc/facades/frontage_retention.py",
+        ROOT / "src/smc/facades/grounding.py",
     ]
     args.code_hash = hashlib.sha256(
         "".join(file_hash(p) for p in implementation).encode()

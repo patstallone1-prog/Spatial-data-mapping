@@ -106,3 +106,55 @@ mandatory for merge and Vercel promotion. Existing graph is refreshed AST-only.
 Private matching output: `build/facade-match/index.html` and `status.json`.
 Filter output: `build/frontage-live/review/index.html` and `status.json`.
 Neither private evidence nor model weights are in the deployable `docs/` tree.
+
+## Follow-up: visible stairs, detail objects and certainty
+
+The subsequent request tightens the promotion condition: deploy only after
+correct, higher-accuracy photo rendering is verified. **That condition has not
+passed; PR 32 must remain unmerged.** The earlier, independently green cache PR
+31 was merged before this follow-up. Production now serves shell-only worker
+`6fae9c7cc54f4cc9`; the foreground-update button and facade work are not live yet.
+
+Added a pinned [Grounding DINO tiny](https://huggingface.co/IDEA-Research/grounding-dino-tiny)
+adapter rather than another homemade semantic detector. Revision and model-file
+SHA256 are recorded in `data/benchmarks/facade-detail-audit-v1.json`, alongside
+three source hashes/locators and explicit failed visual findings. This is a
+fault audit, **not** a held-out metric benchmark. Its detector scores are not
+probabilities of house correctness. Union's fire escape was localized, but a
+garage was incorrectly labelled stairs; Filbert windows were missed; Leavenworth
+cornices were labelled canopies. No model proposal alone is rendered.
+
+Entrance fitting now requires image-bound, reviewed visible stairs. A visible
+door can have five/six observed risers in a short recess. Hidden-door long-flight
+inference requires a height/levels-constrained storey bottom; partial visible
+step counts cannot compress a full-storey rise into five steps. Its four-tread
+landing aligns with the inferred threshold. Such stairs remain proposed visual
+specifications, not new live collision or automatic physical house entries.
+
+Reviewed detail controls can represent balconies/fire escapes, observed colour,
+material class and vertical-bar/lattice/solid rail style. Renderer plumbing draws
+their platforms at controlled or explicitly inferred storey levels and batches
+the geometry; unreviewed, wrong-image, invalid and above-roof records are rejected.
+Exact ornate rail patterns and measured protrusion depth are **not** recovered.
+Canonical collision remains separate, and a real-record 3D visual audit is still
+required before these details can be promoted.
+
+Every selectable building, including unaddressed buildings, exposes a categorical
+certainty description: inferred versus reviewed photo-front, appearance basis,
+height source, inferred unseen sides, and whether inch-scale accuracy is verified.
+It does not manufacture a numerical certainty percentage.
+
+Found and corrected mirrored audit orientation caused by clockwise frontage
+sampling. The new selection path normalizes street-readable endpoint order and
+records shared-terrain camera/frontage elevation differences. Raw images are not
+mirrored or duplicated. Three source-pixel reprojections were inspected: text
+orientation improved, but cropped roofs/fronts persisted. Camera height above
+ground remains estimated; the 2 m terrain grid is not independent curb truth.
+The facade matcher therefore remains private with zero promoted fits.
+
+Current focused result: **169 tests pass**, including new visible-stair, hidden
+entry, six-riser recess, material/rail parameter, photo-detail renderer, certainty,
+shared-terrain and endpoint-orientation checks. The first full CI run had 1,182
+passing tests and one obsolete assertion demanding `force-cache`; that assertion
+now requires revalidation while retaining per-visit promise memoization. CI is
+rerun on the new commit and remains a separate gate from failed photo accuracy.

@@ -36,7 +36,8 @@ def test_only_reviewed_fits_map_to_correct_edge_with_same_window_design():
     )
     code += "function xy(x,y){return [x,y];}\n"
     code += "\n".join(
-        _extract(name, _page_js()) for name in ("frontageFitFor", "frontageWindowsOnEdge")
+        _extract(name, _page_js())
+        for name in ("frontageFitFor", "frontageWindowsOnEdge", "houseCertainty")
     )
     code += """
       const entry = {way:{osm_id:1,height_m:6,points:[[0,0],[10,0],[10,10]]}};
@@ -50,6 +51,9 @@ def test_only_reviewed_fits_map_to_correct_edge_with_same_window_design():
       if(frontageFitFor({osm_id:1,height_m:7})!==null) throw Error("stale height accepted");
       FRONTAGE_FITS.buildings[1].review_status="needs_visual_alignment_review";
       if(frontageFitFor(entry.way)!==null) throw Error("unreviewed promoted");
+      const MATERIAL_ASSIGNMENTS={assigned:{}};
+      if(!houseCertainty(entry.way).front.includes("inferred")) throw Error("unknown facade claimed reviewed");
+      if(houseCertainty(entry.way).metricAccuracy!=="not inch-verified") throw Error("invented precision");
     """
     result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr
