@@ -2999,6 +2999,17 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
      eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
      its previous version. Fetched, the page is a few kilobytes, the data changes independently,
      and browsers cache it between visits. -->
+<script>
+// Available even if a module import fails before the renderer can initialize.
+window.kerbsideBoot = { startedAt: Date.now(), error: null };
+window.addEventListener("error", event => {
+  if (event.target === window || event.target?.tagName === "SCRIPT")
+    window.kerbsideBoot.error = "The renderer could not finish loading. Please retry the map.";
+}, true);
+window.addEventListener("unhandledrejection", () => {
+  window.kerbsideBoot.error = "A map resource failed to load. Please check the connection and retry.";
+});
+</script>
 <script type="module">
 import * as THREE from "https://esm.sh/three@0.160.0";
 //: Muni's red: the roof of every shelter and of every station canopy. Up here because the
@@ -3052,6 +3063,19 @@ const LOAD_MARK_KEY = "kerbside:loading";
 const LIGHT_KEY = "kerbside:light";
 //: Half the side of the square built in full, by level: 0 is the whole region.
 const LIGHT_RADII_M = [0, 1000, 650, 420];
+let runtimeCacheRecovery = Promise.resolve();
+function clearLegacyRuntimeCaches() {
+  if (typeof caches === "undefined") return Promise.resolve();
+  // Only obsolete downloadable world responses. Captures in IndexedDB, preferences and
+  // unrelated application caches are not recovery targets; the current shell remains usable.
+  return caches.keys().then(keys => Promise.all(keys.filter(key => /^kerbside-[0-9a-f]{16}$/.test(key))
+    .map(key => caches.delete(key)))).catch(() => {});
+}
+function validLightLevel(value, fallback = 0) {
+  const n = Number(value);
+  return value !== null && value !== "" && Number.isFinite(n)
+    ? Math.max(0, Math.min(LIGHT_RADII_M.length - 1, Math.floor(n))) : fallback;
+}
 //: Under 8 GB of memory (Chrome reports it), or a phone or a tablet.
 function deviceIsSmall() {
   return (typeof navigator !== "undefined")
@@ -3066,25 +3090,40 @@ const LIGHT_LEVEL = (() => {
   let level = deviceIsSmall() ? 1 : 0;
   try {
     const chosen = localStorage.getItem(LIGHT_KEY);
-    if (chosen !== null && Number.isFinite(Number(chosen))) level = Number(chosen);
-    const mark = JSON.parse(localStorage.getItem(LOAD_MARK_KEY) || "null");
-    if (mark && Date.now() - mark.at < 15 * 60 * 1000) {
-      level = Math.min(LIGHT_RADII_M.length - 1, Math.max(level, mark.level || 0) + 1);
-      localStorage.setItem(LIGHT_KEY, String(level));
-    }
-  } catch (error) { /* without storage, the device's own say is all there is */ }
+    level = validLightLevel(chosen, level);
+  } catch (error) { /* preferences may be unavailable */ }
   const query = new URLSearchParams(location.search);
   if (query.has("full")) level = 0;
-  if (query.has("light")) level = Math.max(0, Math.min(LIGHT_RADII_M.length - 1, Number(query.get("light")) || 1));
+  if (query.has("light")) level = validLightLevel(query.get("light"), 1);
+  try {
+    // Session storage is per tab, so another open map does not look like a crashed load.
+    const mark = JSON.parse(sessionStorage.getItem(LOAD_MARK_KEY) || "null");
+    const age = mark && Date.now() - mark.at;
+    if (mark && Number.isFinite(age) && age >= 0 && age < 15 * 60 * 1000) {
+      level = Math.min(LIGHT_RADII_M.length - 1, Math.max(level, validLightLevel(mark.level)) + 1);
+      try { localStorage.setItem(LIGHT_KEY, String(level)); } catch (error) { /* this tab still recovers */ }
+      runtimeCacheRecovery = clearLegacyRuntimeCaches();
+    }
+  } catch (error) { /* without storage, the device's own say is all there is */ }
   return level;
 })();
+await runtimeCacheRecovery; // recovery completes before a single world response is requested
 if (!ATTACH) {
-  try { localStorage.setItem(LOAD_MARK_KEY, JSON.stringify({ at: Date.now(), level: LIGHT_LEVEL })); }
+  try { sessionStorage.setItem(LOAD_MARK_KEY, JSON.stringify({ at: Date.now(), level: LIGHT_LEVEL })); }
   catch (error) { /* no mark: a crash goes unnoticed, and the device's own say stands */ }
 }
+// A deliberate reload, normal close or region handover is not a renderer crash.
+function clearLoadMark() {
+  if (ATTACH) return;
+  try { sessionStorage.removeItem(LOAD_MARK_KEY); } catch (error) { /* storage may be unavailable */ }
+}
+if (!ATTACH) addEventListener("pagehide", clearLoadMark);
 //: Called once the page has drawn and held: the load survived.
+let loadSurvivalScheduled = false;
 function markLoadSurvived() {
-  setTimeout(() => { try { localStorage.removeItem(LOAD_MARK_KEY); } catch (error) { /* ignore */ } }, 30000);
+  if (ATTACH || loadSurvivalScheduled || !window.kerbsideReady?.streets || !window.kerbsideReady?.ground) return;
+  loadSurvivalScheduled = true;
+  setTimeout(() => { if (!window.kerbsideBoot?.error) clearLoadMark(); }, 30000);
 }
 //: The square: round the place asked for (?at=lon,lat), or where a hand-over arrives, or the
 //: middle of the region; kept inside the region's box.
@@ -3233,6 +3272,12 @@ document.getElementById("detailnote").textContent = DETAIL_MANIFEST.shards.lengt
 
 
 const canvas = document.getElementById("scene");
+if (!ATTACH) {
+  canvas.addEventListener("webglcontextlost", () => {
+    window.kerbsideBoot.error = "The graphics context was interrupted. Please retry the map.";
+  });
+  canvas.addEventListener("webglcontextrestored", () => { window.kerbsideBoot.error = null; });
+}
 // A logarithmic depth buffer, because this scene spans five orders of magnitude: a 126 mm kerb
 // has to stay distinct from the road it sits on while a two-kilometre corridor is on screen. With
 // the ordinary buffer, precision falls with the square of distance -- at a thousand metres it is
@@ -3299,6 +3344,7 @@ if (BUILD_WINDOW) {
 //: Past the square's edge, less this, the square is built again round the walker.
 const LIGHT_EDGE_M = 120;
 let lightRebuilding = false;
+let lightWindowStart = null;
 //: Build the square again, round a place in this region: the page reloads there, arriving as a
 //: region hand-over arrives, where it was and looking the way it looked.
 function rebuildRoundHere(lon, lat) {
@@ -3317,6 +3363,10 @@ function rebuildRoundHere(lon, lat) {
 //: The walker has walked, or been taken, near the edge of the square: build round it again.
 function checkLightWindow(frame) {
   if (!BUILD_WINDOW || lightRebuilding || frame % 30 !== 0) return;
+  // Never navigate merely because a restored/default spawn is near a window boundary.
+  // Only actual movement or teleporting after the first frame can request a new window.
+  if (!lightWindowStart) { lightWindowStart = [avatar.position.x, avatar.position.z]; return; }
+  if (Math.hypot(avatar.position.x - lightWindowStart[0], avatar.position.z - lightWindowStart[1]) < 1) return;
   const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
   const b = DATA.bbox;
   if (b && (lon < b.west || lon > b.east || lat < b.south || lat > b.north)) return;   // another region's: its own page
@@ -6395,7 +6445,7 @@ function pumpTileQueue() {
 async function loadTile(tile) {
   const layers = {};
   await Promise.all(Object.entries(tile.assets).map(async ([name, meta]) => {
-    const response = await fetch(asset(TILE_BASE + meta.url), { cache: "force-cache" });
+    const response = await fetch(asset(TILE_BASE + meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`tile ${tile.id} ${name} ${response.status}`);
     layers[name] = await response.json();
   }));
@@ -9850,7 +9900,7 @@ function bareFacadeTextureFor(material, seed) {
 async function loadPhotoMaterialLibrary() {
   let manifest;
   try {
-    const response = await fetch(sharedAsset("materials/manifest.json"), { cache: "force-cache" });
+    const response = await fetch(sharedAsset("materials/manifest.json"), { cache: "no-cache" });
     if (!response.ok) return;
     manifest = await response.json();
   } catch (_) { return; }
@@ -27482,7 +27532,8 @@ function animate(now) {
   lastDrawnEye.copy(camera.matrixWorld);
   // The first frame drawn is the end of loading.
   const progress = document.getElementById("progress");
-  if (progress && !progress.hidden) { progress.hidden = true; markLoadSurvived(); }
+  if (progress && !progress.hidden) progress.hidden = true;
+  markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
   stepAvatar(now);
   updateCompass(now);
   checkLightWindow(frameCount);

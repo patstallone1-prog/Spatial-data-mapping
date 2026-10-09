@@ -387,6 +387,7 @@
           <div class="ml-stage" id="ml-stage">Fetching the measurements&hellip;</div>
           <div class="ml-track"><div class="ml-fill" id="ml-fill"></div></div>
           <div class="ml-pct"><span id="ml-pct">0%</span><span id="ml-note">measured kerbs, lidar ground, photographed walls</span></div>
+          <button id="ml-retry" type="button" hidden>Retry map</button>
         </div>
       </div>
     </div>
@@ -1426,14 +1427,28 @@ function watchModel() {
   const fill = document.getElementById("ml-fill");
   const pct = document.getElementById("ml-pct");
   const stageOut = document.getElementById("ml-stage");
+  const retry = document.getElementById("ml-retry");
   if (!frame || !cover) return;
   let shown = 0;
+  let completed = false;
+  frame.addEventListener("load", () => {
+    shown = 0; completed = false;
+    cover.classList.remove("done"); cover.style.display = "";
+    if (retry) retry.hidden = true;
+  });
+  if (retry) retry.addEventListener("click", () => {
+    // Retry only the 3D frame. Captures, upload queue and the application remain intact.
+    retry.hidden = true;
+    frame.contentWindow.location.reload();
+  });
   const tick = () => {
     let done = false;
     let text = "";
+    let failure = null;
     try {
       const w = frame.contentWindow;
       const ready = w && w.kerbsideReady;
+      failure = w && w.kerbsideBoot && w.kerbsideBoot.error;
       done = Boolean(ready && ready.streets && ready.ground);
       const box = w && w.document && w.document.getElementById("progress");
       text = (box && !box.hidden && box.textContent) || "";
@@ -1442,6 +1457,16 @@ function watchModel() {
       // to read, so the bar creeps rather than lying about a number it does not have.
       shown = Math.min(0.92, shown + 0.01);
     }
+    if (failure) {
+      completed = false;
+      cover.classList.remove("done"); cover.style.display = "";
+      stageOut.textContent = failure;
+      pct.textContent = "Load stopped";
+      if (retry) retry.hidden = false;
+      setTimeout(tick, 1000);
+      return;
+    }
+    if (retry) retry.hidden = true;
     let target = shown;
     if (done) {
       target = 1;
@@ -1460,13 +1485,13 @@ function watchModel() {
     shown = Math.max(shown, Math.min(1, target));
     fill.style.width = (shown * 100).toFixed(0) + "%";
     pct.textContent = (shown * 100).toFixed(0) + "%";
-    if (done) {
+    if (done && !completed) {
+      completed = true;
       stageOut.textContent = "Ready";
       cover.classList.add("done");
-      setTimeout(() => { cover.style.display = "none"; }, 500);
-      return;
+      setTimeout(() => { if (completed) cover.style.display = "none"; }, 500);
     }
-    setTimeout(tick, 250);
+    setTimeout(tick, completed ? 1000 : 250);
   };
   tick();
 }

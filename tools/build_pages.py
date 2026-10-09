@@ -185,6 +185,8 @@ def main(out: pathlib.Path | None = None) -> None:
     # the version identical, the old cache alive, and the new payload unreachable on any device
     # that had opened the site before.
     digest = hashlib.blake2b(digest_size=8)
+    worker = (ROOT / "tools/pwa/sw.js").read_text()
+    digest.update(worker.encode())
     digest.update((app + landing).encode())
     for extra in sorted(out.glob("sf-corridor-*")):
         if not extra.is_file():
@@ -198,7 +200,7 @@ def main(out: pathlib.Path | None = None) -> None:
             digest.update(str(extra.relative_to(out)).encode())
             digest.update(str(extra.stat().st_size).encode())
     version = digest.hexdigest()
-    sw = (ROOT / "tools/pwa/sw.js").read_text().replace("__VERSION__", version)
+    sw = worker.replace("__VERSION__", version)
     (out / "sw.js").write_text(sw)
 
     # Jekyll is on by default for Pages and would refuse to serve anything beginning with an

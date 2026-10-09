@@ -1,14 +1,27 @@
 """Inline the map dataset into the capture app."""
 from __future__ import annotations
 
+import json
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from site_config import APP_URL  # noqa: E402
+from site_config import APP_URL
 
-data = pathlib.Path("build/map_data.json").read_text()
+data_path = pathlib.Path("build/map_data.json")
+if data_path.exists():
+    data = data_path.read_text()
+else:
+    # UI/cache-only releases must be reproducible without private ingestion scratch files.
+    # Preserve the already-published dataset verbatim, never substitute an empty/demo map.
+    published = pathlib.Path("docs/app.html").read_text()
+    match = re.search(r"^const DATA = (.+);$", published, re.MULTILINE)
+    if not match:
+        raise FileNotFoundError("No build/map_data.json or reusable published app dataset")
+    data = match.group(1)
+    json.loads(data)  # validate data as JSON; never evaluate source code
 template = pathlib.Path("tools/app_template.html").read_text()
 out = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "build/kerbside-app.html")
 out.parent.mkdir(parents=True, exist_ok=True)
