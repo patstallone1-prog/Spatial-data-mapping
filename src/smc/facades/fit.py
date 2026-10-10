@@ -73,6 +73,24 @@ def opening_design(bgr: np.ndarray, width: float, height: float) -> dict:
             if 0.15 < y < 0.85 and all(abs(y - v) > 0.09 for v in horizontal):
                 horizontal.append(float(y))
     vertical, horizontal = sorted(vertical)[:5], sorted(horizontal)[:5]
+    # Transoms close to a lintel are often too short/thin for Hough's 60%-span
+    # rule. Neutral frame-colour ridges are complementary cues, not pane colour:
+    # yellow blinds and nearly uniform bright reflections cannot supply them.
+    neutral = (bgr.min(axis=2) >= 165) & ((bgr.max(axis=2).astype(int) - bgr.min(axis=2)) < 40)
+    if min(h, w) >= 20 and neutral.mean() < 0.70:
+        for axis, bars in ((0, horizontal), (1, vertical)):
+            mask = neutral[:, max(1, w // 10):w - max(1, w // 10)] if axis == 0 else neutral[max(1, h // 10):h - max(1, h // 10), :]
+            coverage = mask.mean(axis=1 if axis == 0 else 0)
+            indices = np.flatnonzero(coverage >= 0.70)
+            for cluster in np.split(indices, np.flatnonzero(np.diff(indices) > 1) + 1):
+                if not len(cluster):
+                    continue
+                size = h if axis == 0 else w
+                t = float(np.median(cluster) / size)
+                margin = 0.08 if axis == 0 else 0.15
+                if margin < t < 1 - margin and len(cluster) / size < 0.12 and all(abs(t - old) > 0.07 for old in bars):
+                    bars.append(t)
+        vertical, horizontal = sorted(vertical)[:5], sorted(horizontal)[:5]
     shape = (
         "panoramic" if width / height >= 1.9 else "tall" if height / width >= 1.7 else "standard"
     )
