@@ -12,6 +12,10 @@
     <string>--full-private-proposals</string>
     <!-- Enable only when battery processing is explicitly authorized. -->
     <string>--battery-min-percent</string><string>30</string>
+    <!-- Optional external run storage: uncomment both after a verified migration.
+    <string>--storage-volume</string><string>__MOUNT_POINT__</string>
+    <string>--storage-volume-uuid</string><string>__VOLUME_UUID__</string>
+    -->
   </array>
   <key>WorkingDirectory</key><string>__REPO_ROOT__</string>
   <key>RunAtLoad</key><true/>

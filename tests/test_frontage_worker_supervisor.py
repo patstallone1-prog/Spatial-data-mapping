@@ -3,9 +3,33 @@ import json
 import runpy
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = runpy.run_path(str(ROOT / "scripts/run_frontage_workers.py"))
+
+
+def test_external_reserve_uses_external_disk_and_unplug_race_never_falls_back(monkeypatch):
+    state = MODULE["storage_state"]
+    monkeypatch.setitem(state.__globals__, "volume_ready", lambda *_: True)
+    local, volume = Path("/local/build"), Path("/Volumes/fixture")
+    seen = []
+
+    def capacity(path):
+        seen.append(path)
+        return SimpleNamespace(free=(8 if path == volume else 1) * 1024**3)
+
+    monkeypatch.setattr("shutil.disk_usage", capacity)
+    assert state(local, volume, "fixture") == (True, True)
+    assert seen == [volume]
+
+    def missing(_):
+        raise FileNotFoundError
+
+    monkeypatch.setattr("shutil.disk_usage", missing)
+    assert state(local, volume, "fixture") == (False, False)
+    monkeypatch.setitem(state.__globals__, "volume_ready", lambda *_: False)
+    assert state(local, volume, "fixture") == (False, False)
 
 
 def test_private_full_pace_does_not_require_or_fabricate_pilot_approval(tmp_path):
