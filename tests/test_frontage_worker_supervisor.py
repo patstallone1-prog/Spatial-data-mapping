@@ -21,6 +21,18 @@ def test_unknown_or_battery_power_never_starts_gpu_jobs():
     assert not MODULE["on_ac"]("query failed")
 
 
+def test_authorized_battery_policy_pauses_at_thirty_and_unknown_readings():
+    parse, allowed = MODULE["parse_power"], MODULE["power_eligible"]
+    assert allowed(parse("Now drawing from 'Battery Power'\n31%; discharging;"), 30)
+    assert not allowed(parse("Now drawing from 'Battery Power'\n30%; discharging;"), 30)
+    assert not allowed(parse("Now drawing from 'Battery Power'\n20%; discharging;"), 30)
+    assert not allowed(parse("Now drawing from 'Battery Power'\n100%; discharging;"), None)
+    assert not allowed(parse("Now drawing from 'Battery Power'\nunknown%;"), 30)
+    assert not allowed(parse("Now drawing from 'Battery Power'\n999%;"), 30)
+    assert not allowed(None, 30)
+    assert allowed(parse("Now drawing from 'AC Power'\n20%; charging;"), 30)
+
+
 def test_power_query_timeout_is_a_pause_not_a_supervisor_crash(monkeypatch):
     def unavailable(*args, **kwargs):
         raise subprocess.TimeoutExpired(args[0], 10)

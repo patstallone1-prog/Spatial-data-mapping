@@ -10,6 +10,8 @@
     <string>--full-run-approval</string><string>__REPO_ROOT__/build/frontage-supervisor/approved-pilot.json</string>
     <!-- Opt in only for authorized full-pace private processing; not publication. -->
     <string>--full-private-proposals</string>
+    <!-- Enable only when battery processing is explicitly authorized. -->
+    <string>--battery-min-percent</string><string>30</string>
   </array>
   <key>WorkingDirectory</key><string>__REPO_ROOT__</string>
   <key>RunAtLoad</key><true/>

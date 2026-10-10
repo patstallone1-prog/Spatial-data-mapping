@@ -9,6 +9,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -36,12 +37,31 @@ def on_ac(output: str) -> bool:
     return "Now drawing from 'AC Power'" in output
 
 
+def parse_power(output: str) -> dict | None:
+    if not on_ac(output) and "Now drawing from 'Battery Power'" not in output:
+        return None
+    match = re.search(r"\b(\d{1,3})%;", output)
+    percent = int(match[1]) if match else None
+    if percent is not None and not 0 <= percent <= 100:
+        return None
+    return {"on_ac": on_ac(output), "battery_percent": percent}
+
+
+def power_eligible(power: dict | None, battery_min_percent: int | None) -> bool:
+    if power is None:
+        return False
+    if power["on_ac"]:
+        return True
+    return (battery_min_percent is not None and power["battery_percent"] is not None
+            and power["battery_percent"] > battery_min_percent)
+
+
 def proposal_batch_size(reviewed_pilot: bool, full_private_proposals: bool) -> int:
     """Private throughput is independent of evidence approval or publication."""
     return 256 if reviewed_pilot or full_private_proposals else 24
 
 
-def power_state() -> bool | None:
+def power_state() -> dict | None:
     try:
         power = subprocess.run(
             ["/usr/bin/pmset", "-g", "batt"],
@@ -50,7 +70,7 @@ def power_state() -> bool | None:
             timeout=10,
             check=False,
         )
-        return on_ac(power.stdout) if power.returncode == 0 else None
+        return parse_power(power.stdout) if power.returncode == 0 else None
     except (OSError, subprocess.TimeoutExpired):
         return None
 
@@ -134,11 +154,15 @@ def main():
     parser.add_argument("--data-root", type=Path, required=True)
     parser.add_argument("--env-file", type=Path, required=True)
     parser.add_argument("--full-run-approval", type=Path)
+    parser.add_argument("--battery-min-percent", type=int,
+                        help="Allow battery processing only strictly above this percentage.")
     parser.add_argument(
         "--full-private-proposals", action="store_true",
         help="Process full batches privately; does not approve or publish any photo fit.",
     )
     args = parser.parse_args()
+    if args.battery_min_percent is not None and not 0 <= args.battery_min_percent <= 100:
+        parser.error("battery minimum must be between 0 and 100")
     folder = ROOT / "build/frontage-supervisor"
     folder.mkdir(parents=True, exist_ok=True)
     lock = (folder / ".lock").open("a")
@@ -169,9 +193,10 @@ def main():
     environment = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "PYTHONUNBUFFERED": "1"}
     try:
         while not stopping:
-            ac = power_state()
+            power = power_state()
+            eligible = power_eligible(power, args.battery_min_percent)
             capacity = shutil.disk_usage(folder).free >= 4 * 1024**3
-            if ac is not True or not capacity:
+            if not eligible or not capacity:
                 stop_children()
                 if caffeine and caffeine.poll() is None:
                     caffeine.terminate()
@@ -180,10 +205,14 @@ def main():
                     folder / "status.json",
                     {
                         "state": "paused_power_query_unavailable"
-                        if ac is None
+                        if power is None
                         else "waiting_for_ac_power"
-                        if not ac
+                        if not eligible and args.battery_min_percent is None
+                        else "paused_battery_threshold"
+                        if not eligible
                         else "paused_disk_reserve",
+                        "power": power,
+                        "battery_min_percent": args.battery_min_percent,
                         "children_stopping": {k: p.pid for k, p in children.items()},
                         "full_private_proposals": args.full_private_proposals,
                         "configured_private_batch_size": proposal_batch_size(False, args.full_private_proposals),
@@ -200,7 +229,7 @@ def main():
                 sample = wanted
                 if caffeine is None or caffeine.poll() is not None:
                     caffeine = subprocess.Popen(
-                        ["/usr/bin/caffeinate", "-s", "-w", str(os.getpid())]
+                        ["/usr/bin/caffeinate", "-i", "-w", str(os.getpid())]
                     )
                 commands = {
                     "filter": [
@@ -257,6 +286,8 @@ def main():
                     folder / "status.json",
                     {
                         "state": "running",
+                        "power": power,
+                        "battery_min_percent": args.battery_min_percent,
                         "children": {k: p.pid for k, p in children.items()},
                         "batch_size": sample,
                         "full_run_approved": full,
