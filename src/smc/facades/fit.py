@@ -18,6 +18,7 @@ from smc.facades.edge_support import opening_sanity, refine_opening
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
 from smc.facades.outcrops import infer_candidates, reviewed_outcrops
 from smc.facades.survey import openings as dark_openings
+from smc.facades.window_shapes import arched_profile
 
 
 def storey_constraint(height: float, levels: int | None, rows: list[float]) -> dict:
@@ -342,6 +343,9 @@ def extract_front(
         design = opening_design(bgr[y0:y1, x0:x1], w, h)
         if kind == "window":
             patch = bgr[y0:y1, x0:x1]
+            curve = arched_profile(patch)
+            if curve:
+                design.update(curve)
             pad = max(1, min(patch.shape[:2]) // 10)
             if min(patch.shape[:2]) > 2 * pad:
                 rgb = np.median(patch[pad:-pad, pad:-pad, ::-1].reshape(-1, 3), axis=0).astype(int)

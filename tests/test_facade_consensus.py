@@ -3,6 +3,15 @@ from copy import deepcopy
 from smc.facades.consensus import certainty, cross_view, neighbourhood_reference, strict_view_gate
 
 
+def test_curved_window_edge_proposal_cannot_silently_become_high_certainty():
+    fit = view()
+    fit.update(appearance={"material": "stucco_render"}, review_status="reviewed_inferred_visual_parameters")
+    fit["openings"][0]["design"] = {"shape": "arched", "shape_requires_review": True}
+    result = certainty(fit, {"pass": True})
+    assert result["tier"] == "low"
+    assert "curved_window_shape_needs_source_review" in result["reasons"]
+
+
 def view():
     return {
         "image_sha256": "a",

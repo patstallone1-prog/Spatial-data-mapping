@@ -59,3 +59,7 @@ The existing `com.kerbside.frontage-proposals` LaunchAgent is running one filter
 4. Only after those three matches pass, produce the existing bulk-approval artifact. The supervisor can then raise its batch size. Publishing remains a separate validated action.
 
 The current background work is a private, prior-constrained proposal run, not dense photogrammetry, a full-speed production run, or a deployment.
+
+## Subsequent full-pace private processing request
+
+The user subsequently requested deploying the verified glass/material renderer and leaving full-pace processing running. `--full-private-proposals` explicitly permits batches of 256 without fabricating a three-house approval. `full_run_approved` remains false until the actual source/render review succeeds; `automatically_publishes` remains false in either mode. AC-only operation, the 4 GiB disk reserve, privacy review and low-certainty raw retention are unchanged. Full-pace processing is not certification or publication of these private fits.

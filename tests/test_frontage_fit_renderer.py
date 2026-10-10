@@ -45,6 +45,9 @@ def test_only_reviewed_fits_map_to_correct_edge_with_same_window_design():
       const reverse=frontageWindowsOnEdge(entry,[10,0],[0,0],10,2);
       if(forward[0].u!==2 || forward[0].v!==3 || reverse[0].u!==5) throw Error("reversed or wrong elevation");
       if(reverse[0].design.shape!=="panoramic" || reverse[0].w!==3) throw Error("style lost");
+      FRONTAGE_FITS.buildings[1].openings.push({kind:'window',u:1,v:5.3,w:1,h:2});
+      if(frontageWindowsOnEdge(entry,[0,0],[10,0],10,0).length!==1)throw Error('window cut by roof accepted');
+      FRONTAGE_FITS.buildings[1].openings.pop();
       if(reverse[0].design.vertical_bars[0]!==.8) throw Error("mullions not mirrored");
       if(frontageFitFor({...entry.way,points:[[0,0],[9,0],[9,10]]})!==null) throw Error("stale footprint accepted");
       if(frontageWindowsOnEdge(entry,[0,0],[0,10],10,0)!==null) throw Error("party wall claimed");
@@ -262,7 +265,7 @@ def test_opening_texture_cache_preserves_observed_colour_and_panel_locations():
       MeshStandardMaterial:class{constructor(config){Object.assign(this,config);}},SRGBColorSpace:'srgb'};
     """
         + "\n".join(
-            _extract(name, _page_js()) for name in ("photoOpeningTexture", "homeDesignMaterial")
+            _extract(name, _page_js()) for name in ("photoOpeningTexture", "homeWindowArchSpring", "homeDesignMaterial")
         )
         + """
     const a=photoOpeningTexture('garage',{colour:'#123456',panel_lines:{horizontal:[.3]}});

@@ -8,6 +8,7 @@ from pathlib import Path
 IMPLEMENTATION_FILES = (
     "scripts/match_frontage_facades.py",
     "src/smc/facades/fit.py",
+    "src/smc/facades/window_shapes.py",
     "src/smc/facades/opening_reasoning.py",
     "src/smc/facades/appearance_bands.py",
     "src/smc/facades/detail_detection.py",

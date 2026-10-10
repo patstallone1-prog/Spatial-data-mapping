@@ -8,6 +8,13 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE = runpy.run_path(str(ROOT / "scripts/run_frontage_workers.py"))
 
 
+def test_private_full_pace_does_not_require_or_fabricate_pilot_approval(tmp_path):
+    assert MODULE["proposal_batch_size"](False, False) == 24
+    assert MODULE["proposal_batch_size"](False, True) == 256
+    assert MODULE["proposal_batch_size"](True, False) == 256
+    assert not MODULE["full_run_approved"](tmp_path / "absent.json", ROOT / "scripts/build_sf_corridor_3d.py")
+
+
 def test_unknown_or_battery_power_never_starts_gpu_jobs():
     assert MODULE["on_ac"]("Now drawing from 'AC Power'\n")
     assert not MODULE["on_ac"]("Now drawing from 'Battery Power'\n64%; discharging")

@@ -31,6 +31,7 @@ def test_every_installed_city_uses_the_current_house_and_collision_code() -> Non
                      "homeWindowLayout", "pumpHomeDecals", "treeVariant", "addOfficialSignPlates",
                      "frontageFitFor", "frontageNormalFor", "frontageWindowsOnEdge", "homeDesignMaterial",
                      "houseCertainty",
+                     "homeWindowArchSpring", "homeWindowCrown", "homeWindowShape", "homeWindowPaneGeometry", "homeWindowArchCorners",
                      "facadeAppearanceBands", "clipFacadeBand",
                      "frontageWallTriangles",
                      "photoDetailParts",

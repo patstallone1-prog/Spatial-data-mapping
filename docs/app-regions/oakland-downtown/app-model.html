@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="eec6d1f6254864f19a9e28437b5402b062a9d4beb2d2567119b203de45a4d705" />
+<meta name="kerbside-renderer-sha256" content="bb76f46c7b4042493d1e2ba3814f74d7c0b899eb1c36337074b0a7f16da3d577" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -7144,8 +7144,11 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
     for (let y = 0; y < h; y += 16) ctx.fillRect(0, y, w, 2);
   }
 
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.fillRect(0, h - 5, w, 5);                     // the line between storeys
+  // A bare/photo wall is not evidence of a floor-height dark trim band.
+  if(withWindows) {
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(0, h - 5, w, 5);
+  }
   if (withWindows && material.name !== "glass" && material.name !== "metal") {
     WINDOW_STYLES[style % WINDOW_STYLES.length](ctx, seed);
     trimCourse(ctx, seed, material);
@@ -7226,10 +7229,11 @@ async function loadPhotoMaterialLibrary() {
         // Every texture of the class: a variant beyond the photographs there are takes one of
         // them (facadeFor), and which it takes changes as they arrive.
         if (spec.material?.photoLabel !== materialClass) continue;
-        const repainted = facadeFor(spec.material, spec.seed, spec.style, variant, !spec.bare);
+        const repainted = facadeFor(spec.material, spec.seed, spec.style, spec.variant, !spec.bare);
         texture.image = repainted.image;
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.needsUpdate = true;
+        repainted.dispose();
       }
       await nextFrame();
     }
@@ -22913,7 +22917,8 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
   const end = start + length*aligned;
   if (Math.max(start,end) < -.1 || Math.min(start,end) > span+.1) return null;
   return (fit.openings || []).filter(o=>o.kind === "window" && [o.u,o.v,o.w,o.h].every(Number.isFinite)
-    && o.w > 0 && o.h > 0).map(o => ({ ...o,
+    && o.w > 0 && o.h > 0 && o.v>=0
+    && (!Number.isFinite(fit.height_m) || o.v+o.h<=fit.height_m-.1)).map(o => ({ ...o,
     u: aligned > 0 ? (o.u-start)/aligned : (o.u+o.w-start)/aligned,
     design: o.design && { ...o.design, vertical_bars: (o.design.vertical_bars || []).map(t=>aligned > 0 ? t : 1-t) },
     w: o.w/Math.abs(aligned), v: bottom+o.v, grade: "image_on_prior_geometry" }))
@@ -23009,6 +23014,44 @@ function homeWindowLayout(entry, spec) {
 // colour or permanent architecture: curtains/blinds do not become painted window panes.
 function shellGlassOpacity(distance) {
   return 0.12; // Clear glass from either side; photographed curtains/blinds are not glass.
+}
+
+function homeWindowArchSpring(o) {
+  const s=o.design?.arch_spring_fraction;
+  return o.design?.shape==="arched" && Number.isFinite(s) && s>=.35 && s<=.85
+    && o.frameLeft!==false && o.frameRight!==false ? s : null;
+}
+function homeWindowCrown(o,t) {
+  const spring=homeWindowArchSpring(o);
+  return spring===null ? o.h : o.h*(spring+(1-spring)*Math.sqrt(Math.max(0,1-(2*t-1)**2)));
+}
+function homeWindowShape(o,inset=0) {
+  const shape=new THREE.Shape(),w=o.w-2*inset,h=o.h-2*inset;
+  shape.moveTo(inset,inset);shape.lineTo(o.w-inset,inset);
+  const spring=homeWindowArchSpring(o);
+  if(spring===null) {shape.lineTo(o.w-inset,o.h-inset);shape.lineTo(inset,o.h-inset);}
+  else for(let i=0;i<=32;i++) {
+    const t=1-i/32;shape.lineTo(inset+w*t,inset+h*(spring+(1-spring)*Math.sqrt(Math.max(0,1-(2*t-1)**2))));
+  }
+  shape.closePath();return shape;
+}
+function homeWindowPaneGeometry(o) {
+  if(homeWindowArchSpring(o)===null)return new THREE.PlaneGeometry(o.w,o.h);
+  const geometry=new THREE.ShapeGeometry(homeWindowShape(o));
+  geometry.translate(-o.w/2,-o.h/2,0);return geometry;
+}
+function homeWindowArchCorners(a,ux,uz,o,uvMap,inset=0) {
+  const position=[],uv=[];
+  for(let i=0;i<32;i++) {
+    const x0=o.u+o.w*i/32,x1=o.u+o.w*(i+1)/32,
+      y0=o.v+homeWindowCrown(o,i/32),y1=o.v+homeWindowCrown(o,(i+1)/32),top=o.v+o.h;
+    for(const [u,v] of [[x0,y0],[x1,y1],[x1,top],[x0,y0],[x1,top],[x0,top]]) {
+      position.push(a[0]+ux*u-uz*inset,v,a[1]+uz*u+ux*inset);uv.push(...uvMap(u,v));
+    }
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute("position",new THREE.Float32BufferAttribute(position,3));
+  geometry.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));geometry.computeVertexNormals();return geometry;
 }
 function updateShellGlass() {
   for (const entry of homeShells) {
@@ -23141,6 +23184,18 @@ function buildHomeShell(entry) {
     for(const surface of [{a,ux,uz,nx,nz,windows:projected.flatWindows},...projected.surfaces]) {
     const {a,ux,uz,nx,nz}=surface;
     for (const o of surface.windows) {
+      const arch=homeWindowArchSpring(o)!==null;
+      if(arch) {
+        const uvMap=(u,v)=>[(spec.clockwise ? length-u : u)/BAY_M,(v-bottom)/storeyM];
+        const corners=homeWindowArchCorners(a,ux,uz,o,uvMap);
+        const indices=Array.from({length:corners.getAttribute("position").count},(_,i)=>i);
+        for(let i=0;i<bands.length;i++) {
+          const geometry=clipFacadeBand(corners,indices,bottom+bands[i].bottom,bottom+bands[i].top);
+          group.add(new THREE.Mesh(geometry,bandMaterials[i]));
+        }
+        corners.dispose();
+        group.add(new THREE.Mesh(homeWindowArchCorners(a,ux,uz,o,uvMap,INTERIOR_WALL_INSET_M+.01),shellPlaster));
+      }
       const trimColour=/^#[0-9a-f]{6}$/i.test(o.design?.trim?.colour || "") ? o.design.trim.colour : null;
       if(trimColour && !trimMaterials.has(trimColour)) {
         const m=homeFrameMaterial.clone();m.color.set(trimColour);trimMaterials.set(trimColour,m);
@@ -23148,7 +23203,7 @@ function buildHomeShell(entry) {
       const frameMaterial=trimColour ? trimMaterials.get(trimColour) : shellFrame;
       const glassPair={outer:shellGlass,inner:shellGlassInside};
       // The outer face looks out of the house (n points in), the inner one in.
-      const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w, o.h), glassPair.outer);
+      const pane = new THREE.Mesh(homeWindowPaneGeometry(o), glassPair.outer);
       pane.position.set(a[0] + ux * (o.u + o.w / 2) + nx * 0.025,
         o.v + o.h / 2, a[1] + uz * (o.u + o.w / 2) + nz * 0.025);
       pane.rotation.y = Math.atan2(-nx, -nz);
@@ -23161,12 +23216,21 @@ function buildHomeShell(entry) {
       group.add(inner);
       windowRegistry.push(pane.userData);
       const divisions = o.design ? [
-        ...(o.design.vertical_bars || []).map(t=>[o.u+o.w*t,o.v+o.h/2,.035,o.h]),
-        ...(o.design.horizontal_bars || []).map(t=>[o.u+o.w/2,o.v+o.h*(1-t),o.w,.035])]
+        ...(o.design.vertical_bars || []).map(t=>{const h=homeWindowCrown(o,t);return [o.u+o.w*t,o.v+h/2,.035,h];}),
+        ...(o.design.horizontal_bars || []).map(t=>{
+          const spring=homeWindowArchSpring(o),y=o.h*(1-t),half=spring===null || y<=o.h*spring ? o.w/2
+            : o.w/2*Math.sqrt(Math.max(0,1-((y-o.h*spring)/(o.h*(1-spring)))**2));
+          return [o.u+o.w/2,o.v+y,half*2,.035];})]
         : [[o.u+o.w/2,o.v+o.h/2,.035,o.h]];
-      for (const [u, v, w, h] of [...(o.frameLeft===false ? [] : [[o.u, o.v + o.h / 2, 0.06, o.h]]),
+      if(arch) {
+        const shape=homeWindowShape(o);shape.holes.push(homeWindowShape(o,.06));
+        const geometry=new THREE.ExtrudeGeometry(shape,{depth:.05,bevelEnabled:false});geometry.translate(-o.w/2,-o.h/2,-.025);
+        const frame=new THREE.Mesh(geometry,frameMaterial);frame.position.copy(pane.position);frame.rotation.copy(pane.rotation);group.add(frame);
+      }
+      const perimeter=arch ? [] : [...(o.frameLeft===false ? [] : [[o.u, o.v + o.h / 2, 0.06, o.h]]),
         ...(o.frameRight===false ? [] : [[o.u + o.w, o.v + o.h / 2, 0.06, o.h]]), [o.u + o.w / 2, o.v, o.w, 0.06],
-        [o.u + o.w / 2, o.v + o.h, o.w, 0.06], ...divisions]) {
+        [o.u + o.w / 2, o.v + o.h, o.w, 0.06]];
+      for (const [u, v, w, h] of [...perimeter, ...divisions]) {
         // Shallow, so its lit edges do not stand out from the decal's flat frame.
         const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), frameMaterial);
         frame.position.set(a[0] + ux * u, v, a[1] + uz * u);
@@ -23288,17 +23352,26 @@ const homeDesignMaterials = new Map();
 function homeDesignMaterial(design) {
   if (!design) return homeDecalMaterial;
   const trimColour=/^#[0-9a-f]{6}$/i.test(design.trim?.colour || "") ? design.trim.colour : "#3d4347";
-  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || [],trimColour,"clear"]);
+  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || [],trimColour,design.shape,design.arch_spring_fraction,"clear"]);
   if (homeDesignMaterials.has(key)) return homeDesignMaterials.get(key);
   const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = trimColour; ctx.fillRect(0,0,128,128);
-  ctx.clearRect(4,4,120,120);
+  const arch=homeWindowArchSpring({design,w:128,h:128});
+  if(arch===null) {ctx.fillStyle = trimColour; ctx.fillRect(0,0,128,128);ctx.clearRect(4,4,120,120);}
+  else {
+    ctx.beginPath();ctx.moveTo(4,124);ctx.lineTo(124,124);
+    for(let i=0;i<=32;i++){const t=1-i/32;ctx.lineTo(4+120*t,4+120*(1-arch-(1-arch)*Math.sqrt(Math.max(0,1-(2*t-1)**2))));}
+    ctx.closePath();ctx.strokeStyle=trimColour;ctx.lineWidth=6;ctx.stroke();ctx.save();ctx.clip();
+  }
+  // Far decals still contain a neutral glass layer, not empty alpha over painted wall.
+  // Detailed nearby shells supply the real hole and identically clear two-sided glazing.
+  ctx.fillStyle="rgba(231,240,243,0.12)";ctx.fillRect(4,4,120,120);
   ctx.fillStyle = trimColour;
   for (const t of design.vertical_bars || []) ctx.fillRect(t*128-1.5,4,3,120);
   for (const t of design.horizontal_bars || []) ctx.fillRect(4,t*128-1.5,120,3);
+  if(arch!==null)ctx.restore();
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
-  const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.14,metalness:0, transparent:true, alphaTest:.05 });
+  const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.08,metalness:0, envMapIntensity:.4, transparent:true, depthWrite:false, alphaTest:.05 });
   homeDesignMaterials.set(key,material); return material;
 }
 const HOME_DECAL_ZERO = new THREE.Matrix4().makeScale(0, 0, 0);

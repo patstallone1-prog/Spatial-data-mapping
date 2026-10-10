@@ -107,6 +107,8 @@ def certainty(fit: dict, gate: dict) -> dict:
         reasons.append("floor_material_unresolved")
     if any(o.get("size_anomaly_requires_review") for o in fit["openings"]):
         reasons.append("opening_size_anomaly")
+    if any(o.get("design", {}).get("shape_requires_review") for o in fit["openings"]):
+        reasons.append("curved_window_shape_needs_source_review")
     if any(o.get("type_requires_review") and not o.get("type_reviewed") for o in fit["openings"]):
         reasons.append("entrance_or_garage_type_needs_review")
     if any(

@@ -36,6 +36,11 @@ def on_ac(output: str) -> bool:
     return "Now drawing from 'AC Power'" in output
 
 
+def proposal_batch_size(reviewed_pilot: bool, full_private_proposals: bool) -> int:
+    """Private throughput is independent of evidence approval or publication."""
+    return 256 if reviewed_pilot or full_private_proposals else 24
+
+
 def power_state() -> bool | None:
     try:
         power = subprocess.run(
@@ -129,6 +134,10 @@ def main():
     parser.add_argument("--data-root", type=Path, required=True)
     parser.add_argument("--env-file", type=Path, required=True)
     parser.add_argument("--full-run-approval", type=Path)
+    parser.add_argument(
+        "--full-private-proposals", action="store_true",
+        help="Process full batches privately; does not approve or publish any photo fit.",
+    )
     args = parser.parse_args()
     folder = ROOT / "build/frontage-supervisor"
     folder.mkdir(parents=True, exist_ok=True)
@@ -176,6 +185,8 @@ def main():
                         if not ac
                         else "paused_disk_reserve",
                         "children_stopping": {k: p.pid for k, p in children.items()},
+                        "full_private_proposals": args.full_private_proposals,
+                        "configured_private_batch_size": proposal_batch_size(False, args.full_private_proposals),
                         "automatically_publishes": False,
                     },
                 )
@@ -183,7 +194,7 @@ def main():
                 full = full_run_approved(
                     args.full_run_approval, ROOT / "scripts/build_sf_corridor_3d.py"
                 )
-                wanted = 256 if full else 24
+                wanted = proposal_batch_size(full, args.full_private_proposals)
                 if sample is not None and sample != wanted:
                     stop_children()
                 sample = wanted
@@ -249,6 +260,7 @@ def main():
                         "children": {k: p.pid for k, p in children.items()},
                         "batch_size": sample,
                         "full_run_approved": full,
+                        "full_private_proposals": args.full_private_proposals,
                         "automatically_publishes": False,
                         "power_assertion_pid": caffeine.pid,
                         "wake_limit": "cannot override shutdown or closed-lid sleep",

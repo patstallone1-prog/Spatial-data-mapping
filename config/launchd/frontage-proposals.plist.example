@@ -8,6 +8,8 @@
     <string>--data-root</string><string>__DATA_ROOT__</string>
     <string>--env-file</string><string>__ENV_FILE__</string>
     <string>--full-run-approval</string><string>__REPO_ROOT__/build/frontage-supervisor/approved-pilot.json</string>
+    <!-- Opt in only for authorized full-pace private processing; not publication. -->
+    <string>--full-private-proposals</string>
   </array>
   <key>WorkingDirectory</key><string>__REPO_ROOT__</string>
   <key>RunAtLoad</key><true/>
