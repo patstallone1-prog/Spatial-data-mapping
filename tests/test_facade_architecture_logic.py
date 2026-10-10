@@ -4,6 +4,7 @@ import pytest
 
 from smc.facades.architecture_logic import (
     NeighbourIndex,
+    canonical_front_binding,
     door_access,
     front_footprint_frame,
     nearby_entry_pattern,
@@ -29,6 +30,18 @@ def test_canonical_front_conversion_is_rigid_never_a_stretched_photo_proxy():
         front_footprint_frame(ring, ring[0], ring[1], [1, 0])
     with pytest.raises(ValueError, match="finite"):
         front_footprint_frame([[float("nan"), 0], *ring], ring[0], ring[1], normal)
+
+
+def test_stale_photo_plane_and_inward_normal_remain_low_certainty_review_evidence():
+    prior = {"canonical_world_sha256": "current", "ring": [[0, 0], [10, 0], [10, -8], [0, -8]]}
+    assert canonical_front_binding(prior, 10)["status"] == "bound"
+    prior["ring"].reverse()
+    assert canonical_front_binding(prior, 10)["status"] == "bound"
+    prior["ring"] = [[0, 0.2], [10, 0.2], [10, -8], [0, -8]]
+    assert canonical_front_binding(prior, 10)["status"] == "unbound_or_normal_conflict"
+    prior["ring"] = [[0, 0], [10, 0], [10, 8], [0, 8]]
+    assert canonical_front_binding(prior, 10)["status"] == "unbound_or_normal_conflict"
+    assert canonical_front_binding({"ring": prior["ring"]}, 10)["status"] == "invalid"
 
 
 def entrance(image="photo", rise=3.0, door_id="d"):

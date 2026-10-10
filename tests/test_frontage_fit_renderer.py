@@ -37,7 +37,7 @@ def test_only_reviewed_fits_map_to_correct_edge_with_same_window_design():
     code += "function xy(x,y){return [x,y];}\n"
     code += "\n".join(
         _extract(name, _page_js())
-        for name in ("frontageFitFor", "frontageWindowsOnEdge", "houseCertainty")
+        for name in ("frontageFitFor", "frontageNormalFor", "frontageWindowsOnEdge", "houseCertainty")
     )
     code += """
       const entry = {way:{osm_id:1,height_m:6,points:[[0,0],[10,0],[10,10]]}};
@@ -67,12 +67,13 @@ def test_reviewed_front_partition_keeps_every_triangle_and_does_not_claim_back_w
         pytest.skip("Node required")
     code = (
         """
-    function frontageFitFor(){return {a:[0,0],b:[10,0]};}
+    function frontageFitFor(){return {a:[0,0],b:[10,0],front_normal_enu:[0,-1]};}
     function xy(x,y){return [x,y];}
     const normal={getX:()=>0,getZ:i=>i<3 ? 1 : -1};
     const position={getX:i=>i%3,getZ:i=>i<3 ? 0 : -4};
     const geometry={getAttribute:name=>name==='normal' ? normal : position};
     """
+        + _extract("frontageNormalFor", _page_js())
         + _extract("frontageWallTriangles", _page_js())
         + """
     const parts=frontageWallTriangles({},geometry,[0,1,2,3,4,5]);
@@ -88,13 +89,13 @@ def test_flat_photo_doors_never_float_and_controls_cannot_override_rendered_grou
     if not shutil.which("node"):
         pytest.skip("Node required")
     code = """
-      let fit={a:[0,0],b:[10,0],height_m:9,openings:[]},ground=0,drawn=[];
+      let fit={a:[0,0],b:[10,0],front_normal_enu:[0,-1],height_m:9,openings:[]},ground=0,drawn=[];
       const BUILDING_LIFT_M=2;
       function frontageFitFor(){return fit;}function xy(x,y){return [x,y];}
       function terrainGroundAt(){return ground;}
       function photoOpeningTexture(){return {};}
       function planePart(g,x,y,z,w,h){const mesh={userData:{}};drawn.push([y,w,h]);return mesh;}
-    """ + _extract("photoOpeningParts", _page_js()) + """
+    """ + _extract("frontageNormalFor", _page_js()) + _extract("photoOpeningParts", _page_js()) + """
       fit.openings=[{id:'entry',kind:'door',u:1,v:.1524,w:1,h:2.1}];
       ground=2;photoOpeningParts({},{});
       if(drawn.length!==1)throw Error('at-grade door suppressed');
@@ -116,12 +117,12 @@ def test_existing_bay_returns_keep_window_fragments_and_never_claim_party_or_bac
     if not shutil.which("node"):
         pytest.skip("Node required")
     code = """
-      const fit={a:[0,0],b:[10,0],openings:[
+      const fit={a:[0,0],b:[10,0],front_normal_enu:[0,-1],openings:[
         {id:'window',kind:'window',u:3,v:3,w:2,h:2,design:{vertical_bars:[.5]}}
       ]};
       function frontageFitFor(){return fit;}function xy(x,y){return [x,y];}
       const entry={way:{},local:[[0,-.81],[3,-.81],[4,0],[5,0],[6,-.81],[10,-.81],[10,-10],[0,-10],[0,-.81]].reverse()};
-    """ + _extract("frontageWindowsOnEdge", _page_js()) + """
+    """ + _extract("frontageNormalFor", _page_js()) + _extract("frontageWindowsOnEdge", _page_js()) + """
       const L=Math.hypot(1,.81);
       const left=frontageWindowsOnEdge(entry,[4,0],[3,-.81],L,0);
       const middle=frontageWindowsOnEdge(entry,[5,0],[4,0],1,0);
@@ -135,6 +136,109 @@ def test_existing_bay_returns_keep_window_fragments_and_never_claim_party_or_bac
     """
     result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr
+
+
+def test_photo_front_orientation_handles_both_footprint_windings_and_reversed_endpoints():
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    code = """
+      const fit={a:[0,0],b:[10,0],canonical_footprint:[[0,0],[10,0],[10,8],[0,8]],
+        height_m:8,openings:[{id:'d',kind:'door',u:2,v:0,w:1,h:2.1},
+        {id:'w',kind:'window',u:3,v:3,w:2,h:2}],front_normal_enu:[0,-1]};
+      const BUILDING_LIFT_M=0,drawn=[];
+      function xy(x,y){return [x,y];}function frontageFitFor(){return fit;}
+      function terrainGroundAt(){return 0;}function photoOpeningTexture(){return {};}
+      function planePart(g,x,y,z,w,h){const m={userData:{}};drawn.push([x,z]);return m;}
+    """ + "\n".join(_extract(name, _page_js()) for name in (
+        "frontageNormalFor", "frontageWindowsOnEdge", "photoOpeningParts", "frontageWallTriangles"
+    )) + """
+      let entry={way:{},local:[[0,0],[10,0],[10,-8],[0,-8]]};
+      if(frontageNormalFor(fit)?.[1]!==1)throw Error('forward normal wrong');
+      photoOpeningParts({},{});if(drawn[0][1]<=0)throw Error('door placed inside wall');
+      if(frontageWindowsOnEdge(entry,[0,0],[10,0],10,0)?.length!==1)throw Error('forward front lost');
+      fit.a=[10,0];fit.b=[0,0];fit.canonical_footprint.reverse();
+      if(frontageNormalFor(fit)?.[1]!==1)throw Error('clockwise normal wrong');
+      entry.local=[[0,0],[10,0],[10,-8],[0,-8]].reverse();
+      if(frontageWindowsOnEdge(entry,[10,0],[0,0],10,0)?.length!==1)throw Error('clockwise front lost');
+      // A different physical front: reverse winding and put the interior north
+      // of the plane. The camera-facing side is now south, independent of order.
+      fit.a=[0,0];fit.b=[10,0];fit.canonical_footprint=[[0,0],[10,0],[10,-8],[0,-8]];
+      fit.front_normal_enu=[0,1];entry.local=[[0,0],[10,0],[10,8],[0,8]];
+      photoOpeningParts({},{});if(drawn[1][1]>=0)throw Error('opposite-front door buried');
+      if(frontageWindowsOnEdge(entry,[0,0],[10,0],10,0)?.length!==1)throw Error('opposite front lost');
+      delete fit.front_normal_enu;
+      if(frontageNormalFor(fit)?.[1]!==-1)throw Error('legacy exact-footprint fallback wrong');
+      fit.front_normal_enu=[0,-1];
+      if(frontageNormalFor(fit)!==null)throw Error('normal contradicting footprint accepted');
+      fit.front_normal_enu=[0,10];if(frontageNormalFor(fit)!==null)throw Error('nonunit normal accepted');
+      fit.front_normal_enu=[0,1];fit.a=[NaN,0];
+      if(frontageNormalFor(fit)!==null)throw Error('nonfinite front accepted');
+      fit.a=[0,0];fit.canonical_footprint=[null,[10,0],[10,-8]];
+      if(frontageNormalFor(fit)!==null)throw Error('invalid footprint accepted');
+      delete fit.front_normal_enu;delete fit.canonical_footprint;
+      if(frontageNormalFor(fit)!==null)throw Error('unbound orientation guessed');
+    """
+    result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("region", [
+    "sf-corridor", "sf-mission", "sf-haight-castro", "sf-sunset", "oakland-downtown",
+    "berkeley-downtown", "palo-alto-downtown", "san-jose-downtown",
+])
+def test_real_regional_footprints_keep_their_outward_photo_fronts(region):
+    """Real geometry orientation audit, not a photographic accuracy certificate."""
+    import math
+    from pathlib import Path
+
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    root = Path(__file__).resolve().parents[1]
+    model = root / ("docs/sf-corridor-3d.json" if region == "sf-corridor"
+                    else f"docs/app-regions/{region}/sf-corridor-3d.json")
+    payload = json.loads(model.read_text())
+    bbox = payload["bbox"]
+    lat, lon = (bbox["north"] + bbox["south"]) / 2, (bbox["east"] + bbox["west"]) / 2
+    scale = 111320 * math.cos(math.radians(lat))
+    cases = []
+    for way in payload["ways"]:
+        if way.get("kind") != "building" or len(way.get("points", [])) < 4:
+            continue
+        ring = way["points"]
+        local = [[(x-lon)*scale, -(y-lat)*111320] for x, y in ring]
+        signed = sum(p[0]*q[1]-q[0]*p[1] for p, q in zip(local, local[1:]+local[:1], strict=True))
+        if abs(signed) < .01:
+            continue
+        i = max(range(len(local)), key=lambda j: math.dist(local[j], local[(j+1) % len(local)]))
+        p, q = local[i], local[(i+1) % len(local)]
+        length = math.dist(p, q)
+        if length < 1:
+            continue
+        ex, ez = (q[0]-p[0])/length, (q[1]-p[1])/length
+        nx, nz = (ez, -ex) if signed > 0 else (-ez, ex)
+        cases.append({"fit": {"a": ring[i], "b": ring[(i+1) % len(ring)],
+                               "canonical_footprint": ring, "front_normal_enu": [nx, -nz],
+                               "openings": [{"kind": "window", "u": .3*length, "v": 1, "w": .4*length, "h": 1}]},
+                      "entry": {"way": {}, "local": local}, "p": p, "q": q, "length": length})
+        if len(cases) == 12:
+            break
+    assert len(cases) == 12, f"insufficient real footprint cases in {region}"
+    script = (f"const cases={json.dumps(cases)},lon={lon},lat={lat},scale={scale};\n"
+              "function xy(x,y){return [(x-lon)*scale,(y-lat)*111320];}\n"
+              "let fit;function frontageFitFor(){return fit;}\n"
+              + _extract("frontageNormalFor", _page_js()) + _extract("frontageWindowsOnEdge", _page_js())
+              + """
+      for(const c of cases) {
+        fit=c.fit;
+        if(!frontageNormalFor(fit))throw Error('valid regional normal rejected');
+        if(frontageWindowsOnEdge(c.entry,c.p,c.q,c.length,0)?.length!==1)throw Error('regional front window lost');
+        fit.canonical_footprint.reverse();c.entry.local.reverse();
+        if(!frontageNormalFor(fit))throw Error('winding reversal flipped physical normal');
+        if(frontageWindowsOnEdge(c.entry,c.q,c.p,c.length,0)?.length!==1)throw Error('reversed regional front window lost');
+      }
+    """)
+    result = subprocess.run(["node", "-e", script], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, f"{region}: {result.stderr}"
 
 
 def test_pilot_uses_all_canonical_vertices_instead_of_four_corner_proxy():

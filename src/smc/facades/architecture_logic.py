@@ -39,6 +39,40 @@ def front_footprint_frame(points, a, b, normal):
     ]
 
 
+def canonical_front_binding(prior: dict | None, width: float) -> dict:
+    """Does this photo frame lie on an outward edge of the current canonical ring?"""
+    result = {"status": "unavailable", "geometry_modified": False, "metric_certified": False}
+    if prior is None:
+        return result
+    ring = prior.get("ring", [])
+    if (
+        not prior.get("canonical_world_sha256")
+        or len(ring) < 3
+        or not all(
+            len(p) == 2 and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in p)
+            for p in ring
+        )
+    ):
+        return {**result, "status": "invalid"}
+    signed = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(ring, ring[1:] + ring[:1], strict=True))
+    best = 0.0
+    if abs(signed) > 0.01:
+        for a, b in zip(ring, ring[1:] + ring[:1], strict=True):
+            length = math.dist(a, b)
+            if length < 0.03 or max(abs(a[1]), abs(b[1])) > 0.06:
+                continue
+            outward_n = (a[0] - b[0] if signed > 0 else b[0] - a[0]) / length
+            overlap = min(width, max(a[0], b[0])) - max(0, min(a[0], b[0]))
+            if outward_n >= 0.99:
+                best = max(best, overlap)
+    return {
+        **result,
+        "status": "bound" if best > 0.03 else "unbound_or_normal_conflict",
+        "overlap_m": best,
+        "canonical_world_sha256": prior["canonical_world_sha256"],
+    }
+
+
 class NeighbourIndex:
     """Conservative 75 m candidate buckets; callers still apply exact distance gates.
 

@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 
 from smc.facades.appearance_bands import appearance_bands, colour_sample, window_trim
-from smc.facades.architecture_logic import door_access, repeated_forms
+from smc.facades.architecture_logic import canonical_front_binding, door_access, repeated_forms
 from smc.facades.edge_support import opening_sanity, refine_opening
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
 from smc.facades.outcrops import infer_candidates, reviewed_outcrops
@@ -549,6 +549,7 @@ def extract_front(
             if trim:
                 opening["design"]["trim"] = trim
     fit = {
+        "front_geometry_binding": canonical_front_binding(controls.get("canonical_front_geometry"), width),
         "sanity_checks": sanity,
         "schema": "kerbside.facade_fit/1",
         "width_m": width,

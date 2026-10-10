@@ -237,6 +237,7 @@ def cycle(args) -> dict:
                     "address": row.get("address"),
                     "a": frame.to_lonlat(*wall["a"]),
                     "b": frame.to_lonlat(*wall["b"]),
+                    "front_normal_enu": wall["normal"],
                     "world_sha256": world_hash,
                     "canonical_footprint": way["points"],
                     "image_sha256": row["pixel_sha256"],

@@ -45,7 +45,7 @@ def _run(body: str) -> dict:
     consts = "\n".join(re.search(rf"const {n} = [^;]+;", js).group(0)
                        for n in ("WINDOW_GROUND_CLEAR_M", "FRONT_DOOR_PANEL_W_M"))
     script = PREAMBLE + consts + "\n" + "\n".join(
-        _extract(n, js) for n in ("frontageFitFor", "frontageWindowsOnEdge",
+        _extract(n, js) for n in ("frontageFitFor", "frontageNormalFor", "frontageWindowsOnEdge",
                                  "regularHomeWindows", "homeWindowLayout")) + "\n" + body
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr

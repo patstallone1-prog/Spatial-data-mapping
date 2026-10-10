@@ -3262,6 +3262,45 @@ const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { 
 // Image-derived visual fits are optional and reviewed, never canonical replacements.
 const FRONTAGE_FITS = await fetch(sharedAsset("sf-corridor-frontage-fits.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : { buildings: {} }).catch(() => ({ buildings: {} }));
+function frontageNormalFor(fit) {
+  if(![fit?.a,fit?.b].every(p=>Array.isArray(p) && p.length===2 && p.every(Number.isFinite)))return null;
+  const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),L=Math.hypot(bx-ax,by-ay);
+  if(L<.2)return null;
+  const tx=(bx-ax)/L,tz=(ay-by)/L;
+  const ring=fit.canonical_footprint;
+  let expected=null;
+  if(Array.isArray(ring) && ring.length>=3) {
+    if(!ring.every(p=>Array.isArray(p) && p.length>=2 && p.slice(0,2).every(Number.isFinite)))return null;
+    const local=ring.map(p=>{const [x,y]=xy(...p);return [x,-y];});
+    const signed=local.reduce((sum,p,i)=>{const q=local[(i+1)%local.length];return sum+p[0]*q[1]-q[0]*p[1];},0);
+    if(!Number.isFinite(signed) || Math.abs(signed)<.01)return null;
+    let bestOverlap=0;
+    for(let i=0;i<local.length;i++) {
+      const p=local[i],q=local[(i+1)%local.length],dx=q[0]-p[0],dz=q[1]-p[1],length=Math.hypot(dx,dz);
+      if(length<.03 || Math.abs((dx*tx+dz*tz)/length)<.96)continue;
+      const off=Math.max(Math.abs((p[0]-ax)*-tz+(p[1]+ay)*tx),Math.abs((q[0]-ax)*-tz+(q[1]+ay)*tx));
+      if(off>.06)continue;
+      const limits=[(p[0]-ax)*tx+(p[1]+ay)*tz,(q[0]-ax)*tx+(q[1]+ay)*tz];
+      const overlap=Math.min(L,Math.max(...limits))-Math.max(0,Math.min(...limits));
+      if(overlap<=bestOverlap)continue;
+      bestOverlap=overlap;
+      expected=signed>0 ? [dz/length,-dx/length] : [-dz/length,dx/length];
+    }
+    if(!expected)return null; // registered plane has no bound canonical front edge
+  }
+  const n=fit.front_normal_enu;
+  if(n!==undefined) {
+    if(!Array.isArray(n) || n.length!==2 || !n.every(Number.isFinite)
+       || Math.abs(Math.hypot(...n)-1)>.001)return null;
+    const scene=[n[0],-n[1]];
+    if(Math.abs(scene[0]*tx+scene[1]*tz)>.01
+       || (expected && scene[0]*expected[0]+scene[1]*expected[1]<.99))return null;
+    return scene;
+  }
+  // Legacy fits may recover orientation from their exact bound footprint, never
+  // from an unconditional left-hand normal or arbitrary endpoint order.
+  return expected;
+}
 function frontageFitFor(feature) {
   if (FRONTAGE_FITS.schema !== "kerbside.facade_fits/1") return null;
   const fit = FRONTAGE_FITS.buildings?.[String(feature.osm_id)];
@@ -9659,12 +9698,15 @@ function frontageWallTriangles(feature,geometry,indices) {
   if(!fit?.a || !fit?.b)return [{indices,front:false}];
   const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),dx=bx-ax,dz=ay-by,L=Math.hypot(dx,dz);
   if(L<.2)return [{indices,front:false}];
-  const nx=-dz/L,nz=dx/L,position=geometry.getAttribute("position"),normal=geometry.getAttribute("normal");
+  const out=frontageNormalFor(fit);if(!out)return [{indices,front:false}];
+  const [nx,nz]=out,tx=dx/L,tz=dz/L,position=geometry.getAttribute("position"),normal=geometry.getAttribute("normal");
   const front=[],other=[];
   for(let k=0;k<indices.length;k+=3) {
     const tri=indices.slice(k,k+3);
-    const onFront=tri.every(i=>normal.getX(i)*nx+normal.getZ(i)*nz>.96
-      && Math.abs((position.getX(i)-ax)*nx+(position.getZ(i)+ay)*nz)<.8);
+    const onFront=tri.every(i=>normal.getX(i)*nx+normal.getZ(i)*nz>.25
+      && Math.abs((position.getX(i)-ax)*nx+(position.getZ(i)+ay)*nz)<=1.3
+      && (position.getX(i)-ax)*tx+(position.getZ(i)+ay)*tz>=-.1
+      && (position.getX(i)-ax)*tx+(position.getZ(i)+ay)*tz<=L+.1);
     (onFront ? front : other).push(...tri);
   }
   return [{indices:front,front:true},{indices:other,front:false}].filter(p=>p.indices.length);
@@ -14530,7 +14572,8 @@ function photoDetailParts(group, feature) {
   const [ax, ay] = xy(...fit.a), [bx, by] = xy(...fit.b);
   const dx = bx-ax, dz = ay-by, L = Math.hypot(dx,dz);
   if (L < .2) return;
-  const tx=dx/L, tz=dz/L, nx=-tz, nz=tx, yaw=-Math.atan2(tz,tx);
+  const out=frontageNormalFor(fit);if(!out)return;
+  const tx=dx/L, tz=dz/L, [nx,nz]=out, yaw=-Math.atan2(tz,tx);
   const at = (u,n) => [ax+tx*u+nx*n,-ay+tz*u+nz*n];
   for (const detail of fit.details || []) {
     if (!detail.render || !detail.visible || !detail.reviewer || detail.image_sha256 !== fit.image_sha256
@@ -14609,7 +14652,8 @@ function photoOpeningParts(group,feature,includeWindows=false) {
   if(!fit?.a || !fit?.b)return;
   const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),dx=bx-ax,dz=ay-by,L=Math.hypot(dx,dz);
   if(L<.2)return;
-  const tx=dx/L,tz=dz/L,nx=-tz,nz=tx,yaw=-Math.atan2(tz,tx);
+  const out=frontageNormalFor(fit);if(!out)return;
+  const tx=dx/L,tz=dz/L,[nx,nz]=out,yaw=-Math.atan2(tz,tx);
   for(const o of fit.openings || []) {
     if(!["window","door","garage_candidate","garage","gated_entry_candidate"].includes(o.kind) || (o.kind==="window" && !includeWindows)
        || ![o.u,o.v,o.w,o.h].every(Number.isFinite) || o.u<0 || o.u+o.w>L+.05
@@ -25692,6 +25736,7 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
   const f = [ax, -ay], g = [bx, -by], span = Math.hypot(g[0]-f[0], g[1]-f[1]);
   if (span < .2) return null;
   const tx = (g[0]-f[0])/span, tz = (g[1]-f[1])/span;
+  const out=frontageNormalFor(fit);if(!out)return null;
   const ex = (b[0]-a[0])/length, ez = (b[1]-a[1])/length;
   const aligned = ex*tx + ez*tz;
   const normalError = Math.max(Math.abs((a[0]-f[0])*-tz+(a[1]-f[1])*tx),
@@ -25704,7 +25749,8 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
   },0) : 0;
   const canonicalFace=Number.isFinite(signed) && Math.abs(signed)>.01;
   if(canonicalFace) {
-    const facing=-(signed>0 ? 1 : -1)*aligned;
+    const outward=signed>0 ? [ez,-ex] : [-ez,ex];
+    const facing=outward[0]*out[0]+outward[1]*out[1];
     if(facing<.25 || normalError>1.3)return null;
   } else if (Math.abs(aligned) < .96 || normalError > .8) return null;
   const start = (a[0]-f[0])*tx+(a[1]-f[1])*tz;

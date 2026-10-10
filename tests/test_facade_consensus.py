@@ -74,3 +74,14 @@ def test_reviewed_type_can_be_high_visual_but_never_metric_certified():
     a["openings"][0]["type_reviewed"] = True
     result = certainty(a, {"pass": True})
     assert result["tier"] == "high" and result["calibrated_probability"] is None
+
+
+def test_review_checkbox_cannot_certify_a_stale_front_plane_or_inward_normal():
+    a = view()
+    a.update(appearance={"material": "stucco_render"},
+             review_status="reviewed_inferred_visual_parameters",
+             front_geometry_binding={"status": "unbound_or_normal_conflict"})
+    result = certainty(a, {"pass": True})
+    assert result["tier"] == "low"
+    assert "photo_front_not_bound_to_current_canonical_geometry" in result["reasons"]
+    assert a["openings"][0]["u"] == 1

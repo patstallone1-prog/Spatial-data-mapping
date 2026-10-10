@@ -114,6 +114,7 @@ def main():
                 canonical_footprint=canonical["points"],
                 canonical_front_footprint_uv=front_footprint,
                 footprint_basis="canonical_prior_transformed_rigidly_into_front_frame",
+                front_normal_enu=wall["normal"],
             )
             fit["certainty"].update(
                 tier="low",

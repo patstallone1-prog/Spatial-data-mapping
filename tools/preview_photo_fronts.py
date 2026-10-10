@@ -22,6 +22,7 @@ FUNCTIONS = (
     "buildHomeShell",
     "homeDesignMaterial",
     "frontageWindowsOnEdge",
+    "frontageNormalFor",
     "photoOpeningTexture",
     "photoOpeningParts",
     "frontageOutcropsOnEdge",
@@ -50,11 +51,12 @@ const fits=await Promise.all(FILES.map(file=>fetch(file).then(r=>r.json())));
 for(let k=0;k<fits.length;k++){
  const fit=fits[k],id=String(fit.building_id),w=fit.width_m,h=fit.height_m;
  if(!fit.canonical_front_footprint_uv?.length)throw Error('canonical footprint missing; refusing rectangular proxy approval');
- currentFit={...fit,a:[-w/2,0],b:[w/2,0]};
  const points=fit.canonical_front_footprint_uv.map(([u,n])=>[u-w/2,n]);
  if(Math.hypot(points[0][0]-points.at(-1)[0],points[0][1]-points.at(-1)[1])<.001)points.pop();
  const signed=points.reduce((sum,a,i)=>{const b=points[(i+1)%points.length];return sum+a[0]*b[1]-b[0]*a[1];},0);
  if(signed<0)points.reverse();
+ currentFit={...fit,a:[-w/2,0],b:[w/2,0],front_normal_enu:[0,-1],
+   canonical_footprint:points.map(([x,z])=>[x,-z])};
  const entry={way:{osm_id:id},local:points,fit:[],doors:[]};
  const edges=points.map((a,i)=>{const b=points[(i+1)%points.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),ux=(b[0]-a[0])/L,uz=(b[1]-a[1])/L;
   return {edge:i,a,length:L,ux,uz,nx:-uz,nz:ux,windows:frontageWindowsOnEdge(entry,a,b,L,0) || []};});

@@ -95,6 +95,8 @@ def cross_view(best: dict, views: list[dict]) -> dict:
 
 def certainty(fit: dict, gate: dict) -> dict:
     reasons = list(gate.get("reasons", []))
+    if fit.get("front_geometry_binding", {}).get("status") in {"invalid", "unbound_or_normal_conflict"}:
+        reasons.append("photo_front_not_bound_to_current_canonical_geometry")
     if not gate.get("pass"):
         reasons.append("front_or_two_storeys_not_image_verified")
     if not fit["openings"]:

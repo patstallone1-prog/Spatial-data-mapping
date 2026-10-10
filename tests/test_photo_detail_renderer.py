@@ -24,7 +24,7 @@ def test_photo_detail_material_floor_alignment_and_rejection():
         "style": "vertical_bars",
         "platform_heights_m": [3],
     }
-    fit = {"a": [0, 0], "b": [10, 0], "height_m": 9, "image_sha256": "abc", "details": [detail]}
+    fit = {"a": [0, 0], "b": [10, 0], "front_normal_enu": [0, -1], "height_m": 9, "image_sha256": "abc", "details": [detail]}
     script = (
         """
         let parts=[]; const BUILDING_LIFT_M=12;
@@ -36,13 +36,17 @@ def test_photo_detail_material_floor_alignment_and_rejection():
         + json.dumps(fit)
         + "; function frontageFitFor(){return fit;}\n"
     )
-    script += _extract("photoDetailParts", _page_js())
+    script += _extract("frontageNormalFor", _page_js()) + _extract("photoDetailParts", _page_js())
     script += """
         photoDetailParts({},{});
         if(parts.length<5)throw Error('railing missing');
         const slab=parts[0];
         if(Math.abs(slab.position.y-14.95)>.001 || slab.position.x!==3.5)throw Error('wrong floor or frontage');
         if(slab.material.metalness!==.65)throw Error('metal treated as concrete');
+        if(slab.position.z<=0)throw Error('balcony inside facade');
+        parts=[];fit.front_normal_enu=[0,1];photoDetailParts({},{});
+        if(parts[0].position.z>=0)throw Error('opposite-front balcony inside facade');
+        fit.front_normal_enu=[0,-1];
         parts=[]; fit.details[0].image_sha256='different'; photoDetailParts({},{});
         if(parts.length)throw Error('unrelated image rendered');
         fit.details[0].image_sha256='abc';fit.details[0].platform_heights_m=[9];photoDetailParts({},{});
