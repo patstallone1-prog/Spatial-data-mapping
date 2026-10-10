@@ -2,7 +2,7 @@
  * Keeps the installed app shell launchable without a connection. The 3D world
  * streams on demand, from the network, and is never stored here.
  */
-const VERSION = "6fae9c7cc54f4cc9";
+const VERSION = "61c3202d4d1d99cf";
 const CACHE = "kerbside-shell-" + VERSION;
 const SHELL = [
   "./app.html",
@@ -15,6 +15,15 @@ const SHELL = [
 ];
 const SHELL_PATHS = new Set(SHELL.map(path => new URL(path, self.registration.scope).pathname));
 const isOldRuntimeCache = key => /^kerbside-[0-9a-f]{16}$/.test(key);
+
+// Read-only diagnostics for installed-app upgrades. Never expose captures or URLs.
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "KERBSIDE_CACHE_STATUS" || !event.ports?.[0]) return;
+  event.waitUntil(caches.keys().then((keys) => event.ports[0].postMessage({
+    version: VERSION, policy: "shell-only", cache: CACHE,
+    obsoleteWorldCaches: keys.filter(isOldRuntimeCache).length,
+  })));
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

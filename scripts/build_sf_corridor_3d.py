@@ -3259,6 +3259,72 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
 const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : { assigned: {} })
   .catch(() => ({ assigned: {} }));
+// Image-derived visual fits are optional and reviewed, never canonical replacements.
+const FRONTAGE_FITS = await fetch(sharedAsset("sf-corridor-frontage-fits.json"), { cache: "no-cache" })
+  .then((r) => r.ok ? r.json() : { buildings: {} }).catch(() => ({ buildings: {} }));
+function frontageNormalFor(fit) {
+  if(![fit?.a,fit?.b].every(p=>Array.isArray(p) && p.length===2 && p.every(Number.isFinite)))return null;
+  const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),L=Math.hypot(bx-ax,by-ay);
+  if(L<.2)return null;
+  const tx=(bx-ax)/L,tz=(ay-by)/L;
+  const ring=fit.canonical_footprint;
+  let expected=null;
+  if(Array.isArray(ring) && ring.length>=3) {
+    if(!ring.every(p=>Array.isArray(p) && p.length>=2 && p.slice(0,2).every(Number.isFinite)))return null;
+    const local=ring.map(p=>{const [x,y]=xy(...p);return [x,-y];});
+    const signed=local.reduce((sum,p,i)=>{const q=local[(i+1)%local.length];return sum+p[0]*q[1]-q[0]*p[1];},0);
+    if(!Number.isFinite(signed) || Math.abs(signed)<.01)return null;
+    let bestOverlap=0;
+    for(let i=0;i<local.length;i++) {
+      const p=local[i],q=local[(i+1)%local.length],dx=q[0]-p[0],dz=q[1]-p[1],length=Math.hypot(dx,dz);
+      if(length<.03 || Math.abs((dx*tx+dz*tz)/length)<.96)continue;
+      const off=Math.max(Math.abs((p[0]-ax)*-tz+(p[1]+ay)*tx),Math.abs((q[0]-ax)*-tz+(q[1]+ay)*tx));
+      if(off>.06)continue;
+      const limits=[(p[0]-ax)*tx+(p[1]+ay)*tz,(q[0]-ax)*tx+(q[1]+ay)*tz];
+      const overlap=Math.min(L,Math.max(...limits))-Math.max(0,Math.min(...limits));
+      if(overlap<=bestOverlap)continue;
+      bestOverlap=overlap;
+      expected=signed>0 ? [dz/length,-dx/length] : [-dz/length,dx/length];
+    }
+    if(!expected)return null; // registered plane has no bound canonical front edge
+  }
+  const n=fit.front_normal_enu;
+  if(n!==undefined) {
+    if(!Array.isArray(n) || n.length!==2 || !n.every(Number.isFinite)
+       || Math.abs(Math.hypot(...n)-1)>.001)return null;
+    const scene=[n[0],-n[1]];
+    if(Math.abs(scene[0]*tx+scene[1]*tz)>.01
+       || (expected && scene[0]*expected[0]+scene[1]*expected[1]<.99))return null;
+    return scene;
+  }
+  // Legacy fits may recover orientation from their exact bound footprint, never
+  // from an unconditional left-hand normal or arbitrary endpoint order.
+  return expected;
+}
+function frontageFitFor(feature) {
+  if (FRONTAGE_FITS.schema !== "kerbside.facade_fits/1") return null;
+  const fit = FRONTAGE_FITS.buildings?.[String(feature.osm_id)];
+  if (!fit || fit.review_status !== "reviewed_inferred_visual_parameters"
+      || fit.canonical_geometry_modified || fit.conflicts?.length
+      || (fit.openings || []).some(o=>o.kind === "garage_candidate" && o.recess?.render_steps)
+      || !Array.isArray(fit.canonical_footprint) || !Array.isArray(feature.points)
+      || JSON.stringify(fit.canonical_footprint) !== JSON.stringify(feature.points)
+      || !Number.isFinite(fit.height_m) || !Number.isFinite(Number(feature.height_m))
+      || Math.abs(Number(feature.height_m) - fit.height_m) > 0.05) return null;
+  return fit;
+}
+function houseCertainty(feature) {
+  const fit = frontageFitFor(feature);
+  const appearance = (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)];
+  return {
+    level: fit?.certainty?.tier || "low",
+    aiReviewRequired: fit?.certainty?.ai_review_required ?? true,
+    front: fit ? "reviewed photo-derived visual layout (not surveyed)" : "inferred facade layout",
+    appearance: fit ? "reviewed image appearance" : appearance ? "photo-classified appearance" : "procedural appearance",
+    height: feature.height_source || "unknown height source",
+    unseenSides: "inferred", metricAccuracy: fit?.inch_accuracy_verified ? "independently verified" : "not inch-verified",
+  };
+}
 document.getElementById("obs").textContent = DATA.summary.observations.toLocaleString();
 document.getElementById("eligible").textContent = DATA.summary.eligible.toLocaleString();
 document.getElementById("seq").textContent = DATA.summary.sequences.toLocaleString();
@@ -9571,20 +9637,98 @@ function homeCladdingFor(seed) {
   return HOME_CLADDING_SHARES[0][0];
 }
 
-function pickMaterial(seed, height, archetype, facade = null, osmId = null, home = false) {
-  const assignment = osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
+function facadeAppearanceBands(feature, fallback) {
+  const fit=frontageFitFor(feature), raw=fit?.appearance?.bands;
+  if(!Array.isArray(raw) || !raw.length) return [fallback];
+  const valid=raw.filter(b=>Number.isFinite(b.bottom_m) && Number.isFinite(b.top_m)
+    && b.bottom_m>=0 && b.bottom_m<fallback.height && b.top_m>b.bottom_m && b.top_m<=fallback.height+.01
+    && (b.colour==null || /^#[0-9a-f]{6}$/i.test(b.colour)))
+    .map(b=>({...b,top_m:Math.min(b.top_m,fallback.height)}));
+  if(!valid.length) return [fallback];
+  const cuts=[...new Set([0,fallback.height,...valid.flatMap(b=>[b.bottom_m,b.top_m])])].sort((a,b)=>a-b);
+  const result=[];
+  for(let i=1;i<cuts.length;i++) {
+    const low=cuts[i-1],high=cuts[i],mid=(low+high)/2;
+    const matching=valid.filter(b=>b.bottom_m<=mid && b.top_m>=mid);
+    const band=matching.length===1 ? matching[0] : null;
+    const name=band && (PHOTO_CLASS_TO_MATERIAL[band.material] || (band.material==="glass" ? "glass" : null));
+    const selected=name && MATERIALS.find(m=>m.name===name);
+    const material=selected ? {...selected,photoLabel:band.material} : fallback.material;
+    result.push({...fallback, bottom:low,top:high,
+      material:band?.colour ? {...material,neutralColourDetail:true} : material,
+      tint:band?.colour ? Number.parseInt(band.colour.slice(1),16) : fallback.tint,
+      frontBasis:band?.front_basis || "fallback_inferred",otherSidesBasis:"inferred_same_height_band"});
+  }
+  return result.length ? result : [fallback];
+}
+
+function clipFacadeBand(geometry, indices, bottom, top) {
+  const position=geometry.getAttribute("position"), normal=geometry.getAttribute("normal"),uv=geometry.getAttribute("uv");
+  const output={position:[],normal:[],uv:[]};
+  const vertex=i=>({p:[position.getX(i),position.getY(i),position.getZ(i)],
+    n:[normal.getX(i),normal.getY(i),normal.getZ(i)],u:[uv.getX(i),uv.getY(i)]});
+  const cut=(poly,height,above)=>{
+    const result=[];
+    for(let i=0;i<poly.length;i++) {
+      const a=poly[i],b=poly[(i+1)%poly.length],ain=above ? a.p[1]>=height : a.p[1]<=height,
+        bin=above ? b.p[1]>=height : b.p[1]<=height;
+      if(ain) result.push(a);
+      if(ain!==bin) {
+        const t=(height-a.p[1])/(b.p[1]-a.p[1]);
+        const lerp=(x,y)=>x.map((v,k)=>v+(y[k]-v)*t);
+        const crossing={p:lerp(a.p,b.p),n:lerp(a.n,b.n),u:lerp(a.u,b.u)};
+        crossing.p[1]=height;result.push(crossing);
+      }
+    }
+    return result;
+  };
+  for(let i=0;i<indices.length;i+=3) {
+    const poly=cut(cut(indices.slice(i,i+3).map(vertex),bottom,true),top,false);
+    for(let k=1;k+1<poly.length;k++) for(const v of [poly[0],poly[k],poly[k+1]]) {
+      output.position.push(...v.p);output.normal.push(...v.n);output.uv.push(...v.u);
+    }
+  }
+  const result=new THREE.BufferGeometry();
+  for(const [key,size] of [["position",3],["normal",3],["uv",2]]) result.setAttribute(key,new THREE.Float32BufferAttribute(output[key],size));
+  return result;
+}
+
+function frontageWallTriangles(feature,geometry,indices) {
+  const fit=frontageFitFor(feature);
+  if(!fit?.a || !fit?.b)return [{indices,front:false}];
+  const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),dx=bx-ax,dz=ay-by,L=Math.hypot(dx,dz);
+  if(L<.2)return [{indices,front:false}];
+  const out=frontageNormalFor(fit);if(!out)return [{indices,front:false}];
+  const [nx,nz]=out,tx=dx/L,tz=dz/L,position=geometry.getAttribute("position"),normal=geometry.getAttribute("normal");
+  const front=[],other=[];
+  for(let k=0;k<indices.length;k+=3) {
+    const tri=indices.slice(k,k+3);
+    const onFront=tri.every(i=>normal.getX(i)*nx+normal.getZ(i)*nz>.25
+      && Math.abs((position.getX(i)-ax)*nx+(position.getZ(i)+ay)*nz)<=1.3
+      && (position.getX(i)-ax)*tx+(position.getZ(i)+ay)*tz>=-.1
+      && (position.getX(i)-ax)*tx+(position.getZ(i)+ay)*tz<=L+.1);
+    (onFront ? front : other).push(...tri);
+  }
+  return [{indices:front,front:true},{indices:other,front:false}].filter(p=>p.indices.length);
+}
+
+function pickMaterial(seed, height, archetype, facade = null, osmId = null, home = false, feature = null) {
+  const fit = feature ? frontageFitFor(feature) : null;
+  const assignment = fit?.appearance?.material && fit.appearance.material !== "unknown"
+    ? { class: fit.appearance.material, basis: "reviewed_image_visual_fit" }
+    : osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
   // A class read off this building's photographs: the matcher's at 0.70 and up, CLIP's where
   // its reading was clear (scripts/build_material_assignments.py decided that).
   if (assignment && assignment.class
-      && (assignment.basis === "image_clip_zero_shot" || assignment.confidence >= 0.70) &&
+      && (assignment.basis === "image_clip_zero_shot" || assignment.basis === "reviewed_image_visual_fit" || assignment.confidence >= 0.70) &&
       !(facade && ["glass", "metal"].includes(facade.m) && facade.conf >= 0.6)) {
     const name = PHOTO_CLASS_TO_MATERIAL[assignment.class];
     const photographed = MATERIALS.find((material) => material.name === name);
     if (photographed) return { ...photographed, photoLabel: assignment.class };
   }
   if (home) {
-    // A house is clad in one material over all of it: what its photographs read where they
-    // read anything, else a draw from the city's houses.
+    // Fallback cladding only. Reviewed height bands can replace it independently,
+    // including a shop's ground floor and different residential floors above it.
     const read = assignment && assignment.class && PHOTO_CLASS_TO_MATERIAL[assignment.class]
       ? assignment.class : homeCladdingFor(seed);
     const named = MATERIALS.find((material) => material.name === PHOTO_CLASS_TO_MATERIAL[read]);
@@ -9827,7 +9971,7 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, w, h);
   if (photo) ctx.drawImage(photo, 0, 0, w, h);
-  if (photo && PAINTABLE_PHOTO_CLASSES.has(materialClass)) toPaintableDetail(ctx, canvas);
+  if (photo && (PAINTABLE_PHOTO_CLASSES.has(materialClass) || material.neutralColourDetail)) toPaintableDetail(ctx, canvas);
 
   if (!photo && material.name === "brick") {
     // Courses, offset every other row. Coarse at this scale, but it is the pattern the eye
@@ -9844,8 +9988,11 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
     for (let y = 0; y < h; y += 16) ctx.fillRect(0, y, w, 2);
   }
 
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.fillRect(0, h - 5, w, 5);                     // the line between storeys
+  // A bare/photo wall is not evidence of a floor-height dark trim band.
+  if(withWindows) {
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(0, h - 5, w, 5);
+  }
   if (withWindows && material.name !== "glass" && material.name !== "metal") {
     WINDOW_STYLES[style % WINDOW_STYLES.length](ctx, seed);
     trimCourse(ctx, seed, material);
@@ -9872,7 +10019,7 @@ function facadeTextureFor(material, seed) {
   // shares a few dozen canvases.
   const style = Math.floor(random(seed + 3) * WINDOW_STYLES.length);
   const variant = Math.floor(random(seed) * MATERIAL_VARIANTS);
-  const key = `${material.name}-${material.photoLabel || "prior"}-${style}-${variant}`;
+  const key = `${material.name}-${material.photoLabel || "prior"}-${material.neutralColourDetail ? "band" : "original"}-${style}-${variant}`;
   if (!FACADE_CACHE.has(key)) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, style, variant);
@@ -9887,7 +10034,7 @@ function facadeTextureFor(material, seed) {
 //: house the street sees and the house the walker opens are one surface.
 function bareFacadeTextureFor(material, seed) {
   const variant = Math.floor(random(seed) * MATERIAL_VARIANTS);
-  const key = `${material.name}-${material.photoLabel || "prior"}-${variant}-bare`;
+  const key = `${material.name}-${material.photoLabel || "prior"}-${material.neutralColourDetail ? "band" : "original"}-${variant}-bare`;
   if (!bareWallMaps.has(key)) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, 0, variant, false);
@@ -9905,7 +10052,8 @@ async function loadPhotoMaterialLibrary() {
     manifest = await response.json();
   } catch (_) { return; }
   const used = new Set([...Object.values(MATERIAL_ASSIGNMENTS.assigned || {})
-    .map((assignment) => assignment.class), ...HOME_CLADDING_SHARES.map(([cls]) => cls)]);
+    .map((assignment) => assignment.class), ...HOME_CLADDING_SHARES.map(([cls]) => cls),
+    ...Object.values(FRONTAGE_FITS.buildings || {}).flatMap(f=>(f.appearance?.bands || []).map(b=>b.material))]);
   const byClass = new Map();
   for (const row of manifest.assets || []) {
     if (!used.has(row.material_class) || row.license !== "CC0-1.0") continue;
@@ -9925,10 +10073,11 @@ async function loadPhotoMaterialLibrary() {
         // Every texture of the class: a variant beyond the photographs there are takes one of
         // them (facadeFor), and which it takes changes as they arrive.
         if (spec.material?.photoLabel !== materialClass) continue;
-        const repainted = facadeFor(spec.material, spec.seed, spec.style, variant, !spec.bare);
+        const repainted = facadeFor(spec.material, spec.seed, spec.style, spec.variant, !spec.bare);
         texture.image = repainted.image;
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.needsUpdate = true;
+        repainted.dispose();
       }
       await nextFrame();
     }
@@ -14421,6 +14570,120 @@ function balconyPart(group, wall, y, seed) {
   }
 }
 
+function photoDetailParts(group, feature) {
+  const fit = frontageFitFor(feature);
+  if (!fit?.a || !fit?.b) return;
+  const [ax, ay] = xy(...fit.a), [bx, by] = xy(...fit.b);
+  const dx = bx-ax, dz = ay-by, L = Math.hypot(dx,dz);
+  if (L < .2) return;
+  const out=frontageNormalFor(fit);if(!out)return;
+  const tx=dx/L, tz=dz/L, [nx,nz]=out, yaw=-Math.atan2(tz,tx);
+  const at = (u,n) => [ax+tx*u+nx*n,-ay+tz*u+nz*n];
+  for (const detail of fit.details || []) {
+    if (!detail.render || !detail.visible || !detail.reviewer || detail.image_sha256 !== fit.image_sha256
+        || !["balcony","fire_escape"].includes(detail.kind)
+        || ![detail.u,detail.w,detail.depth_m].every(Number.isFinite)
+        || detail.u < 0 || detail.w <= 0 || detail.u+detail.w > L+.05
+        || detail.depth_m <= 0 || detail.depth_m > 2.5
+        || !/^#[0-9a-f]{6}$/i.test(detail.colour || "")) continue;
+    const heights = detail.platform_heights_m || [];
+    if (!heights.length || !heights.every(y=>Number.isFinite(y) && y>0 && y<=fit.height_m-1.2)) continue;
+    const colour = Number.parseInt(detail.colour.slice(1),16);
+    const roughness = detail.material === "metal" ? .48 : .82;
+    const center = detail.u+detail.w/2, depth=detail.depth_m;
+    const part = (u,y,n,w,h,d) => {
+      const p=at(u,n);
+      const mesh=makeBox(p[0],y+BUILDING_LIFT_M,p[1],w,h,d,colour,roughness);
+      mesh.material.metalness=detail.material === "metal" ? .65 : .04;
+      mesh.rotation.y=yaw;
+      addMerged("part",mesh,"detail");
+      return mesh;
+    };
+    const railBeam = (u0,y0,u1,y1,n) => {
+      const a=at(u0,n), b=at(u1,n);
+      const direction=new THREE.Vector3(b[0]-a[0],y1-y0,b[1]-a[1]);
+      const length=direction.length();
+      if(length<.01) return;
+      const beam=makeBox(0,0,0,.025,length,.025,colour,roughness);
+      beam.material.metalness=detail.material === "metal" ? .65 : .04;
+      beam.position.set((a[0]+b[0])/2,(y0+y1)/2+BUILDING_LIFT_M,(a[1]+b[1])/2);
+      beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
+      addMerged("part",beam,"detail");
+    };
+    for (const y of heights) {
+      part(center,y-.10,depth/2,detail.w,.10,depth);
+      part(center,y+1.0,depth,detail.w,.045,.045);
+      if (detail.style === "solid_panel") part(center,y+.05,depth,detail.w,.95,.05);
+      else if(detail.style === "lattice") for(let u=detail.u;u<detail.u+detail.w;u+=.45) {
+        const end=Math.min(detail.u+detail.w,u+.45);
+        railBeam(u,y+.10,end,y+.95,depth); railBeam(u,y+.95,end,y+.10,depth);
+      }
+      else for(let u=detail.u;u<=detail.u+detail.w;u+=.18) part(u,y,depth,.025,1.0,.025);
+      for(const u of [detail.u,detail.u+detail.w]) {
+        part(u,y+1.0,depth/2,.045,.045,depth);
+        for(let n=.1;n<depth;n+=.18) part(u,y,n,.025,1.0,.025);
+      }
+    }
+    if(detail.kind === "fire_escape") for(let i=1;i<heights.length;i++) {
+      const low=heights[i-1], high=heights[i], stairWidth=Math.min(.65,detail.w*.35);
+      const run=detail.w-stairWidth;
+      const count=Math.ceil((high-low)/.18);
+      for(let k=0;k<count;k++) {
+        const u=detail.u+stairWidth/2+run*(k+.5)/count;
+        part(u,low+(high-low)*(k+1)/count-.04,depth/2,run/count,.04,Math.min(.75,depth));
+      }
+    }
+  }
+}
+
+const PHOTO_OPENING_TEXTURES = new Map();
+function photoOpeningTexture(kind, design) {
+  const colour=/^#[0-9a-f]{6}$/i.test(design?.colour || "") ? design.colour : "#8b8980";
+  const horizontal=design?.panel_lines?.horizontal || [], vertical=design?.panel_lines?.vertical || [];
+  const key=JSON.stringify([kind,colour,horizontal,vertical]);
+  if(PHOTO_OPENING_TEXTURES.has(key))return PHOTO_OPENING_TEXTURES.get(key);
+  const canvas=document.createElement("canvas");canvas.width=canvas.height=128;
+  const ctx=canvas.getContext("2d");ctx.fillStyle=colour;ctx.fillRect(0,0,128,128);
+  ctx.strokeStyle="rgba(20,20,20,.45)";ctx.lineWidth=1.5;
+  for(const y of horizontal){ctx.beginPath();ctx.moveTo(0,y*128);ctx.lineTo(128,y*128);ctx.stroke();}
+  for(const x of vertical){ctx.beginPath();ctx.moveTo(x*128,0);ctx.lineTo(x*128,128);ctx.stroke();}
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  PHOTO_OPENING_TEXTURES.set(key,texture);return texture;
+}
+
+function photoOpeningParts(group,feature,includeWindows=false) {
+  const fit=frontageFitFor(feature);
+  if(!fit?.a || !fit?.b)return;
+  const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),dx=bx-ax,dz=ay-by,L=Math.hypot(dx,dz);
+  if(L<.2)return;
+  const out=frontageNormalFor(fit);if(!out)return;
+  const tx=dx/L,tz=dz/L,[nx,nz]=out,yaw=-Math.atan2(tz,tx);
+  for(const o of fit.openings || []) {
+    if(!["window","door","garage_candidate","garage","gated_entry_candidate"].includes(o.kind) || (o.kind==="window" && !includeWindows)
+       || ![o.u,o.v,o.w,o.h].every(Number.isFinite) || o.u<0 || o.u+o.w>L+.05
+       || o.v<0 || o.v+o.h>fit.height_m-.1 || o.w<=0 || o.h<=0)continue;
+    // This path draws flat panels, not connected stairwells. Never let photo thresholds
+    // float over six inches above outside ground, including old fits without access metadata.
+    if(o.kind!=="window") {
+      const ref=fit.ground_reference;
+      const ground=ref?.frame==="relative_to_facade_foot" && ref.source
+        && Number.isFinite(ref.outside_ground_m) ? ref.outside_ground_m : 0;
+      if(o.render_allowed===false || o.v-ground>.1524)continue;
+      // Also compare against the ground actually drawn outside both ends of the leaf.
+      // A source control cannot excuse a mismatched terrain/base in the current scene.
+      if(typeof terrainGroundAt!=="function" || ![0,.5,1].every(t=>{
+        const u=o.u+o.w*t, x=ax+tx*u+nx*.3, z=-ay+tz*u+nz*.3;
+        const street=terrainGroundAt(x,z);
+        return Number.isFinite(street) && o.v+BUILDING_LIFT_M-street<=.1524+1e-9;
+      }))continue;
+    }
+    const u=o.u+o.w/2,out=.085;
+    const map=o.kind==="window" ? homeDesignMaterial(o.design).map : photoOpeningTexture(o.kind,o.design);
+    const mesh=planePart(group,ax+tx*u+nx*out,o.v,-ay+tz*u+nz*out,o.w,o.h,map,yaw);
+    mesh.userData={surface:o.kind,canonicalBuilding:String(feature.osm_id),grade:"reviewed_inferred_visual_parameters",openingId:o.id};
+  }
+}
+
 // ---- shopfronts ----
 //
 // Two thousand seven hundred and twenty eight businesses in this corridor, each with a name and
@@ -15036,6 +15299,8 @@ function garagesOnWall(feature, wall) {
 }
 
 function addGroundFacadeDetail(group, feature, seed, height, tint) {
+  // Never place an extra invented front door/shop backdrop on a reviewed photo front.
+  if(frontageFitFor(feature))return;
   // A building with businesses in it, or of a business's kind, gets its storefronts; a house
   // gets its door.
   if (hasStorefront(feature)) {
@@ -15218,8 +15483,8 @@ function shopBays(feature, wall) {
 const STOREFRONT_TEXTURES = new Map();
 const STOREFRONT_VARIANTS = 4;
 
-function storefrontTexture(trade, variant, frameHex, standalone) {
-  const key = `${trade}|${variant}|${frameHex}|${standalone ? "s" : "u"}`;
+function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = false) {
+  const key = `${trade}|${variant}|${frameHex}|${standalone ? "s" : "u"}|${preserveWall ? "photo-band" : "fallback"}`;
   if (STOREFRONT_TEXTURES.has(key)) return STOREFRONT_TEXTURES.get(key);
   const W = 256;
   const H = 128;
@@ -15241,7 +15506,7 @@ function storefrontTexture(trade, variant, frameHex, standalone) {
   // glazing high and finishes in a fascia; one under flats has a stall riser and a transom
   // under the storey above.
   ctx.fillStyle = frame;
-  ctx.fillRect(0, 0, W, H);
+  if (!preserveWall) ctx.fillRect(0, 0, W, H);
   const riser = standalone ? 10 : 16;            // the stall riser at the foot of the glass
   const head = standalone ? 30 : 22;             // the fascia above the glass
   const top = head;
@@ -15460,7 +15725,7 @@ function storefrontTexture(trade, variant, frameHex, standalone) {
     case "bank": {
       // Stone: pilasters between tall windows, a heavy door, nothing lit.
       ctx.fillStyle = frame;
-      ctx.fillRect(0, 0, W, H);
+      if (!preserveWall) ctx.fillRect(0, 0, W, H);
       for (const [x0, x1] of panes) {
         const n = Math.max(1, Math.floor((x1 - x0) / 44));
         for (let i = 0; i < n; i += 1) {
@@ -15589,9 +15854,14 @@ function addStorefronts(group, feature, seed, height, tint) {
   const standalone = height <= STOREFRONT_STANDALONE_MAX_M;
   const bays = shopBays(feature, wall);
   const lead = bays[0].trade;
-  const frame = storefrontColour(tint, lead, seed);
+  const groundBand = frontageFitFor(feature)?.appearance?.bands?.find(b=>b.bottom_m===0
+    && Number.isFinite(b.top_m) && b.top_m>0 && b.top_m<=height
+    && (/^#[0-9a-f]{6}$/i.test(b.colour || "") || PHOTO_CLASS_TO_MATERIAL[b.material]));
+  const frame = groundBand?.colour ? new THREE.Color(groundBand.colour) : storefrontColour(tint, lead, seed);
   const frameHex = frame.getHex();
-  const bandH = standalone ? Math.max(3.0, height - 0.15) : Math.min(STOREFRONT_BAND_M, height * 0.36);
+  const bandH = groundBand ? Math.min(groundBand.top_m,height-.15)
+    : standalone ? Math.max(3.0, height - 0.15) : Math.min(STOREFRONT_BAND_M, height * 0.36);
+  if (bandH <= .5) return;
   // The ground storey's own colour across the whole street wall, just proud of it, on its
   // vertices so every building's frame merges into one mesh.
   const sink = awningSink("band");
@@ -15599,14 +15869,14 @@ function addStorefronts(group, feature, seed, height, tint) {
     const q = wallPoint(wall, along, out);
     return [q.x, y, q.z];
   };
-  awningQuad(sink, [
+  if (!groundBand) awningQuad(sink, [
     corner(-wall.span / 2, 0.02), corner(wall.span / 2, 0.02),
     corner(wall.span / 2, bandH), corner(-wall.span / 2, bandH),
   ], [frame]);
   // A cornice line where the frame meets the storeys above, or the parapet cap on a
   // standalone shop.
   const capColour = frame.clone().multiplyScalar(0.72);
-  awningQuad(sink, [
+  if (!groundBand) awningQuad(sink, [
     corner(-wall.span / 2, bandH, 0.14), corner(wall.span / 2, bandH, 0.14),
     corner(wall.span / 2, bandH + 0.18, 0.14), corner(-wall.span / 2, bandH + 0.18, 0.14),
   ], [capColour]);
@@ -15623,7 +15893,7 @@ function addStorefronts(group, feature, seed, height, tint) {
       const centre = bay.centre - bay.share / 2 + each * (f + 0.5);
       const at = wallPoint(wall, centre, 0.11);
       planePart(group, at.x, 0.05, at.z, each * 0.97, panelH,
-                storefrontTexture(bay.trade, variant, frameHex, standalone), wall.yaw);
+                storefrontTexture(bay.trade, variant, frameHex, standalone, !!groundBand), wall.yaw);
     }
   }
 }
@@ -15650,7 +15920,7 @@ function addSouthFacadeDetail(group, feature, seed, height) {
   // A house's windows are its own (homeWindowLayout); the panel of painted windows is only for a
   // building with a shop in it.
   if (hasStorefront(feature)) planePart(group, x, bottom, z, panelW, panelH, southWindowTextureFor(seed), wall.yaw);
-  if (height > 7.5 && random(seed + 701) < 0.34) {
+  if (!frontageFitFor(feature) && height > 7.5 && random(seed + 701) < 0.34) {
     balconyPart(group, wall, Math.min(height - 1.1, STOREY_M * 1.2), seed);
   }
 }
@@ -16269,15 +16539,15 @@ function buildingMesh(feature) {
   const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
     && !hasStorefront(feature);
   const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
-                                feature.osm_id, isHome);
+                                feature.osm_id, isHome, feature);
   const style = ARCHETYPE_STYLE[feature.archetype];
   const palette = style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
   // which is a statement about San Francisco's building stock and not about this building.
   // The colour sampled across the building's frames where there is one; else the colour read off
   // its photographed walls (facade_photo_materials, via the material assignments).
-  const photoColour = feature.colour !== undefined ? feature.colour
-    : (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)]?.colour;
+  const photoColour = frontageFitFor(feature)?.appearance?.colour || (feature.colour !== undefined ? feature.colour
+    : (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)]?.colour);
   let tint = photoColour !== undefined
     ? liftSampledColour(photoColour)
     : palette[Math.floor(random(seed + 11) * palette.length)];
@@ -16363,13 +16633,14 @@ function buildingMesh(feature) {
   const wallColour = material.photoLabel && !PAINTABLE_PHOTO_CLASSES.has(material.photoLabel)
     ? new THREE.Color(0xffffff).lerp(new THREE.Color(tint), 0.22)
     : new THREE.Color(tint);
+  const appearanceBands=facadeAppearanceBands(feature,{material,seed,tint:wallColour.getHex(),height,bottom:0,top:height});
   if (isHome) {
     const id = String(feature.osm_id);
     // Which way round ExtrudeGeometry walked the outline (it makes every outline clockwise):
     // the shell maps its walls' texture from the same end, so the pattern does not shift.
     const clockwise = THREE.ShapeUtils.isClockWise(feature.points.map(([lon, lat]) => new THREE.Vector2(...xy(lon, lat))));
     HOME_RENDER.set(id, { feature, material, seed, tint: wallColour.getHex(),
-      height, base: hillLift, clockwise });
+      height, base: hillLift, clockwise, appearanceBands });
     BUILDING_VISUAL_ID = id;
   }
   roof.color.setHex(0xffffff);
@@ -16391,6 +16662,24 @@ function buildingMesh(feature) {
       taken.push(index ? index.getX(i) : i);
     }
     slice.setIndex(taken);
+    if(part.materialIndex !== 0 && (appearanceBands.some(b=>b.frontBasis) || frontageFitFor(feature))) {
+      const partitions=isHome ? [{indices:taken,front:true}] : frontageWallTriangles(feature,geom,taken);
+      for(const partition of partitions) for(const band of appearanceBands) {
+        const clipped=clipFacadeBand(geom,partition.indices,hillLift+band.bottom,hillLift+band.top);
+        if(!clipped.getAttribute("position").count) {clipped.dispose();continue;}
+        clipped.userData={};
+        const bandWalls=walls.clone();
+        bandWalls.map=partition.front ? bareFacadeTextureFor(band.material,seed) : facadeTextureFor(band.material,seed);
+        bandWalls.roughness=band.material.rough;bandWalls.metalness=band.material.metal;
+        bandWalls.envMapIntensity=band.material.name==="glass" ? 1.6 : band.material.name==="metal" ? 1.1 : .35;
+        const colour=new THREE.Color(band.tint),count=clipped.getAttribute("position").count;
+        const colours=new Float32Array(count*3);
+        for(let i=0;i<count;i++) colours.set([colour.r,colour.g,colour.b],i*3);
+        clipped.setAttribute("color",new THREE.BufferAttribute(colours,3));
+        addMerged("wall",new THREE.Mesh(clipped,bandWalls),"building");
+      }
+      slice.dispose();continue;
+    }
     const colour = part.materialIndex === 0 ? capColour : wallColour;
     const count = slice.getAttribute("position").count;
     const colours = new Float32Array(count * 3);
@@ -16410,6 +16699,8 @@ function buildingMesh(feature) {
   } else {
     addGroundFacadeDetail(group, feature, seed, height, tint);
     addSouthFacadeDetail(group, feature, seed, height);
+    photoDetailParts(group, feature);
+    photoOpeningParts(group,feature,!isHome);
     addRoofFurniture(group, feature, seed, height, areaM2);
     addShopfronts(feature, seed, height, tint);
     addBuildingNamePlaque(group, feature, seed, height, tint);
@@ -24205,7 +24496,7 @@ async function fullDetailFeature(feature) {
   if (!shard) return feature;
   let records = detailShardCache.get(shard.id);
   if (!records) {
-    records = fetch(asset(shard.file), { cache: "force-cache" })
+    records = fetch(asset(shard.file), { cache: "no-cache" })
       .then((response) => {
         if (!response.ok) throw new Error(`detail shard ${response.status}`);
         return response.json();
@@ -24244,8 +24535,11 @@ async function featureSummary(feature) {
   const zoning = full.zoning || {};
   const lidar = full.datasf_building_height || {};
   const title = place.name || full.name || address.formatted || "Building";
+  const certainty = houseCertainty(full);
   const lines = [
     `<b>${title}</b>`,
+    `Certainty: ${certainty.level.toUpperCase()}; ${certainty.front}; ${certainty.appearance}; ${certainty.metricAccuracy}`,
+    `Height basis: ${certainty.height}; unseen sides: ${certainty.unseenSides}`,
     address.formatted || place.formatted_address || "",
     full.archetype ? `Type: ${full.archetype.replaceAll("_", " ")}` : "",
     place.primary_type ? `Business: ${place.primary_type.replaceAll("_", " ")}` : "",
@@ -24387,13 +24681,14 @@ function showAddress(feature, clientX, clientY) {
   const parcel = feature.parcel || {};
   const line = address.formatted
     || [address.house_number, address.street].filter(Boolean).join(" ");
-  if (!line && !feature.name) return false;
+  if (!line && !feature.name && feature.kind !== "building") return false;
   const rest = [
     feature.name && line ? feature.name : "",
     parcel.blklot ? `Parcel ${parcel.blklot}` : "",
     parcel.analysis_neighborhood || "",
+    `Certainty: ${houseCertainty(feature).level.toUpperCase()}; ${houseCertainty(feature).front}; ${houseCertainty(feature).metricAccuracy}`,
   ].filter(Boolean);
-  addrBox.innerHTML = `<b>${line || feature.name}</b>`
+  addrBox.innerHTML = `<b>${line || feature.name || `Building ${feature.osm_id}`}</b>`
     + (rest.length ? `<br><span class="sub">${rest.join(" &middot; ")}</span>` : "");
   addrBox.hidden = false;
   // Placed after it is measurable, and kept inside the window rather than half off the edge.
@@ -24891,6 +25186,9 @@ function showDoor(door) {
   if (door.atGrade && ground - street > 4.0) return;
   const leafGround = door.atGrade ? street : ground;
   if (!door.atGrade) addStoop(door, street, ground, stoopPlan);
+  // Independent of photo/UI flags: a raised runtime leaf must have a real inward plan.
+  if (!Number.isFinite(leafGround) || !Number.isFinite(street)
+      || (leafGround - street > .1524 && !door.stoopPlan)) return;
   const hinge = new THREE.Group();
   // Hinged at the t0 end, standing a hair outside the wall so it is not lost in it.
   const hx = door.entry.local[door.edge][0] + (door.entry.local[door.edge + 1][0] - door.entry.local[door.edge][0]) * door.t0;
@@ -25267,11 +25565,11 @@ const homeShells = new Set();
 //: The room here is lit by the same sun as the street, so a half-clear pane showed its white
 //: plaster and every window went white. The pane is two faces: dark glass facing out, and a
 //: clear one facing in, so the street can still be seen from inside.
-const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0x26333b,
-  transparent: true, opacity: 0.9, depthWrite: false, side: THREE.FrontSide,
-  roughness: 0.08, metalness: 0.2, envMapIntensity: 1.0 });
-const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: 0xa9bcc4,
-  transparent: true, opacity: 0.28, depthWrite: false, side: THREE.FrontSide,
+const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0xe7f0f3,
+  transparent: true, opacity: 0.12, depthWrite: false, side: THREE.FrontSide,
+  roughness: 0.08, metalness: 0.0, envMapIntensity: 0.4 });
+const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: 0xe7f0f3,
+  transparent: true, opacity: 0.12, depthWrite: false, side: THREE.FrontSide,
   roughness: 0.1, metalness: 0.0, envMapIntensity: 0.4 });
 //: The frames dark, as the batched facade paints its windows: cream frames were a white grid
 //: that appeared on a house the moment its shell was built.
@@ -25435,6 +25733,51 @@ const FRONT_DOOR_PANEL_W_M = 3.2;
 //: glass and the rooms behind it), so the one never changes into the other on screen. It depends
 //: only on what is known before anyone walks up: the footprint, the doors (each reserving its
 //: opening with room for a stoop), the garages, the photographed openings, the ground.
+function frontageWindowsOnEdge(entry, a, b, length, bottom) {
+  const fit = frontageFitFor(entry.way);
+  if (!fit || !fit.a || !fit.b || ![...fit.a,...fit.b].every(Number.isFinite)) return null;
+  const [ax, ay] = xy(...fit.a), [bx, by] = xy(...fit.b);
+  const f = [ax, -ay], g = [bx, -by], span = Math.hypot(g[0]-f[0], g[1]-f[1]);
+  if (span < .2) return null;
+  const tx = (g[0]-f[0])/span, tz = (g[1]-f[1])/span;
+  const out=frontageNormalFor(fit);if(!out)return null;
+  const ex = (b[0]-a[0])/length, ez = (b[1]-a[1])/length;
+  const aligned = ex*tx + ez*tz;
+  const normalError = Math.max(Math.abs((a[0]-f[0])*-tz+(a[1]-f[1])*tx),
+    Math.abs((b[0]-f[0])*-tz+(b[1]-f[1])*tx));
+  // Existing bay returns are real parts of the front, not party walls. Only a
+  // footprint-validated outward-facing edge can use the wider return envelope.
+  const ring=entry.local;
+  const signed=Array.isArray(ring) && ring.length>=4 ? ring.reduce((sum,p,i)=>{
+    const q=ring[(i+1)%ring.length];return sum+p[0]*q[1]-q[0]*p[1];
+  },0) : 0;
+  const canonicalFace=Number.isFinite(signed) && Math.abs(signed)>.01;
+  if(canonicalFace) {
+    const outward=signed>0 ? [ez,-ex] : [-ez,ex];
+    const facing=outward[0]*out[0]+outward[1]*out[1];
+    if(facing<.25 || normalError>1.3)return null;
+  } else if (Math.abs(aligned) < .96 || normalError > .8) return null;
+  const start = (a[0]-f[0])*tx+(a[1]-f[1])*tz;
+  const end = start + length*aligned;
+  if (Math.max(start,end) < -.1 || Math.min(start,end) > span+.1) return null;
+  return (fit.openings || []).filter(o=>o.kind === "window" && [o.u,o.v,o.w,o.h].every(Number.isFinite)
+    && o.w > 0 && o.h > 0 && o.v>=0
+    && (!Number.isFinite(fit.height_m) || o.v+o.h<=fit.height_m-.1)).map(o => ({ ...o,
+    u: aligned > 0 ? (o.u-start)/aligned : (o.u+o.w-start)/aligned,
+    design: o.design && { ...o.design, vertical_bars: (o.design.vertical_bars || []).map(t=>aligned > 0 ? t : 1-t) },
+    w: o.w/Math.abs(aligned), v: bottom+o.v, grade: "image_on_prior_geometry" }))
+    .flatMap(o=>{
+      if(!canonicalFace)return o.u>=.08 && o.u+o.w<=length-.08 ? [o] : [];
+      const left=Math.max(0,o.u),right=Math.min(length,o.u+o.w);
+      if(right-left<.03)return [];
+      const fullLeft=Math.abs(left-o.u)<.001,fullRight=Math.abs(right-o.u-o.w)<.001;
+      return [{...o,u:left,w:right-left,frameLeft:fullLeft,frameRight:fullRight,
+        sourceOpeningId:o.id,projectionBasis:"photo_on_existing_canonical_front_surface",
+        design:o.design && {...o.design,vertical_bars:(o.design.vertical_bars || [])
+          .map(t=>(o.u+o.w*t-left)/(right-left)).filter(t=>t>0 && t<1)}}];
+    });
+}
+
 function homeWindowLayout(entry, spec) {
   const id = String(entry.way.osm_id);
   const bottom = spec.base, top = bottom + spec.height, floor = entryFloorY(entry);
@@ -25488,9 +25831,10 @@ function homeWindowLayout(entry, spec) {
     // A wall that wears its own photograph shows its own windows: none is added there, or its
     // frame stands out through the picture of the real one.
     const photographed = photographedEdge(a, b);
-    const candidates = observed ? observed.map(([u, v, w, h, confidence]) => ({
+    const fitted = frontageWindowsOnEdge(entry, a, b, length, bottom);
+    const candidates = fitted || (observed ? observed.map(([u, v, w, h, confidence]) => ({
       u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
-      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, storeys);
+      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, storeys));
     const groundOut = (u) => terrainGroundAt(a[0] + ux * u - nx * 0.3, a[1] + uz * u - nz * 0.3);
     const windows = photographed ? [] : candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
       && !reserved.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
@@ -25510,14 +25854,48 @@ function homeWindowLayout(entry, spec) {
   return { bottom, top, floor, edges };
 }
 
-//: How opaque a shell's glass is, by the camera's distance from the house. From the street the
-//: glass reads as the window decals do -- dark, all but opaque -- and it clears as the walker
-//: comes up to it, so the rooms behind show only close to, and never by a sudden change.
-const SHELL_GLASS_CLEAR_M = 6.0;
-const SHELL_GLASS_DECAL_M = 25.0;
+// Clear, neutral glazing in both directions. Interior pixels in a photograph are not glass
+// colour or permanent architecture: curtains/blinds do not become painted window panes.
 function shellGlassOpacity(distance) {
-  const t = Math.max(0, Math.min(1, (distance - SHELL_GLASS_CLEAR_M) / (SHELL_GLASS_DECAL_M - SHELL_GLASS_CLEAR_M)));
-  return 0.55 + (0.98 - 0.55) * t * t * (3 - 2 * t);
+  return 0.12; // Clear glass from either side; photographed curtains/blinds are not glass.
+}
+
+function homeWindowArchSpring(o) {
+  const s=o.design?.arch_spring_fraction;
+  return o.design?.shape==="arched" && Number.isFinite(s) && s>=.35 && s<=.85
+    && o.frameLeft!==false && o.frameRight!==false ? s : null;
+}
+function homeWindowCrown(o,t) {
+  const spring=homeWindowArchSpring(o);
+  return spring===null ? o.h : o.h*(spring+(1-spring)*Math.sqrt(Math.max(0,1-(2*t-1)**2)));
+}
+function homeWindowShape(o,inset=0) {
+  const shape=new THREE.Shape(),w=o.w-2*inset,h=o.h-2*inset;
+  shape.moveTo(inset,inset);shape.lineTo(o.w-inset,inset);
+  const spring=homeWindowArchSpring(o);
+  if(spring===null) {shape.lineTo(o.w-inset,o.h-inset);shape.lineTo(inset,o.h-inset);}
+  else for(let i=0;i<=32;i++) {
+    const t=1-i/32;shape.lineTo(inset+w*t,inset+h*(spring+(1-spring)*Math.sqrt(Math.max(0,1-(2*t-1)**2))));
+  }
+  shape.closePath();return shape;
+}
+function homeWindowPaneGeometry(o) {
+  if(homeWindowArchSpring(o)===null)return new THREE.PlaneGeometry(o.w,o.h);
+  const geometry=new THREE.ShapeGeometry(homeWindowShape(o));
+  geometry.translate(-o.w/2,-o.h/2,0);return geometry;
+}
+function homeWindowArchCorners(a,ux,uz,o,uvMap,inset=0) {
+  const position=[],uv=[];
+  for(let i=0;i<32;i++) {
+    const x0=o.u+o.w*i/32,x1=o.u+o.w*(i+1)/32,
+      y0=o.v+homeWindowCrown(o,i/32),y1=o.v+homeWindowCrown(o,(i+1)/32),top=o.v+o.h;
+    for(const [u,v] of [[x0,y0],[x1,y1],[x1,top],[x0,y0],[x1,top],[x0,top]]) {
+      position.push(a[0]+ux*u-uz*inset,v,a[1]+uz*u+ux*inset);uv.push(...uvMap(u,v));
+    }
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute("position",new THREE.Float32BufferAttribute(position,3));
+  geometry.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));geometry.computeVertexNormals();return geometry;
 }
 function updateShellGlass() {
   for (const entry of homeShells) {
@@ -25525,8 +25903,64 @@ function updateShellGlass() {
     if (!glass) continue;
     const d = Math.hypot((entry.minX + entry.maxX) / 2 - camera.position.x,
       (entry.minZ + entry.maxZ) / 2 - camera.position.z);
-    glass.opacity = shellGlassOpacity(d);
+    for(const material of entry.homeShell.glasses || [glass]) material.opacity = shellGlassOpacity(d);
   }
+}
+
+function frontageOutcropsOnEdge(entry,a,b,length,bottom) {
+  const fit=frontageFitFor(entry.way);if(!fit?.a || !fit?.b)return [];
+  const [fx,fy]=xy(...fit.a),[gx,gy]=xy(...fit.b),dx=gx-fx,dz=fy-gy,L=Math.hypot(dx,dz);
+  if(L<.2)return [];const tx=dx/L,tz=dz/L,ex=(b[0]-a[0])/length,ez=(b[1]-a[1])/length,alignment=ex*tx+ez*tz;
+  // A residual is relative to this exact wall, not an already offset bay face.
+  if(Math.abs(alignment)<.96 || Math.max(Math.abs((a[0]-fx)*-tz+(a[1]+fy)*tx),Math.abs((b[0]-fx)*-tz+(b[1]+fy)*tx))>.05)return [];
+  const start=(a[0]-fx)*tx+(a[1]+fy)*tz;
+  return (fit.outcrops || []).filter(o=>o.render && !o.canonical_relief_overlap && o.property_sha256 && o.property_source
+    && [o.u,o.v,o.w,o.h,o.depth_m].every(Number.isFinite) && o.depth_m>0 && o.depth_m<=1.2
+    && o.v>=0 && o.v+o.h<=fit.height_m-.04 && Array.isArray(o.profile)
+    && o.profile.every(p=>p.length===2 && p.every(Number.isFinite) && p[0]>=o.u-.001 && p[0]<=o.u+o.w+.001 && p[1]>=0 && p[1]<=o.depth_m+.001))
+    .map(o=>({...o,u:alignment>0 ? (o.u-start)/alignment : (o.u+o.w-start)/alignment,
+      w:o.w/Math.abs(alignment),v:bottom+o.v,profile:o.profile.map(p=>[(p[0]-start)/alignment,p[1]]).sort((p,q)=>p[0]-q[0])}))
+    .filter(o=>o.u>=0 && o.u+o.w<=length && !(
+      Array.isArray(entry.local) && entry.local.some((p,i)=>{
+        const q=entry.local[(i+1)%entry.local.length];
+        const u0=(p[0]-fx)*tx+(p[1]+fy)*tz,u1=(q[0]-fx)*tx+(q[1]+fy)*tz;
+        if(Math.abs(u1-u0)<.03)return false; // perpendicular party-wall edge
+        const limits=[start+o.u*alignment,start+(o.u+o.w)*alignment];
+        const left=Math.max(Math.min(...limits),Math.min(u0,u1)),right=Math.min(Math.max(...limits),Math.max(u0,u1));
+        if(right-left<.03)return false;
+        const n0=(p[0]-fx)*-tz+(p[1]+fy)*tx,n1=(q[0]-fx)*-tz+(q[1]+fy)*tx;
+        const depths=[left,right].map(u=>n0+(u-u0)/(u1-u0)*(n1-n0));
+        return Math.max(...depths)>=-1.3 && Math.min(...depths)<=1.3 && depths.some(n=>Math.abs(n)>.05);
+      })
+    ));
+}
+
+function homeOutcropSurfaces(a,ux,uz,nx,nz,bays,windows) {
+  const surfaces=[],caps=[],used=new Set();
+  for(const bay of bays) {
+    const accepted=windows.filter(o=>o.u>=bay.u-.02 && o.u+o.w<=bay.u+bay.w+.02 && o.v>=bay.v && o.v+o.h<=bay.v+bay.h);
+    accepted.forEach(o=>used.add(o));
+    const plan=bay.profile.map(([u,n])=>[a[0]+ux*u-nx*n,a[1]+uz*u-nz*n]);
+    caps.push({plan,bottom:bay.v,top:bay.v+bay.h,id:bay.id});
+    for(let i=0;i+1<plan.length;i++) {
+      const u0=bay.profile[i][0],u1=bay.profile[i+1][0],p=plan[i],q=plan[i+1],L=Math.hypot(q[0]-p[0],q[1]-p[1]);
+      if(L<.001)continue;const sx=(q[0]-p[0])/L,sz=(q[1]-p[1])/L,sign=(-uz*nx+ux*nz)>=0 ? 1 : -1;
+      const openings=accepted.flatMap(o=>{const left=Math.max(o.u,u0),right=Math.min(o.u+o.w,u1);
+        if(right<=left || u1-u0<.001)return [];const scale=L/(u1-u0),w=(right-left)*scale;
+        return [{...o,u:(left-u0)*scale,w,outcropId:bay.id,frameLeft:Math.abs(left-o.u)<.001,frameRight:Math.abs(right-o.u-o.w)<.001,design:o.design && {...o.design,
+          vertical_bars:(o.design.vertical_bars || []).map(t=>(o.u+o.w*t-left)/(right-left)).filter(t=>t>0 && t<1)}}];});
+      surfaces.push({a:p,length:L,ux:sx,uz:sz,nx:-sz*sign,nz:sx*sign,windows:openings,
+        panels:wallPanels(L,bay.v,bay.v+bay.h,openings)});
+    }
+  }
+  return {surfaces,caps,flatWindows:windows.filter(o=>!used.has(o))};
+}
+
+function homeOutcropCapGeometry(plan,y) {
+  const shape=new THREE.Shape(plan.map(p=>new THREE.Vector2(p[0],p[1]))),geometry=new THREE.ShapeGeometry(shape);
+  const position=geometry.getAttribute("position");
+  for(let i=0;i<position.count;i++)position.setXYZ(i,position.getX(i),y,position.getY(i));
+  geometry.computeVertexNormals();return geometry;
 }
 
 function buildHomeShell(entry) {
@@ -25554,46 +25988,100 @@ function buildHomeShell(entry) {
   const shellGlass = homeGlassMaterial.clone();
   const shellGlassInside = homeGlassInsideMaterial.clone();
   const shellFrame = homeFrameMaterial.clone();
+  const bands=spec.appearanceBands || [{material:spec.material,tint:spec.tint,bottom:0,top:spec.height}];
+  const bandMaterials=bands.map(b=>b.frontBasis ? new THREE.MeshStandardMaterial({
+    map:bareFacadeTextureFor(b.material,spec.seed),color:b.tint,roughness:b.material.rough,metalness:b.material.metal,
+    envMapIntensity:b.material.name==="glass" ? 1.6 : b.material.name==="metal" ? 1.1 : .35,side:THREE.DoubleSide}) : material);
+  const trimMaterials=new Map();
   // As the decal reads until updateShellGlass sets it for the camera, the next frame.
   shellGlass.opacity = shellGlassOpacity(Infinity);
   const windowRegistry = [];
   for (const { edge, a, length, ux, uz, nx, nz, windows } of layout.edges) {
+    const bays=frontageOutcropsOnEdge(entry,a,[a[0]+ux*length,a[1]+uz*length],length,bottom);
+    const projected=homeOutcropSurfaces(a,ux,uz,nx,nz,bays,windows);
     const doors = (entry.doors || []).filter((d) => d.edge === edge && d.mesh && !d.atGrade);
     const cuts = doors.map((d) => ({ u: (d.t0 + d.t1) / 2 * length - (d.stoopPlan?.width || d.width) / 2,
       w: d.stoopPlan?.width || d.width,
       v: d.stoopPlan ? d.stoopPlan.street : floor, h: DOOR_HEIGHT_M + (d.stoopPlan?.rise || 0),
       kind: "door" }));
     const uvMap = (u, v) => [(spec.clockwise ? length - u : u) / BAY_M, (v - bottom) / storeyM];
-    const panels = wallPanels(length, bottom, top, [...cuts, ...windows]);
-    const wall = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels, 0, 0, 0, uvMap), material);
-    wall.castShadow = wall.receiveShadow = true;
-    group.add(wall);
+    const panels = wallPanels(length, bottom, top, [...cuts, ...windows, ...bays]);
+    for(let i=0;i<bands.length;i++) {
+      const low=bottom+bands[i].bottom, high=bottom+bands[i].top;
+      const bandPanels=panels.map(([x0,y0,x1,y1])=>[x0,Math.max(y0,low),x1,Math.min(y1,high)]).filter(p=>p[3]>p[1]);
+      if(!bandPanels.length) continue;
+      const wall = new THREE.Mesh(homeWallGeometry(a, ux, uz, bandPanels, 0, 0, 0, uvMap), bandMaterials[i]);
+      wall.castShadow = wall.receiveShadow = true;
+      group.add(wall);
+    }
     const lining = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels,
       nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, INTERIOR_WALL_INSET_M + 0.01), shellPlaster);
     group.add(lining);
-    for (const o of windows) {
+    for(const surface of projected.surfaces) {
+      for(let i=0;i<bands.length;i++) {
+        const bandPanels=surface.panels.map(([x0,y0,x1,y1])=>[x0,Math.max(y0,bottom+bands[i].bottom),x1,Math.min(y1,bottom+bands[i].top)]).filter(p=>p[3]>p[1]);
+        if(bandPanels.length)group.add(new THREE.Mesh(homeWallGeometry(surface.a,surface.ux,surface.uz,bandPanels),bandMaterials[i]));
+      }
+      if(surface.panels.length)group.add(new THREE.Mesh(homeWallGeometry(surface.a,surface.ux,surface.uz,surface.panels,surface.nx*.04,surface.nz*.04),shellPlaster));
+    }
+    for(const cap of projected.caps)for(const y of [cap.bottom,cap.top])group.add(new THREE.Mesh(homeOutcropCapGeometry(cap.plan,y),material));
+    for(const surface of [{a,ux,uz,nx,nz,windows:projected.flatWindows},...projected.surfaces]) {
+    const {a,ux,uz,nx,nz}=surface;
+    for (const o of surface.windows) {
+      const arch=homeWindowArchSpring(o)!==null;
+      if(arch) {
+        const uvMap=(u,v)=>[(spec.clockwise ? length-u : u)/BAY_M,(v-bottom)/storeyM];
+        const corners=homeWindowArchCorners(a,ux,uz,o,uvMap);
+        const indices=Array.from({length:corners.getAttribute("position").count},(_,i)=>i);
+        for(let i=0;i<bands.length;i++) {
+          const geometry=clipFacadeBand(corners,indices,bottom+bands[i].bottom,bottom+bands[i].top);
+          group.add(new THREE.Mesh(geometry,bandMaterials[i]));
+        }
+        corners.dispose();
+        group.add(new THREE.Mesh(homeWindowArchCorners(a,ux,uz,o,uvMap,INTERIOR_WALL_INSET_M+.01),shellPlaster));
+      }
+      const trimColour=/^#[0-9a-f]{6}$/i.test(o.design?.trim?.colour || "") ? o.design.trim.colour : null;
+      if(trimColour && !trimMaterials.has(trimColour)) {
+        const m=homeFrameMaterial.clone();m.color.set(trimColour);trimMaterials.set(trimColour,m);
+      }
+      const frameMaterial=trimColour ? trimMaterials.get(trimColour) : shellFrame;
+      const glassPair={outer:shellGlass,inner:shellGlassInside};
       // The outer face looks out of the house (n points in), the inner one in.
-      const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w, o.h), shellGlass);
+      const pane = new THREE.Mesh(homeWindowPaneGeometry(o), glassPair.outer);
       pane.position.set(a[0] + ux * (o.u + o.w / 2) + nx * 0.025,
         o.v + o.h / 2, a[1] + uz * (o.u + o.w / 2) + nz * 0.025);
       pane.rotation.y = Math.atan2(-nx, -nz);
       pane.userData = { surface: "window", canonicalBuilding: id, edge, ...o };
       group.add(pane);
       // Its own geometry: batchHomeShell bakes each mesh's matrix into its geometry.
-      const inner = new THREE.Mesh(pane.geometry.clone(), shellGlassInside);
+      const inner = new THREE.Mesh(pane.geometry.clone(), glassPair.inner);
       inner.position.copy(pane.position);
       inner.rotation.y = pane.rotation.y + Math.PI;
       group.add(inner);
       windowRegistry.push(pane.userData);
-      for (const [u, v, w, h] of [[o.u, o.v + o.h / 2, 0.06, o.h],
-        [o.u + o.w, o.v + o.h / 2, 0.06, o.h], [o.u + o.w / 2, o.v, o.w, 0.06],
-        [o.u + o.w / 2, o.v + o.h, o.w, 0.06], [o.u + o.w / 2, o.v + o.h / 2, 0.035, o.h]]) {
+      const divisions = o.design ? [
+        ...(o.design.vertical_bars || []).map(t=>{const h=homeWindowCrown(o,t);return [o.u+o.w*t,o.v+h/2,.035,h];}),
+        ...(o.design.horizontal_bars || []).map(t=>{
+          const spring=homeWindowArchSpring(o),y=o.h*(1-t),half=spring===null || y<=o.h*spring ? o.w/2
+            : o.w/2*Math.sqrt(Math.max(0,1-((y-o.h*spring)/(o.h*(1-spring)))**2));
+          return [o.u+o.w/2,o.v+y,half*2,.035];})]
+        : [[o.u+o.w/2,o.v+o.h/2,.035,o.h]];
+      if(arch) {
+        const shape=homeWindowShape(o);shape.holes.push(homeWindowShape(o,.06));
+        const geometry=new THREE.ExtrudeGeometry(shape,{depth:.05,bevelEnabled:false});geometry.translate(-o.w/2,-o.h/2,-.025);
+        const frame=new THREE.Mesh(geometry,frameMaterial);frame.position.copy(pane.position);frame.rotation.copy(pane.rotation);group.add(frame);
+      }
+      const perimeter=arch ? [] : [...(o.frameLeft===false ? [] : [[o.u, o.v + o.h / 2, 0.06, o.h]]),
+        ...(o.frameRight===false ? [] : [[o.u + o.w, o.v + o.h / 2, 0.06, o.h]]), [o.u + o.w / 2, o.v, o.w, 0.06],
+        [o.u + o.w / 2, o.v + o.h, o.w, 0.06]];
+      for (const [u, v, w, h] of [...perimeter, ...divisions]) {
         // Shallow, so its lit edges do not stand out from the decal's flat frame.
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), shellFrame);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), frameMaterial);
         frame.position.set(a[0] + ux * u, v, a[1] + uz * u);
         frame.rotation.y = pane.rotation.y;
         group.add(frame);
       }
+    }
     }
     for (const d of doors.filter((d) => d.stoopPlan)) {
       const half = d.stoopPlan.width / 2, depth = d.stoopPlan.depth;
@@ -25611,7 +26099,8 @@ function buildHomeShell(entry) {
   batchHomeShell(group);
   homeShellGroup.add(group);
   entry.homeShell = { group, material, glass: shellGlass, layout,
-    materials: [material, shellPlaster, shellGlass, shellGlassInside, shellFrame] };
+    glasses: [shellGlass],
+    materials: [...new Set([material, shellPlaster, shellGlass, shellGlassInside, shellFrame,...bandMaterials,...trimMaterials.values()])] };
   entry.shellNeedsRebuild = false;
   homeShells.add(entry);
   setBatchedHomeVisible(id, false);
@@ -25703,6 +26192,32 @@ const homeWindowTexture = (() => {
 })();
 const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTexture, roughness: 0.14,
   metalness: 0.2, envMapIntensity: 1.0 });
+const homeDesignMaterials = new Map();
+function homeDesignMaterial(design) {
+  if (!design) return homeDecalMaterial;
+  const trimColour=/^#[0-9a-f]{6}$/i.test(design.trim?.colour || "") ? design.trim.colour : "#3d4347";
+  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || [],trimColour,design.shape,design.arch_spring_fraction,"clear"]);
+  if (homeDesignMaterials.has(key)) return homeDesignMaterials.get(key);
+  const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const arch=homeWindowArchSpring({design,w:128,h:128});
+  if(arch===null) {ctx.fillStyle = trimColour; ctx.fillRect(0,0,128,128);ctx.clearRect(4,4,120,120);}
+  else {
+    ctx.beginPath();ctx.moveTo(4,124);ctx.lineTo(124,124);
+    for(let i=0;i<=32;i++){const t=1-i/32;ctx.lineTo(4+120*t,4+120*(1-arch-(1-arch)*Math.sqrt(Math.max(0,1-(2*t-1)**2))));}
+    ctx.closePath();ctx.strokeStyle=trimColour;ctx.lineWidth=6;ctx.stroke();ctx.save();ctx.clip();
+  }
+  // Far decals still contain a neutral glass layer, not empty alpha over painted wall.
+  // Detailed nearby shells supply the real hole and identically clear two-sided glazing.
+  ctx.fillStyle="rgba(231,240,243,0.12)";ctx.fillRect(4,4,120,120);
+  ctx.fillStyle = trimColour;
+  for (const t of design.vertical_bars || []) ctx.fillRect(t*128-1.5,4,3,120);
+  for (const t of design.horizontal_bars || []) ctx.fillRect(4,t*128-1.5,120,3);
+  if(arch!==null)ctx.restore();
+  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.08,metalness:0, envMapIntensity:.4, transparent:true, depthWrite:false, alphaTest:.05 });
+  homeDesignMaterials.set(key,material); return material;
+}
 const HOME_DECAL_ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 function homeDecalInputs() {
   return `${INTERIORS ? "doors" : "no-doors"}:${HOME_OPENINGS_VERSION}`;
@@ -25739,11 +26254,13 @@ function pumpHomeDecals() {
     job.layouts.set(id, layout);
     // A house's windows all go in the cell of its first corner, so they come and go together.
     const cellKey = Math.floor(entry.local[0][0] / HOME_DECAL_CELL_M) * 1048576 + Math.floor(entry.local[0][1] / HOME_DECAL_CELL_M);
-    let cell = job.cells.get(cellKey);
-    if (!cell) job.cells.set(cellKey, cell = { matrices: [], owners: [] });
     for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
       q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
       for (const o of windows) {
+        const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || [],o.design.trim?.colour || "#3d4347",o.design.glass_colour || "#2a3740"]) : "default";
+        const key = `${cellKey}:${designKey}`;
+        let cell = job.cells.get(key);
+        if (!cell) job.cells.set(key, cell = { matrices: [], owners: [], material: homeDesignMaterial(o.design) });
         p.set(a[0] + ux * (o.u + o.w / 2) - nx * HOME_DECAL_OUT_M, o.v + o.h / 2,
           a[1] + uz * (o.u + o.w / 2) - nz * HOME_DECAL_OUT_M);
         sc.set(o.w, o.h, 1);
@@ -25759,7 +26276,7 @@ function pumpHomeDecals() {
   const meshes = [];
   for (const cell of job.cells.values()) {
     if (!cell.matrices.length) continue;
-    const mesh = new THREE.InstancedMesh(geometry, homeDecalMaterial, cell.matrices.length);
+    const mesh = new THREE.InstancedMesh(geometry, cell.material, cell.matrices.length);
     mesh.userData = { surface: "house_window", matrices: cell.matrices, grade: "procedural_or_photographed_openings" };
     for (let i = 0; i < cell.matrices.length; i += 1) {
       const id = cell.owners[i];
@@ -25777,6 +26294,10 @@ function pumpHomeDecals() {
   if (homeDecalMeshes.length) homeDecalMeshes[0].geometry.dispose();
   homeDecalMeshes = meshes;
   for (const mesh of meshes) root.add(mesh);
+  const usedMaterials = new Set(meshes.map(mesh=>mesh.material));
+  for (const [key, material] of homeDesignMaterials) if (!usedMaterials.has(material)) {
+    material.map.dispose(); material.dispose(); homeDesignMaterials.delete(key);
+  }
   homeDecalIndex = job.index;
   homeDecalVersion = job.inputs;
   for (const [id, layout] of job.layouts) {

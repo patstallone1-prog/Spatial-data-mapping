@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "selection_run": "cf30ecb8f74777a282e4",
+  "purpose": "Frozen private selection audit; no publication, geometry or privacy certification",
+  "licensed_pixels_committed": false,
+  "model_revision": "876ffc56b819a829448f7e81e9f8606deef6fb65",
+  "pilot": {"buildings": 100, "candidate_buildings": 45, "candidate_pairs": 2155, "photos_screened": 18, "retained_candidates": 11, "pixel_rejections": 7, "verified": 0},
+  "samples": [
+    {
+      "region": "sf-corridor",
+      "building_id": "32857709",
+      "address": "550;552;554;556 Union Street",
+      "source_locator": "mapillary://mapillary.com/FtvrUu1GKOViDEyXPJw389/2251310591694777",
+      "observation_uid": "ce4deda2933cdb273958fe34ec9f4b95",
+      "pixel_sha256": "3b8d19170ea50360cd7134dbb3a97eb3a2a5085509f256052eb42c3993a9e0df",
+      "expected_screen": "retained_candidate",
+      "visual_note": "Nearly head-on residential facade; roofline, bay windows, entrance and garages visible in expanded context. Still requires identity/privacy review.",
+      "verified": false
+    },
+    {
+      "region": "sf-corridor",
+      "building_id": "32839462",
+      "observation_uid": "330cfc6e4e1d20b2b13c569aed041937",
+      "pixel_sha256": "e53db6544101d9106c223bc835dfe90391c6d740d4201aefe5e88e3e6fc9d76b",
+      "expected_screen": "pixel_rejected",
+      "required_reason": "sky_not_facade",
+      "visual_note": "Sky-dominated crop must not become a facade material."
+    },
+    {
+      "region": "sf-corridor",
+      "building_id": "32858323",
+      "observation_uid": "2752bd0eb98088e504526192f4e4e659",
+      "pixel_sha256": "8f2bde45d7c2e9e808ee826d288734c197ed8284cc00c0b8b54f739492b0edec",
+      "expected_screen": "pixel_rejected",
+      "required_reason": "vegetation_blocks_detail",
+      "visual_note": "Dense foliage obscures building detail."
+    },
+    {
+      "region": "sf-corridor",
+      "building_id": "32858847",
+      "observation_uid": "add39522a28981e467503b9593a98fa2",
+      "pixel_sha256": "74c639c193ee2bc742a32c29ec6bd7e54512351ed4308bb90704aac80150308b",
+      "expected_screen": "retained_candidate",
+      "visual_note": "Semantic pass is insufficient: canonical height crops upper storeys. Expanded context must remain visible and no automatic full-front certification is allowed.",
+      "verified": false
+    }
+  ],
+  "attribution": "Mapillary contributors, CC BY-SA 4.0; source aliases and license metadata retained in private review evidence"
+}

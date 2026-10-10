@@ -119,8 +119,8 @@ def test_a_garage_leaves_room_on_its_frontage_for_the_front_door() -> None:
 
 def test_a_house_shell_lights_like_the_batched_house_it_replaces() -> None:
     """The colour change as a house came into range was the shell's material: three.js's default
-    environment intensity (1.0) against the batch's 0.35, and near-clear glass against dark
-    panes. Both must keep matching."""
+    environment intensity (1.0) against the batch's 0.35. Walls must keep matching;
+    glass is now intentionally clear rather than a painted dark pane."""
     js = _page_js()
     rule = r'name === "glass" \? 1\.6 : {0}name === "metal" \? 1\.1 : 0\.35'
     batched = re.search(r"envMapIntensity: material\." + rule.format(r"material\."), js)
@@ -128,14 +128,14 @@ def test_a_house_shell_lights_like_the_batched_house_it_replaces() -> None:
     assert batched and shell, "the shell wall must reflect the sky as the batched wall does"
     glass = re.search(r"const homeGlassMaterial = new THREE\.MeshStandardMaterial\(\{ "
                       r"color: (0x[0-9a-f]+),\s*transparent: true, opacity: ([0-9.]+)", js)
-    assert glass and float(glass.group(2)) >= 0.4, "shell glass must read as the batch's dark panes"
+    assert glass and float(glass.group(2)) == 0.12, "shell glass must stay clear"
 
 
-def test_houses_ahead_of_the_walker_never_change_and_shell_windows_read_dark() -> None:
+def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() -> None:
     """Houses went white ahead of the walker: every house within 45 m swapped its batched walls
     for a shell whose half-clear panes showed the sunlit plaster behind them. A shell now stands
     only on window decals already drawn in the same places (tests/test_house_windows.py), and
-    its glass is dark from the street, clearing only close to."""
+    its glass is now neutral and clear from either side."""
     js = _page_js()
     shells = _extract("updateHomeShells", js)
     assert "doorsNear(x, z, HOME_SHELL_REACH_M)" in shells and "e.decalLayout" in shells
@@ -144,9 +144,9 @@ def test_houses_ahead_of_the_walker_never_change_and_shell_windows_read_dark() -
                       r"\s*transparent: true, opacity: ([0-9.]+),[^}]*side: THREE\.FrontSide", js)
     assert glass, "the street face of a pane is its own one-sided material"
     r, g, b = (int(glass.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
-    assert 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25 and float(glass.group(2)) >= 0.85
+    assert 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.85 and float(glass.group(2)) == 0.12
     build = _extract("buildHomeShell", js)
-    assert "pane.rotation.y = Math.atan2(-nx, -nz);" in build, "the dark face looks out of the house"
+    assert "pane.rotation.y = Math.atan2(-nx, -nz);" in build, "the outside pane faces the street"
     assert "shellGlassInside" in build
     frame = re.search(r"const homeFrameMaterial = new THREE\.MeshStandardMaterial\(\{ color: 0x([0-9a-f]{6})", js)
     r, g, b = (int(frame.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))

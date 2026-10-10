@@ -1,0 +1,18 @@
+{
+  "32857709": [
+    {
+      "image_sha256": "3b8d19170ea50360cd7134dbb3a97eb3a2a5085509f256052eb42c3993a9e0df",
+      "image_file_sha256": "14d281cc617a4706f5a17b829d0b34495370a72435e1a35567bcaab3f51a928b",
+      "box_px": [255, 669, 312, 767],
+      "visible": true,
+      "at_least_one_tread": true,
+      "at_door_threshold": true,
+      "pedestrian_door_visible": true,
+      "reviewer": "Codex visual audit 2026-10-08",
+      "note": "Central pedestrian entrance visibly has steps below its door, between two garage doors. Exact riser count/rise/depth are not measured. This box covers the entrance recess, not a fitted door leaf.",
+      "scope": "Single-image semantic fault audit, not independent positioning ground truth",
+      "license_id": "CC-BY-SA-4.0",
+      "attribution": "© Mapillary contributors, CC BY-SA 4.0"
+    }
+  ]
+}

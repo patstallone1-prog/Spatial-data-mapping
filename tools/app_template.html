@@ -1597,7 +1597,35 @@ if (mapCanvas) mapCanvas.addEventListener("wheel", (e) => {
 /* ============ installed app shell ============ */
 // Keep the launcher available without turning the full 3D world into an offline download.
 if ("serviceWorker" in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Installed apps can stay open for days. Recheck on launch/resume, without a
+  // controllerchange reload loop or clearing captured photographs/settings.
+  let workerRegistration = null, upgradeCheck = null, upgradeCheckedAt = 0;
+  async function checkInstalledUpgrade() {
+    if (document.visibilityState === "hidden" || upgradeCheck
+        || Date.now() - upgradeCheckedAt < 60000) return;
+    upgradeCheckedAt = Date.now();
+    upgradeCheck = (async () => {
+      workerRegistration ||= await navigator.serviceWorker.register("sw.js", { updateViaCache: "none" });
+      await workerRegistration.update();
+    })().catch(() => {}).finally(() => { upgradeCheck = null; });
+    return upgradeCheck;
+  }
+  checkInstalledUpgrade();
+  window.addEventListener("pageshow", checkInstalledUpgrade);
+  window.addEventListener("focus", checkInstalledUpgrade);
+  document.addEventListener("visibilitychange", checkInstalledUpgrade);
+  setInterval(checkInstalledUpgrade, 300000);
+  // Claiming clients updates their network policy immediately. Applying a new
+  // already-running JS world is intentionally an explicit user action.
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!workerRegistration || document.getElementById("app-update-ready")) return;
+    const button = document.createElement("button");
+    button.id = "app-update-ready";
+    button.textContent = "Update ready — reopen map";
+    button.style.cssText = "position:fixed;bottom:80px;right:16px;z-index:10000;background:#8c844c;color:white;padding:12px;border:0;border-radius:8px";
+    button.addEventListener("click", () => window.location.reload());
+    document.body.appendChild(button);
+  });
 }
 
 document.getElementById("auto-explain").textContent = DEVICE === "ios"

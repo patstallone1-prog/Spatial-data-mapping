@@ -1,0 +1,68 @@
+{
+  "schema": "kerbside.facade_detail_audit/1",
+  "date": "2026-10-08",
+  "purpose": "Initial real-image fault audit, NOT a held-out metric accuracy benchmark",
+  "promotion_passed": false,
+  "canonical_geometry_modified": false,
+  "model": {
+    "id": "IDEA-Research/grounding-dino-tiny",
+    "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71",
+    "weights_sha256": "1a2412ef99bd74bcd3c2a246fa1e48581f8889a1300c9051974741314fc042f3",
+    "license": "Apache-2.0",
+    "score_is_calibrated_certainty": false
+  },
+  "imagery_license": "CC-BY-SA-4.0",
+  "attribution": "© Mapillary contributors, CC BY-SA 4.0",
+  "samples": [
+    {
+      "building_id": "32857709",
+      "address": "550;552;554;556 Union Street",
+      "pixel_sha256": "3b8d19170ea50360cd7134dbb3a97eb3a2a5085509f256052eb42c3993a9e0df",
+      "observation_uid": "ce4deda2933cdb273958fe34ec9f4b95",
+      "locator": "mapillary://mapillary.com/FtvrUu1GKOViDEyXPJw389/2251310591694777",
+      "context_proposals": 13,
+      "visually_reviewed_findings": [
+        "Fire escape correctly localized, but duplicated",
+        "Garage door incorrectly labelled stairs",
+        "Several visible windows localized; at least one lower bay window missed",
+        "Canonical-prior crop clips roof and part of frontage"
+      ],
+      "promote": false
+    },
+    {
+      "building_id": "32611515",
+      "address": "700 Filbert Street",
+      "pixel_sha256": "62b4e83bc4fa96954e7c8d564f96c41a17ac579c36456e0d0bb857470a0fabcf",
+      "observation_uid": "331bcc8a10923cb7499d7f46bdbfd272",
+      "locator": "mapillary://mapillary.com/w1YR70L258JbT36xosag9m/1054814662066546",
+      "context_proposals": 8,
+      "visually_reviewed_findings": [
+        "Multiple visible windows missed",
+        "Bus and vegetation obscure entrance/ground",
+        "Canonical-prior crop clips roof"
+      ],
+      "promote": false
+    },
+    {
+      "building_id": "262604818",
+      "address": "2116;2118;2120 Leavenworth Street",
+      "pixel_sha256": "f51de56a05be2269c56c5c5d88807bf1df11d881efb8a6d25606c573a0a99bbb",
+      "observation_uid": "56fb1aff3a007eff69f48e097b2070d2",
+      "locator": "mapillary://mapillary.com/cgwJV3RDXSIqp5sMxNCGYB/1426945088093179",
+      "context_proposals": 5,
+      "visually_reviewed_findings": [
+        "Two frontal bay panes localized",
+        "Roof cornice incorrectly proposed as canopy",
+        "Complete house frontage and entrance are outside this view"
+      ],
+      "promote": false
+    }
+  ],
+  "required_next_evidence": [
+    "Confirmed complete front and building identity",
+    "Refined pose and full-front rectification",
+    "Independent ground/curb and opening-position checks in a shared frame",
+    "Image-bound visible-stair/style/material review",
+    "Actual 3D/photo comparison, privacy and collision review before promotion"
+  ]
+}

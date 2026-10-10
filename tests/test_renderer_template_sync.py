@@ -29,6 +29,14 @@ def test_every_installed_city_uses_the_current_house_and_collision_code() -> Non
                      "pageToTerrain", "terrainToPage",
                      "rawTerrainHeightAt", "mappedWaterAt", "mappedBuiltAt", "terrainFlatRadius",
                      "homeWindowLayout", "pumpHomeDecals", "treeVariant", "addOfficialSignPlates",
+                     "frontageFitFor", "frontageNormalFor", "frontageWindowsOnEdge", "homeDesignMaterial",
+                     "houseCertainty",
+                     "homeWindowArchSpring", "homeWindowCrown", "homeWindowShape", "homeWindowPaneGeometry", "homeWindowArchCorners",
+                     "facadeAppearanceBands", "clipFacadeBand",
+                     "frontageWallTriangles",
+                     "photoDetailParts",
+                     "photoOpeningTexture", "photoOpeningParts",
+                     "frontageOutcropsOnEdge", "homeOutcropSurfaces", "homeOutcropCapGeometry",
                      "cornerStreetNameSigns", "backdropAt"):
             assert _extract(name, text) == _extract(name, current), f"stale {name}: {page}"
 

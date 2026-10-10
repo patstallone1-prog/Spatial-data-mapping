@@ -236,7 +236,9 @@ def test_full_detail_shards_restore_every_field_omitted_from_rendering(
 def test_browser_loads_the_nearby_full_detail_shard_on_demand() -> None:
     source = _source()
     assert 'fetch(asset("sf-corridor-detail-manifest.json"), { cache: "no-cache" })' in source
-    assert 'records = fetch(asset(shard.file), { cache: "force-cache" })' in source
+    # Mutable filenames must revalidate after deploy; promise memoization still
+    # avoids repeated downloads during this visit.
+    assert 'records = fetch(asset(shard.file), { cache: "no-cache" })' in source
     assert "async function fullDetailFeature(feature)" in source
     assert "full._detailShard = shard.id;" in source
     assert "const summary = await featureSummary(feature);" in source
@@ -580,7 +582,7 @@ def test_storefronts_are_drawn_for_their_trade_on_a_ground_storey_of_their_own()
     to go with the building, and a standalone shop is built differently from one under flats."""
     source = _source()
     assert "function addStorefronts(group, feature, seed, height, tint)" in source
-    assert "function storefrontTexture(trade, variant, frameHex, standalone)" in source
+    assert "function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = false)" in source
     for trade in ("restaurant", "cafe", "bar", "grocery", "clothing", "books", "salon",
                   "pharmacy", "bank", "laundry", "hardware", "florist", "hotel"):
         assert f'case "{trade}":' in source, trade

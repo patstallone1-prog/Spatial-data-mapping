@@ -25,6 +25,7 @@ PREAMBLE = """
 const xy = (lon, lat) => [lon * 100000, lat * 100000];
 const DOOR_HEIGHT_M = 2.1, GARAGE_HEIGHT_M = 2.7, HILLSIDE_RISE_M = 1.2;
 const HOME_OPENINGS = { buildings: {} };
+const FRONTAGE_FITS = { schema: "kerbside.facade_fits/1", buildings: {} };
 let slope = 0;
 function terrainGroundAt(x, z) { return slope * x; }
 function entryFloorY(entry) { return 0.05; }
@@ -44,7 +45,8 @@ def _run(body: str) -> dict:
     consts = "\n".join(re.search(rf"const {n} = [^;]+;", js).group(0)
                        for n in ("WINDOW_GROUND_CLEAR_M", "FRONT_DOOR_PANEL_W_M"))
     script = PREAMBLE + consts + "\n" + "\n".join(
-        _extract(n, js) for n in ("regularHomeWindows", "homeWindowLayout")) + "\n" + body
+        _extract(n, js) for n in ("frontageFitFor", "frontageNormalFor", "frontageWindowsOnEdge",
+                                 "regularHomeWindows", "homeWindowLayout")) + "\n" + body
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)
@@ -98,17 +100,13 @@ def test_the_street_and_the_shell_draw_the_same_windows() -> None:
     assert "if (hasStorefront(feature)) planePart(" in south, "no painted window panel on a house"
 
 
-def test_shell_glass_reads_as_the_decal_from_the_street_and_clears_close_to() -> None:
+def test_shell_glass_is_clear_from_both_sides_at_every_distance() -> None:
     js = _page_js()
-    consts = "\n".join(re.search(rf"const {n} = [^;]+;", js).group(0)
-                       for n in ("SHELL_GLASS_CLEAR_M", "SHELL_GLASS_DECAL_M"))
-    script = consts + "\n" + _extract("shellGlassOpacity", js) + \
+    script = _extract("shellGlassOpacity", js) + \
         "\nconsole.log(JSON.stringify([2, 6, 12, 18, 25, 60].map(shellGlassOpacity)));"
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     values = json.loads(out.stdout)
-    assert values == sorted(values), "the glass only gets clearer as the walker comes closer"
-    assert values[-1] >= 0.95 and values[-2] >= 0.95
-    assert values[0] <= 0.6
+    assert values == [0.12] * 6, "source curtains and distance must not make panes opaque"
 
 
 def test_trees_are_built_of_limbs_and_leaves_and_each_kind_differently() -> None:
@@ -129,7 +127,7 @@ def test_painted_materials_take_the_house_colour_and_brick_and_stone_keep_theirs
     assert '"wood_siding"' in paintable and '"stucco_render"' in paintable
     assert '"brick"' not in paintable and '"stone"' not in paintable
     assert "material.photoLabel && !PAINTABLE_PHOTO_CLASSES.has(material.photoLabel)" in js
-    assert "if (photo && PAINTABLE_PHOTO_CLASSES.has(materialClass)) toPaintableDetail(ctx, canvas);" in js
+    assert "if (photo && (PAINTABLE_PHOTO_CLASSES.has(materialClass) || material.neutralColourDetail)) toPaintableDetail(ctx, canvas);" in js
     library = (ROOT / "scripts/build_material_library.py").read_text()
     for cls in ("vinyl_siding", "painted_brick", "ceramic_tile", "metal_panel"):
         assert f'"{cls}"' in library and f"{cls}:" in js
