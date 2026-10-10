@@ -22,8 +22,15 @@ import cv2
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from smc.facades.consensus import (  # noqa: E402
+    certainty,
+    cross_view,
+    neighbourhood_reference,
+    strict_view_gate,
+)
 from smc.facades.detail_detection import FacadeDetailDetector  # noqa: E402
 from smc.facades.fit import extract_front  # noqa: E402
+from smc.facades.frontage_retention import prune_finalized, retained_fact  # noqa: E402
 from smc.facades.geometry import LocalFrame  # noqa: E402
 
 
@@ -65,8 +72,15 @@ def diagram(fit: dict) -> str:
 
 
 def cycle(args) -> dict:
+    started = time.perf_counter()
     controls = json.loads(args.controls.read_text()) if args.controls else {}
     payloads, materials, builds, cards = {}, {}, {}, {}
+    finalized_facts = {}
+    fit_sources = {}
+    views = {}
+    failures = []
+    held = 0
+    timings = []
     fitted, rejected = 0, 0
     code_hash = hashlib.sha256(
         Path(__file__).read_bytes()
@@ -77,6 +91,11 @@ def cycle(args) -> dict:
                 "src/smc/facades/opening_reasoning.py",
                 "src/smc/facades/appearance_bands.py",
                 "src/smc/facades/detail_detection.py",
+                "src/smc/facades/edge_support.py",
+                "src/smc/facades/consensus.py",
+                "src/smc/facades/frontage_retention.py",
+                "src/smc/facades/outcrops.py",
+                "scripts/build_sf_corridor_3d.py",
             )
         )
     ).hexdigest()
@@ -85,12 +104,21 @@ def cycle(args) -> dict:
             row = json.loads(path.read_text())
             if not isinstance(row, dict) or not row.get("building_id"):
                 continue
+            saved = retained_fact(row)
+            if saved:
+                # Keep reviewed facts after raw deletion without silently reapproving them.
+                finalized_facts[f"{saved['region']}:{saved['building_id']}"] = saved
+                continue
             if row.get("status") not in {
                 "verified",
                 "screened_candidate_needs_privacy_and_identity_review",
             }:
                 continue
             candidate = row["candidate"]
+            gate = strict_view_gate(candidate)
+            if not gate["metadata_pass"]:
+                held += 1
+                continue
             region, key = row["region"], str(row["building_id"])
             photo, mask = path.with_suffix(".jpg"), path.with_suffix(".labels.png")
             if not photo.is_file() or not mask.is_file():
@@ -131,13 +159,29 @@ def cycle(args) -> dict:
             if (row.get("ground_reference") or {}).get("frame") == "relative_to_facade_foot":
                 supplied.setdefault("ground_reference", row["ground_reference"])
             detection = None
+            view_started = time.perf_counter()
             if args.detector is not None:
                 digest = hashlib.sha256(photo.read_bytes()).hexdigest()
-                detection_path = args.output / "detections" / f"{digest}.json"
+                detector_version = hashlib.sha256(
+                    json.dumps(args.detector.manifest, sort_keys=True).encode()
+                ).hexdigest()[:16]
+                detection_path = args.output / "detections" / f"{digest}-{detector_version}.json"
                 if detection_path.exists():
                     detection = json.loads(detection_path.read_text())
                 else:
-                    detection = args.detector.detect(image)
+                    try:
+                        detection = args.detector.detect_front(image)
+                    except (ValueError, OSError, RuntimeError) as error:
+                        failures.append(
+                            {
+                                "region": region,
+                                "building_id": key,
+                                "image_sha256": row["pixel_sha256"],
+                                "error_type": type(error).__name__,
+                                "stage": "detail_detection",
+                            }
+                        )
+                        continue
                     detection["image_file_sha256"] = digest
                     atomic(detection_path, detection)
                 supplied["detector_proposals"] = detection["objects"]
@@ -146,7 +190,38 @@ def cycle(args) -> dict:
                 supplied.setdefault("levels", int(levels))
             supplied.setdefault("material", materials[region].get(key, {}).get("class", "unknown"))
             width = ((wall["b"][0] - wall["a"][0]) ** 2 + (wall["b"][1] - wall["a"][1]) ** 2) ** 0.5
-            fit = extract_front(image, labels, width, wall["height_m"], supplied)
+            signature = hashlib.sha256(
+                json.dumps(
+                    {
+                        "implementation": code_hash,
+                        "image": hashlib.sha256(photo.read_bytes()).hexdigest(),
+                        "mask": hashlib.sha256(mask.read_bytes()).hexdigest(),
+                        "width": width,
+                        "height": wall["height_m"],
+                        "controls": supplied,
+                    },
+                    sort_keys=True,
+                ).encode()
+            ).hexdigest()
+            fact_cache = args.output / "fact-cache" / f"{signature}.json"
+            try:
+                if fact_cache.exists():
+                    fit = json.loads(fact_cache.read_text())
+                else:
+                    fit = extract_front(image, labels, width, wall["height_m"], supplied)
+                    atomic(fact_cache, fit)
+            except (ValueError, KeyError) as error:
+                failures.append(
+                    {
+                        "region": region,
+                        "building_id": key,
+                        "image_sha256": row["pixel_sha256"],
+                        "error_type": type(error).__name__,
+                        "stage": "fact_extraction",
+                    }
+                )
+                continue
+            timings.append(time.perf_counter() - view_started)
             frame = LocalFrame(
                 (bbox["north"] + bbox["south"]) / 2, (bbox["east"] + bbox["west"]) / 2
             )
@@ -170,15 +245,28 @@ def cycle(args) -> dict:
                     "pixel_publication": "forbidden_without_privacy_review",
                     "fit_rank": candidate["rank"],
                     "detector": detection.get("model") if detection else None,
+                    "strict_frontage": gate,
+                    "selection_evidence": {
+                        k: candidate.get(k)
+                        for k in (
+                            "geometry_pass",
+                            "angle_deg",
+                            "edge_angle_deg",
+                            "full_front_in_frame",
+                            "pose_status",
+                        )
+                    },
                 }
             )
             if fit["conflicts"]:
                 rejected += 1
                 continue
+            views.setdefault(key, []).append(fit)
             old = builds.get(key)
             if old and old["fit_rank"] >= fit["fit_rank"]:
                 continue
             builds[key] = fit
+            fit_sources[key] = (review_root, path.stem)
             fitted += 1
             args.output.mkdir(parents=True, exist_ok=True)
             atomic(args.output / f"{region}-{key}.json", fit)
@@ -192,7 +280,39 @@ def cycle(args) -> dict:
                 f'<img src="{html.escape(relative_photo, quote=True)}" alt="Source facade"/>'
                 f'<img src="{region}-{key}.svg" alt="Fitted visual front"/></div></article>'
             )
-    atomic(args.output / "latest.json", {"schema": "kerbside.facade_fits/1", "buildings": builds})
+    for key, fit in builds.items():
+        fit["multiview"] = cross_view(fit, views[key])
+        fit["neighbourhood_reference"] = neighbourhood_reference(fit, list(builds.values()))
+        fit["certainty"].update(certainty(fit, fit["strict_frontage"]))
+        atomic(args.output / f"{fit['region']}-{key}.json", fit)
+    atomic(
+        args.output / "latest.json",
+        {
+            "schema": "kerbside.facade_fits/1",
+            "buildings": builds,
+            "finalized_buildings": finalized_facts,
+            "note": "Finalized artifacts retain their original implementation and world hashes; not silently reapproved.",
+        },
+    )
+    atomic(
+        args.output / "ai-review.json",
+        {
+            "schema": "kerbside.facade_review_queue/1",
+            "automatic_publication": False,
+            "items": [
+                {
+                    "building_id": key,
+                    "address": fit.get("address"),
+                    "image_sha256": fit["image_sha256"],
+                    "source_locator": fit["source_locator"],
+                    "reasons": fit["certainty"]["reasons"],
+                }
+                for key, fit in builds.items()
+                if fit["certainty"]["ai_review_required"]
+            ],
+        },
+    )
+    atomic(args.output / "quarantined-views.json", failures)
     page = (
         '<!doctype html><meta charset="utf-8"><title>Facade alignment audit</title>'
         "<style>body{font:16px system-ui;background:#eee;margin:24px}.pair{display:flex;gap:20px}.pair img{width:45%;max-height:680px;object-fit:contain}article{background:white;padding:18px;margin:20px 0}</style>"
@@ -203,6 +323,7 @@ def cycle(args) -> dict:
     if args.publish_reviewed:
         review = json.loads(args.reviews.read_text()) if args.reviews else {}
         accepted = {}
+        receipts = {}
         for key in args.publish_reviewed:
             fit = builds.get(key)
             check = review.get(key, {})
@@ -210,7 +331,15 @@ def cycle(args) -> dict:
                 not fit
                 or check.get("image_sha256") != fit["image_sha256"]
                 or check.get("implementation_sha256") != fit["implementation_sha256"]
+                or not fit["strict_frontage"]["metadata_pass"]
+                or not isinstance(check.get("storeys_count"), int)
+                or check["storeys_count"] < 2
+                or (
+                    any(o.get("type_requires_review") for o in fit["openings"])
+                    and not check.get("entrances_verified")
+                )
                 or not check.get("visual_alignment")
+                or (fit.get("outcrops") and not check.get("outcrops_verified"))
                 or not all(
                     check.get(gate)
                     for gate in (
@@ -247,15 +376,49 @@ def cycle(args) -> dict:
             ):
                 raise ValueError(f"missing image-bound visual review for {key}")
             fit["review_status"] = "reviewed_inferred_visual_parameters"
+            for opening in fit["openings"]:
+                if opening.get("type_requires_review"):
+                    opening["type_reviewed"] = bool(check.get("entrances_verified"))
+            verified_gate = strict_view_gate(
+                {
+                    **fit["selection_evidence"],
+                    "verified": True,
+                    "review": {"full_front_visible": True},
+                },
+                reviewed_storeys=check["storeys_count"],
+            )
+            fit["strict_frontage"] = verified_gate
+            fit["certainty"].update(certainty(fit, verified_gate))
             accepted[key] = fit
+            finalized = args.output / "finalized" / f"{fit['region']}-{key}.json"
+            atomic(finalized, fit)
+            if fit["certainty"]["tier"] == "high":
+                review_root, review_key = fit_sources[key]
+                receipts.setdefault(review_root, {})[review_key] = {
+                    "fact_path": str(finalized.resolve()),
+                    "fact_sha256": hashlib.sha256(finalized.read_bytes()).hexdigest(),
+                    "render_verified": True,
+                    "reviewer": check["reviewer"],
+                }
+        published_path = ROOT / "docs/sf-corridor-frontage-fits.json"
+        previous = json.loads(published_path.read_text()) if published_path.exists() else {}
+        if previous and previous.get("schema") != "kerbside.facade_fits/1":
+            raise ValueError("unsupported existing facade publication; refusing to overwrite")
         atomic(
-            ROOT / "docs/sf-corridor-frontage-fits.json",
+            published_path,
             {
                 "schema": "kerbside.facade_fits/1",
-                "buildings": accepted,
+                "buildings": {**previous.get("buildings", {}), **accepted},
                 "note": "Reviewed image-derived visual parameters, not measured canonical geometry; no photographic pixels included.",
             },
         )
+        for review_root, entries in receipts.items():
+            atomic(
+                args.output
+                / f"retention-receipts-{hashlib.sha256(str(review_root).encode()).hexdigest()[:16]}.json",
+                entries,
+            )
+            prune_finalized(review_root, entries)
     status = {
         "pid": os.getpid(),
         "fitted_buildings": len(builds),
@@ -283,6 +446,13 @@ def cycle(args) -> dict:
         "window_trim_candidates": sum(
             bool(o.get("design", {}).get("trim")) for f in builds.values() for o in f["openings"]
         ),
+        "held_by_strict_frontage": held,
+        "quarantined_views": len(failures),
+        "elapsed_seconds": round(time.perf_counter() - started, 3),
+        "extraction_view_seconds": {
+            "count": len(timings),
+            "mean": round(sum(timings) / len(timings), 4) if timings else None,
+        },
     }
     atomic(args.output / "status.json", status)
     return status
@@ -296,6 +466,7 @@ if __name__ == "__main__":
     parser.add_argument("--reviews", type=Path)
     parser.add_argument("--publish-reviewed", nargs="+")
     parser.add_argument("--watch-seconds", type=int, default=0)
+    parser.add_argument("--device", choices=["cpu", "mps", "cuda", "auto"], default="cpu")
     parser.add_argument(
         "--detail-model-cache",
         type=Path,
@@ -315,7 +486,9 @@ if __name__ == "__main__":
         {"pid": os.getpid(), "status": "initialising_model", "watch_seconds": args.watch_seconds},
     )
     args.detector = (
-        FacadeDetailDetector(args.detail_model_cache) if args.detail_model_cache else None
+        FacadeDetailDetector(args.detail_model_cache, device=args.device)
+        if args.detail_model_cache
+        else None
     )
     implementation = [
         Path(__file__),
@@ -323,6 +496,11 @@ if __name__ == "__main__":
         ROOT / "src/smc/facades/detail_detection.py",
         ROOT / "src/smc/facades/opening_reasoning.py",
         ROOT / "src/smc/facades/appearance_bands.py",
+        ROOT / "src/smc/facades/edge_support.py",
+        ROOT / "src/smc/facades/consensus.py",
+        ROOT / "src/smc/facades/frontage_retention.py",
+        ROOT / "src/smc/facades/outcrops.py",
+        ROOT / "scripts/build_sf_corridor_3d.py",
     ]
     source_hash = hashlib.sha256(b"".join(p.read_bytes() for p in implementation)).hexdigest()
     while True:

@@ -1,0 +1,34 @@
+{
+  "schema": "kerbside.private_frontage_pilot/1",
+  "note": "Image-space front registrations reviewed from expanded context. Not solved metric cameras or public promotion approvals. No licensed pixels committed.",
+  "houses": [
+    {
+      "review": "build/frontage-live/review/sf-haight-castro-264623472-e4ccad90e210144a.json",
+      "levels": 3,
+      "material": "stucco_render",
+      "material_basis": "visual_inference_not_lab_measurement; pebble inset panels unresolved",
+      "registration": {"image_sha256": "0e54976154e463660228a2ef7dc00fa641b4c11b901d8ca8590020be5cd3c507", "derived_input_sha256": "b7bf064befbf1a136763d65fd1e941d1921a4cd80fefdf4dfed5d463c553435a", "reviewer": "Codex private visual audit", "full_front_visible": true,
+        "quad_normalized": [[0.255,0.349],[0.977,0.382],[0.958,0.97],[0.235,0.933]]}
+    },
+    {
+      "review": "build/frontage-live/review/sf-mission-260286273-70c1ba0feb1828be.json",
+      "levels": 3,
+      "material": "stucco_render",
+      "material_basis": "visual_inference_not_lab_measurement; ground brick and bay depth unresolved",
+      "parcel": {"id":"3587009","source":"DataSF active subdivision parcels via existing ground-cover sidecar; six-decimal boundary","ring":[[-122.424193,37.760608],[-122.424199,37.760676],[-122.423866,37.760696],[-122.423859,37.760628],[-122.424193,37.760608]]},
+      "outcrops": [{"id":"central-bay","kind":"canted_bay","box":[0.14,0.025,0.91,0.78],"depth_m":0.6,"side_fraction":0.2}],
+      "registration": {"image_sha256": "e0601521a7bcfa24395514f744ff9269506dbc7c26e6d5de109b98d12014e010", "derived_input_sha256": "2780044cc5568635873c129d33c9039c37eb9081ef65dd48aad4ea85f959af51", "reviewer": "Codex private visual audit", "full_front_visible": true,
+        "quad_normalized": [[0.229,0.495],[0.896,0.502],[0.896,0.985],[0.229,0.985]]}
+    },
+    {
+      "review": "build/frontage-live/review/sf-sunset-284830179-59c52efae770e39d.json",
+      "levels": 3,
+      "material": "stucco_render",
+      "material_basis": "visual_inference_not_lab_measurement; bay returns and occluded shop need review",
+      "parcel": {"id":"2362019","source":"https://data.sf.gov/resource/acdm-wktn.json (active subdivision parcel, fetched 2026-10-09)","ring":[[-122.491297203,37.742748686],[-122.491278087,37.74247447],[-122.49140758,37.742468768],[-122.491417091,37.74260519],[-122.49142187,37.742673744],[-122.491426697,37.742742983],[-122.491297203,37.742748686]]},
+      "outcrops": [{"id":"left-bay","kind":"canted_bay","box":[0.29,0.02,0.59,0.72],"depth_m":0.6,"side_fraction":0.18},{"id":"right-bay","kind":"canted_bay","box":[0.705,0.02,0.98,0.72],"depth_m":0.6,"side_fraction":0.18}],
+      "registration": {"image_sha256": "28fd7db13a9cb99225c6d5f6046734960fc5a833b47eec22a005571f102478e7", "derived_input_sha256": "65aa51537bdc9d7f5924eb03ce7c0f6ad3007b182f198179f21b468e273a504f", "reviewer": "Codex private visual audit", "full_front_visible": true,
+        "quad_normalized": [[0.192,0.537],[0.822,0.522],[0.822,0.988],[0.175,0.98]]}
+    }
+  ]
+}

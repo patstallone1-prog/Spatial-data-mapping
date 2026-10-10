@@ -1,3 +1,5 @@
+import json
+
 import cv2
 import numpy as np
 import pytest
@@ -30,6 +32,7 @@ def test_observed_windows_preserve_long_wide_panes_and_never_cross_roof():
     assert all(o["v"] + o["h"] <= 5.85 for o in windows)
     assert fit["appearance"]["colour"] == "#beaa96"
     assert not fit["canonical_geometry_modified"] and not fit["inch_accuracy_verified"]
+    json.dumps(fit)  # Semantic-rule NumPy dimensions must remain typed JSON facts.
 
 
 def test_visible_mullions_are_preserved_not_a_universal_sash():

@@ -16,11 +16,23 @@ def test_publication_requires_current_implementation_and_independent_band_review
     module = runpy.run_path(str(ROOT / "scripts/match_frontage_facades.py"))
     cycle = module["cycle"]
     cycle.__globals__["ROOT"] = tmp_path
-    for name in ("fit.py", "opening_reasoning.py", "appearance_bands.py", "detail_detection.py"):
+    for name in (
+        "fit.py",
+        "opening_reasoning.py",
+        "appearance_bands.py",
+        "detail_detection.py",
+        "edge_support.py",
+        "consensus.py",
+        "frontage_retention.py",
+        "outcrops.py",
+    ):
         source = tmp_path / "src/smc/facades" / name
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_text((ROOT / "src/smc/facades" / name).read_text())
     docs = tmp_path / "docs"
+    renderer = tmp_path / "scripts/build_sf_corridor_3d.py"
+    renderer.parent.mkdir()
+    renderer.write_text("fixture renderer")
     docs.mkdir()
     (docs / "sf-corridor-3d.json").write_text(
         json.dumps(
@@ -49,6 +61,10 @@ def test_publication_requires_current_implementation_and_independent_band_review
                 "region": "sf-corridor",
                 "pixel_sha256": "abc",
                 "candidate": {
+                    "geometry_pass": True,
+                    "angle_deg": 0,
+                    "edge_angle_deg": 20,
+                    "full_front_in_frame": True,
                     "wall": {"a": [0, 0], "b": [6, 0], "height_m": 6},
                     "rank": [1],
                     "observation": {
@@ -78,7 +94,7 @@ def test_publication_requires_current_implementation_and_independent_band_review
             "privacy_reviewed",
         )
     }
-    gates.update(image_sha256="abc", reviewer="fixture")
+    gates.update(image_sha256="abc", reviewer="fixture", storeys_count=2)
     reviews = tmp_path / "reviews.json"
     args = SimpleNamespace(
         controls=None,
@@ -100,6 +116,15 @@ def test_publication_requires_current_implementation_and_independent_band_review
         cycle(args)
     gates["appearance_bands_verified"] = True
     reviews.write_text(json.dumps({"1": gates}))
+    (docs / "sf-corridor-frontage-fits.json").write_text(
+        json.dumps(
+            {
+                "schema": "kerbside.facade_fits/1",
+                "buildings": {"other": {"historical": "unchanged"}},
+            }
+        )
+    )
     cycle(args)
     published = json.loads((docs / "sf-corridor-frontage-fits.json").read_text())
     assert published["buildings"]["1"]["review_status"] == "reviewed_inferred_visual_parameters"
+    assert published["buildings"]["other"] == {"historical": "unchanged"}

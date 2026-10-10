@@ -40,7 +40,7 @@ def semantic_gate(fractions: dict[str, float]) -> list[str]:
 
 
 class FrontagePixelScreen:
-    def __init__(self, cache: Path):
+    def __init__(self, cache: Path, device: str = "cpu"):
         import torch
         from huggingface_hub import snapshot_download
         from transformers import AutoImageProcessor, UperNetForSemanticSegmentation
@@ -70,13 +70,49 @@ class FrontagePixelScreen:
             "purpose": "inferred private selection; not privacy certification",
             "model_card": f"https://huggingface.co/{MODEL}/blob/{REVISION}/README.md",
         }
+        if device == "auto":
+            device = (
+                "cuda"
+                if torch.cuda.is_available()
+                else "mps"
+                if torch.backends.mps.is_available()
+                else "cpu"
+            )
+        if device not in {"cpu", "mps", "cuda"}:
+            raise ValueError("unsupported screen device")
+        self.device = device
+        self.manifest["device"] = device
         if self.manifest["files"].get("model.safetensors") != WEIGHTS_SHA256:
             raise ValueError("pinned semantic model checksum mismatch")
         torch.set_num_threads(2)
         self.processor = AutoImageProcessor.from_pretrained(snapshot, local_files_only=True)
-        self.model = UperNetForSemanticSegmentation.from_pretrained(
-            snapshot, local_files_only=True, use_safetensors=True
-        ).eval()
+        self.model = (
+            UperNetForSemanticSegmentation.from_pretrained(
+                snapshot, local_files_only=True, use_safetensors=True
+            )
+            .eval()
+            .to(device)
+        )
+        if device == "mps":
+            # UperNet's 3/6-bin adaptive pools are unsupported for non-divisible
+            # MPS dimensions. Execute those exact pooling operations on CPU,
+            # then return to the GPU; do not resize evidence to dodge the error.
+            class ExactAdaptivePool(torch.nn.AdaptiveAvgPool2d):
+                def forward(self, value):
+                    return super().forward(value.cpu()).to(value.device)
+
+            for module in self.model.modules():
+                for name, child in list(module.named_children()):
+                    if isinstance(child, torch.nn.AdaptiveAvgPool2d):
+                        replacement = ExactAdaptivePool(child.output_size)
+                        setattr(module, name, replacement)
+                        # Upstream UperNet also executes a plain list of these
+                        # registered children; keep that alias in sync.
+                        if isinstance(getattr(module, "layers", None), list):
+                            module.layers = [
+                                replacement if layer is child else layer for layer in module.layers
+                            ]
+            self.manifest["runtime_adapter"] = "exact_cpu_adaptive_pool_only; full_encoder_gpu"
         self.labels = {
             int(i): str(label).lower() for i, label in self.model.config.id2label.items()
         }
@@ -85,13 +121,13 @@ class FrontagePixelScreen:
         import torch
 
         rgb = bgr[..., ::-1].copy()
-        inputs = self.processor(images=rgb, return_tensors="pt")
+        inputs = self.processor(images=rgb, return_tensors="pt").to(self.device)
         with torch.inference_mode():
             logits = self.model(**inputs).logits
             logits = torch.nn.functional.interpolate(
                 logits, size=bgr.shape[:2], mode="bilinear", align_corners=False
             )
-            labels = logits.argmax(dim=1)[0].numpy()
+            labels = logits.argmax(dim=1)[0].cpu().numpy()
         groups = {
             "architecture": {"building", "house", "wall", "windowpane", "door"},
             "sky": {"sky"},

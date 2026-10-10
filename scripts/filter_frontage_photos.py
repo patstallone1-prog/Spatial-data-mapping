@@ -74,6 +74,13 @@ def file_hash(path):
     return digest.hexdigest()
 
 
+def resolved_pixel_density(predicted_ppm: float, metadata_width: int, decoded_width: int) -> float:
+    """Thumbnail resolution cannot inherit the full camera's sampling density."""
+    if not all(math.isfinite(v) and v > 0 for v in (predicted_ppm, metadata_width, decoded_width)):
+        raise ValueError("positive source resolution required")
+    return predicted_ppm * min(1.0, decoded_width / metadata_width)
+
+
 def cells(points, margin=0):
     x, y = zip(*points, strict=True)
     for i in range(math.floor((min(x) - margin) / CELL), math.floor((max(x) + margin) / CELL) + 1):
@@ -480,7 +487,13 @@ def review_samples(args, summaries, policy):
     if args.pixel_screen:
         from smc.facades.frontage_pixels import FrontagePixelScreen
 
-        screen = FrontagePixelScreen(args.model_cache or args.output / "model-cache")
+        screen = getattr(args, "screen_instance", None)
+        if screen is None:
+            screen = FrontagePixelScreen(
+                args.model_cache or args.output / "model-cache",
+                device=getattr(args, "device", "cpu"),
+            )
+            args.screen_instance = screen
         emit(args.output / "sources/pixel-screen-model.json", screen.manifest)
     rows = []
     for summary in summaries:
@@ -521,6 +534,8 @@ def review_samples(args, summaries, policy):
             ) not in seen_views:
                 pending.append((row, candidate, region, run_id))
                 break
+    attempted = Counter((r["region"], r["building_id"]) for r in records)
+    pending.sort(key=lambda p: attempted[(p[2], p[0]["building_id"])])
     for row, candidate, region, run_id in pending[: args.sample]:
         obs = candidate["observation"]
         uid = obs["observation_uid"]
@@ -545,9 +560,18 @@ def review_samples(args, summaries, policy):
             "status": "not_downloaded",
             "review_key": report_path.stem,
         }
+        if shutil.disk_usage(args.output).free < 4 * 1024**3:
+            emit(
+                args.output / "pixel-worker.json",
+                {
+                    "status": "paused_disk_reserve",
+                    "reserve_bytes": 4 * 1024**3,
+                    "remaining_candidates": len(pending),
+                    "pid": os.getpid(),
+                },
+            )
+            break  # Capacity is not a failed source, empty measurement, or rejection.
         try:
-            if shutil.disk_usage(args.output).free < 4 * 1024**3:
-                raise RuntimeError("disk reserve reached; no more pixels downloaded")
             provider_name = obs["provider"]
             if provider_name not in providers:
                 if provider_name == "mapillary":
@@ -600,6 +624,9 @@ def review_samples(args, summaries, policy):
                     "review renderer supports RGB8 only; canonical blob retained losslessly"
                 )
             camera = Camera(**candidate["camera"])
+            source_ppm = resolved_pixel_density(
+                candidate["pixels_per_m"], camera.width, pixels.width
+            )
             camera = dataclasses.replace(
                 camera,
                 width=pixels.width,
@@ -609,7 +636,20 @@ def review_samples(args, summaries, policy):
             from smc.facades.geometry import Wall
 
             wall = Wall(**candidate["wall"])
-            ppm = min(35, candidate["pixels_per_m"], 1400 / max(wall.length_m, wall.height_m))
+            if source_ppm < policy.min_pixels_per_m:
+                report.update(
+                    status="pixel_rejected",
+                    pixel_sha256=digest,
+                    pixel_screen={
+                        "pass": False,
+                        "reasons": ["resolved_source_too_coarse"],
+                        "resolved_pixels_per_m": source_ppm,
+                    },
+                )
+                emit(report_path, report)
+                records.append(report)
+                continue
+            ppm = min(35, source_ppm, 1400 / max(wall.length_m, wall.height_m))
             view = rectify_wall(image[..., ::-1], camera, wall, pixels_per_m=ppm, exact=True)
             if view is None:
                 raise ValueError("no facade pixels in resolved image")
@@ -639,6 +679,7 @@ def review_samples(args, summaries, policy):
                     "ground_reference": candidate.get("ground_reference"),
                     "crop": str(report_path.with_suffix(".jpg")),
                     "pixel_frame_coverage": view.coverage,
+                    "resolved_pixels_per_m": source_ppm,
                     "vegetation_heuristic": vegetation_share(view.image, view.mask),
                     "rectilinearity_heuristic": rectilinearity(view.image, view.mask),
                 }
@@ -736,6 +777,12 @@ def main():
     parser.add_argument("--reviews", type=Path)
     parser.add_argument("--max-angle", type=float, default=35)
     parser.add_argument("--watch-seconds", type=int, default=0)
+    parser.add_argument("--device", choices=["cpu", "mps", "cuda", "auto"], default="cpu")
+    parser.add_argument(
+        "--strict-houses",
+        action="store_true",
+        help="require full predicted frontage and <=35 degrees at facade edges; minimum two visible storeys remains an image-review gate",
+    )
     parser.add_argument(
         "--model-cache",
         type=Path,
@@ -764,7 +811,11 @@ def main():
             "watch_seconds": args.watch_seconds,
         },
     )
-    policy = FrontagePolicy(max_angle_deg=args.max_angle)
+    policy = FrontagePolicy(
+        max_angle_deg=args.max_angle,
+        max_edge_angle_deg=35 if args.strict_houses else 55,
+        min_frame_coverage=1 if args.strict_houses else 0.90,
+    )
     implementation = [
         Path(__file__),
         ROOT / "src/smc/facades/frontage.py",

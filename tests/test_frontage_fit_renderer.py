@@ -60,3 +60,72 @@ def test_only_reviewed_fits_map_to_correct_edge_with_same_window_design():
     """
     result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr
+
+
+def test_reviewed_front_partition_keeps_every_triangle_and_does_not_claim_back_wall():
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    code = (
+        """
+    function frontageFitFor(){return {a:[0,0],b:[10,0]};}
+    function xy(x,y){return [x,y];}
+    const normal={getX:()=>0,getZ:i=>i<3 ? 1 : -1};
+    const position={getX:i=>i%3,getZ:i=>i<3 ? 0 : -4};
+    const geometry={getAttribute:name=>name==='normal' ? normal : position};
+    """
+        + _extract("frontageWallTriangles", _page_js())
+        + """
+    const parts=frontageWallTriangles({},geometry,[0,1,2,3,4,5]);
+    if(JSON.stringify(parts.flatMap(p=>p.indices))!=='[0,1,2,3,4,5]')throw Error('lost triangles');
+    if(!parts[0].front || parts[1].front)throw Error('back wall claimed observed');
+    """
+    )
+    result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
+def test_opening_texture_cache_preserves_observed_colour_and_panel_locations():
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    code = (
+        """
+    const PHOTO_OPENING_TEXTURES=new Map(),homeDesignMaterials=new Map();
+    let cleared=0;const ctx={fillRect(){},clearRect(){cleared++;},beginPath(){},moveTo(){},lineTo(){},stroke(){}};
+    const document={createElement:()=>({getContext:()=>ctx})};
+    const THREE={CanvasTexture:class{constructor(canvas){this.canvas=canvas;}},
+      MeshStandardMaterial:class{constructor(config){Object.assign(this,config);}},SRGBColorSpace:'srgb'};
+    """
+        + "\n".join(
+            _extract(name, _page_js()) for name in ("photoOpeningTexture", "homeDesignMaterial")
+        )
+        + """
+    const a=photoOpeningTexture('garage',{colour:'#123456',panel_lines:{horizontal:[.3]}});
+    const b=photoOpeningTexture('garage',{colour:'#123457',panel_lines:{horizontal:[.3]}});
+    const c=photoOpeningTexture('garage',{colour:'#123456',panel_lines:{horizontal:[.6]}});
+    if(a===b || a===c)throw Error('distinct observed colour/panels merged');
+    if(a!==photoOpeningTexture('garage',{colour:'#123456',panel_lines:{horizontal:[.3]}}))throw Error('cache missed');
+    if(homeDesignMaterial({glass_colour:'#ffff00'})!==homeDesignMaterial({glass_colour:'#112234'}))throw Error('source contents colour baked into glass');
+    if(!cleared)throw Error('opaque contents retained');
+    """
+    )
+    result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
+def test_bay_windows_follow_projection_without_adding_mullions_at_face_seams():
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    code = (
+        "\n".join(_extract(name, _page_js()) for name in ("wallPanels", "homeOutcropSurfaces"))
+        + """
+    const window={u:2,v:3,w:6,h:1,design:{vertical_bars:[.5]}};
+    const bay={id:'bay',u:2,v:2,w:6,h:4,profile:[[2,0],[3,1],[7,1],[8,0]]};
+    const result=homeOutcropSurfaces([0,0],1,0,0,-1,[bay],[window]);
+    if(result.flatWindows.length || result.surfaces.length!==3)throw Error('flat ghost window retained');
+    const openings=result.surfaces.flatMap(s=>s.windows);
+    if(openings.filter(o=>o.frameLeft).length!==1 || openings.filter(o=>o.frameRight).length!==1)throw Error('seam mullions invented');
+    if(result.caps[0].plan.some(p=>p[1]>1.0001))throw Error('projection overflow');
+    """
+    )
+    result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr

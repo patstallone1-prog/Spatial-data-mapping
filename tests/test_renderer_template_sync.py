@@ -32,7 +32,10 @@ def test_every_installed_city_uses_the_current_house_and_collision_code() -> Non
                      "frontageFitFor", "frontageWindowsOnEdge", "homeDesignMaterial",
                      "houseCertainty",
                      "facadeAppearanceBands", "clipFacadeBand",
+                     "frontageWallTriangles",
                      "photoDetailParts",
+                     "photoOpeningTexture", "photoOpeningParts",
+                     "frontageOutcropsOnEdge", "homeOutcropSurfaces", "homeOutcropCapGeometry",
                      "cornerStreetNameSigns", "backdropAt"):
             assert _extract(name, text) == _extract(name, current), f"stale {name}: {page}"
 

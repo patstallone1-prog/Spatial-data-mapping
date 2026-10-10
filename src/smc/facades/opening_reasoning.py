@@ -73,6 +73,7 @@ def reason_opening(
 ) -> dict:
     if not all(math.isfinite(v) and v > 0 for v in (width_m, height_m)):
         raise ValueError("finite positive opening dimensions required")
+    width_m, height_m = float(width_m), float(height_m)
     label = normalize_label(source_label)
     cues = line_evidence(image)
     review = step_review or {}

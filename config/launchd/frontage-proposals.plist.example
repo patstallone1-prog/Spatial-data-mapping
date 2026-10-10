@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.kerbside.frontage-proposals</string>
+  <key>ProgramArguments</key><array>
+    <string>__PYTHON__</string><string>__REPO_ROOT__/scripts/run_frontage_workers.py</string>
+    <string>--python</string><string>__PYTHON__</string>
+    <string>--data-root</string><string>__DATA_ROOT__</string>
+    <string>--env-file</string><string>__ENV_FILE__</string>
+    <string>--full-run-approval</string><string>__REPO_ROOT__/build/frontage-supervisor/approved-pilot.json</string>
+  </array>
+  <key>WorkingDirectory</key><string>__REPO_ROOT__</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>60</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>__REPO_ROOT__/build/frontage-supervisor/launchd.log</string>
+  <key>StandardErrorPath</key><string>__REPO_ROOT__/build/frontage-supervisor/launchd.log</string>
+</dict></plist>

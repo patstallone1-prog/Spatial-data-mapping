@@ -12,8 +12,10 @@ import math
 import cv2
 import numpy as np
 
-from smc.facades.appearance_bands import appearance_bands, window_trim
+from smc.facades.appearance_bands import appearance_bands, colour_sample, window_trim
+from smc.facades.edge_support import opening_sanity, refine_opening
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
+from smc.facades.outcrops import infer_candidates, reviewed_outcrops
 from smc.facades.survey import openings as dark_openings
 
 
@@ -27,6 +29,8 @@ def storey_constraint(height: float, levels: int | None, rows: list[float]) -> d
             "status": "prior_constrained",
             "storeys": levels,
             "storey_height_m": height / levels,
+            "visual_storey_height_m": round(height / levels, 1),
+            "visual_rounding_sigma_m": 0.05,
             "basis": "supplied_height_and_levels",
         }
     gaps = np.diff(sorted(rows))
@@ -107,7 +111,7 @@ def entry_recess(door: dict, controls: dict, storey: dict) -> dict:
     if hidden and category != "long":
         return {**result, "reason": "hidden_door_requires_visible_ascending_long_flight"}
     depth, rise = evidence.get("depth_m"), evidence.get("rise_m")
-    second = storey.get("storey_height_m")
+    second = storey.get("visual_storey_height_m", storey.get("storey_height_m"))
     if hidden and rise is None and storey.get("status") == "prior_constrained" and second:
         rise = second
         result["threshold_basis"] = "inferred_second_storey_bottom_from_visible_stairs"
@@ -239,7 +243,7 @@ def extract_front(
     if details is not None:
         for item in details:
             kind = item.get("kind")
-            if kind not in {"window", "door", "garage door"}:
+            if kind not in {"window", "door", "garage door", "gated_entry_candidate"}:
                 continue
             box = item.get("box", [])
             if len(box) != 4 or not all(
@@ -249,9 +253,14 @@ def extract_front(
             x0, y0, x1, y1 = box
             if x1 <= x0 or y1 <= y0:
                 continue
+            edge = refine_opening(bgr, box)
+            item["edge_support"] = edge
+            item["source_box"] = box
+            item["box"] = edge["box"]
+            x0, y0, x1, y1 = edge["box"]
             observations.append(
                 (
-                    "window" if kind == "window" else "door",
+                    kind if kind in {"window", "gated_entry_candidate"} else "door",
                     x0 * width,
                     (1 - y1) * height,
                     (x1 - x0) * width,
@@ -260,11 +269,20 @@ def extract_front(
                 )
             )
     # ADE20K class ids are pinned with the model manifest in the filter evidence.
-    for label, kind in () if details is not None else ((8, "window"), (14, "door")):
+    semantic_sources = ((8, "window"), (14, "door"), (32, "gated_entry_candidate"))
+    for label, kind in semantic_sources:
+        if details is not None and kind != "gated_entry_candidate":
+            continue
         binary = (labels == label).astype(np.uint8)
         count, _, stats, _ = cv2.connectedComponentsWithStats(binary, 8)
         for x, y, w, h, area in stats[1:count]:
             if w / ppm_x < 0.22 or h / ppm_y < 0.35 or area / (w * h) < 0.35:
+                continue
+            if kind == "gated_entry_candidate" and not (
+                0.5 <= w / ppm_x <= 2.5
+                and h / ppm_y >= 1.5
+                and (bgr.shape[0] - y - h) / ppm_y <= 0.6
+            ):
                 continue
             observations.append(
                 (
@@ -282,15 +300,32 @@ def extract_front(
         if details is not None
         else dark_openings(bgr, np.ones(labels.shape, bool), min(ppm_x, ppm_y))
     ):
+        if o.kind == "window":
+            px0 = max(0, round(o.u * ppm_x))
+            px1 = min(labels.shape[1], round((o.u + o.w) * ppm_x))
+            py0 = max(0, round((height - o.v - o.h) * ppm_y))
+            py1 = min(labels.shape[0], round((height - o.v) * ppm_y))
+            region = labels[py0:py1, px0:px1]
+            if not region.size or (region == 8).mean() < 0.15:
+                box = [
+                    o.u / width,
+                    (height - o.v - o.h) / height,
+                    (o.u + o.w) / width,
+                    (height - o.v) / height,
+                ]
+                support = refine_opening(bgr, box)
+                if support["supported_sides"] < 4 or o.v < 1.7:
+                    continue  # No semantic identity and no supported upper perimeter.
         if not observations or o.kind == "window":
             observations.append((o.kind, o.u, o.v, o.w, o.h, min(0.65, o.confidence)))
     found = []
     for kind, u, v, w, h, confidence in sorted(observations, key=lambda x: x[5], reverse=True):
-        if u < 0.08 or u + w > width - 0.08 or v < 0 or v + h > height - 0.15:
+        margin = 0.08 if kind == "window" else 0
+        if u < margin or u + w > width - margin or v < 0 or v + h > height - 0.15:
             continue
-        if kind == "window" and (w > 6 or h > 4 or v < 0.35):
+        if kind == "window" and v < 0.35:
             continue
-        if kind != "window" and (v > 1.7 or h < 1.5 or h > 4):
+        if kind != "window" and (h < 1.5 or h > 4):
             continue
         if any(
             abs(u + w / 2 - o["u"] - o["w"] / 2) < min(w, o["w"]) * 0.7
@@ -301,6 +336,27 @@ def extract_front(
         x0, x1 = round(u * ppm_x), round((u + w) * ppm_x)
         y0, y1 = round((height - v - h) * ppm_y), round((height - v) * ppm_y)
         design = opening_design(bgr[y0:y1, x0:x1], w, h)
+        if kind == "window":
+            patch = bgr[y0:y1, x0:x1]
+            pad = max(1, min(patch.shape[:2]) // 10)
+            if min(patch.shape[:2]) > 2 * pad:
+                rgb = np.median(patch[pad:-pad, pad:-pad, ::-1].reshape(-1, 3), axis=0).astype(int)
+                design["observed_glass_or_contents_colour"] = "#" + "".join(f"{v:02x}" for v in rgb)
+                design["glass_rendering"] = "clear_neutral_no_photographed_contents"
+        if kind != "window":
+            design["colour"] = colour_sample(
+                bgr[y0:y1, x0:x1], np.isin(labels[y0:y1, x0:x1], [0, 1, 14, 25, 32])
+            )
+            design["colour_basis"] = "observed_image_colour_not_albedo"
+            cues = reason_opening(bgr[y0:y1, x0:x1], w, h, "door")["pixel_cues"]
+            design["panel_style"] = (
+                "sectional_grid"
+                if cues["panel_grid"]
+                else "horizontal_sections"
+                if len(cues["horizontal"]) >= 3
+                else "unresolved"
+            )
+            design["panel_lines"] = cues
         found.append(
             {
                 "id": f"opening-{len(found)}",
@@ -313,6 +369,17 @@ def extract_front(
                 "design": design,
                 "grade": "image_on_prior_geometry",
                 "position_sigma_m": max(0.50, 1 / min(ppm_x, ppm_y)),
+                "size_anomaly_requires_review": bool(w > 6 or h > 4),
+                "type_requires_review": kind == "gated_entry_candidate",
+                "image_edge_support": next(
+                    (
+                        p.get("edge_support")
+                        for p in details or []
+                        if abs(p["box"][0] * width - u) < 0.02
+                        and abs((p["box"][2] - p["box"][0]) * width - w) < 0.02
+                    ),
+                    None,
+                ),
             }
         )
     rows = []
@@ -355,6 +422,14 @@ def extract_front(
             }
         )
     architecture = np.isin(labels, [1, 25, 0])
+    for opening in found:
+        x0 = round(opening["u"] * ppm_x)
+        x1 = round((opening["u"] + opening["w"]) * ppm_x)
+        y0 = round((height - opening["v"] - opening["h"]) * ppm_y)
+        y1 = round((height - opening["v"]) * ppm_y)
+        architecture[
+            max(0, y0) : min(labels.shape[0], y1), max(0, x0) : min(labels.shape[1], x1)
+        ] = False
     # Only confidently labelled wall pixels, not windows, doors, plants, sky, poles.
     pixels = bgr[architecture]
     appearance = {
@@ -427,6 +502,11 @@ def extract_front(
                 "grade": "hidden_door_inferred_from_reviewed_ascending_stairs",
                 "certainty": "inferred_not_observed",
                 "position_sigma_m": 0.5,
+                "design": {
+                    "shape": "inferred_hidden_door",
+                    "vertical_bars": [],
+                    "horizontal_bars": [],
+                },
             }
             recess = entry_recess(door, {**controls, "recess": hidden_entry}, storey)
             if recess["render_steps"] and door["v"] + door["h"] <= height - 0.15:
@@ -451,12 +531,14 @@ def extract_front(
     appearance.update(
         appearance_bands(bgr, labels, height, storey, found, {**controls, "facade_width_m": width})
     )
+    sanity = opening_sanity(found)
     for opening in found:
         if opening["kind"] == "window":
             trim = window_trim(bgr, opening, width, height, appearance["bands"])
             if trim:
                 opening["design"]["trim"] = trim
     return {
+        "sanity_checks": sanity,
         "schema": "kerbside.facade_fit/1",
         "width_m": width,
         "height_m": height,
@@ -465,6 +547,8 @@ def extract_front(
         "storey_constraint": storey,
         "ground_reference": ground,
         "details": decorative + reviewed_details(controls, width, height, storey),
+        "outcrops": reviewed_outcrops(controls, width, height),
+        "outcrop_candidates": infer_candidates(found, controls.get("image_sha256")),
         "certainty": {
             "front": "unreviewed_image_on_prior",
             "height": "canonical_prior",
