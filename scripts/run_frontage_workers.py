@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from smc.facades.version import implementation_sha256  # noqa: E402
+from smc.storage.external_volume import volume_ready  # noqa: E402
 
 REGIONS = [
     "sf-corridor",
@@ -59,6 +60,16 @@ def power_eligible(power: dict | None, battery_min_percent: int | None) -> bool:
 def proposal_batch_size(reviewed_pilot: bool, full_private_proposals: bool) -> int:
     """Private throughput is independent of evidence approval or publication."""
     return 256 if reviewed_pilot or full_private_proposals else 24
+
+
+def storage_state(folder: Path, volume: Path | None, volume_uuid: str | None) -> tuple[bool, bool]:
+    if not volume_ready(volume, volume_uuid):
+        return False, False
+    try:
+        return True, shutil.disk_usage(volume or folder).free >= 4 * 1024**3
+    except OSError:
+        # A drive can disappear between the mount check and statvfs.
+        return False, False
 
 
 def power_state() -> dict | None:
@@ -156,11 +167,15 @@ def main():
     parser.add_argument("--full-run-approval", type=Path)
     parser.add_argument("--battery-min-percent", type=int,
                         help="Allow battery processing only strictly above this percentage.")
+    parser.add_argument("--storage-volume", type=Path)
+    parser.add_argument("--storage-volume-uuid")
     parser.add_argument(
         "--full-private-proposals", action="store_true",
         help="Process full batches privately; does not approve or publish any photo fit.",
     )
     args = parser.parse_args()
+    if bool(args.storage_volume) != bool(args.storage_volume_uuid):
+        parser.error("external storage volume and UUID must be supplied together")
     if args.battery_min_percent is not None and not 0 <= args.battery_min_percent <= 100:
         parser.error("battery minimum must be between 0 and 100")
     folder = ROOT / "build/frontage-supervisor"
@@ -195,16 +210,23 @@ def main():
         while not stopping:
             power = power_state()
             eligible = power_eligible(power, args.battery_min_percent)
-            capacity = shutil.disk_usage(folder).free >= 4 * 1024**3
+            storage, capacity = storage_state(folder, args.storage_volume, args.storage_volume_uuid)
             if not eligible or not capacity:
                 stop_children()
+                # Reopen from the verified mount on resume, never reuse an old drive FD.
+                for stream in logs.values():
+                    with contextlib.suppress(OSError):
+                        stream.close()
+                logs.clear()
                 if caffeine and caffeine.poll() is None:
                     caffeine.terminate()
                 caffeine = None
                 status(
                     folder / "status.json",
                     {
-                        "state": "paused_power_query_unavailable"
+                        "state": "waiting_for_external_storage"
+                        if not storage
+                        else "paused_power_query_unavailable"
                         if power is None
                         else "waiting_for_ac_power"
                         if not eligible and args.battery_min_percent is None
@@ -213,6 +235,7 @@ def main():
                         else "paused_disk_reserve",
                         "power": power,
                         "battery_min_percent": args.battery_min_percent,
+                        "storage_volume": str(args.storage_volume) if args.storage_volume else None,
                         "children_stopping": {k: p.pid for k, p in children.items()},
                         "full_private_proposals": args.full_private_proposals,
                         "configured_private_batch_size": proposal_batch_size(False, args.full_private_proposals),
@@ -286,6 +309,7 @@ def main():
                     folder / "status.json",
                     {
                         "state": "running",
+                        "storage_volume": str(args.storage_volume) if args.storage_volume else None,
                         "power": power,
                         "battery_min_percent": args.battery_min_percent,
                         "children": {k: p.pid for k, p in children.items()},
