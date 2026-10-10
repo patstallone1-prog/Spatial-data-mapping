@@ -251,6 +251,7 @@ def test_pilot_uses_all_canonical_vertices_instead_of_four_corner_proxy():
     assert "points[(i+1)%points.length]" in source and "points[(i+1)%4]" not in source
     assert "canonical_front_footprint_uv" in source and "new THREE.ShapeGeometry(roofShape)" in source
     assert "new THREE.BoxGeometry(w,.14,d)" not in source
+    assert "renderer.setSize(760,620,false)" in source, "inline canvas height must not stretch windows in narrow comparison panes"
 
 
 def test_opening_texture_cache_preserves_observed_colour_and_panel_locations():

@@ -45,7 +45,7 @@ FUNCTIONS = (
 )
 SCENE = r"""
 const scene=new THREE.Scene();scene.background=new THREE.Color('#e0e4df');
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(760,620);renderer.setPixelRatio(1);document.querySelector('#render').append(renderer.domElement);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(760,620,false);renderer.setPixelRatio(1);document.querySelector('#render').append(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffffff,0x84918a,2));const light=new THREE.DirectionalLight(0xffffff,1.5);light.position.set(6,20,20);scene.add(light);
 const camera=new THREE.PerspectiveCamera(38,760/620,.1,200);
 const HOME_RENDER=new Map(),BUILDING_VISUAL_RANGES=new Map(),homeShells=new Set(),homeDesignMaterials=new Map(),PHOTO_OPENING_TEXTURES=new Map();
