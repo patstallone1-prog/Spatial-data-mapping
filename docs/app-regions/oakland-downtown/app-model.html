@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="24e5b2fa1d5d8f305a8af62e93aa26c89861aa6d75acd3a5dd6b331b6c77b95d" />
+<meta name="kerbside-renderer-sha256" content="1775725bad296c7a9a6e51254c2599908e78550e503dd1b9e1d3f5058af83a46" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -11770,6 +11770,21 @@ function photoOpeningParts(group,feature,includeWindows=false) {
     if(!["window","door","garage_candidate","garage","gated_entry_candidate"].includes(o.kind) || (o.kind==="window" && !includeWindows)
        || ![o.u,o.v,o.w,o.h].every(Number.isFinite) || o.u<0 || o.u+o.w>L+.05
        || o.v<0 || o.v+o.h>fit.height_m-.1 || o.w<=0 || o.h<=0)continue;
+    // This path draws flat panels, not connected stairwells. Never let photo thresholds
+    // float over six inches above outside ground, including old fits without access metadata.
+    if(o.kind!=="window") {
+      const ref=fit.ground_reference;
+      const ground=ref?.frame==="relative_to_facade_foot" && ref.source
+        && Number.isFinite(ref.outside_ground_m) ? ref.outside_ground_m : 0;
+      if(o.render_allowed===false || o.v-ground>.1524)continue;
+      // Also compare against the ground actually drawn outside both ends of the leaf.
+      // A source control cannot excuse a mismatched terrain/base in the current scene.
+      if(typeof terrainGroundAt!=="function" || ![0,.5,1].every(t=>{
+        const u=o.u+o.w*t, x=ax+tx*u+nx*.3, z=-ay+tz*u+nz*.3;
+        const street=terrainGroundAt(x,z);
+        return Number.isFinite(street) && o.v+BUILDING_LIFT_M-street<=.1524+1e-9;
+      }))continue;
+    }
     const u=o.u+o.w/2,out=.085;
     const map=o.kind==="window" ? homeDesignMaterial(o.design).map : photoOpeningTexture(o.kind,o.design);
     const mesh=planePart(group,ax+tx*u+nx*out,o.v,-ay+tz*u+nz*out,o.w,o.h,map,yaw);
@@ -22279,6 +22294,9 @@ function showDoor(door) {
   if (door.atGrade && ground - street > 4.0) return;
   const leafGround = door.atGrade ? street : ground;
   if (!door.atGrade) addStoop(door, street, ground, stoopPlan);
+  // Independent of photo/UI flags: a raised runtime leaf must have a real inward plan.
+  if (!Number.isFinite(leafGround) || !Number.isFinite(street)
+      || (leafGround - street > .1524 && !door.stoopPlan)) return;
   const hinge = new THREE.Group();
   // Hinged at the t0 end, standing a hair outside the wall so it is not lost in it.
   const hx = door.entry.local[door.edge][0] + (door.entry.local[door.edge + 1][0] - door.entry.local[door.edge][0]) * door.t0;
@@ -22834,8 +22852,17 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
   const aligned = ex*tx + ez*tz;
   const normalError = Math.max(Math.abs((a[0]-f[0])*-tz+(a[1]-f[1])*tx),
     Math.abs((b[0]-f[0])*-tz+(b[1]-f[1])*tx));
-  // Bay-return edges and party walls must not receive a front photograph's layout.
-  if (Math.abs(aligned) < .96 || normalError > .8) return null;
+  // Existing bay returns are real parts of the front, not party walls. Only a
+  // footprint-validated outward-facing edge can use the wider return envelope.
+  const ring=entry.local;
+  const signed=Array.isArray(ring) && ring.length>=4 ? ring.reduce((sum,p,i)=>{
+    const q=ring[(i+1)%ring.length];return sum+p[0]*q[1]-q[0]*p[1];
+  },0) : 0;
+  const canonicalFace=Number.isFinite(signed) && Math.abs(signed)>.01;
+  if(canonicalFace) {
+    const facing=-(signed>0 ? 1 : -1)*aligned;
+    if(facing<.25 || normalError>1.3)return null;
+  } else if (Math.abs(aligned) < .96 || normalError > .8) return null;
   const start = (a[0]-f[0])*tx+(a[1]-f[1])*tz;
   const end = start + length*aligned;
   if (Math.max(start,end) < -.1 || Math.min(start,end) > span+.1) return null;
@@ -22844,7 +22871,16 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
     u: aligned > 0 ? (o.u-start)/aligned : (o.u+o.w-start)/aligned,
     design: o.design && { ...o.design, vertical_bars: (o.design.vertical_bars || []).map(t=>aligned > 0 ? t : 1-t) },
     w: o.w/Math.abs(aligned), v: bottom+o.v, grade: "image_on_prior_geometry" }))
-    .filter(o=>o.u >= .08 && o.u+o.w <= length-.08);
+    .flatMap(o=>{
+      if(!canonicalFace)return o.u>=.08 && o.u+o.w<=length-.08 ? [o] : [];
+      const left=Math.max(0,o.u),right=Math.min(length,o.u+o.w);
+      if(right-left<.03)return [];
+      const fullLeft=Math.abs(left-o.u)<.001,fullRight=Math.abs(right-o.u-o.w)<.001;
+      return [{...o,u:left,w:right-left,frameLeft:fullLeft,frameRight:fullRight,
+        sourceOpeningId:o.id,projectionBasis:"photo_on_existing_canonical_front_surface",
+        design:o.design && {...o.design,vertical_bars:(o.design.vertical_bars || [])
+          .map(t=>(o.u+o.w*t-left)/(right-left)).filter(t=>t>0 && t<1)}}];
+    });
 }
 
 function homeWindowLayout(entry, spec) {
@@ -22942,15 +22978,28 @@ function frontageOutcropsOnEdge(entry,a,b,length,bottom) {
   const fit=frontageFitFor(entry.way);if(!fit?.a || !fit?.b)return [];
   const [fx,fy]=xy(...fit.a),[gx,gy]=xy(...fit.b),dx=gx-fx,dz=fy-gy,L=Math.hypot(dx,dz);
   if(L<.2)return [];const tx=dx/L,tz=dz/L,ex=(b[0]-a[0])/length,ez=(b[1]-a[1])/length,alignment=ex*tx+ez*tz;
-  if(Math.abs(alignment)<.96 || Math.max(Math.abs((a[0]-fx)*-tz+(a[1]+fy)*tx),Math.abs((b[0]-fx)*-tz+(b[1]+fy)*tx))>.8)return [];
+  // A residual is relative to this exact wall, not an already offset bay face.
+  if(Math.abs(alignment)<.96 || Math.max(Math.abs((a[0]-fx)*-tz+(a[1]+fy)*tx),Math.abs((b[0]-fx)*-tz+(b[1]+fy)*tx))>.05)return [];
   const start=(a[0]-fx)*tx+(a[1]+fy)*tz;
-  return (fit.outcrops || []).filter(o=>o.render && o.property_sha256 && o.property_source
+  return (fit.outcrops || []).filter(o=>o.render && !o.canonical_relief_overlap && o.property_sha256 && o.property_source
     && [o.u,o.v,o.w,o.h,o.depth_m].every(Number.isFinite) && o.depth_m>0 && o.depth_m<=1.2
     && o.v>=0 && o.v+o.h<=fit.height_m-.04 && Array.isArray(o.profile)
     && o.profile.every(p=>p.length===2 && p.every(Number.isFinite) && p[0]>=o.u-.001 && p[0]<=o.u+o.w+.001 && p[1]>=0 && p[1]<=o.depth_m+.001))
     .map(o=>({...o,u:alignment>0 ? (o.u-start)/alignment : (o.u+o.w-start)/alignment,
       w:o.w/Math.abs(alignment),v:bottom+o.v,profile:o.profile.map(p=>[(p[0]-start)/alignment,p[1]]).sort((p,q)=>p[0]-q[0])}))
-    .filter(o=>o.u>=0 && o.u+o.w<=length);
+    .filter(o=>o.u>=0 && o.u+o.w<=length && !(
+      Array.isArray(entry.local) && entry.local.some((p,i)=>{
+        const q=entry.local[(i+1)%entry.local.length];
+        const u0=(p[0]-fx)*tx+(p[1]+fy)*tz,u1=(q[0]-fx)*tx+(q[1]+fy)*tz;
+        if(Math.abs(u1-u0)<.03)return false; // perpendicular party-wall edge
+        const limits=[start+o.u*alignment,start+(o.u+o.w)*alignment];
+        const left=Math.max(Math.min(...limits),Math.min(u0,u1)),right=Math.min(Math.max(...limits),Math.max(u0,u1));
+        if(right-left<.03)return false;
+        const n0=(p[0]-fx)*-tz+(p[1]+fy)*tx,n1=(q[0]-fx)*-tz+(q[1]+fy)*tx;
+        const depths=[left,right].map(u=>n0+(u-u0)/(u1-u0)*(n1-n0));
+        return Math.max(...depths)>=-1.3 && Math.min(...depths)<=1.3 && depths.some(n=>Math.abs(n)>.05);
+      })
+    ));
 }
 
 function homeOutcropSurfaces(a,ux,uz,nx,nz,bays,windows) {

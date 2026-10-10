@@ -169,6 +169,10 @@ def reviewed_outcrops(controls: dict, width: float, height: float) -> list[dict]
                 0, low - 0.01
             )  # Stay inside rather than touching an uncertain cadastral edge.
         constrained = depth < requested - 0.001
+        # An existing canonical bay/return is not empty wall on which to add a
+        # second projection. Keep both evidence records, suppress the extra mesh.
+        prior = controls.get("canonical_front_geometry")
+        overlap = canonical_relief_overlap(u, w, prior) if prior else False
         results.append(
             {
                 "id": item.get("id", f"outcrop-{len(results)}"),
@@ -180,9 +184,11 @@ def reviewed_outcrops(controls: dict, width: float, height: float) -> list[dict]
                 "depth_m": depth,
                 "requested_depth_m": requested,
                 "profile": profile(item["kind"], u, w, depth, side),
-                "render": depth >= 0.03,
-                "certainty": "low" if constrained else "reviewed_shape_inferred_depth",
-                "restriction": "property_or_physical_limit"
+                "render": depth >= 0.03 and not overlap,
+                "certainty": "low" if constrained or overlap else "reviewed_shape_inferred_depth",
+                "restriction": "canonical_front_relief_needs_depth_review"
+                if overlap
+                else "property_or_physical_limit"
                 if valid_boundary and constrained
                 else "property_boundary_missing"
                 if not valid_boundary
@@ -193,6 +199,44 @@ def reviewed_outcrops(controls: dict, width: float, height: float) -> list[dict]
                 "property_source": boundary.get("source"),
                 "property_sha256": boundary.get("sha256"),
                 "canonical_geometry_modified": False,
+                "canonical_world_sha256": prior.get("canonical_world_sha256") if prior else None,
+                "canonical_relief_overlap": overlap,
             }
         )
     return results
+
+
+def canonical_relief_overlap(u: float, width: float, prior: dict) -> bool:
+    """Abstain where a reviewed projection would compound existing front relief.
+
+    Only longitudinal portions in the 1.3 m front envelope count; perpendicular
+    party walls and the back wall do not. Missing/invalid supplied prior fails
+    closed. A 2D footprint cannot prove the relief's floor or photographic depth.
+    """
+    ring = prior.get("ring", [])
+    if (
+        not prior.get("canonical_world_sha256")
+        or len(ring) < 3
+        or not all(
+            len(p) == 2
+            and all(
+                isinstance(v, (float, int)) and not isinstance(v, bool) and math.isfinite(v)
+                for v in p
+            )
+            for p in ring
+        )
+    ):
+        return True
+    for a, b in zip(ring, ring[1:] + ring[:1], strict=True):
+        du = b[0] - a[0]
+        if abs(du) < 0.03:
+            continue
+        left, right = max(u, min(a[0], b[0])), min(u + width, max(a[0], b[0]))
+        if right - left < 0.03:
+            continue
+        depths = [a[1] + (x - a[0]) / du * (b[1] - a[1]) for x in (left, right)]
+        if max(depths) < -1.3 or min(depths) > 1.3:
+            continue
+        if max(abs(max(-1.3, min(1.3, n))) for n in depths) > 0.05:
+            return True
+    return False

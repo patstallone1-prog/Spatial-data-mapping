@@ -49,6 +49,7 @@ def test_full_run_requires_three_distinct_reviewed_current_facts(tmp_path):
     approval = {
         "reviewer": "fixture",
         "renderer_sha256": hashlib.sha256(renderer.read_bytes()).hexdigest(),
+        "implementation_sha256": MODULE["implementation_sha256"](ROOT),
         "houses": [],
     }
     path = tmp_path / "approval.json"
@@ -63,6 +64,7 @@ def test_full_run_requires_three_distinct_reviewed_current_facts(tmp_path):
                     "source_locator": "fixture",
                     "certainty": {"tier": "high"},
                     "review_status": "reviewed_inferred_visual_parameters",
+                    "implementation_sha256": approval["implementation_sha256"],
                 }
             )
         )
@@ -79,6 +81,11 @@ def test_full_run_requires_three_distinct_reviewed_current_facts(tmp_path):
         )
     path.write_text(json.dumps(approval))
     assert MODULE["full_run_approved"](path, renderer)
+    approval["implementation_sha256"] = "old-extractor"
+    path.write_text(json.dumps(approval))
+    assert not MODULE["full_run_approved"](path, renderer)
+    approval["implementation_sha256"] = MODULE["implementation_sha256"](ROOT)
+    path.write_text(json.dumps(approval))
     renderer.write_text("changed")
     assert not MODULE["full_run_approved"](path, renderer)
     renderer.write_text("current")

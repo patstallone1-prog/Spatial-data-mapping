@@ -1,6 +1,7 @@
 import pytest
 
 from smc.facades.outcrops import (
+    canonical_relief_overlap,
     contains,
     infer_candidates,
     profile,
@@ -82,3 +83,29 @@ def test_window_triplets_are_only_review_candidates_never_random_projections():
     candidates = infer_candidates(windows, "image")
     assert len(candidates) == 1 and not candidates[0]["render"] and candidates[0]["depth_m"] is None
     assert candidates[0]["image_sha256"] == "image"
+
+
+def test_existing_canonical_bay_suppresses_a_second_photo_projection_but_retains_evidence():
+    c = controls()
+    c["canonical_front_geometry"] = {
+        "canonical_world_sha256": "canonical-v1",
+        "ring": [[0, 0], [3, 0], [4, 0.7], [6, 0.7], [7, 0], [10, 0], [10, -10], [0, -10]],
+    }
+    result = reviewed_outcrops(c, 10, 9)[0]
+    assert result["depth_m"] == 0.6 and result["requested_depth_m"] == 0.6
+    assert not result["render"] and result["canonical_relief_overlap"]
+    assert result["restriction"] == "canonical_front_relief_needs_depth_review"
+    assert result["certainty"] == "low" and not result["canonical_geometry_modified"]
+    assert not canonical_relief_overlap(0, 2, c["canonical_front_geometry"])
+    assert canonical_relief_overlap(2, 6, {"ring": c["canonical_front_geometry"]["ring"]})
+
+
+def test_flat_front_side_and_back_walls_do_not_block_legitimate_residuals():
+    c = controls()
+    c["canonical_front_geometry"] = {
+        "canonical_world_sha256": "canonical-flat",
+        "ring": [[0, 0], [10, 0], [10, -10], [0, -10]],
+    }
+    assert reviewed_outcrops(c, 10, 9)[0]["render"]
+    for u in (0, 2, 8):
+        assert not canonical_relief_overlap(u, 2, c["canonical_front_geometry"])

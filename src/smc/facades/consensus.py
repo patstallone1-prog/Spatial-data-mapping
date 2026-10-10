@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 
+from smc.facades.architecture_logic import door_access
+
 
 def strict_view_gate(
     candidate: dict, min_storeys: int = 2, reviewed_storeys: int | None = None
@@ -105,6 +107,15 @@ def certainty(fit: dict, gate: dict) -> dict:
         reasons.append("opening_size_anomaly")
     if any(o.get("type_requires_review") and not o.get("type_reviewed") for o in fit["openings"]):
         reasons.append("entrance_or_garage_type_needs_review")
+    if any(
+        not door_access(o, fit.get("ground_reference"), fit.get("image_sha256"))["render_allowed"]
+        for o in fit["openings"]
+        if o.get("kind") in {"door", "gated_entry_candidate", "garage_candidate"}
+    ):
+        reasons.append("raised_door_without_aligned_supported_stairs")
+    if any(o.get("access_check", {}).get("stairs_supported") for o in fit["openings"]):
+        # Photo flat panels currently have no connected, footprint-validated stair consumer.
+        reasons.append("photo_stair_runtime_connection_needs_review")
     if any(
         c["status"] != "consistent" for c in fit.get("sanity_checks", {}).get("window_columns", [])
     ):

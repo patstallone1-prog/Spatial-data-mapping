@@ -12,10 +12,14 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from smc.facades.version import implementation_sha256  # noqa: E402
+
 REGIONS = [
     "sf-corridor",
     "sf-mission",
@@ -67,12 +71,14 @@ def full_run_approved(path: Path | None, renderer: Path) -> bool:
         if not isinstance(approval, dict):
             return False
         houses = approval["houses"]
+        current_implementation = implementation_sha256(ROOT)
         if not isinstance(houses, list) or not all(isinstance(item, dict) for item in houses):
             return False
         if (
             len(houses) < 3
             or not approval.get("reviewer")
             or approval.get("renderer_sha256") != hashlib.sha256(renderer.read_bytes()).hexdigest()
+            or approval.get("implementation_sha256") != current_implementation
         ):
             return False
         identities = set()
@@ -89,6 +95,7 @@ def full_run_approved(path: Path | None, renderer: Path) -> bool:
                 or fact.get("review_status") != "reviewed_inferred_visual_parameters"
                 or not fact.get("image_sha256")
                 or not fact.get("source_locator")
+                or fact.get("implementation_sha256") != current_implementation
                 or not all(
                     item.get(k)
                     for k in (

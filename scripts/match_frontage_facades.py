@@ -22,6 +22,15 @@ import cv2
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from smc.facades.version import implementation_sha256  # noqa: E402
+
+LOADED_IMPLEMENTATION = implementation_sha256(ROOT)
+
+from smc.facades.architecture_logic import (  # noqa: E402
+    NeighbourIndex,
+    front_footprint_frame,
+    nearby_entry_pattern,
+)
 from smc.facades.consensus import (  # noqa: E402
     certainty,
     cross_view,
@@ -73,6 +82,8 @@ def diagram(fit: dict) -> str:
 
 def cycle(args) -> dict:
     started = time.perf_counter()
+    if implementation_sha256(ROOT) != LOADED_IMPLEMENTATION:
+        raise RuntimeError("facade implementation changed; worker restart required")
     controls = json.loads(args.controls.read_text()) if args.controls else {}
     payloads, materials, builds, cards = {}, {}, {}, {}
     finalized_facts = {}
@@ -82,23 +93,7 @@ def cycle(args) -> dict:
     held = 0
     timings = []
     fitted, rejected = 0, 0
-    code_hash = hashlib.sha256(
-        Path(__file__).read_bytes()
-        + b"".join(
-            (ROOT / p).read_bytes()
-            for p in (
-                "src/smc/facades/fit.py",
-                "src/smc/facades/opening_reasoning.py",
-                "src/smc/facades/appearance_bands.py",
-                "src/smc/facades/detail_detection.py",
-                "src/smc/facades/edge_support.py",
-                "src/smc/facades/consensus.py",
-                "src/smc/facades/frontage_retention.py",
-                "src/smc/facades/outcrops.py",
-                "scripts/build_sf_corridor_3d.py",
-            )
-        )
-    ).hexdigest()
+    code_hash = LOADED_IMPLEMENTATION
     for review_root in args.inputs:
         for path in sorted((review_root / "review").glob("*.json")):
             row = json.loads(path.read_text())
@@ -190,6 +185,19 @@ def cycle(args) -> dict:
                 supplied.setdefault("levels", int(levels))
             supplied.setdefault("material", materials[region].get(key, {}).get("class", "unknown"))
             width = ((wall["b"][0] - wall["a"][0]) ** 2 + (wall["b"][1] - wall["a"][1]) ** 2) ** 0.5
+            frame = LocalFrame(
+                (bbox["north"] + bbox["south"]) / 2, (bbox["east"] + bbox["west"]) / 2
+            )
+            try:
+                supplied["canonical_front_geometry"] = {
+                    "ring": front_footprint_frame(
+                        [frame.to_xy(*p) for p in way["points"]], wall["a"], wall["b"], wall["normal"]
+                    ),
+                    "canonical_world_sha256": world_hash,
+                }
+            except (ValueError, TypeError):
+                failures.append({"region": region, "building_id": key, "stage": "invalid_front_basis"})
+                continue
             signature = hashlib.sha256(
                 json.dumps(
                     {
@@ -222,9 +230,6 @@ def cycle(args) -> dict:
                 )
                 continue
             timings.append(time.perf_counter() - view_started)
-            frame = LocalFrame(
-                (bbox["north"] + bbox["south"]) / 2, (bbox["east"] + bbox["west"]) / 2
-            )
             fit.update(
                 {
                     "building_id": key,
@@ -280,11 +285,18 @@ def cycle(args) -> dict:
                 f'<img src="{html.escape(relative_photo, quote=True)}" alt="Source facade"/>'
                 f'<img src="{region}-{key}.svg" alt="Fitted visual front"/></div></article>'
             )
+    neighbour_index = NeighbourIndex([*builds.values(), *finalized_facts.values()])
     for key, fit in builds.items():
         fit["multiview"] = cross_view(fit, views[key])
-        fit["neighbourhood_reference"] = neighbourhood_reference(fit, list(builds.values()))
+        neighbours = neighbour_index.near(fit)
+        fit["neighbourhood_reference"] = neighbourhood_reference(fit, neighbours)
+        fit.setdefault("architectural_logic", {})["nearby_entry_pattern"] = nearby_entry_pattern(
+            fit, neighbours
+        )
         fit["certainty"].update(certainty(fit, fit["strict_frontage"]))
         atomic(args.output / f"{fit['region']}-{key}.json", fit)
+    if implementation_sha256(ROOT) != code_hash:
+        raise RuntimeError("facade implementation changed during cycle; worker restart required")
     atomic(
         args.output / "latest.json",
         {
@@ -306,6 +318,7 @@ def cycle(args) -> dict:
                     "image_sha256": fit["image_sha256"],
                     "source_locator": fit["source_locator"],
                     "reasons": fit["certainty"]["reasons"],
+                    "architectural_logic": fit.get("architectural_logic", {}),
                 }
                 for key, fit in builds.items()
                 if fit["certainty"]["ai_review_required"]
@@ -427,6 +440,18 @@ def cycle(args) -> dict:
         "watch_seconds": args.watch_seconds,
         "status": "watching" if args.watch_seconds else "complete",
         "stage": "prior_constrained_visual_facade_fitting_not_dense_reconstruction",
+        "implementation_sha256": code_hash,
+        "doors_blocked_without_stairs": sum(
+            o.get("render_allowed") is False for f in builds.values() for o in f["openings"]
+        ),
+        "repeated_form_pairs": sum(
+            len(f.get("architectural_logic", {}).get("repeated_forms", {}).get("pairs", []))
+            for f in builds.values()
+        ),
+        "nearby_reviewed_entry_patterns": sum(
+            bool(f.get("architectural_logic", {}).get("nearby_entry_pattern", {}).get("dominant_category"))
+            for f in builds.values()
+        ),
         "opening_decision_counts": dict(
             Counter(d["class"] for fit in builds.values() for d in fit.get("opening_decisions", []))
         ),
@@ -490,19 +515,7 @@ if __name__ == "__main__":
         if args.detail_model_cache
         else None
     )
-    implementation = [
-        Path(__file__),
-        ROOT / "src/smc/facades/fit.py",
-        ROOT / "src/smc/facades/detail_detection.py",
-        ROOT / "src/smc/facades/opening_reasoning.py",
-        ROOT / "src/smc/facades/appearance_bands.py",
-        ROOT / "src/smc/facades/edge_support.py",
-        ROOT / "src/smc/facades/consensus.py",
-        ROOT / "src/smc/facades/frontage_retention.py",
-        ROOT / "src/smc/facades/outcrops.py",
-        ROOT / "scripts/build_sf_corridor_3d.py",
-    ]
-    source_hash = hashlib.sha256(b"".join(p.read_bytes() for p in implementation)).hexdigest()
+    source_hash = LOADED_IMPLEMENTATION
     while True:
         try:
             atomic(
@@ -524,10 +537,7 @@ if __name__ == "__main__":
         if not args.watch_seconds:
             break
         time.sleep(args.watch_seconds)
-        if (
-            hashlib.sha256(b"".join(p.read_bytes() for p in implementation)).hexdigest()
-            != source_hash
-        ):
+        if implementation_sha256(ROOT) != source_hash:
             atomic(
                 args.output / "status.json",
                 {"pid": os.getpid(), "status": "stopped_code_changed_restart_required"},

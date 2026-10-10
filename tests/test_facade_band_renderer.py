@@ -74,7 +74,7 @@ def test_far_window_trim_cache_separates_otherwise_identical_windows():
     result = run(
         """
       const draws=[],homeDesignMaterials=new Map(),homeDecalMaterial={};
-      const document={createElement:()=>({getContext:()=>({set fillStyle(c){draws.push(c);},fillRect(){}})})};
+      const document={createElement:()=>({getContext:()=>({set fillStyle(c){draws.push(c);},fillRect(){},clearRect(){}})})};
       const THREE={CanvasTexture:class {constructor(c){this.canvas=c;}},MeshStandardMaterial:class {constructor(o){Object.assign(this,o);}},SRGBColorSpace:'srgb'};
       const white={vertical_bars:[.5],trim:{colour:'#ffffff'}},red={vertical_bars:[.5],trim:{colour:'#aa3333'}};
       const a=homeDesignMaterial(white),b=homeDesignMaterial(red);
@@ -83,7 +83,7 @@ def test_far_window_trim_cache_separates_otherwise_identical_windows():
         ("homeDesignMaterial",),
     )
     assert not result["same"] and result["reused"]
-    assert result["draws"] == ["#ffffff", "#2a3740", "#ffffff", "#aa3333", "#2a3740", "#aa3333"]
+    assert result["draws"] == ["#ffffff", "#ffffff", "#aa3333", "#aa3333"]
 
 
 def test_near_shell_preserves_bands_trims_and_disposes_owned_materials():

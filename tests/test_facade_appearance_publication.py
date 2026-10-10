@@ -9,6 +9,8 @@ import cv2
 import numpy as np
 import pytest
 
+from smc.facades.version import IMPLEMENTATION_FILES, implementation_sha256
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -16,23 +18,14 @@ def test_publication_requires_current_implementation_and_independent_band_review
     module = runpy.run_path(str(ROOT / "scripts/match_frontage_facades.py"))
     cycle = module["cycle"]
     cycle.__globals__["ROOT"] = tmp_path
-    for name in (
-        "fit.py",
-        "opening_reasoning.py",
-        "appearance_bands.py",
-        "detail_detection.py",
-        "edge_support.py",
-        "consensus.py",
-        "frontage_retention.py",
-        "outcrops.py",
-    ):
-        source = tmp_path / "src/smc/facades" / name
+    for name in IMPLEMENTATION_FILES:
+        source = tmp_path / name
         source.parent.mkdir(parents=True, exist_ok=True)
-        source.write_text((ROOT / "src/smc/facades" / name).read_text())
+        source.write_text((ROOT / name).read_text())
     docs = tmp_path / "docs"
     renderer = tmp_path / "scripts/build_sf_corridor_3d.py"
-    renderer.parent.mkdir()
     renderer.write_text("fixture renderer")
+    cycle.__globals__["LOADED_IMPLEMENTATION"] = implementation_sha256(tmp_path)
     docs.mkdir()
     (docs / "sf-corridor-3d.json").write_text(
         json.dumps(
@@ -65,7 +58,7 @@ def test_publication_requires_current_implementation_and_independent_band_review
                     "angle_deg": 0,
                     "edge_angle_deg": 20,
                     "full_front_in_frame": True,
-                    "wall": {"a": [0, 0], "b": [6, 0], "height_m": 6},
+                    "wall": {"a": [0, 0], "b": [6, 0], "normal": [0, -1], "height_m": 6},
                     "rank": [1],
                     "observation": {
                         "observation_uid": "fixture",
@@ -128,3 +121,7 @@ def test_publication_requires_current_implementation_and_independent_band_review
     published = json.loads((docs / "sf-corridor-frontage-fits.json").read_text())
     assert published["buildings"]["1"]["review_status"] == "reviewed_inferred_visual_parameters"
     assert published["buildings"]["other"] == {"historical": "unchanged"}
+    # Long-lived worker functions cannot claim a new disk version while using old imports.
+    (tmp_path / "src/smc/facades/architecture_logic.py").write_text("changed logic")
+    with pytest.raises(RuntimeError, match="restart required"):
+        cycle(args)

@@ -84,6 +84,68 @@ def test_reviewed_front_partition_keeps_every_triangle_and_does_not_claim_back_w
     assert result.returncode == 0, result.stderr
 
 
+def test_flat_photo_doors_never_float_and_controls_cannot_override_rendered_ground():
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    code = """
+      let fit={a:[0,0],b:[10,0],height_m:9,openings:[]},ground=0,drawn=[];
+      const BUILDING_LIFT_M=2;
+      function frontageFitFor(){return fit;}function xy(x,y){return [x,y];}
+      function terrainGroundAt(){return ground;}
+      function photoOpeningTexture(){return {};}
+      function planePart(g,x,y,z,w,h){const mesh={userData:{}};drawn.push([y,w,h]);return mesh;}
+    """ + _extract("photoOpeningParts", _page_js()) + """
+      fit.openings=[{id:'entry',kind:'door',u:1,v:.1524,w:1,h:2.1}];
+      ground=2;photoOpeningParts({},{});
+      if(drawn.length!==1)throw Error('at-grade door suppressed');
+      fit.openings[0].v=.1525;photoOpeningParts({},{});
+      if(drawn.length!==1)throw Error('six-inch cap exceeded');
+      fit.openings[0].v=3;fit.openings[0].recess={render_steps:true};photoOpeningParts({},{});
+      if(drawn.length!==1)throw Error('metadata-only stairs rendered floating panel');
+      fit.ground_reference={frame:'relative_to_facade_foot',source:'test',outside_ground_m:3};
+      photoOpeningParts({},{});
+      if(drawn.length!==1)throw Error('control ignored actual rendered ground');
+      fit.openings[0].v=0;fit.openings[0].render_allowed=false;photoOpeningParts({},{});
+      if(drawn.length!==1)throw Error('rejected door rendered');
+    """
+    result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
+def test_existing_bay_returns_keep_window_fragments_and_never_claim_party_or_back_walls():
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    code = """
+      const fit={a:[0,0],b:[10,0],openings:[
+        {id:'window',kind:'window',u:3,v:3,w:2,h:2,design:{vertical_bars:[.5]}}
+      ]};
+      function frontageFitFor(){return fit;}function xy(x,y){return [x,y];}
+      const entry={way:{},local:[[0,-.81],[3,-.81],[4,0],[5,0],[6,-.81],[10,-.81],[10,-10],[0,-10],[0,-.81]].reverse()};
+    """ + _extract("frontageWindowsOnEdge", _page_js()) + """
+      const L=Math.hypot(1,.81);
+      const left=frontageWindowsOnEdge(entry,[4,0],[3,-.81],L,0);
+      const middle=frontageWindowsOnEdge(entry,[5,0],[4,0],1,0);
+      if(left?.length!==1 || middle?.length!==1)throw Error('canonical bay window lost');
+      if(left[0].frameLeft!==false || middle[0].frameRight!==false)throw Error('extra seam frame invented');
+      if(left[0].sourceOpeningId!==middle[0].sourceOpeningId)throw Error('one observed window became different identities');
+      if(frontageWindowsOnEdge(entry,[10,-10],[10,-.81],9.19,0)!==null)throw Error('party wall claimed');
+      if(frontageWindowsOnEdge(entry,[0,-10],[10,-10],10,0)!==null)throw Error('back wall claimed');
+      const main=frontageWindowsOnEdge(entry,[3,-.81],[0,-.81],3,0);
+      if(main?.length)throw Error('nonoverlapping front surface gained window');
+    """
+    result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
+def test_pilot_uses_all_canonical_vertices_instead_of_four_corner_proxy():
+    from pathlib import Path
+
+    source = (Path(__file__).resolve().parents[1] / "tools/preview_photo_fronts.py").read_text()
+    assert "points[(i+1)%points.length]" in source and "points[(i+1)%4]" not in source
+    assert "canonical_front_footprint_uv" in source and "new THREE.ShapeGeometry(roofShape)" in source
+    assert "new THREE.BoxGeometry(w,.14,d)" not in source
+
+
 def test_opening_texture_cache_preserves_observed_colour_and_panel_locations():
     if not shutil.which("node"):
         pytest.skip("Node required")
@@ -127,5 +189,28 @@ def test_bay_windows_follow_projection_without_adding_mullions_at_face_seams():
     if(result.caps[0].plan.some(p=>p[1]>1.0001))throw Error('projection overflow');
     """
     )
+    result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
+def test_photo_residual_never_compounds_an_existing_canonical_bay_or_offset_wall():
+    if not shutil.which("node"):
+        pytest.skip("Node required")
+    code = """
+      const fit={a:[0,0],b:[10,0],height_m:9,outcrops:[
+        {id:'bay',render:true,property_sha256:'hash',property_source:'parcel',
+         u:2,v:3,w:6,h:2,depth_m:.6,profile:[[2,0],[3,.6],[7,.6],[8,0]]}
+      ]};
+      function frontageFitFor(){return fit;}function xy(x,y){return [x,y];}
+      const entry={way:{},local:[[0,0],[10,0],[10,-10],[0,-10]]};
+    """ + _extract("frontageOutcropsOnEdge", _page_js()) + """
+      if(frontageOutcropsOnEdge(entry,[0,0],[10,0],10,0).length!==1)throw Error('flat residual lost');
+      entry.local=[[0,0],[3,0],[4,.7],[6,.7],[7,0],[10,0],[10,-10],[0,-10]];
+      if(frontageOutcropsOnEdge(entry,[0,0],[10,0],10,0).length)throw Error('duplicate projection on prior bay');
+      entry.local=[[0,0],[10,0],[10,-10],[0,-10]];
+      if(frontageOutcropsOnEdge(entry,[0,.2],[10,.2],10,0).length)throw Error('residual on offset face');
+      fit.outcrops[0].canonical_relief_overlap=true;
+      if(frontageOutcropsOnEdge(entry,[0,0],[10,0],10,0).length)throw Error('prior conflict ignored');
+    """
     result = subprocess.run(["node", "-e", code], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr

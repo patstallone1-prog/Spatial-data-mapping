@@ -69,7 +69,7 @@ def test_reviewed_type_can_be_high_visual_but_never_metric_certified():
         appearance={"material": "stucco_render"},
         review_status="reviewed_inferred_visual_parameters",
     )
-    a["openings"][0].update(kind="gated_entry_candidate", type_requires_review=True)
+    a["openings"][0].update(kind="gated_entry_candidate", v=0, type_requires_review=True)
     assert certainty(a, {"pass": True})["tier"] == "low"
     a["openings"][0]["type_reviewed"] = True
     result = certainty(a, {"pass": True})

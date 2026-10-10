@@ -17,11 +17,13 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from smc.facades.architecture_logic import front_footprint_frame  # noqa: E402
 from smc.facades.detail_detection import FacadeDetailDetector  # noqa: E402
 from smc.facades.fit import extract_front  # noqa: E402
 from smc.facades.frontage_pixels import FrontagePixelScreen  # noqa: E402
 from smc.facades.geometry import LocalFrame  # noqa: E402
 from smc.facades.registration import register_front  # noqa: E402
+from smc.facades.version import implementation_sha256  # noqa: E402
 
 
 def main():
@@ -41,6 +43,17 @@ def main():
         image = cv2.imread(str(source))
         wall = row["candidate"]["wall"]
         width = float(np.linalg.norm(np.subtract(wall["b"], wall["a"])))
+        payload = json.loads(
+            (ROOT / f"docs/app-regions/{row['region']}/sf-corridor-3d.json").read_text()
+        )
+        bbox = payload["bbox"]
+        frame = LocalFrame(
+            (bbox["north"] + bbox["south"]) / 2, (bbox["east"] + bbox["west"]) / 2
+        )
+        canonical = next(w for w in payload["ways"] if str(w.get("osm_id")) == row["building_id"])
+        front_footprint = front_footprint_frame(
+            [frame.to_xy(*p) for p in canonical["points"]], wall["a"], wall["b"], wall["normal"]
+        )
         source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
         image, registration = register_front(
             image, width, wall["height_m"], house["registration"], row["pixel_sha256"], source_hash
@@ -52,6 +65,10 @@ def main():
             "levels": house["levels"],
             "material": house["material"],
             "image_sha256": row["pixel_sha256"],
+            "canonical_front_geometry": {
+                "ring": front_footprint,
+                "canonical_world_sha256": hashlib.sha256(json.dumps(canonical, sort_keys=True).encode()).hexdigest(),
+            },
         }
         base["reviewed_outcrops"] = [
             {
@@ -63,13 +80,6 @@ def main():
             for o in house.get("outcrops", [])
         ]
         if house.get("parcel"):
-            payload = json.loads(
-                (ROOT / f"docs/app-regions/{row['region']}/sf-corridor-3d.json").read_text()
-            )
-            bbox = payload["bbox"]
-            frame = LocalFrame(
-                (bbox["north"] + bbox["south"]) / 2, (bbox["east"] + bbox["west"]) / 2
-            )
             parcel = house["parcel"]
             base["property_boundary"] = {
                 "source": parcel["source"],
@@ -100,6 +110,10 @@ def main():
                 source_attribution=row["candidate"]["observation"]["attribution"],
                 license_id=row["candidate"]["observation"]["license_id"],
                 extraction=name,
+                implementation_sha256=implementation_sha256(ROOT),
+                canonical_footprint=canonical["points"],
+                canonical_front_footprint_uv=front_footprint,
+                footprint_basis="canonical_prior_transformed_rigidly_into_front_frame",
             )
             fit["certainty"].update(
                 tier="low",

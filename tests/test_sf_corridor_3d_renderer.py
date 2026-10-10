@@ -582,7 +582,7 @@ def test_storefronts_are_drawn_for_their_trade_on_a_ground_storey_of_their_own()
     to go with the building, and a standalone shop is built differently from one under flats."""
     source = _source()
     assert "function addStorefronts(group, feature, seed, height, tint)" in source
-    assert "function storefrontTexture(trade, variant, frameHex, standalone)" in source
+    assert "function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = false)" in source
     for trade in ("restaurant", "cafe", "bar", "grocery", "clothing", "books", "salon",
                   "pharmacy", "bank", "laundry", "hardware", "florist", "hotel"):
         assert f'case "{trade}":' in source, trade

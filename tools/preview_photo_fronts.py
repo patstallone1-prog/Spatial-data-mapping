@@ -1,6 +1,6 @@
 """Private three-house render smoke test using actual viewer facade/shell functions.
 
-Diagnostic massing is not a full-city geometry export or promotion approval.
+Canonical footprint massing is not a full-city geometry export or promotion approval.
 No source photographs are embedded in the rendered scene.
 """
 
@@ -42,16 +42,21 @@ const homeFrameMaterial=new THREE.MeshStandardMaterial({color:0xdeddd4}),homeDec
 const homeShellGroup=new THREE.Group();scene.add(homeShellGroup);
 function roomPaint(){return 0;}function shellGlassOpacity(){return .8;}function setBatchedHomeVisible(){}function setHomeDecalsVisible(){}
 function removeInterior(){}function buildInterior(){}function bareFacadeTextureFor(){return null;}function xy(x,y){return [x,y];}
+function terrainGroundAt(){return 0;}
 let currentFit=null;function frontageFitFor(){return currentFit;}
 let BUILDING_LIFT_M=0;
 function planePart(group,x,y,z,w,h,map,yaw){const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map,color:0xffffff,side:THREE.DoubleSide}));mesh.position.set(x,y+h/2,z);mesh.rotation.y=yaw;group.add(mesh);return mesh;}
 const fits=await Promise.all(FILES.map(file=>fetch(file).then(r=>r.json())));
 for(let k=0;k<fits.length;k++){
- const fit=fits[k],id=String(fit.building_id),w=fit.width_m,h=fit.height_m,d=4;
- currentFit={...fit,a:[-w/2,-d/2],b:[w/2,-d/2]};
- const points=[[-w/2,d/2],[-w/2,-d/2],[w/2,-d/2],[w/2,d/2]];
- const entry={way:{osm_id:id},fit:[],doors:[]};
- const edges=points.map((a,i)=>{const b=points[(i+1)%4],L=Math.hypot(b[0]-a[0],b[1]-a[1]),ux=(b[0]-a[0])/L,uz=(b[1]-a[1])/L;
+ const fit=fits[k],id=String(fit.building_id),w=fit.width_m,h=fit.height_m;
+ if(!fit.canonical_front_footprint_uv?.length)throw Error('canonical footprint missing; refusing rectangular proxy approval');
+ currentFit={...fit,a:[-w/2,0],b:[w/2,0]};
+ const points=fit.canonical_front_footprint_uv.map(([u,n])=>[u-w/2,n]);
+ if(Math.hypot(points[0][0]-points.at(-1)[0],points[0][1]-points.at(-1)[1])<.001)points.pop();
+ const signed=points.reduce((sum,a,i)=>{const b=points[(i+1)%points.length];return sum+a[0]*b[1]-b[0]*a[1];},0);
+ if(signed<0)points.reverse();
+ const entry={way:{osm_id:id},local:points,fit:[],doors:[]};
+ const edges=points.map((a,i)=>{const b=points[(i+1)%points.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),ux=(b[0]-a[0])/L,uz=(b[1]-a[1])/L;
   return {edge:i,a,length:L,ux,uz,nx:-uz,nz:ux,windows:frontageWindowsOnEdge(entry,a,b,L,0) || []};});
  entry.decalLayout={bottom:0,top:h,floor:0,edges};
  const tint=fit.appearance.colour || '#b8b4a8',material=MATERIALS[0];
@@ -59,12 +64,14 @@ for(let k=0;k<fits.length;k++){
  HOME_RENDER.set(id,{material,tint,height:h,seed:1,clockwise:false,appearanceBands:bands});BUILDING_VISUAL_RANGES.set(id,[]);
  buildHomeShell(entry);const shell=entry.homeShell.group;shell.position.x=(k-1)*13;
  const details=new THREE.Group();photoOpeningParts(details,entry.way,false);details.position.x=shell.position.x;scene.add(details);
- const roof=new THREE.Mesh(new THREE.BoxGeometry(w,.14,d),new THREE.MeshStandardMaterial({color:0x8e948e}));roof.position.set(shell.position.x,h,0);scene.add(roof);
+ const roofShape=new THREE.Shape();points.forEach(([x,z],i)=>i ? roofShape.lineTo(x,-z) : roofShape.moveTo(x,-z));roofShape.closePath();
+ const roofGeometry=new THREE.ShapeGeometry(roofShape);roofGeometry.rotateX(-Math.PI/2);
+ const roof=new THREE.Mesh(roofGeometry,new THREE.MeshStandardMaterial({color:0x8e948e,side:THREE.DoubleSide}));roof.position.set(shell.position.x,h,0);scene.add(roof);
  const label=document.createElement('span');label.textContent=(fit.address?.formatted || id)+' — LOW certainty';document.querySelector('#addresses').append(label);
 }
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(100,70),new THREE.MeshStandardMaterial({color:0xb4b7a9}));ground.rotation.x=-Math.PI/2;ground.position.y=-.03;scene.add(ground);
 renderer.render(scene,camera);let view=0;document.querySelector('button').onclick=()=>{view=(view+1)%3;camera.position.set(...[[19,17,44],[-19,14,40],[0,9,42]][view]);camera.lookAt(0,4,0);renderer.render(scene,camera);};
-document.querySelector('#status').textContent='Three private trial fronts rendered. LOW certainty; manual image registration; proxy massing. Not promoted or metric-certified.';
+document.querySelector('#status').textContent='Three private trial fronts rendered on canonical footprints. LOW certainty; manual image registration and height priors. Not promoted or metric-certified.';
 """
 
 

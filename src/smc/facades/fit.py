@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 
 from smc.facades.appearance_bands import appearance_bands, colour_sample, window_trim
+from smc.facades.architecture_logic import door_access, repeated_forms
 from smc.facades.edge_support import opening_sanity, refine_opening
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
 from smc.facades.outcrops import infer_candidates, reviewed_outcrops
@@ -87,7 +88,10 @@ def entry_recess(door: dict, controls: dict, storey: dict) -> dict:
     """A category is appearance; a flight requires observed/controlled rise and depth."""
     if door.get("kind") == "garage_candidate":
         return {"render_steps": False, "reason": "vehicle_opening_is_not_a_pedestrian_stairwell"}
-    evidence = controls.get("recess") or {}
+    evidence = next(
+        (r for r in controls.get("recesses", []) if r.get("door_id") == door["id"]),
+        controls.get("recess") or {},
+    )
     hidden = evidence.get("door_visible") is False
     if evidence.get("door_id") != door["id"]:
         evidence = {}
@@ -459,7 +463,10 @@ def extract_front(
             ),
             "door",
         )
-        recess_control = controls.get("recess") or {}
+        recess_control = next(
+            (r for r in controls.get("recesses", []) if r.get("door_id") == door["id"]),
+            controls.get("recess") or {},
+        )
         review = (
             recess_control.get("stairs") if recess_control.get("door_id") == door["id"] else None
         )
@@ -496,7 +503,7 @@ def extract_front(
                 "id": hidden_entry.get("door_id", "hidden-entry"),
                 "kind": "door",
                 "u": u,
-                "v": storey["storey_height_m"],
+                "v": storey["visual_storey_height_m"],
                 "w": w,
                 "h": 2.1,
                 "grade": "hidden_door_inferred_from_reviewed_ascending_stairs",
@@ -514,6 +521,10 @@ def extract_front(
                 found.append(door)
     # Curb controls must declare matching units/datum. Never compare two unrelated z values.
     ground = controls.get("ground_reference")
+    for opening in found:
+        if opening["kind"] in {"door", "gated_entry_candidate", "garage_candidate"}:
+            opening["access_check"] = door_access(opening, ground, controls.get("image_sha256"))
+            opening["render_allowed"] = opening["access_check"]["render_allowed"]
     checks = []
     if ground:
         if ground.get("frame") != "relative_to_facade_foot" or not ground.get("source"):
@@ -537,7 +548,7 @@ def extract_front(
             trim = window_trim(bgr, opening, width, height, appearance["bands"])
             if trim:
                 opening["design"]["trim"] = trim
-    return {
+    fit = {
         "sanity_checks": sanity,
         "schema": "kerbside.facade_fit/1",
         "width_m": width,
@@ -566,3 +577,5 @@ def extract_front(
             p["opening_reasoning"] for p in details or [] if p.get("opening_reasoning")
         ],
     }
+    fit["architectural_logic"] = {"repeated_forms": repeated_forms(fit)}
+    return fit
