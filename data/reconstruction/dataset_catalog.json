@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "checked_at": "2026-10-10",
+  "policy": "No Google imagery, unapproved derivative rights, or manual mesh promoted as measured truth.",
+  "datasets": [
+    {
+      "id": "sf-xl",
+      "title": "San Francisco eXtra Large",
+      "documentation": "https://github.com/gmberton/CosPlace",
+      "paper": "https://arxiv.org/html/2204.02287",
+      "acquisition": "https://forms.gle/wpyDzhDyoWLQygAT9",
+      "kind": "panorama_crops_and_geolocation_queries",
+      "nominal_database_resolution": [512, 512],
+      "full_size_bytes_approx": 1000000000000,
+      "source_family": "StreetView database; Flickr queries require individual rights",
+      "rights_status": "restricted_pending_written_permission",
+      "production_enabled": false,
+      "benchmark_enabled": false,
+      "reason": "Dataset access and derivative/commercial rights are not established by the MIT software license. StreetView excluded by project policy.",
+      "grouping": "Preserve panorama identity, headings, capture epochs and all distinct crops; not independent offset cameras."
+    },
+    {
+      "id": "3d-street-view",
+      "title": "Street View Image, Pose, and 3D Cities",
+      "documentation": "https://github.com/amir32002/3D_Street_View",
+      "license": "https://github.com/amir32002/3D_Street_View/blob/master/LICENSE",
+      "kind": "paired_street_patches_and_manual_georegistered_city_models",
+      "nominal_image_resolution": [640, 640],
+      "full_size_bytes_approx": 800000000000,
+      "source_family": "Google Street View",
+      "rights_status": "restricted_noncommercial_no_redistribution",
+      "production_enabled": false,
+      "benchmark_enabled": false,
+      "reason": "Noncommercial restriction applies to derivatives. Google imagery excluded. Models are manually generated reference geometry, not independent photogrammetric/lidar truth.",
+      "grouping": "Keep DatasetID, StreetViewID, TargetID, PatchID, d/a metadata and all correspondence partners together."
+    },
+    {
+      "id": "kartaview",
+      "documentation": "https://kartaview.org/terms",
+      "kind": "ordered_street_sequence",
+      "rights_status": "conditional_attribution_share_alike",
+      "private_worker_enabled": true,
+      "production_enabled": false
+    },
+    {
+      "id": "panoramax",
+      "documentation": "https://docs.panoramax.fr/how-to-contribute/use-panoramax/",
+      "kind": "federated_stac_street_sequence",
+      "rights_status": "per_observation",
+      "private_worker_enabled": true,
+      "production_enabled": false
+    },
+    {
+      "id": "pandaset",
+      "documentation": "https://github.com/scaleapi/pandaset-devkit",
+      "kind": "synchronized_camera_lidar_gps_sequence",
+      "rights_status": "conditional_attribution",
+      "private_worker_enabled": true,
+      "production_enabled": false,
+      "reason": "Calibrated evidence still needs georeferencing, privacy and object-level accuracy review."
+    }
+  ]
+}

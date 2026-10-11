@@ -69,7 +69,15 @@ class RangedHttpFile(io.RawIOBase):
         end = min(self.pos + wanted, self.size) - 1
         request = urllib.request.Request(self.url, headers={"Range": f"bytes={self.pos}-{end}"})
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
-            data = response.read()
+            expected = end - self.pos + 1
+            # A CDN may advertise ranges and later ignore them. Never read the
+            # complete 44.5 GB archive into RAM when just one JPEG was requested.
+            if (response.status != 206 or response.headers.get("Content-Range")
+                    != f"bytes {self.pos}-{end}/{self.size}"):
+                raise OSError("archive server did not honor the requested byte range")
+            data = response.read(expected + 1)
+            if len(data) != expected:
+                raise OSError("archive byte range was truncated or oversized")
         buffer[: len(data)] = data
         self.pos += len(data)
         self.bytes_read += len(data)

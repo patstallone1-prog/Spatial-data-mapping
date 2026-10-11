@@ -14,6 +14,7 @@ from typing import Any
 import numpy as np
 
 from smc.facades.geometry import Camera, Wall, project, walls_of
+from smc.imagery.frontage_sources import source_block_reason
 
 FREE_LICENSES = {
     "CC0-1.0",
@@ -187,6 +188,8 @@ def assess_view(
 ) -> dict:
     """Predict view geometry; unknown pose/occlusion can NEVER silently pass review."""
     reasons = []
+    if source_block_reason(str(row.get("provider", ""))):
+        reasons.append("restricted_source")
     issue = date_gate(row.get("captured_at"), now, policy, landmark is not None)
     if issue:
         reasons.append(issue)

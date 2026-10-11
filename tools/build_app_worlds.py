@@ -152,6 +152,11 @@ def main() -> None:
         "renderer_sha256": hashlib.sha256(template.encode()).hexdigest(),
         "consumers": {str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
                       for path in viewers},
+        "runtime_assets_sha256": {
+            str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in [DOCS / "recoverable-geometry.mjs",
+                         *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
+        },
         "native_source": "unreal/Plugins/KerbsideWorld",
         "native_sources_sha256": {
             str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -168,7 +173,8 @@ def main() -> None:
                   DOCS / "runtime-release.json"]
     app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
-    app_assets += sorted(path for directory in ("interior-assets", "materials")
+    app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json"]
+    app_assets += sorted(path for directory in ("interior-assets", "materials", "vendor")
                          for path in (DOCS / directory).rglob("*") if path.is_file())
     if (DOCS / "app-sf-corridor-ground.json").exists():
         app_assets.append(DOCS / "app-sf-corridor-ground.json")

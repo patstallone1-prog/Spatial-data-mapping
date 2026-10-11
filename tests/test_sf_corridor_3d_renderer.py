@@ -387,9 +387,10 @@ def test_place_categories_become_trades_and_non_shops_are_left_out() -> None:
     ]
     counts = attach(ways)
     assert ways[0]["shops"] == [{"n": "Golden Boy Pizza", "t": "pizza", "s": "overture_places"}]
-    assert ways[1]["shops"] == [{"n": "Kayo Books", "t": "books"}], "OSM's names come first"
+    assert ways[1]["shops"] == [{"n": "Kayo Books", "t": "books"},
+                                {"n": "Other", "t": "cafe", "s": "overture_places"}], "OSM's names remain first without dropping other tenants"
     assert ways[2]["shops"] == [{"n": "Near Cafe", "t": "cafe", "s": "google_places"}]
-    assert counts == {"overture_places": 1, "google_places": 1, "buildings_named": 2}
+    assert counts == {"overture_places": 2, "google_places": 1, "buildings_named": 3}
 
 
 def _crossing(lon: float, lat: float, **fields: object) -> dict:
