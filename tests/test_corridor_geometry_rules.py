@@ -1761,11 +1761,11 @@ def test_the_lift_is_done_in_srgb_and_says_so() -> None:
         body = _extract(name, js)
         assert "THREE.SRGBColorSpace" in body, f"{name} does not name a colour space"
         assert body.count("THREE.SRGBColorSpace") >= 2, f"{name} names it for only one of get/set"
-    # And the two places that darken a building for a roof or for a guessed height.
+    # And the place that darkens a building for its roof. (A guessed height no longer greys a
+    # building out at all: it keeps its colour.)
     mesh = _extract("buildingMesh", js)
-    for fragment in ("colour.getHSL(hsl, THREE.SRGBColorSpace)",
-                     "roofTint.getHSL(hsl, THREE.SRGBColorSpace)"):
-        assert fragment in mesh, fragment
+    assert "roofTint.getHSL(hsl, THREE.SRGBColorSpace)" in mesh
+    assert "hsl.s * 0.35" not in mesh
 
 
 def test_a_roof_is_darker_than_its_walls_and_never_a_hole() -> None:

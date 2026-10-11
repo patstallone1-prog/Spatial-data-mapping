@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="5ee40d98ed7ba5e54cd5455a6c534ab3bae828e1cd97b598dc1eeed7725caf2b" />
+<meta name="kerbside-renderer-sha256" content="2253b6910367eb257f5dbb4ab1e7b4555d33b3365d02280e6c12bb86f9322556" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -10712,14 +10712,16 @@ function garagePanel(opening, tint) {
   const nx = Math.sin(bearing);
   const nz = -Math.cos(bearing);
   const map = garageTextureFor(opening.s % GARAGE_STYLES, tint);
+  // A photographed garage stands as tall as the photograph shows it.
+  const height = Number.isFinite(opening.h) ? opening.h : GARAGE_HEIGHT_M;
   const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(width, GARAGE_HEIGHT_M),
+    new THREE.PlaneGeometry(width, height),
     // Drawn in front of whatever lies on the wall behind it -- a facade photograph, a window
     // panel -- even where depth precision at a distance cannot tell a few centimetres apart.
     new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.66, metalness: 0.20,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })
   );
-  mesh.position.set(cx + nx * GARAGE_STANDOFF_M, GARAGE_HEIGHT_M / 2, -cy + nz * GARAGE_STANDOFF_M);
+  mesh.position.set(cx + nx * GARAGE_STANDOFF_M, height / 2, -cy + nz * GARAGE_STANDOFF_M);
   // A plane faces +z, so pi minus the bearing turns it to face the way the wall does. It was
   // atan2(nx, ny) + pi/2, which is ninety degrees out: every door stood side-on to its own
   // building, and read from the street as a grey slab planted on the pavement.
@@ -11894,12 +11896,17 @@ function photoOpeningParts(group,feature,includeWindows=false) {
   const out=frontageNormalFor(fit);if(!out)return;
   const tx=dx/L,tz=dz/L,[nx,nz]=out,yaw=-Math.atan2(tz,tx);
   for(const o of fit.openings || []) {
-    if(!["window","door","garage_candidate","garage","gated_entry_candidate"].includes(o.kind) || (o.kind==="window" && !includeWindows)
+    // By role (coarse_openings.py): a window outline above the ground storey, a door at any other
+    // way in on foot. The garages are drawn as garage doors with their kerb (addPhotoGarages),
+    // the entry by the door system with its stair or alcove and gate, a gate as part of its entry.
+    const role=o.role || (o.kind==="window" ? "window" : o.kind==="door" ? "entrance" : null);
+    if(!["window","entrance"].includes(role) || (role==="window" && !includeWindows)
+       || o.kind==="gated_entry_candidate" || o.absorbed_into_entry || o.id===fit.primary_entry?.door_id
        || ![o.u,o.v,o.w,o.h].every(Number.isFinite) || o.u<0 || o.u+o.w>L+.05
        || o.v<0 || o.v+o.h>fit.height_m-.1 || o.w<=0 || o.h<=0)continue;
     // This path draws flat panels, not connected stairwells. Never let photo thresholds
     // float over six inches above outside ground, including old fits without access metadata.
-    if(o.kind!=="window") {
+    if(role!=="window") {
       const ref=fit.ground_reference;
       const ground=ref?.frame==="relative_to_facade_foot" && ref.source
         && Number.isFinite(ref.outside_ground_m) ? ref.outside_ground_m : 0;
@@ -11913,7 +11920,7 @@ function photoOpeningParts(group,feature,includeWindows=false) {
       }))continue;
     }
     const u=o.u+o.w/2,out=.085;
-    const map=o.kind==="window" ? homeDesignMaterial(o.design).map : photoOpeningTexture(o.kind,o.design);
+    const map=role==="window" ? homeDesignMaterial(o.design).map : photoOpeningTexture("door",o.design);
     const mesh=planePart(group,ax+tx*u+nx*out,o.v,-ay+tz*u+nz*out,o.w,o.h,map,yaw);
     mesh.userData={surface:o.kind,canonicalBuilding:String(feature.osm_id),grade:"reviewed_inferred_visual_parameters",openingId:o.id};
   }
@@ -13767,8 +13774,6 @@ function buildingMesh(feature) {
   });
   geom.rotateX(-Math.PI / 2);
   if (hillLift !== 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
-  const measured = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
-    || feature.height_source === "overture_height";
   // A house: a home with no shop in it. Its walls carry no painted windows; its real windows are
   // drawn on them (homeWindowLayout), the same ones its shell opens when the walker is there.
   const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
@@ -13792,10 +13797,6 @@ function buildingMesh(feature) {
   // for it. A translucent building shows the buildings behind it through its own roof, puts
   // itself in the depth-sorted transparent queue where it fights with everything else in there,
   // and reads as scaffolding rather than as a building.
-  //
-  // The distinction survives without it: a building whose height nobody has recorded is drawn
-  // desaturated, so a street of assumptions is visibly greyer than a street of measurements
-  // while both are things you cannot see through.
   const opacity = 1.0;
   // ExtrudeGeometry emits two material groups: the caps first, then the walls. Giving both the
   // facade map put a grid of windows across every rooftop -- which reads, from above, as though
@@ -13803,15 +13804,9 @@ function buildingMesh(feature) {
   // The roof takes the wall's colour, darkened. A fixed grey top on a coloured building looked
   // like a lid set on something else, and from above -- which is most of how this map is read --
   // the roof is the building.
-  // Desaturation marks an inferred *height*, which is a separate question from where the
-  // colour came from -- a sampled colour on a guessed height is still a guessed height.
-  if (!measured) {
-    const colour = new THREE.Color(tint);
-    const hsl = {};
-    colour.getHSL(hsl, THREE.SRGBColorSpace);
-    colour.setHSL(hsl.h, hsl.s * 0.35, hsl.l * 0.92, THREE.SRGBColorSpace);
-    tint = colour.getHex();
-  }
+  // A building keeps its colour whether or not anyone recorded its height. Its height being
+  // guessed used to be shown by greying it out -- which greyed out nearly every house in the
+  // city, photographed colour and all. How sure the height is lives in houseCertainty instead.
   // Darkened, but with a floor. At a flat 0.68 a dark wall gave a roof near enough to black
   // that whole blocks read as holes in the city from above -- which is exactly what a hole
   // looks like, and sent me hunting for missing ground that was never missing.
@@ -14187,7 +14182,77 @@ function outwardBearing(way, a, b, fallback) {
   const bearing = (Math.atan2(nx, ny) * 180 / Math.PI + 360) % 360;
   return Number.isFinite(bearing) ? bearing : fallback;
 }
+// ---- garages the photograph shows ----
+//
+// A garage a photographed front shows is drawn whether or not the city recorded a dropped kerb in
+// front of it -- the photograph is the better witness of the two -- and where the fit is sure
+// enough of it (medium or high: coarse_openings.py), the kerb is cut for it (photoKerbCuts): a
+// driveway let down to the gutter, not a gap knocked out of the kerb. On the photographed wall a
+// garage the kerb put where the photograph shows a garage of its own, or a way in on foot, goes.
+const PHOTO_GARAGE_CERTAINTY = new Set(["medium", "high"]);
+//: Where an opening of a fitted front lands on the building's own outline: the footprint edge the
+//: front lies along, the fraction along it of the opening's centre, and that edge's length.
+function fitOpeningOnOutline(way, fit, o) {
+  if (!fit?.a || !fit?.b || ![o.u, o.w].every(Number.isFinite)) return null;
+  const [fax, fay] = xy(...fit.a), [fbx, fby] = xy(...fit.b);
+  const span = Math.hypot(fbx - fax, fby - fay);
+  if (span < 1) return null;
+  const tx = (fbx - fax) / span, ty = (fby - fay) / span;
+  const px = fax + tx * (o.u + o.w / 2), py = fay + ty * (o.u + o.w / 2);
+  let best = null;
+  for (let i = 0; i + 1 < way.points.length; i += 1) {
+    const a = way.points[i], b = way.points[i + 1];
+    const [ax, ay] = xy(a[0], a[1]), [bx, by] = xy(b[0], b[1]);
+    const L = Math.hypot(bx - ax, by - ay);
+    if (L < 1.2 || Math.abs(((bx - ax) * tx + (by - ay) * ty) / L) < 0.9) continue;
+    const t = ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / (L * L);
+    if (t < 0 || t > 1) continue;
+    const d = Math.abs((px - ax) * (by - ay) - (py - ay) * (bx - ax)) / L;
+    if (d < 1.5 && (!best || d < best.d)) best = { d, a, b, t, L };
+  }
+  return best;
+}
+function addPhotoGarages(ways) {
+  const stats = { photo: 0, kerbReplaced: 0 };
+  for (const way of ways) {
+    if (way.kind !== "building" || !way.covered || !way.points) continue;
+    const fit = frontageFitFor(way);
+    if (!fit) continue;
+    const photo = [], onFoot = [];
+    for (const o of fit.openings || []) {
+      const at = fitOpeningOnOutline(way, fit, o);
+      if (!at) continue;
+      if (o.role === "entrance") onFoot.push({ ...at, w: o.w });
+      if (o.role !== "garage" || !PHOTO_GARAGE_CERTAINTY.has(o.role_certainty) || !Number.isFinite(o.h)) continue;
+      const w = Math.min(o.w, at.L * 0.9);
+      photo.push({
+        a: at.a, b: at.b, w, L: at.L,
+        t: Math.min(Math.max(at.t, w / 2 / at.L), 1 - w / 2 / at.L),
+        n: outwardBearing(way, at.a, at.b, 0), h: Math.min(3.3, Math.max(1.9, o.h)),
+        // A grid of panels where the photograph showed one, else the commonest door in the city:
+        // long horizontal sections. Never a guessed wood stain over a photographed door.
+        s: o.design?.panel_style === "sectional_grid" ? 0 : 1,
+        colour: /^#[0-9a-f]{6}$/i.test(o.design?.colour || "") ? o.design.colour : undefined,
+        photo: true, certainty: o.role_certainty, id: o.id,
+      });
+    }
+    if (!photo.length && !onFoot.length) continue;
+    const sameWall = (g, k) => g.a[0] === k.a[0] && g.a[1] === k.a[1] && g.b[0] === k.b[0] && g.b[1] === k.b[1];
+    const overlaps = (g, k) => sameWall(g, k) && Math.abs(g.t - k.t) * k.L < ((g.w || 2.6) + k.w) / 2;
+    const kept = (way.garages || []).filter((g) => {
+      const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+      const L = Math.hypot(bx - ax, by - ay);
+      const clash = [...photo, ...onFoot].some((k) => overlaps({ ...g, L }, k));
+      if (clash) stats.kerbReplaced += 1;
+      return !clash;
+    });
+    way.garages = [...kept, ...photo.map(({ L, ...g }) => g)];
+    stats.photo += photo.length;
+  }
+  return stats;
+}
 const garageStats = normaliseGarages(DATA.ways || []);
+Object.assign(garageStats, addPhotoGarages(DATA.ways || []));
 window.kerbsideGarages = () => ({ ...garageStats });
 
 const facadeQueue = [];
@@ -15913,8 +15978,8 @@ for (const way of DRAW_ORDER) {
       // A dropped kerb outside means a way in. The city records 14,130 of these against
       // buildings in this corridor, with the width of each.
       for (const opening of way.garages || []) {
-        const panel = garagePanel(opening, way.colour !== undefined
-          ? new THREE.Color(way.colour).getHex() : 0x9aa0a4);
+        const panel = garagePanel(opening, opening.colour ? new THREE.Color(liftSampledColour(opening.colour)).getHex()
+          : way.colour !== undefined ? new THREE.Color(way.colour).getHex() : 0x9aa0a4);
         // Fourteen thousand garage doors, six styles between them, tinted to their building.
         // The tint is already in the texture, so keying on that merges them down to the number
         // of distinct doors the city actually has rather than the number of openings.
@@ -18513,6 +18578,28 @@ function subdivideNearDrops(geometry, grid, cell) {
   finer.userData = { ...geometry.userData };
   return finer;
 }
+//: How far out from a photographed garage its kerb is looked for.
+const PHOTO_KERB_REACH_M = 25;
+const photoDropStats = { cut: 0, noKerb: 0 };
+//: The dropped kerb in front of a photographed garage: walked straight out from the door until
+//: the kerb this model drew, facing back at the door. The ramp runs from the gutter up to the
+//: footway over the pavement's width, flared either side (the drop below), so a car rolls up it.
+function photoKerbDrop(g) {
+  const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+  const gx = ax + (bx - ax) * g.t, gz = -(ay + (by - ay) * g.t);
+  const bearing = (g.n || 0) * Math.PI / 180;
+  const ox = Math.sin(bearing), oz = -Math.cos(bearing);
+  for (let s = 0.5; s <= PHOTO_KERB_REACH_M; s += 0.5) {
+    const kerb = nearestKerbAt(gx + ox * s, gz + oz * s, 1.0);
+    // The kerb's normal points out of the road, back at the door.
+    if (!kerb || kerb.nx * ox + kerb.nz * oz > -0.7) continue;
+    const walk = Math.hypot(kerb.x - gx, kerb.z - gz);
+    return { x: kerb.x, z: kerb.z, ox: kerb.nx, oz: kerb.nz, half: Math.max(1.1, (g.w || 2.6) / 2),
+      depth: Math.max(1.5, Math.min(walk - 0.2, 3.0)), photo: true };
+  }
+  photoDropStats.noKerb += 1;
+  return null;
+}
 function dropKerbsAtDriveways(ways) {
   const cell = 6.0;
   const grid = new Map();
@@ -18550,6 +18637,25 @@ function dropKerbsAtDriveways(ways) {
           bucket.push(drop);
         }
       }
+      openings += 1;
+    }
+    // And a drop in front of every garage the photograph is sure of, cut or no cut on record.
+    for (const g of way.garages || []) {
+      if (!g.photo || !PHOTO_GARAGE_CERTAINTY.has(g.certainty)) continue;
+      const drop = photoKerbDrop(g);
+      if (!drop) continue;
+      const reach = drop.half + APRON_FLARE_M + drop.depth;
+      drop.minX = drop.x - reach; drop.maxX = drop.x + reach;
+      drop.minZ = drop.z - reach; drop.maxZ = drop.z + reach;
+      for (let ix = Math.floor(drop.minX / cell); ix <= Math.floor(drop.maxX / cell); ix += 1) {
+        for (let iz = Math.floor(drop.minZ / cell); iz <= Math.floor(drop.maxZ / cell); iz += 1) {
+          const key = `${ix}:${iz}`;
+          let bucket = grid.get(key);
+          if (!bucket) grid.set(key, bucket = []);
+          bucket.push(drop);
+        }
+      }
+      photoDropStats.cut += 1;
       openings += 1;
     }
   }
@@ -18606,6 +18712,7 @@ function dropKerbsAtDriveways(ways) {
 // ROAD_TOP_M, and run after the lift it let every kerb and pavement near a driveway on a hill
 // down to sea level -- a crater at each garage, eighty metres deep on Nob Hill.
 const kerbVerticesDropped = dropKerbsAtDriveways(DATA.ways);
+Object.assign(garageStats, { photoKerbCuts: photoDropStats.cut, photoKerbMissing: photoDropStats.noKerb });
 // Everything at ground level stands on the ground the lidar measured (the tunnels carry their own).
 await liftOntoGroundAsync(groups.streets, "Standing the streets on the ground");
 // The survey layers that were built in the flat model's frame, beside the streets, stand on
@@ -22700,6 +22807,63 @@ function fencePanel(width, height, style, material) {
   }
   return group;
 }
+//: How far along its line a fence runs looking for a wall to meet.
+const FENCE_REACH_M = 9;
+//: A fence end this close to a wall meets it.
+const FENCE_MEETS_M = 0.06;
+const gateStats = { drawn: 0, recessed: 0, refused: 0 };
+window.kerbsideGates = () => ({ ...gateStats });
+//: Where a gate and its fence go, in the door's frame (along the wall, out from it), and whether
+//: they close the entry: the gate stands in the house's entry -- across the mouth of its recess,
+//: or out on the property line in front of its door -- and the fence either side ends against a
+//: wall, with no gap a person could walk round the gate through. Out on the line, each side runs
+//: from the gate to the first wall on that line (a neighbour's front, a bay of its own); where no
+//: wall stands before the end of the house's front, it runs to that end and back to the house's
+//: corner. A fence never runs across a garage or its driveway: ``keepClear`` (spans along the
+//: wall, in the door's frame) turns it back to the wall at the near edge of each.
+//: ``solidAt(x, z)`` says whether a point is inside a building.
+function gateLayout(door, width, out, recessed, solidAt, keepClear = []) {
+  const at = (along, outward) => [door.cx + door.ux * along - door.nx * outward,
+    door.cz + door.uz * along - door.nz * outward];
+  // The wall beside a point on the fence: a few centimetres further on, in the direction the
+  // run was going (or, at the front, just inside it).
+  const meets = (along, outward, dAlong, dOut) => solidAt(...at(along + dAlong * FENCE_MEETS_M,
+    outward + dOut * FENCE_MEETS_M));
+  if (recessed) {
+    // Across the mouth of the recess: the front wall stands either side of it.
+    const ok = meets(-width / 2, 0, -1, -1) && meets(width / 2, 0, 1, -1);
+    return { runs: [], ok, gaps: ok ? [] : ["recess_mouth"] };
+  }
+  if (solidAt(...at(0, out)) || solidAt(...at(-width / 2, out)) || solidAt(...at(width / 2, out))) {
+    return { runs: [], ok: false, gaps: ["gate_inside_a_building"] };
+  }
+  const a = door.entry.local[door.edge], b = door.entry.local[door.edge + 1];
+  const ends = [a, b].map(([px, pz]) => (px - door.cx) * door.ux + (pz - door.cz) * door.uz)
+    .sort((p, q) => p - q);
+  const runs = [], gaps = [];
+  for (const side of [-1, 1]) {
+    const from = side * width / 2;
+    let corner = side * Math.max(Math.abs(side < 0 ? ends[0] : ends[1]), width / 2);
+    for (const [c0, c1] of keepClear) {
+      const near = side < 0 ? c1 : c0;
+      if (side * (near - from) >= 0 && side * (near - corner) < 0) corner = near;
+    }
+    let hit = null;
+    for (let s = 0; s <= FENCE_REACH_M && side * (from + side * s - corner) <= 0; s += 0.05) {
+      if (solidAt(...at(from + side * s, out))) { hit = from + side * Math.max(0, s - 0.05); break; }
+    }
+    if (hit !== null) {
+      if (Math.abs(hit - from) > 0.05) runs.push([from, out, hit, out]);
+      if (!meets(hit, out, side, 0)) gaps.push(side < 0 ? "left" : "right");
+      continue;
+    }
+    // No wall on the line before the house's corner: along to the corner, and back to it.
+    if (Math.abs(corner - from) > 0.05) runs.push([from, out, corner, out]);
+    runs.push([corner, out, corner, 0]);
+    if (!meets(corner - side * FENCE_MEETS_M * 2, 0, 0, -1)) gaps.push(side < 0 ? "left" : "right");
+  }
+  return { runs, ok: !gaps.length, gaps };
+}
 function addGate(door, street) {
   const pe = door.photoEntry, gate = pe?.gate;
   if (!gate || door.gate) return;
@@ -22713,6 +22877,14 @@ function addGate(door, street) {
   const width = recessed ? door.stoopPlan.width : Math.min(1.8, Math.max(0.9, gate.w || 1.2));
   const height = Math.min(2.4, Math.max(1.0, gate.h || 1.6));
   const out = recessed ? 0.03 : Math.max(0.6, setback - 0.1);
+  // The check: in the entry, and closed against the walls either side -- or not drawn at all.
+  // The garages on this wall, with a little room either side, in the door's frame.
+  const [wallX, wallZ] = door.entry.local[door.edge];
+  const doorAlong = (door.cx - wallX) * door.ux + (door.cz - wallZ) * door.uz;
+  const keepClear = garageSpansOnEdge(door.entry, door.edge)
+    .map(([u, w]) => [u - w / 2 - 0.3 - doorAlong, u + w / 2 + 0.3 - doorAlong]);
+  const layout = gateLayout(door, width, out, recessed, (x, z) => Boolean(buildingAt(x, z)), keepClear);
+  if (!layout.ok) { gateStats.refused += 1; door.gateRefused = layout.gaps; return; }
   const material = gateMaterial(gate.colour, gate.style || "bars");
   const yaw = Math.atan2(-door.uz, door.ux);
   const at = (along, outward) => [door.cx + door.ux * along - door.nx * outward,
@@ -22726,27 +22898,22 @@ function addGate(door, street) {
   hinge.add(fencePanel(width, height, gate.style || "bars", material));
   group.add(hinge);
   const segments = [];
+  // The fence the photograph saw beside the gate gives the rest its style and colour.
+  const run = (frontageFitFor(door.entry.way)?.entries?.fences || [])[0] || {};
+  const style = run.style || gate.style || "bars";
+  const fenceMaterial = gateMaterial(run.colour || gate.colour, style);
+  for (const [s0, o0, s1, o1] of layout.runs) {
+    const [px, pz] = at(s0, o0), [qx, qz] = at(s1, o1);
+    const length = Math.hypot(qx - px, qz - pz);
+    if (length < 0.05) continue;
+    const panel = fencePanel(length, Math.min(2.4, Math.max(0.8, run.h || height)), style, fenceMaterial);
+    panel.position.set(px, terrainGroundAt(px, pz), pz);
+    panel.rotation.y = Math.atan2(-(qz - pz), qx - px);
+    group.add(panel);
+    segments.push([px, pz, qx, qz]);
+  }
   if (!recessed) {
-    // The fence either side, where the photograph saw fence; and the path to the door.
-    const fit = frontageFitFor(door.entry.way);
-    const [fax, fay] = xy(...fit.a), [fbx, fby] = xy(...fit.b);
-    const f = [fax, -fay], g = [fbx, -fby], span = Math.hypot(g[0] - f[0], g[1] - f[1]) || 1;
-    const tx = (g[0] - f[0]) / span, tz = (g[1] - f[1]) / span;
-    for (const run of fit.entries?.fences || []) {
-      const ends = [run.u, run.u + run.w].map((u) => (f[0] + tx * u - door.cx) * door.ux + (f[1] + tz * u - door.cz) * door.uz)
-        .sort((p, q) => p - q);
-      for (const [s0, s1] of [[ends[0], Math.min(ends[1], -width / 2)], [Math.max(ends[0], width / 2), ends[1]]]) {
-        if (s1 - s0 < 0.3) continue;
-        const [px, pz] = at(s0, out);
-        const panel = fencePanel(s1 - s0, Math.min(2.4, Math.max(0.8, run.h || height)), run.style || gate.style || "bars",
-          gateMaterial(run.colour || gate.colour, run.style || gate.style || "bars"));
-        panel.position.set(px, terrainGroundAt(px, pz), pz);
-        panel.rotation.y = yaw;
-        group.add(panel);
-        const [qx, qz] = at(s1, out);
-        segments.push([px, pz, qx, qz]);
-      }
-    }
+    // The path from the gate to the door.
     const path = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.9, width - 0.2), 0.06, out),
       new THREE.MeshStandardMaterial({ color: 0xb9b4aa, roughness: 0.95 }));
     const [mx, mz] = at(0, out / 2);
@@ -22758,7 +22925,9 @@ function addGate(door, street) {
   group.traverse((o) => { if (o.isMesh) o.renderOrder = INTERIOR_ORDER; });
   doorGroup.add(group);
   const [ex, ez] = at(width / 2, out);
-  door.gate = { group, hinge, yaw, width, open: false, angle: 0, segments,
+  gateStats.drawn += 1;
+  if (recessed) gateStats.recessed += 1;
+  door.gate = { group, hinge, yaw, width, open: false, angle: 0, segments, layout,
     leaf: [hx, hz, ex, ez], cx: (hx + ex) / 2, cz: (hz + ez) / 2 };
 }
 //: The gate within reach of the walker, if one is nearer than any door.
@@ -23248,7 +23417,9 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
   const start = (a[0]-f[0])*tx+(a[1]-f[1])*tz;
   const end = start + length*aligned;
   if (Math.max(start,end) < -.1 || Math.min(start,end) > span+.1) return null;
-  return (fit.openings || []).filter(o=>o.kind === "window" && [o.u,o.v,o.w,o.h].every(Number.isFinite)
+  // Every rectangle the fit called a window, panes read or not (coarse_openings.py): above the
+  // ground storey an outline is a window.
+  return (fit.openings || []).filter(o=>(o.role || o.kind) === "window" && [o.u,o.v,o.w,o.h].every(Number.isFinite)
     && o.w > 0 && o.h > 0 && o.v>=0
     && (!Number.isFinite(fit.height_m) || o.v+o.h<=fit.height_m-.1)).map(o => ({ ...o,
     u: aligned > 0 ? (o.u-start)/aligned : (o.u+o.w-start)/aligned,
@@ -23313,7 +23484,7 @@ function homeWindowLayout(entry, spec) {
       const u = (gx - a[0]) * ux + (gz - a[1]) * uz;
       if (Math.abs(off) > 1.0 || u < -0.5 || u > length + 0.5) continue;
       const w = Math.min(g.w || 2.6, length);
-      reserved.push({ u: u - w / 2, w, v: bottom, h: GARAGE_HEIGHT_M + 0.2, kind: "garage" });
+      reserved.push({ u: u - w / 2, w, v: bottom, h: (Number.isFinite(g.h) ? g.h : GARAGE_HEIGHT_M) + 0.2, kind: "garage" });
     }
     const observed = HOME_OPENINGS.buildings[id]?.walls[String(edge)];
     // A wall that wears its own photograph shows its own windows: none is added there, or its
