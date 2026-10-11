@@ -20,6 +20,10 @@ IMPLEMENTATION_FILES = (
     "src/smc/facades/version.py",
     "src/smc/facades/geometry.py",
     "src/smc/facades/survey.py",
+    "src/smc/facades/entry_inference.py",
+    "src/smc/facades/auto_review.py",
+    "src/smc/facades/coarse_openings.py",
+    "src/smc/facades/house_extent.py",
     "scripts/build_sf_corridor_3d.py",
 )
 

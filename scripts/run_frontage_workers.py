@@ -320,6 +320,12 @@ def main():
                         ]
                 for name, command in commands.items():
                     if name not in children or children[name].poll() is not None:
+                        if name in children and name in logs:
+                            # A worker that has exited is relaunched onto a freshly opened log:
+                            # the drive can remount under a running supervisor, and a worker
+                            # handed the old descriptor dies at its first write, again and again.
+                            with contextlib.suppress(OSError):
+                                logs.pop(name).close()
                         if name not in logs:
                             log = (ROOT / "build/frontage-live/storefront-audit/worker.log"
                                    if name == "storefronts" else folder / f"{name}.log")
