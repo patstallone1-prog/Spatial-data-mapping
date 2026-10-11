@@ -9,6 +9,7 @@ Outputs are private build artifacts, NOT automatically published textures or geo
 from __future__ import annotations
 
 import argparse
+import contextlib
 import dataclasses
 import fcntl
 import hashlib
@@ -22,9 +23,11 @@ import shutil
 import sqlite3
 import sys
 import tempfile
+import threading
 import time
 import zlib
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -59,6 +62,14 @@ from smc.reconstruction.pixel_store import CanonicalPixels, LocalBlobStore  # no
 METHOD = "frontage-v3"
 LANDMARK_API = "https://sfplanninggis.org/arcgiswa/rest/services/PlanningData/MapServer/11/query"
 CELL = 40.0
+
+
+#: Photographs fetched, rectified and screened at once. The work is mostly waiting on the network:
+#: one at a time, the machine sat idle while 720 photographs an hour trickled through.
+SCREEN_WORKERS = 8
+#: A photograph that will not download is tried this many times, this far apart, then left.
+MAX_DOWNLOAD_ATTEMPTS = 3
+DOWNLOAD_RETRY_AFTER_S = 3600
 
 
 def emit(path: Path, value):
@@ -529,6 +540,21 @@ def review_samples(args, summaries, policy):
         if isinstance(previous, dict) and previous.get("building_id"):
             previous.setdefault("review_key", path.stem)
             records.append(previous)
+    # A photograph that would not download is tried again an hour later, three times in all, and
+    # then left: the same seventy failing frames were being retried in every batch, a third of it.
+    now = datetime.now(UTC)
+
+    def retry_due(r):
+        if r.get("status") != "download_or_decode_failed":
+            return False
+        if r.get("download_attempts", 1) >= MAX_DOWNLOAD_ATTEMPTS:
+            return False
+        try:
+            last = datetime.fromisoformat(str(r["last_attempt_at"]))
+        except (KeyError, ValueError):
+            return True
+        return (now - last).total_seconds() >= DOWNLOAD_RETRY_AFTER_S
+
     seen_views = {
         (
             r["region"],
@@ -536,7 +562,7 @@ def review_samples(args, summaries, policy):
             r.get("candidate", {}).get("observation", {}).get("observation_uid"),
         )
         for r in records
-        if r.get("status") != "download_or_decode_failed"
+        if not retry_due(r)
     }
     pending = []
     for row, candidate, region, run_id in rows:
@@ -561,7 +587,7 @@ def review_samples(args, summaries, policy):
         "supported_providers": SUPPORTED_PROVIDERS,
         "automatically_publishes": False,
     })
-    for row, candidate, region, run_id in batch:
+    def screen_one(row, candidate, region, run_id):
         obs = candidate["observation"]
         uid = obs["observation_uid"]
         report_path = samples / f"{region}-{row['building_id']}-{uid[:16]}.json"
@@ -574,8 +600,7 @@ def review_samples(args, summaries, policy):
                 and previous.get("status") != "download_or_decode_failed"
                 and (not args.pixel_screen or previous.get("pixel_screen"))
             ):
-                records.append(previous)
-                continue
+                return previous, False
         report = {
             "region": region,
             "selection_run": run_id,
@@ -585,22 +610,12 @@ def review_samples(args, summaries, policy):
             "status": "not_downloaded",
             "review_key": report_path.stem,
         }
-        if shutil.disk_usage(args.output).free < 4 * 1024**3:
-            emit(
-                args.output / "pixel-worker.json",
-                {
-                    "status": "paused_disk_reserve",
-                    "reserve_bytes": 4 * 1024**3,
-                    "remaining_candidates": len(pending),
-                    "pid": os.getpid(),
-                },
-            )
-            break  # Capacity is not a failed source, empty measurement, or rejection.
         try:
             provider_name = obs["provider"]
             provider_key = (provider_name, obs["provider_instance"])
-            if provider_key not in providers:
-                providers[provider_key] = provider_for(*provider_key)
+            with provider_lock:
+                if provider_key not in providers:
+                    providers[provider_key] = provider_for(*provider_key)
             observation = Observation(
                 **{f.name: obs[f.name] for f in dataclasses.fields(Observation) if f.name in obs}
             )
@@ -660,8 +675,7 @@ def review_samples(args, summaries, policy):
                     },
                 )
                 emit(report_path, report)
-                records.append(report)
-                continue
+                return report, True
             ppm = min(35, source_ppm, 1400 / max(wall.length_m, wall.height_m))
             view = rectify_wall(image[..., ::-1], camera, wall, pixels_per_m=ppm, exact=True)
             if view is None:
@@ -704,7 +718,9 @@ def review_samples(args, summaries, policy):
                 policy=policy,
             )
             if screen:
-                measured = screen.screen(view.image, view.mask)
+                # One model on the GPU: the photographs take turns here, and only here.
+                with screen_lock:
+                    measured = screen.screen(view.image, view.mask)
                 labels = measured.pop("labels")
                 cv2.imwrite(str(report_path.with_suffix(".labels.png")), labels.astype(np.uint8))
                 report["pixel_screen"] = measured
@@ -723,9 +739,18 @@ def review_samples(args, summaries, policy):
                     report["candidate"]["verified"] = False
         except Exception as exc:
             # Never write signed URLs/tokens from provider exception messages into logs.
-            report.update({"status": "download_or_decode_failed", "error_type": type(exc).__name__})
+            attempts = 1
+            if report_path.exists():
+                with contextlib.suppress(OSError, ValueError, AttributeError):
+                    earlier = json.loads(report_path.read_text())
+                    if earlier.get("status") == "download_or_decode_failed":
+                        attempts = earlier.get("download_attempts", 1) + 1
+            report.update({"status": "download_or_decode_failed", "error_type": type(exc).__name__,
+                           "download_attempts": attempts, "last_attempt_at": datetime.now(UTC)})
         emit(report_path, report)
-        records.append(report)
+        return report, True
+
+    def progress(report, region, obs, row):
         batch_groups[f"{region}/{obs['provider']}"] += 1
         emit(args.output / "pixel-progress.json", {
             "at": datetime.now(UTC), "pid": os.getpid(), "status": "screening",
@@ -734,6 +759,29 @@ def review_samples(args, summaries, policy):
             "automatically_publishes": False,
         })
         print(f"review {region}/{row['building_id']}: {report['status']}", flush=True)
+
+    provider_lock, screen_lock = threading.Lock(), threading.Lock()
+    with ThreadPoolExecutor(max_workers=SCREEN_WORKERS) as pool:
+        futures = {}
+        for row, candidate, region, run_id in batch:
+            if shutil.disk_usage(args.output).free < 4 * 1024**3:
+                emit(
+                    args.output / "pixel-worker.json",
+                    {
+                        "status": "paused_disk_reserve",
+                        "reserve_bytes": 4 * 1024**3,
+                        "remaining_candidates": len(pending),
+                        "pid": os.getpid(),
+                    },
+                )
+                break  # Capacity is not a failed source, empty measurement, or rejection.
+            futures[pool.submit(screen_one, row, candidate, region, run_id)] = (row, candidate, region)
+        for future in as_completed(futures):
+            row, candidate, region = futures[future]
+            report, fresh = future.result()
+            records.append(report)
+            if fresh:
+                progress(report, region, candidate["observation"], row)
     from smc.facades.frontage_retention import prune_rejected
 
     cleanup = prune_rejected(args.output)

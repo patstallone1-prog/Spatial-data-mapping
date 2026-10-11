@@ -3,7 +3,8 @@
 
 Continuously watches the filter's photo bucket (its review output). With --auto-accept every
 fit is decided automatically (smc.facades.auto_review) into a bucket per house, and the accepted
-ones are published as parameters; raw photographs never enter public output here.
+ones are published as parameters; raw photographs never enter public output here. Passes move
+forward: a house already decided is kept as it is (settled_houses) unless --refit-all.
 """
 
 from __future__ import annotations
@@ -27,13 +28,13 @@ from smc.facades.version import implementation_sha256  # noqa: E402
 
 LOADED_IMPLEMENTATION = implementation_sha256(ROOT)
 
-from smc.facades.auto_review import accepted as auto_accepted  # noqa: E402
-from smc.facades.auto_review import decide  # noqa: E402
 from smc.facades.architecture_logic import (  # noqa: E402
     NeighbourIndex,
     front_footprint_frame,
     nearby_entry_pattern,
 )
+from smc.facades.auto_review import accepted as auto_accepted  # noqa: E402
+from smc.facades.auto_review import decide  # noqa: E402
 from smc.facades.consensus import (  # noqa: E402
     certainty,
     cross_view,
@@ -83,6 +84,28 @@ def diagram(fit: dict) -> str:
     return "".join(out) + "</svg>"
 
 
+def settled_houses(output: Path) -> dict:
+    """Every house already decided: its bucket record, by (region, building id).
+
+    A house in ``houses/`` or ``rejected/`` is finished. Later passes move forward: they fit new
+    buildings, and a new photograph of a finished house only where it ranks better than the one
+    the house was decided on. Nothing finished is refitted, re-decided or rewritten -- not when the
+    code changes either -- unless the matcher is run with ``--refit-all``.
+    """
+    settled = {}
+    for bucket in ("houses", "rejected"):
+        for path in sorted((output / bucket).glob("*/*.json")):
+            try:
+                record = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue
+            if isinstance(record, dict) and record.get("building_id") and record.get("fit_rank") is not None:
+                settled[(path.parent.name, str(record["building_id"]))] = {
+                    "bucket": bucket, "record": record, "image_sha256": record.get("image_sha256"),
+                    "fit_rank": record["fit_rank"]}
+    return settled
+
+
 def cycle(args) -> dict:
     started = time.perf_counter()
     if implementation_sha256(ROOT) != LOADED_IMPLEMENTATION:
@@ -97,6 +120,8 @@ def cycle(args) -> dict:
     timings = []
     fitted, rejected = 0, 0
     code_hash = LOADED_IMPLEMENTATION
+    settled = {} if getattr(args, "refit_all", False) else settled_houses(args.output)
+    reused: set[str] = set()
     for review_root in args.inputs:
         for path in sorted((review_root / "review").glob("*.json")):
             row = json.loads(path.read_text())
@@ -118,6 +143,14 @@ def cycle(args) -> dict:
                 held += 1
                 continue
             region, key = row["region"], str(row["building_id"])
+            done = settled.get((region, key))
+            if done and (row.get("pixel_sha256") == done["image_sha256"]
+                         or candidate.get("rank") is None or list(candidate["rank"]) <= list(done["fit_rank"])):
+                # Finished, and this photograph is no better than the one it was decided on.
+                if key not in builds or builds[key]["fit_rank"] < done["fit_rank"]:
+                    builds[key] = done["record"]
+                    reused.add(key)
+                continue
             photo, mask = path.with_suffix(".jpg"), path.with_suffix(".labels.png")
             if not photo.is_file() or not mask.is_file():
                 continue
@@ -280,6 +313,7 @@ def cycle(args) -> dict:
             old = builds.get(key)
             if old and old["fit_rank"] >= fit["fit_rank"]:
                 continue
+            reused.discard(key)
             builds[key] = fit
             fit_sources[key] = (review_root, path.stem)
             fitted += 1
@@ -297,6 +331,8 @@ def cycle(args) -> dict:
             )
     neighbour_index = NeighbourIndex([*builds.values(), *finalized_facts.values()])
     for key, fit in builds.items():
+        if key in reused:
+            continue  # finished: left exactly as it was decided
         fit["multiview"] = cross_view(fit, views[key])
         neighbours = neighbour_index.near(fit)
         fit["neighbourhood_reference"] = neighbourhood_reference(fit, neighbours)
@@ -307,7 +343,7 @@ def cycle(args) -> dict:
         atomic(args.output / f"{fit['region']}-{key}.json", fit)
     if implementation_sha256(ROOT) != code_hash:
         raise RuntimeError("facade implementation changed during cycle; worker restart required")
-    reconstructed = reconstruct(args, builds) if getattr(args, "auto_accept", False) else None
+    reconstructed = reconstruct(args, builds, reused) if getattr(args, "auto_accept", False) else None
     atomic(
         args.output / "latest.json",
         {
@@ -446,6 +482,7 @@ def cycle(args) -> dict:
     status = {
         "pid": os.getpid(),
         "fitted_buildings": len(builds),
+        "kept_from_earlier_passes": len(reused),
         "fit_proposals": fitted,
         "conflicts_rejected": rejected,
         "watch_seconds": args.watch_seconds,
@@ -495,7 +532,7 @@ def cycle(args) -> dict:
     return status
 
 
-def reconstruct(args, builds: dict) -> dict:
+def reconstruct(args, builds: dict, finished: set[str] = frozenset()) -> dict:
     """Decide every fitted house and put it in its bucket; publish the accepted ones.
 
     ``houses/<region>/<id>.json`` is a house that is reconstructed: its fit, accepted, with the
@@ -508,17 +545,24 @@ def reconstruct(args, builds: dict) -> dict:
     published = {}
     index = []
     for key, fit in builds.items():
-        decision = decide(fit)
-        accept = decision["accept"]
+        if key in finished:
+            # Decided on an earlier pass: kept as it was, file untouched.
+            decision, record = fit["auto_review"], fit
+            accept = decision["accept"]
+            counts["kept_from_earlier_passes"] += 1
+        else:
+            decision = decide(fit)
+            accept = decision["accept"]
+            bucket, other = ("houses", "rejected") if accept else ("rejected", "houses")
+            stale = args.output / other / fit["region"] / f"{key}.json"
+            if stale.exists():
+                stale.unlink()
+            record = auto_accepted(fit, decision) if accept else {**fit, "auto_review": decision}
+            atomic(args.output / bucket / fit["region"] / f"{key}.json", record)
+            counts["decided_this_pass"] += 1
         counts["accepted" if accept else "rejected"] += 1
         for reason in decision["reasons"]:
             counts[f"rejected_because:{reason.split(':')[0]}"] += 1
-        bucket, other = ("houses", "rejected") if accept else ("rejected", "houses")
-        stale = args.output / other / fit["region"] / f"{key}.json"
-        if stale.exists():
-            stale.unlink()
-        record = auto_accepted(fit, decision) if accept else {**fit, "auto_review": decision}
-        atomic(args.output / bucket / fit["region"] / f"{key}.json", record)
         if accept:
             published[key] = record
             entry = fit.get("primary_entry") or {}
@@ -546,6 +590,8 @@ def reconstruct(args, builds: dict) -> dict:
                     "(smc.facades.auto_review) or reviewed; no photographic pixels included.",
         })
     return {"accepted": counts["accepted"], "rejected": counts["rejected"],
+            "decided_this_pass": counts["decided_this_pass"],
+            "kept_from_earlier_passes": counts["kept_from_earlier_passes"],
             "rejection_reasons": {k.split(":", 1)[1]: v for k, v in counts.items() if k.startswith("rejected_because:")},
             "accepted_entries": dict(entries), "published": len(buildings)}
 
@@ -561,6 +607,9 @@ if __name__ == "__main__":
     parser.add_argument("--auto-accept", action="store_true",
                         help="decide every fit automatically (auto_review) and publish the accepted")
     parser.add_argument("--publish-to", type=Path, default=ROOT / "docs/sf-corridor-frontage-fits.json")
+    parser.add_argument("--refit-all", action="store_true",
+                        help="refit and re-decide every house, finished ones included (passes "
+                             "otherwise move forward: settled_houses)")
     parser.add_argument("--device", choices=["cpu", "mps", "cuda", "auto"], default="cpu")
     parser.add_argument(
         "--detail-model-cache",
