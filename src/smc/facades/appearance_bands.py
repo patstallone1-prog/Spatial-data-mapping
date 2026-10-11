@@ -28,6 +28,74 @@ MATERIALS = {
     "ceramic_tile",
 }
 
+# A visual consistency default, not a measured paint/material classification.
+# Ordinary image exposure differences must not give every storey its own paint.
+DISTINCT_COLOUR_DELTA_E = 25.0
+
+
+def consistent_house_colours(
+    bands: list[dict], *, ground_floor_business: bool = False
+) -> list[dict]:
+    """Keep observations, but share the dominant colour absent strong contrary evidence.
+
+    Unknown materials do not establish a material change. A mapped business's
+    bottom band, independently different materials, and clearly different colours
+    remain independent. Compare to one dominant anchor, not successive neighbours:
+    otherwise a gradual chain could incorrectly merge very different end colours.
+    """
+    result = [{**band, "observed_colour": band.get("colour")} for band in bands]
+
+    def lab(colour):
+        if not isinstance(colour, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", colour):
+            return None
+        rgb = np.array([[[int(colour[i : i + 2], 16) / 255 for i in (1, 3, 5)]]], np.float32)
+        return cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB)[0, 0]
+
+    def business(band):
+        return ground_floor_business and band["bottom_m"] == 0
+
+    candidates = [band for band in result if not business(band) and lab(band["colour"]) is not None]
+    if not candidates:
+        return result
+    anchor = max(
+        candidates,
+        key=lambda b: (b["top_m"] - b["bottom_m"]) * max(0, b.get("wall_pixel_fraction", 1)),
+    )
+    anchor_lab = lab(anchor["colour"])
+    for band in result:
+        material, anchor_material = (
+            band.get("material", "unknown"),
+            anchor.get("material", "unknown"),
+        )
+        known_difference = material != anchor_material and "unknown" not in {
+            material,
+            anchor_material,
+        }
+        sample = lab(band["colour"])
+        if business(band):
+            reason = "business_ground_floor"
+        elif known_difference:
+            reason = "different_observed_material"
+        elif sample is not None and np.linalg.norm(sample - anchor_lab) > DISTINCT_COLOUR_DELTA_E:
+            reason = "clearly_different_colour"
+        else:
+            band["colour"] = anchor["colour"]
+            reason = "shared_house_colour; visual_default_not_albedo_measurement"
+        band["colour_policy_reason"] = reason
+    return result
+
+
+def appearance_result(bands: list[dict], controls: dict, boundaries_basis: str) -> dict:
+    return {
+        "schema": SCHEMA,
+        "bands": consistent_house_colours(
+            bands, ground_floor_business=controls.get("ground_floor_business") is True
+        ),
+        "boundaries_basis": boundaries_basis,
+        "colour_policy": "dominant_house_colour_unless_business_material_or_strong_colour_difference/1",
+        "distinct_colour_delta_e76": DISTINCT_COLOUR_DELTA_E,
+    }
+
 
 def colour_sample(image: np.ndarray, mask: np.ndarray) -> str | None:
     pixels = image[mask]
@@ -146,7 +214,7 @@ def appearance_bands(
         bands.sort(key=lambda b: b["bottom_m"])
         if any(a["top_m"] > b["bottom_m"] + 1e-6 for a, b in pairwise(bands)):
             raise ValueError("overlapping appearance bands")
-        return {"schema": SCHEMA, "bands": bands, "boundaries_basis": "reviewed_height_intervals"}
+        return appearance_result(bands, controls, "reviewed_height_intervals")
     levels = storey.get("storeys") if storey.get("status") == "prior_constrained" else None
     h, w = image.shape[:2]
     architecture = np.isin(labels, [0, 1, 25])
@@ -186,13 +254,13 @@ def appearance_bands(
                 "other_sides_basis": "inferred_same_height_band",
             }
         )
-    return {
-        "schema": SCHEMA,
-        "bands": bands,
-        "boundaries_basis": "canonical_height_and_levels_prior"
+    return appearance_result(
+        bands,
+        controls,
+        "canonical_height_and_levels_prior"
         if levels
         else "image_wall_colour_transition_on_height_prior; no invented storeys",
-    }
+    )
 
 
 def window_trim(
