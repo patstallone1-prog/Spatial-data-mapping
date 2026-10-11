@@ -25398,15 +25398,18 @@ function showDoor(door) {
   if (door.mesh) return;
   const street = terrainGroundAt(door.cx - door.nx * 0.6, door.cz - door.nz * 0.6);
   const pe = door.photoEntry;
-  let ground, stoopPlan;
+  let ground, stoopPlan, frontStair = null;
   if (pe) {
     // The photograph says how this door is reached: up a long or a short flight to the
     // threshold it measured, into an alcove at the pavement, or straight in. The rooms are at
     // the threshold.
     const stairs = pe.kind === "long_stair" || pe.kind === "short_stair";
     ground = stairs ? street + Math.max(STEP_RISE_M, pe.threshold_m) : street + 0.02;
+    // A house set back behind its stair: the flight runs out to the property line and the house
+    // starts where it ends. Only where the front has no such room is the stair cut into it.
+    frontStair = stairs ? planFrontStair(door, street, ground, pe.recess_width_m) : null;
     stoopPlan = pe.kind === "flat_alcove" ? planAlcove(door, street, pe.alcove)
-      : stairs ? planInwardStoop(door, street, ground, pe.recess_width_m) : null;
+      : stairs && !frontStair ? planInwardStoop(door, street, ground, pe.recess_width_m) : null;
     if (!door.entry.interior) door.entry.floorY = ground;
   } else {
     ground = entryFloorY(door.entry);
@@ -25420,7 +25423,7 @@ function showDoor(door) {
   // the stair behind it. It used to be left out altogether, and on the hills that was most
   // houses: a garage, and no door. It is drawn closed and solid; it does not open onto a floor
   // a storey up.
-  door.atGrade = ground - street >= 0.08 && !stoopPlan;
+  door.atGrade = ground - street >= 0.08 && !stoopPlan && !frontStair;
   // Where the floor is only a little above the street, the rooms are brought down to the door:
   // the house is entered at street level and its floor is the street's (the hill inside the
   // footprint is hidden while the walker is in it -- see indoorGroundCut). A house whose floor
@@ -25433,10 +25436,11 @@ function showDoor(door) {
   if (door.atGrade && ground - street > 4.0) return;
   const leafGround = door.atGrade ? street : ground;
   if (!door.atGrade) addStoop(door, street, ground, stoopPlan);
+  if (frontStair) addFrontStair(door, frontStair);
   if (pe?.gate) addGate(door, street);
-  // Independent of photo/UI flags: a raised runtime leaf must have a real inward plan.
+  // Independent of photo/UI flags: a raised runtime leaf must have a real flight up to it.
   if (!Number.isFinite(leafGround) || !Number.isFinite(street)
-      || (leafGround - street > .1524 && !door.stoopPlan)) return;
+      || (leafGround - street > .1524 && !door.stoopPlan && !door.frontStair)) return;
   const hinge = new THREE.Group();
   // Hinged at the t0 end, standing a hair outside the wall so it is not lost in it.
   const hx = door.entry.local[door.edge][0] + (door.entry.local[door.edge + 1][0] - door.entry.local[door.edge][0]) * door.t0;
@@ -25546,6 +25550,80 @@ function planAlcove(door, street, alcove) {
     }
   }
   return null;
+}
+
+//: How far the house's front is set back from its property line: walked out from the door to
+//: the road, less the pavement (0 where the front is at the back of the pavement).
+function frontSetback(door) {
+  for (let s = 0.5; s <= 14; s += 0.25) {
+    if (insideCarriageway(door.cx - door.nx * s, door.cz - door.nz * s, 0)) return Math.max(0, s - SIDEWALK_GUESS_M);
+  }
+  return 0;
+}
+//: A flight out in front of the house, from the property line up to a landing at its door: the
+//: house is set back behind its stair and starts where the stair ends. Null where the front has
+//: not the room for the whole flight, or something stands where it would.
+function planFrontStair(door, street, floor, photographedWidth = null) {
+  const rise = floor - street;
+  if (rise < 0.08) return null;
+  const steps = Math.ceil(rise / STEP_RISE_M);
+  const landingDepth = STEP_LANDING_TREADS * STEP_TREAD_M;
+  const run = landingDepth + steps * STEP_TREAD_M;
+  if (run > frontSetback(door) + 0.05) return null;
+  const widths = Number.isFinite(photographedWidth) && photographedWidth > door.width + 0.4
+    ? [Math.min(door.width + 2.4, photographedWidth), door.width + 0.4] : [door.width + 0.4];
+  for (const width of widths) {
+    let clear = true;
+    for (let a = 0; a <= 8 && clear; a += 1) {
+      for (let o = 1; o <= Math.ceil(run / 0.25) && clear; o += 1) {
+        const along = -width / 2 + width * a / 8, out = Math.min(run, o * 0.25);
+        const x = door.cx + door.ux * along - door.nx * out, z = door.cz + door.uz * along - door.nz * out;
+        if (buildingAt(x, z) || insideCarriageway(x, z, 0)) clear = false;
+      }
+    }
+    if (!clear) continue;
+    const treads = Array.from({ length: steps }, (_, i) => ({
+      near: landingDepth + (steps - 1 - i) * STEP_TREAD_M, far: landingDepth + (steps - i) * STEP_TREAD_M,
+      top: street + rise * (i + 1) / steps,
+    }));
+    return { front: true, steps, rise, width, run, landingDepth, street, floor, treads };
+  }
+  return null;
+}
+function addFrontStair(door, plan) {
+  door.frontStair = plan;
+  const { width, street, floor, landingDepth, run, steps, rise } = plan;
+  const group = new THREE.Group();
+  for (const tread of plan.treads) {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(width, tread.top - street + 0.05, tread.far - tread.near),
+      stoopMaterial);
+    box.position.set(0, (tread.top + street - 0.05) / 2, (tread.near + tread.far) / 2);
+    box.castShadow = true;
+    box.receiveShadow = true;
+    group.add(box);
+  }
+  const landing = new THREE.Mesh(new THREE.BoxGeometry(width, floor - street + 0.05, landingDepth), stoopMaterial);
+  landing.position.set(0, (floor + street - 0.05) / 2, landingDepth / 2);
+  landing.castShadow = true;
+  landing.receiveShadow = true;
+  group.add(landing);
+  // Local z points out of the building, toward the street; x along the wall.
+  group.position.set(door.cx, 0, door.cz);
+  group.rotation.y = Math.atan2(-door.nx, -door.nz);
+  group.traverse((o) => { if (o.isMesh) o.renderOrder = INTERIOR_ORDER; });
+  doorGroup.add(group);
+  door.frontStairMesh = group;
+  const each = rise / steps;
+  door.frontStairSurface = (x, z) => {
+    const dx = x - door.cx, dz = z - door.cz;
+    const along = dx * door.ux + dz * door.uz, out = -(dx * door.nx + dz * door.nz);
+    if (Math.abs(along) > width / 2 || out < -0.05 || out > run) return null;
+    if (out <= landingDepth) return floor;
+    const fromTop = Math.min(steps - 1, Math.floor((out - landingDepth) / STEP_TREAD_M));
+    return street + each * (steps - fromTop);
+  };
+  door.frontStairSurface.priority = 1;
+  standingSurfaces.add(door.frontStairSurface);
 }
 
 function addStoop(door, street, floor, plan = planInwardStoop(door, street, floor)) {
@@ -25707,15 +25785,13 @@ function addGate(door, street) {
   const pe = door.photoEntry, gate = pe?.gate;
   if (!gate || door.gate) return;
   // How far the front is set back: walked out from the door until the road, less the pavement.
-  let kerb = null;
-  for (let s = 0.5; s <= 14; s += 0.25) {
-    if (insideCarriageway(door.cx - door.nx * s, door.cz - door.nz * s, 0)) { kerb = s; break; }
-  }
-  const setback = kerb === null ? 0 : Math.max(0, kerb - SIDEWALK_GUESS_M);
+  const setback = frontSetback(door);
   const recessed = Boolean(door.stoopPlan) && setback < 1.0;
   const width = recessed ? door.stoopPlan.width : Math.min(1.8, Math.max(0.9, gate.w || 1.2));
   const height = Math.min(2.4, Math.max(1.0, gate.h || 1.6));
-  const out = recessed ? 0.03 : Math.max(0.6, setback - 0.1);
+  // At the property line -- beyond the foot of a stair that runs out to it.
+  const out = recessed ? 0.03 : door.frontStair ? Math.max(door.frontStair.run + 0.05, setback - 0.1)
+    : Math.max(0.6, setback - 0.1);
   // The check: in the entry, and closed against the walls either side -- or not drawn at all.
   // The garages on this wall, with a little room either side, in the door's frame.
   const [wallX, wallZ] = door.entry.local[door.edge];
@@ -25751,7 +25827,7 @@ function addGate(door, street) {
     group.add(panel);
     segments.push([px, pz, qx, qz]);
   }
-  if (!recessed) {
+  if (!recessed && !door.frontStair) {
     // The path from the gate to the door.
     const path = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.9, width - 0.2), 0.06, out),
       new THREE.MeshStandardMaterial({ color: 0xb9b4aa, roughness: 0.95 }));
@@ -25794,6 +25870,13 @@ function swingGates(dt) {
 
 function hideDoor(door) {
   if (!door.mesh) return;
+  if (door.frontStairMesh) {
+    doorGroup.remove(door.frontStairMesh);
+    door.frontStairMesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    standingSurfaces.delete(door.frontStairSurface);
+    door.frontStairMesh = null;
+    door.frontStair = null;
+  }
   if (door.gate) {
     doorGroup.remove(door.gate.group);
     door.gate.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });

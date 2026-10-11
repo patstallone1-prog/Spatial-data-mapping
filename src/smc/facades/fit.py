@@ -14,9 +14,17 @@ import numpy as np
 
 from smc.facades.appearance_bands import appearance_bands, colour_sample, window_trim
 from smc.facades.architecture_logic import canonical_front_binding, door_access, repeated_forms
-from smc.facades.coarse_openings import assign_roles, group_windows, share_window_detail
+from smc.facades.coarse_openings import (
+    assign_roles,
+    default_panes,
+    duplicate_neighbours,
+    group_windows,
+    mirror_floors,
+    share_window_detail,
+)
 from smc.facades.edge_support import opening_sanity, refine_opening
 from smc.facades.entry_inference import infer_entries, primary_entry
+from smc.facades.house_extent import assigned_house, isolate
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
 from smc.facades.outcrops import infer_candidates, reviewed_outcrops
 from smc.facades.survey import openings as dark_openings
@@ -47,6 +55,47 @@ def storey_constraint(height: float, levels: int | None, rows: list[float]) -> d
             "storeys": None,
         }
     return {"status": "unknown", "storeys": None, "storey_height_m": None}
+
+
+#: Panes narrower than this are not panes: two lines this close are the two edges of one bar.
+MIN_PANE_M = 0.22
+#: A line counts as a bar when it runs this much of the way from one side of the window to the
+#: other, parallel to the frame's other pair of sides.
+BAR_SPAN = 0.6
+
+
+def pane_lines(bgr: np.ndarray, width: float, height: float) -> tuple[list[float], list[float]]:
+    """Lines running between the sides of a window -- mullions and muntins -- as fractions.
+
+    A bar is a straight edge across the glass from one side of the frame to the other: in the
+    columns (rows) of the window's gradient, a column where an edge is present in most rows. The
+    two edges of one bar, and a line within a narrow pane of the frame, are one bar or none.
+    """
+    if not bgr.size or min(bgr.shape[:2]) < 12:
+        return [], []
+    grey = cv2.GaussianBlur(cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY), (3, 3), 0).astype(float)
+    h, w = grey.shape
+    found = []
+    # The frame's own sides are not bars: nothing within 15% of a jamb or 8% of a head or sill.
+    for axis, size, metres, edge in ((1, w, width, 0.15), (0, h, height, 0.08)):
+        grad = np.abs(cv2.Sobel(grey, cv2.CV_64F, 1 if axis == 1 else 0, 0 if axis == 1 else 1, ksize=3))
+        inner = grad[max(1, h // 10):h - max(1, h // 10), :] if axis == 1 else grad[:, max(1, w // 10):w - max(1, w // 10)]
+        strong = inner > max(18.0, np.percentile(inner, 80))
+        # Coverage of each column (axis 1) or row (axis 0), a pixel either side allowed.
+        coverage = strong.mean(axis=0 if axis == 1 else 1)
+        coverage = np.maximum.reduce([coverage, np.roll(coverage, 1), np.roll(coverage, -1)])
+        min_gap = max(2, int(MIN_PANE_M / metres * size))
+        frame = max(min_gap, int(edge * size) + 1)
+        bars: list[float] = []
+        for i in np.argsort(-coverage):
+            if coverage[i] < BAR_SPAN:
+                break
+            t = i / size
+            if not frame <= i <= size - frame or any(abs(i - b * size) < min_gap for b in bars):
+                continue
+            bars.append(t)
+        found.append(sorted(float(round(b, 3)) for b in bars)[:5])
+    return found[0], found[1]
 
 
 def opening_design(bgr: np.ndarray, width: float, height: float) -> dict:
@@ -93,6 +142,14 @@ def opening_design(bgr: np.ndarray, width: float, height: float) -> dict:
                 if margin < t < 1 - margin and len(cluster) / size < 0.12 and all(abs(t - old) > 0.07 for old in bars):
                     bars.append(t)
         vertical, horizontal = sorted(vertical)[:5], sorted(horizontal)[:5]
+    # And any line running between the window's sides the frame finds, parallel or perpendicular
+    # to them, a pane's width or more from the others.
+    lines_v, lines_h = pane_lines(bgr, width, height)
+    for bars, extra, size in ((vertical, lines_v, width), (horizontal, lines_h, height)):
+        for t in extra:
+            if all(abs(t - b) * size >= MIN_PANE_M for b in bars):
+                bars.append(t)
+    vertical, horizontal = sorted(vertical)[:5], sorted(horizontal)[:5]
     shape = (
         "panoramic" if width / height >= 1.9 else "tall" if height / width >= 1.7 else "standard"
     )
@@ -251,6 +308,12 @@ def extract_front(
     controls = controls or {}
     if bgr.shape[:2] != labels.shape or width <= 0 or height <= 0:
         raise ValueError("photo and semantic mask must share positive facade dimensions")
+    # First, which house in the frame is this one (house_extent): the next house's door, gate,
+    # stair and windows are put aside before anything is read.
+    house = assigned_house(bgr, labels, width, controls.get("detector_proposals"))
+    bgr, labels, proposals, house = isolate(bgr, labels, width, controls.get("detector_proposals"), house)
+    if proposals is not None:
+        controls = {**controls, "detector_proposals": proposals}
     ppm_x, ppm_y = bgr.shape[1] / width, bgr.shape[0] / height
     observations = []
     # New upstream detector proposals are optional, image-bound by the caller.
@@ -617,13 +680,20 @@ def extract_front(
             trim = window_trim(bgr, opening, width, height, appearance["bands"])
             if trim:
                 opening["design"]["trim"] = trim
-    # Fine detail last: a window of the same shape as a well-read one takes its panes and trim.
+    # Fine detail last. A plain window on a floor of matching ones is one of them; one of the same
+    # shape as a well-read one takes its panes and trim; of two stacked or side by side (a bay on
+    # two storeys, a wrap-around window), the surer is drawn in both places; and a window with
+    # nothing read or to copy is divided at the default pane width.
+    mirrored = mirror_floors(found)
     shared = share_window_detail(found)
+    duplicated = duplicate_neighbours(found)
+    defaulted = default_panes(found)
     for opening in found:
         if opening.get("size_from"):
             opening["u"] = round(min(max(opening["u"], 0.08), width - 0.08 - opening["w"]), 3)
             opening["v"] = round(min(max(opening["v"], 0.35), height - 0.15 - opening["h"]), 3)
     fit = {
+        "house_extent": house,
         "front_geometry_binding": canonical_front_binding(controls.get("canonical_front_geometry"), width),
         "sanity_checks": sanity,
         "schema": "kerbside.facade_fit/1",
@@ -657,6 +727,9 @@ def extract_front(
                       for r in sorted({o.get("role", "none") for o in found})},
             "windows_from_groups": sum(1 for o in found if o.get("size_inferred")),
             "windows_given_detail": shared,
+            "windows_mirrored_from_their_floor": mirrored,
+            "windows_duplicated_from_a_neighbour": duplicated,
+            "windows_given_default_panes": defaulted,
         },
         "opening_decisions": [
             p["opening_reasoning"] for p in details or [] if p.get("opening_reasoning")

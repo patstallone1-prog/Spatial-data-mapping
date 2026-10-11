@@ -186,3 +186,108 @@ def test_houses_keep_their_colour_without_a_measured_height_and_roles_reach_the_
     assert "if (!layout.ok) { gateStats.refused += 1;" in gate
     assert "if (!g.photo || !PHOTO_GARAGE_CERTAINTY.has(g.certainty)) continue;" in _extract(
         "dropKerbsAtDriveways", js)
+
+
+# ---- the house in the frame, panes, mirroring, the stair out front ----
+
+import numpy as np  # noqa: E402
+
+from smc.facades.coarse_openings import (  # noqa: E402
+    default_panes,
+    duplicate_neighbours,
+    mirror_floors,
+)
+from smc.facades.fit import pane_lines  # noqa: E402
+from smc.facades.house_extent import assigned_house, isolate  # noqa: E402
+
+
+def _two_houses(left_bgr, right_bgr, split=0.28, w=280, h=300):
+    img = np.zeros((h, w, 3), np.uint8)
+    img[:, :int(w * split)] = left_bgr
+    img[:, int(w * split):] = right_bgr
+    return img, np.ones((h, w), np.uint8)  # all "building"
+
+
+def test_the_neighbour_in_the_frame_is_put_aside_before_anything_is_read() -> None:
+    # Bryant Street: a blue-grey Victorian in the left quarter, the turquoise house the rest.
+    img, labels = _two_houses((160, 150, 140), (210, 200, 40))
+    props = [{"kind": "door", "box": [0.05, 0.5, 0.2, 0.9], "score": 0.5},      # the neighbour's
+             {"kind": "garage door", "box": [0.4, 0.6, 0.7, 0.95], "score": 0.6}]
+    house = assigned_house(img, labels, 7.0, props)
+    assert house["status"] == "segmented" and abs(house["boundaries"][0]["u"] - 0.28 * 7.0) < 0.15
+    _, lab, kept, info = isolate(img, labels, 7.0, props, house)
+    assert info["placement"] == "left_edge_at_wall_start" and info["proposals_dropped"] == 1
+    assert [p["kind"] for p in kept] == ["garage door"] and kept[0]["box"][0] < 0.4, "moved to the wall's start"
+    assert (lab[:, -10:] == 2).all(), "the unseen rest of the wall is not wall"
+
+
+def test_a_shadow_across_one_wall_is_not_a_second_house() -> None:
+    img, labels = _two_houses((200, 190, 40), (120, 114, 24), split=0.6)  # same paint, in shade
+    assert assigned_house(img, labels, 7.0)["status"] == "whole_frame"
+
+
+def test_lines_running_between_a_windows_sides_are_its_panes() -> None:
+    win = np.full((150, 120, 3), 70, np.uint8)       # dark glass, 1.2 m x 1.5 m
+    win[:, 58:62] = 235                               # a mullion, top to bottom
+    win[73:77, :] = 235                               # a transom, side to side
+    win[20:24, 5:40] = 235                            # a short line: not a bar
+    vertical, horizontal = pane_lines(win, 1.2, 1.5)
+    assert len(vertical) == 1 and abs(vertical[0] - 0.5) < 0.04
+    assert len(horizontal) == 1 and abs(horizontal[0] - 0.5) < 0.04
+
+
+def _w(id_, u, v, w, h, bars=(), rails=(), **extra):
+    return {"id": id_, "kind": "window", "role": "window", "u": u, "v": v, "w": w, "h": h, "confidence": 0.4,
+            "design": {"vertical_bars": list(bars), "horizontal_bars": list(rails), "shape": "standard"}, **extra}
+
+
+def test_a_plain_window_on_a_floor_of_matching_ones_is_one_of_them() -> None:
+    row = [_w("a", 0.5, 3.0, 1.0, 1.5, bars=[0.5], rails=[0.5]), _w("b", 2.5, 3.05, 1.05, 1.5, bars=[0.5], rails=[0.5]),
+           _w("c", 4.5, 3.2, 0.8, 1.1)]
+    assert mirror_floors(row) == 1
+    c = row[2]
+    assert c["design"]["vertical_bars"] == [0.5] and c["design"]["panes_basis"] == "mirrored_from_its_floor"
+    assert (c["w"], c["h"]) == (1.05, 1.5) and c["v"] == 3.05
+
+
+def test_stacked_or_side_by_side_windows_of_one_size_are_drawn_as_the_surer() -> None:
+    bay = [_w("upper", 1.0, 6.0, 1.3, 1.46, bars=[0.33, 0.66], rails=[0.3], confidence=0.6),
+           _w("lower", 1.05, 3.4, 1.2, 1.59, confidence=0.3),
+           _w("beside", 2.45, 6.05, 1.25, 1.4, confidence=0.2),
+           _w("far", 5.0, 3.4, 0.5, 2.2)]
+    assert duplicate_neighbours(bay) == 2
+    lower, beside, far = bay[1], bay[2], bay[3]
+    assert (lower["w"], lower["h"], lower["size_from"]) == (1.3, 1.46, "upper")
+    assert lower["design"]["vertical_bars"] == [0.33, 0.66] and beside["size_from"] == "upper"
+    assert "size_from" not in far
+
+
+def test_a_window_with_nothing_read_takes_the_default_pane_width() -> None:
+    wide, tall, small = _w("wide", 0, 3, 2.4, 1.5), _w("tall", 3, 3, 0.8, 1.8), _w("small", 5, 3, 0.5, 0.5)
+    assert default_panes([wide, tall, small]) == 2
+    assert wide["design"]["vertical_bars"] == [0.333, 0.667] and wide["design"]["horizontal_bars"] == [0.5]
+    assert tall["design"]["horizontal_bars"] == [0.5] and small["design"]["vertical_bars"] == []
+    assert wide["design"]["panes_basis"] == "default_pane_width"
+
+
+def test_a_set_back_house_has_its_stair_out_to_the_property_line() -> None:
+    js = _page_js()
+    pre = """
+    const STEP_RISE_M = 0.18, STEP_TREAD_M = 0.28, STEP_LANDING_TREADS = 4;
+    const door = { cx: 4, cz: 0, ux: 1, uz: 0, nx: 0, nz: -1, width: 1.0 };
+    let setback = 4.0;
+    function frontSetback() { return setback; }
+    function buildingAt(x, z) { return z < 0 ? {} : null; }
+    function insideCarriageway(x, z) { return z > 7; }
+    """
+    result = _node("\n".join([pre, _extract("planFrontStair", js), """
+    const plan = planFrontStair(door, 0, 1.6, 1.4);
+    setback = 1.0;
+    const tight = planFrontStair(door, 0, 1.6, 1.4);
+    console.log(JSON.stringify({ steps: plan.steps, run: +plan.run.toFixed(2), width: plan.width,
+      foot: plan.treads[0], top: plan.treads[plan.steps - 1], tight }));
+    """]))
+    assert result["steps"] == 9 and result["run"] == round(4 * 0.28 + 9 * 0.28, 2) and result["width"] == 1.4
+    # The lowest tread is the one at the property line, the highest against the landing.
+    assert result["foot"]["far"] == pytest.approx(result["run"]) and result["top"]["near"] == pytest.approx(4 * 0.28)
+    assert result["tight"] is None, "no room: the stair is cut into the house instead"

@@ -231,3 +231,128 @@ def share_window_detail(found: list[dict]) -> int:
         shared += 1
     return shared
 
+
+
+#: Windows whose centres are this close in height are on one floor.
+ROW_TOLERANCE_M = 0.5
+#: A plain window this close in width to its floor's matching windows is one of them.
+ROW_SAME_WIDTH = 0.35
+#: Two windows this close in both dimensions, stacked or side by side, are one design.
+NEIGHBOUR_SAME = 0.35
+#: Stacked: centres this close across; side by side: this little wall between them.
+STACK_ACROSS_M = 0.35
+SIDE_GAP_M = 0.4
+#: A window with no lines read and nothing to copy is divided into panes about this wide.
+DEFAULT_PANE_WIDTH_M = 0.8
+#: A pane this much taller than wide is a sash window: a meeting rail across its middle.
+SASH_RATIO = 1.3
+
+
+def _pattern(o: dict) -> tuple:
+    d = o.get("design") or {}
+    return (len(d.get("vertical_bars") or []), len(d.get("horizontal_bars") or []), d.get("shape") == "arched")
+
+
+def _read(o: dict) -> bool:
+    """A window whose own panes were read off the photograph."""
+    return (_detail(o) > 0 and not o.get("size_inferred")
+            and (o.get("design") or {}).get("panes_basis") is None)
+
+
+def _take(o: dict, model: dict, w: float, h: float, v: float | None, key: str, source) -> None:
+    """``o`` takes ``model``'s design and the given size, about its own centre."""
+    design = dict(o.get("design") or {})
+    for k in DETAIL_KEYS:
+        if k in (model.get("design") or {}):
+            design[k] = model["design"][k]
+    design["panes_basis"] = key
+    o["design"] = design
+    cu, cv = o["u"] + o["w"] / 2, o["v"] + o["h"] / 2
+    o.update(u=round(cu - w / 2, 3), v=round((cv - h / 2) if v is None else v, 3), w=round(w, 3), h=round(h, 3))
+    o["size_from"] = source
+
+
+def mirror_floors(found: list[dict]) -> int:
+    """On a floor of three or more windows where two or more show the same panes, a plain one of
+    about their width is one of them too: their panes and their size."""
+    windows = sorted((o for o in found if o.get("role", o["kind"]) == "window"), key=lambda o: o["v"] + o["h"] / 2)
+    rows: list[list[dict]] = []
+    for o in windows:
+        centre = o["v"] + o["h"] / 2
+        if rows and abs(centre - (rows[-1][0]["v"] + rows[-1][0]["h"] / 2)) <= ROW_TOLERANCE_M:
+            rows[-1].append(o)
+        else:
+            rows.append([o])
+    mirrored = 0
+    for row in rows:
+        if len(row) < 3:
+            continue
+        read = [o for o in row if _read(o)]
+        counts: dict[tuple, list[dict]] = {}
+        for o in read:
+            counts.setdefault(_pattern(o), []).append(o)
+        models = max(counts.values(), key=len, default=[])
+        if len(models) < 2:
+            continue
+        widths = sorted(o["w"] for o in models)
+        if widths[-1] > widths[0] * (1 + NEIGHBOUR_SAME):
+            continue
+        mw = widths[len(widths) // 2]
+        mh = sorted(o["h"] for o in models)[len(models) // 2]
+        mv = sorted(o["v"] for o in models)[len(models) // 2]
+        best = max(models, key=lambda o: o.get("confidence", 0))
+        for o in row:
+            if _detail(o) == 0 and _similar(o["w"], mw, ROW_SAME_WIDTH):
+                _take(o, best, mw, mh, mv, "mirrored_from_its_floor", [m["id"] for m in models])
+                mirrored += 1
+    return mirrored
+
+
+def _certainty(o: dict) -> float:
+    return (o.get("confidence", 0) + 0.1 * _detail(o) + (0.0 if o.get("size_inferred") else 0.2)
+            - (0.15 if (o.get("design") or {}).get("panes_basis") else 0.0))
+
+
+def duplicate_neighbours(found: list[dict]) -> int:
+    """Two windows one above the other, or side by side, of about one size -- a bay's windows on
+    two storeys, the faces of a wrap-around window -- are one design: the surer of the two is
+    drawn in both places (its panes and its size, each about its own centre)."""
+    windows = sorted((o for o in found if o.get("role", o["kind"]) == "window"), key=_certainty, reverse=True)
+    copied: set[str] = set()
+    count = 0
+    for hi in windows:
+        if hi["id"] in copied:
+            continue
+        for lo in windows:
+            if lo is hi or lo["id"] in copied or _certainty(lo) >= _certainty(hi):
+                continue
+            if not (_similar(lo["w"], hi["w"], NEIGHBOUR_SAME) and _similar(lo["h"], hi["h"], NEIGHBOUR_SAME)):
+                continue
+            stacked = (abs((lo["u"] + lo["w"] / 2) - (hi["u"] + hi["w"] / 2)) <= STACK_ACROSS_M
+                       and abs((lo["v"] + lo["h"] / 2) - (hi["v"] + hi["h"] / 2)) >= max(lo["h"], hi["h"]))
+            gap = max(lo["u"], hi["u"]) - min(lo["u"] + lo["w"], hi["u"] + hi["w"])
+            beside = abs((lo["v"] + lo["h"] / 2) - (hi["v"] + hi["h"] / 2)) <= ROW_TOLERANCE_M and gap <= SIDE_GAP_M
+            if not (stacked or beside):
+                continue
+            _take(lo, hi, hi["w"], hi["h"], None, "duplicate_of_a_surer_neighbour", hi["id"])
+            copied.add(lo["id"])
+            count += 1
+    return count
+
+
+def default_panes(found: list[dict]) -> int:
+    """A window with no lines read and none to copy is divided into panes of the default width,
+    with a meeting rail where the panes are tall -- marked as the default it is."""
+    count = 0
+    for o in found:
+        if o.get("role", o["kind"]) != "window" or _detail(o) > 0:
+            continue
+        n = max(1, round(o["w"] / DEFAULT_PANE_WIDTH_M))
+        vertical = [round(i / n, 3) for i in range(1, n)]
+        horizontal = [0.5] if o["h"] / (o["w"] / n) >= SASH_RATIO else []
+        if not vertical and not horizontal:
+            continue
+        o["design"] = {**(o.get("design") or {}), "vertical_bars": vertical, "horizontal_bars": horizontal,
+                       "panes_basis": "default_pane_width", "default_pane_width_m": DEFAULT_PANE_WIDTH_M}
+        count += 1
+    return count
