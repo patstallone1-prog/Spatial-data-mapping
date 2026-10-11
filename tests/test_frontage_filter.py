@@ -225,3 +225,20 @@ def test_reported_pose_conversion_preserves_axis_convention_but_is_not_solved():
     u, v, valid = project(cam, np.array([[0, 12, 2.4]]))
     assert valid[0] and u[0] == pytest.approx(1000) and v[0] == pytest.approx(750)
     assert capture_date("2025-01-01T00:00:00Z").tzinfo == UTC
+
+
+def test_photographs_are_screened_in_parallel_and_failed_downloads_are_not_retried_forever() -> None:
+    """One at a time, the filter sat waiting on the network; and the same seventy failing frames
+    were retried in every batch."""
+    import runpy
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[1] / "scripts/filter_frontage_photos.py"
+    module = runpy.run_path(str(path))
+    assert module["SCREEN_WORKERS"] >= 4
+    assert module["MAX_DOWNLOAD_ATTEMPTS"] == 3 and module["DOWNLOAD_RETRY_AFTER_S"] >= 3600
+    source = path.read_text()
+    assert "pool.submit(screen_one, row, candidate, region, run_id)" in source
+    # The GPU model is the one shared thing: screening takes turns, nothing else does.
+    assert "with screen_lock:\n                    measured = screen.screen(view.image, view.mask)" in source
+    assert '"download_attempts": attempts, "last_attempt_at": datetime.now(UTC)' in source
