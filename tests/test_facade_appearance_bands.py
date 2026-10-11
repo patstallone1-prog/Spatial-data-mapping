@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from smc.facades.appearance_bands import appearance_bands, window_trim
+from smc.facades.appearance_bands import appearance_bands, consistent_house_colours, window_trim
 from smc.facades.fit import extract_front
 
 
@@ -141,3 +141,47 @@ def test_gradual_lighting_gradient_and_masked_vehicle_do_not_make_colour_bands()
     image[150:] = 45
     labels[150:] = 20
     assert appearance_bands(image, labels, 8, {}, [], {})["bands"] == []
+
+
+def test_similar_levels_share_dominant_colour_without_losing_observations():
+    source = [
+        {"bottom_m": 0, "top_m": 3, "colour": "#a99b8c", "material": "stucco_render"},
+        {"bottom_m": 3, "top_m": 9, "colour": "#b9ac9a", "material": "stucco_render"},
+    ]
+    result = consistent_house_colours(source)
+    assert [b["colour"] for b in result] == ["#b9ac9a"] * 2
+    assert [b["observed_colour"] for b in result] == ["#a99b8c", "#b9ac9a"]
+    assert source[0]["colour"] == "#a99b8c"
+
+
+def test_only_mapped_business_ground_floor_is_exempt_upper_storeys_still_match():
+    bands = [
+        {"bottom_m": i * 3, "top_m": (i + 1) * 3, "material": "stucco_render", "colour": colour}
+        for i, colour in enumerate(("#a99b8c", "#b9ac9a", "#baad9b"))
+    ]
+    result = consistent_house_colours(bands, ground_floor_business=True)
+    assert result[0]["colour"] == "#a99b8c"
+    assert result[1]["colour"] == result[2]["colour"]
+    assert result[0]["colour_policy_reason"] == "business_ground_floor"
+
+
+def test_different_material_or_strong_colour_remains_independent():
+    bands = [
+        {"bottom_m": 0, "top_m": 3, "colour": "#b9ac9a", "material": "brick"},
+        {"bottom_m": 3, "top_m": 6, "colour": "#2155a0", "material": "stucco_render"},
+        {"bottom_m": 6, "top_m": 12, "colour": "#baad9b", "material": "stucco_render"},
+    ]
+    result = consistent_house_colours(bands)
+    assert [b["colour"] for b in result] == [b["colour"] for b in bands]
+    assert result[0]["colour_policy_reason"] == "different_observed_material"
+    assert result[1]["colour_policy_reason"] == "clearly_different_colour"
+
+
+def test_unknown_floor_material_does_not_invent_a_material_change():
+    bands = [
+        {"bottom_m": 0, "top_m": 3, "colour": "#aaaaaa", "material": "unknown"},
+        {"bottom_m": 3, "top_m": 6, "colour": "#bbbbbb", "material": "unknown"},
+    ]
+    result = consistent_house_colours(bands)
+    assert len({b["colour"] for b in result}) == 1
+    assert all(b["material"] == "unknown" for b in result)

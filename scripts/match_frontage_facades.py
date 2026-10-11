@@ -184,6 +184,12 @@ def cycle(args) -> dict:
             if levels and str(levels).isdigit():
                 supplied.setdefault("levels", int(levels))
             supplied.setdefault("material", materials[region].get(key, {}).get("class", "unknown"))
+            # Match the viewer's mapped storefront classification; a dark lower
+            # floor or a door/garage detection alone is not evidence of a business.
+            supplied.setdefault(
+                "ground_floor_business", bool(way.get("shops"))
+                or way.get("archetype") in {"retail", "restaurant", "office", "hotel"},
+            )
             width = ((wall["b"][0] - wall["a"][0]) ** 2 + (wall["b"][1] - wall["a"][1]) ** 2) ** 0.5
             frame = LocalFrame(
                 (bbox["north"] + bbox["south"]) / 2, (bbox["east"] + bbox["west"]) / 2
