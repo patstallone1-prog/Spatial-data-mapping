@@ -135,3 +135,16 @@ def test_full_run_requires_three_distinct_reviewed_current_facts(tmp_path):
     approval["houses"][2] = approval["houses"][1]
     path.write_text(json.dumps(approval))
     assert not MODULE["full_run_approved"](path, renderer)
+
+
+def test_a_worker_that_exited_is_relaunched_onto_a_freshly_opened_log() -> None:
+    """The drive can remount under a running supervisor; a worker handed the old log descriptor
+    died at its first write, over and over, for most of an hour."""
+    from pathlib import Path
+
+    source = (Path(__file__).resolve().parents[1] / "scripts/run_frontage_workers.py").read_text()
+    relaunch = source[source.index("for name, command in commands.items():"):]
+    assert relaunch.index("logs.pop(name).close()") < relaunch.index("children[name] = subprocess.Popen(")
+    # And the power and storage gate in front of it is unchanged.
+    assert "eligible = power_eligible(power, args.battery_min_percent)" in source
+    assert "if not eligible or not capacity:" in source
