@@ -14,6 +14,7 @@ import numpy as np
 
 from smc.facades.appearance_bands import appearance_bands, colour_sample, window_trim
 from smc.facades.architecture_logic import canonical_front_binding, door_access, repeated_forms
+from smc.facades.coarse_openings import assign_roles, group_windows, share_window_detail
 from smc.facades.edge_support import opening_sanity, refine_opening
 from smc.facades.entry_inference import infer_entries, primary_entry
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
@@ -349,7 +350,9 @@ def extract_front(
             continue
         if kind == "window" and v < 0.35:
             continue
-        if kind != "window" and (h < 1.5 or h > 4):
+        # A door's height is read off a photograph that often clips its foot: 1.2 m of door is
+        # still a door (coarse first; the entry pass decides what it is).
+        if kind != "window" and (h < 1.2 or h > 4):
             continue
         if any(
             abs(u + w / 2 - o["u"] - o["w"] / 2) < min(w, o["w"]) * 0.7
@@ -548,8 +551,11 @@ def extract_front(
     # still has to pass the same access check below.
     gates_seen = [{"u": o["u"], "v": o["v"], "w": o["w"], "h": o["h"]} for o in found
                   if o["kind"] == "gated_entry_candidate"]
+    # A door the detector called a garage door, a car's width, is not the way in on foot.
+    walkable = [o for o in found if not ((o.get("opening_reasoning") or {}).get("original_label")
+                                         == "garage door" and o["w"] >= 1.7)]
     entries = infer_entries(
-        bgr, labels, width, height, found,
+        bgr, labels, width, height, walkable,
         storey_height_m=storey.get("visual_storey_height_m") or storey.get("storey_height_m"),
         gate_proposals=gates_seen, image_sha256=controls.get("image_sha256"),
     )
@@ -578,6 +584,10 @@ def extract_front(
              and gate["u"] < e["gate"]["u"] + e["gate"]["w"] and gate["u"] + gate["w"] > e["gate"]["u"]),
             None,
         )
+    # Coarse to fine: every rectangle is a window, a garage or an entrance from its shape and
+    # height, and a detected bay holds a window on each storey (coarse_openings).
+    assign_roles(found, entries, width, height, storey)
+    found.extend(group_windows(found, details, width, height, storey))
     # Curb controls must declare matching units/datum. Never compare two unrelated z values.
     ground = controls.get("ground_reference")
     for opening in found:
@@ -607,6 +617,12 @@ def extract_front(
             trim = window_trim(bgr, opening, width, height, appearance["bands"])
             if trim:
                 opening["design"]["trim"] = trim
+    # Fine detail last: a window of the same shape as a well-read one takes its panes and trim.
+    shared = share_window_detail(found)
+    for opening in found:
+        if opening.get("size_from"):
+            opening["u"] = round(min(max(opening["u"], 0.08), width - 0.08 - opening["w"]), 3)
+            opening["v"] = round(min(max(opening["v"], 0.35), height - 0.15 - opening["h"]), 3)
     fit = {
         "front_geometry_binding": canonical_front_binding(controls.get("canonical_front_geometry"), width),
         "sanity_checks": sanity,
@@ -635,6 +651,13 @@ def extract_front(
         "opening_logic_schema": "kerbside.opening_reasoning/1",
         "entries": entries,
         "primary_entry": primary_entry(entries),
+        "coarse_openings": {
+            "schema": "kerbside.coarse_openings/1",
+            "roles": {r: sum(1 for o in found if o.get("role") == r)
+                      for r in sorted({o.get("role", "none") for o in found})},
+            "windows_from_groups": sum(1 for o in found if o.get("size_inferred")),
+            "windows_given_detail": shared,
+        },
         "opening_decisions": [
             p["opening_reasoning"] for p in details or [] if p.get("opening_reasoning")
         ],
