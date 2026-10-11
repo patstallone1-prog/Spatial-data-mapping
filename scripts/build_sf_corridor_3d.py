@@ -3255,8 +3255,9 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
     .then(r => r.ok ? r.json() : null).catch(() => null),
 ]);
 function applyStorefrontNames(data, inventory) {
+  const bbox = data.bbox;
   if (inventory?.schema !== "kerbside.storefront_names/1" || inventory.geometry_modified !== false
-      || !["west","east","north","south"].every(k=>inventory.bbox?.[k]===data.bbox?.[k])) return 0;
+      || !["west","east","north","south"].every(k=>inventory.bbox?.[k]===bbox?.[k])) return 0;
   let applied=0;
   for (const feature of data.ways) {
     if (feature.kind !== "building") continue;
