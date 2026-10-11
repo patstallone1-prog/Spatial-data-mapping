@@ -2,6 +2,13 @@
   "schema_version": 1,
   "sources": [
     {
+      "source_id": "3d-street-view",
+      "license_id": "3D-Street-View-NonCommercial",
+      "attribution": "Zamir, Wekel, Agrawal, Malik and Savarese: Generic 3D Representation via Pose Estimation and Matching (ECCV 2016)",
+      "status": "approved",
+      "allowed_uses": ["cv_processing", "private_reference_comparison", "private_pose_benchmark"]
+    },
+    {
       "source_id": "mapillary",
       "license_id": "CC-BY-SA-4.0",
       "attribution": "© Mapillary contributors, CC BY-SA 4.0",

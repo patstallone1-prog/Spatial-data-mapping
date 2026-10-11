@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "checked_at": "2026-10-10",
-  "policy": "No Google imagery, unapproved derivative rights, or manual mesh promoted as measured truth.",
+  "policy": "No Google imagery in public/production assets. Explicitly consented private noncommercial reference work is separate. No unapproved derivative rights or manual mesh promoted as measured truth.",
   "datasets": [
     {
       "id": "sf-xl",
@@ -28,10 +28,13 @@
       "nominal_image_resolution": [640, 640],
       "full_size_bytes_approx": 800000000000,
       "source_family": "Google Street View",
-      "rights_status": "restricted_noncommercial_no_redistribution",
+      "rights_status": "user_consented_private_noncommercial_no_redistribution",
+      "private_reference_download_enabled": true,
+      "private_reference_audit_enabled": true,
+      "private_reference_consent_date": "2026-10-10",
       "production_enabled": false,
       "benchmark_enabled": false,
-      "reason": "Noncommercial restriction applies to derivatives. Google imagery excluded. Models are manually generated reference geometry, not independent photogrammetric/lidar truth.",
+      "reason": "User authorized private noncommercial acquisition and research on 2026-10-10. Public source redistribution and commercial derivatives remain prohibited. Models are manually generated reference geometry, not independent photogrammetric/lidar truth; no automatic canonical/public promotion.",
       "grouping": "Keep DatasetID, StreetViewID, TargetID, PatchID, d/a metadata and all correspondence partners together."
     },
     {
