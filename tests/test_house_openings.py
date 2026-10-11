@@ -160,3 +160,24 @@ def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() ->
     assert "const slabRing = insetRing(entry, ring.slice(0, -1), INTERIOR_WALL_INSET_M);" in interior
     assert "floorShapeWithStairCuts(slabRing, stairCuts)" in interior
     assert "nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, INTERIOR_WALL_INSET_M + 0.01), shellPlaster)" in build
+
+
+def test_window_pictures_exist_before_the_first_building_is_drawn() -> None:
+    """An accepted photographed front on a building that is not a home draws its windows
+    (photoOpeningParts -> homeDesignMaterial) while the streets are built. With the window
+    materials declared further down the page they were still uninitialised, and the page
+    stopped at "Building the streets"."""
+    js = _page_js()
+    first_build = js.index("buildingMesh(way)")
+    for name in ("const homeWindowTexture", "const homeDecalMaterial", "const homeDesignMaterials"):
+        assert js.index(name) < first_build, name
+
+
+def test_the_frame_loop_goes_on_when_the_browser_withholds_frames() -> None:
+    """On battery, a browser can stop firing requestAnimationFrame for a visible page; the doors,
+    window decals and shells are laid out in the loop, so a timer stands in for the frame."""
+    js = _page_js()
+    request = _extract("requestFrame", js)
+    assert "requestAnimationFrame(" in request and "setTimeout(" in request
+    assert "id === frameRequest" in request and "!document.hidden" in request
+    assert _extract("animate", js).split("\n")[1].strip() == "requestFrame();"
