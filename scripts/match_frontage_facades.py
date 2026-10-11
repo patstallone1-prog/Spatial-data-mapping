@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Fit retained front photographs into private, provenance-bound visual specifications.
 
-Continuously watches filter review outputs. Publishing is a separate explicit,
-reviewed-parameter action; raw photographs never enter public output here.
+Continuously watches the filter's photo bucket (its review output). With --auto-accept every
+fit is decided automatically (smc.facades.auto_review) into a bucket per house, and the accepted
+ones are published as parameters; raw photographs never enter public output here.
 """
 
 from __future__ import annotations
@@ -26,6 +27,8 @@ from smc.facades.version import implementation_sha256  # noqa: E402
 
 LOADED_IMPLEMENTATION = implementation_sha256(ROOT)
 
+from smc.facades.auto_review import accepted as auto_accepted  # noqa: E402
+from smc.facades.auto_review import decide  # noqa: E402
 from smc.facades.architecture_logic import (  # noqa: E402
     NeighbourIndex,
     front_footprint_frame,
@@ -304,6 +307,7 @@ def cycle(args) -> dict:
         atomic(args.output / f"{fit['region']}-{key}.json", fit)
     if implementation_sha256(ROOT) != code_hash:
         raise RuntimeError("facade implementation changed during cycle; worker restart required")
+    reconstructed = reconstruct(args, builds) if getattr(args, "auto_accept", False) else None
     atomic(
         args.output / "latest.json",
         {
@@ -479,6 +483,7 @@ def cycle(args) -> dict:
             bool(o.get("design", {}).get("trim")) for f in builds.values() for o in f["openings"]
         ),
         "held_by_strict_frontage": held,
+        "reconstruction": reconstructed,
         "quarantined_views": len(failures),
         "elapsed_seconds": round(time.perf_counter() - started, 3),
         "extraction_view_seconds": {
@@ -490,6 +495,61 @@ def cycle(args) -> dict:
     return status
 
 
+def reconstruct(args, builds: dict) -> dict:
+    """Decide every fitted house and put it in its bucket; publish the accepted ones.
+
+    ``houses/<region>/<id>.json`` is a house that is reconstructed: its fit, accepted, with the
+    reasons. ``rejected/<region>/<id>.json`` is one that is not, with why. The accepted ones go
+    into the fits the model draws (docs/sf-corridor-frontage-fits.json); a house a person
+    reviewed keeps that review, and one no longer accepted is taken out.
+    """
+    counts = Counter()
+    entries = Counter()
+    published = {}
+    index = []
+    for key, fit in builds.items():
+        decision = decide(fit)
+        accept = decision["accept"]
+        counts["accepted" if accept else "rejected"] += 1
+        for reason in decision["reasons"]:
+            counts[f"rejected_because:{reason.split(':')[0]}"] += 1
+        bucket, other = ("houses", "rejected") if accept else ("rejected", "houses")
+        stale = args.output / other / fit["region"] / f"{key}.json"
+        if stale.exists():
+            stale.unlink()
+        record = auto_accepted(fit, decision) if accept else {**fit, "auto_review": decision}
+        atomic(args.output / bucket / fit["region"] / f"{key}.json", record)
+        if accept:
+            published[key] = record
+            entry = fit.get("primary_entry") or {}
+            entries[f"{entry.get('kind', 'none')}{'+gate' if entry.get('gate') else ''}"] += 1
+            index.append({"region": fit["region"], "building_id": key,
+                          "address": (fit.get("address") or {}).get("formatted"),
+                          "colour": (fit.get("appearance") or {}).get("colour"),
+                          "entry": entry.get("kind"), "gate": bool(entry.get("gate")),
+                          "windows": sum(o.get("kind") == "window" for o in fit.get("openings", []))})
+    atomic(args.output / "houses" / "index.json",
+           {"schema": "kerbside.reconstructed_houses/1", "count": len(index),
+            "houses": sorted(index, key=lambda r: (r["region"], r["building_id"]))})
+    target = args.publish_to
+    previous = json.loads(target.read_text()) if target.exists() else {}
+    if previous and previous.get("schema") != "kerbside.facade_fits/1":
+        raise ValueError("unsupported existing facade publication; refusing to overwrite")
+    reviewed = {k: v for k, v in (previous.get("buildings") or {}).items()
+                if v.get("review_status") == "reviewed_inferred_visual_parameters"}
+    buildings = {**published, **reviewed}
+    if buildings != (previous.get("buildings") or {}):
+        atomic(target, {
+            "schema": "kerbside.facade_fits/1",
+            "buildings": buildings,
+            "note": "Image-derived visual parameters on canonical geometry, accepted automatically "
+                    "(smc.facades.auto_review) or reviewed; no photographic pixels included.",
+        })
+    return {"accepted": counts["accepted"], "rejected": counts["rejected"],
+            "rejection_reasons": {k.split(":", 1)[1]: v for k, v in counts.items() if k.startswith("rejected_because:")},
+            "accepted_entries": dict(entries), "published": len(buildings)}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inputs", type=Path, nargs="+", required=True)
@@ -498,6 +558,9 @@ if __name__ == "__main__":
     parser.add_argument("--reviews", type=Path)
     parser.add_argument("--publish-reviewed", nargs="+")
     parser.add_argument("--watch-seconds", type=int, default=0)
+    parser.add_argument("--auto-accept", action="store_true",
+                        help="decide every fit automatically (auto_review) and publish the accepted")
+    parser.add_argument("--publish-to", type=Path, default=ROOT / "docs/sf-corridor-frontage-fits.json")
     parser.add_argument("--device", choices=["cpu", "mps", "cuda", "auto"], default="cpu")
     parser.add_argument(
         "--detail-model-cache",

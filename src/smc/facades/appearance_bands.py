@@ -31,6 +31,26 @@ MATERIALS = {
 # A visual consistency default, not a measured paint/material classification.
 # Ordinary image exposure differences must not give every storey its own paint.
 DISTINCT_COLOUR_DELTA_E = 25.0
+#: How much of a lightness difference counts. Shade, a porch roof or the sun on the upper floors
+#: changes how light a wall looks far more than its hue or how saturated it is: a cream house's
+#: ground floor in shadow is a darker cream, not a different paint.
+LIGHTNESS_WEIGHT = 0.35
+#: Below this chroma both colours are greys, where lightness is all that tells white from charcoal.
+NEUTRAL_CHROMA = 12.0
+
+
+def lighting_tolerant_difference(a, b) -> float:
+    """Lab difference with lightness discounted, except between near-neutral colours.
+
+    Two samples of one paint under different light differ mostly in L*; two paints differ in hue
+    and chroma. Between greys there is no hue to go by, so a large lightness gap (white against
+    charcoal) still counts for most of its size.
+    """
+    dl = float(a[0] - b[0])
+    hue_chroma = float(np.hypot(a[1] - b[1], a[2] - b[2]))
+    if max(float(np.hypot(a[1], a[2])), float(np.hypot(b[1], b[2]))) < NEUTRAL_CHROMA:
+        return max(hue_chroma, 0.6 * abs(dl))
+    return float(np.hypot(hue_chroma, LIGHTNESS_WEIGHT * dl))
 
 
 def consistent_house_colours(
@@ -76,7 +96,7 @@ def consistent_house_colours(
             reason = "business_ground_floor"
         elif known_difference:
             reason = "different_observed_material"
-        elif sample is not None and np.linalg.norm(sample - anchor_lab) > DISTINCT_COLOUR_DELTA_E:
+        elif sample is not None and lighting_tolerant_difference(sample, anchor_lab) > DISTINCT_COLOUR_DELTA_E:
             reason = "clearly_different_colour"
         else:
             band["colour"] = anchor["colour"]
@@ -92,7 +112,8 @@ def appearance_result(bands: list[dict], controls: dict, boundaries_basis: str) 
             bands, ground_floor_business=controls.get("ground_floor_business") is True
         ),
         "boundaries_basis": boundaries_basis,
-        "colour_policy": "dominant_house_colour_unless_business_material_or_strong_colour_difference/1",
+        "colour_policy": "dominant_house_colour_unless_business_material_or_strong_colour_difference/2",
+        "colour_difference": "lab_lightness_discounted_except_neutrals",
         "distinct_colour_delta_e76": DISTINCT_COLOUR_DELTA_E,
     }
 

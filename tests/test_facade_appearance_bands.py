@@ -185,3 +185,25 @@ def test_unknown_floor_material_does_not_invent_a_material_change():
     result = consistent_house_colours(bands)
     assert len({b["colour"] for b in result}) == 1
     assert all(b["material"] == "unknown" for b in result)
+
+
+def test_a_shaded_ground_floor_is_the_same_paint_but_a_real_second_colour_is_kept():
+    # Cream upstairs, the same cream in the shade of the porch below: one house colour.
+    shaded = consistent_house_colours([
+        {"bottom_m": 0, "top_m": 3, "colour": "#8a7f63", "material": "stucco_render"},
+        {"bottom_m": 3, "top_m": 9, "colour": "#e6d8b0", "material": "stucco_render"},
+    ])
+    assert [b["colour"] for b in shaded] == ["#e6d8b0"] * 2
+    # A blue ground floor under a cream house: a second paint, whatever the light.
+    painted = consistent_house_colours([
+        {"bottom_m": 0, "top_m": 3, "colour": "#3d5f8f", "material": "stucco_render"},
+        {"bottom_m": 3, "top_m": 9, "colour": "#e6d8b0", "material": "stucco_render"},
+    ])
+    assert painted[0]["colour"] == "#3d5f8f"
+    assert painted[0]["colour_policy_reason"] == "clearly_different_colour"
+    # White against charcoal: no hue to go by, and the lightness says they differ.
+    greys = consistent_house_colours([
+        {"bottom_m": 0, "top_m": 3, "colour": "#2b2b2b", "material": "unknown"},
+        {"bottom_m": 3, "top_m": 9, "colour": "#ececec", "material": "unknown"},
+    ])
+    assert greys[0]["colour"] == "#2b2b2b"

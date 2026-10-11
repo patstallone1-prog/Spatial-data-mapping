@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="fa8540434de62c402e899f412909013f962bd04fc72c362cc9ebf9f559ba1843" />
+<meta name="kerbside-renderer-sha256" content="55e5f0f5723ef7df67573f86d446710c0eb7aead059e5f30c663bd466f0f0aae" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -478,9 +478,11 @@ function frontageNormalFor(fit) {
   return expected;
 }
 function frontageFitFor(feature) {
+  // A fit the reconstructor accepted (match_frontage_facades.py, auto_review), or one a person
+  // reviewed: either is drawn.
   if (FRONTAGE_FITS.schema !== "kerbside.facade_fits/1") return null;
   const fit = FRONTAGE_FITS.buildings?.[String(feature.osm_id)];
-  if (!fit || fit.review_status !== "reviewed_inferred_visual_parameters"
+  if (!fit || !["reviewed_inferred_visual_parameters", "auto_accepted_visual_parameters"].includes(fit.review_status)
       || fit.canonical_geometry_modified || fit.conflicts?.length
       || (fit.openings || []).some(o=>o.kind === "garage_candidate" && o.recess?.render_steps)
       || !Array.isArray(fit.canonical_footprint) || !Array.isArray(feature.points)
@@ -22186,6 +22188,22 @@ function settleDoors(entry) {
   // inferred its door on whichever wall it took to face the street, and that was often a side
   // or the back -- so from the street the house had a door from far off and none up close.
   if (entry.way._frontDoor && kept.every((door) => door.source === 2)) kept.length = 0;
+  // The front door the photograph shows, and how it is reached. It replaces any door within a
+  // few metres of it on the same wall, and every inferred door on that wall: the photograph
+  // shows the wall, and where it saw no door there is none.
+  const photo = photoEntryDoor(entry);
+  if (photo) {
+    const at = (photo.t0 + photo.t1) / 2;
+    const a = entry.local[photo.edge], b = entry.local[photo.edge + 1];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    for (let i = kept.length - 1; i >= 0; i -= 1) {
+      const d = kept[i];
+      if (d.edge === photo.edge && (d.source === 2 || Math.abs((d.t0 + d.t1) / 2 - at) * length < 3)) kept.splice(i, 1);
+    }
+    kept.unshift(photo);
+    entry.doors = kept;
+    return;
+  }
   if (!kept.length && entry.way._frontDoor) {
     // The edge the facade's door is on, and where along it.
     const { x, z } = entry.way._frontDoor;
@@ -22205,6 +22223,37 @@ function settleDoors(entry) {
     }
   }
   entry.doors = kept;
+}
+
+//: The front door the photograph shows (the fit's primary entry, entry_inference): on the
+//: footprint edge the fitted front lies along, at the place along it the photo puts the door.
+function photoEntryDoor(entry) {
+  const fit = frontageFitFor(entry.way);
+  const pe = fit?.primary_entry;
+  if (!pe || !fit.a || !fit.b || ![pe.u, pe.w].every(Number.isFinite)) return null;
+  const [ax, ay] = xy(...fit.a), [bx, by] = xy(...fit.b);
+  const f = [ax, -ay], g = [bx, -by], span = Math.hypot(g[0] - f[0], g[1] - f[1]);
+  if (span < 1) return null;
+  const tx = (g[0] - f[0]) / span, tz = (g[1] - f[1]) / span;
+  // Behind a gate the entry is where the gate is: the door the photo found may be a step aside.
+  const centre = pe.gate && Number.isFinite(pe.gate.u) ? pe.gate.u + pe.gate.w / 2 : pe.u + pe.w / 2;
+  const along = Math.min(span, Math.max(0, centre));
+  const px = f[0] + tx * along, pz = f[1] + tz * along;
+  let best = null;
+  for (let edge = 0; edge + 1 < entry.local.length; edge += 1) {
+    const a = entry.local[edge], b = entry.local[edge + 1];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (L < 1.2 || Math.abs(((b[0] - a[0]) * tx + (b[1] - a[1]) * tz) / L) < 0.9) continue;
+    const t = ((px - a[0]) * (b[0] - a[0]) + (pz - a[1]) * (b[1] - a[1])) / (L * L);
+    if (t < 0 || t > 1) continue;
+    const d = Math.sqrt(distanceToSegmentSquared(px, pz, a[0], a[1], b[0], b[1]));
+    if (d < 1.5 && (!best || d < best.d)) best = { d, edge, t };
+  }
+  if (!best) return null;
+  const leaf = pe.hidden_door ? DOOR_LEAF_M : Math.min(1.2, Math.max(0.8, pe.w));
+  const door = doorOn(entry, best.edge, best.t, leaf, 1);
+  if (door) door.photoEntry = pe;
+  return door;
 }
 
 function doorOn(entry, edge, t, width, source) {
@@ -22267,6 +22316,10 @@ function wallSegmentsNear(x, z) {
           if (from < 1) out.push([ax + (bx - ax) * from, az + (bz - az) * from, bx, bz]);
         }
         for (const d of entry.doors || []) {
+          if (d.gate) {
+            for (const seg of d.gate.segments) out.push(seg);
+            if (d.gate.angle < 0.3) out.push(d.gate.leaf);
+          }
           if (!d.stoopPlan) continue;
           const depth = d.stoopPlan.depth;
           const half = (d.stoopPlan.width || d.width) / 2;
@@ -22346,9 +22399,22 @@ root.add(doorGroup);
 const doorsShown = new Set();
 function showDoor(door) {
   if (door.mesh) return;
-  const ground = entryFloorY(door.entry);
   const street = terrainGroundAt(door.cx - door.nx * 0.6, door.cz - door.nz * 0.6);
-  const stoopPlan = planInwardStoop(door, street, ground);
+  const pe = door.photoEntry;
+  let ground, stoopPlan;
+  if (pe) {
+    // The photograph says how this door is reached: up a long or a short flight to the
+    // threshold it measured, into an alcove at the pavement, or straight in. The rooms are at
+    // the threshold.
+    const stairs = pe.kind === "long_stair" || pe.kind === "short_stair";
+    ground = stairs ? street + Math.max(STEP_RISE_M, pe.threshold_m) : street + 0.02;
+    stoopPlan = pe.kind === "flat_alcove" ? planAlcove(door, street, pe.alcove)
+      : stairs ? planInwardStoop(door, street, ground, pe.recess_width_m) : null;
+    if (!door.entry.interior) door.entry.floorY = ground;
+  } else {
+    ground = entryFloorY(door.entry);
+    stoopPlan = planInwardStoop(door, street, ground);
+  }
   // A guessed door on a flat frontage is not evidence for a flight of stairs.
   // Nor can an observed door be drawn floating above the street when its
   // footprint has no room for an inward flight: leave it unrendered for review.
@@ -22362,7 +22428,7 @@ function showDoor(door) {
   // the house is entered at street level and its floor is the street's (the hill inside the
   // footprint is hidden while the walker is in it -- see indoorGroundCut). A house whose floor
   // is a full storey up keeps its closed street door, and says it has no interior.
-  if (door.atGrade && ground - street <= ROOMS_LOWERED_MAX_M && !door.entry.interior) {
+  if (door.atGrade && ground - street <= ROOMS_LOWERED_MAX_M && !door.entry.interior && !pe) {
     door.entry.floorY = street + 0.05;
     door.entry.roomsLowered = true;
     door.atGrade = false;
@@ -22370,6 +22436,7 @@ function showDoor(door) {
   if (door.atGrade && ground - street > 4.0) return;
   const leafGround = door.atGrade ? street : ground;
   if (!door.atGrade) addStoop(door, street, ground, stoopPlan);
+  if (pe?.gate) addGate(door, street);
   // Independent of photo/UI flags: a raised runtime leaf must have a real inward plan.
   if (!Number.isFinite(leafGround) || !Number.isFinite(street)
       || (leafGround - street > .1524 && !door.stoopPlan)) return;
@@ -22417,7 +22484,7 @@ function showDoor(door) {
   door.entry.shellNeedsRebuild = true;
 }
 const stoopMaterial = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 });
-function planInwardStoop(door, street, floor) {
+function planInwardStoop(door, street, floor, photographedWidth = null) {
   const rise = floor - street;
   if (rise < 0.08) return null;
   const steps = Math.ceil(rise / STEP_RISE_M);
@@ -22425,7 +22492,18 @@ function planInwardStoop(door, street, floor) {
     const uphill = terrainGroundAt(door.cx + door.nx * 1.2, door.cz + door.nz * 1.2);
     if (steps > 3 || uphill - street < 0.15) return null;
   }
-  const width = door.width + 0.4;
+  // A photographed stairwell is as wide as the photo shows it, if the footprint has the room;
+  // otherwise as wide as the door's.
+  const widths = Number.isFinite(photographedWidth) && photographedWidth > door.width + 0.4
+    ? [Math.min(door.width + 2.4, photographedWidth), door.width + 0.4] : [door.width + 0.4];
+  for (const width of widths) {
+    const plan = stoopAtWidth(door, street, floor, rise, steps, width);
+    if (plan) return plan;
+  }
+  return null;
+}
+
+function stoopAtWidth(door, street, floor, rise, steps, width) {
   const landingDepth = STEP_LANDING_TREADS * STEP_TREAD_M;
   const depth = steps * STEP_TREAD_M + landingDepth;
   const treads = Array.from({ length: steps }, (_, i) => ({
@@ -22449,6 +22527,28 @@ function planInwardStoop(door, street, floor) {
     }
   }
   return { steps, rise, width, depth, landingDepth, street, floor, treads };
+}
+
+//: A flat alcove: a recess at the pavement as wide as the photograph measured it and as deep as
+//: the footprint gives it (entry_inference infers the depth; the walls here may make it less),
+//: with the door at its back. A stoop with no steps -- the same recess, landing and portal.
+function planAlcove(door, street, alcove) {
+  const want = Math.max(door.width + 0.2, Math.min(door.width + 2.4, alcove?.width_m || door.width + 0.6));
+  for (const depth of [alcove?.depth_m || 1.2, 1.0, 0.8, 0.6]) {
+    for (const width of [want, door.width + 0.2]) {
+      let fits = true;
+      for (let a = 0; a <= 8 && fits; a += 1) {
+        for (let n = 0; n <= 6 && fits; n += 1) {
+          const along = -width / 2 + width * a / 8, inward = Math.max(0.03, depth * n / 6);
+          if (!insideFootprint(door.entry, door.cx + door.ux * along + door.nx * inward,
+            door.cz + door.uz * along + door.nz * inward)) fits = false;
+        }
+      }
+      if (fits) return { steps: 0, rise: 0, width, depth, landingDepth: depth, street, floor: street,
+        alcove: true, treads: [{ near: 0, far: depth, top: street, landing: true }] };
+    }
+  }
+  return null;
 }
 
 function addStoop(door, street, floor, plan = planInwardStoop(door, street, floor)) {
@@ -22496,8 +22596,150 @@ function addStoop(door, street, floor, plan = planInwardStoop(door, street, floo
   standingSurfaces.add(door.stoopSurface);
 }
 
+
+// ---- the gate in front of an entry -------------------------------------------------------------
+//
+// An iron gate at the pavement, pickets across a garden, a solid gate in a wall: the photograph
+// saw it (entry_inference: style, height, colour) in front of the door. Where the house stands at
+// the back of the pavement the gate closes the mouth of its stair or alcove; where it is set back
+// behind a garden the gate stands at the property line, the fence the photo saw runs either side,
+// and a path leads from the gate to the door. It opens with Enter, inward, like a door.
+//: The pavement assumed between the kerb and the property line: San Francisco's usual ten feet.
+const SIDEWALK_GUESS_M = 3.0;
+const GATE_OPEN_RAD = 1.45;
+const gateMaterials = new Map();
+function gateMaterial(colour, style) {
+  const key = `${style}:${colour}`;
+  if (!gateMaterials.has(key)) {
+    const iron = style === "bars";
+    let hex = iron ? 0x1d1f21 : style === "pickets" ? 0xe9e4d8 : 0x6b4f37;
+    if (/^#[0-9a-f]{6}$/i.test(colour || "")) hex = parseInt(colour.slice(1), 16);
+    gateMaterials.set(key, new THREE.MeshStandardMaterial({ color: hex, roughness: iron ? 0.45 : 0.8,
+      metalness: iron ? 0.6 : 0.0 }));
+  }
+  return gateMaterials.get(key);
+}
+//: A panel of fence or a gate leaf, from x = 0 to ``width``, standing on y = 0, in the x/y plane.
+function fencePanel(width, height, style, material) {
+  const group = new THREE.Group();
+  const add = (w, h, d, x, y) => {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+    box.position.set(x, y, 0);
+    box.castShadow = true;
+    group.add(box);
+  };
+  const frame = style === "bars" ? 0.035 : 0.06;
+  add(frame, height, frame, frame / 2, height / 2);
+  add(frame, height, frame, width - frame / 2, height / 2);
+  add(width, frame, frame, width / 2, height - frame / 2);
+  add(width, frame, frame, width / 2, Math.min(0.15, height * 0.1));
+  if (style === "bars") {
+    const n = Math.max(2, Math.round(width / 0.12));
+    for (let i = 1; i < n; i += 1) {
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, height - 0.04, 6), material);
+      bar.position.set(width * i / n, height / 2, 0);
+      group.add(bar);
+    }
+    add(width, frame * 0.7, frame * 0.7, width / 2, height * 0.55);
+  } else if (style === "pickets") {
+    const pitch = 0.125;
+    for (let x = 0.07; x < width - 0.06; x += pitch) add(0.09, height - 0.1, 0.02, x + 0.045, height / 2);
+  } else {
+    add(width - 2 * frame, height - 0.2, 0.03, width / 2, height / 2);
+  }
+  return group;
+}
+function addGate(door, street) {
+  const pe = door.photoEntry, gate = pe?.gate;
+  if (!gate || door.gate) return;
+  // How far the front is set back: walked out from the door until the road, less the pavement.
+  let kerb = null;
+  for (let s = 0.5; s <= 14; s += 0.25) {
+    if (insideCarriageway(door.cx - door.nx * s, door.cz - door.nz * s, 0)) { kerb = s; break; }
+  }
+  const setback = kerb === null ? 0 : Math.max(0, kerb - SIDEWALK_GUESS_M);
+  const recessed = Boolean(door.stoopPlan) && setback < 1.0;
+  const width = recessed ? door.stoopPlan.width : Math.min(1.8, Math.max(0.9, gate.w || 1.2));
+  const height = Math.min(2.4, Math.max(1.0, gate.h || 1.6));
+  const out = recessed ? 0.03 : Math.max(0.6, setback - 0.1);
+  const material = gateMaterial(gate.colour, gate.style || "bars");
+  const yaw = Math.atan2(-door.uz, door.ux);
+  const at = (along, outward) => [door.cx + door.ux * along - door.nx * outward,
+    door.cz + door.uz * along - door.nz * outward];
+  const group = new THREE.Group();
+  const [hx, hz] = at(-width / 2, out);
+  const base = recessed ? street : terrainGroundAt(...at(0, out));
+  const hinge = new THREE.Group();
+  hinge.position.set(hx, base, hz);
+  hinge.rotation.y = yaw;
+  hinge.add(fencePanel(width, height, gate.style || "bars", material));
+  group.add(hinge);
+  const segments = [];
+  if (!recessed) {
+    // The fence either side, where the photograph saw fence; and the path to the door.
+    const fit = frontageFitFor(door.entry.way);
+    const [fax, fay] = xy(...fit.a), [fbx, fby] = xy(...fit.b);
+    const f = [fax, -fay], g = [fbx, -fby], span = Math.hypot(g[0] - f[0], g[1] - f[1]) || 1;
+    const tx = (g[0] - f[0]) / span, tz = (g[1] - f[1]) / span;
+    for (const run of fit.entries?.fences || []) {
+      const ends = [run.u, run.u + run.w].map((u) => (f[0] + tx * u - door.cx) * door.ux + (f[1] + tz * u - door.cz) * door.uz)
+        .sort((p, q) => p - q);
+      for (const [s0, s1] of [[ends[0], Math.min(ends[1], -width / 2)], [Math.max(ends[0], width / 2), ends[1]]]) {
+        if (s1 - s0 < 0.3) continue;
+        const [px, pz] = at(s0, out);
+        const panel = fencePanel(s1 - s0, Math.min(2.4, Math.max(0.8, run.h || height)), run.style || gate.style || "bars",
+          gateMaterial(run.colour || gate.colour, run.style || gate.style || "bars"));
+        panel.position.set(px, terrainGroundAt(px, pz), pz);
+        panel.rotation.y = yaw;
+        group.add(panel);
+        const [qx, qz] = at(s1, out);
+        segments.push([px, pz, qx, qz]);
+      }
+    }
+    const path = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.9, width - 0.2), 0.06, out),
+      new THREE.MeshStandardMaterial({ color: 0xb9b4aa, roughness: 0.95 }));
+    const [mx, mz] = at(0, out / 2);
+    path.position.set(mx, terrainGroundAt(mx, mz) + 0.03, mz);
+    path.rotation.y = yaw;
+    path.receiveShadow = true;
+    group.add(path);
+  }
+  group.traverse((o) => { if (o.isMesh) o.renderOrder = INTERIOR_ORDER; });
+  doorGroup.add(group);
+  const [ex, ez] = at(width / 2, out);
+  door.gate = { group, hinge, yaw, width, open: false, angle: 0, segments,
+    leaf: [hx, hz, ex, ez], cx: (hx + ex) / 2, cz: (hz + ez) / 2 };
+}
+//: The gate within reach of the walker, if one is nearer than any door.
+function nearestGate() {
+  const x = avatar.position.x, z = avatar.position.z;
+  let best = null, bestD = DOOR_REACH_M;
+  for (const door of doorsShown) {
+    if (!door.gate) continue;
+    const d = Math.hypot(door.gate.cx - x, door.gate.cz - z);
+    if (d < bestD) { best = door.gate; bestD = d; }
+  }
+  return best;
+}
+function swingGates(dt) {
+  for (const door of doorsShown) {
+    const gate = door.gate;
+    if (!gate) continue;
+    const target = gate.open ? GATE_OPEN_RAD : 0;
+    if (Math.abs(target - gate.angle) < 1e-3) continue;
+    gate.angle += Math.sign(target - gate.angle) * Math.min(Math.abs(target - gate.angle), dt * 2.5);
+    // Swings inward, toward the door, like the door does.
+    gate.hinge.rotation.y = gate.yaw + door.inward * gate.angle;
+  }
+}
+
 function hideDoor(door) {
   if (!door.mesh) return;
+  if (door.gate) {
+    doorGroup.remove(door.gate.group);
+    door.gate.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    door.gate = null;
+  }
   if (door.stoop) {
     doorGroup.remove(door.stoop);
     door.stoop.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
@@ -22625,7 +22867,14 @@ addEventListener("keydown", (e) => {
   }
   const roomDoor = nearestRoomDoor();
   if (roomDoor) { roomDoor.open = !roomDoor.open; e.preventDefault(); return; }
+  const gate = nearestGate();
   const door = nearestDoor();
+  const ax = avatar.position.x, az = avatar.position.z;
+  if (gate && (!door || Math.hypot(gate.cx - ax, gate.cz - az) < Math.hypot(door.cx - ax, door.cz - az))) {
+    gate.open = !gate.open;
+    e.preventDefault();
+    return;
+  }
   if (!door) return;
   toggleDoor(door);
   e.preventDefault();
@@ -22714,8 +22963,12 @@ function updateDoors(dt) {
   if (!insideId && state.autoFirstPerson) setFirstPerson(false);
   state.indoors = Boolean(insideId && insideEntry?.interior);
   swingRoomDoors(dt);
+  swingGates(dt);
   const roomDoor = nearestRoomDoor();
-  if (roomDoor) {
+  const gateNear = !roomDoor ? nearestGate() : null;
+  if (gateNear && (!door || Math.hypot(gateNear.cx - x, gateNear.cz - z) < Math.hypot(door.cx - x, door.cz - z))) {
+    setHint(`Enter — ${gateNear.open ? "close" : "open"} the gate`);
+  } else if (roomDoor) {
     setHint(`Enter — ${roomDoor.open ? "close" : "open"} the door`);
   } else if (door) {
     setHint(door.atGrade ? "No house interior"
@@ -23277,6 +23530,15 @@ function buildHomeShell(entry) {
         d.cx + ux * a + nx * depth, d.cz + uz * a + nz * depth,
         d.cx + ux * b + nx * depth, d.cz + uz * b + nz * depth]);
       group.add(new THREE.Mesh(wallQuads(jambs, floor, DOOR_HEIGHT_M), shellPlaster));
+      // And its ceiling: looking up into a stairwell or an alcove sees its soffit, not the rooms.
+      const top = floor + DOOR_HEIGHT_M;
+      const corners = [[-half, 0], [half, 0], [half, depth], [-half, depth]]
+        .map(([along, inward]) => [d.cx + ux * along + nx * inward, top, d.cz + uz * along + nz * inward]);
+      const soffit = new THREE.BufferGeometry();
+      soffit.setAttribute("position", new THREE.Float32BufferAttribute(corners.flat(), 3));
+      soffit.setIndex([0, 1, 2, 0, 2, 3]);
+      soffit.computeVertexNormals();
+      group.add(new THREE.Mesh(soffit, shellPlaster));
     }
   }
   group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };

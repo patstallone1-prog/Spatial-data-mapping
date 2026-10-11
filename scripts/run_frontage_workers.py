@@ -292,6 +292,9 @@ def main():
                         "mps",
                         "--watch-seconds",
                         "30",
+                        # The reconstructor: every fit accepted or rejected automatically, into
+                        # a bucket per house, and the accepted published as parameters.
+                        "--auto-accept",
                     ],
                     "storefronts": [
                         str(args.python), str(ROOT / "scripts/audit_frontage_sources.py"),
