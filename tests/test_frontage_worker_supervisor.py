@@ -148,3 +148,11 @@ def test_a_worker_that_exited_is_relaunched_onto_a_freshly_opened_log() -> None:
     # And the power and storage gate in front of it is unchanged.
     assert "eligible = power_eligible(power, args.battery_min_percent)" in source
     assert "if not eligible or not capacity:" in source
+
+
+def test_every_module_a_fit_is_made_with_is_in_the_restart_fingerprint() -> None:
+    """A change to how entries, roles or the assigned house are read must restart the matcher."""
+    from smc.facades.version import IMPLEMENTATION_FILES
+
+    for name in ("entry_inference", "auto_review", "coarse_openings", "house_extent"):
+        assert f"src/smc/facades/{name}.py" in IMPLEMENTATION_FILES
