@@ -311,7 +311,7 @@ class PandaSetProvider:
         )
 
     def resolve_image(self, observation: Observation) -> ImageAsset:
-        path = f"pandaset/{observation.provider_image_id}.jpg"
+        path = self.image_path(observation)
         try:
             self.archive.getinfo(path)
         except KeyError as exc:
@@ -326,7 +326,17 @@ class PandaSetProvider:
 
     def read_pixels(self, observation: Observation) -> bytes:
         """The JPEG itself, pulled out of the archive by range request."""
-        return self.archive.read(f"pandaset/{observation.provider_image_id}.jpg")
+        return self.archive.read(self.image_path(observation))
+
+    @staticmethod
+    def image_path(observation: Observation) -> str:
+        parts = observation.provider_image_id.split("/")
+        if len(parts) != 3:
+            raise ObservationUnavailable("invalid PandaSet frame identity")
+        sequence, camera, frame = parts
+        if not sequence.isdigit() or camera not in CAMERAS or not frame.isdigit():
+            raise ObservationUnavailable("invalid PandaSet frame identity")
+        return f"pandaset/{sequence}/camera/{camera}/{int(frame):02d}.jpg"
 
     def get_license(self, observation: Observation | None = None) -> License:
         return LICENSE

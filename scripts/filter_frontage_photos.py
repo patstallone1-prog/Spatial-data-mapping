@@ -13,6 +13,7 @@ import dataclasses
 import fcntl
 import hashlib
 import html
+import inspect
 import itertools
 import json
 import math
@@ -47,6 +48,11 @@ from smc.facades.poses import _pose  # noqa: E402
 from smc.facades.rectify import rectify_wall  # noqa: E402
 from smc.imagery.http import HttpClient  # noqa: E402
 from smc.imagery.schema import Observation  # noqa: E402
+from smc.imagery.frontage_sources import (  # noqa: E402
+    RESTRICTED_DATASETS, SUPPORTED_PROVIDERS, provider_for, read_source_pixels, source_block_reason,
+)
+from smc.facades.scheduling import fair_batch  # noqa: E402
+from smc.facades.selection_cache import compatible_selection  # noqa: E402
 from smc.net import use_certifi  # noqa: E402
 from smc.reconstruction.pixel_store import CanonicalPixels, LocalBlobStore  # noqa: E402
 
@@ -267,6 +273,7 @@ def scan_region(args, region, poses, landmarks, now, policy):
     stamp = {
         "method": METHOD,
         "implementation_sha256": args.code_hash,
+        "selection_sha256": getattr(args, "selection_hash", args.code_hash),
         "policy": dataclasses.asdict(policy),
         "date": now.date().isoformat(),
         "world_sha256": file_hash(page),
@@ -281,6 +288,10 @@ def scan_region(args, region, poses, landmarks, now, policy):
     }
     run_id = hashlib.sha256(json.dumps(stamp, sort_keys=True).encode()).hexdigest()[:20]
     folder = args.output / region / run_id
+    reusable = compatible_selection((args.output / region).resolve(), stamp, args.code_hash)
+    if reusable:
+        print(f"{region}: verified compatible selection resumed ({reusable['run']})", flush=True)
+        return reusable
     folder.mkdir(parents=True, exist_ok=True)
     emit(folder / "run.json", stamp)
     database = folder / "selection.sqlite"
@@ -326,6 +337,9 @@ def scan_region(args, region, poses, landmarks, now, policy):
                 continue
             seen.add(uid)
             source_counts[row["provider"]] += 1
+            if source_block_reason(row["provider"]):
+                date_counts["restricted_source"] += 1
+                continue
             # Recent records first; old records still needed for matched landmark exceptions.
             issue = date_gate(row.get("captured_at"), now, policy)
             if issue and not (landmarks and issue == "older_than_ten_years"):
@@ -526,17 +540,28 @@ def review_samples(args, summaries, policy):
     }
     pending = []
     for row, candidate, region, run_id in rows:
+        queued_providers = set()
         for candidate in row["candidates"]:
             if (
                 region,
                 row["building_id"],
                 candidate["observation"]["observation_uid"],
-            ) not in seen_views:
+            ) not in seen_views and candidate["observation"]["provider"] not in queued_providers:
                 pending.append((row, candidate, region, run_id))
-                break
-    attempted = Counter((r["region"], r["building_id"]) for r in records)
-    pending.sort(key=lambda p: attempted[(p[2], p[0]["building_id"])])
-    for row, candidate, region, run_id in pending[: args.sample]:
+                queued_providers.add(candidate["observation"]["provider"])
+    batch = fair_batch(pending, records, args.sample)
+    batch_groups = Counter()
+    emit(args.output / "pixel-worker.json", {
+        "status": "screening", "pid": os.getpid(), "at": datetime.now(UTC),
+        "configured_batch_size": args.sample, "selected": len(batch),
+        "pending_city_provider_queues": {
+            f"{region}/{provider}": count for (region, provider), count in
+            Counter((p[2], p[1]["observation"]["provider"]) for p in pending).items()
+        },
+        "supported_providers": SUPPORTED_PROVIDERS,
+        "automatically_publishes": False,
+    })
+    for row, candidate, region, run_id in batch:
         obs = candidate["observation"]
         uid = obs["observation_uid"]
         report_path = samples / f"{region}-{row['building_id']}-{uid[:16]}.json"
@@ -573,21 +598,9 @@ def review_samples(args, summaries, policy):
             break  # Capacity is not a failed source, empty measurement, or rejection.
         try:
             provider_name = obs["provider"]
-            if provider_name not in providers:
-                if provider_name == "mapillary":
-                    from smc.imagery.mapillary import MapillaryProvider
-
-                    providers[provider_name] = MapillaryProvider()
-                elif provider_name == "kartaview":
-                    from smc.imagery.kartaview import KartaViewProvider
-
-                    providers[provider_name] = KartaViewProvider()
-                elif provider_name == "panoramax":
-                    from smc.imagery.panoramax import PanoramaxProvider
-
-                    providers[provider_name] = PanoramaxProvider(endpoint=obs["provider_instance"])
-                else:
-                    raise ValueError("no verified pixel adapter for this provider")
+            provider_key = (provider_name, obs["provider_instance"])
+            if provider_key not in providers:
+                providers[provider_key] = provider_for(*provider_key)
             observation = Observation(
                 **{f.name: obs[f.name] for f in dataclasses.fields(Observation) if f.name in obs}
             )
@@ -595,8 +608,7 @@ def review_samples(args, summaries, policy):
             from smc.facades.frontage import capture_date
 
             observation.captured_at = capture_date(obs["captured_at"])
-            asset = providers[provider_name].resolve_image(observation)
-            raw = HttpClient(max_attempts=2).fetch(asset.url)
+            raw = read_source_pixels(providers[provider_key], observation)
             with tempfile.NamedTemporaryFile(dir=samples, suffix=".image") as fh:
                 fh.write(raw)
                 fh.flush()
@@ -608,7 +620,8 @@ def review_samples(args, summaries, policy):
                 "pixel_sha256": digest,
                 "raw_sha256": hashlib.sha256(raw).hexdigest(),
                 "observation": obs,
-                "rights_status": "conditional_attribution_share_alike",
+                "rights_status": "conditional_attribution_share_alike"
+                if "-SA-" in obs["license_id"] else "conditional_attribution",
                 "publication": "private_review_only",
             }
             # Multiple aliases survive even when exact pixels match. No similar-view dedupe.
@@ -713,6 +726,13 @@ def review_samples(args, summaries, policy):
             report.update({"status": "download_or_decode_failed", "error_type": type(exc).__name__})
         emit(report_path, report)
         records.append(report)
+        batch_groups[f"{region}/{obs['provider']}"] += 1
+        emit(args.output / "pixel-progress.json", {
+            "at": datetime.now(UTC), "pid": os.getpid(), "status": "screening",
+            "processed_in_batch": sum(batch_groups.values()), "selected": len(batch),
+            "city_provider_processed": dict(batch_groups), "last": report["review_key"],
+            "automatically_publishes": False,
+        })
         print(f"review {region}/{row['building_id']}: {report['status']}", flush=True)
     from smc.facades.frontage_retention import prune_rejected
 
@@ -756,6 +776,17 @@ def review_samples(args, summaries, policy):
     )
     (samples / "index.html").write_text(gallery, encoding="utf-8")
     return Counter(r["status"] for r in records)
+
+
+def selection_fingerprint():
+    return hashlib.sha256((
+        "".join(inspect.getsource(function) for function in (
+            cells, crosses, blocked_sightline, matching_landmark, paths_for, camera_for, scan_region,
+            source_block_reason,
+        )) + "".join(file_hash(ROOT / path) for path in (
+            "src/smc/facades/frontage.py", "src/smc/facades/grounding.py",
+        )) + json.dumps(RESTRICTED_DATASETS, sort_keys=True)
+    ).encode()).hexdigest()
 
 
 def main():
@@ -822,10 +853,16 @@ def main():
         ROOT / "src/smc/facades/frontage_pixels.py",
         ROOT / "src/smc/facades/frontage_retention.py",
         ROOT / "src/smc/facades/grounding.py",
+        ROOT / "src/smc/facades/scheduling.py",
+        ROOT / "src/smc/imagery/frontage_sources.py",
+        ROOT / "src/smc/facades/selection_cache.py",
+        ROOT / "src/smc/imagery/pandaset.py",
+        ROOT / "src/smc/imagery/archive.py",
     ]
     args.code_hash = hashlib.sha256(
         "".join(file_hash(p) for p in implementation).encode()
     ).hexdigest()
+    args.selection_hash = selection_fingerprint()
     while True:
         now = datetime.now(UTC)
         poses = {}

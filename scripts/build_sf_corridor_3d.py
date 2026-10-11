@@ -997,8 +997,6 @@ def attach_shopfronts(ways: list[dict]) -> int:
             if not _ring_contains(building["points"], point[0], point[1]):
                 continue
             shops = building.setdefault("shops", [])
-            if len(shops) >= MAX_SHOPFRONTS:
-                break
             if any(s["n"] == name for s in shops):
                 break
             shops.append({"n": name, "t": trade})
@@ -1090,20 +1088,19 @@ def attach_named_places(ways: list[dict[str, Any]]) -> dict[str, int]:
         if way.get("kind") != "building":
             continue
         shops = way.get("shops") or []
-        if shops:
-            continue
-        seen: set[str] = set()
+        # Names are facts, not the renderer's sign-space budget. Retain every
+        # source-matched tenant, even when only a few signs fit on the street wall.
+        before = len(shops)
+        seen: set[str] = {str(s.get("n") or "").strip().casefold() for s in shops}
         for place in way.get("overture_places") or []:
             name = str(place.get("name") or "").strip()
             trade = place_trade(place.get("category") or "")
-            if not name or trade is None or name.lower() in seen:
+            if not name or trade is None or name.casefold() in seen:
                 continue
             shops.append({"n": name, "t": trade, "s": "overture_places"})
-            seen.add(name.lower())
+            seen.add(name.casefold())
             counts["overture_places"] += 1
-            if len(shops) >= MAX_SHOPFRONTS:
-                break
-        if len(shops) < MAX_SHOPFRONTS:
+        if not before:
             for place in way.get("google_places") or []:
                 if str(place.get("business_status") or "OPERATIONAL") != "OPERATIONAL":
                     continue
@@ -1113,16 +1110,14 @@ def attach_named_places(ways: list[dict[str, Any]]) -> dict[str, int]:
                     continue
                 name = str(place.get("name") or "").strip()
                 trade = place_trade(place.get("primary_type") or "")
-                if not name or trade is None or name.lower() in seen:
+                if not name or trade is None or name.casefold() in seen:
                     continue
                 shops.append({"n": name, "t": trade, "s": "google_places"})
-                seen.add(name.lower())
+                seen.add(name.casefold())
                 counts["google_places"] += 1
-                if len(shops) >= MAX_SHOPFRONTS:
-                    break
         if shops:
             way["shops"] = shops
-            counts["buildings_named"] += 1
+            counts["buildings_named"] += len(shops) > before
     return counts
 
 
@@ -3201,7 +3196,7 @@ const GROUND_URL = asset("sf-corridor-ground.json");
 //: Where the square is, read from the payload's cells before anything is fetched.
 const LIGHT_SPEC = LIGHT_LEVEL ? await fetch(PAYLOAD_URL.replace(/([^/]+)\.json$/, "cells/$1/manifest.json"), { cache: "no-cache" })
   .then((r) => (r.ok ? r.json() : null)).then((m) => windowSpec(m && m.bbox)).catch(() => null) : null;
-const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS] = await Promise.all([
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES] = await Promise.all([
   fetchWindowed(PAYLOAD_URL, () => fetch(PAYLOAD_URL, { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -3255,7 +3250,33 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
   fetchWindowed(asset("sf-corridor-world-objects.json"), () => fetch(asset("sf-corridor-world-objects.json"), { cache: "no-cache" })
     .then((r) => r.ok ? r.json() : EMPTY_WORLD_OBJECTS))
     .catch(() => EMPTY_WORLD_OBJECTS),
+  fetch(ATTACH ? ATTACH.resolve("sf-corridor-storefront-names.json")
+    : new URL("sf-corridor-storefront-names.json", location.href), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
 ]);
+function applyStorefrontNames(data, inventory) {
+  const bbox = data.bbox;
+  if (inventory?.schema !== "kerbside.storefront_names/1" || inventory.geometry_modified !== false
+      || !["west","east","north","south"].every(k=>inventory.bbox?.[k]===bbox?.[k])) return 0;
+  let applied=0;
+  for (const feature of data.ways) {
+    if (feature.kind !== "building") continue;
+    const entry=inventory.buildings?.[String(feature.osm_id)];
+    if (!entry || entry.height_m !== (feature.height_m ?? null)
+        || !Array.isArray(entry.points) || entry.points.length !== feature.points?.length
+        || !entry.points.every((p,i)=>Array.isArray(p) && p.length===2
+          && p.every((v,j)=>Number.isFinite(v) && v===feature.points[i][j]))) continue;
+    const names=(entry.shops || []).filter(s=>s && typeof s.n === "string"
+      && s.n.trim() && s.n.length<=200 && typeof s.t === "string");
+    if (!names.length) continue;
+    // A tenant point does not establish a ground-floor shopfront or its sign position.
+    // Keep names searchable/on the address card without inventing new facade geometry.
+    feature.tenant_names=names;
+    applied+=1;
+  }
+  return applied;
+}
+applyStorefrontNames(DATA, STORE_NAMES);
 const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : { assigned: {} })
   .catch(() => ({ assigned: {} }));
@@ -24048,7 +24069,8 @@ document.getElementById("reset").addEventListener("click", () => {
     if (label) addresses.push({ label, hay: `${label} ${way.name || ""}`.toLowerCase(), lon, lat });
     const where = label ? ` · ${label}` : "";
     if (way.name) places.push({ label: `${way.name}${where}`, hay: `${way.name} ${label}`.toLowerCase(), lon, lat });
-    for (const shop of way.shops || []) {
+    const tenants=new Map([...(way.shops || []),...(way.tenant_names || [])].map(s=>[s.n,s]));
+    for (const shop of tenants.values()) {
       if (!shop.n || shop.n === way.name) continue;
       places.push({ label: `${shop.n}${where}`, hay: `${shop.n} ${shop.t || ""} ${label}`.toLowerCase(), lon, lat });
     }
@@ -24684,6 +24706,7 @@ function showAddress(feature, clientX, clientY) {
   if (!line && !feature.name && feature.kind !== "building") return false;
   const rest = [
     feature.name && line ? feature.name : "",
+    ...(feature.tenant_names || []).map(s=>s.n.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))),
     parcel.blklot ? `Parcel ${parcel.blklot}` : "",
     parcel.analysis_neighborhood || "",
     `Certainty: ${houseCertainty(feature).level.toUpperCase()}; ${houseCertainty(feature).front}; ${houseCertainty(feature).metricAccuracy}`,
@@ -28150,18 +28173,16 @@ window.kerbsideSettings = {
 if (!ATTACH) animate();
 setTimeout(() => { loadPhotoMaterialLibrary(); }, 1500);
 
-// ---- memory: the ground's own copy given back once the GPU has it ----
-//
-// Every mesh keeps its vertices in the page as well as on the GPU, and the corridor's pavements,
-// their underlay, the road and its paint came to two gigabytes of the page's memory -- the same
-// again on the GPU -- which is what was taking machines down. Nothing reads those surfaces once
-// the ground is built (picking uses the footprints and the terrain; the kerbs, which the curb
-// paint recolours later, keep theirs), so each one's copy is dropped as it is next uploaded. A
-// few meshes are marked per frame, so the uploads are spread out rather than all at once.
+// ---- memory: lossless, recoverable snapshots of static ground buffers ----
+// Dropping arrays permanently broke later uploads/context restoration. Keep compressed copies
+// instead: array getters synchronously restore exact bits whenever Three needs to upload again.
+// No geometry detail is removed. Codec failure leaves buffers resident, never null externally.
+const geometryRecovery = await Promise.all([
+  import(sharedAsset("recoverable-geometry.mjs")), import(sharedAsset("vendor/fflate-0.8.2.mjs")),
+]).catch(error => { console.warn("Ground buffers retained: recovery codec unavailable", error); return null; });
 const RELEASE_SURFACES = new Set(["walk", "walk_underlay", "walk_narrow", "marking", "crossing_edges",
   "road", "crossing", "bike", "curb_ramp", "tactile_warning", "parking_lot", "median"]);
 const RELEASE_BYTES_PER_FRAME = 24 << 20;
-function releaseArray() { this.array = null; }
 const releaseQueue = [];
 groups.streets.traverse((o) => {
   if (o.isMesh && !o.isInstancedMesh && o.geometry && RELEASE_SURFACES.has(o.userData.surface)) releaseQueue.push(o);
@@ -28173,7 +28194,7 @@ function releaseSomeGeometry() {
     const mesh = releaseQueue.pop();
     const g = mesh.geometry;
     if (!g || g.userData.released) continue;
-    // A ray has nothing to test against once the vertices are gone.
+    // Ground picking already uses canonical footprints/terrain rather than these display meshes.
     mesh.raycast = noRaycast;
     // Culling needs the bounds; they are taken while the vertices are still here.
     if (!g.boundingSphere) g.computeBoundingSphere();
@@ -28182,8 +28203,7 @@ function releaseSomeGeometry() {
     for (const a of [...Object.values(g.attributes), g.index]) {
       if (!a || !a.array) continue;
       bytes += a.array.byteLength;
-      a.onUpload(releaseArray);
-      a.needsUpdate = true;
+      if (geometryRecovery?.[0].makeRecoverable(a, geometryRecovery[1])) a.needsUpdate = true;
     }
   }
   return releaseQueue.length;

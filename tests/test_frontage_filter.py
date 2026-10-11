@@ -110,6 +110,11 @@ def test_landmark_exception_does_not_bypass_angle_or_rights():
     assert {"too_oblique", "rights_or_attribution_unknown"} <= set(result["reasons"])
 
 
+@pytest.mark.parametrize("provider", ["sf-xl", "sf_xl", "3d-street-view", "3D_Street_View"])
+def test_google_dataset_cannot_bypass_restriction_by_claiming_a_free_license(provider):
+    assert "restricted_source" in assess(row={**ROW, "provider": provider})["reasons"]
+
+
 def test_redundant_distinct_views_survive_task_specific_selection():
     assert assess(row={**ROW, "eligible": False, "rejection_reason": "redundant_viewpoint"})[
         "geometry_pass"

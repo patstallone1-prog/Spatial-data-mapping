@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Lossless ground-buffer recovery test</title>
+<style>body{background:#edf0e8;color:#222;font:18px sans-serif}canvas{display:block}button{padding:12px}</style>
+<h1>Static geometry recovery</h1><button id="restore" disabled>Lose and restore WebGL context</button>
+<p id="result">Building test geometry…</p><script type="module">
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import {makeRecoverable} from '../../docs/recoverable-geometry.mjs';
+import * as codec from '../../docs/vendor/fflate-0.8.2.mjs';
+const result=document.querySelector('#result'), button=document.querySelector('#restore');
+const renderer=new THREE.WebGLRenderer();renderer.setSize(600,400);document.body.append(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#dae8f0');
+const camera=new THREE.PerspectiveCamera(45,1.5,.1,100);camera.position.set(3,3,5);camera.lookAt(0,0,0);
+const geometry=new THREE.BoxGeometry(2,2,2,40,40,40);
+const snapshot=new Map();
+for(const a of [...Object.values(geometry.attributes),geometry.index]){
+ snapshot.set(a,new Uint8Array(a.array.buffer,a.array.byteOffset,a.array.byteLength).slice());
+ makeRecoverable(a,codec);
+}
+scene.add(new THREE.Mesh(geometry,new THREE.MeshNormalMaterial()));
+let restored=0;
+function verify(){
+ for(const [a,before] of snapshot){const after=new Uint8Array(a.array.buffer,a.array.byteOffset,a.array.byteLength);
+  if(after.length!==before.length||after.some((v,i)=>v!==before[i]))throw Error('Geometry bits changed');}
+ result.textContent=`PASS: ${geometry.index.count/3} triangles, all attributes bit-identical; context restores: ${restored}`;
+ button.disabled=false;
+}
+renderer.domElement.addEventListener('webglcontextlost',()=>{result.textContent='Context lost; restoring…';});
+renderer.domElement.addEventListener('webglcontextrestored',()=>{restored++;setTimeout(verify,100);});
+button.onclick=()=>{button.disabled=true;renderer.forceContextLoss();setTimeout(()=>renderer.forceContextRestore(),250);};
+window.addEventListener('error',event=>{result.textContent='FAIL: '+event.message;});
+renderer.setAnimationLoop(()=>renderer.render(scene,camera));setTimeout(verify,200);
+</script></html>

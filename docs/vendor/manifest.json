@@ -1,0 +1,12 @@
+{
+  "fflate": {
+    "version": "0.8.2",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/+esm",
+    "upstream": "https://github.com/101arrowz/fflate/tree/v0.8.2",
+    "file": "fflate-0.8.2.mjs",
+    "sha256": "b31c565bdb085e464d8f770a15a008ae82049de17e971f3d0f7ceb1c52070762",
+    "license_file": "fflate-LICENSE.txt",
+    "purpose": "lossless recoverable static geometry snapshots; no vertex quantization"
+  }
+}

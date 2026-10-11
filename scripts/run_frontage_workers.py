@@ -293,11 +293,20 @@ def main():
                         "--watch-seconds",
                         "30",
                     ],
+                    "storefronts": [
+                        str(args.python), str(ROOT / "scripts/audit_frontage_sources.py"),
+                        "--regions", *REGIONS,
+                        "--output", str(ROOT / "build/frontage-live/storefront-audit"),
+                        "--watch-seconds", "300",
+                    ],
                 }
                 for name, command in commands.items():
                     if name not in children or children[name].poll() is not None:
                         if name not in logs:
-                            logs[name] = (folder / f"{name}.log").open("ab", buffering=0)
+                            log = (ROOT / "build/frontage-live/storefront-audit/worker.log"
+                                   if name == "storefronts" else folder / f"{name}.log")
+                            log.parent.mkdir(parents=True, exist_ok=True)
+                            logs[name] = log.open("ab", buffering=0)
                         children[name] = subprocess.Popen(
                             command,
                             cwd=ROOT,
