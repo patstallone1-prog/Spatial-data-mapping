@@ -296,6 +296,21 @@ def main():
                         # a bucket per house, and the accepted published as parameters.
                         "--auto-accept",
                     ],
+                    # The cladding of every reconstructed house, read off its own photographs
+                    # (CLIP), laid over the published fits by the matcher.
+                    "materials": [
+                        str(args.python),
+                        str(ROOT / "scripts/classify_scanned_materials.py"),
+                        "--matcher-output",
+                        str(ROOT / "build/facade-match"),
+                        "--reviews",
+                        str(ROOT / "build/frontage-live"),
+                        str(ROOT / "build/frontage-pilot-v2"),
+                        "--device",
+                        "mps",
+                        "--watch-seconds",
+                        "600",
+                    ],
                     "storefronts": [
                         str(args.python), str(ROOT / "scripts/audit_frontage_sources.py"),
                         "--regions", *REGIONS,
