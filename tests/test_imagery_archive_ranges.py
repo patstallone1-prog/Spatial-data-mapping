@@ -44,3 +44,27 @@ def test_archive_never_reads_a_whole_response_or_accepts_misaligned_ranges(
             file.readinto(bytearray(4))
         assert file.pos == file.bytes_read == 0
     assert not reads or reads == [5]
+
+
+def test_zero_head_length_requires_verified_get_range_not_empty_coverage(monkeypatch):
+    requests = []
+
+    class Response:
+        def __init__(self, headers, status=200, body=b""):
+            self.headers, self.status, self.body = headers, status, body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, size):
+            return self.body[:size]
+
+    def request(req, **kwargs):
+        requests.append(req)
+        if req.get_method() == "HEAD":
+            return Response({"Content-Length": "0", "Accept-Ranges": "bytes"})
+        return Response({"Content-Range": "bytes 0-0/100"}, 206, b"x")
+    monkeypatch.setattr("urllib.request.urlopen", request)
+    file = RangedHttpFile("https://fixture")
+    assert file.size == 100 and len(requests) == 2
+    assert requests[1].headers["Range"] == "bytes=0-0"

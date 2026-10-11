@@ -300,6 +300,21 @@ def main():
                         "--watch-seconds", "300",
                     ],
                 }
+                reference_root = (ROOT / "build/frontage-live").resolve().parent / "private-datasets/3d-street-view"
+                consent_path = reference_root / "consent.json"
+                if args.storage_volume and consent_path.is_file():
+                    consent = json.loads(consent_path.read_text())
+                    if (consent.get("scope") == "private_noncommercial_research_and_reference"
+                            and consent.get("redistribute_sources") is False
+                            and consent.get("canonical_mutation_allowed") is False):
+                        commands["references"] = [
+                            str(args.python), str(ROOT / "scripts/acquire_streetview_reference.py"),
+                            "--output", str(reference_root),
+                            "--dependencies", str(reference_root.parent.parent / "reference-dependencies"),
+                            "--storage-volume", str(args.storage_volume),
+                            "--volume-uuid", args.storage_volume_uuid,
+                            "--noncommercial-consent", "--download-sf", "--watch-seconds", "300",
+                        ]
                 for name, command in commands.items():
                     if name not in children or children[name].poll() is not None:
                         if name not in logs:
