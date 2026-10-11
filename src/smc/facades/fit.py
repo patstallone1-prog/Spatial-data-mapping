@@ -15,6 +15,7 @@ import numpy as np
 from smc.facades.appearance_bands import appearance_bands, colour_sample, window_trim
 from smc.facades.architecture_logic import canonical_front_binding, door_access, repeated_forms
 from smc.facades.edge_support import opening_sanity, refine_opening
+from smc.facades.entry_inference import infer_entries, primary_entry
 from smc.facades.opening_reasoning import reason_opening, reason_proposals
 from smc.facades.outcrops import infer_candidates, reviewed_outcrops
 from smc.facades.survey import openings as dark_openings
@@ -541,6 +542,42 @@ def extract_front(
             if recess["render_steps"] and door["v"] + door["h"] <= height - 0.15:
                 door["recess"] = recess
                 found.append(door)
+    # How each pedestrian door is reached -- gate, long or short stair, alcove or flush -- read
+    # from the photograph and its segmentation (entry_inference). A stair seen under a door's
+    # threshold is the evidence a reviewer used to be asked to certify; it is measured here, and
+    # still has to pass the same access check below.
+    gates_seen = [{"u": o["u"], "v": o["v"], "w": o["w"], "h": o["h"]} for o in found
+                  if o["kind"] == "gated_entry_candidate"]
+    entries = infer_entries(
+        bgr, labels, width, height, found,
+        storey_height_m=storey.get("visual_storey_height_m") or storey.get("storey_height_m"),
+        gate_proposals=gates_seen, image_sha256=controls.get("image_sha256"),
+    )
+    for entry in entries["entries"]:
+        door = next((o for o in found if o["id"] == entry["door_id"]), None)
+        if door is None and entry.get("hidden_door"):
+            door = {
+                "id": entry["door_id"], "kind": "door", "u": entry["u"], "v": entry["threshold_m"],
+                "w": entry["w"], "h": 2.1, "grade": "hidden_door_inferred_from_visible_flight",
+                "certainty": "inferred_not_observed", "position_sigma_m": 0.5,
+                "design": {"shape": "inferred_hidden_door", "vertical_bars": [], "horizontal_bars": []},
+            }
+            if door["v"] + door["h"] > height - 0.15:
+                continue
+            found.append(door)
+        if door is None:
+            continue
+        door["entry"] = entry
+        if entry.get("recess") and not (door.get("recess") or {}).get("render_steps"):
+            door["recess"] = entry["recess"]
+    for gate in (o for o in found if o["kind"] == "gated_entry_candidate"):
+        # The gate is part of the entry it stands in front of, not an opening of its own.
+        gate["type_requires_review"] = False
+        gate["absorbed_into_entry"] = next(
+            (e["door_id"] for e in entries["entries"] if e.get("gate")
+             and gate["u"] < e["gate"]["u"] + e["gate"]["w"] and gate["u"] + gate["w"] > e["gate"]["u"]),
+            None,
+        )
     # Curb controls must declare matching units/datum. Never compare two unrelated z values.
     ground = controls.get("ground_reference")
     for opening in found:
@@ -596,6 +633,8 @@ def extract_front(
         "unseen_sides": "inferred",
         "inch_accuracy_verified": False,
         "opening_logic_schema": "kerbside.opening_reasoning/1",
+        "entries": entries,
+        "primary_entry": primary_entry(entries),
         "opening_decisions": [
             p["opening_reasoning"] for p in details or [] if p.get("opening_reasoning")
         ],

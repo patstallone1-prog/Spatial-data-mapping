@@ -120,7 +120,7 @@ def test_entry_stairs_and_four_tread_landing_never_leave_the_building() -> None:
                         minX: 0, maxX: 10, minZ: 0, maxZ: 8 };
         const door = { entry, cx: 5, cz: 0, ux: 1, uz: 0, nx: 0, nz: 1, width: 1 };
         let terrainGroundAt = () => 0;
-    """) + "\n".join(_extract(name, js) for name in ("insideFootprint", "planInwardStoop")) + \
+    """) + "\n".join(_extract(name, js) for name in ("insideFootprint", "planInwardStoop", "stoopAtWidth")) + \
         "\n" + textwrap.dedent("""
             const plan = planInwardStoop(door, 0, 0.72);
             const outside = { ...door, nz: -1 };
@@ -168,7 +168,7 @@ def test_recessed_stair_cuts_only_the_interior_floor() -> None:
         const entry={local:[[0,0],[10,0],[10,8],[0,8],[0,0]],minX:0,maxX:10,minZ:0,maxZ:8};
         const door={entry,cx:5,cz:0,ux:1,uz:0,nx:0,nz:1,width:1};
     """) + "\n".join(_extract(name, js) for name in (
-        "insideFootprint", "planInwardStoop", "stoopCutRing", "floorShapeWithStairCuts")) + \
+        "insideFootprint", "planInwardStoop", "stoopAtWidth", "stoopCutRing", "floorShapeWithStairCuts")) + \
         "\n" + textwrap.dedent("""
             door.stoopPlan=planInwardStoop(door,0,0.72);
             const cut=stoopCutRing(door);

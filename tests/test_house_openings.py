@@ -77,6 +77,8 @@ def test_an_inferred_interior_door_under_a_garage_moves_beside_it() -> None:
       return (ax + dx * t - px) ** 2 + (az + dz * t - pz) ** 2;
     }}
     function insideFootprint(entry, x, z) {{ return x > 0 && x < 7.5 && z > 0 && z < 10; }}
+    // No photographed front here: the inferred door is all there is.
+    function photoEntryDoor() {{ return null; }}
     const way = {_house(0, 7.5)};
     way.garages = [{{ a: M(7.5, 0), b: M(0, 0), t: 0.5, w: 2.6, n: 0 }}];
     // Page frame: z = -y, so the street wall (y = 0) is the edge z = 0 from x = 7.5 to x = 0.
