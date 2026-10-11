@@ -144,6 +144,8 @@ def main() -> None:
         region["path"] = f"app-regions/{name}/app-model.html"
         published += 1
     (DOCS / "app-regions.json").write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
+    # The nearby render window must not remove names from global search.
+    runpy.run_path(str(ROOT / "tools/build_search_index.py"))["main"]()
     viewers = [DOCS / "app-model.html", *sorted(APP_REGIONS.glob("*/app-model.html"))]
     release = {
         "schema": 1,
@@ -173,7 +175,8 @@ def main() -> None:
                   DOCS / "runtime-release.json"]
     app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
-    app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json"]
+    app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json",
+                   DOCS / "search-index.json"]
     app_assets += sorted(path for directory in ("interior-assets", "materials", "vendor")
                          for path in (DOCS / directory).rglob("*") if path.is_file())
     if (DOCS / "app-sf-corridor-ground.json").exists():

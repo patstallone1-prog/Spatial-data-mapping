@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from tools.build_search_index import attach_tenant_names, rows_for
 from tools.build_storefront_names import names_sidecar
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,3 +60,21 @@ def test_name_sidecars_live_beside_each_app_viewer_not_legacy_payload_assets():
     assert 'new URL("sf-corridor-storefront-names.json", location.href)' in namespace["HTML"]
     for viewer in [ROOT / "docs/app-model.html", *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]:
         assert viewer.with_name("sf-corridor-storefront-names.json").is_file()
+
+
+def test_shared_search_retains_names_outside_render_window_and_rejects_stale_world():
+    payload, audit = fixture()
+    payload["ways"][0]["centroid"] = [0.5, 0.5]
+    inventory = names_sidecar(payload, audit, "sha")
+    attach_tenant_names(payload, inventory, "sha")
+    places = rows_for(payload, 0)[2]
+    assert [p[0] for p in places] == ["Old", "New"]
+    with pytest.raises(ValueError, match="stale"):
+        attach_tenant_names(payload, inventory, "changed")
+
+
+def test_published_shared_search_includes_new_names_across_regions():
+    index = json.loads((ROOT / "docs/search-index.json").read_text())
+    labels = {row[0] for row in index["places"]}
+    assert any(label.startswith("Benchmark Climbing") for label in labels)
+    assert any(label.startswith("Sky Bar") for label in labels)

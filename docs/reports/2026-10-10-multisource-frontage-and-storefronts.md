@@ -33,6 +33,10 @@ Recovered **2,775 additional source-matched tenant-name records** across eight r
 
 New names require exact building identity, approved source terms and confidence ≥0.8. Geometry hashes are unchanged. The explicit release produces name-only sidecars bound to building footprints and heights. Names are searchable and shown on the building address card. A tenant inside a footprint does **not** establish a ground-floor sign position, photographed storefront or business interior; this release does not invent those geometries.
 
+The final Berkeley sweep caught a lookup gap outside the high-detail render window. The shared search index now reads the current app payloads and hash-bound tenant-name sidecars, retaining those names outside the loaded window and across regions. The installed-app build refreshes that index and includes it in the service-worker fingerprint. No additional geometry is loaded to supply a search hit.
+
+An additional **27 targeted search/runtime tests passed** for that correction. After the safe restart, the filter refreshed its UTC-date eligibility index and progressed past 5,700 SF buildings while the matcher processed independently; this phase is not a pause and does not reset prior review receipts.
+
 ## Long-running renderer fault
 
 The old ground-memory optimization set uploaded geometry arrays to `null`. A long-running preview subsequently raised Three.js `byteLength` errors on buffer uploads. Static buffers now retain lossless compressed snapshots using pinned MIT [fflate](https://github.com/101arrowz/fflate); synchronous access restores the original typed-array bytes whenever an upload needs them. Shared attributes are wrapped once, changed versions invalidate snapshots, unsupported/incompressible data stays resident, and codec failure falls back to original arrays.

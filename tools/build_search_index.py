@@ -14,6 +14,7 @@ Compact by design -- it is fetched the first time someone types: each row is
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 
@@ -23,8 +24,26 @@ DOCS = ROOT / "docs"
 
 def payload_for(region: dict) -> pathlib.Path | None:
     name = region["name"]
+    app = DOCS / "app-regions" / name / "sf-corridor-3d.json"
+    if name != "sf-corridor" and app.exists():
+        return app
     path = DOCS / "sf-corridor-3d.json" if name == "sf-corridor" else DOCS / "regions" / name / "sf-corridor-3d.json"
     return path if path.exists() else None
+
+
+def attach_tenant_names(payload: dict, inventory: dict, source_sha256: str) -> None:
+    if (inventory.get("schema") != "kerbside.storefront_names/1"
+            or inventory.get("source_world_sha256") != source_sha256
+            or inventory.get("bbox") != payload.get("bbox")
+            or inventory.get("geometry_modified") is not False):
+        raise ValueError("stale storefront names cannot enter the shared search index")
+    for way in payload.get("ways", []):
+        entry = inventory.get("buildings", {}).get(str(way.get("osm_id")))
+        if not entry or way.get("kind") != "building":
+            continue
+        if entry["points"] != way["points"] or entry["height_m"] != way.get("height_m"):
+            raise ValueError("storefront name geometry binding changed")
+        way["tenant_names"] = entry["shops"]
 
 
 def rows_for(payload: dict, index: int) -> tuple[list, list, list]:
@@ -50,8 +69,10 @@ def rows_for(payload: dict, index: int) -> tuple[list, list, list]:
         where = f" · {label}" if label else ""
         if name:
             places.append([f"{name}{where}", lon, lat, index])
-        for shop in way.get("shops") or []:
-            if shop.get("n") and shop["n"] != name:
+        tenants = {shop.get("n", "").casefold(): shop
+                   for shop in [*(way.get("shops") or []), *(way.get("tenant_names") or [])]}
+        for shop in tenants.values():
+            if shop.get("n") and shop["n"].casefold() != name.casefold():
                 places.append([f"{shop['n']}{where}", lon, lat, index])
         if not label:
             continue
@@ -70,7 +91,13 @@ def main() -> None:
             continue
         i = len(regions)
         regions.append({"name": region["name"], "title": region.get("title") or region["name"]})
-        c, a, p = rows_for(json.loads(path.read_text()), i)
+        raw = path.read_bytes()
+        payload = json.loads(raw)
+        name_path = DOCS / ("sf-corridor-storefront-names.json" if region["name"] == "sf-corridor"
+                            else f"app-regions/{region['name']}/sf-corridor-storefront-names.json")
+        if name_path.exists():
+            attach_tenant_names(payload, json.loads(name_path.read_text()), hashlib.sha256(raw).hexdigest())
+        c, a, p = rows_for(payload, i)
         corners += c
         addresses += a
         places += p
