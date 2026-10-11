@@ -90,6 +90,8 @@ globalThis.location = { search: "", hash: "", href: "http://localhost/" };
 Object.defineProperty(globalThis, "navigator", { value: { userAgent: "node", hardwareConcurrency: 4 }, configurable: true });
 globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
 globalThis.requestAnimationFrame = () => 0; globalThis.cancelAnimationFrame = () => {};
+// Nothing is drawn here: no timer is to stand in for the frames withheld above (requestFrame).
+globalThis.__kerbsideNoFrames = true;
 globalThis.addEventListener = () => {}; globalThis.removeEventListener = () => {};
 globalThis.matchMedia = () => ({ matches: false, addEventListener() {} });
 globalThis.Image = class { set src(v) { setTimeout(() => this.onload && this.onload(), 0); } };

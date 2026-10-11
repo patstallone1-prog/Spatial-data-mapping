@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="55e5f0f5723ef7df67573f86d446710c0eb7aead059e5f30c663bd466f0f0aae" />
+<meta name="kerbside-renderer-sha256" content="5ee40d98ed7ba5e54cd5455a6c534ab3bae828e1cd97b598dc1eeed7725caf2b" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -11835,6 +11835,57 @@ function photoOpeningTexture(kind, design) {
   PHOTO_OPENING_TEXTURES.set(key,texture);return texture;
 }
 
+// The window pictures. They stand here, above the first building drawn, because an accepted
+// photographed front on a building that is not a home draws its windows with them while the
+// streets are built -- further down, they were not yet initialised and the page stopped.
+const homeWindowTexture = (() => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64; canvas.height = 96;
+  const ctx = canvas.getContext("2d");
+  // The frame: the shell's frame colour (homeFrameMaterial), a sash bar across and a mullion.
+  ctx.fillStyle = "#3d4347";
+  ctx.fillRect(0, 0, 64, 96);
+  // The glass: the shell's dark glass, a little lighter toward the top where it takes the sky.
+  const sky = ctx.createLinearGradient(0, 0, 0, 96);
+  sky.addColorStop(0, "#3a4b56");
+  sky.addColorStop(0.55, "#2a3740");
+  sky.addColorStop(1, "#222d34");
+  ctx.fillStyle = sky;
+  ctx.fillRect(3, 3, 27, 90);
+  ctx.fillRect(34, 3, 27, 90);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+})();
+const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTexture, roughness: 0.14,
+  metalness: 0.2, envMapIntensity: 1.0 });
+const homeDesignMaterials = new Map();
+function homeDesignMaterial(design) {
+  if (!design) return homeDecalMaterial;
+  const trimColour=/^#[0-9a-f]{6}$/i.test(design.trim?.colour || "") ? design.trim.colour : "#3d4347";
+  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || [],trimColour,design.shape,design.arch_spring_fraction,"clear"]);
+  if (homeDesignMaterials.has(key)) return homeDesignMaterials.get(key);
+  const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const arch=homeWindowArchSpring({design,w:128,h:128});
+  if(arch===null) {ctx.fillStyle = trimColour; ctx.fillRect(0,0,128,128);ctx.clearRect(4,4,120,120);}
+  else {
+    ctx.beginPath();ctx.moveTo(4,124);ctx.lineTo(124,124);
+    for(let i=0;i<=32;i++){const t=1-i/32;ctx.lineTo(4+120*t,4+120*(1-arch-(1-arch)*Math.sqrt(Math.max(0,1-(2*t-1)**2))));}
+    ctx.closePath();ctx.strokeStyle=trimColour;ctx.lineWidth=6;ctx.stroke();ctx.save();ctx.clip();
+  }
+  // Far decals still contain a neutral glass layer, not empty alpha over painted wall.
+  // Detailed nearby shells supply the real hole and identically clear two-sided glazing.
+  ctx.fillStyle="rgba(231,240,243,0.12)";ctx.fillRect(4,4,120,120);
+  ctx.fillStyle = trimColour;
+  for (const t of design.vertical_bars || []) ctx.fillRect(t*128-1.5,4,3,120);
+  for (const t of design.horizontal_bars || []) ctx.fillRect(4,t*128-1.5,120,3);
+  if(arch!==null)ctx.restore();
+  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.08,metalness:0, envMapIntensity:.4, transparent:true, depthWrite:false, alphaTest:.05 });
+  homeDesignMaterials.set(key,material); return material;
+}
 function photoOpeningParts(group,feature,includeWindows=false) {
   const fit=frontageFitFor(feature);
   if(!fit?.a || !fit?.b)return;
@@ -23616,54 +23667,6 @@ let homeDecalJob = null;
 const homeDecalHidden = new Set();
 const homeDecalStats = { houses: 0, windows: 0, passes: 0 };
 window.kerbsideWindows = () => ({ ...homeDecalStats, version: homeDecalVersion, hidden: homeDecalHidden.size });
-const homeWindowTexture = (() => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 64; canvas.height = 96;
-  const ctx = canvas.getContext("2d");
-  // The frame: the shell's frame colour (homeFrameMaterial), a sash bar across and a mullion.
-  ctx.fillStyle = "#3d4347";
-  ctx.fillRect(0, 0, 64, 96);
-  // The glass: the shell's dark glass, a little lighter toward the top where it takes the sky.
-  const sky = ctx.createLinearGradient(0, 0, 0, 96);
-  sky.addColorStop(0, "#3a4b56");
-  sky.addColorStop(0.55, "#2a3740");
-  sky.addColorStop(1, "#222d34");
-  ctx.fillStyle = sky;
-  ctx.fillRect(3, 3, 27, 90);
-  ctx.fillRect(34, 3, 27, 90);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return texture;
-})();
-const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTexture, roughness: 0.14,
-  metalness: 0.2, envMapIntensity: 1.0 });
-const homeDesignMaterials = new Map();
-function homeDesignMaterial(design) {
-  if (!design) return homeDecalMaterial;
-  const trimColour=/^#[0-9a-f]{6}$/i.test(design.trim?.colour || "") ? design.trim.colour : "#3d4347";
-  const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || [],trimColour,design.shape,design.arch_spring_fraction,"clear"]);
-  if (homeDesignMaterials.has(key)) return homeDesignMaterials.get(key);
-  const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
-  const ctx = canvas.getContext("2d");
-  const arch=homeWindowArchSpring({design,w:128,h:128});
-  if(arch===null) {ctx.fillStyle = trimColour; ctx.fillRect(0,0,128,128);ctx.clearRect(4,4,120,120);}
-  else {
-    ctx.beginPath();ctx.moveTo(4,124);ctx.lineTo(124,124);
-    for(let i=0;i<=32;i++){const t=1-i/32;ctx.lineTo(4+120*t,4+120*(1-arch-(1-arch)*Math.sqrt(Math.max(0,1-(2*t-1)**2))));}
-    ctx.closePath();ctx.strokeStyle=trimColour;ctx.lineWidth=6;ctx.stroke();ctx.save();ctx.clip();
-  }
-  // Far decals still contain a neutral glass layer, not empty alpha over painted wall.
-  // Detailed nearby shells supply the real hole and identically clear two-sided glazing.
-  ctx.fillStyle="rgba(231,240,243,0.12)";ctx.fillRect(4,4,120,120);
-  ctx.fillStyle = trimColour;
-  for (const t of design.vertical_bars || []) ctx.fillRect(t*128-1.5,4,3,120);
-  for (const t of design.horizontal_bars || []) ctx.fillRect(4,t*128-1.5,120,3);
-  if(arch!==null)ctx.restore();
-  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
-  const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.08,metalness:0, envMapIntensity:.4, transparent:true, depthWrite:false, alphaTest:.05 });
-  homeDesignMaterials.set(key,material); return material;
-}
 const HOME_DECAL_ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 function homeDecalInputs() {
   return `${INTERIORS ? "doors" : "no-doors"}:${HOME_OPENINGS_VERSION}`;
@@ -25486,8 +25489,23 @@ for (const type of ["pointerdown", "pointermove", "wheel", "keydown", "touchstar
   addEventListener(type, () => { lastInputAt = performance.now(); }, { passive: true });
 let lastFrameDrawnAt = 0, lastMovedAt = performance.now();
 const lastDrawnEye = new THREE.Matrix4();
+//: How long a frame may be withheld before a timer stands in for it.
+const FRAME_STAND_IN_MS = 500;
+let frameRequest = 0;
+function requestFrame() {
+  // A browser on battery, or one with no display, can stop handing out animation frames
+  // altogether while the page is in plain view. The doors, the house windows and the shells are
+  // laid out in this loop, so with no frame they never were: houses stood blank. A timer stands
+  // in for a frame that has not come -- but not for a hidden tab, which is meant to rest, nor
+  // where nothing is drawn at all (the Unreal exporter builds the city in Node: __kerbsideNoFrames).
+  const id = ++frameRequest;
+  requestAnimationFrame((t) => { if (id === frameRequest) animate(t); });
+  if (!globalThis.__kerbsideNoFrames) setTimeout(() => {
+    if (id === frameRequest && !document.hidden) animate(performance.now());
+  }, FRAME_STAND_IN_MS);
+}
 function animate(now) {
-  requestAnimationFrame(animate);
+  requestFrame();
   now = now || performance.now();
   // The frame-rate cap, and the idle rate when nothing moves.
   const eye = camera.matrixWorld.elements, drawn = lastDrawnEye.elements;
