@@ -311,6 +311,18 @@ def main():
                         "--watch-seconds",
                         "600",
                     ],
+                    # Photographs handed to contributors' Macs and their results brought home
+                    # every 12 hours (supabase/kerbside_contributors.sql).
+                    "contributors": [
+                        str(args.python),
+                        str(ROOT / "scripts/contributor_coordinator.py"),
+                        "--filter-output",
+                        str(ROOT / "build/frontage-live"),
+                        "--env-file",
+                        str(args.env_file),
+                        "--watch-seconds",
+                        "600",
+                    ],
                     "storefronts": [
                         str(args.python), str(ROOT / "scripts/audit_frontage_sources.py"),
                         "--regions", *REGIONS,
