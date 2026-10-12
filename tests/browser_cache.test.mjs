@@ -18,6 +18,9 @@ function storage(entries = []) {
 function harness({ offline = false, initial = [], scope = origin, status = 200 } = {}) {
   const records = new Map(initial.map(k => [k, new Map()]));
   const handlers = {}, fetches = [];
+  // An installed app left open: the new worker reopens it on the new version when it activates.
+  const reopened = { urls: [], windows: [{ url: new URL('app.html', scope).href,
+    navigate: async to => { reopened.urls.push(to); } }] };
   const url = key => new URL(typeof key === 'string' ? key : key.url, scope).href;
   const network = async (request, options) => {
     fetches.push({ url: url(request), options });
@@ -36,7 +39,8 @@ function harness({ offline = false, initial = [], scope = origin, status = 200 }
     delete: async name => records.delete(name) };
   vm.runInNewContext(worker, { self: { location: { origin: new URL(scope).origin }, registration: { scope },
     addEventListener: (type, fn) => handlers[type] = fn, skipWaiting: async () => {},
-    clients: { claim: async () => {} } }, caches, fetch: network, URL, Response, Set, Promise });
+    clients: { claim: async () => {}, matchAll: async () => reopened.windows },
+  }, caches, fetch: network, URL, Response, Set, Promise });
   const dispatch = async (type, request) => {
     const pending = [];
     let response;
@@ -46,7 +50,7 @@ function harness({ offline = false, initial = [], scope = origin, status = 200 }
     while (pending.length) await Promise.all(pending.splice(0));
     return result;
   };
-  return { records, fetches, bucket, caches, dispatch };
+  return { records, fetches, bucket, caches, dispatch, reopened };
 }
 const request = (path, mode = 'cors', method = 'GET') => ({ url: new URL(path, origin).href, method, mode });
 
@@ -55,6 +59,7 @@ test('upgrade removes old runtime worlds but preserves captures and unrelated ca
   await h.dispatch('install'); await h.dispatch('activate');
   assert.deepEqual([...h.records.keys()].sort(), [currentName, 'kerbside-captures', 'unrelated'].sort());
   assert.equal(h.records.get(currentName).size, 7);
+  assert.deepEqual(h.reopened.urls, [new URL('app.html', origin).href], 'open windows reopen on the new version');
 });
 test('world, cells, tiles, textures and regional pages bypass Cache Storage', async () => {
   const h = harness();

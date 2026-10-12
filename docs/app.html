@@ -380,7 +380,7 @@
          device rather than coming down a wire. It starts loading the moment the app opens:
          everything else here is one tap away, and the map is what takes time. -->
     <div id="mapwrap">
-      <iframe id="model" title="Kerbside 3D" src="app-model.html" loading="eager"></iframe>
+      <iframe id="model" title="Kerbside 3D" src="app-model.html" loading="eager" allow="geolocation"></iframe>
       <div id="mapload" role="status" aria-live="polite">
         <div class="ml-card">
           <div class="ml-title">Building the model</div>
@@ -1615,10 +1615,18 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
   window.addEventListener("focus", checkInstalledUpgrade);
   document.addEventListener("visibilitychange", checkInstalledUpgrade);
   setInterval(checkInstalledUpgrade, 300000);
-  // Claiming clients updates their network policy immediately. Applying a new
-  // already-running JS world is intentionally an explicit user action.
+  // A new version reopens the app on itself, once; never a reload loop (the worker also reopens
+  // every window when it activates). Only if it already reloaded in the last minute is the
+  // button shown instead.
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (!workerRegistration || document.getElementById("app-update-ready")) return;
+    let last = 0;
+    try { last = Number(sessionStorage.getItem("kerbside-update-reload") || 0); } catch (error) { last = 0; }
+    if (Date.now() - last > 60000) {
+      try { sessionStorage.setItem("kerbside-update-reload", String(Date.now())); } catch (error) { /* reload anyway */ }
+      window.location.reload();
+      return;
+    }
     const button = document.createElement("button");
     button.id = "app-update-ready";
     button.textContent = "Update ready — reopen map";

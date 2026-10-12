@@ -2,7 +2,7 @@
  * Keeps the installed app shell launchable without a connection. The 3D world
  * streams on demand, from the network, and is never stored here.
  */
-const VERSION = "69c90490ae4aff70";
+const VERSION = "16f700d5b0771191";
 const CACHE = "kerbside-shell-" + VERSION;
 const SHELL = [
   "./app.html",
@@ -41,6 +41,10 @@ self.addEventListener("activate", (event) => {
         && (isOldRuntimeCache(k) || k.startsWith("kerbside-shell-")))
         .map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      // A new version takes over at once: every open window -- an installed app left open for
+      // days included, whatever version of the page it is running -- is reopened on it.
+      .then(() => self.clients.matchAll({ type: "window" }))
+      .then((windows) => Promise.all(windows.map((client) => client.navigate(client.url).catch(() => null))))
   );
 });
 
