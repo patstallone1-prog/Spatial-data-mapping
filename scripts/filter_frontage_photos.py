@@ -529,6 +529,10 @@ def review_samples(args, summaries, policy):
                 row = json.loads(text)
                 if row["candidates"]:
                     rows.append((row, row["candidates"][0], summary["region"], summary["run"]))
+    # A contributor's machine screens exactly the photographs it claimed (--work-file).
+    for work in getattr(args, "work_rows", None) or []:
+        row = {**work["row"], "candidates": [work["candidate"]]}
+        rows.append((row, work["candidate"], work["region"], work["run_id"]))
     rows.sort(key=lambda r: (r[1]["pose_status"] == "provider_solved", *r[1]["rank"]), reverse=True)
     samples = args.output / "review"
     samples.mkdir(parents=True, exist_ok=True)
@@ -564,10 +568,20 @@ def review_samples(args, summaries, policy):
         for r in records
         if not retry_due(r)
     }
+    # Photographs handed to contributors' machines (scripts/contributor_coordinator.py) are theirs
+    # until their results come back or the hand-out lapses: not screened twice.
+    assigned_path = args.output / "contrib-assigned.json"
+    try:
+        assigned = {tuple(k) for k in json.loads(assigned_path.read_text())["keys"]}
+    except (OSError, ValueError, KeyError, TypeError):
+        assigned = set()
     pending = []
     for row, candidate, region, run_id in rows:
         queued_providers = set()
         for candidate in row["candidates"]:
+            key = (region, str(row["building_id"]), candidate["observation"]["observation_uid"])
+            if key in assigned and not getattr(args, "work_rows", None):
+                continue
             if (
                 region,
                 row["building_id"],
@@ -867,6 +881,11 @@ def main():
         type=Path,
         help="reuse a local/cloud-mounted model cache without duplicate downloads",
     )
+    parser.add_argument(
+        "--work-file",
+        type=Path,
+        help="screen exactly these claimed photographs (a contributor's machine) and stop",
+    )
     args = parser.parse_args()
     if args.sample < 0 or (args.limit is not None and args.limit <= 0) or args.watch_seconds < 0:
         parser.error("invalid bounds")
@@ -911,6 +930,14 @@ def main():
         "".join(file_hash(p) for p in implementation).encode()
     ).hexdigest()
     args.selection_hash = selection_fingerprint()
+    if args.work_file:
+        # A contributor's batch: no catalogues scanned, no watching; the claimed rows, screened.
+        args.work_rows = json.loads(args.work_file.read_text())
+        args.sample = args.sample or len(args.work_rows)
+        counts = review_samples(args, [], policy)
+        emit(args.output / "status.json", {"status": "work_file_complete", "pid": os.getpid(),
+                                           "at": datetime.now(UTC), "review": dict(counts)})
+        return
     while True:
         now = datetime.now(UTC)
         poses = {}
