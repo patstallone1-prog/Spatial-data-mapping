@@ -288,11 +288,30 @@ class TestJoin:
         index, _ = self._index()
         assert index.locate(-122.30, 37.70) is None
 
+    def test_sparse_long_centreline_remains_queryable_in_its_middle(self):
+        index, _ = self._index()
+        index.add("sfcnn:long", [(-122.40,37.791),(-122.38,37.791)], "LONG ST")
+        assert index.locate(-122.39,37.79101) == ("sfcnn:long",1)
+
     def test_a_way_is_matched_on_more_than_its_midpoint(self):
         index, _ = self._index()
         way = [(-122.3995 + i * 0.0001, 37.79005) for i in range(6)]
         found = index.locate_way(way)
         assert found is not None and found[0] == "sfcnn:1" and found[1] == 1
+
+    def test_named_missing_street_cannot_inherit_nearby_cross_street(self):
+        index, _ = self._index()
+        points = [(-122.3995, 37.79001), (-122.3995, 37.79003)]
+        assert index.locate_way(points, name="Presidio Avenue") is None
+        assert index.locate_way(points, name="Test Street")[0] == "sfcnn:1"
+
+    def test_way_match_is_invariant_to_extra_junction_vertices(self):
+        index, _ = self._index()
+        index.add("sfcnn:2", [(-122.3995, 37.789), (-122.3995, 37.791)], "CROSS ST")
+        sparse = [(-122.40, 37.79005), (-122.3977, 37.79005)]
+        dense_at_crossing = [sparse[0], *[(-122.3995+i*.000001,37.79005) for i in range(8)], sparse[1]]
+        assert index.locate_way(sparse)[0] == "sfcnn:1"
+        assert index.locate_way(dense_at_crossing)[0] == "sfcnn:1"
 
     def test_station_grows_along_the_line(self):
         _, _frame = self._index()

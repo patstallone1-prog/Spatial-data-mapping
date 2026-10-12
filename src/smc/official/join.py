@@ -10,7 +10,9 @@ and nothing downstream would notice.
 from __future__ import annotations
 
 import math
+import re
 from collections import Counter, defaultdict
+from itertools import pairwise
 
 import numpy as np
 
@@ -83,8 +85,16 @@ class CentrelineIndex:
         local = np.array([self.frame.to_xy(lon, lat) for lon, lat in points])
         self.segments[feature_id] = local
         self.names[feature_id] = name
-        for x, y in local:
-            self.grid[(int(x // self.CELL_M), int(y // self.CELL_M))].append(feature_id)
+        # Index the segments, not just their vertices. A long two-vertex city
+        # centreline otherwise disappears from queries in the middle of it.
+        cells = set()
+        for a, b in pairwise(local):
+            steps = max(1, math.ceil(float(np.linalg.norm(b-a))/self.CELL_M))
+            for t in np.linspace(0, 1, steps + 1):
+                x, y = a + (b-a)*t
+                cells.add((int(x // self.CELL_M), int(y // self.CELL_M)))
+        for cell in cells:
+            self.grid[cell].append(feature_id)
 
     def _nearby(self, x: float, y: float) -> list[str]:
         """Candidate segments near a point, in a fixed order.
@@ -122,7 +132,7 @@ class CentrelineIndex:
             return None
         return best
 
-    def locate_way(self, points, *, samples: int = 7) -> tuple[str, int, float] | None:
+    def locate_way(self, points, *, samples: int = 7, name: str | None = None) -> tuple[str, int, float] | None:
         """Which segment an entire way belongs to: ``(feature_id, side, distance_m)``.
 
         A single midpoint is not enough. A footway that clips the corner of an intersection has
@@ -132,15 +142,38 @@ class CentrelineIndex:
         """
         if len(points) < 2:
             return None
-        step = max(1, len(points) // samples)
+        # Vertices are not equal-distance samples: OSM often has several near
+        # a junction and none along the block. A missing Presidio centreline
+        # was consequently matched to Pine and inherited its WB one-way tag.
+        local = np.array([self.frame.to_xy(lon, lat) for lon, lat in points])
+        lengths = np.linalg.norm(np.diff(local, axis=0), axis=1)
+        stations = np.r_[0.0, np.cumsum(lengths)]
+        if stations[-1] <= 0:
+            return None
+        positions = np.linspace(0, stations[-1], max(3, samples))
+        aliases = {"street": "st", "avenue": "ave", "boulevard": "blvd", "road": "rd",
+                   "drive": "dr", "place": "pl", "lane": "ln", "terrace": "ter", "court": "ct"}
+        def normalized(value):
+            return " ".join(aliases.get(t, t) for t in re.findall(r"[a-z0-9]+", str(value).lower()))
+        wanted = normalized(name) if name else None
         votes: Counter = Counter()
         sides: defaultdict = defaultdict(Counter)
         distances: defaultdict = defaultdict(list)
-        for lon, lat in points[::step]:
-            found = self.locate_full(lon, lat)
-            if found is None:
+        for station in positions:
+            i = min(len(lengths) - 1, int(np.searchsorted(stations, station, side="right") - 1))
+            fraction = (station - stations[i]) / lengths[i] if lengths[i] else 0.0
+            x, y = local[i] + fraction * (local[i + 1] - local[i])
+            candidates = self._nearby(x, y)
+            if wanted:
+                candidates = [f for f in candidates if normalized(self.names[f]) == wanted]
+            found = None
+            for feature in candidates:
+                distance, _at, side = project_to_polyline(self.segments[feature], x, y)
+                if distance <= MATCH_RADIUS_M and (found is None or distance < found[2]):
+                    found = (feature, side, distance)
+            if not found:
                 continue
-            feature, _station, side, distance = found
+            feature, side, distance = found
             votes[feature] += 1
             sides[feature][side] += 1
             distances[feature].append(distance)

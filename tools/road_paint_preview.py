@@ -16,7 +16,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DIAGNOSTIC = r'''
 {
-const paintAudit = {surfaces:{}, buried:[], intruders:[],crossings:[]};
+const paintAudit = {surfaces:{}, buried:[], intruders:[],crossings:[],streetProfiles:[]};
+for(const w of DATA.ways.filter(w=>w.kind==='street')){
+ const profile=laneMarkingProfile(w);
+ paintAudit.streetProfiles.push({id:w.osm_id,name:w.name,road:renderedRoadWidth(w),
+   tagged:laneCountForWay(w),resolved:profile.total,points:w.points,shift:w._shift,
+   source:profile.fromCrossSection?'compatible_section':'mapped_or_inferred'});
+}
 for(const w of DATA.ways.filter(w=>w.kind==='crossing'&&wayLength(w.points)<40)){
  const span=crossingRectanglePoints(w.points);
  paintAudit.crossings.push({id:w.osm_id,points:w.points,span,original:wayLength(w.points),
@@ -64,6 +70,23 @@ function topHit(objects,x,z){
  return best;
 }
 function topAt(objects,x,z){return topHit(objects,x,z)?.point.y;}
+const pavementMeshes=groundMeshes.filter(o=>['walk','walk_narrow','walk_underlay','inferred:paving'].includes(o.userData.surface));
+paintAudit.warningPanels={panels:tactileWarningPads.length,samples:0,missingConcrete:0,occluded:0,darkRampMeshes:0};
+groups.streets.traverse(o=>{
+ if(!o.isMesh)return;
+ if(o.userData.surface==='curb_ramp')paintAudit.warningPanels.darkRampMeshes++;
+ if(o.userData.surface!=='tactile_warning')return;
+ const p=o.geometry.getAttribute('position'),idx=o.geometry.getIndex(),n=idx?idx.count:p.count;
+ const stride=Math.max(1,Math.ceil(n/3/250));
+ for(let t=0;t+2<n;t+=3*stride){
+  const ids=[0,1,2].map(k=>idx?idx.getX(t+k):t+k);
+  const x=ids.reduce((s,i)=>s+p.getX(i),0)/3,z=ids.reduce((s,i)=>s+p.getZ(i),0)/3;
+  const y=ids.reduce((s,i)=>s+p.getY(i),0)/3,top=topAt(pavementMeshes,x,z);
+  paintAudit.warningPanels.samples++;
+  if(top===undefined)paintAudit.warningPanels.missingConcrete++;
+  else if(top>y+.002)paintAudit.warningPanels.occluded++;
+ }
+});
 for(const mesh of paintMeshes){
   const p=mesh.geometry.getAttribute('position'),idx=mesh.geometry.getIndex();
   const n=idx?idx.count:p.count, label=mesh.userData.surface;
@@ -166,6 +189,14 @@ def main() -> None:
     asset_path = "/" + str(ground_path.parent.relative_to(ROOT)) + "/"
     page = re.sub(r'<meta name="kerbside-assets" content="[^"]*"',
                   f'<meta name="kerbside-assets" content="{asset_path}"', page)
+    # The window loader now fetches these constants, not a literal fetch(). Without
+    # overriding them the "270-way" reproduction silently loaded all 32k ways.
+    page = page.replace('const PAYLOAD_URL = asset("sf-corridor-3d.json");',
+                        'const PAYLOAD_URL = "sf-corridor-3d.json";', 1)
+    page = page.replace('const GROUND_URL = asset("sf-corridor-ground.json");',
+                        'const GROUND_URL = "preview-ground.json";', 1)
+    page = page.replace('const GROUND_URL = asset("app-sf-corridor-ground.json");',
+                        'const GROUND_URL = "preview-ground.json";', 1)
     page = re.sub(r'fetch\((?:asset\()?"sf-corridor-3d.json"\)?', 'fetch("sf-corridor-3d.json"', page, count=1)
     page = re.sub(r'fetch\((?:asset\()?"(?:app-)?sf-corridor-ground.json"\)?', 'fetch("preview-ground.json"', page, count=1)
     page = page.replace('const TILE_BASE = "tiles/";', 'const TILE_BASE = "/docs/tiles/";')
