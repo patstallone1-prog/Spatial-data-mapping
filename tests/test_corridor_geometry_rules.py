@@ -683,7 +683,12 @@ def test_corridor_wide_geometry_audit_runs_and_keeps_crosswalks_and_footways() -
     assert out.returncode == 0, out.stderr
     report = json.loads(out.stdout)
     assert report["crosswalk"]["rendered"] > 2500, report["crosswalk"]
-    assert report["crosswalk"]["officialShare"] > 0.70, report["crosswalk"]
+    # Uniform-road paint must not quietly consult the alternative surveyed
+    # boundary. Test attachment instead; the survey-mode fixtures still check
+    # actual official-curb resolution independently.
+    assert report["crosswalk"]["kerbPolicy"] == "uniform_drawn_road"
+    assert report["crosswalk"]["officialResolved"] == 0, report["crosswalk"]
+    assert report["crosswalk"]["attachedShare"] >= 0.93, report["crosswalk"]
     assert report["crosswalk"]["officialResolved"] + report["crosswalk"]["fallbackResolved"] \
         == report["crosswalk"]["rendered"], report["crosswalk"]
     assert report["footway"]["keptShare"] > 0.89, report["footway"]

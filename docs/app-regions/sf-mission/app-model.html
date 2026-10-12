@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="5c8a68382daad8ce45fa63a3012313d5aaec83d34d34c9d60aa10e29586883fd" />
+<meta name="kerbside-renderer-sha256" content="8f4336db3d5abc40266f02b0a3f3fdb4211c4c3d39e9616af38a8498a0cb40bc" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -5178,6 +5178,10 @@ function rayCurbIntersections(x, z, dx, dz, reach, grid) {
 }
 
 function officialCurbCrossingSpan(x, z, dx, dz, expectedHalfWidth, mappedLength = 0) {
+  // Uniform kerbs and survey kerbs are alternative render policies, not two
+  // boundaries that paint can mix. Retain the survey for inspection, but never
+  // use a curb return from it to shorten/rotate a default-road crosswalk.
+  if (typeof KERB_RENDER_UNIFORM !== "undefined" && KERB_RENDER_UNIFORM) return null;
   if (!officialCurbGrid.size) return null;
   // How far to look for the kerbs: past the carriageway this crossing was matched to, and
   // past the length OpenStreetMap drew it. On a divided road the matched carriageway is one
@@ -5298,7 +5302,8 @@ function acrossTheWholeRoad(span, points) {
   }
   if (!more) return span;
   // The kerbs nearest the mapped line's two ends.
-  const hits = rayCurbIntersections(ax, az, ux, uz, length + 4, officialCurbGrid);
+  const hits = typeof KERB_RENDER_UNIFORM !== "undefined" && KERB_RENDER_UNIFORM
+    ? [] : rayCurbIntersections(ax, az, ux, uz, length + 4, officialCurbGrid);
   const near = (target) => hits.filter((h) => Math.abs(h - target) <= 4)
     .sort((a, b) => Math.abs(a - target) - Math.abs(b - target))[0];
   // Where the city drew no kerb there, the mapped line's own end: it ends on the kerb's node,
@@ -5805,9 +5810,34 @@ const CROSS_SECTION_KIND = { p: "parking", b: "bike", f: "buffer", x: "transit",
 const CROSS_SECTION_LANE_MIN_M = 2.55;
 const CROSS_SECTION_LANE_MAX_M = 5.2;
 
-function crossSectionRowAt(way, along) {
+function crossSectionRowAt(way, along, half = null) {
   const rows = way && way.xs;
   if (!rows || !rows.length) return null;
+  if (half !== null && typeof KERB_RENDER_UNIFORM !== "undefined" && KERB_RENDER_UNIFORM) {
+    // A junction ray can hit the opposite street's curb (Presidio: 43.8 m,
+    // eight inferred lanes on a tagged four-lane way). It is not evidence for
+    // widening paint past a uniform curb. Choose one credible topology for
+    // this uniform way; keep every original xs row unmodified for review.
+    const count = laneCountForWay(way);
+    const cached = way._uniformCrossSection;
+    if (cached && cached.rows === rows && cached.half === half && cached.count === count) return cached.row;
+    const middle = rows[Math.floor(rows.length / 2)][0];
+    let best = null;
+    for (const row of rows) {
+      if (row[4] !== "r" || !Array.isArray(row[5])) continue;
+      const travel = row[5].filter((b) => b[0] === "t" || b[0] === "n");
+      if (!travel.length || (count && travel.length !== count)) continue;
+      if (row[5].some((b) => b[0] === "u")) continue;
+      const fixed = row[5].filter((b) => b[0] !== "t" && b[0] !== "n")
+        .reduce((s, b) => s + b[1], 0);
+      const lane = (half * 2 - fixed) / travel.length;
+      if (lane < CROSS_SECTION_LANE_MIN_M || lane > CROSS_SECTION_LANE_MAX_M) continue;
+      if (Math.abs(row[1] - row[2] - half * 2) > Math.max(1.5, half * 0.4)) continue;
+      if (!best || Math.abs(row[0] - middle) < Math.abs(best[0] - middle)) best = row;
+    }
+    way._uniformCrossSection = { rows, half, count, row: best };
+    return best;
+  }
   let best = rows[0];
   for (const row of rows) if (Math.abs(row[0] - along) < Math.abs(best[0] - along)) best = row;
   return best;
@@ -5816,7 +5846,7 @@ function crossSectionRowAt(way, along) {
 //: The bands at a station closed to the page's drawn width: [{kind, dir, left, right}] from
 //: the left kerb (+half) inward, or null where the station is unresolved or cannot close.
 function crossSectionBands(way, along, half) {
-  const row = crossSectionRowAt(way, along);
+  const row = crossSectionRowAt(way, along, half);
   if (!row || row[4] === "u") return null;
   const bands = row[5].map((b) => ({ kind: CROSS_SECTION_KIND[b[0]] || b[0], width: b[1], dir: b[4] || 0, sub: b[5] || "" }));
   if (bands.some((b) => b.kind === "unresolved")) return null;
@@ -5825,6 +5855,7 @@ function crossSectionBands(way, along, half) {
   const fixed = bands.filter((b) => !(b.kind === "travel" || b.kind === "turn")).reduce((sum, b) => sum + b.width, 0);
   let lane = (2 * half - fixed) / travel.length;
   if (lane < CROSS_SECTION_LANE_MIN_M || lane > CROSS_SECTION_LANE_MAX_M) {
+    if (typeof KERB_RENDER_UNIFORM !== "undefined" && KERB_RENDER_UNIFORM) return null;
     // The page's width for the way can be a recorded figure narrower than the street it draws
     // -- Telegraph's protected tracks are drawn at the section's own offsets, 18 m apart, on a
     // way whose recorded width is 9 m -- and closing to it left lanes under two metres, so the
@@ -9951,8 +9982,10 @@ function laneMarkingProfile(way, road = renderedRoadWidth(way)) {
                road, left: travel[0].left, right: travel[travel.length - 1].right,
                travel: travel[0].left - travel[travel.length - 1].right, fromCrossSection: true };
     }
-    return { oneway, total: 0, forward: 0, backward: 0, opposing: false, road,
-             left: road / 2, right: -road / 2, travel: road, fromCrossSection: true };
+    if (!(typeof KERB_RENDER_UNIFORM !== "undefined" && KERB_RENDER_UNIFORM)) {
+      return { oneway, total: 0, forward: 0, backward: 0, opposing: false, road,
+               left: road / 2, right: -road / 2, travel: road, fromCrossSection: true };
+    }
   }
   const tagged = way.lanes || 0;
   const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
@@ -10849,9 +10882,6 @@ function tactilePadsOverlap(a, b) {
   }
   return true;
 }
-const CROSSING_LANDING_DEPTH_M = 2.35;
-const CROSSING_LANDING_FLARE_M = 2.20;
-
 function tactilePadCorners(endpoint, intoCrossing, crossingWidth) {
   const [ex, ey] = xy(endpoint[0], endpoint[1]);
   const [ix, iy] = xy(intoCrossing[0], intoCrossing[1]);
@@ -10888,42 +10918,29 @@ function tactilePadCorners(endpoint, intoCrossing, crossingWidth) {
 }
 
 function crossingLandingCorners(endpoint, intoCrossing, crossingWidth) {
-  // Concrete landing behind a crosswalk. At big junctions the street ribbons and the clipped
-  // sidewalk ribbons are both right to stay out of each other's way, but that leaves the small
-  // triangular/rectangular curb-ramp landing black. This pad fills only the sidewalk-side area
-  // behind the crossing, and refuses to draw if any corner is still in a carriageway.
-  const [ex, ey] = xy(endpoint[0], endpoint[1]);
-  const [ix, iy] = xy(intoCrossing[0], intoCrossing[1]);
-  const ez = -ey;
-  const iz = -iy;
-  const dx = ix - ex;
-  const dz = iz - ez;
-  const len = Math.hypot(dx, dz);
-  if (!(len > 0.5)) return null;
-  const outX = -dx / len;
-  const outZ = -dz / len;
-  const acrossX = -outZ;
-  const acrossZ = outX;
-  const width = Math.max(2.2, Math.min(7.4, crossingWidth + CROSSING_LANDING_FLARE_M));
-  const depth = CROSSING_LANDING_DEPTH_M;
-  let cx = ex + outX * (depth / 2 + 0.05);
-  let cz = ez + outZ * (depth / 2 + 0.05);
-  const cornersAt = () => [
-    [cx - acrossX * width / 2 - outX * depth / 2, cz - acrossZ * width / 2 - outZ * depth / 2],
-    [cx + acrossX * width / 2 - outX * depth / 2, cz + acrossZ * width / 2 - outZ * depth / 2],
-    [cx + acrossX * width / 2 + outX * depth / 2, cz + acrossZ * width / 2 + outZ * depth / 2],
-    [cx - acrossX * width / 2 + outX * depth / 2, cz - acrossZ * width / 2 + outZ * depth / 2],
-  ];
-  for (let step = 0; step < 8; step += 1) {
-    const corners = cornersAt();
-    if (!insideCarriageway(cx, cz, 0.08)
-        && !corners.some(([x, z]) => insideCarriageway(x, z, 0.0))) {
-      return { corners, width, depth };
+  // Derive concrete from the SAME accepted yellow rectangle. Independently
+  // walking two rectangles away from the road left asphalt between them.
+  const pad = tactilePadCorners(endpoint, intoCrossing, crossingWidth);
+  if (!pad) return null;
+  const [a, b, , d] = pad.corners;
+  const ux = (d[0] - a[0]) / pad.depth, uz = (d[1] - a[1]) / pad.depth;
+  const vx = (b[0] - a[0]) / pad.width, vz = (b[1] - a[1]) / pad.width;
+  const border = 0.16, back = 0.64;
+  let front = Math.min(border, TACTILE_PAD_SETBACK_M), side = border;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const corners = [
+      [a[0] - vx * side - ux * front, a[1] - vz * side - uz * front],
+      [b[0] + vx * side - ux * front, b[1] + vz * side - uz * front],
+      [b[0] + vx * side + ux * (pad.depth + back), b[1] + vz * side + uz * (pad.depth + back)],
+      [a[0] - vx * side + ux * (pad.depth + back), a[1] - vz * side + uz * (pad.depth + back)],
+    ];
+    if (!corners.some(([x, z]) => insideCarriageway(x, z, -0.05))) {
+      return { corners, width: pad.width + side * 2, depth: pad.depth + front + back };
     }
-    cx += outX * 0.22;
-    cz += outZ * 0.22;
+    front *= 0.5; side *= 0.5;
   }
-  return null;
+  // A flare failing at a tightly curved kerb must not leave the yellow bare.
+  return { corners: pad.corners, width: pad.width, depth: pad.depth };
 }
 
 function addCrossingLandingPad(endpoint, intoCrossing, crossingWidth, y) {
@@ -10987,26 +11004,6 @@ function addCrossingAsphaltBackstop(points, crossingWidth, roadTop) {
   return true;
 }
 
-let CURB_RAMP_TEXTURE = null;
-function curbRampTexture() {
-  // Smooth-floated concrete, paler than the broom-finished footway round it: a ramp is poured
-  // separately and later, and reads as its own slab.
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#8c8e88";
-  ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < size * size * 0.3; i += 1) {
-    ctx.fillStyle = random(i * 7) < 0.5 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.07)";
-    ctx.fillRect(random(i * 3) * size, random(i * 5) * size, 1, 1);
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
 function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   const pad = tactilePadCorners(endpoint, intoCrossing, crossingWidth);
   if (!pad) return false;
@@ -11014,43 +11011,9 @@ function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   // there instead of stacking perpendicular pads into a yellow L/plus.
   if (tactileWarningPads.some((corners) => tactilePadsOverlap(corners, pad.corners))) return false;
   tactileWarningPads.push(pad.corners);
-  // The ramp under the pad: a full rectangle back from the kerb with flared sides, so the pad
-  // is the front edge of a ramp rather than a yellow stripe on its own. Corners 0-1 are the
-  // street edge, 2-3 the footway edge of the pad; the ramp carries on from 2-3.
-  {
-    const [c0, c1, c2, c3] = pad.corners;
-    const outX = (c3[0] - c0[0]) / pad.depth;
-    const outZ = (c3[1] - c0[1]) / pad.depth;
-    const acrossX = (c1[0] - c0[0]) / pad.width;
-    const acrossZ = (c1[1] - c0[1]) / pad.width;
-    const back = CURB_RAMP_DEPTH_M - pad.depth;
-    const flare = CURB_RAMP_FLARE_M;
-    const r = [
-      [c3[0] - acrossX * flare, c3[1] - acrossZ * flare],
-      [c2[0] + acrossX * flare, c2[1] + acrossZ * flare],
-      [c2[0] + acrossX * flare + outX * back, c2[1] + acrossZ * flare + outZ * back],
-      [c3[0] - acrossX * flare + outX * back, c3[1] - acrossZ * flare + outZ * back],
-    ];
-    if (!r.some(([x, z]) => insideCarriageway(x, z, -0.05))) {
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.Float32BufferAttribute([
-        r[0][0], y - 0.002, r[0][1], r[1][0], y - 0.002, r[1][1],
-        r[2][0], y - 0.002, r[2][1], r[3][0], y - 0.002, r[3][1],
-      ], 3));
-      geometry.setAttribute("uv", new THREE.Float32BufferAttribute([
-        0, 0, (pad.width + 2 * flare) / 1.2, 0, (pad.width + 2 * flare) / 1.2, back / 1.2, 0, back / 1.2,
-      ], 2));
-      geometry.setIndex([0, 1, 2, 0, 2, 3]);
-      geometry.computeVertexNormals();
-      if (!CURB_RAMP_TEXTURE) CURB_RAMP_TEXTURE = curbRampTexture();
-      const ramp = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-        map: CURB_RAMP_TEXTURE, color: 0xffffff, roughness: 0.9, metalness: 0.0,
-        side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -9, polygonOffsetUnits: -18,
-      }));
-      ramp.userData.surface = "curb_ramp";
-      addMerged("crossing:ramp", ramp, "curb_ramp");
-    }
-  }
+  // Replace the separate dark-grey ramp decal with continuous sidewalk concrete.
+  // This landing includes the entire accepted pad, not just its rear edge.
+  addCrossingLandingPad(endpoint, intoCrossing, crossingWidth, y - 0.012);
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute([
     pad.corners[0][0], y, pad.corners[0][1],
@@ -16195,7 +16158,9 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     // San Francisco paints on a two-way street (a broken line means overtaking is allowed
     // and is the exception here). Both sit inside the travel lanes: with parking down one
     // side the yellow is off the road's middle, as it is in the street.
-    if (markingPoints.length >= 2 && way.xs) {
+    if (markingPoints.length >= 2 && way.xs
+        && (!(typeof KERB_RENDER_UNIFORM !== "undefined" && KERB_RENDER_UNIFORM)
+            || crossSectionBandsNearMiddle(way, road / 2))) {
       // From the cross-sections: each boundary between bands is its own run, painted for
       // what the two bands are, and a station the solver could not close paints nothing.
       const apart = (MARK_W + DOUBLE_GAP_M) / 2;

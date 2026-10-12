@@ -755,6 +755,7 @@ console.log(JSON.stringify({
   fences: { runs: fenceRuns, crossingRoad: fenceOnRoad },
   divider: { mapped: dividerMapped, rendered: dividerRendered, bySource: dividerBySource },
   crosswalk: {
+    kerbPolicy: KERB_RENDER_UNIFORM ? "uniform_drawn_road" : "survey",
     ways: crossingWays,
     rendered: crossingRendered,
     kerbAttached: crossingKerbAttached,

@@ -56,6 +56,70 @@ def test_preview_uses_actual_renderer_and_keeps_neighboring_context():
     source = (ROOT / "tools/road_paint_preview.py").read_text()
     assert 'page = (viewer / "app-model.html").read_text()' in source
     assert 'data["ways"] = [w for w in data["ways"] if touches' in source
+    assert 'const PAYLOAD_URL = "sf-corridor-3d.json";' in source
+    assert 'const GROUND_URL = "preview-ground.json";' in source
+
+
+def test_presidio_uniform_lane_topology_cannot_use_eight_lane_junction_sample():
+    from tests.test_corridor_geometry_rules import _run_lanes
+
+    payload = json.loads((ROOT / "docs/sf-corridor-3d.json").read_text())
+    ways = [w for w in payload["ways"] if w.get("osm_id") in (1090200059, 224200971, 680243312)]
+    assert len(ways) == 3
+    result = _run_lanes("\n".join([
+        "const KERB_RENDER_UNIFORM=true;",
+        f"const ways={json.dumps(ways)};",
+        "console.log(JSON.stringify(ways.map(w=>{const original=JSON.stringify(w.xs);",
+        "const bands=[0,10,20,30,80].map(s=>crossSectionBands(w,s,w.road_m/2));",
+        "return {tag:w.lanes,counts:bands.map(b=>b?.filter(q=>q.kind==='travel'||q.kind==='turn').length),",
+        "stable:bands.every(b=>JSON.stringify(b)===JSON.stringify(bands[0])),",
+        "inside:bands.every(b=>b&&b.every(q=>q.left<=w.road_m/2+.001&&q.right>=-w.road_m/2-.001)),",
+        "factsUnchanged:original===JSON.stringify(w.xs)};})));",
+    ]))
+    for way in result:
+        assert way["counts"] == [way["tag"]] * 5
+        assert way["stable"] and way["inside"] and way["factsUnchanged"]
+
+
+def test_uniform_policy_ends_crossing_on_drawn_road_not_other_streets_survey():
+    from tests.test_corridor_geometry_rules import _run_crossing
+
+    result = _run_crossing("""
+const KERB_RENDER_UNIFORM=true;
+const ll=(x,z)=>[x/metersPerLon,-z/metersPerLat];
+addCarriagewaySegment(-30,0,30,0,6);
+// A pair of curb returns from a different survey geometry would shorten it.
+addOfficialCurbGridSegment(officialCurbGrid,-20,-2,20,-2);
+addOfficialCurbGridSegment(officialCurbGrid,-20,3,20,3);
+const span=crossingRectanglePoints([ll(0,-7),ll(0,0),ll(0,7)]);
+console.log(JSON.stringify({length:wayLength(span),source:span.provenance}));
+""")
+    assert result["length"] == pytest.approx(12)
+    assert result["source"] == "road_width_fallback"
+
+
+def test_warning_panel_and_pavement_landing_share_location_even_at_skew_kerb():
+    js = _page_js()
+    result = run("\n".join([
+        "const TACTILE_PAD_MIN_W_M=1.22,TACTILE_PAD_MAX_W_M=1.52,TACTILE_PAD_DEPTH_M=.91,TACTILE_PAD_SETBACK_M=.18;",
+        "function xy(x,z){return [x,-z];}function insideCarriageway(x,z,slack){return z<slack;}",
+        _extract("tactilePadCorners", js), _extract("crossingLandingCorners", js),
+        "console.log(JSON.stringify([0,.4,1].map(x=>{const a=[x,.1],b=[x-1,-5];",
+        "return {pad:tactilePadCorners(a,b,3.7),landing:crossingLandingCorners(a,b,3.7)};})));",
+    ]))
+    def contained(point, polygon):
+        # Convex quad: all edge crosses have a common sign (boundary included).
+        crosses = []
+        for a, b in zip(polygon, polygon[1:] + polygon[:1], strict=True):
+            crosses.append((b[0]-a[0])*(point[1]-a[1]) - (b[1]-a[1])*(point[0]-a[0]))
+        return min(crosses) >= -1e-6 or max(crosses) <= 1e-6
+    for record in result:
+        assert record["pad"] and record["landing"]
+        assert all(contained(p, record["landing"]["corners"]) for p in record["pad"]["corners"])
+        assert all(p[1] >= -.05 for p in record["landing"]["corners"])
+    body = _extract("addTactileWarningPad", js)
+    assert 'addMerged("crossing:ramp"' not in body
+    assert "addCrossingLandingPad(endpoint, intoCrossing, crossingWidth, y - 0.012)" in body
 
 
 def test_lane_offsets_outside_the_drawn_carriageway_are_not_painted():
