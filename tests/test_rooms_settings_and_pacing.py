@@ -138,7 +138,7 @@ def test_settings_pace_the_page_and_detail_comes_with_zoom() -> None:
     for name in ("low:", "medium:", "high:", "max:"):
         assert name in presets
     assert "const FPS_CHOICES = [15, 30, 45, 60, 0];" in js
-    assert "window.kerbsideSettings = {" in js and 'settingsButton.id = "settings-toggle";' in js
+    assert "window.kerbsideSettings = {" in js and 'const settingsButton = document.getElementById("settings-toggle");' in js
     animate = _extract("animate", js)
     assert "SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0" in animate and "IDLE_FRAME_MS" in animate
     tiers = js[js.index("const ZOOM_HIDDEN = {"):js.index("let zoomTier")]

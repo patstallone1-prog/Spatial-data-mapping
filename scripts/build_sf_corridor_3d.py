@@ -2887,6 +2887,7 @@ input::placeholder { color:#9ca3af; }
 .hits li:hover, .hits li[aria-selected=true] { background:var(--soft); color:var(--ink); }
 .toolbar { display:flex; flex-wrap:wrap; gap:8px; }
 .toolbar.actions button { flex:1; }
+.settings-open { margin-top:auto; width:100%; color:var(--muted); }
 /* Directions */
 .seg { display:flex; background:var(--soft); border-radius:10px; padding:3px; gap:3px; }
 .seg button { flex:1; border:0; background:transparent; padding:7px 0; border-radius:8px; }
@@ -2969,6 +2970,7 @@ input::placeholder { color:#9ca3af; }
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
       <button id="reset">Reset view</button>
     </div>
+    <button type="button" id="settings-toggle" class="settings-open" aria-controls="settings-page" aria-expanded="false">⚙ Settings</button>
   </div>
 </div>
 <form class="panel sheet" id="settings-page" hidden aria-label="Settings">
@@ -24335,8 +24337,11 @@ document.getElementById("firstperson").addEventListener("click", () => {
 document.getElementById("reset").addEventListener("click", () => {
   Object.assign(state, OVERVIEW);
   if (typeof avatar !== "undefined") {
-    avatar.position.set(0, AVATAR_STAND_Y, 0);
+    // Back to where you are, when the device knows and you are in this region; else the middle.
+    const at = gps.target;
+    avatar.position.set(at ? at.x : 0, AVATAR_STAND_Y + (at ? walkerGroundAt(at.x, at.z) : 0), at ? at.z : 0);
     state.target.copy(avatar.position);
+    gps.follow = true;
   }
   setFirstPerson(false);
 });
@@ -24502,6 +24507,15 @@ let searchPlaces = () => [];
   }
 
   function travelTo(place) {
+    // A place here is shown -- pinned, the view brought to it, and the directions to it filled in
+    // from where you are -- and the walker stays where it is.
+    if (window.kerbsideShowPlace && window.kerbsideShowPlace(place)) {
+      field.value = place.label;
+      showing = [];
+      selected = -1;
+      paint();
+      return;
+    }
     if (window.kerbsideOpenFullRegionAt &&
         window.kerbsideOpenFullRegionAt(place.lon, place.lat)) return;
     const [x, y] = xy(place.lon, place.lat);
@@ -25187,9 +25201,9 @@ const compass = ATTACH ? null : document.createElement("div");
 if (compass) {
   compass.id = "compass";
   compass.setAttribute("aria-label", "Compass");
-  compass.style.cssText = "position:fixed;right:16px;top:16px;z-index:25;width:92px;height:112px;"
-    + "pointer-events:none;font:600 11px/1 system-ui,sans-serif;color:#1d2a33;text-align:center";
-  compass.innerHTML = `<svg viewBox="-50 -50 100 100" width="92" height="92">
+  compass.style.cssText = "position:fixed;right:16px;top:16px;z-index:25;width:64px;height:80px;"
+    + "pointer-events:none;font:600 10px/1 system-ui,sans-serif;color:#1d2a33;text-align:center";
+  compass.innerHTML = `<svg viewBox="-50 -50 100 100" width="64" height="64">
   <circle r="47" fill="rgba(255,255,255,.88)" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/>
   <g id="compass-rose">
     <path d="M0,-38 L6,-6 L38,0 L6,6 L0,38 L-6,6 L-38,0 L-6,-6 Z" fill="#c8d0d6" stroke="#7d8a93" stroke-width="0.8"/>
@@ -28500,12 +28514,68 @@ function firstBuildingCollision(fromX, fromZ, toX, toZ) {
   }
   return first;
 }
+//: Where you are (navigator.geolocation), when you are in this region: the walker stands there and
+//: walks and turns with you. Your position stays in this browser; it leaves it only as the start
+//: of directions you ask for. Off in settings.
+const GPS_KEY = "kerbside-gps";
+const GPS_JUMP_M = 60;
+const GPS_WALK_SPEED_MS = 4;
+const gps = { fix: null, target: null, heading: null, watch: null, follow: true,
+  enabled: (() => { try { return localStorage.getItem(GPS_KEY) !== "off"; } catch { return true; } })() };
+function startGps() {
+  if (ATTACH || gps.watch !== null || !gps.enabled || !navigator.geolocation) return;
+  gps.watch = navigator.geolocation.watchPosition((position) => {
+    const { longitude: lon, latitude: lat, heading } = position.coords;
+    gps.fix = { lon, lat, accuracy: position.coords.accuracy, at: position.timestamp };
+    const b = DATA.bbox;
+    if (lon < b.west || lon > b.east || lat < b.south || lat > b.north) { gps.target = null; return; }
+    const [x, y] = xy(lon, lat);
+    const first = !gps.target;
+    gps.target = new THREE.Vector3(x, 0, -y);
+    gps.heading = Number.isFinite(heading) ? heading : null;
+    if (first) {
+      // The first fix: the walker stands where you are and the view comes to it.
+      avatar.position.set(x, AVATAR_STAND_Y + walkerGroundAt(x, -y), -y);
+      state.indoors = false;
+      state.target.copy(avatar.position);
+      placeCamera();
+    }
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
+}
+function stopGps() {
+  if (gps.watch !== null) navigator.geolocation.clearWatch(gps.watch);
+  gps.watch = null; gps.target = null;
+}
+//: One frame's walk toward where you are; true when the walker moved.
+function followGps(dt) {
+  if (!gps.target || held.size) return false;
+  const dx = gps.target.x - avatar.position.x, dz = gps.target.z - avatar.position.z, d = Math.hypot(dx, dz);
+  if (d > GPS_JUMP_M) {
+    avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
+    return true;
+  }
+  if (d < 0.4) {
+    if (gps.heading !== null) avatar.rotation.y = Math.PI - gps.heading * Math.PI / 180;
+    return false;
+  }
+  // Faster the further behind, so a walker never trails a moving phone for long.
+  const step = Math.min(d, Math.max(GPS_WALK_SPEED_MS, d) * dt);
+  const move = new THREE.Vector3(dx / d * step, 0, dz / d * step);
+  // Where the phone says, not where the walls allow: a fix is often a few metres into a house.
+  avatar.position.x += move.x;
+  avatar.position.z += move.z;
+  avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
+  avatar.userData.lastMove = [move.x, move.z, performance.now()];
+  animateAvatar(step, move, true);
+  if (gps.follow) { state.target.copy(avatar.position); placeCamera(); }
+  return true;
+}
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
   updateDoors(dt);
   if (!held.size) {
-    animateAvatar(0, new THREE.Vector3(), false);
+    if (!followGps(dt)) animateAvatar(0, new THREE.Vector3(), false);
     updateAvatarMixer(dt);
     return;
   }
@@ -28960,8 +29030,35 @@ if (!ATTACH) {
   const stairs = document.getElementById("route-stairs");
   const minutes = (s) => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`;
   const here = () => {
-    const p = state.firstPerson ? avatar.position : state.target;
-    return { label: "Where you are", lon: p.x / metersPerLon + midLon, lat: -p.z / metersPerLat + midLat };
+    if (gps.fix) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat };
+    const p = avatar.position;
+    return { label: "Your location", lon: p.x / metersPerLon + midLon, lat: -p.z / metersPerLat + midLat };
+  };
+  // A searched place: a pin, the view brought to it, and the directions from you to it filled in.
+  const pin = new THREE.Group();
+  const pinMaterial = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+  const pinPoint = new THREE.Mesh(new THREE.ConeGeometry(2.2, 6, 20), pinMaterial);
+  pinPoint.rotation.x = Math.PI;
+  pinPoint.position.y = 3;
+  const pinHead = new THREE.Mesh(new THREE.SphereGeometry(2.4, 20, 14), pinMaterial);
+  pinHead.position.y = 6.5;
+  pin.add(pinPoint, pinHead);
+  pin.visible = false;
+  routeGroup.parent.add(pin);
+  window.kerbsideShowPlace = (place) => {
+    const b = DATA.bbox;
+    if (!(place.lon >= b.west && place.lon <= b.east && place.lat >= b.south && place.lat <= b.north)) return false;
+    const [x, y] = xy(place.lon, place.lat);
+    pin.position.set(x, walkerGroundAt(x, -y), -y);
+    pin.visible = true;
+    gps.follow = false;
+    if (state.firstPerson) setFirstPerson(false);
+    state.dist = Math.max(180, Math.min(state.dist, 450));
+    goTo(new THREE.Vector3(x, 0, -y));
+    route.stops[route.stops.length - 1] = place;
+    if (!route.stops[0]) route.stops[0] = here();
+    renderStops();
+    return true;
   };
   function renderStops() {
     stopsBox.replaceChildren();
@@ -29032,6 +29129,7 @@ if (!ATTACH) {
   });
   clear.addEventListener("click", () => {
     route.results = []; route.chosen = 0; drawRoutes(); renderResults(0); status.textContent = "";
+    pin.visible = false; gps.follow = true;
   });
   document.getElementById("route-go").addEventListener("click", async () => {
     const stops = route.stops.map((stop, i) => stop || (i === 0 ? here() : null));
@@ -29078,16 +29176,8 @@ function applySettings(changes = {}) {
 // The settings page holds everything that is not wanted at once: how the map is drawn, its
 // layers, its coverage notes and numbers, the legend and how to get around. Its button sits under
 // the compass at the top right.
-const settingsButton = document.createElement("button");
-settingsButton.id = "settings-toggle";
-settingsButton.type = "button";
-settingsButton.title = "Settings";
-settingsButton.setAttribute("aria-label", "Settings");
-settingsButton.setAttribute("aria-controls", "settings-page");
-settingsButton.setAttribute("aria-expanded", "false");
-settingsButton.textContent = "⚙";
-settingsButton.style.cssText = "position:fixed;top:130px;right:16px;z-index:40;width:44px;height:44px;padding:0;"
-  + "border-radius:12px;font:20px/1 system-ui;box-shadow:0 12px 32px rgba(15,23,42,.14)";
+// The settings page's button is the last thing in the sidebar.
+const settingsButton = document.getElementById("settings-toggle");
 const settingsForm = document.getElementById("settings-page");
 // A region drawn as a guest is handed a stand-in page: its parts are made where they are missing.
 const settingsPart = (id, tag) => settingsForm.querySelector(`#${id}`)
@@ -29099,7 +29189,9 @@ settingsPart("settings-display", "section").insertAdjacentHTML("beforeend", `
     <select name="quality">${Object.entries(QUALITY_PRESETS).map(([k, q]) => `<option value="${k}">${q.label}</option>`).join("")}</select></label>
   <label class="row">Build
     <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}">${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region"}</option>`).join("")}</select></label>
-  <p class="note">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</p>`);
+  <p class="note">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</p>
+  <label class="row">Show me at my location<input type="checkbox" name="gps" /></label>
+  <p class="note">Your walker stands where your device says you are, and walks and turns with you, while you are in this region. Your location stays in this browser except as the start of directions you ask for.</p>`);
 function showSettings(open) {
   settingsForm.hidden = !open;
   settingsButton.setAttribute("aria-expanded", String(open));
@@ -29107,6 +29199,12 @@ function showSettings(open) {
 settingsPart("settings-close", "button").addEventListener("click", () => showSettings(false));
 addEventListener("keydown", (e) => { if (e.key === "Escape" && !settingsForm.hidden) showSettings(false); });
 settingsForm.addEventListener("change", (e) => {
+  if (e.target === settingsForm.gps) {
+    gps.enabled = settingsForm.gps.checked;
+    try { localStorage.setItem(GPS_KEY, gps.enabled ? "on" : "off"); } catch (error) { /* this visit only */ }
+    if (gps.enabled) startGps(); else stopGps();
+    return;
+  }
   if (e.target === settingsForm.world) {
     // How much is built is decided before anything is: the page builds again.
     try { localStorage.setItem(LIGHT_KEY, settingsForm.world.value); } catch (error) { /* this visit only */ }
@@ -29119,10 +29217,11 @@ settingsForm.addEventListener("change", (e) => {
 });
 settingsForm.addEventListener("submit", (e) => e.preventDefault());
 settingsButton.addEventListener("click", () => showSettings(settingsForm.hidden));
-document.body.append(settingsButton);
 settingsForm.fps.value = String(SETTINGS.fps);
 settingsForm.quality.value = SETTINGS.quality;
 settingsForm.world.value = String(LIGHT_LEVEL);
+if (settingsForm.gps) settingsForm.gps.checked = gps.enabled;
+startGps();
 window.kerbsideSettings = {
   get: () => ({ ...SETTINGS, ...QUALITY(), zoomTier }),
   set: (changes) => applySettings(changes),

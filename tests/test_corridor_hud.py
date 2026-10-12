@@ -24,10 +24,12 @@ def test_the_sidebar_holds_only_what_is_wanted_at_once_and_the_rest_is_in_settin
         assert detail in settings and detail not in sidebar, detail
     assert 'aria-controls="map-sidebar"' in page
     assert page.count('id="firstperson"') == 1
-    # The quality and frame-rate choices are on the settings page, its button under the compass.
+    # The quality and frame-rate choices are on the settings page; its button ends the sidebar.
     assert 'settingsPart("settings-display", "section").insertAdjacentHTML' in source
-    assert '"position:fixed;right:16px;top:16px;z-index:25;width:92px;height:112px;"' in source
-    assert 'settingsButton.style.cssText = "position:fixed;top:130px;right:16px;' in source
+    assert sidebar.index('id="settings-toggle"') > sidebar.index('id="reset"')
+    assert 'const settingsButton = document.getElementById("settings-toggle");' in source
+    # The compass, a third smaller, at the top right.
+    assert '"position:fixed;right:16px;top:16px;z-index:25;width:64px;height:80px;"' in source
 
 
 def test_hud_has_light_palette_and_menu_state_labels():
