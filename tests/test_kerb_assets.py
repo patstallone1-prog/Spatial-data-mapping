@@ -53,7 +53,7 @@ def test_meter_spaces_become_posts_with_their_heads_and_pay_stations_with_their_
 
 def test_meters_and_trolley_wires_reach_the_streets() -> None:
     js = _page_js()
-    assert "parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || []))" in js
+    assert "parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],\n      inferred.detected_parking_meters || []))" in js
     assert "trolley_wires: addTrolleyWires(inferred.trolley_wires || [])" in js
     spot = _extract("meterSpot", js)
     assert "streetSquareKerb(nearestKerbAt(x, -y, 8))" in spot and "!insideCarriageway(mx, mz, 0.05)" in spot
@@ -62,3 +62,38 @@ def test_meters_and_trolley_wires_reach_the_streets() -> None:
     furniture = json.loads((ROOT / "docs/sf-corridor-furniture.json").read_text())
     assert len(furniture["geometry_based"]["parking_meters"]) > 5000
     assert len(furniture["inferred"]["trolley_wires"]) > 300
+
+
+def test_mapillary_poles_are_strung_and_small_cells_stand_on_poles() -> None:
+    js = _page_js()
+    network = _extract("addElectricalNetwork", js)
+    assert "(inferred.utility_poles || []).concat(inferred.detected_utility_poles || [])" in network
+    # Spans from a grid of neighbours, along the street before across it.
+    assert "pairs.push([d + (across ? 1000 : 0), A, B, d]);" in network
+    assert "WIRE_SPAN_ACROSS_MAX_M" in network and "small_cells" in network
+    furniture = json.loads((ROOT / "docs/sf-corridor-furniture.json").read_text())
+    assert len(furniture["inferred"]["detected_utility_poles"]) > 5000
+    assert len(furniture["geometry_based"]["small_cells"]) > 100
+    ids = {s.get("id") for s in furniture["sources"]}
+    assert {"mapillary_map_features", "sfdpw_wireless_permits"} <= ids
+
+
+def test_mapillary_poles_near_a_trolley_wire_are_muni_s_and_left_out() -> None:
+    m = runpy.run_path(str(ROOT / "scripts/ingest_kerb_assets.py"))
+    wire = {"points": [[-122.4200, 37.7600], [-122.4100, 37.7600]]}
+    poles = [{"p": [-122.4150, 37.76004]}, {"p": [-122.4150, 37.7610]}]
+    assert m["off_trolley_lines"](poles, [wire]) == [poles[1]], "4 m off the wire is Muni's; 110 m is not"
+    assert m["dedupe"]([{"p": [-122.4, 37.7]}, {"p": [-122.41, 37.7]}], [{"p": [-122.40003, 37.70002]}], 7.0) \
+        == [{"p": [-122.41, 37.7]}]
+
+
+def test_pins_drop_and_return_and_typing_is_never_a_pin() -> None:
+    js = _page_js()
+    pins = js[js.index("// ---- pins: 1, 2 and 3"):js.index("// ---- the compass")]
+    assert "const PIN_COUNT = 3;" in pins
+    assert "if (typingIn(e.target) || typingIn(document.activeElement)) return;" in pins
+    assert "if (pins[i] && !e.shiftKey)" in pins and "goTo(landing, { travel: true });" in pins
+    assert "groundAt(pointerAt[0], pointerAt[1])" in pins
+    page = (ROOT / "docs/app-model.html").read_text()
+    assert 'id="controls-help"' in page and "<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>" in page
+    assert 'id="pins-clear"' in page

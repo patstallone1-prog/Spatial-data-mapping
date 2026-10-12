@@ -64,6 +64,15 @@ input::placeholder { color:#9ca3af; }
 /* The settings page: everything that is not wanted at once. */
 .sheet { position:fixed; top:16px; right:16px; bottom:16px; width:min(380px, calc(100vw - 32px)); z-index:45; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:20px; }
 .sheet[hidden] { display:none; }
+.sheet .page-link { margin-top:10px; width:100%; text-align:left; }
+.sheet .page-link.back { margin:0 0 6px; width:auto; }
+.sheet[data-page="controls"] > section:not(#controls-help) { display:none; }
+.sheet[data-page="controls"] > #controls-help { display:block; }
+.sheet .subpage[hidden] { display:none; }
+.sheet dl.controls { display:grid; grid-template-columns:minmax(110px, 40%) 1fr; gap:6px 12px; margin:0 0 14px; font-size:13px; }
+.sheet dl.controls dt { font-weight:600; }
+.sheet dl.controls dd { margin:0; color:var(--muted); }
+.sheet kbd { display:inline-block; min-width:1.4em; padding:1px 5px; border:1px solid #d1d5db; border-bottom-width:2px; border-radius:5px; background:#f9fafb; font:600 12px/1.4 system-ui,sans-serif; text-align:center; color:#111827; }
 .sheet header { display:flex; align-items:center; justify-content:space-between; }
 .sheet header h1 { margin:0; font-size:18px; font-weight:700; }
 .sheet label.row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:8px 0; font-size:14px; }
@@ -84,7 +93,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="ce9a618aefc20f35626e603103bc8c241f410a7494700bc88ea1a2b4de450c64" />
+<meta name="kerbside-renderer-sha256" content="6766ca9efbe2e22577fec2fedde67e3ca48c4fe21da3c823d76e4c8332267d9c" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -184,7 +193,42 @@ input::placeholder { color:#9ca3af; }
   </section>
   <section class="group">
     <h2>Getting around</h2>
-    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom; when close, right-click a building for its address. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, Enter to open a door or gate, and wheel or pinch to zoom.</div>
+    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, S for what is under the pointer, Enter to open a door or gate, 1, 2 or 3 to drop a pin (and again to go back to it), and wheel or pinch to zoom.</div>
+    <button type="button" class="page-link" id="controls-open" aria-controls="controls-help">Every control and what it does ›</button>
+  </section>
+  <section class="group subpage" id="controls-help" hidden aria-label="Controls">
+    <button type="button" class="page-link back" id="controls-back">‹ Back to settings</button>
+    <h2>Mouse and touch</h2>
+    <dl class="controls">
+      <dt>Click / tap the ground</dt><dd>Walk there. The zoom stays as it is.</dd>
+      <dt>Right-click / two-finger tap</dt><dd>Teleport there, zoomed in to street level. From far out you land on the nearest street.</dd>
+      <dt>Drag</dt><dd>Look around. You keep walking while you do.</dd>
+      <dt>Wheel / pinch</dt><dd>Zoom in and out.</dd>
+      <dt>Click a billboard</dt><dd>Opens what it advertises.</dd>
+      <dt>Click a region's marker</dt><dd>Flies you to that region.</dd>
+    </dl>
+    <h2>Keyboard</h2>
+    <dl class="controls">
+      <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Walk forward and back.</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Step left and right.</dd>
+      <dt><kbd>F</kbd></dt><dd>First person: see out of the walker's eyes, and back out.</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open or close the nearest door or gate.</dd>
+      <dt><kbd>S</kbd></dt><dd>What is under the pointer: a building's address, or a street's name and its cross streets. With the map panel closed.</dd>
+      <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Drop that pin on the ground under the pointer. Once it is down, the same key takes you back to it.</dd>
+      <dt><kbd>Shift</kbd> + <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Move that pin to the pointer.</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close settings, or the address card.</dd>
+    </dl>
+    <p class="note">Keys do nothing to the map while you are typing in the search or directions boxes.</p>
+    <h2>Map panel</h2>
+    <dl class="controls">
+      <dt>☰ Map</dt><dd>Opens and closes the panel.</dd>
+      <dt>Search</dt><dd>Type a place or an address; <kbd>↑</kbd> <kbd>↓</kbd> to choose, <kbd>Enter</kbd> to show it. The walker stays where it is.</dd>
+      <dt>Directions</dt><dd>From and to, then Go: a route on the street network, drawn on the map.</dd>
+      <dt>First person</dt><dd>The same as <kbd>F</kbd>.</dd>
+      <dt>Reset view</dt><dd>Back out to the overview, with the walker where you are (when your location is on) or in the middle of the region.</dd>
+      <dt>⚙ Settings</dt><dd>This page: quality, frame rate, layers, your location and these controls.</dd>
+    </dl>
+    <button type="button" class="page-link" id="pins-clear">Clear pins</button>
   </section>
   <section class="group">
     <h2>Directions</h2>
@@ -20772,8 +20816,12 @@ function addTrafficSignalHeads(records) {
 const WIRE_CATENARY_A_M = 200;
 const WIRE_SPAN_MIN_M = 15;
 const WIRE_SPAN_MAX_M = 65;
+//: A span across a street is no longer than the street is wide and a little.
+const WIRE_SPAN_ACROSS_MAX_M = 40;
 const WIRE_SAMPLES = 14;
 const POLE_DEFAULT_M = 10.5;
+//: A small cell's own pole: a street light's height.
+const SMALL_CELL_POLE_M = 8.5;
 const TOWER_DEFAULT_M = 32;
 const MAST_DEFAULT_M = 30;
 
@@ -20805,7 +20853,10 @@ function electricalAnchor(item) {
 
 function addElectricalNetwork(furniture) {
   const inferred = furniture.inferred || {};
-  const poleRows = (inferred.utility_poles || []).map((item) => ({ item, anchor: furnitureAnchor(item) }))
+  // OpenStreetMap's poles and the ones Mapillary placed from its photographs (ingest_kerb_assets:
+  // none within 7 m of a mapped one), one network.
+  const poleRows = (inferred.utility_poles || []).concat(inferred.detected_utility_poles || [])
+    .map((item) => ({ item, anchor: furnitureAnchor(item) }))
     .filter((row) => row.anchor);
   poleRows.forEach((row) => {
     row.height = Math.max(7, Math.min(16, parseFloat(row.item.height_m) || POLE_DEFAULT_M));
@@ -20816,11 +20867,33 @@ function addElectricalNetwork(furniture) {
   // Poles a mapped line runs through are its supports; only the rest are strung by inference.
   const nearLine = (x, z) => lines.some(({ path }) => path.some((p) => Math.hypot(p.x - x, p.z - z) < 3));
   const free = poleRows.filter((row) => !nearLine(row.anchor.x, row.anchor.z));
+  // Candidate spans, neighbours from a grid rather than every pair (a region has thousands of
+  // poles now). A line runs along its side of the street: a span across the carriageway is
+  // taken only after every span along one, so it joins the ends of lines -- across a junction,
+  // to the other side -- rather than zigzagging over the road from pole to pole.
   const pairs = [];
-  for (let i = 0; i < free.length; i += 1) {
-    for (let j = i + 1; j < free.length; j += 1) {
-      const d = Math.hypot(free[i].anchor.x - free[j].anchor.x, free[i].anchor.z - free[j].anchor.z);
-      if (d >= WIRE_SPAN_MIN_M && d <= WIRE_SPAN_MAX_M) pairs.push([d, free[i], free[j]]);
+  const grid = new Map();
+  const cellKey = (gx, gz) => `${gx},${gz}`;
+  free.forEach((row, i) => {
+    row.i = i;
+    row.gx = Math.floor(row.anchor.x / WIRE_SPAN_MAX_M);
+    row.gz = Math.floor(row.anchor.z / WIRE_SPAN_MAX_M);
+    const key = cellKey(row.gx, row.gz);
+    if (!grid.has(key)) grid.set(key, []);
+    grid.get(key).push(row);
+  });
+  for (const A of free) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dz = -1; dz <= 1; dz += 1) {
+        for (const B of grid.get(cellKey(A.gx + dx, A.gz + dz)) || []) {
+          if (B.i <= A.i) continue;
+          const d = Math.hypot(A.anchor.x - B.anchor.x, A.anchor.z - B.anchor.z);
+          if (d < WIRE_SPAN_MIN_M || d > WIRE_SPAN_MAX_M) continue;
+          const across = insideCarriageway((A.anchor.x + B.anchor.x) / 2, (A.anchor.z + B.anchor.z) / 2, 0);
+          if (across && d > WIRE_SPAN_ACROSS_MAX_M) continue;
+          pairs.push([d + (across ? 1000 : 0), A, B, d]);
+        }
+      }
     }
   }
   pairs.sort((p, q) => p[0] - q[0]);
@@ -20837,7 +20910,7 @@ function addElectricalNetwork(furniture) {
     return false;
   };
   const inferredSpans = [];
-  for (const [d, A, B] of pairs) {
+  for (const [, A, B, d] of pairs) {
     if (A.links.length >= 2 || B.links.length >= 2) continue;
     const ux = (B.anchor.x - A.anchor.x) / d, uz = (B.anchor.z - A.anchor.z) / d;
     if (!straightOn(A, ux, uz) || !straightOn(B, -ux, -uz)) continue;
@@ -20891,7 +20964,7 @@ function addElectricalNetwork(furniture) {
     });
     for (const mesh of [pole, arm, insulators]) {
       mesh.instanceMatrix.needsUpdate = true;
-      mesh.userData = { surface: "furniture:utility_pole", source: "openstreetmap" };
+      mesh.userData = { surface: "furniture:utility_pole", source: "openstreetmap+mapillary_map_features" };
       groups.furniture.add(mesh);
     }
   }
@@ -20967,6 +21040,54 @@ function addElectricalNetwork(furniture) {
       groups.furniture.add(mesh);
     }
   }
+  // Small cells: the carriers' antennas on the city's poles (Public Works' permits). On the top
+  // of a utility pole where one stands within a few metres; otherwise on a slim pole of their
+  // own, as most are -- the city's light poles. A canister at the top, the radio box lower down.
+  const cellRows = ((furniture.geometry_based || {}).small_cells || [])
+    .map((item) => ({ item, anchor: furnitureAnchor(item) })).filter((row) => row.anchor);
+  if (cellRows.length) {
+    const grey = new THREE.MeshStandardMaterial({ color: 0x8d9396, roughness: 0.55, metalness: 0.4 });
+    const canisters = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.17, 0.17, 1.3, 12), grey, cellRows.length);
+    const boxes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.75, 0.3), grey, cellRows.length);
+    const ownPoles = [];
+    cellRows.forEach((row, index) => {
+      let host = null;
+      for (const pole of poleRows) {
+        const d = Math.hypot(pole.anchor.x - row.anchor.x, pole.anchor.z - row.anchor.z);
+        if (d < 5 && (!host || d < host.d)) host = { d, pole };
+      }
+      const at = host ? host.pole.anchor : row.anchor;
+      const top = host ? host.pole.height : SMALL_CELL_POLE_M;
+      if (!host) ownPoles.push(at);
+      dummy.position.set(at.x, at.y + top + 0.65, at.z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      canisters.setMatrixAt(index, dummy.matrix);
+      const yaw = furnitureBearing(row.item, 0, at);
+      dummy.position.set(at.x + Math.sin(yaw) * 0.26, at.y + 3.0, at.z + Math.cos(yaw) * 0.26);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.updateMatrix();
+      boxes.setMatrixAt(index, dummy.matrix);
+    });
+    const meshes = [canisters, boxes];
+    if (ownPoles.length) {
+      const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.12, 1, 8), grey, ownPoles.length);
+      ownPoles.forEach((at, index) => {
+        dummy.position.set(at.x, at.y + SMALL_CELL_POLE_M / 2, at.z);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, SMALL_CELL_POLE_M, 1);
+        dummy.updateMatrix();
+        poles.setMatrixAt(index, dummy.matrix);
+      });
+      meshes.push(poles);
+    }
+    for (const mesh of meshes) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData = { surface: "furniture:small_cell", source: "sfdpw_wireless_permits" };
+      groups.furniture.add(mesh);
+    }
+  }
   // The conductors.
   const mapped = [], guessed = [];
   const supportsNear = (x, z) => {
@@ -21029,7 +21150,7 @@ function addElectricalNetwork(furniture) {
     groups.furniture.add(wires);
   }
   return { utility_poles: poleRows.length, power_towers: towerRows.length, comm_towers: mastRows.length,
-    mapped_wire_spans: mappedSpans, inferred_wire_spans: inferredSpans.length };
+    small_cells: cellRows.length, mapped_wire_spans: mappedSpans, inferred_wire_spans: inferredSpans.length };
 }
 
 function addBikeRacks(anchors) {
@@ -21521,7 +21642,8 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
     curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [])),
     bus_zone_paint: addBusZonePaint((official.curb_zones || [])
       .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
-    parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [])),
+    parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],
+      inferred.detected_parking_meters || [])),
     trolley_wires: addTrolleyWires(inferred.trolley_wires || []),
   };
   // Checked once everything stands: no two plates meet, no post is on a crossing.
@@ -21540,7 +21662,10 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
       + `${Number(officialCounts.curb_zones || 0).toLocaleString()} curb policy bands, `
       + `${Number(placed.bus_zone_paint || 0).toLocaleString()} transit zones painted; `
       + `${Number((placed.parking_meters?.single_space || 0) + (placed.parking_meters?.pay_stations || 0)).toLocaleString()} parking meters; `
-      + `${Number(placed.trolley_wires?.span_poles || 0).toLocaleString()} trolleybus span poles.`;
+      + `${Number(placed.trolley_wires?.span_poles || 0).toLocaleString()} trolleybus span poles; `
+      + `${Number(placed.electrical?.utility_poles || 0).toLocaleString()} utility poles strung with `
+      + `${Number((placed.electrical?.mapped_wire_spans || 0) + (placed.electrical?.inferred_wire_spans || 0)).toLocaleString()} wire spans; `
+      + `${Number(placed.electrical?.small_cells || 0).toLocaleString()} small cells.`;
     note.userData = placed;
   }
   tileGroup(groups.furniture);
@@ -22540,6 +22665,126 @@ addEventListener("keydown", async (e) => {
   addrBox.style.top = `${Math.min(cy + 12, innerHeight - box.height - 12)}px`;
 });
 
+// ---- pins: 1, 2 and 3 ------------------------------------------------------------------------
+//
+// A number key drops that pin on the ground under the pointer (under the walker where there is no
+// pointer); once it is down, the same key takes the walker back to it. Shift and the number moves
+// it to the pointer. Three, no more. Typing in a field -- the search, the directions -- is never a
+// pin. Kept in this browser, per page.
+const PIN_COUNT = 3;
+const PIN_COLOURS = [0xe0402f, 0x2f6fe0, 0xe0a52f];
+const PIN_KEY = `kerbside:pins:${location.pathname}`;
+const pinGroup = new THREE.Group();
+pinGroup.name = "pins";
+if (!ATTACH) root.add(pinGroup);
+const pins = new Array(PIN_COUNT).fill(null);
+const pinToast = ATTACH ? null : document.createElement("div");
+if (pinToast) {
+  pinToast.id = "pin-toast";
+  pinToast.setAttribute("role", "status");
+  pinToast.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:40;"
+    + "background:rgba(17,24,39,.88);color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:8px 14px;"
+    + "border-radius:999px;pointer-events:none;opacity:0;transition:opacity .25s";
+  document.body.append(pinToast);
+}
+let pinToastTimer = 0;
+function pinSay(text) {
+  if (!pinToast) return;
+  pinToast.textContent = text;
+  pinToast.style.opacity = "1";
+  clearTimeout(pinToastTimer);
+  pinToastTimer = setTimeout(() => { pinToast.style.opacity = "0"; }, 1800);
+}
+function pinLabel(n, colour) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  g.fillStyle = `#${colour.toString(16).padStart(6, "0")}`;
+  g.beginPath(); g.arc(32, 32, 29, 0, Math.PI * 2); g.fill();
+  g.lineWidth = 4; g.strokeStyle = "#fff"; g.stroke();
+  g.fillStyle = "#fff"; g.font = "bold 38px system-ui,sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(n), 32, 34);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+  sprite.renderOrder = 30;
+  return sprite;
+}
+function placePin(i, x, z) {
+  if (pins[i]) pinGroup.remove(pins[i].mesh);
+  const colour = PIN_COLOURS[i];
+  const mesh = new THREE.Group();
+  const material = new THREE.MeshStandardMaterial({ color: colour, roughness: 0.5 });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 8), material);
+  stem.position.y = 1.2;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), material);
+  head.position.y = 2.55;
+  const label = pinLabel(i + 1, colour);
+  label.position.y = 3.6;
+  label.scale.set(1.4, 1.4, 1);
+  mesh.add(stem, head, label);
+  mesh.position.set(x, walkerGroundAt(x, z), z);
+  mesh.userData.liftedOntoGround = true;
+  pinGroup.add(mesh);
+  pins[i] = { x, z, mesh, label };
+}
+function savePins() {
+  try {
+    localStorage.setItem(PIN_KEY, JSON.stringify(pins.map((p) => (p ? [+p.x.toFixed(2), +p.z.toFixed(2)] : null))));
+  } catch (error) { /* this visit only */ }
+}
+try {
+  const saved = JSON.parse(localStorage.getItem(PIN_KEY) || "null");
+  if (!ATTACH && Array.isArray(saved)) {
+    saved.slice(0, PIN_COUNT).forEach((p, i) => {
+      if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])) placePin(i, p[0], p[1]);
+    });
+  }
+} catch (error) { /* no saved pins, or storage unavailable */ }
+// The ground under a pin can arrive after it does (a saved pin, the terrain still loading):
+// each stands on whatever ground there is now.
+// (Unreferenced: run headless -- tools/unreal/export_tiles.mjs -- it must not keep Node alive.)
+if (!ATTACH) setInterval(() => {
+  for (const pin of pins) if (pin) pin.mesh.position.y = walkerGroundAt(pin.x, pin.z);
+}, 2000)?.unref?.();
+//: Whether a key press belongs to a field being typed in rather than to the map.
+function typingIn(target) {
+  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+    || target instanceof HTMLSelectElement || Boolean(target?.isContentEditable);
+}
+function pinKey(e) {
+  const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code || "");
+  const n = m ? Number(m[1]) : Number(e.key);
+  return Number.isInteger(n) && n >= 1 && n <= PIN_COUNT ? n - 1 : -1;
+}
+addEventListener("keydown", (e) => {
+  if (ATTACH || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (typingIn(e.target) || typingIn(document.activeElement)) return;
+  const i = pinKey(e);
+  if (i < 0) return;
+  e.preventDefault();
+  if (pins[i] && !e.shiftKey) {
+    // Back to the pin: the walker stands beside it, on the street if it is in a building.
+    const landing = eligibleLanding(new THREE.Vector3(pins[i].x, 0, pins[i].z)) || new THREE.Vector3(pins[i].x, 0, pins[i].z);
+    hideAddress();
+    goTo(landing, { travel: true });
+    pinSay(`Back at pin ${i + 1}`);
+    return;
+  }
+  const ground = pointerAt ? groundAt(pointerAt[0], pointerAt[1]) : null;
+  const x = ground ? ground.x : avatar.position.x, z = ground ? ground.z : avatar.position.z;
+  const moved = Boolean(pins[i]);
+  placePin(i, x, z);
+  savePins();
+  pinSay(moved ? `Pin ${i + 1} moved — press ${i + 1} to come back` : `Pin ${i + 1} dropped — press ${i + 1} to come back`);
+});
+//: Settings' "Clear pins".
+function clearPins() {
+  for (let i = 0; i < PIN_COUNT; i += 1) {
+    if (pins[i]) pinGroup.remove(pins[i].mesh);
+    pins[i] = null;
+  }
+  savePins();
+}
+
 // ---- the compass ------------------------------------------------------------------------------
 //
 // A compass rose in the corner, turned so its north is the world's north as the view looks, and
@@ -22796,7 +23041,11 @@ function photoEntryDoor(entry) {
   if (!best) return null;
   const leaf = pe.hidden_door ? DOOR_LEAF_M : Math.min(1.2, Math.max(0.8, pe.w));
   const door = doorOn(entry, best.edge, best.t, leaf, 1);
-  if (door) door.photoEntry = pe;
+  if (door) {
+    door.photoEntry = pe;
+    // The fit's own along-the-wall direction: a stair's "rises toward" is measured on it.
+    door.photoTangent = [tx, tz];
+  }
   return door;
 }
 
@@ -22954,9 +23203,17 @@ function showDoor(door) {
     ground = stairs ? street + Math.max(STEP_RISE_M, pe.threshold_m) : street + 0.02;
     // A house set back behind its stair: the flight runs out to the property line and the house
     // starts where it ends. Only where the front has no such room is the stair cut into it.
-    frontStair = stairs ? planFrontStair(door, street, ground, pe.recess_width_m) : null;
+    // Where the photographs together placed the flight (multiview): along the front, rising
+    // sideways to the door, or straight out from it as far as they measured.
+    const measured = pe.stair && pe.stair.basis === "multiview_plane_sweep" ? pe.stair : null;
+    if (stairs && measured?.orientation === "sideways") frontStair = planSideStair(door, street, ground, measured);
+    if (stairs && !frontStair) {
+      frontStair = planFrontStair(door, street, ground, pe.recess_width_m,
+        measured?.orientation === "perpendicular" ? measured.run_m : null);
+    }
     stoopPlan = pe.kind === "flat_alcove" ? planAlcove(door, street, pe.alcove)
-      : stairs && !frontStair ? planInwardStoop(door, street, ground, pe.recess_width_m) : null;
+      : stairs && !frontStair ? planInwardStoop(door, street, ground, pe.recess_width_m,
+        measured?.orientation === "recessed" ? measured.depth_m : null) : null;
     if (!door.entry.interior) door.entry.floorY = ground;
   } else {
     ground = entryFloorY(door.entry);
@@ -22983,7 +23240,7 @@ function showDoor(door) {
   if (door.atGrade && ground - street > 4.0) return;
   const leafGround = door.atGrade ? street : ground;
   if (!door.atGrade) addStoop(door, street, ground, stoopPlan);
-  if (frontStair) addFrontStair(door, frontStair);
+  if (frontStair) (frontStair.side ? addSideStair : addFrontStair)(door, frontStair);
   if (pe?.gate) addGate(door, street);
   // Independent of photo/UI flags: a raised runtime leaf must have a real flight up to it.
   if (!Number.isFinite(leafGround) || !Number.isFinite(street)
@@ -23032,7 +23289,7 @@ function showDoor(door) {
   door.entry.shellNeedsRebuild = true;
 }
 const stoopMaterial = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 });
-function planInwardStoop(door, street, floor, photographedWidth = null) {
+function planInwardStoop(door, street, floor, photographedWidth = null, measuredDepth = null) {
   const rise = floor - street;
   if (rise < 0.08) return null;
   const steps = Math.ceil(rise / STEP_RISE_M);
@@ -23044,19 +23301,24 @@ function planInwardStoop(door, street, floor, photographedWidth = null) {
   // otherwise as wide as the door's.
   const widths = Number.isFinite(photographedWidth) && photographedWidth > door.width + 0.4
     ? [Math.min(door.width + 2.4, photographedWidth), door.width + 0.4] : [door.width + 0.4];
+  // How far into the house the photographs placed the flight's top (multiview) sets its treads,
+  // within what treads are; else the standard tread.
+  const landingDepth = STEP_LANDING_TREADS * STEP_TREAD_M;
+  const tread = Number.isFinite(measuredDepth) && measuredDepth > landingDepth
+    ? Math.min(0.42, Math.max(0.24, (measuredDepth - landingDepth) / steps)) : STEP_TREAD_M;
   for (const width of widths) {
-    const plan = stoopAtWidth(door, street, floor, rise, steps, width);
+    const plan = stoopAtWidth(door, street, floor, rise, steps, width, tread);
     if (plan) return plan;
   }
   return null;
 }
 
-function stoopAtWidth(door, street, floor, rise, steps, width) {
+function stoopAtWidth(door, street, floor, rise, steps, width, tread = STEP_TREAD_M) {
   const landingDepth = STEP_LANDING_TREADS * STEP_TREAD_M;
-  const depth = steps * STEP_TREAD_M + landingDepth;
+  const depth = steps * tread + landingDepth;
   const treads = Array.from({ length: steps }, (_, i) => ({
-    near: i * STEP_TREAD_M,
-    far: (i + 1) * STEP_TREAD_M,
+    near: i * tread,
+    far: (i + 1) * tread,
     top: street + rise * (i + 1) / steps,
   }));
   treads.push({ near: steps * STEP_TREAD_M, far: depth, top: floor, landing: true });
@@ -23074,7 +23336,7 @@ function stoopAtWidth(door, street, floor, rise, steps, width) {
       }
     }
   }
-  return { steps, rise, width, depth, landingDepth, street, floor, treads };
+  return { steps, rise, width, depth, landingDepth, tread, street, floor, treads };
 }
 
 //: A flat alcove: a recess at the pavement as wide as the photograph measured it and as deep as
@@ -23110,12 +23372,16 @@ function frontSetback(door) {
 //: A flight out in front of the house, from the property line up to a landing at its door: the
 //: house is set back behind its stair and starts where the stair ends. Null where the front has
 //: not the room for the whole flight, or something stands where it would.
-function planFrontStair(door, street, floor, photographedWidth = null) {
+function planFrontStair(door, street, floor, photographedWidth = null, measuredRun = null) {
   const rise = floor - street;
   if (rise < 0.08) return null;
   const steps = Math.ceil(rise / STEP_RISE_M);
   const landingDepth = STEP_LANDING_TREADS * STEP_TREAD_M;
-  const run = landingDepth + steps * STEP_TREAD_M;
+  // A run the photographs measured sets the treads (within what a stair's treads are); else the
+  // standard tread.
+  const tread = Number.isFinite(measuredRun) && measuredRun > landingDepth
+    ? Math.min(0.42, Math.max(0.24, (measuredRun - landingDepth) / steps)) : STEP_TREAD_M;
+  const run = landingDepth + steps * tread;
   if (run > frontSetback(door) + 0.05) return null;
   const widths = Number.isFinite(photographedWidth) && photographedWidth > door.width + 0.4
     ? [Math.min(door.width + 2.4, photographedWidth), door.width + 0.4] : [door.width + 0.4];
@@ -23130,10 +23396,10 @@ function planFrontStair(door, street, floor, photographedWidth = null) {
     }
     if (!clear) continue;
     const treads = Array.from({ length: steps }, (_, i) => ({
-      near: landingDepth + (steps - 1 - i) * STEP_TREAD_M, far: landingDepth + (steps - i) * STEP_TREAD_M,
+      near: landingDepth + (steps - 1 - i) * tread, far: landingDepth + (steps - i) * tread,
       top: street + rise * (i + 1) / steps,
     }));
-    return { front: true, steps, rise, width, run, landingDepth, street, floor, treads };
+    return { front: true, steps, rise, width, run, landingDepth, tread, street, floor, treads };
   }
   return null;
 }
@@ -23166,8 +23432,76 @@ function addFrontStair(door, plan) {
     const along = dx * door.ux + dz * door.uz, out = -(dx * door.nx + dz * door.nz);
     if (Math.abs(along) > width / 2 || out < -0.05 || out > run) return null;
     if (out <= landingDepth) return floor;
-    const fromTop = Math.min(steps - 1, Math.floor((out - landingDepth) / STEP_TREAD_M));
+    const fromTop = Math.min(steps - 1, Math.floor((out - landingDepth) / (plan.tread || STEP_TREAD_M)));
     return street + each * (steps - fromTop);
+  };
+  door.frontStairSurface.priority = 1;
+  standingSurfaces.add(door.frontStairSurface);
+}
+
+//: A flight along the front (multiview measured it: smc.facades.multiview): it rises sideways,
+//: parallel to the wall, to a landing in front of the door, as wide out from the wall as the
+//: photographs placed its outer side. In front of the house, where there is the room -- not on the
+//: pavement, not into a building. Null where it does not fit, and the door is reached as before.
+function planSideStair(door, street, floor, stair) {
+  const rise = floor - street;
+  if (rise < 0.08 || !door.photoTangent || !Number.isFinite(stair.rises_toward)) return null;
+  const steps = Math.ceil(rise / STEP_RISE_M);
+  const width = Math.min(2.2, Math.max(0.8, stair.width_m || 1.2));
+  if (width > frontSetback(door) + 0.05) return null;
+  const tread = Number.isFinite(stair.run_m) && steps > 1
+    ? Math.min(0.42, Math.max(0.24, stair.run_m / (steps - 1))) : STEP_TREAD_M;
+  const run = Math.max(0, steps - 1) * tread;
+  const landingLength = door.width + 0.4;
+  // The foot is the low end: away from the door, against the way it rises along the fit's wall.
+  const [tx, tz] = door.photoTangent;
+  const rising = Math.sign(tx * door.ux + tz * door.uz) * stair.rises_toward;
+  const footSide = rising >= 0 ? -1 : 1;
+  for (let a = 0; a <= Math.ceil((landingLength + run) / 0.25); a += 1) {
+    const along = footSide * (-landingLength / 2 + Math.min(landingLength + run, a * 0.25));
+    for (let o = 0; o <= Math.ceil(width / 0.25); o += 1) {
+      const out = Math.max(0.05, Math.min(width - 0.05, o * 0.25));
+      const sx = door.cx + door.ux * along - door.nx * out, sz = door.cz + door.uz * along - door.nz * out;
+      if (buildingAt(sx, sz) || insideCarriageway(sx, sz, 0)) return null;
+    }
+  }
+  return { front: true, side: true, steps, rise, width, run: width, flightRun: run, tread,
+    landingLength, footSide, street, floor };
+}
+function addSideStair(door, plan) {
+  door.frontStair = plan;
+  const { width, street, floor, steps, rise, tread, landingLength, footSide, flightRun } = plan;
+  const each = rise / steps;
+  const group = new THREE.Group();
+  // Local z out of the building, toward the street (as addFrontStair's); local x along the wall,
+  // one way or the other -- ``sx`` says which.
+  group.position.set(door.cx, 0, door.cz);
+  group.rotation.y = Math.atan2(-door.nx, -door.nz);
+  const sx = Math.cos(group.rotation.y) * door.ux - Math.sin(group.rotation.y) * door.uz >= 0 ? 1 : -1;
+  const box = (along0, along1, top) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(along1 - along0), top - street + 0.05, width), stoopMaterial);
+    mesh.position.set(sx * (along0 + along1) / 2, (top + street - 0.05) / 2, width / 2);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  };
+  box(-landingLength / 2, landingLength / 2, floor);
+  for (let k = 0; k < steps - 1; k += 1) {
+    const near = landingLength / 2 + k * tread;
+    box(footSide * near, footSide * (near + tread), street + each * (steps - 1 - k));
+  }
+  group.traverse((o) => { if (o.isMesh) o.renderOrder = INTERIOR_ORDER; });
+  doorGroup.add(group);
+  door.frontStairMesh = group;
+  door.frontStairSurface = (x, z) => {
+    const dx = x - door.cx, dz = z - door.cz;
+    const along = dx * door.ux + dz * door.uz, out = -(dx * door.nx + dz * door.nz);
+    if (out < -0.05 || out > width) return null;
+    if (Math.abs(along) <= landingLength / 2) return floor;
+    const past = along * footSide - landingLength / 2;
+    if (past < 0 || past > flightRun) return null;
+    const k = Math.min(steps - 2, Math.floor(past / tread));
+    return street + each * (steps - 1 - k);
   };
   door.frontStairSurface.priority = 1;
   standingSurfaces.add(door.frontStairSurface);
@@ -23210,8 +23544,8 @@ function addStoop(door, street, floor, plan = planInwardStoop(door, street, floo
     const inward = dx * door.nx + dz * door.nz;
     if (Math.abs(along) > width / 2 || inward < 0 || inward > depth
         || !insideFootprint(door.entry, x, z)) return null;
-    if (inward >= steps * STEP_TREAD_M) return floor;
-    const i = Math.min(steps - 1, Math.max(0, Math.floor(inward / STEP_TREAD_M)));
+    if (inward >= steps * (plan.tread || STEP_TREAD_M)) return floor;
+    const i = Math.min(steps - 1, Math.max(0, Math.floor(inward / (plan.tread || STEP_TREAD_M))));
     return street + each * (i + 1);
   };
   door.stoopSurface.priority = 1;
@@ -26542,10 +26876,21 @@ settingsPart("settings-display", "section").insertAdjacentHTML("beforeend", `
   <label class="row">Show me at my location<input type="checkbox" name="gps" /></label>
   <p class="note">Your walker stands where your device says you are, and walks and turns with you, while you are in this region. Your location stays in this browser except as the start of directions you ask for.</p>`);
 function showSettings(open) {
+  if (!open) showControlsPage(false);
   settingsForm.hidden = !open;
   settingsButton.setAttribute("aria-expanded", String(open));
 }
 settingsPart("settings-close", "button").addEventListener("click", () => showSettings(false));
+// The controls page: every control and what it does, in place of the rest of the settings.
+function showControlsPage(open) {
+  if (open) settingsForm.dataset.page = "controls"; else delete settingsForm.dataset.page;
+  const page = settingsForm.querySelector("#controls-help");
+  if (page) page.hidden = !open;
+  settingsForm.scrollTop = 0;
+}
+settingsForm.querySelector("#controls-open")?.addEventListener("click", () => showControlsPage(true));
+settingsForm.querySelector("#controls-back")?.addEventListener("click", () => showControlsPage(false));
+settingsForm.querySelector("#pins-clear")?.addEventListener("click", () => { clearPins(); pinSay("Pins cleared"); });
 addEventListener("keydown", (e) => { if (e.key === "Escape" && !settingsForm.hidden) showSettings(false); });
 settingsForm.addEventListener("change", (e) => {
   if (e.target === settingsForm.gps) {

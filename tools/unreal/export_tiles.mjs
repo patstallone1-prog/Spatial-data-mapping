@@ -205,10 +205,22 @@ async function main() {
         || `${layer}:${(o.geometry.type || "mesh").replace(/Geometry$/, "").toLowerCase()}`;
       if (surface === "water" || surface === "beach") return;
       if (o.isInstancedMesh) {
+        // The shared geometry made flat once, not once per instance; and with --only, an
+        // instance whose place is nowhere near the tiles asked for is not cut at all (a region
+        // has tens of thousands of poles, meters and signs).
+        const flat = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+        const at = new THREE.Vector3();
+        const near = (x, z) => [[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]].some(([dx, dz]) => only.has(tileKey(x + dx, z + dz)));
         for (let i = 0; i < o.count; i += 1) {
           o.getMatrixAt(i, m4);
-          add(o.geometry, m4.clone().premultiply(o.matrixWorld), Array.isArray(o.material) ? o.material[0] : o.material, surface);
+          const world = m4.clone().premultiply(o.matrixWorld);
+          if (only) {
+            at.setFromMatrixPosition(world);
+            if (!near(at.x, at.z)) continue;
+          }
+          add(flat, world, Array.isArray(o.material) ? o.material[0] : o.material, surface);
         }
+        if (flat !== o.geometry) flat.dispose();
         return;
       }
       add(o.geometry, o.matrixWorld, Array.isArray(o.material) ? o.material[0] : o.material, surface);
