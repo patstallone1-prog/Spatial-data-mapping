@@ -1,0 +1,19 @@
+[
+  {
+    "origin": [
+      "https://spatial-data-mapping.vercel.app",
+      "http://localhost:8765",
+      "http://127.0.0.1:8765"
+    ],
+    "method": [
+      "GET",
+      "HEAD"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Cache-Control",
+      "ETag"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

@@ -45,6 +45,7 @@ from smc.facades.detail_detection import FacadeDetailDetector  # noqa: E402
 from smc.facades.fit import extract_front  # noqa: E402
 from smc.facades.frontage_retention import prune_finalized, retained_fact  # noqa: E402
 from smc.facades.geometry import LocalFrame  # noqa: E402
+from smc.facades.view_store import ViewStore  # noqa: E402
 
 
 def atomic(path: Path, data):
@@ -122,6 +123,8 @@ def cycle(args) -> dict:
     code_hash = LOADED_IMPLEMENTATION
     settled = {} if getattr(args, "refit_all", False) else settled_houses(args.output)
     reused: set[str] = set()
+    # Every screened photograph of a house, filed with the others of it (view_store).
+    view_store, views_filed = ViewStore(args.output / "views"), 0
     for review_root in args.inputs:
         for path in sorted((review_root / "review").glob("*.json")):
             row = json.loads(path.read_text())
@@ -132,6 +135,7 @@ def cycle(args) -> dict:
                 # Keep reviewed facts after raw deletion without silently reapproving them.
                 finalized_facts[f"{saved['region']}:{saved['building_id']}"] = saved
                 continue
+            views_filed += view_store.file(row, path)
             if row.get("status") not in {
                 "verified",
                 "screened_candidate_needs_privacy_and_identity_review",
@@ -483,6 +487,7 @@ def cycle(args) -> dict:
         "pid": os.getpid(),
         "fitted_buildings": len(builds),
         "kept_from_earlier_passes": len(reused),
+        "views_filed_this_pass": views_filed,
         "fit_proposals": fitted,
         "conflicts_rejected": rejected,
         "watch_seconds": args.watch_seconds,
@@ -530,6 +535,26 @@ def cycle(args) -> dict:
     }
     atomic(args.output / "status.json", status)
     return status
+
+
+def with_materials(output: Path, buildings: dict) -> dict:
+    """The published fits with the cladding read off each house's photographs laid over them
+    (scripts/classify_scanned_materials.py), where the fit has none of its own. The houses'
+    bucket records are left as they were decided."""
+    try:
+        read = json.loads((output / "materials.json").read_text())["houses"]
+    except (OSError, ValueError, KeyError):
+        return buildings
+    out = {}
+    for key, fit in buildings.items():
+        material = read.get(f"{fit.get('region')}:{key}") or {}
+        appearance = fit.get("appearance") or {}
+        if material.get("class") and appearance.get("material", "unknown") == "unknown":
+            fit = {**fit, "appearance": {**appearance, "material": material["class"],
+                                         "material_basis": material.get("basis"),
+                                         "material_p": material.get("p")}}
+        out[key] = fit
+    return out
 
 
 def reconstruct(args, builds: dict, finished: set[str] = frozenset()) -> dict:
@@ -581,7 +606,7 @@ def reconstruct(args, builds: dict, finished: set[str] = frozenset()) -> dict:
         raise ValueError("unsupported existing facade publication; refusing to overwrite")
     reviewed = {k: v for k, v in (previous.get("buildings") or {}).items()
                 if v.get("review_status") == "reviewed_inferred_visual_parameters"}
-    buildings = {**published, **reviewed}
+    buildings = with_materials(args.output, {**published, **reviewed})
     if buildings != (previous.get("buildings") or {}):
         atomic(target, {
             "schema": "kerbside.facade_fits/1",

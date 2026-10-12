@@ -1,0 +1,1080 @@
+{
+ "schema": "kerbside.facade_fit_tiles/1",
+ "version": "913ed2f67f8bdd8b",
+ "base": "",
+ "tile_degrees": 0.01,
+ "houses": 1952,
+ "tiles": [
+  {
+   "region": "berkeley-downtown",
+   "cell": [
+    -12228,
+    3786
+   ],
+   "bbox": [
+    -122.2746829,
+    37.8650219,
+    -122.2700975,
+    37.8703642
+   ],
+   "count": 4,
+   "path": "fits/berkeley-downtown/-12228_3786-6d869d6f17c0.json",
+   "sha256": "6d869d6f17c0bf98807af79f325e070ac2ee3c00332a6cd92ba59255422b067d",
+   "bytes": 19218
+  },
+  {
+   "region": "berkeley-downtown",
+   "cell": [
+    -12228,
+    3787
+   ],
+   "bbox": [
+    -122.2741162,
+    37.8706712,
+    -122.2708252,
+    37.8777271
+   ],
+   "count": 9,
+   "path": "fits/berkeley-downtown/-12228_3787-b68fb7686bfe.json",
+   "sha256": "b68fb7686bfe54a616a6f30f277425c62268c8dbeb2e12d38a574908e33a1f5b",
+   "bytes": 40905
+  },
+  {
+   "region": "berkeley-downtown",
+   "cell": [
+    -12227,
+    3786
+   ],
+   "bbox": [
+    -122.2659147,
+    37.8648401,
+    -122.2612093,
+    37.8665058
+   ],
+   "count": 5,
+   "path": "fits/berkeley-downtown/-12227_3786-edcf014fdfdd.json",
+   "sha256": "edcf014fdfdd33a8471e07d38fb5c4ef43758def3615fa42ef5f9443f467d305",
+   "bytes": 22077
+  },
+  {
+   "region": "berkeley-downtown",
+   "cell": [
+    -12227,
+    3787
+   ],
+   "bbox": [
+    -122.2698657,
+    37.8710367,
+    -122.2607766,
+    37.879455
+   ],
+   "count": 12,
+   "path": "fits/berkeley-downtown/-12227_3787-2ce15a200904.json",
+   "sha256": "2ce15a2009041b46e473b8790c06efe3aab49cc84ce2cb42355e401f7a2d2a30",
+   "bytes": 41635
+  },
+  {
+   "region": "berkeley-downtown",
+   "cell": [
+    -12226,
+    3786
+   ],
+   "bbox": [
+    -122.2580815,
+    37.8651727,
+    -122.2560129,
+    37.8684622
+   ],
+   "count": 3,
+   "path": "fits/berkeley-downtown/-12226_3786-bab15585a863.json",
+   "sha256": "bab15585a8635e169af10be4469e96fae911a10f5f1b94563d15bd37818bdaee",
+   "bytes": 11629
+  },
+  {
+   "region": "berkeley-downtown",
+   "cell": [
+    -12226,
+    3787
+   ],
+   "bbox": [
+    -122.2590177,
+    37.8772683,
+    -122.2566626,
+    37.8781976
+   ],
+   "count": 3,
+   "path": "fits/berkeley-downtown/-12226_3787-acb758a582a5.json",
+   "sha256": "acb758a582a50560b1f4897caf791835d3d2842502ee1f0c32893e354f598951",
+   "bytes": 10992
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12229,
+    3779
+   ],
+   "bbox": [
+    -122.2837109,
+    37.7985467,
+    -122.2802974,
+    37.7996584
+   ],
+   "count": 4,
+   "path": "fits/oakland-downtown/-12229_3779-b5bb757a3848.json",
+   "sha256": "b5bb757a384850973266af1057a84e4c836af2e794673f0189b1f2685e536be9",
+   "bytes": 32043
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12229,
+    3780
+   ],
+   "bbox": [
+    -122.282248,
+    37.8002124,
+    -122.2802927,
+    37.8082495
+   ],
+   "count": 2,
+   "path": "fits/oakland-downtown/-12229_3780-8612fa5cae08.json",
+   "sha256": "8612fa5cae08b59076f8320ffcc94d741db1a73ec4ab5b79f3bc37d63760d1df",
+   "bytes": 11100
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12228,
+    3779
+   ],
+   "bbox": [
+    -122.2797086,
+    37.7949553,
+    -122.2707358,
+    37.7998033
+   ],
+   "count": 11,
+   "path": "fits/oakland-downtown/-12228_3779-31283170a4e9.json",
+   "sha256": "31283170a4e97c45d10a2fb412b2ffd527a8695b3166f5ec415f15e1269b7359",
+   "bytes": 63400
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12228,
+    3780
+   ],
+   "bbox": [
+    -122.2791566,
+    37.8001183,
+    -122.2696195,
+    37.8095869
+   ],
+   "count": 58,
+   "path": "fits/oakland-downtown/-12228_3780-af9b7df09efc.json",
+   "sha256": "af9b7df09efc5afbc23fd2ab189dec396a65a56b7b4d71dc19ff569a0cd710bd",
+   "bytes": 362164
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12228,
+    3781
+   ],
+   "bbox": [
+    -122.2727041,
+    37.8110103,
+    -122.2699268,
+    37.8148976
+   ],
+   "count": 7,
+   "path": "fits/oakland-downtown/-12228_3781-c57ded330514.json",
+   "sha256": "c57ded3305143bbf1953ee2f9520f29c3bdf264a87ab791289ff3b4d5dde1331",
+   "bytes": 31434
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12227,
+    3779
+   ],
+   "bbox": [
+    -122.2694899,
+    37.7956307,
+    -122.26456,
+    37.799911
+   ],
+   "count": 48,
+   "path": "fits/oakland-downtown/-12227_3779-9b6fd5995d9f.json",
+   "sha256": "9b6fd5995d9f0b3433118eeb0b36fd37a992507cf57b022490316deba6a653ea",
+   "bytes": 299541
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12227,
+    3780
+   ],
+   "bbox": [
+    -122.2701807,
+    37.8008534,
+    -122.261744,
+    37.8097828
+   ],
+   "count": 25,
+   "path": "fits/oakland-downtown/-12227_3780-7944ba4343da.json",
+   "sha256": "7944ba4343da277823ab62eb93f3412e57e4774a52a5c033e2d3f27b189c821d",
+   "bytes": 137075
+  },
+  {
+   "region": "oakland-downtown",
+   "cell": [
+    -12227,
+    3781
+   ],
+   "bbox": [
+    -122.2699335,
+    37.8111725,
+    -122.2599874,
+    37.814912
+   ],
+   "count": 23,
+   "path": "fits/oakland-downtown/-12227_3781-f352d6d2919b.json",
+   "sha256": "f352d6d2919bc323321d8138f5d7643026e335575ce5186ea7405fe0cd2133a3",
+   "bytes": 131453
+  },
+  {
+   "region": "palo-alto-downtown",
+   "cell": [
+    -12217,
+    3744
+   ],
+   "bbox": [
+    -122.1689145,
+    37.4425724,
+    -122.1601373,
+    37.4499925
+   ],
+   "count": 69,
+   "path": "fits/palo-alto-downtown/-12217_3744-699580345064.json",
+   "sha256": "6995803450640782169f19e1a0f6d97092eaff30db59272e487968d071649029",
+   "bytes": 338052
+  },
+  {
+   "region": "palo-alto-downtown",
+   "cell": [
+    -12217,
+    3745
+   ],
+   "bbox": [
+    -122.1694699,
+    37.44985,
+    -122.1606478,
+    37.452035
+   ],
+   "count": 21,
+   "path": "fits/palo-alto-downtown/-12217_3745-1b80f1011f24.json",
+   "sha256": "1b80f1011f246f4a07c6c77688d96add48487f7adec19f13187ea54e8f3692e9",
+   "bytes": 91875
+  },
+  {
+   "region": "palo-alto-downtown",
+   "cell": [
+    -12216,
+    3744
+   ],
+   "bbox": [
+    -122.1604238,
+    37.4402059,
+    -122.155191,
+    37.4499858
+   ],
+   "count": 52,
+   "path": "fits/palo-alto-downtown/-12216_3744-058a4656af24.json",
+   "sha256": "058a4656af24a43812e120dc881be2e168e7494c9516ec0bdbbaac27c0b45f35",
+   "bytes": 259880
+  },
+  {
+   "region": "palo-alto-downtown",
+   "cell": [
+    -12216,
+    3745
+   ],
+   "bbox": [
+    -122.1599133,
+    37.4502833,
+    -122.1567357,
+    37.4519602
+   ],
+   "count": 6,
+   "path": "fits/palo-alto-downtown/-12216_3745-45e83517e045.json",
+   "sha256": "45e83517e045af9796060133385934e72de9abe3616b965e17a8adf32639ca51",
+   "bytes": 26688
+  },
+  {
+   "region": "san-jose-downtown",
+   "cell": [
+    -12191,
+    3732
+   ],
+   "bbox": [
+    -121.9047798,
+    37.3258494,
+    -121.9003332,
+    37.3296179
+   ],
+   "count": 3,
+   "path": "fits/san-jose-downtown/-12191_3732-20961650b70e.json",
+   "sha256": "20961650b70ed3cb6825786023e9fc1c432140dddef38b13700fd9609e6d7aea",
+   "bytes": 20607
+  },
+  {
+   "region": "san-jose-downtown",
+   "cell": [
+    -12191,
+    3733
+   ],
+   "bbox": [
+    -121.902511,
+    37.3347087,
+    -121.9023309,
+    37.3348542
+   ],
+   "count": 1,
+   "path": "fits/san-jose-downtown/-12191_3733-204d40e66537.json",
+   "sha256": "204d40e66537ca104218dacf514f90b0a954167d6ada1702b36cfd72fc936600",
+   "bytes": 6862
+  },
+  {
+   "region": "san-jose-downtown",
+   "cell": [
+    -12190,
+    3732
+   ],
+   "bbox": [
+    -121.8982766,
+    37.3264266,
+    -121.8964875,
+    37.3297305
+   ],
+   "count": 7,
+   "path": "fits/san-jose-downtown/-12190_3732-1b3c482ad5be.json",
+   "sha256": "1b3c482ad5bed88ab816cbd1ae32af76ff9e0e37092903dbe5544de3e82ae0db",
+   "bytes": 32955
+  },
+  {
+   "region": "san-jose-downtown",
+   "cell": [
+    -12190,
+    3733
+   ],
+   "bbox": [
+    -121.8937273,
+    37.3331047,
+    -121.8919188,
+    37.3355151
+   ],
+   "count": 5,
+   "path": "fits/san-jose-downtown/-12190_3733-cb3afc4299d7.json",
+   "sha256": "cb3afc4299d77951ce6ee066d518e1eba29ddd89d5fa2a00d5b10b9e62245089",
+   "bytes": 21155
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12245,
+    3778
+   ],
+   "bbox": [
+    -122.4475124,
+    37.7870159,
+    -122.4423328,
+    37.7895357
+   ],
+   "count": 10,
+   "path": "fits/sf-corridor/-12245_3778-9ecbb573e6c5.json",
+   "sha256": "9ecbb573e6c517c6ffbdfca0d581973d0084bf81689486701489db472ab6ff09",
+   "bytes": 62400
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12245,
+    3779
+   ],
+   "bbox": [
+    -122.444841,
+    37.7906607,
+    -122.4405191,
+    37.7993357
+   ],
+   "count": 7,
+   "path": "fits/sf-corridor/-12245_3779-f834090fa252.json",
+   "sha256": "f834090fa2523a3819b968515c26260284bf12a5f77a047f727dda7c5d74aa19",
+   "bytes": 51907
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12245,
+    3780
+   ],
+   "bbox": [
+    -122.4469553,
+    37.8008893,
+    -122.4403267,
+    37.805076
+   ],
+   "count": 35,
+   "path": "fits/sf-corridor/-12245_3780-401512f7470c.json",
+   "sha256": "401512f7470c703426996c478c56c85bd5dad3e34f69acfc9b214e44c3a530aa",
+   "bytes": 234352
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12244,
+    3778
+   ],
+   "bbox": [
+    -122.4392882,
+    37.7864214,
+    -122.4315474,
+    37.7897247
+   ],
+   "count": 22,
+   "path": "fits/sf-corridor/-12244_3778-09d8c703119a.json",
+   "sha256": "09d8c703119a9af7a54cb19a03af7ff033cc3c986c761d57821bdf256f312e99",
+   "bytes": 162091
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12244,
+    3779
+   ],
+   "bbox": [
+    -122.4393297,
+    37.7916777,
+    -122.4308237,
+    37.7993423
+   ],
+   "count": 16,
+   "path": "fits/sf-corridor/-12244_3779-43e20809916f.json",
+   "sha256": "43e20809916f03d110c3980df08150875811b3563320baf796933d214555a304",
+   "bytes": 97056
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12244,
+    3780
+   ],
+   "bbox": [
+    -122.4389231,
+    37.8001284,
+    -122.4310051,
+    37.8023301
+   ],
+   "count": 6,
+   "path": "fits/sf-corridor/-12244_3780-973bb5a3a2fa.json",
+   "sha256": "973bb5a3a2faa55a11f87c2c05d71f25c13599bc1fda74b8ca199b53df527c2f",
+   "bytes": 50202
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12243,
+    3778
+   ],
+   "bbox": [
+    -122.4296734,
+    37.7862553,
+    -122.4204076,
+    37.7897359
+   ],
+   "count": 22,
+   "path": "fits/sf-corridor/-12243_3778-fe8ed2fa2340.json",
+   "sha256": "fe8ed2fa2340f63ccc21cde40a3e78cfffbf0eaf8ab1b770594f232d397edea3",
+   "bytes": 150928
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12243,
+    3779
+   ],
+   "bbox": [
+    -122.4265931,
+    37.7924195,
+    -122.4200203,
+    37.7999028
+   ],
+   "count": 27,
+   "path": "fits/sf-corridor/-12243_3779-caa0cc68bfe5.json",
+   "sha256": "caa0cc68bfe5c45ec1922e7241d70ac81e1a79cbc3708dc18e24c11fcd225f5b",
+   "bytes": 186608
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12243,
+    3780
+   ],
+   "bbox": [
+    -122.4281688,
+    37.8002459,
+    -122.4198168,
+    37.8054736
+   ],
+   "count": 26,
+   "path": "fits/sf-corridor/-12243_3780-08850f3b1cf6.json",
+   "sha256": "08850f3b1cf68de23ebb3a58ef15d8985ac5f4301cecfac4928c20abc5501d7b",
+   "bytes": 183498
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12242,
+    3778
+   ],
+   "bbox": [
+    -122.4189735,
+    37.7861054,
+    -122.4099693,
+    37.7902683
+   ],
+   "count": 20,
+   "path": "fits/sf-corridor/-12242_3778-20f2826fa691.json",
+   "sha256": "20f2826fa6913c8bdd443c8589eb85546aa8a2955b7733d9574d5603b05aa709",
+   "bytes": 118149
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12242,
+    3779
+   ],
+   "bbox": [
+    -122.4199334,
+    37.7900427,
+    -122.4098006,
+    37.7999966
+   ],
+   "count": 70,
+   "path": "fits/sf-corridor/-12242_3779-05e9e57585a2.json",
+   "sha256": "05e9e57585a200560f3efe655bb94487c9aaa7f70c397f661d2ffaeb85c8ff82",
+   "bytes": 465041
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12242,
+    3780
+   ],
+   "bbox": [
+    -122.4199449,
+    37.7999113,
+    -122.4100223,
+    37.8082196
+   ],
+   "count": 36,
+   "path": "fits/sf-corridor/-12242_3780-313c7a45daf6.json",
+   "sha256": "313c7a45daf686d1ded243e484ca4cc885476548b42ab5f46303efc982ebcccb",
+   "bytes": 248213
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12241,
+    3778
+   ],
+   "bbox": [
+    -122.4100128,
+    37.7861981,
+    -122.4010092,
+    37.7899427
+   ],
+   "count": 17,
+   "path": "fits/sf-corridor/-12241_3778-ab40f600a57f.json",
+   "sha256": "ab40f600a57f4bebd9e3823573b784b9c20ac295870072b1a4fbebeecc5127bd",
+   "bytes": 104166
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12241,
+    3779
+   ],
+   "bbox": [
+    -122.4095083,
+    37.7897376,
+    -122.4027775,
+    37.7999345
+   ],
+   "count": 57,
+   "path": "fits/sf-corridor/-12241_3779-44b26e9556c8.json",
+   "sha256": "44b26e9556c8306482cb281fdac506632809a258fd336efda9e051f5a1d86b74",
+   "bytes": 344033
+  },
+  {
+   "region": "sf-corridor",
+   "cell": [
+    -12241,
+    3780
+   ],
+   "bbox": [
+    -122.4102211,
+    37.8000038,
+    -122.4007573,
+    37.804061
+   ],
+   "count": 17,
+   "path": "fits/sf-corridor/-12241_3780-965d4ca7c95a.json",
+   "sha256": "965d4ca7c95a0ef3e7283abc2fab078f4655ee44fcd53084dbcc68de4ee47f68",
+   "bytes": 119919
+  },
+  {
+   "region": "sf-haight-castro",
+   "cell": [
+    -12246,
+    3776
+   ],
+   "bbox": [
+    -122.455039,
+    37.7615977,
+    -122.4502251,
+    37.7650275
+   ],
+   "count": 33,
+   "path": "fits/sf-haight-castro/-12246_3776-f8f81963cb0b.json",
+   "sha256": "f8f81963cb0b0a81587639b81e9cb8366f4ab4d3f2f28b7ef684d98758bf794c",
+   "bytes": 189502
+  },
+  {
+   "region": "sf-haight-castro",
+   "cell": [
+    -12245,
+    3775
+   ],
+   "bbox": [
+    -122.4487894,
+    37.7557578,
+    -122.4401851,
+    37.7599665
+   ],
+   "count": 25,
+   "path": "fits/sf-haight-castro/-12245_3775-1e16f6d73c89.json",
+   "sha256": "1e16f6d73c89c20c6e6cd9ff61d95266193196bf1d6921b592753a908105d5d7",
+   "bytes": 125983
+  },
+  {
+   "region": "sf-haight-castro",
+   "cell": [
+    -12245,
+    3776
+   ],
+   "bbox": [
+    -122.4498164,
+    37.7600096,
+    -122.4406682,
+    37.7651227
+   ],
+   "count": 87,
+   "path": "fits/sf-haight-castro/-12245_3776-4324d2fe5dc0.json",
+   "sha256": "4324d2fe5dc0803abcc442641eb25e949c7f8a6373bde37d061a5ff1b234bdc9",
+   "bytes": 488637
+  },
+  {
+   "region": "sf-haight-castro",
+   "cell": [
+    -12244,
+    3775
+   ],
+   "bbox": [
+    -122.4399696,
+    37.7550955,
+    -122.4299578,
+    37.7599086
+   ],
+   "count": 47,
+   "path": "fits/sf-haight-castro/-12244_3775-ec11e28b82bd.json",
+   "sha256": "ec11e28b82bd2f42e1f612f5db36142ce651ee5c203e94cd1c84ae46f45ddba0",
+   "bytes": 280218
+  },
+  {
+   "region": "sf-haight-castro",
+   "cell": [
+    -12244,
+    3776
+   ],
+   "bbox": [
+    -122.4394035,
+    37.7599961,
+    -122.430044,
+    37.7648992
+   ],
+   "count": 86,
+   "path": "fits/sf-haight-castro/-12244_3776-bb703ae28e44.json",
+   "sha256": "bb703ae28e447c6d723ac85cd8ae7c451862cc9a27b2af8fa78a413c51f97978",
+   "bytes": 534951
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12243,
+    3774
+   ],
+   "bbox": [
+    -122.4275443,
+    37.7482399,
+    -122.4198569,
+    37.7500576
+   ],
+   "count": 16,
+   "path": "fits/sf-mission/-12243_3774-dcf8f6d131b4.json",
+   "sha256": "dcf8f6d131b4261804909bc065055dff8aee481f506062ef87bdad4bf3c72aa0",
+   "bytes": 108466
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12243,
+    3775
+   ],
+   "bbox": [
+    -122.4277185,
+    37.7500426,
+    -122.4199195,
+    37.7595319
+   ],
+   "count": 63,
+   "path": "fits/sf-mission/-12243_3775-b9c91f06f7a6.json",
+   "sha256": "b9c91f06f7a6202d1e9628210af512608d8e8b8a28880689b5c30ce8ed9ee8cc",
+   "bytes": 420927
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12243,
+    3776
+   ],
+   "bbox": [
+    -122.4275172,
+    37.7600348,
+    -122.4204132,
+    37.7701068
+   ],
+   "count": 87,
+   "path": "fits/sf-mission/-12243_3776-b53cef57de81.json",
+   "sha256": "b53cef57de813dc8ce6d8ef4110247be74dd2baceb9d7dc42f7c6be149a96ec1",
+   "bytes": 567069
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12242,
+    3774
+   ],
+   "bbox": [
+    -122.4197874,
+    37.7478662,
+    -122.4103411,
+    37.7500044
+   ],
+   "count": 19,
+   "path": "fits/sf-mission/-12242_3774-c0ca6ccdeb53.json",
+   "sha256": "c0ca6ccdeb534e939b21833d9ad58d02c86bb1381a49f4cd4626c13167f0b69c",
+   "bytes": 105181
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12242,
+    3775
+   ],
+   "bbox": [
+    -122.4196505,
+    37.7499443,
+    -122.4113908,
+    37.7600144
+   ],
+   "count": 121,
+   "path": "fits/sf-mission/-12242_3775-4198551970d4.json",
+   "sha256": "4198551970d4d040c3121c2a955a939cda4976c74144b7bb532b4406aedff56c",
+   "bytes": 736230
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12242,
+    3776
+   ],
+   "bbox": [
+    -122.420126,
+    37.7600126,
+    -122.4101487,
+    37.7687992
+   ],
+   "count": 53,
+   "path": "fits/sf-mission/-12242_3776-bf649953b850.json",
+   "sha256": "bf649953b8508a12f4abc72c26d4583d140814e8802b67e1099323f15b3f2148",
+   "bytes": 293955
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12241,
+    3774
+   ],
+   "bbox": [
+    -122.40927,
+    37.7482814,
+    -122.4069116,
+    37.7500525
+   ],
+   "count": 18,
+   "path": "fits/sf-mission/-12241_3774-3d84f88b5b7b.json",
+   "sha256": "3d84f88b5b7bfce56364ec3ee17efe27e3f9dc252cd86e9fc58bbc208fdb226c",
+   "bytes": 103133
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12241,
+    3775
+   ],
+   "bbox": [
+    -122.4101515,
+    37.7499593,
+    -122.4058408,
+    37.7592782
+   ],
+   "count": 70,
+   "path": "fits/sf-mission/-12241_3775-d2267713343a.json",
+   "sha256": "d2267713343a315837d96a71db88836ca4dc08d3b9b14259b3d101567e28acc8",
+   "bytes": 432998
+  },
+  {
+   "region": "sf-mission",
+   "cell": [
+    -12241,
+    3776
+   ],
+   "bbox": [
+    -122.407773,
+    37.7620269,
+    -122.4067497,
+    37.7674917
+   ],
+   "count": 5,
+   "path": "fits/sf-mission/-12241_3776-6d5fe4267c22.json",
+   "sha256": "6d5fe4267c220b4d0c379d10de59be1e0f749111f56fe5bc0c61c6ae3b0c8783",
+   "bytes": 24975
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12251,
+    3774
+   ],
+   "bbox": [
+    -122.5078697,
+    37.7400279,
+    -122.5020992,
+    37.7498175
+   ],
+   "count": 118,
+   "path": "fits/sf-sunset/-12251_3774-08b1f29aceab.json",
+   "sha256": "08b1f29aceab8a2bf25b756fe829f1a4fc3a7e71a550ec534462641082318d9f",
+   "bytes": 586457
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12251,
+    3775
+   ],
+   "bbox": [
+    -122.5090004,
+    37.7524273,
+    -122.5001949,
+    37.7593323
+   ],
+   "count": 57,
+   "path": "fits/sf-sunset/-12251_3775-bfa06aa2977c.json",
+   "sha256": "bfa06aa2977c478e2750775e1782baab2dd818f3f69f4ef8a1f97502777475bf",
+   "bytes": 269785
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12251,
+    3776
+   ],
+   "bbox": [
+    -122.509177,
+    37.7602644,
+    -122.5000656,
+    37.764254
+   ],
+   "count": 16,
+   "path": "fits/sf-sunset/-12251_3776-82a280f27eb6.json",
+   "sha256": "82a280f27eb67b706868b5227f1d3b58ea26184a437dbef4f10a750b3692949b",
+   "bytes": 72280
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12250,
+    3774
+   ],
+   "bbox": [
+    -122.4999652,
+    37.7418071,
+    -122.4912849,
+    37.7427477
+   ],
+   "count": 13,
+   "path": "fits/sf-sunset/-12250_3774-c342ad7076d8.json",
+   "sha256": "c342ad7076d8bfe0f111943d0f25a73a5423f94dcc283f0d817e8bd7fcf249ed",
+   "bytes": 81674
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12250,
+    3775
+   ],
+   "bbox": [
+    -122.499809,
+    37.7529583,
+    -122.496224,
+    37.7569299
+   ],
+   "count": 24,
+   "path": "fits/sf-sunset/-12250_3775-b666ba8b3060.json",
+   "sha256": "b666ba8b306011200766ab06a218036dd8313a2d1ce58eb5931c96f45b0a7525",
+   "bytes": 111246
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12250,
+    3776
+   ],
+   "bbox": [
+    -122.5000759,
+    37.7604274,
+    -122.4900702,
+    37.7646606
+   ],
+   "count": 34,
+   "path": "fits/sf-sunset/-12250_3776-08bb793f8b9e.json",
+   "sha256": "08bb793f8b9e8b08449ef65f954362f862e2366929226017da72b048f9d1e568",
+   "bytes": 165136
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12249,
+    3774
+   ],
+   "bbox": [
+    -122.4863038,
+    37.740023,
+    -122.4800815,
+    37.7499026
+   ],
+   "count": 67,
+   "path": "fits/sf-sunset/-12249_3774-172a84bc81c9.json",
+   "sha256": "172a84bc81c9e82452a701f0ca3209573d443b04191bff08a4f4c623929cd061",
+   "bytes": 342221
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12249,
+    3775
+   ],
+   "bbox": [
+    -122.4884145,
+    37.7504597,
+    -122.4806567,
+    37.7600613
+   ],
+   "count": 52,
+   "path": "fits/sf-sunset/-12249_3775-6dbaffc75f22.json",
+   "sha256": "6dbaffc75f227c9c9e09b5112cd107527d88d844e02877e15f3b654e533c13be",
+   "bytes": 272382
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12249,
+    3776
+   ],
+   "bbox": [
+    -122.4900836,
+    37.7599379,
+    -122.4803119,
+    37.7639587
+   ],
+   "count": 56,
+   "path": "fits/sf-sunset/-12249_3776-9ea9fc17336e.json",
+   "sha256": "9ea9fc17336e396414fbc202569ed3fcb73c4b926424db573abe3e95d5561a97",
+   "bytes": 277290
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12248,
+    3774
+   ],
+   "bbox": [
+    -122.4759398,
+    37.7401508,
+    -122.4705356,
+    37.7496709
+   ],
+   "count": 13,
+   "path": "fits/sf-sunset/-12248_3774-31dc842f115e.json",
+   "sha256": "31dc842f115ef14d9feb5ee39fefd94f6fd6adfa938ece91e8ca3f175fdb779b",
+   "bytes": 66511
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12248,
+    3775
+   ],
+   "bbox": [
+    -122.4772224,
+    37.7546843,
+    -122.4761946,
+    37.7589052
+   ],
+   "count": 5,
+   "path": "fits/sf-sunset/-12248_3775-7434ba114b0f.json",
+   "sha256": "7434ba114b0fa766da00b06e9bab3c5a6779922a08ecff2ea8d36dafc22c6fb9",
+   "bytes": 23897
+  },
+  {
+   "region": "sf-sunset",
+   "cell": [
+    -12248,
+    3776
+   ],
+   "bbox": [
+    -122.4769028,
+    37.7620296,
+    -122.4767317,
+    37.7621043
+   ],
+   "count": 1,
+   "path": "fits/sf-sunset/-12248_3776-bd6c864e3ea5.json",
+   "sha256": "bd6c864e3ea5a1eb27f441685785499f2782202e79581eabd81903891487019a",
+   "bytes": 5854
+  }
+ ]
+}

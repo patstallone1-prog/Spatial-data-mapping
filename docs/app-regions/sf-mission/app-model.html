@@ -68,7 +68,7 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 #hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
 #tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="a5f285f6ed5d158dbe024103d6cc5fe13d53909c63d2a3fedab7e1950fe5eb76" />
+<meta name="kerbside-renderer-sha256" content="7a0233ee3ab6dc36f371c5f73ea6ad92696978b21a79eabd53f1fdfa405efb9d" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -182,9 +182,22 @@ let hostWorldActive = true;
 const REGION_INDEX = { list: [], root: "", host: null };
 const ASSET_BASE = ATTACH ? ATTACH.assets
   : (document.querySelector('meta[name="kerbside-assets"]') || {}).content || "";
-const asset = (name) => (ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
-const sharedAsset = (name) => new URL(name, new URL(
-  document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href;
+//: Where each data file is kept: an immutable, content-named copy in the object store
+//: (tools/publish_chunks.py writes the map), or -- for anything not in the map, or with no map --
+//: the site itself. The page and its code stay on the site; the city's data does not have to.
+const ASSET_MAP = await fetch("/asset-map.json", { cache: "no-cache" })
+  .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+function viaStore(href) {
+  const files = ASSET_MAP?.files;
+  if (!files || !ASSET_MAP.base) return href;
+  const url = new URL(href, location.href);
+  if (url.origin !== location.origin) return href;
+  const object = files[url.pathname.replace(/^\/+/, "")];
+  return object ? `${ASSET_MAP.base.replace(/\/+$/, "")}/${object}` : href;
+}
+const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
+const sharedAsset = (name) => viaStore(new URL(name, new URL(
+  document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 // Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
@@ -435,9 +448,25 @@ applyStorefrontNames(DATA, STORE_NAMES);
 const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : { assigned: {} })
   .catch(() => ({ assigned: {} }));
-// Image-derived visual fits are optional and reviewed, never canonical replacements.
-const FRONTAGE_FITS = await fetch(sharedAsset("sf-corridor-frontage-fits.json"), { cache: "no-cache" })
-  .then((r) => r.ok ? r.json() : { buildings: {} }).catch(() => ({ buildings: {} }));
+// Image-derived visual fits are optional and reviewed, never canonical replacements. They come in
+// immutable tiles (tools/tile_frontage_fits.py): the small manifest is revalidated, and only the
+// tiles over this page's area are fetched -- each named by its content's hash, so cached for good.
+// The whole city's fits in one file was 67 MB fetched by every page before it drew a building.
+const FRONTAGE_FITS = await loadFrontageFits();
+async function loadFrontageFits() {
+  const empty = { schema: "kerbside.facade_fits/1", buildings: {} };
+  const manifest = await fetch(sharedAsset("sf-corridor-frontage-fits.manifest.json"), { cache: "no-cache" })
+    .then((r) => r.ok ? r.json() : null).catch(() => null);
+  if (!manifest || !Array.isArray(manifest.tiles)) return empty;
+  const b = DATA.bbox;
+  const wanted = manifest.tiles.filter((t) => !b || (t.bbox[0] <= b.east && t.bbox[2] >= b.west
+    && t.bbox[1] <= b.north && t.bbox[3] >= b.south));
+  const url = (path) => manifest.base ? `${manifest.base.replace(/\/+$/, "")}/${path}` : sharedAsset(path);
+  const parts = await Promise.all(wanted.map((t) => fetch(url(t.path))
+    .then((r) => r.ok ? r.json() : null).catch(() => null)));
+  for (const part of parts) Object.assign(empty.buildings, part?.buildings || {});
+  return empty;
+}
 function frontageNormalFor(fit) {
   if(![fit?.a,fit?.b].every(p=>Array.isArray(p) && p.length===2 && p.every(Number.isFinite)))return null;
   const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),L=Math.hypot(bx-ax,by-ay);
