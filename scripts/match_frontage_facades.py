@@ -5,11 +5,19 @@ Continuously watches the filter's photo bucket (its review output). With --auto-
 fit is decided automatically (smc.facades.auto_review) into a bucket per house, and the accepted
 ones are published as parameters; raw photographs never enter public output here. Passes move
 forward: a house already decided is kept as it is (settled_houses) unless --refit-all.
+
+A house photographed more than once is reconstructed from all its views together
+(smc.facades.multiview): its windows and doors followed from view to view and each read from the
+view that sees it best, its dimensions from all of them, and its stair's direction and size and
+its alcove's depth from how they move between views. When it is fitted -- and, for a house
+already decided and accepted, when a new photograph of it arrives (with_multiview_upgrades):
+new evidence moves it forward; nothing is redone without it.
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
 import fcntl
 import hashlib
 import html
@@ -41,8 +49,9 @@ from smc.facades.consensus import (  # noqa: E402
     neighbourhood_reference,
     strict_view_gate,
 )
+from smc.facades import multiview  # noqa: E402
 from smc.facades.detail_detection import FacadeDetailDetector  # noqa: E402
-from smc.facades.fit import extract_front  # noqa: E402
+from smc.facades.fit import extract_front, opening_design  # noqa: E402
 from smc.facades.frontage_retention import prune_finalized, retained_fact  # noqa: E402
 from smc.facades.geometry import LocalFrame  # noqa: E402
 from smc.facades.view_store import ViewStore  # noqa: E402
@@ -105,6 +114,92 @@ def settled_houses(output: Path) -> dict:
                     "bucket": bucket, "record": record, "image_sha256": record.get("image_sha256"),
                     "fit_rank": record["fit_rank"]}
     return settled
+
+
+def _view_manifest(output: Path, region: str, key: str) -> dict | None:
+    try:
+        return json.loads((output / "views" / region / key / "manifest.json").read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def with_multiview(output: Path, fit: dict, region: str, key: str, reference_key: str | None) -> dict:
+    """The fit with what all the house's filed views say together (smc.facades.multiview).
+
+    The reconstruction is kept per set of views (``multiview/``), so a pass with nothing new for
+    a house costs it nothing.
+    """
+    manifest = _view_manifest(output, region, key)
+    if not manifest:
+        return fit
+    count = len(manifest.get("views", []))
+    if count < 2:
+        fit["multiview_reconstruction"] = {"schema": multiview.SCHEMA, "status": "single_view", "views_filed": count}
+        return fit
+    openings = [{k: o.get(k) for k in ("id", "kind", "u", "v", "w", "h")} for o in fit.get("openings") or []
+                if o.get("kind") in {"window", "door"}]
+    signature = hashlib.sha256(json.dumps({
+        "views": sorted(v["key"] for v in manifest["views"]), "reference": reference_key,
+        "openings": openings, "schema": multiview.SCHEMA}, sort_keys=True).encode()).hexdigest()[:16]
+    cache = output / "multiview" / region / f"{key}-{signature}.json"
+    folder = output / "views" / region / key
+    views = multiview.load_views(folder, manifest)
+    if cache.exists():
+        result = json.loads(cache.read_text())
+    else:
+        result = multiview.reconstruct(views, reference_key, openings)
+        atomic(cache, result)
+    fit = multiview.apply_to_fit(fit, result, views, design=opening_design)
+    fit.setdefault("multiview_reconstruction", {"schema": multiview.SCHEMA, "status": result.get("status")})
+    fit["multiview_reconstruction"]["views_filed"] = count
+    return fit
+
+
+def with_multiview_upgrades(args, builds: dict, reused: set[str]) -> int:
+    """Accepted houses kept from earlier passes that have been photographed again since.
+
+    A house is kept as it was decided -- this only looks at the ones with more views filed than
+    when it was decided (or, for a house decided before multiview, than when multiview first saw
+    it: ``multiview-baseline.json``), and lays what the views together say over the house's
+    record. Rejected houses stay as they were decided.
+    """
+    baseline_path = args.output / "multiview-baseline.json"
+    try:
+        baseline = json.loads(baseline_path.read_text())
+    except (OSError, ValueError):
+        baseline = {}
+    upgraded = 0
+    for key in sorted(reused):
+        record = builds.get(key)
+        region = (record or {}).get("region")
+        house = args.output / "houses" / str(region) / f"{key}.json"
+        if not record or not region or not house.exists():
+            continue
+        manifest = _view_manifest(args.output, region, key)
+        count = len((manifest or {}).get("views", []))
+        tag = f"{region}:{key}"
+        known = (record.get("multiview_reconstruction") or {}).get("views_filed") or baseline.get(tag)
+        if known is None:
+            baseline[tag] = count
+            continue
+        if count <= known or count < 2:
+            continue
+        reference = next((v["key"] for v in manifest["views"]
+                          if v.get("observation_uid") == record.get("observation_uid")), None)
+        try:
+            fresh = with_multiview(args.output, copy.deepcopy(record), region, key, reference)
+        except (OSError, ValueError, KeyError, cv2.error) as error:
+            print(json.dumps({"multiview_failed": tag, "error": type(error).__name__}), flush=True)
+            baseline[tag] = count
+            continue
+        applied = (fresh.get("multiview_reconstruction") or {}).get("applied") or {}
+        if any(applied.get(k) for k in ("openings_fused", "openings_resourced", "stair")) or applied.get("alcove") is not None:
+            atomic(house, fresh)
+            builds[key] = fresh
+            upgraded += 1
+        baseline[tag] = count
+    atomic(baseline_path, baseline)
+    return upgraded
 
 
 def cycle(args) -> dict:
@@ -333,10 +428,19 @@ def cycle(args) -> dict:
                 f'<img src="{html.escape(relative_photo, quote=True)}" alt="Source facade"/>'
                 f'<img src="{region}-{key}.svg" alt="Fitted visual front"/></div></article>'
             )
+    upgraded = with_multiview_upgrades(args, builds, reused) if getattr(args, "auto_accept", False) else 0
+    multiview_houses = 0
     neighbour_index = NeighbourIndex([*builds.values(), *finalized_facts.values()])
     for key, fit in builds.items():
         if key in reused:
             continue  # finished: left exactly as it was decided
+        try:
+            fit = builds[key] = with_multiview(args.output, fit, fit["region"], key,
+                                               fit_sources.get(key, (None, None))[1])
+        except (OSError, ValueError, KeyError, cv2.error) as error:
+            failures.append({"region": fit["region"], "building_id": key, "stage": "multiview",
+                             "error_type": type(error).__name__})
+        multiview_houses += (fit.get("multiview_reconstruction") or {}).get("status") == "multiview"
         fit["multiview"] = cross_view(fit, views[key])
         neighbours = neighbour_index.near(fit)
         fit["neighbourhood_reference"] = neighbourhood_reference(fit, neighbours)
@@ -525,6 +629,8 @@ def cycle(args) -> dict:
             bool(o.get("design", {}).get("trim")) for f in builds.values() for o in f["openings"]
         ),
         "held_by_strict_frontage": held,
+        "multiview_houses_this_pass": multiview_houses,
+        "multiview_upgrades_this_pass": upgraded,
         "reconstruction": reconstructed,
         "quarantined_views": len(failures),
         "elapsed_seconds": round(time.perf_counter() - started, 3),
