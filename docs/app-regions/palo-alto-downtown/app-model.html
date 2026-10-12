@@ -84,7 +84,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="45b39752989cc506234ba65bf01060397c0063ec1d7a1646053273f536523e12" />
+<meta name="kerbside-renderer-sha256" content="ce9a618aefc20f35626e603103bc8c241f410a7494700bc88ea1a2b4de450c64" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -19393,6 +19393,18 @@ function busStopText() {
 //: A stop's island in the road: eighteen metres of kerb, 2.4 m across, its bus side edged yellow.
 const STOP_ISLAND_HALF_LENGTH_M = 9.0;
 const STOP_ISLAND_HALF_M = 1.2;
+//: A kerb point turned square to its street. nearestKerbAt's normal runs from the nearest point of
+//: the carriageway's centreline to the point asked about; near a corner that nearest point is the
+//: segment's end, and the normal comes out on a diagonal -- and with it every bus zone painted
+//: there. The street's own direction is the segment's: the normal here is square to it, on the
+//: side the point is, and the kerb point square off the centreline.
+function streetSquareKerb(kerb) {
+  if (!kerb || !Number.isFinite(kerb.ax) || !Number.isFinite(kerb.az)) return kerb;
+  let nx = -kerb.az, nz = kerb.ax;
+  if (nx * kerb.nx + nz * kerb.nz < 0) { nx = -nx; nz = -nz; }
+  const fx = kerb.x - kerb.nx * kerb.half, fz = kerb.z - kerb.nz * kerb.half;
+  return { ...kerb, nx, nz, x: fx + nx * kerb.half, z: fz + nz * kerb.half };
+}
 function addTransitStops(transit) {
   const stops = (transit.stops || []).filter((stop) => Number.isFinite(stop.lon) && Number.isFinite(stop.lat));
   const shelters = [], benches = [], poles = [], islands = [];
@@ -19440,7 +19452,7 @@ function addTransitStops(transit) {
       continue;
     }
     const onIsland = stop.type === "SI" && insideCarriageway(x, z, 0.0);
-    const kerb = nearestKerbAt(x, z, 25);
+    const kerb = streetSquareKerb(nearestKerbAt(x, z, 25));
     if (!kerb) continue;
     // Along the kerb, and out of the road (n): the bus travels with the kerb on its right.
     const nx = kerb.nx, nz = kerb.nz;
@@ -21181,6 +21193,176 @@ const BUS_ZONE_BORDER_Y = ROAD_TOP_M + 0.010;
 //: more than that is a corner, and a bus zone does not wrap one.
 const BUS_ZONE_MAX_TURN_DEG = 20.0;
 
+// ---- parking meters --------------------------------------------------------------------------
+//
+// SFMTA's meters (scripts/ingest_kerb_assets.py: every on-street meter in service, from the city's
+// own inventory) and, elsewhere, the parking ticket machines OpenStreetMap maps. A single-space
+// meter is a head on a post -- two where two spaces share the post -- with its cap in the colour
+// that says what kind of space it is; a pay station is a kiosk. Each stands just in from the kerb,
+// square to the street, its face to the road.
+const METER_SPEC = { setback: 0.45, post: 1.12, head: [0.22, 0.34, 0.16], kiosk: [0.42, 1.55, 0.32] };
+const METER_CAP_COLOURS = { grey: 0x8e9599, yellow: 0xe6c229, black: 0x22262a, green: 0x2f8f4e, red: 0xc0392b,
+  blue: 0x2b6cb0, purple: 0x6b46c1, brown: 0x7a5230 };
+function meterSpot(item) {
+  const [x, y] = xy(item.p[0], item.p[1]);
+  const kerb = streetSquareKerb(nearestKerbAt(x, -y, 8));
+  if (kerb) {
+    const mx = kerb.x + kerb.nx * METER_SPEC.setback, mz = kerb.z + kerb.nz * METER_SPEC.setback;
+    if (!insideCarriageway(mx, mz, 0.05) && !buildingAt(mx, mz)) {
+      const top = pavementTopAt(mx, mz);
+      return { x: mx, z: mz, y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(mx, mz),
+        yaw: Math.atan2(-kerb.nx, -kerb.nz), ax: kerb.nz, az: -kerb.nx };
+    }
+  }
+  const anchor = furnitureAnchor(item);
+  return anchor ? { ...anchor, yaw: furnitureBearing(item, 0, anchor), ax: 1, az: 0 } : null;
+}
+function addParkingMeters(records) {
+  const singles = [], kiosks = [];
+  for (const item of records) {
+    if (!item?.p) continue;
+    const spot = meterSpot(item);
+    if (!spot) continue;
+    (item.meter_type === "pay_station" ? kiosks : singles).push({ item, spot });
+  }
+  const dummy = new THREE.Object3D();
+  const metal = new THREE.MeshStandardMaterial({ color: 0x3d4247, roughness: 0.45, metalness: 0.6 });
+  if (singles.length) {
+    const heads = singles.reduce((n, r) => n + Math.max(1, Math.min(2, r.item.heads || 1)), 0);
+    const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.04, 0.045, 1, 8), metal, singles.length);
+    const bodies = new THREE.InstancedMesh(new THREE.BoxGeometry(...METER_SPEC.head),
+      new THREE.MeshStandardMaterial({ color: 0x5b6267, roughness: 0.5, metalness: 0.45 }), heads);
+    const caps = new THREE.InstancedMesh(new THREE.BoxGeometry(METER_SPEC.head[0] + 0.01, 0.06, METER_SPEC.head[2] + 0.01),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }), heads);
+    let h = 0;
+    const colour = new THREE.Color();
+    singles.forEach(({ item, spot }, i) => {
+      dummy.position.set(spot.x, spot.y + METER_SPEC.post / 2, spot.z);
+      dummy.rotation.set(0, spot.yaw, 0);
+      dummy.scale.set(1, METER_SPEC.post, 1);
+      dummy.updateMatrix();
+      posts.setMatrixAt(i, dummy.matrix);
+      const n = Math.max(1, Math.min(2, item.heads || 1));
+      for (let k = 0; k < n; k += 1) {
+        const along = n === 2 ? (k ? 0.13 : -0.13) : 0;
+        const hx = spot.x + spot.ax * along, hz = spot.z + spot.az * along;
+        dummy.scale.set(1, 1, 1);
+        dummy.position.set(hx, spot.y + METER_SPEC.post + METER_SPEC.head[1] / 2, hz);
+        dummy.updateMatrix();
+        bodies.setMatrixAt(h, dummy.matrix);
+        dummy.position.set(hx, spot.y + METER_SPEC.post + METER_SPEC.head[1] + 0.03, hz);
+        dummy.updateMatrix();
+        caps.setMatrixAt(h, dummy.matrix);
+        caps.setColorAt(h, colour.setHex(METER_CAP_COLOURS[item.cap_color] ?? METER_CAP_COLOURS.grey));
+        h += 1;
+      }
+    });
+    for (const mesh of [posts, bodies, caps]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      mesh.userData = { surface: "furniture:parking_meter", source: "sfmta_parking_meters", liftedOntoGround: true };
+      groups.furniture.add(mesh);
+    }
+  }
+  if (kiosks.length) {
+    const kiosk = new THREE.InstancedMesh(new THREE.BoxGeometry(...METER_SPEC.kiosk), metal, kiosks.length);
+    const screen = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.26, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x9fd3e6, roughness: 0.2, emissive: 0x1d3a45 }), kiosks.length);
+    kiosks.forEach(({ spot }, i) => {
+      dummy.scale.set(1, 1, 1);
+      dummy.rotation.set(0, spot.yaw, 0);
+      dummy.position.set(spot.x, spot.y + METER_SPEC.kiosk[1] / 2, spot.z);
+      dummy.updateMatrix();
+      kiosk.setMatrixAt(i, dummy.matrix);
+      // The screen on the face to the pavement, where a driver stands to pay.
+      const fx = -Math.sin(spot.yaw) * (METER_SPEC.kiosk[2] / 2 + 0.005), fz = -Math.cos(spot.yaw) * (METER_SPEC.kiosk[2] / 2 + 0.005);
+      dummy.position.set(spot.x + fx, spot.y + 1.2, spot.z + fz);
+      dummy.rotation.set(0, spot.yaw + Math.PI, 0);
+      dummy.updateMatrix();
+      screen.setMatrixAt(i, dummy.matrix);
+    });
+    for (const mesh of [kiosk, screen]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData = { surface: "furniture:parking_meter", source: "parking_pay_stations", liftedOntoGround: true };
+      groups.furniture.add(mesh);
+    }
+  }
+  return { single_space: singles.length, pay_stations: kiosks.length };
+}
+
+// ---- Muni's trolleybus wires ------------------------------------------------------------------
+//
+// The streets OpenStreetMap marks trolley_wire=yes carry Muni's overhead contact wires: a pair
+// over each direction's lane (two wires, a trolley pole to each), about 5.6 m up, held by span
+// wires strung between poles at the kerbs every forty metres or so. They are drawn as the power
+// wires are -- thin dark lines -- with their span poles and the cross wires between them.
+const TROLLEY = { height: 5.6, pair: 0.6, laneOffset: 2.4, onewayOffset: 1.4, span: 36, poleHeight: 7.6, crossAt: 6.6 };
+function addTrolleyWires(records) {
+  const segments = [], poles = [];
+  const groundAt = (x, z) => groundLiftAt(x, z) + ROAD_TOP_M;
+  for (const wire of records) {
+    const path = (wire.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    if (path.length < 2) continue;
+    const offsets = wire.oneway
+      ? [TROLLEY.onewayOffset - TROLLEY.pair / 2, TROLLEY.onewayOffset + TROLLEY.pair / 2]
+      : [-TROLLEY.laneOffset - TROLLEY.pair / 2, -TROLLEY.laneOffset + TROLLEY.pair / 2,
+         TROLLEY.laneOffset - TROLLEY.pair / 2, TROLLEY.laneOffset + TROLLEY.pair / 2];
+    let carried = 0;
+    for (let i = 1; i < path.length; i += 1) {
+      const [ax, az] = path[i - 1], [bx, bz] = path[i];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (len < 0.5) continue;
+      const ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz, nz = ux;
+      const steps = Math.max(1, Math.ceil(len / 12));
+      for (let k = 0; k < steps; k += 1) {
+        const t0 = k / steps, t1 = (k + 1) / steps;
+        const p0 = [ax + (bx - ax) * t0, az + (bz - az) * t0], p1 = [ax + (bx - ax) * t1, az + (bz - az) * t1];
+        const y0 = groundAt(...p0) + TROLLEY.height, y1 = groundAt(...p1) + TROLLEY.height;
+        for (const o of offsets) segments.push(p0[0] + nx * o, y0, p0[1] + nz * o, p1[0] + nx * o, y1, p1[1] + nz * o);
+      }
+      // Span poles at the kerbs either side, every TROLLEY.span metres along the street.
+      for (let d = (TROLLEY.span - carried) % TROLLEY.span; d < len; d += TROLLEY.span) {
+        const px = ax + ux * d, pz = az + uz * d;
+        const ends = [];
+        for (const side of [1, -1]) {
+          const kerb = streetSquareKerb(nearestKerbAt(px + nx * side * 7, pz + nz * side * 7, 6));
+          if (!kerb) continue;
+          const qx = kerb.x + kerb.nx * 0.5, qz = kerb.z + kerb.nz * 0.5;
+          if (buildingAt(qx, qz) || insideCarriageway(qx, qz, 0.05)) continue;
+          const top = pavementTopAt(qx, qz);
+          const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
+          poles.push({ x: qx, y, z: qz });
+          ends.push([qx, y + TROLLEY.crossAt, qz]);
+        }
+        if (ends.length === 2) segments.push(...ends[0], ...ends[1]);
+      }
+      carried = (carried + len) % TROLLEY.span;
+    }
+  }
+  if (segments.length) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(segments, 3));
+    const lines = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x2c302f }));
+    lines.userData = { surface: "furniture:trolley_wire", source: "openstreetmap" };
+    groups.furniture.add(lines);
+  }
+  if (poles.length) {
+    const mesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.15, 1, 10),
+      new THREE.MeshStandardMaterial({ color: 0x4a5250, roughness: 0.55, metalness: 0.5 }), poles.length);
+    const dummy = new THREE.Object3D();
+    poles.forEach((pole, i) => {
+      dummy.position.set(pole.x, pole.y + TROLLEY.poleHeight / 2, pole.z);
+      dummy.scale.set(1, TROLLEY.poleHeight, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.userData = { surface: "furniture:trolley_pole", source: "openstreetmap", liftedOntoGround: true };
+    groups.furniture.add(mesh);
+  }
+  return { wire_segments: segments.length / 6, span_poles: poles.length };
+}
+
 function addBusZonePaint(records) {
   // The red box in the roadway at a bus zone.
   //
@@ -21197,7 +21379,9 @@ function addBusZonePaint(records) {
     sink.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
   };
   for (const record of records) {
-    const runs = kerbRunsFor(record, BUS_ZONE_MAX_TURN_DEG);
+    // Square to the street at every sample: the zone runs parallel to the road, never on the
+    // diagonal a corner's segment end gives (streetSquareKerb).
+    const runs = kerbRunsFor(record, BUS_ZONE_MAX_TURN_DEG).map((run) => run.map(streetSquareKerb));
     if (!runs.length) continue;
     for (const run of runs) {
       if (run.length < 2) continue;
@@ -21337,6 +21521,8 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
     curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [])),
     bus_zone_paint: addBusZonePaint((official.curb_zones || [])
       .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
+    parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [])),
+    trolley_wires: addTrolleyWires(inferred.trolley_wires || []),
   };
   // Checked once everything stands: no two plates meet, no post is on a crossing.
   placed.sign_audit = auditSignPlates(plates.spots);
@@ -21352,7 +21538,9 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
       + `Official geometry: ${Number(officialCounts.street_signs || 0).toLocaleString()} signs, `
       + `${Number(officialCounts.traffic_signals || 0).toLocaleString()} signals, `
       + `${Number(officialCounts.curb_zones || 0).toLocaleString()} curb policy bands, `
-      + `${Number(placed.bus_zone_paint || 0).toLocaleString()} transit zones painted.`;
+      + `${Number(placed.bus_zone_paint || 0).toLocaleString()} transit zones painted; `
+      + `${Number((placed.parking_meters?.single_space || 0) + (placed.parking_meters?.pay_stations || 0)).toLocaleString()} parking meters; `
+      + `${Number(placed.trolley_wires?.span_poles || 0).toLocaleString()} trolleybus span poles.`;
     note.userData = placed;
   }
   tileGroup(groups.furniture);

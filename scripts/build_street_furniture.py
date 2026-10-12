@@ -30,6 +30,8 @@ OUT = ROOT / "docs" / "sf-corridor-furniture.json"
 CORRIDOR = {"south": 37.786, "west": -122.4475, "north": 37.8095, "east": -122.392}
 
 OVERPASS_MIRRORS = (
+    # VK Maps' mirror first: overpass-api.de has been answering with dispatcher errors.
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
     "https://overpass.osm.ch/api/interpreter",

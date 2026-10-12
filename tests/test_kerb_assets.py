@@ -1,0 +1,64 @@
+"""Bus zones square to their street; parking meters and Muni's trolleybus wires on the streets."""
+
+from __future__ import annotations
+
+import json
+import runpy
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from tests.test_corridor_geometry_rules import NODE, _extract, _page_js
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_a_bus_zone_near_a_corner_runs_parallel_to_its_street_not_on_the_diagonal() -> None:
+    js = _page_js()
+    script = "\n".join([_extract("streetSquareKerb", js), """
+    // A street along x (centreline z = 0, half-width 5). The stop is past the segment's end, so
+    // the nearest centreline point is the end (10, 0) and the raw normal is the diagonal to (14, 4).
+    const d = Math.hypot(4, 4), raw = { x: 10 + 4 / d * 5, z: 4 / d * 5, nx: 4 / d, nz: 4 / d, ax: 1, az: 0, half: 5 };
+    const sq = streetSquareKerb(raw);
+    console.log(JSON.stringify({ nx: +sq.nx.toFixed(6), nz: +sq.nz.toFixed(6), x: +sq.x.toFixed(6), z: +sq.z.toFixed(6),
+      passthrough: streetSquareKerb(null) }));
+    """])
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    r = json.loads(out.stdout)
+    assert (r["nx"], r["nz"]) == (0, 1), "square to the street, on the stop's side"
+    assert (r["x"], r["z"]) == (10, 5), "the kerb square off the centreline"
+    assert r["passthrough"] is None
+    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    assert "const kerb = streetSquareKerb(nearestKerbAt(x, z, 25));" in page
+    assert ".map((run) => run.map(streetSquareKerb))" in page
+
+
+def test_meter_spaces_become_posts_with_their_heads_and_pay_stations_with_their_spaces() -> None:
+    m = runpy.run_path(str(ROOT / "scripts/ingest_kerb_assets.py"))
+    row = lambda post, station="-", kind="SS", lon=-122.41, lat=37.79, cap="Grey": {  # noqa: E731
+        "post_id": post, "ms_pay_station_id": station, "meter_type": kind, "cap_color": cap,
+        "street_name": "KEARNY ST", "street_num": "900", "longitude": str(lon), "latitude": str(lat)}
+    out = m["meters_from_rows"]([row("1"), row("1"), row("2", cap="Yellow"),
+                                 row("3", "PS-9", "MS", lon=-122.4100), row("4", "PS-9", "MS", lon=-122.4102),
+                                 row("5", "PS-9", "MS", lon=-122.4104), {"post_id": "bad"}])
+    singles = {r["id"]: r for r in out if r["meter_type"] == "single_space"}
+    stations = [r for r in out if r["meter_type"] == "pay_station"]
+    assert singles["sfmta:parking_meter:1"]["heads"] == 2 and singles["sfmta:parking_meter:2"]["cap_color"] == "yellow"
+    assert len(stations) == 1 and stations[0]["spaces"] == 3 and stations[0]["p"][0] == -122.4102, "in the middle"
+    assert all(r["provenance"] == "official_meter_inventory" for r in out)
+
+
+def test_meters_and_trolley_wires_reach_the_streets() -> None:
+    js = _page_js()
+    assert "parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || []))" in js
+    assert "trolley_wires: addTrolleyWires(inferred.trolley_wires || [])" in js
+    spot = _extract("meterSpot", js)
+    assert "streetSquareKerb(nearestKerbAt(x, -y, 8))" in spot and "!insideCarriageway(mx, mz, 0.05)" in spot
+    wires = _extract("addTrolleyWires", js)
+    assert ("TROLLEY.height" in wires and "span poles" not in wires.lower()) or "TROLLEY.span" in wires
+    furniture = json.loads((ROOT / "docs/sf-corridor-furniture.json").read_text())
+    assert len(furniture["geometry_based"]["parking_meters"]) > 5000
+    assert len(furniture["inferred"]["trolley_wires"]) > 300
