@@ -2608,7 +2608,8 @@ def _run_tunnel(js_body: str) -> dict:
     js = _page_js()
     parts = [PREAMBLE, TUNNEL_PREAMBLE]
     names = ("wayLength", "lonLatFromXZ", "tunnelSectionPoints", "tunnelCoverAlong",
-             "tunnelStations", "tunnelFloorAt", "walkerGroundAt")
+             "tunnelStations", "tunnelFloorAt", "walkerGroundAt", "walkerGroundInfo", "outsideTerrainGrid",
+             "drawnGroundAt")
     parts += [_extract(name, js) for name in names]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
