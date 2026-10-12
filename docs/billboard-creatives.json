@@ -1,15 +1,555 @@
 {
   "schema": "kerbside.billboard_creatives/1",
   "boards": {
-    "osm:ad_panel:node:6970578437": {
-      "image": "billboards/kerbside-demo.svg",
-      "href": "https://www.openstreetmap.org/node/6970578437",
+    "osm:ad_panel:node:10024847139": {
+      "image": "billboards/animal-brawl.webp",
       "license": "project-owned",
       "attribution": "Kerbside",
       "approved": true,
       "fit": "contain",
-      "label": "Kerbside demo overlay \u2014 not the observed advertisement",
-      "sha256": "88ff9b1588d575400b154fe34715791a452338abd847d2f7229160fde9ebdab8"
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10032066126": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10032066127": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:10079019577": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10110567109": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10155561730": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:10236432130": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10434421208": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10436703609": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:10542243251": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10554043145": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10554043146": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:10554043147": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10555363017": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10573654800": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:10603076309": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10607148083": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10607148084": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:10612927298": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10718311021": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10744181880": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:10869882888": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:10869899342": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:10942404457": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:11361027951": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:12302117892": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:12302117893": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:12437923975": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:12437923976": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:12607735943": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:12607735944": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:12876520544": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:13196837017": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:14106601011": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:5586994688": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:5586994690": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:5586994691": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:5586994692": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:5586994693": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:6970578437": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:8575820663": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:8624422996": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:8878473997": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:8878473998": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:9325267705": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:9465252309": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:9465252310": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:9465252311": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:9491533726": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:9740502048": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:9859736339": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:9873658375": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:9873658376": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:9873658377": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:9873658378": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:9900999690": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    "osm:ad_panel:node:9901000602": {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    },
+    "osm:ad_panel:node:9901000603": {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    "osm:ad_panel:node:9976060404": {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
     }
   }
 }

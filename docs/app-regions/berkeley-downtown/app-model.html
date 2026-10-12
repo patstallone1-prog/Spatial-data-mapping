@@ -6,69 +6,84 @@
 <meta name="kerbside-assets" content="../../regions/berkeley-downtown" />
 <meta name="kerbside-app-mode" content="full-regional-view" />
 <meta name="kerbside-visual-support" content="app-landwater.bin" />
+<meta name="kerbside-routing" content="" />
 <meta name="kerbside-regions" content="../../app-regions.json" />
 <title>Kerbside Downtown Berkeley and the campus edge 3D</title>
 <style>
-:root { color-scheme: light; --bg:#edf3f4; --panel:#fffdf9; --line:#c8d8dc; --ink:#21363b; --muted:#577076; --accent:#8c844c; --green:#288660; --amber:#aa772b; --cyan:#237d9a; }
+:root { color-scheme: light; --brand:#8c844c; --bg:#eef1f4; --panel:#ffffff; --line:#e5e7eb; --ink:#111827; --muted:#6b7280;
+  --soft:#f3f4f6; --accent:#2563eb; --accent-soft:#eff6ff; --green:#16a34a; --amber:#d97706; --cyan:#0891b2;
+  --shadow:0 12px 32px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.06); }
 * { box-sizing: border-box; }
-body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; -webkit-font-smoothing:antialiased; }
 #scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; }
-.hud { position:fixed; top:14px; left:14px; bottom:14px; width:min(340px, calc(100vw - 28px)); display:flex; flex-direction:column; gap:10px; pointer-events:none; z-index:8; }
-/* The panel takes the column it is given rather than shrinking to its contents, so the
-   sections breathe instead of being packed against the title. */
-.hud .panel { flex:1; overflow:auto; padding:16px; display:flex; flex-direction:column; gap:2px; }
+button { color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font:inherit; font-size:13px; font-weight:500; cursor:pointer; transition:background .15s, border-color .15s, box-shadow .15s; }
+button:hover { background:var(--soft); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+button[aria-pressed=true] { background:var(--accent-soft); border-color:#bfdbfe; color:#1d4ed8; }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+button.primary:hover { background:#1d4ed8; }
+/* The sidebar: what is wanted at once -- where to go, how to get there, how to look. */
+.hud { position:fixed; top:16px; left:16px; bottom:16px; width:min(340px, calc(100vw - 32px)); display:flex; flex-direction:column; gap:10px; pointer-events:none; z-index:8; }
+.hud .panel { flex:0 1 auto; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:14px; }
 .hud[data-open="false"] .panel { display:none; }
-#fold { align-self:flex-start; pointer-events:auto; min-width:48px; min-height:44px; background:#fff; color:var(--ink); box-shadow:0 8px 24px rgba(28,61,66,.2); }
-#fold:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
-#find { width:100%; padding:9px 10px; border-radius:7px; border:1px solid var(--line); background:#fff; color:var(--ink); font:inherit; }
-#region { width:100%; box-sizing:border-box; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:13px; }
-#find::placeholder { color:var(--muted); }
-#hits { list-style:none; margin:6px 0 0; padding:0; max-height:190px; overflow:auto; }
-#hits li { padding:7px 9px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--muted); }
-#hits li:hover, #hits li[aria-selected=true] { background:rgba(140,132,76,.16); color:var(--ink); }
-/* Collapsing targets the sections themselves rather than one wrapper. The wrapper closes
-   where the original panel did, which left the layer groups outside it and folding hid
-   only the statistics. */
-.bar { pointer-events:auto; display:flex; align-items:center; gap:8px; }
-.bar h1 { flex:1; margin:0; }
-.primary-actions { margin-top:10px; }
-.group { margin-top:12px; }
-.group > h2 { margin:0 0 7px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; }
-.panel { pointer-events:auto; background:rgba(255,253,249,.96); border:1px solid var(--line); border-radius:14px; padding:12px; backdrop-filter:blur(14px); box-shadow:0 12px 30px rgba(28,61,66,.16); }
-h1 { margin:0 0 8px; font-size:18px; line-height:1.1; font-weight:700; letter-spacing:0; }
+.panel { pointer-events:auto; background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); }
+#fold { align-self:flex-start; pointer-events:auto; min-width:48px; min-height:44px; border-radius:12px; box-shadow:var(--shadow); font-weight:600; }
+.bar { display:flex; align-items:center; gap:10px; }
+.bar h1 { flex:1; margin:0; font-size:17px; font-weight:700; letter-spacing:-.01em; }
+.bar h1::before { content:""; display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--brand); margin-right:8px; vertical-align:1px; }
+.group > h2, .sheet h2 { margin:0 0 8px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+input[type=search], input[type=text], select { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--soft); color:var(--ink); font:inherit; font-size:14px; }
+input[type=search]:focus, input[type=text]:focus, select:focus { background:#fff; border-color:#93c5fd; }
+input::placeholder { color:#9ca3af; }
+#region { font-size:13px; padding:8px 10px; }
+.hits { list-style:none; margin:6px 0 0; padding:0; max-height:200px; overflow:auto; }
+.hits li { padding:8px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--muted); }
+.hits li:hover, .hits li[aria-selected=true] { background:var(--soft); color:var(--ink); }
+.toolbar { display:flex; flex-wrap:wrap; gap:8px; }
+.toolbar.actions button { flex:1; }
+/* Directions */
+.seg { display:flex; background:var(--soft); border-radius:10px; padding:3px; gap:3px; }
+.seg button { flex:1; border:0; background:transparent; padding:7px 0; border-radius:8px; }
+.seg button[aria-pressed=true] { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(15,23,42,.12); }
+.stop { position:relative; display:flex; gap:6px; align-items:center; margin-top:6px; }
+.stop .dot { width:10px; height:10px; border-radius:50%; flex:none; background:#9ca3af; }
+.stop:first-child .dot { background:var(--green); } .stop:last-child .dot { background:#dc2626; }
+.stop input { padding:8px 10px; font-size:13px; }
+.stop button { padding:6px 8px; border:0; background:transparent; color:var(--muted); }
+.stop .hits { position:absolute; left:16px; right:0; top:100%; z-index:5; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
+.stop .hits:empty { display:none; }
+.opts { display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; font-size:13px; color:var(--muted); }
+.opts label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.routes { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.routes li { border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; }
+.routes li[aria-selected=true] { border-color:#93c5fd; background:var(--accent-soft); }
+.routes b { font-size:15px; } .routes span { color:var(--muted); font-size:12px; margin-left:8px; }
+.steps { margin:8px 0 0; padding-left:18px; font-size:12px; color:#374151; max-height:220px; overflow:auto; }
+.note { color:var(--muted); font-size:12px; line-height:1.5; margin:6px 0 0; }
+/* The settings page: everything that is not wanted at once. */
+.sheet { position:fixed; top:16px; right:16px; bottom:16px; width:min(380px, calc(100vw - 32px)); z-index:45; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:20px; }
+.sheet[hidden] { display:none; }
+.sheet header { display:flex; align-items:center; justify-content:space-between; }
+.sheet header h1 { margin:0; font-size:18px; font-weight:700; }
+.sheet label.row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:8px 0; font-size:14px; }
+.sheet label.row select { width:auto; min-width:150px; }
 .meta { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
-.stat { border:1px solid var(--line); border-radius:7px; padding:8px; min-width:0; }
-.stat b { display:block; font-size:17px; font-variant-numeric:tabular-nums; }
+.stat { background:var(--soft); border-radius:10px; padding:8px; min-width:0; }
+.stat b { display:block; font-size:16px; font-variant-numeric:tabular-nums; }
 .stat span { color:var(--muted); font-size:10px; text-transform:uppercase; }
-.legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
+.legend { display:flex; flex-wrap:wrap; gap:8px; color:var(--muted); font-size:12px; }
 .key { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
 .sw { width:10px; height:10px; border-radius:50%; background:var(--accent); }
-.toolbar { display:flex; flex-wrap:wrap; gap:7px; }
-.toolbar button { padding:8px 10px; font-size:13px; }
-button { color:var(--ink); background:rgba(16,25,30,.9); border:1px solid var(--line); border-radius:7px; padding:10px 12px; font:inherit; cursor:pointer; }
-button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:rgba(140,132,76,.20); }
-/* Clear of the sidebar, which takes the whole left column when it is open. The tip used to
-   start at the same 14px and simply print itself over the panel's lower half. */
-#addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:8px;
-  background:rgba(12,20,24,.94); border:1px solid #82959b; color:#fff;
-  font-size:12px; line-height:1.45; box-shadow:0 14px 34px rgba(0,0,0,.4); pointer-events:none; }
-#addr b { font-size:13px; }
-#addr .sub { color:#fff; }
-#tip { position:fixed; left:368px; bottom:14px; width:min(520px, calc(100vw - 382px)); color:var(--muted); font-size:12px; }
-#progress { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(12,18,24,0.88); color:#e8eef2; padding:14px 22px; border-radius:8px; font-size:15px; letter-spacing:0.01em; z-index:20; pointer-events:none; }
+#tip { color:#374151; background:var(--soft); border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.5; }
+#addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:12px; background:rgba(17,24,39,.94); color:#fff; font-size:12px; line-height:1.45; box-shadow:var(--shadow); pointer-events:none; }
+#addr b { font-size:13px; } #addr .sub { color:#fff; }
+#progress { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; color:var(--ink); padding:14px 22px; border-radius:14px; font-size:15px; box-shadow:var(--shadow); z-index:20; pointer-events:none; }
 @media (max-width: 760px) {
-  .hud { width:calc(100vw - 28px); bottom:auto; max-height:70vh; }
+  .hud { width:calc(100vw - 32px); bottom:auto; max-height:72vh; }
   .meta { grid-template-columns:repeat(2, 1fr); }
-  #tip { left:14px; width:calc(100vw - 28px); }
 }
-/* The compact navigation stays bright and legible over both aerial and street views. */
-#region, #find { background:#fff; color:var(--ink); border-color:var(--line); }
-.toolbar button, #fold { background:#fff; color:var(--ink); border-color:var(--line); }
-.toolbar button[aria-pressed="true"] { background:#e6f3f1; border-color:#5b9e99; }
-#hits li:hover, #hits li[aria-selected=true] { background:#edf4f2; }
-#tip { position:static; width:auto; margin-top:12px; color:#314a50; background:#edf4f2; border-radius:8px; padding:8px 10px; }
 </style>
-<meta name="kerbside-renderer-sha256" content="293cf864ab704364bbc158ac88436145847c5da1c56f122d3f4d2dcfb52c1942" />
+<meta name="kerbside-renderer-sha256" content="662bf6f8232ba6e30ce260f91586ac0ae250d3bf68b19bfb33d0ee6c53033896" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -76,24 +91,73 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
 <div class="hud" id="hud" data-open="false">
   <button id="fold" aria-expanded="false" aria-controls="map-sidebar" aria-label="Open map controls" title="Map controls">☰ Map</button>
   <div class="panel" id="map-sidebar">
-    <div class="bar">
-      <h1>Kerbside Downtown Berkeley and the campus edge 3D</h1>
-    </div>
-    <div class="group" id="regiongroup" style="margin-top:4px" hidden>
-      <h2>Region</h2>
+    <div class="bar"><h1>Kerbside</h1></div>
+    <div class="group" id="regiongroup" hidden>
       <select id="region" aria-label="Region"></select>
     </div>
-    <div class="group" style="margin-top:4px">
-      <h2>Go to a corner or address</h2>
-      <input id="find" type="search" autocomplete="off" placeholder="Columbus &amp; Broadway, or 600 Montgomery" />
-      <ul id="hits"></ul>
+    <div class="group">
+      <input id="find" type="search" autocomplete="off" aria-label="Search" placeholder="Search a place, address or corner" />
+      <ul id="hits" class="hits"></ul>
     </div>
-    <div class="toolbar primary-actions">
+    <div class="group" id="route-panel">
+      <h2>Directions</h2>
+      <div class="seg" role="group" aria-label="Travel mode">
+        <button type="button" data-mode="walk" aria-pressed="true">Walk</button>
+        <button type="button" data-mode="bike" aria-pressed="false">Bike</button>
+        <button type="button" data-mode="drive" aria-pressed="false">Drive</button>
+      </div>
+      <div id="route-stops"></div>
+      <div class="toolbar" style="margin-top:8px">
+        <button type="button" id="route-add">+ Stop</button>
+        <button type="button" id="route-go" class="primary" style="flex:1">Get directions</button>
+        <button type="button" id="route-clear" hidden>Clear</button>
+      </div>
+      <div class="opts">
+        <label><input type="checkbox" id="route-hills" /> Fewer hills</label>
+        <label id="route-stairs-option"><input type="checkbox" id="route-stairs" /> Avoid stairs</label>
+      </div>
+      <p class="note" id="route-status" role="status"></p>
+      <ul class="routes" id="route-results"></ul>
+      <ol class="steps" id="route-steps" hidden></ol>
+    </div>
+    <div class="toolbar actions">
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
       <button id="reset">Reset view</button>
     </div>
-    <div class="collapsible" id="controls">
-    <div class="sub" id="regionnote"></div>
+  </div>
+</div>
+<form class="panel sheet" id="settings-page" hidden aria-label="Settings">
+  <header><h1>Settings</h1><button type="button" id="settings-close" aria-label="Close settings">✕</button></header>
+  <section id="settings-display"><h2>Display</h2></section>
+  <section class="group">
+    <h2>Layers</h2>
+    <div class="toolbar">
+      <button type="button" data-layer="streets" aria-pressed="true">Streets</button>
+      <button type="button" data-layer="mapped3d" aria-pressed="true">3D Artifact</button>
+      <button type="button" data-layer="coverage" aria-pressed="true">Coverage</button>
+      <button type="button" data-layer="observations" aria-pressed="true">Photos</button>
+      <button type="button" data-layer="sequences" aria-pressed="true">Sequences</button>
+      <button type="button" data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
+      <button type="button" data-layer="facades" aria-pressed="true">Photo facades</button>
+      <button type="button" data-layer="ground" aria-pressed="true">Ground &amp; trees</button>
+      <button type="button" data-layer="furniture" aria-pressed="false">Street furniture</button>
+      <button type="button" data-layer="official" aria-pressed="false">Official geometry</button>
+      <button type="button" data-layer="chunks" aria-pressed="false">Chunks</button>
+      <button type="button" data-layer="districts" aria-pressed="true">Districts</button>
+    </div>
+  </section>
+  <section class="group" id="controls">
+    <h2>Coverage</h2>
+    <div class="toolbar"><button type="button" data-layer="gaps" aria-pressed="false">Show gaps</button></div>
+    <p class="note" id="gapnote"></p>
+    <p class="note" id="facadenote"></p>
+    <p class="note" id="officialnote"></p>
+    <p class="note" id="furniturenote"></p>
+    <p class="note" id="detailnote"></p>
+  </section>
+  <section class="group">
+    <h2>This region</h2>
+    <div class="note" id="regionnote"></div>
     <div class="meta">
       <div class="stat"><b id="obs">0</b><span>observations</span></div>
       <div class="stat"><b id="eligible">0</b><span>eligible</span></div>
@@ -102,48 +166,29 @@ button[aria-pressed=true] { border-color:var(--accent); color:#fff; background:r
       <div class="stat"><b id="surfaces">0</b><span>surfaces</span></div>
       <div class="stat"><b id="measured">0</b><span>measured curb</span></div>
     </div>
-<div class="legend">
-<span class="key"><span class="sw" style="background:#d6e7ea"></span>OSM street map</span>
-<span class="key"><span class="sw" style="background:#9fb4bb"></span>covered 3D buildings</span>
-<span class="key"><span class="sw" style="background:#ff4d8f"></span>curb bands</span>
-<span class="key"><span class="sw" style="background:#ffffff"></span>CV/depth backlog</span>
-<span class="key"><span class="sw"></span>metadata observations</span>
-<span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
-<span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
-<span class="key"><span class="sw" style="background:var(--cyan)"></span>sequence paths</span>
-</div>
-<div class="group">
-      <h2>Layers</h2>
-      <div class="toolbar">
-        <button data-layer="streets" aria-pressed="true">Streets</button>
-        <button data-layer="mapped3d" aria-pressed="true">3D Artifact</button>
-        <button data-layer="coverage" aria-pressed="true">Coverage</button>
-        <button data-layer="observations" aria-pressed="true">Photos</button>
-        <button data-layer="sequences" aria-pressed="true">Sequences</button>
-        <button data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
-        <button data-layer="facades" aria-pressed="true">Photo facades</button>
-        <button data-layer="ground" aria-pressed="true">Ground &amp; trees</button>
-        <button data-layer="furniture" aria-pressed="false">Street furniture</button>
-        <button data-layer="official" aria-pressed="false">Official geometry</button>
-        <button data-layer="chunks" aria-pressed="false">Chunks</button>
-        <button data-layer="districts" aria-pressed="true">Districts</button>
-      </div>
+  </section>
+  <section class="group">
+    <h2>Legend</h2>
+    <div class="legend">
+      <span class="key"><span class="sw" style="background:#d6e7ea"></span>OSM street map</span>
+      <span class="key"><span class="sw" style="background:#9fb4bb"></span>covered 3D buildings</span>
+      <span class="key"><span class="sw" style="background:#ff4d8f"></span>curb bands</span>
+      <span class="key"><span class="sw" style="background:#ffffff;border:1px solid #d1d5db"></span>CV/depth backlog</span>
+      <span class="key"><span class="sw"></span>metadata observations</span>
+      <span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
+      <span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
+      <span class="key"><span class="sw" style="background:var(--cyan)"></span>sequence paths</span>
     </div>
-    <div class="group">
-      <h2>Where coverage is missing</h2>
-      <div class="toolbar">
-        <button data-layer="gaps" aria-pressed="false">Show gaps</button>
-      </div>
-      <p id="gapnote" style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.45"></p>
-      <p id="facadenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
-      <p id="officialnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
-      <p id="furniturenote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
-      <p id="detailnote" style="margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5"></p>
-    </div>
-    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom; when close, right-click a building for its address. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, and wheel or pinch to zoom. The survey layers are off by default; enable them here to inspect coverage.</div>
-    </div>
-  </div>
-</div>
+  </section>
+  <section class="group">
+    <h2>Getting around</h2>
+    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom; when close, right-click a building for its address. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, Enter to open a door or gate, and wheel or pinch to zoom.</div>
+  </section>
+  <section class="group">
+    <h2>Directions</h2>
+    <p class="note">Routes are computed by <a href="https://valhalla.github.io/valhalla/" target="_blank" rel="noopener">Valhalla</a> on the legal OpenStreetMap street network (© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>), served by <a href="https://valhalla1.openstreetmap.de" target="_blank" rel="noopener">FOSSGIS</a>; the stops you enter are sent to that server. Times are typical, without live traffic or transit. Never a path over what this map draws.</p>
+  </section>
+</form>
 <div id="addr" hidden></div>
 <!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
      eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
@@ -19127,8 +19172,10 @@ function addBillboards(records,creatives={}) {
     }
     const creative=creatives.schema==="kerbside.billboard_creatives/1" ? creatives.boards?.[item.id] : null;
     const source=/^osm:ad_panel:(node|way):(\d+)$/.exec(item.id || "");
-    const href=safeBillboardWebsite(creative?.approved ? creative.href : null) || safeBillboardWebsite(item.website)
-      || (source ? `https://www.openstreetmap.org/${source[1]}/${source[2]}` : null);
+    // A board wearing approved artwork links where the artwork says, or nowhere; a bare board
+    // links to its operator's site or its map record.
+    const href=creative?.approved ? safeBillboardWebsite(creative.href || null)
+      : safeBillboardWebsite(item.website) || (source ? `https://www.openstreetmap.org/${source[1]}/${source[2]}` : null);
     const material=new THREE.MeshStandardMaterial({color:0xf4f1e8,roughness:.8,metalness:0,side:THREE.FrontSide});
     let requested=false;
     const loadCreative=()=>{
@@ -21501,6 +21548,8 @@ document.getElementById("reset").addEventListener("click", () => {
 // A query that opens with a house number is asking for an address and gets addresses first;
 // everything else leads with corners. That one rule is the whole ranking, and it is right nearly
 // every time because nobody types a number when they mean a junction.
+//: The same search, for the directions' stop fields (set inside the block below).
+let searchPlaces = () => [];
 {
   const field = document.getElementById("find");
   const hits = document.getElementById("hits");
@@ -21627,6 +21676,7 @@ document.getElementById("reset").addEventListener("click", () => {
     paint();
   }
 
+  searchPlaces = (query) => { loadElsewhere(); return search(query); };
   field.addEventListener("focus", loadElsewhere);
   field.addEventListener("input", () => {
     loadElsewhere();
@@ -22298,7 +22348,7 @@ const compass = ATTACH ? null : document.createElement("div");
 if (compass) {
   compass.id = "compass";
   compass.setAttribute("aria-label", "Compass");
-  compass.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:25;width:92px;height:112px;"
+  compass.style.cssText = "position:fixed;right:16px;top:16px;z-index:25;width:92px;height:112px;"
     + "pointer-events:none;font:600 11px/1 system-ui,sans-serif;color:#1d2a33;text-align:center";
   compass.innerHTML = `<svg viewBox="-50 -50 100 100" width="92" height="92">
   <circle r="47" fill="rgba(255,255,255,.88)" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/>
@@ -25909,6 +25959,7 @@ function animate(now) {
   markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
   stepAvatar(now);
   updateCompass(now);
+  if (frameCount % 30 === 0) updateRouteWidth();
   checkLightWindow(frameCount);
   // Labels are re-sized and culled with the detail: only when the view has changed.
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
@@ -25922,6 +25973,251 @@ function animate(now) {
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
+}
+
+// ---- directions ------------------------------------------------------------------------------
+//
+// Routes come from Valhalla -- an established routing engine over the legal OpenStreetMap street
+// network -- never from a path over the triangles this page draws: a painted lane, an inferred
+// stoop or a house interior is not evidence that anyone may go there. The FOSSGIS public server
+// answers by default; a self-hosted one (tools/valhalla) is a matter of the page's
+// kerbside-routing meta. Walk, bike and drive; ordered stops kept in the order given; up to two
+// alternatives; "fewer hills" and "avoid stairs" as Valhalla's own costing preferences. Time and
+// climb are shown side by side, never folded into one number. The route is drawn as a ribbon on
+// the ground, depth-tested against the buildings, inside this region; beyond it the list says so.
+const ROUTING_URL = (document.querySelector('meta[name="kerbside-routing"]')?.content
+  || "https://valhalla1.openstreetmap.de").replace(/\/+$/, "");
+const ROUTE_COSTING = { walk: "pedestrian", bike: "bicycle", drive: "auto" };
+const ROUTE_MAX_STOPS = 5;
+const ROUTE_RIBBON_M = { chosen: 2.6, other: 1.4 };
+//: From high up the ribbon widens to stay readable: about this share of the view's distance.
+const ROUTE_RIBBON_PER_M = 0.006;
+let routeDrawnAt = 0;
+const ROUTE_LIFT_M = 0.3;
+const route = { mode: "walk", stops: [null, null], results: [], chosen: 0, pending: null };
+const routeGroup = new THREE.Group();
+routeGroup.name = "route";
+root.add(routeGroup);
+//: Valhalla's shapes: Google's polyline encoding at six decimal places.
+function decodePolyline6(text) {
+  const points = [];
+  let index = 0, lat = 0, lon = 0;
+  while (index < text.length) {
+    for (const which of [0, 1]) {
+      let result = 0, shift = 0, byte;
+      do { byte = text.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+      const delta = result & 1 ? ~(result >> 1) : result >> 1;
+      if (which === 0) lat += delta; else lon += delta;
+    }
+    points.push([lon / 1e6, lat / 1e6]);
+  }
+  return points;
+}
+function routeRequest(stops, mode, { fewerHills = false, avoidStairs = false } = {}) {
+  const costing = ROUTE_COSTING[mode] || "pedestrian";
+  const options = {};
+  if (costing === "pedestrian") options.pedestrian = { use_hills: fewerHills ? 0.1 : 0.5,
+    step_penalty: avoidStairs ? 100000 : 0 };
+  if (costing === "bicycle") options.bicycle = { use_hills: fewerHills ? 0.1 : 0.5, bicycle_type: "Hybrid" };
+  return { locations: stops.map((p) => ({ lat: p.lat, lon: p.lon, type: "break" })), costing,
+    costing_options: options, alternates: stops.length === 2 ? 2 : 0, units: "kilometers",
+    elevation_interval: 30, language: "en-US" };
+}
+//: Time, length, climb and the line of one trip (Valhalla's trip or one of its alternates).
+function summarizeTrip(trip) {
+  let ascent = 0, descent = 0;
+  const line = [], steps = [];
+  for (const leg of trip.legs || []) {
+    const heights = leg.elevation || [];
+    for (let i = 1; i < heights.length; i += 1) {
+      const d = heights[i] - heights[i - 1];
+      if (d > 0) ascent += d; else descent -= d;
+    }
+    line.push(...decodePolyline6(leg.shape || ""));
+    for (const m of leg.maneuvers || []) if (m.instruction) steps.push(m.instruction);
+  }
+  return { seconds: trip.summary?.time || 0, km: trip.summary?.length || 0,
+    ascent: Math.round(ascent), descent: Math.round(descent), line, steps };
+}
+async function requestRoutes(stops, mode, preferences) {
+  const response = await fetch(`${ROUTING_URL}/route`, { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(routeRequest(stops, mode, preferences)) });
+  const body = await response.json().catch(() => null);
+  if (!response.ok || !body?.trip) throw new Error(body?.error || `routing answered ${response.status}`);
+  return [body.trip, ...(body.alternates || []).map((a) => a.trip)].filter(Boolean).map(summarizeTrip);
+}
+//: A route as a ribbon on the ground: resampled every few metres so it follows the hills, lifted
+//: a little, inside this region only (beyond it this page has no ground to lay it on).
+function routeRibbon(line, width, colour) {
+  const b = DATA.bbox, inside = ([lon, lat]) => lon >= b.west && lon <= b.east && lat >= b.south && lat <= b.north;
+  const runs = [];
+  let run = [];
+  for (let i = 0; i < line.length; i += 1) {
+    if (!inside(line[i])) { if (run.length > 1) runs.push(run); run = []; continue; }
+    const [x, y] = xy(...line[i]);
+    const here = [x, -y];
+    if (run.length) {
+      const [px, pz] = run[run.length - 1], gap = Math.hypot(here[0] - px, here[1] - pz);
+      for (let k = 1; k < Math.floor(gap / 3); k += 1) run.push([px + (here[0] - px) * k * 3 / gap, pz + (here[1] - pz) * k * 3 / gap]);
+    }
+    run.push(here);
+  }
+  if (run.length > 1) runs.push(run);
+  const group = new THREE.Group();
+  const material = new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, polygonOffsetFactor: -4,
+    polygonOffsetUnits: -8, side: THREE.DoubleSide });
+  for (const points of runs) {
+    const positions = [], index = [];
+    points.forEach(([x, z], i) => {
+      const [ax, az] = points[Math.max(0, i - 1)], [bx, bz] = points[Math.min(points.length - 1, i + 1)];
+      const len = Math.hypot(bx - ax, bz - az) || 1, nx = -(bz - az) / len * width / 2, nz = (bx - ax) / len * width / 2;
+      const y = walkerGroundAt(x, z) + ROUTE_LIFT_M;
+      positions.push(x + nx, y, z + nz, x - nx, y, z - nz);
+      if (i) index.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
+    });
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setIndex(index);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = 3;
+    group.add(mesh);
+  }
+  return { group, inside: runs.reduce((n, r) => n + r.length, 0) };
+}
+//: How wide the ribbons are drawn at the present view: their ground width, or wider from above.
+function routeScale() {
+  return Math.min(12, Math.max(1, (state.firstPerson ? 0 : state.dist) * ROUTE_RIBBON_PER_M / ROUTE_RIBBON_M.chosen));
+}
+//: Redrawn only when the view's distance has changed a good deal, never every frame.
+function updateRouteWidth() {
+  if (!route.results.length) return;
+  const scale = routeScale();
+  if (Math.abs(Math.log(scale / (routeDrawnAt || 1))) > 0.4) drawRoutes();
+}
+function drawRoutes() {
+  routeDrawnAt = routeScale();
+  for (const child of [...routeGroup.children]) {
+    routeGroup.remove(child);
+    child.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  }
+  route.results.forEach((result, i) => {
+    if (i === route.chosen) return;
+    routeGroup.add(routeRibbon(result.line, ROUTE_RIBBON_M.other * routeDrawnAt, 0x94a3b8).group);
+  });
+  const chosen = route.results[route.chosen];
+  if (!chosen) return 0;
+  const drawn = routeRibbon(chosen.line, ROUTE_RIBBON_M.chosen * routeDrawnAt, 0x2563eb);
+  routeGroup.add(drawn.group);
+  return drawn.inside;
+}
+if (!ATTACH) {
+  const panel = document.getElementById("route-panel");
+  const stopsBox = document.getElementById("route-stops");
+  const status = document.getElementById("route-status");
+  const results = document.getElementById("route-results");
+  const stepsList = document.getElementById("route-steps");
+  const clear = document.getElementById("route-clear");
+  const hills = document.getElementById("route-hills");
+  const stairs = document.getElementById("route-stairs");
+  const minutes = (s) => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`;
+  const here = () => {
+    const p = state.firstPerson ? avatar.position : state.target;
+    return { label: "Where you are", lon: p.x / metersPerLon + midLon, lat: -p.z / metersPerLat + midLat };
+  };
+  function renderStops() {
+    stopsBox.replaceChildren();
+    route.stops.forEach((stop, i) => {
+      const row = document.createElement("div");
+      row.className = "stop";
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.autocomplete = "off";
+      input.placeholder = i === 0 ? "From (blank: where you are)" : i === route.stops.length - 1 ? "To" : "Stop";
+      input.value = stop?.label || "";
+      input.setAttribute("aria-label", input.placeholder);
+      const list = document.createElement("ul");
+      list.className = "hits";
+      input.addEventListener("input", () => {
+        route.stops[i] = null;
+        list.replaceChildren(...searchPlaces(input.value).slice(0, 6).map((place) => {
+          const item = document.createElement("li");
+          item.textContent = place.label;
+          item.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            route.stops[i] = place;
+            input.value = place.label;
+            list.replaceChildren();
+          });
+          return item;
+        }));
+      });
+      input.addEventListener("blur", () => setTimeout(() => list.replaceChildren(), 150));
+      row.append(dot, input);
+      if (i > 0 && i < route.stops.length - 1) {
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "✕";
+        remove.setAttribute("aria-label", "Remove stop");
+        remove.addEventListener("click", () => { route.stops.splice(i, 1); renderStops(); });
+        row.append(remove);
+      }
+      row.append(list);
+      stopsBox.append(row);
+    });
+    document.getElementById("route-add").disabled = route.stops.length >= ROUTE_MAX_STOPS;
+  }
+  function renderResults(drawnInside) {
+    results.replaceChildren(...route.results.map((r, i) => {
+      const item = document.createElement("li");
+      item.setAttribute("aria-selected", String(i === route.chosen));
+      item.innerHTML = `<b>${minutes(r.seconds)}</b><span>${r.km.toFixed(1)} km · ↑${r.ascent} m ↓${r.descent} m</span>`;
+      item.addEventListener("click", () => { route.chosen = i; renderResults(drawRoutes()); });
+      return item;
+    }));
+    const chosen = route.results[route.chosen];
+    stepsList.replaceChildren(...(chosen?.steps || []).map((text) => Object.assign(document.createElement("li"), { textContent: text })));
+    stepsList.hidden = !chosen;
+    clear.hidden = !route.results.length;
+    if (chosen) status.textContent = (route.mode === "drive" ? "Typical time, without live traffic. " : "")
+      + (drawnInside < chosen.line.length * 0.5 ? "Part of this route is outside this region and is listed, not drawn." : "");
+  }
+  panel.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => {
+    route.mode = button.dataset.mode;
+    panel.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+    document.getElementById("route-stairs-option").hidden = route.mode !== "walk";
+  }));
+  document.getElementById("route-add").addEventListener("click", () => {
+    if (route.stops.length < ROUTE_MAX_STOPS) { route.stops.splice(route.stops.length - 1, 0, null); renderStops(); }
+  });
+  clear.addEventListener("click", () => {
+    route.results = []; route.chosen = 0; drawRoutes(); renderResults(0); status.textContent = "";
+  });
+  document.getElementById("route-go").addEventListener("click", async () => {
+    const stops = route.stops.map((stop, i) => stop || (i === 0 ? here() : null));
+    if (stops.some((stop) => !stop)) { status.textContent = "Choose each stop from the suggestions."; return; }
+    status.textContent = "Finding routes…";
+    const ticket = route.pending = Symbol("route");
+    try {
+      const found = await requestRoutes(stops, route.mode, { fewerHills: hills.checked, avoidStairs: stairs.checked });
+      if (ticket !== route.pending) return;
+      route.results = found;
+      route.chosen = 0;
+      status.textContent = "";
+      renderResults(drawRoutes());
+    } catch (error) {
+      if (ticket !== route.pending) return;
+      route.results = [];
+      drawRoutes();
+      renderResults(0);
+      status.textContent = /no path|no suitable/i.test(error.message)
+        ? "No route was found between those stops for this mode."
+        : "The routing service could not be reached; try again in a moment.";
+    }
+  });
+  renderStops();
+  window.kerbsideRoute = { request: requestRoutes, routeRequest, decodePolyline6, state: route, group: routeGroup };
 }
 
 // The settings panel: the gear at the top right.
@@ -25940,28 +26236,37 @@ function applySettings(changes = {}) {
   settingsForm.quality.value = SETTINGS.quality;
   return { ...SETTINGS, ...QUALITY() };
 }
+// The settings page holds everything that is not wanted at once: how the map is drawn, its
+// layers, its coverage notes and numbers, the legend and how to get around. Its button sits under
+// the compass at the top right.
 const settingsButton = document.createElement("button");
 settingsButton.id = "settings-toggle";
 settingsButton.type = "button";
-settingsButton.title = "Settings: frame rate and quality";
+settingsButton.title = "Settings";
 settingsButton.setAttribute("aria-label", "Settings");
+settingsButton.setAttribute("aria-controls", "settings-page");
+settingsButton.setAttribute("aria-expanded", "false");
 settingsButton.textContent = "⚙";
-settingsButton.style.cssText = "position:fixed;top:10px;right:10px;z-index:40;width:36px;height:36px;border-radius:8px;"
-  + "border:1px solid rgba(0,0,0,.18);background:rgba(255,255,255,.92);font:20px/1 system-ui;cursor:pointer";
-const settingsForm = document.createElement("form");
-settingsForm.id = "settings-panel";
-settingsForm.hidden = true;
-settingsForm.style.cssText = "position:fixed;top:52px;right:10px;z-index:40;background:rgba(255,255,255,.97);"
-  + "border:1px solid rgba(0,0,0,.15);border-radius:10px;padding:12px 14px;font:13px/1.5 system-ui,sans-serif;"
-  + "color:#222;box-shadow:0 6px 20px rgba(0,0,0,.18);min-width:220px";
-settingsForm.innerHTML = `<div style="font-weight:600;margin-bottom:6px">Settings</div>
-  <label style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">Frame rate
+settingsButton.style.cssText = "position:fixed;top:130px;right:16px;z-index:40;width:44px;height:44px;padding:0;"
+  + "border-radius:12px;font:20px/1 system-ui;box-shadow:0 12px 32px rgba(15,23,42,.14)";
+const settingsForm = document.getElementById("settings-page");
+// A region drawn as a guest is handed a stand-in page: its parts are made where they are missing.
+const settingsPart = (id, tag) => settingsForm.querySelector(`#${id}`)
+  || settingsForm.appendChild(Object.assign(document.createElement(tag), { id }));
+settingsPart("settings-display", "section").insertAdjacentHTML("beforeend", `
+  <label class="row">Frame rate
     <select name="fps">${FPS_CHOICES.map((f) => `<option value="${f}">${f ? `${f} fps` : "Unlimited"}</option>`).join("")}</select></label>
-  <label style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">Quality
+  <label class="row">Quality
     <select name="quality">${Object.entries(QUALITY_PRESETS).map(([k, q]) => `<option value="${k}">${q.label}</option>`).join("")}</select></label>
-  <label style="display:flex;justify-content:space-between;gap:12px;margin:6px 0">Build
+  <label class="row">Build
     <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}">${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region"}</option>`).join("")}</select></label>
-  <div style="color:#666;font-size:12px;max-width:240px">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</div>`;
+  <p class="note">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</p>`);
+function showSettings(open) {
+  settingsForm.hidden = !open;
+  settingsButton.setAttribute("aria-expanded", String(open));
+}
+settingsPart("settings-close", "button").addEventListener("click", () => showSettings(false));
+addEventListener("keydown", (e) => { if (e.key === "Escape" && !settingsForm.hidden) showSettings(false); });
 settingsForm.addEventListener("change", (e) => {
   if (e.target === settingsForm.world) {
     // How much is built is decided before anything is: the page builds again.
@@ -25974,8 +26279,8 @@ settingsForm.addEventListener("change", (e) => {
   applySettings({ fps: Number(settingsForm.fps.value), quality: settingsForm.quality.value });
 });
 settingsForm.addEventListener("submit", (e) => e.preventDefault());
-settingsButton.addEventListener("click", () => { settingsForm.hidden = !settingsForm.hidden; });
-document.body.append(settingsButton, settingsForm);
+settingsButton.addEventListener("click", () => showSettings(settingsForm.hidden));
+document.body.append(settingsButton);
 settingsForm.fps.value = String(SETTINGS.fps);
 settingsForm.quality.value = SETTINGS.quality;
 settingsForm.world.value = String(LIGHT_LEVEL);
@@ -26376,7 +26681,8 @@ function guestStandIns(page, metas) {
   const body = document.createElement("div");
   const element = (id) => {
     if (!elements.has(id)) {
-      const tag = id === "scene" ? "canvas" : id === "find" ? "input" : id === "region" ? "select" : id === "hits" ? "ul" : "div";
+      const tag = id === "scene" ? "canvas" : id === "find" ? "input" : id === "region" ? "select" : id === "hits" ? "ul"
+        : id === "settings-page" ? "form" : "div";
       elements.set(id, document.createElement(tag));
     }
     return elements.get(id);
