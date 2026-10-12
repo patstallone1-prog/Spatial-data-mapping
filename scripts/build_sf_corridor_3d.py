@@ -21915,6 +21915,130 @@ function addStreetFurniturePosts(records) {
   return anchors.length;
 }
 
+// Billboard faces are not bus-shelter posters. Keep their physical dimensions,
+// support height and individual creative metadata instead of instancing one tiny sign.
+const billboardFaces = [];
+const billboardTextureCache = new Map();
+const billboardFrameMaterial = new THREE.MeshStandardMaterial({color:0x454b4a,roughness:.7,metalness:.5});
+function safeBillboardWebsite(value) {
+  if(typeof value!=="string" || /[\s\u0000-\u001f\u007f]/.test(value))return null;
+  try { const url=new URL(value);return ["https:","http:"].includes(url.protocol)
+    && !url.username && !url.password ? url.href : null; } catch {return null;}
+}
+function billboardSpec(item) {
+  const raw=item.display_geometry || {},large=item.ad_kind==="billboard";
+  const positive=(value,fallback)=>Number.isFinite(value) && value>0 && value<=200 ? value : fallback;
+  const width=positive(raw.width_m,large ? 7.62 : 1.2),height=positive(raw.height_m,large ? 3.66 : 1.8);
+  return {width,height,bottom:Number.isFinite(raw.bottom_m) && raw.bottom_m>=0 && raw.bottom_m<=200 ? raw.bottom_m : 2.84,
+    sides:raw.sides===2 ? 2 : 1,support:raw.support || "poles",location:raw.location || "ground",
+    azimuth:Number.isFinite(raw.azimuth_deg) ? raw.azimuth_deg : null,
+    dimensionsBasis:raw.dimensions_basis || "inferred_standard_poster_not_measured",
+    heightBasis:raw.height_basis || "inferred_mount_height"};
+}
+function billboardAnchor(item,spec) {
+  if(!Array.isArray(item.p) || !item.p.slice(0,2).every(Number.isFinite))return null;
+  const [px,py]=xy(...item.p);let x=px,z=-py,wallYaw=null;
+  // A mapped advertising structure stays at its mapped site, not snapped into
+  // the sidewalk by the street-sign anchor correction.
+  if(spec.support.includes("wall")) {
+    let best=9;
+    for(const entry of footprintById.values()) {
+      if(x<entry.minX-3 || x>entry.maxX+3 || z<entry.minZ-3 || z>entry.maxZ+3)continue;
+      for(let i=1;i<entry.local.length;i++) {
+        const a=entry.local[i-1],b=entry.local[i],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);if(len<.1)continue;
+        const t=Math.max(0,Math.min(1,((px-a[0])*dx+(-py-a[1])*dz)/(len*len)));
+        const qx=a[0]+t*dx,qz=a[1]+t*dz,d=(px-qx)**2+(-py-qz)**2;if(d>=best)continue;
+        let nx=-dz/len,nz=dx/len;if(insideFootprint(entry,qx+nx*.2,qz+nz*.2)){nx=-nx;nz=-nz;}
+        best=d;x=qx+nx*.13;z=qz+nz*.13;wallYaw=Math.atan2(nx,nz);
+      }
+    }
+  }
+  let base=groundLiftAt(x,z)+(pavementTopAt(x,z) ?? ROAD_TOP_M);
+  if((spec.location==="roof" || spec.support.includes("roof")) && spec.heightBasis==="inferred_mount_height") {
+    const building=buildingAt(x,z);if(building)base+=Number(building.height_m)||0;
+  }
+  return {x,z,y:base,wallYaw};
+}
+function billboardImagePlacement(iw,ih,width,height,fit="contain") {
+  const scale=(fit==="cover" ? Math.max : Math.min)(width/iw,height/ih);
+  return [(width-iw*scale)/2,(height-ih*scale)/2,iw*scale,ih*scale];
+}
+function billboardTexture(creative,width,height) {
+  if(!creative?.approved || !creative.license || !creative.sha256
+    || !/^billboards\/[a-zA-Z0-9_.-]+\.(png|jpe?g|webp|svg)$/i.test(creative.image || ""))return null;
+  const key=`${creative.sha256}:${width/height}:${creative.fit || "contain"}`;
+  if(billboardTextureCache.has(key))return billboardTextureCache.get(key);
+  const promise=new Promise(resolve=>{
+    new THREE.ImageLoader().load(`${sharedAsset(creative.image)}?v=${encodeURIComponent(creative.sha256)}`,image=>{
+      const iw=image.naturalWidth || image.width,ih=image.naturalHeight || image.height;
+      if(!iw || !ih || iw*ih>16777216){resolve(null);return;}
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.max(64,Math.min(2048,Math.round(2048*width/height)));
+      canvas.height=Math.max(64,Math.min(2048,Math.round(canvas.width*height/width)));
+      const context=canvas.getContext("2d");context.fillStyle="#f4f1e8";context.fillRect(0,0,canvas.width,canvas.height);
+      context.drawImage(image,...billboardImagePlacement(iw,ih,canvas.width,canvas.height,creative.fit));
+      const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
+      resolve(texture);
+    },undefined,()=>resolve(null));
+  });
+  billboardTextureCache.set(key,promise);return promise;
+}
+function addBillboards(records,creatives={}) {
+  let rendered=0;
+  for(const item of records) {
+    const spec=billboardSpec(item),anchor=billboardAnchor(item,spec);if(!anchor)continue;
+    const group=new THREE.Group();group.position.set(anchor.x,anchor.y,anchor.z);
+    group.rotation.y=spec.azimuth===null ? anchor.wallYaw ?? furnitureBearing({...item,bearing:null},0,anchor)
+      : Math.PI-spec.azimuth*Math.PI/180;
+    const frame=new THREE.Mesh(new THREE.BoxGeometry(spec.width+.16,spec.height+.16,.16),billboardFrameMaterial);
+    frame.position.y=spec.bottom+spec.height/2;group.add(frame);
+    if(!/wall|roof/.test(spec.support)) {
+      const count=spec.support==="pole" ? 1 : 2;
+      for(let i=0;i<count;i++) {
+        const post=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,Math.max(.01,spec.bottom),8),billboardFrameMaterial);
+        post.position.set(count===1 ? 0 : (i ? 1 : -1)*spec.width*.27,spec.bottom/2,0);group.add(post);
+      }
+    }
+    const creative=creatives.schema==="kerbside.billboard_creatives/1" ? creatives.boards?.[item.id] : null;
+    const source=/^osm:ad_panel:(node|way):(\d+)$/.exec(item.id || "");
+    const href=safeBillboardWebsite(creative?.approved ? creative.href : null) || safeBillboardWebsite(item.website)
+      || (source ? `https://www.openstreetmap.org/${source[1]}/${source[2]}` : null);
+    const material=new THREE.MeshStandardMaterial({color:0xf4f1e8,roughness:.8,metalness:0,side:THREE.FrontSide});
+    let requested=false;
+    const loadCreative=()=>{
+      if(requested)return;requested=true;
+      const map=billboardTexture(creative,spec.width,spec.height);
+      if(map)map.then(texture=>{
+        if(!texture)return;
+        if(!billboardFaces.some(face=>face.parent===group)){texture.dispose();return;}
+        material.map=texture;material.color.set(0xffffff);material.needsUpdate=true;
+      });
+    };
+    for(let side=0;side<spec.sides;side++) {
+      const face=new THREE.Mesh(new THREE.PlaneGeometry(spec.width,spec.height),material);
+      face.position.set(0,spec.bottom+spec.height/2,side ? -.083 : .083);face.rotation.y=side ? Math.PI : 0;
+      face.userData={billboard:item,href,creativeLabel:creative?.label || "Mapped billboard; artwork not supplied",
+        dimensionsBasis:spec.dimensionsBasis};face.onBeforeRender=loadCreative;
+      group.add(face);billboardFaces.push(face);
+    }
+    group.userData={surface:"furniture:billboard",source:item.source,provenance:item.provenance,
+      dimensionsBasis:spec.dimensionsBasis};groups.furniture.add(group);rendered++;
+  }
+  return rendered;
+}
+function activateBillboard(raycaster) {
+  const visible=face=>{for(let p=face;p;p=p.parent){if(!p.visible)return false;if(p.isScene)return true;}return false;};
+  const faces=billboardFaces.concat(activeGuest?.ready ? activeGuest.api.billboardFaces || [] : []);
+  const hit=raycaster.intersectObjects(faces.filter(visible),false)[0];if(!hit)return false;
+  // Clicking a wall does not activate a board behind it. Picking is performed
+  // only on a click, not every animation frame or pointer movement.
+  const blockers=raycaster.intersectObjects([groups.mapped3d,groups.ground,groups.furniture,...terrainTiles,
+    ...(activeGuest?.ready && activeGuest.root ? [activeGuest.root] : [])],true);
+  if(blockers.some(other=>visible(other.object) && other.distance<hit.distance-.03))return false;
+  const href=safeBillboardWebsite(hit.object.userData.href);if(!href)return false;
+  window.open(href,"_blank","noopener,noreferrer");return true;
+}
+
 //: A public bench: the seat, its back, and the two legs under it. Measured off the ones on
 //: Market Street and within a few centimetres of every municipal bench in the four cities.
 const BENCH_LENGTH_M = 1.8;
@@ -23961,7 +24085,7 @@ function dedupeByDistance(records, metres) {
   return kept.map((row) => row.item);
 }
 
-function renderStreetFurniture(furniture, transit = null) {
+function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   // The streets have been recentred on the city's kerbs since the buildings were built; the
   // junctions the signs and signals stand at are read from where the streets are now.
   junctionVertexGrid = null;
@@ -24000,12 +24124,13 @@ function renderStreetFurniture(furniture, transit = null) {
   // the same corner arrived as two shelters standing inside each other.
   const shelters = transitStops ? [] : dedupeByDistance(inferred.shelters || [], SHELTER_CLUSTER_M);
   const ads = inferred.ad_panels || [];
+  const billboards=ads.filter(r=>r.ad_kind==="billboard"),smallAds=ads.filter(r=>r.ad_kind!=="billboard");
   // Every plate goes through one placement, so none is drawn inside another: the city's, the
   // approach plates, the corner blades, and OpenStreetMap's other signs where the city has none.
   const generic = officialSigns.length ? [] : signs.filter((s) => s.p);
   const corners = cornerStreetNameSigns();
   const plates = addOfficialSignPlates(officialSigns.concat(osmApproach, generic, corners), signalHeads);
-  const posts = stops.concat(ads);
+  const posts = stops.concat(smallAds);
   const placed = {
     posts: addStreetFurniturePosts(posts),
     official_signs: plates.signs,
@@ -24017,7 +24142,8 @@ function renderStreetFurniture(furniture, transit = null) {
     generic_signs: generic.length,
     corner_name_posts: signStats.cornerPosts,
     bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
-    ad_panels: addInstancedFurniturePanels(ads, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55, "skip"),
+    ad_panels: addInstancedFurniturePanels(smallAds, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55, "skip"),
+    billboards: addBillboards(billboards,creatives),
     shelters: addMuniShelters(shelters),
     transit: transitStops ? addTransitStops(transitStops) : null,
     benches: addBenches(inferred.benches || []),
@@ -24036,7 +24162,7 @@ function renderStreetFurniture(furniture, transit = null) {
     note.innerHTML = `<b>Street furniture</b> — ${Number(counts.street_signs || 0).toLocaleString()} inferred OSM sign anchors, `
       + `${Number(counts.bus_stops || 0).toLocaleString()} bus stop anchors, `
       + `${Number(counts.shelters || 0).toLocaleString()} shelter tags, `
-      + `${Number(counts.ad_panels || 0).toLocaleString()} blank ad panels. `
+      + `${Number(placed.billboards || 0).toLocaleString()} billboards; ${Number(placed.ad_panels || 0).toLocaleString()} smaller ad panels. `
       + `Official geometry: ${Number(officialCounts.street_signs || 0).toLocaleString()} signs, `
       + `${Number(officialCounts.traffic_signals || 0).toLocaleString()} signals, `
       + `${Number(officialCounts.curb_zones || 0).toLocaleString()} curb policy bands, `
@@ -24057,7 +24183,9 @@ registerLazyLayer("furniture", async () => {
   }
   const transit = windowLists(await fetch(asset("transit-stops.json"), { cache: "no-cache" })
     .then((r) => (r.ok ? r.json() : null)).catch(() => null));
-  renderStreetFurniture(furniture, transit);
+  const creatives=await fetch(sharedAsset("billboard-creatives.json"),{cache:"no-cache"})
+    .then(r=>r.ok ? r.json() : {}).catch(()=>({}));
+  renderStreetFurniture(furniture, transit, creatives);
 });
 
 registerLazyLayer("coverage", () => {
@@ -24865,6 +24993,7 @@ canvas.addEventListener("pointerup", (e) => {
   // A region marker first: it opens that region's page.
   pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
+  if(e.button===0 && activateBillboard(ray))return;
   // A marker is a place across the bay, not a link to another page: clicking one flies you
   // to it in the world you are already in.
   const marker = ray.intersectObjects(regionMarkers.children, false).find((h) => h.object.userData.href);
@@ -29084,6 +29213,8 @@ function releaseHostWorld() {
   }
   for (const fill of PERIMETER_FILL) fill.visible = true;
   terrainTiles.length = 0;
+  billboardFaces.length = 0;
+  billboardTextureCache.clear();
   detailTiles = [];
   detailCells = null;
   labelSprites = [];
@@ -29285,6 +29416,7 @@ function guestTick({ eye, dist, firstPerson, at, dt }) {
   };
 }
 window.kerbsideGuestApi = {
+  billboardFaces,
   root, bbox: DATA.bbox, midLon, midLat, metersPerLon,
   // The ground this world draws, in its own metres: its terrain grid and the apron round it.
   groundBox: TERRAIN_FRAME ? (() => {
@@ -29303,6 +29435,8 @@ window.kerbsideGuestApi = {
   // Let go: what this world holds is emptied, since the code that built it stays loaded.
   release() {
     terrainTiles.length = 0;
+    billboardFaces.length = 0;
+    billboardTextureCache.clear();
     detailTiles = [];
     detailCells = null;
     labelSprites = [];

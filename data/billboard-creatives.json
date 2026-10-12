@@ -1,0 +1,14 @@
+{
+  "schema": "kerbside.billboard_creatives/1",
+  "boards": {
+    "osm:ad_panel:node:6970578437": {
+      "image": "billboards/kerbside-demo.svg",
+      "href": "https://www.openstreetmap.org/node/6970578437",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Kerbside demo overlay — not the observed advertisement"
+    }
+  }
+}

@@ -21,6 +21,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from smc.net import use_certifi  # noqa: E402
+from smc.billboards import ADVERTISEMENT_TAGS, enrich_advertisement  # noqa: E402
 
 use_certifi()
 
@@ -780,7 +781,7 @@ def base_record(element: dict[str, Any], kind: str, lon: float, lat: float, basi
             "name", "network", "operator", "public_transport", "ref", "route_ref",
             "shelter", "shelter_type", "traffic_sign", "stop", "height",
             "tower:type", "communication:mobile_phone",
-        }},
+        } or (kind == "ad_panel" and k in ADVERTISEMENT_TAGS)},
     }
 
 
@@ -880,6 +881,7 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
             record = base_record(element, "ad_panel", lon, lat, basis)
             record["ad_kind"] = advertising_kind(tags)
             record["creative"] = "blank_white_placeholder"
+            record = enrich_advertisement(record, tags)
             if record["id"] not in seen:
                 out["ad_panels"].append(record)
                 seen.add(record["id"])

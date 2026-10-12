@@ -2,16 +2,16 @@
   "schema": 1,
   "authoritative_branch": "main",
   "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
-  "renderer_sha256": "7a0233ee3ab6dc36f371c5f73ea6ad92696978b21a79eabd53f1fdfa405efb9d",
+  "renderer_sha256": "5c8a68382daad8ce45fa63a3012313d5aaec83d34d34c9d60aa10e29586883fd",
   "consumers": {
-    "app-model.html": "256ec785acbe11f501f4840389331b1153534ecf23fb2f57912734a484487f0c",
-    "app-regions/berkeley-downtown/app-model.html": "bcf9ab8b229c9a9fa566d1a930a378dfd42e2366998f1edd312c670d8c8b4111",
-    "app-regions/oakland-downtown/app-model.html": "ed79fd6a0b39cbb9566de0de1981c3b937cbd1b21de0d9451469cda292f6ca91",
-    "app-regions/palo-alto-downtown/app-model.html": "24fea8562a77f23d756d621fe82992f0576ae98c894c9d76e514194a975f587a",
-    "app-regions/san-jose-downtown/app-model.html": "f97269915980824ee265f49a80fde78b377dd756f4cb4a028ece468566523a58",
-    "app-regions/sf-haight-castro/app-model.html": "7ae0909aee85847115cf6b5acdbdc8b825bc97a0bde238307119922587325cbf",
-    "app-regions/sf-mission/app-model.html": "5e82f54f0d7ad506585d9950acce879efcc593dd2f064ba26b983cff84836cda",
-    "app-regions/sf-sunset/app-model.html": "3a559a81f0ce4d4801dce698f9354857991a328159f9d3fe2c271b027e579d81"
+    "app-model.html": "2d2ea01c5a763cb0f3cb6d9c9697d9275f1df6f77161f0224a49651af82190c9",
+    "app-regions/berkeley-downtown/app-model.html": "80d08747dbab497962b7c59100f6def18b6b7368c23466cbcb129ca25ef40fdc",
+    "app-regions/oakland-downtown/app-model.html": "cedc77138b36901ee9db5457cf8fd8e6723b18f0e8016b0664e22b938d29f50a",
+    "app-regions/palo-alto-downtown/app-model.html": "19ff27082aa167b08d66cc29d98292d8b5499ec1e2202bef551993419faf43d1",
+    "app-regions/san-jose-downtown/app-model.html": "7b2dedd775f795494048cf83e1a35f005932bd99b3b875b61ba30841601597e2",
+    "app-regions/sf-haight-castro/app-model.html": "e43cbffab6292621a369bdf9baa2411a621e5a1afb74a5236807bcc32273ac77",
+    "app-regions/sf-mission/app-model.html": "206b079e7f885b4f497da0eb755523dd4b8838a069e6d77ae83fd2f2d317e3b4",
+    "app-regions/sf-sunset/app-model.html": "f19425cb3313141058ca388f2d369479904d64cf65bf87acd8f04cf202fba4b3"
   },
   "runtime_assets_sha256": {
     "recoverable-geometry.mjs": "d591eb1913b11a96f0ab3c3b9d54803978c8c204a1a7725906240d467a5e138b",
