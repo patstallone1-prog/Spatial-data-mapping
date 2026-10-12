@@ -21,7 +21,7 @@ def test_the_walker_walks_toward_where_you_are_and_jumps_when_far() -> None:
         class V { constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;} set(x,y,z){this.x=x;this.y=y;this.z=z;return this;}
                   copy(o){return this.set(o.x,o.y,o.z);} }
         const THREE = { Vector3: V };
-        const AVATAR_STAND_Y = 0.9, GPS_JUMP_M = 60, GPS_WALK_SPEED_MS = 4;
+        const AVATAR_STAND_Y = 0.9, GPS_JUMP_M = 60, GPS_WALK_SPEED_MS = 4, GPS_LEASH = { on: true };
         const avatar = { position: new V(0, 0.9, 0), rotation: { y: 0 }, userData: {} };
         const state = { target: new V() };
         const held = new Set();

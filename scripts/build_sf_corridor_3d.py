@@ -2899,8 +2899,10 @@ input::placeholder { color:#9ca3af; }
 .stop button { padding:6px 8px; border:0; background:transparent; color:var(--muted); }
 .stop .hits { position:absolute; left:16px; right:0; top:100%; z-index:5; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
 .stop .hits:empty { display:none; }
-.opts { display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; font-size:13px; color:var(--muted); }
-.opts label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.routes .tags { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0 2px; }
+.routes .tag { font-style:normal; font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; background:#eef2ff; color:#3730a3; }
+.routes .tag-fastest { background:#ecfdf5; color:#047857; }
+.routes small { color:var(--muted); font-weight:500; margin-left:4px; }
 .routes { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
 .routes li { border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; }
 .routes li[aria-selected=true] { border-color:#93c5fd; background:var(--accent-soft); }
@@ -2960,16 +2962,13 @@ input::placeholder { color:#9ca3af; }
         <button type="button" data-mode="walk" aria-pressed="true">Walk</button>
         <button type="button" data-mode="bike" aria-pressed="false">Bike</button>
         <button type="button" data-mode="drive" aria-pressed="false">Drive</button>
+        <button type="button" data-mode="transit" aria-pressed="false">Transit</button>
       </div>
       <div id="route-stops"></div>
       <div class="toolbar" style="margin-top:8px">
         <button type="button" id="route-add">+ Stop</button>
         <button type="button" id="route-go" class="primary" style="flex:1">Get directions</button>
         <button type="button" id="route-clear" hidden>Clear</button>
-      </div>
-      <div class="opts">
-        <label><input type="checkbox" id="route-hills" /> Fewer hills</label>
-        <label id="route-stairs-option"><input type="checkbox" id="route-stairs" /> Avoid stairs</label>
       </div>
       <p class="note" id="route-status" role="status"></p>
       <ul class="routes" id="route-results"></ul>
@@ -3061,6 +3060,7 @@ input::placeholder { color:#9ca3af; }
       <dt><kbd>S</kbd></dt><dd>What is under the pointer: a building's address, or a street's name and its cross streets. With the map panel closed.</dd>
       <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Drop that pin on the ground under the pointer. Once it is down, the same key takes you back to it.</dd>
       <dt><kbd>Shift</kbd> + <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Move that pin to the pointer.</dd>
+      <dt><kbd>R</kbd></dt><dd>Back to where you are: the walker to your location, following you again. Moving the walker yourself lets it go until then.</dd>
       <dt><kbd>Esc</kbd></dt><dd>Close settings, or the address card.</dd>
     </dl>
     <p class="note">Keys do nothing to the map while you are typing in the search or directions boxes.</p>
@@ -3077,7 +3077,8 @@ input::placeholder { color:#9ca3af; }
   </section>
   <section class="group">
     <h2>Directions</h2>
-    <p class="note">Routes are computed by <a href="https://valhalla.github.io/valhalla/" target="_blank" rel="noopener">Valhalla</a> on the legal OpenStreetMap street network (© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>), served by <a href="https://valhalla1.openstreetmap.de" target="_blank" rel="noopener">FOSSGIS</a>; the stops you enter are sent to that server. Times are typical, without live traffic or transit. Never a path over what this map draws.</p>
+    <p class="note">Routes are computed by <a href="https://valhalla.github.io/valhalla/" target="_blank" rel="noopener">Valhalla</a> on the legal OpenStreetMap street network (© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>), served by <a href="https://valhalla1.openstreetmap.de" target="_blank" rel="noopener">FOSSGIS</a>; transit by <a href="https://transitous.org" target="_blank" rel="noopener">Transitous</a> from the agencies' published timetables. The stops you enter are sent to those servers. Times are typical or scheduled, without live traffic. Never a path over what this map draws.</p>
+    <p class="note">Each route is tagged where it is clearly better than the fastest at something: <b>Fewest hills</b>, <b>Avoids stairs</b>, <b>Bike lane friendly</b>, <b>Fewest turns</b>, <b>Least walking</b>, <b>Fewest transfers</b>. A small difference earns no tag. A tag also moves a route up the list by how much it saves -- 300 ft less climbing counts about 6% of a bike ride's time.</p>
   </section>
 </form>
 <div id="addr" hidden></div>
@@ -17805,29 +17806,195 @@ function tunnelFloorAt(x, z) {
 //: What the walker stands on at (x, z): the bore's floor inside a tunnel, the hill over a
 //: mouth on top of it, and the flat ground everywhere else -- as a height above the ground.
 function walkerGroundAt(x, z) {
+  return walkerGroundInfo(x, z).y;
+}
+//: The same, and what it is: "stairs" (a stoop, a front stair, a station's or a public flight of
+//: steps), "surface" (a floor, a landing), "tunnel" or "terrain" -- the walker climbs stairs at
+//: a stair's pace and may not walk up a cliff of plain ground (walkPace).
+function walkerGroundInfo(x, z) {
   // (Guarded: these ground and wall functions are also run on their own, by the tests.)
   const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
   if (guest) {
     const [gx, gz] = hostToGuest(guest, x, z);
-    return guest.api.walkerGroundAt(gx, gz) + guest.oy;
+    return { y: guest.api.walkerGroundAt(gx, gz) + guest.oy, kind: "terrain" };
   }
   // Inside a building whose rooms are built, the walker stands on its floor; on a stoop, on
   // its steps (see buildInterior). Declared with var so it is safe before they exist.
   if (typeof standingSurfaces !== "undefined" && standingSurfaces) {
-    let best = null, priority = -Infinity;
+    let best = null, priority = -Infinity, stairs = false;
     for (const surface of standingSurfaces) {
       const y = surface(x, z);
       if (y !== null && (surface.priority || 0) > priority) {
         best = y;
         priority = surface.priority || 0;
+        stairs = Boolean(surface.stairs);
       }
     }
-    if (best !== null) return best;
+    if (best !== null) return { y: best, kind: stairs ? "stairs" : "surface" };
   }
   const floor = tunnelFloorAt(x, z);
-  if (floor !== null) return floor;
-  return groundLiftAt(x, z);
+  if (floor !== null) return { y: floor, kind: "tunnel" };
+  const stair = typeof publicStairAt === "function" ? publicStairAt(x, z) : null;
+  if (stair !== null) return { y: stair, kind: "stairs" };
+  const lifted = groundLiftAt(x, z);
+  // Past the edge of this region's surveyed grid the grid only repeats its edge, while the
+  // ground drawn there -- the apron, the regions round about in the tile tree -- rises into
+  // their hills: the walker went on at the edge's height, under them. There it stands on what
+  // is drawn.
+  if (outsideTerrainGrid(x, z)) {
+    const drawn = drawnGroundAt(x, z);
+    if (drawn !== null) return { y: Math.max(lifted, drawn), kind: "terrain" };
+  }
+  return { y: lifted, kind: "terrain" };
 }
+//: Whether (x, z) is past the edge of this region's surveyed terrain grid.
+function outsideTerrainGrid(x, z) {
+  if (typeof TERRAIN_FRAME === "undefined" || !TERRAIN_FRAME) return true;
+  const f = TERRAIN_FRAME;
+  const [east, north] = pageToTerrain(x, z, f);
+  const fx = (east - f.x0) / f.step_m, fy = (north - f.y0) / f.step_m;
+  return fx < 0 || fy < 0 || fx > f.cols - 1 || fy > f.rows - 1;
+}
+//: The ground as it is drawn under (x, z): the terrain backdrop and its apron, and the tile tree's
+//: ground of the regions round about -- the highest hit that is ground, not a roof or a tree.
+//: (var: the walker may ask before this part of the module has run.)
+var drawnGroundRay = null;
+const DRAWN_NOT_GROUND = /building|roof|wall|window|facade|tree|furniture|sign|bridge|deck|canopy|shelter/i;
+function drawnGroundAt(x, z) {
+  if (typeof terrainTiles === "undefined" || typeof tileGroupRoot === "undefined") return null;
+  if (!drawnGroundRay) drawnGroundRay = new THREE.Raycaster();
+  drawnGroundRay.set(new THREE.Vector3(x, 4000, z), new THREE.Vector3(0, -1, 0));
+  drawnGroundRay.far = 8000;
+  const shown = (o) => { for (let n = o; n; n = n.parent) if (n.visible === false) return false; return true; };
+  for (const hit of drawnGroundRay.intersectObjects([...terrainTiles, tileGroupRoot], true)) {
+    const name = `${hit.object.name || ""} ${hit.object.userData?.surface || ""}`;
+    if (!shown(hit.object) || DRAWN_NOT_GROUND.test(name)) continue;
+    return hit.point.y + (terrainTiles.includes(hit.object) ? TERRAIN_MESH_UNDER_M : 0);
+  }
+  return null;
+}
+// ---- public stairways ----------------------------------------------------------------------
+//
+// OpenStreetMap's flights of public steps (highway=steps: ingest_steps.py writes them beside the
+// payload, sf-corridor-stairs.json). Each is given a stepped profile along it from the ground under it -- risers
+// of about STAIR_RISE_M, or as many as the map counts, the treads never below the hill -- and
+// drawn as the treads it is. The walker stands on the tread under it (publicStairAt), so it
+// climbs a flight step by step at a stair's pace rather than gliding up the hill beside it.
+const STAIR_RISE_M = 0.17;
+const STAIR_WIDTH_M = 2.2;
+const STAIR_SAMPLE_M = 0.3;
+const STAIR_CELL_M = 16;
+const publicStairs = [];
+const publicStairGrid = new Map();
+function indexPublicStairs(flights) {
+  for (const way of flights || []) {
+    if (!way.points || way.points.length < 2) continue;
+    const local = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    const xs = [], zs = [], ds = [];
+    let along = 0;
+    for (let i = 0; i < local.length; i += 1) {
+      const [ax, az] = local[i];
+      if (i) {
+        const [px, pz] = local[i - 1], span = Math.hypot(ax - px, az - pz);
+        for (let k = 1; k <= Math.ceil(span / STAIR_SAMPLE_M); k += 1) {
+          const t = k / Math.ceil(span / STAIR_SAMPLE_M);
+          xs.push(px + (ax - px) * t); zs.push(pz + (az - pz) * t); ds.push(along + span * t);
+        }
+        along += span;
+      } else { xs.push(ax); zs.push(az); ds.push(0); }
+    }
+    let hs = xs.map((x, i) => groundLiftAt(x, zs[i]));
+    if (hs[hs.length - 1] < hs[0]) { xs.reverse(); zs.reverse(); hs.reverse(); ds.reverse(); for (let i = 0; i < ds.length; i += 1) ds[i] = along - ds[i]; }
+    const low = hs[0];
+    // The hill's running top from the foot, so the treads only ever climb and never dip into it.
+    const top = [];
+    hs.forEach((h, i) => top.push(Math.max(i ? top[i - 1] : low, h)));
+    const rise = top[top.length - 1] - low;
+    if (rise < 0.35) continue;    // a level path that happens to be tagged steps: walked as a path
+    const count = Number.isInteger(way.step_count) && way.step_count > 0 ? way.step_count : Math.max(1, Math.round(rise / STAIR_RISE_M));
+    const each = rise / count;
+    const q = top.map((m) => low + Math.min(count, Math.ceil((m - low) / each - 1e-6)) * each);
+    const stair = { xs, zs, ds, hs, q, half: STAIR_WIDTH_M / 2, osm_id: way.osm_id, count };
+    publicStairs.push(stair);
+    for (let i = 1; i < xs.length; i += 1) {
+      const key = `${Math.floor(xs[i] / STAIR_CELL_M)}:${Math.floor(zs[i] / STAIR_CELL_M)}`;
+      if (!publicStairGrid.has(key)) publicStairGrid.set(key, []);
+      const bucket = publicStairGrid.get(key);
+      if (bucket[bucket.length - 1] !== stair) bucket.push(stair);
+    }
+  }
+}
+//: The tread of a public flight under (x, z), or null.
+function publicStairAt(x, z) {
+  const bucket = publicStairGrid.get(`${Math.floor(x / STAIR_CELL_M)}:${Math.floor(z / STAIR_CELL_M)}`);
+  if (!bucket) return null;
+  let best = null, bestD2 = Infinity;
+  for (const stair of bucket) {
+    const { xs, zs, q, half } = stair;
+    for (let i = 1; i < xs.length; i += 1) {
+      const ax = xs[i - 1], az = zs[i - 1], dx = xs[i] - ax, dz = zs[i] - az;
+      const len2 = dx * dx + dz * dz;
+      if (!(len2 > 0)) continue;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2));
+      const d2 = (x - ax - dx * t) ** 2 + (z - az - dz * t) ** 2;
+      if (d2 > half * half || d2 >= bestD2) continue;
+      // Off either end of the flight is not on it.
+      if ((i === 1 && t === 0 && ((x - ax) * dx + (z - az) * dz) < 0) || (i === xs.length - 1 && t === 1
+          && ((x - xs[i]) * dx + (z - zs[i]) * dz) > 0)) continue;
+      bestD2 = d2;
+      best = t < 0.5 ? q[i - 1] : q[i];
+    }
+  }
+  return best;
+}
+//: The treads, drawn: one box per tread from a little under the hill to the tread's top.
+function addPublicStairTreads() {
+  if (!publicStairs.length) return 0;
+  const positions = [], index = [];
+  const box = (ax, az, bx, bz, half, bottom, topY) => {
+    const len = Math.hypot(bx - ax, bz - az) || 1, nx = -(bz - az) / len * half, nz = (bx - ax) / len * half;
+    const c = [[ax - nx, az - nz], [bx - nx, bz - nz], [bx + nx, bz + nz], [ax + nx, az + nz]];
+    const base = positions.length / 3;
+    for (const y of [bottom, topY]) for (const [x, z] of c) positions.push(x, y, z);
+    for (const [a, b, cc, d] of [[4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]]) {
+      index.push(base + a, base + b, base + cc, base + a, base + cc, base + d);
+    }
+  };
+  let treads = 0;
+  for (const { xs, zs, hs, q, half } of publicStairs) {
+    let start = 0;
+    for (let i = 1; i <= q.length; i += 1) {
+      if (i < q.length && Math.abs(q[i] - q[start]) < 1e-6) continue;
+      const end = Math.min(i, q.length - 1);
+      let bottom = Infinity;
+      for (let k = start; k <= end; k += 1) bottom = Math.min(bottom, hs[k]);
+      // A tread a single sample long is a riser's depth: given its sample's length either way.
+      const sx = xs[start], sz = zs[start], ex = end > start ? xs[end] : xs[Math.min(start + 1, xs.length - 1)];
+      const ez = end > start ? zs[end] : zs[Math.min(start + 1, zs.length - 1)];
+      box(sx, sz, ex, ez, half, bottom - 0.4, q[start] + 0.02);
+      treads += 1;
+      start = i;
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x9c9a92, roughness: 0.92 }));
+  mesh.userData = { surface: "public_stairs", source: "openstreetmap_highway_steps", liftedOntoGround: true };
+  mesh.receiveShadow = true;
+  groups.streets.add(mesh);
+  return treads;
+}
+// The flights come in their own small file (scripts/ingest_steps.py), so the world payload --
+// which other files are bound to by its hash -- is left as it was.
+fetch(asset("sf-corridor-stairs.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((data) => {
+  if (!data?.stairs?.length) return;
+  indexPublicStairs(data.stairs);
+  const treads = addPublicStairTreads();
+  console.info(`kerbside: ${publicStairs.length} public stairways, ${treads} treads`);
+}).catch(() => {});
+
 //: Whether a mapped wall runs in a cut's wall band (within a few metres of either side).
 function insideCutBand(way) {
   if (!APPROACH_CUTS.length || !way.points) return false;
@@ -22596,6 +22763,7 @@ function addStationEntrances(entrances) {
       return ground - Math.min(S.steps, Math.floor(lz / S.tread) + 1) * S.rise;
     };
     surface.priority = 2;
+    surface.stairs = true;
     standingSurfaces.add(surface);
     const hw = S.width / 2;
     for (const [a, b] of [[P(-hw, 0), P(-hw, length)], [P(hw, 0), P(hw, length)], [P(-hw, length), P(hw, length)]])
@@ -24323,6 +24491,36 @@ function addTrolleyWires(records) {
   return { wire_segments: segments.length / 6, span_poles: poles.length };
 }
 
+//: A bus zone shorter than this, once cut back from the crossings, is not painted.
+const BUS_ZONE_MIN_M = 6.0;
+//: The pieces of a zone's kerb run that are a bus zone: never through a junction or over a
+//: crossing (a zone ends before the crosswalk, and the next one starts after it), never where
+//: the paint would leave the roadway, and all on one side -- the side most of the run is on.
+//: The kerb snap can catch the cross street's kerb round a corner, and the strip's white edge
+//: came out on the other side of the zone across the crosswalk.
+function busZonePieces(run) {
+  if (run.length < 2) return [];
+  const mid = BUS_ZONE_WIDTH_M / 2;
+  // The side: the way the paint goes off the run's direction of travel.
+  const dx = run[run.length - 1].x - run[0].x, dz = run[run.length - 1].z - run[0].z;
+  const sideOf = (k) => Math.sign(dx * -k.nz - dz * -k.nx) || 1;
+  let left = 0;
+  for (const k of run) left += sideOf(k) > 0 ? 1 : 0;
+  const side = left * 2 >= run.length ? 1 : -1;
+  const pieces = [];
+  let piece = [];
+  const length = (p) => p.reduce((sum, k, i) => sum + (i ? Math.hypot(k.x - p[i - 1].x, k.z - p[i - 1].z) : 0), 0);
+  const flush = () => { if (piece.length >= 2 && length(piece) >= BUS_ZONE_MIN_M) pieces.push(piece); piece = []; };
+  for (const k of run) {
+    const px = k.x - k.nx * mid, pz = k.z - k.nz * mid;
+    const ok = sideOf(k) === side && !insideJunctionBox(px, pz) && !onCrossingGround(px, pz, 0.4)
+      && insideCarriageway(px, pz, 0);
+    if (ok) piece.push(k); else flush();
+  }
+  flush();
+  return pieces;
+}
+
 function addBusZonePaint(records) {
   // The red box in the roadway at a bus zone.
   //
@@ -24341,41 +24539,38 @@ function addBusZonePaint(records) {
   for (const record of records) {
     // Square to the street at every sample: the zone runs parallel to the road, never on the
     // diagonal a corner's segment end gives (streetSquareKerb).
-    const runs = kerbRunsFor(record, BUS_ZONE_MAX_TURN_DEG).map((run) => run.map(streetSquareKerb));
-    if (!runs.length) continue;
-    for (const run of runs) {
-      if (run.length < 2) continue;
-      zones += 1;
-      for (let i = 1; i < run.length; i += 1) {
-        const a = run[i - 1];
-        const b = run[i];
-        if (Math.hypot(b.x - a.x, b.z - a.z) < 0.05) continue;
-        // Belt and braces: if the far edge has still converged, the quad is a wedge, not a
-        // stretch of lane, and a wedge of red paint in the road is worse than a short gap.
-        const farA = [a.x - a.nx * BUS_ZONE_WIDTH_M, a.z - a.nz * BUS_ZONE_WIDTH_M];
-        const farB = [b.x - b.nx * BUS_ZONE_WIDTH_M, b.z - b.nz * BUS_ZONE_WIDTH_M];
-        const near = Math.hypot(b.x - a.x, b.z - a.z);
-        if (Math.hypot(farB[0] - farA[0], farB[1] - farA[1]) < near * 0.55) continue;
-        // Into the road from the kerb: the inward normal is the way a bus is parked. Where a
-        // bike lane runs along the kerb the bus pulls in across it, and the zone is marked
-        // beyond the lane rather than under it -- painted from the kerb it put transit red
-        // under the green, and the lane's lines on top of the red.
-        const lane = insideBikeLane(a.x - a.nx * 0.6, a.z - a.nz * 0.6)
-          || insideBikeLane(b.x - b.nx * 0.6, b.z - b.nz * 0.6);
-        const from = lane ? BIKE_LANE_M + 0.35 : 0;
-        const ain = from + BUS_ZONE_WIDTH_M;
-        quad(fill,
-          a.x - a.nx * from, a.z - a.nz * from,
-          b.x - b.nx * from, b.z - b.nz * from,
-          b.x - b.nx * ain, b.z - b.nz * ain,
-          a.x - a.nx * ain, a.z - a.nz * ain, BUS_ZONE_Y);
-        // The white edge, on the traffic side only -- the kerb side is the kerb.
-        const o = ain, w = BUS_ZONE_BORDER_M;
-        quad(border,
-          a.x - a.nx * o, a.z - a.nz * o,
-          b.x - b.nx * o, b.z - b.nz * o,
-          b.x - b.nx * (o - w), b.z - b.nz * (o - w),
-          a.x - a.nx * (o - w), a.z - a.nz * (o - w), BUS_ZONE_BORDER_Y);
+    for (const raw of kerbRunsFor(record, BUS_ZONE_MAX_TURN_DEG).map((run) => run.map(streetSquareKerb))) {
+      for (const run of busZonePieces(raw)) {
+        if (run.length < 2) continue;
+        // Beyond a bike lane along the kerb -- the bus pulls in across it -- or from the kerb:
+        // decided once for the whole stretch, by most of it, so the red does not step out and
+        // back for a block where a lane was found under a sample or two and none is drawn.
+        const inLane = run.filter((k) => insideBikeLane(k.x - k.nx * 0.6, k.z - k.nz * 0.6)).length;
+        const from = inLane >= run.length * 0.6 ? BIKE_LANE_M + 0.35 : 0;
+        const ain = from + BUS_ZONE_WIDTH_M, o = ain, w = BUS_ZONE_BORDER_M;
+        zones += 1;
+        for (let i = 1; i < run.length; i += 1) {
+          const a = run[i - 1];
+          const b = run[i];
+          if (Math.hypot(b.x - a.x, b.z - a.z) < 0.05) continue;
+          // Belt and braces: if the far edge has still converged, the quad is a wedge, not a
+          // stretch of lane, and a wedge of red paint in the road is worse than a short gap.
+          const farA = [a.x - a.nx * BUS_ZONE_WIDTH_M, a.z - a.nz * BUS_ZONE_WIDTH_M];
+          const farB = [b.x - b.nx * BUS_ZONE_WIDTH_M, b.z - b.nz * BUS_ZONE_WIDTH_M];
+          const near = Math.hypot(b.x - a.x, b.z - a.z);
+          if (Math.hypot(farB[0] - farA[0], farB[1] - farA[1]) < near * 0.55) continue;
+          quad(fill,
+            a.x - a.nx * from, a.z - a.nz * from,
+            b.x - b.nx * from, b.z - b.nz * from,
+            b.x - b.nx * ain, b.z - b.nz * ain,
+            a.x - a.nx * ain, a.z - a.nz * ain, BUS_ZONE_Y);
+          // The white edge, on the traffic side only -- the kerb side is the kerb.
+          quad(border,
+            a.x - a.nx * o, a.z - a.nz * o,
+            b.x - b.nx * o, b.z - b.nz * o,
+            b.x - b.nx * (o - w), b.z - b.nz * (o - w),
+            a.x - a.nx * (o - w), a.z - a.nz * (o - w), BUS_ZONE_BORDER_Y);
+        }
       }
     }
   }
@@ -24655,6 +24850,7 @@ document.getElementById("reset").addEventListener("click", () => {
     avatar.position.set(at ? at.x : 0, AVATAR_STAND_Y + (at ? walkerGroundAt(at.x, at.z) : 0), at ? at.z : 0);
     state.target.copy(avatar.position);
     gps.follow = true;
+    GPS_LEASH.on = true;
   }
   setFirstPerson(false);
 });
@@ -25324,10 +25520,15 @@ function addressLanding(landing) {
   return eligibleLanding(landing);
 }
 
+//: Whether the walker keeps to where your device says you are (followGps). It does from the first
+//: fix until you move it yourself -- the arrows, a click, a teleport, a pin -- and then stays
+//: where you put it until R or Reset view brings it back (var: goTo can run before gps exists).
+var GPS_LEASH = { on: true };
 // A click moves the walker without changing zoom. Right-click is the deliberate
 // street-level teleport; dragging and wheel zoom never move the walker.
 function goTo(landing, { travel = false, zoom = false } = {}) {
   if (!landing) return;
+  if (travel && GPS_LEASH) GPS_LEASH.on = false;
   // The ground where the click landed: the terrain's height, or the bore's floor inside a
   // tunnel. The orbit target and the walker's feet both stand on it.
   const ground = walkerGroundAt(landing.x, landing.z);
@@ -26275,6 +26476,7 @@ function addFrontStair(door, plan) {
     return street + each * (steps - fromTop);
   };
   door.frontStairSurface.priority = 1;
+  door.frontStairSurface.stairs = true;
   standingSurfaces.add(door.frontStairSurface);
 }
 
@@ -26343,6 +26545,7 @@ function addSideStair(door, plan) {
     return street + each * (steps - 1 - k);
   };
   door.frontStairSurface.priority = 1;
+  door.frontStairSurface.stairs = true;
   standingSurfaces.add(door.frontStairSurface);
 }
 
@@ -26388,6 +26591,7 @@ function addStoop(door, street, floor, plan = planInwardStoop(door, street, floo
     return street + each * (i + 1);
   };
   door.stoopSurface.priority = 1;
+  door.stoopSurface.stairs = true;
   standingSurfaces.add(door.stoopSurface);
 }
 
@@ -28995,7 +29199,10 @@ function animateAvatar(distance, direction, moving) {
   avatar.userData.rightArm.rotation.x = swing * 0.48;
   avatar.userData.leftArm.rotation.z = 0.10;
   avatar.userData.rightArm.rotation.z = -0.10;
-  setAvatarAction(moving ? "Run" : "Idle");
+  // Up a hill or a flight of steps the walker walks, and its stride slows with the pace.
+  const pace = moving ? (avatar.userData.pace ?? 1) : 1;
+  setAvatarAction(moving ? (pace < 0.7 && avatarActions.Walk ? "Walk" : "Run") : "Idle");
+  if (avatarActiveAction) avatarActiveAction.timeScale = moving ? Math.max(0.5, Math.min(1.15, pace)) : 1;
 }
 function updateAvatarMixer(dt) {
   if (!avatarMixer) return;
@@ -29055,8 +29262,9 @@ function startGps() {
     const first = !gps.target;
     gps.target = new THREE.Vector3(x, 0, -y);
     gps.heading = Number.isFinite(heading) ? heading : null;
-    if (first) {
-      // The first fix: the walker stands where you are and the view comes to it.
+    if (first && GPS_LEASH.on) {
+      // The first fix: the walker stands where you are and the view comes to it -- unless you
+      // have already walked it somewhere yourself.
       avatar.position.set(x, AVATAR_STAND_Y + walkerGroundAt(x, -y), -y);
       state.indoors = false;
       state.target.copy(avatar.position);
@@ -29064,13 +29272,31 @@ function startGps() {
     }
   }, () => {}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
 }
+//: R: back to where you are -- the walker to your device's location, following it again.
+function returnToGps() {
+  GPS_LEASH.on = true;
+  if (!gps.target) return false;
+  avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
+  state.indoors = false;
+  gps.follow = true;
+  state.target.copy(avatar.position);
+  placeCamera();
+  return true;
+}
+addEventListener("keydown", (e) => {
+  if (ATTACH || e.repeat || e.metaKey || e.ctrlKey || e.altKey || (e.key !== "r" && e.key !== "R")) return;
+  if (typingIn(e.target) || typingIn(document.activeElement)) return;
+  e.preventDefault();
+  if (returnToGps()) pinSay("Back where you are");
+  else pinSay(gps.enabled ? "Waiting for your location" : "Turn on “Show me at my location” in settings");
+});
 function stopGps() {
   if (gps.watch !== null) navigator.geolocation.clearWatch(gps.watch);
   gps.watch = null; gps.target = null;
 }
 //: One frame's walk toward where you are; true when the walker moved.
 function followGps(dt) {
-  if (!gps.target || held.size) return false;
+  if (!gps.target || held.size || !GPS_LEASH.on) return false;
   const dx = gps.target.x - avatar.position.x, dz = gps.target.z - avatar.position.z, d = Math.hypot(dx, dz);
   if (d > GPS_JUMP_M) {
     avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
@@ -29088,9 +29314,52 @@ function followGps(dt) {
   avatar.position.z += move.z;
   avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
   avatar.userData.lastMove = [move.x, move.z, performance.now()];
+  avatar.userData.pace = 1;
   animateAvatar(step, move, true);
   if (gps.follow) { state.target.copy(avatar.position); placeCamera(); }
   return true;
+}
+//: The pace of walking on a slope (Tobler's hiking function, relative to the level): slower
+//: uphill, a little quicker down a gentle slope, slower again down a steep one.
+function toblerPace(grade) {
+  return Math.max(0.3, Math.min(1.15, Math.exp(-3.5 * Math.abs(grade + 0.05)) / Math.exp(-3.5 * 0.05)));
+}
+//: Steeper than this, plain ground is a cliff or a wall: not walked up, or off.
+const MAX_WALK_GRADE = 0.85;
+const MAX_DROP_GRADE = 1.2;
+//: A flight of steps is climbed at this share of the walking pace, up or down.
+const STAIR_PACE = 0.55;
+const PACE_PROBE_M = 0.6;
+//: How the ground ahead lets the walker go: the pace (``factor``) and, where the way ahead is
+//: a cliff of plain ground, the move turned along the slope instead (``move`` is changed in
+//: place, to nothing where there is no way along). Stairs, floors and stoops are walked as they
+//: are; far out from the street the walker is crossing the map, not climbing it.
+function walkPace(move) {
+  const x = avatar.position.x, z = avatar.position.z;
+  const here = walkerGroundInfo(x, z);
+  const probe = (dx, dz) => walkerGroundInfo(x + dx * PACE_PROBE_M, z + dz * PACE_PROBE_M);
+  let ahead = probe(move.x, move.z);
+  const stairs = here.kind === "stairs" || ahead.kind === "stairs";
+  const crossing = avatarMoveSpeed() > STREET_SPEED * 3 || state.indoors;
+  let grade = (ahead.y - here.y) / PACE_PROBE_M;
+  const plain = here.kind === "terrain" && ahead.kind === "terrain";
+  if (plain && !crossing && (grade > MAX_WALK_GRADE || grade < -MAX_DROP_GRADE)) {
+    // Along the slope instead: the contour, the way that is level here.
+    const e = probe(1, 0).y - here.y, n = probe(0, 1).y - here.y;
+    const g = Math.hypot(e, n);
+    if (g > 1e-6) {
+      const cx = -n / g, cz = e / g, along = move.x * cx + move.z * cz;
+      move.set(cx * along, 0, cz * along);
+    }
+    if (move.lengthSq() < 0.04) { move.set(0, 0, 0); return { factor: 0, blocked: true }; }
+    move.normalize();
+    ahead = probe(move.x, move.z);
+    grade = (ahead.y - here.y) / PACE_PROBE_M;
+    if (grade > MAX_WALK_GRADE || grade < -MAX_DROP_GRADE) { move.set(0, 0, 0); return { factor: 0, blocked: true }; }
+  }
+  let factor = crossing ? 1 : toblerPace(grade);
+  if (stairs && !crossing) factor = Math.min(factor, STAIR_PACE);
+  return { factor, stairs, grade };
 }
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
@@ -29112,7 +29381,13 @@ function stepAvatar(now) {
   if (held.has("ArrowLeft")) move.sub(rightward);
   if (!move.lengthSq()) return;
   const scaled = avatarMoveSpeed();
-  move.normalize().multiplyScalar(scaled * dt);
+  move.normalize();
+  // Hills and stairs set the pace, and a cliff is not walked up (walkPace).
+  const pace = walkPace(move);
+  avatar.userData.pace = pace.factor;
+  if (!move.lengthSq()) { animateAvatar(0, new THREE.Vector3(), false); updateAvatarMixer(dt); return; }
+  move.multiplyScalar(scaled * dt * pace.factor);
+  GPS_LEASH.on = false;   // walking yourself: the walker is yours until R or Reset view
   requestInteriors();
   // The current building collision model lets the walker slide along walls and enter mapped doors.
   const moved = moveWalker(move.x, move.z);
@@ -29412,14 +29687,54 @@ function animate(now) {
 // network -- never from a path over the triangles this page draws: a painted lane, an inferred
 // stoop or a house interior is not evidence that anyone may go there. The FOSSGIS public server
 // answers by default; a self-hosted one (tools/valhalla) is a matter of the page's
-// kerbside-routing meta. Walk, bike and drive; ordered stops kept in the order given; up to two
-// alternatives; "fewer hills" and "avoid stairs" as Valhalla's own costing preferences. Time and
-// climb are shown side by side, never folded into one number. The route is drawn as a ribbon on
-// the ground, depth-tested against the buildings, inside this region; beyond it the list says so.
+// kerbside-routing meta. Public transit comes from Transitous (MOTIS over the agencies' published
+// GTFS). Walk, bike, drive and transit; ordered stops kept in the order given.
+//
+// There are no preference switches. Each mode asks for its candidates -- the router's own
+// alternatives and a few variants of its costing (fewer hills, no steps, quiet streets, fewer
+// turns) -- measures every one (time, climb, turns, steps, bike lanes; walking and transfers on
+// transit), and tags the ones that are significantly better than the fastest at something
+// (ROUTE_TAGS: each tag's threshold, absolute and relative, so one more block of bike lane on a
+// long ride is not "bike lane friendly"). A tag also weighs a route up the list by how much it
+// gains, per mode: three hundred feet less climbing counts six per cent on a bike. The route is
+// drawn as a ribbon on the ground, depth-tested against the buildings, inside this region.
 const ROUTING_URL = (document.querySelector('meta[name="kerbside-routing"]')?.content
   || "https://valhalla1.openstreetmap.de").replace(/\/+$/, "");
+const TRANSIT_URL = (document.querySelector('meta[name="kerbside-transit-routing"]')?.content
+  || "https://api.transitous.org").replace(/\/+$/, "");
 const ROUTE_COSTING = { walk: "pedestrian", bike: "bicycle", drive: "auto" };
+//: The costing variants asked for besides the plain one, per mode: each may find a route the
+//: plain costing would not offer, and every route found is measured the same way.
+const ROUTE_VARIANTS = {
+  walk: [{}, { use_hills: 0.0 }, { step_penalty: 100000 }],
+  bike: [{}, { use_hills: 0.0 }, { use_roads: 0.0 }, { maneuver_penalty: 60 }],
+  drive: [{}, { maneuver_penalty: 60 }],
+};
+const ROUTE_BASE_OPTIONS = { pedestrian: { use_hills: 0.5 }, bicycle: { use_hills: 0.5, bicycle_type: "Hybrid" }, auto: {} };
+//: The tags each mode can earn. A route earns one when it beats the fastest route on the metric
+//: by at least ``min`` (and by ``rel`` of the fastest's value, where given) and no other route
+//: beats it there. Its weight lifts it in the list: ``per`` of its time for each unit gained, up
+//: to ``cap`` -- 0.00066 a metre is six per cent for ninety-one metres (three hundred feet).
+const ROUTE_TAGS = {
+  walk: [
+    { id: "fewest_hills", label: "Fewest hills", metric: "ascent", lower: true, min: 15, rel: 0.25, per: 0.0012, cap: 0.12 },
+    { id: "no_stairs", label: "Avoids stairs", metric: "stairs", zero: true, min: 1, per: 0.04, cap: 0.04 },
+  ],
+  bike: [
+    { id: "fewest_hills", label: "Fewest hills", metric: "ascent", lower: true, min: 20, rel: 0.25, per: 0.00066, cap: 0.15 },
+    { id: "bike_lanes", label: "Bike lane friendly", metric: "bikeShare", lower: false, min: 0.15, also: { metric: "bikeKm", min: 0.3 }, per: 0.12, cap: 0.10 },
+    { id: "fewest_turns", label: "Fewest turns", metric: "turns", lower: true, min: 3, rel: 0.3, per: 0.005, cap: 0.06 },
+  ],
+  drive: [
+    { id: "fewest_turns", label: "Fewest turns", metric: "turns", lower: true, min: 3, rel: 0.25, per: 0.004, cap: 0.06 },
+  ],
+  transit: [
+    { id: "least_walking", label: "Least walking", metric: "walkM", lower: true, min: 250, rel: 0.25, per: 0.00008, cap: 0.10 },
+    { id: "fewest_transfers", label: "Fewest transfers", metric: "transfers", lower: true, min: 1, per: 0.04, cap: 0.10 },
+  ],
+};
 const ROUTE_MAX_STOPS = 5;
+const ROUTE_MAX_SHOWN = 4;
 const ROUTE_RIBBON_M = { chosen: 2.6, other: 1.4 };
 //: From high up the ribbon widens to stay readable: about this share of the view's distance.
 const ROUTE_RIBBON_PER_M = 0.006;
@@ -29429,9 +29744,10 @@ const route = { mode: "walk", stops: [null, null], results: [], chosen: 0, pendi
 const routeGroup = new THREE.Group();
 routeGroup.name = "route";
 root.add(routeGroup);
-//: Valhalla's shapes: Google's polyline encoding at six decimal places.
-function decodePolyline6(text) {
+//: Valhalla's shapes: Google's polyline encoding at six decimal places (Transitous's at seven).
+function decodePolyline6(text, precision = 6) {
   const points = [];
+  const scale = 10 ** precision;
   let index = 0, lat = 0, lon = 0;
   while (index < text.length) {
     for (const which of [0, 1]) {
@@ -29440,23 +29756,37 @@ function decodePolyline6(text) {
       const delta = result & 1 ? ~(result >> 1) : result >> 1;
       if (which === 0) lat += delta; else lon += delta;
     }
-    points.push([lon / 1e6, lat / 1e6]);
+    points.push([lon / scale, lat / scale]);
   }
   return points;
 }
-function routeRequest(stops, mode, { fewerHills = false, avoidStairs = false } = {}) {
+function encodePolyline6(points) {
+  let out = "", plat = 0, plon = 0;
+  const put = (value) => {
+    let v = value < 0 ? ~(value << 1) : value << 1;
+    while (v >= 0x20) { out += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; }
+    out += String.fromCharCode(v + 63);
+  };
+  for (const [lon, lat] of points) {
+    const a = Math.round(lat * 1e6), b = Math.round(lon * 1e6);
+    put(a - plat); put(b - plon);
+    plat = a; plon = b;
+  }
+  return out;
+}
+function routeRequest(stops, mode, variant = {}, alternates = true) {
   const costing = ROUTE_COSTING[mode] || "pedestrian";
-  const options = {};
-  if (costing === "pedestrian") options.pedestrian = { use_hills: fewerHills ? 0.1 : 0.5,
-    step_penalty: avoidStairs ? 100000 : 0 };
-  if (costing === "bicycle") options.bicycle = { use_hills: fewerHills ? 0.1 : 0.5, bicycle_type: "Hybrid" };
+  const options = { [costing]: { ...ROUTE_BASE_OPTIONS[costing], ...variant } };
   return { locations: stops.map((p) => ({ lat: p.lat, lon: p.lon, type: "break" })), costing,
-    costing_options: options, alternates: stops.length === 2 ? 2 : 0, units: "kilometers",
+    costing_options: options, alternates: alternates && stops.length === 2 ? 2 : 0, units: "kilometers",
     elevation_interval: 30, language: "en-US" };
 }
-//: Time, length, climb and the line of one trip (Valhalla's trip or one of its alternates).
+//: Valhalla's maneuver types that are a turn: right, sharp right, U-turns, sharp left, left, and
+//: entering a roundabout. A slight bend, keeping straight and the start and end are not.
+const TURN_MANEUVERS = new Set([10, 11, 12, 13, 14, 15, 26]);
+//: Time, length, climb, turns and the line of one trip (Valhalla's trip or one of its alternates).
 function summarizeTrip(trip) {
-  let ascent = 0, descent = 0;
+  let ascent = 0, descent = 0, turns = 0;
   const line = [], steps = [];
   for (const leg of trip.legs || []) {
     const heights = leg.elevation || [];
@@ -29465,17 +29795,164 @@ function summarizeTrip(trip) {
       if (d > 0) ascent += d; else descent -= d;
     }
     line.push(...decodePolyline6(leg.shape || ""));
-    for (const m of leg.maneuvers || []) if (m.instruction) steps.push(m.instruction);
+    for (const m of leg.maneuvers || []) {
+      if (m.instruction) steps.push(m.instruction);
+      if (TURN_MANEUVERS.has(m.type)) turns += 1;
+    }
   }
   return { seconds: trip.summary?.time || 0, km: trip.summary?.length || 0,
-    ascent: Math.round(ascent), descent: Math.round(descent), line, steps };
+    ascent: Math.round(ascent), descent: Math.round(descent), turns, line, steps };
 }
-async function requestRoutes(stops, mode, preferences) {
-  const response = await fetch(`${ROUTING_URL}/route`, { method: "POST",
-    headers: { "Content-Type": "application/json" }, body: JSON.stringify(routeRequest(stops, mode, preferences)) });
+//: What the route runs over, edge by edge (Valhalla's trace_attributes on its own shape): how much
+//: of it is on a cycle track or a painted bike lane, and how many flights of steps it climbs.
+async function measureEdges(result, mode) {
+  const costing = ROUTE_COSTING[mode];
+  const response = await fetch(`${ROUTING_URL}/trace_attributes`, { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      encoded_polyline: encodePolyline6(result.line), shape_match: "edge_walk", costing,
+      filters: { attributes: ["edge.length", "edge.use", "edge.cycle_lane"], action: "include" } }) });
   const body = await response.json().catch(() => null);
-  if (!response.ok || !body?.trip) throw new Error(body?.error || `routing answered ${response.status}`);
-  return [body.trip, ...(body.alternates || []).map((a) => a.trip)].filter(Boolean).map(summarizeTrip);
+  if (!response.ok || !Array.isArray(body?.edges)) return result;
+  let total = 0, bike = 0, stairs = 0;
+  for (const edge of body.edges) {
+    const km = edge.length || 0;
+    total += km;
+    if (edge.use === "cycleway" || edge.cycle_lane === "dedicated" || edge.cycle_lane === "separated") bike += km;
+    else if (edge.cycle_lane === "shared") bike += km * 0.5;
+    if (edge.use === "steps") stairs += 1;
+  }
+  return { ...result, bikeKm: bike, bikeShare: total ? bike / total : 0, stairs };
+}
+//: Two routes that are the same way: their lines, resampled at the same shares of their length,
+//: no more than 25 m apart on average.
+function sameRoute(a, b) {
+  if (Math.abs(a.km - b.km) > Math.max(0.05, 0.03 * Math.max(a.km, b.km))) return false;
+  const sample = (line, n) => {
+    const pts = line.map((p) => xy(...p)), cum = [0];
+    for (let i = 1; i < pts.length; i += 1) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const total = cum[cum.length - 1] || 1, out = [];
+    for (let k = 0, j = 1; k < n; k += 1) {
+      const at = total * k / (n - 1);
+      while (j < pts.length - 1 && cum[j] < at) j += 1;
+      const span = cum[j] - cum[j - 1] || 1, t = Math.max(0, Math.min(1, (at - cum[j - 1]) / span));
+      out.push([pts[j - 1][0] + (pts[j][0] - pts[j - 1][0]) * t, pts[j - 1][1] + (pts[j][1] - pts[j - 1][1]) * t]);
+    }
+    return out;
+  };
+  if (a.line.length < 2 || b.line.length < 2) return false;
+  const pa = sample(a.line, 16), pb = sample(b.line, 16);
+  let sum = 0;
+  for (let i = 0; i < 16; i += 1) sum += Math.hypot(pa[i][0] - pb[i][0], pa[i][1] - pb[i][1]);
+  return sum / 16 < 25;
+}
+async function requestValhalla(stops, mode) {
+  const variants = ROUTE_VARIANTS[mode] || [{}];
+  const answers = await Promise.allSettled(variants.map(async (variant, i) => {
+    const response = await fetch(`${ROUTING_URL}/route`, { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(routeRequest(stops, mode, variant, i === 0)) });
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body?.trip) throw new Error(body?.error || `routing answered ${response.status}`);
+    return [body.trip, ...(body.alternates || []).map((a) => a.trip)].filter(Boolean).map(summarizeTrip);
+  }));
+  const found = [];
+  for (const answer of answers) {
+    if (answer.status !== "fulfilled") continue;
+    for (const result of answer.value) if (!found.some((other) => sameRoute(other, result))) found.push(result);
+  }
+  if (!found.length) {
+    const failure = answers.find((a) => a.status === "rejected");
+    throw failure ? failure.reason : new Error("no route");
+  }
+  // Bike lanes and steps are only in the edges: measured for the modes whose tags read them.
+  if (mode === "bike" || mode === "walk") {
+    return Promise.all(found.slice(0, 6).map((result) => measureEdges(result, mode).catch(() => result)));
+  }
+  return found;
+}
+//: A Transitous itinerary as a route: its time, walking, transfers, line and what to do.
+function summarizeItinerary(it) {
+  const line = [], steps = [];
+  let walkM = 0, km = 0;
+  const NAMES = { BUS: "Bus", TRAM: "Streetcar", SUBWAY: "Metro", RAIL: "Train", REGIONAL_RAIL: "Train",
+    FERRY: "Ferry", CABLE_CAR: "Cable car", FUNICULAR: "Funicular", COACH: "Coach" };
+  for (const leg of it.legs || []) {
+    const points = decodePolyline6(leg.legGeometry?.points || "", leg.legGeometry?.precision || 7);
+    for (let i = 1; i < points.length; i += 1) {
+      const [ax, ay] = xy(...points[i - 1]), [bx, by] = xy(...points[i]);
+      km += Math.hypot(bx - ax, by - ay) / 1000;
+    }
+    line.push(...points);
+    const to = leg.to?.name && leg.to.name !== "END" ? leg.to.name : "your destination";
+    if (leg.mode === "WALK") {
+      walkM += leg.distance || 0;
+      if ((leg.distance || 0) > 20) steps.push(`Walk ${Math.round(leg.distance)} m to ${to}.`);
+    } else {
+      const kind = NAMES[leg.mode] || "Transit";
+      const name = leg.routeShortName ? `${kind} ${leg.routeShortName}` : kind;
+      const toward = leg.headsign ? ` toward ${leg.headsign}` : "";
+      const time = leg.startTime ? ` at ${new Date(leg.startTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "";
+      steps.push(`${name}${toward}${time}, from ${leg.from?.name || "the stop"} to ${to}.`);
+    }
+  }
+  return { seconds: it.duration || 0, km, ascent: 0, descent: 0, walkM: Math.round(walkM),
+    transfers: it.transfers || 0, line, steps,
+    departs: it.startTime || null };
+}
+async function requestTransit(stops) {
+  if (stops.length !== 2) throw new Error("transit between two stops");
+  const [a, b] = stops;
+  const query = new URLSearchParams({ fromPlace: `${a.lat},${a.lon}`, toPlace: `${b.lat},${b.lon}`, numItineraries: "5" });
+  const response = await fetch(`${TRANSIT_URL}/api/v1/plan?${query}`);
+  const body = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(body?.itineraries)) throw new Error(body?.error || `transit answered ${response.status}`);
+  const found = [];
+  for (const it of body.itineraries) {
+    const result = summarizeItinerary(it);
+    if (result.line.length > 1 && !found.some((other) => sameRoute(other, result))) found.push(result);
+  }
+  if (!found.length) throw new Error("no path");
+  return found;
+}
+//: Each route's tags, and the order they are shown in. Against the fastest: a tag is earned by
+//: beating it by the tag's threshold, and only by the best route at that metric; its weight is
+//: the gain times ``per``, capped, and a route is ranked by its time less its weights.
+function tagRoutes(results, mode) {
+  if (!results.length) return results;
+  const fastest = results.reduce((a, b) => (b.seconds < a.seconds ? b : a));
+  const tags = ROUTE_TAGS[mode] || [];
+  const out = results.map((r) => ({ ...r, tags: [], weight: 0 }));
+  for (const tag of tags) {
+    const value = (r) => r[tag.metric];
+    const base = value(fastest);
+    if (!Number.isFinite(base)) continue;
+    const scored = out.filter((r) => Number.isFinite(value(r)));
+    if (!scored.length) continue;
+    const best = tag.lower || tag.zero ? Math.min(...scored.map(value)) : Math.max(...scored.map(value));
+    // One route per tag: of those tied at the best value, the quickest.
+    const holder = scored.filter((r) => value(r) === best).reduce((a, b) => (b.seconds < a.seconds ? b : a));
+    for (const r of [holder]) {
+      if (r.seconds === fastest.seconds && r.km === fastest.km) continue;
+      let gain;
+      if (tag.zero) gain = value(r) === 0 && base >= tag.min ? 1 : 0;
+      else gain = tag.lower ? base - value(r) : value(r) - base;
+      if (!(gain >= tag.min)) continue;
+      if (tag.rel && base > 0 && gain < tag.rel * Math.abs(base)) continue;
+      if (tag.also) {
+        const extra = (r[tag.also.metric] ?? 0) - (fastest[tag.also.metric] ?? 0);
+        if (!(extra >= tag.also.min)) continue;
+      }
+      r.tags.push({ id: tag.id, label: tag.label });
+      r.weight += Math.min(tag.cap, tag.zero ? tag.per : gain * tag.per);
+    }
+  }
+  const quickest = out.find((r) => r.seconds === fastest.seconds && r.km === fastest.km);
+  if (out.length > 1 && quickest) quickest.tags.unshift({ id: "fastest", label: "Fastest" });
+  for (const r of out) r.score = r.seconds * (1 - r.weight);
+  return out.sort((a, b) => a.score - b.score).slice(0, ROUTE_MAX_SHOWN);
+}
+async function requestRoutes(stops, mode) {
+  const found = mode === "transit" ? await requestTransit(stops) : await requestValhalla(stops, mode);
+  return tagRoutes(found, mode);
 }
 //: A route as a ribbon on the ground: resampled every few metres so it follows the hills, lifted
 //: a little, inside this region only (beyond it this page has no ground to lay it on).
@@ -29548,8 +30025,6 @@ if (!ATTACH) {
   const results = document.getElementById("route-results");
   const stepsList = document.getElementById("route-steps");
   const clear = document.getElementById("route-clear");
-  const hills = document.getElementById("route-hills");
-  const stairs = document.getElementById("route-stairs");
   const minutes = (s) => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`;
   const here = () => {
     if (gps.fix) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat };
@@ -29627,10 +30102,16 @@ if (!ATTACH) {
     document.getElementById("route-add").disabled = route.stops.length >= ROUTE_MAX_STOPS;
   }
   function renderResults(drawnInside) {
+    const quickest = Math.min(...route.results.map((r) => r.seconds));
     results.replaceChildren(...route.results.map((r, i) => {
       const item = document.createElement("li");
       item.setAttribute("aria-selected", String(i === route.chosen));
-      item.innerHTML = `<b>${minutes(r.seconds)}</b><span>${r.km.toFixed(1)} km · ↑${r.ascent} m ↓${r.descent} m</span>`;
+      const extra = r.seconds - quickest >= 60 ? ` <small>+${minutes(r.seconds - quickest)}</small>` : "";
+      const tags = (r.tags || []).map((t) => `<em class="tag tag-${t.id}">${t.label}</em>`).join("");
+      const detail = route.mode === "transit"
+        ? `${r.transfers ? `${r.transfers} transfer${r.transfers > 1 ? "s" : ""}` : "No transfers"} · ${r.walkM} m walking`
+        : `${r.km.toFixed(1)} km · ↑${r.ascent} m ↓${r.descent} m${route.mode !== "walk" ? ` · ${r.turns} turns` : ""}`;
+      item.innerHTML = `<b>${minutes(r.seconds)}</b>${extra}${tags ? `<span class="tags">${tags}</span>` : ""}<span>${detail}</span>`;
       item.addEventListener("click", () => { route.chosen = i; renderResults(drawRoutes()); });
       return item;
     }));
@@ -29639,12 +30120,14 @@ if (!ATTACH) {
     stepsList.hidden = !chosen;
     clear.hidden = !route.results.length;
     if (chosen) status.textContent = (route.mode === "drive" ? "Typical time, without live traffic. " : "")
+      + (route.mode === "transit" ? "Scheduled times (Transitous, from the agencies' timetables). " : "")
       + (drawnInside < chosen.line.length * 0.5 ? "Part of this route is outside this region and is listed, not drawn." : "");
   }
   panel.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => {
     route.mode = button.dataset.mode;
     panel.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
-    document.getElementById("route-stairs-option").hidden = route.mode !== "walk";
+    document.getElementById("route-add").hidden = route.mode === "transit";
+    if (route.mode === "transit" && route.stops.length > 2) { route.stops = [route.stops[0], route.stops[route.stops.length - 1]]; renderStops(); }
   }));
   document.getElementById("route-add").addEventListener("click", () => {
     if (route.stops.length < ROUTE_MAX_STOPS) { route.stops.splice(route.stops.length - 1, 0, null); renderStops(); }
@@ -29659,7 +30142,7 @@ if (!ATTACH) {
     status.textContent = "Finding routes…";
     const ticket = route.pending = Symbol("route");
     try {
-      const found = await requestRoutes(stops, route.mode, { fewerHills: hills.checked, avoidStairs: stairs.checked });
+      const found = await requestRoutes(stops, route.mode);
       if (ticket !== route.pending) return;
       route.results = found;
       route.chosen = 0;
@@ -29676,7 +30159,7 @@ if (!ATTACH) {
     }
   });
   renderStops();
-  window.kerbsideRoute = { request: requestRoutes, routeRequest, decodePolyline6, state: route, group: routeGroup };
+  window.kerbsideRoute = { request: requestRoutes, routeRequest, decodePolyline6, tagRoutes, state: route, group: routeGroup };
 }
 
 // The settings panel: the gear at the top right.
@@ -29836,7 +30319,8 @@ window.kerbside = {
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
   tunnelFloorAt, walkerGroundAt, tunnelBores, terrainHeightAt, groundLiftAt, TERRAIN,
   cutLiftAt, approachRoadAt, wayFollowsCut, APPROACH_CUTS, junctionBoxHulls,
-  goTo, setFirstPerson, placeCamera, state, avatar, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
+  goTo, setFirstPerson, placeCamera, state, avatar, walkerGroundInfo, walkPace, publicStairs, publicStairAt,
+  outsideTerrainGrid, drawnGroundAt, returnToGps, GPS_LEASH, gps, followGps, onCrossingGround, busZonePieces, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
   pickedFeature,
