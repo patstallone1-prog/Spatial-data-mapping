@@ -177,6 +177,8 @@ def main() -> None:
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
     app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json",
                    DOCS / "search-index.json"]
+    app_assets += [DOCS / "billboard-creatives.json"] if (DOCS / "billboard-creatives.json").exists() else []
+    app_assets += sorted((DOCS / "billboards").glob("*"))
     app_assets += sorted(path for directory in ("interior-assets", "materials", "vendor")
                          for path in (DOCS / directory).rglob("*") if path.is_file())
     if (DOCS / "app-sf-corridor-ground.json").exists():

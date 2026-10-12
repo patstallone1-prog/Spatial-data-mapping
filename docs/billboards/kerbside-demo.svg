@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="768" viewBox="0 0 1600 768">
+  <rect width="1600" height="768" fill="#f4f1e8"/>
+  <rect x="28" y="28" width="1544" height="712" rx="12" fill="none" stroke="#8c844c" stroke-width="12"/>
+  <text x="110" y="165" font-family="Arial,sans-serif" font-size="52" fill="#605b38">KERBSIDE • DEMO OVERLAY</text>
+  <text x="110" y="375" font-family="Arial,sans-serif" font-weight="bold" font-size="132" fill="#242a24">Explore your city.</text>
+  <text x="110" y="535" font-family="Arial,sans-serif" font-size="50" fill="#605b38">Mapped location. Illustrative artwork.</text>
+  <text x="110" y="655" font-family="Arial,sans-serif" font-size="42" fill="#242a24">Click to view the billboard’s mapped source ↗</text>
+</svg>
