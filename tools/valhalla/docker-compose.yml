@@ -1,0 +1,22 @@
+# Self-hosted Valhalla for the Kerbside regions (Bay Area extract, ~400 MB of tiles).
+#
+#   docker compose -f tools/valhalla/docker-compose.yml up -d     # first start builds the tiles
+#
+# Then point the pages at it: set <meta name="kerbside-routing" content="https://your-host:8002">
+# (the FOSSGIS public server is used when the meta is empty). Serve it over HTTPS with CORS open
+# to the site, e.g. behind Caddy or Cloudflare Tunnel.
+services:
+  valhalla:
+    image: ghcr.io/gis-ops/docker-valhalla/valhalla:3.4.0
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./data:/custom_files
+    environment:
+      # Geofabrik's NorCal extract covers every Kerbside region (SF, Oakland, Berkeley, Palo Alto, San Jose).
+      - tile_urls=https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf
+      - build_elevation=True
+      - build_admins=True
+      - build_time_zones=True
+      - server_threads=2
+    restart: unless-stopped

@@ -297,7 +297,7 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert 'registerLazyLayer("chunks", () => {' in source
     assert 'registerLazyLayer("furniture", async () => {' in source
     assert 'fetch(asset("sf-corridor-furniture.json"), { cache: "no-cache" })' in source
-    assert '<button data-layer="furniture" aria-pressed="false">Street furniture</button>' in source
+    assert '<button type="button" data-layer="furniture" aria-pressed="false">Street furniture</button>' in source
     assert 'furniture:blank_ad' in source
     assert "Official geometry:" in source
     assert 'registerLazyLayer("coverage", () => {' in source

@@ -34,7 +34,8 @@ def main():
         if (
             not creative.get("approved")
             or not creative.get("license")
-            or not safe_website(creative.get("href"))
+            # A creative may link somewhere or nowhere; a link must be a safe one.
+            or ("href" in creative and not safe_website(creative.get("href")))
             or not re.fullmatch(
                 r"billboards/[a-zA-Z0-9_.-]+\.(png|jpe?g|webp|svg)", creative.get("image", ""), re.I
             )

@@ -1,54 +1,33 @@
-"""The desktop viewer exposes every control in one collapsible sidebar."""
+"""The viewer's sidebar holds what is wanted at once; everything else is on the settings page."""
 
-from html.parser import HTMLParser
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "scripts" / "build_sf_corridor_3d.py"
 DOCS = SOURCE.parents[1] / "docs"
 
 
-def test_map_controls_live_in_collapsible_sidebar():
+def test_the_sidebar_holds_only_what_is_wanted_at_once_and_the_rest_is_in_settings():
     source = SOURCE.read_text()
     start = source.index('<div class="hud" id="hud"')
     end = source.index('<!-- The payload is fetched', start)
-    hud = source[start:end]
-    menu = hud.index('class="collapsible" id="controls"')
-    sidebar = hud.index('class="panel" id="map-sidebar"')
-    assert 'data-open="false"' in hud[:80]
-    assert hud.index('id="fold"') < sidebar
-    for control in ('id="region"', 'id="find"', 'id="firstperson"', 'id="reset"'):
-        assert sidebar < hud.index(control) < menu
-    for detail in ('id="obs"', 'id="eligible"', 'id="seq"', 'id="cells"',
-                   'id="surfaces"', 'id="measured"', 'data-layer="observations"'):
-        assert hud.index(detail) > menu
-    assert 'aria-controls="map-sidebar"' in hud
-    assert hud.count('id="firstperson"') == 1
-
-    class LayerNesting(HTMLParser):
-        def __init__(self):
-            super().__init__()
-            self.divs = []
-            self.photo_in_menu = False
-            self.tip_in_menu = False
-
-        def handle_starttag(self, tag, attrs):
-            attrs = dict(attrs)
-            if tag == "div":
-                self.divs.append(attrs.get("id"))
-            if tag == "button" and attrs.get("data-layer") == "observations":
-                self.photo_in_menu = "controls" in self.divs
-            if tag == "div" and attrs.get("id") == "tip":
-                self.tip_in_menu = "controls" in self.divs
-
-        def handle_endtag(self, tag):
-            if tag == "div":
-                self.divs.pop()
-
-    tree = LayerNesting()
-    tree.feed(hud)
-    assert tree.photo_in_menu
-    assert tree.tip_in_menu
-    assert hud.index('id="regionnote"') > menu
+    page = source[start:end]
+    sidebar = page[page.index('class="panel" id="map-sidebar"'):page.index('<form class="panel sheet" id="settings-page"')]
+    settings = page[page.index('id="settings-page"'):]
+    assert 'data-open="false"' in page[:80] and page.index('id="fold"') < page.index('id="map-sidebar"')
+    # At once: where to go, how to get there, how to look.
+    for control in ('id="region"', 'id="find"', 'id="route-panel"', 'id="route-go"', 'id="firstperson"', 'id="reset"'):
+        assert control in sidebar, control
+    # Everything else: the numbers, the layers, the legend, the notes and how to get around.
+    for detail in ('id="obs"', 'id="eligible"', 'id="seq"', 'id="cells"', 'id="surfaces"', 'id="measured"',
+                   'data-layer="observations"', 'data-layer="gaps"', 'id="tip"', 'id="regionnote"',
+                   'id="gapnote"', 'class="legend"', 'id="settings-display"'):
+        assert detail in settings and detail not in sidebar, detail
+    assert 'aria-controls="map-sidebar"' in page
+    assert page.count('id="firstperson"') == 1
+    # The quality and frame-rate choices are on the settings page, its button under the compass.
+    assert 'settingsPart("settings-display", "section").insertAdjacentHTML' in source
+    assert '"position:fixed;right:16px;top:16px;z-index:25;width:92px;height:112px;"' in source
+    assert 'settingsButton.style.cssText = "position:fixed;top:130px;right:16px;' in source
 
 
 def test_hud_has_light_palette_and_menu_state_labels():
