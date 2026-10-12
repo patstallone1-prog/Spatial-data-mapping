@@ -38,6 +38,7 @@ from smc.facts.cross_section import (
     lane_ends,
     match_junction,
 )
+from smc.facts.direction import oneway_direction
 from smc.official.join import CentrelineIndex
 
 #: A parallel parking lane where the city's policies say cars park and nothing has measured
@@ -118,7 +119,7 @@ def _cycleway_sides(way: dict) -> dict[int, str]:
     if is_lane(way.get("cycleway_right")):
         sides[-1] = str(way["cycleway_right"])
     if not sides and is_lane(way.get("cycleway")):
-        if way.get("oneway") or way.get("osm_oneway"):
+        if oneway_direction(way):
             sides[-1] = str(way["cycleway"])
         else:
             sides[1] = sides[-1] = str(way["cycleway"])
@@ -159,7 +160,7 @@ def prior_width_m(way: dict) -> float:
         lanes = max(1, int(lanes))
     except (TypeError, ValueError):
         lanes = CLASS_LANES.get(highway, 2)
-    if way.get("oneway") or way.get("osm_oneway"):
+    if oneway_direction(way):
         lanes = max(1, lanes)
     width = lanes * PRIORS[Kind.TRAVEL][1]
     if not way.get("parking_sides"):
@@ -215,7 +216,7 @@ def build_cross_sections(
         if way.get("tunnel_kind") in ("underground",) or way.get("service") in ("driveway", "parking_aisle", "drive-through"):
             continue
         points = way["points"]
-        oneway = bool(way.get("oneway") or way.get("osm_oneway"))
+        oneway = bool(oneway_direction(way))
         named = bool(way.get("name"))
         road_m = float(way.get("road_m") or 0.0)
         width_is_prior = False

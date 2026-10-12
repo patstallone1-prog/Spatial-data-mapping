@@ -18,6 +18,15 @@ The failing render combined three incompatible geometry policies:
    landing and warning rectangle separately moved away from the roadway, so their
    footprints could diverge and leave bare asphalt underneath a warning panel.
 
+An additional ingestion defect was verified: Presidio way **254396717**, tagged
+two lanes in each direction, matched city **sfcnn:10493000 / PINE ST** and inherited
+its **WB** one-way designation. The city index stored only vertices rather than
+the intervening segments, and whole-way matching voted by vertex density rather
+than distance along the street. With segment indexing, uniform arc-length votes
+and normalized named-street matching, the same way matches
+**sfcnn:10766000 / PRESIDIO AVE**, not Pine. Missing named records now remain
+unmatched rather than borrowing a cross street's facts.
+
 There are real separate slip-road crossings here. They are not parking-space paint
 and must not be merged into a single oversized main-road crosswalk. SFMTA's
 [2019 project proposal](https://www.sfmta.com/reports/october-1-2019-proposed-parking-traffic-changes-3333-california-sfmta-board-meeting-document)
@@ -39,6 +48,11 @@ proposal is context, not a claim that every proposed design is today's as-built 
   the pavement side. An unsafe flare shrinks without losing the field's underside.
 - Original `xs`, curb profiles, mapped road tags and provenance are unchanged.
   This is a visual policy correction, not a claim that inferred paint is measured.
+- Road direction is normalized consistently for the producer and renderer. An
+  explicit `oneway=no` is not truthy one-way traffic. A legacy city direction
+  cannot suppress a mapped opposing lane pair; cardinal directions must align
+  with the road. This also repairs direction-dependent signs, medians and lane
+  counts. Future official ingestion restricts named roads to their own records.
 - All eight regional app modules are generated from the authoritative shared
   source, with release hashes and a new service-worker version. Frozen website
   viewers and unrelated agents' checkouts are not rewritten.
@@ -67,7 +81,7 @@ junction sample. Masonic's erroneous 30.2 m survey span is no longer used for th
 uniform road. These are representative visual/probe checks, not a claim of surveyed
 dimensional accuracy or exhaustive validation of every city corner.
 
-134 focused geometry/paint/sign/bridge/baseline tests pass. Regression coverage
+194 focused ingestion/section/geometry/paint/sign/bridge/baseline tests pass. Regression coverage
 executes the actual renderer against the three bad Presidio records, checks stable
 lane count and in-road offsets, verifies source sections are not changed, checks
 default crossings ignore incompatible survey returns, and proves the sidewalk
@@ -75,6 +89,9 @@ landing contains the complete yellow panel. Existing survey and island fixtures
 continue passing. The corridor-wide baseline also passes; the default crossing
 audit now exposes its policy and requires at least 93% drawn-kerb attachment,
 instead of incorrectly demanding surveyed endpoints in uniform mode.
+Producer/renderer direction-parity tests cover the false WB record, explicit no,
+true/reverse one-way and a valid westbound geometry. Centreline tests cover missing
+named streets, abbreviated names, extra junction vertices and sparse long segments.
 
 Local proof images/diagnostics live in ignored `build/road-paint-preview/`; the
 test cases and this report are committed. Production promotion uses the existing

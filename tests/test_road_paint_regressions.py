@@ -81,6 +81,23 @@ def test_presidio_uniform_lane_topology_cannot_use_eight_lane_junction_sample():
         assert way["stable"] and way["inside"] and way["factsUnchanged"]
 
 
+def test_road_direction_cannot_treat_no_or_wrong_city_direction_as_oneway():
+    from smc.facts.direction import oneway_direction
+    from tests.test_corridor_geometry_rules import _run_lanes
+
+    cases = [
+        {"oneway": "WB", "lanes": 4, "lanes_fwd": 2, "lanes_back": 2},
+        {"oneway": "WB", "points": [[-122.44,37.78],[-122.44,37.79]]},
+        {"osm_oneway": "no", "oneway": "WB", "lanes": 2},
+        {"osm_oneway": "yes", "lanes": 3},
+        {"osm_oneway": "-1"},
+        {"oneway": "WB", "points": [[-122.44,37.78],[-122.45,37.78]]},
+    ]
+    result = _run_lanes(f"const cases={json.dumps(cases)};console.log(JSON.stringify(cases.map(onewaySign)));")
+    assert result == [0, 0, 0, 1, -1, 1]
+    assert result == [oneway_direction(w) for w in cases]
+
+
 def test_uniform_policy_ends_crossing_on_drawn_road_not_other_streets_survey():
     from tests.test_corridor_geometry_rules import _run_crossing
 

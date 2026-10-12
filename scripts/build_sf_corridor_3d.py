@@ -780,7 +780,7 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
                 feature["lanes_fwd"] = forward
             if backward:
                 feature["lanes_back"] = backward
-            if tags.get("oneway") in ("yes", "-1", "true", "1"):
+            if tags.get("oneway") in ("yes", "-1", "true", "1", "no", "false", "0"):
                 feature["osm_oneway"] = tags["oneway"]
             width = _float_text(tags.get("width"))
             if width and 2.0 <= width <= 60.0:
@@ -2528,7 +2528,7 @@ def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
             way["osm_walk_sides"] = []
             counts["busway"] += 1
             continue
-        placed = index.locate_way(way["points"])
+        placed = index.locate_way(way["points"], name=way.get("name") if way["kind"] == "street" else None)
         if placed is None:
             counts["unmatched"] += 1
             continue
@@ -8904,7 +8904,7 @@ function cyclewaySides(way) {
   if (cyclewayIsLane(way.cycleway_left)) add(1);
   if (cyclewayIsLane(way.cycleway_right)) add(-1);
   if (!sides.length && cyclewayIsLane(way.cycleway)) {
-    if (way.oneway || way.osm_oneway) add(-1);
+    if (onewaySign(way) !== 0) add(-1);
     else { add(1); add(-1); }
   }
   if (!sides.length && way._bikeInferred) for (const side of way._bikeInferred) add(side);
@@ -10636,7 +10636,7 @@ const MIN_RENDER_WALK_M = 0.9;
 const MAX_RENDER_WALK_M = 5.5;
 
 function laneCountForWay(way) {
-  const oneway = Boolean(way.oneway || way.osm_oneway);
+  const oneway = onewaySign(way) !== 0;
   const tagged = way.lanes || 0;
   const forward = way.lanes_fwd || (oneway ? tagged : Math.floor(tagged / 2));
   const backward = way.lanes_back || (oneway ? 0 : Math.floor(tagged / 2));
@@ -10921,14 +10921,14 @@ const DIVIDED_TWIN_MIN_M = 4.0;
 const DIVIDED_TWIN_MAX_M = 40.0;
 
 function isDividedHalf(way) {
-  if (!(Boolean(way.oneway || way.osm_oneway) && Array.isArray(way.walk_sides)
+  if (!(onewaySign(way) !== 0 && Array.isArray(way.walk_sides)
         && way.walk_sides.length === 1)) return false;
   return way._twin === undefined ? true : way._twin;
 }
 
 function indexDividedTwins(ways) {
   const oneways = ways.filter((w) => w.kind === "street" && w.points && w.points.length >= 2
-    && Boolean(w.oneway || w.osm_oneway));
+    && onewaySign(w) !== 0);
   // A nameless one-way way has no twin to find: it is a link, not half of a street.
   for (const w of oneways) w._twin = false;
   const halves = oneways.filter((w) => w.name);
@@ -11004,7 +11004,7 @@ const ENVELOPE_RELABEL_M = 1.0;
 //: none, the width the lanes say.
 function envelopeEdgesAt(x, z, nx, nz, way, reach) {
   const kerbs = rayCurbIntersections(x, z, nx, nz, reach, officialCurbGrid);
-  const oneway = Boolean(way.oneway || way.osm_oneway);
+  const oneway = onewaySign(way) !== 0;
   const islands = rayCurbIntersections(x, z, nx, nz, reach, officialIslandCurbGrid);
   const neg = (list) => list.filter((v) => v < -ENVELOPE_MIN_EDGE_M).pop();
   const pos = (list) => list.find((v) => v > ENVELOPE_MIN_EDGE_M);
@@ -12807,7 +12807,7 @@ function addPavementCorners() {
 }
 
 function laneMarkingProfile(way, road = renderedRoadWidth(way)) {
-  const oneway = Boolean(way.oneway || way.osm_oneway);
+  const oneway = onewaySign(way) !== 0;
   // From the cross-sections where the way has them, read at its middle station.
   if (way.xs && way.xs.length) {
     const bands = crossSectionBandsNearMiddle(way, road / 2);
@@ -17875,7 +17875,7 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
   // The cover profile is measured along the way's own line from its first mouth; each bore's
   // line is a sideways copy of it, so the same profile serves both.
   const cover = Array.isArray(way.tunnel_cover) ? way.tunnel_cover : null;
-  const oneway = Boolean(way.oneway || way.osm_oneway);
+  const oneway = onewaySign(way) !== 0;
   let mouthFloor = {};
   for (const off of offsets) {
     const line = offsetWay(covered, off);
@@ -19127,7 +19127,7 @@ function twinInnerEdgeAt(way, x, z, nx, nz) {
         // The other half, or the piece of the same street it becomes for its last metres
         // into the junction, which OpenStreetMap often tags without the footway side.
         if (!source || source === way || source.name !== way.name) continue;
-        if (!isDividedHalf(source) && !(source.oneway || source.osm_oneway)) continue;
+        if (!isDividedHalf(source) && onewaySign(source) === 0) continue;
         const sx = bx - ax, sz = bz - az;
         const segLength = Math.hypot(sx, sz) || 1;
         // Running alongside, not across.
@@ -19454,8 +19454,8 @@ function fillRoadwayToKerbs() {
             const right = carriagewaySourceAt(...at(t1 + 0.35, 0));
             if (left && right && left.source !== right.source && width <= 3.5) {
               const mid = (t0 + t1) / 2;
-              const opposing = Boolean(left.source.oneway || left.source.osm_oneway)
-                && Boolean(right.source.oneway || right.source.osm_oneway)
+              const opposing = onewaySign(left.source) !== 0
+                && onewaySign(right.source) !== 0
                 && Math.abs(((left.bearing - right.bearing) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI) < Math.PI / 3;
               const offsets = opposing ? [-(MARK_W + DOUBLE_GAP_M) / 2, (MARK_W + DOUBLE_GAP_M) / 2] : [0];
               run.line = { sink: opposing ? lines.yellow : lines.white, points: offsets.map((off) => at(mid + off, 0)) };
@@ -22819,8 +22819,19 @@ function indexJunctionVertices() {
 }
 function onewaySign(way) {
   const v = String(way.osm_oneway ?? way.oneway ?? "").toLowerCase();
+  if (["no", "false", "0"].includes(v)) return 0;
+  // Explicit OSM direction wins. Otherwise a city record cannot turn mapped
+  // opposing lanes into a one-way road (Presidio inherited Pine's WB record).
+  if (way.osm_oneway == null && way.lanes_fwd > 0 && way.lanes_back > 0) return 0;
   if (v === "-1" || v === "reverse") return -1;
   if (v === "yes" || v === "true" || v === "1" || way.oneway === true) return 1;
+  const cardinal = { nb: [0,1], sb: [0,-1], eb: [1,0], wb: [-1,0] }[v];
+  if (cardinal && way.points?.length >= 2) {
+    const a = way.points[0], b = way.points[way.points.length - 1];
+    const dx = (b[0]-a[0])*Math.cos((a[1]+b[1])*Math.PI/360), dy = b[1]-a[1];
+    const dot = dx*cardinal[0]+dy*cardinal[1], length = Math.hypot(dx,dy);
+    if (length > 0 && Math.abs(dot)/length >= Math.SQRT1_2) return dot > 0 ? 1 : -1;
+  }
   return 0;
 }
 //: The legs meeting within ``reach`` of a point: each a direction away from the junction.

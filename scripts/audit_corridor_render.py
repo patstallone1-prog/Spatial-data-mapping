@@ -40,6 +40,7 @@ BASELINE_DATA = ROOT / "data" / "sf_corridor" / "audits" / "width_vs_kerb.json"
 #: The rules, by name, exactly as the page defines them. Anything renamed fails loudly here
 #: rather than quietly measuring nothing.
 FUNCTIONS = (
+    "onewaySign",
     "distanceToSegmentSquared",
     "insideCarriageway",
     "insideMeasuredCarriageway",

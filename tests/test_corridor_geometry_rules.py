@@ -117,7 +117,7 @@ def test_inferred_vehicle_access_keeps_five_metre_clear_width() -> None:
         'const SERVICE_ROAD_M={access:5.0};',
         'const MEASURED_ROAD_SOURCES=new Set(["curb_geometry"]);',
         'const MIN_RENDER_ROAD_M=2.8,MAX_RENDER_ROAD_M=24,MAX_INFERRED_ROAD_M=16.5;',
-        _extract("laneCountForWay", js), _extract("nominalRoadWidth", js),
+        _extract("onewaySign", js), _extract("laneCountForWay", js), _extract("nominalRoadWidth", js),
         'console.log(JSON.stringify([nominalRoadWidth({service:"access",road_source:"class_prior",road_m:3.3,lanes:1}),'
         'nominalRoadWidth({service:"access",road_source:"curb_geometry",road_m:3.3,lanes:1})]));',
     ])
@@ -751,7 +751,7 @@ def test_a_street_is_never_drawn_wider_than_the_room_it_has() -> None:
     body = _extract("clampRoadWidthsToNeighbours", js)
     assert "laneCountForWay(way)" in body, "a street with stated lanes must keep room for them"
 
-    functions = ("distanceToSegmentSquared", "laneCountForWay", "nominalRoadWidth",
+    functions = ("onewaySign", "distanceToSegmentSquared", "laneCountForWay", "nominalRoadWidth",
                  "renderedRoadWidth", "segmentRunsAlongside", "sameLevel",
                  "clampRoadWidthsToNeighbours")
     parts = ["""
@@ -944,6 +944,7 @@ BIKE_FUNCTIONS = (
     "trimWayEnds",
     "cyclewayIsLane",
     "cyclewaySides",
+    "onewaySign",
     "laneCountForWay",
     "nominalRoadWidth",
     "renderedRoadWidth",
@@ -2086,7 +2087,7 @@ def test_curb_paint_is_snapped_to_the_kerb_the_model_drew() -> None:
 
 CORNER_FUNCTIONS = (
     *PAVEMENT_FUNCTIONS,
-    "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "renderedWalkWidth",
+    "onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "renderedWalkWidth",
     "isUnmarkedService", "cornerLegsAt", "cornerNeighbour", "cornerFrame", "cornerCutFor",
     "reconcilePavementCorners", "indexPavementCorners", "cornerQuad", "junctionClusters",
     "junctionBoxHull", "pointInRing", "convexHull", "indexJunctionBox",
@@ -2354,7 +2355,7 @@ function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
 """
 
-LANE_FUNCTIONS = ("laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "halfWidthAt",
+LANE_FUNCTIONS = ("onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "halfWidthAt",
                   "crossSectionRowAt", "crossSectionBands", "crossSectionBandsNearMiddle",
                   "crossSectionMarkKind", "travelSpanAt",
                   "travelSpan", "laneOffsets", "laneMarkingProfile", "laneMarkingPaints",
@@ -2460,7 +2461,7 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
     parts += [_extract(name, js) for name in (
         "isUnmarkedService", "wayLength", "offsetWay", "densifyWay", "lerpLonLat",
         "addOfficialCurbGridSegment", "rayCurbIntersections", "officialKerbOffsetsAt",
-        "laneCountForWay", "isDividedHalf", "dividedHalfWidth", "envelopeEdgesAt",
+        "onewaySign", "laneCountForWay", "isDividedHalf", "dividedHalfWidth", "envelopeEdgesAt",
         "recentreOnKerbEnvelope", "inheritRecentring", "recentreStreetsOnOfficialKerbs")]
     parts.append("""
     const at = (xm, ym) => [xm / metersPerLon, ym / metersPerLat];
