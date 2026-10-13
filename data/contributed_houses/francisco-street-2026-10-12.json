@@ -1,0 +1,131 @@
+{
+ "note": "Three fronts on the south side of Francisco Street (Marina), photographed by the project owner on 2026-10-12. The third house's address (1553-1555) was read from the map: the photographs' GPS and the footprints west of 1547-1549. Extents are in the squared-up photograph's pixels (left, top, right, bottom): the wall between its neighbours, from the pavement to the roof line on the wall's plane.",
+ "houses": [
+  {
+   "photo": "~/Downloads/IMG_4633 2.HEIC",
+   "building": "263276313",
+   "region": "sf-corridor",
+   "extents": [
+    250,
+    585,
+    1168,
+    1205
+   ],
+   "angle_deg": 28.8,
+   "camera_lonlat": [
+    -122.4305,
+    37.8025
+   ],
+   "captured_at": "2026-10-12",
+   "contributor": "the project owner",
+   "levels": 3,
+   "corrections": [
+    {
+     "at_u": 4.72,
+     "role": "garage",
+     "basis": "a white sectional garage door in a recessed bay, the side door beside it (IMG_4633, IMG_4634)"
+    }
+   ]
+  },
+  {
+   "photo": "~/Downloads/IMG_4636 2.HEIC",
+   "building": "263276308",
+   "region": "sf-corridor",
+   "extents": [
+    245,
+    293,
+    1222,
+    962
+   ],
+   "angle_deg": 13.7,
+   "camera_lonlat": [
+    -122.4306,
+    37.8024
+   ],
+   "captured_at": "2026-10-12",
+   "contributor": "the project owner",
+   "levels": 4,
+   "corrections": [
+    {
+     "at_u": 2.76,
+     "role": "entrance",
+     "basis": "the second of the two front doors under the arched porch, glazed with ironwork (IMG_4636)"
+    },
+    {
+     "add": "window",
+     "like_column": 6.66,
+     "like_row": 6.77,
+     "basis": "the middle row's right-hand French window behind its balcony (IMG_4636, IMG_4637); the detector boxed that balcony as a fire escape"
+    }
+   ]
+  },
+  {
+   "photo": "~/Downloads/IMG_4639 2.HEIC",
+   "building": "263276306",
+   "region": "sf-corridor",
+   "extents": [
+    90,
+    395,
+    1400,
+    1268
+   ],
+   "angle_deg": 21.8,
+   "camera_lonlat": [
+    -122.4307,
+    37.8025
+   ],
+   "captured_at": "2026-10-12",
+   "contributor": "the project owner",
+   "levels": 3,
+   "fill_from": [
+    {
+     "photo": "~/Downloads/IMG_4640 2.HEIC",
+     "note": "the ground floor head-on; tied by the outer top corners of the middle row's French windows and two corners of the garage opening",
+     "square_points": [
+      [
+       518,
+       245
+      ],
+      [
+       2000,
+       245
+      ],
+      [
+       582,
+       1582
+      ],
+      [
+       1355,
+       1073
+      ]
+     ],
+     "front_points_m": [
+      [
+       0.77,
+       5.97
+      ],
+      [
+       5.76,
+       5.92
+      ],
+      [
+       0.98,
+       0.02
+      ],
+      [
+       3.62,
+       2.32
+      ]
+     ]
+    }
+   ],
+   "corrections": [
+    {
+     "at_u": 5.19,
+     "role": "entrance",
+     "basis": "an arched porch, a step up, two wooden front doors under it (IMG_4640) -- not a garage"
+    }
+   ]
+  }
+ ]
+}

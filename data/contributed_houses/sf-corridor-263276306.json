@@ -1,0 +1,1041 @@
+{
+ "house_extent": {
+  "schema": "kerbside.house_extent/1",
+  "status": "boundaries_not_believed",
+  "boundaries": [
+   {
+    "column": 71,
+    "u": 2.0320332881816854,
+    "delta_e": 23.4
+   },
+   {
+    "column": 158,
+    "u": 4.5219895708831865,
+    "delta_e": 12.1
+   },
+   {
+    "column": 203,
+    "u": 5.80989799297017,
+    "delta_e": 16.7
+   }
+  ],
+  "columns": [
+   0,
+   228
+  ],
+  "left_edge_seen": false,
+  "right_edge_seen": false,
+  "placement": "unchanged"
+ },
+ "front_geometry_binding": {
+  "status": "bound",
+  "geometry_modified": false,
+  "metric_certified": false,
+  "overlap_m": 6.525402671907383,
+  "canonical_world_sha256": "4cb4a0d8f9f0bb990531552f13ed601e7c44c5e181f815a8baaf8a6f9bcf5f1f"
+ },
+ "sanity_checks": {
+  "geometry_modified": false,
+  "window_columns": [
+   {
+    "a": "opening-1",
+    "b": "opening-balcony-5",
+    "left_edge_residual_m": 0.0,
+    "status": "consistent"
+   },
+   {
+    "a": "opening-2",
+    "b": "opening-balcony-6",
+    "left_edge_residual_m": 0.0040000000000000036,
+    "status": "consistent"
+   },
+   {
+    "a": "opening-3",
+    "b": "opening-balcony-7",
+    "left_edge_residual_m": 0.004000000000000448,
+    "status": "consistent"
+   }
+  ],
+  "neighbour_priors": "not used to overwrite this house's observed entrance"
+ },
+ "schema": "kerbside.facade_fit/1",
+ "width_m": 6.525402671907383,
+ "height_m": 12.41,
+ "openings": [
+  {
+   "id": "opening-0",
+   "kind": "door",
+   "u": 1.308,
+   "v": 0.001,
+   "w": 1.951,
+   "h": 2.025,
+   "confidence": 0.6300727128982544,
+   "design": {
+    "shape": "standard",
+    "vertical_bars": [],
+    "horizontal_bars": [],
+    "style": "undivided_or_unresolved",
+    "grade": "image_inferred_not_exact_manufacturer_type",
+    "colour": "#3c3a2e",
+    "colour_basis": "observed_image_colour_not_albedo",
+    "panel_style": "unresolved",
+    "panel_lines": {
+     "panel_grid": false,
+     "horizontal": [],
+     "vertical": [
+      0.125
+     ]
+    }
+   },
+   "grade": "image_on_prior_geometry",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "image_edge_support": {
+    "box": [
+     0.20043294471606873,
+     0.8367550054453485,
+     0.49947989614386307,
+     0.9999414962557603
+    ],
+    "basis": "detector_box_unresolved_edges",
+    "supported_sides": 2,
+    "reason": "incomplete_or_nonrectangular_perimeter"
+   },
+   "opening_reasoning": {
+    "schema": "kerbside.opening_reasoning/1",
+    "original_label": "door",
+    "class": "unknown",
+    "certainty": "inferred_rule_screen_not_measured",
+    "reasons": [
+     "insufficient_or_conflicting_opening_evidence"
+    ],
+    "dimensions_m": {
+     "width": 1.951,
+     "height": 2.025
+    },
+    "garage_reference_m": {
+     "width": 2.4384,
+     "height": 2.1336
+    },
+    "garage_prior_source": "https://www.clopaydoor.com/residential/buyingguide/how-to-install-garage-door",
+    "garage_size_plausible": true,
+    "narrow_door_plausible": false,
+    "pixel_cues": {
+     "panel_grid": false,
+     "horizontal": [],
+     "vertical": [
+      0.125
+     ]
+    },
+    "steps_reviewed": false,
+    "associated_door": false,
+    "rules_out_garage": false,
+    "render_steps": false
+   },
+   "recess": {
+    "category": "unknown",
+    "door_id": "opening-0",
+    "grade": "inferred_visual",
+    "render_steps": false,
+    "reason": "visible_stair_evidence_missing"
+   },
+   "role": "garage",
+   "role_certainty": "medium",
+   "role_basis": [
+    "ground_opening_wider_than_tall"
+   ],
+   "access_check": {
+    "schema": "kerbside.door_access/1",
+    "render_allowed": true,
+    "rise_m": 0.001,
+    "outside_ground_m": 0.0,
+    "ground_basis": "canonical_facade_foot_prior_not_measured_outside_ground",
+    "maximum_unstepped_rise_m": 0.1524,
+    "stairs_supported": false,
+    "reason": null,
+    "geometry_modified": false
+   },
+   "render_allowed": true
+  },
+  {
+   "id": "opening-4",
+   "kind": "door",
+   "u": 4.207,
+   "v": 0.008,
+   "w": 1.957,
+   "h": 2.356,
+   "confidence": 0.2942340672016144,
+   "design": {
+    "shape": "standard",
+    "vertical_bars": [
+     0.221,
+     0.485
+    ],
+    "horizontal_bars": [],
+    "style": "divided_panes",
+    "grade": "image_inferred_not_exact_manufacturer_type",
+    "colour": "#696651",
+    "colour_basis": "observed_image_colour_not_albedo",
+    "panel_style": "unresolved",
+    "panel_lines": {
+     "panel_grid": false,
+     "horizontal": [
+      0.9036144578313253
+     ],
+     "vertical": [
+      0.08823529411764706,
+      0.25,
+      0.4117647058823529,
+      0.4852941176470588,
+      0.7647058823529411,
+      0.9044117647058824
+     ]
+    }
+   },
+   "grade": "image_on_prior_geometry",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "image_edge_support": {
+    "box": [
+     0.6447856970000685,
+     0.8095333257578485,
+     0.9447149310195655,
+     0.9993860622704853
+    ],
+    "basis": "detector_box_unresolved_edges",
+    "supported_sides": 1,
+    "reason": "incomplete_or_nonrectangular_perimeter"
+   },
+   "opening_reasoning": {
+    "schema": "kerbside.opening_reasoning/1",
+    "original_label": "garage door",
+    "class": "unknown",
+    "certainty": "inferred_rule_screen_not_measured",
+    "reasons": [
+     "insufficient_or_conflicting_opening_evidence"
+    ],
+    "dimensions_m": {
+     "width": 1.957,
+     "height": 2.356
+    },
+    "garage_reference_m": {
+     "width": 2.4384,
+     "height": 2.1336
+    },
+    "garage_prior_source": "https://www.clopaydoor.com/residential/buyingguide/how-to-install-garage-door",
+    "garage_size_plausible": false,
+    "narrow_door_plausible": false,
+    "pixel_cues": {
+     "panel_grid": false,
+     "horizontal": [
+      0.9036144578313253
+     ],
+     "vertical": [
+      0.08823529411764706,
+      0.25,
+      0.4117647058823529,
+      0.4852941176470588,
+      0.7647058823529411,
+      0.9044117647058824
+     ]
+    },
+    "steps_reviewed": false,
+    "associated_door": false,
+    "rules_out_garage": false,
+    "render_steps": false
+   },
+   "recess": {
+    "category": "unknown",
+    "door_id": "opening-4",
+    "grade": "inferred_visual",
+    "render_steps": false,
+    "reason": "visible_stair_evidence_missing"
+   },
+   "role": "entrance",
+   "role_certainty": "reviewed",
+   "role_basis": [
+    "reviewer_correction",
+    "an arched porch, a step up, two wooden front doors under it (IMG_4640) -- not a garage"
+   ],
+   "access_check": {
+    "schema": "kerbside.door_access/1",
+    "render_allowed": true,
+    "rise_m": 0.008,
+    "outside_ground_m": 0.0,
+    "ground_basis": "canonical_facade_foot_prior_not_measured_outside_ground",
+    "maximum_unstepped_rise_m": 0.1524,
+    "stairs_supported": false,
+    "reason": null,
+    "geometry_modified": false
+   },
+   "render_allowed": true
+  },
+  {
+   "id": "opening-1",
+   "kind": "window",
+   "u": 0.83,
+   "v": 3.188,
+   "w": 1.288,
+   "h": 2.731,
+   "confidence": 0.4119003117084503,
+   "design": {
+    "shape": "tall",
+    "vertical_bars": [
+     0.25555555555555554
+    ],
+    "horizontal_bars": [
+     0.105,
+     0.2,
+     0.43157894736842106,
+     0.547,
+     0.6421052631578947
+    ],
+    "style": "divided_panes",
+    "grade": "image_inferred_not_exact_manufacturer_type",
+    "observed_glass_or_contents_colour": "#8c8d91",
+    "glass_rendering": "clear_neutral_no_photographed_contents"
+   },
+   "grade": "image_on_prior_geometry",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "image_edge_support": {
+    "box": [
+     0.12719298245614036,
+     0.5230414746543779,
+     0.32456140350877194,
+     0.7430875576036866
+    ],
+    "basis": "four_supported_nearby_image_edges",
+    "supported_sides": 4,
+    "pixel_boundary_sigma": 2,
+    "metric_basis": "registered_facade_prior_not_independent_measurement"
+   },
+   "role": "window",
+   "role_certainty": "high",
+   "role_basis": [
+    "detected_window"
+   ]
+  },
+  {
+   "id": "opening-2",
+   "kind": "window",
+   "u": 2.624,
+   "v": 3.382,
+   "w": 1.316,
+   "h": 2.562,
+   "confidence": 0.37578070163726807,
+   "design": {
+    "shape": "tall",
+    "vertical_bars": [
+     0.848
+    ],
+    "horizontal_bars": [
+     0.16111111111111112,
+     0.289,
+     0.478,
+     0.578
+    ],
+    "style": "divided_panes",
+    "grade": "image_inferred_not_exact_manufacturer_type",
+    "observed_glass_or_contents_colour": "#657388",
+    "glass_rendering": "clear_neutral_no_photographed_contents"
+   },
+   "grade": "image_on_prior_geometry",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "image_edge_support": {
+    "box": [
+     0.4021452853554173,
+     0.5210629652172739,
+     0.6037812483938116,
+     0.7275068573138681
+    ],
+    "basis": "detector_box_unresolved_edges",
+    "supported_sides": 1,
+    "reason": "incomplete_or_nonrectangular_perimeter"
+   },
+   "role": "window",
+   "role_certainty": "high",
+   "role_basis": [
+    "detected_window"
+   ]
+  },
+  {
+   "id": "opening-3",
+   "kind": "window",
+   "u": 4.486,
+   "v": 3.434,
+   "w": 1.28,
+   "h": 2.482,
+   "confidence": 0.34821751713752747,
+   "design": {
+    "shape": "tall",
+    "vertical_bars": [
+     0.20454545454545456,
+     0.432,
+     0.6363636363636364
+    ],
+    "horizontal_bars": [
+     0.1839080459770115,
+     0.299,
+     0.5402298850574713
+    ],
+    "style": "divided_panes",
+    "grade": "image_inferred_not_exact_manufacturer_type",
+    "observed_glass_or_contents_colour": "#a0a9b5",
+    "glass_rendering": "clear_neutral_no_photographed_contents"
+   },
+   "grade": "image_on_prior_geometry",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "image_edge_support": {
+    "box": [
+     0.6874140020002398,
+     0.5233064291114631,
+     0.8836230897066886,
+     0.7232711018505185
+    ],
+    "basis": "detector_box_unresolved_edges",
+    "supported_sides": 2,
+    "reason": "incomplete_or_nonrectangular_perimeter"
+   },
+   "role": "window",
+   "role_certainty": "high",
+   "role_basis": [
+    "detected_window"
+   ]
+  },
+  {
+   "id": "opening-balcony-5",
+   "kind": "window",
+   "u": 0.831,
+   "v": 7.411,
+   "w": 1.288,
+   "h": 2.731,
+   "confidence": 0.387,
+   "design": {
+    "shape": "tall",
+    "vertical_bars": [
+     0.25555555555555554
+    ],
+    "horizontal_bars": [
+     0.105,
+     0.2,
+     0.43157894736842106,
+     0.547,
+     0.6421052631578947
+    ],
+    "style": "french_window_behind_balcony",
+    "grade": "inferred_from_the_balcony_in_front_of_it",
+    "trim": {
+     "colour": "#e1e3de",
+     "width_m": 0.06,
+     "basis": "image_inferred_white_trim; width_inferred"
+    },
+    "panes_basis": "duplicate_of_a_surer_neighbour"
+   },
+   "grade": "inferred_behind_balcony",
+   "size_inferred": "french_window_behind_balcony",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "role": "window",
+   "role_certainty": "high",
+   "role_basis": [
+    "detected_window"
+   ],
+   "size_from": "opening-1"
+  },
+  {
+   "id": "opening-balcony-6",
+   "kind": "window",
+   "u": 2.622,
+   "v": 7.496,
+   "w": 1.316,
+   "h": 2.562,
+   "confidence": 0.387,
+   "design": {
+    "shape": "tall",
+    "vertical_bars": [
+     0.848
+    ],
+    "horizontal_bars": [
+     0.16111111111111112,
+     0.289,
+     0.478,
+     0.578
+    ],
+    "style": "french_window_behind_balcony",
+    "grade": "inferred_from_the_balcony_in_front_of_it",
+    "trim": {
+     "colour": "#dfe0db",
+     "width_m": 0.06,
+     "basis": "image_inferred_white_trim; width_inferred"
+    },
+    "panes_basis": "duplicate_of_a_surer_neighbour"
+   },
+   "grade": "inferred_behind_balcony",
+   "size_inferred": "french_window_behind_balcony",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "role": "window",
+   "role_certainty": "high",
+   "role_basis": [
+    "detected_window"
+   ],
+   "size_from": "opening-2"
+  },
+  {
+   "id": "opening-balcony-7",
+   "kind": "window",
+   "u": 4.49,
+   "v": 7.536,
+   "w": 1.28,
+   "h": 2.482,
+   "confidence": 0.387,
+   "design": {
+    "shape": "tall",
+    "vertical_bars": [
+     0.20454545454545456,
+     0.432,
+     0.6363636363636364
+    ],
+    "horizontal_bars": [
+     0.1839080459770115,
+     0.299,
+     0.5402298850574713
+    ],
+    "style": "french_window_behind_balcony",
+    "grade": "inferred_from_the_balcony_in_front_of_it",
+    "trim": {
+     "colour": "#d9dcdb",
+     "width_m": 0.06,
+     "basis": "image_inferred_white_trim; width_inferred"
+    },
+    "panes_basis": "duplicate_of_a_surer_neighbour"
+   },
+   "grade": "inferred_behind_balcony",
+   "size_inferred": "french_window_behind_balcony",
+   "position_sigma_m": 0.5,
+   "size_anomaly_requires_review": false,
+   "type_requires_review": false,
+   "role": "window",
+   "role_certainty": "high",
+   "role_basis": [
+    "detected_window"
+   ],
+   "size_from": "opening-3"
+  }
+ ],
+ "appearance": {
+  "colour": "#9f9f9a",
+  "grade": "image_colour_not_albedo",
+  "material": "unknown",
+  "schema": "kerbside.facade_appearance_bands/1",
+  "bands": [
+   {
+    "bottom_m": 0.0,
+    "top_m": 4.146198156682028,
+    "colour": "#878792",
+    "material": "unknown",
+    "material_basis": "unknown; whole_building_classifier_not_floor_truth",
+    "wall_pixel_fraction": 0.4877482963607366,
+    "front_basis": "image_colour_on_storey_prior_not_albedo",
+    "other_sides_basis": "inferred_same_height_band",
+    "observed_colour": "#b5b6a5",
+    "colour_policy_reason": "shared_house_colour; visual_default_not_albedo_measurement"
+   },
+   {
+    "bottom_m": 4.146198156682028,
+    "top_m": 8.263801843317971,
+    "colour": "#878792",
+    "material": "unknown",
+    "material_basis": "unknown; whole_building_classifier_not_floor_truth",
+    "wall_pixel_fraction": 0.6378654970760234,
+    "front_basis": "image_colour_on_storey_prior_not_albedo",
+    "other_sides_basis": "inferred_same_height_band",
+    "observed_colour": "#b0ada4",
+    "colour_policy_reason": "shared_house_colour; visual_default_not_albedo_measurement"
+   },
+   {
+    "bottom_m": 8.263801843317971,
+    "top_m": 12.41,
+    "colour": "#878792",
+    "material": "unknown",
+    "material_basis": "unknown; whole_building_classifier_not_floor_truth",
+    "wall_pixel_fraction": 0.7320574162679426,
+    "front_basis": "image_colour_on_storey_prior_not_albedo",
+    "other_sides_basis": "inferred_same_height_band",
+    "observed_colour": "#878792",
+    "colour_policy_reason": "shared_house_colour; visual_default_not_albedo_measurement"
+   }
+  ],
+  "boundaries_basis": "canonical_height_and_levels_prior",
+  "colour_policy": "dominant_house_colour_unless_business_material_or_strong_colour_difference/2",
+  "colour_difference": "lab_lightness_discounted_except_neutrals",
+  "distinct_colour_delta_e76": 25.0
+ },
+ "storey_constraint": {
+  "status": "prior_constrained",
+  "storeys": 3,
+  "storey_height_m": 4.136666666666667,
+  "visual_storey_height_m": 4.1,
+  "visual_rounding_sigma_m": 0.05,
+  "basis": "supplied_height_and_levels"
+ },
+ "ground_reference": null,
+ "details": [
+  {
+   "kind": "balcony",
+   "source_kind": "balcony",
+   "opening_reasoning": null,
+   "box": [
+    0.05740961275602642,
+    0.296747550436978,
+    0.9995010777523643,
+    0.47581629599294356
+   ],
+   "score": 0.3870618939399719,
+   "u": 0.374620840471343,
+   "v": 6.505119766727571,
+   "w": 6.147526162868244,
+   "h": 2.222243132349533,
+   "material": "unknown",
+   "style": "unknown",
+   "depth_m": null,
+   "certainty": "unreviewed_visible_object_proposal",
+   "render": false
+  }
+ ],
+ "outcrops": [],
+ "outcrop_candidates": [],
+ "certainty": {
+  "front": "unreviewed_image_on_prior",
+  "height": "canonical_prior",
+  "depth": "unknown",
+  "appearance": "image_inferred",
+  "unseen_sides": "procedural_inferred",
+  "tier": "low",
+  "reasons": [
+   "floor_material_unresolved",
+   "front_or_two_storeys_not_image_verified",
+   "material_unresolved",
+   "render_alignment_not_reviewed"
+  ],
+  "calibrated_probability": null,
+  "metric_basis": "canonical_priors; not independent measurement",
+  "ai_review_required": true,
+  "keep_raw_locally": true
+ },
+ "conflicts": [],
+ "geometry_grade": "visual_on_canonical_prior",
+ "canonical_geometry_modified": false,
+ "unseen_sides": "inferred",
+ "inch_accuracy_verified": false,
+ "opening_logic_schema": "kerbside.opening_reasoning/1",
+ "entries": {
+  "schema": "kerbside.entry_inference/1",
+  "entries": [
+   {
+    "door_id": "opening-4",
+    "u": 4.2855,
+    "w": 1.8,
+    "threshold_m": 0.008,
+    "stair_pixels": false,
+    "reveals": {
+     "left_m": 0.029,
+     "right_m": 0.0,
+     "header_dark": false,
+     "wall_luminance": 98.0
+    },
+    "kind": "flush"
+   }
+  ],
+  "fences": [],
+  "fences_without_gate": [],
+  "flights": [],
+  "certainty": "image_on_prior_geometry; depth inferred; not surveyed"
+ },
+ "primary_entry": {
+  "door_id": "opening-4",
+  "u": 4.2855,
+  "w": 1.8,
+  "threshold_m": 0.008,
+  "stair_pixels": false,
+  "reveals": {
+   "left_m": 0.029,
+   "right_m": 0.0,
+   "header_dark": false,
+   "wall_luminance": 98.0
+  },
+  "kind": "flush"
+ },
+ "coarse_openings": {
+  "schema": "kerbside.coarse_openings/1",
+  "roles": {
+   "garage": 2,
+   "window": 6
+  },
+  "windows_from_groups": 3,
+  "windows_given_detail": 0,
+  "windows_mirrored_from_their_floor": 0,
+  "windows_duplicated_from_a_neighbour": 3,
+  "windows_given_default_panes": 0
+ },
+ "opening_decisions": [
+  {
+   "schema": "kerbside.opening_reasoning/1",
+   "original_label": "door",
+   "class": "unknown",
+   "certainty": "inferred_rule_screen_not_measured",
+   "reasons": [
+    "insufficient_or_conflicting_opening_evidence"
+   ],
+   "dimensions_m": {
+    "width": 1.9514017758726867,
+    "height": 2.0251443509572105
+   },
+   "garage_reference_m": {
+    "width": 2.4384,
+    "height": 2.1336
+   },
+   "garage_prior_source": "https://www.clopaydoor.com/residential/buyingguide/how-to-install-garage-door",
+   "garage_size_plausible": true,
+   "narrow_door_plausible": false,
+   "pixel_cues": {
+    "panel_grid": false,
+    "horizontal": [],
+    "vertical": [
+     0.125
+    ]
+   },
+   "steps_reviewed": false,
+   "associated_door": false,
+   "rules_out_garage": false,
+   "render_steps": false
+  },
+  {
+   "schema": "kerbside.opening_reasoning/1",
+   "original_label": "garage door",
+   "class": "unknown",
+   "certainty": "inferred_rule_screen_not_measured",
+   "reasons": [
+    "insufficient_or_conflicting_opening_evidence"
+   ],
+   "dimensions_m": {
+    "width": 1.9571590250539603,
+    "height": 2.3560724601218226
+   },
+   "garage_reference_m": {
+    "width": 2.4384,
+    "height": 2.1336
+   },
+   "garage_prior_source": "https://www.clopaydoor.com/residential/buyingguide/how-to-install-garage-door",
+   "garage_size_plausible": false,
+   "narrow_door_plausible": false,
+   "pixel_cues": {
+    "panel_grid": false,
+    "horizontal": [
+     0.9036144578313253
+    ],
+    "vertical": [
+     0.08823529411764706,
+     0.25,
+     0.4117647058823529,
+     0.4852941176470588,
+     0.7647058823529411,
+     0.9044117647058824
+    ]
+   },
+   "steps_reviewed": false,
+   "associated_door": false,
+   "rules_out_garage": false,
+   "render_steps": false
+  },
+  {
+   "schema": "kerbside.opening_reasoning/1",
+   "original_label": "garage door",
+   "class": "garage_candidate",
+   "certainty": "inferred_rule_screen_not_measured",
+   "reasons": [
+    "garage_label_and_plausible_vehicle_opening_size"
+   ],
+   "dimensions_m": {
+    "width": 2.63769245204744,
+    "height": 2.3019874790736607
+   },
+   "garage_reference_m": {
+    "width": 2.4384,
+    "height": 2.1336
+   },
+   "garage_prior_source": "https://www.clopaydoor.com/residential/buyingguide/how-to-install-garage-door",
+   "garage_size_plausible": true,
+   "narrow_door_plausible": false,
+   "pixel_cues": {
+    "panel_grid": false,
+    "horizontal": [
+     0.15
+    ],
+    "vertical": [
+     0.15217391304347827,
+     0.8478260869565217
+    ]
+   },
+   "steps_reviewed": false,
+   "associated_door": false,
+   "rules_out_garage": false,
+   "render_steps": false
+  },
+  {
+   "schema": "kerbside.opening_reasoning/1",
+   "original_label": "garage door",
+   "class": "garage_candidate",
+   "certainty": "inferred_rule_screen_not_measured",
+   "reasons": [
+    "garage_label_and_plausible_vehicle_opening_size"
+   ],
+   "dimensions_m": {
+    "width": 1.9552939483891831,
+    "height": 2.026693930735786
+   },
+   "garage_reference_m": {
+    "width": 2.4384,
+    "height": 2.1336
+   },
+   "garage_prior_source": "https://www.clopaydoor.com/residential/buyingguide/how-to-install-garage-door",
+   "garage_size_plausible": true,
+   "narrow_door_plausible": false,
+   "pixel_cues": {
+    "panel_grid": false,
+    "horizontal": [],
+    "vertical": []
+   },
+   "steps_reviewed": false,
+   "associated_door": false,
+   "rules_out_garage": false,
+   "render_steps": false
+  },
+  {
+   "schema": "kerbside.opening_reasoning/1",
+   "original_label": "garage door",
+   "class": "garage_candidate",
+   "certainty": "inferred_rule_screen_not_measured",
+   "reasons": [
+    "garage_label_and_plausible_vehicle_opening_size"
+   ],
+   "dimensions_m": {
+    "width": 2.7203163418109555,
+    "height": 2.3380667488695837
+   },
+   "garage_reference_m": {
+    "width": 2.4384,
+    "height": 2.1336
+   },
+   "garage_prior_source": "https://www.clopaydoor.com/residential/buyingguide/how-to-install-garage-door",
+   "garage_size_plausible": true,
+   "narrow_door_plausible": false,
+   "pixel_cues": {
+    "panel_grid": false,
+    "horizontal": [
+     0.15853658536585366
+    ],
+    "vertical": [
+     0.15789473684210525,
+     0.8210526315789474,
+     0.9157894736842105
+    ]
+   },
+   "steps_reviewed": false,
+   "associated_door": false,
+   "rules_out_garage": false,
+   "render_steps": false
+  }
+ ],
+ "architectural_logic": {
+  "repeated_forms": {
+   "pairs": [
+    {
+     "object_ids": [
+      "opening-balcony-5",
+      "opening-balcony-7"
+     ],
+     "families": [
+      "tall",
+      "tall"
+     ],
+     "status": "compatible_repeated_family",
+     "shared_style_hint": "tall",
+     "mirror_alignment": "True",
+     "separate_objects": true,
+     "basis": "visible_same_facade_symmetry_prior_not_independent_evidence",
+     "render_new_geometry": false
+    },
+    {
+     "object_ids": [
+      "opening-1",
+      "opening-3"
+     ],
+     "families": [
+      "tall",
+      "tall"
+     ],
+     "status": "compatible_repeated_family",
+     "shared_style_hint": "tall",
+     "mirror_alignment": "True",
+     "separate_objects": true,
+     "basis": "visible_same_facade_symmetry_prior_not_independent_evidence",
+     "render_new_geometry": false
+    }
+   ],
+   "geometry_modified": false,
+   "hidden_counterparts_created": false
+  }
+ },
+ "review_corrections": [
+  {
+   "opening": "opening-4",
+   "before": {
+    "kind": "door",
+    "role": "garage"
+   },
+   "after": {
+    "kind": "door",
+    "role": "entrance"
+   },
+   "basis": "an arched porch, a step up, two wooden front doors under it (IMG_4640) -- not a garage",
+   "reviewer": "assistant, on the contributed photographs"
+  }
+ ],
+ "building_id": "263276306",
+ "region": "sf-corridor",
+ "address": {
+  "formatted": "1553;1555 Francisco Street",
+  "house_number": "1553;1555",
+  "street": "Francisco Street"
+ },
+ "a": [
+  -122.4306098,
+  37.8023959
+ ],
+ "b": [
+  -122.4306832,
+  37.8023874
+ ],
+ "front_normal_enu": [
+  -0.14500494748015674,
+  0.9894309299826224
+ ],
+ "world_sha256": "4cb4a0d8f9f0bb990531552f13ed601e7c44c5e181f815a8baaf8a6f9bcf5f1f",
+ "canonical_footprint": [
+  [
+   -122.4306832,
+   37.8023874
+  ],
+  [
+   -122.4306098,
+   37.8023959
+  ],
+  [
+   -122.430572,
+   37.8021928
+  ],
+  [
+   -122.4305602,
+   37.8021291
+  ],
+  [
+   -122.4306336,
+   37.8021206
+  ],
+  [
+   -122.4306357,
+   37.8021318
+  ],
+  [
+   -122.4306832,
+   37.8023874
+  ]
+ ],
+ "image_sha256": "1619cc754009278902aab4b4550054fa9e792008b375b6a0f094aaa9d0383256",
+ "height_source": "datasf_lidar_median_height",
+ "observation_uid": "contributed:1619cc7540092789",
+ "attribution": "Photograph by the project owner, 2026-10-12",
+ "license_id": "contributed-by-owner",
+ "source_locator": "contributed://IMG_4639 2.HEIC",
+ "review_status": "auto_accepted_visual_parameters",
+ "pixel_publication": "forbidden_without_privacy_review",
+ "fit_rank": [
+  1,
+  1.0
+ ],
+ "detector": {
+  "model": "IDEA-Research/grounding-dino-tiny",
+  "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71",
+  "weights_sha256": "1a2412ef99bd74bcd3c2a246fa1e48581f8889a1300c9051974741314fc042f3",
+  "license": "Apache-2.0",
+  "prompt": "window. door. garage door. stairs. fire escape. balcony. canopy.",
+  "model_card": "https://huggingface.co/IDEA-Research/grounding-dino-tiny",
+  "grade": "uncalibrated_detection_proposal_not_geometry_truth",
+  "device": "mps",
+  "detection_threshold": 0.2,
+  "entrance_retry_prompt": "garage door. entrance door. entrance gate.",
+  "entrance_retry_top_fraction": 0.6
+ },
+ "strict_frontage": {
+  "metadata_pass": true,
+  "reasons": [],
+  "max_angle_deg": 35,
+  "min_storeys": 2,
+  "full_front_pixel_verified": false,
+  "storeys_status": "needs_image_storey_review",
+  "pass": false
+ },
+ "selection_evidence": {
+  "geometry_pass": true,
+  "angle_deg": 21.8,
+  "edge_angle_deg": 21.8,
+  "full_front_in_frame": true,
+  "pose_status": "squared_up_from_vanishing_points"
+ },
+ "contributed_photo": {
+  "extents_px": [
+   90,
+   395,
+   1400,
+   1268
+  ],
+  "filled_from": [
+   {
+    "photo": "IMG_4640 2.HEIC",
+    "pixels": 7255,
+    "tied": "by_hand"
+   }
+  ],
+  "squared_up": {
+   "vertical_edges": 444,
+   "horizontal_edges": 549
+  },
+  "extents_basis": "marked on the squared-up photograph by the reviewer",
+  "scale_basis": "front wall from the footprint; height from the lidar"
+ },
+ "auto_review": {
+  "schema": "kerbside.auto_review/1",
+  "accept": true,
+  "reasons": [],
+  "passes": [
+   "source:contributed",
+   "frontage_view_gate",
+   "bound_to_front_edge",
+   "wall_colour",
+   "windows:6",
+   "entry:flush"
+  ],
+  "reviewer": "automatic:auto_review/1"
+ }
+}

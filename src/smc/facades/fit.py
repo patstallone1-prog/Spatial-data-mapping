@@ -302,6 +302,74 @@ def reviewed_details(controls: dict, width: float, height: float, storey: dict) 
     return accepted
 
 
+#: A French window's height, and the deck under a balcony's rail.
+FRENCH_WINDOW_M = 2.2
+RAIL_ABOVE_DECK_M = 1.05
+
+
+def windows_behind_balconies(found: list[dict], details: list[dict], width: float, height: float) -> list[dict]:
+    """The French windows a photograph's balconies (and fire escapes) are reached through.
+
+    A balcony up the front is stepped onto from a window or a door behind it -- there is no other
+    way onto it -- but its railing stands across the glass, and the detector sees the railing and
+    not the window. Where it found a balcony and no window behind it, a window is inferred there:
+    in the columns the other floors' windows stand in, or evenly across a wide balcony; its sill
+    on the balcony's deck (a rail's height under the rail's top), as tall as a French window or
+    as the floor allows. Marked inferred (``size_inferred``), never measured.
+    """
+    windows = [o for o in found if o.get("kind") == "window"]
+    balconies = []
+    for item in details:
+        # A fire escape's landings are stepped onto from windows too.
+        if item.get("kind") not in {"balcony", "fire escape"}:
+            continue
+        box = item.get("box", [])
+        if len(box) != 4:
+            continue
+        x0, y0, x1, y1 = box
+        # One landing, not a whole escape up the front: a box a storey tall or more is the stair.
+        if item["kind"] == "fire escape" and (y1 - y0) * height > 2.0:
+            continue
+        u, w = x0 * width, (x1 - x0) * width
+        rail_top = (1 - y0) * height
+        deck = max((1 - y1) * height, rail_top - RAIL_ABOVE_DECK_M)
+        if deck < 1.8 or w < 0.6:
+            continue           # the ground floor's railings are fences and stoops, not balconies
+        balconies.append({"u": u, "w": w, "deck": deck, "score": float(item.get("score", 0.3))})
+    out = []
+    for b in sorted(balconies, key=lambda b: -b["w"]):
+        above = [o["deck"] for o in balconies if o["deck"] > b["deck"] + 1.5]
+        ceiling = min([*above, height - 0.4]) - 0.3
+        top = min(b["deck"] + FRENCH_WINDOW_M, ceiling)
+        if top - b["deck"] < 1.2:
+            continue
+        columns = sorted({(round(o["u"], 2), round(o["w"], 2)) for o in windows
+                          if b["u"] - 0.2 <= o["u"] + o["w"] / 2 <= b["u"] + b["w"] + 0.2})
+        if not columns:
+            n = max(1, round(b["w"] / 2.6))
+            each = min(1.5, 0.8 * b["w"] / n)
+            columns = [(b["u"] + b["w"] * (k + 0.5) / n - each / 2, each) for k in range(n)]
+        for u, w in columns:
+            centre = u + w / 2
+            if any(abs(centre - (o["u"] + o["w"] / 2)) < max(w, o["w"]) * 0.6
+                   and min(top, o["v"] + o["h"]) - max(b["deck"], o["v"]) > 0.3 * (top - b["deck"])
+                   for o in [*found, *out] if o.get("kind") == "window"):
+                continue
+            if u < 0.05 or u + w > width - 0.05:
+                continue
+            out.append({
+                "id": f"opening-balcony-{len(found) + len(out)}", "kind": "window",
+                "u": round(u, 3), "v": round(b["deck"], 3), "w": round(w, 3), "h": round(top - b["deck"], 3),
+                "confidence": round(min(0.5, b["score"]), 3),
+                "design": {"shape": "tall", "vertical_bars": [0.5], "horizontal_bars": [],
+                           "style": "french_window_behind_balcony",
+                           "grade": "inferred_from_the_balcony_in_front_of_it"},
+                "grade": "inferred_behind_balcony", "size_inferred": "french_window_behind_balcony",
+                "position_sigma_m": 0.5, "size_anomaly_requires_review": False, "type_requires_review": False,
+            })
+    return out
+
+
 def extract_front(
     bgr: np.ndarray, labels: np.ndarray, width: float, height: float, controls: dict | None = None
 ) -> dict:
@@ -340,6 +408,10 @@ def extract_front(
                 continue
             x0, y0, x1, y1 = box
             if x1 <= x0 or y1 <= y0:
+                continue
+            # A gate stands at the pavement: one the detector finds two metres up the front is a
+            # balcony's railing (the same rule the segmentation's gates are held to, below).
+            if kind == "gated_entry_candidate" and (1 - y1) * height > 0.6:
                 continue
             edge = refine_opening(bgr, box)
             item["edge_support"] = edge
@@ -417,6 +489,10 @@ def extract_front(
         # still a door (coarse first; the entry pass decides what it is).
         if kind != "window" and (h < 1.2 or h > 4):
             continue
+        # Nearly the whole width of the front at the ground is its plinth or its shopfront, not a
+        # door or a garage (the HABS validation found foundation bands read as full-width garages).
+        if kind != "window" and w > 0.85 * width and not controls.get("ground_floor_business"):
+            continue
         if any(
             abs(u + w / 2 - o["u"] - o["w"] / 2) < min(w, o["w"]) * 0.7
             and abs(v + h / 2 - o["v"] - o["h"] / 2) < min(h, o["h"]) * 0.7
@@ -450,6 +526,11 @@ def extract_front(
                 else "unresolved"
             )
             design["panel_lines"] = cues
+            # An arched head: an entry's arch (a garage door is a rectangle of panels).
+            arch = arched_profile(bgr[y0:y1, x0:x1])
+            if arch:
+                design["head"] = "arched"
+                design["head_basis"] = arch["shape_basis"]
         found.append(
             {
                 "id": f"opening-{len(found)}",
@@ -475,6 +556,7 @@ def extract_front(
                 ),
             }
         )
+    found += windows_behind_balconies(found, details or [], width, height)
     rows = []
     for o in sorted((o for o in found if o["kind"] == "window"), key=lambda o: o["v"]):
         centre = o["v"] + o["h"] / 2

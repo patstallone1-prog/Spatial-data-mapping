@@ -107,12 +107,26 @@ def tile(fits: dict, base: str = "") -> dict:
     return manifest
 
 
+def contributed_fits(folder: Path) -> dict:
+    """The accepted fits made from contributed photographs, by building: a photograph someone took
+    of the house on purpose is preferred to the run's for the same house."""
+    out = {}
+    for path in sorted(folder.glob("*.json")) if folder.is_dir() else []:
+        fit = json.loads(path.read_text())
+        if isinstance(fit, dict) and fit.get("building_id") and (fit.get("auto_review") or {}).get("accept"):
+            out[str(fit["building_id"])] = fit
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--fits", type=Path, required=True, help="the published fits (the matcher's output)")
     ap.add_argument("--base", default="", help="where the tiles are served from (empty: the site)")
+    ap.add_argument("--contributed", type=Path, default=ROOT / "data" / "contributed_houses",
+                    help="fits from contributed photographs (scripts/fit_contributed_photos.py), published with the run's")
     args = ap.parse_args()
     fits = json.loads(args.fits.read_text())["buildings"]
+    fits.update(contributed_fits(args.contributed))
     manifest = tile(fits, args.base)
     total = sum(t["bytes"] for t in manifest["tiles"])
     print(f"{manifest['houses']} houses in {len(manifest['tiles'])} tiles, {total / 1e6:.1f} MB "

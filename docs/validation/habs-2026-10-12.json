@@ -1,0 +1,445 @@
+{
+ "schema": "kerbside.validation.habs/1",
+ "date": "2026-10-12",
+ "what": "Blind reconstruction of house fronts from archival HABS photographs, scored against the same survey's measured elevation drawings.",
+ "source": "Historic American Buildings Survey (Library of Congress), public domain; scans from the Wikimedia Commons mirror -- the Library of Congress refused automated downloads on the day. Photographs and drawings were deleted after scoring; only these numbers are kept.",
+ "method": [
+  "Each photograph squared up from its own vanishing points (smc.facades.photo_rectify).",
+  "The front panel cut out and given only its width and height in metres, read from the drawing's scale bar -- the priors the footprint and the lidar give in the city.",
+  "The pipeline unchanged: segmentation, detector, extract_front.",
+  "Openings marked on the drawing and matched to the predicted ones (centres within max(1.5 m, the opening's size), overlap IoU >= 0.1)."
+ ],
+ "protocol": "raw: the pipeline given only the panel's width and height (as the footprint and lidar give it); a predicted opening matches a drawn one when their centres are within max(1.5 m, the drawn opening's size) and they overlap (IoU >= 0.1), nearest first. aligned: the same after a per-axis scale and offset fitted on the matched centres (secondary: with three openings it absorbs most of the error).",
+ "coverage": {
+  "houses_in_pack": 12,
+  "houses_scored": 3,
+  "panels_scored": 4,
+  "drawn_openings": 15
+ },
+ "results_blind_raw": {
+  "panels": 4,
+  "drawn_openings": 15,
+  "predicted_openings": 19,
+  "matched": 12,
+  "recall": 0.8,
+  "precision": 0.631578947368421,
+  "mean_recall_per_panel": 0.7916666666666667,
+  "mean_precision_per_panel": 0.6388888888888888,
+  "centre_error_m": 0.2619778916241238,
+  "width_error_m": 0.18274999999999997,
+  "height_error_m": 0.12216666666666672,
+  "width_error_rel": 0.11233086470107345,
+  "height_error_rel": 0.05649997825858291,
+  "mean_iou": 0.6869764276404647,
+  "window_vs_door_correct": 0.8333333333333334
+ },
+ "results_blind_aligned": {
+  "panels": 3,
+  "drawn_openings": 12,
+  "predicted_openings": 17,
+  "matched": 11,
+  "recall": 0.9166666666666666,
+  "precision": 0.6470588235294118,
+  "mean_recall_per_panel": 0.9444444444444445,
+  "mean_precision_per_panel": 0.6851851851851851,
+  "centre_error_m": 0.17738751582188844,
+  "width_error_m": 0.1946935317707755,
+  "height_error_m": 0.13984475488773193,
+  "width_error_rel": 0.11798919874123216,
+  "height_error_rel": 0.06646749715711217,
+  "mean_iou": 0.7551126499743984,
+  "window_vs_door_correct": 0.8181818181818182
+ },
+ "results_with_plinth_rule_raw": {
+  "panels": 4,
+  "drawn_openings": 15,
+  "predicted_openings": 16,
+  "matched": 12,
+  "recall": 0.8,
+  "precision": 0.75,
+  "mean_recall_per_panel": 0.7916666666666667,
+  "mean_precision_per_panel": 0.8888888888888888,
+  "centre_error_m": 0.2619778916241238,
+  "width_error_m": 0.18274999999999997,
+  "height_error_m": 0.12216666666666672,
+  "width_error_rel": 0.11233086470107345,
+  "height_error_rel": 0.05649997825858291,
+  "mean_iou": 0.6869764276404647,
+  "window_vs_door_correct": 0.8333333333333334
+ },
+ "plinth_rule_note": "Added after this validation (so not blind): a ground opening across 85% or more of a front is its plinth, not a garage or a door. It removes the false full-width garages the run found on three panels.",
+ "panels": [
+  {
+   "title": "J. Mora Moss House (northwest front, central panel)",
+   "panel_m": [
+    19.68,
+    12.89
+   ],
+   "raw": {
+    "truth": 6,
+    "predicted": 9,
+    "matched": 5,
+    "recall": 0.8333333333333334,
+    "precision": 0.5555555555555556,
+    "pairs": [
+     {
+      "name": "right dormer window",
+      "centre_m": 0.08336965874945042,
+      "width_m": 0.04899999999999993,
+      "height_m": 0.11500000000000021,
+      "width_rel": 0.03450704225352108,
+      "height_rel": 0.03833333333333341,
+      "iou": 0.8725400133679708,
+      "kind_ok": true
+     },
+     {
+      "name": "left dormer window",
+      "centre_m": 0.12991247053304741,
+      "width_m": 0.29400000000000004,
+      "height_m": 0.06099999999999994,
+      "width_rel": 0.19864864864864867,
+      "height_rel": 0.020333333333333314,
+      "iou": 0.7995005992735791,
+      "kind_ok": true
+     },
+     {
+      "name": "front door (pair)",
+      "centre_m": 0.36257137228413355,
+      "width_m": 0.32600000000000007,
+      "height_m": 0.04800000000000004,
+      "width_rel": 0.1530516431924883,
+      "height_rel": 0.013114754098360666,
+      "iou": 0.7265503269819172,
+      "kind_ok": true
+     },
+     {
+      "name": "right ground window",
+      "centre_m": 0.5554264127677035,
+      "width_m": 0.05099999999999971,
+      "height_m": 0.028999999999999915,
+      "width_rel": 0.024878048780487667,
+      "height_rel": 0.006697459584295592,
+      "iou": 0.5550788787325792,
+      "kind_ok": true
+     },
+     {
+      "name": "gable bay window",
+      "centre_m": 0.9319078548869515,
+      "width_m": 0.8610000000000002,
+      "height_m": 0.32600000000000007,
+      "width_rel": 0.32368421052631585,
+      "height_rel": 0.09616519174041299,
+      "iou": 0.4319614485765044,
+      "kind_ok": true
+     }
+    ]
+   },
+   "aligned": {
+    "truth": 6,
+    "predicted": 9,
+    "matched": 5,
+    "recall": 0.8333333333333334,
+    "precision": 0.5555555555555556,
+    "pairs": [
+     {
+      "name": "front door (pair)",
+      "centre_m": 0.24934466774018882,
+      "width_m": 0.4103823399994768,
+      "height_m": 0.08739114521732727,
+      "width_rel": 0.19266776525797036,
+      "height_rel": 0.023877362081236957,
+      "iou": 0.7691803712292302,
+      "kind_ok": true
+     },
+     {
+      "name": "left dormer window",
+      "centre_m": 0.32868901448301513,
+      "width_m": 0.35495043613968713,
+      "height_m": 0.05076706998658009,
+      "width_rel": 0.23983137577005886,
+      "height_rel": 0.016922356662193366,
+      "iou": 0.6738934073129179,
+      "kind_ok": true
+     },
+     {
+      "name": "right ground window",
+      "centre_m": 0.34038725817824894,
+      "width_m": 0.01768090295560043,
+      "height_m": 0.13016127346341122,
+      "width_rel": 0.008624830710048992,
+      "height_rel": 0.030060340291780882,
+      "iou": 0.7011329909553243,
+      "kind_ok": true
+     },
+     {
+      "name": "right dormer window",
+      "centre_m": 0.35371137579225437,
+      "width_m": 0.0018956888683703266,
+      "height_m": 0.0012612143063717163,
+      "width_rel": 0.0013349921608241738,
+      "height_rel": 0.0004204047687905721,
+      "iou": 0.660266903068094,
+      "kind_ok": true
+     },
+     {
+      "name": "gable bay window",
+      "centre_m": 0.5302078175217032,
+      "width_m": 0.7991906231029895,
+      "height_m": 0.19031674875199878,
+      "width_rel": 0.3004476026702968,
+      "height_rel": 0.05614063385014713,
+      "iou": 0.5454767313792167,
+      "kind_ok": true
+     }
+    ],
+    "scale": [
+     1.034,
+     0.963
+    ]
+   }
+  },
+  {
+   "title": "Luther Burbank House (west elevation, gable block)",
+   "panel_m": [
+    4.33,
+    6.13
+   ],
+   "raw": {
+    "truth": 3,
+    "predicted": 4,
+    "matched": 3,
+    "recall": 1.0,
+    "precision": 0.75,
+    "pairs": [
+     {
+      "name": "gable window",
+      "centre_m": 0.21213674834879556,
+      "width_m": 0.0040000000000000036,
+      "height_m": 0.10400000000000009,
+      "width_rel": 0.005479452054794526,
+      "height_rel": 0.06797385620915039,
+      "iou": 0.5552168851524335,
+      "kind_ok": true
+     },
+     {
+      "name": "lower right window",
+      "centre_m": 0.23358617253596164,
+      "width_m": 0.025000000000000022,
+      "height_m": 0.04499999999999993,
+      "width_rel": 0.028409090909090936,
+      "height_rel": 0.028481012658227802,
+      "iou": 0.6038980184486281,
+      "kind_ok": true
+     },
+     {
+      "name": "lower left window",
+      "centre_m": 0.24087029704801718,
+      "width_m": 0.06500000000000006,
+      "height_m": 0.18500000000000005,
+      "width_rel": 0.07386363636363642,
+      "height_rel": 0.11708860759493674,
+      "iou": 0.5971013210569719,
+      "kind_ok": true
+     }
+    ]
+   },
+   "aligned": {
+    "truth": 3,
+    "predicted": 4,
+    "matched": 3,
+    "recall": 1.0,
+    "precision": 0.75,
+    "pairs": [
+     {
+      "name": "lower right window",
+      "centre_m": 0.015809535469539147,
+      "width_m": 0.017024943284192573,
+      "height_m": 0.26247189804237836,
+      "width_rel": 0.019346526459309742,
+      "height_rel": 0.16612145445720147,
+      "iou": 0.836830743481508,
+      "kind_ok": true
+     },
+     {
+      "name": "lower left window",
+      "centre_m": 0.01598050585186845,
+      "width_m": 0.05739804535276838,
+      "height_m": 0.0016912601656109416,
+      "width_rel": 0.06522505153723679,
+      "height_rel": 0.001070417826336039,
+      "iou": 0.9231638352998343,
+      "kind_ok": true
+     },
+     {
+      "name": "gable window",
+      "centre_m": 0.024373848690997596,
+      "width_m": 0.0027718025446505923,
+      "height_m": 0.08683995483595797,
+      "width_rel": 0.003796989787192592,
+      "height_rel": 0.0567581404156588,
+      "iou": 0.8867019215478006,
+      "kind_ok": true
+     }
+    ],
+    "scale": [
+     1.009,
+     1.134
+    ]
+   }
+  },
+  {
+   "title": "Camp Reynolds Building 43 (north elevation, gable block)",
+   "panel_m": [
+    5.47,
+    8.64
+   ],
+   "raw": {
+    "truth": 3,
+    "predicted": 4,
+    "matched": 3,
+    "recall": 1.0,
+    "precision": 0.75,
+    "pairs": [
+     {
+      "name": "lower right window",
+      "centre_m": 0.05353970489272444,
+      "width_m": 0.14700000000000002,
+      "height_m": 0.14700000000000024,
+      "width_rel": 0.14,
+      "height_rel": 0.07736842105263171,
+      "iou": 0.8141996417521573,
+      "kind_ok": false
+     },
+     {
+      "name": "lower left window",
+      "centre_m": 0.0827118492115851,
+      "width_m": 0.1399999999999999,
+      "height_m": 0.31700000000000017,
+      "width_rel": 0.13725490196078421,
+      "height_rel": 0.16684210526315799,
+      "iou": 0.7535812607904437,
+      "kind_ok": false
+     },
+     {
+      "name": "arched upper window",
+      "centre_m": 0.13855414104241018,
+      "width_m": 0.17300000000000004,
+      "height_m": 0.06399999999999983,
+      "width_rel": 0.16960784313725494,
+      "height_rel": 0.03216080402010042,
+      "iou": 0.7550969721376496,
+      "kind_ok": true
+     }
+    ]
+   },
+   "aligned": {
+    "truth": 3,
+    "predicted": 4,
+    "matched": 3,
+    "recall": 1.0,
+    "precision": 0.75,
+    "pairs": [
+     {
+      "name": "lower left window",
+      "centre_m": 0.026620828401098355,
+      "width_m": 0.14664437126414698,
+      "height_m": 0.3869669967320095,
+      "width_rel": 0.1437689914354382,
+      "height_rel": 0.20366684038526817,
+      "iou": 0.7263657958931657,
+      "kind_ok": false
+     },
+     {
+      "name": "lower right window",
+      "centre_m": 0.02805847462753695,
+      "width_m": 0.15385630379584825,
+      "height_m": 0.21160191353650104,
+      "width_rel": 0.1465298131389031,
+      "height_rel": 0.11136942817710582,
+      "iou": 0.784794953867218,
+      "kind_ok": false
+     },
+     {
+      "name": "arched upper window",
+      "centre_m": 0.03807934728432186,
+      "width_m": 0.17983339217079952,
+      "height_m": 0.1288228287269042,
+      "width_rel": 0.17630724722627403,
+      "height_rel": 0.06473508981251468,
+      "iou": 0.7984314956840737,
+      "kind_ok": true
+     }
+    ],
+    "scale": [
+     1.006,
+     1.032
+    ]
+   }
+  },
+  {
+   "title": "Camp Reynolds Building 43 (north elevation, porch wall)",
+   "panel_m": [
+    10.12,
+    3.04
+   ],
+   "raw": {
+    "truth": 3,
+    "predicted": 2,
+    "matched": 1,
+    "recall": 0.3333333333333333,
+    "precision": 0.5,
+    "pairs": [
+     {
+      "name": "porch window 2",
+      "centre_m": 0.11914801718870563,
+      "width_m": 0.05800000000000005,
+      "height_m": 0.025000000000000133,
+      "width_rel": 0.05858585858585864,
+      "height_rel": 0.013440860215053835,
+      "iou": 0.7789917654147414,
+      "kind_ok": true
+     }
+    ]
+   },
+   "aligned": null
+  }
+ ],
+ "not_scored": [
+  {
+   "house": "John Muir House, Martinez (HABS CA-1890)",
+   "why": "measured drawings only: no photograph of the house in the mirror"
+  },
+  {
+   "house": "Camp Reynolds Building 46 (HABS CA-1841-C)",
+   "why": "photographs, but no elevation sheet in the mirror (details only)"
+  },
+  {
+   "house": "Camp Reynolds Buildings 44-45 (HABS CA-1841-B)",
+   "why": "photographs, but no elevation sheet in the mirror (details only)"
+  },
+  {
+   "house": "Camp Reynolds Buildings 48-49 (HABS CA-1841-D)",
+   "why": "a square-on photograph, but only floor plans and details in the mirror"
+  },
+  {
+   "house": "Vallejo Adobe, Petaluma (HABS CA-38-1)",
+   "why": "the one exterior photograph is distant and oblique, across a field"
+  },
+  {
+   "house": "Vicente Martinez Adobe (HABS CA-1913)",
+   "why": "one drawing sheet, no photograph"
+  },
+  {
+   "house": "Pena Adobe, Vacaville (HABS CA-1198)",
+   "why": "the 1930s photograph shows the wall mid-restoration; its left end could not be tied to the drawing"
+  },
+  {
+   "house": "Band Master's Quarters, Building 55 (HABS CA-1841-E)",
+   "why": "photographed through trees; plan sheet only"
+  },
+  {
+   "house": "Rodoni Property, El Cerrito (HALS CA-143)",
+   "why": "not in the mirror; the Library of Congress refused automated downloads"
+  }
+ ]
+}

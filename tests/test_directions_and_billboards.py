@@ -115,7 +115,13 @@ def test_directions_never_follow_what_the_page_draws_and_say_where_they_come_fro
     assert 'const ROUTING_URL = (document.querySelector(\'meta[name="kerbside-routing"]\')?.content' in js
     assert '"https://valhalla1.openstreetmap.de"' in js
     ribbon = _extract("routeRibbon", js)
-    assert "walkerGroundAt(x, z) + ROUTE_LIFT_M" in ribbon and "inside(line[i])" in ribbon
+    samples = _extract("routeSamples", js)
+    assert "heightOf(p) + ROUTE_LIFT_M" in ribbon and "inside(line[i])" in samples
+    # On the road as drawn: decks, a bore's floor, and the hidden stretches faint on the ground.
+    assert "const surfaces = routeSurfaceHeights(points, flagged ?" in samples
+    surfaces = _extract("roadSurfacesAt", js)
+    assert "elevatedRoadsAt(x, z)" in surfaces and "tunnelFloorAt(x, z)" in surfaces
+    assert "registerElevatedWay(way, WAY_LIFT)" in js and "registerElevatedSegment(a.x, a.z, a.y - earthDrop(a.x, a.z)" in js
     page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
     assert "OpenStreetMap contributors" in page and "The stops you enter are sent to those servers" in page
 
@@ -129,3 +135,36 @@ def test_the_billboards_wear_the_three_artworks_and_only_dylumio_links_out() -> 
         assert c.get("href") == ("https://dylumio.com" if c["image"].endswith("dylumio.webp") else None)
     js = _page_js()
     assert "const href=creative?.approved ? safeBillboardWebsite(creative.href || null)" in _extract("addBillboards", js)
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_a_route_keeps_to_the_surface_it_is_on_up_a_ramp_under_a_viaduct_and_through_a_bore() -> None:
+    js = _page_js()
+    script = """
+        // x 0-100: a ramp up from the ground to a deck at 8 m that runs on to x 200.
+        // x 300-400: a street under a viaduct at 9 m. x 500-600: a bore 15 m under a hill.
+        function roadSurfacesAt(x, z) {
+          const hill = x > 500 && x < 600 ? 15 * Math.sin((x - 500) / 100 * Math.PI) : 0;
+          const out = [{ y: hill, kind: "ground" }];
+          if (z === 0 && x <= 200) out.push({ y: Math.min(8, x * 0.08), kind: "deck" });
+          if (z === 1 && x >= 300 && x <= 400) out.push({ y: 9, kind: "deck" });
+          if (z === 2 && x >= 500 && x <= 600) out.push({ y: 0, kind: "tunnel" });
+          return out;
+        }
+    """ + _extract("routeSurfaceHeights", js) + """
+        const along = (z, x0, x1) => Array.from({ length: 51 }, (_, i) => [x0 + (x1 - x0) * i / 50, z]);
+        // Valhalla's flags: the ramp and deck are a bridge; the street under the viaduct is not;
+        // the bore is a tunnel. And a transit leg, unflagged, by continuity.
+        const ramp = routeSurfaceHeights(along(0, 0, 200), along(0, 0, 200).map(() => "bridge"));
+        const under = routeSurfaceHeights(along(1, 250, 450), along(1, 250, 450).map(() => null));
+        const bore = routeSurfaceHeights(along(2, 450, 650), along(2, 450, 650).map(([x]) => (x >= 500 && x <= 600 ? "tunnel" : null)));
+        const unflagged = routeSurfaceHeights(along(2, 450, 650));
+        console.log(JSON.stringify({ rampTop: ramp[40], under: under.map((s) => s.kind), bore: bore[25], unflagged: unflagged[25] }));
+    """
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    r = json.loads(out.stdout)
+    assert r["rampTop"] == {"y": 8, "kind": "deck"}, "up the ramp and along the deck"
+    assert set(r["under"]) == {"ground"}, "under the viaduct the route stays on the street"
+    assert r["bore"] == {"y": 0, "kind": "tunnel"}, "through the bore, not over the hill"
+    assert r["unflagged"] == {"y": 0, "kind": "tunnel"}, "without flags, continuity takes it into the bore at its mouth"

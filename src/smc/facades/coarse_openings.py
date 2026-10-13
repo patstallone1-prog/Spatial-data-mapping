@@ -105,6 +105,14 @@ def assign_roles(found: list[dict], entries: dict, width: float, height: float, 
             o.update(role="window", role_certainty="medium",
                      role_basis=["rectangle_above_ground_storey", f"detected_as:{label}"])
             continue
+        design = o.get("design") or {}
+        arched_entry = design.get("head") == "arched" and design.get("panel_style") != "sectional_grid" \
+            and not (o.get("opening_reasoning") or {}).get("pixel_cues", {}).get("panel_grid")
+        if arched_entry and o["v"] - base <= GARAGE_SILL_MAX_M and o["w"] <= 3.0:
+            # An arched opening at the pavement with no garage door's panels in it is an entry: a
+            # porch's arch, double doors under it -- as wide as a garage, but not one.
+            o.update(role="entrance", role_certainty="medium", role_basis=["arched_head_without_garage_panels"])
+            continue
         if reasoning.get("class") == "garage_candidate" or kind == "garage_candidate":
             role, certainty = "garage", "high"
             basis.append("garage_scale_and_panels")
