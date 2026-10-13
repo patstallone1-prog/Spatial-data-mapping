@@ -137,6 +137,12 @@
       "w": 0.741,
       "h": 2.03
      }
+    ],
+    "wings_u": [
+     [
+      0.0,
+      2.5
+     ]
     ]
    }
   },
@@ -291,7 +297,8 @@
       "w": 0.758,
       "h": 0.758
      }
-    ]
+    ],
+    "wings_u": []
    }
   },
   {
@@ -591,6 +598,12 @@
       "w": 3.299,
       "h": 1.877
      }
+    ],
+    "wings_u": [
+     [
+      21.5,
+      28.704
+     ]
     ]
    }
   },
@@ -667,7 +680,8 @@
       "w": 0.867,
       "h": 1.569
      }
-    ]
+    ],
+    "wings_u": []
    }
   },
   {
@@ -1002,6 +1016,12 @@
       "w": 0.987,
       "h": 2.041
      }
+    ],
+    "wings_u": [
+     [
+      0.0,
+      9.5
+     ]
     ]
    }
   },
@@ -1137,7 +1157,8 @@
       "w": 0.988,
       "h": 2.419
      }
-    ]
+    ],
+    "wings_u": []
    }
   },
   {
@@ -1232,6 +1253,12 @@
       "w": 0.968,
       "h": 1.901
      }
+    ],
+    "wings_u": [
+     [
+      10.0,
+      14.803
+     ]
     ]
    }
   }
@@ -1265,5 +1292,6 @@
    "house": "D. V. Cain House, Bodie",
    "why": "excluded by request"
   }
- ]
+ ],
+ "front_scope": "Scored on the main front wall only, as the pipeline infers it: an opening drawn above the wall's top (a dormer, a tower attic, above the cornice) is the roof's, and one inside a wing's span (truth.wings_u, read from the drawing) is that wing's wall. Predicted openings there are set aside the same way."
 }

@@ -119,3 +119,25 @@ def test_the_blind_habs_test_is_rerun_with_lidar_heights() -> None:
     assert "/Users/" not in text and "build/" not in text
     page = (ROOT / "docs/validation/index.html").read_text()
     assert "habs-blind-lidar-2026-10-13.json" in page and "habs-blind-2026-10-13.json" in page
+
+
+def test_the_habs_test_scores_the_front_wall_from_the_one_photograph() -> None:
+    report = json.loads((ROOT / "docs/validation/habs-front-wall-2026-10-13.json").read_text())
+    front = report["results"]["blind_front_wall"]
+    assert front["front_wall_openings"] == 87, "113 drawn on the fronts, less 13 dormers and 13 on wings"
+    assert report["results"]["blind_whole_elevation"]["front_wall_openings"] == 113
+    assert sum(len(h["set_aside"]) for h in report["houses"]) == 26
+    assert all("dormer" in n or "attic" in n or "wing" in n or "basement" in n
+               for h in report["houses"] for n in h["set_aside"])
+    assert "fused" not in json.dumps(report["results"]), "one photograph rendered from, no fusion"
+    text = json.dumps(report)
+    assert "/Users/" not in text and "build/" not in text
+    page = (ROOT / "docs/validation/index.html").read_text()
+    assert "habs-front-wall-2026-10-13.json" in page
+
+
+def test_other_photographs_give_depth_only() -> None:
+    source = (ROOT / "src/smc/facades/multiview.py").read_text()
+    apply = source[source.index("def apply_to_fit("):source.index("    entry = fit.get(\"primary_entry\")")]
+    assert '"dimensions": "reference_view_only"' in apply
+    assert "opening[k] = obj[k]" not in apply and 'opening["design"] =' not in apply
