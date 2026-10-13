@@ -79,15 +79,17 @@ class TestWalls:
                             maxZ: 8, solid: true, doors: [] };
             footprintGrid.set("0:0", [entry]);
             const avatar = { position: { x: 5, z: -2 } };
+            const activeGuest = null;
         """) + "\n".join(_extract(n, js) for n in (
-            "insideFootprint", "wallSegmentsNear", "pushOutOfWalls", "moveWalker")) + \
+            "insideFootprint", "wallSegmentsNear", "pushOutOfWalls", "distanceToSegmentSquared",
+            "firstBuildingCollision", "walkerFootprintBlocked", "moveWalker")) + \
             "\n" + textwrap.dedent(body)
         result = subprocess.run([NODE, "-e", script], capture_output=True, text=True,
                                 timeout=60, check=False)
         assert result.returncode == 0, result.stderr
         return json.loads(result.stdout)
 
-    def test_a_wall_stops_the_walker_and_an_open_door_lets_it_in(self):
+    def test_a_wall_stops_the_walker_and_even_an_open_door_keeps_it_outside(self):
         out = self._run("""
             const res = {};
             moveWalker(0, 5);   // straight at the south wall
@@ -100,14 +102,14 @@ class TestWalls:
             moveWalker(0, 5);
             res.through = [avatar.position.x, avatar.position.z, insideFootprint(entry, avatar.position.x, avatar.position.z)];
             entry.doors[0].open = false;
-            moveWalker(0, -5);  // the door shut behind: the walker is kept in
+            moveWalker(0, -5);  // closing the door still leaves the walker outside
             res.keptIn = insideFootprint(entry, avatar.position.x, avatar.position.z);
             console.log(JSON.stringify(res));
         """)
         assert out["blocked"][1] == pytest.approx(-0.3, abs=1e-6)
         assert out["slid"][0] == pytest.approx(6.0, abs=1e-6) and out["slid"][1] <= -0.3 + 1e-9
-        assert out["through"][2] is True and out["through"][1] == pytest.approx(3.0, abs=1e-6)
-        assert out["keptIn"] is True
+        assert out["through"][2] is False and out["through"][1] <= -0.3 + 1e-9
+        assert out["keptIn"] is False
 
 
 @pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")

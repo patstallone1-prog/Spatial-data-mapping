@@ -29,7 +29,13 @@ def test_the_walker_walks_toward_where_you_are_and_jumps_when_far() -> None:
         function placeCamera() {}
         function animateAvatar(d, dir, moving) { if (moving) avatar.rotation.y = Math.atan2(dir.x, dir.z); }
         const gps = { target: new V(10, 0, 0), heading: null, follow: true };
+        const FOOTPRINT_CELL=60, WALKER_RADIUS_M=.35, WALK_SUBSTEP_M=.18, activeGuest=null;
+        const footprintGrid=new Map(), footprintById=new Map(), streetLandingSegments=[];
+        function wallSegmentsNear(){return [];}
         """,
+        "\n".join(_extract(name, js) for name in (
+            "insideFootprint", "buildingAt", "eligibleLanding", "exteriorLanding", "walkerExteriorAt",
+            "distanceToSegmentSquared", "firstBuildingCollision", "walkerFootprintBlocked", "moveWalker")),
         _extract("followGps", js),
         """
         followGps(0.5);
@@ -43,7 +49,16 @@ def test_the_walker_walks_toward_where_you_are_and_jumps_when_far() -> None:
         held.clear();
         avatar.position.set(0, 0.9, 0); gps.target = new V(0.1, 0, 0); gps.heading = 90;
         followGps(0.1);
-        console.log(JSON.stringify({ walked, jumped, keys, facing: avatar.rotation.y }));
+        const facing=avatar.rotation.y;
+        // A previously accepted GPS fix becomes a building once its footprint cell loads.
+        const entry={way:{osm_id:1},minX:499,maxX:501,minZ:-301,maxZ:-299,
+          local:[[499,-301],[501,-301],[501,-299],[499,-299],[499,-301]]};
+        footprintGrid.set('8:-6',[entry]);footprintGrid.set('8:-5',[entry]);
+        footprintById.set('1',entry);
+        gps.target=new V(500,0,-300);followGps(.016);
+        const gpsInside=Boolean(buildingAt(gps.target.x,gps.target.z));
+        const walkerInside=Boolean(buildingAt(avatar.position.x,avatar.position.z));
+        console.log(JSON.stringify({ walked, jumped, keys, facing, gpsInside, walkerInside }));
         """,
     ])
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
@@ -53,6 +68,7 @@ def test_the_walker_walks_toward_where_you_are_and_jumps_when_far() -> None:
     assert r["jumped"] == [500, -300], "too far to walk: the walker is put there"
     assert r["keys"] is False, "the arrow keys win over the phone"
     assert abs(r["facing"] - 3.14159 / 2) < 1e-3, "standing still, it faces the way the phone does (east)"
+    assert not r["gpsInside"] and not r["walkerInside"], "late-loaded buildings still keep GPS arrivals outside"
 
 
 def test_a_searched_place_is_shown_and_the_directions_filled_in_without_moving_the_walker() -> None:

@@ -814,6 +814,8 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
                     "geometry_basis": "osm_overhead_line_way",
                     "confidence": 0.60, "wire_count": tags.get("wires"),
                     "power_kind": tags["power"], "voltage": tags.get("voltage"),
+                    "location": tags.get("location", "overhead"),
+                    "node_ids": element.get("nodes", []),
                 })
         located = element_point(element)
         if not located:
