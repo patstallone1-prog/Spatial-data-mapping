@@ -95,7 +95,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="3799e3582de51473e23e3782ddf074e236ecacc3c927378e8d75b8b4a04ef1f3" />
+<meta name="kerbside-renderer-sha256" content="d65a1c508797a3e48ae1956ae103e309a9e5038799f1c94fdebd0e2fcfe038d4" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -23477,6 +23477,8 @@ function exteriorLanding(landing) {
   if (!landing || !buildingAt(landing.x, landing.z)) return landing;
   const way = buildingAt(landing.x, landing.z);
   const entry = footprintById.get(String(way.osm_id));
+  // The one exception: the house the walker went into through its door (toggleDoor).
+  if (entry && typeof enteredEntry !== "undefined" && entry === enteredEntry) return landing;
   const candidates = [];
   const clearance = WALKER_RADIUS_M + 0.10;
   for (let i = 1; entry && i < entry.local.length; i += 1) {
@@ -24197,6 +24199,8 @@ function walkerFootprintBlocked(x, z) {
     for (const entry of footprintGrid.get(`${gx + dx}:${gz + dz}`) || []) {
       if (seen.has(entry)) continue;
       seen.add(entry);
+      // Inside the house entered by its door, its walls (wallSegmentsNear) are what hold the walker.
+      if (typeof enteredEntry !== "undefined" && entry === enteredEntry) continue;
       if (insideFootprint(entry, x, z)) return true;
       const ring = entry.local;
       for (let i = 1; i < ring.length; i += 1) {
@@ -24933,10 +24937,58 @@ function nearestDoor() {
   return near.length ? near[0][1] : null;
 }
 
+//: The house the walker went into by Enter at its door: the one footprint it may stand in.
+//: Walking never takes it in -- an open door is not a way through a wall -- nor does a click, a
+//: search or GPS. It is let go when the walker leaves the footprint or the rooms are taken down.
+//: (var: read by the landing and wall checks, which the tests run on their own.)
+var enteredEntry = null;
+//: How far past the threshold -- or past the top of an inward stoop -- the walker is put down.
+const ENTER_STEPS_M = [0.8, 0.55, 1.2, 1.6];
+
+// Where Enter at this door puts the walker: just inside, clear of the partitions, on the floor.
+function enterThroughDoor(door) {
+  const entry = door.entry;
+  if (!entry.interior) buildInterior(entry);
+  if (!entry.interior) return null;
+  const depth = door.stoopPlan?.depth || 0;
+  for (const step of ENTER_STEPS_M) {
+    const p = { x: door.cx + door.nx * (depth + step), z: door.cz + door.nz * (depth + step) };
+    pushOutOfWalls(p, wallSegmentsNear(p.x, p.z));
+    if (insideFootprint(entry, p.x, p.z) && !insideEntranceRecess(entry, p.x, p.z)) return p;
+  }
+  return null;
+}
+
+// Enter at a door: outside, it opens and the walker is put just inside; inside the house it went
+// into, the walker steps back out and the door is closed behind. Returns where the walker goes,
+// in this world's metres, or null when it stays (no rooms here: the door only swings).
 function toggleDoor(door) {
-  if (door.atGrade) return;                // a street door onto a stair: shown, not walked through
-  door.open = !door.open;
-  if (door.open) buildInterior(door.entry);
+  if (door.atGrade) return null;           // a street door onto a stair: shown, not walked through
+  const x = avatar.position.x, z = avatar.position.z;
+  if (enteredEntry === door.entry && insideFootprint(door.entry, x, z)) {
+    enteredEntry = null;
+    door.open = false;
+    return { x: door.cx - door.nx * 1.2, z: door.cz - door.nz * 1.2, yaw: Math.atan2(door.nx, door.nz) };
+  }
+  const wasOpen = door.open;
+  door.open = true;
+  const inside = enterThroughDoor(door);
+  if (!inside) {
+    door.open = !wasOpen;
+    return null;
+  }
+  enteredEntry = door.entry;
+  return { ...inside, yaw: Math.atan2(-door.nx, -door.nz) };
+}
+
+// Put the walker down at a door's threshold (see toggleDoor), facing through it.
+function placeWalkerAtDoor(at) {
+  avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z), at.z);
+  state.target.copy(avatar.position);
+  state.yaw = at.yaw;
+  state.look = 0;
+  GPS_LEASH.on = false;
+  placeCamera();
 }
 
 function insideEntranceRecess(entry, x, z) {
@@ -24953,7 +25005,11 @@ addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
   if (!hostWorldActive && activeGuest && activeGuest.ready) {
-    if (activeGuest.api.toggleNearestDoor()) e.preventDefault();
+    const g = activeGuest, said = g.api.toggleNearestDoor();
+    if (!said) return;
+    e.preventDefault();
+    // The attached region says where, in its own metres (mirrored when its sx is negative).
+    if (said.at) placeWalkerAtDoor({ x: g.ox + said.at.x * g.sx, z: g.oz + said.at.z, yaw: said.at.yaw * Math.sign(g.sx) });
     return;
   }
   const roomDoor = nearestRoomDoor();
@@ -24967,7 +25023,8 @@ addEventListener("keydown", (e) => {
     return;
   }
   if (!door) return;
-  toggleDoor(door);
+  const at = toggleDoor(door);
+  if (at) placeWalkerAtDoor(at);
   e.preventDefault();
 });
 
@@ -25016,6 +25073,8 @@ function updateDoors(dt) {
   // This page's own region let go for another: the doors are the attached region's (guestFrame).
   if (!hostWorldActive) return;
   const x = avatar.position.x, z = avatar.position.z;
+  // Out of the house it went into (or its rooms gone), the walker is held outside again.
+  if (enteredEntry && (!enteredEntry.interior || !insideFootprint(enteredEntry, x, z))) enteredEntry = null;
   for (const door of doorsNear(x, z, DOOR_DRAW_M)) showDoor(door);
   for (const door of [...doorsShown]) {
     if (Math.hypot(door.cx - x, door.cz - z) > DOOR_DRAW_M * 1.2 && !door.open) hideDoor(door);
@@ -25063,6 +25122,8 @@ function updateDoors(dt) {
     setHint(`Enter — ${roomDoor.open ? "close" : "open"} the door`);
   } else if (door) {
     setHint(door.atGrade ? "No house interior"
+      : enteredEntry === door.entry && insideFootprint(door.entry, x, z) ? "Enter — go out"
+      : INTERIORS && door.entry.fit && !door.entry.way.parkFacility ? "Enter — go in"
       : `Enter — ${door.open ? "close" : "open"} the door`);
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
     setHint("Inside — rooms laid out from a generic plan fitted to this house");
@@ -28193,9 +28254,9 @@ if (!ATTACH) {
   const clear = document.getElementById("route-clear");
   const minutes = (s) => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`;
   const here = () => {
-    if (gps.fix) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat };
+    if (gps.fix) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat, here: true };
     const p = avatar.position;
-    return { label: "Your location", lon: p.x / metersPerLon + midLon, lat: -p.z / metersPerLat + midLat };
+    return { label: "Your location", lon: p.x / metersPerLon + midLon, lat: -p.z / metersPerLat + midLat, here: true };
   };
   // A searched place: a pin, the view brought to it, and the directions from you to it filled in.
   const pin = new THREE.Group();
@@ -28223,6 +28284,19 @@ if (!ATTACH) {
     renderStops();
     return true;
   };
+  // A start chosen in the directions is where the walker goes: put down there, outside, as a
+  // search puts it (addressLanding), so the route is walked from where it begins.
+  function walkerToStart(place) {
+    const b = DATA.bbox;
+    if (!(place.lon >= b.west && place.lon <= b.east && place.lat >= b.south && place.lat <= b.north)) {
+      status.textContent = "The start is outside this region; the walker stays where it is.";
+      return false;
+    }
+    const [x, y] = xy(place.lon, place.lat);
+    gps.follow = false;
+    goTo(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });
+    return true;
+  }
   function renderStops() {
     stopsBox.replaceChildren();
     route.stops.forEach((stop, i) => {
@@ -28238,19 +28312,32 @@ if (!ATTACH) {
       input.setAttribute("aria-label", input.placeholder);
       const list = document.createElement("ul");
       list.className = "hits";
+      let offered = [];
+      const choose = (place) => {
+        route.stops[i] = place;
+        input.value = place.label;
+        offered = [];
+        list.replaceChildren();
+        if (i === 0) walkerToStart(place);
+      };
       input.addEventListener("input", () => {
         route.stops[i] = null;
-        list.replaceChildren(...searchPlaces(input.value).slice(0, 6).map((place) => {
+        offered = searchPlaces(input.value).slice(0, 6);
+        list.replaceChildren(...offered.map((place) => {
           const item = document.createElement("li");
           item.textContent = place.label;
           item.addEventListener("mousedown", (e) => {
             e.preventDefault();
-            route.stops[i] = place;
-            input.value = place.label;
-            list.replaceChildren();
+            choose(place);
           });
           return item;
         }));
+      });
+      // Enter takes the first suggestion, as the search box does.
+      input.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" || !offered.length) return;
+        choose(offered[0]);
+        e.preventDefault();
       });
       input.addEventListener("blur", () => setTimeout(() => list.replaceChildren(), 150));
       row.append(dot, input);
@@ -28305,6 +28392,8 @@ if (!ATTACH) {
   document.getElementById("route-go").addEventListener("click", async () => {
     const stops = route.stops.map((stop, i) => stop || (i === 0 ? here() : null));
     if (stops.some((stop) => !stop)) { status.textContent = "Choose each stop from the suggestions."; return; }
+    // Directions from somewhere else start the walker there.
+    if (!stops[0].here) walkerToStart(stops[0]);
     status.textContent = "Finding routes…";
     const ticket = route.pending = Symbol("route");
     try {
@@ -28996,7 +29085,7 @@ window.kerbsideGuestApi = {
   walkerGroundAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
   walkerFootprintBlocked,
   tick: guestTick,
-  toggleNearestDoor() { const door = nearestDoor(); if (door) toggleDoor(door); return Boolean(door); },
+  toggleNearestDoor() { const door = nearestDoor(); return door ? { at: toggleDoor(door) } : null; },
   setRootInverse(matrix) { ROOT_INVERSE.copy(matrix); detailCells = null; cullForced = true; },
   // Let go: what this world holds is emptied, since the code that built it stays loaded.
   release() {
