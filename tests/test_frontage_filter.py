@@ -242,3 +242,58 @@ def test_photographs_are_screened_in_parallel_and_failed_downloads_are_not_retri
     # The GPU model is the one shared thing: screening takes turns, nothing else does.
     assert "with screen_lock:\n                    measured = screen.screen(view.image, view.mask)" in source
     assert '"download_attempts": attempts, "last_attempt_at": datetime.now(UTC)' in source
+
+
+def _aimed(angle_deg, dist=14.0, **kwargs):
+    a = math.radians(angle_deg)
+    x, y = dist * math.sin(a), -dist * math.cos(a)
+    return camera(x=x, y=y, yaw=math.degrees(math.atan2(-x, -y)), **kwargs)
+
+
+def test_oblique_up_to_forty_degrees_is_kept_only_for_its_entrance():
+    from smc.facades.frontage_pixels import view_gate
+
+    square, oblique, steep = assess(_aimed(20)), assess(_aimed(38)), assess(_aimed(43))
+    assert square["geometry_pass"] and not square["needs_entrance"]
+    assert oblique["geometry_pass"] and oblique["needs_entrance"]
+    assert "too_oblique" in steep["reasons"]
+    assert square["rank"] > oblique["rank"]
+    door = {"entrance_detected": True, "opening_count": 4}
+    no_door = {"entrance_detected": False, "opening_count": 4}
+    assert view_gate(door, oblique, 0.5) == []
+    assert view_gate(no_door, oblique, 0.5) == ["oblique_without_entrance"]
+    assert view_gate(no_door, square, 0.5) == []
+
+
+def test_house_must_fill_enough_of_the_frame_and_closer_fills_more():
+    near, far = assess(camera(y=-12)), assess(camera(y=-50))
+    assert near["target_share"] > 2 * far["target_share"]
+    assert "target_too_small_in_frame" in far["reasons"]
+    assert near["geometry_pass"]
+
+
+def test_first_floor_must_be_in_frame_and_eye_level_views_rank_first():
+    aerial = Camera(0, -12, 20, 0, 4096, 1500, False, math.radians(40))
+    assert "first_floor_cut_off" in assess(aerial)["reasons"]
+    street = assess(camera())
+    assert street["ground_floor_coverage"] == 1 and street["ground_floor_pitch_deg"] < 20
+
+
+def test_entrance_and_distinct_features_are_read_from_labels_and_squareness_is_gated():
+    from smc.facades.frontage_pixels import detail_measures, view_gate
+
+    names = {0: "wall", 1: "windowpane, window", 2: "door", 3: "stairs, steps", 4: "railing"}
+    labels = np.zeros((200, 160), np.uint8)
+    for x in (20, 70, 120):
+        labels[30:60, x : x + 20] = 1  # three upper windows
+    visible = np.ones_like(labels, bool)
+    blank = detail_measures(labels, visible, names)
+    assert not blank["entrance_detected"] and blank["opening_count"] == 3
+    labels[130:195, 70:95] = 2  # a door on the ground floor
+    labels[190:200, 60:105] = 3
+    found = detail_measures(labels, visible, names)
+    assert found["entrance_detected"] and {"door", "windowpane", "steps"} <= set(found["feature_kinds"])
+    assert "no_detectable_openings" in view_gate(
+        detail_measures(np.zeros_like(labels), visible, names), {}, 0.5
+    )
+    assert "not_squared_up" in view_gate(found, {}, 0.2)

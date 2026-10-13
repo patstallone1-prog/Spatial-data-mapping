@@ -1,0 +1,1269 @@
+{
+ "schema": "kerbside.habs_blind_pack/1",
+ "rule": "The fit gets only the photographs, the OSM footprint and the facing from the caption. Truth (read off the measured elevation at the drawing's own scale) is for scoring only.",
+ "houses": [
+  {
+   "slug": "larkin",
+   "name": "Larkin House, Monterey",
+   "habs": "HABS CAL,27-MONT,9",
+   "facing": "east",
+   "footprint": {
+    "osm_way": 152297435,
+    "lat": 0,
+    "lon": 0
+   },
+   "photos": [
+    {
+     "pk": "ca0394.photos.013859p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0300/ca0394/photos/013859pr.jpg",
+     "caption": "4.  Historic American Buildings Survey Taken 1959 EXTERIOR FROM THE EAST",
+     "commons": {
+      "title": "File:Historic American Buildings Survey Taken 1959 EXTERIOR FROM THE EAST - Larkin House, 464 Calle Principal, Monterey, Monterey County, CA HABS CAL,27-MONT,9-4.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Historic_American_Buildings_Survey_Taken_1959_EXTERIOR_FROM_THE_EAST_-_Larkin_House%2C_464_Calle_Principal%2C_Monterey%2C_Monterey_County%2C_CA_HABS_CAL%2C27-MONT%2C9-4.tif/lossy-page1-3840px-Historic_American_Buildings_Survey_Taken_1959_EXTERIOR_FROM_THE_EAST_-_Larkin_House%2C_464_Calle_Principal%2C_Monterey%2C_Monterey_County%2C_CA_HABS_CAL%2C27-MONT%2C9-4.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3536
+     }
+    },
+    {
+     "pk": "ca0394.photos.013858p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0300/ca0394/photos/013858pr.jpg",
+     "caption": "3.  Historic American Buildings Survey Taken 1959 EXTERIOR FROM THE NORTHEAST",
+     "commons": {
+      "title": "File:Historic American Buildings Survey Taken 1959 EXTERIOR FROM THE NORTHEAST - Larkin House, 464 Calle Principal, Monterey, Monterey County, CA HABS CAL,27-MONT,9-3.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Historic_American_Buildings_Survey_Taken_1959_EXTERIOR_FROM_THE_NORTHEAST_-_Larkin_House%2C_464_Calle_Principal%2C_Monterey%2C_Monterey_County%2C_CA_HABS_CAL%2C27-MONT%2C9-3.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 4993,
+      "height": 3531
+     }
+    },
+    {
+     "pk": "ca0394.photos.013857p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0300/ca0394/photos/013857pr.jpg",
+     "caption": "2.  Historic American Buildings Survey Robert W. Kerrigan. Photographer Built 1834 Taken May 13, 1936 View From North Ea",
+     "commons": {
+      "title": "File:Historic American Buildings Survey Robert W. Kerrigan. Photographer Built 1834 Taken May 13, 1936 View From North East - Larkin House, 464 Calle Principal, Monterey, Monterey HABS CAL,27-MONT,9-2.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Historic_American_Buildings_Survey_Robert_W._Kerrigan._Photographer_Built_1834_Taken_May_13%2C_1936_View_From_North_East_-_Larkin_House%2C_464_Calle_Principal%2C_Monterey%2C_Monterey_HABS_CAL%2C27-MONT%2C9-2.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3545
+     }
+    }
+   ],
+   "truth": {
+    "sheet": "ca0128? sheet 6 of 15",
+    "elevation": "east",
+    "pixels_per_m": 166,
+    "note": "scale from the drawn metre bar (166 px/m); grade = bottom of the brick terrace",
+    "panel_m": [
+     17.428,
+     7.765
+    ],
+    "openings": [
+     {
+      "name": "upper window 1",
+      "kind": "window",
+      "u": 3.53,
+      "v": 4.422,
+      "w": 0.795,
+      "h": 1.06
+     },
+     {
+      "name": "upper window 2",
+      "kind": "window",
+      "u": 5.783,
+      "v": 4.422,
+      "w": 0.916,
+      "h": 1.06
+     },
+     {
+      "name": "upper balcony door",
+      "kind": "door",
+      "u": 8.295,
+      "v": 3.59,
+      "w": 0.584,
+      "h": 1.916
+     },
+     {
+      "name": "upper window 3",
+      "kind": "window",
+      "u": 10.801,
+      "v": 4.47,
+      "w": 0.771,
+      "h": 1.012
+     },
+     {
+      "name": "upper window 4",
+      "kind": "window",
+      "u": 13.434,
+      "v": 4.47,
+      "w": 0.886,
+      "h": 1.012
+     },
+     {
+      "name": "stone wing door",
+      "kind": "door",
+      "u": 0.602,
+      "v": 0.958,
+      "w": 1.036,
+      "h": 1.777
+     },
+     {
+      "name": "ground window 1",
+      "kind": "window",
+      "u": 3.373,
+      "v": 1.458,
+      "w": 0.928,
+      "h": 1.566
+     },
+     {
+      "name": "ground window 2",
+      "kind": "window",
+      "u": 5.747,
+      "v": 1.458,
+      "w": 0.922,
+      "h": 1.566
+     },
+     {
+      "name": "front door",
+      "kind": "door",
+      "u": 8.03,
+      "v": 0.843,
+      "w": 1.139,
+      "h": 2.446
+     },
+     {
+      "name": "south door",
+      "kind": "door",
+      "u": 12.88,
+      "v": 0.789,
+      "w": 0.741,
+      "h": 2.03
+     }
+    ]
+   }
+  },
+  {
+   "slug": "banning",
+   "name": "General Phineas Banning Residence, Wilmington",
+   "habs": "HABS CAL,19-WILM,2",
+   "facing": "south",
+   "footprint": {
+    "osm_way": 407808585,
+    "lat": 0,
+    "lon": 0
+   },
+   "photos": [
+    {
+     "pk": "ca2250.photos.050999p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca2200/ca2250/photos/050999pr.jpg",
+     "caption": "1.  SOUTH (FRONT) ELEVATION",
+     "commons": {
+      "title": "File:SOUTH (FRONT) ELEVATION - General Phineas Banning Residence, 401 East M Street, Wilmington, Los Angeles County, CA HABS CAL,19-WILM,2-1.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/SOUTH_%28FRONT%29_ELEVATION_-_General_Phineas_Banning_Residence%2C_401_East_M_Street%2C_Wilmington%2C_Los_Angeles_County%2C_CA_HABS_CAL%2C19-WILM%2C2-1.tif/lossy-page1-3840px-SOUTH_%28FRONT%29_ELEVATION_-_General_Phineas_Banning_Residence%2C_401_East_M_Street%2C_Wilmington%2C_Los_Angeles_County%2C_CA_HABS_CAL%2C19-WILM%2C2-1.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 4039
+     }
+    },
+    {
+     "pk": "ca2250.photos.051003p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca2200/ca2250/photos/051003pr.jpg",
+     "caption": "5.  PERSPECTIVE VIEW OF SOUTH (FRONT) AND EAST ELEVATIONS",
+     "commons": {
+      "title": "File:PERSPECTIVE VIEW OF SOUTH (FRONT) AND EAST ELEVATIONS - General Phineas Banning Residence, 401 East M Street, Wilmington, Los Angeles County, CA HABS CAL,19-WILM,2-5.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/PERSPECTIVE_VIEW_OF_SOUTH_%28FRONT%29_AND_EAST_ELEVATIONS_-_General_Phineas_Banning_Residence%2C_401_East_M_Street%2C_Wilmington%2C_Los_Angeles_County%2C_CA_HABS_CAL%2C19-WILM%2C2-5.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3919
+     }
+    },
+    {
+     "pk": "ca2250.photos.051004p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca2200/ca2250/photos/051004pr.jpg",
+     "caption": "6.  PERSPECTIVE VIEW OF SOUTH (FRONT) AND WEST ELEVATIONS",
+     "commons": {
+      "title": "File:PERSPECTIVE VIEW OF SOUTH (FRONT) AND WEST ELEVATIONS - General Phineas Banning Residence, 401 East M Street, Wilmington, Los Angeles County, CA HABS CAL,19-WILM,2-6.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/PERSPECTIVE_VIEW_OF_SOUTH_%28FRONT%29_AND_WEST_ELEVATIONS_-_General_Phineas_Banning_Residence%2C_401_East_M_Street%2C_Wilmington%2C_Los_Angeles_County%2C_CA_HABS_CAL%2C19-WILM%2C2-6.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3972
+     }
+    }
+   ],
+   "truth": {
+    "sheet": "ca2250 sheet 5 of 6",
+    "elevation": "south (front)",
+    "pixels_per_m": 122.5,
+    "note": "scale from the 67 ft 6 in overall dimension and the feet bar (the metre bar disagrees by 5%); openings as drawn above the porch balustrades",
+    "panel_m": [
+     15.496,
+     10.029
+    ],
+    "openings": [
+     {
+      "name": "upper window 1",
+      "kind": "window",
+      "u": 1.108,
+      "v": 6.72,
+      "w": 1.166,
+      "h": 1.895
+     },
+     {
+      "name": "upper window 2",
+      "kind": "window",
+      "u": 4.023,
+      "v": 6.72,
+      "w": 1.02,
+      "h": 1.895
+     },
+     {
+      "name": "upper window 3",
+      "kind": "window",
+      "u": 10.466,
+      "v": 6.72,
+      "w": 0.991,
+      "h": 1.895
+     },
+     {
+      "name": "upper window 4",
+      "kind": "window",
+      "u": 13.309,
+      "v": 6.72,
+      "w": 0.991,
+      "h": 1.895
+     },
+     {
+      "name": "upper porch door",
+      "kind": "door",
+      "u": 6.56,
+      "v": 6.72,
+      "w": 2.493,
+      "h": 1.953
+     },
+     {
+      "name": "ground window 1",
+      "kind": "window",
+      "u": 1.21,
+      "v": 2.303,
+      "w": 0.977,
+      "h": 2.114
+     },
+     {
+      "name": "ground window 2",
+      "kind": "window",
+      "u": 4.082,
+      "v": 2.303,
+      "w": 0.962,
+      "h": 2.114
+     },
+     {
+      "name": "ground window 3",
+      "kind": "window",
+      "u": 10.466,
+      "v": 2.303,
+      "w": 0.991,
+      "h": 2.114
+     },
+     {
+      "name": "ground window 4",
+      "kind": "window",
+      "u": 13.309,
+      "v": 2.303,
+      "w": 0.991,
+      "h": 2.114
+     },
+     {
+      "name": "main entry",
+      "kind": "door",
+      "u": 6.618,
+      "v": 1.429,
+      "w": 2.362,
+      "h": 3.105
+     },
+     {
+      "name": "basement oculus left",
+      "kind": "window",
+      "u": 3.44,
+      "v": 0.277,
+      "w": 0.758,
+      "h": 0.758
+     },
+     {
+      "name": "basement oculus right",
+      "kind": "window",
+      "u": 11.837,
+      "v": 0.277,
+      "w": 0.758,
+      "h": 0.758
+     }
+    ]
+   }
+  },
+  {
+   "slug": "govmansion",
+   "name": "Albert Gallatin House (California Governor's Mansion), Sacramento",
+   "habs": "HABS CAL,34-SAC,19",
+   "facing": "north",
+   "footprint": {
+    "osm_way": 60008943,
+    "lat": 0,
+    "lon": 0
+   },
+   "photos": [
+    {
+     "pk": "ca0523.photos.014623p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0500/ca0523/photos/014623pr.jpg",
+     "caption": "3.   October 2, 1960 NORTH ELEVATION",
+     "commons": {
+      "title": "File:October 2, 1960 NORTH ELEVATION - Albert Gallatin House, 1527 H Street, Sacramento, Sacramento County, CA HABS CAL,34-SAC,19-3.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/October_2%2C_1960_NORTH_ELEVATION_-_Albert_Gallatin_House%2C_1527_H_Street%2C_Sacramento%2C_Sacramento_County%2C_CA_HABS_CAL%2C34-SAC%2C19-3.tif/lossy-page1-1920px-October_2%2C_1960_NORTH_ELEVATION_-_Albert_Gallatin_House%2C_1527_H_Street%2C_Sacramento%2C_Sacramento_County%2C_CA_HABS_CAL%2C34-SAC%2C19-3.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 3571,
+      "height": 4993
+     }
+    }
+   ],
+   "truth": {
+    "sheet": "ca1686? sheet 8 of 9",
+    "elevation": "north (H Street front)",
+    "pixels_per_m": 122.1,
+    "note": "scale from the dimension column (37.2 px/ft, water table to cornice); grade = the drawn GROUND -7 ft 7 in line; panel top = main cornice",
+    "panel_m": [
+     28.704,
+     12.301
+    ],
+    "openings": [
+     {
+      "name": "dormer 1",
+      "kind": "window",
+      "u": 0.608,
+      "v": 12.621,
+      "w": 0.91,
+      "h": 1.877
+     },
+     {
+      "name": "dormer 2",
+      "kind": "window",
+      "u": 5.363,
+      "v": 12.564,
+      "w": 0.592,
+      "h": 1.593
+     },
+     {
+      "name": "dormer 3",
+      "kind": "window",
+      "u": 6.955,
+      "v": 12.564,
+      "w": 0.956,
+      "h": 1.82
+     },
+     {
+      "name": "dormer 4",
+      "kind": "window",
+      "u": 8.434,
+      "v": 12.564,
+      "w": 0.614,
+      "h": 1.593
+     },
+     {
+      "name": "tower attic left",
+      "kind": "window",
+      "u": 11.016,
+      "v": 12.621,
+      "w": 0.66,
+      "h": 2.275
+     },
+     {
+      "name": "tower attic right",
+      "kind": "window",
+      "u": 11.892,
+      "v": 12.621,
+      "w": 0.683,
+      "h": 2.275
+     },
+     {
+      "name": "dormer 5",
+      "kind": "window",
+      "u": 15.828,
+      "v": 12.587,
+      "w": 0.842,
+      "h": 1.74
+     },
+     {
+      "name": "dormer 6",
+      "kind": "window",
+      "u": 19.923,
+      "v": 12.587,
+      "w": 0.614,
+      "h": 1.797
+     },
+     {
+      "name": "second narrow left",
+      "kind": "window",
+      "u": 0.779,
+      "v": 7.503,
+      "w": 0.626,
+      "h": 2.787
+     },
+     {
+      "name": "second left",
+      "kind": "window",
+      "u": 2.906,
+      "v": 7.503,
+      "w": 1.024,
+      "h": 2.844
+     },
+     {
+      "name": "second bay 1",
+      "kind": "window",
+      "u": 5.67,
+      "v": 7.673,
+      "w": 0.739,
+      "h": 2.503
+     },
+     {
+      "name": "second bay 2",
+      "kind": "window",
+      "u": 6.921,
+      "v": 7.673,
+      "w": 0.967,
+      "h": 2.503
+     },
+     {
+      "name": "second bay 3",
+      "kind": "window",
+      "u": 8.423,
+      "v": 7.673,
+      "w": 0.774,
+      "h": 2.503
+     },
+     {
+      "name": "second tower left",
+      "kind": "window",
+      "u": 11.016,
+      "v": 7.787,
+      "w": 0.683,
+      "h": 2.275
+     },
+     {
+      "name": "second tower right",
+      "kind": "window",
+      "u": 11.892,
+      "v": 7.787,
+      "w": 0.717,
+      "h": 2.275
+     },
+     {
+      "name": "second right 1",
+      "kind": "window",
+      "u": 14.542,
+      "v": 7.537,
+      "w": 1.024,
+      "h": 2.468
+     },
+     {
+      "name": "second right 2",
+      "kind": "window",
+      "u": 16.851,
+      "v": 7.537,
+      "w": 0.99,
+      "h": 2.468
+     },
+     {
+      "name": "second arched",
+      "kind": "window",
+      "u": 19.581,
+      "v": 7.559,
+      "w": 0.876,
+      "h": 2.559
+     },
+     {
+      "name": "first narrow left",
+      "kind": "window",
+      "u": 0.779,
+      "v": 3.123,
+      "w": 0.626,
+      "h": 2.503
+     },
+     {
+      "name": "first left",
+      "kind": "window",
+      "u": 2.906,
+      "v": 3.123,
+      "w": 1.024,
+      "h": 2.503
+     },
+     {
+      "name": "first bay 1",
+      "kind": "window",
+      "u": 5.67,
+      "v": 3.123,
+      "w": 0.717,
+      "h": 2.559
+     },
+     {
+      "name": "first bay 2",
+      "kind": "window",
+      "u": 6.921,
+      "v": 3.123,
+      "w": 0.99,
+      "h": 2.559
+     },
+     {
+      "name": "first bay 3",
+      "kind": "window",
+      "u": 8.423,
+      "v": 3.123,
+      "w": 0.774,
+      "h": 2.559
+     },
+     {
+      "name": "front door",
+      "kind": "door",
+      "u": 11.073,
+      "v": 2.725,
+      "w": 1.649,
+      "h": 2.275
+     },
+     {
+      "name": "first right 1",
+      "kind": "window",
+      "u": 14.713,
+      "v": 3.123,
+      "w": 0.967,
+      "h": 2.559
+     },
+     {
+      "name": "first right 2",
+      "kind": "window",
+      "u": 16.874,
+      "v": 3.123,
+      "w": 1.024,
+      "h": 2.559
+     },
+     {
+      "name": "first arched",
+      "kind": "window",
+      "u": 19.581,
+      "v": 3.123,
+      "w": 0.796,
+      "h": 2.639
+     },
+     {
+      "name": "basement 1",
+      "kind": "window",
+      "u": 0.779,
+      "v": 0.109,
+      "w": 0.683,
+      "h": 1.706
+     },
+     {
+      "name": "basement 2",
+      "kind": "window",
+      "u": 6.978,
+      "v": 0.109,
+      "w": 0.933,
+      "h": 1.706
+     },
+     {
+      "name": "basement 3",
+      "kind": "window",
+      "u": 16.931,
+      "v": 0.336,
+      "w": 0.91,
+      "h": 1.445
+     },
+     {
+      "name": "wing dormer",
+      "kind": "window",
+      "u": 25.007,
+      "v": 8.014,
+      "w": 0.887,
+      "h": 1.422
+     },
+     {
+      "name": "wing window",
+      "kind": "window",
+      "u": 24.154,
+      "v": 3.066,
+      "w": 0.796,
+      "h": 1.991
+     },
+     {
+      "name": "wing carriage arch",
+      "kind": "door",
+      "u": 24.95,
+      "v": -0.119,
+      "w": 3.299,
+      "h": 1.877
+     }
+    ]
+   }
+  },
+  {
+   "slug": "carson",
+   "name": "Carson House, New Almaden",
+   "habs": "HABS CAL,43-ALMA,2",
+   "facing": "east",
+   "footprint": {
+    "osm_way": 345353159,
+    "lat": 0,
+    "lon": 0
+   },
+   "photos": [
+    {
+     "pk": "ca0945.photos.018106p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0900/ca0945/photos/018106pr.jpg",
+     "caption": "1.  Historic American Buildings Survey Robert W. Kerrigan, Photographer May 11, 1936 VIEW FROM EAST",
+     "commons": {
+      "title": "File:Historic American Buildings Survey Robert W. Kerrigan, Photographer May 11, 1936 VIEW FROM EAST - Carson House, 21570 Almaden Road, New Almaden, Santa Clara County, CA HABS CAL,43-ALMA,2-1.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Historic_American_Buildings_Survey_Robert_W._Kerrigan%2C_Photographer_May_11%2C_1936_VIEW_FROM_EAST_-_Carson_House%2C_21570_Almaden_Road%2C_New_Almaden%2C_Santa_Clara_County%2C_CA_HABS_CAL%2C43-ALMA%2C2-1.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3556
+     }
+    }
+   ],
+   "truth": {
+    "sheet": "ca? CAL-115 sheet 4 of 11",
+    "elevation": "east (front wing)",
+    "pixels_per_m": 320,
+    "note": "scale from the metre bar and the 10 ft 4 in floor-to-ceiling dimension (320 px/m); grade = porch floor line",
+    "panel_m": [
+     11.265,
+     4.926
+    ],
+    "openings": [
+     {
+      "name": "window 1",
+      "kind": "window",
+      "u": 1.505,
+      "v": 0.94,
+      "w": 0.839,
+      "h": 1.569
+     },
+     {
+      "name": "window 2",
+      "kind": "window",
+      "u": 3.512,
+      "v": 0.94,
+      "w": 0.867,
+      "h": 1.569
+     },
+     {
+      "name": "front door",
+      "kind": "door",
+      "u": 5.473,
+      "v": 0.073,
+      "w": 0.912,
+      "h": 2.372
+     },
+     {
+      "name": "window 3",
+      "kind": "window",
+      "u": 7.388,
+      "v": 0.94,
+      "w": 0.775,
+      "h": 1.569
+     },
+     {
+      "name": "window 4",
+      "kind": "window",
+      "u": 9.076,
+      "v": 0.94,
+      "w": 0.867,
+      "h": 1.569
+     }
+    ]
+   }
+  },
+  {
+   "slug": "stanford",
+   "name": "Leland Stanford House, Sacramento",
+   "habs": "HABS CAL,34-SAC,9",
+   "facing": "north",
+   "footprint": {
+    "osm_way": 120719552,
+    "lat": 0,
+    "lon": 0
+   },
+   "photos": [
+    {
+     "pk": "ca0544.photos.014953p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0500/ca0544/photos/014953pr.jpg",
+     "caption": "7.  Photocopy of 1902 photograph in Society of California Pioneers Collection. NORTH FRONT",
+     "commons": {
+      "title": "File:Photocopy of 1902 photograph in Society of California Pioneers Collection. NORTH FRONT - Leland Stanford House, 800 N Street, Sacramento, Sacramento County, CA HABS CAL,34-SAC,9-7.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Photocopy_of_1902_photograph_in_Society_of_California_Pioneers_Collection._NORTH_FRONT_-_Leland_Stanford_House%2C_800_N_Street%2C_Sacramento%2C_Sacramento_County%2C_CA_HABS_CAL%2C34-SAC%2C9-7.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3614
+     }
+    },
+    {
+     "pk": "ca0544.photos.014949p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0500/ca0544/photos/014949pr.jpg",
+     "caption": "3.  Photocopy of 1872 photograph by Eadweard Muybridge in Stanford University Archives, PC 6. VIEW FROM THE NORTHEAST",
+     "commons": {
+      "title": "File:Photocopy of 1872 photograph by Eadweard Muybridge in Stanford University Archives, PC 6. VIEW FROM THE NORTHEAST - Leland Stanford House, 800 N Street, Sacramento, Sacramento HABS CAL,34-SAC,9-3.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Photocopy_of_1872_photograph_by_Eadweard_Muybridge_in_Stanford_University_Archives%2C_PC_6._VIEW_FROM_THE_NORTHEAST_-_Leland_Stanford_House%2C_800_N_Street%2C_Sacramento%2C_Sacramento_HABS_CAL%2C34-SAC%2C9-3.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 4993,
+      "height": 3535
+     }
+    }
+   ],
+   "truth": {
+    "sheet": "ca1709 sheet 7 of 9",
+    "elevation": "north (N Street front)",
+    "pixels_per_m": 122.5,
+    "note": "scale 3/16 in = 1 ft from the feet bar (37.5 px/ft); grade = the drawn ground line; includes the west wing",
+    "panel_m": [
+     33.595,
+     13.714
+    ],
+    "openings": [
+     {
+      "name": "dormer 1",
+      "kind": "window",
+      "u": 12.274,
+      "v": 14.27,
+      "w": 0.788,
+      "h": 1.548
+     },
+     {
+      "name": "dormer 2",
+      "kind": "window",
+      "u": 17.78,
+      "v": 14.302,
+      "w": 0.857,
+      "h": 1.584
+     },
+     {
+      "name": "dormer 3 (centre)",
+      "kind": "window",
+      "u": 22.404,
+      "v": 14.306,
+      "w": 0.856,
+      "h": 2.041
+     },
+     {
+      "name": "dormer 4",
+      "kind": "window",
+      "u": 27.078,
+      "v": 14.306,
+      "w": 0.856,
+      "h": 1.58
+     },
+     {
+      "name": "dormer 5",
+      "kind": "window",
+      "u": 30.699,
+      "v": 14.306,
+      "w": 0.922,
+      "h": 1.58
+     },
+     {
+      "name": "wing arched 1",
+      "kind": "window",
+      "u": 1.127,
+      "v": 8.077,
+      "w": 1.084,
+      "h": 2.322
+     },
+     {
+      "name": "wing arched 2",
+      "kind": "window",
+      "u": 5.447,
+      "v": 8.077,
+      "w": 1.098,
+      "h": 2.322
+     },
+     {
+      "name": "second 1",
+      "kind": "window",
+      "u": 11.021,
+      "v": 8.077,
+      "w": 1.126,
+      "h": 2.491
+     },
+     {
+      "name": "second 2",
+      "kind": "window",
+      "u": 13.822,
+      "v": 8.077,
+      "w": 1.21,
+      "h": 2.491
+     },
+     {
+      "name": "second 3",
+      "kind": "window",
+      "u": 17.101,
+      "v": 8.077,
+      "w": 1.154,
+      "h": 2.491
+     },
+     {
+      "name": "second 4",
+      "kind": "window",
+      "u": 19.639,
+      "v": 8.118,
+      "w": 1.119,
+      "h": 2.37
+     },
+     {
+      "name": "second 5",
+      "kind": "window",
+      "u": 22.404,
+      "v": 8.118,
+      "w": 1.119,
+      "h": 2.37
+     },
+     {
+      "name": "second 6",
+      "kind": "window",
+      "u": 24.971,
+      "v": 8.118,
+      "w": 1.08,
+      "h": 2.37
+     },
+     {
+      "name": "second 7",
+      "kind": "window",
+      "u": 27.446,
+      "v": 8.118,
+      "w": 1.106,
+      "h": 2.37
+     },
+     {
+      "name": "second 8",
+      "kind": "window",
+      "u": 30.764,
+      "v": 8.118,
+      "w": 1.119,
+      "h": 2.37
+     },
+     {
+      "name": "wing first 1",
+      "kind": "window",
+      "u": 1.056,
+      "v": 3.995,
+      "w": 1.056,
+      "h": 2.322
+     },
+     {
+      "name": "wing first 2",
+      "kind": "window",
+      "u": 5.349,
+      "v": 3.995,
+      "w": 1.056,
+      "h": 2.322
+     },
+     {
+      "name": "wing first 3",
+      "kind": "window",
+      "u": 7.699,
+      "v": 3.995,
+      "w": 1.07,
+      "h": 2.322
+     },
+     {
+      "name": "first 1",
+      "kind": "window",
+      "u": 11.021,
+      "v": 3.812,
+      "w": 1.126,
+      "h": 2.435
+     },
+     {
+      "name": "first 2",
+      "kind": "window",
+      "u": 13.822,
+      "v": 3.812,
+      "w": 1.21,
+      "h": 2.435
+     },
+     {
+      "name": "first 3",
+      "kind": "window",
+      "u": 17.101,
+      "v": 3.812,
+      "w": 1.196,
+      "h": 2.435
+     },
+     {
+      "name": "first 4",
+      "kind": "window",
+      "u": 19.639,
+      "v": 3.839,
+      "w": 1.119,
+      "h": 2.396
+     },
+     {
+      "name": "first 5",
+      "kind": "window",
+      "u": 24.971,
+      "v": 3.839,
+      "w": 1.08,
+      "h": 2.396
+     },
+     {
+      "name": "first 6",
+      "kind": "window",
+      "u": 27.446,
+      "v": 3.839,
+      "w": 1.106,
+      "h": 2.396
+     },
+     {
+      "name": "first 7",
+      "kind": "window",
+      "u": 30.764,
+      "v": 3.839,
+      "w": 1.119,
+      "h": 2.396
+     },
+     {
+      "name": "front door",
+      "kind": "door",
+      "u": 22.009,
+      "v": 3.312,
+      "w": 1.712,
+      "h": 3.226
+     },
+     {
+      "name": "basement 1",
+      "kind": "window",
+      "u": 1.169,
+      "v": 0.477,
+      "w": 0.985,
+      "h": 2.111
+     },
+     {
+      "name": "basement 2",
+      "kind": "window",
+      "u": 5.377,
+      "v": 0.477,
+      "w": 0.999,
+      "h": 2.111
+     },
+     {
+      "name": "basement 3",
+      "kind": "window",
+      "u": 7.671,
+      "v": 0.477,
+      "w": 1.013,
+      "h": 2.111
+     },
+     {
+      "name": "basement 4",
+      "kind": "window",
+      "u": 11.077,
+      "v": 0.477,
+      "w": 1.027,
+      "h": 2.111
+     },
+     {
+      "name": "basement 5",
+      "kind": "window",
+      "u": 13.906,
+      "v": 0.477,
+      "w": 1.042,
+      "h": 2.111
+     },
+     {
+      "name": "basement 6",
+      "kind": "window",
+      "u": 17.172,
+      "v": 0.477,
+      "w": 1.056,
+      "h": 2.111
+     },
+     {
+      "name": "basement 7",
+      "kind": "window",
+      "u": 19.705,
+      "v": 0.547,
+      "w": 1.027,
+      "h": 2.041
+     },
+     {
+      "name": "basement 8",
+      "kind": "window",
+      "u": 25.076,
+      "v": 0.547,
+      "w": 1.014,
+      "h": 2.041
+     },
+     {
+      "name": "basement 9",
+      "kind": "window",
+      "u": 27.446,
+      "v": 0.547,
+      "w": 1.014,
+      "h": 2.041
+     },
+     {
+      "name": "basement 10",
+      "kind": "window",
+      "u": 30.83,
+      "v": 0.547,
+      "w": 0.987,
+      "h": 2.041
+     }
+    ]
+   }
+  },
+  {
+   "slug": "amesti",
+   "name": "Jose Amesti Casa, Monterey",
+   "habs": "HABS CAL,27-MONT,20",
+   "facing": "west",
+   "footprint": {
+    "osm_way": 152297445,
+    "lat": 0,
+    "lon": 0
+   },
+   "photos": [
+    {
+     "pk": "ca0367.photos.013715p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0300/ca0367/photos/013715pr.jpg",
+     "caption": "1.  Historic American Buildings Survey Re-photo of 1919 Photograph September 1958 GARDEN ELEVATION",
+     "commons": {
+      "title": "File:Historic American Buildings Survey Re-photo of 1919 Photograph September 1958 GARDEN ELEVATION - Jose Amesti Casa, 516 Polk Street, Monterey, Monterey County, CA HABS CAL,27-MONT,20-1.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Historic_American_Buildings_Survey_Re-photo_of_1919_Photograph_September_1958_GARDEN_ELEVATION_-_Jose_Amesti_Casa%2C_516_Polk_Street%2C_Monterey%2C_Monterey_County%2C_CA_HABS_CAL%2C27-MONT%2C20-1.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3786
+     }
+    },
+    {
+     "pk": "ca0367.photos.013718p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0300/ca0367/photos/013718pr.jpg",
+     "caption": "4.  Historic American Buildings Survey John H. Livingstone, Photographer September 1958 GARDEN ELEVATION",
+     "commons": {
+      "title": "File:Historic American Buildings Survey John H. Livingstone, Photographer September 1958 GARDEN ELEVATION - Jose Amesti Casa, 516 Polk Street, Monterey, Monterey County, CA HABS CAL,27-MONT,20-4.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Historic_American_Buildings_Survey_John_H._Livingstone%2C_Photographer_September_1958_GARDEN_ELEVATION_-_Jose_Amesti_Casa%2C_516_Polk_Street%2C_Monterey%2C_Monterey_County%2C_CA_HABS_CAL%2C27-MONT%2C20-4.tif/lossy-page1-1920px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 3580,
+      "height": 5000
+     }
+    }
+   ],
+   "truth": {
+    "sheet": "ca? CAL 143 sheet 6 of 10",
+    "elevation": "west (garden)",
+    "pixels_per_m": 124.0,
+    "note": "scale from the feet bar and floor dimensions (38 px/ft); grade = finished first floor; upper French doors as seen above the balcony rail",
+    "panel_m": [
+     25.806,
+     6.653
+    ],
+    "openings": [
+     {
+      "name": "upper french door 1",
+      "kind": "door",
+      "u": 2.518,
+      "v": 4.385,
+      "w": 1.058,
+      "h": 1.26
+     },
+     {
+      "name": "upper french door 2",
+      "kind": "door",
+      "u": 7.911,
+      "v": 4.385,
+      "w": 1.129,
+      "h": 1.26
+     },
+     {
+      "name": "upper french door 3",
+      "kind": "door",
+      "u": 13.214,
+      "v": 4.385,
+      "w": 1.21,
+      "h": 1.31
+     },
+     {
+      "name": "upper french door 4",
+      "kind": "door",
+      "u": 17.125,
+      "v": 4.385,
+      "w": 1.28,
+      "h": 1.31
+     },
+     {
+      "name": "upper french door 5",
+      "kind": "door",
+      "u": 21.581,
+      "v": 4.385,
+      "w": 1.26,
+      "h": 1.31
+     },
+     {
+      "name": "ground window 1",
+      "kind": "window",
+      "u": 2.488,
+      "v": 0.706,
+      "w": 1.169,
+      "h": 1.865
+     },
+     {
+      "name": "ground door 1",
+      "kind": "door",
+      "u": 6.117,
+      "v": 0.101,
+      "w": 1.139,
+      "h": 2.369
+     },
+     {
+      "name": "ground window 2",
+      "kind": "window",
+      "u": 7.861,
+      "v": 0.706,
+      "w": 1.179,
+      "h": 1.865
+     },
+     {
+      "name": "ground window 3",
+      "kind": "window",
+      "u": 13.163,
+      "v": 0.706,
+      "w": 1.159,
+      "h": 1.815
+     },
+     {
+      "name": "ground door 2 (1919)",
+      "kind": "door",
+      "u": 17.044,
+      "v": 0.101,
+      "w": 1.26,
+      "h": 2.419
+     },
+     {
+      "name": "ground door 3",
+      "kind": "door",
+      "u": 21.581,
+      "v": 0.101,
+      "w": 0.988,
+      "h": 2.419
+     }
+    ]
+   }
+  },
+  {
+   "slug": "jscain",
+   "name": "J. S. Cain House, Bodie",
+   "habs": "HABS CAL,26-BODI,3",
+   "facing": "east",
+   "footprint": {
+    "osm_way": 172226728,
+    "lat": 0,
+    "lon": 0
+   },
+   "photos": [
+    {
+     "pk": "ca0353.photos.013481p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0300/ca0353/photos/013481pr.jpg",
+     "caption": "3.  Historic American Buildings Survey Ronald Partridge, Photographer July 1962 FRONT ELEVATION",
+     "commons": {
+      "title": "File:Historic American Buildings Survey Ronald Partridge, Photographer July 1962 FRONT ELEVATION - J. S. Cain House, Green and Park Streets, Bodie, Mono County, CA HABS CAL,26-BODI,3-3.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Historic_American_Buildings_Survey_Ronald_Partridge%2C_Photographer_July_1962_FRONT_ELEVATION_-_J._S._Cain_House%2C_Green_and_Park_Streets%2C_Bodie%2C_Mono_County%2C_CA_HABS_CAL%2C26-BODI%2C3-3.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 4993,
+      "height": 3593
+     }
+    },
+    {
+     "pk": "ca0353.photos.013480p",
+     "url": "https://tile.loc.gov/storage-services/service/pnp/habshaer/ca/ca0300/ca0353/photos/013480pr.jpg",
+     "caption": "2.  Historic American Buildings Survey Ronald Partridge, Photographer July 1962 SOUTHEAST VIEW FROM GREEN STREET",
+     "commons": {
+      "title": "File:Historic American Buildings Survey Ronald Partridge, Photographer July 1962 SOUTHEAST VIEW FROM GREEN STREET - J. S. Cain House, Green and Park Streets, Bodie, Mono County, CA HABS CAL,26-BODI,3-2.tif",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Historic_American_Buildings_Survey_Ronald_Partridge%2C_Photographer_July_1962_SOUTHEAST_VIEW_FROM_GREEN_STREET_-_J._S._Cain_House%2C_Green_and_Park_Streets%2C_Bodie%2C_Mono_County%2C_CA_HABS_CAL%2C26-BODI%2C3-2.tif/lossy-page1-3840px-thumbnail.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 5000,
+      "height": 3562
+     }
+    }
+   ],
+   "truth": {
+    "sheet": "ca? CAL 1920 sheet 4 of 9",
+    "elevation": "east (front)",
+    "pixels_per_m": 122.0,
+    "note": "scale from the feet and metre bars (122 px/m); grade = drawn ground under the stone footing; includes the rear wing drawn on the front",
+    "panel_m": [
+     14.803,
+     7.344
+    ],
+    "openings": [
+     {
+      "name": "bay window 1",
+      "kind": "window",
+      "u": 0.174,
+      "v": 0.567,
+      "w": 1.025,
+      "h": 2.96
+     },
+     {
+      "name": "bay window 2",
+      "kind": "window",
+      "u": 1.256,
+      "v": 0.567,
+      "w": 1.116,
+      "h": 2.96
+     },
+     {
+      "name": "bay window 3",
+      "kind": "window",
+      "u": 2.451,
+      "v": 0.567,
+      "w": 1.082,
+      "h": 2.96
+     },
+     {
+      "name": "front door (transom and sidelights)",
+      "kind": "door",
+      "u": 4.159,
+      "v": 0.51,
+      "w": 1.594,
+      "h": 2.789
+     },
+     {
+      "name": "window",
+      "kind": "window",
+      "u": 7.495,
+      "v": 1.284,
+      "w": 1.047,
+      "h": 1.867
+     },
+     {
+      "name": "wing window",
+      "kind": "window",
+      "u": 11.786,
+      "v": 1.25,
+      "w": 0.968,
+      "h": 1.901
+     }
+    ]
+   }
+  }
+ ],
+ "not_scored": [
+  {
+   "house": "Walter Luther Dodge House, West Hollywood (HABS CAL,19-LOSAN,27)",
+   "why": "demolished in 1970: no footprint, so it cannot be tested as a real house"
+  },
+  {
+   "house": "Lovell Beach House, Newport Beach (HABS CAL,30-NEWBE,1)",
+   "why": "the west front is continuous ribbon glazing on stilts: no discrete openings to match one to one"
+  },
+  {
+   "house": "Yung See San Fong, Los Gatos (HABS CAL,43-LOSGA,2)",
+   "why": "every photograph looks steeply along the drive, beyond 40 degrees to any drawn front"
+  },
+  {
+   "house": "Sowden House, Los Angeles (HABS CAL,19-LOSAN,69)",
+   "why": "no OSM building contains its address; the footprint would have to be guessed"
+  },
+  {
+   "house": "Harrison Street Block, Santa Clara (HABS CAL,43-SANCLA,2)",
+   "why": "no addressed OSM footprints for 1009 or 1077; the houses would have to be guessed"
+  },
+  {
+   "house": "Casa del Rancho San Antonio, Bell Gardens (HABS CAL,19-BEL,1)",
+   "why": "the nearest OSM building is 38 m from the address and its east front's sheet would not download whole"
+  },
+  {
+   "house": "D. V. Cain House, Bodie",
+   "why": "excluded by request"
+  }
+ ]
+}

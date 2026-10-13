@@ -414,7 +414,7 @@ def scan_region(args, region, poses, landmarks, now, policy):
                 dx, dy = camera.x - mx, camera.y - my
                 dist = math.hypot(dx, dy)
                 if dist > policy.max_distance_m or dx * wall.normal[0] + dy * wall.normal[1] < max(
-                    policy.min_distance_m, dist * math.cos(math.radians(policy.max_angle_deg))
+                    policy.min_distance_m, dist * math.cos(math.radians(policy.entrance_angle_deg))
                 ):
                     rejected["distance_or_oblique_prefilter"] += 1
                     continue
@@ -737,6 +737,13 @@ def review_samples(args, summaries, policy):
                     measured = screen.screen(view.image, view.mask)
                 labels = measured.pop("labels")
                 cv2.imwrite(str(report_path.with_suffix(".labels.png")), labels.astype(np.uint8))
+                from smc.facades.frontage_pixels import view_gate
+
+                extra = view_gate(
+                    measured.get("details", {}), candidate, report["rectilinearity_heuristic"]
+                )
+                measured["reasons"] = [*measured["reasons"], *extra]
+                measured["pass"] = not measured["reasons"]
                 report["pixel_screen"] = measured
                 if not measured["pass"]:
                     report["status"] = "pixel_rejected"
@@ -869,6 +876,12 @@ def main():
     )
     parser.add_argument("--reviews", type=Path)
     parser.add_argument("--max-angle", type=float, default=35)
+    parser.add_argument(
+        "--entrance-angle",
+        type=float,
+        default=40,
+        help="views up to this angle are kept only when their pixels show the entrance",
+    )
     parser.add_argument("--watch-seconds", type=int, default=0)
     parser.add_argument("--device", choices=["cpu", "mps", "cuda", "auto"], default="cpu")
     parser.add_argument(
@@ -911,6 +924,7 @@ def main():
     )
     policy = FrontagePolicy(
         max_angle_deg=args.max_angle,
+        entrance_angle_deg=max(args.max_angle, args.entrance_angle),
         max_edge_angle_deg=35 if args.strict_houses else 55,
         min_frame_coverage=1 if args.strict_houses else 0.90,
     )
