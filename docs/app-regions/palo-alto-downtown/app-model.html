@@ -95,7 +95,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="71ea71ccfcfe2b0f6d88017b708b981cae693cd0c07e71b51120f8476ad46514" />
+<meta name="kerbside-renderer-sha256" content="5e6acab7e7965a6d9344cd82ff66bc76f1d24086190b0cb79c5380cb55c414ef" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -2312,7 +2312,7 @@ const TERRAIN_REFINE_BY_SURFACE = {
   plaza: [2.0, 0, 2.0, true],
   // A 16 m grass chord can bridge over a steep footway or a court even though its vertices
   // are below both surfaces. Grass has no reason to be planar across a retaining wall.
-  yard: [12.0, 0.15, 3.0], park: [12.0, 0.15, 3.0],
+  yard: [12.0, 0.15, 3.0], park: [4.0, 0.05, 2.0, true],
   service_yard: [12.0, 0.15, 3.0], court: [8.0, 0.05, 2.0], court_line: [8.0, 0.05, 2.0],
 };
 //: The bend rule may not multiply a mesh past this: the grid is stepped wherever a wall or a
@@ -2927,6 +2927,11 @@ function liftOneMesh(o) {
       attribute.setXYZ(i, attribute.getX(i) + up.x, attribute.getY(i) + up.y, attribute.getZ(i) + up.z);
     }
     attribute.needsUpdate = true;
+    // Ground normals were still those of the original flat sheet: hills had geometry but
+    // no slope lighting. Recompute only terrain-conforming covers, not building walls.
+    if (["park", "yard", "court", "plaza", "front_walk"].includes(o.userData.surface)) {
+      o.geometry.computeVertexNormals();
+    }
     // The bounds are what the culling reads; a tile lifted eighty metres up Nob Hill with the
     // sphere it had at sea level would vanish whenever the camera looked at it.
     o.geometry.computeBoundingSphere();
@@ -17177,22 +17182,6 @@ function grassTexture(kind = "yard", variant = 0) {
     data[i * 4 + 3] = 255;
   }
   ctx.putImageData(image, 0, 0);
-  // The unevenness of the ground under the grass, at a few per cent: a lawn is not the same
-  // green to the centimetre, and without this the field reads as a carpet. Soft and faint, so
-  // it is not a feature the eye can find again at the next repeat.
-  for (let i = 0; i < 7; i += 1) {
-    n += 1;
-    const x = random(seed + n * 3.7) * size;
-    const y = random(seed + n * 5.9) * size;
-    const r = size * (0.25 + random(seed + n * 8.3) * 0.3);
-    const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
-    const dark = random(seed + n * 2.1) < 0.5;
-    glow.addColorStop(0, dark ? "rgba(10,40,12,0.07)" : "rgba(210,230,150,0.05)");
-    glow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, size, size);
-  }
-
   // The blades: strokes of the kind's own length and thickness, dark to light so the field
   // has depth, leaning every way.
   const passes = [
@@ -20977,10 +20966,9 @@ function addTrafficSignalHeads(records) {
 // ---- the electrical network: poles, towers, masts and the wires between them ----
 //
 // Poles, transmission towers and power lines come from OpenStreetMap; so do the cell and
-// broadcast masts. A mapped line is strung along its own vertices. Poles no mapped line
-// joins are strung to each other -- inferred, and recorded as inferred -- the way a
-// distribution line runs: pole to pole along a street, a span of fifteen to sixty-five
-// metres, carrying straight on rather than zig-zagging, never through a building.
+// broadcast masts. Only an explicitly mapped overhead line supplies connectivity.
+// Nearby poles (including photograph detections) are NOT evidence of a span: court lights
+// and park poles otherwise acquire imaginary conductors across playing surfaces.
 //
 // A conductor hangs as a catenary, y = a cosh(x / a), where a is its horizontal tension over
 // its weight per metre. One realistic starting point sets it: a forty-metre distribution span
@@ -20989,10 +20977,6 @@ function addTrafficSignalHeads(records) {
 // which is how a real line hangs, and spans between points at different heights are solved
 // as the true asymmetric catenary through both.
 const WIRE_CATENARY_A_M = 200;
-const WIRE_SPAN_MIN_M = 15;
-const WIRE_SPAN_MAX_M = 65;
-//: A span across a street is no longer than the street is wide and a little.
-const WIRE_SPAN_ACROSS_MAX_M = 40;
 const WIRE_SAMPLES = 14;
 const POLE_DEFAULT_M = 10.5;
 //: A small cell's own pole: a street light's height.
@@ -21026,6 +21010,17 @@ function electricalAnchor(item) {
   return { x, z: -y, y: groundLiftAt(x, -y) + ROAD_TOP_M };
 }
 
+function mappedOverheadLine(line) {
+  return line && line.source === "openstreetmap"
+    && line.geometry_basis === "osm_overhead_line_way"
+    && /^osm:power_line:way:\d+$/.test(String(line.id))
+    && ["line", "minor_line"].includes(line.power_kind)
+    && !["underground", "submarine", "indoor"].includes(line.location)
+    && Array.isArray(line.points) && line.points.length >= 2
+    && line.points.every((p) => Array.isArray(p) && p.length >= 2
+      && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+}
+
 function addElectricalNetwork(furniture) {
   const inferred = furniture.inferred || {};
   // OpenStreetMap's poles and the ones Mapillary placed from its photographs (ingest_kerb_assets:
@@ -21035,75 +21030,10 @@ function addElectricalNetwork(furniture) {
     .filter((row) => row.anchor);
   poleRows.forEach((row) => {
     row.height = Math.max(7, Math.min(16, parseFloat(row.item.height_m) || POLE_DEFAULT_M));
-    row.links = [];
+    row.yaw = furnitureBearing(row.item, 0, row.anchor);
   });
-  const lines = (inferred.power_lines || []).map((line) => ({ line,
+  const lines = (inferred.power_lines || []).filter(mappedOverheadLine).map((line) => ({ line,
     path: (line.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return { x, z: -y }; }) }));
-  // Poles a mapped line runs through are its supports; only the rest are strung by inference.
-  const nearLine = (x, z) => lines.some(({ path }) => path.some((p) => Math.hypot(p.x - x, p.z - z) < 3));
-  const free = poleRows.filter((row) => !nearLine(row.anchor.x, row.anchor.z));
-  // Candidate spans, neighbours from a grid rather than every pair (a region has thousands of
-  // poles now). A line runs along its side of the street: a span across the carriageway is
-  // taken only after every span along one, so it joins the ends of lines -- across a junction,
-  // to the other side -- rather than zigzagging over the road from pole to pole.
-  const pairs = [];
-  const grid = new Map();
-  const cellKey = (gx, gz) => `${gx},${gz}`;
-  free.forEach((row, i) => {
-    row.i = i;
-    row.gx = Math.floor(row.anchor.x / WIRE_SPAN_MAX_M);
-    row.gz = Math.floor(row.anchor.z / WIRE_SPAN_MAX_M);
-    const key = cellKey(row.gx, row.gz);
-    if (!grid.has(key)) grid.set(key, []);
-    grid.get(key).push(row);
-  });
-  for (const A of free) {
-    for (let dx = -1; dx <= 1; dx += 1) {
-      for (let dz = -1; dz <= 1; dz += 1) {
-        for (const B of grid.get(cellKey(A.gx + dx, A.gz + dz)) || []) {
-          if (B.i <= A.i) continue;
-          const d = Math.hypot(A.anchor.x - B.anchor.x, A.anchor.z - B.anchor.z);
-          if (d < WIRE_SPAN_MIN_M || d > WIRE_SPAN_MAX_M) continue;
-          const across = insideCarriageway((A.anchor.x + B.anchor.x) / 2, (A.anchor.z + B.anchor.z) / 2, 0);
-          if (across && d > WIRE_SPAN_ACROSS_MAX_M) continue;
-          pairs.push([d + (across ? 1000 : 0), A, B, d]);
-        }
-      }
-    }
-  }
-  pairs.sort((p, q) => p[0] - q[0]);
-  const straightOn = (row, ux, uz) => row.links.every((link) => {
-    // A second span must carry on from the first, not double back or turn a sharp corner.
-    const dot = link.ux * ux + link.uz * uz;
-    return dot < -0.55;
-  });
-  const crossesBuilding = (a, b) => {
-    for (let k = 1; k < 8; k += 1) {
-      const x = a.x + (b.x - a.x) * k / 8, z = a.z + (b.z - a.z) * k / 8;
-      if (buildingAt(x, z)) return true;
-    }
-    return false;
-  };
-  const inferredSpans = [];
-  for (const [, A, B, d] of pairs) {
-    if (A.links.length >= 2 || B.links.length >= 2) continue;
-    const ux = (B.anchor.x - A.anchor.x) / d, uz = (B.anchor.z - A.anchor.z) / d;
-    if (!straightOn(A, ux, uz) || !straightOn(B, -ux, -uz)) continue;
-    if (crossesBuilding(A.anchor, B.anchor)) continue;
-    A.links.push({ ux, uz });
-    B.links.push({ ux: -ux, uz: -uz });
-    inferredSpans.push([A, B]);
-  }
-  // Each pole's crossarm square to the line through it.
-  poleRows.forEach((row) => {
-    if (row.links.length) {
-      const ux = row.links.reduce((s, l, k) => s + (k ? -l.ux : l.ux), 0);
-      const uz = row.links.reduce((s, l, k) => s + (k ? -l.uz : l.uz), 0);
-      row.yaw = Math.atan2(ux, uz) + Math.PI / 2;
-    } else {
-      row.yaw = furnitureBearing(row.item, 0, row.anchor);
-    }
-  });
   // Poles.
   const dummy = new THREE.Object3D();
   if (poleRows.length) {
@@ -21264,7 +21194,7 @@ function addElectricalNetwork(furniture) {
     }
   }
   // The conductors.
-  const mapped = [], guessed = [];
+  const mapped = [];
   const supportsNear = (x, z) => {
     let best = null;
     for (const row of poleRows.concat(towerRows)) {
@@ -21298,25 +21228,8 @@ function addElectricalNetwork(furniture) {
       mappedSpans += 1;
     }
   }
-  for (const [A, B] of inferredSpans) {
-    const attach = (row, side) => {
-      const rx = Math.cos(row.yaw), rz = -Math.sin(row.yaw);
-      return { x: row.anchor.x + rx * side, y: row.anchor.y + row.height - 0.76, z: row.anchor.z + rz * side };
-    };
-    // The three conductors on the crossarm, matched end to end so they do not cross.
-    const d = Math.hypot(B.anchor.x - A.anchor.x, B.anchor.z - A.anchor.z);
-    const ux = (B.anchor.x - A.anchor.x) / d, uz = (B.anchor.z - A.anchor.z) / d;
-    const flipA = Math.cos(A.yaw) * -uz + -Math.sin(A.yaw) * ux < 0 ? -1 : 1;
-    const flipB = Math.cos(B.yaw) * -uz + -Math.sin(B.yaw) * ux < 0 ? -1 : 1;
-    for (const side of [-1.05, 0, 1.05]) {
-      catenaryPoints(attach(A, side * flipA), attach(B, side * flipB), guessed);
-    }
-    // And the lower communications cable, a little slacker.
-    const low = (row) => ({ x: row.anchor.x, y: row.anchor.y + row.height - 3.2, z: row.anchor.z });
-    catenaryPoints(low(A), low(B), guessed, WIRE_CATENARY_A_M * 0.7);
-  }
   const wireMaterial = new THREE.LineBasicMaterial({ color: 0x2c302f, opacity: 0.9, transparent: true });
-  for (const [points, basis] of [[mapped, "osm_mapped_line"], [guessed, "inferred_pole_to_pole"]]) {
+  for (const [points, basis] of [[mapped, "osm_mapped_line"]]) {
     if (!points.length) continue;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
@@ -21325,7 +21238,7 @@ function addElectricalNetwork(furniture) {
     groups.furniture.add(wires);
   }
   return { utility_poles: poleRows.length, power_towers: towerRows.length, comm_towers: mastRows.length,
-    small_cells: cellRows.length, mapped_wire_spans: mappedSpans, inferred_wire_spans: inferredSpans.length };
+    small_cells: cellRows.length, mapped_wire_spans: mappedSpans, inferred_wire_spans: 0 };
 }
 
 function addBikeRacks(anchors) {
@@ -22688,6 +22601,48 @@ function addressLanding(landing) {
   return eligibleLanding(landing);
 }
 
+// The visible walker stays outside every canonical footprint, even at open doors.
+// Camera/interior inspection is independent; GPS uncertainty never authorizes entry.
+function exteriorLanding(landing) {
+  if (!landing || !buildingAt(landing.x, landing.z)) return landing;
+  const way = buildingAt(landing.x, landing.z);
+  const entry = footprintById.get(String(way.osm_id));
+  const candidates = [];
+  const clearance = WALKER_RADIUS_M + 0.10;
+  for (let i = 1; entry && i < entry.local.length; i += 1) {
+    const [ax, az] = entry.local[i - 1], [bx, bz] = entry.local[i];
+    const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz;
+    if (len2 < 1e-9) continue;
+    const t = Math.max(0, Math.min(1, ((landing.x - ax) * dx + (landing.z - az) * dz) / len2));
+    const qx = ax + t * dx, qz = az + t * dz, len = Math.sqrt(len2);
+    for (const sign of [-1, 1]) {
+      const x = qx + sign * dz / len * clearance, z = qz - sign * dx / len * clearance;
+      if (!buildingAt(x, z)) candidates.push({x, z, d: (x - landing.x) ** 2 + (z - landing.z) ** 2});
+    }
+  }
+  candidates.sort((a, b) => a.d - b.d);
+  return candidates[0] || eligibleLanding(landing, true);
+}
+
+function walkerExteriorAt(x, z) {
+  const guest = typeof guestUnder === "function" && activeGuest ? guestUnder(x, z) : null;
+  if (guest?.ready && guest.api.exteriorLanding) {
+    const [gx, gz] = hostToGuest(guest, x, z);
+    const at = guest.api.exteriorLanding({x: gx, z: gz});
+    return at ? {x: guest.ox + at.x * guest.sx, z: guest.oz + at.z} : null;
+  }
+  return exteriorLanding({x, z});
+}
+
+function keepWalkerOutside() {
+  const at = walkerExteriorAt(avatar.position.x, avatar.position.z);
+  if (!at) { avatar.visible = false; return; }
+  if (Math.hypot(at.x - avatar.position.x, at.z - avatar.position.z) < 1e-6) return;
+  avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z), at.z);
+  state.target.copy(avatar.position);
+  state.indoors = false;
+}
+
 //: Whether the walker keeps to where your device says you are (followGps). It does from the first
 //: fix until you move it yourself -- the arrows, a click, a teleport, a pin -- and then stays
 //: where you put it until R or Reset view brings it back (var: goTo can run before gps exists).
@@ -22695,6 +22650,8 @@ var GPS_LEASH = { on: true };
 // A click moves the walker without changing zoom. Right-click is the deliberate
 // street-level teleport; dragging and wheel zoom never move the walker.
 function goTo(landing, { travel = false, zoom = false } = {}) {
+  if (!landing) return;
+  if (travel) landing = walkerExteriorAt(landing.x, landing.z);
   if (!landing) return;
   if (travel && GPS_LEASH) GPS_LEASH.on = false;
   // The ground where the click landed: the terrain's height, or the bore's floor inside a
@@ -23363,6 +23320,23 @@ function pushOutOfWalls(p, segments) {
   }
 }
 
+function walkerFootprintBlocked(x, z) {
+  const seen = new Set();
+  const gx = Math.floor(x / FOOTPRINT_CELL), gz = Math.floor(z / FOOTPRINT_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) {
+    for (const entry of footprintGrid.get(`${gx + dx}:${gz + dz}`) || []) {
+      if (seen.has(entry)) continue;
+      seen.add(entry);
+      if (insideFootprint(entry, x, z)) return true;
+      const ring = entry.local;
+      for (let i = 1; i < ring.length; i += 1) {
+        if (distanceToSegmentSquared(x, z, ...ring[i - 1], ...ring[i]) < WALKER_RADIUS_M ** 2 - 1e-9) return true;
+      }
+    }
+  }
+  return false;
+}
+
 // Move the walker by (mx, mz), in steps short enough that no wall is crossed between checks,
 // sliding along whatever it meets.
 function moveWalker(mx, mz) {
@@ -23371,9 +23345,22 @@ function moveWalker(mx, mz) {
   const segments = wallSegmentsNear(avatar.position.x + mx / 2, avatar.position.z + mz / 2);
   const p = { x: avatar.position.x, z: avatar.position.z };
   for (let i = 0; i < steps; i += 1) {
-    p.x += mx / steps;
-    p.z += mz / steps;
-    if (segments.length) pushOutOfWalls(p, segments);
+    const next = {x: p.x + mx / steps, z: p.z + mz / steps};
+    if (segments.length) pushOutOfWalls(next, segments);
+    const nextX = next.x, nextZ = next.z;
+    const guest = typeof guestUnder === "function" && activeGuest ? guestUnder(nextX, nextZ) : null;
+    let hit;
+    if (guest?.ready && guest.api.firstBuildingCollision) {
+      const [ax, az] = hostToGuest(guest, p.x, p.z), [bx, bz] = hostToGuest(guest, nextX, nextZ);
+      hit = guest.api.firstBuildingCollision(ax, az, bx, bz);
+    } else hit = firstBuildingCollision(p.x, p.z, nextX, nextZ);
+    if (hit !== null && hit !== undefined) break;
+    const blocked = guest?.ready && guest.api.walkerFootprintBlocked
+      ? guest.api.walkerFootprintBlocked(...hostToGuest(guest, nextX, nextZ))
+      : walkerFootprintBlocked(nextX, nextZ);
+    if (blocked) break;
+    p.x = nextX;
+    p.z = nextZ;
   }
   const moved = Math.hypot(p.x - avatar.position.x, p.z - avatar.position.z);
   avatar.position.x = p.x;
@@ -26428,12 +26415,14 @@ function startGps() {
     if (lon < b.west || lon > b.east || lat < b.south || lat > b.north) { gps.target = null; return; }
     const [x, y] = xy(lon, lat);
     const first = !gps.target;
-    gps.target = new THREE.Vector3(x, 0, -y);
+    const exterior = walkerExteriorAt(x, -y);
+    if (!exterior) return;
+    gps.target = new THREE.Vector3(exterior.x, 0, exterior.z);
     gps.heading = Number.isFinite(heading) ? heading : null;
     if (first && GPS_LEASH.on) {
       // The first fix: the walker stands where you are and the view comes to it -- unless you
       // have already walked it somewhere yourself.
-      avatar.position.set(x, AVATAR_STAND_Y + walkerGroundAt(x, -y), -y);
+      avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
       state.indoors = false;
       state.target.copy(avatar.position);
       placeCamera();
@@ -26444,6 +26433,9 @@ function startGps() {
 function returnToGps() {
   GPS_LEASH.on = true;
   if (!gps.target) return false;
+  const exterior = walkerExteriorAt(gps.target.x, gps.target.z);
+  if (!exterior) return false;
+  gps.target.set(exterior.x, 0, exterior.z);
   avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
   state.indoors = false;
   gps.follow = true;
@@ -26465,6 +26457,10 @@ function stopGps() {
 //: One frame's walk toward where you are; true when the walker moved.
 function followGps(dt) {
   if (!gps.target || held.size || !GPS_LEASH.on) return false;
+  // The footprint window may have loaded after the original fix was recorded.
+  const exterior = walkerExteriorAt(gps.target.x, gps.target.z);
+  if (!exterior) return false;
+  gps.target.set(exterior.x, 0, exterior.z);
   const dx = gps.target.x - avatar.position.x, dz = gps.target.z - avatar.position.z, d = Math.hypot(dx, dz);
   if (d > GPS_JUMP_M) {
     avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
@@ -26477,13 +26473,12 @@ function followGps(dt) {
   // Faster the further behind, so a walker never trails a moving phone for long.
   const step = Math.min(d, Math.max(GPS_WALK_SPEED_MS, d) * dt);
   const move = new THREE.Vector3(dx / d * step, 0, dz / d * step);
-  // Where the phone says, not where the walls allow: a fix is often a few metres into a house.
-  avatar.position.x += move.x;
-  avatar.position.z += move.z;
+  // GPS may drift into a house; its visual walker obeys the same walls as manual movement.
+  const moved = moveWalker(move.x, move.z);
   avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
   avatar.userData.lastMove = [move.x, move.z, performance.now()];
   avatar.userData.pace = 1;
-  animateAvatar(step, move, true);
+  animateAvatar(moved, move, moved > 0);
   if (gps.follow) { state.target.copy(avatar.position); placeCamera(); }
   return true;
 }
@@ -26532,6 +26527,7 @@ function walkPace(move) {
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
+  keepWalkerOutside();
   updateDoors(dt);
   if (!held.size) {
     if (!followGps(dt)) animateAvatar(0, new THREE.Vector3(), false);
@@ -26557,7 +26553,7 @@ function stepAvatar(now) {
   move.multiplyScalar(scaled * dt * pace.factor);
   GPS_LEASH.on = false;   // walking yourself: the walker is yours until R or Reset view
   requestInteriors();
-  // The current building collision model lets the walker slide along walls and enter mapped doors.
+  // Canonical footprints stay solid for the walker, including when a door is open.
   const moved = moveWalker(move.x, move.z);
   const lon = midLon + avatar.position.x / metersPerLon;
   const lat = midLat - avatar.position.z / metersPerLat;
@@ -28077,6 +28073,7 @@ window.kerbsideActiveRegion = () => (activeGuest ? { name: activeGuest.region.na
 const guestAvatarAt = new THREE.Vector3();
 function guestFrame(now) {
   const g = activeGuest;
+  keepWalkerOutside();
   const dt = Math.min(0.1, (now - g.lastAt) / 1000);
   g.lastAt = now;
   const [gx, gz] = hostToGuest(g, avatar.position.x, avatar.position.z);
@@ -28124,7 +28121,8 @@ window.kerbsideGuestApi = {
             Math.max(corners[0][0], corners[1][0]), Math.max(corners[0][1], corners[1][1])];
   })() : (() => { const [x0, y0] = xy(DATA.bbox.west, DATA.bbox.south); const [x1, y1] = xy(DATA.bbox.east, DATA.bbox.north);
     return [x0, -y1, x1, -y0]; })(),
-  walkerGroundAt, groundLiftAt, wallSegmentsNear, terrainTiles,
+  walkerGroundAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
+  walkerFootprintBlocked,
   tick: guestTick,
   toggleNearestDoor() { const door = nearestDoor(); if (door) toggleDoor(door); return Boolean(door); },
   setRootInverse(matrix) { ROOT_INVERSE.copy(matrix); detailCells = null; cullForced = true; },

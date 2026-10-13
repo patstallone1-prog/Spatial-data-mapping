@@ -226,7 +226,7 @@ def test_sparse_grass_raster_conservatively_covers_every_ring_bound():
             assert any(a <= x < b for a, b in out[y])
 
 
-def test_closed_recess_is_accessible_but_leaf_and_returns_stop_walker():
+def test_recess_geometry_is_retained_but_walker_stays_outside_property_footprint():
     # Use the existing collision harness so this also exercises swept substeps.
     from tests.test_walking_and_interiors import TestWalls
     out = TestWalls()._run("""
@@ -236,7 +236,7 @@ def test_closed_recess_is_accessible_but_leaf_and_returns_stop_walker():
       console.log(JSON.stringify([avatar.position.x,avatar.position.z]));
     """)
     assert out[0] == pytest.approx(5)
-    assert out[1] == pytest.approx(2.7)
+    assert out[1] <= -0.3 + 1e-9
 
 
 def test_open_foyer_and_connection_stay_inside_property():
@@ -251,7 +251,7 @@ def test_open_foyer_and_connection_stay_inside_property():
     assert all(0 <= x <= 10 and 0 <= z <= 10 for zone in out for x, z in zone)
 
 
-def test_stair_aperture_uses_stair_width_not_narrower_door_width():
+def test_stair_aperture_is_preserved_but_walker_stays_outside_the_house():
     from tests.test_walking_and_interiors import TestWalls
     out = TestWalls()._run("""
       entry.doors=[{edge:0,t0:0.4,t1:0.6,width:2,open:false,
@@ -260,7 +260,8 @@ def test_stair_aperture_uses_stair_width_not_narrower_door_width():
       moveWalker(0,3);
       console.log(JSON.stringify([avatar.position.x,avatar.position.z]));
     """)
-    assert out == pytest.approx([4.15, 1])
+    assert out[0] == pytest.approx(4.15)
+    assert out[1] <= -0.3 + 1e-9
 
 
 def test_photo_openings_reversed_wall_keeps_original_edge_coordinates():

@@ -64,13 +64,13 @@ def test_meters_and_trolley_wires_reach_the_streets() -> None:
     assert len(furniture["inferred"]["trolley_wires"]) > 300
 
 
-def test_mapillary_poles_are_strung_and_small_cells_stand_on_poles() -> None:
+def test_mapillary_poles_remain_without_inventing_wires_and_small_cells_stand_on_poles() -> None:
     js = _page_js()
     network = _extract("addElectricalNetwork", js)
     assert "(inferred.utility_poles || []).concat(inferred.detected_utility_poles || [])" in network
-    # Spans from a grid of neighbours, along the street before across it.
-    assert "pairs.push([d + (across ? 1000 : 0), A, B, d]);" in network
-    assert "WIRE_SPAN_ACROSS_MAX_M" in network and "small_cells" in network
+    # A pole detection alone cannot establish electrical connectivity.
+    assert "pairs.push(" not in network and "inferred_pole_to_pole" not in network
+    assert "filter(mappedOverheadLine)" in network and "small_cells" in network
     furniture = json.loads((ROOT / "docs/sf-corridor-furniture.json").read_text())
     assert len(furniture["inferred"]["detected_utility_poles"]) > 5000
     assert len(furniture["geometry_based"]["small_cells"]) > 100

@@ -17,6 +17,21 @@ ROOT = Path(__file__).resolve().parents[1]
 DIAGNOSTIC = r'''
 {
 const paintAudit = {surfaces:{}, buried:[], intruders:[],crossings:[],streetProfiles:[]};
+paintAudit.park = {wireBases:[],grass:[],minHeight:Infinity,maxHeight:-Infinity,
+  walkerInside:Boolean(buildingAt(avatar.position.x,avatar.position.z))};
+groups.furniture.traverse(o=>{
+ if(o.userData.surface==='furniture:overhead_wire')paintAudit.park.wireBases.push(o.userData.basis);
+});
+groups.ground.traverse(o=>{
+ if(o.userData.surface!=='park'||!o.geometry)return;
+ const p=o.geometry.getAttribute('position');
+ for(let i=0;i<p.count;i++){
+  paintAudit.park.minHeight=Math.min(paintAudit.park.minHeight,p.getY(i));
+  paintAudit.park.maxHeight=Math.max(paintAudit.park.maxHeight,p.getY(i));
+ }
+ const image=o.material.map?.image;
+ paintAudit.park.grass.push({width:image?.width,height:image?.height,vertices:p.count});
+});
 for(const w of DATA.ways.filter(w=>w.kind==='street')){
  const profile=laneMarkingProfile(w);
  paintAudit.streetProfiles.push({id:w.osm_id,name:w.name,road:renderedRoadWidth(w),
@@ -137,6 +152,7 @@ console.info('road-paint-audit '+JSON.stringify(paintAudit));
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--region", default="sf-corridor")
+    parser.add_argument("--name", default=None, help="separate audit fixture output directory")
     parser.add_argument("--lon", type=float, default=-122.41868)
     parser.add_argument("--lat", type=float, default=37.78891)
     parser.add_argument("--radius", type=float, default=180)
@@ -165,7 +181,7 @@ def main() -> None:
     data["bbox"] = dict(west=west, south=south, east=east, north=north)
     for key in ("observations", "sequence_paths", "coverage", "gaps", "districts"):
         data[key] = []
-    out = ROOT / "build" / "road-paint-preview" / args.region
+    out = ROOT / "build" / "road-paint-preview" / (args.name or args.region)
     out.mkdir(parents=True, exist_ok=True)
     (out / "sf-corridor-3d.json").write_text(json.dumps(data))
     ground_path = data_dir / "app-sf-corridor-ground.json"
