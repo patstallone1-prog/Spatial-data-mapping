@@ -69,7 +69,7 @@ class TestFit:
 
 @pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
 class TestWalls:
-    def _run(self, body: str) -> object:
+    def _run(self, body: str, extra: tuple[str, ...] = ()) -> object:
         js = _page_js()
         script = textwrap.dedent("""
             const WALKER_RADIUS_M = 0.3, WALK_SUBSTEP_M = 0.15, FOOTPRINT_CELL = 60;
@@ -82,7 +82,7 @@ class TestWalls:
             const activeGuest = null;
         """) + "\n".join(_extract(n, js) for n in (
             "insideFootprint", "wallSegmentsNear", "pushOutOfWalls", "distanceToSegmentSquared",
-            "firstBuildingCollision", "walkerFootprintBlocked", "moveWalker")) + \
+            "firstBuildingCollision", "walkerFootprintBlocked", "moveWalker", *extra)) + \
             "\n" + textwrap.dedent(body)
         result = subprocess.run([NODE, "-e", script], capture_output=True, text=True,
                                 timeout=60, check=False)
@@ -110,6 +110,52 @@ class TestWalls:
         assert out["slid"][0] == pytest.approx(6.0, abs=1e-6) and out["slid"][1] <= -0.3 + 1e-9
         assert out["through"][2] is False and out["through"][1] <= -0.3 + 1e-9
         assert out["keptIn"] is False
+
+
+    def test_enter_at_a_door_puts_the_walker_just_inside_and_enter_again_takes_it_out(self):
+        """Walking is still stopped at the wall; Enter at the door is the way in."""
+        out = self._run("""
+            var enteredEntry = null;
+            const ENTER_STEPS_M = [0.8, 0.55, 1.2, 1.6];
+            const footprintById = new Map([["1", entry]]);
+            function buildingAt(x, z) { return insideFootprint(entry, x, z) ? entry.way : null; }
+            function eligibleLanding() { return null; }
+            let rooms = true;
+            function buildInterior(e) { if (rooms) e.interior = { segments: [[0, 4, 10, 4]] }; }
+            const door = { entry, edge: 0, t0: 0.45, t1: 0.55, cx: 5, cz: 0, ux: 1, uz: 0,
+                           nx: 0, nz: 1, width: 1, open: false };
+            entry.doors.push(door);
+            avatar.position.x = 5; avatar.position.z = -1;
+            const res = {};
+            moveWalker(0, 3);   // walked at, even open, the wall holds
+            res.walked = insideFootprint(entry, avatar.position.x, avatar.position.z);
+            const at = toggleDoor(door);
+            res.at = at; res.open = door.open; res.entered = enteredEntry === entry;
+            avatar.position.x = at.x; avatar.position.z = at.z;
+            res.kept = exteriorLanding({ x: at.x, z: at.z });
+            moveWalker(0, 5);   // about the hall, up to the partition
+            res.walkedIn = [avatar.position.x, avatar.position.z];
+            avatar.position.x = 5; avatar.position.z = 0.8;
+            const back = toggleDoor(door);
+            res.back = back; res.closed = !door.open; res.released = enteredEntry === null;
+            res.pushedOut = Boolean(buildingAt(exteriorLanding({ x: 5, z: 2 }).x, exteriorLanding({ x: 5, z: 2 }).z));
+            // A house with no rooms: Enter only swings its door.
+            entry.interior = null; rooms = false; door.open = false;
+            avatar.position.x = 5; avatar.position.z = -1;
+            res.noRooms = [toggleDoor(door), door.open, enteredEntry];
+            console.log(JSON.stringify(res));
+        """, extra=("insideEntranceRecess", "exteriorLanding", "enterThroughDoor", "toggleDoor"))
+        assert out["walked"] is False
+        assert out["at"]["x"] == pytest.approx(5) and out["at"]["z"] == pytest.approx(0.8)
+        # Facing through the door, into the house: the walker's forward is -(sin yaw, cos yaw).
+        assert -math.sin(out["at"]["yaw"]) == pytest.approx(0, abs=1e-9)
+        assert -math.cos(out["at"]["yaw"]) == pytest.approx(1)
+        assert out["open"] and out["entered"]
+        assert out["kept"] == {"x": 5, "z": pytest.approx(0.8)}
+        assert out["walkedIn"][1] == pytest.approx(4 - 0.3, abs=1e-6)
+        assert out["back"]["z"] == pytest.approx(-1.2) and out["closed"] and out["released"]
+        assert out["pushedOut"] is False
+        assert out["noRooms"] == [None, True, None]
 
 
 @pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
