@@ -1,0 +1,720 @@
+{
+ "schema": "kerbside.validation.habs-blind/1",
+ "date": "2026-10-13",
+ "what": "A stricter blind test: whole house fronts reconstructed from one to three archival HABS photographs each, with no measurement from the drawings, scored against the survey's measured elevations.",
+ "source": "Historic American Buildings Survey (Library of Congress), public domain; scans from the Library of Congress and its Wikimedia Commons mirror; building footprints (c) OpenStreetMap contributors (ODbL). Photographs and drawings were deleted after scoring; only these numbers are kept.",
+ "method": [
+  "Given per house: one to three photographs (as many as the survey has of that front, at most three) and the OpenStreetMap footprint. Nothing from the drawings: no width, no height, no panel cut-out.",
+  "Each photograph squared up from its own vanishing points; the focal length from two vanishing points, else from the front's and a side wall's horizontals, else a view-camera prior (1.4 x the long side).",
+  "The front's extent found in the photograph (segmentation, then the longest run of level lines: eaves, string courses).",
+  "Width: the footprint's walls facing the survey's elevation. Height: inferred from the squared-up photograph's aspect, as the city pipeline would without lidar.",
+  "The pipeline unchanged: segmentation, detector, extract_front.",
+  "Scored as on 2026-10-12: a predicted opening matches a drawn one when their centres are within max(1.5 m, the opening's size) and they overlap (IoU >= 0.1).",
+  "The photograph scored is the one the frontage filter would pick (within 40 degrees, nearest square on, then the largest share of the frame); a fusion of all the house's photographs is reported beside it."
+ ],
+ "coverage": {
+  "houses_in_pack": 14,
+  "houses_scored": 7
+ },
+ "results_best_photo": {
+  "houses": 7,
+  "drawn_openings": 113,
+  "predicted_openings": 43,
+  "matched": 13,
+  "recall": 0.115,
+  "precision": 0.302,
+  "centre_error_m": 0.743,
+  "width_error_m": 0.678,
+  "height_error_m": 0.773,
+  "mean_iou": 0.341,
+  "window_vs_door_correct": 0.769
+ },
+ "results_fused": {
+  "houses": 7,
+  "drawn_openings": 113,
+  "predicted_openings": 21,
+  "matched": 5,
+  "recall": 0.044,
+  "precision": 0.238,
+  "centre_error_m": 0.865,
+  "width_error_m": 1.289,
+  "height_error_m": 1.16,
+  "mean_iou": 0.296,
+  "window_vs_door_correct": 0.6
+ },
+ "houses": [
+  {
+   "slug": "larkin",
+   "name": "Larkin House, Monterey",
+   "habs": "HABS CAL,27-MONT,9",
+   "facing": "east",
+   "photos_given": 3,
+   "photos": [
+    {
+     "photo": "ca0394.photos.013859p",
+     "obliquity_deg": 0.0,
+     "target_share": 0.292,
+     "lens": "view_camera_prior",
+     "width_m": 17.956,
+     "height_inferred_m": 6.72,
+     "openings_predicted": 6,
+     "score": {
+      "truth": 10,
+      "predicted": 6,
+      "matched": 6,
+      "recall": 0.6,
+      "precision": 1.0,
+      "centre_error_m": 0.316,
+      "width_error_m": 0.139,
+      "height_error_m": 0.279,
+      "width_error_rel": 0.172,
+      "height_error_rel": 0.17,
+      "mean_iou": 0.431,
+      "window_vs_door_correct": 1.0
+     },
+     "error": null
+    },
+    {
+     "photo": "ca0394.photos.013858p",
+     "obliquity_deg": 36.1,
+     "target_share": 0.204,
+     "lens": "front_and_side_horizontals",
+     "width_m": 17.956,
+     "height_inferred_m": 17.713,
+     "openings_predicted": 5,
+     "score": {
+      "truth": 10,
+      "predicted": 5,
+      "matched": 2,
+      "recall": 0.2,
+      "precision": 0.4,
+      "centre_error_m": 0.826,
+      "width_error_m": 0.326,
+      "height_error_m": 0.238,
+      "width_error_rel": 0.436,
+      "height_error_rel": 0.178,
+      "mean_iou": 0.157,
+      "window_vs_door_correct": 1.0
+     },
+     "error": null
+    },
+    {
+     "photo": "ca0394.photos.013857p",
+     "obliquity_deg": 50.4,
+     "target_share": 0.12,
+     "lens": "view_camera_prior",
+     "width_m": 17.956,
+     "height_inferred_m": 5.467,
+     "openings_predicted": 4,
+     "score": {
+      "truth": 10,
+      "predicted": 4,
+      "matched": 2,
+      "recall": 0.2,
+      "precision": 0.5,
+      "centre_error_m": 0.468,
+      "width_error_m": 0.212,
+      "height_error_m": 0.789,
+      "width_error_rel": 0.336,
+      "height_error_rel": 0.446,
+      "mean_iou": 0.206,
+      "window_vs_door_correct": 0.5
+     },
+     "error": null
+    }
+   ],
+   "best_photo": "ca0394.photos.013859p",
+   "footprint_width_m": 17.956,
+   "footprint_walls": 1,
+   "footprint_main_wall_m": 17.956,
+   "drawn_width_m": 17.428,
+   "width_error_m": 0.528,
+   "best_photo_score": {
+    "truth": 10,
+    "predicted": 6,
+    "matched": 6,
+    "recall": 0.6,
+    "precision": 1.0,
+    "centre_error_m": 0.316,
+    "width_error_m": 0.139,
+    "height_error_m": 0.279,
+    "width_error_rel": 0.172,
+    "height_error_rel": 0.17,
+    "mean_iou": 0.431,
+    "window_vs_door_correct": 1.0
+   },
+   "fused_score": {
+    "truth": 10,
+    "predicted": 1,
+    "matched": 1,
+    "recall": 0.1,
+    "precision": 1.0,
+    "centre_error_m": 0.286,
+    "width_error_m": 0.292,
+    "height_error_m": 0.606,
+    "width_error_rel": 0.5,
+    "height_error_rel": 0.316,
+    "mean_iou": 0.348,
+    "window_vs_door_correct": 1.0
+   }
+  },
+  {
+   "slug": "banning",
+   "name": "General Phineas Banning Residence, Wilmington",
+   "habs": "HABS CAL,19-WILM,2",
+   "facing": "south",
+   "photos_given": 3,
+   "photos": [
+    {
+     "photo": "ca2250.photos.050999p",
+     "obliquity_deg": 0.6,
+     "target_share": 0.199,
+     "lens": "view_camera_prior",
+     "width_m": 25.761,
+     "height_inferred_m": 19.66,
+     "openings_predicted": 6,
+     "score": {
+      "truth": 12,
+      "predicted": 6,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "error": null
+    },
+    {
+     "photo": "ca2250.photos.051003p",
+     "obliquity_deg": 54.5,
+     "target_share": 0.126,
+     "lens": "front_and_side_horizontals",
+     "width_m": 25.761,
+     "height_inferred_m": 17.226,
+     "openings_predicted": 9,
+     "score": {
+      "truth": 12,
+      "predicted": 9,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "error": null
+    },
+    {
+     "photo": "ca2250.photos.051004p",
+     "obliquity_deg": 53.6,
+     "target_share": 0.077,
+     "lens": "front_and_side_horizontals",
+     "width_m": 25.761,
+     "height_inferred_m": 6.537,
+     "openings_predicted": 15,
+     "score": {
+      "truth": 12,
+      "predicted": 15,
+      "matched": 2,
+      "recall": 0.167,
+      "precision": 0.133,
+      "centre_error_m": 1.562,
+      "width_error_m": 0.586,
+      "height_error_m": 0.924,
+      "width_error_rel": 0.338,
+      "height_error_rel": 0.33,
+      "mean_iou": 0.125,
+      "window_vs_door_correct": 0.5
+     },
+     "error": null
+    }
+   ],
+   "best_photo": "ca2250.photos.050999p",
+   "footprint_width_m": 25.761,
+   "footprint_walls": 3,
+   "footprint_main_wall_m": 16.119,
+   "drawn_width_m": 15.496,
+   "width_error_m": 10.265,
+   "best_photo_score": {
+    "truth": 12,
+    "predicted": 6,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": 0.0,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   },
+   "fused_score": {
+    "truth": 12,
+    "predicted": 1,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": 0.0,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   }
+  },
+  {
+   "slug": "govmansion",
+   "name": "Albert Gallatin House (California Governor's Mansion), Sacramento",
+   "habs": "HABS CAL,34-SAC,19",
+   "facing": "north",
+   "photos_given": 1,
+   "photos": [
+    {
+     "photo": "ca0523.photos.014623p",
+     "obliquity_deg": 0.1,
+     "target_share": 0.272,
+     "lens": "view_camera_prior",
+     "width_m": 28.588,
+     "height_inferred_m": 25.722,
+     "openings_predicted": 16,
+     "score": {
+      "truth": 33,
+      "predicted": 16,
+      "matched": 4,
+      "recall": 0.121,
+      "precision": 0.25,
+      "centre_error_m": 1.01,
+      "width_error_m": 1.538,
+      "height_error_m": 1.298,
+      "width_error_rel": 1.577,
+      "height_error_rel": 0.517,
+      "mean_iou": 0.283,
+      "window_vs_door_correct": 0.5
+     },
+     "error": null
+    }
+   ],
+   "best_photo": "ca0523.photos.014623p",
+   "footprint_width_m": 28.588,
+   "footprint_walls": 7,
+   "footprint_main_wall_m": 8.538,
+   "drawn_width_m": 28.704,
+   "width_error_m": 0.116,
+   "best_photo_score": {
+    "truth": 33,
+    "predicted": 16,
+    "matched": 4,
+    "recall": 0.121,
+    "precision": 0.25,
+    "centre_error_m": 1.01,
+    "width_error_m": 1.538,
+    "height_error_m": 1.298,
+    "width_error_rel": 1.577,
+    "height_error_rel": 0.517,
+    "mean_iou": 0.283,
+    "window_vs_door_correct": 0.5
+   },
+   "fused_score": {
+    "truth": 33,
+    "predicted": 16,
+    "matched": 4,
+    "recall": 0.121,
+    "precision": 0.25,
+    "centre_error_m": 1.01,
+    "width_error_m": 1.538,
+    "height_error_m": 1.298,
+    "width_error_rel": 1.577,
+    "height_error_rel": 0.517,
+    "mean_iou": 0.283,
+    "window_vs_door_correct": 0.5
+   }
+  },
+  {
+   "slug": "carson",
+   "name": "Carson House, New Almaden",
+   "habs": "HABS CAL,43-ALMA,2",
+   "facing": "east",
+   "photos_given": 1,
+   "photos": [
+    {
+     "photo": "ca0945.photos.018106p",
+     "obliquity_deg": 0.3,
+     "target_share": 0.109,
+     "lens": "view_camera_prior",
+     "width_m": 17.914,
+     "height_inferred_m": 7.275,
+     "openings_predicted": 3,
+     "score": {
+      "truth": 5,
+      "predicted": 3,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "error": null
+    }
+   ],
+   "best_photo": "ca0945.photos.018106p",
+   "footprint_width_m": 17.914,
+   "footprint_walls": 1,
+   "footprint_main_wall_m": 17.914,
+   "drawn_width_m": 11.265,
+   "width_error_m": 6.649,
+   "best_photo_score": {
+    "truth": 5,
+    "predicted": 3,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": 0.0,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   },
+   "fused_score": {
+    "truth": 5,
+    "predicted": 3,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": 0.0,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   }
+  },
+  {
+   "slug": "stanford",
+   "name": "Leland Stanford House, Sacramento",
+   "habs": "HABS CAL,34-SAC,9",
+   "facing": "north",
+   "photos_given": 2,
+   "photos": [
+    {
+     "photo": "ca0544.photos.014953p",
+     "obliquity_deg": 0.7,
+     "target_share": 0.271,
+     "lens": "view_camera_prior",
+     "width_m": 32.047,
+     "height_inferred_m": 26.742,
+     "openings_predicted": 7,
+     "score": {
+      "truth": 36,
+      "predicted": 7,
+      "matched": 2,
+      "recall": 0.056,
+      "precision": 0.286,
+      "centre_error_m": 1.206,
+      "width_error_m": 0.618,
+      "height_error_m": 1.246,
+      "width_error_rel": 0.557,
+      "height_error_rel": 0.529,
+      "mean_iou": 0.268,
+      "window_vs_door_correct": 0.5
+     },
+     "error": null
+    },
+    {
+     "photo": "ca0544.photos.014949p",
+     "obliquity_deg": 10.1,
+     "target_share": 0.194,
+     "lens": "view_camera_prior",
+     "width_m": 32.047,
+     "height_inferred_m": 46.59,
+     "openings_predicted": 3,
+     "score": {
+      "truth": 36,
+      "predicted": 3,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "error": null
+    }
+   ],
+   "best_photo": "ca0544.photos.014953p",
+   "footprint_width_m": 32.047,
+   "footprint_walls": 3,
+   "footprint_main_wall_m": 14.221,
+   "drawn_width_m": 33.595,
+   "width_error_m": 1.548,
+   "best_photo_score": {
+    "truth": 36,
+    "predicted": 7,
+    "matched": 2,
+    "recall": 0.056,
+    "precision": 0.286,
+    "centre_error_m": 1.206,
+    "width_error_m": 0.618,
+    "height_error_m": 1.246,
+    "width_error_rel": 0.557,
+    "height_error_rel": 0.529,
+    "mean_iou": 0.268,
+    "window_vs_door_correct": 0.5
+   },
+   "fused_score": {
+    "truth": 36,
+    "predicted": 0,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": null,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   }
+  },
+  {
+   "slug": "amesti",
+   "name": "Jose Amesti Casa, Monterey",
+   "habs": "HABS CAL,27-MONT,20",
+   "facing": "west",
+   "photos_given": 2,
+   "photos": [
+    {
+     "photo": "ca0367.photos.013715p",
+     "obliquity_deg": 60.0,
+     "target_share": 0.347,
+     "lens": "vanishing_points",
+     "width_m": 25.827,
+     "height_inferred_m": 7.839,
+     "openings_predicted": 9,
+     "score": {
+      "truth": 11,
+      "predicted": 9,
+      "matched": 3,
+      "recall": 0.273,
+      "precision": 0.333,
+      "centre_error_m": 0.64,
+      "width_error_m": 0.264,
+      "height_error_m": 0.729,
+      "width_error_rel": 0.243,
+      "height_error_rel": 0.32,
+      "mean_iou": 0.32,
+      "window_vs_door_correct": 1.0
+     },
+     "error": null
+    },
+    {
+     "photo": "ca0367.photos.013718p",
+     "obliquity_deg": 0.2,
+     "target_share": 0.825,
+     "lens": "view_camera_prior",
+     "width_m": 25.827,
+     "height_inferred_m": 30.611,
+     "openings_predicted": 3,
+     "score": {
+      "truth": 11,
+      "predicted": 3,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "error": null
+    }
+   ],
+   "best_photo": "ca0367.photos.013718p",
+   "footprint_width_m": 25.827,
+   "footprint_walls": 1,
+   "footprint_main_wall_m": 25.827,
+   "drawn_width_m": 25.806,
+   "width_error_m": 0.021,
+   "best_photo_score": {
+    "truth": 11,
+    "predicted": 3,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": 0.0,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   },
+   "fused_score": {
+    "truth": 11,
+    "predicted": 0,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": null,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   }
+  },
+  {
+   "slug": "jscain",
+   "name": "J. S. Cain House, Bodie",
+   "habs": "HABS CAL,26-BODI,3",
+   "facing": "east",
+   "photos_given": 2,
+   "photos": [
+    {
+     "photo": "ca0353.photos.013481p",
+     "obliquity_deg": 0.6,
+     "target_share": 0.228,
+     "lens": "view_camera_prior",
+     "width_m": 26.264,
+     "height_inferred_m": 29.436,
+     "openings_predicted": 2,
+     "score": {
+      "truth": 6,
+      "predicted": 2,
+      "matched": 1,
+      "recall": 0.167,
+      "precision": 0.5,
+      "centre_error_m": 1.315,
+      "width_error_m": 0.594,
+      "height_error_m": 0.689,
+      "width_error_rel": 0.373,
+      "height_error_rel": 0.247,
+      "mean_iou": 0.184,
+      "window_vs_door_correct": 1.0
+     },
+     "error": null
+    },
+    {
+     "photo": "ca0353.photos.013480p",
+     "obliquity_deg": 0.3,
+     "target_share": 0.06,
+     "lens": "view_camera_prior",
+     "width_m": 26.264,
+     "height_inferred_m": 15.331,
+     "openings_predicted": 7,
+     "score": {
+      "truth": 6,
+      "predicted": 7,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "error": null
+    }
+   ],
+   "best_photo": "ca0353.photos.013481p",
+   "footprint_width_m": 26.264,
+   "footprint_walls": 3,
+   "footprint_main_wall_m": 10.506,
+   "drawn_width_m": 14.803,
+   "width_error_m": 11.461,
+   "best_photo_score": {
+    "truth": 6,
+    "predicted": 2,
+    "matched": 1,
+    "recall": 0.167,
+    "precision": 0.5,
+    "centre_error_m": 1.315,
+    "width_error_m": 0.594,
+    "height_error_m": 0.689,
+    "width_error_rel": 0.373,
+    "height_error_rel": 0.247,
+    "mean_iou": 0.184,
+    "window_vs_door_correct": 1.0
+   },
+   "fused_score": {
+    "truth": 6,
+    "predicted": 0,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": null,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   }
+  }
+ ],
+ "not_scored": [
+  {
+   "house": "Walter Luther Dodge House, West Hollywood (HABS CAL,19-LOSAN,27)",
+   "why": "demolished in 1970: no footprint, so it cannot be tested as a real house"
+  },
+  {
+   "house": "Lovell Beach House, Newport Beach (HABS CAL,30-NEWBE,1)",
+   "why": "the west front is continuous ribbon glazing on stilts: no discrete openings to match one to one"
+  },
+  {
+   "house": "Yung See San Fong, Los Gatos (HABS CAL,43-LOSGA,2)",
+   "why": "every photograph looks steeply along the drive, beyond 40 degrees to any drawn front"
+  },
+  {
+   "house": "Sowden House, Los Angeles (HABS CAL,19-LOSAN,69)",
+   "why": "no OSM building contains its address; the footprint would have to be guessed"
+  },
+  {
+   "house": "Harrison Street Block, Santa Clara (HABS CAL,43-SANCLA,2)",
+   "why": "no addressed OSM footprints for 1009 or 1077; the houses would have to be guessed"
+  },
+  {
+   "house": "Casa del Rancho San Antonio, Bell Gardens (HABS CAL,19-BEL,1)",
+   "why": "the nearest OSM building is 38 m from the address and its east front's sheet would not download whole"
+  },
+  {
+   "house": "D. V. Cain House, Bodie",
+   "why": "excluded by request"
+  }
+ ],
+ "findings": [
+  "Height is where it fails. Inferred from the squared-up photograph, the front came out within 15 per cent of the drawing only at Larkin (6.7 m against 7.8 m); Carson 7.3 against 4.9, and the rest 2-4.6 times too tall (Banning 19.7 against 10.0, the Governor's Mansion 25.7 against 12.3, Stanford 26.7 against 13.7, Amesti 30.6 against 6.7, J. S. Cain 29.4 against 7.3): the panel took in sky, trees and ground, and the openings landed in the wrong places. Larkin, where it held, scored 6 of 10 with no false openings and a 0.32 m position error.",
+  "The footprint's width is right when the elevation is one wall (Larkin 0.53 m out, Amesti 0.02 m) and wrong when the facing side steps (Banning 25.8 m of walls against a 15.5 m front, Carson 17.9 against 11.3, J. S. Cain 26.3 against 14.8): wings, porches and bays are summed into it.",
+  "Fusing photographs does worse than the single best one: an oblique view with a wrong extent outvotes the square-on one.",
+  "So the city pipeline's lidar height and its pose-projected wall, not the photograph alone, are what make the 2026-10-12 figures possible; a house whose wall height is not known should not be reconstructed from its photograph's aspect."
+ ]
+}

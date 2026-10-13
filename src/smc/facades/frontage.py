@@ -30,7 +30,16 @@ FREE_LICENSES = {
 @dataclass(frozen=True)
 class FrontagePolicy:
     max_angle_deg: float = 35.0
+    #: Beyond ``max_angle_deg`` and up to this, a view is kept only if its pixels show the
+    #: entrance (door, steps, porch canopy): the detail a square-on view of the bays may miss.
+    entrance_angle_deg: float = 40.0
     max_edge_angle_deg: float = 55.0
+    #: The house's share of the frame: of the photograph for a flat camera, of a 90-degree
+    #: 4:3 view aimed at the wall for a panorama. Below this it is a distant speck in the frame.
+    min_target_share: float = 0.06
+    #: The ground floor (entrance, ground-floor openings) must be wholly in frame.
+    min_ground_floor_coverage: float = 0.95
+    ground_floor_m: float = 3.5
     min_distance_m: float = 3.0
     max_distance_m: float = 55.0
     min_frame_coverage: float = 0.90
@@ -41,13 +50,19 @@ class FrontagePolicy:
 
     def __post_init__(self):
         if (
-            not 0 < self.max_angle_deg < 90
+            not 0 < self.max_angle_deg <= self.entrance_angle_deg < 90
             or not self.max_angle_deg <= self.max_edge_angle_deg < 90
         ):
             raise ValueError("invalid angular thresholds")
         if not 0 < self.min_distance_m < self.max_distance_m:
             raise ValueError("invalid distance thresholds")
-        if not 0 < self.min_frame_coverage <= 1 or not 0 <= self.max_occlusion < 1:
+        if (
+            not 0 < self.min_frame_coverage <= 1
+            or not 0 <= self.max_occlusion < 1
+            or not 0 <= self.min_target_share < 1
+            or not 0 < self.min_ground_floor_coverage <= 1
+            or self.ground_floor_m <= 0
+        ):
             raise ValueError("invalid coverage thresholds")
         if self.years < 1 or self.min_pixels_per_m <= 0 or not 0 <= self.border_fraction < 0.2:
             raise ValueError("invalid sampling/date policy")
@@ -174,6 +189,33 @@ def frontage_envelopes(ring, height_m, building_index, segments):
 
 DEFAULT_POLICY = FrontagePolicy()
 
+#: The view a panorama is judged as: what a person would frame, aimed at the house.
+PANORAMA_VIEW_RAD = (math.radians(90), math.radians(67.5))
+
+
+def target_share(wall: Wall, camera: Camera) -> float:
+    """How much of the frame the house front fills, from its angular size.
+
+    Measured in a frame aimed at the wall's middle, so a flat photograph aimed off to one side
+    is not credited (``frame_coverage`` already fails it); a panorama is judged as the 90-degree
+    view a person would frame.
+    """
+    mx, my = wall.midpoint
+    aim = math.atan2(mx - camera.x, my - camera.y)
+    points = wall_samples(wall, 11, 5)
+    dx, dy = points[:, 0] - camera.x, points[:, 1] - camera.y
+    azimuth = (np.arctan2(dx, dy) - aim + math.pi) % (2 * math.pi) - math.pi
+    elevation = np.arctan2(points[:, 2] - camera.z, np.hypot(dx, dy))
+    if camera.spherical:
+        fov_h, fov_v = PANORAMA_VIEW_RAD
+    else:
+        focal = camera.focal_px or camera.width / (2 * math.tan((camera.hfov_rad or 1.2) / 2))
+        fov_h = 2 * math.atan(camera.width / (2 * focal))
+        fov_v = 2 * math.atan(camera.height / (2 * focal))
+    return float(
+        min(1.0, float(np.ptp(azimuth)) / fov_h) * min(1.0, float(np.ptp(elevation)) / fov_v)
+    )
+
 
 def assess_view(
     wall: Wall,
@@ -227,7 +269,11 @@ def assess_view(
     )
     if standoff < policy.min_distance_m or dist > policy.max_distance_m:
         reasons.append("distance")
-    if angle > policy.max_angle_deg or edge_angle > policy.max_edge_angle_deg:
+    # Between the square-on limit and the entrance limit the pixels must show the entrance;
+    # the facade's edges are allowed the same extra few degrees.
+    needs_entrance = policy.max_angle_deg < angle <= policy.entrance_angle_deg
+    widen = policy.entrance_angle_deg - policy.max_angle_deg if needs_entrance else 0.0
+    if angle > policy.entrance_angle_deg or edge_angle > min(89.0, policy.max_edge_angle_deg + widen):
         reasons.append("too_oblique")
     points = wall_samples(wall)
     u, v, valid = project(camera, points)
@@ -240,6 +286,20 @@ def assess_view(
     full = bool(valid.all())
     if coverage < policy.min_frame_coverage:
         reasons.append("front_cut_off")
+    # The ground floor carries the entrance and the openings a house is recognised by; a frame
+    # that clips it (a bonnet, the image's bottom edge) is the wrong photograph of the house.
+    ground = points[:, 2] <= min(policy.ground_floor_m, wall.height_m) + 1e-9
+    ground_coverage = float(valid[ground].mean())
+    if ground_coverage < policy.min_ground_floor_coverage:
+        reasons.append("first_floor_cut_off")
+    share = target_share(wall, camera)
+    if share < policy.min_target_share:
+        reasons.append("target_too_small_in_frame")
+    # Seen from the pavement, the ground floor is near eye level; from a rooftop or a drone it
+    # is foreshortened under the eaves.
+    ground_mid = min(policy.ground_floor_m, wall.height_m) / 2
+    standoff_m = max(standoff, 1e-9)
+    ground_pitch = math.degrees(math.atan2(abs(ground_mid - camera.z), standoff_m))
     # Actual angular pixel sampling, not megapixels alone.
     ppm = (
         camera.width / (2 * math.pi)
@@ -251,6 +311,11 @@ def assess_view(
         reasons.append("insufficient_detail")
     rank = [
         int(full),
+        int(ground_coverage >= 1),
+        int(not needs_entrance),
+        # Coarse bands, so a frame-filling but grainy view does not beat a sharp one outright.
+        min(int(share / 0.1), 4),
+        int(ground_pitch <= 20),
         round(coverage, 5),
         -int(angle // 10),
         round(ppm, 3),
@@ -264,6 +329,10 @@ def assess_view(
         "full_front_in_frame": full,
         "full_front_basis": "predicted from canonical height; pixel/human confirmation required",
         "frame_coverage": round(coverage, 5),
+        "ground_floor_coverage": round(ground_coverage, 5),
+        "target_share": round(share, 4),
+        "ground_floor_pitch_deg": round(ground_pitch, 2),
+        "needs_entrance": needs_entrance,
         "angle_deg": round(angle, 3),
         "edge_angle_deg": round(edge_angle, 3),
         "distance_m": round(dist, 3),

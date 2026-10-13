@@ -39,6 +39,82 @@ def semantic_gate(fractions: dict[str, float]) -> list[str]:
     return reasons
 
 
+#: Model classes that mark the way in. A door alone is enough; steps or a porch canopy only
+#: with a door or railing beside them, so a stair-like shadow is not an entrance.
+DOOR = {"door", "screen door"}
+APPROACH = {"stairs", "stairway", "step", "awning", "canopy", "railing", "bannister"}
+#: Kinds of detail a house is told apart by. Counted once each, however large.
+FEATURES = {
+    "windowpane": {"windowpane", "window"},
+    "door": DOOR,
+    "steps": {"stairs", "stairway", "step"},
+    "railing": {"railing", "bannister", "balustrade"},
+    "awning": {"awning", "canopy"},
+    "column": {"column"},
+    "fence": {"fence"},
+    "lamp": {"lamp", "sconce", "light"},
+    "sign": {"signboard", "trade name", "poster"},
+}
+#: A class must cover this much of the visible front to count as present.
+PRESENT = 0.003
+#: Below this rectilinearity the crop is not squared up: its verticals lean, the pose is off.
+MIN_SQUARENESS = 0.30
+
+
+def _name(label: str) -> str:
+    return str(label).lower().split(",")[0].strip()
+
+
+def detail_measures(labels: np.ndarray, visible: np.ndarray, names: dict[int, str]) -> dict:
+    """Entrance and distinct-feature evidence in a squared-up front, from the model's labels."""
+    total = max(1, int(visible.sum()))
+    lower = np.zeros_like(visible)
+    lower[labels.shape[0] * 11 // 20 :] = True  # the ground floor: the bottom 45 per cent
+    lower &= visible
+    lower_total = max(1, int(lower.sum()))
+
+    def ids(members):
+        return [i for i, label in names.items() if _name(label) in members]
+
+    present = {
+        kind: float((np.isin(labels, ids(members)) & visible).sum() / total)
+        for kind, members in FEATURES.items()
+    }
+    door_low = float((np.isin(labels, ids(DOOR)) & lower).sum() / lower_total)
+    approach_low = float((np.isin(labels, ids(APPROACH)) & lower).sum() / lower_total)
+    openings = (np.isin(labels, ids(FEATURES["windowpane"] | DOOR)) & visible).astype(np.uint8)
+    count, _, stats, _ = cv2.connectedComponentsWithStats(openings, connectivity=8)
+    blob = max(12, total // 2000)
+    opening_count = int((stats[1:, cv2.CC_STAT_AREA] >= blob).sum()) if count > 1 else 0
+    kinds = sorted(k for k, v in present.items() if v >= PRESENT)
+    return {
+        "entrance_detected": bool(
+            door_low >= 0.004 or (approach_low >= 0.006 and (door_low > 0.001 or "railing" in kinds))
+        ),
+        "door_ground_floor_fraction": round(door_low, 5),
+        "approach_ground_floor_fraction": round(approach_low, 5),
+        "feature_kinds": kinds,
+        "opening_count": opening_count,
+        "feature_fractions": {k: round(v, 5) for k, v in present.items()},
+    }
+
+
+def view_gate(details: dict, candidate: dict, rectilinearity: float | None) -> list[str]:
+    """What the pixels must show for this particular view to be kept.
+
+    A view steeper than the square-on limit is kept only for its entrance; every view must show
+    at least one opening (a blank wall or a hedge is no likeness), and must come out square.
+    """
+    reasons = []
+    if candidate.get("needs_entrance") and not details.get("entrance_detected"):
+        reasons.append("oblique_without_entrance")
+    if details.get("opening_count", 0) == 0:
+        reasons.append("no_detectable_openings")
+    if rectilinearity is not None and rectilinearity < MIN_SQUARENESS:
+        reasons.append("not_squared_up")
+    return reasons
+
+
 class FrontagePixelScreen:
     def __init__(self, cache: Path, device: str = "cpu"):
         import torch
@@ -155,6 +231,7 @@ class FrontagePixelScreen:
             "pass": not reasons,
             "reasons": reasons,
             "fractions": fractions,
+            "details": detail_measures(labels, visible, self.labels),
             "sharpness_laplacian": sharpness,
             "model": self.manifest,
             "labels": labels,

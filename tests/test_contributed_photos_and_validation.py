@@ -91,3 +91,18 @@ def test_the_habs_validation_is_published_with_its_coverage() -> None:
 def test_a_full_width_ground_opening_is_the_plinth() -> None:
     fit = (ROOT / "src/smc/facades/fit.py").read_text()
     assert 'if kind != "window" and w > 0.85 * width and not controls.get("ground_floor_business"):' in fit
+
+
+def test_the_stricter_blind_habs_test_is_published() -> None:
+    report = json.loads((ROOT / "docs/validation/habs-blind-2026-10-13.json").read_text())
+    assert report["coverage"]["houses_scored"] == len(report["houses"]) >= 5
+    for house in report["houses"]:
+        assert 1 <= house["photos_given"] <= 3, "a passer-by's two or three photographs"
+        assert house["footprint_width_m"], "width from the footprint, never the drawing"
+    best = report["results_best_photo"]
+    assert best["drawn_openings"] > 0 and 0 <= best["recall"] <= 1
+    assert "deleted after scoring" in report["source"]
+    text = json.dumps(report)
+    assert "/Users/" not in text and "build/" not in text, "no local paths published"
+    page = (ROOT / "docs/validation/index.html").read_text()
+    assert "habs-blind-2026-10-13.json" in page and "habs-2026-10-12.json" in page
