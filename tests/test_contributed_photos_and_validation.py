@@ -106,3 +106,16 @@ def test_the_stricter_blind_habs_test_is_published() -> None:
     assert "/Users/" not in text and "build/" not in text, "no local paths published"
     page = (ROOT / "docs/validation/index.html").read_text()
     assert "habs-blind-2026-10-13.json" in page and "habs-2026-10-12.json" in page
+
+
+def test_the_blind_habs_test_is_rerun_with_lidar_heights() -> None:
+    report = json.loads((ROOT / "docs/validation/habs-blind-lidar-2026-10-13.json").read_text())
+    runs = report["runs"]
+    assert runs["lidar_detector"]["blind"] and not runs["drawn_size_detector"]["blind"]
+    assert runs["lidar_detector"]["results_best_photo"]["drawn_openings"] == 113
+    for house in report["houses"]:
+        assert house["lidar"]["source"] == "lidar_roof_p92_over_foot", "the city's own height rule"
+    text = json.dumps(report)
+    assert "/Users/" not in text and "build/" not in text
+    page = (ROOT / "docs/validation/index.html").read_text()
+    assert "habs-blind-lidar-2026-10-13.json" in page and "habs-blind-2026-10-13.json" in page

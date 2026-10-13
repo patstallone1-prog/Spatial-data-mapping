@@ -1,0 +1,2003 @@
+{
+ "schema": "kerbside.validation.habs-blind/2",
+ "date": "2026-10-13",
+ "what": "The stricter blind test run again with each house's height read from USGS 3DEP lidar, as the city pipeline reads it, and the house found in each photograph by the pipeline's open-vocabulary detector.",
+ "source": "Historic American Buildings Survey (Library of Congress), public domain; scans from the Library of Congress and its Wikimedia Commons mirror; building footprints (c) OpenStreetMap contributors (ODbL). Photographs and drawings were deleted after scoring; only these numbers are kept. Heights: USGS 3D Elevation Program lidar (public domain), via the public Entwine tiles.",
+ "method": [
+  "Given per house: one to three photographs (as many as the survey has of that front, at most three), the OpenStreetMap footprint, and the lidar. Nothing from the drawings.",
+  "Height: smc.lidar.region.building_height, unchanged -- the roof's 92nd percentile over the ground at the house's foot, from the newest 3DEP collection covering it (all seven are covered).",
+  "Width: the footprint's walls facing the survey's elevation, end to end.",
+  "Each photograph squared up from its own vanishing points; the house found as Grounding DINO boxes it (prompt 'house. building.', the most confident box across the frame's middle); its ground line is the box's foot, its ends the box's sides, and the lidar height laid up from the ground line at the squared-up photograph's own scale.",
+  "The pipeline unchanged: segmentation, detector, extract_front. Scored as before (centres within max(1.5 m, the opening's size), IoU >= 0.1), on the photograph the frontage filter would pick, with a fusion of all the house's photographs beside it.",
+  "A diagnostic run, not blind, gives the same photographs the drawing's own width and height, to tell how much of the loss is size and how much is finding the front and its openings."
+ ],
+ "runs": {
+  "lidar_detector": {
+   "label": "Lidar height, house found by the detector (the headline)",
+   "blind": true,
+   "results_best_photo": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 37,
+    "matched": 16,
+    "recall": 0.142,
+    "precision": 0.432,
+    "centre_error_m": 0.812,
+    "width_error_m": 1.021,
+    "height_error_m": 0.701,
+    "mean_iou": 0.284,
+    "window_vs_door_correct": 0.625
+   },
+   "results_fused": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 18,
+    "matched": 5,
+    "recall": 0.044,
+    "precision": 0.278,
+    "centre_error_m": 1.043,
+    "width_error_m": 1.159,
+    "height_error_m": 0.671,
+    "mean_iou": 0.254,
+    "window_vs_door_correct": 0.6
+   }
+  },
+  "lidar_segmentation": {
+   "label": "Lidar height, house found by segmentation and level lines",
+   "blind": true,
+   "results_best_photo": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 37,
+    "matched": 15,
+    "recall": 0.133,
+    "precision": 0.405,
+    "centre_error_m": 0.886,
+    "width_error_m": 1.901,
+    "height_error_m": 0.644,
+    "mean_iou": 0.346,
+    "window_vs_door_correct": 0.8
+   },
+   "results_fused": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 18,
+    "matched": 5,
+    "recall": 0.044,
+    "precision": 0.278,
+    "centre_error_m": 0.861,
+    "width_error_m": 2.464,
+    "height_error_m": 0.971,
+    "mean_iou": 0.362,
+    "window_vs_door_correct": 0.6
+   }
+  },
+  "drawn_size_detector": {
+   "label": "NOT BLIND, diagnostic: the drawing's own width and height, house found by the detector",
+   "blind": false,
+   "results_best_photo": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 31,
+    "matched": 16,
+    "recall": 0.142,
+    "precision": 0.516,
+    "centre_error_m": 0.874,
+    "width_error_m": 1.313,
+    "height_error_m": 0.54,
+    "mean_iou": 0.28,
+    "window_vs_door_correct": 0.875
+   },
+   "results_fused": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 14,
+    "matched": 8,
+    "recall": 0.071,
+    "precision": 0.571,
+    "centre_error_m": 0.888,
+    "width_error_m": 1.108,
+    "height_error_m": 0.834,
+    "mean_iou": 0.24,
+    "window_vs_door_correct": 0.875
+   }
+  },
+  "photo_height_segmentation": {
+   "label": "Height from the photograph's aspect (the first run, earlier today)",
+   "blind": true,
+   "results_best_photo": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 43,
+    "matched": 13,
+    "recall": 0.115,
+    "precision": 0.302,
+    "centre_error_m": 0.743,
+    "width_error_m": 0.678,
+    "height_error_m": 0.773,
+    "mean_iou": 0.341,
+    "window_vs_door_correct": 0.769
+   },
+   "results_fused": {
+    "houses": 7,
+    "drawn_openings": 113,
+    "predicted_openings": 21,
+    "matched": 5,
+    "recall": 0.044,
+    "precision": 0.238,
+    "centre_error_m": 0.865,
+    "width_error_m": 1.289,
+    "height_error_m": 1.16,
+    "mean_iou": 0.296,
+    "window_vs_door_correct": 0.6
+   },
+   "data": "habs-blind-2026-10-13.json"
+  }
+ },
+ "houses": [
+  {
+   "slug": "larkin",
+   "name": "Larkin House, Monterey",
+   "habs": "HABS CAL,27-MONT,9",
+   "facing": "east",
+   "photos_given": 3,
+   "drawn_panel_m": [
+    17.428,
+    7.765
+   ],
+   "footprint_width_m": 17.956,
+   "footprint_walls": 1,
+   "lidar": {
+    "height_m": 7.34,
+    "base_m": 12.65,
+    "roof_points": 906,
+    "ground_points": 1085,
+    "top_band_share": 0.822,
+    "source": "lidar_roof_p92_over_foot",
+    "dataset": "CA_FEMA_Z4_B1_2018"
+   },
+   "runs": {
+    "lidar_detector": {
+     "best_photo": "ca0394.photos.013859p",
+     "best_photo_score": {
+      "truth": 10,
+      "predicted": 6,
+      "matched": 6,
+      "recall": 0.6,
+      "precision": 1.0,
+      "centre_error_m": 0.462,
+      "width_error_m": 0.132,
+      "height_error_m": 0.137,
+      "width_error_rel": 0.155,
+      "height_error_rel": 0.089,
+      "mean_iou": 0.31,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 10,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0394.photos.013859p",
+       "obliquity_deg": 0.0,
+       "target_share": 0.335,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 10,
+        "predicted": 6,
+        "matched": 6,
+        "recall": 0.6,
+        "precision": 1.0,
+        "centre_error_m": 0.462,
+        "width_error_m": 0.132,
+        "height_error_m": 0.137,
+        "width_error_rel": 0.155,
+        "height_error_rel": 0.089,
+        "mean_iou": 0.31,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0394.photos.013858p",
+       "obliquity_deg": 36.1,
+       "target_share": 0.27,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 11,
+       "score": {
+        "truth": 10,
+        "predicted": 11,
+        "matched": 1,
+        "recall": 0.1,
+        "precision": 0.091,
+        "centre_error_m": 0.448,
+        "width_error_m": 0.155,
+        "height_error_m": 0.336,
+        "width_error_rel": 0.168,
+        "height_error_rel": 0.215,
+        "mean_iou": 0.439,
+        "window_vs_door_correct": 0.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0394.photos.013857p",
+       "obliquity_deg": 50.4,
+       "target_share": 0.308,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 9,
+       "score": {
+        "truth": 10,
+        "predicted": 9,
+        "matched": 1,
+        "recall": 0.1,
+        "precision": 0.111,
+        "centre_error_m": 0.649,
+        "width_error_m": 0.25,
+        "height_error_m": 0.886,
+        "width_error_rel": 0.271,
+        "height_error_rel": 0.566,
+        "mean_iou": 0.164,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      }
+     ]
+    },
+    "lidar_segmentation": {
+     "best_photo": "ca0394.photos.013859p",
+     "best_photo_score": {
+      "truth": 10,
+      "predicted": 6,
+      "matched": 6,
+      "recall": 0.6,
+      "precision": 1.0,
+      "centre_error_m": 0.317,
+      "width_error_m": 0.144,
+      "height_error_m": 0.267,
+      "width_error_rel": 0.173,
+      "height_error_rel": 0.181,
+      "mean_iou": 0.428,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 10,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0394.photos.013859p",
+       "obliquity_deg": 0.0,
+       "target_share": 0.319,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 10,
+        "predicted": 6,
+        "matched": 6,
+        "recall": 0.6,
+        "precision": 1.0,
+        "centre_error_m": 0.317,
+        "width_error_m": 0.144,
+        "height_error_m": 0.267,
+        "width_error_rel": 0.173,
+        "height_error_rel": 0.181,
+        "mean_iou": 0.428,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0394.photos.013858p",
+       "obliquity_deg": 36.1,
+       "target_share": 0.084,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 10,
+        "predicted": 6,
+        "matched": 2,
+        "recall": 0.2,
+        "precision": 0.333,
+        "centre_error_m": 0.743,
+        "width_error_m": 0.269,
+        "height_error_m": 0.585,
+        "width_error_rel": 0.351,
+        "height_error_rel": 0.323,
+        "mean_iou": 0.236,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0394.photos.013857p",
+       "obliquity_deg": 50.4,
+       "target_share": 0.161,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 7,
+       "score": {
+        "truth": 10,
+        "predicted": 7,
+        "matched": 4,
+        "recall": 0.4,
+        "precision": 0.571,
+        "centre_error_m": 0.627,
+        "width_error_m": 0.83,
+        "height_error_m": 0.259,
+        "width_error_rel": 1.11,
+        "height_error_rel": 0.162,
+        "mean_iou": 0.139,
+        "window_vs_door_correct": 0.75
+       },
+       "error": null
+      }
+     ]
+    },
+    "drawn_size_detector": {
+     "best_photo": "ca0394.photos.013859p",
+     "best_photo_score": {
+      "truth": 10,
+      "predicted": 6,
+      "matched": 5,
+      "recall": 0.5,
+      "precision": 0.833,
+      "centre_error_m": 0.457,
+      "width_error_m": 0.151,
+      "height_error_m": 0.107,
+      "width_error_rel": 0.187,
+      "height_error_rel": 0.062,
+      "mean_iou": 0.368,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 10,
+      "predicted": 3,
+      "matched": 2,
+      "recall": 0.2,
+      "precision": 0.667,
+      "centre_error_m": 0.667,
+      "width_error_m": 0.268,
+      "height_error_m": 0.602,
+      "width_error_rel": 0.307,
+      "height_error_rel": 0.581,
+      "mean_iou": 0.215,
+      "window_vs_door_correct": 1.0
+     },
+     "photos": [
+      {
+       "photo": "ca0394.photos.013859p",
+       "obliquity_deg": 0.0,
+       "target_share": 0.365,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 10,
+        "predicted": 6,
+        "matched": 5,
+        "recall": 0.5,
+        "precision": 0.833,
+        "centre_error_m": 0.457,
+        "width_error_m": 0.151,
+        "height_error_m": 0.107,
+        "width_error_rel": 0.187,
+        "height_error_rel": 0.062,
+        "mean_iou": 0.368,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0394.photos.013858p",
+       "obliquity_deg": 36.1,
+       "target_share": 0.295,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 13,
+       "score": {
+        "truth": 10,
+        "predicted": 13,
+        "matched": 3,
+        "recall": 0.3,
+        "precision": 0.231,
+        "centre_error_m": 0.711,
+        "width_error_m": 0.313,
+        "height_error_m": 0.895,
+        "width_error_rel": 0.36,
+        "height_error_rel": 0.826,
+        "mean_iou": 0.259,
+        "window_vs_door_correct": 0.667
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0394.photos.013857p",
+       "obliquity_deg": 50.4,
+       "target_share": 0.336,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 5,
+       "score": {
+        "truth": 10,
+        "predicted": 5,
+        "matched": 1,
+        "recall": 0.1,
+        "precision": 0.2,
+        "centre_error_m": 0.504,
+        "width_error_m": 0.285,
+        "height_error_m": 0.92,
+        "width_error_rel": 0.309,
+        "height_error_rel": 0.587,
+        "mean_iou": 0.267,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      }
+     ]
+    }
+   }
+  },
+  {
+   "slug": "banning",
+   "name": "General Phineas Banning Residence, Wilmington",
+   "habs": "HABS CAL,19-WILM,2",
+   "facing": "south",
+   "photos_given": 3,
+   "drawn_panel_m": [
+    15.496,
+    10.029
+   ],
+   "footprint_width_m": 25.761,
+   "footprint_walls": 3,
+   "lidar": {
+    "height_m": 13.94,
+    "base_m": 12.94,
+    "roof_points": 10176,
+    "ground_points": 7609,
+    "top_band_share": 0.269,
+    "source": "lidar_roof_p92_over_foot",
+    "dataset": "CA_LosAngeles_1_B23"
+   },
+   "runs": {
+    "lidar_detector": {
+     "best_photo": "ca2250.photos.050999p",
+     "best_photo_score": {
+      "truth": 12,
+      "predicted": 6,
+      "matched": 2,
+      "recall": 0.167,
+      "precision": 0.333,
+      "centre_error_m": 1.715,
+      "width_error_m": 0.715,
+      "height_error_m": 2.003,
+      "width_error_rel": 0.693,
+      "height_error_rel": 0.833,
+      "mean_iou": 0.236,
+      "window_vs_door_correct": 0.5
+     },
+     "fused_score": {
+      "truth": 12,
+      "predicted": 3,
+      "matched": 1,
+      "recall": 0.083,
+      "precision": 0.333,
+      "centre_error_m": 1.148,
+      "width_error_m": 0.674,
+      "height_error_m": 1.054,
+      "width_error_rel": 0.285,
+      "height_error_rel": 0.339,
+      "mean_iou": 0.296,
+      "window_vs_door_correct": 1.0
+     },
+     "photos": [
+      {
+       "photo": "ca2250.photos.050999p",
+       "obliquity_deg": 0.6,
+       "target_share": 0.138,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 12,
+        "predicted": 6,
+        "matched": 2,
+        "recall": 0.167,
+        "precision": 0.333,
+        "centre_error_m": 1.715,
+        "width_error_m": 0.715,
+        "height_error_m": 2.003,
+        "width_error_rel": 0.693,
+        "height_error_rel": 0.833,
+        "mean_iou": 0.236,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      },
+      {
+       "photo": "ca2250.photos.051003p",
+       "obliquity_deg": 54.5,
+       "target_share": 0.31,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 13,
+       "score": {
+        "truth": 12,
+        "predicted": 13,
+        "matched": 2,
+        "recall": 0.167,
+        "precision": 0.154,
+        "centre_error_m": 0.923,
+        "width_error_m": 0.554,
+        "height_error_m": 0.537,
+        "width_error_rel": 0.225,
+        "height_error_rel": 0.231,
+        "mean_iou": 0.372,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      },
+      {
+       "photo": "ca2250.photos.051004p",
+       "obliquity_deg": 53.6,
+       "target_share": 0.209,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 25,
+       "score": {
+        "truth": 12,
+        "predicted": 25,
+        "matched": 5,
+        "recall": 0.417,
+        "precision": 0.2,
+        "centre_error_m": 0.992,
+        "width_error_m": 0.451,
+        "height_error_m": 0.862,
+        "width_error_rel": 0.332,
+        "height_error_rel": 0.358,
+        "mean_iou": 0.212,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      }
+     ]
+    },
+    "lidar_segmentation": {
+     "best_photo": "ca2250.photos.050999p",
+     "best_photo_score": {
+      "truth": 12,
+      "predicted": 10,
+      "matched": 1,
+      "recall": 0.083,
+      "precision": 0.1,
+      "centre_error_m": 2.736,
+      "width_error_m": 11.337,
+      "height_error_m": 0.04,
+      "width_error_rel": 4.8,
+      "height_error_rel": 0.013,
+      "mean_iou": 0.107,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 12,
+      "predicted": 4,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca2250.photos.050999p",
+       "obliquity_deg": 0.6,
+       "target_share": 0.141,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 10,
+       "score": {
+        "truth": 12,
+        "predicted": 10,
+        "matched": 1,
+        "recall": 0.083,
+        "precision": 0.1,
+        "centre_error_m": 2.736,
+        "width_error_m": 11.337,
+        "height_error_m": 0.04,
+        "width_error_rel": 4.8,
+        "height_error_rel": 0.013,
+        "mean_iou": 0.107,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca2250.photos.051003p",
+       "obliquity_deg": 54.5,
+       "target_share": 0.102,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 10,
+       "score": {
+        "truth": 12,
+        "predicted": 10,
+        "matched": 2,
+        "recall": 0.167,
+        "precision": 0.2,
+        "centre_error_m": 1.574,
+        "width_error_m": 3.008,
+        "height_error_m": 0.211,
+        "width_error_rel": 1.273,
+        "height_error_rel": 0.073,
+        "mean_iou": 0.146,
+        "window_vs_door_correct": 0.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca2250.photos.051004p",
+       "obliquity_deg": 53.6,
+       "target_share": 0.164,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 22,
+       "score": {
+        "truth": 12,
+        "predicted": 22,
+        "matched": 3,
+        "recall": 0.25,
+        "precision": 0.136,
+        "centre_error_m": 1.315,
+        "width_error_m": 0.693,
+        "height_error_m": 0.775,
+        "width_error_rel": 0.488,
+        "height_error_rel": 0.294,
+        "mean_iou": 0.152,
+        "window_vs_door_correct": 0.667
+       },
+       "error": null
+      }
+     ]
+    },
+    "drawn_size_detector": {
+     "best_photo": "ca2250.photos.050999p",
+     "best_photo_score": {
+      "truth": 12,
+      "predicted": 7,
+      "matched": 2,
+      "recall": 0.167,
+      "precision": 0.286,
+      "centre_error_m": 1.711,
+      "width_error_m": 4.465,
+      "height_error_m": 0.046,
+      "width_error_rel": 1.907,
+      "height_error_rel": 0.02,
+      "mean_iou": 0.148,
+      "window_vs_door_correct": 0.5
+     },
+     "fused_score": {
+      "truth": 12,
+      "predicted": 1,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca2250.photos.050999p",
+       "obliquity_deg": 0.6,
+       "target_share": 0.165,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 7,
+       "score": {
+        "truth": 12,
+        "predicted": 7,
+        "matched": 2,
+        "recall": 0.167,
+        "precision": 0.286,
+        "centre_error_m": 1.711,
+        "width_error_m": 4.465,
+        "height_error_m": 0.046,
+        "width_error_rel": 1.907,
+        "height_error_rel": 0.02,
+        "mean_iou": 0.148,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      },
+      {
+       "photo": "ca2250.photos.051003p",
+       "obliquity_deg": 54.5,
+       "target_share": 0.371,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 12,
+        "predicted": 6,
+        "matched": 2,
+        "recall": 0.167,
+        "precision": 0.333,
+        "centre_error_m": 0.732,
+        "width_error_m": 0.188,
+        "height_error_m": 0.73,
+        "width_error_rel": 0.19,
+        "height_error_rel": 0.345,
+        "mean_iou": 0.309,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca2250.photos.051004p",
+       "obliquity_deg": 53.6,
+       "target_share": 0.25,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 15,
+       "score": {
+        "truth": 12,
+        "predicted": 15,
+        "matched": 2,
+        "recall": 0.167,
+        "precision": 0.133,
+        "centre_error_m": 0.403,
+        "width_error_m": 0.097,
+        "height_error_m": 0.122,
+        "width_error_rel": 0.117,
+        "height_error_rel": 0.125,
+        "mean_iou": 0.374,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      }
+     ]
+    }
+   }
+  },
+  {
+   "slug": "govmansion",
+   "name": "Albert Gallatin House (California Governor's Mansion), Sacramento",
+   "habs": "HABS CAL,34-SAC,19",
+   "facing": "north",
+   "photos_given": 1,
+   "drawn_panel_m": [
+    28.704,
+    12.301
+   ],
+   "footprint_width_m": 28.588,
+   "footprint_walls": 7,
+   "lidar": {
+    "height_m": 17.24,
+    "base_m": 7.03,
+    "roof_points": 1623,
+    "ground_points": 1829,
+    "top_band_share": 0.48,
+    "source": "lidar_roof_p92_over_foot",
+    "dataset": "USGS_LPC_CA_NoCAL_Wildfires_B5a_2018"
+   },
+   "runs": {
+    "lidar_detector": {
+     "best_photo": "ca0523.photos.014623p",
+     "best_photo_score": {
+      "truth": 33,
+      "predicted": 10,
+      "matched": 2,
+      "recall": 0.061,
+      "precision": 0.2,
+      "centre_error_m": 1.35,
+      "width_error_m": 0.875,
+      "height_error_m": 0.942,
+      "width_error_rel": 0.904,
+      "height_error_rel": 0.375,
+      "mean_iou": 0.159,
+      "window_vs_door_correct": 0.5
+     },
+     "fused_score": {
+      "truth": 33,
+      "predicted": 10,
+      "matched": 2,
+      "recall": 0.061,
+      "precision": 0.2,
+      "centre_error_m": 1.35,
+      "width_error_m": 0.875,
+      "height_error_m": 0.942,
+      "width_error_rel": 0.904,
+      "height_error_rel": 0.375,
+      "mean_iou": 0.159,
+      "window_vs_door_correct": 0.5
+     },
+     "photos": [
+      {
+       "photo": "ca0523.photos.014623p",
+       "obliquity_deg": 0.1,
+       "target_share": 0.178,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 10,
+       "score": {
+        "truth": 33,
+        "predicted": 10,
+        "matched": 2,
+        "recall": 0.061,
+        "precision": 0.2,
+        "centre_error_m": 1.35,
+        "width_error_m": 0.875,
+        "height_error_m": 0.942,
+        "width_error_rel": 0.904,
+        "height_error_rel": 0.375,
+        "mean_iou": 0.159,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      }
+     ]
+    },
+    "lidar_segmentation": {
+     "best_photo": "ca0523.photos.014623p",
+     "best_photo_score": {
+      "truth": 33,
+      "predicted": 11,
+      "matched": 4,
+      "recall": 0.121,
+      "precision": 0.364,
+      "centre_error_m": 0.682,
+      "width_error_m": 0.283,
+      "height_error_m": 1.176,
+      "width_error_rel": 0.287,
+      "height_error_rel": 0.472,
+      "mean_iou": 0.427,
+      "window_vs_door_correct": 0.5
+     },
+     "fused_score": {
+      "truth": 33,
+      "predicted": 11,
+      "matched": 4,
+      "recall": 0.121,
+      "precision": 0.364,
+      "centre_error_m": 0.682,
+      "width_error_m": 0.283,
+      "height_error_m": 1.176,
+      "width_error_rel": 0.287,
+      "height_error_rel": 0.472,
+      "mean_iou": 0.427,
+      "window_vs_door_correct": 0.5
+     },
+     "photos": [
+      {
+       "photo": "ca0523.photos.014623p",
+       "obliquity_deg": 0.1,
+       "target_share": 0.182,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 11,
+       "score": {
+        "truth": 33,
+        "predicted": 11,
+        "matched": 4,
+        "recall": 0.121,
+        "precision": 0.364,
+        "centre_error_m": 0.682,
+        "width_error_m": 0.283,
+        "height_error_m": 1.176,
+        "width_error_rel": 0.287,
+        "height_error_rel": 0.472,
+        "mean_iou": 0.427,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      }
+     ]
+    },
+    "drawn_size_detector": {
+     "best_photo": "ca0523.photos.014623p",
+     "best_photo_score": {
+      "truth": 33,
+      "predicted": 6,
+      "matched": 3,
+      "recall": 0.091,
+      "precision": 0.5,
+      "centre_error_m": 1.083,
+      "width_error_m": 1.655,
+      "height_error_m": 1.293,
+      "width_error_rel": 1.197,
+      "height_error_rel": 0.536,
+      "mean_iou": 0.253,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 33,
+      "predicted": 6,
+      "matched": 3,
+      "recall": 0.091,
+      "precision": 0.5,
+      "centre_error_m": 1.083,
+      "width_error_m": 1.655,
+      "height_error_m": 1.293,
+      "width_error_rel": 1.197,
+      "height_error_rel": 0.536,
+      "mean_iou": 0.253,
+      "window_vs_door_correct": 1.0
+     },
+     "photos": [
+      {
+       "photo": "ca0523.photos.014623p",
+       "obliquity_deg": 0.1,
+       "target_share": 0.127,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 33,
+        "predicted": 6,
+        "matched": 3,
+        "recall": 0.091,
+        "precision": 0.5,
+        "centre_error_m": 1.083,
+        "width_error_m": 1.655,
+        "height_error_m": 1.293,
+        "width_error_rel": 1.197,
+        "height_error_rel": 0.536,
+        "mean_iou": 0.253,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      }
+     ]
+    }
+   }
+  },
+  {
+   "slug": "carson",
+   "name": "Carson House, New Almaden",
+   "habs": "HABS CAL,43-ALMA,2",
+   "facing": "east",
+   "photos_given": 1,
+   "drawn_panel_m": [
+    11.265,
+    4.926
+   ],
+   "footprint_width_m": 17.914,
+   "footprint_walls": 1,
+   "lidar": {
+    "height_m": 5.15,
+    "base_m": 138.98,
+    "roof_points": 4458,
+    "ground_points": 5795,
+    "top_band_share": 0.95,
+    "source": "lidar_roof_p92_over_foot",
+    "dataset": "CA_SantaClaraCounty_2020"
+   },
+   "runs": {
+    "lidar_detector": {
+     "best_photo": "ca0945.photos.018106p",
+     "best_photo_score": {
+      "truth": 5,
+      "predicted": 5,
+      "matched": 2,
+      "recall": 0.4,
+      "precision": 0.4,
+      "centre_error_m": 0.683,
+      "width_error_m": 1.685,
+      "height_error_m": 0.21,
+      "width_error_rel": 1.95,
+      "height_error_rel": 0.134,
+      "mean_iou": 0.329,
+      "window_vs_door_correct": 0.5
+     },
+     "fused_score": {
+      "truth": 5,
+      "predicted": 5,
+      "matched": 2,
+      "recall": 0.4,
+      "precision": 0.4,
+      "centre_error_m": 0.683,
+      "width_error_m": 1.685,
+      "height_error_m": 0.21,
+      "width_error_rel": 1.95,
+      "height_error_rel": 0.134,
+      "mean_iou": 0.329,
+      "window_vs_door_correct": 0.5
+     },
+     "photos": [
+      {
+       "photo": "ca0945.photos.018106p",
+       "obliquity_deg": 0.3,
+       "target_share": 0.198,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 5,
+       "score": {
+        "truth": 5,
+        "predicted": 5,
+        "matched": 2,
+        "recall": 0.4,
+        "precision": 0.4,
+        "centre_error_m": 0.683,
+        "width_error_m": 1.685,
+        "height_error_m": 0.21,
+        "width_error_rel": 1.95,
+        "height_error_rel": 0.134,
+        "mean_iou": 0.329,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      }
+     ]
+    },
+    "lidar_segmentation": {
+     "best_photo": "ca0945.photos.018106p",
+     "best_photo_score": {
+      "truth": 5,
+      "predicted": 2,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "fused_score": {
+      "truth": 5,
+      "predicted": 2,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0945.photos.018106p",
+       "obliquity_deg": 0.3,
+       "target_share": 0.077,
+       "located_by": "segmentation_house_rows_and_centre_column_run",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 2,
+       "score": {
+        "truth": 5,
+        "predicted": 2,
+        "matched": 0,
+        "recall": 0.0,
+        "precision": 0.0,
+        "centre_error_m": null,
+        "width_error_m": null,
+        "height_error_m": null,
+        "width_error_rel": null,
+        "height_error_rel": null,
+        "mean_iou": null,
+        "window_vs_door_correct": null
+       },
+       "error": null
+      }
+     ]
+    },
+    "drawn_size_detector": {
+     "best_photo": "ca0945.photos.018106p",
+     "best_photo_score": {
+      "truth": 5,
+      "predicted": 3,
+      "matched": 2,
+      "recall": 0.4,
+      "precision": 0.667,
+      "centre_error_m": 0.555,
+      "width_error_m": 0.495,
+      "height_error_m": 0.651,
+      "width_error_rel": 0.604,
+      "height_error_rel": 0.415,
+      "mean_iou": 0.207,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 5,
+      "predicted": 3,
+      "matched": 2,
+      "recall": 0.4,
+      "precision": 0.667,
+      "centre_error_m": 0.555,
+      "width_error_m": 0.495,
+      "height_error_m": 0.651,
+      "width_error_rel": 0.604,
+      "height_error_rel": 0.415,
+      "mean_iou": 0.207,
+      "window_vs_door_correct": 1.0
+     },
+     "photos": [
+      {
+       "photo": "ca0945.photos.018106p",
+       "obliquity_deg": 0.3,
+       "target_share": 0.301,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 3,
+       "score": {
+        "truth": 5,
+        "predicted": 3,
+        "matched": 2,
+        "recall": 0.4,
+        "precision": 0.667,
+        "centre_error_m": 0.555,
+        "width_error_m": 0.495,
+        "height_error_m": 0.651,
+        "width_error_rel": 0.604,
+        "height_error_rel": 0.415,
+        "mean_iou": 0.207,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      }
+     ]
+    }
+   }
+  },
+  {
+   "slug": "stanford",
+   "name": "Leland Stanford House, Sacramento",
+   "habs": "HABS CAL,34-SAC,9",
+   "facing": "north",
+   "photos_given": 2,
+   "drawn_panel_m": [
+    33.595,
+    13.714
+   ],
+   "footprint_width_m": 32.047,
+   "footprint_walls": 3,
+   "lidar": {
+    "height_m": 17.97,
+    "base_m": 6.19,
+    "roof_points": 1790,
+    "ground_points": 2402,
+    "top_band_share": 0.459,
+    "source": "lidar_roof_p92_over_foot",
+    "dataset": "USGS_LPC_CA_NoCAL_Wildfires_B5a_2018"
+   },
+   "runs": {
+    "lidar_detector": {
+     "best_photo": "ca0544.photos.014953p",
+     "best_photo_score": {
+      "truth": 36,
+      "predicted": 6,
+      "matched": 2,
+      "recall": 0.056,
+      "precision": 0.333,
+      "centre_error_m": 1.107,
+      "width_error_m": 0.431,
+      "height_error_m": 0.889,
+      "width_error_rel": 0.413,
+      "height_error_rel": 0.409,
+      "mean_iou": 0.295,
+      "window_vs_door_correct": 0.5
+     },
+     "fused_score": {
+      "truth": 36,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0544.photos.014953p",
+       "obliquity_deg": 0.7,
+       "target_share": 0.252,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 36,
+        "predicted": 6,
+        "matched": 2,
+        "recall": 0.056,
+        "precision": 0.333,
+        "centre_error_m": 1.107,
+        "width_error_m": 0.431,
+        "height_error_m": 0.889,
+        "width_error_rel": 0.413,
+        "height_error_rel": 0.409,
+        "mean_iou": 0.295,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0544.photos.014949p",
+       "obliquity_deg": 10.1,
+       "target_share": 0.25,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 15,
+       "score": {
+        "truth": 36,
+        "predicted": 15,
+        "matched": 2,
+        "recall": 0.056,
+        "precision": 0.133,
+        "centre_error_m": 0.921,
+        "width_error_m": 0.449,
+        "height_error_m": 0.736,
+        "width_error_rel": 0.416,
+        "height_error_rel": 0.31,
+        "mean_iou": 0.381,
+        "window_vs_door_correct": 0.0
+       },
+       "error": null
+      }
+     ]
+    },
+    "lidar_segmentation": {
+     "best_photo": "ca0544.photos.014953p",
+     "best_photo_score": {
+      "truth": 36,
+      "predicted": 7,
+      "matched": 3,
+      "recall": 0.083,
+      "precision": 0.429,
+      "centre_error_m": 1.516,
+      "width_error_m": 1.516,
+      "height_error_m": 1.035,
+      "width_error_rel": 1.014,
+      "height_error_rel": 0.423,
+      "mean_iou": 0.231,
+      "window_vs_door_correct": 0.667
+     },
+     "fused_score": {
+      "truth": 36,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0544.photos.014953p",
+       "obliquity_deg": 0.7,
+       "target_share": 0.182,
+       "located_by": "segmentation_house_rows_and_centre_column_run",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 7,
+       "score": {
+        "truth": 36,
+        "predicted": 7,
+        "matched": 3,
+        "recall": 0.083,
+        "precision": 0.429,
+        "centre_error_m": 1.516,
+        "width_error_m": 1.516,
+        "height_error_m": 1.035,
+        "width_error_rel": 1.014,
+        "height_error_rel": 0.423,
+        "mean_iou": 0.231,
+        "window_vs_door_correct": 0.667
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0544.photos.014949p",
+       "obliquity_deg": 10.1,
+       "target_share": 0.075,
+       "located_by": "segmentation_house_rows_and_centre_column_run",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 10,
+       "score": {
+        "truth": 36,
+        "predicted": 10,
+        "matched": 5,
+        "recall": 0.139,
+        "precision": 0.5,
+        "centre_error_m": 1.077,
+        "width_error_m": 0.35,
+        "height_error_m": 0.348,
+        "width_error_rel": 0.304,
+        "height_error_rel": 0.123,
+        "mean_iou": 0.228,
+        "window_vs_door_correct": 0.8
+       },
+       "error": null
+      }
+     ]
+    },
+    "drawn_size_detector": {
+     "best_photo": "ca0544.photos.014953p",
+     "best_photo_score": {
+      "truth": 36,
+      "predicted": 5,
+      "matched": 1,
+      "recall": 0.028,
+      "precision": 0.2,
+      "centre_error_m": 1.85,
+      "width_error_m": 0.402,
+      "height_error_m": 1.232,
+      "width_error_rel": 0.376,
+      "height_error_rel": 0.531,
+      "mean_iou": 0.101,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 36,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0544.photos.014953p",
+       "obliquity_deg": 0.7,
+       "target_share": 0.184,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 5,
+       "score": {
+        "truth": 36,
+        "predicted": 5,
+        "matched": 1,
+        "recall": 0.028,
+        "precision": 0.2,
+        "centre_error_m": 1.85,
+        "width_error_m": 0.402,
+        "height_error_m": 1.232,
+        "width_error_rel": 0.376,
+        "height_error_rel": 0.531,
+        "mean_iou": 0.101,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0544.photos.014949p",
+       "obliquity_deg": 10.1,
+       "target_share": 0.182,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 7,
+       "score": {
+        "truth": 36,
+        "predicted": 7,
+        "matched": 0,
+        "recall": 0.0,
+        "precision": 0.0,
+        "centre_error_m": null,
+        "width_error_m": null,
+        "height_error_m": null,
+        "width_error_rel": null,
+        "height_error_rel": null,
+        "mean_iou": null,
+        "window_vs_door_correct": null
+       },
+       "error": null
+      }
+     ]
+    }
+   }
+  },
+  {
+   "slug": "amesti",
+   "name": "Jose Amesti Casa, Monterey",
+   "habs": "HABS CAL,27-MONT,20",
+   "facing": "west",
+   "photos_given": 2,
+   "drawn_panel_m": [
+    25.806,
+    6.653
+   ],
+   "footprint_width_m": 25.827,
+   "footprint_walls": 1,
+   "lidar": {
+    "height_m": 9.1,
+    "base_m": 12.01,
+    "roof_points": 1084,
+    "ground_points": 1191,
+    "top_band_share": 0.685,
+    "source": "lidar_roof_p92_over_foot",
+    "dataset": "CA_FEMA_Z4_B1_2018"
+   },
+   "runs": {
+    "lidar_detector": {
+     "best_photo": "ca0367.photos.013718p",
+     "best_photo_score": {
+      "truth": 11,
+      "predicted": 2,
+      "matched": 1,
+      "recall": 0.091,
+      "precision": 0.5,
+      "centre_error_m": 0.195,
+      "width_error_m": 0.115,
+      "height_error_m": 1.785,
+      "width_error_rel": 0.098,
+      "height_error_rel": 0.957,
+      "mean_iou": 0.484,
+      "window_vs_door_correct": 0.0
+     },
+     "fused_score": {
+      "truth": 11,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0367.photos.013715p",
+       "obliquity_deg": 60.0,
+       "target_share": 0.566,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 6,
+       "score": {
+        "truth": 11,
+        "predicted": 6,
+        "matched": 2,
+        "recall": 0.182,
+        "precision": 0.333,
+        "centre_error_m": 0.797,
+        "width_error_m": 0.113,
+        "height_error_m": 1.002,
+        "width_error_rel": 0.107,
+        "height_error_rel": 0.414,
+        "mean_iou": 0.258,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0367.photos.013718p",
+       "obliquity_deg": 0.2,
+       "target_share": 0.078,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 2,
+       "score": {
+        "truth": 11,
+        "predicted": 2,
+        "matched": 1,
+        "recall": 0.091,
+        "precision": 0.5,
+        "centre_error_m": 0.195,
+        "width_error_m": 0.115,
+        "height_error_m": 1.785,
+        "width_error_rel": 0.098,
+        "height_error_rel": 0.957,
+        "mean_iou": 0.484,
+        "window_vs_door_correct": 0.0
+       },
+       "error": null
+      }
+     ]
+    },
+    "lidar_segmentation": {
+     "best_photo": "ca0367.photos.013718p",
+     "best_photo_score": {
+      "truth": 11,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "fused_score": {
+      "truth": 11,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0367.photos.013715p",
+       "obliquity_deg": 60.0,
+       "target_share": 0.403,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 9,
+       "score": {
+        "truth": 11,
+        "predicted": 9,
+        "matched": 5,
+        "recall": 0.455,
+        "precision": 0.556,
+        "centre_error_m": 0.803,
+        "width_error_m": 0.117,
+        "height_error_m": 0.844,
+        "width_error_rel": 0.094,
+        "height_error_rel": 0.555,
+        "mean_iou": 0.263,
+        "window_vs_door_correct": 0.4
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0367.photos.013718p",
+       "obliquity_deg": 0.2,
+       "target_share": 0.245,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 0,
+       "score": {
+        "truth": 11,
+        "predicted": 0,
+        "matched": 0,
+        "recall": 0.0,
+        "precision": null,
+        "centre_error_m": null,
+        "width_error_m": null,
+        "height_error_m": null,
+        "width_error_rel": null,
+        "height_error_rel": null,
+        "mean_iou": null,
+        "window_vs_door_correct": null
+       },
+       "error": null
+      }
+     ]
+    },
+    "drawn_size_detector": {
+     "best_photo": "ca0367.photos.013718p",
+     "best_photo_score": {
+      "truth": 11,
+      "predicted": 1,
+      "matched": 1,
+      "recall": 0.091,
+      "precision": 1.0,
+      "centre_error_m": 0.66,
+      "width_error_m": 0.823,
+      "height_error_m": 1.086,
+      "width_error_rel": 0.833,
+      "height_error_rel": 0.449,
+      "mean_iou": 0.378,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 11,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0367.photos.013715p",
+       "obliquity_deg": 60.0,
+       "target_share": 0.414,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 11,
+       "score": {
+        "truth": 11,
+        "predicted": 11,
+        "matched": 3,
+        "recall": 0.273,
+        "precision": 0.273,
+        "centre_error_m": 0.896,
+        "width_error_m": 0.083,
+        "height_error_m": 0.967,
+        "width_error_rel": 0.075,
+        "height_error_rel": 0.504,
+        "mean_iou": 0.252,
+        "window_vs_door_correct": 0.667
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0367.photos.013718p",
+       "obliquity_deg": 0.2,
+       "target_share": 0.057,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 1,
+       "score": {
+        "truth": 11,
+        "predicted": 1,
+        "matched": 1,
+        "recall": 0.091,
+        "precision": 1.0,
+        "centre_error_m": 0.66,
+        "width_error_m": 0.823,
+        "height_error_m": 1.086,
+        "width_error_rel": 0.833,
+        "height_error_rel": 0.449,
+        "mean_iou": 0.378,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      }
+     ]
+    }
+   }
+  },
+  {
+   "slug": "jscain",
+   "name": "J. S. Cain House, Bodie",
+   "habs": "HABS CAL,26-BODI,3",
+   "facing": "east",
+   "photos_given": 2,
+   "drawn_panel_m": [
+    14.803,
+    7.344
+   ],
+   "footprint_width_m": 26.264,
+   "footprint_walls": 3,
+   "lidar": {
+    "height_m": 6.97,
+    "base_m": 2553.78,
+    "roof_points": 4221,
+    "ground_points": 5736,
+    "top_band_share": 0.319,
+    "source": "lidar_roof_p92_over_foot",
+    "dataset": "CA_SierraNevada_8_2022"
+   },
+   "runs": {
+    "lidar_detector": {
+     "best_photo": "ca0353.photos.013481p",
+     "best_photo_score": {
+      "truth": 6,
+      "predicted": 2,
+      "matched": 1,
+      "recall": 0.167,
+      "precision": 0.5,
+      "centre_error_m": 0.315,
+      "width_error_m": 8.021,
+      "height_error_m": 0.522,
+      "width_error_rel": 5.032,
+      "height_error_rel": 0.187,
+      "mean_iou": 0.158,
+      "window_vs_door_correct": 0.0
+     },
+     "fused_score": {
+      "truth": 6,
+      "predicted": 0,
+      "matched": 0,
+      "recall": 0.0,
+      "precision": null,
+      "centre_error_m": null,
+      "width_error_m": null,
+      "height_error_m": null,
+      "width_error_rel": null,
+      "height_error_rel": null,
+      "mean_iou": null,
+      "window_vs_door_correct": null
+     },
+     "photos": [
+      {
+       "photo": "ca0353.photos.013481p",
+       "obliquity_deg": 0.6,
+       "target_share": 0.179,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 2,
+       "score": {
+        "truth": 6,
+        "predicted": 2,
+        "matched": 1,
+        "recall": 0.167,
+        "precision": 0.5,
+        "centre_error_m": 0.315,
+        "width_error_m": 8.021,
+        "height_error_m": 0.522,
+        "width_error_rel": 5.032,
+        "height_error_rel": 0.187,
+        "mean_iou": 0.158,
+        "window_vs_door_correct": 0.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0353.photos.013480p",
+       "obliquity_deg": 0.3,
+       "target_share": 0.143,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 8,
+       "score": {
+        "truth": 6,
+        "predicted": 8,
+        "matched": 2,
+        "recall": 0.333,
+        "precision": 0.25,
+        "centre_error_m": 0.837,
+        "width_error_m": 0.9,
+        "height_error_m": 0.953,
+        "width_error_rel": 0.819,
+        "height_error_rel": 0.322,
+        "mean_iou": 0.272,
+        "window_vs_door_correct": 0.0
+       },
+       "error": null
+      }
+     ]
+    },
+    "lidar_segmentation": {
+     "best_photo": "ca0353.photos.013481p",
+     "best_photo_score": {
+      "truth": 6,
+      "predicted": 1,
+      "matched": 1,
+      "recall": 0.167,
+      "precision": 1.0,
+      "centre_error_m": 1.38,
+      "width_error_m": 10.629,
+      "height_error_m": 0.211,
+      "width_error_rel": 6.668,
+      "height_error_rel": 0.076,
+      "mean_iou": 0.108,
+      "window_vs_door_correct": 1.0
+     },
+     "fused_score": {
+      "truth": 6,
+      "predicted": 1,
+      "matched": 1,
+      "recall": 0.167,
+      "precision": 1.0,
+      "centre_error_m": 1.577,
+      "width_error_m": 11.188,
+      "height_error_m": 0.153,
+      "width_error_rel": 7.019,
+      "height_error_rel": 0.055,
+      "mean_iou": 0.103,
+      "window_vs_door_correct": 1.0
+     },
+     "photos": [
+      {
+       "photo": "ca0353.photos.013481p",
+       "obliquity_deg": 0.6,
+       "target_share": 0.054,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 1,
+       "score": {
+        "truth": 6,
+        "predicted": 1,
+        "matched": 1,
+        "recall": 0.167,
+        "precision": 1.0,
+        "centre_error_m": 1.38,
+        "width_error_m": 10.629,
+        "height_error_m": 0.211,
+        "width_error_rel": 6.668,
+        "height_error_rel": 0.076,
+        "mean_iou": 0.108,
+        "window_vs_door_correct": 1.0
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0353.photos.013480p",
+       "obliquity_deg": 0.3,
+       "target_share": 0.027,
+       "located_by": "long_horizontals_within_segmented_rows",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 1,
+       "score": {
+        "truth": 6,
+        "predicted": 1,
+        "matched": 0,
+        "recall": 0.0,
+        "precision": 0.0,
+        "centre_error_m": null,
+        "width_error_m": null,
+        "height_error_m": null,
+        "width_error_rel": null,
+        "height_error_rel": null,
+        "mean_iou": null,
+        "window_vs_door_correct": null
+       },
+       "error": null
+      }
+     ]
+    },
+    "drawn_size_detector": {
+     "best_photo": "ca0353.photos.013481p",
+     "best_photo_score": {
+      "truth": 6,
+      "predicted": 3,
+      "matched": 2,
+      "recall": 0.333,
+      "precision": 0.667,
+      "centre_error_m": 0.705,
+      "width_error_m": 2.066,
+      "height_error_m": 0.258,
+      "width_error_rel": 1.967,
+      "height_error_rel": 0.113,
+      "mean_iou": 0.344,
+      "window_vs_door_correct": 0.5
+     },
+     "fused_score": {
+      "truth": 6,
+      "predicted": 1,
+      "matched": 1,
+      "recall": 0.167,
+      "precision": 1.0,
+      "centre_error_m": 1.408,
+      "width_error_m": 2.375,
+      "height_error_m": 0.283,
+      "width_error_rel": 1.49,
+      "height_error_rel": 0.101,
+      "mean_iou": 0.314,
+      "window_vs_door_correct": 0.0
+     },
+     "photos": [
+      {
+       "photo": "ca0353.photos.013481p",
+       "obliquity_deg": 0.6,
+       "target_share": 0.335,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 3,
+       "score": {
+        "truth": 6,
+        "predicted": 3,
+        "matched": 2,
+        "recall": 0.333,
+        "precision": 0.667,
+        "centre_error_m": 0.705,
+        "width_error_m": 2.066,
+        "height_error_m": 0.258,
+        "width_error_rel": 1.967,
+        "height_error_rel": 0.113,
+        "mean_iou": 0.344,
+        "window_vs_door_correct": 0.5
+       },
+       "error": null
+      },
+      {
+       "photo": "ca0353.photos.013480p",
+       "obliquity_deg": 0.3,
+       "target_share": 0.268,
+       "located_by": "grounding_dino_house_box",
+       "height_basis": "lidar_roof_p92_over_foot",
+       "openings_predicted": 4,
+       "score": {
+        "truth": 6,
+        "predicted": 4,
+        "matched": 3,
+        "recall": 0.5,
+        "precision": 0.75,
+        "centre_error_m": 0.468,
+        "width_error_m": 0.627,
+        "height_error_m": 0.486,
+        "width_error_rel": 0.433,
+        "height_error_rel": 0.171,
+        "mean_iou": 0.48,
+        "window_vs_door_correct": 0.0
+       },
+       "error": null
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "not_scored": [
+  {
+   "house": "Walter Luther Dodge House, West Hollywood (HABS CAL,19-LOSAN,27)",
+   "why": "demolished in 1970: no footprint, so it cannot be tested as a real house"
+  },
+  {
+   "house": "Lovell Beach House, Newport Beach (HABS CAL,30-NEWBE,1)",
+   "why": "the west front is continuous ribbon glazing on stilts: no discrete openings to match one to one"
+  },
+  {
+   "house": "Yung See San Fong, Los Gatos (HABS CAL,43-LOSGA,2)",
+   "why": "every photograph looks steeply along the drive, beyond 40 degrees to any drawn front"
+  },
+  {
+   "house": "Sowden House, Los Angeles (HABS CAL,19-LOSAN,69)",
+   "why": "no OSM building contains its address; the footprint would have to be guessed"
+  },
+  {
+   "house": "Harrison Street Block, Santa Clara (HABS CAL,43-SANCLA,2)",
+   "why": "no addressed OSM footprints for 1009 or 1077; the houses would have to be guessed"
+  },
+  {
+   "house": "Casa del Rancho San Antonio, Bell Gardens (HABS CAL,19-BEL,1)",
+   "why": "the nearest OSM building is 38 m from the address and its east front's sheet would not download whole"
+  },
+  {
+   "house": "D. V. Cain House, Bodie",
+   "why": "excluded by request"
+  }
+ ],
+ "findings": [
+  "Lidar gets the height the photograph could not: within 6 per cent of the drawing at Larkin (7.34 m against 7.77), Carson (5.15 against 4.93) and J. S. Cain (6.97 against 7.34); 31-40 per cent over where a cupola, a tower or a tree rises above the drawn front (Banning 13.94 against 10.03, the Governor's Mansion 17.24 against 12.30, Stanford 17.97 against 13.71, Amesti 9.1 against 6.65). The first run's photograph-aspect heights were 2-4.6 times too tall.",
+  "But height was not what held the score down. With lidar heights, 16 of 113 drawn openings were found (43 per cent of predictions real), against 13 with heights from the photograph; and given the drawing's own width and height, still 16. The loss is in finding the front in an archival photograph and in the detector's proposals on it: about 31-37 openings proposed for 113 drawn, and the two large mansions (69 of the 113) yield 5-10 each.",
+  "Larkin, a plain two-storey front squarely photographed, holds in every blind run: 6 of 10 found, none false, 0.3-0.5 m position error.",
+  "On 2026-10-12 the same pipeline found 80 per cent of openings when the front was cut out of the photograph by hand. In the city that cut comes from the camera's recorded pose projected onto the footprint, not from finding the house in the picture, so that figure is the closer guide for the city -- where the pose is right; this test is the guide for photographs without a pose.",
+  "Fusing photographs still does worse than the filter's single photograph: the oblique views disagree with the square one."
+ ]
+}
