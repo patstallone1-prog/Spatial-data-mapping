@@ -1,0 +1,21 @@
+{
+  "rpd:park:132": {
+    "source_url": "https://www.sfrecpark.org/Facilities/Facility/Details/Moscone-Rec-Center-101",
+    "reviewed_at": "2026-10-13",
+    "basis": "official_facility_page_semantics_only",
+    "geometry_established": false,
+    "features": ["accessible_restroom", "accessible_playground", "accessible_parking", "accessible_picnic_area", "basketball", "baseball_softball", "tennis", "pickleball", "off_leash_dog_area", "community_rooms"],
+    "park_hours": "06:00-23:00",
+    "restroom_hours": "08:00-20:00"
+  },
+  "rpd:park:166": {
+    "source_url": "https://www.sfrecpark.org/Facilities/Facility/Details/Presidio-Wall-Playground-251",
+    "reviewed_at": "2026-10-13",
+    "basis": "official_facility_page_semantics_only",
+    "geometry_established": false,
+    "features": ["restroom", "basketball", "baseball", "tennis", "picnic_area", "playground", "community_rooms", "parking", "wet_sand_play_sculpture"],
+    "park_hours": "05:00-24:00",
+    "restroom_hours": {"spring_summer": "08:00-20:00", "fall_winter": "08:00-17:30"},
+    "surface_note": "Sand play equipment does not establish the material of nearby paths."
+  }
+}

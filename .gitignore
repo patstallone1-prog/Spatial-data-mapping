@@ -120,3 +120,18 @@ docs/sf-corridor-3d.html
 
 # Transit schedules ingested for navigation (scripts/ingest_transit.py): large, refreshed daily.
 data/transit/
+
+# RPD: version the compressed source snapshots and canonical manifest, not redundant caches
+# or the explicitly retired first-draft inventory. Only the manifest-selected artifact is current.
+data/sf_rpd/raw/
+data/park_paths/*/osm-response.json
+data/sf_rpd/archive/
+data/sf_rpd/inventory.json
+
+# PG&E GRIP LineDetail snapshots: local network reference only, never published (see
+# scripts/ingest_pge_grip.py); and the compact Mapillary segmentation cache.
+data/electrical/grip/
+data/electrical/imagery-cache/
+
+# Local caches for the electrical span build (re-fetched on demand).
+data/electrical/osm/

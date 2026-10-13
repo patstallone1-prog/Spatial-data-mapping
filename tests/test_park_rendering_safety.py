@@ -37,6 +37,27 @@ console.log(JSON.stringify([mappedOverheadLine(line),
     assert "utility_poles: poleRows.length" in network
 
 
+def test_park_styles_need_exact_canonical_footprint_and_never_make_home_windows():
+    js = _page_js()
+    result = run_js(_extract("applyParkEvidence", js) + """
+const points=[[0,0],[1,0],[1,1],[0,0]];
+const claim={render:'canonical_building_style',canonical_building_id:'42',
+ canonical_points:points,canonical_height_m:3,role:'public_restroom'};
+function trial(p,h){const data={bbox:{west:-2,east:2,south:-2,north:2},
+ ways:[{kind:'building',osm_id:42,points:p,height_m:h}]};
+ applyParkEvidence(data,{schema:'kerbside.park_evidence/1',geometry_modified:false,objects:[claim]});
+ return Boolean(data.ways[0].parkFacility);}
+console.log(JSON.stringify([trial(points,3),trial([[0,0],[2,0],[1,1],[0,0]],3),trial(points,4)]));
+""")
+    assert result == [True, False, False]
+    assert "feature.parkFacility" in _extract("buildingMesh", js)
+    assert "entry.way.parkFacility" in _extract("buildInterior", js)
+    assert "return []" in _extract("homeWindowLayout", js).split("\n")[1]
+    facility = _extract("parkFacilityMesh", js)
+    assert "residential_layout:false" in facility
+    assert "appearance_basis:" in facility
+
+
 def test_inside_landing_moves_just_outside_not_to_building_centroid():
     js = _page_js()
     result = run_js("""

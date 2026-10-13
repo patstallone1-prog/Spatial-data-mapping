@@ -18,7 +18,12 @@ DIAGNOSTIC = r'''
 {
 const paintAudit = {surfaces:{}, buried:[], intruders:[],crossings:[],streetProfiles:[]};
 paintAudit.park = {wireBases:[],grass:[],minHeight:Infinity,maxHeight:-Infinity,
-  walkerInside:Boolean(buildingAt(avatar.position.x,avatar.position.z))};
+  walkerInside:Boolean(buildingAt(avatar.position.x,avatar.position.z)),facilities:[],paths:[]};
+groups.mapped3d.traverse(o=>{if(o.isMesh && o.userData.surface==='park_facility')
+ paintAudit.park.facilities.push({id:o.userData.id,role:o.userData.role,geometry:o.userData.geometry_basis,
+ residential:o.userData.residential_layout});});
+for(const way of DATA.ways)if(way.kind==='path')paintAudit.park.paths.push({id:way.osm_id,
+ material:way.path_surface?.surface_material||'unknown',confidence:way.path_surface?.confidence||0});
 groups.furniture.traverse(o=>{
  if(o.userData.surface==='furniture:overhead_wire')paintAudit.park.wireBases.push(o.userData.basis);
 });
