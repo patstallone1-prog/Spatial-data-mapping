@@ -1,85 +1,98 @@
-# Park evidence goal — active implementation checkpoint
+# Parks, paths and wiring — completion report (12 October 2026)
 
-This is not a completion report. The goal remains park enrichment and rendering,
-hybrid path materials, Francisco/HABS release verification, and rigorous electrical
-connectivity using the requested sources. Final promotion remains conditional on
-render, provenance, privacy, source-rights, continuity and regression checks.
+This closes the pass the Codex checkpoint opened (RPD evidence, the hybrid path resolver and
+the GRIP connector): parks now carry their play areas, furniture and buildings; paths their
+material; and wires are drawn only where a photograph sees them.
 
-## Previous pass closed
+## Parks
 
-PR #57 merged as `27c126185320ef98218ddc1ecd16389f7b489319` and production succeeded.
-CI: 1,459 passed, 2 skipped; lint and the road baseline passed. The published renderer
-hash is `5e6acab7e7965a6d9344cd82ff66bc76f1d24086190b0cb79c5380cb55c414ef`.
-The live Moscone page was inspected at close range after its slow full-region load:
-no invented court wiring, retained light poles, and no broad repeated grass stains.
-Full-region startup remains a performance concern; this pass must not amplify it.
+- **Areas from OpenStreetMap and RPD** (`smc.parks.areas`): playgrounds, fitness areas, picnic
+  areas, dog areas, community gardens and skateparks, with age bands (2–5, 5–12) and sand play
+  from the RPD facility pages. Corridor: 41 playgrounds, 5 fitness, 7 picnic, 6 dog, 3 garden;
+  Mission 28 playgrounds and a skatepark; Sunset 26; San Jose 18 and 8 dog areas; Oakland 26.
+- **A generic playground** fills each one to its shape: the area's minimum rectangle is packed
+  with equipment for its age band (tower with slide, tot structure, swings, dome climber,
+  spinner, seesaw, spring riders, sandpit, playhouse, balance beam) in a seeded order, so no
+  two are alike; equipment OpenStreetMap maps is kept and packed around; the count scales
+  with area (4–16, a second main structure above 900 m²). Rubber safety surface under it,
+  grass kept off it.
+- **Fence with a real entrance**: a picket fence round each playground, with a gap and a gate
+  swung inward where OpenStreetMap maps the gate, else where a path crosses the boundary,
+  else at the nearest path within 30 m, else the longest side (Mission: 57 gates, 13 by the
+  last fallback).
+- **Park buildings are not houses**: a restroom has a slab roof overhang, its two doors with
+  signs, a louvre band and a drinking fountain; a maintenance shed a ribbed roll-up door and a
+  personnel door; a container its corrugations. None takes a house's windows or entry logic.
+- Benches, picnic tables, garden beds and fitness stations fill their areas.
 
-## Source and release evidence
+## Paths — the hybrid resolver, wired in
 
-- RPD Properties `gtr9-ntp6`: 253 SF-bounded property rows.
-- RPD Facilities `ib5c-xgwu`: 2,457 physical/area rows, including 67 restroom rows,
-  119 maintenance-building rows and 176 cargo-container rows.
-- RPD Functional Areas `38b7-6db3`: 7,171 rows.
-- All three source metadata records advertise PDDL. The compressed snapshots and
-  canonical manifest retain source hashes, dates, polygon parts and raw attributes.
-  Logical IDs are property-scoped because the real source reuses some facility IDs.
-  Mixed roles and orphaned identities are recorded, not silently reconciled.
-- The current PG&E service is
-  `https://services2.arcgis.com/mJaJSax0KPHoCNB6/ArcGIS/rest/services/DRPComplianceRelProd/FeatureServer/3`.
-  Its metadata confirms `LineDetail`, polylines, FeederId, CSV_LineSection,
-  voltage_kv and phase_cnt. There is no overhead/underground field. The old endpoint
-  in the user guide returned Invalid URL; do not hard-code it into ingestion.
-- PG&E's portal claims ownership of derivatives and restricts use to its intended
-  distribution-planning purposes. Public Kerbside derivative rights are unverified;
-  permission was requested. Do not treat a public endpoint or blank copyright field
-  as permission to redistribute GRIP-derived map assets.
-- Production's frontage manifest and
-  `fits/sf-corridor/-12244_3780-95b51a5d062e.json` match committed bytes. That tile
-  includes IDs 263276306, 263276308 and 263276313: the Francisco contributions.
-- Production's `validation/habs-2026-10-12.json` also matches committed bytes.
-  It explicitly says 12 houses in the reference pack, 3 scored, 4 panels scored.
-  It is a validation artifact, not twelve geolocated city-world reconstructions.
+Order of evidence: RPD functional-area paths (asphalt, concrete, dirt, decomposed granite;
+0.95) → OpenStreetMap `surface` (0.85) → automated photographs (Mapillary's segmentation
+looking along the path: 0.78 from two sequences, 0.60 from one) → landscape context (≤0.45).
+A way changes material where the evidence does (split at each transition).
 
-## Implemented, not yet viewer-integrated
+Landscape context is gated by the kind of way, after Berkeley's campus footways came out as
+mud: a trail (path, track, bridleway) can be mud within 10 m of a stream or in a wetland,
+earth in woodland, scrub or an RPD natural area, sand within 40 m of a beach. A park footway
+takes only beach or woodland context; steps, sidewalks and promenades never take any.
 
-- `smc.parks.surfaces`: explicit taxonomy, evidence precedence and confidence caps,
-  reviewed-image gating, independent-sequence checks, proposed-project rejection,
-  retained conflicts, weak landscape hypotheses, and material-transition splitting
-  that retains canonical bends and interpolated elevations.
-- `smc.parks.inventory`: property/facility/functional-area identities, source parts,
-  role conflict records, independent geometry/semantic/material/access claims.
-- `scripts/ingest_sf_parks.py`: reproducible current-source download, PDDL check,
-  compressed immutable snapshots, canonical artifact and manifest. This snapshot is
-  source evidence only. It is not a claim that 8,000-plus park objects now render.
-- City downloads use the maintained certifi root bundle, with TLS verification kept
-  enabled. The macOS Python system bundle failed the city host's certificate chain.
-- Focused foundation/official-record checks: 68 passed; blocking lint passed.
+Photographs read 191 corridor paths (2,277 paved readings, 7 ground), San Jose 105, Haight 49,
+Oakland 32, Berkeley 32, Sunset 31, Mission 23, Palo Alto 19. Only paths whose material
+differs from footway concrete are restyled on the page; the rest keep the pavement look.
 
-## Remaining required work
+Presidio Wall Playground lies outside every region's bounds, so its beach-sand context is in
+the resolver but not on any page yet.
 
-1. Join inventory parts to existing canonical park/building/path identities without
-   replacing stronger geometry. Resolve meaningful identity/role conflicts.
-2. Add physical park-object render families: public restrooms and maintenance sheds
-   must not inherit residential windows, room layouts or house-entry behavior.
-   Extend recreation, seating, water, fencing/lighting and access semantics where
-   inventory or current facility pages supply evidence, not random decoration.
-3. Wire explicit OSM surface tags, current official specifications and reviewed
-   imagery into the actual pedestrian-way pipeline. Join landscape context safely;
-   sand near a beach is a hypothesis, not an assumption about Presidio Wall.
-   Build/verify material-specific path rendering and transition continuity.
-4. Add curated, dated facility-page and completed-project evidence; retain proposed
-   project records without turning them into current physical geometry.
-5. Build the LineDetail connector, empirical pole-offset calibration, along-route
-   adjacency, ambiguity/branch rejection, underground vetoes, reviewed image-span
-   confirmation, electrical/telecom/unknown classification and phase-informed
-   rendering. Logical connectivity stays separate from visual catenaries. Unknown
-   overhead status never renders. GRIP-derived publication remains rights-gated.
-6. Run fixed/representative park visual audits (including Moscone and Presidio Wall),
-   cross-region path tests, performance checks, all consumer version checks and
-   release gates before final deployment. Retain canonical/procedural fallbacks for
-   evidence that fails promotion; do not invent geometry to satisfy a gate.
+## Wiring — evidence-backed spans
+
+1. PG&E GRIP LineDetail (`scripts/ingest_pge_grip.py`, local only, gitignored) gives the
+   circuit network. Palo Alto is skipped: its utility is CPAU, not PG&E.
+2. Observed poles (Mapillary and OSM) are merged within 6 m, matched to the network within a
+   tolerance calibrated against a shifted-network null (7–9 m), and walked along the network
+   to their neighbours: 12–95 m spans, network distance ≤ 1.25 × straight + 6 m; spans across
+   a feeder or section boundary or with ambiguous membership are flagged.
+3. Each candidate is projected into up to four photographs' segmentation (wire vs sky) beside
+   a sham span turned 90°; a photograph first registers itself on a detected pole within 7°.
+   Open sky where the wire must be counts against a span only in registered views. A mapped
+   underground cable vetoes it.
+4. Drawn: two independent sequences (0.95; 0.88 flagged) or one (0.90). Network-only
+   candidates (0.75) are kept in the audit file and not drawn. Telecom spans (wire in the
+   4.4–6.9 m band, none higher) get one cable at about 6 m.
+
+| Region | Detections → poles | Tolerance | Drawn (power / telecom) | Open sky | Underground |
+|---|---|---|---|---|---|
+| Corridor | 13,329 → 7,810 | 8 m | 272 (191 / 81) | 44 | 3 |
+| Haight | 1,645 → 1,285 | 8 m | 151 (130 / 21) | 3 | — |
+| Mission | 5,193 → 3,888 | 7 m | 754 (706 / 48) | 6 | 8 |
+| Sunset | 9,653 → 6,642 | 9 m | 684 (519 / 165) | 16 | — |
+| San Jose | 9,932 → 6,837 | 8 m | 237 (183 / 54) | 14 | — |
+| Oakland | 674 → 531 | 8 m | 24 (14 / 10) | — | 2 |
+| Berkeley | 566 → 469 | 8 m | 1 | — | — |
+
+Berkeley is thin: few photographs there look up at its poles.
+
+**Rights.** PG&E's portal claims ownership of derivatives and limits use to its planning
+purposes; leave to redistribute has been asked for, not given. So nothing of PG&E's is
+published: the sidecars carry only Kerbside's poles, the photo verdict and its confidence.
+Phase count, voltage and feeder stay local (`build/electrical/`) and ship only with
+`--publish-grip-attributes`; without them a span hangs one primary and its neutral, not an
+invented three-phase crossarm. The spans themselves were proposed by walking GRIP's network,
+then confirmed by photographs; if PG&E objects even to that, the electrical sidecars are the
+only files to withdraw.
+
+## Not done
+
+- Facility-page and capital-project evidence covers two parks; the rest have none yet.
+- Presidio Wall (above). Berkeley's wiring (above).
+- The audit files (`build/park-evidence/`, `build/electrical/`) are local, not served.
+
+## Checks
+
+Full suite passed (1,528 tests, one skipped), blocking lint, `node --check` on the module,
+the template-sync test after the page rebuild, and the Mission app world in a browser
+(28 playgrounds, 132 pieces, 57 gates; parks and electrical sidecars loaded).
 
 Sources: [RPD Facilities](https://data.sf.gov/api/views/ib5c-xgwu.json),
 [RPD Functional Areas](https://data.sf.gov/api/views/38b7-6db3.json),
-[PG&E current service](https://services2.arcgis.com/mJaJSax0KPHoCNB6/ArcGIS/rest/services/DRPComplianceRelProd/FeatureServer),
-[PG&E disclaimer](https://grip.pge.com/).
+[PG&E GRIP](https://grip.pge.com/), Mapillary (CC BY-SA 4.0), © OpenStreetMap contributors.

@@ -95,7 +95,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="5e6acab7e7965a6d9344cd82ff66bc76f1d24086190b0cb79c5380cb55c414ef" />
+<meta name="kerbside-renderer-sha256" content="3799e3582de51473e23e3782ddf074e236ecacc3c927378e8d75b8b4a04ef1f3" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -456,7 +456,7 @@ const GROUND_URL = asset("sf-corridor-ground.json");
 //: Where the square is, read from the payload's cells before anything is fetched.
 const LIGHT_SPEC = LIGHT_LEVEL ? await fetch(PAYLOAD_URL.replace(/([^/]+)\.json$/, "cells/$1/manifest.json"), { cache: "no-cache" })
   .then((r) => (r.ok ? r.json() : null)).then((m) => windowSpec(m && m.bbox)).catch(() => null) : null;
-const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES] = await Promise.all([
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS] = await Promise.all([
   fetchWindowed(PAYLOAD_URL, () => fetch(PAYLOAD_URL, { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -513,7 +513,51 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
   fetch(ATTACH ? ATTACH.resolve("sf-corridor-storefront-names.json")
     : new URL("sf-corridor-storefront-names.json", location.href), { cache: "no-cache" })
     .then(r => r.ok ? r.json() : null).catch(() => null),
+  fetch(asset("sf-corridor-parks.json"), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
+  // Pole-to-pole spans reconstructed from PG&E's network, the poles and photographs
+  // (scripts/build_electrical_spans.py). Only photograph-confirmed spans are in it.
+  fetch(asset("sf-corridor-electrical.json"), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
 ]);
+// Evidence annotations are not a replacement world. An exact-footprint guard prevents a
+// stale sidecar from applying a restroom style to a newer/changed canonical building.
+function applyParkEvidence(data, evidence) {
+  if (evidence?.schema !== "kerbside.park_evidence/1" || evidence.geometry_modified !== false) return [];
+  const structures = [], objects = evidence.objects || [];
+  const byBuilding = new Map();
+  for (const object of objects) {
+    if (object.render === "canonical_building_style") {
+      const key = String(object.canonical_building_id);
+      if (!byBuilding.has(key)) byBuilding.set(key, []);
+      byBuilding.get(key).push(object);
+    } else if (object.render === "inventory_structure" && object.semantic_confidence > 0
+        && object.p?.some(p => p[0]>=data.bbox.west && p[0]<=data.bbox.east
+          && p[1]>=data.bbox.south && p[1]<=data.bbox.north)) {
+      structures.push({ kind: "building", osm_id: object.id, points: object.p,
+        height_m: object.height_m, height_source: object.height_basis, covered: true,
+        parkFacility: object, name: object.name, archetype: "park_facility" });
+    }
+  }
+  for (const feature of data.ways) {
+    const claims = byBuilding.get(String(feature.osm_id)) || [];
+    const claim = claims.find(c => c.canonical_points?.length === feature.points?.length
+      && c.canonical_points.every((p,i)=>p.every((v,j)=>v === feature.points[i][j]))
+      && c.canonical_height_m === (feature.height_m ?? null));
+    if (claim) feature.parkFacility = claim;
+    const path = evidence.paths?.[String(feature.osm_id)];
+    if (["path", "sidewalk"].includes(feature.kind) && path
+        && path.points?.length === feature.points?.length
+        && path.points.every((p,i)=>p.every((v,j)=>v === feature.points[i][j]))) {
+      feature.path_surface = path.resolved;
+      feature.path_runs = path.runs;
+      feature.path_width_m = path.width_m;
+      feature.park_id = path.park_id;
+    }
+  }
+  return structures;
+}
+const PARK_STRUCTURES = applyParkEvidence(DATA, PARK_EVIDENCE);
 function applyStorefrontNames(data, inventory) {
   const bbox = data.bbox;
   if (inventory?.schema !== "kerbside.storefront_names/1" || inventory.geometry_modified !== false
@@ -2314,6 +2358,9 @@ const TERRAIN_REFINE_BY_SURFACE = {
   // are below both surfaces. Grass has no reason to be planar across a retaining wall.
   yard: [12.0, 0.15, 3.0], park: [4.0, 0.05, 2.0, true],
   service_yard: [12.0, 0.15, 3.0], court: [8.0, 0.05, 2.0], court_line: [8.0, 0.05, 2.0],
+  // A playground's safety surface lies on the grass of a park on a hill: as fine as the grass,
+  // or the grass shows through it in patches where the ground bulges between its corners.
+  "park:play_surface": [2.0, 0, 2.0, true], "park:skatepark_surface": [2.0, 0, 2.0, true],
 };
 //: The bend rule may not multiply a mesh past this: the grid is stepped wherever a wall or a
 //: stair stands, and chasing every step to the grid's own cell size ran a yard to millions.
@@ -2929,7 +2976,8 @@ function liftOneMesh(o) {
     attribute.needsUpdate = true;
     // Ground normals were still those of the original flat sheet: hills had geometry but
     // no slope lighting. Recompute only terrain-conforming covers, not building walls.
-    if (["park", "yard", "court", "plaza", "front_walk"].includes(o.userData.surface)) {
+    if (["park", "yard", "court", "plaza", "front_walk", "park:play_surface",
+         "park:skatepark_surface"].includes(o.userData.surface)) {
       o.geometry.computeVertexNormals();
     }
     // The bounds are what the culling reads; a tile lifted eighty metres up Nob Hill with the
@@ -4478,6 +4526,7 @@ function surfaceScale(surface, width) {
 }
 
 function surfaceBase(surface) {
+  if (surface && surface.startsWith("path:")) return pedestrianTexture(surface.slice(5));
   if (surface === "walk") return SIDEWALK;
   if (surface === "kerb") return SIDEWALK;
   if (surface === "walk_underlay") return SIDEWALK;
@@ -4488,6 +4537,61 @@ function surfaceBase(surface) {
   if (surface === "crossing") return CROSSING;
   if (surface === "crossing_edges") return CROSSING_EDGES;
   return null;
+}
+
+const PEDESTRIAN_TEXTURES = new Map();
+function pedestrianTexture(material) {
+  if (PEDESTRIAN_TEXTURES.has(material)) return PEDESTRIAN_TEXTURES.get(material);
+  if (["concrete", "paved", "unknown"].includes(material)) return SIDEWALK;
+  if (material === "asphalt") return ROAD;
+  const colours = {sand:[188,171,133],earth:[132,111,83],dirt:[132,111,83],ground:[132,111,83],
+    mud:[107,96,76],grass:[89,117,68],woodchips:[140,112,80],gravel:[151,146,132],
+    fine_gravel:[162,151,127],compacted:[162,151,127],decomposed_granite:[174,151,115],
+    stabilized_soil:[163,146,119],wood:[139,117,86],boardwalk:[139,117,86],
+    paving_stones:[159,154,143],sett:[145,143,135],cobblestone:[145,143,135],unknown:[151,153,147]};
+  const rgb = colours[material] || colours.unknown;
+  const canvas = document.createElement("canvas"); canvas.width=canvas.height=256;
+  const ctx=canvas.getContext("2d"),image=ctx.createImageData(256,256);
+  // Micro-scale texture only. No large repeated blotches; colour is a visual prior, not a
+  // measurement of this path. The observation and certainty stay on its mesh/sidecar.
+  for(let i=0;i<256*256;i++) {
+    const noise=(random(i+791)*2-1)*14;
+    for(let c=0;c<3;c++) image.data[i*4+c]=Math.max(0,Math.min(255,rgb[c]+noise));
+    image.data[i*4+3]=255;
+  }
+  ctx.putImageData(image,0,0);
+  if (["wood","boardwalk"].includes(material)) {
+    ctx.fillStyle="rgba(35,29,22,.35)";
+    for(let y=0;y<256;y+=26)ctx.fillRect(0,y,256,2);
+  } else if (["paving_stones","sett","cobblestone"].includes(material)) {
+    ctx.strokeStyle="rgba(60,60,56,.35)";ctx.lineWidth=2;
+    for(let y=0;y<256;y+=32)for(let x=-(y%64?32:0);x<256;x+=64)ctx.strokeRect(x,y,64,32);
+  }
+  const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+  texture.colorSpace=THREE.SRGBColorSpace;PEDESTRIAN_TEXTURES.set(material,texture);return texture;
+}
+
+const FOOTWAY_LOOK = new Set(["unknown", "concrete", "paved"]);
+function pathHasOwnMaterial(way) {
+  const runs = way.path_runs?.length ? way.path_runs.map((r) => r.resolved) : [way.path_surface];
+  return runs.some((r) => r && r.surface_material && !FOOTWAY_LOOK.has(r.surface_material));
+}
+
+function renderPedestrianPath(way) {
+  const runs = way.path_runs?.length ? way.path_runs : [{points:way.points,resolved:way.path_surface}];
+  for(const run of runs) {
+    if(!run.points || run.points.length<2)continue;
+    const observed=run.resolved || {},material=observed.surface_material || "unknown";
+    const width=way.path_width_m || 2.4;
+    const mesh=ribbon(densifyWay(run.points,.5),width,0xffffff,1,
+      ROAD_TOP_M+.006,.008,`path:${material}`);
+    mesh.userData.pathEvidence={material,confidence:observed.confidence || 0,
+      basis:observed.basis || "unknown",geometry_changed:false,source:observed.source_id || null,
+      width_basis:way.path_width_m ? "osm_width" : "visual_width_prior"};
+    // Included in the existing walk/grass exclusion and terrain draping families, but
+    // merged only with paths of this material, never the concrete sidewalk batch.
+    addMerged(`path:${material}`,mesh,"walk");
+  }
 }
 
 //: A mitre longer than this would spike out of a hairpin, so the join is cut off instead.
@@ -8549,7 +8653,7 @@ function inheritRecentring(ways) {
 // click on a roof lands inside the footprint under it, which is the building you meant.
 const FOOTPRINT_CELL = 60;
 const footprintGrid = new Map();
-for (const way of DATA.ways) {
+for (const way of [...DATA.ways, ...PARK_STRUCTURES]) {
   if (way.kind !== "building" || !way.points || way.points.length < 4) continue;
   const local = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -13808,6 +13912,82 @@ function outbuildingRoofTexture(seed) {
 const IMMERSED_MOUTHS = (DATA.ways || []).filter((way) => way.tunnel_design?.kind === "immersed_tube")
   .flatMap((way) => [way.points?.[0], way.points?.[way.points.length - 1]]).filter(Boolean)
   .map(([lon, lat]) => xy(lon, lat));
+
+function parkFacilityMesh(feature) {
+  const evidence=feature.parkFacility,role=evidence.role;
+  if(!["public_restroom","maintenance_shed","equipment_container"].includes(role))return null;
+  // Joined buildings retain their canonical shell, height and roof boundary. Only
+  // freestanding inventory objects use the city polygon (including recorded holes).
+  const shape=footprintShape(feature.points);if(!shape)return null;
+  if(evidence.render === "inventory_structure")for(const ring of evidence.polygon.slice(1)) {
+    const hole=new THREE.Path();ring.forEach((p,i)=>{const [x,y]=xy(...p);
+      if(i===0)hole.moveTo(x,y);else hole.lineTo(x,y);});shape.holes.push(hole);
+  }
+  const height=Math.max(1,feature.height_m || 3.1),base=groundBaseFor(feature.points);
+  const seed=Math.round(feature.points[0][0]*1e5+feature.points[0][1]*7919e5);
+  const colour=role === "public_restroom" ? 0xc3bca9 : role === "equipment_container" ? 0x7e8b78 : 0xa6a38f;
+  const body=new THREE.ExtrudeGeometry(shape,{depth:height,bevelEnabled:false,UVGenerator:FACADE_UV});
+  body.rotateX(-Math.PI/2);body.translate(0,base,0);
+  const roof=new THREE.MeshStandardMaterial({map:outbuildingRoofTexture(seed),color:0xffffff,roughness:.96});
+  const wall=new THREE.MeshStandardMaterial({map:outbuildingTexture(seed),color:colour,roughness:.95});
+  const group=new THREE.Group(),mesh=new THREE.Mesh(body,[roof,wall]);group.add(mesh);
+  group.userData={surface:"park_facility",id:evidence.id,role,park_id:evidence.park_id,
+    geometry_basis:evidence.render === "canonical_building_style" ? "canonical_building" : evidence.geometry_basis,
+    geometry_confidence:evidence.geometry_confidence,height_basis:feature.height_source,
+    semantic_confidence:evidence.semantic_confidence,provenance:evidence.provenance,
+    appearance_basis:"nonresidential_visual_prior",residential_layout:false,liftedOntoGround:true};
+  mesh.userData={...group.userData};
+  // What makes each read as what it is -- never rows of house windows. The openings are on the
+  // longest wall and are a visual prior until independently observed.
+  const walls=footprintWalls(feature.points).sort((a,b)=>b.span-a.span),front=walls[0];
+  if(role==="public_restroom") {
+    // A flat roof slab that overhangs the walls, as park toilet blocks are built.
+    const slab=new THREE.ExtrudeGeometry(shape,{depth:.16,bevelEnabled:false});
+    slab.rotateX(-Math.PI/2);slab.computeBoundingBox();
+    const c=slab.boundingBox.getCenter(new THREE.Vector3());
+    slab.translate(-c.x,0,-c.z);slab.scale(1.12,1,1.12);slab.translate(c.x,base+height,c.z);
+    const roofSlab=new THREE.Mesh(slab,new THREE.MeshStandardMaterial({color:0x6d6a64,roughness:.9}));
+    roofSlab.userData={surface:"park_facility:roof_slab",basis:"visual_prior",liftedOntoGround:true};
+    group.add(roofSlab);
+  }
+  if(front && front.span>1.4) {
+    const along=[Math.cos(front.yaw),-Math.sin(front.yaw)];
+    const face=(w,h,y,o,colour,depth=.03,tag="park_facility:detail")=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,depth),
+        new THREE.MeshStandardMaterial({color:colour,roughness:.7,metalness:.15}));
+      m.position.set(front.x+along[0]*o+front.nx*(depth/2+.005),base+y,front.z+along[1]*o+front.nz*(depth/2+.005));
+      m.rotation.y=front.yaw;m.userData={surface:tag,basis:"visual_prior",liftedOntoGround:true};
+      group.add(m);return m;
+    };
+    const doorH=Math.min(2.1,height-.3);
+    if(role==="public_restroom") {
+      // Separate entrances on a block long enough for two, one otherwise, each with its sign;
+      // the louvred vent band under the eaves; a drinking fountain beside the way in.
+      const two=front.span>=4.2;
+      for(const o of two?[-front.span*.25,front.span*.25]:[0]) {
+        face(1.0,doorH,doorH/2,o,0x5b6f86,.04,"park_facility:door");
+        face(.3,.3,doorH+.32,o,0x2c5ea8,.02,"park_facility:sign");
+      }
+      face(front.span*.8,.28,height-.38,0,0x4a4f52,.04,"park_facility:louvre");
+      if(front.span>3) {
+        const o=two?0:front.span*.38;
+        face(.12,.85,.425,o,0x7d8487,.32,"park_facility:drinking_fountain");
+        face(.42,.12,.9,o,0x9aa0a4,.38,"park_facility:drinking_fountain");
+      }
+    } else if(role==="maintenance_shed") {
+      const w=Math.min(3.0,front.span*.55),h=Math.min(2.8,height-.3),o=-front.span*.12;
+      face(w,h,h/2,o,0x8f948f,.05,"park_facility:rollup_door");
+      for(let k=1;k<9;k+=1) face(w,.03,k*h/9,o,0x6d726d,.06,"park_facility:rollup_rib");
+      if(front.span>5) face(.95,doorH,doorH/2,front.span*.32,0x5b675f,.04,"park_facility:door");
+    } else {
+      // A shipping container: corrugated along its length.
+      const rib=new THREE.Color(colour).multiplyScalar(.78).getHex();
+      for(let o=-front.span/2+.15;o<front.span/2-.1;o+=.3) face(.07,height-.12,(height-.12)/2,o,rib,.03,"park_facility:corrugation");
+    }
+  }
+  return group;
+}
+
 function mappedTubePortalBuilding(feature) {
   if (!/tube.*portal/i.test(feature.name || "") || !feature.centroid) return false;
   const [x, y] = xy(feature.centroid[0], feature.centroid[1]);
@@ -13816,6 +13996,7 @@ function mappedTubePortalBuilding(feature) {
 function buildingMesh(feature) {
   // A station under the street has no walls above it.
   if (feature.underground) return null;
+  if (feature.parkFacility) return parkFacilityMesh(feature);
   const shape = footprintShape(feature.points);
   if (!shape) return null;
   const areaM2 = footprintArea(feature.points);
@@ -16311,6 +16492,13 @@ for (const way of DRAW_ORDER) {
   // A San Francisco crosswalk band is about twelve feet, not seventeen. The extra width made
   // the bars sparse and the whole marking read as a couple of stripes.
   if (isUndergroundWay(way)) continue;
+  // A path whose evidence names a material other than the footway concrete it was always drawn
+  // in is laid in that material, run by run. Every other path keeps the pavement treatment --
+  // kerb height, trimming at corners, crossing replacements -- exactly as before.
+  if (isPath && pathHasOwnMaterial(way)) {
+    renderPedestrianPath(way);
+    continue;
+  }
   const widthMeters = isCrossing ? (way.crossing_m || 3.7)
     : isSidewalk ? renderedWalkWidth(way, 3.6)
     : isPath ? 2.4
@@ -17033,13 +17221,14 @@ const SERVICE_YARD_Y = 0.019;  // the neutral slivers between buildings
 const PARK_Y = 0.022;          // mapped public green
 const FRONT_WALK_Y = 0.025;    // paving between a stoop and the pavement
 const COURT_Y = 0.030;         // asphalt and turf laid inside a park
+const PLAYGROUND_Y = 0.034;    // a playground's safety surface, a skatepark's concrete
 const COURT_LINE_Y = 0.042;    // the paint on the courts
 // PARKING_Y and PARKING_LINE_Y are declared with the car-park renderer, which the street loop
 // reaches before this block runs; they are still checked in GROUND_STACK below.
 
 //: No two of these may be equal, and none may reach the carriageway's own top at 0.06.
 const GROUND_STACK = {
-  YARD_Y, SERVICE_YARD_Y, PARK_Y, FRONT_WALK_Y, COURT_Y, COURT_LINE_Y, PARKING_Y, PARKING_LINE_Y, PIER_DECK_Y, PLAZA_Y,
+  YARD_Y, SERVICE_YARD_Y, PARK_Y, FRONT_WALK_Y, COURT_Y, PLAYGROUND_Y, COURT_LINE_Y, PARKING_Y, PARKING_LINE_Y, PIER_DECK_Y, PLAZA_Y,
 };
 {
   const seen = new Map();
@@ -17298,6 +17487,10 @@ function hardGroundExclusion(ground) {
   const rows = [
     ...(ground.front_walks || []), ...(ground.plazas || []), ...(ground.service_yards || []),
     ...(ground.pitches || []).filter((p) => COURT_STYLE[p.s] && COURT_STYLE[p.s].surround !== null),
+    // A playground's safety surface and a skatepark's concrete: no grass under them to show
+    // through where the hill bulges between the surface's own vertices.
+    ...((typeof PARK_EVIDENCE === "undefined" ? null : PARK_EVIDENCE)?.areas || []).filter((a) => (a.kind === "playground" && a.surface?.material !== "grass")
+      || a.kind === "skatepark").map((a) => ({ p: a.p })),
   ];
   for (const row of rows) {
     const clipped = clipRingToBox(row.p);
@@ -18361,6 +18554,625 @@ function buildCourts(ground) {
   }
 }
 
+// ---- inside the parks: playgrounds, dog areas, picnic areas, gardens, fitness, skateparks ----
+//
+// RPD's Facilities and Functional Areas (and OpenStreetMap's playgrounds outside them) say an
+// area exists and give its outline: that is evidence. What stands inside an RPD playground is
+// a fill: common equipment packed to the outline, by the age band RPD records where it records
+// one, varied by a seed per playground, and tagged as a visual prior. A piece OpenStreetMap
+// mapped stands where it was mapped. A playground (and a community garden) is fenced, with the
+// gate where people come in: a mapped gate, else where a path crosses or meets the boundary,
+// else the boundary nearest a path (smc.parks.areas.place_gates).
+const PLAY_COLOURS = [0xc9452f, 0x2e78bd, 0xeeb12c, 0x3c9450, 0x7a4fa3, 0xe0782a, 0x1f9696];
+const PLAY_FRAMES = [0x3d6b52, 0x52585e, 0x2b4f7a, 0x6b4b36];
+//: Poured-rubber safety surfacing in the colours it is laid in: blue, terracotta, green, sand.
+const PLAY_RUBBER = [0x86a9c4, 0xc97e62, 0x7fae72, 0xa9a5cf, 0xc8b58e];
+const PARK_WOOD = 0x8c6a48;
+const PARK_GEOMETRIES = {};
+function parkGeometry(key) {
+  if (PARK_GEOMETRIES[key]) return PARK_GEOMETRIES[key];
+  let g;
+  if (key === "box") g = new THREE.BoxGeometry(1, 1, 1);
+  else if (key === "cyl") g = new THREE.CylinderGeometry(0.5, 0.5, 1, 10);
+  else if (key === "roof") { g = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1); g.rotateY(Math.PI / 4); }
+  else if (key === "arc") g = new THREE.TorusGeometry(1, 0.03, 5, 16, Math.PI);
+  else if (key === "ring") g = new THREE.TorusGeometry(1, 0.03, 5, 28);
+  else if (key === "chute") g = slideChuteGeometry();
+  return (PARK_GEOMETRIES[key] = g);
+}
+//: A slide's bed and walls, unit height (top at y=1, exit at y=0) and 2.4 m of run along +x:
+//: steep from the deck, levelling into a short run-out, as a moulded slide is shaped.
+function slideChuteGeometry() {
+  const n = 18, run = 2.4, half = 0.28, wall = 0.16;
+  const pos = [], idx = [];
+  for (let i = 0; i <= n; i += 1) {
+    const t = i / n;
+    const s = Math.min(1, t / 0.85);
+    const y = 1 - (3 * s * s - 2 * s * s * s);
+    const x = t * run;
+    pos.push(x, y + wall, -half, x, y, -half, x, y, half, x, y + wall, half);
+  }
+  for (let i = 0; i < n; i += 1) {
+    const a = i * 4, b = (i + 1) * 4;
+    for (const [p, q] of [[0, 1], [1, 2], [2, 3]]) {
+      idx.push(a + p, b + p, b + q, a + p, b + q, a + q);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+// One part of a piece of equipment, in the module's own frame (x along it, z across, y up).
+function pp(list, g, c, x, y, z, sx, sy, sz, rx = 0, ry = 0, rz = 0) {
+  list.push({ g, c, x, y, z, sx, sy, sz, rx, ry, rz });
+}
+function deckTower(parts, cx, cz, deckY, postH, colours, roof = true) {
+  for (const [dx, dz] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]])
+    pp(parts, "cyl", colours.frame, cx + dx, postH / 2, cz + dz, 0.12, postH, 0.12);
+  pp(parts, "box", 0x6f7378, cx, deckY, cz, 1.5, 0.08, 1.5);
+  if (roof) pp(parts, "roof", colours.a, cx, postH + 0.42, cz, 1.9, 0.85, 1.9);
+}
+function slideOff(parts, x, z, yaw, height, colour) {
+  // Chute leaves the deck edge at (x, z) heading along yaw (0 = +x of the module).
+  pp(parts, "chute", colour, x, 0.32, z, 1, Math.max(0.4, height - 0.32), 1, 0, yaw, 0);
+}
+const PLAY_MODULES = {
+  tower: { w: 8.0, d: 6.0, build(p, c) {
+    deckTower(p, -1.6, 0, 1.5, 3.1, c);
+    deckTower(p, 1.3, 0, 1.1, 2.2, { ...c, a: c.b });
+    pp(p, "box", c.b, -0.15, 1.31, 0, 1.4, 0.06, 0.75, 0, 0, Math.atan2(0.4, 1.4));
+    for (const s of [-1, 1]) pp(p, "box", c.frame, -0.15, 1.75, s * 0.4, 1.45, 0.05, 0.04, 0, 0, Math.atan2(0.4, 1.4));
+    slideOff(p, -1.6, -0.75, Math.PI / 2, 1.5, c.c);
+    pp(p, "box", c.a, -2.38, 1.95, 0, 0.04, 0.8, 1.4);
+    pp(p, "box", c.c, 2.2, 0.62, 0, 0.08, 1.35, 1.25, 0, 0, -0.33);
+    for (let i = 0; i < 5; i += 1) pp(p, "box", PLAY_COLOURS[i], 2.35 - i * 0.07, 0.2 + i * 0.22, -0.4 + (i % 3) * 0.35, 0.09, 0.08, 0.1, 0, 0, -0.33);
+    for (let i = 0; i < 4; i += 1) pp(p, "box", 0x6f7378, -1.6, 0.18 + i * 0.36, 0.95 + i * 0.28 - 0.0, 1.0, 0.06, 0.32);
+  } },
+  tot: { w: 5.0, d: 4.2, build(p, c) {
+    deckTower(p, 0, 0, 0.75, 1.9, c);
+    slideOff(p, 0.75, 0, 0, 0.75, c.c);
+    for (let i = 0; i < 3; i += 1) pp(p, "box", 0x6f7378, -0.95 - i * 0.3, 0.13 + i * 0.22, 0, 0.32, 0.06, 1.0);
+    pp(p, "cyl", c.b, 0, 0.36, -1.45, 0.72, 1.4, 0.72, Math.PI / 2, 0, 0);
+  } },
+  swings: { w: 7.4, d: 6.4, build(p, c, toddler) {
+    const lean = Math.atan2(0.9, 2.4), leg = Math.hypot(2.4, 0.9);
+    for (const sx of [-3, 3]) {
+      pp(p, "cyl", c.frame, sx, 1.2, 0.45, 0.11, leg, 0.11, -lean, 0, 0);
+      pp(p, "cyl", c.frame, sx, 1.2, -0.45, 0.11, leg, 0.11, lean, 0, 0);
+    }
+    pp(p, "cyl", c.frame, 0, 2.4, 0, 0.13, 6.1, 0.13, 0, 0, Math.PI / 2);
+    for (const x of [-2.1, -0.9, 0.9, 2.1]) {
+      for (const s of [-0.22, 0.22]) pp(p, "cyl", 0x9aa0a4, x + s, 1.43, 0, 0.018, 1.95, 0.018);
+      if (toddler) pp(p, "box", c.a, x, 0.5, 0, 0.46, 0.3, 0.36);
+      else pp(p, "box", 0x262626, x, 0.45, 0, 0.5, 0.05, 0.22);
+    }
+  } },
+  slide: { w: 2.2, d: 5.4, build(p, c) {
+    for (const s of [-0.3, 0.3]) pp(p, "cyl", c.frame, s, 0.95, -2.0, 0.07, 2.0, 0.07, -0.26, 0, 0);
+    for (let i = 0; i < 5; i += 1) pp(p, "cyl", 0x9aa0a4, 0, 0.3 + i * 0.35, -2.2 + i * 0.1, 0.05, 0.6, 0.05, 0, 0, Math.PI / 2);
+    pp(p, "box", 0x6f7378, 0, 1.8, -1.6, 0.8, 0.06, 0.8);
+    for (const s of [-0.38, 0.38]) pp(p, "cyl", c.frame, s, 0.9, -1.6, 0.08, 1.8, 0.08);
+    slideOff(p, 0, -1.2, -Math.PI / 2, 1.8, c.a);
+  } },
+  dome: { w: 4.2, d: 4.2, build(p, c) {
+    const R = 1.7;
+    for (let k = 0; k < 4; k += 1) pp(p, "arc", c.a, 0, 0, 0, R, R, R, 0, k * Math.PI / 4, 0);
+    for (const phi of [0.02, Math.PI / 6, Math.PI / 3]) {
+      const r = R * Math.cos(phi);
+      pp(p, "ring", c.b, 0, R * Math.sin(phi), 0, r, r, r, Math.PI / 2, 0, 0);
+    }
+  } },
+  spinner: { w: 3.4, d: 3.4, build(p, c) {
+    pp(p, "cyl", c.a, 0, 0.3, 0, 2.0, 0.08, 2.0);
+    pp(p, "cyl", c.frame, 0, 0.6, 0, 0.12, 1.0, 0.12);
+    pp(p, "ring", c.b, 0, 0.92, 0, 0.8, 0.8, 0.8, Math.PI / 2, 0, 0);
+    for (let k = 0; k < 4; k += 1) pp(p, "cyl", c.frame, 0.8 * Math.cos(k * Math.PI / 2), 0.62, 0.8 * Math.sin(k * Math.PI / 2), 0.05, 0.6, 0.05);
+  } },
+  seesaw: { w: 4.2, d: 1.8, build(p, c) {
+    pp(p, "box", c.frame, 0, 0.2, 0, 0.3, 0.4, 0.3);
+    pp(p, "box", c.a, 0, 0.45, 0, 3.4, 0.08, 0.26, 0, 0, 0.12);
+    for (const s of [-1, 1]) {
+      pp(p, "box", 0x262626, s * 1.45, 0.45 - s * 0.17 + 0.06, 0, 0.4, 0.06, 0.3, 0, 0, 0.12);
+      pp(p, "cyl", c.frame, s * 1.15, 0.62 - s * 0.14, 0, 0.04, 0.32, 0.04);
+    }
+  } },
+  springs: { w: 3.4, d: 2.0, build(p, c) {
+    for (const [s, col] of [[-0.8, c.a], [0.8, c.c]]) {
+      pp(p, "cyl", 0x3a3d40, s, 0.24, 0, 0.18, 0.46, 0.18);
+      pp(p, "box", col, s, 0.62, 0, 0.75, 0.3, 0.28);
+      pp(p, "box", col, s + 0.32, 0.86, 0, 0.24, 0.3, 0.2);
+      pp(p, "cyl", 0x262626, s + 0.22, 0.86, 0, 0.03, 0.34, 0.03, Math.PI / 2, 0, 0);
+    }
+  } },
+  sandpit: { w: 4.2, d: 4.2, build(p) {
+    for (const s of [-1, 1]) {
+      pp(p, "box", PARK_WOOD, 0, 0.14, s * 1.85, 3.95, 0.28, 0.25);
+      pp(p, "box", PARK_WOOD, s * 1.85, 0.14, 0, 0.25, 0.28, 3.45);
+    }
+    pp(p, "box", 0xd6c59b, 0, 0.06, 0, 3.45, 0.08, 3.45);
+  } },
+  house: { w: 2.6, d: 2.6, build(p, c) {
+    for (const [dx, dz] of [[-0.9, -0.9], [0.9, -0.9], [-0.9, 0.9], [0.9, 0.9]])
+      pp(p, "cyl", c.frame, dx, 1.0, dz, 0.1, 2.0, 0.1);
+    pp(p, "box", 0x6f7378, 0, 0.25, 0, 1.8, 0.06, 1.8);
+    pp(p, "roof", c.a, 0, 2.38, 0, 2.2, 0.75, 2.2);
+    pp(p, "box", c.b, -0.9, 0.7, 0, 0.05, 0.8, 1.8);
+    pp(p, "box", c.c, 0, 0.7, 0.9, 1.8, 0.8, 0.05);
+  } },
+  balance: { w: 3.8, d: 1.2, build(p, c) {
+    for (const x of [-1.3, 0, 1.3]) pp(p, "cyl", c.frame, x, 0.12, 0, 0.12, 0.24, 0.12);
+    pp(p, "box", c.a, 0, 0.3, 0, 3.2, 0.12, 0.15);
+  } },
+};
+const AGE_PLAN = {
+  "2-5": { main: ["tot", "tot"], fill: ["springs", "house", "sandpit", "slide", "seesaw", "swings"] },
+  "5-12": { main: ["tower", "tower"], fill: ["swings", "dome", "spinner", "slide", "balance", "springs"] },
+  all: { main: ["tower", "tot", "tower"], fill: ["swings", "dome", "springs", "slide", "spinner", "seesaw", "house", "balance", "sandpit"] },
+};
+
+function insideRing(x, z, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [xi, zi] = ring[i], [xj, zj] = ring[j];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function pageRing(ring) {
+  return ring.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+}
+//: The area's own axes: the smallest rectangle round it, from the edge directions.
+function areaFrame(pts) {
+  let best = null;
+  for (let i = 0; i + 1 < pts.length; i += 1) {
+    const dx = pts[i + 1][0] - pts[i][0], dz = pts[i + 1][1] - pts[i][1], len = Math.hypot(dx, dz);
+    if (len < 0.5) continue;
+    const ux = dx / len, uz = dz / len;
+    let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity;
+    for (const [x, z] of pts) {
+      const u = x * ux + z * uz, v = -x * uz + z * ux;
+      a = Math.min(a, u); b = Math.max(b, u); c = Math.min(c, v); d = Math.max(d, v);
+    }
+    const area = (b - a) * (d - c);
+    if (!best || area < best.area) best = { area, ux, uz, minU: a, maxU: b, minV: c, maxV: d };
+  }
+  if (!best) return null;
+  best.page = (u, v) => [u * best.ux - v * best.uz, u * best.uz + v * best.ux];
+  best.yaw = Math.atan2(-best.uz, best.ux);
+  return best;
+}
+//: Every corner, edge midpoint and the middle of a module's rectangle (grown by margin) lie
+//: inside the outline and out of its holes, and it overlaps nothing already placed.
+function rectFits(frame, rings, holes, placed, u, v, w, d, margin) {
+  const hw = w / 2 + margin, hd = d / 2 + margin;
+  for (const [a, b] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]) {
+    const [x, z] = frame.page(u + a * hw, v + b * hd);
+    if (!rings.every((ring) => insideRing(x, z, ring))) return false;
+    if (holes.some((hole) => insideRing(x, z, hole))) return false;
+  }
+  return !placed.some((r) => Math.abs(r.u - u) < (r.w + w) / 2 + 0.5 && Math.abs(r.v - v) < (r.d + d) / 2 + 0.5);
+}
+function seededShuffle(list, seed) {
+  const out = list.slice();
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random(seed + i * 31) * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+//: Pack equipment into one outline. The first piece goes as near the middle as it fits; the rest
+//: wherever they fit, in a seeded order, until nothing more does or the playground is full.
+function fillPlayground(frame, rings, holes, plan, seed, sand, toddler, limit = 9, taken = []) {
+  // Pieces already standing (mapped by OpenStreetMap) are obstacles in this frame, not fill.
+  const placed = taken.map((t) => ({ ...t, fixed: true }));
+  const step = 0.75;
+  const tryPlace = (kind, central) => {
+    const spec = PLAY_MODULES[kind];
+    for (const turned of random(seed + kind.length) < 0.5 ? [false, true] : [true, false]) {
+      const w = turned ? spec.d : spec.w, d = turned ? spec.w : spec.d;
+      const spots = [];
+      for (let u = frame.minU + w / 2; u <= frame.maxU - w / 2; u += step)
+        for (let v = frame.minV + d / 2; v <= frame.maxV - d / 2; v += step) spots.push([u, v]);
+      const mu = (frame.minU + frame.maxU) / 2, mv = (frame.minV + frame.maxV) / 2;
+      const order = central ? spots.sort((a, b) => Math.hypot(a[0] - mu, a[1] - mv) - Math.hypot(b[0] - mu, b[1] - mv))
+        : seededShuffle(spots, seed + placed.length * 97);
+      for (const [u, v] of order) {
+        if (rectFits(frame, rings, holes, placed, u, v, w, d, 0.6)) {
+          placed.push({ kind, u, v, w, d, turned, toddler });
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  // The main structure goes nearest the middle; a large playground takes a second one.
+  const area = (frame.maxU - frame.minU) * (frame.maxV - frame.minV);
+  let mains = 0;
+  for (const kind of plan.main) {
+    if (mains >= (area > 900 ? 2 : 1)) break;
+    if (tryPlace(kind, mains === 0)) mains += 1;
+  }
+  const fill = seededShuffle(plan.fill.filter((k) => k !== "sandpit" || sand || random(seed + 5) < 0.3), seed);
+  if (sand) { fill.splice(fill.indexOf("sandpit"), 1); fill.unshift("sandpit"); }
+  const filled = () => placed.filter((p) => !p.fixed).length + taken.length;
+  // A big playground is a lot of equipment: the fill goes round again while there is room.
+  for (const kind of area > 600 ? [...fill, ...fill] : fill) { if (filled() >= limit) break; tryPlace(kind, false); }
+  // Fill to fit: the small pieces again while there is room.
+  for (const kind of ["springs", "balance", "house", "seesaw", "springs"]) {
+    if (filled() >= limit) break;
+    tryPlace(kind, false);
+  }
+  return placed.filter((p) => !p.fixed);
+}
+
+const PARK_PARTS = [];
+const PARK_PART_M = new THREE.Matrix4(), PARK_PART_Q = new THREE.Quaternion(), PARK_PART_E = new THREE.Euler();
+const PARK_PART_P = new THREE.Vector3(), PARK_PART_S = new THREE.Vector3();
+//: A piece of equipment stands on the ground under its own middle: every part of it is lifted
+//: by the same amount, so a climbing tower on a slope does not shear.
+function placeParkModule(parts, x, z, yaw, surface) {
+  const base = groundLiftAt(x, z) + PLAYGROUND_Y;
+  const module = new THREE.Matrix4().compose(new THREE.Vector3(x, base, z),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0)), new THREE.Vector3(1, 1, 1));
+  for (const p of parts) {
+    PARK_PART_P.set(p.x, p.y, p.z);
+    PARK_PART_Q.setFromEuler(PARK_PART_E.set(p.rx, p.ry, p.rz));
+    PARK_PART_S.set(p.sx, p.sy, p.sz);
+    PARK_PART_M.compose(PARK_PART_P, PARK_PART_Q, PARK_PART_S).premultiply(module);
+    PARK_PARTS.push({ g: p.g, c: p.c, m: PARK_PART_M.clone(), surface });
+  }
+}
+function emitParkParts() {
+  const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.12 });
+  const twoSided = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45, metalness: 0.05, side: THREE.DoubleSide });
+  const groupsOf = new Map();
+  for (const part of PARK_PARTS) {
+    const key = `${part.surface}|${part.g}`;
+    if (!groupsOf.has(key)) groupsOf.set(key, []);
+    groupsOf.get(key).push(part);
+  }
+  const colour = new THREE.Color();
+  for (const [key, list] of groupsOf) {
+    const [surface, g] = key.split("|");
+    const mesh = new THREE.InstancedMesh(parkGeometry(g), g === "chute" ? twoSided : material, list.length);
+    list.forEach((part, i) => { mesh.setMatrixAt(i, part.m); mesh.setColorAt(i, colour.setHex(part.c)); });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    mesh.userData = { surface, basis: surface.endsWith(":mapped") ? "osm_playground_feature" : "visual_prior_fill",
+      liftedOntoGround: true };
+    groups.ground.add(mesh);
+  }
+  PARK_PARTS.length = 0;
+}
+
+function playFenceTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 64, 64);
+  ctx.fillStyle = "rgba(255,255,255,1)";
+  for (let x = 2; x < 64; x += 8) ctx.fillRect(x, 3, 3, 59);
+  ctx.fillRect(0, 4, 64, 4);
+  ctx.fillRect(0, 54, 64, 4);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.anisotropy = 8;
+  return texture;
+}
+function rubberTexture(hex) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext("2d"), image = ctx.createImageData(128, 128);
+  const c = new THREE.Color(hex);
+  for (let i = 0; i < 128 * 128; i += 1) {
+    const n = (random(i * 3 + hex) * 2 - 1) * 10;
+    image.data[i * 4] = Math.max(0, Math.min(255, c.r * 255 + n));
+    image.data[i * 4 + 1] = Math.max(0, Math.min(255, c.g * 255 + n));
+    image.data[i * 4 + 2] = Math.max(0, Math.min(255, c.b * 255 + n));
+    image.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+//: A fence round the outline, open where each gate is, with the gate leaf swung inward.
+function fenceArea(area, pts, height, kind, sink) {
+  const gates = (area.gates || []).map((g) => { const [x, y] = xy(g.p[0], g.p[1]); return { x, z: -y, w: g.width_m || 1.2 }; });
+  if (!gates.length) {
+    // No path anywhere near: a gate in the middle of the longest side, recorded as a fallback.
+    let best = null;
+    for (let i = 0; i + 1 < pts.length; i += 1) {
+      const span = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+      if (!best || span > best.span) best = { span, x: (pts[i][0] + pts[i + 1][0]) / 2, z: (pts[i][1] + pts[i + 1][1]) / 2 };
+    }
+    if (best) gates.push({ x: best.x, z: best.z, w: 1.2, fallback: true });
+  }
+  let cx = 0, cz = 0;
+  for (const [x, z] of pts) { cx += x; cz += z; }
+  cx /= pts.length; cz /= pts.length;
+  for (let i = 0; i + 1 < pts.length; i += 1) {
+    const [ax, az] = pts[i], [bx, bz] = pts[i + 1];
+    const span = Math.hypot(bx - ax, bz - az);
+    if (span < 0.3) continue;
+    const ux = (bx - ax) / span, uz = (bz - az) / span;
+    // The openings on this edge, as distances along it.
+    const cuts = [];
+    for (const gate of gates) {
+      const t = (gate.x - ax) * ux + (gate.z - az) * uz;
+      const off = Math.abs(-(gate.x - ax) * uz + (gate.z - az) * ux);
+      if (t > -0.3 && t < span + 0.3 && off < 0.6) cuts.push([Math.max(0, t - gate.w / 2), Math.min(span, t + gate.w / 2), gate]);
+    }
+    cuts.sort((p, q) => p[0] - q[0]);
+    let at = 0;
+    const runs = [];
+    for (const [lo, hi] of cuts) { if (lo > at) runs.push([at, lo]); at = Math.max(at, hi); }
+    if (at < span) runs.push([at, span]);
+    for (const [lo, hi] of runs) {
+      if (hi - lo < 0.2) continue;
+      const x0 = ax + ux * lo, z0 = az + uz * lo, x1 = ax + ux * hi, z1 = az + uz * hi;
+      let crosses = false;
+      for (let c = 0; c <= Math.max(2, Math.ceil((hi - lo) / 2)); c += 1) {
+        const f = c / Math.max(2, Math.ceil((hi - lo) / 2));
+        if (insideCarriageway(x0 + (x1 - x0) * f, z0 + (z1 - z0) * f, 0.15)) { crosses = true; break; }
+      }
+      if (crosses) continue;
+      sink.quad(x0, z0, x1, z1, height, hi - lo);
+      for (let d = 0; d <= hi - lo + 0.01; d += 2.4) sink.posts.push([x0 + ux * d, z0 + uz * d, height + 0.1, 0.045]);
+      sink.posts.push([x1, z1, height + 0.1, 0.045]);
+    }
+    for (const [lo, hi, gate] of cuts) {
+      // Gate posts either side; the leaf hinged on one and swung 70 degrees into the area.
+      const hx = ax + ux * lo, hz = az + uz * lo;
+      sink.posts.push([hx, hz, height + 0.25, 0.06], [ax + ux * hi, az + uz * hi, height + 0.25, 0.06]);
+      const inward = (-(cx - ax) * uz + (cz - az) * ux) > 0 ? 1 : -1;
+      const ang = 70 * Math.PI / 180;
+      const lx = ux * Math.cos(ang) - inward * uz * Math.sin(ang), lz = uz * Math.cos(ang) + inward * ux * Math.sin(ang);
+      const leaf = hi - lo - 0.05;
+      sink.quad(hx, hz, hx + lx * leaf, hz + lz * leaf, height, leaf);
+      sink.gates.push({ area: area.id, kind, basis: gate.fallback ? "fallback_longest_side" : "evidence" });
+    }
+  }
+}
+function fenceSink() {
+  const sink = { positions: [], uvs: [], indices: [], posts: [], gates: [] };
+  sink.quad = (x0, z0, x1, z1, h, span) => {
+    const base = sink.positions.length / 3;
+    sink.positions.push(x0, PLAYGROUND_Y, z0, x0, PLAYGROUND_Y + h, z0, x1, PLAYGROUND_Y, z1, x1, PLAYGROUND_Y + h, z1);
+    sink.uvs.push(0, 0, 0, 1, span, 0, span, 1);
+    sink.indices.push(base, base + 2, base + 3, base, base + 3, base + 1);
+  };
+  return sink;
+}
+function emitFence(sink, material, surface) {
+  if (sink.indices.length) {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
+    geom.setIndex(sink.indices);
+    geom.computeVertexNormals();
+    const mesh = new THREE.Mesh(geom, material);
+    mesh.userData = { surface, gates: sink.gates.length };
+    groups.ground.add(mesh);
+  }
+  if (sink.posts.length) {
+    const post = new THREE.InstancedMesh(parkGeometry("cyl"),
+      new THREE.MeshStandardMaterial({ color: 0x2f3a33, roughness: 0.5, metalness: 0.5 }), sink.posts.length);
+    const dummy = new THREE.Object3D();
+    sink.posts.forEach(([x, z, h, r], i) => {
+      dummy.position.set(x, PLAYGROUND_Y + h / 2, z);
+      dummy.scale.set(r * 2, h, r * 2);
+      dummy.updateMatrix();
+      post.setMatrixAt(i, dummy.matrix);
+    });
+    post.instanceMatrix.needsUpdate = true;
+    post.computeBoundingSphere();
+    post.userData = { surface: `${surface}_post` };
+    groups.ground.add(post);
+  }
+}
+
+function benchParts(parts) {
+  pp(parts, "box", PARK_WOOD, 0, 0.45, 0, 1.6, 0.05, 0.42);
+  pp(parts, "box", PARK_WOOD, 0, 0.72, -0.2, 1.6, 0.36, 0.05);
+  for (const s of [-0.7, 0.7]) pp(parts, "box", 0x3d4245, s, 0.22, 0, 0.06, 0.44, 0.42);
+  return parts;
+}
+function picnicParts(parts) {
+  pp(parts, "box", PARK_WOOD, 0, 0.74, 0, 1.8, 0.05, 0.76);
+  for (const s of [-0.62, 0.62]) pp(parts, "box", PARK_WOOD, 0, 0.45, s, 1.8, 0.045, 0.26);
+  for (const s of [-0.7, 0.7]) pp(parts, "box", 0x4a4f52, s, 0.37, 0, 0.06, 0.74, 1.4);
+  return parts;
+}
+function bedParts(parts, seed) {
+  pp(parts, "box", 0x7a5a3c, 0, 0.16, 0, 3.0, 0.32, 1.2);
+  pp(parts, "box", 0x3b2b1e, 0, 0.325, 0, 2.86, 0.02, 1.06);
+  for (let i = 0; i < 5; i += 1) {
+    const g = [0x4f7f3a, 0x6b8f3a, 0x3f6b37, 0x7c9a45][Math.floor(random(seed + i) * 4)];
+    const h = 0.2 + random(seed + i * 7) * 0.35;
+    pp(parts, "box", g, -1.15 + i * 0.58, 0.33 + h / 2, (random(seed + i * 3) - 0.5) * 0.5, 0.42, h, 0.42);
+  }
+  return parts;
+}
+function fitnessParts(parts, k) {
+  const frame = 0x2e6b4f;
+  if (k % 3 === 0) {
+    for (const s of [-0.7, 0.7]) pp(parts, "cyl", frame, s, 1.15, 0, 0.1, 2.3, 0.1);
+    pp(parts, "cyl", 0x9aa0a4, 0, 2.2, 0, 0.05, 1.5, 0.05, 0, 0, Math.PI / 2);
+  } else if (k % 3 === 1) {
+    for (const [x, z] of [[-0.9, -0.3], [0.9, -0.3], [-0.9, 0.3], [0.9, 0.3]]) pp(parts, "cyl", frame, x, 0.55, z, 0.09, 1.1, 0.09);
+    for (const z of [-0.3, 0.3]) pp(parts, "cyl", 0x9aa0a4, 0, 1.1, z, 0.05, 1.9, 0.05, 0, 0, Math.PI / 2);
+  } else {
+    pp(parts, "box", frame, 0, 0.4, 0, 1.6, 0.06, 0.45, 0, 0, 0.25);
+    for (const s of [-0.6, 0.6]) pp(parts, "cyl", frame, s, 0.25 + s * 0.15, 0, 0.07, 0.5 + s * 0.3, 0.07);
+  }
+  return parts;
+}
+
+//: Cells in a rectangle grid inside an outline: where tables, beds and stations go.
+function gridSpots(frame, rings, holes, w, d, gapU, gapV, margin, limit) {
+  const spots = [];
+  for (let u = frame.minU + margin + w / 2; u <= frame.maxU - margin - w / 2; u += w + gapU)
+    for (let v = frame.minV + margin + d / 2; v <= frame.maxV - margin - d / 2; v += d + gapV)
+      if (rectFits(frame, rings, holes, [], u, v, w, d, 0.3)) spots.push([u, v]);
+  return spots.slice(0, limit);
+}
+
+function buildParkAreas(areas) {
+  const stats = { playgrounds: 0, modules: 0, mapped_pieces: 0, gates: 0, fallback_gates: 0, dog_areas: 0,
+    picnic_tables: 0, garden_beds: 0, fitness_stations: 0, skateparks: 0 };
+  if (!areas || !areas.length) return stats;
+  const surfaces = new Map();
+  const picket = fenceSink(), chain = fenceSink();
+  for (const area of areas) {
+    const pts = pageRing(area.p);
+    if (pts.length < 4) continue;
+    const frame = areaFrame(pts);
+    if (!frame) continue;
+    const holes = (area.holes || []).map(pageRing);
+    const seed = area.seed || 1;
+    const centre = frame.page((frame.minU + frame.maxU) / 2, (frame.minV + frame.maxV) / 2);
+    if (!insideBBoxPage(centre[0], centre[1])) continue;
+    if (area.kind === "playground") {
+      stats.playgrounds += 1;
+      const material = area.surface?.material;
+      const finish = material === "sand" ? 0xd6c59b : ["woodchips", "wood_chips", "bark"].includes(material) ? 0x9a7b55
+        : material === "grass" ? null : PLAY_RUBBER[seed % PLAY_RUBBER.length];
+      if (finish !== null) {
+        if (!surfaces.has(finish)) surfaces.set(finish, []);
+        surfaces.get(finish).push(area.p);
+      }
+      const colours = { frame: PLAY_FRAMES[seed % PLAY_FRAMES.length], a: PLAY_COLOURS[seed % 7],
+        b: PLAY_COLOURS[(seed >> 3) % 7], c: PLAY_COLOURS[(seed >> 6) % 7] };
+      const mapped = area.equipment || [];
+      const taken = [];
+      for (const piece of mapped) {
+        const spec = PLAY_MODULES[{ climber: "dome", structure: "tot", spring_rider: "springs", playhouse: "house",
+          swing: "swings" }[piece.kind] || piece.kind];
+        if (!spec) continue;
+        const [x, y] = xy(piece.p[0], piece.p[1]);
+        const parts = [];
+        spec.build(parts, colours, false);
+        placeParkModule(parts, x, -y, frame.yaw, "park:playground:mapped");
+        taken.push({ x, z: -y, w: spec.w, d: spec.d });
+        stats.mapped_pieces += 1;
+      }
+      {
+        const zones = (area.zones || []).filter((z) => z.p && z.p.length >= 4);
+        const passes = zones.length ? zones.map((z) => ({ ring: pageRing(z.p), age: z.age })) : [{ ring: pts, age: area.age }];
+        for (const pass of passes) {
+          const zoneFrame = areaFrame(pass.ring) || frame;
+          const plan = AGE_PLAN[pass.age] || AGE_PLAN.all;
+          // Mapped pieces into this frame's own axes, as rectangles the fill must keep clear of.
+          const obstacles = taken.map((t) => ({ kind: "mapped", w: t.w, d: t.d,
+            u: t.x * zoneFrame.ux + t.z * zoneFrame.uz, v: -t.x * zoneFrame.uz + t.z * zoneFrame.ux }));
+          const placed = fillPlayground(zoneFrame, [pts, pass.ring], holes, plan, seed + pass.ring.length,
+            Boolean(area.sand_play) || material === "sand", pass.age === "2-5",
+            Math.max(4, Math.min(16, Math.round((area.area_m2 || 200) / 70))), obstacles);
+          for (const m of placed) {
+            const parts = [];
+            PLAY_MODULES[m.kind].build(parts, colours, m.toddler);
+            const [x, z] = zoneFrame.page(m.u, m.v);
+            placeParkModule(parts, x, z, zoneFrame.yaw + (m.turned ? Math.PI / 2 : 0), "park:playground:fill");
+            stats.modules += 1;
+          }
+        }
+      }
+      // A bench for the grown-ups, inside, along the longest side.
+      const bench = gridSpots(frame, [pts], holes, 1.6, 0.5, 6, 100, 0.9, 2);
+      for (const [u, v] of bench.slice(0, frame.area > 120 ? 2 : 1)) {
+        const [x, z] = frame.page(u, v);
+        placeParkModule(benchParts([]), x, z, frame.yaw, "park:bench");
+      }
+      fenceArea(area, pts, area.fence?.height_m || 1.2, "playground", picket);
+    } else if (area.kind === "dog_area") {
+      stats.dog_areas += 1;
+      // A sign and a waste station by the way in, benches along a side. No fence assumed.
+      const spots = gridSpots(frame, [pts], holes, 1.6, 0.5, 8, 100, 1.0, 2);
+      for (const [u, v] of spots) { const [x, z] = frame.page(u, v); placeParkModule(benchParts([]), x, z, frame.yaw, "park:bench"); }
+      const [sx, sz] = frame.page(frame.minU + 1.2, (frame.minV + frame.maxV) / 2);
+      if (insideRing(sx, sz, pts)) {
+        const parts = [];
+        pp(parts, "cyl", 0x3d4245, 0, 1.0, 0, 0.07, 2.0, 0.07);
+        pp(parts, "box", 0x2f5d3a, 0, 1.75, 0, 0.62, 0.42, 0.03);
+        pp(parts, "cyl", 0x3d4245, 0.9, 0.55, 0, 0.06, 1.1, 0.06);
+        pp(parts, "box", 0x2f5d3a, 0.9, 0.9, 0.08, 0.28, 0.4, 0.14);
+        placeParkModule(parts, sx, sz, frame.yaw, "park:dog_area");
+      }
+      if (area.fence) fenceArea(area, pts, area.fence.height_m || 1.5, "dog_area", chain);
+    } else if (area.kind === "picnic") {
+      const tables = area.tables?.length ? area.tables.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y, "mapped"]; })
+        : gridSpots(frame, [pts], holes, 1.8, 1.6, 2.4, 2.2, 0.8, 14).map(([u, v]) => [...frame.page(u, v), "fill"]);
+      for (const [x, z, basis] of tables) { placeParkModule(picnicParts([]), x, z, frame.yaw, `park:picnic:${basis}`); stats.picnic_tables += 1; }
+    } else if (area.kind === "garden") {
+      for (const [u, v] of gridSpots(frame, [pts], holes, 3.0, 1.2, 1.0, 0.9, 0.8, 40)) {
+        const [x, z] = frame.page(u, v);
+        placeParkModule(bedParts([], seed + Math.round(u * 13 + v * 7)), x, z, frame.yaw, "park:garden");
+        stats.garden_beds += 1;
+      }
+      fenceArea(area, pts, area.fence?.height_m || 1.5, "garden", chain);
+    } else if (area.kind === "fitness") {
+      const spots = gridSpots(frame, [pts], holes, 2.0, 1.2, 2.5, 2.0, 0.6, 8);
+      spots.forEach(([u, v], k) => {
+        const [x, z] = frame.page(u, v);
+        placeParkModule(fitnessParts([], k + seed), x, z, frame.yaw, "park:fitness");
+        stats.fitness_stations += 1;
+      });
+    } else if (area.kind === "skatepark") {
+      stats.skateparks += 1;
+      if (!surfaces.has("skate")) surfaces.set("skate", []);
+      surfaces.get("skate").push(area.p);
+      const spots = gridSpots(frame, [pts], holes, 3.2, 2.4, 3, 3, 1.0, 3);
+      spots.forEach(([u, v], k) => {
+        const parts = [];
+        if (k % 3 === 0) { pp(parts, "box", 0xa9a59c, 0, 0.25, 0, 3.0, 0.5, 2.0); pp(parts, "cyl", 0x9aa0a4, 0, 0.52, 0.8, 0.05, 3.0, 0.05, 0, 0, Math.PI / 2); }
+        else if (k % 3 === 1) { pp(parts, "box", 0xa9a59c, 0, 0.45, 0, 3.0, 0.1, 2.4, 0, 0, 0.32); pp(parts, "box", 0xa9a59c, 1.35, 0.45, 0, 0.3, 0.9, 2.4); }
+        else { for (const s of [-1.2, 1.2]) pp(parts, "cyl", 0x52585e, s, 0.2, 0, 0.06, 0.4, 0.06); pp(parts, "cyl", 0x9aa0a4, 0, 0.4, 0, 0.06, 3.0, 0.06, 0, 0, Math.PI / 2); }
+        const [x, z] = frame.page(u, v);
+        placeParkModule(parts, x, z, frame.yaw, "park:skatepark");
+      });
+    }
+  }
+  for (const [finish, rings] of surfaces) {
+    const geom = ringGeometry(rings, PLAYGROUND_Y);
+    if (!geom) continue;
+    // As a mapped plaza is: the coarse terrain backdrop bridges above fine ground on a steep
+    // cell, so the surface is drawn over that backdrop, not depth-fought against it.
+    const material = finish === "skate"
+      ? new THREE.MeshStandardMaterial({ map: SIDEWALK, color: 0xc9c6bd, roughness: 0.85, side: THREE.DoubleSide, depthTest: false })
+      : new THREE.MeshStandardMaterial({ map: rubberTexture(finish), color: 0xffffff, roughness: 0.92, side: THREE.DoubleSide, depthTest: false });
+    const surfaceMesh = addGround(new THREE.Mesh(geom, material), finish === "skate" ? "park:skatepark_surface" : "park:play_surface");
+    surfaceMesh.renderOrder = -1;
+  }
+  const picketMaterial = new THREE.MeshStandardMaterial({ map: playFenceTexture(), alphaTest: 0.5, side: THREE.DoubleSide,
+    color: 0x2f3a33, roughness: 0.55, metalness: 0.45 });
+  emitFence(picket, picketMaterial, "park:playground_fence");
+  const chainMaterial = new THREE.MeshStandardMaterial({ map: chainlinkTexture(), alphaTest: 0.55, side: THREE.DoubleSide,
+    roughness: 0.55, metalness: 0.45, color: 0xc6ced2 });
+  chain.uvs.forEach((v, i) => { chain.uvs[i] = i % 2 ? v * 2.5 : v / 0.6; });
+  emitFence(chain, chainMaterial, "park:garden_fence");
+  stats.gates = picket.gates.length + chain.gates.length;
+  stats.fallback_gates = [...picket.gates, ...chain.gates].filter((g) => g.basis !== "evidence").length;
+  emitParkParts();
+  return stats;
+}
+function insideBBoxPage(x, z) {
+  const [w, s] = xy(DATA.bbox.west, DATA.bbox.south), [e, n] = xy(DATA.bbox.east, DATA.bbox.north);
+  return x >= w && x <= e && z <= -s && z >= -n;
+}
+
+// Inventory-only structures are separate visual evidence, not appended to DATA.ways.
+for (const feature of PARK_STRUCTURES) {
+  const mesh=parkFacilityMesh(feature);if(mesh)groups.mapped3d.add(mesh);
+}
+
 (async () => {
   let ground;
   try {
@@ -18578,6 +19390,8 @@ function buildCourts(ground) {
   }
 
   buildCourts(ground);
+  // What is inside the parks: playgrounds and the other recreation areas (RPD / OpenStreetMap).
+  window.kerbsideParkAreas = buildParkAreas(PARK_EVIDENCE?.areas || []);
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
   window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { ground: true });
@@ -21032,6 +21846,20 @@ function addElectricalNetwork(furniture) {
     row.height = Math.max(7, Math.min(16, parseFloat(row.item.height_m) || POLE_DEFAULT_M));
     row.yaw = furnitureBearing(row.item, 0, row.anchor);
   });
+  // A pole that carries a reconstructed span turns its crossarm square to the line.
+  const spans = electricalSpans();
+  const poleById = new Map(poleRows.map((row) => [String(row.item.id), row]));
+  for (const span of spans) {
+    for (const id of [span.a, span.b]) {
+      const row = poleById.get(String(id));
+      if (!row || row.spanYaw !== undefined) continue;
+      const [ax, ay] = xy(span.pa[0], span.pa[1]), [bx, by] = xy(span.pb[0], span.pb[1]);
+      const dx = bx - ax, dz = -(by - ay), d = Math.hypot(dx, dz) || 1;
+      const rx = -dz / d, rz = dx / d;
+      row.spanYaw = Math.atan2(-rz, rx);
+      row.yaw = row.spanYaw;
+    }
+  }
   const lines = (inferred.power_lines || []).filter(mappedOverheadLine).map((line) => ({ line,
     path: (line.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return { x, z: -y }; }) }));
   // Poles.
@@ -21228,8 +22056,41 @@ function addElectricalNetwork(furniture) {
       mappedSpans += 1;
     }
   }
+  // Reconstructed spans: PG&E's route says which poles are consecutive on a line; a photograph
+  // showed the conductor. Phase count sets how many primaries hang from the crossarm, with the
+  // neutral/secondary lower down; a span the photographs showed only at the communications
+  // height is one cable there.
+  const grip = [];
+  let gripSpans = 0, telecomSpans = 0;
+  for (const span of spans) {
+    if (span.osm) continue;   // OpenStreetMap's own line already drew it
+    const ra = poleById.get(String(span.a)), rb = poleById.get(String(span.b));
+    const ea = ra ? ra.anchor : electricalAnchor({ p: span.pa }), eb = rb ? rb.anchor : electricalAnchor({ p: span.pb });
+    if (!ea || !eb) continue;
+    const d = Math.hypot(eb.x - ea.x, eb.z - ea.z);
+    if (d < 4 || d > 100) continue;
+    const ha = ra ? ra.height : POLE_DEFAULT_M, hb = rb ? rb.height : POLE_DEFAULT_M;
+    const rx = -(eb.z - ea.z) / d, rz = (eb.x - ea.x) / d;
+    if (span.type === "telecom") {
+      catenaryPoints({ x: ea.x, y: ea.y + Math.min(6.2, ha - 3.8), z: ea.z },
+        { x: eb.x, y: eb.y + Math.min(6.2, hb - 3.8), z: eb.z }, grip, 150);
+      telecomSpans += 1;
+      continue;
+    }
+    // The phase count is PG&E's attribute and ships only with its leave; without it one
+    // primary is hung (and the neutral below), not an invented three-phase crossarm.
+    const phases = Math.max(1, Math.min(3, Number(span.phases) || 1));
+    const offsets = phases === 3 ? [-1.05, 0, 1.05] : phases === 2 ? [-1.05, 1.05] : [0.5];
+    for (const off of offsets) {
+      catenaryPoints({ x: ea.x + rx * off, y: ea.y + ha - 0.76, z: ea.z + rz * off },
+        { x: eb.x + rx * off, y: eb.y + hb - 0.76, z: eb.z + rz * off }, grip);
+    }
+    catenaryPoints({ x: ea.x + rx * 0.45, y: ea.y + ha - 3.06, z: ea.z + rz * 0.45 },
+      { x: eb.x + rx * 0.45, y: eb.y + hb - 3.06, z: eb.z + rz * 0.45 }, grip);
+    gripSpans += 1;
+  }
   const wireMaterial = new THREE.LineBasicMaterial({ color: 0x2c302f, opacity: 0.9, transparent: true });
-  for (const [points, basis] of [[mapped, "osm_mapped_line"]]) {
+  for (const [points, basis] of [[mapped, "osm_mapped_line"], [grip, "pge_route_poles_photo_confirmed"]]) {
     if (!points.length) continue;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
@@ -21238,7 +22099,15 @@ function addElectricalNetwork(furniture) {
     groups.furniture.add(wires);
   }
   return { utility_poles: poleRows.length, power_towers: towerRows.length, comm_towers: mastRows.length,
-    small_cells: cellRows.length, mapped_wire_spans: mappedSpans, inferred_wire_spans: 0 };
+    small_cells: cellRows.length, mapped_wire_spans: mappedSpans, inferred_wire_spans: 0,
+    reconstructed_spans: gripSpans, telecom_spans: telecomSpans };
+}
+
+//: The reconstructed spans for this world, only if the sidecar is the expected schema.
+function electricalSpans() {
+  if (ELECTRICAL_SPANS?.schema !== "kerbside.electrical_spans/1") return [];
+  return (ELECTRICAL_SPANS.spans || []).filter((span) => Array.isArray(span.pa) && Array.isArray(span.pb)
+    && ["electrical", "telecom"].includes(span.type) && span.c >= 0.85);
 }
 
 function addBikeRacks(anchors) {
@@ -21779,7 +22648,8 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
       + `${Number((placed.parking_meters?.single_space || 0) + (placed.parking_meters?.pay_stations || 0)).toLocaleString()} parking meters; `
       + `${Number(placed.trolley_wires?.span_poles || 0).toLocaleString()} trolleybus span poles; `
       + `${Number(placed.electrical?.utility_poles || 0).toLocaleString()} utility poles strung with `
-      + `${Number((placed.electrical?.mapped_wire_spans || 0) + (placed.electrical?.inferred_wire_spans || 0)).toLocaleString()} wire spans; `
+      + `${Number((placed.electrical?.mapped_wire_spans || 0) + (placed.electrical?.reconstructed_spans || 0)
+          + (placed.electrical?.telecom_spans || 0)).toLocaleString()} wire spans; `
       + `${Number(placed.electrical?.small_cells || 0).toLocaleString()} small cells.`;
     note.userData = placed;
   }
@@ -23082,7 +23952,7 @@ function requestInteriors() {
       INTERIORS = data;
       for (const [id, record] of Object.entries(data.buildings)) {
         const entry = footprintById.get(id);
-        if (!entry) continue;
+        if (!entry || entry.way.parkFacility) continue;
         entry.fit = record;
         entry.doors = (record[13] || []).map(([edge, t, width, source]) => doorOn(entry, edge, t, width, source))
           .filter(Boolean);
@@ -24439,6 +25309,7 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
 }
 
 function homeWindowLayout(entry, spec) {
+  if (entry.way.parkFacility) return [];
   const id = String(entry.way.osm_id);
   const bottom = spec.base, top = bottom + spec.height, floor = entryFloorY(entry);
   if (top - floor < 2.3) return null;
@@ -25960,6 +26831,7 @@ function entryAccessZones(entry, rooms) {
 }
 
 function buildInterior(entry) {
+  if (entry.way.parkFacility) return;
   if (entry.interior || !INTERIORS || !entry.fit) return;
   const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W, storeys, storeyM] = entry.fit;
   const plan = INTERIORS.library[ti];
