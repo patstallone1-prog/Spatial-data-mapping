@@ -8,10 +8,13 @@ caption: "south elevation"). No wall proportions, no marked extents, no opening 
   squared up   each photograph from its own vanishing points, metric (one scale on both axes)
                from the focal length the two vanishing points imply (a prior when one is at
                infinity, as a view camera's corrected verticals are);
-  cut out      the front's extents found in the squared-up photograph by the run's own
-               segmentation (UperNet, ADE20K): the house's columns and its ground line;
+  found        the house in the squared-up photograph as the pipeline's open-vocabulary
+               detector boxes it (Grounding DINO, "house. building."), or with --locate
+               segmentation by the run's segmentation rows and level lines;
   scaled       by the footprint's wall facing that way, the width a real house's footprint
-               gives; the height follows from the photograph, as the lidar is not here;
+               gives, and the height the city reads from USGS 3DEP lidar
+               (smc.lidar.region.building_height), laid up from the house's ground line;
+               --height photo infers it from the photograph's aspect instead;
   fitted       by the run's pipeline unchanged (detector, smc.facades.fit.extract_front);
   fused        the photographs' fits on one front: an opening is kept when two photographs
                that both see that part of the front agree on it, or the only one that sees it.
@@ -20,8 +23,8 @@ The drawing is used only to score. Its openings were read off the measured eleva
 drawing's scale (``truth`` in the pack), never shown to the fit. Photographs and drawings are
 downloaded to a work folder (``--work``) and deleted with it after scoring; only numbers are kept.
 
-    .venv/bin/python scripts/validate_habs_blind.py --pack data/validation/habs-blind-pack.json \\
-        --work "/Volumes/HP P700 1/Kerbside/habs-blind-2026-10-12" [--fetch] [--houses larkin,...]
+    .venv/bin/python scripts/validate_habs_blind.py --work build/habs-blind-work \\
+        [--houses larkin,...] [--locate detector|segmentation] [--height lidar|photo] [--drawn-size]
 """
 
 from __future__ import annotations
@@ -205,6 +208,28 @@ def front_extents(labels: np.ndarray, names: dict[int, str], visible: np.ndarray
             "basis": "segmentation_house_rows_and_centre_column_run"}
 
 
+def house_box(detector, square: np.ndarray) -> dict | None:
+    """The house as the pipeline's open-vocabulary detector (Grounding DINO) boxes it: of the
+    boxes it calls a house or a building, the most confident one across the frame's middle
+    (the photographer framed the house), else the most confident one at all."""
+    import cv2
+
+    h, w = square.shape[:2]
+    # Boxes come back as fractions of the frame, so a smaller copy finds the same house in a
+    # fraction of the memory.
+    k = min(1.0, 1200 / max(h, w))
+    small = cv2.resize(square, None, fx=k, fy=k, interpolation=cv2.INTER_AREA) if k < 1 else square
+    found = [o for o in detector.detect(small, "house. building.")["objects"]
+             if o["box"][2] - o["box"][0] >= 0.15 and o["box"][3] - o["box"][1] >= 0.1]
+    if not found:
+        return None
+    middle = [o for o in found if o["box"][0] <= 0.5 <= o["box"][2]]
+    best = max(middle or found, key=lambda o: o["score"])
+    x0, y0, x1, y1 = best["box"]
+    return {"left": int(x0 * w), "right": int(x1 * w), "top": int(y0 * h), "ground": int(y1 * h),
+            "score": round(best["score"], 3), "basis": "grounding_dino_house_box"}
+
+
 def horizontal_span(square: np.ndarray, top: int, ground: int) -> tuple[int, int] | None:
     """The house's ends from its long horizontals: in a squared-up front the eave, the floor
     bands and the rails run straight across and stop at its corners, where the neighbours,
@@ -301,6 +326,29 @@ def facing_wall_width(ring_lonlat: list[tuple[float, float]], facing: str) -> di
     along = [p[0] * tx + p[1] * ty for w in parallel for p in (w.a, w.b)]
     return {"width_m": round(max(along) - min(along), 3), "main_wall_m": round(main.length_m, 3),
             "walls": len(parallel), "normal": (round(nx, 3), round(ny, 3))}
+
+
+def lidar_height(ring_lonlat: list[tuple[float, float]], cache: Path) -> dict | None:
+    """The house's height as the city reads it: USGS 3DEP lidar (public domain), the roof's
+    92nd percentile over the ground at its foot (smc.lidar.region.building_height), from the
+    newest collection that covers it."""
+    from smc.imagery.region import BBox
+    from smc.lidar.ept import EptReader
+    from smc.lidar.region import building_height
+    from smc.regions.discover import lidar_collections
+
+    lons = [p[0] for p in ring_lonlat]
+    lats = [p[1] for p in ring_lonlat]
+    lat, lon = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2
+    box = BBox(south=min(lats), west=min(lons), north=max(lats), east=max(lons))
+    radius = max((max(lats) - min(lats)) * 111_320,
+                 (max(lons) - min(lons)) * 111_320 * math.cos(math.radians(lat))) / 2 + 6
+    for collection in lidar_collections(box, cache=cache / "entwine-index.json")[:3]:
+        reader = EptReader(collection["dataset"], cache_dir=cache / "lidar" / collection["dataset"])
+        found = building_height(reader.around(lat, lon, radius, resolution_m=0.25), [list(p) for p in ring_lonlat])
+        if found and "rejected" not in found:
+            return found | {"dataset": collection["dataset"]}
+    return None
 
 
 # -- scoring ----------------------------------------------------------------------------------
@@ -407,7 +455,8 @@ def loc_full(reference_url: str) -> str:
     return f"https://tile.loc.gov/image-services/iiif/service:{path.replace('/', ':')}/full/pct:100/0/default.jpg"
 
 
-def fit_photo(path: Path, facing_width: float, screen, detector) -> dict:
+def fit_photo(path: Path, facing_width: float, screen, detector, height_m: float | None = None,
+              locate: str = "detector") -> dict:
     import cv2
 
     from smc.facades.fit import extract_front
@@ -432,17 +481,26 @@ def fit_photo(path: Path, facing_width: float, screen, detector) -> dict:
     visible = square.max(axis=2) > 0
     first = screen.screen(square, visible)
     labels = first["labels"]
-    ext = front_extents(labels, screen.labels, visible)
+    ext = house_box(detector, square) if locate == "detector" else None
     if ext is None:
-        return {"photo": path.name, "error": "no house found in the squared-up photograph"}
-    span = horizontal_span(square, ext["top"], ext["ground"])
-    if span:
-        ext.update(left=span[0], right=span[1], basis="long_horizontals_within_segmented_rows")
+        ext = front_extents(labels, screen.labels, visible)
+        if ext is None:
+            return {"photo": path.name, "error": "no house found in the squared-up photograph"}
+        span = horizontal_span(square, ext["top"], ext["ground"])
+        if span:
+            ext.update(left=span[0], right=span[1], basis="long_horizontals_within_segmented_rows")
     px_w = ext["right"] - ext["left"]
-    px_h = ext["ground"] - ext["top"]
     width_m = facing_width
     scale_basis = "footprint_front_wall"
-    height_m = width_m * px_h / px_w
+    if height_m:
+        # The height is the lidar's; the photograph, squared up to one scale on both axes,
+        # says where it reaches from the ground line. Above the frame is simply not seen.
+        ext["top"] = round(ext["ground"] - px_w * height_m / width_m)
+        height_basis = "lidar_roof_p92_over_foot"
+    else:
+        height_m = width_m * (ext["ground"] - ext["top"]) / px_w
+        height_basis = "photograph_aspect"
+    px_h = ext["ground"] - ext["top"]
     A = np.array([[PIXELS_PER_M * width_m / px_w, 0, -ext["left"] * PIXELS_PER_M * width_m / px_w],
                   [0, PIXELS_PER_M * height_m / px_h, -ext["top"] * PIXELS_PER_M * height_m / px_h],
                   [0, 0, 1]])
@@ -464,10 +522,11 @@ def fit_photo(path: Path, facing_width: float, screen, detector) -> dict:
     else:
         dx = abs(vp_h[0] / vp_h[2] - bgr.shape[1] / 2)
         obliquity = 90.0 - math.degrees(math.atan2(dx, lens["focal_px"]))
-    share = (px_w * px_h) / float(square.shape[0] * square.shape[1])
+    share = min(1.0, (px_w * px_h) / float(square.shape[0] * square.shape[1]))
     return {
         "photo": path.name, "openings": [{k: o[k] for k in ("u", "v", "w", "h", "kind")} for o in fit.get("openings", [])],
         "width_m": round(width_m, 3), "height_m": round(height_m, 3), "scale_basis": scale_basis,
+        "height_basis": height_basis,
         "lens": lens, "edges": {"vertical": n_v, "horizontal": n_h},
         "obliquity_deg": round(obliquity, 1), "target_share": round(share, 3),
         "squareness": round(rectilinearity(front, seen), 3), "extents_px": ext,
@@ -485,6 +544,13 @@ def main() -> int:
     ap.add_argument("--device", default="mps")
     ap.add_argument("--model-cache", type=Path, help="one folder for both pinned models (default: the run's caches)")
     ap.add_argument("--out", type=Path, default=ROOT / "build/habs-blind-results.json")
+    ap.add_argument("--locate", choices=("detector", "segmentation"), default="detector",
+                    help="how the house is found in the photograph: a Grounding DINO box, or segmentation rows and level lines")
+    ap.add_argument("--drawn-size", action="store_true",
+                    help="NOT BLIND, a diagnostic: give the fit the drawing's panel width and height, to "
+                         "separate the size and placement error from the detector's")
+    ap.add_argument("--height", choices=("lidar", "photo"), default="lidar",
+                    help="the wall's height: 3DEP lidar as the city reads it, or the photograph's aspect")
     args = ap.parse_args()
     pack = json.loads(args.pack.read_text())
     wanted = {h for h in args.houses.split(",") if h}
@@ -507,13 +573,26 @@ def main() -> int:
             cached.parent.mkdir(parents=True, exist_ok=True)
             cached.write_text(json.dumps(ring))
         width = facing_wall_width(ring, house["facing"])
+        if args.drawn_size:
+            width = dict(width, width_m=house["truth"]["panel_m"][0])
+        lidar = None
+        if args.height == "lidar":
+            cached_h = args.work / house["slug"] / "lidar.json"
+            lidar = json.loads(cached_h.read_text()) if cached_h.exists() else lidar_height(ring, args.work)
+            cached_h.write_text(json.dumps(lidar))
         fits = []
         for photo in house["photos"]:
             # The Library of Congress serves a photograph at 1,024 px at most; the Commons mirror
             # of the same scan serves it at 2,400.
             source = (photo.get("commons") or {}).get("thumb") or loc_full(photo["url"])
             path = fetch(source, args.work / house["slug"] / f"{photo['pk']}-full.jpg")
-            fits.append(fit_photo(path, width["width_m"] if width else None, screen, detector))
+            fits.append(fit_photo(path, width["width_m"] if width else None, screen, detector,
+                                  house["truth"]["panel_m"][1] if args.drawn_size else (lidar or {}).get("height_m"),
+                                  args.locate))
+            if args.device == "mps":
+                import torch
+
+                torch.mps.empty_cache()
             print(house["slug"], photo["pk"], json.dumps({k: fits[-1].get(k) for k in
                   ("width_m", "height_m", "squareness", "lens", "error")}), flush=True)
         good = [f for f in fits if "error" not in f]
@@ -532,6 +611,7 @@ def main() -> int:
             "truth_panel_m": house["truth"].get("panel_m"),
             "width_error_m": round(abs(width["width_m"] - house["truth"]["panel_m"][0]), 3) if width and house["truth"].get("panel_m") else None,
             "height_inferred_m": [f["height_m"] for f in good],
+            "lidar": lidar,
             "best_photo": score(truth, best["openings"]) if best else None,
             "fused": score(truth, fused),
         }
