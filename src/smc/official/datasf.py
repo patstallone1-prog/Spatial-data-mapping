@@ -14,12 +14,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import ssl
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+import certifi
 
 from smc.official.schema import DocumentStatus, OfficialDocument
 
@@ -97,7 +100,9 @@ def _get(url: str, *, attempts: int = 4) -> bytes:
     for attempt in range(attempts):
         try:
             request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(request, timeout=120) as response:
+            # Verify against the maintained root bundle, not a missing macOS Python chain.
+            context = ssl.create_default_context(cafile=certifi.where())
+            with urllib.request.urlopen(request, timeout=120, context=context) as response:
                 return response.read()
         except urllib.error.HTTPError as exc:
             # A 400 is our query being wrong and will not improve with waiting.

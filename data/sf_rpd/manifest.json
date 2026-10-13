@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "license": "PDDL",
+  "artifact": "inventory.json.gz",
+  "sha256": "560a7643a7adf3dba7db42eed7b0610101be7f939f286b23cc86a8927ac1f535",
+  "decoded_sha256": "1f9de0ecb51ee073f326b82fcae95a8b7171794789a812254a348acb8f3a7ab7",
+  "decoded_bytes": 94332284,
+  "compressed_bytes": 16150001,
+  "sources": [
+    {
+      "document_id": "datasf:gtr9-ntp6:64ca5c6e6322",
+      "record_type": "park_property",
+      "source_url": "https://data.sfgov.org/resource/gtr9-ntp6.json?$where=within_box(shape, 37.84, -122.53, 37.69, -122.35)",
+      "sha256": "64ca5c6e6322395d21e9554c13267f57fa85177dcf8bfab2afe42b3ef58e2b4e",
+      "retrieved_at": "2026-10-13T01:24:48Z",
+      "status": "recorded",
+      "recorded_date": null,
+      "effective_date": null,
+      "block_lot": null,
+      "street_names": [],
+      "crs": "EPSG:4326",
+      "methodology": null,
+      "license": "PDDL",
+      "metadata_url": "https://data.sf.gov/api/views/gtr9-ntp6.json",
+      "row_count": 253,
+      "snapshot": "snapshots/64ca5c6e6322395d21e9554c13267f57fa85177dcf8bfab2afe42b3ef58e2b4e.json.gz"
+    },
+    {
+      "document_id": "datasf:ib5c-xgwu:5e8975e66e5d",
+      "record_type": "park_facility",
+      "source_url": "https://data.sfgov.org/resource/ib5c-xgwu.json?$where=within_box(shape, 37.84, -122.53, 37.69, -122.35)",
+      "sha256": "5e8975e66e5dc7d2d9ae58f378363d58ec4e6c091f8b3cafc98a9486392dbb99",
+      "retrieved_at": "2026-10-13T01:25:06Z",
+      "status": "recorded",
+      "recorded_date": null,
+      "effective_date": null,
+      "block_lot": null,
+      "street_names": [],
+      "crs": "EPSG:4326",
+      "methodology": null,
+      "license": "PDDL",
+      "metadata_url": "https://data.sf.gov/api/views/ib5c-xgwu.json",
+      "row_count": 2457,
+      "snapshot": "snapshots/5e8975e66e5dc7d2d9ae58f378363d58ec4e6c091f8b3cafc98a9486392dbb99.json.gz"
+    },
+    {
+      "document_id": "datasf:38b7-6db3:a00a0a977388",
+      "record_type": "park_functional_area",
+      "source_url": "https://data.sfgov.org/resource/38b7-6db3.json?$where=within_box(shape, 37.84, -122.53, 37.69, -122.35)",
+      "sha256": "a00a0a9773880c410210441f00bef19837e0c63690eab0a853ad57d3f73e2d3a",
+      "retrieved_at": "2026-10-13T01:25:23Z",
+      "status": "recorded",
+      "recorded_date": null,
+      "effective_date": null,
+      "block_lot": null,
+      "street_names": [],
+      "crs": "EPSG:4326",
+      "methodology": null,
+      "license": "PDDL",
+      "metadata_url": "https://data.sf.gov/api/views/38b7-6db3.json",
+      "row_count": 7171,
+      "snapshot": "snapshots/a00a0a9773880c410210441f00bef19837e0c63690eab0a853ad57d3f73e2d3a.json.gz"
+    }
+  ],
+  "counts": {
+    "parks": 253,
+    "objects": 8502
+  },
+  "unresolved": {
+    "inconsistent_logical_facility_identity": 102,
+    "park_identity_not_in_snapshot": 50
+  },
+  "promotion_state": "source_ingested_not_yet_viewer_integrated"
+}
