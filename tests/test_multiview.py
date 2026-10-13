@@ -128,14 +128,17 @@ def test_a_single_view_says_so_and_changes_nothing():
     assert mv.apply_to_fit(dict(fit), result) == fit
 
 
-def test_the_fit_takes_the_stair_the_alcove_and_fused_openings():
+def test_the_fit_takes_the_stair_and_the_alcove_and_keeps_the_best_views_openings():
     views_ = views("sideways")
     result = mv.reconstruct(views_, "front")
     fit = {"openings": [{"id": "w1", "kind": "window", "u": 3.85, "v": 4.15, "w": 1.3, "h": 1.7, "design": {"trim": {}}}],
            "primary_entry": {"kind": "long_stair", "u": 5.2, "w": 1.0, "recess": {"depth_m": 4.2}}}
     out = mv.apply_to_fit(fit, result, views_, design=lambda crop, w, h: {"shape": "standard", "vertical_bars": []})
     opening = out["openings"][0]
-    assert opening["multiview"]["views"] == 3 and abs(opening["u"] - 3.9) < 0.1 and abs(opening["w"] - 1.2) < 0.1
+    # Seen in all three views, and still exactly as the best photograph shows it, panes included.
+    assert opening["multiview"]["views"] == 3 and opening["multiview"]["dimensions"] == "reference_view_only"
+    assert (opening["u"], opening["v"], opening["w"], opening["h"]) == (3.85, 4.15, 1.3, 1.7)
+    assert opening["design"] == {"trim": {}}
     assert out["primary_entry"]["stair"]["orientation"] == "sideways"
     assert out["multiview_reconstruction"]["applied"]["stair"] == "sideways"
     alcove_views = views("alcove")

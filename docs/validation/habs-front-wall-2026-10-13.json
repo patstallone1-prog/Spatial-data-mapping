@@ -1,0 +1,562 @@
+{
+ "schema": "kerbside.validation.habs-front-wall/1",
+ "date": "2026-10-13",
+ "what": "The blind HABS test scored on the main front wall only -- what the pipeline infers -- and on the one photograph the house is rendered from.",
+ "scope": "Scored on the main front wall only, as the pipeline infers it: an opening drawn above the wall's top (a dormer, a tower attic, above the cornice) is the roof's, and one inside a wing's span (truth.wings_u, read from the drawing) is that wing's wall. Predicted openings there are set aside the same way.",
+ "source": "Historic American Buildings Survey (Library of Congress), public domain; scans from the Library of Congress and its Wikimedia Commons mirror; building footprints (c) OpenStreetMap contributors (ODbL); heights from USGS 3D Elevation Program lidar (public domain). Photographs, drawings and lidar tiles were deleted after scoring; only these numbers are kept.",
+ "method": [
+  "Every count is of one front: the elevation drawing of the side the photographs show, never the other sides. Of the 113 openings drawn on those fronts, 26 are set aside here as not the main front wall: 13 dormers and tower-attic windows above the wall's top, and 13 on wings with walls of their own (Stanford's west wing, the Governor's Mansion's east wing, Larkin's stone wing, J. S. Cain's rear wing). Predicted openings in the same places are set aside alike. 87 remain.",
+  "The house is rendered from one photograph -- the one the frontage filter picks (within 40 degrees, nearest square on, the house filling the frame) -- and only that photograph's openings are scored. The pipeline now uses the other photographs only for depth (stairs, alcoves; smc.facades.multiview), which the drawings do not record; the earlier runs' fusion of several photographs is gone.",
+  "Otherwise as the lidar run: given one to three photographs, the OpenStreetMap footprint (width) and 3DEP lidar (height); the house found by Grounding DINO; the pipeline unchanged. A match: centres within max(1.5 m, the opening's size) and IoU >= 0.1.",
+  "A diagnostic run, not blind, gives the same photograph the drawing's own width and height."
+ ],
+ "results": {
+  "blind_front_wall": {
+   "houses": 7,
+   "front_wall_openings": 87,
+   "predicted_openings": 27,
+   "matched": 15,
+   "recall": 0.172,
+   "precision": 0.556,
+   "centre_error_m": 0.774,
+   "width_error_m": 1.066,
+   "height_error_m": 0.687,
+   "mean_iou": 0.287,
+   "window_vs_door_correct": 0.6
+  },
+  "blind_whole_elevation": {
+   "houses": 7,
+   "front_wall_openings": 113,
+   "predicted_openings": 37,
+   "matched": 16,
+   "recall": 0.142,
+   "precision": 0.432,
+   "centre_error_m": 0.812,
+   "width_error_m": 1.021,
+   "height_error_m": 0.701,
+   "mean_iou": 0.284,
+   "window_vs_door_correct": 0.625
+  },
+  "drawn_size_not_blind_front_wall": {
+   "houses": 7,
+   "front_wall_openings": 87,
+   "predicted_openings": 29,
+   "matched": 15,
+   "recall": 0.172,
+   "precision": 0.517,
+   "centre_error_m": 0.809,
+   "width_error_m": 1.373,
+   "height_error_m": 0.494,
+   "mean_iou": 0.292,
+   "window_vs_door_correct": 0.867
+  }
+ },
+ "houses": [
+  {
+   "slug": "larkin",
+   "name": "Larkin House, Monterey",
+   "habs": "HABS CAL,27-MONT,9",
+   "facing": "east",
+   "photos_given": 3,
+   "best_photo": "ca0394.photos.013859p",
+   "drawn_openings": 10,
+   "front_wall_openings": 9,
+   "set_aside": [
+    "stone wing door"
+   ],
+   "wings_u": [
+    [
+     0.0,
+     2.5
+    ]
+   ],
+   "lidar_height_m": 7.34,
+   "drawn_panel_m": [
+    17.428,
+    7.765
+   ],
+   "footprint_width_m": 17.956,
+   "blind": {
+    "truth": 9,
+    "predicted": 6,
+    "matched": 6,
+    "recall": 0.667,
+    "precision": 1.0,
+    "centre_error_m": 0.462,
+    "width_error_m": 0.132,
+    "height_error_m": 0.137,
+    "width_error_rel": 0.155,
+    "height_error_rel": 0.089,
+    "mean_iou": 0.31,
+    "window_vs_door_correct": 1.0
+   },
+   "blind_whole_elevation": {
+    "truth": 10,
+    "predicted": 6,
+    "matched": 6,
+    "recall": 0.6,
+    "precision": 1.0,
+    "centre_error_m": 0.462,
+    "width_error_m": 0.132,
+    "height_error_m": 0.137,
+    "width_error_rel": 0.155,
+    "height_error_rel": 0.089,
+    "mean_iou": 0.31,
+    "window_vs_door_correct": 1.0
+   },
+   "drawn_size_not_blind": {
+    "truth": 9,
+    "predicted": 6,
+    "matched": 5,
+    "recall": 0.556,
+    "precision": 0.833,
+    "centre_error_m": 0.457,
+    "width_error_m": 0.151,
+    "height_error_m": 0.107,
+    "width_error_rel": 0.187,
+    "height_error_rel": 0.062,
+    "mean_iou": 0.368,
+    "window_vs_door_correct": 1.0
+   }
+  },
+  {
+   "slug": "banning",
+   "name": "General Phineas Banning Residence, Wilmington",
+   "habs": "HABS CAL,19-WILM,2",
+   "facing": "south",
+   "photos_given": 3,
+   "best_photo": "ca2250.photos.050999p",
+   "drawn_openings": 12,
+   "front_wall_openings": 12,
+   "set_aside": [],
+   "wings_u": [],
+   "lidar_height_m": 13.94,
+   "drawn_panel_m": [
+    15.496,
+    10.029
+   ],
+   "footprint_width_m": 25.761,
+   "blind": {
+    "truth": 12,
+    "predicted": 6,
+    "matched": 2,
+    "recall": 0.167,
+    "precision": 0.333,
+    "centre_error_m": 1.715,
+    "width_error_m": 0.715,
+    "height_error_m": 2.003,
+    "width_error_rel": 0.693,
+    "height_error_rel": 0.833,
+    "mean_iou": 0.236,
+    "window_vs_door_correct": 0.5
+   },
+   "blind_whole_elevation": {
+    "truth": 12,
+    "predicted": 6,
+    "matched": 2,
+    "recall": 0.167,
+    "precision": 0.333,
+    "centre_error_m": 1.715,
+    "width_error_m": 0.715,
+    "height_error_m": 2.003,
+    "width_error_rel": 0.693,
+    "height_error_rel": 0.833,
+    "mean_iou": 0.236,
+    "window_vs_door_correct": 0.5
+   },
+   "drawn_size_not_blind": {
+    "truth": 12,
+    "predicted": 7,
+    "matched": 2,
+    "recall": 0.167,
+    "precision": 0.286,
+    "centre_error_m": 1.711,
+    "width_error_m": 4.465,
+    "height_error_m": 0.046,
+    "width_error_rel": 1.907,
+    "height_error_rel": 0.02,
+    "mean_iou": 0.148,
+    "window_vs_door_correct": 0.5
+   }
+  },
+  {
+   "slug": "govmansion",
+   "name": "Albert Gallatin House (California Governor's Mansion), Sacramento",
+   "habs": "HABS CAL,34-SAC,19",
+   "facing": "north",
+   "photos_given": 1,
+   "best_photo": "ca0523.photos.014623p",
+   "drawn_openings": 33,
+   "front_wall_openings": 22,
+   "set_aside": [
+    "dormer 1",
+    "dormer 2",
+    "dormer 3",
+    "dormer 4",
+    "tower attic left",
+    "tower attic right",
+    "dormer 5",
+    "dormer 6",
+    "wing dormer",
+    "wing window",
+    "wing carriage arch"
+   ],
+   "wings_u": [
+    [
+     21.5,
+     28.704
+    ]
+   ],
+   "lidar_height_m": 17.24,
+   "drawn_panel_m": [
+    28.704,
+    12.301
+   ],
+   "footprint_width_m": 28.588,
+   "blind": {
+    "truth": 22,
+    "predicted": 4,
+    "matched": 2,
+    "recall": 0.091,
+    "precision": 0.5,
+    "centre_error_m": 1.35,
+    "width_error_m": 0.875,
+    "height_error_m": 0.942,
+    "width_error_rel": 0.904,
+    "height_error_rel": 0.375,
+    "mean_iou": 0.159,
+    "window_vs_door_correct": 0.5
+   },
+   "blind_whole_elevation": {
+    "truth": 33,
+    "predicted": 10,
+    "matched": 2,
+    "recall": 0.061,
+    "precision": 0.2,
+    "centre_error_m": 1.35,
+    "width_error_m": 0.875,
+    "height_error_m": 0.942,
+    "width_error_rel": 0.904,
+    "height_error_rel": 0.375,
+    "mean_iou": 0.159,
+    "window_vs_door_correct": 0.5
+   },
+   "drawn_size_not_blind": {
+    "truth": 22,
+    "predicted": 6,
+    "matched": 3,
+    "recall": 0.136,
+    "precision": 0.5,
+    "centre_error_m": 1.083,
+    "width_error_m": 1.655,
+    "height_error_m": 1.293,
+    "width_error_rel": 1.197,
+    "height_error_rel": 0.536,
+    "mean_iou": 0.253,
+    "window_vs_door_correct": 1.0
+   }
+  },
+  {
+   "slug": "carson",
+   "name": "Carson House, New Almaden",
+   "habs": "HABS CAL,43-ALMA,2",
+   "facing": "east",
+   "photos_given": 1,
+   "best_photo": "ca0945.photos.018106p",
+   "drawn_openings": 5,
+   "front_wall_openings": 5,
+   "set_aside": [],
+   "wings_u": [],
+   "lidar_height_m": 5.15,
+   "drawn_panel_m": [
+    11.265,
+    4.926
+   ],
+   "footprint_width_m": 17.914,
+   "blind": {
+    "truth": 5,
+    "predicted": 5,
+    "matched": 2,
+    "recall": 0.4,
+    "precision": 0.4,
+    "centre_error_m": 0.683,
+    "width_error_m": 1.685,
+    "height_error_m": 0.21,
+    "width_error_rel": 1.95,
+    "height_error_rel": 0.134,
+    "mean_iou": 0.329,
+    "window_vs_door_correct": 0.5
+   },
+   "blind_whole_elevation": {
+    "truth": 5,
+    "predicted": 5,
+    "matched": 2,
+    "recall": 0.4,
+    "precision": 0.4,
+    "centre_error_m": 0.683,
+    "width_error_m": 1.685,
+    "height_error_m": 0.21,
+    "width_error_rel": 1.95,
+    "height_error_rel": 0.134,
+    "mean_iou": 0.329,
+    "window_vs_door_correct": 0.5
+   },
+   "drawn_size_not_blind": {
+    "truth": 5,
+    "predicted": 3,
+    "matched": 2,
+    "recall": 0.4,
+    "precision": 0.667,
+    "centre_error_m": 0.555,
+    "width_error_m": 0.495,
+    "height_error_m": 0.651,
+    "width_error_rel": 0.604,
+    "height_error_rel": 0.415,
+    "mean_iou": 0.207,
+    "window_vs_door_correct": 1.0
+   }
+  },
+  {
+   "slug": "stanford",
+   "name": "Leland Stanford House, Sacramento",
+   "habs": "HABS CAL,34-SAC,9",
+   "facing": "north",
+   "photos_given": 2,
+   "best_photo": "ca0544.photos.014953p",
+   "drawn_openings": 36,
+   "front_wall_openings": 23,
+   "set_aside": [
+    "dormer 1",
+    "dormer 2",
+    "dormer 3 (centre)",
+    "dormer 4",
+    "dormer 5",
+    "wing arched 1",
+    "wing arched 2",
+    "wing first 1",
+    "wing first 2",
+    "wing first 3",
+    "basement 1",
+    "basement 2",
+    "basement 3"
+   ],
+   "wings_u": [
+    [
+     0.0,
+     9.5
+    ]
+   ],
+   "lidar_height_m": 17.97,
+   "drawn_panel_m": [
+    33.595,
+    13.714
+   ],
+   "footprint_width_m": 32.047,
+   "blind": {
+    "truth": 23,
+    "predicted": 3,
+    "matched": 1,
+    "recall": 0.043,
+    "precision": 0.333,
+    "centre_error_m": 0.834,
+    "width_error_m": 0.518,
+    "height_error_m": 0.869,
+    "width_error_rel": 0.504,
+    "height_error_rel": 0.426,
+    "mean_iou": 0.348,
+    "window_vs_door_correct": 0.0
+   },
+   "blind_whole_elevation": {
+    "truth": 36,
+    "predicted": 6,
+    "matched": 2,
+    "recall": 0.056,
+    "precision": 0.333,
+    "centre_error_m": 1.107,
+    "width_error_m": 0.431,
+    "height_error_m": 0.889,
+    "width_error_rel": 0.413,
+    "height_error_rel": 0.409,
+    "mean_iou": 0.295,
+    "window_vs_door_correct": 0.5
+   },
+   "drawn_size_not_blind": {
+    "truth": 23,
+    "predicted": 3,
+    "matched": 0,
+    "recall": 0.0,
+    "precision": 0.0,
+    "centre_error_m": null,
+    "width_error_m": null,
+    "height_error_m": null,
+    "width_error_rel": null,
+    "height_error_rel": null,
+    "mean_iou": null,
+    "window_vs_door_correct": null
+   }
+  },
+  {
+   "slug": "amesti",
+   "name": "Jose Amesti Casa, Monterey",
+   "habs": "HABS CAL,27-MONT,20",
+   "facing": "west",
+   "photos_given": 2,
+   "best_photo": "ca0367.photos.013718p",
+   "drawn_openings": 11,
+   "front_wall_openings": 11,
+   "set_aside": [],
+   "wings_u": [],
+   "lidar_height_m": 9.1,
+   "drawn_panel_m": [
+    25.806,
+    6.653
+   ],
+   "footprint_width_m": 25.827,
+   "blind": {
+    "truth": 11,
+    "predicted": 2,
+    "matched": 1,
+    "recall": 0.091,
+    "precision": 0.5,
+    "centre_error_m": 0.195,
+    "width_error_m": 0.115,
+    "height_error_m": 1.785,
+    "width_error_rel": 0.098,
+    "height_error_rel": 0.957,
+    "mean_iou": 0.484,
+    "window_vs_door_correct": 0.0
+   },
+   "blind_whole_elevation": {
+    "truth": 11,
+    "predicted": 2,
+    "matched": 1,
+    "recall": 0.091,
+    "precision": 0.5,
+    "centre_error_m": 0.195,
+    "width_error_m": 0.115,
+    "height_error_m": 1.785,
+    "width_error_rel": 0.098,
+    "height_error_rel": 0.957,
+    "mean_iou": 0.484,
+    "window_vs_door_correct": 0.0
+   },
+   "drawn_size_not_blind": {
+    "truth": 11,
+    "predicted": 1,
+    "matched": 1,
+    "recall": 0.091,
+    "precision": 1.0,
+    "centre_error_m": 0.66,
+    "width_error_m": 0.823,
+    "height_error_m": 1.086,
+    "width_error_rel": 0.833,
+    "height_error_rel": 0.449,
+    "mean_iou": 0.378,
+    "window_vs_door_correct": 1.0
+   }
+  },
+  {
+   "slug": "jscain",
+   "name": "J. S. Cain House, Bodie",
+   "habs": "HABS CAL,26-BODI,3",
+   "facing": "east",
+   "photos_given": 2,
+   "best_photo": "ca0353.photos.013481p",
+   "drawn_openings": 6,
+   "front_wall_openings": 5,
+   "set_aside": [
+    "wing window"
+   ],
+   "wings_u": [
+    [
+     10.0,
+     14.803
+    ]
+   ],
+   "lidar_height_m": 6.97,
+   "drawn_panel_m": [
+    14.803,
+    7.344
+   ],
+   "footprint_width_m": 26.264,
+   "blind": {
+    "truth": 5,
+    "predicted": 1,
+    "matched": 1,
+    "recall": 0.2,
+    "precision": 1.0,
+    "centre_error_m": 0.315,
+    "width_error_m": 8.021,
+    "height_error_m": 0.522,
+    "width_error_rel": 5.032,
+    "height_error_rel": 0.187,
+    "mean_iou": 0.158,
+    "window_vs_door_correct": 0.0
+   },
+   "blind_whole_elevation": {
+    "truth": 6,
+    "predicted": 2,
+    "matched": 1,
+    "recall": 0.167,
+    "precision": 0.5,
+    "centre_error_m": 0.315,
+    "width_error_m": 8.021,
+    "height_error_m": 0.522,
+    "width_error_rel": 5.032,
+    "height_error_rel": 0.187,
+    "mean_iou": 0.158,
+    "window_vs_door_correct": 0.0
+   },
+   "drawn_size_not_blind": {
+    "truth": 5,
+    "predicted": 3,
+    "matched": 2,
+    "recall": 0.4,
+    "precision": 0.667,
+    "centre_error_m": 0.705,
+    "width_error_m": 2.066,
+    "height_error_m": 0.258,
+    "width_error_rel": 1.967,
+    "height_error_rel": 0.113,
+    "mean_iou": 0.344,
+    "window_vs_door_correct": 0.5
+   }
+  }
+ ],
+ "not_scored": [
+  {
+   "house": "Walter Luther Dodge House, West Hollywood (HABS CAL,19-LOSAN,27)",
+   "why": "demolished in 1970: no footprint, so it cannot be tested as a real house"
+  },
+  {
+   "house": "Lovell Beach House, Newport Beach (HABS CAL,30-NEWBE,1)",
+   "why": "the west front is continuous ribbon glazing on stilts: no discrete openings to match one to one"
+  },
+  {
+   "house": "Yung See San Fong, Los Gatos (HABS CAL,43-LOSGA,2)",
+   "why": "every photograph looks steeply along the drive, beyond 40 degrees to any drawn front"
+  },
+  {
+   "house": "Sowden House, Los Angeles (HABS CAL,19-LOSAN,69)",
+   "why": "no OSM building contains its address; the footprint would have to be guessed"
+  },
+  {
+   "house": "Harrison Street Block, Santa Clara (HABS CAL,43-SANCLA,2)",
+   "why": "no addressed OSM footprints for 1009 or 1077; the houses would have to be guessed"
+  },
+  {
+   "house": "Casa del Rancho San Antonio, Bell Gardens (HABS CAL,19-BEL,1)",
+   "why": "the nearest OSM building is 38 m from the address and its east front's sheet would not download whole"
+  },
+  {
+   "house": "D. V. Cain House, Bodie",
+   "why": "excluded by request"
+  }
+ ],
+ "findings": [
+  "On the main front wall alone: 15 of 87 openings found (17%), and 56% of what was predicted there is real. Counted over the whole drawn elevation, the same photographs score 16 of 113 (14%, 43% real): scoping to the front lifts precision, since 10 predictions had landed on wings and roofs, but not recall.",
+  "The gap is how few openings are proposed: 27 for 87. The large many-bayed fronts get almost none -- Stanford 3 for 23, the Governor's Mansion 4 for 22, Amesti 2 for 11 -- where a window is about forty pixels wide in the scan and the pixel screen flags vegetation across the front.",
+  "What is proposed is mostly right where the front is clear: Larkin 6 of 9 found with all 6 predictions real; J. S. Cain's one prediction real.",
+  "Given the drawing's own width and height (not blind) it is still 15 of 87: size is not the gap; the detector's recall on archival photographs is."
+ ]
+}

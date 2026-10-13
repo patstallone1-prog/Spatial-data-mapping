@@ -16,8 +16,9 @@ caption: "south elevation"). No wall proportions, no marked extents, no opening 
                (smc.lidar.region.building_height), laid up from the house's ground line;
                --height photo infers it from the photograph's aspect instead;
   fitted       by the run's pipeline unchanged (detector, smc.facades.fit.extract_front);
-  fused        the photographs' fits on one front: an opening is kept when two photographs
-               that both see that part of the front agree on it, or the only one that sees it.
+  scored       on the photograph the frontage filter would pick, which the house is rendered
+               from; the others give the pipeline only depth (smc.facades.multiview). Only the
+               main front wall is scored (on_front_wall): not dormers, not wings.
 
 The drawing is used only to score. Its openings were read off the measured elevation at the
 drawing's scale (``truth`` in the pack), never shown to the fit. Photographs and drawings are
@@ -382,6 +383,17 @@ def match(truth: list[dict], predicted: list[dict]) -> list[tuple[int, int]]:
     return out
 
 
+def on_front_wall(openings: list[dict], truth: dict) -> list[dict]:
+    """The openings on the main front wall, which is all the pipeline infers: not above the
+    wall's top as drawn (a dormer, a tower attic: the roof's), not within a wing's span
+    (``wings_u``, read from the drawing: that wing's own wall). Applied alike to the drawn
+    openings and the predicted ones."""
+    top = truth["panel_m"][1]
+    wings = truth.get("wings_u") or []
+    return [o for o in openings if o["v"] < top
+            and not any(a <= o["u"] + o["w"] / 2 <= b for a, b in wings)]
+
+
 def score(truth: list[dict], predicted: list[dict]) -> dict:
     pairs = match(truth, predicted)
     per = []
@@ -404,38 +416,6 @@ def score(truth: list[dict], predicted: list[dict]) -> dict:
             "height_error_rel": mean("height_rel"), "mean_iou": mean("iou"),
             "window_vs_door_correct": mean("kind_ok"), "pairs": per}
 
-
-def fuse(fits: list[dict], front_width: float) -> list[dict]:
-    """One front from two or three photographs' fits.
-
-    Each photograph's openings are on the same front in metres (left corner, ground line). An
-    opening is kept where photographs that saw that stretch of the front agree (IoU >= 0.3);
-    one seen by a single photograph is kept only if no other photograph saw that stretch.
-    Agreeing openings are averaged.
-    """
-    clusters: list[list[tuple[int, dict]]] = []
-    for k, fit in enumerate(fits):
-        for o in fit["openings"]:
-            best = max(clusters, key=lambda c: max(_iou(o, x) for _, x in c), default=None)
-            if best is not None and max(_iou(o, x) for _, x in best) >= 0.3 and all(i != k for i, _ in best):
-                best.append((k, o))
-            else:
-                clusters.append([(k, o)])
-    out = []
-    for c in clusters:
-        u = np.mean([o["u"] for _, o in c])
-        w = np.mean([o["w"] for _, o in c])
-        seen_by = [k for k, fit in enumerate(fits)
-                   if fit["seen_u"][0] - 0.2 <= u and u + w <= fit["seen_u"][1] + 0.2]
-        if len(c) >= 2 or len(seen_by) <= 1:
-            kinds = [o["kind"] for _, o in c]
-            out.append({"u": float(u), "v": float(np.mean([o["v"] for _, o in c])), "w": float(w),
-                        "h": float(np.mean([o["h"] for _, o in c])),
-                        "kind": max(set(kinds), key=kinds.count), "votes": len(c)})
-    return out
-
-
-# -- the run ------------------------------------------------------------------------------------
 
 def fetch(url: str, out: Path) -> Path:
     if out.exists() and out.stat().st_size > 0:
@@ -596,28 +576,32 @@ def main() -> int:
             print(house["slug"], photo["pk"], json.dumps({k: fits[-1].get(k) for k in
                   ("width_m", "height_m", "squareness", "lens", "error")}), flush=True)
         good = [f for f in fits if "error" not in f]
-        truth = house["truth"]["openings"]
+        drawn = house["truth"]["openings"]
+        truth = on_front_wall(drawn, house["truth"])
         for f in good:
-            f["score"] = score(truth, f["openings"])
+            f["score"] = score(truth, on_front_wall(f["openings"], house["truth"]))
         # The photograph the filter would pick: within 40 degrees, nearest square on, then
-        # the one the house fills most.
+        # the one the house fills most. The house is rendered from it alone; the others give
+        # only depth (smc.facades.multiview), which the drawings do not record.
         best = min(good, key=lambda f: (f["obliquity_deg"] > 40, round(f["obliquity_deg"] / 10), -f["target_share"]),
                    default=None)
-        fused = fuse(good, width["width_m"]) if len(good) >= 2 else (best or {}).get("openings", [])
         results[house["slug"]] = {
             "name": house["name"], "habs": house["habs"], "facing": house["facing"],
             "footprint": width, "photos": [{k: v for k, v in f.items() if k != "openings"} | {"openings": len(f.get("openings", []))} for f in fits],
+            "predicted_openings": {f["photo"]: f["openings"] for f in good},
             "best_photo_name": best["photo"] if best else None,
             "truth_panel_m": house["truth"].get("panel_m"),
             "width_error_m": round(abs(width["width_m"] - house["truth"]["panel_m"][0]), 3) if width and house["truth"].get("panel_m") else None,
             "height_inferred_m": [f["height_m"] for f in good],
             "lidar": lidar,
-            "best_photo": score(truth, best["openings"]) if best else None,
-            "fused": score(truth, fused),
+            "drawn_openings": len(drawn), "front_wall_openings": len(truth),
+            "best_photo": score(truth, on_front_wall(best["openings"], house["truth"])) if best else None,
+            "best_photo_whole_elevation": score(drawn, best["openings"]) if best else None,
         }
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(results, indent=1, default=str))
-        print(house["slug"], json.dumps({k: results[house["slug"]]["fused"][k] for k in ("truth", "predicted", "matched", "recall", "precision", "centre_error_m")}), flush=True)
+        print(house["slug"], json.dumps({k: (results[house["slug"]]["best_photo"] or {}).get(k) for k in
+                                         ("truth", "predicted", "matched", "recall", "precision", "centre_error_m")}), flush=True)
     return 0
 
 

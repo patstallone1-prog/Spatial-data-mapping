@@ -6,7 +6,7 @@ picture has no depth. A stair running along the front, rising sideways to the do
 Francisco is full of them -- is a diagonal smear from the street, and a door at the back of an
 alcove is a door in the wall. Two photographs from different places on the pavement are enough
 to tell, because whatever stands off the wall moves between them, and how far it moves is how
-far off the wall it stands.
+far off the wall it stands. Depth is all the other photographs are used for.
 
 The house's views are the ones the run filed together (smc.facades.view_store): each a
 photograph rectified onto the same wall, with the camera's pose. Here they are
@@ -18,9 +18,9 @@ photograph rectified onto the same wall, with the camera's pose. Here they are
                cameras' poses. A view that does not register is left out.
   associated   each window and door followed from view to view: the same object seen in
                several frames.
-  sourced      each object from the photograph that sees it best -- most square on, most
-               pixels, not cut off by the frame -- and its dimensions from all of them,
-               weighted the same way, with how much they disagree.
+  kept         the house is rendered from one photograph, the reference -- the best the
+               filter found -- and each window and door keeps its size, place and panes from
+               it; the others only record that they saw it, and how far they disagree.
   swept        what stands off the wall placed by plane sweep: for each depth in front of the
                wall (or behind it), every other view is re-projected onto the reference as if
                the object stood at that depth, and the depth at which their segmentations agree
@@ -771,17 +771,20 @@ def _opening_box(opening: dict) -> dict:
 
 
 def apply_to_fit(fit: dict, mv: dict, views: list[View] | None = None, design=None) -> dict:
-    """The fit with what the views together say laid over what its one photograph said.
+    """The fit with the depth the other views give it, and nothing else of theirs.
 
-    Openings seen whole in two or more views take their fused dimensions (when the views agree
-    to within 0.25 m) and, where another view sees them better, their panes from that view
-    (``design``: fit.opening_design). The primary entry takes a stair's measured direction and
-    size, or an alcove's measured depth. Everything changed says it was, and on what basis.
+    The house is rendered from one photograph -- the reference, the best the filter found (most
+    square on, the house filling the frame, its ground floor whole) -- and every window and door
+    keeps the size, place and panes that photograph shows. A blend of several photographs is
+    never sharper than the best of them: an oblique view's opening, squared up, is wider or
+    narrower than it is, and averaging it in moved the best view's edges. What the other views
+    alone can tell is depth: a stair's direction and run, an alcove's depth. Each opening only
+    records how many views saw it and how far they disagree (evidence, not a change).
+    ``views`` and ``design`` are accepted for callers that pass them; neither changes an opening.
     """
     if mv.get("status") != "multiview":
         return fit
-    by_key = {v.key: v for v in views or []}
-    changed = {"openings_fused": 0, "openings_resourced": 0, "stair": None, "alcove": None}
+    changed = {"openings_seen_in_other_views": 0, "stair": None, "alcove": None}
     for opening in fit.get("openings", []):
         if opening.get("kind") not in {"window", "door"} or not all(
                 isinstance(opening.get(k), (int, float)) for k in ("u", "v", "w", "h")):
@@ -794,34 +797,10 @@ def apply_to_fit(fit: dict, mv: dict, views: list[View] | None = None, design=No
         overlap, obj = match
         if obj is None or overlap < 0.4 or obj["whole_views"] < 2:
             continue
-        evidence = {"views": obj["views"], "best_view": obj["best_view"], "spread_m": obj["spread_m"],
-                    "basis": "multiview_registered_landmarks"}
-        if obj["spread_m"] <= 0.25:
-            for k in ("u", "v", "w", "h"):
-                opening[k] = obj[k]
-            evidence["dimensions"] = "fused_weighted_mean"
-            changed["openings_fused"] += 1
-        best = by_key.get(obj["best_view"])
-        if design is not None and best is not None and obj["best_view"] != mv["reference_view"]:
-            reg = next((r for r in mv["registrations"] if r["view"] == best.key), None)
-            if reg:
-                registration = Registration(reg["scale"], *reg["shift_m"])
-                u, v = registration.inverse(obj["u"], obj["v"])
-                w, h = obj["w"] / registration.scale, obj["h"] / registration.scale
-                x0, x1 = round(u * best.ppm_x), round((u + w) * best.ppm_x)
-                y0, y1 = round((best.height_m - v - h) * best.ppm_y), round((best.height_m - v) * best.ppm_y)
-                crop = best.image[max(0, y0):max(0, y1), max(0, x0):max(0, x1)]
-                if crop.size and min(crop.shape[:2]) >= 8:
-                    try:
-                        read = design(crop, w, h)
-                    except ValueError:
-                        read = None
-                    if read:
-                        opening["design"] = {**opening.get("design", {}), **read,
-                                             "source_view": best.key}
-                        evidence["design"] = "read_from_best_view"
-                        changed["openings_resourced"] += 1
-        opening["multiview"] = evidence
+        opening["multiview"] = {"views": obj["views"], "spread_m": obj["spread_m"],
+                                "basis": "multiview_registered_landmarks",
+                                "dimensions": "reference_view_only"}
+        changed["openings_seen_in_other_views"] += 1
     entry = fit.get("primary_entry")
     if entry:
         centre = entry["u"] + entry["w"] / 2

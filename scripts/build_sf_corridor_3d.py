@@ -2869,7 +2869,7 @@ HTML = r"""<!doctype html>
   --shadow:0 12px 32px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.06); }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; -webkit-font-smoothing:antialiased; }
-#scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; }
+#scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; touch-action:none; }
 button { color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font:inherit; font-size:13px; font-weight:500; cursor:pointer; transition:background .15s, border-color .15s, box-shadow .15s; }
 button:hover { background:var(--soft); }
 button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
@@ -25611,7 +25611,7 @@ canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener("pointermove", (e) => {
-  if (!dragging) return;
+  if (!dragging || touches.size > 1) return;
   const dx = e.clientX - last[0], dy = e.clientY - last[1];
   state.yaw -= dx * 0.006;
   if (state.firstPerson) {
@@ -25625,18 +25625,51 @@ canvas.addEventListener("pointermove", (e) => {
 canvas.addEventListener("pointerup", () => { dragging = false; });
 canvas.addEventListener("pointercancel", () => { dragging = false; held.clear(); });
 canvas.addEventListener("lostpointercapture", () => { dragging = false; });
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
+//: How far a wheel notch zooms (about a quarter of the distance for a notch of 100), and a
+//: trackpad's pinch, whose steps are a few units each, faster still; a two-finger pinch on a touch
+//: screen zooms by the change in the fingers' spread, raised to TOUCH_PINCH_POWER.
+const WHEEL_ZOOM_PER_UNIT = 0.0025;
+const TRACKPAD_PINCH_PER_UNIT = 0.012;
+const TOUCH_PINCH_POWER = 1.6;
+// Zoom by a factor on the distance (> 1 out); in the walker's eyes, by field of view, 1x to 2x.
+function zoomBy(factor) {
   if (state.firstPerson) {
-    // Zoom by field of view, 1x to 2x; the walker stays where it is.
-    state.zoom = Math.max(1, Math.min(FIRST_PERSON_MAX_ZOOM, (state.zoom || 1) * Math.exp(-e.deltaY * 0.001)));
+    state.zoom = Math.max(1, Math.min(FIRST_PERSON_MAX_ZOOM, (state.zoom || 1) / factor));
     camera.fov = FIRST_PERSON_FOV / state.zoom;
     camera.updateProjectionMatrix();
     return;
   }
-  state.dist = Math.max(8, Math.min(MAX_ORBIT_DIST_M, state.dist * Math.exp(e.deltaY * 0.001)));
+  state.dist = Math.max(8, Math.min(MAX_ORBIT_DIST_M, state.dist * factor));
   placeCamera();
+}
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  // A trackpad pinch arrives as a wheel with ctrlKey; lines and pages are scaled to pixels.
+  const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? innerHeight : 1;
+  zoomBy(Math.exp(e.deltaY * unit * (e.ctrlKey ? TRACKPAD_PINCH_PER_UNIT : WHEEL_ZOOM_PER_UNIT)));
 }, { passive: false });
+const touches = new Map();
+let pinchSpread = 0;
+function touchSpread() {
+  const [a, b] = [...touches.values()];
+  return Math.hypot(a[0] - b[0], a[1] - b[1]);
+}
+canvas.addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "touch") return;
+  touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (touches.size === 2) { pinchSpread = touchSpread(); dragging = false; }
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!touches.has(e.pointerId)) return;
+  touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (touches.size !== 2) return;
+  const spread = touchSpread();
+  if (pinchSpread > 0 && spread > 0) zoomBy((pinchSpread / spread) ** TOUCH_PINCH_POWER);
+  pinchSpread = spread;
+});
+for (const type of ["pointerup", "pointercancel"]) {
+  canvas.addEventListener(type, (e) => { touches.delete(e.pointerId); pinchSpread = 0; });
+}
 document.getElementById("firstperson").addEventListener("click", () => {
   setFirstPerson(!state.firstPerson);
 });
@@ -26562,6 +26595,18 @@ const pinGroup = new THREE.Group();
 pinGroup.name = "pins";
 if (!ATTACH) root.add(pinGroup);
 const pins = new Array(PIN_COUNT).fill(null);
+//: Markers kept findable from any height: drawn at their true size up close and, past ``near``
+//: metres from the eye, grown with the distance so they keep their size on the screen -- zoomed
+//: out over the whole city a pin is still there to find. Each stands on the ground at x, z.
+const findableMarkers = new Set();
+const markerAt = new THREE.Vector3();
+function keepMarkersFindable() {
+  for (const marker of findableMarkers) {
+    if (!marker.object.visible) continue;
+    marker.object.getWorldPosition(markerAt);
+    marker.object.scale.setScalar(Math.max(1, camera.position.distanceTo(markerAt) / marker.near));
+  }
+}
 const pinToast = ATTACH ? null : document.createElement("div");
 if (pinToast) {
   pinToast.id = "pin-toast";
@@ -26593,7 +26638,7 @@ function pinLabel(n, colour) {
   return sprite;
 }
 function placePin(i, x, z) {
-  if (pins[i]) pinGroup.remove(pins[i].mesh);
+  if (pins[i]) { pinGroup.remove(pins[i].mesh); findableMarkers.delete(pins[i].marker); }
   const colour = PIN_COLOURS[i];
   const mesh = new THREE.Group();
   const material = new THREE.MeshStandardMaterial({ color: colour, roughness: 0.5 });
@@ -26608,7 +26653,9 @@ function placePin(i, x, z) {
   mesh.position.set(x, walkerGroundAt(x, z), z);
   mesh.userData.liftedOntoGround = true;
   pinGroup.add(mesh);
-  pins[i] = { x, z, mesh, label };
+  const marker = { object: mesh, near: 45, x, z };
+  findableMarkers.add(marker);
+  pins[i] = { x, z, mesh, label, marker };
 }
 function savePins() {
   try {
@@ -26627,7 +26674,7 @@ try {
 // each stands on whatever ground there is now.
 // (Unreferenced: run headless -- tools/unreal/export_tiles.mjs -- it must not keep Node alive.)
 if (!ATTACH) setInterval(() => {
-  for (const pin of pins) if (pin) pin.mesh.position.y = walkerGroundAt(pin.x, pin.z);
+  for (const marker of findableMarkers) marker.object.position.y = walkerGroundAt(marker.x, marker.z);
 }, 2000)?.unref?.();
 //: Whether a key press belongs to a field being typed in rather than to the map.
 function typingIn(target) {
@@ -30620,6 +30667,7 @@ function animate(now) {
   }
   if (activeGuest && activeGuest.ready) guestFrame(now);
   updateTileTree(now);
+  keepMarkersFindable();
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
@@ -31116,11 +31164,48 @@ if (!ATTACH) {
   pin.add(pinPoint, pinHead);
   pin.visible = false;
   routeGroup.parent.add(pin);
+  const pinMarker = { object: pin, near: 95, x: 0, z: 0 };
+  findableMarkers.add(pinMarker);
+  // Blue pins at the directions' start, each stop and the end, lettered in order (A, the start),
+  // and as findable from any height as the others.
+  const ROUTE_PIN_BLUE = 0x2563eb;
+  const routePinMaterial = new THREE.MeshBasicMaterial({ color: ROUTE_PIN_BLUE });
+  let routePins = [];
+  function clearRoutePins() {
+    for (const marker of routePins) { routeGroup.parent.remove(marker.object); findableMarkers.delete(marker); }
+    routePins = [];
+  }
+  function placeRoutePins(stops) {
+    clearRoutePins();
+    const b = DATA.bbox;
+    stops.forEach((stop, i) => {
+      if (!(stop.lon >= b.west && stop.lon <= b.east && stop.lat >= b.south && stop.lat <= b.north)) return;
+      const [x, y] = xy(stop.lon, stop.lat);
+      const object = new THREE.Group();
+      const point = new THREE.Mesh(pinPoint.geometry, routePinMaterial);
+      point.rotation.x = Math.PI;
+      point.position.y = 3;
+      const head = new THREE.Mesh(pinHead.geometry, routePinMaterial);
+      head.position.y = 6.5;
+      const label = pinLabel(String.fromCharCode(65 + i), ROUTE_PIN_BLUE);
+      label.position.y = 10.6;
+      label.scale.set(4.2, 4.2, 1);
+      object.add(point, head, label);
+      object.position.set(x, walkerGroundAt(x, -y), -y);
+      routeGroup.parent.add(object);
+      const marker = { object, near: 95, x, z: -y };
+      findableMarkers.add(marker);
+      routePins.push(marker);
+    });
+    // The destination's own pin is now one of these.
+    if (routePins.length) pin.visible = false;
+  }
   window.kerbsideShowPlace = (place) => {
     const b = DATA.bbox;
     if (!(place.lon >= b.west && place.lon <= b.east && place.lat >= b.south && place.lat <= b.north)) return false;
     const [x, y] = xy(place.lon, place.lat);
     pin.position.set(x, walkerGroundAt(x, -y), -y);
+    pinMarker.x = x; pinMarker.z = -y;
     pin.visible = true;
     gps.follow = false;
     if (state.firstPerson) setFirstPerson(false);
@@ -31235,12 +31320,14 @@ if (!ATTACH) {
   clear.addEventListener("click", () => {
     route.results = []; route.chosen = 0; drawRoutes(); renderResults(0); status.textContent = "";
     pin.visible = false; gps.follow = true;
+    clearRoutePins();
   });
   document.getElementById("route-go").addEventListener("click", async () => {
     const stops = route.stops.map((stop, i) => stop || (i === 0 ? here() : null));
     if (stops.some((stop) => !stop)) { status.textContent = "Choose each stop from the suggestions."; return; }
     // Directions from somewhere else start the walker there.
     if (!stops[0].here) walkerToStart(stops[0]);
+    placeRoutePins(stops);
     status.textContent = "Finding routes…";
     const ticket = route.pending = Symbol("route");
     try {
