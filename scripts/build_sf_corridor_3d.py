@@ -6095,6 +6095,12 @@ function buildBayBridges(g) {
   const deck = (stations, spec) => {
     const { width, lanes, walk, walkColor, railColor, depth = 2.2, median = false, structure = null } = spec;
     const half = width / 2, road = half - walk;
+    // Where its road is, for what is laid on it (a route's line: elevatedRoadsAt). Built in the
+    // atlas's heights and lowered by the Earth's curve, as the deck is.
+    for (let i = 1; i < stations.length; i += 1) {
+      const a = stations[i - 1], b = stations[i];
+      registerElevatedSegment(a.x, a.z, a.y - earthDrop(a.x, a.z), b.x, b.z, b.y - earthDrop(b.x, b.z), road);
+    }
     strip(stations, -road, road, 0, 0, lanesMaterial(lanes, median), 14);
     for (const side of [-1, 1]) {
       strip(stations, side * road, side * half, 0.22, 0.22, mat(walkColor, { roughness: 0.85, side: THREE.DoubleSide }));
@@ -18955,6 +18961,7 @@ for (const way of DRAW_ORDER) {
  const centralDeck = CENTRAL_FREEWAY_WAYS.includes(way) ? centralFreewayProfile(way) : null;
  WAY_LIFT = centralDeck || BRIDGE_LIFTS.get(way) || (way.kind === "street" && wayFollowsCut(way) ? cutLiftAt
    : way.kind === "crossing" && way.points && way.points.length >= 2 ? lineLiftFor(way.points) : null);
+ if (way.kind === "street" && (centralDeck || BRIDGE_LIFTS.get(way))) registerElevatedWay(way, WAY_LIFT);
  if (way.kind === "beach") {
  const shape = footprintShape(way.points);
  if (shape) {
@@ -29681,6 +29688,90 @@ function animate(now) {
   if (SETTINGS.fps === 0) adaptResolution(now);
 }
 
+// ---- the road surfaces as drawn --------------------------------------------------------------
+//
+// What is laid on a road -- a route's line -- has to lie on the road as it is drawn, and the
+// road is not always the ground: a bridge's or the Central Freeway's deck stands over it, the
+// Bay Bridge over the water, and a tunnel's floor is under the hill. Every elevated road is
+// registered as it is built (its way and the lift it is drawn at, or a deck's stations) in a
+// grid, and roadSurfacesAt gives every road surface at a point: the ground, the decks over it,
+// the floor of a bore under it.
+//: (var, no initialiser: the bridges register before this part of the module has run.)
+var ELEVATED_ROADS;
+//: The grid's cell (a function: asked before this part of the module has run).
+function elevatedCellM() { return 40; }
+function registerElevatedSegment(ax, az, ay, bx, bz, by, half) {
+  if (!ELEVATED_ROADS) ELEVATED_ROADS = new Map();
+  if (![ax, az, ay, bx, bz, by, half].every(Number.isFinite)) return;
+  const segment = { ax, az, ay, bx, bz, by, half };
+  const reach = half + 1;
+  for (let gx = Math.floor((Math.min(ax, bx) - reach) / elevatedCellM()); gx <= Math.floor((Math.max(ax, bx) + reach) / elevatedCellM()); gx += 1) {
+    for (let gz = Math.floor((Math.min(az, bz) - reach) / elevatedCellM()); gz <= Math.floor((Math.max(az, bz) + reach) / elevatedCellM()); gz += 1) {
+      const key = `${gx}:${gz}`;
+      if (!ELEVATED_ROADS.has(key)) ELEVATED_ROADS.set(key, []);
+      ELEVATED_ROADS.get(key).push(segment);
+    }
+  }
+}
+function registerElevatedWay(way, lift) {
+  if (!way.points || way.points.length < 2 || typeof lift !== "function") return;
+  const half = (way.road_m || 7) / 2;
+  const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  for (let i = 1; i < pts.length; i += 1) {
+    const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
+    registerElevatedSegment(ax, az, lift(ax, az) + ROAD_TOP_M, bx, bz, lift(bx, bz) + ROAD_TOP_M, half);
+  }
+}
+//: The decks over (x, z): the height of each elevated road whose width covers the point.
+function elevatedRoadsAt(x, z) {
+  const bucket = ELEVATED_ROADS && ELEVATED_ROADS.get(`${Math.floor(x / elevatedCellM())}:${Math.floor(z / elevatedCellM())}`);
+  if (!bucket) return [];
+  const out = [];
+  for (const { ax, az, ay, bx, bz, by, half } of bucket) {
+    const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz;
+    if (!(len2 > 0)) continue;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2));
+    if (Math.hypot(x - ax - dx * t, z - az - dz * t) > half + 0.5) continue;
+    out.push(ay + (by - ay) * t);
+  }
+  return out;
+}
+//: Every road surface at (x, z), with what it is: the ground, each deck over it, a bore's floor.
+function roadSurfacesAt(x, z) {
+  const out = [{ y: groundLiftAt(x, z) + ROAD_TOP_M, kind: "ground" }];
+  for (const y of elevatedRoadsAt(x, z)) out.push({ y, kind: "deck" });
+  const floor = tunnelFloorAt(x, z);
+  if (floor !== null) out.push({ y: floor + ROAD_TOP_M, kind: "tunnel" });
+  const stair = typeof publicStairAt === "function" ? publicStairAt(x, z) : null;
+  if (stair !== null) out.push({ y: stair, kind: "stairs" });
+  return out;
+}
+//: The surface a line along the road keeps to, point by point. Where the road network says what
+//: each point is on (``flags``: "bridge", "tunnel" or null, from Valhalla's edges), that: the
+//: highest deck on a bridge, the bore's floor in a tunnel, the ground (or a stair) elsewhere --
+//: so a route under a viaduct stays on the street, and one up a ramp is on the ramp. Where it
+//: does not (a transit leg), continuity: from the ground at its start, then the surface nearest
+//: the last at each point.
+function routeSurfaceHeights(points, flags = null) {
+  let previous = null;
+  return points.map(([x, z], i) => {
+    const surfaces = roadSurfacesAt(x, z);
+    let pick = surfaces[0];
+    if (flags) {
+      const flag = flags[i];
+      const decks = surfaces.filter((s) => s.kind === "deck"), bore = surfaces.find((s) => s.kind === "tunnel");
+      if (flag === "bridge" && decks.length) pick = decks.reduce((a, b) => (b.y > a.y ? b : a));
+      else if (flag === "tunnel" && bore) pick = bore;
+      else if (!flag) pick = surfaces.find((s) => s.kind === "stairs") || surfaces[0];
+      else if (previous !== null) for (const s of surfaces) if (Math.abs(s.y - previous) < Math.abs(pick.y - previous)) pick = s;
+    } else if (previous !== null) {
+      for (const s of surfaces) if (Math.abs(s.y - previous) < Math.abs(pick.y - previous)) pick = s;
+    }
+    previous = pick.y;
+    return pick;
+  });
+}
+
 // ---- directions ------------------------------------------------------------------------------
 //
 // Routes come from Valhalla -- an established routing engine over the legal OpenStreetMap street
@@ -29810,18 +29901,28 @@ async function measureEdges(result, mode) {
   const response = await fetch(`${ROUTING_URL}/trace_attributes`, { method: "POST",
     headers: { "Content-Type": "application/json" }, body: JSON.stringify({
       encoded_polyline: encodePolyline6(result.line), shape_match: "edge_walk", costing,
-      filters: { attributes: ["edge.length", "edge.use", "edge.cycle_lane"], action: "include" } }) });
+      filters: { attributes: ["edge.length", "edge.use", "edge.cycle_lane", "edge.bridge", "edge.tunnel",
+        "edge.begin_shape_index", "edge.end_shape_index", "shape"], action: "include" } }) });
   const body = await response.json().catch(() => null);
   if (!response.ok || !Array.isArray(body?.edges)) return result;
   let total = 0, bike = 0, stairs = 0;
+  // Which of the route's points are on a bridge or in a tunnel, as the road network has them: the
+  // ribbon is laid on the deck or the bore's floor there, and on the ground everywhere else.
+  const shape = body.shape ? decodePolyline6(body.shape) : result.line;
+  const flags = new Array(shape.length).fill(null);
   for (const edge of body.edges) {
     const km = edge.length || 0;
     total += km;
     if (edge.use === "cycleway" || edge.cycle_lane === "dedicated" || edge.cycle_lane === "separated") bike += km;
     else if (edge.cycle_lane === "shared") bike += km * 0.5;
     if (edge.use === "steps") stairs += 1;
+    const flag = edge.tunnel ? "tunnel" : edge.bridge ? "bridge" : null;
+    if (flag && Number.isInteger(edge.begin_shape_index) && Number.isInteger(edge.end_shape_index)) {
+      for (let i = edge.begin_shape_index; i <= edge.end_shape_index && i < flags.length; i += 1) flags[i] = flag;
+    }
   }
-  return { ...result, bikeKm: bike, bikeShare: total ? bike / total : 0, stairs };
+  return { ...result, line: shape.length > 1 ? shape : result.line, surface: flags,
+    bikeKm: bike, bikeShare: total ? bike / total : 0, stairs };
 }
 //: Two routes that are the same way: their lines, resampled at the same shares of their length,
 //: no more than 25 m apart on average.
@@ -29863,15 +29964,12 @@ async function requestValhalla(stops, mode) {
     const failure = answers.find((a) => a.status === "rejected");
     throw failure ? failure.reason : new Error("no route");
   }
-  // Bike lanes and steps are only in the edges: measured for the modes whose tags read them.
-  if (mode === "bike" || mode === "walk") {
-    return Promise.all(found.slice(0, 6).map((result) => measureEdges(result, mode).catch(() => result)));
-  }
-  return found;
+  // Bike lanes, steps, bridges and tunnels are only in the edges: every candidate is measured.
+  return Promise.all(found.slice(0, 6).map((result) => measureEdges(result, mode).catch(() => result)));
 }
 //: A Transitous itinerary as a route: its time, walking, transfers, line and what to do.
 function summarizeItinerary(it) {
-  const line = [], steps = [];
+  const line = [], steps = [], under = [];
   let walkM = 0, km = 0;
   const NAMES = { BUS: "Bus", TRAM: "Streetcar", SUBWAY: "Metro", RAIL: "Train", REGIONAL_RAIL: "Train",
     FERRY: "Ferry", CABLE_CAR: "Cable car", FUNICULAR: "Funicular", COACH: "Coach" };
@@ -29882,6 +29980,8 @@ function summarizeItinerary(it) {
       km += Math.hypot(bx - ax, by - ay) / 1000;
     }
     line.push(...points);
+    // A subway leg runs under the ground: drawn faint, on the ground over it.
+    for (let i = 0; i < points.length; i += 1) under.push(leg.mode === "SUBWAY");
     const to = leg.to?.name && leg.to.name !== "END" ? leg.to.name : "your destination";
     if (leg.mode === "WALK") {
       walkM += leg.distance || 0;
@@ -29895,7 +29995,7 @@ function summarizeItinerary(it) {
     }
   }
   return { seconds: it.duration || 0, km, ascent: 0, descent: 0, walkM: Math.round(walkM),
-    transfers: it.transfers || 0, line, steps,
+    transfers: it.transfers || 0, line, steps, under,
     departs: it.startTime || null };
 }
 async function requestTransit(stops) {
@@ -29954,43 +30054,80 @@ async function requestRoutes(stops, mode) {
   const found = mode === "transit" ? await requestTransit(stops) : await requestValhalla(stops, mode);
   return tagRoutes(found, mode);
 }
-//: A route as a ribbon on the ground: resampled every few metres so it follows the hills, lifted
-//: a little, inside this region only (beyond it this page has no ground to lay it on).
-function routeRibbon(line, width, colour) {
+//: A route as a ribbon on the road as drawn (routeSurfaceHeights): resampled every few metres so it
+//: follows the hills, on a deck where the route is on a deck and on a bore's floor where it is in a
+//: tunnel -- and there, and along a subway leg, a fainter copy on the ground over it, so the way
+//: it goes is seen from above. Inside this region only (beyond it there is no ground to lay it on).
+//: The heights are worked out once per route; a change of width only re-lays the ribbon.
+function routeSamples(result) {
+  if (result.samples) return result.samples;
   const b = DATA.bbox, inside = ([lon, lat]) => lon >= b.west && lon <= b.east && lat >= b.south && lat <= b.north;
   const runs = [];
   let run = [];
+  const line = result.line, under = result.under || [], flagged = Array.isArray(result.surface) ? result.surface : null;
+  const flush = () => { if (run.length > 1) runs.push(run); run = []; };
   for (let i = 0; i < line.length; i += 1) {
-    if (!inside(line[i])) { if (run.length > 1) runs.push(run); run = []; continue; }
+    if (!inside(line[i])) { flush(); continue; }
     const [x, y] = xy(...line[i]);
-    const here = [x, -y];
+    const here = [x, -y, Boolean(under[i]), flagged ? flagged[i] ?? null : undefined];
     if (run.length) {
-      const [px, pz] = run[run.length - 1], gap = Math.hypot(here[0] - px, here[1] - pz);
-      for (let k = 1; k < Math.floor(gap / 3); k += 1) run.push([px + (here[0] - px) * k * 3 / gap, pz + (here[1] - pz) * k * 3 / gap]);
+      const [px, pz, pu, pf] = run[run.length - 1], gap = Math.hypot(here[0] - px, here[1] - pz);
+      // Between two points the way is what both ends are; at a change, what the start is.
+      for (let k = 1; k < Math.floor(gap / 3); k += 1) {
+        run.push([px + (here[0] - px) * k * 3 / gap, pz + (here[1] - pz) * k * 3 / gap, pu && here[2], pf === here[3] ? pf : pf ?? here[3]]);
+      }
     }
     run.push(here);
   }
-  if (run.length > 1) runs.push(run);
+  flush();
+  result.samples = runs.map((points) => {
+    const surfaces = routeSurfaceHeights(points, flagged ? points.map((p) => p[3] ?? null) : null);
+    return points.map(([x, z, subway], i) => {
+      const ground = groundLiftAt(x, z) + ROAD_TOP_M;
+      const s = surfaces[i];
+      // Under the ground: in a bore whose floor is well under the hill, or on a subway leg.
+      const hidden = subway || (s.kind === "tunnel" && ground - s.y > 2.0);
+      return { x, z, y: subway ? ground : s.y, ground, hidden, kind: subway ? "subway" : s.kind };
+    });
+  });
+  return result.samples;
+}
+function routeRibbon(result, width, colour) {
   const group = new THREE.Group();
   const material = new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, polygonOffsetFactor: -4,
     polygonOffsetUnits: -8, side: THREE.DoubleSide });
-  for (const points of runs) {
+  const faint = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.45, depthWrite: false,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8, side: THREE.DoubleSide });
+  const lay = (points, heightOf, mat) => {
+    if (points.length < 2) return;
     const positions = [], index = [];
-    points.forEach(([x, z], i) => {
-      const [ax, az] = points[Math.max(0, i - 1)], [bx, bz] = points[Math.min(points.length - 1, i + 1)];
-      const len = Math.hypot(bx - ax, bz - az) || 1, nx = -(bz - az) / len * width / 2, nz = (bx - ax) / len * width / 2;
-      const y = walkerGroundAt(x, z) + ROUTE_LIFT_M;
-      positions.push(x + nx, y, z + nz, x - nx, y, z - nz);
+    points.forEach((p, i) => {
+      const a = points[Math.max(0, i - 1)], c = points[Math.min(points.length - 1, i + 1)];
+      const len = Math.hypot(c.x - a.x, c.z - a.z) || 1, nx = -(c.z - a.z) / len * width / 2, nz = (c.x - a.x) / len * width / 2;
+      const y = heightOf(p) + ROUTE_LIFT_M;
+      positions.push(p.x + nx, y, p.z + nz, p.x - nx, y, p.z - nz);
       if (i) index.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
     });
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
     geometry.setIndex(index);
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(geometry, mat);
     mesh.renderOrder = 3;
     group.add(mesh);
+  };
+  let inside = 0;
+  for (const points of routeSamples(result)) {
+    inside += points.length;
+    lay(points.filter((p) => p.kind !== "subway"), (p) => p.y, material);
+    // The hidden stretches again, faint, on the ground over them.
+    let stretch = [];
+    for (const p of [...points, null]) {
+      if (p && p.hidden) { stretch.push(p); continue; }
+      lay(stretch, (q) => q.ground, faint);
+      stretch = [];
+    }
   }
-  return { group, inside: runs.reduce((n, r) => n + r.length, 0) };
+  return { group, inside };
 }
 //: How wide the ribbons are drawn at the present view: their ground width, or wider from above.
 function routeScale() {
@@ -30010,11 +30147,11 @@ function drawRoutes() {
   }
   route.results.forEach((result, i) => {
     if (i === route.chosen) return;
-    routeGroup.add(routeRibbon(result.line, ROUTE_RIBBON_M.other * routeDrawnAt, 0x94a3b8).group);
+    routeGroup.add(routeRibbon(result, ROUTE_RIBBON_M.other * routeDrawnAt, 0x94a3b8).group);
   });
   const chosen = route.results[route.chosen];
   if (!chosen) return 0;
-  const drawn = routeRibbon(chosen.line, ROUTE_RIBBON_M.chosen * routeDrawnAt, 0x2563eb);
+  const drawn = routeRibbon(chosen, ROUTE_RIBBON_M.chosen * routeDrawnAt, 0x2563eb);
   routeGroup.add(drawn.group);
   return drawn.inside;
 }
@@ -30319,7 +30456,7 @@ window.kerbside = {
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
   tunnelFloorAt, walkerGroundAt, tunnelBores, terrainHeightAt, groundLiftAt, TERRAIN,
   cutLiftAt, approachRoadAt, wayFollowsCut, APPROACH_CUTS, junctionBoxHulls,
-  goTo, setFirstPerson, placeCamera, state, avatar, walkerGroundInfo, walkPace, publicStairs, publicStairAt,
+  goTo, setFirstPerson, placeCamera, state, avatar, roadSurfacesAt, routeSurfaceHeights, elevatedRoadsAt, walkerGroundInfo, walkPace, publicStairs, publicStairAt,
   outsideTerrainGrid, drawnGroundAt, returnToGps, GPS_LEASH, gps, followGps, onCrossingGround, busZonePieces, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
