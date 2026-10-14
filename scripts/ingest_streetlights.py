@@ -16,7 +16,16 @@ type is built to (``FORMS``) and the catalog line it came from.
 Written into each San Francisco furniture file whose area they fall in as
 ``geometry_based.street_lights``. A Mapillary utility pole within 6 m of one is that streetlight,
 seen from the street: it is dropped from ``inferred.detected_utility_poles``, so the light is not
-drawn a second time as a wooden pole with crossarms. Then the files' windowed cells are cut again.
+drawn a second time as a wooden pole with crossarms.
+
+And one pole is drawn per pole. Mapillary places a map feature per detection cluster, and one
+pole is often several features a few metres apart -- nearest-neighbour distances between the
+published poles peaked at 2-4 m, where poles stand 30-45 m apart -- so a block drew three or four
+poles, crossarms and all, where one stands (and an old pole seen in 2019 beside the one that
+replaced it). The span builder (scripts/build_electrical_spans.py) already merges detections
+within 6 m into one pole and hangs its wires from that; the same merge
+(smc.infrastructure.electrical.merge_duplicate_poles) is applied here to what the page draws, so
+the poles drawn are the ones the wires hang from. Then the files' windowed cells are cut again.
 
     .venv/bin/python scripts/ingest_streetlights.py [--refresh]
 """
@@ -34,6 +43,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from smc.infrastructure.electrical import merge_duplicate_poles  # noqa: E402
 from smc.net import use_certifi  # noqa: E402
 
 CACHE = ROOT / "build" / "kerb_assets" / "sfpuc-streetlights.json"
@@ -145,8 +155,9 @@ def metres(a: list[float], b: list[float]) -> float:
     return math.hypot((a[0] - b[0]) * 88_000.0, (a[1] - b[1]) * 111_320.0)
 
 
-def off_streetlights(poles: list[dict], lights: list[dict]) -> list[dict]:
-    """Mapillary's poles that are not one of the city's streetlights."""
+def off_streetlights(poles: list[dict], lights: list[dict], span_ends: frozenset = frozenset()) -> list[dict]:
+    """Mapillary's poles that are not one of the city's streetlights. A pole a photographed
+    conductor ends on (``span_ends``) is a utility pole whatever stands beside it."""
     grid: dict[tuple[int, int], list[list[float]]] = {}
     for light in lights:
         grid.setdefault((int(light["p"][0] * 1500), int(light["p"][1] * 1500)), []).append(light["p"])
@@ -154,9 +165,41 @@ def off_streetlights(poles: list[dict], lights: list[dict]) -> list[dict]:
     for pole in poles:
         key = (int(pole["p"][0] * 1500), int(pole["p"][1] * 1500))
         near = [p for dx in (-1, 0, 1) for dy in (-1, 0, 1) for p in grid.get((key[0] + dx, key[1] + dy), [])]
-        if not any(metres(pole["p"], p) < SAME_POLE_M for p in near):
+        if str(pole["id"]) in span_ends or not any(metres(pole["p"], p) < SAME_POLE_M for p in near):
             kept.append(pole)
     return kept
+
+
+def one_per_pole(mapped: list[dict], detected: list[dict],
+                 span_ends: frozenset = frozenset()) -> tuple[list[dict], list[dict]]:
+    """The mapped and detected poles with each physical pole once (merge_duplicate_poles). Where
+    a wire span ends on one of a pole's detections, that detection is the one drawn, so the wire
+    meets the pole."""
+    poles = mapped + detected
+    if not poles:
+        return mapped, detected
+    lon0 = sum(p["p"][0] for p in poles) / len(poles)
+    lat0 = sum(p["p"][1] for p in poles) / len(poles)
+    k = math.cos(math.radians(lat0)) * 111_320.0
+    by_id = {str(p["id"]): p for p in poles}
+    merged, alias = merge_duplicate_poles(
+        [{"id": str(p["id"]), "xy": ((p["p"][0] - lon0) * k, (p["p"][1] - lat0) * 111_320.0)} for p in poles])
+    members: dict[str, list[str]] = {}
+    for member, representative in alias.items():
+        if member != representative:
+            members.setdefault(representative, []).append(member)
+    kept = set()
+    for rep in merged:
+        cluster = sorted([rep["id"], *members.get(rep["id"], [])])
+        ends = [i for i in cluster if i in span_ends]
+        chosen = rep["id"] if not ends or rep["id"] in ends else ends[0]
+        pole = by_id[chosen]
+        if len(cluster) > 1:
+            pole["merged_detections"] = [i for i in cluster if i != chosen]
+        kept.add(chosen)
+        # A second span end in the cluster is a second pole the wires say is there.
+        kept.update(ends)
+    return ([p for p in mapped if str(p["id"]) in kept], [p for p in detected if str(p["id"]) in kept])
 
 
 SOURCE = {
@@ -182,26 +225,38 @@ def main() -> int:
     cut = runpy.run_path(str(ROOT / "tools/build_window_cells.py"))["cut"]
     report = {}
     for path in files:
+        try:
+            spans = json.loads((path.parent / "sf-corridor-electrical.json").read_text()).get("spans") or []
+        except (OSError, ValueError):
+            spans = []
+        span_ends = frozenset(str(s.get(k)) for s in spans for k in ("a", "b") if s.get(k) is not None)
         document = json.loads(path.read_text())
         bbox = document.get("bbox")
         if not bbox:
             continue
         here = [light for light in lights if inside(bbox, *light["p"])]
-        if not here:
-            continue
-        document.setdefault("geometry_based", {})["street_lights"] = here
         inferred = document.setdefault("inferred", {})
         before = len(inferred.get("detected_utility_poles") or [])
-        inferred["detected_utility_poles"] = off_streetlights(inferred.get("detected_utility_poles") or [], here)
-        if SOURCE["id"] not in {s.get("id") for s in document.get("sources", []) if isinstance(s, dict)}:
-            document.setdefault("sources", []).append(SOURCE)
+        entry = {}
+        if here:
+            document.setdefault("geometry_based", {})["street_lights"] = here
+            inferred["detected_utility_poles"] = off_streetlights(inferred.get("detected_utility_poles") or [], here, span_ends)
+            if SOURCE["id"] not in {s.get("id") for s in document.get("sources", []) if isinstance(s, dict)}:
+                document.setdefault("sources", []).append(SOURCE)
+            entry = {"street_lights": len(here),
+                     "forms": {f: sum(1 for x in here if x["form"] == f) for f in sorted({x["form"] for x in here})},
+                     "mapillary_poles_that_were_streetlights": before - len(inferred["detected_utility_poles"])}
+        mapped, detected = inferred.get("utility_poles") or [], inferred.get("detected_utility_poles") or []
+        if not here and not (mapped or detected):
+            continue
+        poles_before = len(mapped) + len(detected)
+        inferred["utility_poles"], inferred["detected_utility_poles"] = one_per_pole(mapped, detected, span_ends)
+        entry["poles_before_and_after_one_per_pole"] = [
+            poles_before, len(inferred["utility_poles"]) + len(inferred["detected_utility_poles"])]
         path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
         if (path.parent / "cells/sf-corridor-furniture/manifest.json").exists():
             cut(path)
-        report[str(path.relative_to(ROOT))] = {
-            "street_lights": len(here),
-            "forms": {f: sum(1 for x in here if x["form"] == f) for f in sorted({x["form"] for x in here})},
-            "mapillary_poles_that_were_streetlights": before - len(inferred["detected_utility_poles"])}
+        report[str(path.relative_to(ROOT))] = entry
     print(json.dumps(report, indent=1))
     return 0
 

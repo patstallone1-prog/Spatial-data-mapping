@@ -85,3 +85,35 @@ def test_small_cells_ride_the_streetlights_and_span_wires_hang_from_trolley_pole
     assert "addElectricalNetwork(furniture, lights.rows)" in furniture
     assert "addTrolleyWires(inferred.trolley_wires || [], lights.rows)" in furniture
     assert 'startsWith("TP-")' in _extract("addTrolleyWires", js)
+
+
+def test_one_pole_is_drawn_per_pole_and_wires_meet_their_poles() -> None:
+    mapped = [{"id": "osm:utility_pole:node:1", "p": [-122.42, 37.76]}]
+    detected = [{"id": "mapillary:utility_pole:2", "p": [-122.42002, 37.76001]},   # 2 m off: the same pole
+                {"id": "mapillary:utility_pole:3", "p": [-122.4204, 37.76]},       # 35 m on: the next one
+                {"id": "mapillary:utility_pole:4", "p": [-122.42041, 37.76002]}]   # 2 m off that
+    osm, seen = INGEST["one_per_pole"]([dict(p) for p in mapped], [dict(p) for p in detected])
+    assert [p["id"] for p in osm] == ["osm:utility_pole:node:1"], "a mapped pole anchors its cluster"
+    assert len(seen) == 1 and seen[0]["merged_detections"]
+    # A wire's end is the detection that stays.
+    _, seen = INGEST["one_per_pole"]([], [dict(p) for p in detected[1:]], frozenset({"mapillary:utility_pole:4"}))
+    assert [p["id"] for p in seen] == ["mapillary:utility_pole:4"]
+    # And a pole a wire ends on is never taken for the streetlight beside it.
+    lights = [{"p": [-122.42041, 37.76002]}]
+    assert INGEST["off_streetlights"](detected[2:], lights, frozenset({"mapillary:utility_pole:4"})) == [detected[2]]
+
+
+def test_the_published_poles_are_one_per_pole() -> None:
+    import math
+    inferred = json.loads((ROOT / "docs/regions/sf-mission/sf-corridor-furniture.json").read_text())["inferred"]
+    poles = [p["p"] for p in inferred["utility_poles"] + inferred["detected_utility_poles"]]
+    k = math.cos(math.radians(37.76)) * 111_320
+    close = sum(1 for i, a in enumerate(poles) for b in poles[i + 1:]
+                if abs(a[0] - b[0]) < 1e-4 and math.hypot((a[0] - b[0]) * k, (a[1] - b[1]) * 110_540) < 3)
+    assert close <= len(poles) * 0.01, close
+
+
+def test_trolley_span_poles_are_shared_between_ways() -> None:
+    wires = _extract("addTrolleyWires", _page_js())
+    assert "const shared = standingSpanPole(qx, qz);" in wires
+    assert "const TROLLEY_POLE_SHARE_M = 6;" in _page_js()

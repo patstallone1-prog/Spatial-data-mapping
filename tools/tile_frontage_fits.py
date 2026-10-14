@@ -131,8 +131,12 @@ def main() -> int:
     ap.add_argument("--base", default="", help="where the tiles are served from (empty: the site)")
     ap.add_argument("--contributed", type=Path, default=ROOT / "data" / "contributed_houses",
                     help="fits from contributed photographs (scripts/fit_contributed_photos.py), published with the run's")
+    ap.add_argument("--overlay", type=Path, nargs="*", default=[],
+                    help="fits published over the run's, e.g. a refit pass's accepted.json (scripts/refit_window_gaps.py)")
     args = ap.parse_args()
     fits = json.loads(args.fits.read_text())["buildings"]
+    for overlay in args.overlay:
+        fits.update(json.loads(overlay.read_text())["buildings"])
     fits.update(contributed_fits(args.contributed))
     manifest = tile(fits, args.base)
     total = sum(t["bytes"] for t in manifest["tiles"])
