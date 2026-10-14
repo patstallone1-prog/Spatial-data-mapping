@@ -156,7 +156,7 @@ def main() -> int:
     ap.add_argument("--matcher-output", type=Path, required=True)
     ap.add_argument("--inputs", type=Path, nargs="+", required=True)
     ap.add_argument("--detail-model-cache", type=Path)
-    ap.add_argument("--device", default="cpu")
+    ap.add_argument("--device", default="cpu", help="accepted for the supervisor; the pass runs on the CPU")
     ap.add_argument("--request", action="store_true", help="ask the supervisor for the pass, and stop")
     args = ap.parse_args()
     output = args.matcher_output.resolve()
@@ -189,7 +189,10 @@ def main() -> int:
     command = [sys.executable, str(ROOT / "scripts/match_frontage_facades.py"),
                "--inputs", *[str(state / "stage" / str(i)) for i in range(len(args.inputs))],
                "--output", str(refit), "--publish-to", str(refit / "published.json"),
-               "--neighbours", str(state / "neighbours.json"), "--device", args.device,
+               # On the CPU: beside the run's own GPU workers (filter, matcher) this pass's detector
+               # waited on the GPU for a quarter of an hour without a fit. Its houses' detections
+               # are mostly cached already, so the CPU costs it little.
+               "--neighbours", str(state / "neighbours.json"), "--device", "cpu",
                "--auto-accept", "--refit-all"]
     if args.detail_model_cache:
         command += ["--detail-model-cache", str(args.detail_model_cache)]
