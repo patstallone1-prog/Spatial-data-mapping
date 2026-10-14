@@ -54,7 +54,7 @@ def test_meter_spaces_become_posts_with_their_heads_and_pay_stations_with_their_
 def test_meters_and_trolley_wires_reach_the_streets() -> None:
     js = _page_js()
     assert "parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],\n      inferred.detected_parking_meters || []))" in js
-    assert "trolley_wires: addTrolleyWires(inferred.trolley_wires || [])" in js
+    assert "trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows)" in js
     spot = _extract("meterSpot", js)
     assert "streetSquareKerb(nearestKerbAt(x, -y, 8))" in spot and "!insideCarriageway(mx, mz, 0.05)" in spot
     wires = _extract("addTrolleyWires", js)

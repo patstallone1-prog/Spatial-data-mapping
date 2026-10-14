@@ -364,3 +364,88 @@ def default_panes(found: list[dict]) -> int:
                        "panes_basis": "default_pane_width", "default_pane_width_m": DEFAULT_PANE_WIDTH_M}
         count += 1
     return count
+
+
+#: Window centres this close across are in one column.
+COLUMN_TOLERANCE_M = 0.45
+#: Columns two floors must share before one floor's grid stands for the other's.
+COLUMN_MATCHES_MIN = 2
+#: A spot whose pixels are this much plainly-seen bare wall is a blank wall, not a hidden window.
+BLANK_WALL_SHARE = 0.8
+
+
+def _rows(windows: list[dict]) -> list[list[dict]]:
+    rows: list[list[dict]] = []
+    for o in sorted(windows, key=lambda o: o["v"] + o["h"] / 2):
+        centre = o["v"] + o["h"] / 2
+        if rows and abs(centre - sum(r["v"] + r["h"] / 2 for r in rows[-1]) / len(rows[-1])) <= ROW_TOLERANCE_M:
+            rows[-1].append(o)
+        else:
+            rows.append([o])
+    return rows
+
+
+def _centre(o: dict) -> float:
+    return o["u"] + o["w"] / 2
+
+
+def _overlaps(a: dict, b: dict, margin: float = 0.15) -> bool:
+    return (a["u"] - margin < b["u"] + b["w"] and b["u"] - margin < a["u"] + a["w"]
+            and a["v"] - margin < b["v"] + b["h"] and b["v"] - margin < a["v"] + a["h"])
+
+
+def complete_columns(found: list[dict], width: float, height: float, blank_wall=None) -> list[dict]:
+    """A window the photograph did not show, where the front's own grid says one is.
+
+    Floors of a front line their windows up in columns. Where one floor's windows all stand in
+    columns another floor also has -- at least two of them, so the grid is the front's and not a
+    coincidence -- a column the other floor has and this one lacks holds a window here too: the
+    second floor's three over the first floor's middle and right put one on the first floor's
+    left. It is drawn at this floor's own window size and height, never over a door, a garage or
+    an entry, and never where the photograph plainly shows bare wall (``blank_wall(box)`` gives
+    the share of the spot seen as wall; a tree, a car or the frame's edge in front of it is not
+    bare wall). Marked as the inference it is.
+    """
+    windows = [o for o in found if o.get("role", o["kind"]) == "window"]
+    others = [o for o in found if o.get("role", o["kind"]) != "window"]
+    rows = _rows(windows)
+    added: list[dict] = []
+    for row in rows:
+        for other in rows:
+            if other is row or len(other) <= len(row):
+                continue
+            matched = {id(o): min(other, key=lambda m: abs(_centre(m) - _centre(o))) for o in row}
+            if any(abs(_centre(m) - _centre(o)) > COLUMN_TOLERANCE_M
+                   for o in row for m in [matched[id(o)]]):
+                continue
+            used = {id(m) for m in matched.values()}
+            if len(used) < min(COLUMN_MATCHES_MIN, len(row)) or len(used) < COLUMN_MATCHES_MIN:
+                continue
+            w = sorted(o["w"] for o in row)[len(row) // 2]
+            h = sorted(o["h"] for o in row)[len(row) // 2]
+            v = sorted(o["v"] for o in row)[len(row) // 2]
+            model = max(row, key=lambda o: (_detail(o), o.get("confidence", 0)))
+            for column in (m for m in other if id(m) not in used):
+                u = _centre(column) - w / 2
+                box = {"u": round(u, 3), "v": round(v, 3), "w": round(w, 3), "h": round(h, 3)}
+                if u < 0.05 or u + w > width - 0.05 or v + h > height - 0.15:
+                    continue
+                if any(_overlaps(box, o) for o in others + windows + added):
+                    continue
+                seen_bare = blank_wall(box) if blank_wall else 0.0
+                if seen_bare >= BLANK_WALL_SHARE:
+                    continue
+                added.append({
+                    "id": f"column-{len(added)}", "kind": "window", **box,
+                    "confidence": 0.25,
+                    "design": {k: v2 for k, v2 in (model.get("design") or {}).items() if k in DETAIL_KEYS},
+                    "grade": "inferred_from_column_symmetry_not_seen",
+                    "position_sigma_m": 0.4,
+                    "size_anomaly_requires_review": False, "type_requires_review": False,
+                    "role": "window", "role_certainty": "low",
+                    "role_basis": ["column_symmetry", f"column_of:{column['id']}",
+                                   f"floor_columns_matched:{len(used)}",
+                                   f"bare_wall_seen_share:{round(float(seen_bare), 2)}"],
+                    "size_inferred": True, "size_from": model["id"],
+                })
+    return added
