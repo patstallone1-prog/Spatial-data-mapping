@@ -70,3 +70,23 @@ def test_the_supervisor_runs_it_only_while_asked_and_unfinished() -> None:
     # Its own publication file: the default is the run's, which a partial pass would overwrite.
     assert '"--publish-to", str(refit / "published.json")' in job
     assert "--neighbours" in (ROOT / "scripts/match_frontage_facades.py").read_text()
+
+
+def test_the_runs_detections_are_reused_under_the_cpu_key(tmp_path: Path) -> None:
+    import hashlib
+    review = tmp_path / "stage" / "0" / "review"
+    review.mkdir(parents=True)
+    (review / "sf-mission-1-a.jpg").write_bytes(b"photo")
+    (review / "sf-mission-1-a.context.jpg").write_bytes(b"wide")
+    digest = hashlib.sha256(b"photo").hexdigest()
+    manifest = {"model": "grounding-dino", "device": "mps"}
+    gpu = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()[:16]
+    cpu = hashlib.sha256(json.dumps({**manifest, "device": "cpu"}, sort_keys=True).encode()).hexdigest()[:16]
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    (shared / f"{digest}-{gpu}.json").write_text(json.dumps({"model": manifest, "objects": [1]}))
+    counts = JOB["reuse_detections"](shared, tmp_path / "own", tmp_path / "stage")
+    assert counts == {"photographs": 1, "reused": 1, "already_here": 0, "none": 0}
+    copied = json.loads((tmp_path / "own" / f"{digest}-{cpu}.json").read_text())
+    assert copied["model"]["device"] == "mps", "its own record still says where it ran"
+    assert sorted(p.name for p in shared.iterdir()) == [f"{digest}-{gpu}.json"], "the run's cache untouched"
