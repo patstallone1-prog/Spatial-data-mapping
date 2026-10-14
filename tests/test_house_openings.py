@@ -30,6 +30,10 @@ def _run(body: str, names: tuple[str, ...]) -> dict:
     js = _page_js()
     consts = "\n".join(re.search(rf"const {n} = [0-9.]+;", js).group(0)
                        for n in ("DOOR_CLEAR_M", "DOOR_LEAF_M"))
+    if "normaliseGarages" in names:
+        # The kerb cut a garage stands behind, and the driveway no tree stands in.
+        consts += "\nconst GARAGE_CUT_MARGIN_M = 0.15;\nconst DRIVEWAY_ZONES = [];"
+        names = (*names, "cutOnWall", "cutDrawnWidth", "drivewayZone", "inDriveway", "pointInRing")
     script = PREAMBLE + consts + "\n" + "\n".join(_extract(n, js) for n in names) + "\n" + body
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
@@ -181,3 +185,38 @@ def test_the_frame_loop_goes_on_when_the_browser_withholds_frames() -> None:
     assert "requestAnimationFrame(" in request and "setTimeout(" in request
     assert "id === frameRequest" in request and "!document.hidden" in request
     assert _extract("animate", js).split("\n")[1].strip() == "requestFrame();"
+
+
+def test_a_garage_stands_straight_back_from_its_kerb_cut_and_a_little_narrower() -> None:
+    result = _run(f"""
+    const a = {_house(0, 12)};
+    // The kerb point 6 m out, the cut's bearing south-east (away from the road): straight back
+    // from it is x = 8 on the wall, not where its centre squares onto the wall (x = 2).
+    a.garages = [{{ a: M(12, 0), b: M(0, 0), t: 0.5, w: 3.0, n: 0, cp: M(2, 4),
+                    kp: M(2, 6), on: 135 }}];
+    normaliseGarages([a]);
+    const g = a.garages[0];
+    const [ax] = xy(g.a[0], g.a[1]), [bx] = xy(g.b[0], g.b[1]);
+    console.log(JSON.stringify({{ x: ax + (bx - ax) * g.t, w: g.w,
+      onPath: inDriveway(5, -3), beside: inDriveway(1, -3), zones: DRIVEWAY_ZONES.length }}));
+    """, ("outwardBearing", "normaliseGarages"))
+    assert result["x"] == pytest.approx(8, abs=0.05), "behind where the kerb was cut"
+    assert result["w"] == pytest.approx(3.0 - 0.3), "slightly narrower than the cut"
+    assert result["zones"] == 1
+    assert result["onPath"] and not result["beside"], "no tree between the cut and the door"
+
+
+def test_two_cuts_in_front_of_one_house_make_one_door_across_both_never_between() -> None:
+    result = _run(f"""
+    const a = {_house(0, 8.3)};
+    // Two cuts side by side: one double door spanning them.
+    a.garages = [{{ a: M(8.3, 0), b: M(0, 0), t: 0.5, w: 2.4, n: 0, cp: M(2.4, 3) }},
+                 {{ a: M(8.3, 0), b: M(0, 0), t: 0.5, w: 2.4, n: 0, cp: M(4.6, 3) }}];
+    normaliseGarages([a]);
+    const g = a.garages[0];
+    const [ax] = xy(g.a[0], g.a[1]), [bx] = xy(g.b[0], g.b[1]);
+    console.log(JSON.stringify({{ n: a.garages.length, x: ax + (bx - ax) * g.t, w: g.w }}));
+    """, ("outwardBearing", "normaliseGarages"))
+    assert result["n"] == 1
+    lo, hi = 2.4 - 1.2, 4.6 + 1.2
+    assert lo <= result["x"] - result["w"] / 2 and result["x"] + result["w"] / 2 <= hi, "within the cuts"
