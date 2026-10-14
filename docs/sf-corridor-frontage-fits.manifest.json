@@ -1,9 +1,9 @@
 {
  "schema": "kerbside.facade_fit_tiles/1",
- "version": "19e86444393838ce",
+ "version": "7b5d521efadd5258",
  "base": "",
  "tile_degrees": 0.01,
- "houses": 4045,
+ "houses": 4048,
  "tiles": [
   {
    "region": "berkeley-downtown",
@@ -391,10 +391,10 @@
     -122.4396098,
     37.7901407
    ],
-   "count": 80,
-   "path": "fits/sf-corridor/-12245_3778-11dc562cea41.json",
-   "sha256": "11dc562cea4195a54b0ea8403b69b497b39e7661b933052a73d302c2e6c68c92",
-   "bytes": 490052
+   "count": 79,
+   "path": "fits/sf-corridor/-12245_3778-680c9f5f2e75.json",
+   "sha256": "680c9f5f2e7550fabab2a73a83f510886c53bd79d7dd5d290b29c8e18bde3eb7",
+   "bytes": 483616
   },
   {
    "region": "sf-corridor",
@@ -408,10 +408,10 @@
     -122.4399198,
     37.7996518
    ],
-   "count": 59,
-   "path": "fits/sf-corridor/-12245_3779-060d89c9c263.json",
-   "sha256": "060d89c9c2636bcd8223e756a7d9b6c37646b453e6cbed4495b32442df41cc61",
-   "bytes": 389910
+   "count": 60,
+   "path": "fits/sf-corridor/-12245_3779-75ae955f98a0.json",
+   "sha256": "75ae955f98a0c519705bef96100c704071863f18ab87be542c9c4d1c6641f089",
+   "bytes": 392887
   },
   {
    "region": "sf-corridor",
@@ -425,10 +425,10 @@
     -122.4397758,
     37.8055128
    ],
-   "count": 220,
-   "path": "fits/sf-corridor/-12245_3780-badff8675b8d.json",
-   "sha256": "badff8675b8d58f999c3a61f582306e04d9df4ff5eca0cfa79522f88ed8ebe9a",
-   "bytes": 1548862
+   "count": 222,
+   "path": "fits/sf-corridor/-12245_3780-761cf3238796.json",
+   "sha256": "761cf3238796031802474a70a2f226f92b4754e97ec60727ffae730b3e904102",
+   "bytes": 1557880
   },
   {
    "region": "sf-corridor",
@@ -443,9 +443,9 @@
     37.7898321
    ],
    "count": 75,
-   "path": "fits/sf-corridor/-12244_3778-70ddbb3b8095.json",
-   "sha256": "70ddbb3b809523a84d8ac1345fd0af17e7abfb04b1a73f630b7576982c32b21a",
-   "bytes": 494706
+   "path": "fits/sf-corridor/-12244_3778-4bbda920b445.json",
+   "sha256": "4bbda920b445b544c277b972f21d152ccc34cd56ba99853f4bed56aea88eafbb",
+   "bytes": 493122
   },
   {
    "region": "sf-corridor",
@@ -459,10 +459,10 @@
     -122.430287,
     37.8000991
    ],
-   "count": 94,
-   "path": "fits/sf-corridor/-12244_3779-fc7eece922bb.json",
-   "sha256": "fc7eece922bb141148da60e314865569cdccb509e965688125f623a0911fe99c",
-   "bytes": 608391
+   "count": 95,
+   "path": "fits/sf-corridor/-12244_3779-ae9fc2d4847a.json",
+   "sha256": "ae9fc2d4847a81a232e66996cb6e6530fa9481ff985d24afbd31caa26adebacd",
+   "bytes": 613744
   },
   {
    "region": "sf-corridor",
@@ -493,10 +493,10 @@
     -122.419831,
     37.7901828
    ],
-   "count": 80,
-   "path": "fits/sf-corridor/-12243_3778-15d95e7801b5.json",
-   "sha256": "15d95e7801b522a761b930e9895596b47b0189677c2f875aa7d3af4135143d8e",
-   "bytes": 495418
+   "count": 81,
+   "path": "fits/sf-corridor/-12243_3778-678b013779a9.json",
+   "sha256": "678b013779a958c2ecc75b06cba8839364f585cc55e150b76db999282a54bb5a",
+   "bytes": 498224
   },
   {
    "region": "sf-corridor",
@@ -510,10 +510,10 @@
     -122.4197803,
     37.7999028
    ],
-   "count": 141,
-   "path": "fits/sf-corridor/-12243_3779-6a712544c509.json",
-   "sha256": "6a712544c5099f2ed25587c91122cf82036c5f9e71cb6cd1d83f9bec9cdce9db",
-   "bytes": 919371
+   "count": 142,
+   "path": "fits/sf-corridor/-12243_3779-1784abb08277.json",
+   "sha256": "1784abb0827721165a1711b8e7d6899430a86977429731a48ba899bb515c326b",
+   "bytes": 922380
   },
   {
    "region": "sf-corridor",
@@ -525,12 +525,12 @@
     -122.429846,
     37.7998581,
     -122.4198168,
-    37.8055295
+    37.8063452
    ],
-   "count": 118,
-   "path": "fits/sf-corridor/-12243_3780-1b70841312fc.json",
-   "sha256": "1b70841312fc2379a7dbd234ef4865a5c0e019a19791be4e038b57b14bb02ed4",
-   "bytes": 742911
+   "count": 119,
+   "path": "fits/sf-corridor/-12243_3780-2d184cc541d7.json",
+   "sha256": "2d184cc541d796a9f51a94416bccf3776d56b445ee1e47e816b525aa0e2609ad",
+   "bytes": 745417
   },
   {
    "region": "sf-corridor",
@@ -562,9 +562,9 @@
     37.8001187
    ],
    "count": 217,
-   "path": "fits/sf-corridor/-12242_3779-8e7ee5e0817c.json",
-   "sha256": "8e7ee5e0817c131cb489c53372f4b34ccbc682afda9d9e7291bb595d7fbca917",
-   "bytes": 1381579
+   "path": "fits/sf-corridor/-12242_3779-1e814054812a.json",
+   "sha256": "1e814054812a7ab627aa84f39a85f0ce71caf7aa23aa5f76f467e13efad5bf8d",
+   "bytes": 1379981
   },
   {
    "region": "sf-corridor",
@@ -579,9 +579,9 @@
     37.8090923
    ],
    "count": 111,
-   "path": "fits/sf-corridor/-12242_3780-df99e68ae894.json",
-   "sha256": "df99e68ae8944a5b963e520fd8a84a34c749470a03ecfb720a63e419133b5b0e",
-   "bytes": 710943
+   "path": "fits/sf-corridor/-12242_3780-b6a14475b06b.json",
+   "sha256": "b6a14475b06bb39c5a4812a22e32d24baac542a51f0ddb81cda8c49c4364cf8f",
+   "bytes": 711508
   },
   {
    "region": "sf-corridor",
@@ -595,10 +595,10 @@
     -122.3997135,
     37.7900769
    ],
-   "count": 68,
-   "path": "fits/sf-corridor/-12241_3778-cdc1bc9b365e.json",
-   "sha256": "cdc1bc9b365e07c7266ee27b730f0f420007c41626050cc7d4ed9d00c0b66e54",
-   "bytes": 426789
+   "count": 69,
+   "path": "fits/sf-corridor/-12241_3778-ce985bdddb70.json",
+   "sha256": "ce985bdddb70e823dfc9da13c88d825b3288641775dc5e0b1afa189f8223c65b",
+   "bytes": 431212
   },
   {
    "region": "sf-corridor",
@@ -612,10 +612,10 @@
     -122.4003461,
     37.8001329
    ],
-   "count": 227,
-   "path": "fits/sf-corridor/-12241_3779-5ccc7cdeec2f.json",
-   "sha256": "5ccc7cdeec2f2fcc255d4a1a7f218e3e59df196e6ce08998c255d7a67994f3a4",
-   "bytes": 1375601
+   "count": 224,
+   "path": "fits/sf-corridor/-12241_3779-a10db5af146e.json",
+   "sha256": "a10db5af146e28ed0d6a3a29ab04ada003e540314cb964f10b8f5714acabbbb5",
+   "bytes": 1350883
   },
   {
    "region": "sf-corridor",
@@ -663,10 +663,10 @@
     -122.3923239,
     37.7970945
    ],
-   "count": 23,
-   "path": "fits/sf-corridor/-12240_3779-26be11bb80ad.json",
-   "sha256": "26be11bb80ad746aa372b43b251c1cf42b9b7f31a8edc752c6d406b71e54ef39",
-   "bytes": 135909
+   "count": 22,
+   "path": "fits/sf-corridor/-12240_3779-5e537bd7eebd.json",
+   "sha256": "5e537bd7eebdde160391c113714176f4a9f2d30310e4e979a1b041aa2c1c223f",
+   "bytes": 131473
   },
   {
    "region": "sf-haight-castro",
