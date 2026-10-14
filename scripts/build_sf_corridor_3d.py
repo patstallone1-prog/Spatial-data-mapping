@@ -26065,7 +26065,7 @@ document.getElementById("reset").addEventListener("click", () => {
 const EXPLORE_SPEED_PER_M = 0.8;
 const EXPLORE_SPEED_MIN = 8;
 function setExplore(on) {
-  if (typeof avatar === "undefined" || Boolean(state.explore) === on) return;
+  if (typeof avatar === "undefined" || typeof gps === "undefined" || Boolean(state.explore) === on) return;
   if (on) {
     if (state.firstPerson) setFirstPerson(false);
     state.explore = true;

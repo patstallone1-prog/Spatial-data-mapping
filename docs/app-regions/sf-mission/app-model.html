@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="b82bb47480e85e4c0e1543611d71c9dea5a04af178e3c980a3ab53afab250a7b" />
+<meta name="kerbside-renderer-sha256" content="ecb691efcf929882e14b3cc34c2a656d43adb6bc85b8c5df5c033b6f114d7f84" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -23197,7 +23197,7 @@ document.getElementById("reset").addEventListener("click", () => {
 const EXPLORE_SPEED_PER_M = 0.8;
 const EXPLORE_SPEED_MIN = 8;
 function setExplore(on) {
-  if (typeof avatar === "undefined" || Boolean(state.explore) === on) return;
+  if (typeof avatar === "undefined" || typeof gps === "undefined" || Boolean(state.explore) === on) return;
   if (on) {
     if (state.firstPerson) setFirstPerson(false);
     state.explore = true;
