@@ -1208,6 +1208,19 @@
    "depth_m": null,
    "certainty": "unreviewed_visible_object_proposal",
    "render": false
+  },
+  {
+   "kind": "balcony",
+   "source_kind": "reviewer_correction",
+   "u": 0.3,
+   "w": 7.8,
+   "v": 2.917,
+   "h": 1.3,
+   "material": "metal",
+   "style": "vertical_bars",
+   "depth_m": null,
+   "certainty": "reviewer_added_on_contributed_photograph",
+   "basis": "one long wrought-iron balcony across the three arched French windows of the second floor, the full width of the front (IMG_4636); the detector boxed only the balconies above it"
   }
  ],
  "outcrops": [],
@@ -1803,6 +1816,18 @@
     "role": "entrance"
    },
    "basis": "the second of the two front doors under the arched porch, glazed with ironwork (IMG_4636)",
+   "reviewer": "assistant, on the contributed photographs"
+  },
+  {
+   "detail": "balcony",
+   "before": null,
+   "after": {
+    "kind": "balcony",
+    "from_u": 0.3,
+    "to_u": 8.1,
+    "row_v": 3.117
+   },
+   "basis": "one long wrought-iron balcony across the three arched French windows of the second floor, the full width of the front (IMG_4636); the detector boxed only the balconies above it",
    "reviewer": "assistant, on the contributed photographs"
   }
  ],

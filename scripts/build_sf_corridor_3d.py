@@ -2451,7 +2451,28 @@ def annotate_facades(ways: list[dict[str, Any]]) -> dict[str, Any]:
             way["facade"] = match.to_json()
             counts[f"facade matched to {match.material}"] += 1
     counts["colour still invented"] = covered_index - counts["colour from a photograph"]
+    reviewed = load_reviewed_colours(ROOT / "data" / "contributed_houses")
+    for way in ways:
+        colour = reviewed.get(str(way.get("osm_id") or ""))
+        if way.get("kind") == "building" and colour:
+            way["colour"] = colour["c"]
+            way["colour_basis"] = "reviewer_on_contributed_photographs"
+            counts["colour from a reviewer"] += 1
     return dict(counts)
+
+
+def load_reviewed_colours(folder: Path) -> dict[str, dict]:
+    """Colours a reviewer gave from the contributed photographs (``reviewed_colours`` in a
+    contributed spec), keyed by osm_id. They stand over a sampled colour, which a panorama's
+    sky, shade or a tree can tint: 3400 Laguna's sampled blue and green against its orange brick."""
+    colours: dict[str, dict] = {}
+    for path in sorted(folder.glob("*.json")) if folder.exists() else []:
+        spec = json.loads(path.read_text())
+        for entry in spec.get("reviewed_colours", []) if isinstance(spec, dict) else []:
+            if believable(entry.get("c")):
+                for osm_id in entry["buildings"]:
+                    colours[str(osm_id)] = entry
+    return colours
 
 
 def annotate_official(ways: list[dict[str, Any]], bbox: dict) -> dict[str, Any]:
@@ -4793,7 +4814,10 @@ scene.environment = skyEnvironment(renderer, SKY);
 scene.background = SKY;
 // Turned down with the tone mapper in place: the old pair were set to be bright enough to read
 // through the clipping, and left as they were they simply saturate a wider part of the scene.
-const amb = new THREE.HemisphereLight(0xb7f5ff, 0x071013, 1.15);
+// The sky's fill is daylight, not cyan: a wall out of the sun is lit by it alone, and a cyan
+// fill turned every shaded front green -- 1535 Francisco's beige came out grey-green and
+// 1553's pale cream teal.
+const amb = new THREE.HemisphereLight(0xe4ecf4, 0x071013, 1.15);
 scene.add(amb);
 const sun = new THREE.DirectionalLight(0xfff4e2, 2.0);
 sun.position.copy(sunDirection()).multiplyScalar(900);
@@ -9919,21 +9943,9 @@ const PHOTO_CLASS_TO_MATERIAL = {
 //: Photographed variants per material class (docs/materials): a terrace of houses in one
 //: class shows up to this many different walls.
 const MATERIAL_VARIANTS = 5;
-//: The claddings of the city's houses, as shares, for a house whose photographs gave no reading:
-//: each house gets one of the photographed material libraries (docs/materials) laid across all
-//: of its walls, not the procedural fill. Painted classes take the house's own colour.
-const HOME_CLADDING_SHARES = [
-  ["stucco_render", 0.36], ["wood_siding", 0.30], ["vinyl_siding", 0.08], ["brick", 0.08],
-  ["painted_brick", 0.08], ["stone", 0.03], ["concrete", 0.05], ["ceramic_tile", 0.02],
-];
-function homeCladdingFor(seed) {
-  let roll = random(seed + 4243);
-  for (const [cls, share] of HOME_CLADDING_SHARES) {
-    roll -= share;
-    if (roll <= 0) return cls;
-  }
-  return HOME_CLADDING_SHARES[0][0];
-}
+//: The cladding of a house whose photographs gave no reading: concrete, with the photographed
+//: concrete library (docs/materials) laid across its walls.
+const DEFAULT_CLADDING = "concrete";
 
 function facadeAppearanceBands(feature, fallback) {
   const fit=frontageFitFor(feature), raw=fit?.appearance?.bands;
@@ -10024,40 +10036,19 @@ function pickMaterial(seed, height, archetype, facade = null, osmId = null, home
     const photographed = MATERIALS.find((material) => material.name === name);
     if (photographed) return { ...photographed, photoLabel: assignment.class };
   }
-  if (home) {
-    // Fallback cladding only. Reviewed height bands can replace it independently,
-    // including a shop's ground floor and different residential floors above it.
-    const read = assignment && assignment.class && PHOTO_CLASS_TO_MATERIAL[assignment.class]
-      ? assignment.class : homeCladdingFor(seed);
-    const named = MATERIALS.find((material) => material.name === PHOTO_CLASS_TO_MATERIAL[read]);
-    if (named) return { ...named, photoLabel: read };
+  // A class read for this building, below the bar above but still its own reading.
+  if (home && assignment && assignment.class && PHOTO_CLASS_TO_MATERIAL[assignment.class]) {
+    const named = MATERIALS.find((material) => material.name === PHOTO_CLASS_TO_MATERIAL[assignment.class]);
+    if (named) return { ...named, photoLabel: assignment.class };
   }
   if (facade && facade.conf >= FACADE_MATCH_MIN_CONFIDENCE) {
     const matched = MATERIALS.find((m) => m.name === facade.m);
     if (matched) return matched;
   }
-  const style = ARCHETYPE_STYLE[archetype];
-  if (style) {
-    const allowed = MATERIALS.filter((m) => style.materials.includes(m.name));
-    if (allowed.length) {
-      return allowed[Math.floor(random(seed + 3) * allowed.length) % allowed.length];
-    }
-  }
-  // Tall buildings are not stucco and short ones are not curtain wall, so the draw is nudged by
-  // height before the shares are applied.
-  const weights = MATERIALS.map((m) => {
-    const modern = m.name === "glass" || m.name === "metal" || m.name === "concrete";
-    if (height > 45) return modern ? m.share * 3.5 : m.share * 0.2;
-    if (height < 12) return m.name === "glass" || m.name === "metal" ? m.share * 0.12 : m.share;
-    return m.share;
-  });
-  const total = weights.reduce((a, b) => a + b, 0);
-  let roll = random(seed) * total;
-  for (let i = 0; i < MATERIALS.length; i += 1) {
-    roll -= weights[i];
-    if (roll <= 0) return MATERIALS[i];
-  }
-  return MATERIALS[0];
+  // Nothing read off this building: concrete, the default, rather than a draw from the city's
+  // shares or the archetype's list, which said something about no building in particular.
+  const concrete = MATERIALS.find((m) => m.name === PHOTO_CLASS_TO_MATERIAL[DEFAULT_CLADDING]);
+  return { ...concrete, ...(home ? { photoLabel: DEFAULT_CLADDING } : {}), materialBasis: "default_concrete_not_inferred" };
 }
 
 // A stable pseudo-random from an integer, so a building keeps its colour between reloads. Math
@@ -10350,7 +10341,7 @@ async function loadPhotoMaterialLibrary() {
     manifest = await response.json();
   } catch (_) { return; }
   const used = new Set([...Object.values(MATERIAL_ASSIGNMENTS.assigned || {})
-    .map((assignment) => assignment.class), ...HOME_CLADDING_SHARES.map(([cls]) => cls),
+    .map((assignment) => assignment.class), DEFAULT_CLADDING,
     ...Object.values(FRONTAGE_FITS.buildings || {}).flatMap(f=>(f.appearance?.bands || []).map(b=>b.material))]);
   const byClass = new Map();
   for (const row of manifest.assets || []) {
@@ -14802,6 +14793,56 @@ function balconyPart(group, wall, y, seed) {
   }
 }
 
+//: A balcony the detector found on a photographed front, drawn though no one has reviewed it:
+//: this far out from the wall (about three feet), its floor at the bottom of the window it serves.
+const INFERRED_BALCONY_DEPTH_M = 0.9;
+const INFERRED_BALCONY_COLOUR = "#2b2d30";
+//: Proposals the detector makes for a balcony. Its "fire escape" one storey tall at one window is a
+//: balcony too: a fire escape climbs the front, and it boxed 1547 Francisco's balcony that way. A
+//: box shorter than a rail is a ledge -- the foot of a bay window (1535 Francisco) -- not a balcony.
+const BALCONY_MIN_BOX_M = 1.0;
+//: The lowest a balcony's floor is: above a garage storey. A railing in front of a window lower
+//: than that is a stoop's or a porch's, which the entry draws (a fifth of the Sunset's houses
+//: carried one as a "balcony" a metre or two up).
+const BALCONY_MIN_FLOOR_M = 2.4;
+function balconyProposal(detail) {
+  if (detail.render || ![detail.u, detail.v, detail.w, detail.h].every(Number.isFinite) || detail.w < 0.4
+      || detail.h < BALCONY_MIN_BOX_M) return false;
+  return detail.kind === "balcony" || (["fire escape", "fire_escape"].includes(detail.kind) && detail.h < 3.2);
+}
+// The balconies to draw on a front from the detector's proposals: each tied to the window it
+// serves -- across it, with that window's foot inside the box's height -- floored at that
+// window's foot and as wide as the box or the window (with its frame), whichever is wider. One
+// balcony boxed twice is drawn once, and a box drawn round several balconies at one height
+// gives way to them (the narrower are taken first).
+function inferredBalconies(fit, length) {
+  const windows = (fit.openings || []).filter((o) => ["window", "door"].includes(o.kind)
+    && [o.u, o.v, o.w, o.h].every(Number.isFinite) && o.v > 1.5);
+  const found = [];
+  for (const box of (fit.details || []).filter(balconyProposal)) {
+    let best = null, bestOverlap = 0;
+    for (const o of windows) {
+      const overlap = Math.min(box.u + box.w, o.u + o.w) - Math.max(box.u, o.u);
+      if (overlap < 0.3 * Math.min(o.w, box.w) || o.v < box.v - 0.5 || o.v > box.v + box.h) continue;
+      if (overlap > bestOverlap) { best = o; bestOverlap = overlap; }
+    }
+    if (!best || best.v < BALCONY_MIN_FLOOR_M || best.v > fit.height_m - 1.2) continue;
+    const u0 = Math.max(0, Math.min(box.u, best.u - 0.15));
+    const u1 = Math.min(length, Math.max(box.u + box.w, best.u + best.w + 0.15));
+    if (u1 - u0 >= 0.6) found.push({ u0, u1, y: best.v, colour: box.colour });
+  }
+  found.sort((a, b) => (a.u1 - a.u0) - (b.u1 - b.u0));
+  const kept = [];
+  for (const c of found) {
+    const clash = kept.some((k) => Math.abs(k.y - c.y) < 0.4
+      && Math.min(k.u1, c.u1) - Math.max(k.u0, c.u0) > 0.5 * Math.min(k.u1 - k.u0, c.u1 - c.u0));
+    if (!clash) kept.push(c);
+  }
+  return kept.map((c) => ({ kind: "balcony", u: c.u0, w: c.u1 - c.u0, depth_m: INFERRED_BALCONY_DEPTH_M,
+    platform_heights_m: [c.y], material: "metal", style: "vertical_bars", inferred: true,
+    colour: /^#[0-9a-f]{6}$/i.test(c.colour || "") ? c.colour : INFERRED_BALCONY_COLOUR }));
+}
+
 function photoDetailParts(group, feature) {
   const fit = frontageFitFor(feature);
   if (!fit?.a || !fit?.b) return;
@@ -14811,8 +14852,10 @@ function photoDetailParts(group, feature) {
   const out=frontageNormalFor(fit);if(!out)return;
   const tx=dx/L, tz=dz/L, [nx,nz]=out, yaw=-Math.atan2(tz,tx);
   const at = (u,n) => [ax+tx*u+nx*n,-ay+tz*u+nz*n];
-  for (const detail of fit.details || []) {
-    if (!detail.render || !detail.visible || !detail.reviewer || detail.image_sha256 !== fit.image_sha256
+  // Reviewed balconies and fire escapes as reviewed; where there are none, the detector's balconies.
+  const reviewed = (fit.details || []).filter((d) => d.render && ["balcony","fire_escape"].includes(d.kind));
+  for (const detail of reviewed.length ? fit.details || [] : inferredBalconies(fit, L)) {
+    if ((!detail.inferred && (!detail.render || !detail.visible || !detail.reviewer || detail.image_sha256 !== fit.image_sha256))
         || !["balcony","fire_escape"].includes(detail.kind)
         || ![detail.u,detail.w,detail.depth_m].every(Number.isFinite)
         || detail.u < 0 || detail.w <= 0 || detail.u+detail.w > L+.05
@@ -28076,10 +28119,25 @@ function wallPanels(width, bottom, top, openings) {
   return panels;
 }
 
+//: The tallest a house's storey is believed: a one-level record on a nine-metre house is a
+//: default, not a nine-metre room.
+const HOME_STOREY_MAX_M = 7.0;
+//: Where a house's floors divide: the storey height its photograph's fit was held to (or read
+//: off its window rows), else its height over its storeys. Its ceilings sit on these lines.
+function homeStoreyHeight(entry, height) {
+  const storey = frontageFitFor(entry.way)?.storey_constraint;
+  const measured = Number(storey?.storey_height_m);
+  if (["inferred", "prior_constrained"].includes(storey?.status) && measured >= 2.3
+      && measured <= HOME_STOREY_MAX_M && measured <= height) return measured;
+  return height / homeStoreyCount(entry, height);
+}
 function homeStoreyCount(entry, height) {
   const mapped = Number(entry.way.tags?.["building:levels"] || entry.way.levels);
   const fitted = Number(entry.fit?.[9]);
-  const plausible = (n) => Number.isInteger(n) && n > 0 && height / n >= 2.3 && height / n <= 7;
+  const photographed = Number(frontageFitFor(entry.way)?.storey_constraint?.storeys);
+  const plausible = (n) => Number.isInteger(n) && n > 0 && height / n >= 2.3 && height / n <= HOME_STOREY_MAX_M;
+  // The storeys counted on the house's own photograph, then the map's, then the plan's.
+  if (plausible(photographed)) return photographed;
   if (plausible(mapped)) return mapped;
   // A default one-storey record is not evidence for a thirty-metre loft.
   if (plausible(fitted)) return fitted;
@@ -28854,8 +28912,8 @@ function carpetMaterial(style, colourIndex) {
 const CARPET_SHARE = { bedroom: 0.7, living: 0.45, office: 0.55, dining: 0.2, corridor: 0.35 };
 //: The rooms that open into each other: no wall between a kitchen, a living room and a dining room.
 const OPEN_PLAN = new Set(["living", "dining", "kitchen"]);
-//: The rooms that close: a door you open.
-const PRIVATE_ROOMS = new Set(["bedroom", "bathroom", "office", "storage"]);
+//: The rooms that close: a door you open. Only a bedroom; a closet (storage) is open to the room.
+const DOORED_ROOMS = new Set(["bedroom"]);
 function interiorWallMaterial(theme, kind) {
   const family = ["living", "dining", "corridor", "stair"].includes(kind) ? 0
     : kind === "kitchen" ? 1 : kind === "bedroom" ? 2
@@ -29174,7 +29232,8 @@ function furniturePiece(group, role, seed, cx, cz, yaw, floorY, w, d, h, block, 
     holder.userData.assetLicense = template.userData.row?.license;
     holder.userData.assetSource = template.userData.row?.attribution;
     holder.userData.topY = size.y * scale;
-    if (opts.onModel) opts.onModel(holder, size.y * scale);
+    // The top's footprint: the model's own, as scaled into the piece's place.
+    if (opts.onModel) opts.onModel(holder, size.y * scale, { w: size.x * scale, d: size.z * scale });
   });
   return holder;
 }
@@ -29280,23 +29339,32 @@ function addCeilingLight(group, layout, seed, floorY, height, kind) {
   return [x, ceiling - drop - 0.05, z];
 }
 
-//: Small scanned things set on a surface once the surface's model (and so its height) is in.
-function setOnTop(role, seed, offsets) {
-  return (h, top) => {
-    offsets.forEach(([lx, lz], i) => {
-      interiorModel(role, seed + i * 17).then((template) => {
-        if (!template || !h.parent) return;
-        const model = template.clone(true);
-        const bounds = new THREE.Box3().setFromObject(model);
-        const size = bounds.getSize(new THREE.Vector3());
-        // Scans are at their real size; only an outsized one is brought down.
-        const scale = Math.min(1, 0.35 / Math.max(size.x, size.z, 0.01));
-        const centre = bounds.getCenter(new THREE.Vector3());
-        model.scale.multiplyScalar(scale);
-        model.position.set(lx - centre.x * scale, top - bounds.min.y * scale + 0.002, lz - centre.z * scale);
-        model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.userData.sharedInteriorAsset = true; } });
-        h.add(model);
-      });
+//: How far a small thing on a surface stays in from the surface's edge.
+const SURFACE_EDGE_M = 0.03;
+//: The scale a small thing (w x d) takes on a surface (surfaceW x surfaceD): its real size, an
+//: outsized one brought down to 35 cm, and any that would overhang brought down to fit inside the
+//: surface's edge. It stands at the surface's middle. Null when the surface holds nothing.
+function itemOnSurface(w, d, surfaceW, surfaceD) {
+  const roomW = surfaceW - 2 * SURFACE_EDGE_M, roomD = surfaceD - 2 * SURFACE_EDGE_M;
+  if (!(roomW > 0.05 && roomD > 0.05)) return null;
+  return Math.min(1, 0.35 / Math.max(w, d, 0.01), roomW / Math.max(w, 0.01), roomD / Math.max(d, 0.01));
+}
+//: A small scanned thing set on a surface once the surface's model (and so its height and its
+//: footprint) is in: centred on it and wholly on it, never hanging off its side.
+function setOnTop(role, seed) {
+  return (h, top, surface) => {
+    interiorModel(role, seed).then((template) => {
+      if (!template || !h.parent) return;
+      const model = template.clone(true);
+      const bounds = new THREE.Box3().setFromObject(model);
+      const size = bounds.getSize(new THREE.Vector3());
+      const scale = itemOnSurface(size.x, size.z, surface.w, surface.d);
+      if (!scale) return;
+      const centre = bounds.getCenter(new THREE.Vector3());
+      model.scale.multiplyScalar(scale);
+      model.position.set(-centre.x * scale, top - bounds.min.y * scale + 0.002, -centre.z * scale);
+      model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.userData.sharedInteriorAsset = true; } });
+      h.add(model);
     });
   };
 }
@@ -29376,7 +29444,7 @@ function furnishLiving(group, entry, layout, seed, floorY) {
   if (layout.fits(tableX, tableZ, sofa.yaw, 1.1, ctD)) {
     layout.occupy(tableX, tableZ, sofa.yaw, 1.1, ctD);
     furniturePiece(group, "coffee_table", seed + 3, tableX, tableZ, sofa.yaw, floorY, 1.1, ctD, 0.42,
-      furnishingMaterials.wood, { onModel: setOnTop("table_item", seed + 31, [[0.15, 0]]) });
+      furnishingMaterials.wood, { onModel: setOnTop("table_item", seed + 31) });
   }
   // An armchair against a side wall, turned to the coffee table.
   for (const wall of layout.walls) {
@@ -29512,7 +29580,7 @@ function furnishBedroom(group, entry, layout, seed, floorY) {
       if (!layout.fits(spot.cx, spot.cz, spot.yaw, 1.1, 0.5)) continue;
       layout.occupy(spot.cx, spot.cz, spot.yaw, 1.1, 0.5);
       furniturePiece(group, "dresser", seed + 3, spot.cx, spot.cz, spot.yaw, floorY, 1.1, 0.5, 0.9,
-        furnishingMaterials.wood, { maxH: 1.3, onModel: setOnTop("shelf_item", seed + 41, [[-0.3, 0]]) });
+        furnishingMaterials.wood, { maxH: 1.3, onModel: setOnTop("shelf_item", seed + 41) });
       done = true;
       break;
     }
@@ -29528,7 +29596,7 @@ function furnishDining(group, entry, layout, seed, floorY, doorsInPlan, pts) {
   const { cx, cz, yaw } = placement;
   layout.occupy(cx, cz, yaw, 1.5, 0.9);
   furniturePiece(group, "dining_table", seed + 1, cx, cz, yaw, floorY, 1.5, 0.9, 0.75,
-    furnishingMaterials.wood, { grow: 1.0, onModel: setOnTop("table_item", seed + 51, [[0, 0]]) });
+    furnishingMaterials.wood, { grow: 1.0, onModel: setOnTop("table_item", seed + 51) });
   const c = Math.cos(yaw), s = Math.sin(yaw);
   for (const side of [-1, 1]) {
     for (const lx of [-0.4, 0.4]) {
@@ -29592,8 +29660,9 @@ function furnishAgainstWall(group, entry, layout, kind, pts, floorY, doorsInPlan
       const before = group.children.length;
       addRoomFurnishing(group, entry, kind, pts, floorY, doorsInPlan, spot);
       const holder = group.children[before];
-      if (holder && kind === "kitchen") setOnTop("counter_item", seed + 61, [[-0.1, 0.05], [0.7, -0.1]])(holder, 0.89);
-      if (holder && kind === "bathroom") setOnTop("bath_item", seed + 71, [[0, 0]])(holder, 0.84);
+      // On the counter between the sink and the hob; on the basin unit's top (0.655 m), not above it.
+      if (holder && kind === "kitchen") setOnTop("counter_item", seed + 61)(holder, 0.89, { w: 0.42, d: 0.72 });
+      if (holder && kind === "bathroom") setOnTop("bath_item", seed + 71)(holder, 0.655, { w: 0.7, d: 0.55 });
       return true;
     }
   }
@@ -29809,8 +29878,10 @@ function buildInterior(entry) {
   const floorY = entryFloorY(entry);
   const homeSpec = HOME_RENDER.get(String(entry.way.osm_id));
   const visibleHeight = homeSpec ? homeSpec.base + homeSpec.height - floorY : null;
-  const height = entry.homeShell && visibleHeight > 2.3
-    ? visibleHeight / homeStoreyCount(entry, visibleHeight) - 0.06
+  // The ceiling at the first storey line, not the roof.
+  const storeyStep = entry.homeShell && visibleHeight > 2.3 ? homeStoreyHeight(entry, visibleHeight) : null;
+  const height = storeyStep
+    ? Math.min(storeyStep, visibleHeight) - 0.06
     : Math.max(2.4, Math.min(storeyM || 3.0, 4.5)) - 0.06;
   const group = new THREE.Group();
   group.name = `interior:${entry.way.osm_id}`;
@@ -29909,8 +29980,10 @@ function buildInterior(entry) {
               const sides = sidesOf(ax, az, bx, bz);
               interiorDoorSpecs.set(doorKey, { x: dx, z: dz, width: Math.min(1.25, Math.max(0.75, dw)),
                 yaw: -Math.atan2(bz - az, bx - ax),
-                // A door into a bedroom or a bathroom is a door, shut; between the open rooms none.
-                kind: sides.some((k) => PRIVATE_ROOMS.has(k)) ? "private"
+                // A door into a bedroom is a door, shut; a closet's opening and every other one is
+                // a frame with no leaf to block it; between the open rooms not even that.
+                kind: sides.includes("storage") ? "doorway"
+                  : sides.some((k) => DOORED_ROOMS.has(k)) ? "private"
                   : sides.every((k) => OPEN_PLAN.has(k)) ? "open_plan" : "doorway" });
             }
             const half = Math.max(0.45, dw / 2) / len;
@@ -29996,18 +30069,19 @@ function buildInterior(entry) {
     const lintel = new THREE.Mesh(new THREE.BoxGeometry(spec.width, 0.06, 0.09), furnishingMaterials.wood);
     lintel.position.y = DOOR_HEIGHT_M;
     frame.add(lintel);
+    frame.userData = { surface: "interior_door", grade: "fitted_plan_not_measured" };
+    group.add(frame);
+    if (spec.kind !== "private") continue;
     const leaf = new THREE.Group();
     leaf.position.x = -spec.width / 2;
-    // A bedroom's or a bathroom's door is shut until it is opened (Enter, next to it).
-    leaf.rotation.y = spec.kind === "private" ? 0 : 1.05;
+    // A bedroom's door is shut until it is opened (Enter, next to it).
+    leaf.rotation.y = 0;
     const panel = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, DOOR_HEIGHT_M - 0.07, 0.045),
       doorMaterial);
     panel.position.set(spec.width * 0.45, DOOR_HEIGHT_M / 2, 0);
     leaf.add(panel);
     frame.add(leaf);
-    frame.userData = { surface: "interior_door", grade: "fitted_plan_not_measured" };
-    group.add(frame);
-    if (spec.kind === "private") roomDoors.push({ x: spec.x, z: spec.z, leaf, open: false, angle: 0 });
+    roomDoors.push({ x: spec.x, z: spec.z, leaf, open: false, angle: 0 });
   }
   // Share static wall/floor batches before repeating storeys; furniture and
   // door groups remain independent for asset replacement and leaf details.
@@ -30034,18 +30108,23 @@ function buildInterior(entry) {
   ceiling.position.y = floorY + height;
   ceiling.userData.surface = "interior_ceiling";
   group.add(slab, ceiling);
-  if (entry.homeShell && visibleHeight > 5.6) {
-    const floors = homeStoreyCount(entry, visibleHeight);
-    const spacing = visibleHeight / floors;
+  if (storeyStep) {
     const groundObjects = [...group.children];
-    for (let level = 1; level < floors; level += 1) {
+    // A floor on each storey line with a storey's room above it; the top one runs to the roof.
+    for (let level = 1; level * storeyStep + 2.3 <= visibleHeight + 1e-6; level += 1) {
+      const upperHeight = Math.min(storeyStep, visibleHeight - level * storeyStep) - 0.06;
+      const stretch = upperHeight / height;
       const upper = new THREE.Group();
-      upper.position.y = level * spacing;
+      upper.position.y = level * storeyStep;
       upper.userData = { surface: "interior_storey", level, grade: "repeated_fitted_plan_not_measured" };
       for (const original of groundObjects) {
         if (original === slab) continue;
         const copy = original.clone(true);
         copy.traverse((o) => { if (o.isMesh) o.userData.sharedInteriorAsset = true; });
+        // Its ceiling and lights at its own storey line; its walls the storey's height.
+        if (original === ceiling || original.userData.surface === "furnishing:ceiling_light")
+          copy.position.y = original.position.y + upperHeight - height;
+        else if (original.isMesh) { copy.scale.y = stretch; copy.position.y = floorY * (1 - stretch); }
         upper.add(copy);
       }
       // External entrance recesses belong only to the ground floor.

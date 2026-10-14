@@ -1,6 +1,6 @@
 {
  "schema": "kerbside.facade_fit_tiles/1",
- "version": "c5ac50bcad48a95d",
+ "version": "cb57290d38e3cb08",
  "base": "",
  "tile_degrees": 0.01,
  "houses": 4024,
@@ -18,9 +18,9 @@
     37.8703642
    ],
    "count": 4,
-   "path": "fits/berkeley-downtown/-12228_3786-8be0da30eceb.json",
-   "sha256": "8be0da30eceb488d78dc9070d02ee6ced93db35549d469924d12baf930ee17da",
-   "bytes": 19373
+   "path": "fits/berkeley-downtown/-12228_3786-430d3a742a29.json",
+   "sha256": "430d3a742a29cd1a1398a2982459e74aa17537f01b765996b32daa927816955e",
+   "bytes": 19552
   },
   {
    "region": "berkeley-downtown",
@@ -35,9 +35,9 @@
     37.8777271
    ],
    "count": 9,
-   "path": "fits/berkeley-downtown/-12228_3787-4a132d625dcc.json",
-   "sha256": "4a132d625dccbb75c740a7d84c7f1c9971a13644d2af48177b9baaf7c75d6bd2",
-   "bytes": 41221
+   "path": "fits/berkeley-downtown/-12228_3787-a340884442a2.json",
+   "sha256": "a340884442a284d9c7c8fb4d0ba7af0ae0163176d6bcab631c86a9544a6e32cf",
+   "bytes": 41461
   },
   {
    "region": "berkeley-downtown",
@@ -52,9 +52,9 @@
     37.8665058
    ],
    "count": 5,
-   "path": "fits/berkeley-downtown/-12227_3786-506ef48211a2.json",
-   "sha256": "506ef48211a217a1bf7dbb135d4ff0f288fb71ffad079c4c89b1976dab733f3e",
-   "bytes": 22156
+   "path": "fits/berkeley-downtown/-12227_3786-12a7331d88fe.json",
+   "sha256": "12a7331d88fe2e5b6985dc7854c59850661d95ceb14a2944a9723bbd451159b3",
+   "bytes": 22631
   },
   {
    "region": "berkeley-downtown",
@@ -69,9 +69,9 @@
     37.879455
    ],
    "count": 12,
-   "path": "fits/berkeley-downtown/-12227_3787-7d626d96cc23.json",
-   "sha256": "7d626d96cc2386f5d69ce865ffde55ea92f6c9a84f693f83fc5abd11647dff2b",
-   "bytes": 41872
+   "path": "fits/berkeley-downtown/-12227_3787-b7c91448c58e.json",
+   "sha256": "b7c91448c58e49db81acb004d878d096d94b40d834abc940b11aef23f879ebb8",
+   "bytes": 42838
   },
   {
    "region": "berkeley-downtown",
@@ -86,9 +86,9 @@
     37.8684622
    ],
    "count": 3,
-   "path": "fits/berkeley-downtown/-12226_3786-4a2c1c33d410.json",
-   "sha256": "4a2c1c33d41028098416a89493f85cb29c7e289b8850d779b841329d6c259834",
-   "bytes": 11782
+   "path": "fits/berkeley-downtown/-12226_3786-37511d023755.json",
+   "sha256": "37511d023755cb2fbac09ab8f01f263975d2896eddf3c4679a5b31c441fb9e7c",
+   "bytes": 12019
   },
   {
    "region": "berkeley-downtown",
@@ -103,9 +103,9 @@
     37.8781976
    ],
    "count": 3,
-   "path": "fits/berkeley-downtown/-12226_3787-80f95158a363.json",
-   "sha256": "80f95158a3638e9d02477ebc48a2a628049856402bdb905658558ddb8ca58f3c",
-   "bytes": 11066
+   "path": "fits/berkeley-downtown/-12226_3787-4d0e0e614c0c.json",
+   "sha256": "4d0e0e614c0ca2f2ebd144664fccb19f7d319605c178ce2a5cc6eea1e4d3cc71",
+   "bytes": 11245
   },
   {
    "region": "oakland-downtown",
@@ -120,9 +120,9 @@
     37.7996584
    ],
    "count": 4,
-   "path": "fits/oakland-downtown/-12229_3779-eded831bc650.json",
-   "sha256": "eded831bc6504339d2b5b78e5a6ed8259c69575e5d2be6491cf3eb8e7fea3a00",
-   "bytes": 32280
+   "path": "fits/oakland-downtown/-12229_3779-a99148506114.json",
+   "sha256": "a99148506114d3a43a427ce704a97ac41efe1d27d41d09ba3d5feb5bf92299c6",
+   "bytes": 32700
   },
   {
    "region": "oakland-downtown",
@@ -137,9 +137,9 @@
     37.8082495
    ],
    "count": 3,
-   "path": "fits/oakland-downtown/-12229_3780-9c4ac5ff042d.json",
-   "sha256": "9c4ac5ff042d877780f2cecf94bf3c65d60f97ae7736dd95c5d1a85a4f1064e1",
-   "bytes": 17756
+   "path": "fits/oakland-downtown/-12229_3780-ff937d891d8b.json",
+   "sha256": "ff937d891d8bfb37092b1696b03cf242637b2bbef883207f919bdef5565b0132",
+   "bytes": 17872
   },
   {
    "region": "oakland-downtown",
@@ -154,9 +154,9 @@
     37.7998033
    ],
    "count": 12,
-   "path": "fits/oakland-downtown/-12228_3779-0b2803bfc062.json",
-   "sha256": "0b2803bfc0623f01b65c09d2b8aeb60a976bf82fd69e61e7f50103a00fe1cd13",
-   "bytes": 68008
+   "path": "fits/oakland-downtown/-12228_3779-28f17b8557c6.json",
+   "sha256": "28f17b8557c685a26729da37f7bfc74e6e5ccc08cbaa7b32f279c21373a83080",
+   "bytes": 69573
   },
   {
    "region": "oakland-downtown",
@@ -171,9 +171,9 @@
     37.8095869
    ],
    "count": 69,
-   "path": "fits/oakland-downtown/-12228_3780-d642411edae2.json",
-   "sha256": "d642411edae2c0dbeb50205833bb24e323a3cc1a4bdc9616a2904d9236783253",
-   "bytes": 425936
+   "path": "fits/oakland-downtown/-12228_3780-715bc1db1fd0.json",
+   "sha256": "715bc1db1fd092bc8aaa71b0602281a818731d67fa5d2beb1d71f21d40d931fd",
+   "bytes": 429696
   },
   {
    "region": "oakland-downtown",
@@ -188,9 +188,9 @@
     37.8148976
    ],
    "count": 9,
-   "path": "fits/oakland-downtown/-12228_3781-2f6ebd296b1b.json",
-   "sha256": "2f6ebd296b1bc7b19d3afcbfcc656770575ff3edb2cec2898f315f7a4bbc6fc4",
-   "bytes": 42463
+   "path": "fits/oakland-downtown/-12228_3781-64903a5712f0.json",
+   "sha256": "64903a5712f0c1a429f0fb469975f3b3fd32b160c964b150fcbabb7f2cab68a4",
+   "bytes": 42871
   },
   {
    "region": "oakland-downtown",
@@ -205,9 +205,9 @@
     37.799911
    ],
    "count": 53,
-   "path": "fits/oakland-downtown/-12227_3779-bb7f8e140b6a.json",
-   "sha256": "bb7f8e140b6a36ef27899ac0fdf84359bb855c78adbeaead9a457ee6192dd411",
-   "bytes": 328670
+   "path": "fits/oakland-downtown/-12227_3779-60ffb3c999d7.json",
+   "sha256": "60ffb3c999d71fdb543efe43bad1293ca28c3d83c529c555c96c4087aec44f05",
+   "bytes": 333535
   },
   {
    "region": "oakland-downtown",
@@ -222,9 +222,9 @@
     37.8097828
    ],
    "count": 28,
-   "path": "fits/oakland-downtown/-12227_3780-2e078542110d.json",
-   "sha256": "2e078542110d22980f2aafb152aa371048c34b25f03adf82bc9cb91795b5bbec",
-   "bytes": 156032
+   "path": "fits/oakland-downtown/-12227_3780-08f8ae198af6.json",
+   "sha256": "08f8ae198af6c132d49801fb67f1836a35445bda6ab3c3cdbaaeaa5d52e4ff8f",
+   "bytes": 157642
   },
   {
    "region": "oakland-downtown",
@@ -239,9 +239,9 @@
     37.814912
    ],
    "count": 25,
-   "path": "fits/oakland-downtown/-12227_3781-0d5f51706dce.json",
-   "sha256": "0d5f51706dce3c45a24277a7c1a2e213264114881980250f12921af26e485fe6",
-   "bytes": 143250
+   "path": "fits/oakland-downtown/-12227_3781-c822c852d462.json",
+   "sha256": "c822c852d4621e96c9a88ac07557637d791ab737a0d87b2664e8773463357c00",
+   "bytes": 144854
   },
   {
    "region": "palo-alto-downtown",
@@ -256,9 +256,9 @@
     37.4499925
    ],
    "count": 108,
-   "path": "fits/palo-alto-downtown/-12217_3744-a6d311e3d9d9.json",
-   "sha256": "a6d311e3d9d9dfdbde294c35af568e51b112e906a3e3b9ddd11b3c87da5f5683",
-   "bytes": 518173
+   "path": "fits/palo-alto-downtown/-12217_3744-d93fa04dc0bd.json",
+   "sha256": "d93fa04dc0bd349095483b754da259071315695f50275a188cc8cb72a29c5928",
+   "bytes": 524286
   },
   {
    "region": "palo-alto-downtown",
@@ -273,9 +273,9 @@
     37.452035
    ],
    "count": 35,
-   "path": "fits/palo-alto-downtown/-12217_3745-aec2a2b29c71.json",
-   "sha256": "aec2a2b29c710270e5012e31881a921a099c6ddb80e0f0b1ebacf02039328378",
-   "bytes": 157355
+   "path": "fits/palo-alto-downtown/-12217_3745-5c9ef721502d.json",
+   "sha256": "5c9ef721502d85ca777ee511bf1ba14554ca4431df39b848c44c787956988282",
+   "bytes": 159277
   },
   {
    "region": "palo-alto-downtown",
@@ -290,9 +290,9 @@
     37.4499858
    ],
    "count": 68,
-   "path": "fits/palo-alto-downtown/-12216_3744-b5ad6db98c36.json",
-   "sha256": "b5ad6db98c363db29abe39ef4cf7fafc062ce1bce5bb914273380e7019adb1bb",
-   "bytes": 349175
+   "path": "fits/palo-alto-downtown/-12216_3744-88926854b23f.json",
+   "sha256": "88926854b23fb5b76e0cb27d47004430ce0055f8c3b10d3ef158437a518c540f",
+   "bytes": 353353
   },
   {
    "region": "palo-alto-downtown",
@@ -307,9 +307,9 @@
     37.4519602
    ],
    "count": 8,
-   "path": "fits/palo-alto-downtown/-12216_3745-b771c7fe0d74.json",
-   "sha256": "b771c7fe0d744c313472ac4124dde07859a85adf1a54fed190965cd7eb905729",
-   "bytes": 35599
+   "path": "fits/palo-alto-downtown/-12216_3745-a9b38aed4eb6.json",
+   "sha256": "a9b38aed4eb651cf24a641ceb2a0ca4b1adafb37a91cd96f8cadfd4474238426",
+   "bytes": 36192
   },
   {
    "region": "san-jose-downtown",
@@ -324,9 +324,9 @@
     37.3296179
    ],
    "count": 3,
-   "path": "fits/san-jose-downtown/-12191_3732-20961650b70e.json",
-   "sha256": "20961650b70ed3cb6825786023e9fc1c432140dddef38b13700fd9609e6d7aea",
-   "bytes": 20607
+   "path": "fits/san-jose-downtown/-12191_3732-075168446713.json",
+   "sha256": "075168446713cb728c7cdda0190ce4ee15f7a1f3b1c1ba299151e52637cefade",
+   "bytes": 21149
   },
   {
    "region": "san-jose-downtown",
@@ -358,9 +358,9 @@
     37.3297305
    ],
    "count": 7,
-   "path": "fits/san-jose-downtown/-12190_3732-7101ea15db27.json",
-   "sha256": "7101ea15db27590970e643d295b943be6ef760501252fc787e990049cda1d98d",
-   "bytes": 33032
+   "path": "fits/san-jose-downtown/-12190_3732-e3e39e28aba3.json",
+   "sha256": "e3e39e28aba3ba0f9776f629bb255010cea8f6d88a28933adb86ece7e2491849",
+   "bytes": 33388
   },
   {
    "region": "san-jose-downtown",
@@ -375,9 +375,9 @@
     37.3355151
    ],
    "count": 5,
-   "path": "fits/san-jose-downtown/-12190_3733-cb3afc4299d7.json",
-   "sha256": "cb3afc4299d77951ce6ee066d518e1eba29ddd89d5fa2a00d5b10b9e62245089",
-   "bytes": 21155
+   "path": "fits/san-jose-downtown/-12190_3733-f0f6c038beb6.json",
+   "sha256": "f0f6c038beb65c0ba7449062801876a8ec7a9a4857e45bd73c0199815f020ea0",
+   "bytes": 21819
   },
   {
    "region": "sf-corridor",
@@ -392,9 +392,9 @@
     37.7901407
    ],
    "count": 77,
-   "path": "fits/sf-corridor/-12245_3778-87685c81bab8.json",
-   "sha256": "87685c81bab8659b90ee29a47b7281f27b55ff31164483dbf5c428e74d8d9911",
-   "bytes": 479261
+   "path": "fits/sf-corridor/-12245_3778-145774df2c8c.json",
+   "sha256": "145774df2c8cd9a599f0d7919b2b5cf4732db51b64fae454157df572f3e179c2",
+   "bytes": 485006
   },
   {
    "region": "sf-corridor",
@@ -409,9 +409,9 @@
     37.7996518
    ],
    "count": 60,
-   "path": "fits/sf-corridor/-12245_3779-dc685832fb55.json",
-   "sha256": "dc685832fb55df3a21f3d3a003723cc6e24c05d301b9541e518dd604b55fa9bf",
-   "bytes": 384202
+   "path": "fits/sf-corridor/-12245_3779-a0f30464f378.json",
+   "sha256": "a0f30464f37837b583b69cde833decac9199666429d4b83e4b6cdebf611eb056",
+   "bytes": 389464
   },
   {
    "region": "sf-corridor",
@@ -426,9 +426,9 @@
     37.8055128
    ],
    "count": 219,
-   "path": "fits/sf-corridor/-12245_3780-e34228aa33ff.json",
-   "sha256": "e34228aa33ffacede6960cb11f18d1ed01cef4852b1ab7739921a74bd30c4204",
-   "bytes": 1501935
+   "path": "fits/sf-corridor/-12245_3780-9d76c0559f7d.json",
+   "sha256": "9d76c0559f7d0e22db0f67a70bb71fa5e96037571aedfaf1c833be523d737096",
+   "bytes": 1522801
   },
   {
    "region": "sf-corridor",
@@ -443,9 +443,9 @@
     37.7898321
    ],
    "count": 76,
-   "path": "fits/sf-corridor/-12244_3778-365ea3d777dc.json",
-   "sha256": "365ea3d777dc5dcd3aad303099ecd760d4806e03da57e847222121836c5663b0",
-   "bytes": 494164
+   "path": "fits/sf-corridor/-12244_3778-7983d874f9aa.json",
+   "sha256": "7983d874f9aa3902a41c40471111382b5a716050b286913d9555ac5dd368edbf",
+   "bytes": 500753
   },
   {
    "region": "sf-corridor",
@@ -460,9 +460,9 @@
     37.8000991
    ],
    "count": 92,
-   "path": "fits/sf-corridor/-12244_3779-38ecdfb123a7.json",
-   "sha256": "38ecdfb123a7deb46e23498ec358e59fa1e0a0875754ab0337ba45b30837dbda",
-   "bytes": 592640
+   "path": "fits/sf-corridor/-12244_3779-b039712f5c09.json",
+   "sha256": "b039712f5c09e2856b3566101cde0772bd396294d4776fae0ad431413636bed8",
+   "bytes": 600316
   },
   {
    "region": "sf-corridor",
@@ -477,9 +477,9 @@
     37.8037683
    ],
    "count": 32,
-   "path": "fits/sf-corridor/-12244_3780-f4854ccc029f.json",
-   "sha256": "f4854ccc029f6f8d27d4213890e28a25fa7d8df711019e7bbead9426f8906331",
-   "bytes": 225059
+   "path": "fits/sf-corridor/-12244_3780-77be28c7e9e0.json",
+   "sha256": "77be28c7e9e0e32893db1d9b8a0fdcc4aecd7d0c9c394af1e284c372589831dd",
+   "bytes": 228200
   },
   {
    "region": "sf-corridor",
@@ -494,9 +494,9 @@
     37.7901828
    ],
    "count": 82,
-   "path": "fits/sf-corridor/-12243_3778-df6d41d64a95.json",
-   "sha256": "df6d41d64a951fc1c264556b81dc23cfb2c06427bff2a7137ff358877eb8eb7a",
-   "bytes": 497728
+   "path": "fits/sf-corridor/-12243_3778-ddfd094cd98f.json",
+   "sha256": "ddfd094cd98f86d55578697ee68677e92700e834525665ca338b08d8e23fbbb4",
+   "bytes": 505758
   },
   {
    "region": "sf-corridor",
@@ -511,9 +511,9 @@
     37.7999028
    ],
    "count": 138,
-   "path": "fits/sf-corridor/-12243_3779-214afa63f9d3.json",
-   "sha256": "214afa63f9d33be0f36350e2a7fee0c98ee86fe8d020dc2603262cd98f7c4c20",
-   "bytes": 882744
+   "path": "fits/sf-corridor/-12243_3779-9eeed879f419.json",
+   "sha256": "9eeed879f41903a6b15034ab83c199f979e0737bbe168a2572f1621e6a8cc21d",
+   "bytes": 897155
   },
   {
    "region": "sf-corridor",
@@ -528,9 +528,9 @@
     37.8055295
    ],
    "count": 118,
-   "path": "fits/sf-corridor/-12243_3780-2cf1049bf716.json",
-   "sha256": "2cf1049bf71648ea822d294b2c43cf4214b19cad7ad92100c5b8668259daeba9",
-   "bytes": 737860
+   "path": "fits/sf-corridor/-12243_3780-b44d8d24b0fb.json",
+   "sha256": "b44d8d24b0fb53aef5433fcf50a730a776252f2d807f5a4142022d5b1a7a3ee4",
+   "bytes": 748285
   },
   {
    "region": "sf-corridor",
@@ -545,9 +545,9 @@
     37.7902683
    ],
    "count": 52,
-   "path": "fits/sf-corridor/-12242_3778-2b8de79e376a.json",
-   "sha256": "2b8de79e376a6a4fe4d73e82ff23f1218e7df23e9d62f7a13f4948fccb96cab5",
-   "bytes": 339970
+   "path": "fits/sf-corridor/-12242_3778-764913bad461.json",
+   "sha256": "764913bad461fe8eca150c101001030e10e7f5e93e2f0a1c99ebadd8666ac4c8",
+   "bytes": 347887
   },
   {
    "region": "sf-corridor",
@@ -562,9 +562,9 @@
     37.8001187
    ],
    "count": 215,
-   "path": "fits/sf-corridor/-12242_3779-fda05222d06d.json",
-   "sha256": "fda05222d06d2f50e45540991eeedbdae6bd4d680563e15cd7ed615497da0f4d",
-   "bytes": 1371241
+   "path": "fits/sf-corridor/-12242_3779-b3f52b7f6683.json",
+   "sha256": "b3f52b7f668305386022dabf12df68198ace02328f6914b761b6df2645282e79",
+   "bytes": 1390648
   },
   {
    "region": "sf-corridor",
@@ -579,9 +579,9 @@
     37.8090923
    ],
    "count": 108,
-   "path": "fits/sf-corridor/-12242_3780-4922101fa5f9.json",
-   "sha256": "4922101fa5f9151dce70697959ef3eb97bb198d3e070dde6f436ec33f34d7844",
-   "bytes": 690599
+   "path": "fits/sf-corridor/-12242_3780-02017d27befc.json",
+   "sha256": "02017d27befc4ee10778ecb2fd28b4a62e1f5a5010b5b667dd5e50ebe8ccc516",
+   "bytes": 697688
   },
   {
    "region": "sf-corridor",
@@ -596,9 +596,9 @@
     37.7900769
    ],
    "count": 66,
-   "path": "fits/sf-corridor/-12241_3778-67ac7608dedf.json",
-   "sha256": "67ac7608dedf8f76a12080d4e23dd10796e3d926cba399983d2151e2c4f0b4b2",
-   "bytes": 403952
+   "path": "fits/sf-corridor/-12241_3778-bf1736f0e465.json",
+   "sha256": "bf1736f0e465048be8ce207b8fdc1ae1831e5a1ddeec897ef95c278f120a1fff",
+   "bytes": 412780
   },
   {
    "region": "sf-corridor",
@@ -613,9 +613,9 @@
     37.8001329
    ],
    "count": 218,
-   "path": "fits/sf-corridor/-12241_3779-c6204da4c2bf.json",
-   "sha256": "c6204da4c2bf8f7abe70a29c059f8eb0cf98f0a36164ede1fb55137f2975de36",
-   "bytes": 1314646
+   "path": "fits/sf-corridor/-12241_3779-2b1df4b23559.json",
+   "sha256": "2b1df4b2355945cf28e3afb7eae0274d699441678f180693f9268e4dac1822ca",
+   "bytes": 1337722
   },
   {
    "region": "sf-corridor",
@@ -630,9 +630,9 @@
     37.8060176
    ],
    "count": 60,
-   "path": "fits/sf-corridor/-12241_3780-9d1d21bea720.json",
-   "sha256": "9d1d21bea7202f02338b47051268bcdebf806b849c776a1f238e24a9bafc31c6",
-   "bytes": 382547
+   "path": "fits/sf-corridor/-12241_3780-d70b0b981618.json",
+   "sha256": "d70b0b981618eaf5be3c9db66852724c437870643327a7d43883b765e3c42d6a",
+   "bytes": 387489
   },
   {
    "region": "sf-corridor",
@@ -647,9 +647,9 @@
     37.7899303
    ],
    "count": 20,
-   "path": "fits/sf-corridor/-12240_3778-03213d40df63.json",
-   "sha256": "03213d40df63e8713af5a17ce1db00804d608e33d4aa3f1a0ab5a36b13db8a18",
-   "bytes": 112042
+   "path": "fits/sf-corridor/-12240_3778-f637c176dc8b.json",
+   "sha256": "f637c176dc8b5ec7ceceeb0bb34d81747c1bf9c5d7c7dcef83148288a85e0671",
+   "bytes": 113620
   },
   {
    "region": "sf-corridor",
@@ -664,9 +664,9 @@
     37.7970945
    ],
    "count": 23,
-   "path": "fits/sf-corridor/-12240_3779-167bc9ff0c26.json",
-   "sha256": "167bc9ff0c2617067e80c72652f073a3fcd980eb17cb3a69eb2ea0b9aad69994",
-   "bytes": 134905
+   "path": "fits/sf-corridor/-12240_3779-7fb4b67b73c7.json",
+   "sha256": "7fb4b67b73c726e7f6e28f117c3c3398395d8ccbd94c0cbd58647294c66ce3a9",
+   "bytes": 136399
   },
   {
    "region": "sf-haight-castro",
@@ -681,9 +681,9 @@
     37.7650821
    ],
    "count": 43,
-   "path": "fits/sf-haight-castro/-12246_3776-f718d16c0544.json",
-   "sha256": "f718d16c05448e6a56549f07c1ee2a8336131981f3230f50e26b4edb87af6694",
-   "bytes": 239857
+   "path": "fits/sf-haight-castro/-12246_3776-e60b5b9013c2.json",
+   "sha256": "e60b5b9013c208c20bc9753aa2e8b4d8ded5ddd0e837064c8eab39afa5112613",
+   "bytes": 242723
   },
   {
    "region": "sf-haight-castro",
@@ -698,9 +698,9 @@
     37.7599665
    ],
    "count": 34,
-   "path": "fits/sf-haight-castro/-12245_3775-bab1b103af1b.json",
-   "sha256": "bab1b103af1b4869d4bd0d460f6bab4385e00769499b28fa84c8b5fd385f54b9",
-   "bytes": 173408
+   "path": "fits/sf-haight-castro/-12245_3775-9576590e96aa.json",
+   "sha256": "9576590e96aa715c76944345578f8ffc7635f39f9ec188c9cd51a532b75f6699",
+   "bytes": 175890
   },
   {
    "region": "sf-haight-castro",
@@ -715,9 +715,9 @@
     37.7651227
    ],
    "count": 106,
-   "path": "fits/sf-haight-castro/-12245_3776-5419d418839e.json",
-   "sha256": "5419d418839e314cd18461b157c1d526eae9c5875f6b3a84a4a852221be2ff27",
-   "bytes": 594427
+   "path": "fits/sf-haight-castro/-12245_3776-82f3fa590393.json",
+   "sha256": "82f3fa590393dad29a09770c009fb998e6405fbe449223fe1d1e61805b5bd036",
+   "bytes": 602146
   },
   {
    "region": "sf-haight-castro",
@@ -732,9 +732,9 @@
     37.7599086
    ],
    "count": 61,
-   "path": "fits/sf-haight-castro/-12244_3775-8fef7d8c8ace.json",
-   "sha256": "8fef7d8c8acec17798f12f5196f138eee424fbc2cbfe1095f8107a1fa44e9bde",
-   "bytes": 361402
+   "path": "fits/sf-haight-castro/-12244_3775-2902bef3b13b.json",
+   "sha256": "2902bef3b13bff9b824b1883bbf8d4095345ab10f9d76a9dc260bb7de0e1cb70",
+   "bytes": 367042
   },
   {
    "region": "sf-haight-castro",
@@ -749,9 +749,9 @@
     37.7648992
    ],
    "count": 126,
-   "path": "fits/sf-haight-castro/-12244_3776-cd43844c051a.json",
-   "sha256": "cd43844c051a13dc903333d6718f21755708f5fb39b853217901cf13657058f2",
-   "bytes": 753887
+   "path": "fits/sf-haight-castro/-12244_3776-19d0457eea79.json",
+   "sha256": "19d0457eea79dc524d1a37a0bac0fa2cf35954b8735003157d5f6a4c31ca7b49",
+   "bytes": 762933
   },
   {
    "region": "sf-mission",
@@ -766,9 +766,9 @@
     37.7500576
    ],
    "count": 30,
-   "path": "fits/sf-mission/-12243_3774-71659aa3b4d4.json",
-   "sha256": "71659aa3b4d4eb7d385c5a8867d6f6875869be1358d2b64e89a17949b86c2f2a",
-   "bytes": 193439
+   "path": "fits/sf-mission/-12243_3774-41a287b8001a.json",
+   "sha256": "41a287b8001a9466aa33ff1fb9342c3ad56813d6adc1acacf7a5e82559192b22",
+   "bytes": 195872
   },
   {
    "region": "sf-mission",
@@ -783,9 +783,9 @@
     37.759565
    ],
    "count": 103,
-   "path": "fits/sf-mission/-12243_3775-320738966ed0.json",
-   "sha256": "320738966ed0485174afb4305a7bb80c56bfff9d57014216440506b223cef2cd",
-   "bytes": 640160
+   "path": "fits/sf-mission/-12243_3775-53e6de16ea66.json",
+   "sha256": "53e6de16ea662d326da2b7c066f149652a2c3d4cc57340381cf28d63275679fa",
+   "bytes": 650142
   },
   {
    "region": "sf-mission",
@@ -800,9 +800,9 @@
     37.7701426
    ],
    "count": 143,
-   "path": "fits/sf-mission/-12243_3776-3305b1d9ae2b.json",
-   "sha256": "3305b1d9ae2b1dd9029b5de7e5d2e6c1b56ce5fa8d98664fd9f9c8926700d21c",
-   "bytes": 899009
+   "path": "fits/sf-mission/-12243_3776-e2d73b2a2438.json",
+   "sha256": "e2d73b2a2438bc01adf3621707594b93a532d9321da32e4abd7d41b209aba9e3",
+   "bytes": 911908
   },
   {
    "region": "sf-mission",
@@ -817,9 +817,9 @@
     37.7500962
    ],
    "count": 42,
-   "path": "fits/sf-mission/-12242_3774-332446f097d6.json",
-   "sha256": "332446f097d6468cb21337fa4501f335ef23adede6552461cfba28da9b524d46",
-   "bytes": 229857
+   "path": "fits/sf-mission/-12242_3774-fd2f54638b60.json",
+   "sha256": "fd2f54638b609eeaa4d1798a66439cee3a5d98f446f3bbdda6ae461f47cbb501",
+   "bytes": 232624
   },
   {
    "region": "sf-mission",
@@ -834,9 +834,9 @@
     37.7600144
    ],
    "count": 153,
-   "path": "fits/sf-mission/-12242_3775-93e10026366f.json",
-   "sha256": "93e10026366f5b6fef730bf82b19141bfc74ab0f4050a111bee899af2e29f10b",
-   "bytes": 909585
+   "path": "fits/sf-mission/-12242_3775-fedcdb14d5c0.json",
+   "sha256": "fedcdb14d5c036f56def317e9d876016c177ca17a517a46b1d3812e40f8301eb",
+   "bytes": 924363
   },
   {
    "region": "sf-mission",
@@ -851,9 +851,9 @@
     37.770083
    ],
    "count": 74,
-   "path": "fits/sf-mission/-12242_3776-67ef2c86a18e.json",
-   "sha256": "67ef2c86a18ebdfa16e996c9066a0f241ecee31a8425693deab6625fdd1204dd",
-   "bytes": 401529
+   "path": "fits/sf-mission/-12242_3776-f5683a7ee6c9.json",
+   "sha256": "f5683a7ee6c9005e1030c5a5efc063ebc2203dad49c19b44745b62b7a9579c74",
+   "bytes": 408267
   },
   {
    "region": "sf-mission",
@@ -868,9 +868,9 @@
     37.7500525
    ],
    "count": 32,
-   "path": "fits/sf-mission/-12241_3774-837c9f141a96.json",
-   "sha256": "837c9f141a96ddc7b65bc9f5d45e8bf134325857b7a9d0211fc3325c02634275",
-   "bytes": 174180
+   "path": "fits/sf-mission/-12241_3774-e4b7442cd955.json",
+   "sha256": "e4b7442cd955fb3c40fcb5b9cf5bb71b91d13ee6bc5c3bd03e51ff23433637fa",
+   "bytes": 176183
   },
   {
    "region": "sf-mission",
@@ -885,9 +885,9 @@
     37.7592782
    ],
    "count": 112,
-   "path": "fits/sf-mission/-12241_3775-f8fb591f71f8.json",
-   "sha256": "f8fb591f71f836b04d886b3f53b636bd4cd9ca324abb4a3c56cb060c81bd8949",
-   "bytes": 676357
+   "path": "fits/sf-mission/-12241_3775-e9fb6653b385.json",
+   "sha256": "e9fb6653b385b7b8a073a3395f3bf6c66875a2735bbae8f0b2cfe4804ed44616",
+   "bytes": 683652
   },
   {
    "region": "sf-mission",
@@ -902,9 +902,9 @@
     37.7674917
    ],
    "count": 12,
-   "path": "fits/sf-mission/-12241_3776-48ad4aea96e7.json",
-   "sha256": "48ad4aea96e7dc9038d6cee1ddadb5a3a001b53d406270da82b07bcf80d09494",
-   "bytes": 63931
+   "path": "fits/sf-mission/-12241_3776-5b0bf41caee2.json",
+   "sha256": "5b0bf41caee2648fa005a68999ec734949048c4c49a93903777e7d40482945b4",
+   "bytes": 64901
   },
   {
    "region": "sf-sunset",
@@ -919,9 +919,9 @@
     37.7400053
    ],
    "count": 1,
-   "path": "fits/sf-sunset/-12251_3773-5bbc1401d976.json",
-   "sha256": "5bbc1401d9763b8dd8a5a04a4b4985c052c61c442c09b34e30b957f1d05aac01",
-   "bytes": 3685
+   "path": "fits/sf-sunset/-12251_3773-2d84fa305ead.json",
+   "sha256": "2d84fa305eadf4405fe16b01501a11edd764d7af7c1c61854d24ee4897907622",
+   "bytes": 3798
   },
   {
    "region": "sf-sunset",
@@ -936,9 +936,9 @@
     37.7499419
    ],
    "count": 153,
-   "path": "fits/sf-sunset/-12251_3774-17b4a52aeaf5.json",
-   "sha256": "17b4a52aeaf56839be500c05f5d7d4533ad0cad9a01fc6262928cc87f8cacaac",
-   "bytes": 741018
+   "path": "fits/sf-sunset/-12251_3774-41bce65a40f0.json",
+   "sha256": "41bce65a40f0687ae94a93652a611079b8c26eb7676efa46d83d4d9df06eb61c",
+   "bytes": 750720
   },
   {
    "region": "sf-sunset",
@@ -953,9 +953,9 @@
     37.7593941
    ],
    "count": 100,
-   "path": "fits/sf-sunset/-12251_3775-c8998cb4b043.json",
-   "sha256": "c8998cb4b043078f61ee8488e89bbf5aef952ef42a79789227028ed3f76918cd",
-   "bytes": 455613
+   "path": "fits/sf-sunset/-12251_3775-3b08d7d3e3ed.json",
+   "sha256": "3b08d7d3e3edffd5e782b4645271d34763f51595ec70f9c4025a8f78ba3129ae",
+   "bytes": 461275
   },
   {
    "region": "sf-sunset",
@@ -970,9 +970,9 @@
     37.7642931
    ],
    "count": 41,
-   "path": "fits/sf-sunset/-12251_3776-099a04985ac3.json",
-   "sha256": "099a04985ac338421363af7d4dc64229babd4b1c71d57af82aa3a2afd8b6f24e",
-   "bytes": 178150
+   "path": "fits/sf-sunset/-12251_3776-f816be41a1c3.json",
+   "sha256": "f816be41a1c3c8b47177ab25a5b34a28fed256b54e22f73e2e34b051c75be3ff",
+   "bytes": 179812
   },
   {
    "region": "sf-sunset",
@@ -987,9 +987,9 @@
     37.7496142
    ],
    "count": 35,
-   "path": "fits/sf-sunset/-12250_3774-3c9dcecfade5.json",
-   "sha256": "3c9dcecfade5505d7cfcc578aa68f006bc8449da300c6574120493478e25f422",
-   "bytes": 170766
+   "path": "fits/sf-sunset/-12250_3774-c7356d129450.json",
+   "sha256": "c7356d1294500d10f7d999a7f85c6ddb2a37fc937999f907950af72d87726189",
+   "bytes": 172304
   },
   {
    "region": "sf-sunset",
@@ -1004,9 +1004,9 @@
     37.7599793
    ],
    "count": 68,
-   "path": "fits/sf-sunset/-12250_3775-d5bce7e0e885.json",
-   "sha256": "d5bce7e0e88521cd67a4e94ee26914ff805f4be03554c91bf54caa2eb7cdd19d",
-   "bytes": 297297
+   "path": "fits/sf-sunset/-12250_3775-99d2094f94b4.json",
+   "sha256": "99d2094f94b4f11551f3c82c8ae800b75d9ce6b7df692f125abdfb81cadac66a",
+   "bytes": 300746
   },
   {
    "region": "sf-sunset",
@@ -1021,9 +1021,9 @@
     37.7646754
    ],
    "count": 70,
-   "path": "fits/sf-sunset/-12250_3776-fb674b8c31ee.json",
-   "sha256": "fb674b8c31ee3e47f8f2d6b72fc00b197f2ec15d9f7c063b4a5ebb6cc3694699",
-   "bytes": 321013
+   "path": "fits/sf-sunset/-12250_3776-3bc02cfdd40a.json",
+   "sha256": "3bc02cfdd40aa6c0861c8686341c447ab2f25549d0aa4dc1ff247f4235f46b5e",
+   "bytes": 324365
   },
   {
    "region": "sf-sunset",
@@ -1038,9 +1038,9 @@
     37.7499026
    ],
    "count": 91,
-   "path": "fits/sf-sunset/-12249_3774-5c26cb764d2f.json",
-   "sha256": "5c26cb764d2f379fbddb244bac4d58ce3319e11425c4cc06da82452eebc4fb1e",
-   "bytes": 459277
+   "path": "fits/sf-sunset/-12249_3774-2a6b63ef0fd3.json",
+   "sha256": "2a6b63ef0fd3f1d043613dedcaca0055ccddec6f116d88c0b1761965dbcf588e",
+   "bytes": 464326
   },
   {
    "region": "sf-sunset",
@@ -1055,9 +1055,9 @@
     37.7600613
    ],
    "count": 95,
-   "path": "fits/sf-sunset/-12249_3775-b7ca079a5cdd.json",
-   "sha256": "b7ca079a5cddf66211579c84309b0077924b2c296b73ae33b5b8dc1a5f447507",
-   "bytes": 453319
+   "path": "fits/sf-sunset/-12249_3775-41246754cd4c.json",
+   "sha256": "41246754cd4cb4fb49667a4ac39d14fb195d64bf00ca374c1a4b4fe9d596f2d6",
+   "bytes": 458678
   },
   {
    "region": "sf-sunset",
@@ -1072,9 +1072,9 @@
     37.7639587
    ],
    "count": 88,
-   "path": "fits/sf-sunset/-12249_3776-e989345372b5.json",
-   "sha256": "e989345372b568a6bfacff8a2fdf00cae7600f72aa87220bc05be34bb1ed02aa",
-   "bytes": 432768
+   "path": "fits/sf-sunset/-12249_3776-159bcddb2e93.json",
+   "sha256": "159bcddb2e93f3192371f6e07eaeb617bee9850ed50bd9639e0eb579a0e320fe",
+   "bytes": 437838
   },
   {
    "region": "sf-sunset",
@@ -1089,9 +1089,9 @@
     37.7400172
    ],
    "count": 1,
-   "path": "fits/sf-sunset/-12248_3773-dc1747ef3de8.json",
-   "sha256": "dc1747ef3de89c7d15c96f5211970dc336b825e8691198936fa52d66f4578857",
-   "bytes": 3520
+   "path": "fits/sf-sunset/-12248_3773-620a2e263c12.json",
+   "sha256": "620a2e263c1291d973ae77fd4d3ec215e5436357cd2d2504413f5939f068f7a9",
+   "bytes": 3633
   },
   {
    "region": "sf-sunset",
@@ -1106,9 +1106,9 @@
     37.7499179
    ],
    "count": 40,
-   "path": "fits/sf-sunset/-12248_3774-ea2194b47dfe.json",
-   "sha256": "ea2194b47dfe222ab0c0ee222d342a988f09991fb0c659d6d8758e2c6007ad6f",
-   "bytes": 201911
+   "path": "fits/sf-sunset/-12248_3774-e8a565dfb63f.json",
+   "sha256": "e8a565dfb63f4324dcffbc94b70288d91b05facfa2b2ea66a0757b5333d34233",
+   "bytes": 204572
   },
   {
    "region": "sf-sunset",
@@ -1123,9 +1123,9 @@
     37.7593319
    ],
    "count": 33,
-   "path": "fits/sf-sunset/-12248_3775-a1f0894aec95.json",
-   "sha256": "a1f0894aec95c3c3a76cd5bf57392bc51555451a8b1ca9de2db959d831d0a903",
-   "bytes": 178943
+   "path": "fits/sf-sunset/-12248_3775-e8406816fc42.json",
+   "sha256": "e8406816fc42efd622a658bfa7b91ec2776295309ac8d2a62a8f40fa3408f71e",
+   "bytes": 180646
   },
   {
    "region": "sf-sunset",
@@ -1140,9 +1140,9 @@
     37.7636721
    ],
    "count": 7,
-   "path": "fits/sf-sunset/-12248_3776-9dcfcf66841a.json",
-   "sha256": "9dcfcf66841a6b7f29c545b564905c5f182f42365926043f587d4fd62cb18340",
-   "bytes": 38735
+   "path": "fits/sf-sunset/-12248_3776-adb969a599bd.json",
+   "sha256": "adb969a599bddcf8363783ff260b22fff3ac4b0dd52c29944376f29e1efe562b",
+   "bytes": 39272
   }
  ]
 }

@@ -318,25 +318,8 @@
     "render_steps": false
    },
    "recess": {
-    "category": "short",
-    "door_id": "opening-1",
-    "grade": "inferred_visual",
-    "render_steps": true,
-    "steps": 2,
-    "rise_m": 0.436,
-    "step_rise_m": 0.218,
-    "depth_m": 1.8,
-    "landing_depth_m": 1.2,
-    "supported_by": "door_threshold_on_prior",
-    "stairs_evidence": {
-     "visible": true,
-     "image_sha256": "62f80d610dfb410f37c1c9476ae942b9d47683400db39405f4bdb2935fdafa21",
-     "reviewer": "automatic:entry_inference/1",
-     "basis": "door_threshold_on_prior"
-    },
-    "door_visibility": "observed",
-    "landing_alignment": "door_threshold",
-    "reason": null
+    "render_steps": false,
+    "reason": "vehicle_opening_is_not_a_pedestrian_stairwell"
    },
    "entry": {
     "door_id": "opening-1",
@@ -769,7 +752,7 @@
   }
  ],
  "appearance": {
-  "colour": "#a09789",
+  "colour": "#b8a78e",
   "grade": "image_colour_not_albedo",
   "material": "unknown",
   "schema": "kerbside.facade_appearance_bands/1",
@@ -777,44 +760,46 @@
    {
     "bottom_m": 0.0,
     "top_m": 4.143807339449541,
-    "colour": "#a59987",
+    "colour": "#b8a78e",
     "material": "unknown",
     "material_basis": "unknown; whole_building_classifier_not_floor_truth",
     "wall_pixel_fraction": 0.6028788387057424,
     "front_basis": "image_colour_on_storey_prior_not_albedo",
     "other_sides_basis": "inferred_same_height_band",
     "observed_colour": "#a59987",
-    "colour_policy_reason": "shared_house_colour; visual_default_not_albedo_measurement"
+    "colour_policy_reason": "reviewer_colour_on_contributed_photographs"
    },
    {
     "bottom_m": 4.143807339449541,
     "top_m": 8.31619266055046,
-    "colour": "#a59987",
+    "colour": "#b8a78e",
     "material": "unknown",
     "material_basis": "unknown; whole_building_classifier_not_floor_truth",
     "wall_pixel_fraction": 0.5340874720222613,
     "front_basis": "image_colour_on_storey_prior_not_albedo",
     "other_sides_basis": "inferred_same_height_band",
     "observed_colour": "#a39a8b",
-    "colour_policy_reason": "shared_house_colour; visual_default_not_albedo_measurement"
+    "colour_policy_reason": "reviewer_colour_on_contributed_photographs"
    },
    {
     "bottom_m": 8.31619266055046,
     "top_m": 12.46,
-    "colour": "#a59987",
+    "colour": "#b8a78e",
     "material": "unknown",
     "material_basis": "unknown; whole_building_classifier_not_floor_truth",
     "wall_pixel_fraction": 0.5696380104296911,
     "front_basis": "image_colour_on_storey_prior_not_albedo",
     "other_sides_basis": "inferred_same_height_band",
     "observed_colour": "#8e8881",
-    "colour_policy_reason": "shared_house_colour; visual_default_not_albedo_measurement"
+    "colour_policy_reason": "reviewer_colour_on_contributed_photographs"
    }
   ],
   "boundaries_basis": "canonical_height_and_levels_prior",
   "colour_policy": "dominant_house_colour_unless_business_material_or_strong_colour_difference/2",
   "colour_difference": "lab_lightness_discounted_except_neutrals",
-  "distinct_colour_delta_e76": 25.0
+  "distinct_colour_delta_e76": 25.0,
+  "measured_colour": "#a09789",
+  "colour_basis": "reviewer_on_contributed_photographs"
  },
  "storey_constraint": {
   "status": "prior_constrained",
@@ -1198,6 +1183,13 @@
    },
    "basis": "a white sectional garage door in a recessed bay, the side door beside it (IMG_4633, IMG_4634)",
    "reviewer": "assistant, on the contributed photographs"
+  },
+  {
+   "appearance": "colour",
+   "before": "#a09789",
+   "after": "#b8a78e",
+   "basis": "beige: the sunlit wall between the bays in IMG_4633 (#b8a78e); the fit's median (#a09789) was read off the wall in shade, and the house drew grey-green",
+   "reviewer": "the project owner"
   }
  ],
  "building_id": "263276313",
