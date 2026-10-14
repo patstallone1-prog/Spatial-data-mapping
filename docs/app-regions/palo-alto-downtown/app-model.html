@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="edb84a9187e324b81765c4b2417a03a6649bf70b12df950eb8ccf4960ce3ca29" />
+<meta name="kerbside-renderer-sha256" content="b82bb47480e85e4c0e1543611d71c9dea5a04af178e3c980a3ab53afab250a7b" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -134,6 +134,7 @@ input::placeholder { color:#9ca3af; }
     </div>
     <div class="toolbar actions">
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
+      <button id="explore" aria-pressed="false" title="Explore (E): the walker is put away and the arrows move the view anywhere; turned off, the walker stands where you are">Explore</button>
       <button id="reset">Reset view</button>
     </div>
     <button type="button" id="settings-toggle" class="settings-open" aria-controls="settings-page" aria-expanded="false">⚙ Settings</button>
@@ -214,6 +215,7 @@ input::placeholder { color:#9ca3af; }
       <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Walk forward and back.</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Step left and right.</dd>
       <dt><kbd>F</kbd></dt><dd>First person: see out of the walker's eyes, and back out.</dd>
+      <dt><kbd>E</kbd></dt><dd>Explore: the walker is put away and the arrows move the view anywhere; press again and the walker stands where you are.</dd>
       <dt><kbd>Enter</kbd></dt><dd>Open or close the nearest door or gate.</dd>
       <dt><kbd>S</kbd></dt><dd>What is under the pointer: a building's address, or a street's name and its cross streets. With the map panel closed.</dd>
       <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Drop that pin on the ground under the pointer. Once it is down, the same key takes you back to it.</dd>
@@ -228,6 +230,7 @@ input::placeholder { color:#9ca3af; }
       <dt>Search</dt><dd>Type a place or an address; <kbd>↑</kbd> <kbd>↓</kbd> to choose, <kbd>Enter</kbd> to show it. The walker stays where it is.</dd>
       <dt>Directions</dt><dd>From and to, then Go: a route on the street network, drawn on the map.</dd>
       <dt>First person</dt><dd>The same as <kbd>F</kbd>.</dd>
+      <dt>Explore</dt><dd>The same as <kbd>E</kbd>.</dd>
       <dt>Reset view</dt><dd>Back out to the overview, with the walker where you are (when your location is on) or in the middle of the region.</dd>
       <dt>⚙ Settings</dt><dd>This page: quality, frame rate, layers, your location and these controls.</dd>
     </dl>
@@ -23073,6 +23076,7 @@ function orbitInsideBuilding(position, target) {
   }
 }
 function setFirstPerson(on) {
+  if (on && state.explore) setExplore(false);
   state.firstPerson = on;
   if (!on) state.autoFirstPerson = false;
   if (typeof avatar !== "undefined") {
@@ -23182,6 +23186,65 @@ document.getElementById("reset").addEventListener("click", () => {
   }
   setFirstPerson(false);
 });
+
+// ---- explore: the view without the walker ----
+//
+// E, or the Explore button: the walker is put away and the arrows move the view itself, over
+// roofs and through walls, faster the farther out the view is. A click, a right click or a pin
+// moves the view, not a walker. Turned off, the walker is stood on the nearest open ground to
+// where the view is looking, and the view follows it again as before.
+//: Metres a second the view moves at, per metre of its distance, and at least.
+const EXPLORE_SPEED_PER_M = 0.8;
+const EXPLORE_SPEED_MIN = 8;
+function setExplore(on) {
+  if (typeof avatar === "undefined" || Boolean(state.explore) === on) return;
+  if (on) {
+    if (state.firstPerson) setFirstPerson(false);
+    state.explore = true;
+    state.exploreGps = { follow: gps.follow, leash: GPS_LEASH.on };
+    gps.follow = false;
+    GPS_LEASH.on = false;
+    avatar.visible = false;
+  } else {
+    state.explore = false;
+    const at = walkerExteriorAt(state.target.x, state.target.z);
+    if (at) {
+      avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z), at.z);
+      state.indoors = false;
+    }
+    avatar.visible = true;
+    state.target.copy(avatar.position);
+    placeCamera();
+  }
+  const button = document.getElementById("explore");
+  if (button) button.setAttribute("aria-pressed", on ? "true" : "false");
+}
+function exploreStep(dt) {
+  if (!held.size) return;
+  const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw)).negate();
+  const rightward = new THREE.Vector3(forward.z, 0, -forward.x);
+  const move = new THREE.Vector3();
+  if (held.has("ArrowUp")) move.add(forward);
+  if (held.has("ArrowDown")) move.sub(forward);
+  if (held.has("ArrowRight")) move.add(rightward);
+  if (held.has("ArrowLeft")) move.sub(rightward);
+  if (!move.lengthSq()) return;
+  move.normalize().multiplyScalar(Math.max(EXPLORE_SPEED_MIN, state.dist * EXPLORE_SPEED_PER_M) * dt);
+  state.target.x += move.x;
+  state.target.z += move.z;
+  state.target.y = walkerGroundAt(state.target.x, state.target.z);
+  placeCamera();
+}
+if (!ATTACH) {
+  document.getElementById("explore").addEventListener("click", () => setExplore(!state.explore));
+  addEventListener("keydown", (e) => {
+    if ((e.key !== "e" && e.key !== "E") || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
+        || e.target instanceof HTMLSelectElement) return;
+    setExplore(!state.explore);
+    e.preventDefault();
+  });
+}
 
 // ---- gaps: mapped ways nobody has photographed ----
 {
@@ -23900,6 +23963,13 @@ var GPS_LEASH = { on: true };
 // street-level teleport; dragging and wheel zoom never move the walker.
 function goTo(landing, { travel = false, zoom = false } = {}) {
   if (!landing) return;
+  // Exploring there is no walker to send: the view goes, and comes in close as it would.
+  if (state.explore && travel) {
+    if (zoom) state.dist = ARRIVAL_DIST;
+    state.target.set(landing.x, walkerGroundAt(landing.x, landing.z), landing.z);
+    placeCamera();
+    return;
+  }
   if (travel) landing = walkerExteriorAt(landing.x, landing.z);
   if (!landing) return;
   if (travel && GPS_LEASH) GPS_LEASH.on = false;
@@ -27916,6 +27986,7 @@ function walkPace(move) {
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
+  if (state.explore) { exploreStep(dt); return; }
   keepWalkerOutside();
   updateDoors(dt);
   if (!held.size) {
