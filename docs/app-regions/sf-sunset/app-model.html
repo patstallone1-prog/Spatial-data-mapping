@@ -27,6 +27,8 @@ button.primary:hover { background:#1d4ed8; }
 .hud .panel { flex:0 1 auto; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:14px; }
 .hud[data-open="false"] .panel { display:none; }
 .panel { pointer-events:auto; background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); }
+.hud-top { display:flex; gap:8px; align-self:flex-start; }
+#route-end { pointer-events:auto; min-height:44px; border-radius:12px; box-shadow:var(--shadow); font-weight:600; background:#2563eb; color:#fff; border:0; padding:0 14px; }
 #fold { align-self:flex-start; pointer-events:auto; min-width:48px; min-height:44px; border-radius:12px; box-shadow:var(--shadow); font-weight:600; }
 .bar { display:flex; align-items:center; gap:10px; }
 .bar h1 { flex:1; margin:0; font-size:17px; font-weight:700; letter-spacing:-.01em; }
@@ -95,13 +97,14 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="1fe2591b3a80237e168bfc00e6aca41322cb387ea1bce85369b161e5bfbc6241" />
+<meta name="kerbside-renderer-sha256" content="edb84a9187e324b81765c4b2417a03a6649bf70b12df950eb8ccf4960ce3ca29" />
 </head>
 <body>
 <canvas id="scene"></canvas>
 <div id="progress" hidden>Loading the corridor&hellip;</div>
 <div class="hud" id="hud" data-open="false">
-  <button id="fold" aria-expanded="false" aria-controls="map-sidebar" aria-label="Open map controls" title="Map controls">☰ Map</button>
+  <div class="hud-top"><button id="fold" aria-expanded="false" aria-controls="map-sidebar" aria-label="Open map controls" title="Map controls">☰ Map</button>
+  <button type="button" id="route-end" hidden title="End the route (Esc)">✕ End route</button></div>
   <div class="panel" id="map-sidebar">
     <div class="bar"><h1>Kerbside</h1></div>
     <div class="group" id="regiongroup" hidden>
@@ -14533,12 +14536,32 @@ function drivewayZone(g) {
   const ring = [[-half, -1], [half, -1], [half, reach], [-half, reach]]
     .map(([u, v]) => [kx + dy * u + dx * v, -(ky - dx * u + dy * v)]);
   const xs = ring.map((p) => p[0]), zs = ring.map((p) => p[1]);
-  return { ring, minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
+  return { ring, minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs),
+    kx, ky, dx, dy, half };
 }
 //: Whether a tree trunk at (x, z) stands in the way from a kerb cut to its garage.
 function inDriveway(x, z) {
   return DRIVEWAY_ZONES.some((zone) => x >= zone.minX && x <= zone.maxX && z >= zone.minZ && z <= zone.maxZ
     && pointInRing(x, z, zone.ring));
+}
+//: Beyond a driveway's side, how far a pole is set.
+const DRIVEWAY_SIDE_CLEAR_M = 0.4;
+//: A pole standing in the way from a kerb cut to its garage, moved to the nearer side of the
+//: driveway at the same distance from the kerb (or the farther, where the nearer is another
+//: driveway or a building). Null where it is not in a driveway, or there is nowhere clear.
+function clearOfDriveway(x, z) {
+  const zone = DRIVEWAY_ZONES.find((zone) => x >= zone.minX && x <= zone.maxX && z >= zone.minZ && z <= zone.maxZ
+    && pointInRing(x, z, zone.ring));
+  if (!zone) return null;
+  const rx = x - zone.kx, ry = -z - zone.ky;
+  const u = rx * zone.dy - ry * zone.dx, v = rx * zone.dx + ry * zone.dy;
+  const side = u >= 0 ? 1 : -1;
+  for (const s of [side, -side]) {
+    const nu = s * (zone.half + DRIVEWAY_SIDE_CLEAR_M);
+    const nx = zone.kx + zone.dy * nu + zone.dx * v, nz = -(zone.ky - zone.dx * nu + zone.dy * v);
+    if (!inDriveway(nx, nz) && !buildingAt(nx, nz) && !insideCarriageway(nx, nz, 0.1)) return { x: nx, z: nz };
+  }
+  return null;
 }
 //: The wall a front door needs beside a garage: the leaf and clear wall either side.
 const GARAGE_DOOR_ROOM_M = 1.05 + 2 * 0.35;
@@ -21946,9 +21969,18 @@ function addElectricalNetwork(furniture, lightRows = []) {
   const inferred = furniture.inferred || {};
   // OpenStreetMap's poles and the ones Mapillary placed from its photographs (ingest_kerb_assets:
   // none within 7 m of a mapped one), one network.
+  // A pole in the way from a kerb cut to its garage stands to the side of the driveway instead.
   const poleRows = (inferred.utility_poles || []).concat(inferred.detected_utility_poles || [])
     .map((item) => ({ item, anchor: furnitureAnchor(item) }))
     .filter((row) => row.anchor);
+  for (const row of poleRows) {
+    const clear = clearOfDriveway(row.anchor.x, row.anchor.z);
+    if (!clear) continue;
+    const top = pavementTopAt(clear.x, clear.z);
+    row.anchor = { x: clear.x, z: clear.z,
+      y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(clear.x, clear.z) };
+    row.movedOutOfDriveway = true;
+  }
   poleRows.forEach((row) => {
     row.height = Math.max(7, Math.min(16, parseFloat(row.item.height_m) || POLE_DEFAULT_M));
     row.yaw = furnitureBearing(row.item, 0, row.anchor);
@@ -23020,7 +23052,25 @@ function placeCamera() {
   const z = Math.cos(state.yaw) * Math.cos(state.pitch) * state.dist;
   const y = Math.sin(state.pitch) * state.dist;
   camera.position.copy(state.target).add(new THREE.Vector3(x, y, z));
+  // Looking at something outside from inside a house -- the orbit swung through a wall -- puts
+  // the view straight above it instead, at the same distance.
+  if (orbitInsideBuilding(camera.position, state.target)) {
+    camera.position.set(state.target.x + Math.sin(state.yaw) * state.dist * 1e-3, state.target.y + state.dist,
+      state.target.z + Math.cos(state.yaw) * state.dist * 1e-3);
+  }
   camera.lookAt(state.target);
+}
+//: The orbit camera is inside a building's walls, below its roof, while what it looks at is not
+//: in that building.
+function orbitInsideBuilding(position, target) {
+  try {
+    const house = buildingAt(position.x, position.z);
+    if (!house || buildingAt(target.x, target.z) === house) return false;
+    const top = groundLiftAt(position.x, position.z) + (Number(house.height_m) || 10.5) + 0.5;
+    return position.y < top;
+  } catch {
+    return false;   // the footprints are not indexed yet
+  }
 }
 function setFirstPerson(on) {
   state.firstPerson = on;
@@ -24168,9 +24218,11 @@ addEventListener("keydown", (e) => {
   pinChosen = { i, at: e.timeStamp, held: true };
   if (pins[i] && !e.shiftKey) {
     // Back to the pin: the walker stands beside it, on the street if it is in a building.
+    // Brought in as close as a right click brings you, from however far out the view was.
     const landing = eligibleLanding(new THREE.Vector3(pins[i].x, 0, pins[i].z)) || new THREE.Vector3(pins[i].x, 0, pins[i].z);
     hideAddress();
-    goTo(landing, { travel: true });
+    if (state.firstPerson) setFirstPerson(false);
+    goTo(landing, { travel: true, zoom: true });
     pinSay(`Back at pin ${i + 1} — Delete removes it`);
     return;
   }
@@ -28323,7 +28375,10 @@ const ROUTE_MAX_STOPS = 5;
 const ROUTE_MAX_SHOWN = 4;
 const ROUTE_RIBBON_M = { chosen: 2.6, other: 1.4 };
 //: From high up the ribbon widens to stay readable: about this share of the view's distance.
-const ROUTE_RIBBON_PER_M = 0.006;
+const ROUTE_RIBBON_PER_M = 0.007;
+//: How much wider than its ground width the ribbon may grow: enough to stay a few pixels wide
+//: from the farthest the view goes (MAX_ORBIT_DIST_M).
+const ROUTE_RIBBON_MAX_SCALE = 60;
 let routeDrawnAt = 0;
 const ROUTE_LIFT_M = 0.3;
 const route = { mode: "walk", stops: [null, null], results: [], chosen: 0, pending: null };
@@ -28337,9 +28392,12 @@ function decodePolyline6(text, precision = 6) {
   let index = 0, lat = 0, lon = 0;
   while (index < text.length) {
     for (const which of [0, 1]) {
-      let result = 0, shift = 0, byte;
-      do { byte = text.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
-      const delta = result & 1 ? ~(result >> 1) : result >> 1;
+      // Arithmetic, not bitwise: at seven places (Transitous) a longitude of -122 is a zigzag
+      // value past 2^31, and 32-bit shifts turned San Francisco's -122.42 into +92.33 -- every
+      // transit route landed off the map and nothing was drawn.
+      let result = 0, factor = 1, byte;
+      do { byte = text.charCodeAt(index++) - 63; result += (byte % 32) * factor; factor *= 32; } while (byte >= 0x20);
+      const delta = result % 2 ? -(result + 1) / 2 : result / 2;
       if (which === 0) lat += delta; else lon += delta;
     }
     points.push([lon / scale, lat / scale]);
@@ -28626,7 +28684,7 @@ function routeRibbon(result, width, colour) {
 }
 //: How wide the ribbons are drawn at the present view: their ground width, or wider from above.
 function routeScale() {
-  return Math.min(12, Math.max(1, (state.firstPerson ? 0 : state.dist) * ROUTE_RIBBON_PER_M / ROUTE_RIBBON_M.chosen));
+  return Math.min(ROUTE_RIBBON_MAX_SCALE, Math.max(1, (state.firstPerson ? 0 : state.dist) * ROUTE_RIBBON_PER_M / ROUTE_RIBBON_M.chosen));
 }
 //: Redrawn only when the view's distance has changed a good deal, never every frame.
 function updateRouteWidth() {
@@ -28814,6 +28872,7 @@ if (!ATTACH) {
     stepsList.replaceChildren(...(chosen?.steps || []).map((text) => Object.assign(document.createElement("li"), { textContent: text })));
     stepsList.hidden = !chosen;
     clear.hidden = !route.results.length;
+    document.getElementById("route-end").hidden = !route.results.length;
     if (chosen) status.textContent = (route.mode === "drive" ? "Typical time, without live traffic. " : "")
       + (route.mode === "transit" ? "Scheduled times (Transitous, from the agencies' timetables). " : "")
       + (drawnInside < chosen.line.length * 0.5 ? "Part of this route is outside this region and is listed, not drawn." : "");
@@ -28827,10 +28886,20 @@ if (!ATTACH) {
   document.getElementById("route-add").addEventListener("click", () => {
     if (route.stops.length < ROUTE_MAX_STOPS) { route.stops.splice(route.stops.length - 1, 0, null); renderStops(); }
   });
-  clear.addEventListener("click", () => {
+  // The route ends from the panel's Clear, the End route button beside the map controls (shown
+  // while a route is drawn, the panel folded or not), or Escape.
+  const endRoute = () => {
+    route.pending = null;
     route.results = []; route.chosen = 0; drawRoutes(); renderResults(0); status.textContent = "";
     pin.visible = false; gps.follow = true;
     clearRoutePins();
+  };
+  clear.addEventListener("click", endRoute);
+  document.getElementById("route-end").addEventListener("click", endRoute);
+  addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !route.results.length) return;
+    if (!settingsForm.hidden) return;   // Escape closes the settings first
+    endRoute();
   });
   document.getElementById("route-go").addEventListener("click", async () => {
     const stops = route.stops.map((stop, i) => stop || (i === 0 ? here() : null));

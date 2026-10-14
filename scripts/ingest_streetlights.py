@@ -176,9 +176,9 @@ def off_streetlights(poles: list[dict], lights: list[dict], span_ends: frozenset
 
 def one_per_pole(mapped: list[dict], detected: list[dict],
                  span_ends: frozenset = frozenset()) -> tuple[list[dict], list[dict]]:
-    """The mapped and detected poles with each physical pole once (merge_duplicate_poles). Where
-    a wire span ends on one of a pole's detections, that detection is the one drawn, so the wire
-    meets the pole."""
+    """The mapped and detected poles with each physical pole once (merge_duplicate_poles), at the
+    mean of its detections. Where a wire span ends on one of a pole's detections, that detection
+    is the one drawn, so the wire meets the pole."""
     poles = mapped + detected
     if not poles:
         return mapped, detected
@@ -200,6 +200,15 @@ def one_per_pole(mapped: list[dict], detected: list[dict],
         pole = by_id[chosen]
         if len(cluster) > 1:
             pole["merged_detections"] = [i for i in cluster if i != chosen]
+            # One pole seen from several places stands where they agree: the mean of its
+            # detections (not another span's end, which is a pole of its own). A mapped pole
+            # was placed by a person and stays where it was put.
+            same = [by_id[i] for i in cluster if i == chosen or i not in span_ends]
+            if not str(chosen).startswith("osm:") and len(same) > 1:
+                pole["p_detected"] = pole["p"]
+                pole["p"] = [round(sum(q["p"][0] for q in same) / len(same), 7),
+                             round(sum(q["p"][1] for q in same) / len(same), 7)]
+                pole["position_basis"] = "mean_of_merged_detections"
         kept.add(chosen)
         # A second span end in the cluster is a second pole the wires say is there.
         kept.update(ends)

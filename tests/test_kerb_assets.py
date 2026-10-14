@@ -95,7 +95,7 @@ def test_pins_drop_and_return_and_typing_is_never_a_pin() -> None:
     pins = js[js.index("// ---- pins: 1, 2 and 3"):js.index("// ---- the compass")]
     assert "const PIN_COUNT = 3;" in pins
     assert "if (typingIn(e.target) || typingIn(document.activeElement)) return;" in pins
-    assert "if (pins[i] && !e.shiftKey)" in pins and "goTo(landing, { travel: true });" in pins
+    assert "if (pins[i] && !e.shiftKey)" in pins and "goTo(landing, { travel: true, zoom: true });" in pins
     assert "groundAt(pointerAt[0], pointerAt[1])" in pins
     page = (ROOT / "docs/app-model.html").read_text()
     assert 'id="controls-help"' in page and "<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>" in page
