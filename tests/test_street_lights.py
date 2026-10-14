@@ -8,6 +8,7 @@ the road, and the carriers' small cells sit on top of those poles rather than on
 
 from __future__ import annotations
 
+import itertools
 import json
 import runpy
 import subprocess
@@ -117,3 +118,17 @@ def test_trolley_span_poles_are_shared_between_ways() -> None:
     wires = _extract("addTrolleyWires", _page_js())
     assert "const shared = standingSpanPole(qx, qz);" in wires
     assert "const TROLLEY_POLE_SHARE_M = 6;" in _page_js()
+
+
+def test_only_poles_on_a_line_are_drawn_as_utility_poles() -> None:
+    line = [[[-122.4200, 37.7600], [-122.4190, 37.7600]]]       # 88 m along a street
+    detected = [{"id": f"m:{i}", "p": [-122.4200 + i * 0.00008, 37.76002]} for i in range(12)]  # every 7 m, 2 m off
+    off = [{"id": "m:far", "p": [-122.4195, 37.7610]}]          # 110 m away: a lamp post or a sign pole
+    drawn, rest = INGEST["on_the_lines"]([], detected + off, frozenset({"m:5"}), line)
+    ids = [p["id"] for p in drawn]
+    assert "m:5" in ids, "a pole a photographed span ends on is drawn"
+    assert "m:far" not in ids and any(p["id"] == "m:far" and not p["drawn"] for p in rest)
+    xs = sorted(p["p"][0] for p in drawn)
+    assert all((b - a) * 88_000 >= 12 - 1e-6 for a, b in itertools.pairwise(xs)), "a line's spacing"
+    # Without PG&E's route (Palo Alto's own utility), nothing is dropped.
+    assert INGEST["on_the_lines"]([], detected, frozenset(), None) == (detected, [])

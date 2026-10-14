@@ -25,7 +25,9 @@ poles, crossarms and all, where one stands (and an old pole seen in 2019 beside 
 replaced it). The span builder (scripts/build_electrical_spans.py) already merges detections
 within 6 m into one pole and hangs its wires from that; the same merge
 (smc.infrastructure.electrical.merge_duplicate_poles) is applied here to what the page draws, so
-the poles drawn are the ones the wires hang from. Then the files' windowed cells are cut again.
+the poles drawn are the ones the wires hang from. And only poles with something saying they carry
+a line are drawn as utility poles (on_the_lines): Mapillary's class is every pole, lamp posts and
+sign poles included. Then the files' windowed cells are cut again.
 
     .venv/bin/python scripts/ingest_streetlights.py [--refresh]
 """
@@ -33,6 +35,8 @@ the poles drawn are the ones the wires hang from. Then the files' windowed cells
 from __future__ import annotations
 
 import argparse
+import gzip
+import itertools
 import json
 import math
 import runpy
@@ -202,6 +206,79 @@ def one_per_pole(mapped: list[dict], detected: list[dict],
     return ([p for p in mapped if str(p["id"]) in kept], [p for p in detected if str(p["id"]) in kept])
 
 
+#: A detection this near PG&E's line route (GRIP) may be one of the line's poles.
+ON_LINE_M = 8.0
+#: Along a line, a detection this near a pole already drawn is that pole, or a lamp or sign post
+#: beside it: a distribution line's poles stand 25-45 m apart.
+LINE_POLE_SPACING_M = 12.0
+GRIP = ROOT / "data/electrical/grip"
+
+
+def grip_lines(region: str) -> list[list[list[float]]] | None:
+    """PG&E's line sections in the region (scripts/ingest_pge_grip.py), or None where it has none."""
+    path = GRIP / f"{region}.json.gz"
+    if not path.is_file():
+        return None
+    return [line["points"] for line in json.loads(gzip.decompress(path.read_bytes())).get("lines", [])
+            if len(line.get("points") or []) >= 2]
+
+
+def on_the_lines(mapped: list[dict], detected: list[dict], span_ends: frozenset,
+                 lines: list[list[list[float]]] | None) -> tuple[list[dict], list[dict]]:
+    """Of the detected poles, the ones that are the electrical network's, and the rest.
+
+    Mapillary's utility-pole class is every pole: lamp posts, signal and sign poles, as well as the
+    wooden ones carrying the wires, detected every 8-12 m along a street. Every one was drawn as a
+    10.5 m wooden pole with a crossarm and insulators, which jammed a block with crossarms where one
+    line runs. A detection is drawn as a utility pole where something says it carries a line: a
+    photographed span ends on it, or it stands on PG&E's route -- then thinned to the spacing a
+    line's poles stand at, keeping the ones seen most. The rest are kept, undrawn, as poles of
+    unknown kind. Where there is no PG&E route (Palo Alto runs its own utility), nothing is dropped.
+    """
+    if lines is None:
+        return detected, []
+    pts = mapped + detected
+    if not pts:
+        return detected, []
+    lat0 = sum(p["p"][1] for p in pts) / len(pts)
+    k = math.cos(math.radians(lat0)) * 111_320.0
+    def xy(p):
+        return (p[0] * k, p[1] * 110_540.0)
+    cell = 25.0
+    grid: dict[tuple[int, int], list] = {}
+    for line in lines:
+        q = [xy(p) for p in line]
+        for a, b in itertools.pairwise(q):
+            steps = max(1, int(math.dist(a, b) // cell) + 1)
+            for t in range(steps + 1):
+                x, y = a[0] + (b[0] - a[0]) * t / steps, a[1] + (b[1] - a[1]) * t / steps
+                grid.setdefault((int(x // cell), int(y // cell)), []).append((a, b))
+    def to_line(p) -> float:
+        x, y = xy(p)
+        best = math.inf
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for a, b in grid.get((int(x // cell) + dx, int(y // cell) + dy), []):
+                    vx, vy = b[0] - a[0], b[1] - a[1]
+                    t = max(0.0, min(1.0, ((x - a[0]) * vx + (y - a[1]) * vy) / ((vx * vx + vy * vy) or 1.0)))
+                    best = min(best, math.hypot(x - a[0] - t * vx, y - a[1] - t * vy))
+        return best
+    confirmed = [p for p in detected if str(p["id"]) in span_ends]
+    candidates = sorted((p for p in detected if str(p["id"]) not in span_ends and to_line(p["p"]) <= ON_LINE_M),
+                        key=lambda p: (-len(p.get("merged_detections") or []), str(p["id"])))
+    standing = [xy(p["p"]) for p in mapped + confirmed]
+    drawn = list(confirmed)
+    for pole in candidates:
+        here = xy(pole["p"])
+        if all(math.dist(here, s) >= LINE_POLE_SPACING_M for s in standing):
+            standing.append(here)
+            drawn.append(pole)
+    ids = {str(p["id"]) for p in drawn}
+    rest = [{**p, "kind": "pole", "drawn": False, "why_not_drawn": "no_line_evidence"}
+            for p in detected if str(p["id"]) not in ids]
+    return [p for p in detected if str(p["id"]) in ids], rest
+
+
 SOURCE = {
     "id": "sfpuc_streetlights", "name": "SFPUC Streetlights (San Francisco Public Utilities Commission)",
     "url": "https://services.arcgis.com/Zs2aNLFN00jrS4gG/arcgis/rest/services/SFPUC_Streetlights/FeatureServer/0",
@@ -251,8 +328,12 @@ def main() -> int:
             continue
         poles_before = len(mapped) + len(detected)
         inferred["utility_poles"], inferred["detected_utility_poles"] = one_per_pole(mapped, detected, span_ends)
-        entry["poles_before_and_after_one_per_pole"] = [
-            poles_before, len(inferred["utility_poles"]) + len(inferred["detected_utility_poles"])]
+        merged = len(inferred["utility_poles"]) + len(inferred["detected_utility_poles"])
+        region = "sf-corridor" if path.parent == ROOT / "docs" else path.parent.name
+        inferred["detected_utility_poles"], inferred["detected_poles_unattributed"] = on_the_lines(
+            inferred["utility_poles"], inferred["detected_utility_poles"], span_ends, grip_lines(region))
+        entry["utility_poles_detected_merged_drawn"] = [
+            poles_before, merged, len(inferred["utility_poles"]) + len(inferred["detected_utility_poles"])]
         path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
         if (path.parent / "cells/sf-corridor-furniture/manifest.json").exists():
             cut(path)

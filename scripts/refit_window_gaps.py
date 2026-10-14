@@ -19,7 +19,8 @@ them (--neighbours). Then each refit is put back into the run's buckets, so the 
 and the accepted refits, with the run's materials, are written to ``accepted.json`` for
 publishing over the run's fits (tools/tile_frontage_fits.py --overlay). Last it writes
 ``done.json`` and stops: the supervisor (run_frontage_workers.py) starts it only while
-``request.json`` is there and ``done.json`` is not, so once finished it is not run again.
+``build/frontage-supervisor/refit-window-gaps.request.json`` is there and ``done.json`` is not, so
+once finished it is not run again. ``--request`` writes that request.
 
     refit_window_gaps.py --matcher-output build/facade-match \\
         --inputs build/frontage-live build/frontage-pilot-v2 \\
@@ -156,16 +157,14 @@ def main() -> int:
     ap.add_argument("--inputs", type=Path, nargs="+", required=True)
     ap.add_argument("--detail-model-cache", type=Path)
     ap.add_argument("--device", default="cpu")
-    ap.add_argument("--request", action="store_true", help="ask for the pass (writes request.json) and stop")
+    ap.add_argument("--request", action="store_true", help="ask the supervisor for the pass, and stop")
     args = ap.parse_args()
     output = args.matcher_output.resolve()
     state = output / STATE
     if args.request:
-        atomic(state / "request.json", {"requested_at": time.time(), "by": "refit_window_gaps.py --request"})
-        print(f"requested: {state / 'request.json'}")
-        return 0
-    if not (state / "request.json").is_file():
-        print("no request.json: nothing asked for")
+        request = ROOT / "build/frontage-supervisor/refit-window-gaps.request.json"
+        atomic(request, {"requested_at": time.time(), "by": "refit_window_gaps.py --request"})
+        print(f"requested: {request}")
         return 0
     if (state / "done.json").is_file():
         print(f"finished: {state / 'done.json'}")

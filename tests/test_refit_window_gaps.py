@@ -64,7 +64,8 @@ def test_an_accepted_refit_replaces_and_a_rejected_one_leaves_the_house_as_it_wa
 
 def test_the_supervisor_runs_it_only_while_asked_and_unfinished() -> None:
     source = (ROOT / "scripts/run_frontage_workers.py").read_text()
-    assert '(refit_state / "request.json").is_file() and not (refit_state / "done.json").is_file()' in source
+    assert ('(folder / "refit-window-gaps.request.json").is_file() and not (refit_state / "done.json").is_file()'
+            in source)
     job = (ROOT / "scripts/refit_window_gaps.py").read_text()
     # Its own publication file: the default is the run's, which a partial pass would overwrite.
     assert '"--publish-to", str(refit / "published.json")' in job

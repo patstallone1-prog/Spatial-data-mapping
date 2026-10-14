@@ -333,8 +333,10 @@ def main():
                 # A one-off pass refitting the decided houses whose fronts have a window gap
                 # (scripts/refit_window_gaps.py): run beside the matcher while it is asked for
                 # and not finished; it writes done.json when through, and is not run again.
+                # Asked for on the internal disk (so it can be asked while the drive is away);
+                # finished on the drive, beside the run's buckets.
                 refit_state = ROOT / "build/facade-match/refit-window-gaps"
-                if (refit_state / "request.json").is_file() and not (refit_state / "done.json").is_file():
+                if (folder / "refit-window-gaps.request.json").is_file() and not (refit_state / "done.json").is_file():
                     commands["refit"] = [
                         str(args.python), str(ROOT / "scripts/refit_window_gaps.py"),
                         "--matcher-output", str(ROOT / "build/facade-match"),
