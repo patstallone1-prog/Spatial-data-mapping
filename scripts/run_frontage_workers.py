@@ -330,6 +330,22 @@ def main():
                         "--watch-seconds", "300",
                     ],
                 }
+                # A one-off pass refitting the decided houses whose fronts have a window gap
+                # (scripts/refit_window_gaps.py): run beside the matcher while it is asked for
+                # and not finished; it writes done.json when through, and is not run again.
+                # Asked for on the internal disk (so it can be asked while the drive is away);
+                # finished on the drive, beside the run's buckets.
+                refit_state = ROOT / "build/facade-match/refit-window-gaps"
+                if (folder / "refit-window-gaps.request.json").is_file() and not (refit_state / "done.json").is_file():
+                    commands["refit"] = [
+                        str(args.python), str(ROOT / "scripts/refit_window_gaps.py"),
+                        "--matcher-output", str(ROOT / "build/facade-match"),
+                        "--inputs", str(ROOT / "build/frontage-live"), str(ROOT / "build/frontage-pilot-v2"),
+                        "--detail-model-cache", str(ROOT / "build/facade-detail-model-cache"),
+                        "--device", "mps",
+                    ]
+                elif "refit" in children and children["refit"].poll() is not None:
+                    children.pop("refit")
                 reference_root = (ROOT / "build/frontage-live").resolve().parent / "private-datasets/3d-street-view"
                 consent_path = reference_root / "consent.json"
                 if args.storage_volume and consent_path.is_file():

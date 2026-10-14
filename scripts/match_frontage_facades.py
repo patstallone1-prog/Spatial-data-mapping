@@ -430,7 +430,11 @@ def cycle(args) -> dict:
             )
     upgraded = with_multiview_upgrades(args, builds, reused) if getattr(args, "auto_accept", False) else 0
     multiview_houses = 0
-    neighbour_index = NeighbourIndex([*builds.values(), *finalized_facts.values()])
+    # A pass over a few houses (scripts/refit_window_gaps.py) is decided among the same neighbours
+    # as the run's: the run's fits around them are supplied (--neighbours).
+    extra = json.loads(args.neighbours.read_text()).get("buildings", {}) if getattr(args, "neighbours", None) else {}
+    neighbour_index = NeighbourIndex([*builds.values(), *finalized_facts.values(),
+                                      *(fit for key, fit in extra.items() if key not in builds)])
     for key, fit in builds.items():
         if key in reused:
             continue  # finished: left exactly as it was decided
@@ -742,6 +746,8 @@ if __name__ == "__main__":
                         help="refit and re-decide every house, finished ones included (passes "
                              "otherwise move forward: settled_houses)")
     parser.add_argument("--device", choices=["cpu", "mps", "cuda", "auto"], default="cpu")
+    parser.add_argument("--neighbours", type=Path,
+                        help="the run's fits around the houses of a partial pass, as its neighbours")
     parser.add_argument(
         "--detail-model-cache",
         type=Path,

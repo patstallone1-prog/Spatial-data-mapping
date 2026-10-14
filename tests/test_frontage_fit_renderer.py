@@ -259,7 +259,7 @@ def test_opening_texture_cache_preserves_observed_colour_and_panel_locations():
         pytest.skip("Node required")
     code = (
         """
-    const PHOTO_OPENING_TEXTURES=new Map(),homeDesignMaterials=new Map();
+    const PHOTO_OPENING_TEXTURES=new Map(),homeDesignMaterials=new Map(),WINDOW_FRAME_DEFAULT="#eeede8";
     let cleared=0;const ctx={fillRect(){},clearRect(){cleared++;},beginPath(){},moveTo(){},lineTo(){},stroke(){}};
     const document={createElement:()=>({getContext:()=>ctx})};
     const THREE={CanvasTexture:class{constructor(canvas){this.canvas=canvas;}},

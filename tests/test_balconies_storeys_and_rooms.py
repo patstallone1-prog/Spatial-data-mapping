@@ -160,3 +160,12 @@ def test_tree_limbs_reach_a_fifth_less_far() -> None:
     assert "street:   { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.24," in variant
     assert "broad:    { trunk: 0.34, limbs: 5, spread: 1.05, rise: 0.22, reach: 0.32," in variant
     assert "reach: 0.30" not in variant and "reach: 0.40" not in variant
+
+
+def test_an_unmeasured_window_frame_is_white() -> None:
+    js = _page_js()
+    assert 'const WINDOW_FRAME_DEFAULT = "#eeede8";' in js
+    assert "ctx.fillStyle = WINDOW_FRAME_DEFAULT;" in js
+    assert 'design.trim.colour : WINDOW_FRAME_DEFAULT;' in _extract("homeDesignMaterial", js)
+    assert "new THREE.MeshStandardMaterial({ color: WINDOW_FRAME_DEFAULT," in js
+    assert "#3d4347" not in js and "0x353a3e" not in js

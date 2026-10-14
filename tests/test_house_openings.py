@@ -154,9 +154,12 @@ def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() ->
     build = _extract("buildHomeShell", js)
     assert "pane.rotation.y = Math.atan2(-nx, -nz);" in build, "the outside pane faces the street"
     assert "shellGlassInside" in build
-    frame = re.search(r"const homeFrameMaterial = new THREE\.MeshStandardMaterial\(\{ color: 0x([0-9a-f]{6})", js)
+    # Frames nothing measured are painted white, as most of the city's are; the shell's frames
+    # and the window pictures are the one colour, so they do not change as the shell is built.
+    assert "const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_FRAME_DEFAULT," in js
+    frame = re.search(r'const WINDOW_FRAME_DEFAULT = "#([0-9a-f]{6})";', js)
     r, g, b = (int(frame.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
-    assert 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.35, "window frames are not a white grid"
+    assert 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.85, "an unmeasured frame is white"
     # The rooms' floors and ceilings stop at the lining, and the lining short of the corners:
     # in the outer wall's plane their edges showed through the house as dashed white lines.
     # (The page draws with a logarithmic depth buffer, so a polygon offset cannot do this.)

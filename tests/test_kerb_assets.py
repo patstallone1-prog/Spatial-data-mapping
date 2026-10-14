@@ -72,7 +72,10 @@ def test_mapillary_poles_remain_without_inventing_wires_and_small_cells_stand_on
     assert "pairs.push(" not in network and "inferred_pole_to_pole" not in network
     assert "filter(mappedOverheadLine)" in network and "small_cells" in network
     furniture = json.loads((ROOT / "docs/sf-corridor-furniture.json").read_text())
-    assert len(furniture["inferred"]["detected_utility_poles"]) > 5000
+    # Every detection is kept; only the ones on a line are drawn as utility poles (ingest_streetlights).
+    inferred = furniture["inferred"]
+    assert len(inferred["detected_utility_poles"]) + len(inferred["detected_poles_unattributed"]) > 5000
+    assert len(inferred["detected_utility_poles"]) > 2000
     assert len(furniture["geometry_based"]["small_cells"]) > 100
     ids = {s.get("id") for s in furniture["sources"]}
     assert {"mapillary_map_features", "sfdpw_wireless_permits"} <= ids

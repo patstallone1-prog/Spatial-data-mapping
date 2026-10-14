@@ -14929,12 +14929,16 @@ function photoOpeningTexture(kind, design) {
 // The window pictures. They stand here, above the first building drawn, because an accepted
 // photographed front on a building that is not a home draws its windows with them while the
 // streets are built -- further down, they were not yet initialised and the page stopped.
+//: A window's frame -- sash, bars and mullions -- where nothing measured its colour: painted
+//: white, as San Francisco's are far more often than not. A trim colour read off the photograph
+//: (design.trim.colour) stands over it.
+const WINDOW_FRAME_DEFAULT = "#eeede8";
 const homeWindowTexture = (() => {
   const canvas = document.createElement("canvas");
   canvas.width = 64; canvas.height = 96;
   const ctx = canvas.getContext("2d");
   // The frame: the shell's frame colour (homeFrameMaterial), a sash bar across and a mullion.
-  ctx.fillStyle = "#3d4347";
+  ctx.fillStyle = WINDOW_FRAME_DEFAULT;
   ctx.fillRect(0, 0, 64, 96);
   // The glass: the shell's dark glass, a little lighter toward the top where it takes the sky.
   const sky = ctx.createLinearGradient(0, 0, 0, 96);
@@ -14954,7 +14958,7 @@ const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTextur
 const homeDesignMaterials = new Map();
 function homeDesignMaterial(design) {
   if (!design) return homeDecalMaterial;
-  const trimColour=/^#[0-9a-f]{6}$/i.test(design.trim?.colour || "") ? design.trim.colour : "#3d4347";
+  const trimColour=/^#[0-9a-f]{6}$/i.test(design.trim?.colour || "") ? design.trim.colour : WINDOW_FRAME_DEFAULT;
   const key = JSON.stringify([design.vertical_bars || [], design.horizontal_bars || [],trimColour,design.shape,design.arch_spring_fraction,"clear"]);
   if (homeDesignMaterials.has(key)) return homeDesignMaterials.get(key);
   const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
@@ -25352,6 +25356,8 @@ function addParkingMeters(records) {
 // wires are -- thin dark lines -- with their span poles and the cross wires between them.
 //: A span pole this close to one of the city's trolley poles is that pole.
 const TROLLEY_POLE_SNAP_M = 9;
+//: A span pole this close to another already standing is that pole.
+const TROLLEY_POLE_SHARE_M = 6;
 const TROLLEY = { height: 5.6, pair: 0.6, laneOffset: 2.4, onewayOffset: 1.4, span: 36, poleHeight: 7.6, crossAt: 6.6 };
 function addTrolleyWires(records, lightRows = []) {
   const segments = [], poles = [];
@@ -25365,6 +25371,20 @@ function addTrolleyWires(records, lightRows = []) {
       if (d < TROLLEY_POLE_SNAP_M && (!best || d < best.d)) best = { d, row };
     }
     return best && best.row;
+  };
+  // Each way places its own span poles, so a street mapped as two one-way ways, and every
+  // junction where ways meet, stood a second pole a few metres from the first. A span pole
+  // falling this close to one already standing hangs from that one.
+  const placedPoles = new Map();
+  const cellOf = (x, z) => `${Math.floor(x / TROLLEY_POLE_SHARE_M)},${Math.floor(z / TROLLEY_POLE_SHARE_M)}`;
+  const standingSpanPole = (x, z) => {
+    const cx = Math.floor(x / TROLLEY_POLE_SHARE_M), cz = Math.floor(z / TROLLEY_POLE_SHARE_M);
+    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) {
+      for (const pole of placedPoles.get(`${cx + dx},${cz + dz}`) || []) {
+        if (Math.hypot(pole.x - x, pole.z - z) < TROLLEY_POLE_SHARE_M) return pole;
+      }
+    }
+    return null;
   };
   const groundAt = (x, z) => groundLiftAt(x, z) + ROAD_TOP_M;
   for (const wire of records) {
@@ -25401,9 +25421,18 @@ function addTrolleyWires(records, lightRows = []) {
             ends.push([real.anchor.x, real.anchor.y + TROLLEY.crossAt, real.anchor.z]);
             continue;
           }
+          const shared = standingSpanPole(qx, qz);
+          if (shared) {
+            ends.push([shared.x, shared.y + TROLLEY.crossAt, shared.z]);
+            continue;
+          }
           const top = pavementTopAt(qx, qz);
           const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
-          poles.push({ x: qx, y, z: qz });
+          const pole = { x: qx, y, z: qz };
+          poles.push(pole);
+          const key = cellOf(qx, qz);
+          if (!placedPoles.has(key)) placedPoles.set(key, []);
+          placedPoles.get(key).push(pole);
           ends.push([qx, y + TROLLEY.crossAt, qz]);
         }
         if (ends.length === 2) segments.push(...ends[0], ...ends[1]);
@@ -28367,9 +28396,9 @@ const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0xe7f0f3,
 const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: 0xe7f0f3,
   transparent: true, opacity: 0.12, depthWrite: false, side: THREE.FrontSide,
   roughness: 0.1, metalness: 0.0, envMapIntensity: 0.4 });
-//: The frames dark, as the batched facade paints its windows: cream frames were a white grid
-//: that appeared on a house the moment its shell was built.
-const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x353a3e, roughness: 0.9, envMapIntensity: 0.2 });
+//: The frames white where nothing measured them (WINDOW_FRAME_DEFAULT), the same as the window
+//: pictures, so a house's frames do not change colour when its shell is built.
+const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_FRAME_DEFAULT, roughness: 0.8, envMapIntensity: 0.2 });
 
 function wallPanels(width, bottom, top, openings) {
   // A 2D arrangement handles overlapping evidence without bridges across a hole.
@@ -29032,7 +29061,7 @@ function pumpHomeDecals() {
     for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
       q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
       for (const o of windows) {
-        const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || [],o.design.trim?.colour || "#3d4347",o.design.glass_colour || "#2a3740"]) : "default";
+        const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || [],o.design.trim?.colour || WINDOW_FRAME_DEFAULT,o.design.glass_colour || "#2a3740"]) : "default";
         const key = `${cellKey}:${designKey}`;
         let cell = job.cells.get(key);
         if (!cell) job.cells.set(key, cell = { matrices: [], owners: [], material: homeDesignMaterial(o.design) });
