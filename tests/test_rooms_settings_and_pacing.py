@@ -94,7 +94,7 @@ def test_rooms_are_painted_carpeted_and_opened_to_each_other() -> None:
     assert "addRug(" not in js
     # No wall between the kitchen, the living room and the dining room; a door into a bedroom.
     assert "if (OPEN_PLAN.has(sideA) && OPEN_PLAN.has(sideB)) continue;" in build
-    assert 'sides.some((k) => PRIVATE_ROOMS.has(k)) ? "private"' in build
+    assert 'sides.some((k) => DOORED_ROOMS.has(k)) ? "private"' in build
     assert "roomDoors.push(" in build
     assert "nearestRoomDoor()" in js and "swingRoomDoors(dt)" in _extract("updateDoors", js)
 
@@ -126,10 +126,10 @@ def test_houses_are_clad_in_material_not_hung_with_photographs() -> None:
     assert "const FACADE_PHOTOS = false;" in js
     assert "if (!FACADE_PHOTOS) return false;" in _extract("photographedEdge", js)
     pick = _extract("pickMaterial", js)
-    assert "if (home) {" in pick and "homeCladdingFor(seed)" in pick
-    shares = re.search(r"const HOME_CLADDING_SHARES = \[(.*?)\];", js, re.S).group(1)
-    total = sum(float(x) for x in re.findall(r", ([0-9.]+)\]", shares))
-    assert total == pytest.approx(1.0)
+    # Nothing read off the building: concrete, from the photographed concrete library.
+    assert 'const DEFAULT_CLADDING = "concrete";' in js
+    assert "photoLabel: DEFAULT_CLADDING" in pick and "default_concrete_not_inferred" in pick
+    assert "homeCladdingFor" not in js and "random(seed) * total" not in pick
 
 
 def test_settings_pace_the_page_and_detail_comes_with_zoom() -> None:

@@ -81,6 +81,40 @@ def facade_homography(photo: np.ndarray, front: np.ndarray, min_inliers: int = 4
     return H
 
 
+def add_balconies(fit: dict, corrections: list[dict]) -> list[dict]:
+    """Balconies the detector missed, from the reviewer's reading of the photographs: one across
+    ``from_u``..``to_u`` (metres along the front) at the row of windows nearest ``row_v``, given
+    as the detector would box it -- its rail across the foot of that row -- so the page draws it
+    as it draws the detector's (out from the wall, floored at the windows' foot)."""
+    done = []
+    windows = [o for o in fit.get("openings", []) if o["kind"] in {"window", "door"}]
+    for c in [c for c in corrections if c.get("add") == "balcony"]:
+        row = min(windows, key=lambda o: abs(o["v"] - c["row_v"]))
+        fit.setdefault("details", []).append({
+            "kind": "balcony", "source_kind": "reviewer_correction", "u": c["from_u"], "w": c["to_u"] - c["from_u"],
+            "v": row["v"] - 0.2, "h": 1.3, "material": "metal", "style": "vertical_bars", "depth_m": None,
+            "certainty": "reviewer_added_on_contributed_photograph", "basis": c["basis"]})
+        done.append({"detail": "balcony", "before": None, "after": {"kind": "balcony", "from_u": c["from_u"], "to_u": c["to_u"],
+                     "row_v": row["v"]}, "basis": c["basis"], "reviewer": c.get("reviewer", "assistant, on the contributed photographs")})
+    return done
+
+
+def recolour(fit: dict, corrections: list[dict]) -> list[dict]:
+    """A wall colour from the reviewer's reading of the photographs (``{"colour": "#rrggbb"}``),
+    where the fit's median was read off a wall in shade: the front and every storey band take
+    it; what the photograph measured is kept beside it."""
+    done = []
+    appearance = fit.setdefault("appearance", {})
+    for c in [c for c in corrections if c.get("colour")]:
+        before = appearance.get("colour")
+        appearance.update(colour=c["colour"], measured_colour=before, colour_basis="reviewer_on_contributed_photographs")
+        for band in appearance.get("bands") or []:
+            band.update(colour=c["colour"], colour_policy_reason="reviewer_colour_on_contributed_photographs")
+        done.append({"appearance": "colour", "before": before, "after": c["colour"], "basis": c["basis"],
+                     "reviewer": c.get("reviewer", "assistant, on the contributed photographs")})
+    return done
+
+
 def apply_corrections(fit: dict, corrections: list[dict], front: np.ndarray, labels: np.ndarray,
                       wall: dict, image_sha256: str) -> None:
     """A reviewer's corrections of what an opening is, from the photographs (the spec says which
@@ -104,13 +138,18 @@ def apply_corrections(fit: dict, corrections: list[dict], front: np.ndarray, lab
         openings.append(added)
         done.append({"opening": added["id"], "before": None, "after": {"kind": "window", "role": "window"},
                      "basis": c["basis"], "reviewer": c.get("reviewer", "assistant, on the contributed photographs")})
-    corrections = [c for c in corrections if c.get("add") != "window"]
+    done += add_balconies(fit, corrections)
+    done += recolour(fit, corrections)
+    corrections = [c for c in corrections if c.get("add") not in {"window", "balcony"} and not c.get("colour")]
     for c in corrections:
         target = min(openings, key=lambda o: abs(o["u"] + o["w"] / 2 - c["at_u"]) + abs(o["v"] - c.get("at_v", 0.0)))
         before = {"kind": target["kind"], "role": target.get("role")}
         role = c["role"]
         target.update(role=role, role_certainty="reviewed", role_basis=["reviewer_correction", c["basis"]],
                       kind={"entrance": "door", "garage": "garage_candidate", "window": "window"}.get(role, target["kind"]))
+        if target["kind"] == "garage_candidate":
+            # Its recess was read as a door's; a vehicle opening has no flight up to it.
+            target["recess"] = {"render_steps": False, "reason": "vehicle_opening_is_not_a_pedestrian_stairwell"}
         done.append({"opening": target["id"], "before": before, "after": {"kind": target["kind"], "role": role},
                      "basis": c["basis"], "reviewer": c.get("reviewer", "assistant, on the contributed photographs")})
     # A porch wider than one door holds a pair: read as the pair's leaves, 1.8 m, at its middle.

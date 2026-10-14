@@ -12,7 +12,7 @@ def test_late_material_downloads_preserve_each_house_texture_variant():
     code = r"""
       const PHOTO_MATERIAL_IMAGES=new Map(),FACADE_CACHE=new Map(),bareWallMaps=new Map();
       const MATERIAL_VARIANTS=5,MATERIAL_ASSIGNMENTS={assigned:{a:{class:'brick'}}},
-        HOME_CLADDING_SHARES=[],FRONTAGE_FITS={buildings:{}};
+        DEFAULT_CLADDING="concrete",FRONTAGE_FITS={buildings:{}};
       const THREE={SRGBColorSpace:'srgb'};
       const sharedAsset=x=>x,nextFrame=async()=>{};
       const rows=[0,1,2].map(i=>({material_class:'brick',license:'CC0-1.0',file:i+'.jpg'}));

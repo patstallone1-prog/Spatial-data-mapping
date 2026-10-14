@@ -48,6 +48,8 @@ def test_whole_windows_fit_non_integer_storeys(height):
 
 def test_interior_floors_and_window_rows_respect_existing_storey_inventory():
     counts = run_js(["homeStoreyCount"], """
+      const HOME_STOREY_MAX_M = 7.0;
+      function frontageFitFor() { return null; }
       console.log(JSON.stringify([
         homeStoreyCount({way:{tags:{}},fit:[0,0,0,0,0,0,0,0,0,6]},38.38),
         homeStoreyCount({way:{tags:{'building:levels':'3'}},fit:[0,0,0,0,0,0,0,0,0,4]},12),

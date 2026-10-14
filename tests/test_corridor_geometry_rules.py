@@ -3112,6 +3112,8 @@ def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:
         end = js.index("\n};\n", start) if constant == "ARCHETYPE_STYLE" else js.index("\n];\n", start)
         parts.append(js[start:end + 4])
     parts.append(re.search(r"const FACADE_MATCH_MIN_CONFIDENCE = [0-9.]+;", js).group(0))
+    parts.append(js[js.index("const PHOTO_CLASS_TO_MATERIAL = "):js.index("};", js.index("const PHOTO_CLASS_TO_MATERIAL = ")) + 2])
+    parts.append(re.search(r'const DEFAULT_CLADDING = "[a-z_]+";', js).group(0))
     parts += [_extract(name, js) for name in ("pickMaterial", "random")]
     parts.append("""
 console.log(JSON.stringify({
@@ -3119,6 +3121,7 @@ console.log(JSON.stringify({
   doubted: pickMaterial(7, 12, "residential", { m: "brick", conf: 0.2 }).name === pickMaterial(7, 12, "residential").name,
   unknownRender: pickMaterial(7, 12, "residential", { m: "thatch", conf: 0.9 }).name === pickMaterial(7, 12, "residential").name,
   glassOnAHouse: pickMaterial(7, 8, "residential", { m: "glass", conf: 2 }).name,
+  nothingRead: pickMaterial(7, 12, "residential").name,
 }));
 """)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
@@ -3128,6 +3131,8 @@ console.log(JSON.stringify({
     assert result["believed"] == "brick" and result["doubted"] and result["unknownRender"], result
     # The photograph outranks the archetype's habits: a glass house is a glass house.
     assert result["glassOnAHouse"] == "glass", result
+    # Nothing read off the building: concrete, not a die's throw.
+    assert result["nothingRead"] == "concrete", result
 
 
 # ---- a mapped footway does not pave the roadway ------------------------------------------

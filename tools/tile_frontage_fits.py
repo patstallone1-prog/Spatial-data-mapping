@@ -43,6 +43,8 @@ OPENING_FIELDS = (
     "id", "kind", "role", "role_certainty", "u", "v", "w", "h", "design", "grade", "confidence",
     "render_allowed", "absorbed_into_entry", "recess", "size_inferred",
 )
+#: Detector boxes the page may draw as balconies (scripts/build_sf_corridor_3d.py: balconyProposal).
+BALCONY_KINDS = ("balcony", "fire escape", "fire_escape")
 DESIGN_DROP = ("panel_lines", "observed_glass_or_contents_colour", "glass_rendering", "grade", "colour_basis")
 
 
@@ -61,8 +63,13 @@ def slim(fit: dict) -> dict:
         lean["design"] = design
         openings.append(lean)
     out["openings"] = openings
-    # Only the details the page draws, and of the certainty what it shows.
-    out["details"] = [d for d in fit.get("details") or [] if d.get("render")]
+    # Only the details the page draws: the reviewed ones whole, and the detector's balconies (and
+    # short fire escapes) as boxes, which the page draws out from the wall at their window's foot
+    # (inferredBalconies). Of the certainty, what it shows.
+    out["details"] = [d if d.get("render") else {"kind": d["kind"], **{k: round(d[k], 3) for k in "uvwh"}}
+                      for d in fit.get("details") or []
+                      if d.get("render") or (d.get("kind") in BALCONY_KINDS
+                                             and all(isinstance(d.get(k), (int, float)) for k in "uvwh"))]
     certainty = fit.get("certainty") or {}
     out["certainty"] = {k: certainty[k] for k in ("tier", "ai_review_required") if k in certainty}
     return out

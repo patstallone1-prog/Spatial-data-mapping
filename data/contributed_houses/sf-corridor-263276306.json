@@ -611,6 +611,58 @@
    "depth_m": null,
    "certainty": "unreviewed_visible_object_proposal",
    "render": false
+  },
+  {
+   "kind": "balcony",
+   "source_kind": "reviewer_correction",
+   "u": 0.6,
+   "w": 1.75,
+   "v": 7.210999999999999,
+   "h": 1.3,
+   "material": "metal",
+   "style": "vertical_bars",
+   "depth_m": null,
+   "certainty": "reviewer_added_on_contributed_photograph",
+   "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)"
+  },
+  {
+   "kind": "balcony",
+   "source_kind": "reviewer_correction",
+   "u": 2.42,
+   "w": 1.7300000000000004,
+   "v": 7.210999999999999,
+   "h": 1.3,
+   "material": "metal",
+   "style": "vertical_bars",
+   "depth_m": null,
+   "certainty": "reviewer_added_on_contributed_photograph",
+   "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)"
+  },
+  {
+   "kind": "balcony",
+   "source_kind": "reviewer_correction",
+   "u": 4.3,
+   "w": 1.7000000000000002,
+   "v": 7.210999999999999,
+   "h": 1.3,
+   "material": "metal",
+   "style": "vertical_bars",
+   "depth_m": null,
+   "certainty": "reviewer_added_on_contributed_photograph",
+   "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)"
+  },
+  {
+   "kind": "balcony",
+   "source_kind": "reviewer_correction",
+   "u": 0.2,
+   "w": 6.1499999999999995,
+   "v": 3.182,
+   "h": 1.3,
+   "material": "metal",
+   "style": "vertical_bars",
+   "depth_m": null,
+   "certainty": "reviewer_added_on_contributed_photograph",
+   "basis": "one long wrought-iron balcony across the second floor's three windows, the full width of the front (IMG_4639); the detector boxed the top floor's three as one"
   }
  ],
  "outcrops": [],
@@ -909,6 +961,54 @@
     "role": "entrance"
    },
    "basis": "an arched porch, a step up, two wooden front doors under it (IMG_4640) -- not a garage",
+   "reviewer": "assistant, on the contributed photographs"
+  },
+  {
+   "detail": "balcony",
+   "before": null,
+   "after": {
+    "kind": "balcony",
+    "from_u": 0.6,
+    "to_u": 2.35,
+    "row_v": 7.411
+   },
+   "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)",
+   "reviewer": "assistant, on the contributed photographs"
+  },
+  {
+   "detail": "balcony",
+   "before": null,
+   "after": {
+    "kind": "balcony",
+    "from_u": 2.42,
+    "to_u": 4.15,
+    "row_v": 7.411
+   },
+   "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)",
+   "reviewer": "assistant, on the contributed photographs"
+  },
+  {
+   "detail": "balcony",
+   "before": null,
+   "after": {
+    "kind": "balcony",
+    "from_u": 4.3,
+    "to_u": 6.0,
+    "row_v": 7.411
+   },
+   "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)",
+   "reviewer": "assistant, on the contributed photographs"
+  },
+  {
+   "detail": "balcony",
+   "before": null,
+   "after": {
+    "kind": "balcony",
+    "from_u": 0.2,
+    "to_u": 6.35,
+    "row_v": 3.382
+   },
+   "basis": "one long wrought-iron balcony across the second floor's three windows, the full width of the front (IMG_4639); the detector boxed the top floor's three as one",
    "reviewer": "assistant, on the contributed photographs"
   }
  ],

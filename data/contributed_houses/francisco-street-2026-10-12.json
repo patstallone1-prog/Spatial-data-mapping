@@ -24,6 +24,11 @@
      "at_u": 4.72,
      "role": "garage",
      "basis": "a white sectional garage door in a recessed bay, the side door beside it (IMG_4633, IMG_4634)"
+    },
+    {
+     "colour": "#b8a78e",
+     "basis": "beige: the sunlit wall between the bays in IMG_4633 (#b8a78e); the fit's median (#a09789) was read off the wall in shade, and the house drew grey-green",
+     "reviewer": "the project owner"
     }
    ]
   },
@@ -56,6 +61,13 @@
      "like_column": 6.66,
      "like_row": 6.77,
      "basis": "the middle row's right-hand French window behind its balcony (IMG_4636, IMG_4637); the detector boxed that balcony as a fire escape"
+    },
+    {
+     "add": "balcony",
+     "from_u": 0.3,
+     "to_u": 8.1,
+     "row_v": 3.12,
+     "basis": "one long wrought-iron balcony across the three arched French windows of the second floor, the full width of the front (IMG_4636); the detector boxed only the balconies above it"
     }
    ]
   },
@@ -124,8 +136,49 @@
      "at_u": 5.19,
      "role": "entrance",
      "basis": "an arched porch, a step up, two wooden front doors under it (IMG_4640) -- not a garage"
+    },
+    {
+     "add": "balcony",
+     "from_u": 0.6,
+     "to_u": 2.35,
+     "row_v": 7.45,
+     "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)"
+    },
+    {
+     "add": "balcony",
+     "from_u": 2.42,
+     "to_u": 4.15,
+     "row_v": 7.45,
+     "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)"
+    },
+    {
+     "add": "balcony",
+     "from_u": 4.3,
+     "to_u": 6.0,
+     "row_v": 7.45,
+     "basis": "its own wrought-iron balcony at each of the three arched top-floor windows (IMG_4639)"
+    },
+    {
+     "add": "balcony",
+     "from_u": 0.2,
+     "to_u": 6.35,
+     "row_v": 3.3,
+     "basis": "one long wrought-iron balcony across the second floor's three windows, the full width of the front (IMG_4639); the detector boxed the top floor's three as one"
     }
    ]
+  }
+ ],
+ "reviewed_colours": [
+  {
+   "buildings": [
+    "263277930",
+    "263277932",
+    "263277937"
+   ],
+   "address": "3400 Laguna Street (Heritage on the Marina)",
+   "c": "#c46a3c",
+   "basis": "orange brick, across Francisco Street from 1547-1549, as the project owner saw it on 2026-10-12; the sampled colours (#6991cf, #64796a, #7a9ad0) were the panorama's, not the wall's",
+   "reviewer": "the project owner"
   }
  ]
 }
