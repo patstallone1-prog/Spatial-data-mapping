@@ -30,6 +30,7 @@ once finished it is not run again. ``--request`` writes that request.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -47,7 +48,7 @@ SUFFIXES = (".json", ".jpg", ".labels.png", ".context.jpg")
 #: Fits this close to a refitted house are its neighbours (NeighbourIndex reaches about 150 m).
 NEIGHBOUR_REACH_M = 250.0
 #: A pass that fails this many times is given up, so the supervisor does not retry it forever.
-MAX_ATTEMPTS = 3
+MAX_ATTEMPTS = 5
 
 
 def atomic(path: Path, data) -> None:
@@ -126,6 +127,50 @@ def neighbours(output: Path, houses: list[list[str]]) -> dict:
     return {"schema": "kerbside.facade_fits/1", "buildings": out}
 
 
+def reuse_detections(shared: Path, own: Path, stage_dir: Path) -> dict:
+    """The run's detections of these photographs, filed where this pass will look for them.
+
+    The matcher keys its detection cache by the detector's manifest, which names the device:
+    run on the CPU beside the run's GPU workers, this pass found none of the run's GPU
+    detections and ran the detector again on every photograph, a minute each. A detection is the
+    model's answer for the photograph whichever chip worked it out, so each one the run has is
+    copied here under the CPU's key -- its own record still says the device it ran on. The run's
+    cache is not touched.
+    """
+    own.mkdir(parents=True, exist_ok=True)
+    by_digest: dict[str, list[Path]] = {}
+    for path in shared.glob("*.json"):
+        digest, _, _ = path.stem.rpartition("-")
+        by_digest.setdefault(digest, []).append(path)
+    counts = {"photographs": 0, "reused": 0, "already_here": 0, "none": 0}
+    for photo in sorted(stage_dir.glob("*/review/*.jpg")):
+        if photo.name.endswith(".context.jpg"):
+            continue
+        counts["photographs"] += 1
+        digest = hashlib.sha256(photo.read_bytes()).hexdigest()
+        found = by_digest.get(digest) or []
+        reused = False
+        for path in found:
+            try:
+                detection = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue
+            manifest = detection.get("model")
+            if not isinstance(manifest, dict):
+                continue
+            cpu_version = hashlib.sha256(json.dumps({**manifest, "device": "cpu"}, sort_keys=True).encode()).hexdigest()[:16]
+            target = own / f"{digest}-{cpu_version}.json"
+            if target.exists():
+                counts["already_here"] += 1
+            else:
+                target.write_text(path.read_text())
+                counts["reused"] += 1
+            reused = True
+            break
+        counts["none"] += not reused
+    return counts
+
+
 def merge(output: Path, refit: Path, houses: list[list[str]]) -> dict:
     """Each refit put back into the run's buckets (accepted only; an earlier acceptance stands)."""
     report = {"replaced": [], "kept_earlier_acceptance": [], "not_refitted": []}
@@ -184,8 +229,11 @@ def main() -> int:
     refit = state / "match"
     refit.mkdir(parents=True, exist_ok=True)
     detections = refit / "detections"
-    if not detections.exists() and (output / "detections").is_dir():
-        detections.symlink_to(output / "detections")
+    if detections.is_symlink():
+        detections.unlink()
+    if (output / "detections").is_dir():
+        atomic(state / "detections-reused.json",
+               reuse_detections(output / "detections", detections, state / "stage"))
     command = [sys.executable, str(ROOT / "scripts/match_frontage_facades.py"),
                "--inputs", *[str(state / "stage" / str(i)) for i in range(len(args.inputs))],
                "--output", str(refit), "--publish-to", str(refit / "published.json"),
