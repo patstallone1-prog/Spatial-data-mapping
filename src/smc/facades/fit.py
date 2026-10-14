@@ -16,6 +16,7 @@ from smc.facades.appearance_bands import appearance_bands, colour_sample, window
 from smc.facades.architecture_logic import canonical_front_binding, door_access, repeated_forms
 from smc.facades.coarse_openings import (
     assign_roles,
+    complete_columns,
     default_panes,
     duplicate_neighbours,
     group_windows,
@@ -733,6 +734,19 @@ def extract_front(
     # height, and a detected bay holds a window on each storey (coarse_openings).
     assign_roles(found, entries, width, height, storey)
     found.extend(group_windows(found, details, width, height, storey))
+    # And a window the front's own column grid puts where the photograph saw none -- not where it
+    # plainly saw bare wall (ADE20K wall, building, house).
+    bare = np.isin(labels, [0, 1, 25])
+
+    def blank_wall(box: dict) -> float:
+        x0, x1 = max(0, round(box["u"] * ppm_x)), min(labels.shape[1], round((box["u"] + box["w"]) * ppm_x))
+        y0 = max(0, round((height - box["v"] - box["h"]) * ppm_y))
+        y1 = min(labels.shape[0], round((height - box["v"]) * ppm_y))
+        region = bare[y0:y1, x0:x1]
+        return float(region.mean()) if region.size else 0.0
+
+    columns = complete_columns(found, width, height, blank_wall)
+    found.extend(columns)
     # Curb controls must declare matching units/datum. Never compare two unrelated z values.
     ground = controls.get("ground_reference")
     for opening in found:
@@ -807,7 +821,8 @@ def extract_front(
             "schema": "kerbside.coarse_openings/1",
             "roles": {r: sum(1 for o in found if o.get("role") == r)
                       for r in sorted({o.get("role", "none") for o in found})},
-            "windows_from_groups": sum(1 for o in found if o.get("size_inferred")),
+            "windows_from_groups": sum(1 for o in found if o.get("size_inferred")) - len(columns),
+            "windows_from_column_symmetry": len(columns),
             "windows_given_detail": shared,
             "windows_mirrored_from_their_floor": mirrored,
             "windows_duplicated_from_a_neighbour": duplicated,

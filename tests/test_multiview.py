@@ -205,3 +205,41 @@ def test_an_accepted_house_moves_forward_only_when_photographed_again(tmp_path):
     moved = json.loads(house.read_text())
     assert moved["primary_entry"]["kind"] == "flat_alcove"
     assert m["with_multiview_upgrades"](args, {"9": moved}, {"9"}) == 0, "nothing new: left alone"
+
+
+def _labelled(windows: list[tuple[float, float, float, float]], ppm: float = 20.0, fill: int = 0,
+              tree: tuple[float, float, float, float] | None = None, key: str = "v", weight: float = 1.0):
+    """A wall 8 x 7 m labelled wall (``fill``), with windows (u, v, w, h) and optionally a tree."""
+    from smc.facades.multiview import View
+    width, height = 8.0, 7.0
+    labels = np.full((int(height * ppm), int(width * ppm)), fill, np.uint8)
+    def paint(box, value):
+        u, v, w, h = box
+        labels[int((height - v - h) * ppm):int((height - v) * ppm), int(u * ppm):int((u + w) * ppm)] = value
+    for box in windows:
+        paint(box, 8)
+    if tree:
+        paint(tree, 4)
+    return View(key, np.zeros((*labels.shape, 3), np.uint8), labels, width, height, 4.0, 10.0, 1.6, weight)
+
+
+def test_a_window_a_tree_hid_from_the_reference_is_taken_from_two_other_views() -> None:
+    from smc.facades.multiview import Registration, apply_to_fit, unseen_windows
+    windows = [(1.0, 4.0, 1.0, 1.5), (3.5, 4.0, 1.0, 1.5), (6.0, 4.0, 1.0, 1.5)]
+    # The reference: a tree over the left window.
+    ref = _labelled(windows[1:], tree=(0.6, 3.0, 2.0, 3.5), key="ref", weight=3.0)
+    others = [_labelled(windows, key="a"), _labelled(windows, key="b")]
+    openings = [{"id": "w1", "kind": "window", "u": 3.5, "v": 4.0, "w": 1.0, "h": 1.5, "design": {"vertical_bars": [0.5]}},
+                {"id": "w2", "kind": "window", "u": 6.0, "v": 4.0, "w": 1.0, "h": 1.5, "design": {"vertical_bars": [0.5]}}]
+    found = unseen_windows(ref, others, [Registration(), Registration()], openings)
+    assert len(found) == 1 and found[0]["views"] == 2
+    assert abs(found[0]["u"] - 1.0) < 0.1 and abs(found[0]["v"] - 4.0) < 0.1
+    fit = apply_to_fit({"openings": [dict(o) for o in openings]}, {"status": "multiview", "unseen_in_reference": found})
+    added = [o for o in fit["openings"] if o.get("grade") == "seen_in_other_views_not_reference"]
+    assert len(added) == 1 and added[0]["design"] == {"vertical_bars": [0.5]}
+    assert fit["multiview_reconstruction"]["applied"]["windows_from_other_views"] == 1
+
+    # One other view is not enough; and where the reference plainly sees wall, it is not there.
+    assert unseen_windows(ref, others[:1], [Registration()], openings) == []
+    bare = _labelled(windows[1:], key="ref", weight=3.0)
+    assert unseen_windows(bare, others, [Registration(), Registration()], openings) == []

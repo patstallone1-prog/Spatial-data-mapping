@@ -24806,7 +24806,7 @@ function mappedOverheadLine(line) {
       && Number.isFinite(p[0]) && Number.isFinite(p[1]));
 }
 
-function addElectricalNetwork(furniture) {
+function addElectricalNetwork(furniture, lightRows = []) {
   const inferred = furniture.inferred || {};
   // OpenStreetMap's poles and the ones Mapillary placed from its photographs (ingest_kerb_assets:
   // none within 7 m of a mapped one), one network.
@@ -24944,9 +24944,11 @@ function addElectricalNetwork(furniture) {
       groups.furniture.add(mesh);
     }
   }
-  // Small cells: the carriers' antennas on the city's poles (Public Works' permits). On the top
-  // of a utility pole where one stands within a few metres; otherwise on a slim pole of their
-  // own, as most are -- the city's light poles. A canister at the top, the radio box lower down.
+  // Small cells: the carriers' antennas on the city's poles (Public Works' permits). San
+  // Francisco's are on its streetlights: on the top of the nearest arm or pendant light's pole
+  // within a few metres, else of a utility pole; only where neither stands, on a slim pole of
+  // their own at a streetlight's height. A canister at the top, the radio box lower down.
+  const hostPoles = lightRows.filter((row) => row.form === "mast_arm" || row.form === "pendant");
   const cellRows = ((furniture.geometry_based || {}).small_cells || [])
     .map((item) => ({ item, anchor: furnitureAnchor(item) })).filter((row) => row.anchor);
   if (cellRows.length) {
@@ -24956,9 +24958,12 @@ function addElectricalNetwork(furniture) {
     const ownPoles = [];
     cellRows.forEach((row, index) => {
       let host = null;
-      for (const pole of poleRows) {
-        const d = Math.hypot(pole.anchor.x - row.anchor.x, pole.anchor.z - row.anchor.z);
-        if (d < 5 && (!host || d < host.d)) host = { d, pole };
+      for (const poles of [hostPoles, poleRows]) {
+        for (const pole of poles) {
+          const d = Math.hypot(pole.anchor.x - row.anchor.x, pole.anchor.z - row.anchor.z);
+          if (d < 5 && (!host || d < host.d)) host = { d, pole };
+        }
+        if (host) break;
       }
       const at = host ? host.pole.anchor : row.anchor;
       const top = host ? host.pole.height : SMALL_CELL_POLE_M;
@@ -25345,9 +25350,22 @@ function addParkingMeters(records) {
 // over each direction's lane (two wires, a trolley pole to each), about 5.6 m up, held by span
 // wires strung between poles at the kerbs every forty metres or so. They are drawn as the power
 // wires are -- thin dark lines -- with their span poles and the cross wires between them.
+//: A span pole this close to one of the city's trolley poles is that pole.
+const TROLLEY_POLE_SNAP_M = 9;
 const TROLLEY = { height: 5.6, pair: 0.6, laneOffset: 2.4, onewayOffset: 1.4, span: 36, poleHeight: 7.6, crossAt: 6.6 };
-function addTrolleyWires(records) {
+function addTrolleyWires(records, lightRows = []) {
   const segments = [], poles = [];
+  // Muni's span wires hang from the city's trolley poles, which carry streetlights and are in
+  // its layer (TP-*): a span pole falling near one is that pole, already standing.
+  const trolleyLights = lightRows.filter((row) => String(row.item.pole_type || "").startsWith("TP-"));
+  const standing = (x, z) => {
+    let best = null;
+    for (const row of trolleyLights) {
+      const d = Math.hypot(row.anchor.x - x, row.anchor.z - z);
+      if (d < TROLLEY_POLE_SNAP_M && (!best || d < best.d)) best = { d, row };
+    }
+    return best && best.row;
+  };
   const groundAt = (x, z) => groundLiftAt(x, z) + ROAD_TOP_M;
   for (const wire of records) {
     const path = (wire.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
@@ -25378,6 +25396,11 @@ function addTrolleyWires(records) {
           if (!kerb) continue;
           const qx = kerb.x + kerb.nx * 0.5, qz = kerb.z + kerb.nz * 0.5;
           if (buildingAt(qx, qz) || insideCarriageway(qx, qz, 0.05)) continue;
+          const real = standing(qx, qz);
+          if (real) {
+            ends.push([real.anchor.x, real.anchor.y + TROLLEY.crossAt, real.anchor.z]);
+            continue;
+          }
           const top = pavementTopAt(qx, qz);
           const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
           poles.push({ x: qx, y, z: qz });
@@ -25531,6 +25554,135 @@ function dedupeByDistance(records, metres) {
   return kept.map((row) => row.item);
 }
 
+// The city's streetlights (SFPUC's layer, scripts/ingest_streetlights.py), each drawn as its pole
+// type is built in the SFPUC Streetlight Catalog: a standard steel or concrete pole of 25 to 30 ft
+// with an upswept mast arm of 4 to 8 ft out over the road and a cobra head at its end; a fluted
+// pole with an acorn pendant hanging from its arm; a 14 or 16 ft pedestrian pole with its lamp
+// on top; Market Street's three-globe Path of Gold; Chinatown's twin lanterns.
+const STREET_LIGHT_FINISHES = {
+  galvanized_steel: 0x9ea3a2, concrete: 0xb8b3a8, wood: 0x5f4d3f, dark_blue_steel: 0x2d3a4b,
+  aluminium: 0xb6babc, dark_steel: 0x383c3b, red_steel: 0x9a2b22,
+};
+//: Base radius of each form's shaft; it tapers to 0.6 of it at the top.
+const STREET_LIGHT_SHAFT_R = { mast_arm: 0.13, pendant: 0.13, post_top: 0.08, trident: 0.16, twin_pendant: 0.12 };
+const STREET_LIGHT_ARM_R = 0.045;
+
+//: One light's parts in its own frame: x across, y up, z out over the road from the pole's foot.
+//: shaft: its height; rods: arm pieces a to b; heads: cobra heads; globes: lamps (sx, sy their
+//: radii); caps: the hat over a lamp.
+function streetLightParts(form, height, arm) {
+  const H = height, A = Math.max(1.2, arm || 0);
+  const parts = { shaft: H, rods: [], heads: [], globes: [], caps: [] };
+  if (form === "pendant") {
+    // A horizontal arm from the pole's top, the acorn hung from its end.
+    parts.shaft = H + 0.15;
+    parts.rods.push({ a: [0, H + 0.05, 0], b: [0, H + 0.12, A] }, { a: [0, H + 0.12, A], b: [0, H - 0.22, A], r: 0.025 });
+    parts.caps.push({ at: [0, H - 0.25, A], r: 0.26 });
+    parts.globes.push({ at: [0, H - 0.62, A], sx: 0.22, sy: 0.36 });
+  } else if (form === "post_top") {
+    parts.shaft = H - 0.75;
+    parts.globes.push({ at: [0, H - 0.38, 0], sx: 0.22, sy: 0.38 });
+    parts.caps.push({ at: [0, H - 0.02, 0], r: 0.2 });
+  } else if (form === "dome") {
+    parts.shaft = H - 0.3;
+    parts.globes.push({ at: [0, H - 0.22, 0], sx: 0.32, sy: 0.12 });
+    parts.caps.push({ at: [0, H - 0.08, 0], r: 0.4 });
+  } else if (form === "trident") {
+    parts.shaft = H - 0.55;
+    parts.rods.push({ a: [-0.75, H - 0.7, 0], b: [0.75, H - 0.7, 0] });
+    for (const [x, y] of [[0, H - 0.2], [-0.75, H - 0.4], [0.75, H - 0.4]]) {
+      parts.globes.push({ at: [x, y, 0], sx: 0.22, sy: 0.26 });
+    }
+  } else if (form === "twin_pendant") {
+    for (const side of [-1, 1]) {
+      parts.rods.push({ a: [0, H - 0.35, 0], b: [side * A, H - 0.15, 0] });
+      parts.caps.push({ at: [side * A, H - 0.3, 0], r: 0.2 });
+      parts.globes.push({ at: [side * A, H - 0.62, 0], sx: 0.16, sy: 0.3 });
+    }
+  } else {
+    // The mast arm: from a bracket below the pole's top it sweeps up and out over the road -- a
+    // backwards L -- to the cobra head, whose lens faces down at the street.
+    parts.shaft = H - 0.35;
+    const knee = [0, H - 0.2, Math.max(0.5, 0.35 * A)];
+    parts.rods.push({ a: [0, H - 0.95, 0], b: knee }, { a: knee, b: [0, H, A] });
+    parts.heads.push({ at: [0, H - 0.04, A + 0.32] });
+  }
+  return parts;
+}
+
+function addStreetLights(records) {
+  const rows = records.map((item) => ({ item, anchor: furnitureAnchor(item) })).filter((row) => row.anchor);
+  if (!rows.length) return { rows, drawn: 0 };
+  const colour = new THREE.Color();
+  const shafts = [], rods = [], heads = [], globes = [], caps = [];
+  for (const row of rows) {
+    const { item, anchor } = row;
+    const form = item.luminaire === "dome" ? "dome" : item.form;
+    const H = Math.max(3.5, Math.min(11, parseFloat(item.height_m) || 8.7));
+    const parts = streetLightParts(form, H, parseFloat(item.arm_m) || 0);
+    const yaw = furnitureBearing(item, 0, anchor);
+    const sin = Math.sin(yaw), cos = Math.cos(yaw);
+    const world = ([x, y, z]) => new THREE.Vector3(anchor.x + x * cos + z * sin, anchor.y + y, anchor.z - x * sin + z * cos);
+    const finish = STREET_LIGHT_FINISHES[item.finish] ?? STREET_LIGHT_FINISHES.galvanized_steel;
+    row.height = parts.shaft;
+    row.form = form;
+    shafts.push({ anchor, h: parts.shaft, r: STREET_LIGHT_SHAFT_R[form] || 0.1, c: finish });
+    for (const rod of parts.rods) rods.push({ a: world(rod.a), b: world(rod.b), r: rod.r || STREET_LIGHT_ARM_R, c: finish });
+    for (const head of parts.heads) heads.push({ at: world(head.at), yaw });
+    for (const globe of parts.globes) globes.push({ ...globe, at: world(globe.at), yaw });
+    for (const cap of parts.caps) caps.push({ ...cap, at: world(cap.at), c: item.finish === "red_steel" ? finish : 0x2a2f33 });
+  }
+  const dummy = new THREE.Object3D(), up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3();
+  const meshes = [];
+  const instanced = (geometry, material, list, place, tinted = false) => {
+    if (!list.length) return;
+    const mesh = new THREE.InstancedMesh(geometry, material, list.length);
+    list.forEach((part, i) => {
+      dummy.position.set(0, 0, 0); dummy.rotation.set(0, 0, 0); dummy.quaternion.identity(); dummy.scale.set(1, 1, 1);
+      place(part);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      if (tinted) mesh.setColorAt(i, colour.setHex(part.c));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    meshes.push(mesh);
+  };
+  const painted = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.35 });
+  instanced(new THREE.CylinderGeometry(0.6, 1, 1, 10), painted, shafts, (s) => {
+    dummy.position.set(s.anchor.x, s.anchor.y + s.h / 2, s.anchor.z);
+    dummy.scale.set(s.r, s.h, s.r);
+  }, true);
+  instanced(new THREE.CylinderGeometry(1, 1, 1, 6), painted, rods, (rod) => {
+    dir.subVectors(rod.b, rod.a);
+    const length = dir.length();
+    dummy.position.addVectors(rod.a, rod.b).multiplyScalar(0.5);
+    dummy.quaternion.setFromUnitVectors(up, dir.normalize());
+    dummy.scale.set(rod.r, length, rod.r);
+  }, true);
+  // The cobra head: a flat housing along the arm, its lens a pale panel underneath.
+  instanced(new THREE.BoxGeometry(0.34, 0.15, 0.78),
+    new THREE.MeshStandardMaterial({ color: 0x8b9192, roughness: 0.45, metalness: 0.5 }), heads, (h) => {
+      dummy.position.copy(h.at); dummy.rotation.set(0, h.yaw, 0);
+    });
+  instanced(new THREE.BoxGeometry(0.26, 0.02, 0.5),
+    new THREE.MeshStandardMaterial({ color: 0xe9edf0, emissive: 0xfff4e2, emissiveIntensity: 0.45, roughness: 0.3 }),
+    heads, (h) => { dummy.position.set(h.at.x, h.at.y - 0.085, h.at.z); dummy.rotation.set(0, h.yaw, 0); });
+  instanced(new THREE.SphereGeometry(1, 14, 10),
+    new THREE.MeshStandardMaterial({ color: 0xf2ead6, emissive: 0xfff0cc, emissiveIntensity: 0.35, roughness: 0.25 }),
+    globes, (g) => { dummy.position.copy(g.at); dummy.scale.set(g.sx, g.sy, g.sx); });
+  instanced(new THREE.ConeGeometry(1, 0.6, 12), painted, caps, (cap) => {
+    dummy.position.copy(cap.at); dummy.scale.set(cap.r, cap.r, cap.r);
+  }, true);
+  for (const mesh of meshes) {
+    mesh.userData = { surface: "furniture:street_light", source: "sfpuc_streetlights" };
+    groups.furniture.add(mesh);
+  }
+  const forms = {};
+  for (const row of rows) forms[row.form] = (forms[row.form] || 0) + 1;
+  return { rows, drawn: rows.length, forms };
+}
+
 function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   // The streets have been recentred on the city's kerbs since the buildings were built; the
   // junctions the signs and signals stand at are read from where the streets are now.
@@ -25577,13 +25729,15 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   const corners = cornerStreetNameSigns();
   const plates = addOfficialSignPlates(officialSigns.concat(osmApproach, generic, corners), signalHeads);
   const posts = stops.concat(smallAds);
+  const lights = addStreetLights(official.street_lights || []);
   const placed = {
+    street_lights: { drawn: lights.drawn, forms: lights.forms },
     posts: addStreetFurniturePosts(posts),
     official_signs: plates.signs,
     official_posts: plates.posts,
     traffic_signal_heads: addTrafficSignalHeads(signalHeads),
     inferred_approach_signs: osmApproach.length,
-    electrical: addElectricalNetwork(furniture),
+    electrical: addElectricalNetwork(furniture, lights.rows),
     bike_racks: plates.racks,
     generic_signs: generic.length,
     corner_name_posts: signStats.cornerPosts,
@@ -25599,7 +25753,7 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
       .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
     parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],
       inferred.detected_parking_meters || [])),
-    trolley_wires: addTrolleyWires(inferred.trolley_wires || []),
+    trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows),
   };
   // Checked once everything stands: no two plates meet, no post is on a crossing.
   placed.sign_audit = auditSignPlates(plates.spots);

@@ -45,7 +45,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-SCHEMA = "kerbside.multiview/1"
+SCHEMA = "kerbside.multiview/2"
 #: ADE20K class ids (0-based) as the filter's segmentation model writes them (fit, entry_inference).
 WALL_CLASSES = (0, 1, 25)
 WINDOW_CLASSES = (8,)
@@ -761,7 +761,69 @@ def reconstruct(views: list[View], reference_key: str | None = None, openings: l
         doors.append({**{k: round(box[k], 3) for k in ("u", "v", "w", "h")}, "depth": found,
                       "basis": "segmentation" if from_labels else "detector_box_texture"})
     result["doors"] = doors
+    result["unseen_in_reference"] = unseen_windows(ref, others, regs, openings or [])
     return result
+
+
+#: A window seen by at least this many of the other views, where the reference saw none, is drawn.
+UNSEEN_MIN_VIEWS = 2
+#: Where the reference itself shows this much bare wall, the window is not there: the other views'
+#: boxes are a reflection or a neighbour's window registered across.
+UNSEEN_BARE_WALL_MAX = 0.6
+#: Where the reference's own segmentation labels this much of the box as window, the fit saw it and
+#: had its reasons for leaving it out.
+UNSEEN_REF_WINDOW_MAX = 0.3
+
+
+def _share(view: View, box: dict, classes) -> float:
+    x0, x1 = max(0, round(box["u"] * view.ppm_x)), min(view.labels.shape[1], round((box["u"] + box["w"]) * view.ppm_x))
+    y0 = max(0, round((view.height_m - box["v"] - box["h"]) * view.ppm_y))
+    y1 = min(view.labels.shape[0], round((view.height_m - box["v"]) * view.ppm_y))
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    return float(np.isin(view.labels[y0:y1, x0:x1], classes).mean())
+
+
+def unseen_windows(ref: View, views: list[View], regs: list[Registration], openings: list[dict]) -> list[dict]:
+    """Windows the other views see whole that the reference photograph does not.
+
+    The archival test (docs/validation/habs-front-wall-2026-10-13.json) found what is proposed is
+    mostly right and what holds the score down is how little is proposed -- a tree, a van, a
+    lamp-post across the front and the window behind it is never found. Another photograph from
+    further along the pavement looks past it. A window is added where at least two other views,
+    registered on the reference, see one whole in the same place; where the reference sees neither
+    a window (the fit saw it and left it out) nor plain wall (it is not there); and where it
+    touches nothing the fit already has. Its box is the views' weighted mean.
+    """
+    taken = [_opening_box(o) for o in openings if all(isinstance(o.get(k), (int, float)) for k in ("u", "v", "w", "h"))]
+    seen = []
+    for index, (view, reg) in enumerate(zip(views, regs, strict=False)):
+        for box in boxes(view, WINDOW_CLASSES, "window", min_w=0.4, min_h=0.6):
+            if not box["cut"]:
+                seen.append((index, view, _to_reference(box, reg)))
+    out = []
+    for _, _, box in sorted(seen, key=lambda item: -item[1].weight):
+        if not (0 <= box["u"] <= ref.width_m - box["w"] and 0 <= box["v"] <= ref.height_m - 0.1 - box["h"]):
+            continue
+        if any(_iou(box, other) > 0 or _iou({**box, "u": box["u"] - 0.15, "w": box["w"] + 0.3}, other) > 0
+               for other in taken):
+            continue
+        support = {}
+        for index, view, other in seen:
+            if _iou(box, other) >= 0.3 and (index not in support or _iou(box, other) > _iou(box, support[index][1])):
+                support[index] = (view, other)
+        if len(support) < UNSEEN_MIN_VIEWS:
+            continue
+        if _share(ref, box, WINDOW_CLASSES) >= UNSEEN_REF_WINDOW_MAX or _share(ref, box, WALL_CLASSES) >= UNSEEN_BARE_WALL_MAX:
+            continue
+        weights = np.asarray([v.weight for v, _ in support.values()])
+        fused = {k: round(float(np.average([b[k] for _, b in support.values()], weights=weights)), 3)
+                 for k in ("u", "v", "w", "h")}
+        taken.append(fused)
+        out.append({"kind": "window", **fused, "views": len(support),
+                    "reference_wall_share": round(_share(ref, fused, WALL_CLASSES), 2),
+                    "basis": "seen_whole_in_other_views_not_in_reference"})
+    return out
 
 
 # ---- applying it to a fit ---------------------------------------------------------------------
@@ -840,6 +902,24 @@ def apply_to_fit(fit: dict, mv: dict, views: list[View] | None = None, design=No
                     entry["kind"] = "flush"
                     entry.pop("alcove", None)
                     changed["alcove"] = 0.0
-    fit["multiview_reconstruction"] = {**{k: v for k, v in mv.items() if k not in {"objects"}},
+    # Windows a tree or a van hid from the reference, seen whole from further along the pavement:
+    # drawn at the other views' box, with the panes of the reference's nearest like-sized window.
+    windows = [o for o in fit.get("openings", []) if o.get("kind") == "window" and o.get("design")]
+    added = 0
+    for n, box in enumerate(mv.get("unseen_in_reference") or []):
+        model = min(windows, key=lambda o: abs(o["v"] - box["v"]) + abs(o["w"] - box["w"]) + abs(o["h"] - box["h"]),
+                    default=None)
+        fit.setdefault("openings", []).append({
+            "id": f"other-views-{n}", "kind": "window", "role": "window", "role_certainty": "low",
+            "u": box["u"], "v": box["v"], "w": box["w"], "h": box["h"], "confidence": 0.35,
+            "grade": "seen_in_other_views_not_reference", "position_sigma_m": 0.25,
+            "design": dict(model["design"]) if model else {},
+            "role_basis": ["multiview_registered_landmarks", f"views:{box['views']}",
+                           f"reference_wall_share:{box['reference_wall_share']}"],
+            "multiview": {"views": box["views"], "basis": box["basis"], "dimensions": "other_views_weighted_mean"},
+        })
+        added += 1
+    changed["windows_from_other_views"] = added
+    fit["multiview_reconstruction"] = {**{k: v for k, v in mv.items() if k not in {"objects", "unseen_in_reference"}},
                                        "objects": len(mv.get("objects", [])), "applied": changed}
     return fit
