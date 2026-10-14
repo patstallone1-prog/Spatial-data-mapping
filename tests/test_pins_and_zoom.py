@@ -81,3 +81,26 @@ def test_directions_put_blue_pins_at_the_start_every_stop_and_the_end():
     assert "String.fromCharCode(65 + i)" in js, "lettered A (the start), B, C ... in order"
     assert "findableMarkers.add(marker);" in _extract("placePin", js), "the numbered pins grow too"
     assert "keepMarkersFindable();" in _extract("animate", js)
+
+
+def test_a_pin_is_deleted_by_its_number_then_delete():
+    js = _page_js()
+    out = run_js("""
+const PIN_DELETE_WINDOW_MS = 4000;
+""" + _extract("pinToDelete", js) + """
+const chosen = { i: 1, at: 1000 };
+console.log(JSON.stringify([
+  pinToDelete({ key: "Delete" }, chosen, 2000),
+  pinToDelete({ key: "Backspace" }, chosen, 4900),
+  pinToDelete({ key: "Delete" }, chosen, 6000),
+  pinToDelete({ key: "Delete" }, null, 2000),
+  pinToDelete({ key: "x" }, chosen, 2000),
+  pinToDelete({ key: "Delete" }, { i: 2, at: 0, held: true }, 60000),
+]));
+""")
+    assert out == [1, 1, -1, -1, -1, 2], "the number, then Delete or Backspace, within a few seconds or held"
+    remove = _extract("removePin", js)
+    assert "findableMarkers.delete(pins[i].marker)" in remove and "savePins()" in remove
+    handler = js[js.index("const doomed = pinToDelete(e, pinChosen, e.timeStamp);"):][:400]
+    assert "removePin(doomed)" in handler
+    assert "pinChosen = { i, at: e.timeStamp, held: true };" in js

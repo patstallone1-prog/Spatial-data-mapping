@@ -3066,7 +3066,7 @@ input::placeholder { color:#9ca3af; }
   </section>
   <section class="group">
     <h2>Getting around</h2>
-    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, S for what is under the pointer, Enter to open a door or gate, 1, 2 or 3 to drop a pin (and again to go back to it), and wheel or pinch to zoom.</div>
+    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, S for what is under the pointer, Enter to open a door or gate, 1, 2 or 3 to drop a pin (again to go back to it, then Delete to remove it), and wheel or pinch to zoom.</div>
     <button type="button" class="page-link" id="controls-open" aria-controls="controls-help">Every control and what it does ›</button>
   </section>
   <section class="group subpage" id="controls-help" hidden aria-label="Controls">
@@ -26718,7 +26718,7 @@ addEventListener("keydown", async (e) => {
 //
 // A number key drops that pin on the ground under the pointer (under the walker where there is no
 // pointer); once it is down, the same key takes the walker back to it. Shift and the number moves
-// it to the pointer. Three, no more. Typing in a field -- the search, the directions -- is never a
+// it to the pointer; the number then Delete (or Backspace) takes it away. Three, no more. Typing in a field -- the search, the directions -- is never a
 // pin. Kept in this browser, per page.
 const PIN_COUNT = 3;
 const PIN_COLOURS = [0xe0402f, 0x2f6fe0, 0xe0a52f];
@@ -26818,18 +26818,45 @@ function pinKey(e) {
   const n = m ? Number(m[1]) : Number(e.key);
   return Number.isInteger(n) && n >= 1 && n <= PIN_COUNT ? n - 1 : -1;
 }
+//: How long after its number a Delete still means that pin.
+const PIN_DELETE_WINDOW_MS = 4000;
+let pinChosen = null;
+//: Takes pin i away: its marker, its place in this browser.
+function removePin(i) {
+  if (!pins[i]) return false;
+  pinGroup.remove(pins[i].mesh);
+  findableMarkers.delete(pins[i].marker);
+  pins[i] = null;
+  savePins();
+  return true;
+}
+//: The number, then Delete or Backspace: the pin of that number goes (held together, or the
+//: Delete within a few seconds of the number).
+function pinToDelete(e, chosen, now) {
+  if (e.key !== "Delete" && e.key !== "Backspace") return -1;
+  return chosen && (chosen.held || now - chosen.at <= PIN_DELETE_WINDOW_MS) ? chosen.i : -1;
+}
 addEventListener("keydown", (e) => {
   if (ATTACH || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
+  // The key's own time, not the page's: a frame busy building must not run the window out.
+  const doomed = pinToDelete(e, pinChosen, e.timeStamp);
+  if (doomed >= 0) {
+    e.preventDefault();
+    pinChosen = null;
+    pinSay(removePin(doomed) ? `Pin ${doomed + 1} deleted` : `No pin ${doomed + 1} to delete`);
+    return;
+  }
   const i = pinKey(e);
   if (i < 0) return;
   e.preventDefault();
+  pinChosen = { i, at: e.timeStamp, held: true };
   if (pins[i] && !e.shiftKey) {
     // Back to the pin: the walker stands beside it, on the street if it is in a building.
     const landing = eligibleLanding(new THREE.Vector3(pins[i].x, 0, pins[i].z)) || new THREE.Vector3(pins[i].x, 0, pins[i].z);
     hideAddress();
     goTo(landing, { travel: true });
-    pinSay(`Back at pin ${i + 1}`);
+    pinSay(`Back at pin ${i + 1} — Delete removes it`);
     return;
   }
   const ground = pointerAt ? groundAt(pointerAt[0], pointerAt[1]) : null;
@@ -26839,12 +26866,12 @@ addEventListener("keydown", (e) => {
   savePins();
   pinSay(moved ? `Pin ${i + 1} moved — press ${i + 1} to come back` : `Pin ${i + 1} dropped — press ${i + 1} to come back`);
 });
+addEventListener("keyup", (e) => {
+  if (pinChosen && pinKey(e) === pinChosen.i) pinChosen.held = false;
+});
 //: Settings' "Clear pins".
 function clearPins() {
-  for (let i = 0; i < PIN_COUNT; i += 1) {
-    if (pins[i]) pinGroup.remove(pins[i].mesh);
-    pins[i] = null;
-  }
+  for (let i = 0; i < PIN_COUNT; i += 1) removePin(i);
   savePins();
 }
 
