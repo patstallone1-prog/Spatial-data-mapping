@@ -49,16 +49,23 @@ def test_zoom_is_quicker_and_pinch_zooms_too():
 const state = { dist: 100, firstPerson: false, zoom: 1 };
 const MAX_ORBIT_DIST_M = 5000, FIRST_PERSON_MAX_ZOOM = 2, FIRST_PERSON_FOV = 70;
 const camera = { fov: 70, updateProjectionMatrix() {} };
+const ZOOM_FULL_SPEED_M = 400, ZOOM_NEAR_SENSITIVITY = 0.2;
 function placeCamera() {}
-""" + _extract("zoomBy", js) + """
+""" + _extract("zoomSensitivity", js) + _extract("zoomBy", js) + """
 zoomBy(Math.exp(100 * 0.0025));
+const near = state.dist;
+state.dist = 1000; zoomBy(Math.exp(100 * 0.0025));
 const out = state.dist;
-zoomBy(1e9);
+state.dist = 10; zoomBy(Math.exp(100 * 0.0025));
+const street = state.dist;
+state.dist = 1000; zoomBy(1e9);
 const capped = state.dist;
 state.firstPerson = true; zoomBy(0.5);
-console.log(JSON.stringify([out, capped, state.zoom, camera.fov]));
+console.log(JSON.stringify([out, capped, state.zoom, camera.fov, near, street]));
 """)
-    assert out[0] == pytest.approx(128.4, abs=0.1), "one wheel notch: about a quarter further out"
+    assert out[0] == pytest.approx(1284, abs=1), "far off, one wheel notch: about a quarter further out"
+    assert out[4] == pytest.approx(113.3, abs=0.1), "at 100 m, half that"
+    assert out[5] == pytest.approx(10.51, abs=0.01), "at the street, a fifth"
     assert out[1] == 5000 and out[2] == 2 and out[3] == 35
     assert "const WHEEL_ZOOM_PER_UNIT = 0.0025;" in js and "e.ctrlKey ? TRACKPAD_PINCH_PER_UNIT" in js
     assert "zoomBy((pinchSpread / spread) ** TOUCH_PINCH_POWER)" in js

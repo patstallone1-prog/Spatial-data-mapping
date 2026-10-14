@@ -152,3 +152,11 @@ def test_a_shaded_front_is_lit_by_daylight_not_cyan() -> None:
     # A north-facing front has only the sky's fill: cyan turned 1535's beige grey-green.
     assert "new THREE.HemisphereLight(0xe4ecf4, 0x071013, 1.15)" in js
     assert "0xb7f5ff" not in js
+
+
+def test_tree_limbs_reach_a_fifth_less_far() -> None:
+    js = _page_js()
+    variant = _extract("treeVariant", js)
+    assert "street:   { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.24," in variant
+    assert "broad:    { trunk: 0.34, limbs: 5, spread: 1.05, rise: 0.22, reach: 0.32," in variant
+    assert "reach: 0.30" not in variant and "reach: 0.40" not in variant

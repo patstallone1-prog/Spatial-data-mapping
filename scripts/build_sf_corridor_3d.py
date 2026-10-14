@@ -17242,11 +17242,13 @@ function normaliseGarages(ways) {
         for (const w of walls.get(`${kx + dx}:${ky + dy}`) || []) {
           const L = Math.hypot(w.bx - w.ax, w.by - w.ay);
           if (L < Math.max(2.5, (g.w || 2.6) * 0.9)) continue;
-          const tt = ((cx - w.ax) * (w.bx - w.ax) + (cy - w.ay) * (w.by - w.ay)) / (L * L);
-          if (tt < -0.02 || tt > 1.02) continue;
-          const d = Math.abs((cx - w.ax) * (w.by - w.ay) - (cy - w.ay) * (w.bx - w.ax)) / L;
+          // The wall the cut points straight back at, the nearest such along its bearing.
+          const on = cutOnWall(g, w.ax, w.ay, w.bx, w.by);
+          if (on.t < -0.02 || on.t > 1.02) continue;
+          const d = on.straight ? on.s
+            : Math.abs((cx - w.ax) * (w.by - w.ay) - (cy - w.ay) * (w.bx - w.ax)) / L;
           if (d > GARAGE_REACH_PAGE_M) continue;
-          if (!best || d < best.d) best = { d, w, tt };
+          if (!best || d < best.d) best = { d, w, tt: on.t };
         }
       }
     }
@@ -17265,18 +17267,20 @@ function normaliseGarages(ways) {
       const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
       const length = Math.hypot(bx - ax, by - ay);
       if (!(length > 1)) { stats.neighbour += 1; continue; }
-      const cut = g.cp || [g.a[0] + (g.b[0] - g.a[0]) * g.t, g.a[1] + (g.b[1] - g.a[1]) * g.t];
-      const [cx, cy] = xy(cut[0], cut[1]);
-      const t = ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / (length * length);
+      const { t } = cutOnWall(g, ax, ay, bx, by);
       if (t < -0.02 || t > 1.02) { stats.neighbour += 1; continue; }
       if (photographedEdge([ax, -ay], [bx, -by])) { stats.photographed += 1; continue; }
-      const w = Math.min(g.w || 2.6, length * 0.9);
-      const centre = Math.min(Math.max(t * length, w / 2), length - w / 2);
+      // The cut as the pavement draws it (dropKerbsAtDriveways), and the door a little narrower,
+      // straight back from it: a car drives up the drop and in without turning.
+      const cutW = cutDrawnWidth(g);
+      const w = Math.min(cutW - 2 * GARAGE_CUT_MARGIN_M, length * 0.9);
+      const cutCentre = t * length;
+      const centre = Math.min(Math.max(cutCentre, w / 2), length - w / 2);
       const wallKey = `${g.a.join(",")}|${g.b.join(",")}`;
       const clash = kept.find((k) => k.wallKey === wallKey
         && Math.abs(k.centre - centre) < (k.w + w) / 2 + 0.3);
       if (clash) { stats.merged += 1; continue; }
-      kept.push({ ...g, t: centre / length, w, centre, wallKey, length });
+      kept.push({ ...g, t: centre / length, w, centre, wallKey, length, cutCentre, cutW });
     }
     // Room on the wall for every door kept, with a pier between them.
     const byWall = new Map();
@@ -17290,9 +17294,16 @@ function normaliseGarages(ways) {
       // it are one driveway recorded twice or a pair of bays: one door, a double one when the
       // cuts add up to more than a car's width, centred where they were.
       if (doors.length > 1 && doors[0].length < 10) {
-        const centre = doors.reduce((s, g) => s + g.centre, 0) / doors.length;
-        const w = Math.min(doors.length > 1 ? 4.9 : doors[0].w, doors[0].length * 0.62);
-        const merged = { ...doors[0], w, centre: Math.min(Math.max(centre, w / 2), doors[0].length - w / 2) };
+        // Across the cuts, if one double door spans them; else behind the widest cut alone. A
+        // door centred between two cuts stood behind neither.
+        const lo = Math.min(...doors.map((g) => g.cutCentre - g.cutW / 2));
+        const hi = Math.max(...doors.map((g) => g.cutCentre + g.cutW / 2));
+        const span = hi - lo - 2 * GARAGE_CUT_MARGIN_M;
+        const widest = doors.reduce((p, q) => (q.cutW > p.cutW ? q : p));
+        const merged = span <= Math.min(4.9, doors[0].length * 0.62)
+          ? { ...widest, w: span, cutCentre: (lo + hi) / 2, cutW: hi - lo }
+          : { ...widest };
+        merged.centre = Math.min(Math.max(merged.cutCentre, merged.w / 2), merged.length - merged.w / 2);
         merged.t = merged.centre / merged.length;
         stats.merged += doors.length - 1;
         doors.splice(0, doors.length, merged);
@@ -17313,22 +17324,86 @@ function normaliseGarages(ways) {
         const g = onWall[0];
         const w = Math.max(2.4, g.w - (room - spare));
         if (w < g.w) {
-          g.w = w;
-          // Against the end of the frontage its cut is nearer, so the door's room is all on
-          // the other side rather than split into two slivers neither of which fits a door.
-          g.centre = g.centre >= g.length / 2 ? g.length - w / 2 - 0.25 : w / 2 + 0.25;
+          // The front door's room all on one side, away from the nearer end, rather than two
+          // slivers -- and the door stays behind its own cut: it gives up width on that side
+          // instead of sliding out from behind the cut.
+          const lo = Math.max(0, g.cutCentre - g.cutW / 2 + GARAGE_CUT_MARGIN_M);
+          const hi = Math.min(g.length, g.cutCentre + g.cutW / 2 - GARAGE_CUT_MARGIN_M);
+          const clear = room + 0.25;
+          if (g.centre >= g.length / 2) {
+            const left = Math.max(lo, clear);
+            g.w = Math.max(2.4, Math.min(w, hi - left));
+            g.centre = Math.min(hi, g.length) - g.w / 2;
+          } else {
+            const right = Math.min(hi, g.length - clear);
+            g.w = Math.max(2.4, Math.min(w, right - lo));
+            g.centre = Math.max(lo, 0) + g.w / 2;
+          }
           g.t = g.centre / g.length;
           stats.narrowed = (stats.narrowed || 0) + 1;
         }
       }
     }
-    way.garages = fitted.map(({ wallKey, length, centre, ...g }) => g);
+    way.garages = fitted.map(({ wallKey, length, centre, cutCentre, cutW, ...g }) => g);
+    for (const g of way.garages) {
+      const zone = drivewayZone(g);
+      if (zone) DRIVEWAY_ZONES.push(zone);
+    }
     stats.kept += way.garages.length;
   }
   return stats;
 }
 //: How far behind its kerb cut a garage door may stand (the footway and a setback).
 const GARAGE_REACH_PAGE_M = 22;
+//: How much narrower than its kerb cut a garage door is, each side.
+const GARAGE_CUT_MARGIN_M = 0.15;
+//: The width of a kerb cut as the pavement draws it (dropKerbsAtDriveways' half, doubled).
+function cutDrawnWidth(g) {
+  return Math.max(2.2, g.w || 3.5);
+}
+//: Where a kerb cut points straight back onto a wall (a -> b, page x / y-north metres): its kerb
+//: point walked inward along its own bearing until it meets the wall's line, as the fraction t
+//: along the wall and the distance s walked. A cut with no kerb point, or one running almost
+//: along the wall, falls back to its centre squared onto the wall.
+function cutOnWall(g, ax, ay, bx, by) {
+  const ex = bx - ax, ey = by - ay, L2 = ex * ex + ey * ey || 1;
+  if (g.kp && Number.isFinite(g.on)) {
+    const [kx, ky] = xy(g.kp[0], g.kp[1]);
+    const dx = Math.sin(g.on * Math.PI / 180), dy = Math.cos(g.on * Math.PI / 180);
+    const den = dx * ey - dy * ex;
+    if (Math.abs(den) > 0.5 * Math.sqrt(L2)) {
+      const wx = ax - kx, wy = ay - ky;
+      const s = (wx * ey - wy * ex) / den;
+      if (s > -1) return { t: (wx * dy - wy * dx) / den, s, straight: true };
+    }
+  }
+  const cut = g.cp || [g.a[0] + (g.b[0] - g.a[0]) * g.t, g.a[1] + (g.b[1] - g.a[1]) * g.t];
+  const [cx, cy] = xy(cut[0], cut[1]);
+  return { t: ((cx - ax) * ex + (cy - ay) * ey) / L2, straight: false };
+}
+//: The ground between a kerb cut and its garage door, which a car crosses: no tree stands in it.
+//: Page x / z quads, the cut's width (and its flare) from the kerb to the door.
+const DRIVEWAY_ZONES = [];
+function drivewayZone(g) {
+  if (!g.kp || !Number.isFinite(g.on)) return null;
+  const [kx, ky] = xy(g.kp[0], g.kp[1]);
+  const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+  const doorX = ax + (bx - ax) * g.t, doorY = ay + (by - ay) * g.t;
+  const dx = Math.sin(g.on * Math.PI / 180), dy = Math.cos(g.on * Math.PI / 180);
+  const reach = (doorX - kx) * dx + (doorY - ky) * dy;
+  if (!(reach > 0) || reach > GARAGE_REACH_PAGE_M + 2) return null;
+  const half = cutDrawnWidth(g) / 2 + 0.5;
+  // From a metre out into the gutter to the door, square to the cut's bearing.
+  const ring = [[-half, -1], [half, -1], [half, reach], [-half, reach]]
+    .map(([u, v]) => [kx + dy * u + dx * v, -(ky - dx * u + dy * v)]);
+  const xs = ring.map((p) => p[0]), zs = ring.map((p) => p[1]);
+  return { ring, minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
+}
+//: Whether a tree trunk at (x, z) stands in the way from a kerb cut to its garage.
+function inDriveway(x, z) {
+  return DRIVEWAY_ZONES.some((zone) => x >= zone.minX && x <= zone.maxX && z >= zone.minZ && z <= zone.maxZ
+    && pointInRing(x, z, zone.ring));
+}
 //: The wall a front door needs beside a garage: the leaf and clear wall either side.
 const GARAGE_DOOR_ROOM_M = 1.05 + 2 * 0.35;
 //: The compass bearing of a footprint edge's outward side, from the footprint itself.
@@ -20739,12 +20814,13 @@ function treeVariant(kind) {
     }
     cluster(V(0, 1.12, 0), 0.05, 0.08, 2, 0.14);
   } else {
-    // A trunk that forks into limbs, each limb into twigs, leaves at the twigs' ends.
+    // A trunk that forks into limbs, each limb into twigs, leaves at the twigs' ends. The limbs
+    // reach a fifth less far than they did: the crowns stood out over the road and the houses.
     const shape = {
-      street:   { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.30, crown: [0.20, 0.17], cards: 11 },
-      broad:    { trunk: 0.34, limbs: 5, spread: 1.05, rise: 0.22, reach: 0.40, crown: [0.26, 0.15], cards: 11 },
+      street:   { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.24, crown: [0.20, 0.17], cards: 11 },
+      broad:    { trunk: 0.34, limbs: 5, spread: 1.05, rise: 0.22, reach: 0.32, crown: [0.26, 0.15], cards: 11 },
       columnar: { trunk: 0.26, limbs: 4, spread: 0.22, rise: 0.62, reach: 0.12, crown: [0.11, 0.26], cards: 10 },
-    }[kind] || { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.30, crown: [0.20, 0.17], cards: 11 };
+    }[kind] || { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.24, crown: [0.20, 0.17], cards: 11 };
     const fork = V(0, shape.trunk, 0);
     bark.push(branchGeometry(V(0, 0, 0), fork, 0.07, 0.05, 6));
     for (let l = 0; l < shape.limbs; l += 1) {
@@ -22196,7 +22272,12 @@ for (const feature of PARK_STRUCTURES) {
   // because a tree that outgrows its opening gets the opening enlarged.
   const pits = { positions: [], uvs: [], indices: [] };
   let pitCount = 0;
-  for (const tree of ground.trees || []) {
+  // No tree between a kerb cut and the garage it serves: it would stand in the car's way.
+  const trees = (ground.trees || []).filter((tree) => {
+    const [tx, ty] = xy(tree.p[0], tree.p[1]);
+    return !inDriveway(tx, -ty);
+  });
+  for (const tree of trees) {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const tz = -ty;
     const top = pavementTopAt(tx, tz);
@@ -22248,7 +22329,7 @@ for (const feature of PARK_STRUCTURES) {
   // Trees, one instanced mesh per variant. The trunk diameter the city recorded sets the size:
   // a three inch stem is a sapling and a thirty inch one has a crown over the roadway.
   const byVariant = new Map();
-  for (const tree of ground.trees || []) {
+  for (const tree of trees) {
     if (!byVariant.has(tree.v)) byVariant.set(tree.v, []);
     byVariant.get(tree.v).push(tree);
   }
@@ -25674,6 +25755,13 @@ canvas.addEventListener("lostpointercapture", () => { dragging = false; });
 const WHEEL_ZOOM_PER_UNIT = 0.0025;
 const TRACKPAD_PINCH_PER_UNIT = 0.012;
 const TOUCH_PINCH_POWER = 1.6;
+//: Up close a notch moves less: at this distance and beyond, a notch is its full quarter; nearer,
+//: its share falls with the square root of the distance, to a fifth of it at the street.
+const ZOOM_FULL_SPEED_M = 400;
+const ZOOM_NEAR_SENSITIVITY = 0.2;
+function zoomSensitivity(dist) {
+  return Math.max(ZOOM_NEAR_SENSITIVITY, Math.min(1, Math.sqrt(dist / ZOOM_FULL_SPEED_M)));
+}
 // Zoom by a factor on the distance (> 1 out); in the walker's eyes, by field of view, 1x to 2x.
 function zoomBy(factor) {
   if (state.firstPerson) {
@@ -25682,6 +25770,7 @@ function zoomBy(factor) {
     camera.updateProjectionMatrix();
     return;
   }
+  factor **= zoomSensitivity(state.dist);
   state.dist = Math.max(8, Math.min(MAX_ORBIT_DIST_M, state.dist * factor));
   placeCamera();
 }
