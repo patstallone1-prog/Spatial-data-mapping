@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "kind": "rendered_geometry_consistency_not_independent_ground_truth",
+  "renderer_sha256": "b9a6ac407c24f9d971e41640737dfab2301156d366f0c2f8296d7de014ab4920",
+  "fixture_builder": "tools/tunnel_ground_preview.py",
+  "bore_count": 6,
+  "station_count": 1468,
+  "forward_and_reverse_routes": 12,
+  "route_failures": 0,
+  "maximum_route_target_error_m": 9.134827610062187e-13,
+  "maximum_portal_transition_gap_m": 0.006013700177561532,
+  "unclipped_sampled_headroom_fragments": 0,
+  "bores": [
+    {"region": "oakland-downtown", "way_id": 22272045, "name": "Posey Tube", "stations": 439, "length_m": 1082.290180559336, "minimum_rendered_clearance_m": 4.47, "floor_misses": 0, "ceiling_misses": 0, "side_escape_acceptances": 0, "upper_surface_misselections": 0, "both_portals_passable": true},
+    {"region": "oakland-downtown", "way_id": 25966237, "name": "Webster Street Tube", "stations": 427, "length_m": 1051.89514955871, "minimum_rendered_clearance_m": 4.52, "floor_misses": 0, "ceiling_misses": 0, "side_escape_acceptances": 0, "upper_surface_misselections": 0, "both_portals_passable": true},
+    {"region": "sf-corridor", "way_id": 8921175, "bore": 0, "name": "Broadway", "stations": 215, "length_m": 531.7871400186143, "minimum_rendered_clearance_m": 4.2, "floor_misses": 0, "ceiling_misses": 0, "side_escape_acceptances": 0, "upper_surface_misselections": 0, "both_portals_passable": true},
+    {"region": "sf-corridor", "way_id": 8921175, "bore": 1, "name": "Broadway", "stations": 215, "length_m": 531.7871604654398, "minimum_rendered_clearance_m": 4.2, "floor_misses": 0, "ceiling_misses": 0, "side_escape_acceptances": 0, "upper_surface_misselections": 0, "both_portals_passable": true},
+    {"region": "sf-corridor", "way_id": 417099350, "name": "Stockton", "stations": 113, "length_m": 271.9976708933138, "minimum_rendered_clearance_m": 6.4, "floor_misses": 0, "ceiling_misses": 0, "side_escape_acceptances": 0, "upper_surface_misselections": 0, "both_portals_passable": true},
+    {"region": "oakland-downtown", "way_id": 75611235, "name": "11th Street", "stations": 59, "length_m": 122.28756799426938, "minimum_rendered_clearance_m": 4.2, "floor_misses": 0, "ceiling_misses": 0, "side_escape_acceptances": 0, "upper_surface_misselections": 0, "both_portals_passable": true}
+  ],
+  "fence_checks": [
+    {"fixture": "oakland-tubes", "samples": 1502, "maximum_terrain_sampler_error_m": 0.000017562677946614258},
+    {"fixture": "broadway", "samples": 18141, "maximum_terrain_sampler_error_m": 0.0000537894540286743},
+    {"fixture": "stockton", "samples": 3318, "maximum_terrain_sampler_error_m": 0.000021638867423234842},
+    {"fixture": "11th-street", "samples": 182, "maximum_terrain_sampler_error_m": 0.0000012677133494065629}
+  ],
+  "limitations": [
+    "Digital consistency, not a measured as-built tunnel or fence accuracy benchmark.",
+    "Floor, ceiling and side queries sample every third interior station; whole-bore routes visit every station in both directions.",
+    "Headroom audit samples unclipped non-instanced mesh fragments, not every possible dynamic object or camera view.",
+    "Fence fixtures overlap geographically; sample counts are not unique fence counts.",
+    "Fixed abutments constrain some inferred overpass clearances below the 4.8 m design target.",
+    "Native Unreal export does not bake the app's render-only fragment clipping."
+  ]
+}

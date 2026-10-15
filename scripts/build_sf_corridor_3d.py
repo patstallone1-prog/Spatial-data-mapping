@@ -4183,29 +4183,43 @@ const CUT_ROAD_GRADE = 0.09;
 // Every road tunnel's mouth has its cut, whether or not the map drew an approach piece for it:
 // the Stockton Tunnel's north mouth had none, and the hill ran down over its road.
 for (const way of (TERRAIN_FRAME ? DATA.ways || [] : [])) {
-  if (way.tunnel_kind !== "road" || !way.tunnel_mouths || !way.tunnel_road_z || !way.points || way.points.length < 2) continue;
+  if (way.tunnel_kind !== "road" || !way.points || way.points.length < 2) continue;
   const pts = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
   for (const end of ["start", "end"]) {
-    const mouth = way.tunnel_mouths[end], mouthZ = way.tunnel_road_z[end];
+    // SF has measured mouth levels; other regions still need a continuous
+    // approach, using the same explicitly inferred endpoint as their bore floor.
+    const mouth = way.tunnel_mouths?.[end] || (end === "start" ? way.points[0] : way.points[way.points.length-1]);
+    const at = end === "start" ? pts[0] : pts[pts.length-1];
+    const mouthZ = way.tunnel_road_z?.[end] ?? terrainHeightAt(...at);
     if (!mouth || mouthZ === undefined) continue;
     const [x, y] = xy(mouth[0], mouth[1]);
     const mx = x, mz = -y;
     if (APPROACH_CUTS.some((c) => Math.hypot(c.mx - mx, c.mz - mz) < 15)) continue;
-    // Outward: from the bore's far end through this mouth.
-    const far = end === "start" ? pts[pts.length - 1] : pts[0];
+    // The local tangent matters: a curved tube's far end is not its approach direction.
+    const far = end === "start" ? pts[1] : pts[pts.length-2];
     let ux = mx - far[0], uz = mz - far[1];
     const len = Math.hypot(ux, uz);
     if (!(len > 1)) continue;
     ux /= len; uz /= len;
     // Out to where the ground comes down to a road that has climbed from the mouth at no more
     // than a street's grade.
-    let reach = 60;
-    for (let r = 6; r <= 60; r += 2) {
-      if (terrainHeightAt(mx + ux * r, mz + uz * r) <= mouthZ + CUT_ROAD_GRADE * r + 0.4) { reach = Math.max(10, r + 4); break; }
+    const inferredLevel=!way.tunnel_road_z;
+    let reach = inferredLevel ? 200 : 60;
+    // A single low terrain sample six metres outside an unmeasured mouth is
+    // not the end of its approach. Carry the grade at least through the local
+    // road window, then meet the terrain without an abrupt step at its end.
+    for (let r = inferredLevel ? APPROACH_CUT_REACH_M : 6; r <= (inferredLevel ? 200 : 60); r += 2) {
+      const delta=terrainHeightAt(mx + ux * r, mz + uz * r)-mouthZ;
+      if ((inferredLevel ? Math.abs(delta) : delta) <= CUT_ROAD_GRADE * r + (inferredLevel ? 0 : .4)) {
+        reach = inferredLevel ? r : Math.max(10, r + 4);break;
+      }
     }
-    const farZ = Math.min(terrainHeightAt(mx + ux * reach, mz + uz * reach), mouthZ + CUT_ROAD_GRADE * reach);
+    const rawFar=terrainHeightAt(mx + ux * reach, mz + uz * reach);
+    const farZ = Math.max(inferredLevel ? mouthZ-CUT_ROAD_GRADE*reach : -Infinity,
+      Math.min(rawFar,mouthZ+CUT_ROAD_GRADE*reach));
     APPROACH_CUTS.push({ mx, mz, ux, uz, reach, mouthZ, farZ,
-      half: (way.road_m || 12) / 2 + APPROACH_CUT_MARGIN_M, way, synthesised: true });
+      half: (way.road_m || 12) / 2 + APPROACH_CUT_MARGIN_M, way, synthesised: true,
+      levelBasis:way.tunnel_road_z ? "measured_mouth" : "inferred_terrain_endpoint" });
   }
 }
 // Every cut runs straight out along its own tunnel's line from that tunnel's mouth. A cut taken
@@ -4283,6 +4297,17 @@ function approachRoadAt(x, z, outsideOnly = false) {
   }
   return null;
 }
+function inferredApproachLevelAt(x,z,outsideOnly=false) {
+  for(const cut of APPROACH_CUTS) {
+    const dx=x-cut.mx,dz=z-cut.mz,along=dx*cut.ux+dz*cut.uz;
+    if(along<(outsideOnly ? cut.deck : -APPROACH_CUT_INSIDE_M) || along>cut.reach+.5
+        || Math.abs(dx*cut.uz-dz*cut.ux)>cut.half)continue;
+    // A measured cut remains measurement-led. Only an unmeasured engineered
+    // approach uses a graded visual road rather than the noisy terrain below it.
+    return cut.levelBasis==="inferred_terrain_endpoint" ? cutRoadAt(cut,along) : null;
+  }
+  return null;
+}
 //: The ground everything is lifted by: the grid, and outside a tunnel mouth never above the
 //: cut's road line -- the grid there is filled from the hill either side, and a cross street
 //: lifted onto that fill met the approach road, lifted onto the cut, a metre or two up at the
@@ -4296,6 +4321,8 @@ function groundLiftAt(x, z) {
     if (guest) { const [gx, gz] = hostToGuest(guest, x, z); return guest.api.groundLiftAt(gx, gz) + guest.oy; }
   }
   const ground = terrainHeightAt(x, z);
+  const inferred=typeof inferredApproachLevelAt === "function" ? inferredApproachLevelAt(x,z,true) : null;
+  if(inferred!==null)return inferred;
   const road = approachRoadAt(x, z, true);
   return road === null ? ground : Math.min(ground, road);
 }
@@ -4304,10 +4331,34 @@ function groundLiftAt(x, z) {
 //: cut's road line. One point under a deck has two heights, the deck's and the road's; which
 //: one a vertex takes is decided by the way it belongs to (WAY_LIFT), not by where it is.
 function cutLiftAt(x, z) {
+  const inferred=typeof inferredApproachLevelAt === "function" ? inferredApproachLevelAt(x,z) : null;
+  if(inferred!==null)return inferred;
   const ground = terrainHeightAt(x, z);
   const road = approachRoadAt(x, z);
   return road === null ? ground : Math.min(ground, road);
 }
+function cutRibbonLiftAt(x,z,outsideOnly=false) {
+  // Only geometry belonging to an approach way uses this profile. Its wide
+  // sidewalk underlay must share the road plane, rather than sampling the top
+  // of the retaining wall at its outer vertices and forming concrete teeth.
+  // This does NOT widen the excavated terrain or the walkable lower corridor.
+  const ground=outsideOnly ? groundLiftAt(x,z) : terrainHeightAt(x,z);
+  const margin=typeof PROPERTY_LINE_PAVEMENT_WIDTH_M === 'number' ? PROPERTY_LINE_PAVEMENT_WIDTH_M : 8.6;
+  for(const cut of APPROACH_CUTS) {
+    const dx=x-cut.mx,dz=z-cut.mz,along=dx*cut.ux+dz*cut.uz;
+    if(along < (outsideOnly ? cut.deck : -APPROACH_CUT_INSIDE_M) || along>cut.reach+.5
+        || Math.abs(dx*cut.uz-dz*cut.ux)>cut.half+margin)continue;
+    const road=cutRoadAt(cut,along);
+    const level=cut.levelBasis==='inferred_terrain_endpoint' ? road : Math.min(ground,road);
+    // Outside the actual cut, return gradually to the property surface. A
+    // hard outer width cutoff merely moved the same concrete teeth sideways.
+    const t=Math.max(0,Math.min(1,(Math.abs(dx*cut.uz-dz*cut.ux)-cut.half)/margin));
+    return level+(ground-level)*t*t*(3-2*t);
+  }
+  return ground;
+}
+cutRibbonLiftAt.groundLiftKey='cut-road-ribbon';
+function pavementLiftAt(x,z) { return cutRibbonLiftAt(x,z,true); }
 //: The ground the terrain itself is drawn at. In the cut, from the mouth out, it is the cut's
 //: road -- under the retaining walls too, so the hill comes down behind them and not in front
 //: of them. Behind the mouth it is the hill, untouched: the headwall stands against it. (It
@@ -4323,7 +4374,7 @@ function trenchGroundAt(x, z) {
     if (along < -1.5 || along > cut.reach + 0.5) continue;
     if (Math.abs(dx * cut.uz - dz * cut.ux) > cut.half + CUT_WALL_T_M) continue;
     const road = cut.mouthZ + (cut.farZ - cut.mouthZ) * Math.max(0, Math.min(1, along / cut.reach));
-    return Math.min(ground, road);
+    return cut.levelBasis==="inferred_terrain_endpoint" ? road : Math.min(ground, road);
   }
   return ground;
 }
@@ -5082,7 +5133,8 @@ function addBackdropTile(xs, zs, apronOf) {
   for (let r = 0; r + 1 < h; r += 1) {
     for (let c = 0; c + 1 < w; c += 1) {
       const a = r * w + c, b = a + 1, d = a + w, e = d + 1;
-      if (inTubePortalOpening((xs[c] + xs[c + 1]) / 2, (zs[r] + zs[r + 1]) / 2)) continue;
+      // Exact bore-volume clipping is applied after tunnel stations exist. Removing
+      // whole grid cells by their centre made diagonal holes and left blocking shards.
       if (up) { index[k++] = a; index[k++] = b; index[k++] = d; index[k++] = b; index[k++] = e; index[k++] = d; }
       else { index[k++] = a; index[k++] = d; index[k++] = b; index[k++] = b; index[k++] = d; index[k++] = e; }
     }
@@ -5845,7 +5897,13 @@ function liftOneMesh(o) {
     const v = new THREE.Vector3(), up = new THREE.Vector3();
     for (let i = 0; i < attribute.count; i += 1) {
       v.set(attribute.getX(i), attribute.getY(i), attribute.getZ(i)).applyMatrix4(world);
-      const lift = groundLiftAt(v.x, v.z);
+      // A cut road is lifted by its own level AFTER subdivision. Interpolating
+      // a pre-lift delta and then sampling a different ground function produced
+      // metre-high triangular pavement spikes under and beside portal decks.
+      const lift = o.userData.groundLiftFunction
+        ? o.userData.groundLiftFunction(v.x, v.z)
+        : APPROACH_CUTS.length && ['walk','walk_narrow','walk_underlay','kerb'].includes(o.userData.surface)
+          ? pavementLiftAt(v.x,v.z) : groundLiftAt(v.x, v.z);
       if (lift === 0) continue;
       up.set(0, lift, 0).applyMatrix3(inverse);
       attribute.setXYZ(i, attribute.getX(i) + up.x, attribute.getY(i) + up.y, attribute.getZ(i) + up.z);
@@ -5853,8 +5911,8 @@ function liftOneMesh(o) {
     attribute.needsUpdate = true;
     // Ground normals were still those of the original flat sheet: hills had geometry but
     // no slope lighting. Recompute only terrain-conforming covers, not building walls.
-    if (["park", "yard", "court", "plaza", "front_walk", "park:play_surface",
-         "park:skatepark_surface"].includes(o.userData.surface)) {
+    if (["park", "yard", "court", "plaza", "front_walk", "neutral_ground", "service_yard", "park:play_surface",
+         "park:skatepark_surface"].includes(o.userData.surface) || String(o.userData.surface||'').startsWith('inferred:')) {
       o.geometry.computeVertexNormals();
     }
     // The bounds are what the culling reads; a tile lifted eighty metres up Nob Hill with the
@@ -7708,18 +7766,20 @@ function addMerged(key, mesh, surface) {
   if (BUILDING_VISUAL_ID !== null && (key === "wall" || key === "plane"))
     mesh.geometry.userData = { ...mesh.geometry.userData, homeId: BUILDING_VISUAL_ID };
   const fingerprint = materialKey(mesh.material);
-  const full = `${key}|${fingerprint}`;
+  const liftKey=typeof cutLiftAt === "function" && WAY_LIFT===cutLiftAt ? 'cut-road' : WAY_LIFT?.groundLiftKey;
+  const deferredLift=Boolean(liftKey);
+  const full = `${key}|${fingerprint}${deferredLift ? ':'+liftKey : ''}`;
   let bucket = MERGED.get(full);
   if (!bucket) {
     let material = CANONICAL_MATERIALS.get(fingerprint);
     if (!material) CANONICAL_MATERIALS.set(fingerprint, material = mesh.material);
-    MERGED.set(full, bucket = { material, surface, parts: [] });
+    MERGED.set(full, bucket = { material, surface, parts: [], groundLift:deferredLift ? WAY_LIFT : null });
   }
   // The mesh's own placement has to be baked in: a merged geometry has no transform of its own,
   // and every one of these was positioned rather than built where it stands.
   mesh.updateMatrix();
   if (!mesh.matrix.equals(IDENTITY)) mesh.geometry.applyMatrix4(mesh.matrix);
-  if (WAY_LIFT) {
+  if (WAY_LIFT && !deferredLift) {
     // Pre-lifted by what this way's ground differs from the grid by, so that the one lift
     // onto the grid that every merged mesh gets later lands these vertices on the way's own
     // ground -- the road in the cut, not the deck over it.
@@ -7786,6 +7846,7 @@ function flushMerged(group, match = () => true) {
       // The class survives the merge, so the probe and the audit can still say what is underfoot.
       mesh.userData.surface = bucket.surface;
       mesh.userData.mergeKey = key;
+      if(bucket.groundLift)mesh.userData.groundLiftFunction=bucket.groundLift;
       // A tile is culled when it is off screen. A bucket small enough to stay one mesh spans the
       // corridor and is always on screen; culling it would only cost the test.
       mesh.frustumCulled = tiles.size > 1;
@@ -11497,8 +11558,14 @@ function inheritRecentring(ways) {
 // click on a roof lands inside the footprint under it, which is the building you meant.
 const FOOTPRINT_CELL = 60;
 const footprintGrid = new Map();
+const IMMERSED_MOUTHS = (DATA.ways || []).filter((way) => way.tunnel_design?.kind === "immersed_tube")
+  .flatMap((way) => [way.points?.[0], way.points?.[way.points.length - 1]]).filter(Boolean)
+  .map(([lon, lat]) => xy(lon, lat));
 for (const way of [...DATA.ways, ...PARK_STRUCTURES]) {
   if (way.kind !== "building" || !way.points || way.points.length < 4) continue;
+  // The portal is not a house. Its arch is rendered by addTunnel; indexing it
+  // as a solid home spawned an opaque door across the bore.
+  if (mappedTubePortalBuilding(way)) continue;
   const local = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   for (const [x, z] of local) {
@@ -16809,10 +16876,6 @@ function outbuildingRoofTexture(seed) {
   return texture;
 }
 
-const IMMERSED_MOUTHS = (DATA.ways || []).filter((way) => way.tunnel_design?.kind === "immersed_tube")
-  .flatMap((way) => [way.points?.[0], way.points?.[way.points.length - 1]]).filter(Boolean)
-  .map(([lon, lat]) => xy(lon, lat));
-
 function parkFacilityMesh(feature) {
   const evidence=feature.parkFacility,role=evidence.role;
   if(!["public_restroom","maintenance_shed","equipment_container"].includes(role))return null;
@@ -17783,7 +17846,8 @@ function addWall(way) {
   // A wall is a vertical strip that follows the ground, with a face on each side and a coping
   // along the top. Each vertex takes the ground under it, so a wall that runs from a footway
   // onto grass steps with the surface rather than floating over one or sinking into the other.
-  const pts = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+  const dense=densifyWay(way.points,.75);
+  const pts = dense.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
   if (pts.length < 2) return null;
   const h = way.height_m || 1.2;
   const positions = [];
@@ -17792,6 +17856,9 @@ function addWall(way) {
   let along = 0;
   const push = (x, y, z, u, v) => { positions.push(x, y, z); uvs.push(u, v); };
   for (let i = 1; i < pts.length; i += 1) {
+    // A long wall can leave the cut. Replace only its covered pieces with the
+    // dedicated retaining wall, rather than accepting/rejecting the whole way.
+    if(insideCutBand({points:[dense[i-1],dense[i]]}))continue;
     const [ax, az] = pts[i - 1];
     const [bx, bz] = pts[i];
     const span = Math.hypot(bx - ax, bz - az);
@@ -17901,28 +17968,28 @@ function sweepAlongBore(stations, section, material, surface) {
   const position = [];
   const uv = [];
   const index = [];
-  let rows = 0;
+  let rows = 0, previousBase = null;
   let count = null;
   for (const st of stations) {
     const pts = section(st);
-    if (!pts || !pts.length) continue;
+    if (!pts || !pts.length) { previousBase=null; continue; }
     if (count === null) count = pts.length;
-    if (pts.length !== count) continue;
+    if (pts.length !== count) { previousBase=null; continue; }
+    const base=position.length/3;
     for (let i = 0; i < pts.length; i += 1) {
       const [u, y] = pts[i];
       position.push(st.x + st.rx * u, st.floor + y, st.z + st.rz * u);
       uv.push(i / (pts.length - 1), st.s / 4);
     }
     rows += 1;
-  }
-  if (rows < 2) return null;
-  for (let r = 1; r < rows; r += 1) {
-    for (let i = 1; i < count; i += 1) {
-      const a = (r - 1) * count + (i - 1), b = (r - 1) * count + i;
-      const c = r * count + (i - 1), d = r * count + i;
+    if (previousBase !== null && !st.breakBefore) for (let i = 1; i < count; i += 1) {
+      const a = previousBase + i - 1, b = previousBase + i;
+      const c = base + i - 1, d = base + i;
       index.push(a, c, b, b, c, d);
     }
+    previousBase=base;
   }
+  if (rows < 2 || !index.length) return null;
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
@@ -17931,6 +17998,24 @@ function sweepAlongBore(stations, section, material, surface) {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.userData.surface = surface;
   return mesh;
+}
+
+function tunnelPaintStations(stations, dash, gap) {
+  if(stations.length<2)return [];
+  const interpolate=(s)=>{
+    let i=1;while(i<stations.length-1 && stations[i].s<s)i++;
+    const a=stations[i-1],b=stations[i],t=(s-a.s)/(b.s-a.s || 1),out={...a,s};
+    for(const key of ["x","z","floor","ground","ux","uz","rx","rz"])
+      out[key]=a[key]+(b[key]-a[key])*t;
+    out.cap=Number.isFinite(a.cap) && Number.isFinite(b.cap) ? a.cap+(b.cap-a.cap)*t : Math.min(a.cap,b.cap);
+    return out;
+  };
+  const out=[],end=stations[stations.length-1].s;
+  for(let start=stations[0].s;start<end;start+=dash+gap) {
+    const stop=Math.min(end,start+dash),first=interpolate(start);first.breakBefore=true;
+    out.push(first,...stations.filter(st=>st.s>start && st.s<stop),interpolate(stop));
+  }
+  return out;
 }
 
 //: The stations of a bore: every TUNNEL_STATION_M along its centreline, with the frame, the
@@ -17996,7 +18081,7 @@ function tunnelStations(centre, cover = null, roadZ = null, design = null) {
       stations.push({
         s, x, z, ux, uz, rx: -uz, rz: ux, floor, ground,
         cap: !immersed && Number.isFinite(headroom) && headroom < TUNNEL_CROWN_M
-          ? Math.max(TUNNEL_WALK_H_M + 1.2, headroom) : Infinity,
+          ? Math.max(TUNNEL_WALL_M, headroom) : Infinity,
       });
     }
     acc += seg;
@@ -18118,6 +18203,266 @@ function tunnelAxis(way, covered) {
 //: the bore's floor, which goes down under the flat world and comes back up at the far mouth.
 const tunnelBores = [];
 
+// A point can have a street above it and a tunnel below it. Keep the geometric
+// query separate from selecting the surface occupied by the walker/camera.
+function tunnelSurfaceAt(x, z, referenceY = null, radius = 0, onlyBore = null) {
+  let best = null, bestScore = Infinity;
+  for (const bore of tunnelBores) {
+    if (onlyBore && bore !== onlyBore) continue;
+    const { stations, half } = bore;
+    if (stations.length < 2) continue;
+    if(!bore._surfaceBox) {
+      const xs=stations.map(st=>st.x),zs=stations.map(st=>st.z);
+      bore._surfaceBox={minX:Math.min(...xs)-half,maxX:Math.max(...xs)+half,
+        minZ:Math.min(...zs)-half,maxZ:Math.max(...zs)+half};
+    }
+    const box=bore._surfaceBox;
+    if(x<box.minX || x>box.maxX || z<box.minZ || z>box.maxZ)continue;
+    const first=stations[0],last=stations[stations.length-1];
+    // End planes, not circular end caps: nothing beyond a portal is tunnel floor.
+    if ((x-first.x)*first.ux+(z-first.z)*first.uz < -1e-6
+        || (x-last.x)*last.ux+(z-last.z)*last.uz > 1e-6) continue;
+    for (let i=1;i<stations.length;i++) {
+      const a=stations[i-1],b=stations[i],dx=b.x-a.x,dz=b.z-a.z,len2=dx*dx+dz*dz;
+      if (!(len2>0)) continue;
+      const t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/len2));
+      const distance=Math.hypot(x-a.x-t*dx,z-a.z-t*dz);
+      if (distance>half-radius+1e-6) continue;
+      const floor=a.floor+(b.floor-a.floor)*t;
+      const walkWidth=bore.walkWidth ?? 0,walkHeight=bore.walkHeight ?? 0;
+      const y=floor+(distance>half-walkWidth ? walkHeight : (bore.roadOffset || 0));
+      const delta=Number.isFinite(referenceY) ? Math.abs(y-referenceY) : 0;
+      if (Number.isFinite(referenceY) && delta>1.1) continue;
+      const score=delta*100+distance;
+      if (score>=bestScore) continue;
+      bestScore=score;
+      best={y,floor,bore,distance,along:a.s+(b.s-a.s)*t,
+        clearance:Math.min(a.cap,b.cap,bore.crown || TUNNEL_CROWN_M)};
+    }
+  }
+  return best;
+}
+
+function walkerFeetY() {
+  try {
+    return Number.isFinite(avatar.position.y) ? avatar.position.y-AVATAR_STAND_Y : null;
+  } catch { return null; } // isolated geometry probes, or before the walker exists
+}
+
+function tunnelWalkMeshes(solids=false) {
+  const groups=new Set(tunnelBores.map(b=>b.group).filter(Boolean));
+  const surfaces=solids ? ["tunnel","tunnel_shell","tunnel_portal","tunnel_cut_wall"]
+    : ["tunnel_floor","tunnel_road","tunnel_walk"];
+  return [...groups].flatMap(g=>g.children.filter(o=>surfaces.includes(o.userData.surface)));
+}
+
+function occupiedTunnelAt(x,z,referenceY,radius=0) {
+  const guest=typeof guestUnder === "function" ? guestUnder(x,z) : null;
+  if(guest?.ready && guest.api.tunnelSurfaceAt) {
+    const [gx,gz]=hostToGuest(guest,x,z);
+    const info=guest.api.tunnelSurfaceAt(gx,gz,Number.isFinite(referenceY) ? referenceY-guest.oy : null,radius);
+    return info ? {...info,y:info.y+guest.oy,floor:info.floor+guest.oy} : null;
+  }
+  return tunnelSurfaceAt(x,z,referenceY,radius);
+}
+
+function pointInTunnelVoid(x,y,z) {
+  const shell=typeof TUNNEL_SHELL_M === "number" ? TUNNEL_SHELL_M : 0;
+  const hit=occupiedTunnelAt(x,z,null,-shell);if(!hit)return false;
+  const ratio=Math.min(1,hit.distance/(hit.bore.half+shell)),crown=(hit.bore.crown || TUNNEL_CROWN_M)+shell;
+  const spring=(hit.bore.spring || TUNNEL_WALL_M)+shell;
+  const roof=hit.floor+Math.min(hit.clearance+shell,spring+(crown-spring)*Math.sqrt(1-ratio*ratio));
+  return y>hit.floor-.04 && y<roof+.015;
+}
+
+const TUNNEL_VOID_MAX_SEGMENTS=256;
+const tunnelVoidInverse=new THREE.Matrix4();
+function tunnelVoidSegments(bore) {
+  // Simplify only the clipping lookup, NOT the rendered mesh or its triangles.
+  // Every original station must agree with the interpolation within four mm.
+  const out=[],stations=bore.stations;
+  let start=0;
+  const fits=(end)=>{
+    const a=stations[start],b=stations[end],length=b.s-a.s;
+    for(let i=start+1;i<end;i++) {
+      const p=stations[i],t=(p.s-a.s)/length;
+      const xyError=Math.hypot(p.x-a.x-(b.x-a.x)*t,p.z-a.z-(b.z-a.z)*t);
+      const floorError=Math.abs(p.floor-a.floor-(b.floor-a.floor)*t);
+      const ac=Math.min(a.cap,bore.crown),bc=Math.min(b.cap,bore.crown);
+      const capError=Math.abs(Math.min(p.cap,bore.crown)-ac-(bc-ac)*t);
+      if(Math.max(xyError,floorError,capError)>.004)return false;
+    }
+    return true;
+  };
+  while(start<stations.length-1) {
+    let end=start+1;
+    while(end+1<stations.length && fits(end+1))end++;
+    const shell=typeof TUNNEL_SHELL_M === "number" ? TUNNEL_SHELL_M : 0;
+    const a={...stations[start],cap:stations[start].cap+shell},b={...stations[end],cap:stations[end].cap+shell};
+    const half=bore.half+shell;
+    out.push({a,b,first:stations[0],last:stations[stations.length-1],half,crown:bore.crown+shell,spring:bore.spring+shell,
+      minX:Math.min(a.x,b.x)-half,maxX:Math.max(a.x,b.x)+half,
+      minZ:Math.min(a.z,b.z)-half,maxZ:Math.max(a.z,b.z)+half,
+      minY:Math.min(a.floor,b.floor)-.05,maxY:Math.max(a.floor,b.floor)+bore.crown+shell+.05});
+    start=end;
+  }
+  return out;
+}
+function installTunnelVoidCuts(group, allSurfaces=false) {
+  if(!tunnelBores.length)return;
+  const segments=[];
+  for(const bore of tunnelBores)segments.push(...tunnelVoidSegments(bore));
+  group.updateMatrixWorld(true);
+  group.traverse(mesh=>{
+    if(!mesh.isMesh || mesh.isInstancedMesh || !mesh.geometry || mesh.userData.tunnelVoidCut
+        || String(mesh.userData.surface||"").startsWith("tunnel"))return;
+    // The canonical objects remain intact. Only fragments in the physical bore
+    // are hidden, including a building's lower wall if its footprint covers an arch.
+    const surface=mesh.userData.surface || "";
+    if(!allSurfaces && !/terrain|neutral_ground|perimeter_fill|road|walk|yard|park|plaza|court|front_walk|fence|wall|footprint|inferred:|kerb|curb|bike|crossing|marking|tactile_warning|median|paving|water|sea|beach/.test(surface))return;
+    mesh.geometry.computeBoundingBox();
+    const box=mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld);
+    const relevant=segments.filter(s=>s.minX<=box.max.x && s.maxX>=box.min.x
+      && s.minZ<=box.max.z && s.maxZ>=box.min.z && s.minY<=box.max.y && s.maxY>=box.min.y);
+    if(!relevant.length)return;
+    if(relevant.length>TUNNEL_VOID_MAX_SEGMENTS) {
+      throw Error(`Tunnel cut mesh needs spatial splitting: ${relevant.length} segments`);
+    }
+    const count=relevant.length,data=new Float32Array(count*5*4);
+    // Most pixels in a terrain tile are nowhere near the bore. Reject the whole
+    // lookup before fetching segment textures; keep all original surface triangles.
+    const cutMin=new THREE.Vector3(Math.min(...relevant.map(s=>s.minX)),
+      Math.min(...relevant.map(s=>s.minY)),Math.min(...relevant.map(s=>s.minZ)));
+    const cutMax=new THREE.Vector3(Math.max(...relevant.map(s=>s.maxX)),
+      Math.max(...relevant.map(s=>s.maxY)),Math.max(...relevant.map(s=>s.maxZ)));
+    relevant.forEach((s,i)=>{
+      data.set([s.a.x,s.a.z,s.a.floor,Math.min(s.a.cap,s.crown)],i*4);
+      data.set([s.b.x,s.b.z,s.b.floor,Math.min(s.b.cap,s.crown)],(count+i)*4);
+      data.set([s.half,s.crown,s.spring,0],(2*count+i)*4);
+      data.set([s.first.x,s.first.z,s.first.ux,s.first.uz],(3*count+i)*4);
+      data.set([s.last.x,s.last.z,s.last.ux,s.last.uz],(4*count+i)*4);
+    });
+    const texture=new THREE.DataTexture(data,count,5,THREE.RGBAFormat,THREE.FloatType);
+    texture.minFilter=texture.magFilter=THREE.NearestFilter;texture.needsUpdate=true;
+    const originals=Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    let remaining=originals.length;
+    const materials=originals.map(original=>{
+    const material=original.clone(),before=original.onBeforeCompile;
+    const cacheKey=original.customProgramCacheKey?.() || "default";
+    material.onBeforeCompile=shader=>{
+      if(before)before.call(material,shader);
+      shader.uniforms.uTunnelVoid={value:texture};
+      shader.uniforms.uTunnelVoidCount={value:count};
+      shader.uniforms.uTunnelVoidInverse={value:tunnelVoidInverse};
+      shader.uniforms.uTunnelVoidMin={value:cutMin};
+      shader.uniforms.uTunnelVoidMax={value:cutMax};
+      shader.vertexShader=shader.vertexShader.replace('#include <common>',
+        '#include <common>\nvarying vec3 vTunnelVoidLocal;\nuniform mat4 uTunnelVoidInverse;')
+        .replace('#include <project_vertex>',
+          '#include <project_vertex>\nvTunnelVoidLocal=(uTunnelVoidInverse*modelMatrix*vec4(transformed,1.0)).xyz;');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
+        '#include <common>\nvarying vec3 vTunnelVoidLocal;\nuniform sampler2D uTunnelVoid;\nuniform int uTunnelVoidCount;\nuniform vec3 uTunnelVoidMin;\nuniform vec3 uTunnelVoidMax;')
+        .replace('void main() {',`void main() {
+        if(all(greaterThanEqual(vTunnelVoidLocal,uTunnelVoidMin)) &&
+           all(lessThanEqual(vTunnelVoidLocal,uTunnelVoidMax))) {
+        for(int i=0;i<${TUNNEL_VOID_MAX_SEGMENTS};i++) {
+          if(i>=uTunnelVoidCount)break;
+          float u=(float(i)+0.5)/float(uTunnelVoidCount);
+          vec4 a=texture2D(uTunnelVoid,vec2(u,0.1));
+          vec4 b=texture2D(uTunnelVoid,vec2(u,0.3));
+          vec4 p=texture2D(uTunnelVoid,vec2(u,0.5));
+          vec4 entry=texture2D(uTunnelVoid,vec2(u,0.7));
+          vec4 exitPlane=texture2D(uTunnelVoid,vec2(u,0.9));
+          // End planes bound the WHOLE bore, not each centreline segment.
+          // Strict segment planes left triangular uncut wedges on every bend.
+          if(dot(vTunnelVoidLocal.xz-entry.xy,entry.zw)<-0.001 ||
+             dot(vTunnelVoidLocal.xz-exitPlane.xy,exitPlane.zw)>0.001)continue;
+          vec2 delta=b.xy-a.xy;float length2=dot(delta,delta);
+          if(length2<0.00001)continue;
+          float t=clamp(dot(vTunnelVoidLocal.xz-a.xy,delta)/length2,0.0,1.0);
+          float across=length(vTunnelVoidLocal.xz-mix(a.xy,b.xy,t));
+          if(across>p.x)continue;
+          float floorY=mix(a.z,b.z,t),cap=mix(a.w,b.w,t);
+          float roof=floorY+min(cap,p.z+(p.y-p.z)*sqrt(max(0.0,1.0-pow(across/p.x,2.0))));
+          if(vTunnelVoidLocal.y>floorY-0.04 && vTunnelVoidLocal.y<roof+0.015)discard;
+        }}`);
+    };
+    material.customProgramCacheKey=()=>cacheKey+'-tunnel-volume-v1';
+    material.needsUpdate=true;
+    material.addEventListener('dispose',()=>{if(--remaining===0)texture.dispose();});
+    return material;
+    });
+    mesh.material=Array.isArray(mesh.material) ? materials : materials[0];
+    mesh.userData.tunnelVoidCut={segments:count,geometry_changed:false};
+  });
+}
+
+function tunnelMoveAllowed(ax, az, bx, bz, referenceY = walkerFeetY()) {
+  const here=tunnelSurfaceAt(ax,az,referenceY),ahead=tunnelSurfaceAt(bx,bz,referenceY);
+  if (!here && !ahead) return typeof approachMoveAllowed !== "function"
+    || approachMoveAllowed(ax,az,bx,bz,referenceY);
+  const radius=typeof WALKER_RADIUS_M === "number" ? WALKER_RADIUS_M : .3;
+  if (here && ahead && here.bore===ahead.bore) {
+    return Boolean(tunnelSurfaceAt(bx,bz,referenceY,radius,here.bore));
+  }
+  const surface=here || ahead,bore=surface.bore,stations=bore.stations;
+  const margin=Math.hypot(bx-ax,bz-az)+.05;
+  // Enter/leave only by crossing a portal plane, within its clear width and
+  // at the level of the approach road. A side-wall escape is never a portal.
+  for (const [end,sign] of [[stations[0],-1],[stations[stations.length-1],1]]) {
+    const da=((ax-end.x)*end.ux+(az-end.z)*end.uz)*sign;
+    const db=((bx-end.x)*end.ux+(bz-end.z)*end.uz)*sign;
+    const across=Math.abs((bx-end.x)*end.uz-(bz-end.z)*end.ux);
+    if (Math.min(Math.abs(da),Math.abs(db))>margin || da*db>1e-8
+        || across>bore.half-radius) continue;
+    const outside=here ? [bx,bz] : [ax,az];
+    const cut=typeof approachRoadAt === "function" ? approachRoadAt(...outside) : null;
+    const ground=(cut ?? groundLiftAt(...outside))+(typeof ROAD_TOP_M === "number" ? ROAD_TOP_M : .06);
+    if (Math.abs(ground-surface.y)<=.6+margin*.5) return true;
+  }
+  return false;
+}
+
+function approachSurfaceAt(x,z,referenceY=null,radius=0) {
+  for(const cut of APPROACH_CUTS) {
+    const dx=x-cut.mx,dz=z-cut.mz,along=dx*cut.ux+dz*cut.uz;
+    if(along<0 || along>cut.reach)continue;
+    const across=Math.abs(dx*cut.uz-dz*cut.ux);
+    if(across>cut.half-radius)continue;
+    const y=cutRoadAt(cut,along)+ROAD_TOP_M;
+    if(Number.isFinite(referenceY) && Math.abs(y-referenceY)>1.1)continue;
+    return {y,cut,along,across};
+  }
+  return null;
+}
+
+function approachMoveAllowed(ax,az,bx,bz,referenceY) {
+  const here=approachSurfaceAt(ax,az,referenceY);
+  if(!here)return true;
+  const radius=typeof WALKER_RADIUS_M === "number" ? WALKER_RADIUS_M : .3;
+  if(approachSurfaceAt(bx,bz,referenceY,radius))return true;
+  // A retaining wall is not an abrupt step onto the street above the cut.
+  return Math.abs(groundLiftAt(bx,bz)+ROAD_TOP_M-here.y)<=.35;
+}
+
+function approachPassageAt(x,z,referenceY) {
+  if(!Number.isFinite(referenceY))return null;
+  const at=approachSurfaceAt(x,z,referenceY);
+  // The terrain cut includes a retaining-wall halo, not a licence to walk
+  // through the neighbouring properties. Only the actual road corridor wins.
+  return at && at.across<=Math.max(1,at.cut.half-APPROACH_CUT_MARGIN_M) ? at : null;
+}
+
+function occupiedApproachAt(x,z,referenceY) {
+  const guest=typeof guestUnder === "function" ? guestUnder(x,z) : null;
+  if(guest?.ready && guest.api.approachPassageAt) {
+    const [gx,gz]=hostToGuest(guest,x,z);
+    const info=guest.api.approachPassageAt(gx,gz,Number.isFinite(referenceY) ? referenceY-guest.oy : null);
+    return info ? {...info,y:info.y+guest.oy} : null;
+  }
+  return approachPassageAt(x,z,referenceY);
+}
+
 //: The bore floor under (x, z), or null when (x, z) is in no bore.
 function tunnelFloorAt(x, z) {
   let best = null;
@@ -18153,19 +18498,31 @@ function tunnelFloorAt(x, z) {
 
 //: What the walker stands on at (x, z): the bore's floor inside a tunnel, the hill over a
 //: mouth on top of it, and the flat ground everywhere else -- as a height above the ground.
-function walkerGroundAt(x, z) {
-  return walkerGroundInfo(x, z).y;
+function walkerGroundAt(x, z, referenceY) {
+  return walkerGroundInfo(x, z, referenceY).y;
 }
 //: The same, and what it is: "stairs" (a stoop, a front stair, a station's or a public flight of
 //: steps), "surface" (a floor, a landing), "tunnel" or "terrain" -- the walker climbs stairs at
 //: a stair's pace and may not walk up a cliff of plain ground (walkPace).
-function walkerGroundInfo(x, z) {
+function walkerGroundInfo(x, z, referenceY) {
+  const feet=referenceY === undefined && typeof walkerFeetY === "function" ? walkerFeetY() : referenceY;
   // (Guarded: these ground and wall functions are also run on their own, by the tests.)
   const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
   if (guest) {
     const [gx, gz] = hostToGuest(guest, x, z);
-    return { y: guest.api.walkerGroundAt(gx, gz) + guest.oy, kind: "terrain" };
+    const info=guest.api.walkerGroundInfo
+      ? guest.api.walkerGroundInfo(gx,gz,Number.isFinite(feet) ? feet-guest.oy : null)
+      : { y:guest.api.walkerGroundAt(gx,gz),kind:"terrain" };
+    return {...info,y:info.y+guest.oy};
   }
+  // An interior floor is a second storey over a bore, not the bore's floor.
+  // Select the occupied underground level before considering 2D room/stair rings.
+  const bore = typeof tunnelSurfaceAt === "function" ? tunnelSurfaceAt(x,z,feet) : null;
+  const floor = bore ? bore.y : typeof tunnelSurfaceAt === "function" ? null : tunnelFloorAt(x,z);
+  if (floor !== null) return { y: floor, kind: "tunnel", bore:bore?.bore };
+  const approach=typeof approachSurfaceAt === "function" && Number.isFinite(feet)
+    ? approachSurfaceAt(x,z,feet) : null;
+  if(approach)return {y:approach.y,kind:"tunnel_approach"};
   // Inside a building whose rooms are built, the walker stands on its floor; on a stoop, on
   // its steps (see buildInterior). Declared with var so it is safe before they exist.
   if (typeof standingSurfaces !== "undefined" && standingSurfaces) {
@@ -18180,8 +18537,6 @@ function walkerGroundInfo(x, z) {
     }
     if (best !== null) return { y: best, kind: stairs ? "stairs" : "surface" };
   }
-  const floor = tunnelFloorAt(x, z);
-  if (floor !== null) return { y: floor, kind: "tunnel" };
   const stair = typeof publicStairAt === "function" ? publicStairAt(x, z) : null;
   if (stair !== null) return { y: stair, kind: "stairs" };
   const lifted = groundLiftAt(x, z);
@@ -18365,6 +18720,14 @@ function cutRoadAt(cut, along) {
 //: to the road. The terrain under the block is lowered with the cut (trenchGroundAt), so what
 //: stands either side of a tunnel's approach is a wall, not a slope of grass and asphalt.
 const CUT_WALL_STEP_M = 2.0;
+function retainingTopEnvelope(samples,maxGrade=.12) {
+  // Smallest grade-bounded cap that stays above every sampled soil height.
+  // Only an inferred structure changes; the terrain evidence is untouched.
+  const top=samples.map(p=>p.top);
+  for(let i=1;i<top.length;i++)top[i]=Math.max(top[i],top[i-1]-maxGrade*(samples[i].along-samples[i-1].along));
+  for(let i=top.length-2;i>=0;i--)top[i]=Math.max(top[i],top[i+1]-maxGrade*(samples[i+1].along-samples[i].along));
+  return top;
+}
 function addCutWalls() {
   if (!APPROACH_CUTS.length) return 0;
   const material = new THREE.MeshStandardMaterial({
@@ -18387,12 +18750,19 @@ function addCutWalls() {
       const inner = cut.half, outer = cut.half + CUT_WALL_T_M;
       const at = (along, off) => [mx + ux * along + nx * off, mz + uz * along + nz * off];
       const steps = Math.max(2, Math.ceil(cut.reach / CUT_WALL_STEP_M));
+      const samples=[];
+      for(let k=0;k<=steps;k++) {
+        const along=Math.min(cut.reach,k*CUT_WALL_STEP_M),road=cutRoadAt(cut,along);
+        const [ox,oz]=at(along,outer+1);
+        samples.push({along,road,top:Math.max(road,terrainHeightAt(ox,oz))});
+      }
+      if(cut.levelBasis==="inferred_terrain_endpoint") {
+        const envelope=retainingTopEnvelope(samples);
+        samples.forEach((p,i)=>{p.top=envelope[i];});
+      }
       let prev = null;
       for (let k = 0; k <= steps; k += 1) {
-        const along = Math.min(cut.reach, k * CUT_WALL_STEP_M);
-        const road = cutRoadAt(cut, along);
-        const [ox, oz] = at(along, outer + 1.0);
-        const top = Math.max(road, terrainHeightAt(ox, oz));
+        const {along,road,top}=samples[k];
         const here = { along, road, top, i: at(along, inner), o: at(along, outer) };
         if (prev && (prev.top - prev.road > 0.15 || here.top - here.road > 0.15)) {
           const len = here.along - prev.along;
@@ -18487,10 +18857,18 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
     const line = offsetWay(covered, off);
     const stations = tunnelStations(line, cover, way.tunnel_road_z || null, design);
     if (stations.length < 2) continue;
-    tunnelBores.push({ stations, half });
+    tunnelBores.push({ stations, half, crown, spring, group, walkWidth:TUNNEL_WALK_W_M,
+      walkHeight:TUNNEL_WALK_H_M,roadOffset:TUNNEL_ROAD_Y_M,wayId:way.osm_id });
     if (!mouthFloor.start) mouthFloor = { start: stations[0].floor, end: stations[stations.length - 1].floor };
     const inner = sweepAlongBore(stations, (st) => tunnelSectionPoints(half, st.cap, crown, spring), lining, "tunnel");
     if (inner) group.add(inner);
+    // A lining has thickness. A single two-sided inner skin left terrain specks
+    // in its folds and opened the world when the cover was thin at an underpass.
+    const shell = sweepAlongBore(stations, st => tunnelSectionPoints(half+TUNNEL_SHELL_M,
+      st.cap+TUNNEL_SHELL_M,crown+TUNNEL_SHELL_M,spring+TUNNEL_SHELL_M), concrete, "tunnel_shell");
+    const shellBase = sweepAlongBore(stations, () => [[-half-TUNNEL_SHELL_M,-.05],
+      [half+TUNNEL_SHELL_M,-.05]], concrete, "tunnel_shell");
+    if(shell)group.add(shell);if(shellBase)group.add(shellBase);
     const floor = sweepAlongBore(stations, () => [[-half, 0], [half, 0]],
                                  surfaceMaterial("road", 0xffffff, 1.0), "tunnel_floor");
     if (floor) group.add(floor);
@@ -18534,8 +18912,8 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
       for (const mark of marks) {
         const paint = new THREE.MeshStandardMaterial({ color: mark.color, roughness: 0.82, side: THREE.DoubleSide,
                                                        emissive: mark.color, emissiveIntensity: 0.25 });
-        const strip = sweepAlongBore(stations, (st) => {
-          if (mark.dash && (st.s % (DASH_M + GAP_M)) > DASH_M) return [[mark.u - MARK_W / 2, 0.012], [mark.u - MARK_W / 2, 0.012]];
+        const paintStations=mark.dash ? tunnelPaintStations(stations,DASH_M,GAP_M) : stations;
+        const strip = sweepAlongBore(paintStations, () => {
           return [[mark.u - MARK_W / 2, 0.012], [mark.u + MARK_W / 2, 0.012]];
         }, paint, "tunnel_marking");
         if (strip) group.add(strip);
@@ -19130,6 +19508,42 @@ function isTransitCanopy(way) {
 const REGION_BRIDGE_WAYS = (DATA.ways || []).filter((way) => way.kind === "street" && way.bridge && !way.tunnel
   && way.points && way.points.length >= 2 && !CENTRAL_FREEWAY_WAYS.includes(way)
   && !/Transbay|Bus Ramp/i.test(way.name || "") && !(Number(way.layer) >= 2));
+const INFERRED_BRIDGE_CLEARANCE_M=4.8,REGION_DECK_DEPTH_M=1.2;
+function bridgeClearanceControls(ways) {
+  const controls=new Map();
+  for(const way of ways)for(let i=1;i<way.points.length;i++) {
+    const [ax,ay]=xy(...way.points[i-1]),[bx,by]=xy(...way.points[i]),az=-ay,bz=-by;
+    const rx=bx-ax,rz=bz-az,length=Math.hypot(rx,rz),seen=new Set();
+    if(length<.1)continue;
+    for(let ix=Math.floor(Math.min(ax,bx)/CARRIAGEWAY_CELL);ix<=Math.floor(Math.max(ax,bx)/CARRIAGEWAY_CELL);ix++)
+      for(let iz=Math.floor(Math.min(az,bz)/CARRIAGEWAY_CELL);iz<=Math.floor(Math.max(az,bz)/CARRIAGEWAY_CELL);iz++)
+        for(const [cx,cz,dx,dz,,bearing,source] of carriagewayGrid.get(ix*1048576+iz)||[]) {
+          if(!source || source.kind!=="street" || source.bridge || source.tunnel || source.underground)continue;
+          const key=[cx,cz,dx,dz].join(':');if(seen.has(key))continue;seen.add(key);
+          const sx=dx-cx,sz=dz-cz,den=rx*sz-rz*sx;
+          if(Math.abs(den)<.3*length*Math.hypot(sx,sz))continue;
+          const t=((cx-ax)*sz-(cz-az)*sx)/den,u=((cx-ax)*rz-(cz-az)*rx)/den;
+          // Shared ends are bridge ramps/junctions, not an undercrossing.
+          if(t<0 || t>1 || u<=.001 || u>=.999)continue;
+          const x=ax+rx*t,z=az+rz*t;
+          const target=groundLiftAt(x,z)+INFERRED_BRIDGE_CLEARANCE_M+REGION_DECK_DEPTH_M;
+          controls.set(Math.round(x*10)+':'+Math.round(z*10),{x,z,target,bearing,half:source.road_m/2 || 4});
+        }
+  }
+  return [...controls.values()];
+}
+function bridgeClearanceProfile(base,abutments,controls) {
+  if(!controls.length)return base;
+  const lift=(x,z)=>{
+    const original=base(x,z),endDistance=Math.min(...abutments.map(([ax,az])=>Math.hypot(x-ax,z-az)));
+    let required=original;
+    for(const c of controls)required=Math.max(required,c.target-.08*Math.hypot(x-c.x,z-c.z));
+    // Keep every existing abutment exact; never create a vertical step at a ramp.
+    return original+(required-original)*Math.min(1,endDistance/20);
+  };
+  lift.clearanceBasis="inferred_visual_not_measured";lift.clearanceControls=controls;
+  return lift;
+}
 const BRIDGE_LIFTS = (() => {
   const lifts = new Map();
   if (!REGION_BRIDGE_WAYS.length) return lifts;
@@ -19161,8 +19575,11 @@ const BRIDGE_LIFTS = (() => {
       }
       return sum / weight;
     };
-    lift.abutments = abutments;
-    for (const i of members) lifts.set(REGION_BRIDGE_WAYS[i], lift);
+    const resolved=bridgeClearanceProfile(lift,abutments,
+      bridgeClearanceControls(members.map(i=>REGION_BRIDGE_WAYS[i])));
+    resolved.abutments = abutments;
+    resolved.groundLiftKey='bridge:'+members[0];
+    for (const i of members) lifts.set(REGION_BRIDGE_WAYS[i], resolved);
   }
   return lifts;
 })();
@@ -19176,7 +19593,10 @@ function addRegionBridgeStructures() {
     index.push(base, base + 1, base + 2, base, base + 2, base + 3);
   };
   for (const [way, lift] of BRIDGE_LIFTS) {
-    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    // The deck lift has interior clearance controls, not just endpoint heights.
+    // Its parapets/underside must sample that same profile, or a long chord
+    // still crosses the road even though the asphalt above it was corrected.
+    const pts = densifyWay(way.points,3).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
     const half = (way.road_m || 7) / 2 + 0.2;
     let s = 0, nextPier = 10;
     for (let i = 1; i < pts.length; i += 1) {
@@ -19200,7 +19620,8 @@ function addRegionBridgeStructures() {
         const t = (nextPier - s) / len;
         const x = ax + (bx - ax) * t, z = az + (bz - az) * t;
         const top = ya + (yb - ya) * t - 1.2, base = terrainHeightAt(x, z);
-        if (top - base > 2.5) {
+        const underRoad=(lift.clearanceControls || []).some(c=>Math.hypot(x-c.x,z-c.z)<half+c.half+2);
+        if (top - base > 2.5 && !underRoad) {
           pierMatrices.push(new THREE.Matrix4().compose(new THREE.Vector3(x, (top + base) / 2, z),
             new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(nx, nz)),
             new THREE.Vector3(Math.max(1.2, half * 1.2), top - base, 1.1)));
@@ -19217,7 +19638,7 @@ function addRegionBridgeStructures() {
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
     const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xb8b5ad, roughness: 0.9, side: THREE.DoubleSide }));
-    mesh.userData = { surface: "bridge_parapet", liftedOntoGround: true };
+    mesh.userData = { surface: "bridge_parapet", liftedOntoGround: true,provenance:"inferred_visual_not_measured" };
     groups.streets.add(mesh);
   }
   if (pierMatrices.length) {
@@ -19301,7 +19722,8 @@ let builtWays = 0;
 for (const way of DRAW_ORDER) {
  if ((++builtWays & 31) === 0) await maybeYield(`Building the streets: ${Math.round(100 * builtWays / DRAW_ORDER.length)}%`);
  const centralDeck = CENTRAL_FREEWAY_WAYS.includes(way) ? centralFreewayProfile(way) : null;
- WAY_LIFT = centralDeck || BRIDGE_LIFTS.get(way) || (way.kind === "street" && wayFollowsCut(way) ? cutLiftAt
+ WAY_LIFT = centralDeck || BRIDGE_LIFTS.get(way) || (["street","sidewalk","path","wall"].includes(way.kind)
+   && !way.bridge && !(Number(way.layer)>0) && wayFollowsCut(way) ? cutRibbonLiftAt
    : way.kind === "crossing" && way.points && way.points.length >= 2 ? lineLiftFor(way.points) : null);
  if (way.kind === "street" && (centralDeck || BRIDGE_LIFTS.get(way))) registerElevatedWay(way, WAY_LIFT);
  if (way.kind === "beach") {
@@ -21006,12 +21428,38 @@ function fenceMaterial(style) {
 
 function addGround(mesh, what) {
   mesh.userData.surface = what;
+  // Covers follow the excavated visual terrain, including the soil beneath a
+  // retaining wall. Using the uncut property height stretched a paved sheet
+  // from the approach road up through the wall as a row of white spikes.
+  // Buildings and independently grounded fence panels keep their own anchors.
+  if(APPROACH_CUTS.length && /^(yard|park|plaza|front_walk|service_yard|neutral_ground|court|inferred:)/.test(what))
+    mesh.userData.groundLiftFunction=trenchGroundAt;
   // Like mapped plazas, fine grass surfaces must replace (not depth-fight) the
   // coarse terrain backdrop. Hard-surface masks remain authoritative, and roads,
   // pavements and buildings draw afterward with normal depth testing.
   if (what === "yard" || what === "park") mesh.renderOrder = -1;
   groups.ground.add(mesh);
   return mesh;
+}
+
+const FENCE_GROUND_STEP_M = .75;
+function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU) {
+  const span=Math.hypot(bx-ax,bz-az);
+  if (!(span>0) || !Number.isFinite(span)) return;
+  const count=Math.max(1,Math.ceil(span/FENCE_GROUND_STEP_M));
+  const base=sink.positions.length/3;
+  for(let k=0;k<=count;k++) {
+    const t=k/count,x=ax+(bx-ax)*t,z=az+(bz-az)*t;
+    const ground=groundLiftAt(x,z)+baseY;
+    // Thirty-five mm buried at each sample prevents pinholes along the bottom;
+    // the top remains the intended fence height above the sampled ground.
+    sink.positions.push(x,ground-.035,z,x,ground+height,z);
+    sink.uvs.push(span*t/tileU,0,span*t/tileU,height/tileV);
+    if(k) {
+      const a=base+(k-1)*2,b=a+2;
+      sink.indices.push(a,b,b+1,a,b+1,a+1);
+    }
+  }
 }
 
 function buildFences(ground) {
@@ -21045,13 +21493,7 @@ function buildFences(ground) {
         }
       }
       if (crosses) continue;
-      const base = positions.length / 3;
-      const top = YARD_Y + style.h;
-      positions.push(ax, YARD_Y, az, ax, top, az, bx, YARD_Y, bz, bx, top, bz);
-      const u = span / style.tile;
-      const v = style.h / style.tile;
-      uvs.push(0, 0, 0, v, u, 0, u, v);
-      indices.push(base, base + 2, base + 3, base, base + 3, base + 1);
+      groundedFencePanel({positions,uvs,indices},ax,az,bx,bz,YARD_Y,style.h,style.tile);
     }
     if (!indices.length) continue;
     const geom = new THREE.BufferGeometry();
@@ -21059,7 +21501,9 @@ function buildFences(ground) {
     geom.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
     geom.setIndex(indices);
     geom.computeVertexNormals();
-    addGround(new THREE.Mesh(geom, fenceMaterial(style)), "fence:" + kind);
+    const fence=addGround(new THREE.Mesh(geom, fenceMaterial(style)), "fence:" + kind);
+    fence.userData.liftedOntoGround=true;
+    fence.userData.elevationBasis="terrain_sampled_0.75m";
   }
 }
 
@@ -21507,12 +21951,9 @@ function buildCourts(ground) {
       const span = Math.hypot(bx - ax, bz - az);
       if (span < 0.4) continue;
       if (insideCarriageway(ax, az, -1.0) || insideCarriageway(bx, bz, -1.0)) continue;
-      const base = fencePositions.length / 3;
       const h = style.fence;
-      fencePositions.push(ax, COURT_Y, az, ax, COURT_Y + h, az,
-                          bx, COURT_Y, bz, bx, COURT_Y + h, bz);
-      fenceUvs.push(0, 0, 0, h / 0.6, span / 0.6, 0, span / 0.6, h / 0.6);
-      fenceIndices.push(base, base + 2, base + 3, base, base + 3, base + 1);
+      groundedFencePanel({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
+        ax,az,bx,bz,COURT_Y,h,.6);
       for (let d = 0; d < span; d += 3.0) {
         const t = d / span;
         fencePosts.push([ax + (bx - ax) * t, az + (bz - az) * t, h]);
@@ -21525,13 +21966,15 @@ function buildCourts(ground) {
     geom.setAttribute("uv", new THREE.Float32BufferAttribute(fenceUvs, 2));
     geom.setIndex(fenceIndices);
     geom.computeVertexNormals();
-    groups.ground.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+    const fence=new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       // Wire, not sheeting. The threshold is deliberately above what a minified mipmap of a
       // diamond mesh averages out to, so the fence thins away with distance instead of
       // resolving into the solid grey panel it first came out as.
       map: chainlinkTexture(), alphaTest: 0.55, side: THREE.DoubleSide,
       roughness: 0.55, metalness: 0.45, color: 0xc6ced2,
-    })));
+    }));
+    fence.userData={surface:"fence:court",liftedOntoGround:true,elevationBasis:"terrain_sampled_0.75m"};
+    groups.ground.add(fence);
   }
   if (fencePosts.length) {
     const post = new THREE.InstancedMesh(
@@ -21940,10 +22383,7 @@ function fenceArea(area, pts, height, kind, sink) {
 function fenceSink() {
   const sink = { positions: [], uvs: [], indices: [], posts: [], gates: [] };
   sink.quad = (x0, z0, x1, z1, h, span) => {
-    const base = sink.positions.length / 3;
-    sink.positions.push(x0, PLAYGROUND_Y, z0, x0, PLAYGROUND_Y + h, z0, x1, PLAYGROUND_Y, z1, x1, PLAYGROUND_Y + h, z1);
-    sink.uvs.push(0, 0, 0, 1, span, 0, span, 1);
-    sink.indices.push(base, base + 2, base + 3, base, base + 3, base + 1);
+    groundedFencePanel(sink,x0,z0,x1,z1,PLAYGROUND_Y,h,1,h);
   };
   return sink;
 }
@@ -21955,7 +22395,8 @@ function emitFence(sink, material, surface) {
     geom.setIndex(sink.indices);
     geom.computeVertexNormals();
     const mesh = new THREE.Mesh(geom, material);
-    mesh.userData = { surface, gates: sink.gates.length };
+    mesh.userData = { surface, gates: sink.gates.length,liftedOntoGround:true,
+      elevationBasis:"terrain_sampled_0.75m" };
     groups.ground.add(mesh);
   }
   if (sink.posts.length) {
@@ -22395,6 +22836,7 @@ for (const feature of PARK_STRUCTURES) {
   window.kerbsideParkAreas = buildParkAreas(PARK_EVIDENCE?.areas || []);
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
+  installTunnelVoidCuts(groups.ground,true);
   window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { ground: true });
   // The ground is down; now the things that stand on it.
   if (groups.furniture.visible) ensureLazyLayer("furniture");
@@ -22778,6 +23220,9 @@ const kerbVerticesDropped = dropKerbsAtDriveways(DATA.ways);
 Object.assign(garageStats, { photoKerbCuts: photoDropStats.cut, photoKerbMissing: photoDropStats.noKerb });
 // Everything at ground level stands on the ground the lidar measured (the tunnels carry their own).
 await liftOntoGroundAsync(groups.streets, "Standing the streets on the ground");
+installTunnelVoidCuts(groups.streets,true);
+installTunnelVoidCuts(groups.mapped3d,true);
+for(const tile of terrainTiles)installTunnelVoidCuts(tile);
 // The survey layers that were built in the flat model's frame, beside the streets, stand on
 // the same ground. Left out of the lift, the measured-kerb bands lay at the flat model's
 // height while the city around them had been raised onto the hill: 2,244 ribbons at y = 0.24
@@ -25929,7 +26374,42 @@ function placeCamera() {
     camera.position.set(state.target.x + Math.sin(state.yaw) * state.dist * 1e-3, state.target.y + state.dist,
       state.target.z + Math.cos(state.yaw) * state.dist * 1e-3);
   }
+  constrainWorldCamera();
   camera.lookAt(state.target);
+}
+
+var worldCameraRay = null;
+function constrainWorldCamera() {
+  // Orbiting a walker inside a bore must not put the eye through its roof/wall.
+  const feet=typeof walkerFeetY === "function" ? walkerFeetY() : null;
+  const at=typeof avatar !== "undefined" && !state.explore
+    ? occupiedTunnelAt(avatar.position.x,avatar.position.z,feet) : null;
+  if(at?.bore.group) {
+    if(!worldCameraRay)worldCameraRay=new THREE.Raycaster();
+    const origin=new THREE.Vector3(avatar.position.x,at.y+Math.min(1.7,at.clearance-.3),avatar.position.z);
+    const direction=camera.position.clone().sub(origin),length=direction.length();
+    if(length>.05) {
+      direction.normalize();worldCameraRay.set(origin,direction);worldCameraRay.far=length;
+      const solids=at.bore.group.children.filter(o=>["tunnel","tunnel_portal"].includes(o.userData.surface));
+      at.bore.group.updateMatrixWorld(true);
+      const hit=worldCameraRay.intersectObjects(solids,true)[0];
+      if(hit)camera.position.copy(origin).addScaledVector(direction,Math.max(.05,hit.distance-.25));
+    }
+    const cameraBore=occupiedTunnelAt(camera.position.x,camera.position.z,at.y);
+    if(cameraBore && camera.position.y>=cameraBore.floor+.15
+        && camera.position.y<cameraBore.floor+cameraBore.clearance) return;
+  }
+  // The free/explore camera can look over roofs, but never underneath terrain.
+  const cameraCut=typeof occupiedApproachAt === "function" && !state.explore
+    ? occupiedApproachAt(camera.position.x,camera.position.z,feet) : null;
+  if(cameraCut && camera.position.y>=cameraCut.y+.35 && camera.position.y<cameraCut.y+3.2)return;
+  let surface=groundLiftAt(camera.position.x,camera.position.z);
+  if(typeof outsideTerrainGrid === "function" && outsideTerrainGrid(camera.position.x,camera.position.z)) {
+    const drawn=drawnGroundAt(camera.position.x,camera.position.z);
+    if(Number.isFinite(drawn))surface=Math.max(surface,drawn);
+  }
+  const minimum=surface+.35;
+  if(Number.isFinite(minimum))camera.position.y=Math.max(camera.position.y,minimum);
 }
 //: The orbit camera is inside a building's walls, below its roof, while what it looks at is not
 //: in that building.
@@ -26077,7 +26557,7 @@ function setExplore(on) {
     state.explore = false;
     const at = walkerExteriorAt(state.target.x, state.target.z);
     if (at) {
-      avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z), at.z);
+      avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z,groundLiftAt(at.x,at.z)), at.z);
       state.indoors = false;
     }
     avatar.visible = true;
@@ -26100,7 +26580,7 @@ function exploreStep(dt) {
   move.normalize().multiplyScalar(Math.max(EXPLORE_SPEED_MIN, state.dist * EXPLORE_SPEED_PER_M) * dt);
   state.target.x += move.x;
   state.target.z += move.z;
-  state.target.y = walkerGroundAt(state.target.x, state.target.z);
+  state.target.y = groundLiftAt(state.target.x, state.target.z);
   placeCamera();
 }
 if (!ATTACH) {
@@ -26722,17 +27202,26 @@ function pickedFeature(clientX, clientY) {
 function groundAt(clientX, clientY) {
   pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
+  const guestMeshes=solids=>activeGuest?.ready && activeGuest.api.tunnelWalkMeshes
+    ? activeGuest.api.tunnelWalkMeshes(solids) : [];
+  const blocker=ray.intersectObjects(tunnelWalkMeshes(true).concat(guestMeshes(true)),false)[0]?.distance ?? Infinity;
+  const tunnelHits=ray.intersectObjects(tunnelWalkMeshes().concat(guestMeshes(false)),false)
+    .filter(h=>h.distance<blocker-.01);
   // The ground is the terrain where there is one -- a click on Russian Hill lands on the
   // hill, not on the sea-level plane under it -- and the flat plane elsewhere.
   if (terrainMesh) {
     const hits = ray.intersectObjects(activeGuest && activeGuest.ready
       ? [...terrainTiles, ...activeGuest.api.terrainTiles] : terrainTiles, false);
-    if (hits.length) {
-      const hit = hits[0].point.clone();
+    const visibleHits=hits.filter(h=>h.distance<blocker-.01 && !pointInTunnelVoid(h.point.x,h.point.y,h.point.z));
+    if (visibleHits.length) {
+      if(tunnelHits.length && tunnelHits[0].distance<visibleHits[0].distance)return tunnelHits[0].point.clone();
+      const hit = visibleHits[0].point.clone();
       hit.y += TERRAIN_MESH_UNDER_M;
       return hit;
     }
   }
+  if(tunnelHits.length)return tunnelHits[0].point.clone();
+  if(Number.isFinite(blocker))return null; // never click through a solid roof/wall into its floor
   const landing = new THREE.Vector3();
   return ray.ray.intersectPlane(groundPlane, landing) ? landing : null;
 }
@@ -26751,6 +27240,7 @@ for (const way of DATA.ways) {
 }
 function eligibleLanding(landing, forceStreet = false) {
   if (!landing) return null;
+  if (!forceStreet && undergroundLanding(landing)) return landing;
   if (!forceStreet && !buildingAt(landing.x, landing.z)) return landing;
   let best = null, bestD2 = Infinity;
   for (const [ax, az, dx, dz] of streetLandingSegments) {
@@ -26781,7 +27271,14 @@ function addressLanding(landing) {
 
 // The visible walker stays outside every canonical footprint, even at open doors.
 // Camera/interior inspection is independent; GPS uncertainty never authorizes entry.
+function undergroundLanding(landing) {
+  return landing && Number.isFinite(landing.y)
+    && (Boolean(tunnelSurfaceAt(landing.x,landing.z,landing.y))
+      || Boolean(approachPassageAt(landing.x,landing.z,landing.y)));
+}
+
 function exteriorLanding(landing) {
+  if(typeof undergroundLanding === "function" && undergroundLanding(landing))return landing;
   if (!landing || !buildingAt(landing.x, landing.z)) return landing;
   const way = buildingAt(landing.x, landing.z);
   const entry = footprintById.get(String(way.osm_id));
@@ -26804,17 +27301,24 @@ function exteriorLanding(landing) {
   return candidates[0] || eligibleLanding(landing, true);
 }
 
-function walkerExteriorAt(x, z) {
+function walkerExteriorAt(x, z, referenceY) {
   const guest = typeof guestUnder === "function" && activeGuest ? guestUnder(x, z) : null;
   if (guest?.ready && guest.api.exteriorLanding) {
     const [gx, gz] = hostToGuest(guest, x, z);
-    const at = guest.api.exteriorLanding({x: gx, z: gz});
+    const at = guest.api.exteriorLanding({x: gx, z: gz,
+      y:Number.isFinite(referenceY) ? referenceY-guest.oy : undefined});
     return at ? {x: guest.ox + at.x * guest.sx, z: guest.oz + at.z} : null;
   }
-  return exteriorLanding({x, z});
+  return exteriorLanding({x, z,y:referenceY});
 }
 
 function keepWalkerOutside() {
+  // A canonical building may be above a real bore. Its 2D footprint is not a
+  // wall at the tunnel level; the bore's own shell contains the walker there.
+  const underground=typeof occupiedTunnelAt === "function"
+    ? occupiedTunnelAt(avatar.position.x,avatar.position.z,walkerFeetY()) : null;
+  if(underground || (typeof occupiedApproachAt === "function"
+      && occupiedApproachAt(avatar.position.x,avatar.position.z,walkerFeetY()))) return;
   const at = walkerExteriorAt(avatar.position.x, avatar.position.z);
   if (!at) { avatar.visible = false; return; }
   if (Math.hypot(at.x - avatar.position.x, at.z - avatar.position.z) < 1e-6) return;
@@ -26834,16 +27338,22 @@ function goTo(landing, { travel = false, zoom = false } = {}) {
   // Exploring there is no walker to send: the view goes, and comes in close as it would.
   if (state.explore && travel) {
     if (zoom) state.dist = ARRIVAL_DIST;
-    state.target.set(landing.x, walkerGroundAt(landing.x, landing.z), landing.z);
+    state.target.set(landing.x, groundLiftAt(landing.x, landing.z), landing.z);
     placeCamera();
     return;
   }
-  if (travel) landing = walkerExteriorAt(landing.x, landing.z);
+  const pickedHeight=Number.isFinite(landing.y) && landing.y!==0 ? landing.y : undefined;
+  const pickedX=landing.x,pickedZ=landing.z;
+  if (travel) landing = walkerExteriorAt(landing.x, landing.z,pickedHeight);
   if (!landing) return;
   if (travel && GPS_LEASH) GPS_LEASH.on = false;
   // The ground where the click landed: the terrain's height, or the bore's floor inside a
   // tunnel. The orbit target and the walker's feet both stand on it.
-  const ground = walkerGroundAt(landing.x, landing.z);
+  // Destination height, not the previous location's feet, selects the level. A
+  // surface click above a tunnel must not teleport the walker into its bore.
+  const landingY=Number.isFinite(pickedHeight) && Math.hypot(pickedX-landing.x,pickedZ-landing.z)<.01
+    ? pickedHeight : groundLiftAt(landing.x,landing.z);
+  const ground = walkerGroundAt(landing.x, landing.z, landingY);
   if (travel) {
     avatar.position.set(landing.x, AVATAR_STAND_Y + ground, landing.z);
     if (zoom) state.dist = ARRIVAL_DIST;
@@ -27282,8 +27792,8 @@ function entryFloorY(entry) {
 }
 // The ground without any interior or stoop on it.
 function terrainGroundAt(x, z) {
-  const floor = tunnelFloorAt(x, z);
-  return floor !== null ? floor : groundLiftAt(x, z);
+  // Building/entry foundations use surface terrain, not a bore below their footprint.
+  return groundLiftAt(x, z);
 }
 for (const bucket of footprintGrid.values()) {
   for (const entry of bucket) footprintById.set(String(entry.way.osm_id), entry);
@@ -27576,27 +28086,43 @@ function moveWalker(mx, mz) {
   const steps = Math.max(1, Math.ceil(distance / WALK_SUBSTEP_M));
   const segments = wallSegmentsNear(avatar.position.x + mx / 2, avatar.position.z + mz / 2);
   const p = { x: avatar.position.x, z: avatar.position.z };
+  let feet=typeof walkerFeetY === "function" ? walkerFeetY() : null;
   for (let i = 0; i < steps; i += 1) {
     const next = {x: p.x + mx / steps, z: p.z + mz / steps};
-    if (segments.length) pushOutOfWalls(next, segments);
+    const below=typeof occupiedTunnelAt === "function" ? occupiedTunnelAt(p.x,p.z,feet) : null;
+    // The bore has its own solid envelope even at a shallow portal. An unrelated
+    // 2D footprint above it must never become a wall across the underground road.
+    const cut=typeof occupiedApproachAt === "function" ? occupiedApproachAt(p.x,p.z,feet) : null;
+    const belowBuildings=Boolean(below || cut);
+    if (segments.length && !belowBuildings) pushOutOfWalls(next, segments);
     const nextX = next.x, nextZ = next.z;
     const guest = typeof guestUnder === "function" && activeGuest ? guestUnder(nextX, nextZ) : null;
+    const tunnelClear=guest?.ready && guest.api.tunnelMoveAllowed
+      ? guest.api.tunnelMoveAllowed(...hostToGuest(guest,p.x,p.z),...hostToGuest(guest,nextX,nextZ),
+        Number.isFinite(feet) ? feet-guest.oy : null)
+      : typeof tunnelMoveAllowed !== "function" || tunnelMoveAllowed(p.x,p.z,nextX,nextZ,feet);
+    if (!tunnelClear) break;
     let hit;
-    if (guest?.ready && guest.api.firstBuildingCollision) {
+    if (belowBuildings) hit=null;
+    else if (guest?.ready && guest.api.firstBuildingCollision) {
       const [ax, az] = hostToGuest(guest, p.x, p.z), [bx, bz] = hostToGuest(guest, nextX, nextZ);
       hit = guest.api.firstBuildingCollision(ax, az, bx, bz);
-    } else hit = firstBuildingCollision(p.x, p.z, nextX, nextZ);
+    } else hit = belowBuildings ? null : firstBuildingCollision(p.x, p.z, nextX, nextZ);
     if (hit !== null && hit !== undefined) break;
-    const blocked = guest?.ready && guest.api.walkerFootprintBlocked
+    const blocked = !belowBuildings && (guest?.ready && guest.api.walkerFootprintBlocked
       ? guest.api.walkerFootprintBlocked(...hostToGuest(guest, nextX, nextZ))
-      : walkerFootprintBlocked(nextX, nextZ);
+      : walkerFootprintBlocked(nextX, nextZ));
     if (blocked) break;
     p.x = nextX;
     p.z = nextZ;
+    if (typeof walkerGroundAt === "function") feet=walkerGroundAt(p.x,p.z,feet);
   }
   const moved = Math.hypot(p.x - avatar.position.x, p.z - avatar.position.z);
   avatar.position.x = p.x;
   avatar.position.z = p.z;
+  if (moved>0 && Number.isFinite(feet) && typeof AVATAR_STAND_Y === "number") {
+    avatar.position.y=AVATAR_STAND_Y+feet;
+  }
   return moved;
 }
 
@@ -27620,6 +28146,9 @@ const doorsShown = new Set();
 function showDoor(door) {
   if (door.mesh) return;
   const street = terrainGroundAt(door.cx - door.nx * 0.6, door.cz - door.nz * 0.6);
+  // A generic doorway inferred from a footprint must not fill a tunnel opening.
+  if(typeof pointInTunnelVoid === "function"
+      && pointInTunnelVoid(door.cx,street+DOOR_HEIGHT_M/2,door.cz))return;
   const pe = door.photoEntry;
   let ground, stoopPlan, frontStair = null;
   if (pe) {
@@ -28286,6 +28815,7 @@ function swingRoomDoors(dt) {
 
 function nearestDoor() {
   const x = avatar.position.x, z = avatar.position.z;
+  if(typeof occupiedTunnelAt === "function" && occupiedTunnelAt(x,z,walkerFeetY()))return null;
   const near = doorsNear(x, z, DOOR_DRAW_M).filter((d) => d.mesh)
     .map((d) => {
       const depth = d.stoopPlan?.depth || 0;
@@ -28452,7 +28982,8 @@ function updateDoors(dt) {
       && !insideFootprint(door.entry, camera.position.x, camera.position.z);
   }
   const door = nearestDoor();
-  const inside = buildingAt(x, z);
+  const inPassage=occupiedTunnelAt(x,z,walkerFeetY()) || approachPassageAt(x,z,walkerFeetY());
+  const inside = inPassage ? null : buildingAt(x, z);
   const insideEntry = inside && footprintById.get(String(inside.osm_id));
   const insideId = inside && !insideEntranceRecess(insideEntry, x, z) ? String(inside.osm_id) : null;
   // A walker already inside (arrived by search, or a saved position) gets the rooms too.
@@ -28931,6 +29462,7 @@ function homeOutcropCapGeometry(plan,y) {
 function buildHomeShell(entry) {
   const id = String(entry.way.osm_id), spec = HOME_RENDER.get(id);
   if (!spec || entry.homeShell || !entry.fit || !BUILDING_VISUAL_RANGES.has(id)) return;
+  if(entryTunnelConflict(entry))return;
   // The windows the street is already shown, where they are drawn; otherwise worked out now.
   const layout = entry.decalLayout || homeWindowLayout(entry, spec);
   if (!layout) return;
@@ -29174,7 +29706,7 @@ function pumpHomeDecals() {
   for (const end = Math.min(job.ids.length, job.next + HOME_DECAL_SLICE); job.next < end; job.next += 1) {
     const id = job.ids[job.next];
     const entry = footprintById.get(id), spec = HOME_RENDER.get(id);
-    if (!entry || !spec) continue;
+    if (!entry || !spec || entryTunnelConflict(entry)) continue;
     const layout = homeWindowLayout(entry, spec);
     if (!layout) continue;
     job.layouts.set(id, layout);
@@ -30275,8 +30807,23 @@ function entryAccessZones(entry, rooms) {
   return zones;
 }
 
+function entryTunnelConflict(entry) {
+  // Never fit a generic home/door to a headhouse arch. Keep its clipped exterior
+  // until there is real interior evidence. Cache after the bores have been built.
+  if(entry._tunnelConflictCount===tunnelBores.length)return entry._tunnelConflict;
+  entry._tunnelConflictCount=tunnelBores.length;entry._tunnelConflict=false;
+  for(const bore of tunnelBores)for(const st of bore.stations) {
+    if(st.x<entry.minX || st.x>entry.maxX || st.z<entry.minZ || st.z>entry.maxZ)continue;
+    if(insideFootprint(entry,st.x,st.z)
+        && pointInTunnelVoid(st.x,groundLiftAt(st.x,st.z)+1,st.z)) {
+      entry._tunnelConflict=true;return true;
+    }
+  }
+  return false;
+}
 function buildInterior(entry) {
   if (entry.way.parkFacility) return;
+  if(entryTunnelConflict(entry))return;
   if (entry.interior || !INTERIORS || !entry.fit) return;
   const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W, storeys, storeyM] = entry.fit;
   const plan = INTERIORS.library[ti];
@@ -31202,7 +31749,7 @@ function registerElevatedSegment(ax, az, ay, bx, bz, by, half) {
 function registerElevatedWay(way, lift) {
   if (!way.points || way.points.length < 2 || typeof lift !== "function") return;
   const half = (way.road_m || 7) / 2;
-  const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  const pts = densifyWay(way.points,3).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
   for (let i = 1; i < pts.length; i += 1) {
     const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
     registerElevatedSegment(ax, az, lift(ax, az) + ROAD_TOP_M, bx, bz, lift(bx, bz) + ROAD_TOP_M, half);
@@ -32317,6 +32864,7 @@ function releaseHostWorld() {
   }
   for (const fill of PERIMETER_FILL) fill.visible = true;
   terrainTiles.length = 0;
+  tunnelBores.length = 0;
   billboardFaces.length = 0;
   billboardTextureCache.clear();
   detailTiles = [];
@@ -32534,14 +33082,15 @@ window.kerbsideGuestApi = {
             Math.max(corners[0][0], corners[1][0]), Math.max(corners[0][1], corners[1][1])];
   })() : (() => { const [x0, y0] = xy(DATA.bbox.west, DATA.bbox.south); const [x1, y1] = xy(DATA.bbox.east, DATA.bbox.north);
     return [x0, -y1, x1, -y0]; })(),
-  walkerGroundAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
+  walkerGroundAt, walkerGroundInfo, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
   walkerFootprintBlocked,
   tick: guestTick,
   toggleNearestDoor() { const door = nearestDoor(); return door ? { at: toggleDoor(door) } : null; },
-  setRootInverse(matrix) { ROOT_INVERSE.copy(matrix); detailCells = null; cullForced = true; },
+  setRootInverse(matrix) { ROOT_INVERSE.copy(matrix); tunnelVoidInverse.copy(matrix); detailCells = null; cullForced = true; },
   // Let go: what this world holds is emptied, since the code that built it stays loaded.
   release() {
     terrainTiles.length = 0;
+    tunnelBores.length = 0;
     billboardFaces.length = 0;
     billboardTextureCache.clear();
     detailTiles = [];

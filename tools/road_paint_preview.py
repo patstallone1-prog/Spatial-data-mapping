@@ -210,6 +210,15 @@ def main() -> None:
     asset_path = "/" + str(ground_path.parent.relative_to(ROOT)) + "/"
     page = re.sub(r'<meta name="kerbside-assets" content="[^"]*"',
                   f'<meta name="kerbside-assets" content="{asset_path}"', page)
+    # App companions are relative to the real viewer, not this fixture folder.
+    # Losing land/water support made repaired dry-land cells appear flooded and
+    # produced false pavement cliffs; losing the region index broke shared assets.
+    page = re.sub(r'<meta name="kerbside-regions" content="[^"]*"',
+                  '<meta name="kerbside-regions" content="/docs/app-regions.json"', page)
+    support = re.search(r'<meta name="kerbside-visual-support" content="([^"]+)"', page)
+    if support and not support[1].startswith(("https://", "http://", "/")):
+        support_path = "/" + str((viewer / support[1]).relative_to(ROOT))
+        page = page.replace(support[0], support[0].replace(support[1], support_path), 1)
     # The window loader now fetches these constants, not a literal fetch(). Without
     # overriding them the "270-way" reproduction silently loaded all 32k ways.
     page = page.replace('const PAYLOAD_URL = asset("sf-corridor-3d.json");',
