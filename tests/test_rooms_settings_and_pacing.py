@@ -194,7 +194,9 @@ def test_regions_are_built_in_this_page_not_loaded_as_another() -> None:
     assert "releaseHostWorld()" in attach and "releaseGuest(previous)" in attach
     assert "earthDrop(hx, -hy)" in attach and "metersPerLon / api.metersPerLon" in attach
     # The walker stands on, and walks round, the attached region's ground and walls.
-    assert "guest.api.walkerGroundAt(gx, gz) + guest.oy" in _extract("walkerGroundInfo", js)
+    ground = _extract("walkerGroundInfo", js)
+    assert "guest.api.walkerGroundInfo(gx,gz,Number.isFinite(feet) ? feet-guest.oy : null)" in ground
+    assert "return {...info,y:info.y+guest.oy};" in ground
     assert "guest.api.wallSegmentsNear(gx, gz)" in _extract("wallSegmentsNear", js)
 
 

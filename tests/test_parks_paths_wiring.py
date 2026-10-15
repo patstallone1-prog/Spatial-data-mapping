@@ -297,15 +297,22 @@ def test_the_playground_fence_is_open_at_the_gate_and_closed_elsewhere():
     js = _page_js()
     script = """
 const PLAYGROUND_Y=0.034;
+const FENCE_GROUND_STEP_M=.75;
+function groundLiftAt(){return 0;}
 function xy(lon,lat){return [lon,lat];}
 function insideCarriageway(){return false;}
-""" + _extract("fenceSink", js) + _extract("fenceArea", js) + """
+""" + _extract("groundedFencePanel", js) + _extract("fenceSink", js) + _extract("fenceArea", js) + """
 const ring=[[0,0],[20,0],[20,10],[0,10],[0,0]];
 const sink=fenceSink();
 // A gate in the middle of the south side (z=0 edge in page frame: y=0 -> z=-0).
 fenceArea({id:'p',gates:[{p:[10,0],width_m:1.2}]},ring,1.2,'playground',sink);
 // Fence panels touching x in (9.5,10.5) on the z=0 edge, other than the gate leaf.
-const quads=[];for(let i=0;i<sink.positions.length;i+=12)quads.push(sink.positions.slice(i,i+12));
+// Panels are now connected strips, not four duplicated vertices per quad.
+// Recover each panel from its actual two triangles; retain the same gate/length assertions.
+const quads=[];for(let i=0;i<sink.indices.length;i+=6){
+ const ids=[sink.indices[i],sink.indices[i+5],sink.indices[i+1],sink.indices[i+2]];
+ quads.push(ids.flatMap(k=>sink.positions.slice(k*3,k*3+3)));
+}
 const southPanels=quads.filter(q=>Math.abs(q[2])<1e-6&&Math.abs(q[8])<1e-6);
 const covering=southPanels.filter(q=>Math.min(q[0],q[6])<9.6&&Math.max(q[0],q[6])>10.4);
 const length=southPanels.reduce((s,q)=>s+Math.abs(q[6]-q[0]),0);
