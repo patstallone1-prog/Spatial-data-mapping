@@ -346,3 +346,21 @@ console.log(JSON.stringify([pavementLiftAt(20,8.4),pavementLiftAt(20,8.5),paveme
     assert result[0] == 6
     assert result[1] == pytest.approx(6, abs=.001)
     assert result[2] == 12
+
+
+def test_discrete_gps_arrival_uses_destination_surface_not_departure_bore_height():
+    result = run("""
+const GPS_LEASH={on:false},AVATAR_STAND_Y=1;
+const gps={target:{x:50,z:0,set(x,y,z){this.x=x;this.z=z;}},follow:false};
+const state={target:{copy(){}},indoors:false};
+const avatar={position:{y:-9,set(x,y,z){this.y=y;}}};
+function walkerExteriorAt(x,z){return {x,z};}
+function groundLiftAt(){return 20;}
+function walkerGroundAt(x,z,referenceY){return referenceY===20 ? 20 : -10;}
+function placeCamera(){}
+returnToGps();console.log(JSON.stringify({feet:avatar.position.y-AVATAR_STAND_Y,follow:gps.follow}));
+""", "returnToGps")
+    assert result == {"feet": 20, "follow": True}
+    source = _page_js()
+    for name in ("startGps", "returnToGps", "followGps"):
+        assert "groundLiftAt(gps.target.x,gps.target.z)" in _extract(name, source)

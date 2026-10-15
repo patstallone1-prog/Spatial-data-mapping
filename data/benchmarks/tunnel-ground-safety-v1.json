@@ -2,6 +2,7 @@
   "schema": 1,
   "kind": "rendered_geometry_consistency_not_independent_ground_truth",
   "renderer_sha256": "b9a6ac407c24f9d971e41640737dfab2301156d366f0c2f8296d7de014ab4920",
+  "audited_commit": "cbe3abfe9dfd5c69ab7552d2ddd426e0243b8c8a",
   "fixture_builder": "tools/tunnel_ground_preview.py",
   "bore_count": 6,
   "station_count": 1468,

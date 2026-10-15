@@ -31296,7 +31296,8 @@ function startGps() {
     if (first && GPS_LEASH.on) {
       // The first fix: the walker stands where you are and the view comes to it -- unless you
       // have already walked it somewhere yourself.
-      avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
+      avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z,
+        groundLiftAt(gps.target.x,gps.target.z)), gps.target.z);
       state.indoors = false;
       state.target.copy(avatar.position);
       placeCamera();
@@ -31310,7 +31311,8 @@ function returnToGps() {
   const exterior = walkerExteriorAt(gps.target.x, gps.target.z);
   if (!exterior) return false;
   gps.target.set(exterior.x, 0, exterior.z);
-  avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
+  avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z,
+    groundLiftAt(gps.target.x,gps.target.z)), gps.target.z);
   state.indoors = false;
   gps.follow = true;
   state.target.copy(avatar.position);
@@ -31337,7 +31339,8 @@ function followGps(dt) {
   gps.target.set(exterior.x, 0, exterior.z);
   const dx = gps.target.x - avatar.position.x, dz = gps.target.z - avatar.position.z, d = Math.hypot(dx, dz);
   if (d > GPS_JUMP_M) {
-    avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z), gps.target.z);
+    avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z,
+      groundLiftAt(gps.target.x,gps.target.z)), gps.target.z);
     return true;
   }
   if (d < 0.4) {

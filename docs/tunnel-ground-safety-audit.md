@@ -41,6 +41,9 @@ immersed-tube vertical profiles and unmeasured approaches remain explicitly infe
   a surveyed or universally achieved 4.8 m vehicle clearance.
 - Released regions retained disposed bore references. Host and guest release
   now clear them, avoiding stale picking and collision after a region switch.
+- Discrete GPS arrivals now select the destination surface explicitly, rather
+  than inheriting the departure point's underground level. Continuous walking
+  still retains its occupied level through a bore.
 - Property, court and park/playground enclosure panels now sample ground at
   intervals of at most 0.75 m (about 2.5 ft). Bases overlap the ground by 35 mm;
   panel tops retain their intended height. Already-grounded panels cannot receive
@@ -68,14 +71,15 @@ surface-above selection, portal transitions, fence-base agreement and sampled
 unclipped fragments in pedestrian headroom. The obstruction probe is separate
 from the floor check: a correct floor can still have a slab above it.
 
-`tests/test_tunnel_ground_safety.py` adds 24 focused regressions. The selected
+`tests/test_tunnel_ground_safety.py` adds 25 focused regressions. The selected
 tunnel, walking/interior, terrain, bridge, movement and curb-width suites passed
-199 tests locally. Extracted app JavaScript also passes Node syntax validation;
+200 tests locally, plus seven release-sync/recovery tests. Extracted app JavaScript also passes Node syntax validation;
 new/changed test and preview-tool Python passes Ruff. Full required CI remains
 the release gate; it is not replaced by these local checks.
 
 The committed `data/benchmarks/tunnel-ground-safety-v1.json` records the real-data
-browser audit: six bores, 1,468 stations, twelve forward/reverse routes, zero
+browser audit at geometry-pass commit `cbe3abfe` (before the GPS-only follow-up):
+six bores, 1,468 stations, twelve forward/reverse routes, zero
 route failures or sampled headroom fragments, and portal transition differences
 below 7 mm in the digital model. These are not real-world accuracy claims. Screenshots
 and raw diagnostic reports are generated under
