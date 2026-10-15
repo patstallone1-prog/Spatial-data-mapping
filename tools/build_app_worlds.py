@@ -156,7 +156,8 @@ def main() -> None:
                       for path in viewers},
         "runtime_assets_sha256": {
             str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in [DOCS / "recoverable-geometry.mjs",
+            for path in [DOCS / "recoverable-geometry.mjs", DOCS / "nature-runtime.mjs",
+                         DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
                          *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
         },
         "native_source": "unreal/Plugins/KerbsideWorld",

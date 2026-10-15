@@ -3170,6 +3170,12 @@ function viaStore(href) {
 const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
 const sharedAsset = (name) => viaStore(new URL(name, new URL(
   document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
+// One shared landscape for host and attached regions; failure retains the older backdrop.
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs"))
+  .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
+const NATURE = natureLibrary ? await natureLibrary.loadNatureAtlas(sharedAsset)
+  .catch(error => { console.warn("kerbside: landscape evidence unavailable", error); return null; }) : null;
+var natureWorld = null;
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 // Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
@@ -4089,6 +4095,10 @@ const EARTH_FLAT_M = TERRAIN_FRAME
   ? terrainFlatRadius(TERRAIN_FRAME)
   : 3000.0;
 function earthDrop(x, z) {
+  // The old flat background used a cosmetic sagitta, but each attached city's own
+  // flat frame dropped a different amount. A source-backed continuous orthometric
+  // atlas must use one height datum, not introduce metre-scale artificial border steps.
+  if ((typeof NATURE!=="undefined"&&NATURE) || (typeof ATTACH!=="undefined"&&ATTACH?.natureBacked)) return 0;
   const d2 = x * x + z * z;
   const flat2 = EARTH_FLAT_M * EARTH_FLAT_M;
   return d2 <= flat2 ? 0 : (d2 - flat2) / (2 * EARTH_RADIUS_M);
@@ -4119,12 +4129,21 @@ const SEA_Y = SEA_SURFACE_M + 0.12;
 //: and the open water is water.
 const OPEN_WATER_GROUND_M = SEA_SURFACE_M;
 //: Where the terrain has no data (outside the lidar, under the bay) the ground is the sea's.
-function rawTerrainHeightAt(x, z) {
-  if (!TERRAIN_FRAME) return 0;
+function rawTerrainHeightAt(x, z, natureHeight = null) {
+  if(!TERRAIN_FRAME && Number.isFinite(natureHeight))return natureHeight;
+  if (!TERRAIN_FRAME) return typeof NATURE !== "undefined" && NATURE
+    ? NATURE.sample(...NATURE.local(midLon+x/metersPerLon,midLat-z/metersPerLat))?.height ?? 0 : 0;
   const f = TERRAIN_FRAME;
   const [east, north] = pageToTerrain(x, z, f);
   const fx = (east - f.x0) / f.step_m - 0.5;
   const fy = (north - f.y0) / f.step_m - 0.5;
+  const distance = Math.max(0,-fx,-fy,fx-(f.cols-1),fy-(f.rows-1))*f.step_m;
+  const nature = distance>0 && typeof NATURE!=="undefined" && NATURE
+    ? Number.isFinite(natureHeight) ? {height:natureHeight}
+      : NATURE.sample(...NATURE.local(midLon+x/metersPerLon,midLat-z/metersPerLat)) : null;
+  // A distant query must not inherit sea level from a clamped, missing city-edge cell.
+  // With no canonical edge evidence there is nothing legitimate to blend against.
+  if(distance>=120 && nature)return nature.height;
   const c0 = Math.max(0, Math.min(f.cols - 2, Math.floor(fx)));
   const r0 = Math.max(0, Math.min(f.rows - 2, Math.floor(fy)));
   const tx = Math.max(0, Math.min(1, fx - c0));
@@ -4136,11 +4155,18 @@ function rawTerrainHeightAt(x, z) {
   // outside the surveyed ground.
   const vals = [v00, v10, v01, v11];
   const good = vals.filter((v) => v !== f.nodata);
-  if (!good.length) return OPEN_WATER_GROUND_M;
+  if (!good.length) return nature?.height ?? OPEN_WATER_GROUND_M;
   const fill = good[0];
   const g = vals.map((v) => (v === f.nodata ? fill : v));
   const cm = g[0] * (1 - tx) * (1 - ty) + g[1] * tx * (1 - ty) + g[2] * (1 - tx) * ty + g[3] * tx * ty;
-  return f.base_m + cm / 100.0;
+  const localHeight = f.base_m + cm / 100.0;
+  // Preserve city measurements; join the atlas outside them, not a flat edge plateau.
+  // This is the city's hottest geometry query. Do not allocate atlas samples for every
+  // measured curb/terrain vertex: the nature atlas is irrelevant inside the survey grid.
+  if (distance===0 || typeof NATURE==="undefined" || !NATURE) return localHeight;
+  if(!nature)return localHeight;
+  const t = Math.min(1,distance/120), smooth=t*t*(3-2*t);
+  return localHeight*(1-smooth)+nature.height*smooth;
 }
 function terrainHeightAt(x, z) {
   return mappedWaterAt(x, z) === true ? OPEN_WATER_GROUND_M : rawTerrainHeightAt(x, z);
@@ -4996,7 +5022,11 @@ function inCity(x, z) {
   return cityCells.has(`${Math.floor(x / CITY_CELL_M)}:${Math.floor(z / CITY_CELL_M)}`);
 }
 function terrainLandColourAt(x, z) {
-  if (!inCity(x, z)) return TERRAIN_PLATE;
+  if (!inCity(x, z)) {
+    const s = NATURE?.sample(...NATURE.local(midLon+x/metersPerLon,midLat-z/metersPerLat),false);
+    const colour = s && natureLibrary.COVER_COLOURS[s.cover];
+    return colour ? new THREE.Color().setRGB(...natureLibrary.linearColour(colour)) : TERRAIN_PLATE;
+  }
   // A hard class edge made each OSM parcel a huge, squared-off grey slab. Feather just
   // its *colour* across a few metres; mapped water and measured heights stay exact.
   const built = (2 * Number(mappedBuiltAt(x, z))
@@ -5221,7 +5251,7 @@ if (TERRAIN_FRAME) {
   // The apron: a ring of coarse tiles round the grid. Its inner row and column are the grid's
   // own edge vertices, so it meets the grid without a seam.
   const west = xOf(0), east = xOf(cols - 1), north = zOf(rows - 1), south = zOf(0);
-  const steps = Math.ceil(TERRAIN_APRON_M / TERRAIN_APRON_STEP_M);
+  const steps = NATURE || ATTACH?.natureBacked ? 0 : Math.ceil(TERRAIN_APRON_M / TERRAIN_APRON_STEP_M);
   const outward = (from, sign) => { const out = [from]; for (let i = 1; i <= steps; i += 1) out.push(from + sign * i * TERRAIN_APRON_STEP_M); return out; };
   const along = (from, to) => { const out = []; const n = Math.max(1, Math.ceil((to - from) / TERRAIN_APRON_STEP_M)); for (let i = 0; i <= n; i += 1) out.push(from + (to - from) * i / n); return out; };
   const apronOf = (x, z) => Math.max(0, west - x, x - east, north - z, z - south);
@@ -5988,7 +6018,7 @@ if (!PERIMETER && !ATTACH) {
 //: The atlas under this page's own region (see the perimeter tiles below): hidden while the
 //: region is drawn here in full, shown once it has been let go for another region.
 const PERIMETER_FILL = [];
-if (PERIMETER) {
+if (PERIMETER && !NATURE) {
   // The country round the region as the map has it: grass where the land is, sea where the
   // water is, in tiles, with the cells under the grid and its apron left to them.
   const f = PERIMETER.frame;
@@ -6062,6 +6092,39 @@ if (PERIMETER) {
   }
   const bridgeCounts = buildBayBridges(g);
   console.info(`kerbside: perimeter ${PERIMETER.frame.cols}x${PERIMETER.frame.rows} cells, ${bridgeCounts.structures} bridges, ${bridgeCounts.towers} towers, ${bridgeCounts.piers} piers, ${bridgeCounts.ramps} viaducts down to the ground, ${bridgeCounts.headlands} headlands (${PERIMETER.source})`);
+}
+
+function natureVisualHeightAt(x,z,h,wet) {
+  if(wet)return SEA_Y-earthDrop(x,z);
+  const y=rawTerrainHeightAt(x,z,h)-earthDrop(x,z);
+  if(activeGuest?.ready && activeGuest.box) {
+    const g=activeGuest,[gx,gz]=hostToGuest(g,x,z),b=g.box;
+    const distance=Math.max(0,b[0]-gx,gx-b[2],b[1]-gz,gz-b[3]);
+    if(distance<120) {
+      const edge=g.api.groundLiftAt(Math.max(b[0],Math.min(b[2],gx)),Math.max(b[1],Math.min(b[3],gz)))+g.oy;
+      const t=distance/120,s=t*t*(3-2*t);return edge*(1-s)+y*s;
+    }
+  }
+  return y;
+}
+if (NATURE) {
+  const localBounds = TERRAIN_FRAME ? (() => {
+    const f=TERRAIN_FRAME,stride=TERRAIN_MESH_STRIDE;
+    const a=terrainToPage(f.x0+.5*f.step_m,f.y0+.5*f.step_m,f);
+    const b=terrainToPage(f.x0+(Math.floor((f.cols-1)/stride)*stride+.5)*f.step_m,
+      f.y0+(Math.floor((f.rows-1)/stride)*stride+.5)*f.step_m,f);
+    return new THREE.Vector4(a[0],b[1],b[0],a[1]);
+  })() : new THREE.Vector4(1,1,0,0);
+  const hostBox={value:localBounds};
+  natureWorld=natureLibrary.createNatureWorld({THREE,root,atlas:NATURE,
+    toPage:(lon,lat)=>{const [x,y]=xy(lon,lat);return [x,-y];},
+    fromPage:(x,z)=>[midLon+x/metersPerLon,midLat-z/metersPerLat],
+    heightAt:natureVisualHeightAt,
+    waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : perimeterWaterAt(x,z)===true || s.water),
+    blockedAt:(x,z)=>inCity(x,z)||mappedBuiltAt(x,z)||Boolean(typeof guestUnder==="function"&&guestUnder(x,z)),
+    hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights});
+  natureWorld.hostBox=hostBox;natureWorld.localBounds=localBounds.clone();
+  if(PERIMETER)buildBayBridges(TERRAIN_FRAME);
 }
 
 // ---- the Bay's bridges, built as they are built ------------------------------------------------
@@ -6142,8 +6205,11 @@ function buildBayBridges(g) {
   const water = SEA_Y - 0.02 - PERIMETER_UNDER_M;      // the sea as the atlas draws it
   const land = PENINSULA_Y - PERIMETER_UNDER_M;          // the land as the atlas draws it
   const groundAt = (x, z) => {
-    const inside = g && x >= g.x0 && x <= g.x0 + g.cols * g.step_m && -z >= g.y0 && -z <= g.y0 + g.rows * g.step_m;
+    const local=g ? pageToTerrain(x,z,g) : null;
+    const inside = g && local[0] >= g.x0 && local[0] <= g.x0 + g.cols * g.step_m
+      && local[1] >= g.y0 && local[1] <= g.y0 + g.rows * g.step_m;
     if (inside) return cutLiftAt(x, z) + ROAD_TOP_BRIDGE_M;
+    if(typeof NATURE!=="undefined"&&NATURE&&!perimeterWaterAt(x,z))return rawTerrainHeightAt(x,z)+.15;
     return (perimeterWaterAt(x, z) ? water : land) + 0.15;
   };
   const materials = new Map();
@@ -6291,6 +6357,7 @@ function buildBayBridges(g) {
   };
   //: A headland under a bridge's end: the ground up to the deck, falling away round it.
   const headland = (x, z, top, radius) => {
+    if(typeof NATURE!=="undefined"&&NATURE)return; // actual 3DEP land replaces invented green mounds
     const rings = 24, segs = 48, plateau = radius * 0.32;
     const position = [], colour = [], index = [];
     const green = new THREE.Color(0x5d7a45), dry = new THREE.Color(0x8a7d55);
@@ -6881,7 +6948,14 @@ function buildTile(tile, layers) {
   // Deeper tiles draw after shallower ones, so a parent fading out lies over its children
   // rather than fighting them for the depth buffer while it goes.
   group.renderOrder = tile.depth;
-  group.traverse((o) => { if (o.isMesh) { o.userData.surface = "tile"; o.userData.liftedOntoGround = true; o.renderOrder = tile.depth; } });
+  group.traverse((o) => { if (o.isMesh) {
+    o.userData.surface = "tile"; o.userData.liftedOntoGround = true; o.renderOrder = tile.depth;
+    if(typeof NATURE!=="undefined"&&NATURE&&!o.isInstancedMesh&&!o.userData.natureBuildings) {
+      const p=o.geometry.getAttribute("position"),base=new Float32Array(p.count);
+      for(let i=0;i<p.count;i++)base[i]=rawTerrainHeightAt(p.getX(i),p.getZ(i));
+      o.userData.natureBases=base;
+    }
+  } });
   tile.group = group;
   tileGroupRoot.add(group);
   tileStats.built += 1;
@@ -6914,6 +6988,40 @@ const TILE_WALK_Y = 0.30;
 const TILE_GROUND_Y = PENINSULA_Y - PERIMETER_UNDER_M;
 
 const TILE_BOX = new THREE.BoxGeometry(1, 1, 1);
+// Refined terrain must not bury an already-resident neighbouring city tile. Rebase its
+// display geometry in place, retaining every triangle and avoiding network re-downloads.
+function syncNatureTileHeights(boxes) {
+  if(typeof TILES==="undefined")return;
+  for(const tile of TILES.values()) {
+    if(!tile.group)continue;
+    const [w,s,e,n]=tile.bbox;
+    if(!boxes.some(b=>w<b[2]&&e>b[0]&&s<b[3]&&n>b[1]))continue;
+    tile.group.traverse(o=>{
+      if(!o.isMesh)return;
+      if(o.userData.natureMassing) {
+        const a=o.userData.natureMassing,m=new THREE.Matrix4();
+        for(let i=0;i<o.count;i++){
+          o.getMatrixAt(i,m);const y=rawTerrainHeightAt(m.elements[12],m.elements[14]);
+          m.elements[13]+=y-a[i];a[i]=y;o.setMatrixAt(i,m);
+        }o.instanceMatrix.needsUpdate=true;o.computeBoundingSphere();return;
+      }
+      const p=o.geometry?.getAttribute("position");if(!p)return;
+      if(o.userData.natureBuildings) {
+        for(const b of o.userData.natureBuildings) {
+          const next=Math.min(...b.ring.map(q=>rawTerrainHeightAt(q[0],q[1]))),delta=next-b.base;
+          if(Math.abs(delta)<.0001)continue;
+          for(let i=b.first;i<b.end;i++)p.setY(i,p.getY(i)+delta);b.base=next;
+        }
+      }else if(o.userData.natureBases) {
+        const base=o.userData.natureBases;
+        for(let i=0;i<p.count;i++){
+          const next=rawTerrainHeightAt(p.getX(i),p.getZ(i));p.setY(i,p.getY(i)+next-base[i]);base[i]=next;
+        }o.geometry.computeVertexNormals();
+      }else return;
+      p.needsUpdate=true;o.geometry.computeBoundingSphere();
+    });
+  }
+}
 
 function tileMassing(rows, f, lonOf, latOf, material) {
   const kept = [];
@@ -6923,11 +7031,15 @@ function tileMassing(rows, f, lonOf, latOf, material) {
   }
   if (!kept.length) return [];
   const mesh = new THREE.InstancedMesh(TILE_BOX, material, kept.length);
+  const nature=typeof NATURE!=="undefined"&&NATURE;
+  if(nature)mesh.userData.natureMassing=new Float32Array(kept.length);
   const dummy = new THREE.Object3D();
   kept.forEach(([cx, cy, halfA, halfB, bearing, height], i) => {
     const h = height / 100.0;
     const mx = f.x0 + cx * f.sx, mz = -(f.y0 + cy * f.sy);
-    dummy.position.set(mx, TILE_GROUND_Y + h / 2 - earthDrop(mx, mz), mz);
+    const base=nature ? rawTerrainHeightAt(mx,mz) : TILE_GROUND_Y-earthDrop(mx,mz);
+    if(nature)mesh.userData.natureMassing[i]=base;
+    dummy.position.set(mx, base + h / 2, mz);
     dummy.rotation.set(0, -bearing / 100.0 * Math.PI / 180, 0);
     dummy.scale.set(Math.max(2.0, halfA * f.sx * 2), h, Math.max(2.0, halfB * f.sy * 2));
     dummy.updateMatrix();
@@ -6959,6 +7071,7 @@ function tileInventedColour(archetype, at, height) {
 
 function tileBuildings(rows, f, lonOf, latOf, material) {
   const position = [], colour = [], index = [];
+  const nature=typeof NATURE!=="undefined"&&NATURE,profiles=[];
   const roof = new THREE.Color();
   for (const row of rows) {
     const height = row[0] / 100.0;
@@ -6980,7 +7093,8 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
     // city of different houses rather than a field of identical pale blocks.
     const wall = packed >= 0 ? roof.setHex(packed) : tileInventedColour(archetype, ring[0], height);
     const drop = earthDrop(ring[0][0], ring[0][1]);
-    const groundY = TILE_GROUND_Y - drop;
+    const groundY = nature ? Math.min(...ring.map(p=>rawTerrainHeightAt(p[0],p[1]))) : TILE_GROUND_Y - drop;
+    const firstVertex=position.length/3;
     const top = groundY + height;
     // The walls: a quad an edge, wound outward whichever way the ring runs.
     let area = 0;
@@ -7010,6 +7124,7 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
       const up = THREE.ShapeUtils.isClockWise(contour);
       for (const [a, b, c] of faces) index.push(base + a, base + (up ? b : c), base + (up ? c : b));
     }
+    if(nature)profiles.push({ring,base:groundY,first:firstVertex,end:position.length/3});
   }
   if (!index.length) return [];
   const geometry = new THREE.BufferGeometry();
@@ -7018,9 +7133,22 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
   geometry.setIndex(index);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
-  return [new THREE.Mesh(geometry, material)];
+  const mesh=new THREE.Mesh(geometry, material);
+  if(nature)mesh.userData.natureBuildings=profiles;
+  return [mesh];
 }
 
+function natureTileStations(run) {
+  if(typeof NATURE==="undefined"||!NATURE||run.length<2)return run;
+  const output=[run[0]];
+  for(let i=1;i<run.length;i++) {
+    const a=run[i-1],b=run[i],ax=a.x??a.lx,az=a.z??a.lz,bx=b.x??b.lx,bz=b.z??b.lz;
+    const n=Math.max(1,Math.ceil(Math.hypot(bx-ax,bz-az)/10));
+    for(let k=1;k<=n;k++) {
+      const t=k/n,p={};for(const key of Object.keys(a))p[key]=a[key]+(b[key]-a[key])*t;output.push(p);
+    }
+  }return output;
+}
 function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
   const position = [], index = [];
   for (const row of rows) {
@@ -7039,9 +7167,9 @@ function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
       }
       for (const run of tileOutsideRuns(stations)) {
         const base = position.length / 3;
-        run.forEach(({ lx, lz, rx, rz }, n) => {
-          position.push(lx, TILE_GROUND_Y + height - earthDrop(lx, lz), lz,
-                        rx, TILE_GROUND_Y + height - earthDrop(rx, rz), rz);
+        (typeof NATURE!=="undefined"&&NATURE ? natureTileStations(run) : run).forEach(({ lx, lz, rx, rz }, n) => {
+          position.push(lx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(lx,lz) : TILE_GROUND_Y-earthDrop(lx,lz)) + height, lz,
+                        rx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(rx,rz) : TILE_GROUND_Y-earthDrop(rx,rz)) + height, rz);
           if (n) { const k = base + n * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
         });
       }
@@ -7054,7 +7182,7 @@ function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
                       lon: lonOf(row[i]), lat: latOf(row[i + 1]) });
     }
     for (const run of tileOutsideRuns(stations)) {
-      const pts = run.map(({ x, z }) => [x, z]);
+      const pts = (typeof NATURE!=="undefined"&&NATURE ? natureTileStations(run) : run).map(({ x, z }) => [x, z]);
       // Every road in the tile goes into one buffer, so a road's triangles are indexed from
       // where its own vertices start. Indexed from zero -- which is what this did -- the
       // first road was a road and all the rest were slivers stitched back to its first two.
@@ -7066,8 +7194,8 @@ function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
         const nx = -dz / len * width / 2, nz = dx / len * width / 2;
         const lx = pts[i][0] + nx, lz = pts[i][1] + nz;
         const rx = pts[i][0] - nx, rz = pts[i][1] - nz;
-        position.push(lx, TILE_GROUND_Y + height - earthDrop(lx, lz), lz,
-                      rx, TILE_GROUND_Y + height - earthDrop(rx, rz), rz);
+        position.push(lx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(lx,lz) : TILE_GROUND_Y-earthDrop(lx,lz)) + height, lz,
+                      rx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(rx,rz) : TILE_GROUND_Y-earthDrop(rx,rz)) + height, rz);
         if (i) { const k = base + i * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
       }
     }
@@ -7097,7 +7225,7 @@ function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMater
                                    [halfAlong, halfAcross], [-halfAlong, halfAcross]]) {
       const x = cx + ux * along + nx * across;
       const z = cz + uz * along + nz * across;
-      position.push(x, TILE_GROUND_Y + y - earthDrop(x, z), z);
+      position.push(x, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(x,z) : TILE_GROUND_Y-earthDrop(x,z)) + y, z);
     }
     index.push(base, base + 1, base + 2, base, base + 2, base + 3);
     return base;
@@ -18545,6 +18673,9 @@ function walkerGroundInfo(x, z, referenceY) {
   // their hills: the walker went on at the edge's height, under them. There it stands on what
   // is drawn.
   if (outsideTerrainGrid(x, z)) {
+    if (typeof NATURE !== "undefined" && NATURE && !guest) {
+      return natureWorld?.groundInfoAt(x,z) ?? {y:lifted-earthDrop(x,z),kind:"terrain"};
+    }
     const drawn = drawnGroundAt(x, z);
     if (drawn !== null) return { y: Math.max(lifted, drawn), kind: "terrain" };
   }
@@ -26404,6 +26535,8 @@ function constrainWorldCamera() {
     ? occupiedApproachAt(camera.position.x,camera.position.z,feet) : null;
   if(cameraCut && camera.position.y>=cameraCut.y+.35 && camera.position.y<cameraCut.y+3.2)return;
   let surface=groundLiftAt(camera.position.x,camera.position.z);
+  if(typeof NATURE!=="undefined" && NATURE && outsideTerrainGrid(camera.position.x,camera.position.z))
+    surface=natureWorld?.groundAt(camera.position.x,camera.position.z) ?? surface-earthDrop(camera.position.x,camera.position.z);
   if(typeof outsideTerrainGrid === "function" && outsideTerrainGrid(camera.position.x,camera.position.z)) {
     const drawn=drawnGroundAt(camera.position.x,camera.position.z);
     if(Number.isFinite(drawn))surface=Math.max(surface,drawn);
@@ -27210,13 +27343,16 @@ function groundAt(clientX, clientY) {
   // The ground is the terrain where there is one -- a click on Russian Hill lands on the
   // hill, not on the sea-level plane under it -- and the flat plane elsewhere.
   if (terrainMesh) {
+    const natureGround = natureWorld ? [...natureWorld.terrain.children] : [];
     const hits = ray.intersectObjects(activeGuest && activeGuest.ready
-      ? [...terrainTiles, ...activeGuest.api.terrainTiles] : terrainTiles, false);
-    const visibleHits=hits.filter(h=>h.distance<blocker-.01 && !pointInTunnelVoid(h.point.x,h.point.y,h.point.z));
+      ? [...terrainTiles, ...activeGuest.api.terrainTiles, ...natureGround] : [...terrainTiles,...natureGround], false);
+    const visibleHits=hits.filter(h=>h.distance<blocker-.01 && !pointInTunnelVoid(h.point.x,h.point.y,h.point.z)
+      && (!natureWorld || natureWorld.isVisibleGroundHit(h)));
     if (visibleHits.length) {
       if(tunnelHits.length && tunnelHits[0].distance<visibleHits[0].distance)return tunnelHits[0].point.clone();
       const hit = visibleHits[0].point.clone();
-      hit.y += TERRAIN_MESH_UNDER_M;
+      hit.y = visibleHits[0].object.userData.surface==="nature_terrain"
+        ? natureWorld.groundAt(hit.x,hit.z) ?? hit.y : hit.y + TERRAIN_MESH_UNDER_M;
       return hit;
     }
   }
@@ -31705,6 +31841,7 @@ function animate(now) {
   const progress = document.getElementById("progress");
   if (progress && !progress.hidden) progress.hidden = true;
   markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
+  if(natureWorld?.tick(now))lastMovedAt=now;
   stepAvatar(now);
   updateCompass(now);
   if (frameCount % 30 === 0) updateRouteWidth();
@@ -31718,6 +31855,11 @@ function animate(now) {
   }
   if (activeGuest && activeGuest.ready) guestFrame(now);
   updateTileTree(now);
+  if(natureWorld && (frameCount===1 || frameCount%20===0)) {
+    natureWorld.hostBox.value.copy(hostWorldActive ? natureWorld.localBounds : new THREE.Vector4(1,1,0,0));
+    const focus=state.firstPerson ? avatar.position : state.target;
+    natureWorld.update(focus.x,focus.z);
+  }
   keepMarkersFindable();
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
@@ -32858,6 +33000,7 @@ function invalidateTilesTouching(boxes) {
 //: This page's own region let go: everything of its world but the tile tree, the walker, and
 //: the country and bridges round the whole Bay; the atlas fills the hole its ground leaves.
 function releaseHostWorld() {
+  if(natureWorld){natureWorld.hostBox.value.set(1,1,0,0);natureWorld.invalidate();}
   if (!hostWorldActive) return;
   hostWorldActive = false;
   for (const child of [...root.children]) {
@@ -32948,7 +33091,7 @@ async function attachRegion(region) {
     // The region left behind is let go first: the page holds one region's detail at a time,
     // and the simple city stands in while the next is built.
     if (hostWorldActive) releaseHostWorld();
-    if (previous) { releaseGuest(previous); activeGuest = null; }
+    if (previous) { releaseGuest(previous); activeGuest = null; natureWorld?.invalidate(); }
     indoorCut.guestBox.value.set(1, 1, 0, 0);
     TILE_OWN_BOX = null;
     invalidateTilesTouching([previousBox]);
@@ -32971,6 +33114,7 @@ async function attachRegion(region) {
     const holder = { region, ready: false };
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
+      natureBacked:Boolean(NATURE),
       document: stand.document, window: stand.window,
       onRoot(groupRoot) {
         holder.root = groupRoot;
@@ -33008,6 +33152,7 @@ async function attachRegion(region) {
     holder.ready = true;
     holder.root.visible = true;
     activeGuest = holder;
+    natureWorld?.invalidate();
     // The tree draws the simple city everywhere but here, and the country under it gives way.
     const b = api.bbox;
     TILE_OWN_BOX = [b.west, b.south, b.east, b.north];
@@ -33078,6 +33223,13 @@ window.kerbsideGuestApi = {
   // The ground this world draws, in its own metres: its terrain grid and the apron round it.
   groundBox: TERRAIN_FRAME ? (() => {
     const f = TERRAIN_FRAME;
+    if(ATTACH?.natureBacked) {
+      const stride=TERRAIN_MESH_STRIDE;
+      const a=terrainToPage(f.x0+.5*f.step_m,f.y0+.5*f.step_m,f);
+      const b=terrainToPage(f.x0+(Math.floor((f.cols-1)/stride)*stride+.5)*f.step_m,
+        f.y0+(Math.floor((f.rows-1)/stride)*stride+.5)*f.step_m,f);
+      return [a[0],b[1],b[0],a[1]];
+    }
     const corners = [[f.x0 - TERRAIN_APRON_M, f.y0 - TERRAIN_APRON_M],
                      [f.x0 + f.cols * f.step_m + TERRAIN_APRON_M, f.y0 + f.rows * f.step_m + TERRAIN_APRON_M]]
       .map(([e, n]) => terrainToPage(e, n, f));
