@@ -364,3 +364,14 @@ returnToGps();console.log(JSON.stringify({feet:avatar.position.y-AVATAR_STAND_Y,
     source = _page_js()
     for name in ("startGps", "returnToGps", "followGps"):
         assert "groundLiftAt(gps.target.x,gps.target.z)" in _extract(name, source)
+
+
+def test_attached_region_preserves_occupied_level_and_surface_kind_in_host_frame():
+    result = run("""
+let received;
+const guest={oy:100,api:{walkerGroundInfo(x,z,y){received=[x,z,y];return {y:12,kind:'tunnel'};}}};
+function guestUnder(){return guest;}
+function hostToGuest(g,x,z){return [x-200,z-300];}
+console.log(JSON.stringify({info:walkerGroundInfo(205,307,112),received}));
+""", "walkerGroundInfo")
+    assert result == {"info": {"y": 112, "kind": "tunnel"}, "received": [5, 7, 12]}

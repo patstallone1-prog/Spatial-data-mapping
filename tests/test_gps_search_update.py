@@ -26,6 +26,7 @@ def test_the_walker_walks_toward_where_you_are_and_jumps_when_far() -> None:
         const state = { target: new V() };
         const held = new Set();
         const walkerGroundAt = () => 0;
+        const groundLiftAt = () => 0;
         function placeCamera() {}
         function animateAvatar(d, dir, moving) { if (moving) avatar.rotation.y = Math.atan2(dir.x, dir.z); }
         const gps = { target: new V(10, 0, 0), heading: null, follow: true };

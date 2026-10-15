@@ -33,6 +33,7 @@ const held = new Set();
 const AVATAR_STAND_Y = 1, EXPLORE_SPEED_PER_M = 0.8, EXPLORE_SPEED_MIN = 8;
 const document = { getElementById: () => ({ setAttribute() {} }) };
 function walkerGroundAt() { return 0; }
+function groundLiftAt() { return 0; }
 function walkerExteriorAt(x, z) { return { x: x + 1, z }; }   // the nearest open ground
 function placeCamera() {}
 function setFirstPerson(on) { state.firstPerson = on; }

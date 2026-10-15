@@ -71,9 +71,12 @@ surface-above selection, portal transitions, fence-base agreement and sampled
 unclipped fragments in pedestrian headroom. The obstruction probe is separate
 from the floor check: a correct floor can still have a slab above it.
 
-`tests/test_tunnel_ground_safety.py` adds 25 focused regressions. The selected
+`tests/test_tunnel_ground_safety.py` adds 26 focused regressions. The selected
 tunnel, walking/interior, terrain, bridge, movement and curb-width suites passed
-200 tests locally, plus seven release-sync/recovery tests. Extracted app JavaScript also passes Node syntax validation;
+201 tests locally, plus seven release-sync/recovery tests. Existing isolated
+explore/GPS/gate harnesses also load their new dependencies and check actual
+indexed fence panels; the cross-region check retains occupied-level semantics.
+Extracted app JavaScript also passes Node syntax validation;
 new/changed test and preview-tool Python passes Ruff. Full required CI remains
 the release gate; it is not replaced by these local checks.
 
