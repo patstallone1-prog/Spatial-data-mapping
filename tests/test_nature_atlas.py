@@ -103,6 +103,27 @@ def test_nature_water_colour_matches_the_canonical_city_water_material():
     assert "const TERRAIN_SEA = new THREE.Color(0x2c6187);" in _page_js()
 
 
+def test_non_city_cover_uses_source_class_and_retains_no_atlas_fallback():
+    result = node(
+        """
+const midLon=0,midLat=0,metersPerLon=1,metersPerLat=1;
+const TERRAIN_PLATE={legacyGrass:true},natureLibrary=n;
+const THREE={Color:class{setRGB(...rgb){return rgb;}}};
+function inCity(){return false;}
+let cover=42,NATURE={local:(...p)=>p,sample:()=>({cover})};
+"""
+        + _extract("terrainLandColourAt", _page_js())
+        + """
+const forest=terrainLandColourAt(1,2);cover=71;const grass=terrainLandColourAt(1,2);
+NATURE.sample=()=>null;const missingPixel=terrainLandColourAt(1,2)===TERRAIN_PLATE;
+NATURE=null;const absent=terrainLandColourAt(1,2)===TERRAIN_PLATE;
+console.log(JSON.stringify({forest:JSON.stringify(forest)===JSON.stringify(n.linearColour([.20,.29,.20])),
+ distinct:JSON.stringify(forest)!==JSON.stringify(grass),missingPixel,absent}));
+"""
+    )
+    assert result == {"forest": True, "distinct": True, "missingPixel": True, "absent": True}
+
+
 def test_picking_rejects_hidden_coarse_and_city_owned_landscape():
     result = node("""
 const box={x:0,y:0,z:10,w:10};

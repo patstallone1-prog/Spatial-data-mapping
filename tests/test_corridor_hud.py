@@ -60,9 +60,9 @@ def test_click_moves_and_right_click_has_distant_safe_landing():
     # Past the last street: plain grass at once, no grey fade and no grey town.
     assert 'const colour = sandy ? TERRAIN_SAND : TERRAIN_PLATE;' in source
     assert 'TERRAIN_APRON_COLOUR_M' not in source
-    # Past the last street, inside the survey too: grass, and the apron's inner edge is grass,
-    # so no grey is blended into the green over the first apron cell.
-    assert 'if (!inCity(x, z)) return TERRAIN_PLATE;' in source
+    # Past the last street: source-classified nature, or grass when no atlas is available.
+    # The separate behavioural nature test verifies both paths without requiring flat grass.
+    assert 'return colour ? new THREE.Color().setRGB(...natureLibrary.linearColour(colour)) : TERRAIN_PLATE;' in source
     assert 'const shade = apronOf && at.colour !== TERRAIN_SEA && at.colour !== TERRAIN_SAND ? TERRAIN_PLATE : at.colour;' in source
 
 
