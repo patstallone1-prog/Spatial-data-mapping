@@ -33,6 +33,11 @@ export function visibleNatureGround(x,z,coarse,boxes,fineActive) {
   if(boxes.some(b=>b && x>b.x && x<b.z && z>b.y && z<b.w))return false;
   return !coarse || !fineActive;
 }
+export function pathTileCoordinates(key) {
+  const match=/^(-?\d+)-(-?\d+)$/.exec(key);
+  if(!match)throw new Error(`Invalid landscape path tile: ${key}`);
+  return [Number(match[1]),Number(match[2])];
+}
 export const COVER_COLOURS = {
   0:[.36,.34,.29], 11:[.10,.25,.33], 12:[.83,.85,.84],
   21:[.34,.38,.28],22:[.43,.43,.37],23:[.43,.43,.40],24:[.40,.40,.38],
@@ -388,7 +393,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(650.,850.
     const file=pathsManifest.tiles[key];
     if(!file){pathTiles.set(key,{ways:[],grid:new Map()});return;}
     const data=JSON.parse(new TextDecoder().decode(await decodedAsset(atlas.resolve,file)));data.grid=new Map();
-    const [tc,tr]=key.split('-').map(Number);
+    const [tc,tr]=pathTileCoordinates(key);
     const insert=(entry,x0,y0,x1,y1)=>{
       x0=Math.max(x0,tc*4000);y0=Math.max(y0,tr*4000);
       x1=Math.min(x1,(tc+1)*4000-.001);y1=Math.min(y1,(tr+1)*4000-.001);

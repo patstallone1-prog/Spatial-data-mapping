@@ -108,6 +108,14 @@ console.log(JSON.stringify({city:n.visibleNatureGround(5,5,false,[box],false),
     assert result == {"city": False, "fine": True, "hiddenCoarse": False, "coarse": True}
 
 
+def test_path_clearance_index_preserves_signed_outer_edge_tile_coordinates():
+    result = node("""
+console.log(JSON.stringify({north:n.pathTileCoordinates('9--1'),
+ west:n.pathTileCoordinates('-1-5'),corner:n.pathTileCoordinates('-1--2')}));
+""")
+    assert result == {"north": [9, -1], "west": [-1, 5], "corner": [-1, -2]}
+
+
 def test_fine_physics_uses_triangles_and_zero_residual_on_cell_edges():
     result = node("""
 const f={cols:101,rows:101},heights=new Int32Array(10201);
