@@ -156,9 +156,14 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
   const activeUniform={value:activeTexture};
   const colourPixels=new Uint8Array(f.cols*f.rows*4);
   for(let i=0;i<atlas.cover.length;i++){
-    const rgb=linearColour(COVER_COLOURS[atlas.cover[i]]||COVER_COLOURS[0]);
+    let cover=atlas.cover[i];
+    // NLCD's ocean/non-processing code is unknown, not brown land. Only an explicit
+    // mapped-water result may refine that unknown; never infer sea from low elevation.
+    if(cover===0){const p=toPage(...atlas.geographic(i%f.cols*f.step_m,Math.floor(i/f.cols)*f.step_m));
+      if(waterAt(...p,{water:false})===true)cover=11;}
+    const rgb=linearColour(COVER_COLOURS[cover]||COVER_COLOURS[0]);
     for(let k=0;k<3;k++)colourPixels[i*4+k]=Math.round(rgb[k]*255);
-    colourPixels[i*4+3]=atlas.cover[i]===11?255:0;
+    colourPixels[i*4+3]=cover===11?255:0;
   }
   const coverTexture=new THREE.DataTexture(colourPixels,f.cols,f.rows,THREE.RGBAFormat);
   coverTexture.needsUpdate=true;coverTexture.minFilter=coverTexture.magFilter=THREE.LinearFilter;
