@@ -97,6 +97,12 @@ console.log(JSON.stringify({height:n.coarseHeight(data,f,120,40),
     assert result == {"height": 25, "missing": None, "canopy": 50}
 
 
+def test_nature_water_colour_matches_the_canonical_city_water_material():
+    result = node("console.log(JSON.stringify(n.COVER_COLOURS[11].map(v=>Math.round(v*255))));")
+    assert result == [44, 97, 135]
+    assert "const TERRAIN_SEA = new THREE.Color(0x2c6187);" in _page_js()
+
+
 def test_picking_rejects_hidden_coarse_and_city_owned_landscape():
     result = node("""
 const box={x:0,y:0,z:10,w:10};

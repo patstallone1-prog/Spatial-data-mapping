@@ -39,7 +39,7 @@ export function pathTileCoordinates(key) {
   return [Number(match[1]),Number(match[2])];
 }
 export const COVER_COLOURS = {
-  0:[.36,.34,.29], 11:[.10,.25,.33], 12:[.83,.85,.84],
+  0:[.36,.34,.29], 11:[44/255,97/255,135/255], 12:[.83,.85,.84],
   21:[.34,.38,.28],22:[.43,.43,.37],23:[.43,.43,.40],24:[.40,.40,.38],
   31:[.52,.48,.39],41:[.26,.34,.20],42:[.20,.29,.20],43:[.24,.32,.19],
   52:[.45,.44,.28],71:[.50,.48,.29],81:[.44,.46,.25],82:[.43,.42,.25],
@@ -148,7 +148,7 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
   const f=atlas.f,detailMeshes=new Map(),plantGroups=new Map(),pending=new Set(),pathTiles=new Map();
   const stats={source:"3DEP + Annual NLCD 2024 + USFS TCC 2024",inferred:true,trees:0,shrubs:0,rocks:0,trails:0,errors:[]};
   let pathsManifest=null,lastX=Infinity,lastY=Infinity,working=false,forceVersion=0,builtVersion=0;
-  const material=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1});
+  const material=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,envMapIntensity:.5});
   const maskCols=Math.ceil((f.cols-1)*f.step_m/2000),maskRows=Math.ceil((f.rows-1)*f.step_m/2000);
   const activeTexture=new THREE.DataTexture(new Uint8Array(maskCols*maskRows),maskCols,maskRows,THREE.RedFormat);
   activeTexture.needsUpdate=true;activeTexture.magFilter=THREE.NearestFilter;activeTexture.minFilter=THREE.NearestFilter;
@@ -158,7 +158,7 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
   for(let i=0;i<atlas.cover.length;i++){
     const rgb=linearColour(COVER_COLOURS[atlas.cover[i]]||COVER_COLOURS[0]);
     for(let k=0;k<3;k++)colourPixels[i*4+k]=Math.round(rgb[k]*255);
-    colourPixels[i*4+3]=255;
+    colourPixels[i*4+3]=atlas.cover[i]===11?255:0;
   }
   const coverTexture=new THREE.DataTexture(colourPixels,f.cols,f.rows,THREE.RGBAFormat);
   coverTexture.needsUpdate=true;coverTexture.minFilter=coverTexture.magFilter=THREE.LinearFilter;
@@ -175,31 +175,35 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
       shader.uniforms.uNatureHost=hostBox || {value:new THREE.Vector4(1,1,0,0)};
       if(!coarse){shader.uniforms.uNatureCoast={value:m.userData.coastTexture};
         shader.uniforms.uNatureCoastBounds={value:m.userData.coastBounds};}
-      shader.vertexShader=shader.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vNatureWorld;"+(coarse?"":"\nattribute float natureOldY;uniform float uNatureMorph;"))
-        .replace('#include <begin_vertex>','#include <begin_vertex>'+(coarse?'':'\ntransformed.y=mix(natureOldY,transformed.y,uNatureMorph);'))
+      shader.vertexShader=shader.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vNatureWorld;"+(coarse?"":"\nattribute float natureOldY;attribute float natureWater;varying float vNatureWater;uniform float uNatureMorph;"))
+        .replace('#include <begin_vertex>','#include <begin_vertex>'+(coarse?'':'\ntransformed.y=mix(natureOldY,transformed.y,uNatureMorph);vNatureWater=natureWater;'))
         .replace("#include <project_vertex>","#include <project_vertex>\nvNatureWorld=(modelMatrix*vec4(transformed,1.0)).xyz;");
       shader.fragmentShader=shader.fragmentShader.replace("#include <common>",`#include <common>
 varying vec3 vNatureWorld;
 uniform sampler2D uNatureActive;uniform sampler2D uNatureCover;uniform vec2 uNatureOrigin;uniform vec2 uNatureScale;uniform vec4 uNatureGuest;uniform vec4 uNatureHost;
-${coarse?'':'uniform sampler2D uNatureCoast;uniform vec4 uNatureCoastBounds;'}
+${coarse?'':'uniform sampler2D uNatureCoast;uniform vec4 uNatureCoastBounds;varying float vNatureWater;'}
 float natureHash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
 float natureNoise(vec2 p){vec2 i=floor(p),a=fract(p);a=a*a*(3.0-2.0*a);return mix(mix(natureHash(i),natureHash(i+vec2(1,0)),a.x),mix(natureHash(i+vec2(0,1)),natureHash(i+vec2(1,1)),a.x),a.y);}`)
         .replace("#include <color_fragment>",`#include <color_fragment>
 if(vNatureWorld.x>uNatureGuest.x&&vNatureWorld.x<uNatureGuest.z&&vNatureWorld.z>uNatureGuest.y&&vNatureWorld.z<uNatureGuest.w)discard;
 if(vNatureWorld.x>uNatureHost.x&&vNatureWorld.x<uNatureHost.z&&vNatureWorld.z>uNatureHost.y&&vNatureWorld.z<uNatureHost.w)discard;
 ${coarse?`if(texture2D(uNatureActive,(floor((vNatureWorld.xz-uNatureOrigin)/uNatureScale)+.5)/vec2(${maskCols}.,${maskRows}.)).r>.5)discard;`:""}
-${coarse?`diffuseColor.rgb*=texture2D(uNatureCover,(((vNatureWorld.xz-uNatureOrigin)/uNatureScale)*50.+.5)/vec2(${f.cols}.,${f.rows}.)).rgb;`:""}
+${coarse?`vec4 sourceCover=texture2D(uNatureCover,(((vNatureWorld.xz-uNatureOrigin)/uNatureScale)*50.+.5)/vec2(${f.cols}.,${f.rows}.));
+diffuseColor.rgb*=sourceCover.rgb;float natureWet=sourceCover.a;`:'float natureWet=vNatureWater;'}
 ${coarse?'':`vec2 coastUV=(vNatureWorld.xz-uNatureCoastBounds.xy)/uNatureCoastBounds.zw;
 vec4 coast=texture2D(uNatureCoast,coastUV);
 if(coast.b>.99){
   float wet=smoothstep(.4975,.5025,coast.r);
+  natureWet=wet;
   vec3 dry=mix(diffuseColor.rgb,vec3(${linearColour(COVER_COLOURS.sand).join(',')}),smoothstep(.45,.55,coast.g));
   diffuseColor.rgb=mix(dry,vec3(${linearColour(COVER_COLOURS[11]).join(',')}),wet);
 }`}
 float soil=natureNoise(vNatureWorld.xz*.045),grain=natureNoise(vNatureWorld.xz*3.7);
-diffuseColor.rgb*=.89+.16*soil+.10*grain;
+diffuseColor.rgb*=mix(.89+.16*soil+.10*grain,1.,natureWet);
 // World-space fine grains, not a repeated image stamp or a 100 m tile texture.
-diffuseColor.rgb+=vec3(.025,.018,.008)*(grain-.5);`);
+diffuseColor.rgb+=vec3(.025,.018,.008)*(grain-.5)*(1.-natureWet);`)
+        .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(1.,.62,natureWet);')
+        .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=.04*natureWet;');
     };
     m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-v2-${coarse}`;return m;
   }
@@ -222,13 +226,13 @@ diffuseColor.rgb+=vec3(.025,.018,.008)*(grain-.5);`);
     return {...s,water:wet,p,height,natural,coastSigned:coastWater===null?null:(coastWater?1:-1)*coastDistance};
   };
   function groundMesh(x0,y0,x1,y1,step,mat){
-    const nx=Math.ceil((x1-x0)/step),ny=Math.ceil((y1-y0)/step),P=[],C=[],I=[],old=[];
+    const nx=Math.ceil((x1-x0)/step),ny=Math.ceil((y1-y0)/step),P=[],C=[],I=[],old=[],wet=[];
     const coast=mat.vertexColors?new Uint8Array((nx+1)*(ny+1)*4):null;
     for(let r=0;r<=ny;r++)for(let c=0;c<=nx;c++){
       const x=Math.min(x1,x0+step*c),y=Math.min(y1,y0+step*r),s=surface(x,y,true,!mat.vertexColors);
       const base=s.water?COVER_COLOURS[11]:s.natural==="beach" ? COVER_COLOURS.sand : COVER_COLOURS[s.cover]||COVER_COLOURS[0];
       P.push(s.p[0],s.height-.035,s.p[1]);C.push(...linearColour(base));
-      if(mat.vertexColors)old.push(surface(x,y,false,true).height-.035);
+      if(mat.vertexColors){old.push(surface(x,y,false,true).height-.035);wet.push(s.water?1:0);}
       if(coast){const i=(r*(nx+1)+c)*4;
         coast[i]=s.coastSigned===null?128:Math.round(127.5+Math.max(-100,Math.min(100,s.coastSigned))*1.275);
         coast[i+1]=s.natural==='beach'?255:0;coast[i+2]=s.coastSigned===null?0:255;coast[i+3]=255;}
@@ -238,7 +242,8 @@ diffuseColor.rgb+=vec3(.025,.018,.008)*(grain-.5);`);
       const a=r*(nx+1)+c,b=a+1,d=a+nx+1,e=d+1;I.push(a,b,e,a,e,d);
     }
     const geometry=new THREE.BufferGeometry();geometry.setAttribute("position",new THREE.Float32BufferAttribute(P,3));
-    if(old.length)geometry.setAttribute("natureOldY",new THREE.Float32BufferAttribute(old,1));
+    if(old.length){geometry.setAttribute("natureOldY",new THREE.Float32BufferAttribute(old,1));
+      geometry.setAttribute("natureWater",new THREE.Float32BufferAttribute(wet,1));}
     geometry.setAttribute("color",new THREE.Float32BufferAttribute(C,3));geometry.setIndex(I);geometry.computeVertexNormals();geometry.computeBoundingSphere();
     if(coast){const tex=new THREE.DataTexture(coast,nx+1,ny+1,THREE.RGBAFormat);tex.needsUpdate=true;
       tex.minFilter=tex.magFilter=THREE.LinearFilter;mat.userData.coastTexture=tex;

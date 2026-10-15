@@ -35,6 +35,8 @@ not new surveyed city geometry or a photogrammetric reconstruction.
   matching walker heights. Roads, buildings, courts and water exclude vegetation.
 - Mapped beach polygons and signed coastline distance remove the visibly stepped
   waterline produced by interpolating coarse land-cover colours alone.
+- Water colour, roughness and metalness match the existing city water; soil grain
+  is suppressed on water so regional ownership does not draw a rectangular colour seam.
 - The near ground uses nine resident 2 km cells, shared source edges, an 80 m
   boundary blend and a 600 ms height transition. Physics uses the rendered triangle
   convention. Picking rejects coarse terrain already hidden by fine or city terrain.
