@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import tomllib
 import urllib.error
 from dataclasses import replace
 from pathlib import Path
@@ -17,6 +18,16 @@ from smc.reconstruction.lidar_reference import LidarReference
 from smc.reconstruction.matching import Track, refine_tracks_subpixel
 from smc.reconstruction.matching_benchmark import evaluate
 from smc.reconstruction.multiview import Control, refine
+
+
+def test_optional_matcher_can_be_packaged_without_losing_source_pin():
+    root = Path(__file__).resolve().parents[1]
+    config = tomllib.loads((root / "pyproject.toml").read_text())
+    assert config["tool"]["hatch"]["metadata"]["allow-direct-references"]
+    assert (
+        "lightglue @ git+https://github.com/cvg/LightGlue.git@"
+        "eb42fee2d71449efb0aa5c10549752b5d75384d8"
+    ) in config["project"]["optional-dependencies"]["photo-matching"]
 
 
 def camera(i="a", x=0):
