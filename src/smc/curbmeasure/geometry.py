@@ -57,6 +57,11 @@ class Camera:
     k2: float
     width: int
     height: int
+    fy_px: float | None = None  # Preserve calibrated non-square pixels (e.g. PandaSet).
+
+    @property
+    def focal_y_px(self) -> float:
+        return self.focal_px if self.fy_px is None else self.fy_px
 
     @property
     def projection(self) -> np.ndarray:
@@ -84,7 +89,7 @@ class Camera:
         r2 = xn * xn + yn * yn
         distort = 1.0 + self.k1 * r2 + self.k2 * r2 * r2
         out[front, 0] = self.focal_px * distort * xn + self.principal[0]
-        out[front, 1] = self.focal_px * distort * yn + self.principal[1]
+        out[front, 1] = self.focal_y_px * distort * yn + self.principal[1]
         return out
 
     def ray(self, pixels: np.ndarray) -> np.ndarray:
@@ -96,7 +101,7 @@ class Camera:
         """
         px = np.atleast_2d(pixels).astype(np.float64)
         xn = (px[:, 0] - self.principal[0]) / self.focal_px
-        yn = (px[:, 1] - self.principal[1]) / self.focal_px
+        yn = (px[:, 1] - self.principal[1]) / self.focal_y_px
         x, y = xn.copy(), yn.copy()
         for _ in range(5):
             r2 = x * x + y * y

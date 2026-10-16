@@ -1,7 +1,8 @@
 """Small-window, fixed-calibration translation/landmark bundle adjustment.
 
 This is a diagnostic companion to full COLMAP BA, not a replacement. Sensor/SfM
-rotations and intrinsics are held fixed and explicitly reported. Data rank is
+rotations are held fixed by default; bounded rotation refinement is experimental
+and opt-in. Intrinsics always remain fixed. Data rank is
 checked before optimization, without damping/GNSS priors manufacturing certainty.
 Metric controls are independent, named fitting evidence, never test checkpoints.
 """
@@ -12,6 +13,7 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 from scipy.optimize import least_squares
+from scipy.spatial.transform import Rotation
 
 from smc.curbmeasure.geometry import Camera, triangulate
 from smc.reconstruction.matching import Track
@@ -63,10 +65,13 @@ def refine(
     tracks: list[Track],
     controls: list[Control],
     relations: list[Relation] | None = None,
+    *,
+    optimize_rotations: bool = False,
 ) -> dict:
     base = {
         "publishable": False,
-        "fixed_intrinsics_and_rotations": True,
+        "fixed_intrinsics_and_rotations": not optimize_rotations,
+        "fixed_intrinsics": True,
         "attempted_tracks": len(tracks),
         "optimization_attempted": False,
     }
@@ -82,7 +87,10 @@ def refine(
             or camera.rotation.shape != (3, 3)
             or not np.isfinite(camera.rotation).all()
             or camera.focal_px <= 0
-            or not np.isfinite([camera.focal_px, *camera.principal, camera.k1, camera.k2]).all()
+            or camera.focal_y_px <= 0
+            or not np.isfinite(
+                [camera.focal_px, camera.focal_y_px, *camera.principal, camera.k1, camera.k2]
+            ).all()
             or not np.allclose(camera.rotation @ camera.rotation.T, np.eye(3), atol=1e-5)
             or not np.isclose(np.linalg.det(camera.rotation), 1)
         ):
@@ -163,6 +171,7 @@ def refine(
     base["spatial_relation_conflicts"] = conflicts
     base["spatial_relations_used"] = len(kept)
     ncam = len(cameras)
+    point_offset = ncam * (6 if optimize_rotations else 3)
     camera_index = {c.image_id: i for i, c in enumerate(cameras)}
     observations = [
         (camera_index[k], i, np.asarray(px, float))
@@ -170,14 +179,26 @@ def refine(
         for k, px in t.pixels.items()
     ]
     start = np.concatenate(
-        [np.array([c.centre for c in cameras]).ravel(), np.array(initial).ravel()]
+        [
+            np.array([c.centre for c in cameras]).ravel(),
+            np.zeros(3 * ncam) if optimize_rotations else np.array([]),
+            np.array(initial).ravel(),
+        ]
     )
 
     def evaluate(x, with_metric=True):
-        centres, points = x[: ncam * 3].reshape(-1, 3), x[ncam * 3 :].reshape(-1, 3)
+        centres, points = x[: ncam * 3].reshape(-1, 3), x[point_offset:].reshape(-1, 3)
+        rotations = (
+            [
+                Rotation.from_rotvec(v).as_matrix() @ c.rotation
+                for c, v in zip(cameras, x[ncam * 3 : point_offset].reshape(-1, 3), strict=True)
+            ]
+            if optimize_rotations
+            else [c.rotation for c in cameras]
+        )
         residual, jacobian = [], []
         for ci, pi, px in observations:
-            camera = replace(cameras[ci], centre=centres[ci])
+            camera = replace(cameras[ci], centre=centres[ci], rotation=rotations[ci])
             projected = camera.project(points[pi])[0]
             residual.extend(np.nan_to_num(projected - px, nan=1e6))
             derivative = np.column_stack(
@@ -192,14 +213,28 @@ def refine(
             )
             row = np.zeros((2, len(x)))
             row[:, ci * 3 : ci * 3 + 3] = -np.nan_to_num(derivative)
-            row[:, (ncam + pi) * 3 : (ncam + pi + 1) * 3] = np.nan_to_num(derivative)
+            row[:, point_offset + pi * 3 : point_offset + (pi + 1) * 3] = np.nan_to_num(derivative)
+            if optimize_rotations:
+                angles = x[ncam * 3 + ci * 3 : ncam * 3 + (ci + 1) * 3]
+                for d in range(3):
+                    plus = Rotation.from_rotvec(angles + np.eye(3)[d] * 1e-6).as_matrix()
+                    minus = Rotation.from_rotvec(angles - np.eye(3)[d] * 1e-6).as_matrix()
+                    derivative_angle = (
+                        replace(camera, rotation=plus @ cameras[ci].rotation).project(points[pi])[0]
+                        - replace(camera, rotation=minus @ cameras[ci].rotation).project(
+                            points[pi]
+                        )[0]
+                    ) / 2e-6
+                    row[:, ncam * 3 + ci * 3 + d] = np.nan_to_num(derivative_angle)
             jacobian.extend(row)
         if with_metric:
             for control in controls:
                 pi = ids[control.track_id]
                 residual.extend((points[pi] - control.xyz) / control.sigma_m)
                 row = np.zeros((3, len(x)))
-                row[:, (ncam + pi) * 3 : (ncam + pi + 1) * 3] = np.eye(3) / control.sigma_m
+                row[:, point_offset + pi * 3 : point_offset + (pi + 1) * 3] = (
+                    np.eye(3) / control.sigma_m
+                )
                 jacobian.extend(row)
             for r in kept:
                 a, b = ids[r.a], ids[r.b]
@@ -210,8 +245,8 @@ def refine(
                 sigma = np.hypot(r.sigma_m, r.transfer_sigma_m)
                 residual.append((distance - r.distance_m) / sigma)
                 row = np.zeros(len(x))
-                row[(ncam + a) * 3 : (ncam + a + 1) * 3] = delta / distance / sigma
-                row[(ncam + b) * 3 : (ncam + b + 1) * 3] = -delta / distance / sigma
+                row[point_offset + a * 3 : point_offset + (a + 1) * 3] = delta / distance / sigma
+                row[point_offset + b * 3 : point_offset + (b + 1) * 3] = -delta / distance / sigma
                 jacobian.append(row)
         return np.array(residual), np.array(jacobian)
 
@@ -220,8 +255,13 @@ def refine(
     base.update({"visual_observability": visual_rank, "metric_observability": anchored_rank})
     # Known rotations leave a four-dimensional translation/scale gauge. Extra
     # null directions are visual degeneracy; priors must not silently repair it.
-    if visual_rank["nullity"] > 4 or anchored_rank["nullity"]:
+    if visual_rank["nullity"] > (7 if optimize_rotations else 4) or anchored_rank["nullity"]:
         return {**base, "status": "unobservable"}
+    lower, upper = np.full(len(start), -np.inf), np.full(len(start), np.inf)
+    if optimize_rotations:
+        # Hard physical limits are not residual priors and do not add data rank.
+        lower[ncam * 3 : point_offset] = -np.deg2rad(2)
+        upper[ncam * 3 : point_offset] = np.deg2rad(2)
     fit = least_squares(
         lambda x: evaluate(x)[0],
         start,
@@ -230,16 +270,23 @@ def refine(
         f_scale=1.5,
         max_nfev=100,
         x_scale="jac",
+        bounds=(lower, upper),
     )
     base["optimization_attempted"] = True
     centres = fit.x[: ncam * 3].reshape(-1, 3)
-    points = fit.x[ncam * 3 :].reshape(-1, 3)
+    points = fit.x[point_offset:].reshape(-1, 3)
+    rotations = (
+        [
+            Rotation.from_rotvec(v).as_matrix() @ c.rotation
+            for c, v in zip(cameras, fit.x[ncam * 3 : point_offset].reshape(-1, 3), strict=True)
+        ]
+        if optimize_rotations
+        else [c.rotation for c in cameras]
+    )
     residual, jac = evaluate(fit.x)
     pixel_errors = np.linalg.norm(residual[: 2 * len(observations)].reshape(-1, 2), axis=1)
     after = rank_report(jac)
-    front = all(
-        (cameras[ci].rotation @ (points[pi] - centres[ci]))[2] > 0 for ci, pi, _ in observations
-    )
+    front = all((rotations[ci] @ (points[pi] - centres[ci]))[2] > 0 for ci, pi, _ in observations)
     # Every observation must agree. A low median cannot conceal a bad track/view.
     accepted = bool(
         fit.success
@@ -247,6 +294,7 @@ def refine(
         and after["nullity"] == 0
         and np.max(pixel_errors) <= 5
         and np.max(np.abs(residual[2 * len(observations) :]), initial=0) <= 4
+        and not np.any(fit.active_mask)
     )
     return {
         **base,
@@ -272,6 +320,7 @@ def refine(
             {
                 "cameras": {c.image_id: centres[i].tolist() for i, c in enumerate(cameras)},
                 "points": {t.track_id: points[i].tolist() for i, t in enumerate(usable)},
+                "rotations": {c.image_id: rotations[i].tolist() for i, c in enumerate(cameras)},
             }
             if accepted
             else {}

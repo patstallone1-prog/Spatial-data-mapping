@@ -29,7 +29,9 @@ from smc.reconstruction.matching_benchmark import evaluate  # noqa: E402
 from smc.reconstruction.multiview import Control, Relation, refine  # noqa: E402
 
 
-def experiment():
+def experiment(threshold_m: float = 0.15):
+    if not np.isfinite(threshold_m) or threshold_m <= 0:
+        raise ValueError("positive frozen benchmark threshold required")
     cases, fitting, baseline, refined, spatial = [], {}, {}, {}, {}
     problems = {}
     for case in range(8):
@@ -88,10 +90,12 @@ def experiment():
     # Freeze the complete denominator and independent truth BEFORE solving any case.
     manifest = {
         "schema_version": 1,
-        "benchmark_id": "multiview-analytic-v1",
+        "benchmark_id": "multiview-analytic-v1"
+        if threshold_m == 0.15
+        else f"multiview-analytic-v1-{threshold_m:g}m",
         "purpose": "synthetic_regression_only",
         "coordinate_frame": "local_ENU_m",
-        "threshold_m": 0.15,
+        "threshold_m": threshold_m,
         "cases": cases,
     }
     for case_id, (noisy, tracks, controls, points) in problems.items():
@@ -147,8 +151,9 @@ def experiment():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--threshold-m", type=float, default=0.15)
     args = parser.parse_args()
-    report = experiment()
+    report = experiment(args.threshold_m)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
     for name, values in report["reports"].items():

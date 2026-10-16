@@ -1,0 +1,439 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "pandaset-real-photo-lidar-v1",
+  "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+  "coordinate_frame": "pandaset_sequence_world_m",
+  "threshold_m": 0.05,
+  "target_success_rate": 0.25,
+  "frames": [
+    10,
+    12,
+    14
+  ],
+  "fitting_lidar_frame": 10,
+  "heldout_lidar_frame": 12,
+  "cases": [
+    {
+      "case_id": "018-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "018-front-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "019-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "019-front-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "027-right",
+      "checkpoints": [
+        {
+          "track_id": "track-000000",
+          "xyz": [
+            -6.870974860628019,
+            -16.965571922754805,
+            1.346416948692394
+          ],
+          "plane_rms_m": 0.014521727244764745,
+          "returns": 29,
+          "semantic_class": 41,
+          "range_m": 12.510379923561276,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000002",
+          "xyz": [
+            -6.390298394016474,
+            -15.517783558435557,
+            1.7188764142103448
+          ],
+          "plane_rms_m": 0.00805122924476601,
+          "returns": 48,
+          "semantic_class": 41,
+          "range_m": 11.06067153546669,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        }
+      ]
+    },
+    {
+      "case_id": "027-front-right",
+      "checkpoints": [
+        {
+          "track_id": "track-000001",
+          "xyz": [
+            -6.38596501438485,
+            -15.548283041190455,
+            1.7332592554845903
+          ],
+          "plane_rms_m": 0.00852773748524589,
+          "returns": 35,
+          "semantic_class": 41,
+          "range_m": 10.655147511434969,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000005",
+          "xyz": [
+            -6.359739917578556,
+            -15.655696257085875,
+            0.8963861145978409
+          ],
+          "plane_rms_m": 0.008297997202987996,
+          "returns": 36,
+          "semantic_class": 41,
+          "range_m": 10.744861222497333,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        }
+      ]
+    },
+    {
+      "case_id": "001-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "001-front-right",
+      "checkpoints": []
+    }
+  ],
+  "selection_rule": "fixed sequence/camera/frame list before download or error inspection; all eight cases retained",
+  "fit_control_count": 3,
+  "checkpoint_count": 8,
+  "min_surface_range_m": 3,
+  "max_surface_range_m": 20,
+  "source_license": "CC-BY-4.0",
+  "attribution": "Hesai and Scale AI, PandaSet, CC BY 4.0",
+  "absolute_5cm_claim_permitted": false,
+  "source_acquisition_sha256": "7f142629d4a8b3da392cba8769f81c8aee6cadd6a83fc74387c07400e816a30d",
+  "fitting_sources": {
+    "019-right": {
+      "controls": []
+    },
+    "019-front-right": {
+      "controls": []
+    },
+    "027-right": {
+      "controls": [
+        {
+          "track_id": "track-000001",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000012",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000013",
+          "source_id": "pandaset/027/lidar/10"
+        }
+      ]
+    },
+    "027-front-right": {
+      "controls": [
+        {
+          "track_id": "track-000000",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000027",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000024",
+          "source_id": "pandaset/027/lidar/10"
+        }
+      ]
+    },
+    "001-right": {
+      "controls": []
+    },
+    "001-front-right": {
+      "controls": []
+    }
+  },
+  "diagnostics": {
+    "019-right": {
+      "matching": {
+        "backend": "OpenCV SIFT CPU pilot; production uses ALIKED/LightGlue",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "019-right-10",
+            "019-right-12"
+          ],
+          [
+            "019-right-10",
+            "019-right-14"
+          ],
+          [
+            "019-right-12",
+            "019-right-14"
+          ]
+        ],
+        "overlap_groups": [
+          [
+            "019-right-10",
+            "019-right-12",
+            "019-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 11,
+        "three_view_tracks": 11,
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 0,
+      "reference_frame": "019-right-10",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/019/camera/right_camera/10.jpg",
+        "pandaset/019/camera/right_camera/12.jpg",
+        "pandaset/019/camera/right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.22387345679012347,
+        0.23017746913580248,
+        0.24763117283950617
+      ]
+    },
+    "019-front-right": {
+      "matching": {
+        "backend": "OpenCV SIFT CPU pilot; production uses ALIKED/LightGlue",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "019-front-right-10",
+            "019-front-right-12"
+          ]
+        ],
+        "overlap_groups": [
+          [
+            "019-front-right-10",
+            "019-front-right-12"
+          ],
+          [
+            "019-front-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 0,
+        "three_view_tracks": 0,
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 0,
+      "reference_frame": "019-front-right-10",
+      "camera_calibration": {
+        "fx": 930.0407,
+        "fy": 930.0324
+      },
+      "sources": [
+        "pandaset/019/camera/front_right_camera/10.jpg",
+        "pandaset/019/camera/front_right_camera/12.jpg",
+        "pandaset/019/camera/front_right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.2843981481481481,
+        0.2611574074074074,
+        0.25988425925925923
+      ]
+    },
+    "027-right": {
+      "matching": {
+        "backend": "OpenCV SIFT CPU pilot; production uses ALIKED/LightGlue",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "027-right-10",
+            "027-right-12"
+          ],
+          [
+            "027-right-10",
+            "027-right-14"
+          ],
+          [
+            "027-right-12",
+            "027-right-14"
+          ]
+        ],
+        "overlap_groups": [
+          [
+            "027-right-10",
+            "027-right-12",
+            "027-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 14,
+        "three_view_tracks": 14,
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 2,
+      "reference_frame": "027-right-10",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/027/camera/right_camera/10.jpg",
+        "pandaset/027/camera/right_camera/12.jpg",
+        "pandaset/027/camera/right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.33467592592592593,
+        0.3486342592592593,
+        0.368287037037037
+      ]
+    },
+    "027-front-right": {
+      "matching": {
+        "backend": "OpenCV SIFT CPU pilot; production uses ALIKED/LightGlue",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "027-front-right-10",
+            "027-front-right-12"
+          ],
+          [
+            "027-front-right-10",
+            "027-front-right-14"
+          ],
+          [
+            "027-front-right-12",
+            "027-front-right-14"
+          ]
+        ],
+        "overlap_groups": [
+          [
+            "027-front-right-10",
+            "027-front-right-12",
+            "027-front-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 28,
+        "three_view_tracks": 28,
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 2,
+      "reference_frame": "027-front-right-10",
+      "camera_calibration": {
+        "fx": 930.0407,
+        "fy": 930.0324
+      },
+      "sources": [
+        "pandaset/027/camera/front_right_camera/10.jpg",
+        "pandaset/027/camera/front_right_camera/12.jpg",
+        "pandaset/027/camera/front_right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.3578858024691358,
+        0.36483796296296295,
+        0.36463734567901235
+      ]
+    },
+    "001-right": {
+      "matching": {
+        "backend": "OpenCV SIFT CPU pilot; production uses ALIKED/LightGlue",
+        "candidate_pairs": 3,
+        "verified_pairs": [],
+        "overlap_groups": [
+          [
+            "001-right-10"
+          ],
+          [
+            "001-right-12"
+          ],
+          [
+            "001-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 0,
+        "three_view_tracks": 0,
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 0,
+      "reference_frame": "001-right-10",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/001/camera/right_camera/10.jpg",
+        "pandaset/001/camera/right_camera/12.jpg",
+        "pandaset/001/camera/right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.2264891975308642,
+        0.22191358024691357,
+        0.2167361111111111
+      ]
+    },
+    "001-front-right": {
+      "matching": {
+        "backend": "OpenCV SIFT CPU pilot; production uses ALIKED/LightGlue",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "001-front-right-10",
+            "001-front-right-12"
+          ],
+          [
+            "001-front-right-12",
+            "001-front-right-14"
+          ]
+        ],
+        "overlap_groups": [
+          [
+            "001-front-right-10",
+            "001-front-right-12",
+            "001-front-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 0,
+        "three_view_tracks": 0,
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 0,
+      "reference_frame": "001-front-right-10",
+      "camera_calibration": {
+        "fx": 930.0407,
+        "fy": 930.0324
+      },
+      "sources": [
+        "pandaset/001/camera/front_right_camera/10.jpg",
+        "pandaset/001/camera/front_right_camera/12.jpg",
+        "pandaset/001/camera/front_right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.24203703703703705,
+        0.23388117283950619,
+        0.22838734567901234
+      ]
+    }
+  }
+}

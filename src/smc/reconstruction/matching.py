@@ -32,6 +32,80 @@ class Track:
     pixels: dict[str, np.ndarray]
 
 
+def refine_tracks_subpixel(
+    tracks: list[Track],
+    images: dict[str, np.ndarray],
+    blocked: dict[str, np.ndarray],
+) -> tuple[list[Track], dict]:
+    """Refine existing correspondences with forward/backward pyramidal LK.
+
+    SIFT establishes identity; LK only makes a bounded subpixel correction. A
+    failed refinement retains the original correspondence and checkpoint ID,
+    never silently changes the benchmark denominator or fits to lidar depth.
+    """
+    grays = {
+        k: cv2.cvtColor(v, cv2.COLOR_BGR2GRAY) if v.ndim == 3 else v for k, v in images.items()
+    }
+    pixels = {
+        t.track_id: {k: np.array(v, float).copy() for k, v in t.pixels.items()} for t in tracks
+    }
+    accepted = attempted = 0
+    for reference in sorted({min(t.pixels) for t in tracks}):
+        members = [t for t in tracks if min(t.pixels) == reference]
+        names = sorted({k for t in members for k in t.pixels} - {reference})
+        for other in names:
+            shared = [t for t in members if other in t.pixels]
+            p = np.float32([t.pixels[reference] for t in shared]).reshape(-1, 1, 2)
+            q = np.float32([t.pixels[other] for t in shared]).reshape(-1, 1, 2)
+            options = dict(
+                winSize=(15, 15),
+                maxLevel=2,
+                flags=cv2.OPTFLOW_USE_INITIAL_FLOW,
+                criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 40, 0.001),
+            )
+            forward, good, _ = cv2.calcOpticalFlowPyrLK(
+                grays[reference], grays[other], p, q.copy(), **options
+            )
+            if forward is None:
+                attempted += len(shared)
+                continue
+            backward, back_good, _ = cv2.calcOpticalFlowPyrLK(
+                grays[other], grays[reference], forward, p.copy(), **options
+            )
+            if backward is None:
+                attempted += len(shared)
+                continue
+            for i, t in enumerate(shared):
+                attempted += 1
+                result = forward[i, 0]
+                if (
+                    not good[i, 0]
+                    or not back_good[i, 0]
+                    or not np.isfinite(result).all()
+                    or np.linalg.norm(backward[i, 0] - p[i, 0]) > 0.35
+                    or np.linalg.norm(result - q[i, 0]) > 2
+                ):
+                    continue
+                x, y = np.round(result).astype(int)
+                mask = blocked[other]
+                if (
+                    x < 8
+                    or y < 8
+                    or x >= mask.shape[1] - 8
+                    or y >= mask.shape[0] - 8
+                    or mask[y - 8 : y + 9, x - 8 : x + 9].any()
+                ):
+                    continue
+                pixels[t.track_id][other] = result.astype(float)
+                accepted += 1
+    return [Track(t.track_id, pixels[t.track_id]) for t in tracks], {
+        "method": "OpenCV pyramidal Lucas-Kanade; mutual consistency and bounded correction",
+        "attempted_observations": attempted,
+        "refined_observations": accepted,
+        "failed_refinements_retain_original": attempted - accepted,
+    }
+
+
 def candidate_pairs(frames: list[Frame], max_distance_m: float = 80.0) -> list[tuple[int, int]]:
     """Keep sequences intact; never triangulate unaligned provider components.
 

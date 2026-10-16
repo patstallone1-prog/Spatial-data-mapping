@@ -1,0 +1,50 @@
+{
+  "source_assets": 117,
+  "stored_bytes": 76717767,
+  "licenses": [
+    "CC-BY-4.0",
+    "USGS public domain"
+  ],
+  "attribution": "Hesai and Scale AI, PandaSet; USGS / NV5 Geospatial",
+  "usgs": {
+    "dataset": "CA_SanFrancisco_1_B23",
+    "points": 74734,
+    "origin_lat_lon": [
+      37.79215,
+      -122.429
+    ],
+    "resolution_request_m": 0.05,
+    "radius_m": 15,
+    "sha256": "6580d0d766fbb1e07eda35c611be5a0ad89be2b406fabbc6329f898ec20a325b",
+    "bytes_fetched": 0,
+    "vertical_datum": "NAVD88_GEOID18",
+    "horizontal_frame": "local_E_N_from_EPSG3857",
+    "absolute_horizontal_5cm_truth": false,
+    "accuracy_note": "NOAA reports 0.12 m horizontal at 95%; 0.0173 m tested vertical RMSE",
+    "metadata_url": "https://www.fisheries.noaa.gov/inport/item/73386/full-list",
+    "attribution": "USGS / NV5 Geospatial; public-domain federal lidar"
+  },
+  "models": {
+    "schema_version": 1,
+    "lightglue_code_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+    "models": [
+      {
+        "name": "ALIKED n16",
+        "file": "aliked-n16.pth",
+        "url": "https://github.com/Shiaoming/ALIKED/raw/main/models/aliked-n16.pth",
+        "sha256": "5be8704840ed662d9d8c561bf7279c222092674e7eb05fd0feab94899e9d82f2",
+        "license": "BSD-3-Clause",
+        "license_url": "https://github.com/Shiaoming/ALIKED/blob/main/LICENSE"
+      },
+      {
+        "name": "LightGlue ALIKED v0.1_arxiv",
+        "file": "aliked_lightglue_v0-1_arxiv.pth",
+        "url": "https://github.com/cvg/LightGlue/releases/download/v0.1_arxiv/aliked_lightglue.pth",
+        "sha256": "d975e965b105311a6143194852297dff4f02aea5cc2e10cecfed966ca0e22503",
+        "license": "Apache-2.0",
+        "license_url": "https://github.com/cvg/LightGlue/blob/main/LICENSE"
+      }
+    ]
+  },
+  "raw_images_published": false
+}

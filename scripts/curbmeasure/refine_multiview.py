@@ -45,6 +45,7 @@ def camera(row):
         float(data["k2"]),
         int(data["width"]),
         int(data["height"]),
+        float(data["fy_px"]) if data.get("fy_px") is not None else None,
     )
 
 

@@ -33,6 +33,11 @@ reference-audit = ["indexed_gzip==1.10.3"]
 # Windowed public COG ingestion; never download a national raster to build the Bay atlas.
 nature = ["rasterio>=1.4,<2", "scipy>=1.14", "osmium>=4.1,<5"]
 curb-photo = ["scipy>=1.14"]
+photo-matching = [
+    "scipy>=1.14", "torch>=2.8,<3", "torchvision>=0.23,<1",
+    "kornia==0.8.3", "kornia-rs==0.1.9",
+    "lightglue @ git+https://github.com/cvg/LightGlue.git@eb42fee2d71449efb0aa5c10549752b5d75384d8",
+]
 # Uploading the nightly batch to Google Cloud Storage.
 gcs = ["google-cloud-storage>=2.14"]
 # MegaLoc global descriptors. ~230M parameters; runs on MPS, CUDA or CPU.

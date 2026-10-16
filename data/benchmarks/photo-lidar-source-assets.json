@@ -1,0 +1,946 @@
+{
+  "assets": {
+    "pandaset/018/meta/gps.json": {
+      "sha256": "af3a8afe5692852275402ab27164081fc1127b193fe8b4cec547f02fd3d20d33",
+      "bytes": 11545,
+      "archive_member": "pandaset/018/meta/gps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/meta/timestamps.json": {
+      "sha256": "f60179c5e3cc8f54bec37d5a9a841ab3173d23898cf8fbbf62dd171e06a67f71",
+      "bytes": 1511,
+      "archive_member": "pandaset/018/meta/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/lidar/timestamps.json": {
+      "sha256": "f60179c5e3cc8f54bec37d5a9a841ab3173d23898cf8fbbf62dd171e06a67f71",
+      "bytes": 1511,
+      "archive_member": "pandaset/018/lidar/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/right_camera/poses.json": {
+      "sha256": "8c71f76ec932453a688273ba8200f7618a55cd505725f1ef63a95761ea758553",
+      "bytes": 16529,
+      "archive_member": "pandaset/018/camera/right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/right_camera/intrinsics.json": {
+      "sha256": "2ce49c57d3d7e1793c34fe49f3934828b42223be36be1af313dbc92cbac84470",
+      "bytes": 62,
+      "archive_member": "pandaset/018/camera/right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/right_camera/timestamps.json": {
+      "sha256": "7f0749b4bc051fb07e2ffe2c10ba7f522fa850c1baba2bae788cd3a7a6f9d287",
+      "bytes": 1512,
+      "archive_member": "pandaset/018/camera/right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/right_camera/10.jpg": {
+      "sha256": "549198b46e60ab4fdb8dabb7ba7d2d29018db726fca30fc8b95b03fd3d83428c",
+      "bytes": 144034,
+      "archive_member": "pandaset/018/camera/right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/lidar/10.pkl.gz": {
+      "sha256": "542b0fb75108bd39f9d848d2d8ac0a9ba017cb07e90b16d49d52c7cf60d3990a",
+      "bytes": 3884809,
+      "archive_member": "pandaset/018/lidar/10.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/front_right_camera/poses.json": {
+      "sha256": "104b06bd6600460bd3c69690bcdccdb9d1be5fca668cf0e7785f71eac433a1f7",
+      "bytes": 16614,
+      "archive_member": "pandaset/018/camera/front_right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/front_right_camera/intrinsics.json": {
+      "sha256": "ec4021470280950ac0a44fcfa068e0c74dcf1571d894c58d224216eabe5428f8",
+      "bytes": 64,
+      "archive_member": "pandaset/018/camera/front_right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/front_right_camera/timestamps.json": {
+      "sha256": "76b780c837e444e5c8d4af633e860f20a9721c24fbb0b0403e11d13968fe77c0",
+      "bytes": 1513,
+      "archive_member": "pandaset/018/camera/front_right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/018/camera/front_right_camera/10.jpg": {
+      "sha256": "16bca27707b39ddd50dca485315cdeaa0bf1a8742d7c059a65a23bbe40f929fe",
+      "bytes": 184208,
+      "archive_member": "pandaset/018/camera/front_right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/meta/gps.json": {
+      "sha256": "fe8fbb054144e46444ce4c99a3c3c6711300c0b8033715d8b0e00f78a887b513",
+      "bytes": 11508,
+      "archive_member": "pandaset/019/meta/gps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/meta/timestamps.json": {
+      "sha256": "218385a062331a5ee5ee698decd484c7d7848fd26f3b5a7d0f870c678c1dce52",
+      "bytes": 1513,
+      "archive_member": "pandaset/019/meta/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/lidar/timestamps.json": {
+      "sha256": "218385a062331a5ee5ee698decd484c7d7848fd26f3b5a7d0f870c678c1dce52",
+      "bytes": 1513,
+      "archive_member": "pandaset/019/lidar/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/right_camera/poses.json": {
+      "sha256": "1a2120500cb378d2d75cb7dff49934ee955a517ec4d602f85e019a36d49b5aeb",
+      "bytes": 16474,
+      "archive_member": "pandaset/019/camera/right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/right_camera/intrinsics.json": {
+      "sha256": "2ce49c57d3d7e1793c34fe49f3934828b42223be36be1af313dbc92cbac84470",
+      "bytes": 62,
+      "archive_member": "pandaset/019/camera/right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/right_camera/timestamps.json": {
+      "sha256": "53412d787eb307fb07a9c9f46dc0d819a7feaab2b397d7c4f9793d4ceb4435a1",
+      "bytes": 1507,
+      "archive_member": "pandaset/019/camera/right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/right_camera/10.jpg": {
+      "sha256": "28d26c86b90ede5e081862f71eddc7e281de5f1782fed43cffda421382b02b15",
+      "bytes": 167363,
+      "archive_member": "pandaset/019/camera/right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/lidar/10.pkl.gz": {
+      "sha256": "d2787fd952ab6bf438d83a920b63ec111c7aa64cf2b0983bd9200ca919ef91b1",
+      "bytes": 4217636,
+      "archive_member": "pandaset/019/lidar/10.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/annotations/semseg/10.pkl.gz": {
+      "sha256": "e16d5766b612519f77212ade82312660f88c7c3daa8777fe89fbdd0d7b515114",
+      "bytes": 34909,
+      "archive_member": "pandaset/019/annotations/semseg/10.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/right_camera/12.jpg": {
+      "sha256": "2aedd1788251be2145342a869467ae7e4e4cabbb8c33d5a8ac2d229d18ec3b14",
+      "bytes": 166602,
+      "archive_member": "pandaset/019/camera/right_camera/12.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/lidar/12.pkl.gz": {
+      "sha256": "f47ad11bb2ed2c5a9b311bbfd35518b06a2ef0a08fd51a2fd8a68afa31153c41",
+      "bytes": 4283611,
+      "archive_member": "pandaset/019/lidar/12.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/annotations/semseg/12.pkl.gz": {
+      "sha256": "2245ae14b8e9d556c3d6ffee9c1f220450c1f66ed2b2ac52840e4f2f57fe25c3",
+      "bytes": 34954,
+      "archive_member": "pandaset/019/annotations/semseg/12.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/right_camera/14.jpg": {
+      "sha256": "a230ccfeaa6c5915c9bdab88c73e126e286a6b9fda05e8f8a0eb25b98c1cfbb7",
+      "bytes": 167402,
+      "archive_member": "pandaset/019/camera/right_camera/14.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/lidar/14.pkl.gz": {
+      "sha256": "208767c2f16ff0a8f2cca1bac28733dd4662acf38d7f600cbeea1525dc99e8d5",
+      "bytes": 4210271,
+      "archive_member": "pandaset/019/lidar/14.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/annotations/semseg/14.pkl.gz": {
+      "sha256": "3aae1a1472bebe309ea7bd731f37dfa7ff1c6029b8e6d4a798c8397adb6d5cb1",
+      "bytes": 34537,
+      "archive_member": "pandaset/019/annotations/semseg/14.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/front_right_camera/poses.json": {
+      "sha256": "c300b002c875cf4e37608266bc97b7e4e1168d177764bd9c04224d71914d12ed",
+      "bytes": 16548,
+      "archive_member": "pandaset/019/camera/front_right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/front_right_camera/intrinsics.json": {
+      "sha256": "ec4021470280950ac0a44fcfa068e0c74dcf1571d894c58d224216eabe5428f8",
+      "bytes": 64,
+      "archive_member": "pandaset/019/camera/front_right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/front_right_camera/timestamps.json": {
+      "sha256": "1910dc0ec45840be8439da6b5ee61ae8fe6adceb760a40937abf5ac79ec94d22",
+      "bytes": 1507,
+      "archive_member": "pandaset/019/camera/front_right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/front_right_camera/10.jpg": {
+      "sha256": "357429003cd416db5b9b077c032a08345cd4690e9e21e21fd18adf46c0c00945",
+      "bytes": 231309,
+      "archive_member": "pandaset/019/camera/front_right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/front_right_camera/12.jpg": {
+      "sha256": "3a2d58fc34c54df605697a7fb678337a89422cb6990723a8847c52bdf57f3a37",
+      "bytes": 241318,
+      "archive_member": "pandaset/019/camera/front_right_camera/12.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/019/camera/front_right_camera/14.jpg": {
+      "sha256": "0b479bfd87b0c995c8eae2f2ed297db612628b42960367f5dbf8c181225c6e3a",
+      "bytes": 244275,
+      "archive_member": "pandaset/019/camera/front_right_camera/14.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/meta/gps.json": {
+      "sha256": "0a67e4021d7d0b54af172f3533f30a6671fc5058fdfff6e5b3d97df96ced4052",
+      "bytes": 11401,
+      "archive_member": "pandaset/027/meta/gps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/meta/timestamps.json": {
+      "sha256": "ce4e81de0514a596a3ed20f515a48a8dc772875047b212588f69e1bcab48fc41",
+      "bytes": 1514,
+      "archive_member": "pandaset/027/meta/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/lidar/timestamps.json": {
+      "sha256": "ce4e81de0514a596a3ed20f515a48a8dc772875047b212588f69e1bcab48fc41",
+      "bytes": 1514,
+      "archive_member": "pandaset/027/lidar/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/right_camera/poses.json": {
+      "sha256": "2efc1ccae099843e341c6289a15f546a19d99968b94977933d29244eb36d9e68",
+      "bytes": 16497,
+      "archive_member": "pandaset/027/camera/right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/right_camera/intrinsics.json": {
+      "sha256": "2ce49c57d3d7e1793c34fe49f3934828b42223be36be1af313dbc92cbac84470",
+      "bytes": 62,
+      "archive_member": "pandaset/027/camera/right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/right_camera/timestamps.json": {
+      "sha256": "35e1b3dd0aa1c2d07e8e3729971e5696db177bd73a42c9e47e1cf772b93edbb3",
+      "bytes": 1514,
+      "archive_member": "pandaset/027/camera/right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/right_camera/10.jpg": {
+      "sha256": "679e8aa6a9f7d29d5118ac55ea5e8dd068807600f56eaca916414b5d7f81b4e1",
+      "bytes": 193841,
+      "archive_member": "pandaset/027/camera/right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/lidar/10.pkl.gz": {
+      "sha256": "5515e1151ffefd109158511f7cc15f9f64d1d2b17ecbba2a2945568e4ac536f4",
+      "bytes": 4490248,
+      "archive_member": "pandaset/027/lidar/10.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/annotations/semseg/10.pkl.gz": {
+      "sha256": "5ce1d3ec4a011308643304a68dfec70041b923017b65df430093cbc29f08f227",
+      "bytes": 23241,
+      "archive_member": "pandaset/027/annotations/semseg/10.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/right_camera/12.jpg": {
+      "sha256": "848eeb062cae5ee51b0fa5d27a6fd1b555e532f14e9dd910fe69b7f99cf1c45b",
+      "bytes": 194653,
+      "archive_member": "pandaset/027/camera/right_camera/12.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/lidar/12.pkl.gz": {
+      "sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4",
+      "bytes": 4450368,
+      "archive_member": "pandaset/027/lidar/12.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/annotations/semseg/12.pkl.gz": {
+      "sha256": "8957419251ac6447d772d03a2c174ef6e271b239944d79482cd6c46858db87f6",
+      "bytes": 23188,
+      "archive_member": "pandaset/027/annotations/semseg/12.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/right_camera/14.jpg": {
+      "sha256": "92f8f25b9c073e7b5721ea3db2f88f477b19731c3a6a665948d672d12305aa45",
+      "bytes": 197172,
+      "archive_member": "pandaset/027/camera/right_camera/14.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/lidar/14.pkl.gz": {
+      "sha256": "4b8072590eb757575c7b549459dc9e4a0e920cf361c6844ae70e5600018da8e4",
+      "bytes": 4456928,
+      "archive_member": "pandaset/027/lidar/14.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/annotations/semseg/14.pkl.gz": {
+      "sha256": "d9428e7ace0c5d08a30b4462b3528edc6ecab645909be8e64e7f7ed045664f2c",
+      "bytes": 23040,
+      "archive_member": "pandaset/027/annotations/semseg/14.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/front_right_camera/poses.json": {
+      "sha256": "e416a02608ea7e7bc4e35e15bba9e62b8d45f8ca0ee945afe86260c5350c118c",
+      "bytes": 16480,
+      "archive_member": "pandaset/027/camera/front_right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/front_right_camera/intrinsics.json": {
+      "sha256": "ec4021470280950ac0a44fcfa068e0c74dcf1571d894c58d224216eabe5428f8",
+      "bytes": 64,
+      "archive_member": "pandaset/027/camera/front_right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/front_right_camera/timestamps.json": {
+      "sha256": "f96ff8c9f54c687df2dd454d438ff4c3758d5e7a9b1d2b758a8d205673225105",
+      "bytes": 1511,
+      "archive_member": "pandaset/027/camera/front_right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/front_right_camera/10.jpg": {
+      "sha256": "ede7e0f128ecd00cb551747835757b61edb97acaf28373e79a1201f9896d4e5b",
+      "bytes": 269764,
+      "archive_member": "pandaset/027/camera/front_right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/front_right_camera/12.jpg": {
+      "sha256": "fe0c47a4c38a5a4d1813b0c21b7fedb36b1e12265758732efced29c97b5f3470",
+      "bytes": 266470,
+      "archive_member": "pandaset/027/camera/front_right_camera/12.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/027/camera/front_right_camera/14.jpg": {
+      "sha256": "766d56d05cfa4c29e1836dc84a9b98d21688c0fe1d04906c9d26997567d4f0fd",
+      "bytes": 266478,
+      "archive_member": "pandaset/027/camera/front_right_camera/14.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/meta/gps.json": {
+      "sha256": "0c21dfc4d3363284876f83cd2a1c2afe88863bcdb0a94f41a929391fbb23acb0",
+      "bytes": 11460,
+      "archive_member": "pandaset/001/meta/gps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/meta/timestamps.json": {
+      "sha256": "aa880fb8472ad7ce7b98a4f597104b5864513670489fdd06374a459504edeacf",
+      "bytes": 1507,
+      "archive_member": "pandaset/001/meta/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/lidar/timestamps.json": {
+      "sha256": "aa880fb8472ad7ce7b98a4f597104b5864513670489fdd06374a459504edeacf",
+      "bytes": 1507,
+      "archive_member": "pandaset/001/lidar/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/right_camera/poses.json": {
+      "sha256": "b209af349c7477cfea99bcb1f65378a33a133f4195bb987e921387062012c285",
+      "bytes": 16413,
+      "archive_member": "pandaset/001/camera/right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/right_camera/intrinsics.json": {
+      "sha256": "2ce49c57d3d7e1793c34fe49f3934828b42223be36be1af313dbc92cbac84470",
+      "bytes": 62,
+      "archive_member": "pandaset/001/camera/right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/right_camera/timestamps.json": {
+      "sha256": "ecd7b6ce7eb9221f9ae064411c73574775136b29f3d2173f37703687476a4480",
+      "bytes": 1507,
+      "archive_member": "pandaset/001/camera/right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/right_camera/10.jpg": {
+      "sha256": "51b3a7b2b9ee6cc1c551b2c86f50229f0816b785e08e1cc0f63ea805c74dc49a",
+      "bytes": 225240,
+      "archive_member": "pandaset/001/camera/right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/lidar/10.pkl.gz": {
+      "sha256": "0926d8612de0793ac2c40c9213bd78db3a6471bc37f756d454b0e038930fba9e",
+      "bytes": 4081985,
+      "archive_member": "pandaset/001/lidar/10.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/annotations/semseg/10.pkl.gz": {
+      "sha256": "16a99ca4dc7918aaf1277db601af9c91dfa524d8e76fbe514ed63a37376a02f3",
+      "bytes": 26528,
+      "archive_member": "pandaset/001/annotations/semseg/10.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/right_camera/12.jpg": {
+      "sha256": "323a44a4bf201d53bff86c662a0e3058d2d27350d02592fd59955266b014e801",
+      "bytes": 223874,
+      "archive_member": "pandaset/001/camera/right_camera/12.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/lidar/12.pkl.gz": {
+      "sha256": "c16cdc6c7657d69e2b468a87e0fb5383655b08b2a86fd57e56e32165fbe2e9a8",
+      "bytes": 4124195,
+      "archive_member": "pandaset/001/lidar/12.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/annotations/semseg/12.pkl.gz": {
+      "sha256": "e7aaf155ff48d5058d6b6b6549ba402802fcde3b5f99a57547b9dad520d60d1d",
+      "bytes": 26997,
+      "archive_member": "pandaset/001/annotations/semseg/12.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/right_camera/14.jpg": {
+      "sha256": "9112c1bec946c6d1cf0c1fb4221d7ab505d46cf4442e54e7d17831a87e06fc95",
+      "bytes": 223490,
+      "archive_member": "pandaset/001/camera/right_camera/14.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/lidar/14.pkl.gz": {
+      "sha256": "3be835ca1eecc3c3c627548366492696c5d8f0db6f1791b28d907e6ecc2cac76",
+      "bytes": 4176309,
+      "archive_member": "pandaset/001/lidar/14.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/annotations/semseg/14.pkl.gz": {
+      "sha256": "d6baa1f4389323bf9ad2c7f79fdbcd4bc48f11686aefff150d635d87c4d65aa7",
+      "bytes": 27119,
+      "archive_member": "pandaset/001/annotations/semseg/14.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/front_right_camera/poses.json": {
+      "sha256": "0ca12f6653ad52be29f5810e68b6e036eefe42d9dcaf4c47dcd563484cb7aaa9",
+      "bytes": 16398,
+      "archive_member": "pandaset/001/camera/front_right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/front_right_camera/intrinsics.json": {
+      "sha256": "ec4021470280950ac0a44fcfa068e0c74dcf1571d894c58d224216eabe5428f8",
+      "bytes": 64,
+      "archive_member": "pandaset/001/camera/front_right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/front_right_camera/timestamps.json": {
+      "sha256": "df4594b3d3cb03962e50fd7a39f79e1c30ab650a2beefacf808cbc25aaf5bd18",
+      "bytes": 1510,
+      "archive_member": "pandaset/001/camera/front_right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/front_right_camera/10.jpg": {
+      "sha256": "dbaad41e2fbf903c587251a0064ca1706a1147c0518a9e378c5119b017bc0be3",
+      "bytes": 283441,
+      "archive_member": "pandaset/001/camera/front_right_camera/10.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/front_right_camera/12.jpg": {
+      "sha256": "62233ec9042df88a542e5563ad2d8080a657a489dbce6c4e43bd7bb352fde6c4",
+      "bytes": 283863,
+      "archive_member": "pandaset/001/camera/front_right_camera/12.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/001/camera/front_right_camera/14.jpg": {
+      "sha256": "f9e6dfdd04300d52a9a98ca019db57f8de00248e997624cc431c62afac54f47c",
+      "bytes": 289901,
+      "archive_member": "pandaset/001/camera/front_right_camera/14.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/meta/gps.json": {
+      "sha256": "7b50cbdc1a5ecc88dc00b494cba478571968a3d10e96b3d1d2b51a33a20cb2b9",
+      "bytes": 11410,
+      "archive_member": "pandaset/035/meta/gps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/meta/timestamps.json": {
+      "sha256": "60acada044bf678c111fe3a6ee03702116c825694b9c3316baab7c90bd2cf6d3",
+      "bytes": 1507,
+      "archive_member": "pandaset/035/meta/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/lidar/timestamps.json": {
+      "sha256": "60acada044bf678c111fe3a6ee03702116c825694b9c3316baab7c90bd2cf6d3",
+      "bytes": 1507,
+      "archive_member": "pandaset/035/lidar/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/right_camera/poses.json": {
+      "sha256": "d43a838c3d4418a7108f9af5db7fa9fcd501b098fa6117b7eaaec33915943fe5",
+      "bytes": 16708,
+      "archive_member": "pandaset/035/camera/right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/right_camera/intrinsics.json": {
+      "sha256": "2ce49c57d3d7e1793c34fe49f3934828b42223be36be1af313dbc92cbac84470",
+      "bytes": 62,
+      "archive_member": "pandaset/035/camera/right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/right_camera/timestamps.json": {
+      "sha256": "4ab333cd0f13dbcfbbf4e936660470fe580c2ccd3a6de0302b492dd096f36f30",
+      "bytes": 1514,
+      "archive_member": "pandaset/035/camera/right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/right_camera/20.jpg": {
+      "sha256": "e1b5b8beba78c4e1ab4822653b98d894ad236ae40594e261a4e6099015408886",
+      "bytes": 175404,
+      "archive_member": "pandaset/035/camera/right_camera/20.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/lidar/20.pkl.gz": {
+      "sha256": "01be7ab0e80696aae9662083481376be34521a4d111f5745163f5d2128f81712",
+      "bytes": 4492654,
+      "archive_member": "pandaset/035/lidar/20.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/annotations/semseg/20.pkl.gz": {
+      "sha256": "07c3c0073c4f42ce624341e49f5557558fe60bdb1d015cd2786a6ca2ba125658",
+      "bytes": 20572,
+      "archive_member": "pandaset/035/annotations/semseg/20.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/right_camera/22.jpg": {
+      "sha256": "65669aa4624104ca91013655fddc4e63a1d669f4ed50ecb3afa70c52b04f4a5a",
+      "bytes": 170951,
+      "archive_member": "pandaset/035/camera/right_camera/22.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/lidar/22.pkl.gz": {
+      "sha256": "e7887d236c72c1a63bf23141aac4e022393d7eee77107ba15c12f0d8ad0c6f5b",
+      "bytes": 4543545,
+      "archive_member": "pandaset/035/lidar/22.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/annotations/semseg/22.pkl.gz": {
+      "sha256": "09951af806a83fb215dc1e4706dacf0b05d385f9249f5e7eb2e9f4ab5d2bf73b",
+      "bytes": 20429,
+      "archive_member": "pandaset/035/annotations/semseg/22.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/right_camera/24.jpg": {
+      "sha256": "d71c476f85872a6dca9286b56802c6e58b67357cb22a5719a858f660017edb5a",
+      "bytes": 165036,
+      "archive_member": "pandaset/035/camera/right_camera/24.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/lidar/24.pkl.gz": {
+      "sha256": "700344ab6a8676637296ce2b8b71603206b2d1dec1e07012353a56a3a31da128",
+      "bytes": 4471734,
+      "archive_member": "pandaset/035/lidar/24.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/annotations/semseg/24.pkl.gz": {
+      "sha256": "e10061bd687db9d47892adc85d2dbbc428b7a4be52e246a5fdda21b04474fe9a",
+      "bytes": 19827,
+      "archive_member": "pandaset/035/annotations/semseg/24.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/left_camera/poses.json": {
+      "sha256": "8d157aab228baeb6c9602f1875cda80cd37a1ce93f277fb91010e5c975ba6554",
+      "bytes": 16736,
+      "archive_member": "pandaset/035/camera/left_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/left_camera/intrinsics.json": {
+      "sha256": "2c7d410843e6e8f83136731b8fb89dc8554f1a27aa59a6d36c61caa1b5ff2b58",
+      "bytes": 64,
+      "archive_member": "pandaset/035/camera/left_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/left_camera/timestamps.json": {
+      "sha256": "bc2c616b768d0dca9d123dc9d14df2d9d7d9442bd4a9953def9d441ba552c7ea",
+      "bytes": 1517,
+      "archive_member": "pandaset/035/camera/left_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/left_camera/20.jpg": {
+      "sha256": "3de9608def9c1b4422af395726f21a54082245f92f4c22ac0ff1c558c49491c3",
+      "bytes": 203138,
+      "archive_member": "pandaset/035/camera/left_camera/20.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/left_camera/22.jpg": {
+      "sha256": "33af51863b6b9d251ec88040ecde12ccf580028fdc82fed10a511bd6b24d22ff",
+      "bytes": 213456,
+      "archive_member": "pandaset/035/camera/left_camera/22.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/035/camera/left_camera/24.jpg": {
+      "sha256": "90ceaf0a3f84dcc5f99fad7656eb253e042a3b39291a9db00cd831f0d5a0fc6a",
+      "bytes": 227881,
+      "archive_member": "pandaset/035/camera/left_camera/24.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/meta/gps.json": {
+      "sha256": "b441354cfdd084218d7970596d3e0717bd2c490fd6d85ae79f4159d4259b28d9",
+      "bytes": 11428,
+      "archive_member": "pandaset/038/meta/gps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/meta/timestamps.json": {
+      "sha256": "49c7bb7b6a6644817cc87096ffcbe7fe6869fa2565f35de93a4b306029935599",
+      "bytes": 1507,
+      "archive_member": "pandaset/038/meta/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/lidar/timestamps.json": {
+      "sha256": "49c7bb7b6a6644817cc87096ffcbe7fe6869fa2565f35de93a4b306029935599",
+      "bytes": 1507,
+      "archive_member": "pandaset/038/lidar/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/right_camera/poses.json": {
+      "sha256": "68907715efb02d4a490e81fa6c96cd94e4908c551495adf29a52f81c341af3d8",
+      "bytes": 16487,
+      "archive_member": "pandaset/038/camera/right_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/right_camera/intrinsics.json": {
+      "sha256": "2ce49c57d3d7e1793c34fe49f3934828b42223be36be1af313dbc92cbac84470",
+      "bytes": 62,
+      "archive_member": "pandaset/038/camera/right_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/right_camera/timestamps.json": {
+      "sha256": "3b3e37ddb2aa8244faf62d6e0600b5540ca3ba240ac4aa90f4d539c81a20b245",
+      "bytes": 1514,
+      "archive_member": "pandaset/038/camera/right_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/right_camera/20.jpg": {
+      "sha256": "80f5dffbeb3dfe6e40e2e719dfac64c960676ea59afe0cdca744d39c31ec6e21",
+      "bytes": 199174,
+      "archive_member": "pandaset/038/camera/right_camera/20.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/lidar/20.pkl.gz": {
+      "sha256": "99a468b79844b3581c4017cc17630c713d5789ea358eca25ed99654d32e482f3",
+      "bytes": 4456750,
+      "archive_member": "pandaset/038/lidar/20.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/annotations/semseg/20.pkl.gz": {
+      "sha256": "1a04871067ca6f2d19d60fd4be58a1da0dd8b90671e5e0251753c784f2f1de18",
+      "bytes": 19876,
+      "archive_member": "pandaset/038/annotations/semseg/20.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/right_camera/22.jpg": {
+      "sha256": "67bffc8905c9f8828057f1634d2de852864df652f19f5938a37be07a99f876d1",
+      "bytes": 193160,
+      "archive_member": "pandaset/038/camera/right_camera/22.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/lidar/22.pkl.gz": {
+      "sha256": "378487cdd213afc1fc401d9e9bc0bb5471174e8b483e97ba8e0a43a4a4b969a2",
+      "bytes": 4360757,
+      "archive_member": "pandaset/038/lidar/22.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/annotations/semseg/22.pkl.gz": {
+      "sha256": "e68f8683eee7d788a4dd9589635834f5a4b55ccecf9b63d8296fdebc48106381",
+      "bytes": 19887,
+      "archive_member": "pandaset/038/annotations/semseg/22.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/right_camera/24.jpg": {
+      "sha256": "9737621af579e4df0c125d8022c0f1195ac9dfeb4e57c8a303aca0bcfa9cb723",
+      "bytes": 196192,
+      "archive_member": "pandaset/038/camera/right_camera/24.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/lidar/24.pkl.gz": {
+      "sha256": "aa463ea1b7e950ea8c686f01a600074888d74f532d290d631bbb4520613a4edb",
+      "bytes": 4433977,
+      "archive_member": "pandaset/038/lidar/24.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/annotations/semseg/24.pkl.gz": {
+      "sha256": "22a22bb9538a16f471dd3e98ed23f0563f5664366ff83a6ba068edda17885835",
+      "bytes": 20016,
+      "archive_member": "pandaset/038/annotations/semseg/24.pkl.gz",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/left_camera/poses.json": {
+      "sha256": "221321c0cd6fe3aa6567ff0397036d5b8ffec42e2b2d43e8ae8ba6338f092d14",
+      "bytes": 16475,
+      "archive_member": "pandaset/038/camera/left_camera/poses.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/left_camera/intrinsics.json": {
+      "sha256": "2c7d410843e6e8f83136731b8fb89dc8554f1a27aa59a6d36c61caa1b5ff2b58",
+      "bytes": 64,
+      "archive_member": "pandaset/038/camera/left_camera/intrinsics.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/left_camera/timestamps.json": {
+      "sha256": "97b967eea13742b85d8a8e39446bbad459b05c2cf98f9c99b85db45fbff3780f",
+      "bytes": 1514,
+      "archive_member": "pandaset/038/camera/left_camera/timestamps.json",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/left_camera/20.jpg": {
+      "sha256": "57feeb6712094659181684eb3a6bfec8bc513422fc12997de62ef93b61f8ab90",
+      "bytes": 226497,
+      "archive_member": "pandaset/038/camera/left_camera/20.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/left_camera/22.jpg": {
+      "sha256": "88b64cec315ecb1e4ac150da9abdc272fad3f09a124483d2cc6fe2d1dc34afec",
+      "bytes": 230134,
+      "archive_member": "pandaset/038/camera/left_camera/22.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    },
+    "pandaset/038/camera/left_camera/24.jpg": {
+      "sha256": "3857f83dbed066802ab762e7ef8808af281953eaf1027b1f1ecb35a6af45737d",
+      "bytes": 237024,
+      "archive_member": "pandaset/038/camera/left_camera/24.jpg",
+      "source": "https://huggingface.co/datasets/georghess/pandaset/resolve/main/pandaset.zip",
+      "license_id": "CC-BY-4.0",
+      "source_id": "pandaset"
+    }
+  },
+  "cases_failed": {},
+  "downloaded_bytes": 76199611,
+  "stored_bytes": 76717767,
+  "manifest_sha256": "2fa4dd39109631cfe94ce8ba30187a262962ab1ffaa93b710152c7ba5c645ab0",
+  "attribution": "Hesai and Scale AI, PandaSet, CC BY 4.0",
+  "publication": "private_pixels_public_summary_only"
+}

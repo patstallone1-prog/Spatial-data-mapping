@@ -1,0 +1,687 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "pandaset-real-photo-lidar-v2-learned",
+  "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+  "coordinate_frame": "pandaset_sequence_world_m",
+  "threshold_m": 0.05,
+  "target_success_rate": 0.25,
+  "frames": [
+    10,
+    12,
+    14
+  ],
+  "fitting_lidar_frame": 10,
+  "heldout_lidar_frame": 12,
+  "cases": [
+    {
+      "case_id": "018-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "018-front-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "019-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "019-front-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "027-right",
+      "checkpoints": [
+        {
+          "track_id": "track-000010",
+          "xyz": [
+            -6.391207404888588,
+            -15.511827387306411,
+            1.3169052666793786
+          ],
+          "plane_rms_m": 0.008813478491313587,
+          "returns": 48,
+          "semantic_class": 41,
+          "range_m": 11.059418593591388,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000123",
+          "xyz": [
+            -11.01216768085704,
+            -16.136312263218034,
+            -0.07971590967620079
+          ],
+          "plane_rms_m": 0.012057371991630948,
+          "returns": 9,
+          "semantic_class": 41,
+          "range_m": 14.849809486735461,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000058",
+          "xyz": [
+            -7.688493603411084,
+            -15.595604440536317,
+            2.209720378122779
+          ],
+          "plane_rms_m": 0.009439698565299732,
+          "returns": 21,
+          "semantic_class": 41,
+          "range_m": 11.974968833088065,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000040",
+          "xyz": [
+            -6.518227559840376,
+            -15.328971174908549,
+            2.031371594697423
+          ],
+          "plane_rms_m": 0.014574202574943042,
+          "returns": 40,
+          "semantic_class": 41,
+          "range_m": 11.000425688446283,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000031",
+          "xyz": [
+            -6.373111300579954,
+            -15.6131612719286,
+            0.7575556140493286
+          ],
+          "plane_rms_m": 0.011114578913258094,
+          "returns": 35,
+          "semantic_class": 41,
+          "range_m": 11.156547008030106,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000020",
+          "xyz": [
+            -6.3679297805118065,
+            -15.662142568325141,
+            1.825748923147159
+          ],
+          "plane_rms_m": 0.006706777529188512,
+          "returns": 44,
+          "semantic_class": 41,
+          "range_m": 11.162962431516663,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000023",
+          "xyz": [
+            -6.653492534327636,
+            -15.348350717949451,
+            1.5250203071678516
+          ],
+          "plane_rms_m": 0.007389614263927147,
+          "returns": 36,
+          "semantic_class": 41,
+          "range_m": 11.092765844463287,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000029",
+          "xyz": [
+            -6.353756211584278,
+            -15.70839819973773,
+            1.0289163837946202
+          ],
+          "plane_rms_m": 0.01154548324384074,
+          "returns": 45,
+          "semantic_class": 41,
+          "range_m": 11.203266380006898,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        }
+      ]
+    },
+    {
+      "case_id": "027-front-right",
+      "checkpoints": [
+        {
+          "track_id": "track-000010",
+          "xyz": [
+            -5.5658632089339655,
+            -20.480853755292575,
+            1.9700134357285313
+          ],
+          "plane_rms_m": 0.01049296959662243,
+          "returns": 47,
+          "semantic_class": 41,
+          "range_m": 14.36210504550288,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000103",
+          "xyz": [
+            -14.104641168626735,
+            -16.566528880041552,
+            2.0397647587939174
+          ],
+          "plane_rms_m": 0.01498864546192715,
+          "returns": 46,
+          "semantic_class": 41,
+          "range_m": 17.28820747701837,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000067",
+          "xyz": [
+            -6.357591555012402,
+            -15.642140393029823,
+            0.4988370819613239
+          ],
+          "plane_rms_m": 0.0027942138987389117,
+          "returns": 15,
+          "semantic_class": 41,
+          "range_m": 10.768232068578406,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000022",
+          "xyz": [
+            -6.344194462397626,
+            -15.787533029261798,
+            1.8772557210553293
+          ],
+          "plane_rms_m": 0.005944531413244733,
+          "returns": 47,
+          "semantic_class": 41,
+          "range_m": 10.81157416970165,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000098",
+          "xyz": [
+            -13.770010732827249,
+            -16.517473499229236,
+            1.140581823028445
+          ],
+          "plane_rms_m": 0.013034212286585821,
+          "returns": 41,
+          "semantic_class": 41,
+          "range_m": 16.980835112893008,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000028",
+          "xyz": [
+            -5.574695679220076,
+            -20.34680387419068,
+            2.340888212782303
+          ],
+          "plane_rms_m": 0.014133189967772327,
+          "returns": 57,
+          "semantic_class": 41,
+          "range_m": 14.258444147369545,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000020",
+          "xyz": [
+            -6.345356920550722,
+            -15.781392749921562,
+            1.5744033043768861
+          ],
+          "plane_rms_m": 0.010441176500657286,
+          "returns": 47,
+          "semantic_class": 41,
+          "range_m": 10.805358582473179,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        },
+        {
+          "track_id": "track-000092",
+          "xyz": [
+            -6.365350906891106,
+            -15.64388389529335,
+            0.7754031488680215
+          ],
+          "plane_rms_m": 0.010967720038018686,
+          "returns": 37,
+          "semantic_class": 41,
+          "range_m": 10.748686083433968,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/027/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "7fa6471bb2575144d12f202770163f0c21318c84e89dd16345f961bb3aa454f4"
+        }
+      ]
+    },
+    {
+      "case_id": "001-right",
+      "checkpoints": []
+    },
+    {
+      "case_id": "001-front-right",
+      "checkpoints": [
+        {
+          "track_id": "track-000003",
+          "xyz": [
+            20.634983274288754,
+            11.647261933788034,
+            -0.3491203322484626
+          ],
+          "plane_rms_m": 0.007663929012865671,
+          "returns": 15,
+          "semantic_class": 9,
+          "range_m": 14.719158887862294,
+          "correspondence": "calibrated_pixel_ray_lidar_surface",
+          "source_id": "pandaset/001/lidar/12",
+          "method": "lidar",
+          "independent": true,
+          "evidence_sha256": "c16cdc6c7657d69e2b468a87e0fb5383655b08b2a86fd57e56e32165fbe2e9a8"
+        }
+      ]
+    }
+  ],
+  "selection_rule": "same eight predeclared development cases; change to pinned learned features, not looser truth gates",
+  "fit_control_count": 3,
+  "checkpoint_count": 8,
+  "min_surface_range_m": 3,
+  "max_surface_range_m": 20,
+  "source_license": "CC-BY-4.0",
+  "attribution": "Hesai and Scale AI, PandaSet, CC BY 4.0",
+  "absolute_5cm_claim_permitted": false,
+  "learned_model_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+  "source_assets_sha256": "28f57f501c33ad4c5a158935237e9b0ae1906bfd47952259cd33469af234b175",
+  "fitting_sources": {
+    "019-right": {
+      "controls": []
+    },
+    "019-front-right": {
+      "controls": []
+    },
+    "027-right": {
+      "controls": [
+        {
+          "track_id": "track-000009",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000129",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000022",
+          "source_id": "pandaset/027/lidar/10"
+        }
+      ]
+    },
+    "027-front-right": {
+      "controls": [
+        {
+          "track_id": "track-000012",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000087",
+          "source_id": "pandaset/027/lidar/10"
+        },
+        {
+          "track_id": "track-000110",
+          "source_id": "pandaset/027/lidar/10"
+        }
+      ]
+    },
+    "001-right": {
+      "controls": []
+    },
+    "001-front-right": {
+      "controls": []
+    }
+  },
+  "diagnostics": {
+    "019-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "019-right-10",
+            "019-right-12"
+          ],
+          [
+            "019-right-10",
+            "019-right-14"
+          ],
+          [
+            "019-right-12",
+            "019-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 22,
+        "three_view_tracks": 22,
+        "overlap_groups": [
+          [
+            "019-right-10",
+            "019-right-12",
+            "019-right-14"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 0,
+      "reference_frame": "019-right-10",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/019/camera/right_camera/10.jpg",
+        "pandaset/019/camera/right_camera/12.jpg",
+        "pandaset/019/camera/right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.22387345679012347,
+        0.23017746913580248,
+        0.24763117283950617
+      ]
+    },
+    "019-front-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "019-front-right-10",
+            "019-front-right-12"
+          ],
+          [
+            "019-front-right-10",
+            "019-front-right-14"
+          ],
+          [
+            "019-front-right-12",
+            "019-front-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 18,
+        "three_view_tracks": 18,
+        "overlap_groups": [
+          [
+            "019-front-right-10",
+            "019-front-right-12",
+            "019-front-right-14"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 0,
+      "reference_frame": "019-front-right-10",
+      "camera_calibration": {
+        "fx": 930.0407,
+        "fy": 930.0324
+      },
+      "sources": [
+        "pandaset/019/camera/front_right_camera/10.jpg",
+        "pandaset/019/camera/front_right_camera/12.jpg",
+        "pandaset/019/camera/front_right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.2843981481481481,
+        0.2611574074074074,
+        0.25988425925925923
+      ]
+    },
+    "027-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "027-right-10",
+            "027-right-12"
+          ],
+          [
+            "027-right-10",
+            "027-right-14"
+          ],
+          [
+            "027-right-12",
+            "027-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 160,
+        "three_view_tracks": 64,
+        "overlap_groups": [
+          [
+            "027-right-10",
+            "027-right-12",
+            "027-right-14"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 8,
+      "reference_frame": "027-right-10",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/027/camera/right_camera/10.jpg",
+        "pandaset/027/camera/right_camera/12.jpg",
+        "pandaset/027/camera/right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.33467592592592593,
+        0.3486342592592593,
+        0.368287037037037
+      ]
+    },
+    "027-front-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "027-front-right-10",
+            "027-front-right-12"
+          ],
+          [
+            "027-front-right-10",
+            "027-front-right-14"
+          ],
+          [
+            "027-front-right-12",
+            "027-front-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 216,
+        "three_view_tracks": 64,
+        "overlap_groups": [
+          [
+            "027-front-right-10",
+            "027-front-right-12",
+            "027-front-right-14"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 8,
+      "reference_frame": "027-front-right-10",
+      "camera_calibration": {
+        "fx": 930.0407,
+        "fy": 930.0324
+      },
+      "sources": [
+        "pandaset/027/camera/front_right_camera/10.jpg",
+        "pandaset/027/camera/front_right_camera/12.jpg",
+        "pandaset/027/camera/front_right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.3578858024691358,
+        0.36483796296296295,
+        0.36463734567901235
+      ]
+    },
+    "001-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "001-right-10",
+            "001-right-12"
+          ],
+          [
+            "001-right-10",
+            "001-right-14"
+          ],
+          [
+            "001-right-12",
+            "001-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 16,
+        "three_view_tracks": 16,
+        "overlap_groups": [
+          [
+            "001-right-10",
+            "001-right-12",
+            "001-right-14"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 0,
+      "reference_frame": "001-right-10",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/001/camera/right_camera/10.jpg",
+        "pandaset/001/camera/right_camera/12.jpg",
+        "pandaset/001/camera/right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.2264891975308642,
+        0.22191358024691357,
+        0.2167361111111111
+      ]
+    },
+    "001-front-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "001-front-right-10",
+            "001-front-right-12"
+          ],
+          [
+            "001-front-right-10",
+            "001-front-right-14"
+          ],
+          [
+            "001-front-right-12",
+            "001-front-right-14"
+          ]
+        ],
+        "candidate_three_view_tracks": 7,
+        "three_view_tracks": 7,
+        "overlap_groups": [
+          [
+            "001-front-right-10",
+            "001-front-right-12",
+            "001-front-right-14"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 0,
+      "heldout_checkpoints": 1,
+      "reference_frame": "001-front-right-10",
+      "camera_calibration": {
+        "fx": 930.0407,
+        "fy": 930.0324
+      },
+      "sources": [
+        "pandaset/001/camera/front_right_camera/10.jpg",
+        "pandaset/001/camera/front_right_camera/12.jpg",
+        "pandaset/001/camera/front_right_camera/14.jpg"
+      ],
+      "static_mask_fractions": [
+        0.24203703703703705,
+        0.23388117283950619,
+        0.22838734567901234
+      ]
+    }
+  }
+}

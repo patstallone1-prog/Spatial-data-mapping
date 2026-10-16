@@ -34,7 +34,13 @@ def assert_holdout_disjoint(inputs: list[dict], withheld: list[dict]) -> None:
 
 
 def validate_benchmark(manifest: dict, fitting: dict[str, dict]) -> None:
-    if manifest.get("coordinate_frame") != "local_ENU_m":
+    sensor_pilot = (
+        manifest.get("purpose") == "independent_sensor_local_agreement_not_absolute_survey_accuracy"
+    )
+    permitted_frames = (
+        {"local_ENU_m", "pandaset_sequence_world_m"} if sensor_pilot else {"local_ENU_m"}
+    )
+    if manifest.get("coordinate_frame") not in permitted_frames:
         raise ValueError("benchmark requires explicitly shared local_ENU_m frame")
     threshold = manifest.get("threshold_m", 0)
     if not np.isfinite(threshold) or threshold <= 0:
@@ -56,7 +62,13 @@ def validate_benchmark(manifest: dict, fitting: dict[str, dict]) -> None:
                 raise ValueError("held-out checkpoint used to fit or select geometry")
             synthetic = manifest.get("purpose") == "synthetic_regression_only"
             methods = {"analytic"} if synthetic else {"survey", "lidar"}
-            correspondence = "analytic_id" if synthetic else "independent_reviewed_id"
+            correspondence = (
+                "analytic_id"
+                if synthetic
+                else "calibrated_pixel_ray_lidar_surface"
+                if sensor_pilot
+                else "independent_reviewed_id"
+            )
             if (
                 point.get("method") not in methods
                 or point.get("correspondence") != correspondence
@@ -76,6 +88,7 @@ def evaluate(manifest: dict, predictions: dict[str, dict], fitting: dict[str, di
         raise ValueError("prediction/fitting cases absent from frozen benchmark")
     errors, outcomes, successes, points_within, reconstructed = [], Counter(), 0, 0, 0
     rows, case_max_errors = [], []
+    planned_points = 0
     for case in manifest["cases"]:
         result = predictions.get(case["case_id"], {})
         status = result.get("status", "not_attempted")
@@ -90,8 +103,15 @@ def evaluate(manifest: dict, predictions: dict[str, dict], fitting: dict[str, di
                 error = float(np.linalg.norm(np.array(estimate) - checkpoint["xyz"]))
             case_errors.append(error)
             points_within += int(error <= manifest["threshold_m"])
-        passed = bool(case_errors and max(case_errors) <= manifest["threshold_m"])
-        case_max_errors.append(max(case_errors) if case_errors else float("inf"))
+        expected = int(
+            case.get(
+                "expected_checkpoint_count", manifest.get("checkpoint_count", len(case_errors))
+            )
+        )
+        planned_points += max(expected, len(case_errors))
+        complete = bool(case_errors and len(case_errors) >= expected)
+        passed = bool(complete and max(case_errors) <= manifest["threshold_m"])
+        case_max_errors.append(max(case_errors) if complete else float("inf"))
         successes += int(passed)
         errors.extend(case_errors)
         rows.append(
@@ -99,6 +119,8 @@ def evaluate(manifest: dict, predictions: dict[str, dict], fitting: dict[str, di
                 "case_id": case["case_id"],
                 "status": status,
                 "checkpoints": len(case_errors),
+                "expected_checkpoints": expected,
+                "complete_reference_support": complete,
                 "within_threshold": passed,
                 "unscored_missing_truth": not bool(case_errors),
             }
@@ -130,9 +152,12 @@ def evaluate(manifest: dict, predictions: dict[str, dict], fitting: dict[str, di
         "field_accuracy_claim": False,  # Diagnostic result, never automatic promotion.
         "has_independent_metric_truth": bool(errors)
         and manifest.get("purpose") != "synthetic_regression_only",
-        "planned_checkpoints": len(errors),
+        "planned_checkpoints": planned_points,
+        "reference_available_checkpoints": len(errors),
         "finite_predictions": len(finite),
-        "within_threshold_all_checkpoints": points_within / len(errors) if errors else 0.0,
+        "within_threshold_all_checkpoints": points_within / planned_points
+        if planned_points
+        else 0.0,
         "conditional_finite_median_m": float(np.median(finite)) if len(finite) else None,
         "conditional_finite_p90_m": float(np.percentile(finite, 90)) if len(finite) else None,
         "all_attempts_median_m": all_quantile(0.5),

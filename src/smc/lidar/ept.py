@@ -24,6 +24,8 @@ from __future__ import annotations
 import io
 import json
 import math
+import os
+import tempfile
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -113,10 +115,12 @@ class EptReader:
         base_url: str = USGS_LIDAR_PUBLIC,
         cache_dir: Path | None = None,
         timeout_s: float = 90.0,
+        strict: bool = False,
     ) -> None:
         self._url = f"{base_url.rstrip('/')}/{dataset}"
         self._cache = cache_dir or Path("build/lidar-cache") / dataset
         self._timeout = timeout_s
+        self.strict = strict
         self._hierarchy: dict[str, dict[str, int]] = {}
         self._info: dict | None = None
         self.tiles_fetched = 0
@@ -142,8 +146,22 @@ class EptReader:
             return cached.read_bytes() if binary else cached.read_text()
         with urllib.request.urlopen(f"{self._url}/{path}", timeout=self._timeout) as response:
             payload = response.read()
+            length = response.headers.get("Content-Length")
+            if length is not None and int(length) != len(payload):
+                raise OSError("truncated EPT response is not valid reference evidence")
         cached.parent.mkdir(parents=True, exist_ok=True)
-        cached.write_bytes(payload)
+        # ENOSPC or interruption must not leave an apparently complete cache entry.
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=cached.parent, delete=False) as stream:
+                temporary = Path(stream.name)
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            temporary.replace(cached)
+        finally:
+            if temporary is not None and temporary.exists():
+                temporary.unlink()
         self.tiles_fetched += 1
         self.bytes_fetched += len(payload)
         return payload if binary else payload.decode("utf-8")
@@ -156,7 +174,12 @@ class EptReader:
     def _node_box(self, depth: int, x: int, y: int, z: int) -> tuple[float, float, float, float]:
         cube = self.cube
         size = (cube[3] - cube[0]) / (2**depth)
-        return (cube[0] + x * size, cube[1] + y * size, cube[0] + (x + 1) * size, cube[1] + (y + 1) * size)
+        return (
+            cube[0] + x * size,
+            cube[1] + y * size,
+            cube[0] + (x + 1) * size,
+            cube[1] + (y + 1) * size,
+        )
 
     def _nodes(self, box: tuple[float, float, float, float], max_depth: int) -> list[str]:
         """Every populated node overlapping a Mercator box, root to ``max_depth``."""
@@ -211,6 +234,8 @@ class EptReader:
             try:
                 raw = self._get(f"ept-data/{key}.laz")
             except urllib.error.HTTPError:
+                if self.strict:
+                    raise
                 continue
             las = laspy.read(io.BytesIO(raw))  # type: ignore[arg-type]
             x = np.asarray(las.x, dtype=np.float64)
