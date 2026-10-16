@@ -174,3 +174,10 @@ frames, oceans, app source synchronization and tunnel safety. The existing requi
 pytest and renderer-baseline CI gates must pass on the exact PR head before merge. The
 deployment gate is unchanged. No independent-accuracy or parity gate was falsified merely
 to publish the ocean fix and new validation tools.
+
+The first clean CI run caught a missing development dependency: SciPy was available on
+the local measurement machine but not in the CI test install. It is now declared in the
+development extra, rather than skipping the calibration tests. 98 focused local tests and
+ruff pass. Local SF and Oakland ocean fixtures show matching water material parameters
+and no warning/error console messages; the SF overview no longer has the ocean-colour box
+or rectangular extent line. These limited checks do not assert perfect regional visuals.
