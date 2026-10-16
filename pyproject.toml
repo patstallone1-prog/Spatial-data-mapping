@@ -26,11 +26,13 @@ dependencies = [
 
 [project.optional-dependencies]
 carla = ["carla>=0.9.15"]
-dev = ["pytest>=8", "mypy>=1.10", "ruff>=0.5"]
+# Calibration/sequence-cache tests exercise the optional photo-curb optimizer in CI.
+dev = ["pytest>=8", "mypy>=1.10", "ruff>=0.5", "scipy>=1.14"]
 scan-build = ["trimesh==5.1.1", "scipy==1.18.1", "remotezip==0.12.6"]
 reference-audit = ["indexed_gzip==1.10.3"]
 # Windowed public COG ingestion; never download a national raster to build the Bay atlas.
 nature = ["rasterio>=1.4,<2", "scipy>=1.14", "osmium>=4.1,<5"]
+curb-photo = ["scipy>=1.14"]
 # Uploading the nightly batch to Google Cloud Storage.
 gcs = ["google-cloud-storage>=2.14"]
 # MegaLoc global descriptors. ~230M parameters; runs on MPS, CUDA or CPU.

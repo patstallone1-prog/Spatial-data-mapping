@@ -130,7 +130,10 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
                                        base / "lidar" / "completion.json"]),
         "imagery": ([PY, "scripts/harvest_region_observations.py", "--region", region.name, "--out", str(catalog)],
                     [catalog / "observations" / "external-000.parquet"]),
-        "official": ([PY, "scripts/build_sf_official_geometry.py", "--region", region.name],
+        "official": ([PY, "scripts/ingest_berkeley_transport.py", "--region", region.name],
+                     [site / "sf-corridor-official.json"])
+                    if region.name == "berkeley-downtown" else
+                    ([PY, "scripts/build_sf_official_geometry.py", "--region", region.name],
                      [] if not corridor else [ROOT / "docs/sf-corridor-official.json"]),
         "build": ([PY, "scripts/build_sf_corridor_3d.py", "--region", region.name, "--reuse-osm"],
                   [site / "sf-corridor-3d.json"]),

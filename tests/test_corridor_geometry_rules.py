@@ -2781,6 +2781,20 @@ console.log(JSON.stringify({
                       "corner": "NE"}, result
 
 
+def test_municipal_ramp_points_are_not_treated_as_sf_intersection_centres() -> None:
+    result = _run_crossing("""
+const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];
+indexCurbRamps([
+  { p: ll(15, 5), c: null, f: [], position_basis: "physical_point" },
+]);
+console.log(JSON.stringify({
+  actual: rampRecordAt(15, 5), near: rampRecordAt(16, 5),
+  unrelatedCorner: rampRecordAt(5, 5), far: rampRecordAt(100, 100),
+}));
+""")
+    assert result == {"actual": "ramp", "near": "ramp", "unrelatedCorner": None, "far": None}
+
+
 def test_non_sf_crossing_end_uses_only_mapped_accessible_kerb_lips() -> None:
     result = _run_crossing("""
 const ll = (x, z) => [x / metersPerLon, -z / metersPerLat];

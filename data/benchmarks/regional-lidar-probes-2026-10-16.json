@@ -1,0 +1,122 @@
+{
+  "retrieved_at": "2026-10-16T14:32:25.998861+00:00",
+  "purpose": "bounded_regional_lidar_source_access_probe",
+  "complete_region_or_accuracy_claim": false,
+  "regions": [
+    {
+      "region": "oakland-downtown",
+      "dataset": "CA_AlamedaCo_2_2021",
+      "status": "sample_ingested",
+      "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_AlamedaCo_2_2021/ept.json",
+      "metadata_sha256": "318976c79cdad3aca366cf7f9de8c63c33b853ca2bc8a6b8e282e067b729735f",
+      "origin_lat_lon": [
+        37.8,
+        -122.27250000000001
+      ],
+      "radius_m": 15,
+      "resolution_m": 0.25,
+      "horizontal_output": "local east/north true metres; EPSG:3857 scale corrected",
+      "vertical_datum": "not_independently_verified",
+      "points": 40375,
+      "class_counts": {
+        "1": 33136,
+        "2": 7234,
+        "7": 5
+      },
+      "sample_sha256": "3db901c76008cda617cd042f65799b269e135cfc164290a930ad473a513621cb",
+      "sample_bytes": 387209,
+      "tiles_fetched": 16,
+      "bytes_fetched": 2934069,
+      "canonical_geometry_changed": false,
+      "attribution": "USGS 3DEP; public-domain federal lidar"
+    },
+    {
+      "region": "berkeley-downtown",
+      "dataset": "CA_AlamedaCo_3_2021",
+      "status": "sample_ingested",
+      "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_AlamedaCo_3_2021/ept.json",
+      "metadata_sha256": "fed76682aa5cd6353ac40e22147dbbfa486c3f2d37e1267ad9c37ea47c37b3e4",
+      "origin_lat_lon": [
+        37.8725,
+        -122.265
+      ],
+      "radius_m": 15,
+      "resolution_m": 0.25,
+      "horizontal_output": "local east/north true metres; EPSG:3857 scale corrected",
+      "vertical_datum": "not_independently_verified",
+      "points": 69730,
+      "class_counts": {
+        "1": 63645,
+        "2": 5845,
+        "7": 226,
+        "18": 14
+      },
+      "sample_sha256": "609a09dae3e4dede0bae1439a34b8c1085470c24ad7722dfcc16621e2d65bc5f",
+      "sample_bytes": 580880,
+      "tiles_fetched": 23,
+      "bytes_fetched": 5537311,
+      "canonical_geometry_changed": false,
+      "attribution": "USGS 3DEP; public-domain federal lidar"
+    },
+    {
+      "region": "palo-alto-downtown",
+      "dataset": "CA_SantaClaraCounty_2020",
+      "status": "sample_ingested",
+      "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_SantaClaraCounty_2020/ept.json",
+      "metadata_sha256": "aacd94409241833b2defb405a43acfe403570963b4b75e30def90234c80793ad",
+      "origin_lat_lon": [
+        37.446,
+        -122.1625
+      ],
+      "radius_m": 15,
+      "resolution_m": 0.25,
+      "horizontal_output": "local east/north true metres; EPSG:3857 scale corrected",
+      "vertical_datum": "not_independently_verified",
+      "points": 19726,
+      "class_counts": {
+        "1": 1958,
+        "2": 3274,
+        "4": 4,
+        "6": 14489,
+        "7": 1
+      },
+      "sample_sha256": "ba072cdafd40c9630c1208e1b9562ee97c2a68dff47ac496d4fa1b550aee305b",
+      "sample_bytes": 335864,
+      "tiles_fetched": 16,
+      "bytes_fetched": 3516245,
+      "canonical_geometry_changed": false,
+      "attribution": "USGS 3DEP; public-domain federal lidar"
+    },
+    {
+      "region": "san-jose-downtown",
+      "dataset": "CA_SantaClaraCounty_2020",
+      "status": "sample_ingested",
+      "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_SantaClaraCounty_2020/ept.json",
+      "metadata_sha256": "aacd94409241833b2defb405a43acfe403570963b4b75e30def90234c80793ad",
+      "origin_lat_lon": [
+        37.335,
+        -121.89
+      ],
+      "radius_m": 15,
+      "resolution_m": 0.25,
+      "horizontal_output": "local east/north true metres; EPSG:3857 scale corrected",
+      "vertical_datum": "not_independently_verified",
+      "points": 21867,
+      "class_counts": {
+        "1": 784,
+        "2": 764,
+        "3": 4,
+        "4": 37,
+        "5": 2635,
+        "6": 17636,
+        "7": 7
+      },
+      "sample_sha256": "1c1f99ea2ee86a674a38eb3bb03a24418c173e1b43fbc8d7e7e6c0f8aa2751fb",
+      "sample_bytes": 350327,
+      "tiles_fetched": 20,
+      "bytes_fetched": 5037044,
+      "canonical_geometry_changed": false,
+      "attribution": "USGS 3DEP; public-domain federal lidar"
+    }
+  ]
+}

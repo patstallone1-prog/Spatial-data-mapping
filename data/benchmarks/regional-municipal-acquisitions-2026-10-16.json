@@ -1,0 +1,228 @@
+{
+  "sources": [
+    {
+      "schema_version": 1,
+      "source": {
+        "region": "oakland-downtown",
+        "url": "https://data.oaklandca.gov/resource/87ce-u2wf.json",
+        "api": "socrata",
+        "attribution": "City of Oakland, Downtown Oakland Parking Study",
+        "catalogue": "https://www.oaklandca.gov/Public-Safety-Streets/Transportation-Projects-Reports/Parking-and-Mobility-Related-Maps-and-Data",
+        "meaning": "December 2015 parking/curb inventory; historic policy evidence, not current surveyed kerbs."
+      },
+      "bbox_s_w_n_e": [
+        37.785,
+        -122.285,
+        37.815,
+        -122.26
+      ],
+      "retrieved_at": "2026-10-16T14:32:12.983681+00:00",
+      "metadata_sha256": "1c7deb979c1eb26d411f372c3e2af5bb240ae118a0afe207cf66f39c19eecdc5",
+      "sha256": "9e43ad5e234abe217c8f082006e2d9a289f6cef85ca3851630ee8d95fe6e0dcb",
+      "horizontal_crs": "EPSG:4326",
+      "vertical_datum": "not_used",
+      "geometry_accuracy_m": null,
+      "basis": "historic_municipal_inventory",
+      "publishable_as_measured": false,
+      "redistribution": "not_promoted_pending_rights_and_geometry_review",
+      "feature_count": 2558,
+      "raw_path": "data/municipal_evidence/oakland-curb-inventory/9e43ad5e234abe217c8f082006e2d9a289f6cef85ca3851630ee8d95fe6e0dcb.json"
+    },
+    {
+      "schema_version": 1,
+      "source": {
+        "region": "palo-alto-downtown",
+        "url": "https://services6.arcgis.com/evmyRZRrsopdeog7/arcgis/rest/services/RoadEdges/FeatureServer/0",
+        "attribution": "City of Palo Alto Open GIS",
+        "catalogue": "https://opengis.cityofpaloalto.org/OpenGisData/",
+        "meaning": "Mixed pavement/lip/face/back-of-curb linework; preserve SOURCE/INPUTMETHOD."
+      },
+      "bbox_s_w_n_e": [
+        37.44,
+        -122.17,
+        37.452,
+        -122.155
+      ],
+      "retrieved_at": "2026-10-16T14:32:20.402441+00:00",
+      "metadata_sha256": "c1f589add451c20349e0c2f8d1466044e69fbb1612ca708e64371a65c3635551",
+      "sha256": "69ec18ab4c882e9d5528dea0e14171ca540c3701627cf73be65465bb6fb1e593",
+      "horizontal_crs": "EPSG:4326",
+      "native_spatial_reference": {
+        "wkid": 102643,
+        "latestWkid": 2227
+      },
+      "vertical_datum": "not_verified",
+      "geometry_accuracy_m": null,
+      "basis": "municipal_reference_inventory",
+      "publishable_as_measured": false,
+      "redistribution": "not_promoted_pending_rights_and_geometry_review",
+      "feature_count": 1441,
+      "raw_path": "data/municipal_evidence/palo-alto-road-edges/69ec18ab4c882e9d5528dea0e14171ca540c3701627cf73be65465bb6fb1e593.json"
+    },
+    {
+      "schema_version": 1,
+      "source": {
+        "region": "san-jose-downtown",
+        "url": "https://geo.sanjoseca.gov/server/rest/services/OPN/OPN_OpenDataService/MapServer/185",
+        "attribution": "City of San Jose",
+        "catalogue": "https://data.sanjoseca.gov/",
+        "meaning": "Sidewalk polygons; WIDTH attribute units unverified; not an accessibility survey."
+      },
+      "bbox_s_w_n_e": [
+        37.325,
+        -121.905,
+        37.345,
+        -121.875
+      ],
+      "retrieved_at": "2026-10-16T14:32:22.163882+00:00",
+      "metadata_sha256": "23064d2ff34d75eb6c259e8c5d2070b5cbf310e6676fda9b77d275f78872405a",
+      "sha256": "baf7e4fd1c8e41af3b4f2e8d5f3743ed0c56c157a78947f4bb74285cbbb18afb",
+      "horizontal_crs": "EPSG:4326",
+      "native_spatial_reference": {
+        "falseM": 0,
+        "xyTolerance": 0.003280833333333333,
+        "mUnits": 1,
+        "zUnits": 10000,
+        "latestWkid": 2227,
+        "zTolerance": 0.001,
+        "wkid": 102643,
+        "xyUnits": 36787427.34568671,
+        "mTolerance": 0.001,
+        "falseX": -115860600,
+        "falseY": -93269500,
+        "falseZ": -100000
+      },
+      "vertical_datum": "not_verified",
+      "geometry_accuracy_m": null,
+      "basis": "municipal_reference_inventory",
+      "publishable_as_measured": false,
+      "redistribution": "not_promoted_pending_rights_and_geometry_review",
+      "feature_count": 1255,
+      "raw_path": "data/municipal_evidence/san-jose-sidewalks/baf7e4fd1c8e41af3b4f2e8d5f3743ed0c56c157a78947f4bb74285cbbb18afb.json"
+    },
+    {
+      "schema_version": 1,
+      "source": {
+        "region": "san-jose-downtown",
+        "url": "https://geo.sanjoseca.gov/server/rest/services/OPN/OPN_OpenDataService/MapServer/498",
+        "attribution": "City of San Jose",
+        "catalogue": "https://data.sanjoseca.gov/",
+        "meaning": "Colour/restriction curb inventory, NOT a complete surveyed curb envelope."
+      },
+      "bbox_s_w_n_e": [
+        37.325,
+        -121.905,
+        37.345,
+        -121.875
+      ],
+      "retrieved_at": "2026-10-16T14:32:22.970422+00:00",
+      "metadata_sha256": "61ca1eeee7aef479e512c0023959b0e8ea4df1e1f547955eb998ef0566dfed0d",
+      "sha256": "55faf90e5e2504f88e0ce6db7aaa4a686b6fbdeff76a369cd9c1e7f4582bed1a",
+      "horizontal_crs": "EPSG:4326",
+      "native_spatial_reference": {
+        "falseM": 0,
+        "xyTolerance": 0.003280833333333333,
+        "mUnits": 1,
+        "zUnits": 10000,
+        "latestWkid": 2227,
+        "zTolerance": 0.001,
+        "wkid": 102643,
+        "xyUnits": 36787427.34568671,
+        "mTolerance": 0.001,
+        "falseX": -115860600,
+        "falseY": -93269500,
+        "falseZ": -100000
+      },
+      "vertical_datum": "not_verified",
+      "geometry_accuracy_m": null,
+      "basis": "municipal_reference_inventory",
+      "publishable_as_measured": false,
+      "redistribution": "not_promoted_pending_rights_and_geometry_review",
+      "feature_count": 564,
+      "raw_path": "data/municipal_evidence/san-jose-curbfaces/55faf90e5e2504f88e0ce6db7aaa4a686b6fbdeff76a369cd9c1e7f4582bed1a.json"
+    },
+    {
+      "schema_version": 1,
+      "source": {
+        "region": "san-jose-downtown",
+        "url": "https://geo.sanjoseca.gov/server/rest/services/OPN/OPN_OpenDataService/MapServer/279",
+        "attribution": "City of San Jose",
+        "catalogue": "https://data.sanjoseca.gov/",
+        "meaning": "Survey benchmark inventory; datum/height fields require individual validation."
+      },
+      "bbox_s_w_n_e": [
+        37.325,
+        -121.905,
+        37.345,
+        -121.875
+      ],
+      "retrieved_at": "2026-10-16T14:32:23.233570+00:00",
+      "metadata_sha256": "30feadc33a1e1286d2b88a595ff69ffc8e960fefafed80bd415877cb7dc0a84a",
+      "sha256": "bf9ceb09a16b641d528ad193088bf41b7785cff8d66ff4acf4d9d7e3ce1dfa2f",
+      "horizontal_crs": "EPSG:4326",
+      "native_spatial_reference": {
+        "falseM": 0,
+        "xyTolerance": 0.003280833333333333,
+        "mUnits": 1,
+        "zUnits": 10000,
+        "latestWkid": 2227,
+        "zTolerance": 0.001,
+        "wkid": 102643,
+        "xyUnits": 36787427.34568671,
+        "mTolerance": 0.001,
+        "falseX": -115860600,
+        "falseY": -93269500,
+        "falseZ": -100000
+      },
+      "vertical_datum": "not_verified",
+      "geometry_accuracy_m": null,
+      "basis": "municipal_reference_inventory",
+      "publishable_as_measured": false,
+      "redistribution": "not_promoted_pending_rights_and_geometry_review",
+      "feature_count": 32,
+      "raw_path": "data/municipal_evidence/san-jose-survey-controls/bf9ceb09a16b641d528ad193088bf41b7785cff8d66ff4acf4d9d7e3ce1dfa2f.json"
+    },
+    {
+      "schema_version": 1,
+      "source": {
+        "region": "san-jose-downtown",
+        "url": "https://geo.sanjoseca.gov/server/rest/services/OPN/OPN_OpenDataService/MapServer/533",
+        "attribution": "City of San Jose",
+        "catalogue": "https://data.sanjoseca.gov/",
+        "meaning": "Capital project references, NOT proof of constructed/as-built geometry."
+      },
+      "bbox_s_w_n_e": [
+        37.325,
+        -121.905,
+        37.345,
+        -121.875
+      ],
+      "retrieved_at": "2026-10-16T14:32:23.505013+00:00",
+      "metadata_sha256": "7da65e53ed34da058f3a75310997613f3601399423e638fcc35a72b3cf471a43",
+      "sha256": "9eee16e082cb54e249cf1d5ef5019ea1b83e23ddac08abe3adb1b3ddb6034b54",
+      "horizontal_crs": "EPSG:4326",
+      "native_spatial_reference": {
+        "falseM": 0,
+        "xyTolerance": 0.003280833333333333,
+        "mUnits": 1,
+        "zUnits": 10000,
+        "latestWkid": 2227,
+        "zTolerance": 0.001,
+        "wkid": 102643,
+        "xyUnits": 36787427.34568671,
+        "mTolerance": 0.001,
+        "falseX": -115860600,
+        "falseY": -93269500,
+        "falseZ": -100000
+      },
+      "vertical_datum": "not_verified",
+      "geometry_accuracy_m": null,
+      "basis": "municipal_reference_inventory",
+      "publishable_as_measured": false,
+      "redistribution": "not_promoted_pending_rights_and_geometry_review",
+      "feature_count": 20,
+      "raw_path": "data/municipal_evidence/san-jose-project-lines/9eee16e082cb54e249cf1d5ef5019ea1b83e23ddac08abe3adb1b3ddb6034b54.json"
+    }
+  ],
+  "failures": []
+}
