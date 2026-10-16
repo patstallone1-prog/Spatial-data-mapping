@@ -14,6 +14,7 @@ re-running the same correction, and reporting how much of the injected error cam
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 import random
@@ -53,7 +54,7 @@ SCHEMA = pa.schema([
 def point_and_normal(vertices: np.ndarray, station_m: float):
     """Position and left-hand normal at a station along a polyline, in local metres."""
     travelled = 0.0
-    for start, end in zip(vertices[:-1], vertices[1:]):
+    for start, end in itertools.pairwise(vertices):
         edge = end - start
         length = float(np.linalg.norm(edge))
         if length < 1e-9:
@@ -77,7 +78,7 @@ def run(offsets_by_group, rows, index, *, inject: float = 0.0, seed: int = 7):
     """Refine every group, optionally after injecting a known lateral error first."""
     rng = random.Random(seed)
     results = {}
-    for (sequence, feature), members in offsets_by_group.items():
+    for (_sequence, feature), members in offsets_by_group.items():
         vertices = index.segments.get(feature)
         if vertices is None:
             continue
@@ -117,7 +118,7 @@ def main() -> int:
     index = CentrelineIndex.from_centrelines(
         json.loads((OFFICIAL / "centrelines.json").read_text()), frame)
 
-    heading_by_uid = dict(zip(catalogue["observation_uid"], catalogue["heading_deg"]))
+    heading_by_uid = dict(zip(catalogue["observation_uid"], catalogue["heading_deg"], strict=True))
     groups = defaultdict(list)
     for i, uid in enumerate(enrichment["observation_uid"]):
         if enrichment["segment_id"][i] is None:
@@ -139,7 +140,7 @@ def main() -> int:
     # -- write the correction beside the original ------------------------------------------
     out = {name: [] for name in SCHEMA.names}
     moved_total = 0
-    for (sequence, feature), members in groups.items():
+    for (_sequence, feature), members in groups.items():
         vertices = index.segments.get(feature)
         if vertices is None:
             continue
@@ -199,6 +200,9 @@ def main() -> int:
             1 for r in out["refine_reason"]
             if r == "outside by more than a correction can explain"),
         "validation": {
+            "purpose": "synthetic_self_consistency_only",
+            "independent_accuracy_validation": False,
+            "warning": "baseline is this heuristic's own output, not survey/lidar truth",
             "injected_sigma_m": args.inject_m,
             "n": len(before),
             "error_before_median_m": round(before[len(before) // 2], 3) if before else None,
