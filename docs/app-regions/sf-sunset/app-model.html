@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="9de495e7e3a65c7d0a4298838ea888f4efc6b6472eebc5afe3041df5ac77946b" />
+<meta name="kerbside-renderer-sha256" content="a1b3e5b8a8dd95cf996c803802b0f767f5377c6a4723c4a8eda411db07886073" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -299,6 +299,8 @@ const sharedAsset = (name) => viaStore(new URL(name, new URL(
 // One shared landscape for host and attached regions; failure retains the older backdrop.
 const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
+const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
+  .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
 const NATURE = natureLibrary ? await natureLibrary.loadNatureAtlas(sharedAsset)
   .catch(error => { console.warn("kerbside: landscape evidence unavailable", error); return null; }) : null;
 var natureWorld = null;
@@ -2149,8 +2151,9 @@ function inCity(x, z) {
 }
 function terrainLandColourAt(x, z) {
   if (!inCity(x, z)) {
-    const s = NATURE?.sample(...NATURE.local(midLon+x/metersPerLon,midLat-z/metersPerLat),false);
-    const colour = s && natureLibrary.COVER_COLOURS[s.cover];
+    const local=NATURE?.local(midLon+x/metersPerLon,midLat-z/metersPerLat);
+    const s = local&&NATURE.sample(...local,false);
+    const colour = s && (NATURE.floorColourAt?.(...local)||natureLibrary.COVER_COLOURS[s.cover]);
     return colour ? new THREE.Color().setRGB(...natureLibrary.linearColour(colour)) : TERRAIN_PLATE;
   }
   // A hard class edge made each OSM parcel a huge, squared-off grey slab. Feather just
@@ -14261,6 +14264,8 @@ function buildingMesh(feature) {
   // lowest ground under its footprint, so no corner floats. A car park or a filling station
   // is a lot at one level, and stands at the same height with everything on it.
   const hillLift = groundBaseFor(feature.points);
+  // Runtime-only clearance extent, shared with the tree/house intersection cut.
+  feature._treeClipBase=hillLift;feature._treeClipRoof=hillLift+height;
   BUILDING_LIFT_M = hillLift;
   const archetype = placeArchetypeMesh(feature, seed);
   if (archetype) {
@@ -20068,11 +20073,35 @@ for (const feature of PARK_STRUCTURES) {
     byVariant.get(tree.v).push(tree);
   }
   const dummy = new THREE.Object3D();
+  const treeClipStats={anchors:trees.length,clipped:0};
+  // Clip only the geometry invading a house; mapped sidewalk tree anchors,
+  // diameters, order and seeded rotations remain exactly the same.
+  function treeBuildingPrisms(x,z,radius){
+    const seen=new Set(),prisms=[];
+    for(let c=Math.floor((x-radius)/FOOTPRINT_CELL);c<=Math.floor((x+radius)/FOOTPRINT_CELL);c++)
+      for(let r=Math.floor((z-radius)/FOOTPRINT_CELL);r<=Math.floor((z+radius)/FOOTPRINT_CELL);r++)
+        for(const entry of footprintGrid.get(`${c}:${r}`)||[]){
+          if(seen.has(entry))continue;seen.add(entry);
+          if(x+radius<entry.minX||x-radius>entry.maxX||z+radius<entry.minZ||z-radius>entry.maxZ)continue;
+          const ring=entry.local.slice();if(ring.length>1&&Math.hypot(ring[0][0]-ring.at(-1)[0],ring[0][1]-ring.at(-1)[1])<.001)ring.pop();
+          const base=(entry.way._treeClipBase??groundBaseFor(entry.way.points))-.1;
+          const top=(entry.way._treeClipRoof??(base+Math.max(3,entry.way.height_m||10.5)))+.1;
+          for(const indices of THREE.ShapeUtils.triangulateShape(ring.map(p=>new THREE.Vector2(...p)),[]))
+            prisms.push(vegetationLibrary.trianglePrismPlanes(indices.map(i=>ring[i]),base,top));
+        }
+    return prisms;
+  }
   for (const [kind, list] of byVariant) {
     const proto = treeVariant(kind);
+    let prototypeRadius=0;for(const part of proto.children){part.geometry.computeBoundingBox();const b=part.geometry.boundingBox;
+      prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));}
+    const clipping=list.map(tree=>{if(!vegetationLibrary)return null;
+      const [x,y]=xy(...tree.p),maxScale=kind==='palm'?5.6:kind==='columnar'?6.2:kind==='conifer'?7:7.4,scale=Math.max(2.2,Math.min(maxScale,tree.d*.34));
+      const prisms=treeBuildingPrisms(x,-y,scale*prototypeRadius);if(prisms.length)treeClipStats.clipped++;return prisms.length?prisms:null;});
     for (const part of proto.children) {
-      const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length);
+      const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length-clipping.filter(Boolean).length);
       mesh.userData.surface = `tree:${kind}`;   // named for the tile exporter and the audit
+      let instance=0;const clipped=[];
       for (let i = 0; i < list.length; i += 1) {
         const tree = list[i];
         const [x, y] = xy(tree.p[0], tree.p[1]);
@@ -20087,12 +20116,22 @@ for (const feature of PARK_STRUCTURES) {
         dummy.position.y = part.position.y * scale;
         dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);
         dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
+        if(clipping[i]){
+          dummy.position.y+=groundLiftAt(x,-y);dummy.updateMatrix();
+          const baked=part.geometry.index?part.geometry.toNonIndexed():part.geometry.clone();baked.applyMatrix4(dummy.matrix);
+          const attributes=Object.fromEntries(Object.entries(baked.attributes).map(([name,a])=>[name,{array:a.array,size:a.itemSize}]));
+          const result=vegetationLibrary.clipOutsidePrisms(attributes,clipping[i]);baked.dispose();
+          if(result.position.length){const g=new THREE.BufferGeometry();for(const [name,values] of Object.entries(result))g.setAttribute(name,new THREE.Float32BufferAttribute(values,attributes[name].size));
+            g.computeBoundingSphere();clipped.push(g);}
+        }else mesh.setMatrixAt(instance++, dummy.matrix);
       }
       mesh.instanceMatrix.needsUpdate = true;
-      groups.ground.add(mesh);
+      if(mesh.count)groups.ground.add(mesh);
+      if(clipped.length){const fixed=new THREE.Mesh(mergeParts(clipped),part.material);
+        fixed.userData={surface:`tree:${kind}`,liftedOntoGround:true,treeWallClipped:true};groups.ground.add(fixed);}
     }
   }
+  window.kerbsideTreeClearance=treeClipStats;
 
   buildCourts(ground);
   // What is inside the parks: playgrounds and the other recreation areas (RPD / OpenStreetMap).
@@ -28973,7 +29012,7 @@ function animate(now) {
   const progress = document.getElementById("progress");
   if (progress && !progress.hidden) progress.hidden = true;
   markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
-  if(natureWorld?.tick(now))lastMovedAt=now;
+  if(natureWorld?.tick(now,camera))lastMovedAt=now;
   stepAvatar(now);
   updateCompass(now);
   if (frameCount % 30 === 0) updateRouteWidth();

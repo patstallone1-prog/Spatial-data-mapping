@@ -157,6 +157,7 @@ def main() -> None:
         "runtime_assets_sha256": {
             str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in [DOCS / "recoverable-geometry.mjs", DOCS / "nature-runtime.mjs",
+                         DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "nature/ecology.json",
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
                          *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
         },

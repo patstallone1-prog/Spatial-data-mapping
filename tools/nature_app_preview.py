@@ -44,6 +44,21 @@ groundButton.onclick=()=>{
  results.ground={checked,skipped,maxErrorM:maxError,sourceChecked,maxSourceErrorM:maxSourceError,
   pass:checked>0&&maxError<.01&&maxSourceError<.01};audit();
 };panel.append(groundButton);
+const treeButton=document.createElement('button');treeButton.textContent='Audit city tree clearance';treeButton.onclick=()=>{
+ let tested=0,inside=0;const a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),matrix=new THREE.Matrix4();
+ groups.ground.updateMatrixWorld(true);groups.ground.traverse(o=>{
+  if(!o.isMesh||!String(o.userData.surface||'').startsWith('tree:'))return;
+  const p=o.geometry.getAttribute('position'),index=o.geometry.getIndex(),N=index?index.count:p.count;
+  for(let instance=0;instance<(o.isInstancedMesh?o.count:1);instance++){
+   if(o.isInstancedMesh){o.getMatrixAt(instance,matrix);matrix.premultiply(o.matrixWorld);}else matrix.copy(o.matrixWorld);
+   for(let j=0;j<N;j+=3){
+    [a,b,c].forEach((v,k)=>v.fromBufferAttribute(p,index?index.getX(j+k):j+k).applyMatrix4(matrix));
+    const x=(a.x+b.x+c.x)/3,z=(a.z+b.z+c.z)/3,y=(a.y+b.y+c.y)/3,building=buildingAt(x,z);tested++;
+    if(building&&y>(building._treeClipBase??groundBaseFor(building.points))+.005&&y<(building._treeClipRoof??Infinity)-.005)inside++;
+   }
+  }
+ });results.cityTrees={...window.kerbsideTreeClearance,tested,inside,pass:tested>0&&inside===0};audit();
+};panel.append(treeButton);
 document.body.append(panel);audit();
 }
 """
