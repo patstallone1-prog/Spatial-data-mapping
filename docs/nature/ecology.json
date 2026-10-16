@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "role": "Visual ecological priors; not measured individual species, counts, or understory cover",
+  "weights_are": "Inferred rendering probabilities except the explicitly historical Presidio canopy-area composition; never stem-count measurements",
+  "profiles": {
+    "presidio": {
+      "historical_canopy_area_weights": {
+        "eucalyptus": 0.42,
+        "monterey_cypress": 0.34,
+        "monterey_pine_and_mixed": 0.17,
+        "acacia_and_redwood": 0.07
+      },
+      "epoch": "2001 vegetation management plan, historical; not current inventory",
+      "current_context": "2026 forest renewal and native understory restoration; five principal species remain supported",
+      "source_ids": [
+        "presidio_vmp",
+        "presidio_forest",
+        "presidio_renewal"
+      ]
+    },
+    "eastbay": {
+      "dominant_groups": [
+        "coast live oak",
+        "California bay laurel",
+        "Douglas-fir in moister forest"
+      ],
+      "source_ids": [
+        "eastbay_management",
+        "nps_forests",
+        "usfs_oak"
+      ],
+      "density_basis": "USFS canopy raster plus continuous habitat transitions, not invented per-cell cover measurements"
+    },
+    "peninsula": {
+      "dominant_groups": [
+        "coast redwood",
+        "Douglas-fir",
+        "California bay",
+        "coast live oak at drier edges"
+      ],
+      "source_ids": [
+        "nps_forests",
+        "midpen_ferns"
+      ]
+    }
+  },
+  "undergrowth": {
+    "moist_forest": [
+      "western sword fern",
+      "redwood sorrel",
+      "coffeeberry-like shrub forms"
+    ],
+    "dry_scrub": [
+      "coyote brush",
+      "toyon"
+    ],
+    "open_woodland": [
+      "bunchgrass",
+      "patchy shrubs",
+      "leaf litter"
+    ],
+    "constraints": "Species occurrence guides shape families; numeric abundance, exact positions, moisture and patch density are inferred. No uniform hedge, no plants on mapped paths/courts/buildings/water."
+  },
+  "sources": {
+    "presidio_vmp": "https://ucanr.edu/node/136950/printable/print",
+    "presidio_forest": "https://presidio.gov/about/sustainability/creating-a-sustainable-forest",
+    "presidio_renewal": "https://presidio.gov/about/presidio-forward/restoring-green-space",
+    "eastbay_management": "https://www.ebparks.org/sites/default/files/WildlandManagementPolicies.pdf",
+    "nps_forests": "https://home.nps.gov/goga/learn/nature/forests.htm",
+    "usfs_oak": "https://research.fs.usda.gov/feis/species-reviews/queagr",
+    "midpen_ferns": "https://www.openspace.org/where-to-go/nature/plant-life/ferns"
+  },
+  "canonical_geometry_modified": false,
+  "street_tree_locations_modified": false,
+  "floor": {
+    "file": "floor-colour-40m.bin",
+    "encoding": "gzip",
+    "dtype": "|u1",
+    "bytes": 2704024,
+    "decoded_bytes": 14056768,
+    "sha256": "9dc40e6bd86f1669b16363dcac2b867fb03fc10dec8dc8bea9e3607c737f07c0",
+    "channels": 4,
+    "colour_space": "srgb",
+    "alpha": "source water classification",
+    "smoothing_sigma_m": 32,
+    "paths_manifest_sha256": "3f792d517966aeb7d92743a99522a28cf3694617aaf35f7b32e19ad584a31160",
+    "attribution": "NLCD / USFS plus OpenStreetMap natural surface polygons, ODbL"
+  },
+  "clearance": {
+    "file": "vegetation-clearance-8m.bin",
+    "encoding": "gzip",
+    "dtype": "|u1",
+    "bytes": 2546136,
+    "decoded_bytes": 10970129,
+    "sha256": "65578c134af40939c5aee3e5c481e0801a84ead96bd1cf5c2a7e854ad21d4028",
+    "cols": 9015,
+    "rows": 9735,
+    "step_m": 8,
+    "buffer_m": 16,
+    "packing": "one bit per cell; little bit order",
+    "paths_manifest_sha256": "3f792d517966aeb7d92743a99522a28cf3694617aaf35f7b32e19ad584a31160",
+    "attribution": "OpenStreetMap contributors, ODbL; conservative visual exclusion only"
+  },
+  "source_cover_sha256": "2fab8017cf42ac02bf7485ced845401e2286ae74de7fcbe7a718df3f37d61e3e",
+  "source_canopy_sha256": "590cd5244b830c1cb8ab283b32f059c3eb0dc6b6be309ec3368feb75d6fba5fb"
+}

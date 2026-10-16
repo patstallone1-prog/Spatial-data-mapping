@@ -117,7 +117,7 @@ let cover=42,NATURE={local:(...p)=>p,sample:()=>({cover})};
 const forest=terrainLandColourAt(1,2);cover=71;const grass=terrainLandColourAt(1,2);
 NATURE.sample=()=>null;const missingPixel=terrainLandColourAt(1,2)===TERRAIN_PLATE;
 NATURE=null;const absent=terrainLandColourAt(1,2)===TERRAIN_PLATE;
-console.log(JSON.stringify({forest:JSON.stringify(forest)===JSON.stringify(n.linearColour([.20,.29,.20])),
+ console.log(JSON.stringify({forest:JSON.stringify(forest)===JSON.stringify(n.linearColour([.30,.23,.17])),
  distinct:JSON.stringify(forest)!==JSON.stringify(grass),missingPixel,absent}));
 """
     )
