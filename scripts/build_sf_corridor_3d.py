@@ -8746,11 +8746,12 @@ function nearestOsmRamp(x, z, reach = 2.0) {
 function indexCurbRamps(ramps) {
   rampNodeGrid.clear();
   for (const ramp of ramps || []) {
-    if (!ramp.p || !ramp.c) continue;
+    const physical = ramp.position_basis === "physical_point";
+    if (!ramp.p || (!ramp.c && !physical)) continue;
     const [x, y] = xy(ramp.p[0], ramp.p[1]);
     const key = `${Math.floor(x / RAMP_NODE_CELL_M)}:${Math.floor(-y / RAMP_NODE_CELL_M)}`;
     if (!rampNodeGrid.has(key)) rampNodeGrid.set(key, []);
-    rampNodeGrid.get(key).push({ x, z: -y, corner: String(ramp.c).toUpperCase(),
+    rampNodeGrid.get(key).push({ x, z: -y, physical, corner: String(ramp.c || "").toUpperCase(),
                                  exists: !(ramp.f || []).includes("no_ramp") });
   }
 }
@@ -8773,6 +8774,12 @@ function rampRecordAt(x, z) {
     for (let dz = -1; dz <= 1; dz += 1) {
       for (const ramp of rampNodeGrid.get(`${cx + dx}:${cz + dz}`) || []) {
         const d = Math.hypot(ramp.x - x, ramp.z - z);
+        // Some municipal inventories locate the actual ramp rather than an
+        // intersection centre. Never infer a 22 m corner reach from those points.
+        if (ramp.physical) {
+          if (d <= 2.0) return ramp.exists ? "ramp" : "no_ramp";
+          continue;
+        }
         if (d <= RAMP_NODE_REACH_M && (!node || d < node.d)) node = { d, x: ramp.x, z: ramp.z };
       }
     }
@@ -8783,6 +8790,7 @@ function rampRecordAt(x, z) {
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
       for (const ramp of rampNodeGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        if (ramp.physical) continue;
         if (Math.hypot(ramp.x - node.x, ramp.z - node.z) > 0.5) continue;
         const matches = ramp.corner === corner
           || (ramp.corner.length === 1 && corner.includes(ramp.corner));

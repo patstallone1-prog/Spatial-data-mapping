@@ -2,7 +2,8 @@
 
 Every region is built from the same ladder of sources, and the ladder drops rungs where a
 source has nothing: San Francisco has kerb lines, curb ramps, parking policies and signs as
-municipal records; Oakland has none of those in this project yet, and a region there is built
+municipal records; Berkeley also has a normalized ramp inventory and reference crosswalk
+records. Oakland has none of those in this discovery registry yet, and a region there is built
 from OpenStreetMap, Overture, the lidar and the imagery -- to a lower confidence, said so in
 the capability vector rather than silently. Nothing here assumes; each probe is a cheap
 request against the source with the region's box, and the answer is written down with the
@@ -40,9 +41,15 @@ PANORAMAX_SEARCH = "https://api.panoramax.xyz/api/search"
 USER_AGENT = "Kerbside/0.1 region discovery"
 
 #: Cities with municipal-record adapters in this project, by the box that contains them.
-#: The adapters are the ones scripts/build_sf_official_geometry.py runs; a region in the box
-#: gets them all. Anything outside gets none, and the ladder says so.
+#: San Francisco uses build_sf_official_geometry.py; Berkeley uses its own transport adapter.
+#: Availability is not activation: a reference-only inventory must not be called rendered truth.
 MUNICIPAL: dict[str, dict[str, Any]] = {
+    "berkeley": {
+        "bbox": BBox(south=37.85, west=-122.32, north=37.91, east=-122.23),
+        "records": ["curb_ramps", "crosswalks"],
+        "source": "City of Berkeley PublicWorks/PubWorks GIS; "
+                  "ramps normalized, crosswalk linework reference-only pending validation",
+    },
     "san-francisco": {
         "bbox": BBox(south=37.700, west=-122.530, north=37.835, east=-122.350),
         "records": ["curb_lines", "curb_ramps", "sidewalk_widths", "right_of_way", "parking_policies",
