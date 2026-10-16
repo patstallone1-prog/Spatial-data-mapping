@@ -254,7 +254,14 @@ float angle=6.283*natureHash(litterCell+37.);
 leafDelta=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*leafDelta;
 float leaf=(1.-smoothstep(.35,.55,length(leafDelta*vec2(2.,6.))))*step(.5,natureHash(litterCell+81.))*(1.-smoothstep(.05,.35,footprint))*smoothstep(.12,.45,texture2D(uNatureCanopy,natureUV).r);
 diffuseColor.rgb*=mix(.83+.20*soil+.16*grain+.22*micro,1.,natureWet);
-diffuseColor.rgb+=vec3(.018,.012,.004)*(leaf-.22)*(1.-natureWet);`)
+diffuseColor.rgb+=vec3(.018,.012,.004)*(leaf-.22)*(1.-natureWet);
+// At kilometre scale a crown becomes sub-pixel, but a forest must not turn
+// into bare dirt. Filter the observed canopy fraction into its aggregate
+// appearance. The near-field substrate remains soil/litter, not green paint.
+float unresolved=smoothstep(1200.,3500.,distance(cameraPosition,vNatureWorld));
+float canopyCover=texture2D(uNatureCanopy,natureUV).r;
+vec3 canopyAverage=vec3(${linearColour([.24,.33,.20]).join(',')})*(.84+.30*natureNoise(rotated*.013));
+diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*canopyCover*(1.-natureWet));`)
         .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(1.,.62,natureWet);')
         .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=.04*natureWet;');
     };
