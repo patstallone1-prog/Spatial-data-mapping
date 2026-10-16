@@ -57,6 +57,11 @@ class Camera:
     k2: float
     width: int
     height: int
+    fy_px: float | None = None  # Preserve calibrated non-square pixels (e.g. PandaSet).
+
+    @property
+    def focal_y_px(self) -> float:
+        return self.focal_px if self.fy_px is None else self.fy_px
 
     @property
     def projection(self) -> np.ndarray:
@@ -84,7 +89,7 @@ class Camera:
         r2 = xn * xn + yn * yn
         distort = 1.0 + self.k1 * r2 + self.k2 * r2 * r2
         out[front, 0] = self.focal_px * distort * xn + self.principal[0]
-        out[front, 1] = self.focal_px * distort * yn + self.principal[1]
+        out[front, 1] = self.focal_y_px * distort * yn + self.principal[1]
         return out
 
     def ray(self, pixels: np.ndarray) -> np.ndarray:
@@ -96,7 +101,7 @@ class Camera:
         """
         px = np.atleast_2d(pixels).astype(np.float64)
         xn = (px[:, 0] - self.principal[0]) / self.focal_px
-        yn = (px[:, 1] - self.principal[1]) / self.focal_px
+        yn = (px[:, 1] - self.principal[1]) / self.focal_y_px
         x, y = xn.copy(), yn.copy()
         for _ in range(5):
             r2 = x * x + y * y
@@ -123,21 +128,39 @@ def camera_from_image(image, lat0: float, lon0: float, alt0: float = 0.0) -> Cam
     )
 
 
-def triangulate(cameras: list[Camera], pixels: list[np.ndarray]) -> np.ndarray:
+def triangulate(
+    cameras: list[Camera], pixels: list[np.ndarray], *, min_parallax_deg: float = 1.0,
+) -> np.ndarray:
     """Least-squares intersection of rays from several cameras.
 
-    Solved as the point minimising squared distance to every ray, which unlike the linear DLT
-    stays well conditioned when the rays are nearly parallel -- and at ten metres with a metre of
-    baseline, they are nearly parallel.
+    Minimise squared distance to rays, but refuse ill-conditioned geometry *before*
+    solving. Nearly parallel rays do NOT determine depth reliably. A finite answer
+    alone is not evidence of an observable point. NaN means unidentifiable or behind
+    a camera; callers must retain that failure in their attempted-case denominator.
     """
+    if len(cameras) != len(pixels) or len(cameras) < 2:
+        raise ValueError("equal camera/pixel lists with at least two views required")
+    if not 0 < min_parallax_deg < 90:
+        raise ValueError("parallax threshold must be between zero and 90 degrees")
+    rays = np.array([c.ray(p)[0] for c, p in zip(cameras, pixels, strict=True)])
+    if not np.isfinite(rays).all():
+        return np.full(3, np.nan)
+    # Absolute dot also rejects opposite rays along the same line.
+    angle = np.degrees(np.arccos(np.clip(np.abs(rays @ rays.T), 0, 1)))
+    if angle.max() < min_parallax_deg:
+        return np.full(3, np.nan)
     A = np.zeros((3, 3))
     b = np.zeros(3)
-    for camera, pixel in zip(cameras, pixels, strict=False):
-        d = camera.ray(np.atleast_2d(pixel))[0]
+    for camera, d in zip(cameras, rays, strict=True):
         M = np.eye(3) - np.outer(d, d)
         A += M
         b += M @ camera.centre
+    if np.linalg.cond(A) > 1e6:
+        return np.full(3, np.nan)
     try:
-        return np.linalg.solve(A, b)
+        point = np.linalg.solve(A, b)
     except np.linalg.LinAlgError:
         return np.full(3, np.nan)
+    if any((c.rotation @ (point - c.centre))[2] <= 1e-6 for c in cameras):
+        return np.full(3, np.nan)
+    return point

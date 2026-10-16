@@ -1,0 +1,507 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "pandaset-real-photo-lidar-v3-untouched",
+  "reports": {
+    "two_view": {
+      "schema_version": 1,
+      "benchmark_id": "pandaset-real-photo-lidar-v3-untouched",
+      "manifest_sha256": "9bba0c6b0ea14154ceda529e55db9d5517669f4721a5b824aae3ec2721626bf1",
+      "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+      "threshold_m": 0.05,
+      "attempted_cases": 4,
+      "reconstructed_cases": 4,
+      "reconstruction_rate": 1.0,
+      "successful_cases": 0,
+      "successful_reconstruction_rate": 0.0,
+      "target_success_rate": 0.25,
+      "target_met_on_this_benchmark": false,
+      "field_accuracy_claim": false,
+      "has_independent_metric_truth": true,
+      "planned_checkpoints": 32,
+      "reference_available_checkpoints": 32,
+      "finite_predictions": 32,
+      "within_threshold_all_checkpoints": 0.25,
+      "conditional_finite_median_m": 0.07742089086828108,
+      "conditional_finite_p90_m": 0.21575998793124632,
+      "all_attempts_median_m": 0.24497820138505808,
+      "all_attempts_p90_m": 6.252634265061024,
+      "all_attempts_error_definition": "per-case worst checkpoint; missing truth/geometry = infinity",
+      "unbounded_quantile_representation": "null; failures count as infinite error",
+      "outcomes": {
+        "reconstructed": 4
+      },
+      "cases": [
+        {
+          "case_id": "035-right",
+          "status": "reconstructed",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "035-left",
+          "status": "reconstructed",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-right",
+          "status": "reconstructed",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-left",
+          "status": "reconstructed",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        }
+      ],
+      "publishable": false
+    },
+    "joint": {
+      "schema_version": 1,
+      "benchmark_id": "pandaset-real-photo-lidar-v3-untouched",
+      "manifest_sha256": "9bba0c6b0ea14154ceda529e55db9d5517669f4721a5b824aae3ec2721626bf1",
+      "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+      "threshold_m": 0.05,
+      "attempted_cases": 4,
+      "reconstructed_cases": 0,
+      "reconstruction_rate": 0.0,
+      "successful_cases": 0,
+      "successful_reconstruction_rate": 0.0,
+      "target_success_rate": 0.25,
+      "target_met_on_this_benchmark": false,
+      "field_accuracy_claim": false,
+      "has_independent_metric_truth": true,
+      "planned_checkpoints": 32,
+      "reference_available_checkpoints": 32,
+      "finite_predictions": 0,
+      "within_threshold_all_checkpoints": 0.0,
+      "conditional_finite_median_m": null,
+      "conditional_finite_p90_m": null,
+      "all_attempts_median_m": null,
+      "all_attempts_p90_m": null,
+      "all_attempts_error_definition": "per-case worst checkpoint; missing truth/geometry = infinity",
+      "unbounded_quantile_representation": "null; failures count as infinite error",
+      "outcomes": {
+        "failed_quality_gate": 4
+      },
+      "cases": [
+        {
+          "case_id": "035-right",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "035-left",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-right",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-left",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        }
+      ],
+      "publishable": false
+    },
+    "subpixel_joint": {
+      "schema_version": 1,
+      "benchmark_id": "pandaset-real-photo-lidar-v3-untouched",
+      "manifest_sha256": "9bba0c6b0ea14154ceda529e55db9d5517669f4721a5b824aae3ec2721626bf1",
+      "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+      "threshold_m": 0.05,
+      "attempted_cases": 4,
+      "reconstructed_cases": 0,
+      "reconstruction_rate": 0.0,
+      "successful_cases": 0,
+      "successful_reconstruction_rate": 0.0,
+      "target_success_rate": 0.25,
+      "target_met_on_this_benchmark": false,
+      "field_accuracy_claim": false,
+      "has_independent_metric_truth": true,
+      "planned_checkpoints": 32,
+      "reference_available_checkpoints": 32,
+      "finite_predictions": 0,
+      "within_threshold_all_checkpoints": 0.0,
+      "conditional_finite_median_m": null,
+      "conditional_finite_p90_m": null,
+      "all_attempts_median_m": null,
+      "all_attempts_p90_m": null,
+      "all_attempts_error_definition": "per-case worst checkpoint; missing truth/geometry = infinity",
+      "unbounded_quantile_representation": "null; failures count as infinite error",
+      "outcomes": {
+        "failed_quality_gate": 4
+      },
+      "cases": [
+        {
+          "case_id": "035-right",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "035-left",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-right",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-left",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        }
+      ],
+      "publishable": false
+    },
+    "full_pose_subpixel": {
+      "schema_version": 1,
+      "benchmark_id": "pandaset-real-photo-lidar-v3-untouched",
+      "manifest_sha256": "9bba0c6b0ea14154ceda529e55db9d5517669f4721a5b824aae3ec2721626bf1",
+      "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+      "threshold_m": 0.05,
+      "attempted_cases": 4,
+      "reconstructed_cases": 1,
+      "reconstruction_rate": 0.25,
+      "successful_cases": 0,
+      "successful_reconstruction_rate": 0.0,
+      "target_success_rate": 0.25,
+      "target_met_on_this_benchmark": false,
+      "field_accuracy_claim": false,
+      "has_independent_metric_truth": true,
+      "planned_checkpoints": 32,
+      "reference_available_checkpoints": 32,
+      "finite_predictions": 8,
+      "within_threshold_all_checkpoints": 0.09375,
+      "conditional_finite_median_m": 0.11231422289346328,
+      "conditional_finite_p90_m": 2.2819280173767624,
+      "all_attempts_median_m": null,
+      "all_attempts_p90_m": null,
+      "all_attempts_error_definition": "per-case worst checkpoint; missing truth/geometry = infinity",
+      "unbounded_quantile_representation": "null; failures count as infinite error",
+      "outcomes": {
+        "failed_quality_gate": 3,
+        "reconstructed": 1
+      },
+      "cases": [
+        {
+          "case_id": "035-right",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "035-left",
+          "status": "reconstructed",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-right",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        },
+        {
+          "case_id": "038-left",
+          "status": "failed_quality_gate",
+          "checkpoints": 8,
+          "expected_checkpoints": 8,
+          "complete_reference_support": true,
+          "within_threshold": false,
+          "unscored_missing_truth": false
+        }
+      ],
+      "publishable": false
+    }
+  },
+  "diagnostics": {
+    "035-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "035-right-20",
+            "035-right-22"
+          ],
+          [
+            "035-right-20",
+            "035-right-24"
+          ],
+          [
+            "035-right-22",
+            "035-right-24"
+          ]
+        ],
+        "candidate_three_view_tracks": 485,
+        "three_view_tracks": 64,
+        "overlap_groups": [
+          [
+            "035-right-20",
+            "035-right-22",
+            "035-right-24"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 8,
+      "reference_frame": "035-right-20",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/035/camera/right_camera/20.jpg",
+        "pandaset/035/camera/right_camera/22.jpg",
+        "pandaset/035/camera/right_camera/24.jpg"
+      ],
+      "static_mask_fractions": [
+        0.35304783950617286,
+        0.4011111111111111,
+        0.3937577160493827
+      ],
+      "subpixel_refinement": {
+        "method": "OpenCV pyramidal Lucas-Kanade; mutual consistency and bounded correction",
+        "attempted_observations": 128,
+        "refined_observations": 75,
+        "failed_refinements_retain_original": 53
+      }
+    },
+    "035-left": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "035-left-20",
+            "035-left-22"
+          ],
+          [
+            "035-left-20",
+            "035-left-24"
+          ],
+          [
+            "035-left-22",
+            "035-left-24"
+          ]
+        ],
+        "candidate_three_view_tracks": 69,
+        "three_view_tracks": 64,
+        "overlap_groups": [
+          [
+            "035-left-20",
+            "035-left-22",
+            "035-left-24"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 8,
+      "reference_frame": "035-left-20",
+      "camera_calibration": {
+        "fx": 930.4514,
+        "fy": 930.0891
+      },
+      "sources": [
+        "pandaset/035/camera/left_camera/20.jpg",
+        "pandaset/035/camera/left_camera/22.jpg",
+        "pandaset/035/camera/left_camera/24.jpg"
+      ],
+      "static_mask_fractions": [
+        0.2760030864197531,
+        0.26338734567901234,
+        0.24199845679012347
+      ],
+      "subpixel_refinement": {
+        "method": "OpenCV pyramidal Lucas-Kanade; mutual consistency and bounded correction",
+        "attempted_observations": 128,
+        "refined_observations": 59,
+        "failed_refinements_retain_original": 69
+      }
+    },
+    "038-right": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "038-right-20",
+            "038-right-22"
+          ],
+          [
+            "038-right-20",
+            "038-right-24"
+          ],
+          [
+            "038-right-22",
+            "038-right-24"
+          ]
+        ],
+        "candidate_three_view_tracks": 289,
+        "three_view_tracks": 64,
+        "overlap_groups": [
+          [
+            "038-right-20",
+            "038-right-22",
+            "038-right-24"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 8,
+      "reference_frame": "038-right-20",
+      "camera_calibration": {
+        "fx": 922.5465,
+        "fy": 922.4229
+      },
+      "sources": [
+        "pandaset/038/camera/right_camera/20.jpg",
+        "pandaset/038/camera/right_camera/22.jpg",
+        "pandaset/038/camera/right_camera/24.jpg"
+      ],
+      "static_mask_fractions": [
+        0.4709027777777778,
+        0.4875154320987654,
+        0.4528780864197531
+      ],
+      "subpixel_refinement": {
+        "method": "OpenCV pyramidal Lucas-Kanade; mutual consistency and bounded correction",
+        "attempted_observations": 128,
+        "refined_observations": 54,
+        "failed_refinements_retain_original": 74
+      }
+    },
+    "038-left": {
+      "matching": {
+        "backend": "ALIKED + LightGlue CPU",
+        "source_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8",
+        "candidate_pairs": 3,
+        "verified_pairs": [
+          [
+            "038-left-20",
+            "038-left-22"
+          ],
+          [
+            "038-left-20",
+            "038-left-24"
+          ],
+          [
+            "038-left-22",
+            "038-left-24"
+          ]
+        ],
+        "candidate_three_view_tracks": 79,
+        "three_view_tracks": 64,
+        "overlap_groups": [
+          [
+            "038-left-20",
+            "038-left-22",
+            "038-left-24"
+          ]
+        ],
+        "input_frames": 3
+      },
+      "fit_controls": 3,
+      "heldout_checkpoints": 8,
+      "reference_frame": "038-left-20",
+      "camera_calibration": {
+        "fx": 930.4514,
+        "fy": 930.0891
+      },
+      "sources": [
+        "pandaset/038/camera/left_camera/20.jpg",
+        "pandaset/038/camera/left_camera/22.jpg",
+        "pandaset/038/camera/left_camera/24.jpg"
+      ],
+      "static_mask_fractions": [
+        0.24815586419753086,
+        0.23857253086419752,
+        0.21406635802469134
+      ],
+      "subpixel_refinement": {
+        "method": "OpenCV pyramidal Lucas-Kanade; mutual consistency and bounded correction",
+        "attempted_observations": 128,
+        "refined_observations": 74,
+        "failed_refinements_retain_original": 54
+      }
+    }
+  },
+  "frozen_manifest_sha256": "c76babcb86a5949522008d14a868698463729ab7f0cdd4e742f0c98023a2fa76",
+  "attribution": "Hesai and Scale AI, PandaSet, CC BY 4.0",
+  "raw_images_published": false,
+  "absolute_5cm_accuracy_proven": false,
+  "geometry_promoted": false,
+  "limitations": [
+    "Synchronized sensor-local agreement, not absolute geodetic accuracy",
+    "Separate lidar sweeps share the dataset's calibration/pose system",
+    "Unsupported cases remain in the denominator"
+  ]
+}

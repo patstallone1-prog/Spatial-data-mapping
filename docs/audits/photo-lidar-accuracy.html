@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kerbside — photo/lidar accuracy audit</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;color:#28302a;background:#f5f4ef;max-width:1100px;margin:40px auto;padding:0 22px}a{color:#635d32}h1{line-height:1.2}table{border-collapse:collapse;width:100%;background:white;font-variant-numeric:tabular-nums}td,th{padding:10px;text-align:left;border-bottom:1px solid #d7d7cc}small{color:#526052}.notice{border-left:5px solid #8c844c;padding:14px;background:#fff}section{margin:34px 0}.error{color:#9a251d}code{font-size:.9em}@media(max-width:650px){table{font-size:12px}td,th{padding:5px}}</style>
+</head><body>
+<a href="/">Kerbside</a><h1>Photo / lidar accuracy audit</h1>
+<p class="notice"><strong>5 cm real-world placement is not verified.</strong> These tests do not replace the canonical world. Failed cases and missing references remain in the success-rate denominator. Raw photographs and candidate geometry are not published.</p>
+<p>The real tests use calibrated PandaSet photographs, ALIKED/LightGlue, subpixel matching and separate fitting/evaluation lidar sweeps. This measures local sensor agreement, not absolute survey accuracy. Full camera-orientation refinement remains experimental.</p>
+<p><strong>Current development result: 7.95 cm median, 23.03 cm P90</strong> over eight finite checkpoints in one of eight attempted cases. This is accepted as the current prototype result, not a map-wide accuracy claim. The untouched full-pose subset has 11.23 cm median and 228.19 cm P90; it does not demonstrate reliable generalization. No additional tuning was performed to chase 5 cm.</p>
+<main id="results" aria-live="polite">Loading committed test reports…</main>
+<section><h2>How to read the results</h2>
+<p>Success requires every planned checkpoint in a case to be within 5 cm, with complete reference support. Finite-point median/P90 describe only available predictions; they must not be mistaken for all-attempt accuracy. Unbounded all-attempt error means unsupported or failed cases remain.</p>
+<p>The synthetic test is an analytic regression fixture, not a reconstruction of real streets. The untouched test uses different sequences, cameras and frames from development.</p>
+<p>The downloaded 2023 USGS SF control cell has 74,734 returns. Its published horizontal accuracy is 12 cm at 95% confidence, so it cannot alone certify 5 cm absolute positioning. <a href="https://www.fisheries.noaa.gov/inport/item/73386/full-list">Official source metadata</a>.</p>
+<p>Attribution: Hesai and Scale AI, PandaSet (CC BY 4.0); USGS / NV5 Geospatial. ALIKED (BSD-3-Clause), LightGlue (Apache-2.0). <a href="photo-lidar-sources.json">Source/model receipts</a>.</p>
+</section><script>
+const root=document.getElementById('results');root.textContent='';
+const names={two_view:'Two-view placement',joint:'Joint translation/landmarks',subpixel_joint:'Joint + subpixel',full_pose_subpixel:'Experimental full pose',two_ray_seed_poses:'Two-ray seed poses',joint_refinement:'Joint refinement',joint_with_spatial_relation:'Joint + spatial relation'};
+const tests=[['Development · real photos','photo-lidar-accuracy.json'],['Untouched · real photos','photo-lidar-untouched.json'],['Synthetic · 5 cm regression','photo-lidar-synthetic-5cm.json']];
+const cm=v=>v==null?'Unavailable':(v*100).toFixed(2)+' cm';
+for(const [label,file] of tests){const section=document.createElement('section');root.append(section);const h=document.createElement('h2');h.textContent=label;section.append(h);
+fetch(file,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(data=>{const table=document.createElement('table');const head=document.createElement('tr');for(const text of ['Method','Successful / attempted','Finite median','Finite P90','All-attempt P90']){const th=document.createElement('th');th.textContent=text;head.append(th)}table.append(head);
+for(const [name,r] of Object.entries(data.reports)){const tr=document.createElement('tr');for(const value of [names[name]||name,r.successful_cases+' / '+r.attempted_cases,cm(r.conditional_finite_median_m)+' (n='+r.finite_predictions+')',cm(r.conditional_finite_p90_m),r.all_attempts_p90_m==null?'Unbounded':cm(r.all_attempts_p90_m)]){const td=document.createElement('td');td.textContent=value;tr.append(td)}table.append(tr)}section.append(table);const a=document.createElement('a');a.href=file;a.textContent='Full committed JSON';section.append(a)}).catch(e=>{const p=document.createElement('p');p.className='error';p.textContent='Report unavailable: '+e.message;section.append(p)})}
+</script></body></html>

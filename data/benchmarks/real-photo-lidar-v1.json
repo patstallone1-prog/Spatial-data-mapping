@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "pandaset-real-photo-lidar-v1",
+  "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+  "coordinate_frame": "pandaset_sequence_world_m",
+  "threshold_m": 0.05,
+  "target_success_rate": 0.25,
+  "frames": [10, 12, 14],
+  "fitting_lidar_frame": 10,
+  "heldout_lidar_frame": 12,
+  "cases": [
+    {"case_id": "018-right", "sequence": "018", "camera": "right_camera"},
+    {"case_id": "018-front-right", "sequence": "018", "camera": "front_right_camera"},
+    {"case_id": "019-right", "sequence": "019", "camera": "right_camera"},
+    {"case_id": "019-front-right", "sequence": "019", "camera": "front_right_camera"},
+    {"case_id": "027-right", "sequence": "027", "camera": "right_camera"},
+    {"case_id": "027-front-right", "sequence": "027", "camera": "front_right_camera"},
+    {"case_id": "001-right", "sequence": "001", "camera": "right_camera"},
+    {"case_id": "001-front-right", "sequence": "001", "camera": "front_right_camera"}
+  ],
+  "selection_rule": "fixed sequence/camera/frame list before download or error inspection; all eight cases retained",
+  "fit_control_count": 3,
+  "checkpoint_count": 8,
+  "min_surface_range_m": 3,
+  "max_surface_range_m": 20,
+  "source_license": "CC-BY-4.0",
+  "attribution": "Hesai and Scale AI, PandaSet, CC BY 4.0",
+  "absolute_5cm_claim_permitted": false
+}

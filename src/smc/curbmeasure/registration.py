@@ -12,6 +12,17 @@ import numpy as np
 from scipy.optimize import least_squares
 
 
+def _observability(design: np.ndarray) -> dict:
+    _, singular, vt = np.linalg.svd(design, full_matrices=False)
+    rank = int(np.sum(singular > max(1e-8, singular[0] * 0.02)))
+    null = vt[rank:]
+    identified = [bool(not len(null) or np.linalg.norm(null[:, j]) < 0.05) for j in range(3)]
+    return {
+        "rank": rank, "singular_values": singular.tolist(),
+        "parameters_identified": dict(zip(("east", "north", "scale"), identified, strict=True)),
+    }
+
+
 def error_stats(values: np.ndarray) -> dict:
     values = np.asarray(values, dtype=float)
     values = values[np.isfinite(values)]
@@ -66,7 +77,8 @@ def fit_camera(
     camera height. Adjacent pixels are not independent surveyed control points.
     """
     points, camera, segments = map(lambda a: np.asarray(a, float), (points, camera, segments))
-    base = {"purpose": "oracle_alignment_diagnostic", "publishable": False}
+    base = {"purpose": "oracle_alignment_diagnostic", "publishable": False,
+            "optimization_attempted": False}
     if points.ndim != 2 or points.shape[1] != 2 or not np.isfinite(points).all():
         raise ValueError("finite (n, 2) points required")
     if camera.shape != (2,) or not np.isfinite(camera).all():
@@ -90,6 +102,14 @@ def fit_camera(
     # Linear system: n.shift + n.radial * (scale - 1) + signed_offset = 0.
     design = np.column_stack((normal, np.sum(normal * radial, axis=1)))
     offset = np.sum((pts - refs[:, 0]) * normal, axis=1)
+    radius = max(1.0, float(np.median(np.linalg.norm(radial, axis=1))))
+    units = np.array([1.0, 1.0, radius])
+    before = _observability(design / units)
+    if before["rank"] < 3:
+        return {
+            **base, **before, "status": "ambiguous", "optimization_attempted": False,
+            "warning": "data do not identify all parameters; no fitted candidate manufactured",
+        }
     fit = least_squares(
         lambda x: design @ x + offset,
         [0.0, 0.0, 0.0],
@@ -107,25 +127,22 @@ def fit_camera(
     # Use inliers only: one erroneous cross-street association must not cure rank loss.
     inliers = np.abs(residual) <= 0.35
     # Express scale in metres at a typical observed distance for comparable singular values.
-    radius = max(1.0, float(np.median(np.linalg.norm(radial, axis=1))))
-    normalized = design[inliers] / np.array([1.0, 1.0, radius])
+    normalized = design[inliers] / units
     if len(normalized) < 12:
-        return {**base, "status": "insufficient_inliers", "oracle_residual": error_stats(residual)}
-    _, singular, vt = np.linalg.svd(normalized, full_matrices=False)
-    rank = int(np.sum(singular > max(1e-8, singular[0] * 0.02)))
-    null = vt[rank:]
-    identified = [bool(not len(null) or np.linalg.norm(null[:, j]) < 0.05) for j in range(3)]
+        return {**base, "status": "insufficient_inliers", "optimization_attempted": True,
+                "oracle_residual": error_stats(residual)}
+    after = _observability(normalized)
     hit_bound = bool(np.any(np.abs(fit.active_mask) > 0))
+    valid = after["rank"] == 3 and not hit_bound and fit.success
     return {
         **base,
-        "status": "identified" if rank == 3 and not hit_bound else "ambiguous",
-        "rank": rank,
-        "singular_values": singular.tolist(),
-        "parameters_identified": dict(zip(("east", "north", "scale"), identified, strict=True)),
+        **after,
+        "status": "identified" if valid else "ambiguous",
+        "optimization_attempted": True,
         "bound_hit": hit_bound,
         "inliers": int(inliers.sum()),
-        "candidate_shift_m": fit.x[:2].tolist(),
-        "candidate_scale": float(1 + fit.x[2]),
+        **({"candidate_shift_m": fit.x[:2].tolist(), "candidate_scale": float(1 + fit.x[2])}
+           if valid else {}),
         "raw_matched_points": error_stats(distance[keep]),
         "oracle_residual": error_stats(residual),
         "warning": "fitted reference is not held-out truth; scale is not proven height bias",

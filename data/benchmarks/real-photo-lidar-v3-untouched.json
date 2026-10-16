@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "pandaset-real-photo-lidar-v3-untouched",
+  "purpose": "independent_sensor_local_agreement_not_absolute_survey_accuracy",
+  "coordinate_frame": "pandaset_sequence_world_m",
+  "threshold_m": 0.05,
+  "target_success_rate": 0.25,
+  "frames": [20, 22, 24],
+  "fitting_lidar_frame": 20,
+  "heldout_lidar_frame": 22,
+  "cases": [
+    {"case_id": "035-right", "sequence": "035", "camera": "right_camera"},
+    {"case_id": "035-left", "sequence": "035", "camera": "left_camera"},
+    {"case_id": "038-right", "sequence": "038", "camera": "right_camera"},
+    {"case_id": "038-left", "sequence": "038", "camera": "left_camera"}
+  ],
+  "selection_rule": "new sequences/cameras/frames declared before acquisition; no tuning after untouched results",
+  "fit_control_count": 3,
+  "checkpoint_count": 8,
+  "min_surface_range_m": 3,
+  "max_surface_range_m": 20,
+  "source_license": "CC-BY-4.0",
+  "attribution": "Hesai and Scale AI, PandaSet, CC BY 4.0",
+  "absolute_5cm_claim_permitted": false,
+  "learned_model_commit": "eb42fee2d71449efb0aa5c10549752b5d75384d8"
+}

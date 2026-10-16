@@ -22,7 +22,17 @@ def test_two_parallel_curbs_identify_scale_but_not_along_street_shift():
     result = fit_camera(pts, np.zeros(2), refs)
     assert result["rank"] == 2
     assert result["parameters_identified"] == {"east": False, "north": True, "scale": True}
-    assert result["candidate_scale"] == pytest.approx(1.25)
+    assert not result["optimization_attempted"]
+    assert "candidate_scale" not in result
+
+
+def test_parallel_curbs_rejected_before_optimizer(monkeypatch):
+    def forbidden(*args, **kwargs):
+        pytest.fail("unobservable data reached optimizer")
+
+    monkeypatch.setattr("smc.curbmeasure.registration.least_squares", forbidden)
+    pts = np.column_stack((np.linspace(-8, 8, 100), np.full(100, 4.0)))
+    assert fit_camera(pts, np.zeros(2), np.array([[[-20, 5], [20, 5]]]))["rank"] == 1
 
 
 def test_three_sided_reference_recovers_known_shift_and_scale():

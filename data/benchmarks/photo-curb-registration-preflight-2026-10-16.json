@@ -1,0 +1,1366 @@
+{
+  "schema_version": 1,
+  "region": "sf-mission",
+  "status": "diagnostic_only_not_promoted",
+  "sources": [
+    {
+      "path": "build/curbphoto/sf-mission/observations.jsonl",
+      "sha256": "a0e6d10d61fbc03208947f35048e1ff6c8d721583826ac0671c466d5ec9046c5"
+    },
+    {
+      "path": "docs/regions/sf-mission/sf-corridor-official.json",
+      "sha256": "96396f36964fce43d499a65a56bd72abd15c815873a9b5b77d66c62bcb37e5de"
+    },
+    {
+      "path": "data/regions/sf-mission/lidar/kerb_stations.jsonl",
+      "sha256": "30cb927d39573b09a1dd750d0aa5112089dc89843a695c672d7afd65f046a79b"
+    },
+    {
+      "path": "docs/regions/sf-mission/sf-corridor-3d.json",
+      "sha256": "1bb61d2a18dd1453d667ceba74815cead0b508ecf4fc599ac0b3588977ebafce"
+    },
+    {
+      "path": "src/smc/curbmeasure/semantic.py",
+      "sha256": "8c5845b3693550c16819587cd4385973bb53de5fa31a060a3857610cd0138e7f"
+    },
+    {
+      "path": "src/smc/curbmeasure/registration.py",
+      "sha256": "c679470b9c39db1bb60f31c74253e7e831a48bb5d54c5ffb9f1e991e623eb412"
+    },
+    {
+      "path": "src/smc/curbmeasure/terrain_grade.py",
+      "sha256": "e83d1afe4f753a2f19d13de5e327c3435585da665ecfae419b4b827391b95d63"
+    },
+    {
+      "path": "scripts/curbmeasure/diagnose_registration.py",
+      "sha256": "41e4ac83c2b04adc280564e11f8c7952809dc183ead9d3b8e5a92f23b742b83a"
+    },
+    {
+      "path": "docs/regions/sf-mission/sf-corridor-terrain.json",
+      "sha256": "6138beb6c1b07d971951095249809e7bc91b7e17402637843e1d02118d08d225"
+    },
+    {
+      "path": "docs/regions/sf-mission/sf-corridor-terrain.bin",
+      "sha256": "344e55e572bcf64154d8a04da999f6666789c8f2253b29453217732c0de5eac1"
+    }
+  ],
+  "camera_sources": [
+    {
+      "path": "build/curbphoto/cache/1028763734942810.json",
+      "sha256": "1046aac02edc56fcae2feb99201755e97a7552b3778082f627ad944a1d355c87"
+    },
+    {
+      "path": "build/curbphoto/cache/1036072763463196.json",
+      "sha256": "80b4ca90cbe0dc47229879a2ca73046e1fde151a6dbb0fc3ea2369e43b7bacad"
+    },
+    {
+      "path": "build/curbphoto/cache/1158167519459179.json",
+      "sha256": "15aabf3998f098cd6dee30879a78d7a94b0e678427081926144fd3a0dc025146"
+    },
+    {
+      "path": "build/curbphoto/cache/1175897636178244.json",
+      "sha256": "d65af7622dc2652d5ba35a73b22268cd1868166f0be3c7cfe929413e9b38e51a"
+    },
+    {
+      "path": "build/curbphoto/cache/1195394530930969.json",
+      "sha256": "6c909e772ba64e87e21c9a1c9b77e46e35c0c6fcd6224794d6412e54d2643042"
+    },
+    {
+      "path": "build/curbphoto/cache/1216817985419392.json",
+      "sha256": "973ddf11c8373b9bc95bab20b2ab51e35e5db17d570a212f9f6a27aa944019b8"
+    },
+    {
+      "path": "build/curbphoto/cache/1299337020946592.json",
+      "sha256": "29d01381ba9b22928d850060d333bcb2bc68645a164b6cfeaf876978c626d72f"
+    },
+    {
+      "path": "build/curbphoto/cache/1411875393235969.json",
+      "sha256": "84b0185f0351b88d767631ccb858a66b2b100bd2e34bee176af0ebb67b6e0953"
+    },
+    {
+      "path": "build/curbphoto/cache/1436665766681033.json",
+      "sha256": "38a7af057f8bca55a0396611b3064afc6c8792595e5cca7b15eda18dddcb2915"
+    },
+    {
+      "path": "build/curbphoto/cache/1443867339283955.json",
+      "sha256": "e80d2361a18674e6c99032e1efc51a0c6b48daf2b6a76869ffe4e62b0c5c6e4f"
+    },
+    {
+      "path": "build/curbphoto/cache/1500479841153050.json",
+      "sha256": "e093f3fdde87b15af530d661773fcaf1ac8551852ea432f53ea21e7826adce59"
+    },
+    {
+      "path": "build/curbphoto/cache/1522911938100695.json",
+      "sha256": "029b7107c9d30732da6574c7cf6a9e11759b2eebdfc29dd49457e722ed3adae7"
+    },
+    {
+      "path": "build/curbphoto/cache/171659758184754.json",
+      "sha256": "744f1fc4dad41881de15b7cb1959bc1d2ce8caf1ff701879f0dba27b5364badb"
+    },
+    {
+      "path": "build/curbphoto/cache/176328417729030.json",
+      "sha256": "a9c5a6f33724d2b6981e3f11349c57dfbd04be3ff8e15a4de2dfc8f49a2a9af1"
+    },
+    {
+      "path": "build/curbphoto/cache/1999463877084899.json",
+      "sha256": "3e30c027efbccca5629c35afb829a18029bf802ba4351e3c70fe8ec8deaa744a"
+    },
+    {
+      "path": "build/curbphoto/cache/2786425984943040.json",
+      "sha256": "25d74972ff842902b5af6c8c6172040c0ca22a57b138af950cc867acac1d9b69"
+    },
+    {
+      "path": "build/curbphoto/cache/286164500904241.json",
+      "sha256": "5afa6b2adb513ce527aef8d068772965c9b8d3059ab0c0434df35f6a2ad5aec5"
+    },
+    {
+      "path": "build/curbphoto/cache/2912992632170560.json",
+      "sha256": "75dd4d928a6382c14b636fcf4ca540efcfeac3b69bb66a2681f5ba5fc3fe04b0"
+    },
+    {
+      "path": "build/curbphoto/cache/298070443080480.json",
+      "sha256": "571c2cd9580faf1ef1cd25d97e2d59a0051b44f537474cc6c350324149c1db8f"
+    },
+    {
+      "path": "build/curbphoto/cache/316445531116333.json",
+      "sha256": "f81362e5986bea093d607a5dc844dd396206cb21dde0519ad6b50e7fea8c1f68"
+    },
+    {
+      "path": "build/curbphoto/cache/463875525889265.json",
+      "sha256": "858ea9229c572b310f1fae0b8db3f36d4f18103e26333cca477049667d037a1f"
+    },
+    {
+      "path": "build/curbphoto/cache/533438285361796.json",
+      "sha256": "0e5b4c11492db5a5bdffa8fb37f735fcba2edd4bb4ae10937cd1b1917877de33"
+    },
+    {
+      "path": "build/curbphoto/cache/656880459905486.json",
+      "sha256": "484e02df395226c2ba98f0d5287bb2c8e38b280f94ef5a60dd3e6de05810eadf"
+    },
+    {
+      "path": "build/curbphoto/cache/670087928031093.json",
+      "sha256": "84ab82327ed398ef513c6c7cc85916412845c975941fe3da7879d68813be5d92"
+    },
+    {
+      "path": "build/curbphoto/cache/743511509668088.json",
+      "sha256": "a1f11203ef49bbb91b893817efd980980013781b71c1c178784e3de3fa91c912"
+    },
+    {
+      "path": "build/curbphoto/cache/757857544923240.json",
+      "sha256": "1ed22752502bd852ced19a22e905aed47e3b4696b6112311a45246e03b290d03"
+    },
+    {
+      "path": "build/curbphoto/cache/826123721778230.json",
+      "sha256": "8218ac7b69e10a23466c077bb985b67b9049fa9254fb63e1cd50bad051dbf2fe"
+    },
+    {
+      "path": "build/curbphoto/cache/851456776196388.json",
+      "sha256": "c1ebf33a04c629072186b9903ef22f5d1c3d8074607e1d42fca4b1c7f419755b"
+    },
+    {
+      "path": "build/curbphoto/cache/919026962280854.json",
+      "sha256": "c8c12d7cddf183c223d41823b722bc2ac5d6a2b38a79e80fed81f652b689aa3b"
+    },
+    {
+      "path": "build/curbphoto/cache/926071998374581.json",
+      "sha256": "ce9ba744a6e079a9bdaeeff032c5df41d3017e6689c82c067fa65c336d2dbae7"
+    }
+  ],
+  "cameras": 30,
+  "fully_identified_cameras": 1,
+  "raw_all_extracted_to_sfmta": {
+    "n": 8050,
+    "mae_m": 3.842323237013614,
+    "abs_p50_m": 2.865103504764649,
+    "abs_p90_m": 10.500450192625651
+  },
+  "raw_reference_core_to_sfmta": {
+    "n": 8050,
+    "mae_m": 3.842323237013614,
+    "abs_p50_m": 2.865103504764649,
+    "abs_p90_m": 10.500450192625651
+  },
+  "terrain_grade_ablation": {
+    "photos": 29,
+    "flat_raw_same_photos": {
+      "n": 7849,
+      "mae_m": 3.859038334398709,
+      "abs_p50_m": 2.798983432052275,
+      "abs_p90_m": 10.52481970855578
+    },
+    "lidar_grade_conditioned_raw": {
+      "n": 7995,
+      "mae_m": 3.835718125190613,
+      "abs_p50_m": 2.791626445806545,
+      "abs_p90_m": 10.47607066802133
+    },
+    "independent_camera_only_accuracy": false
+  },
+  "oracle_in_sample_to_sfmta_NOT_accuracy": {
+    "n": 289,
+    "mae_m": 0.47092715693437726,
+    "abs_p50_m": 0.4781313035208517,
+    "abs_p90_m": 0.9631254815457406
+  },
+  "raw_photo_height_vs_lidar_within_1m": {
+    "n": 412,
+    "mae_m": 0.06898244466077814,
+    "abs_p50_m": 0.04571332545538992,
+    "abs_p90_m": 0.13744289495884035
+  },
+  "lidar_stations_to_sfmta_reference": {
+    "n": 28782,
+    "mae_m": 6.802870422005991,
+    "abs_p50_m": 0.2913801724366558,
+    "abs_p90_m": 12.310166715487512
+  },
+  "lidar_core_stations_to_sfmta": {
+    "n": 26400,
+    "mae_m": 3.580877791776703,
+    "abs_p50_m": 0.2656206527840743,
+    "abs_p90_m": 10.043543613437604
+  },
+  "lidar_stations_outside_reference_core": 2382,
+  "photo_height_vs_survey_screened_lidar": {
+    "n": 220,
+    "mae_m": 0.04736234445768777,
+    "abs_p50_m": 0.02877003301713399,
+    "abs_p90_m": 0.11755457457726737
+  },
+  "survey_screened_height_photos": 5,
+  "survey_screened_height_sequences": 5,
+  "survey_screened_height_streets": 5,
+  "height_error_photo_balanced": {
+    "n": 5,
+    "mae_m": 0.08511396961002751,
+    "abs_p50_m": 0.09070582951073722,
+    "abs_p90_m": 0.15330141735160352
+  },
+  "unpaired_no_survey_near_camera": 0,
+  "independent_promotion_pass": false,
+  "new_streets_calibrated_run": "withheld until frozen calibration passes held-out streets",
+  "limitations": [
+    "Original cache covers only photos with old scored observations; not all 88 poses.",
+    "No shared vertical datum established for computed_altitude minus lidar elevation.",
+    "Flat-road, segmentation, pitch, scale and reference errors remain confounded.",
+    "Adjacent pixel columns are correlated; point count is not independent sample count.",
+    "1 m proximity is a pairing screen, not proof of corresponding curb identity.",
+    "No validated photographic sidewalk back-edge/width truth pairs exist in this run.",
+    "No fitted result updates canonical geometry or renderer defaults."
+  ],
+  "per_photo": [
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 498,
+      "points_matched": 498,
+      "raw_all_points": {
+        "n": 498,
+        "mae_m": 4.245156217465869,
+        "abs_p50_m": 4.765836925618408,
+        "abs_p90_m": 5.467788439191824
+      },
+      "rank": 2,
+      "singular_values": [
+        24.305491406891324,
+        10.87291921536833,
+        0.00382143659951059
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1028763734942810",
+      "sequence": "YdjWcLzk7pwhPBZaJsO4NE",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.337,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.0005094952247544767,
+          0.018703113007169186
+        ],
+        "plane_rmse_m": 0.005186043167172487,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 58,
+      "points_matched": 0,
+      "raw_all_points": {
+        "n": 58,
+        "mae_m": 5.8524530534998505,
+        "abs_p50_m": 5.585851296327329,
+        "abs_p90_m": 6.650144346025381
+      },
+      "status": "insufficient_support",
+      "image": "1036072763463196",
+      "sequence": "mod1dntlm5v4ywhzrpaym4",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.743,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          2.992296757479751e-17,
+          -0.005014776805017136
+        ],
+        "plane_rmse_m": 6.646518689688359e-15,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 244,
+      "points_matched": 113,
+      "raw_all_points": {
+        "n": 244,
+        "mae_m": 8.555998597065987,
+        "abs_p50_m": 8.574985407654735,
+        "abs_p90_m": 15.206380617058546
+      },
+      "rank": 2,
+      "singular_values": [
+        11.672558641940137,
+        0.5855878959852049,
+        4.716135522080365e-16
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": true,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1158167519459179",
+      "sequence": "zhoQOFZC60sa9wxPpGAe2B",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 0.813,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.00015289143474687803,
+          0.011897286906948008
+        ],
+        "plane_rmse_m": 0.002651098174850737,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": true,
+      "points_total": 342,
+      "points_matched": 317,
+      "raw_all_points": {
+        "n": 342,
+        "mae_m": 4.865204954219905,
+        "abs_p50_m": 5.325576190106786,
+        "abs_p90_m": 6.810181410994384
+      },
+      "rank": 3,
+      "singular_values": [
+        9.887204764010388,
+        5.2291638989553455,
+        0.2921087226304971
+      ],
+      "parameters_identified": {
+        "east": true,
+        "north": true,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "bound_hit": true,
+      "inliers": 77,
+      "raw_matched_points": {
+        "n": 317,
+        "mae_m": 4.81400172829261,
+        "abs_p50_m": 5.221942597424094,
+        "abs_p90_m": 6.836448974385612
+      },
+      "oracle_residual": {
+        "n": 317,
+        "mae_m": 0.8891426753365653,
+        "abs_p50_m": 0.8817304360229326,
+        "abs_p90_m": 1.6623509519308617
+      },
+      "warning": "fitted reference is not held-out truth; scale is not proven height bias",
+      "image": "1175897636178244",
+      "sequence": "dKgM4-fAtG8JnDDMAPDSaw",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.377,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.0008407409097197931,
+          0.005526495113196404
+        ],
+        "plane_rmse_m": 0.03422476969206377,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 9,
+      "points_matched": 9,
+      "raw_all_points": {
+        "n": 9,
+        "mae_m": 0.800871213845952,
+        "abs_p50_m": 0.8007716408544595,
+        "abs_p90_m": 0.834036119247428
+      },
+      "status": "insufficient_support",
+      "image": "1195394530930969",
+      "sequence": "GXG6Z6Tnsq3u5vS3LX3kIA",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.828,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -1.2121982507849088e-16,
+          2.202584336018629e-15
+        ],
+        "plane_rmse_m": 1.6893982824323356e-14,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 99,
+      "points_matched": 84,
+      "raw_all_points": {
+        "n": 99,
+        "mae_m": 6.44219215621822,
+        "abs_p50_m": 6.419153992660209,
+        "abs_p90_m": 6.533031202729818
+      },
+      "rank": 2,
+      "singular_values": [
+        9.346837965888376,
+        0.3707228117981742,
+        0.02916633108286521
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1216817985419392",
+      "sequence": "KclIYnH2On1PrlD097nS2Q",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.544,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.00043319339094065307,
+          0.008903775750059866
+        ],
+        "plane_rmse_m": 0.003816653920257632,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 391,
+      "points_matched": 391,
+      "raw_all_points": {
+        "n": 391,
+        "mae_m": 0.7952165214573393,
+        "abs_p50_m": 0.40865682346191945,
+        "abs_p90_m": 0.4960171341259516
+      },
+      "rank": 2,
+      "singular_values": [
+        27.074796869565766,
+        12.590192200274819,
+        5.497681460974523e-05
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1299337020946592",
+      "sequence": "ia5WOusT0ZwRUy3YhEm8cG",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 2.286,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.6559750835594088e-16,
+          1.4617847154518017e-15
+        ],
+        "plane_rmse_m": 9.358400487352509e-15,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 542,
+      "points_matched": 542,
+      "raw_all_points": {
+        "n": 542,
+        "mae_m": 4.167910005717617,
+        "abs_p50_m": 4.287007750964243,
+        "abs_p90_m": 4.350544162303253
+      },
+      "rank": 2,
+      "singular_values": [
+        31.05415115053376,
+        0.8808219645777786,
+        1.330235969481197e-16
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": true,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1411875393235969",
+      "sequence": "gtlaJGvE1rVpnNxI9w4MoS",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 2.469,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          2.978354779746391e-17,
+          0.011641431252474327
+        ],
+        "plane_rmse_m": 0.0027664166758629297,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 202,
+      "points_matched": 202,
+      "raw_all_points": {
+        "n": 202,
+        "mae_m": 0.2941409651396743,
+        "abs_p50_m": 0.2942362567229156,
+        "abs_p90_m": 0.3254645002455741
+      },
+      "rank": 1,
+      "singular_values": [
+        15.994807357606613,
+        0.026828976463620504,
+        1.077081442707576e-15
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1436665766681033",
+      "sequence": "GXG6Z6Tnsq3u5vS3LX3kIA",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.828,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -1.2122083983831258e-16,
+          8.766345334402319e-17
+        ],
+        "plane_rmse_m": 7.105427357601002e-15,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 201,
+      "points_matched": 201,
+      "raw_all_points": {
+        "n": 201,
+        "mae_m": 3.1896028421100815,
+        "abs_p50_m": 3.096994304115815,
+        "abs_p90_m": 3.1767548789224844
+      },
+      "rank": 2,
+      "singular_values": [
+        15.175477842756464,
+        6.123007050706297,
+        0.00022756583338916442
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1443867339283955",
+      "sequence": "B2vFtmLBfYX9D659WC_0VQ",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.462
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 35,
+      "points_matched": 35,
+      "raw_all_points": {
+        "n": 35,
+        "mae_m": 2.8349025138675117,
+        "abs_p50_m": 2.8354023608007575,
+        "abs_p90_m": 2.9643134103064206
+      },
+      "rank": 2,
+      "singular_values": [
+        6.368729800646258,
+        0.8048534758464007,
+        0.04742917355710351
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1500479841153050",
+      "sequence": "RI8YqQ6Apf5hFztMT4doNC",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.513,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.4332242986083477e-17,
+          0.010029540559826215
+        ],
+        "plane_rmse_m": 5.200640307459991e-15,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 213,
+      "points_matched": 0,
+      "raw_all_points": {
+        "n": 213,
+        "mae_m": 10.19420419407546,
+        "abs_p50_m": 10.482298449725963,
+        "abs_p90_m": 11.96238189033635
+      },
+      "status": "insufficient_support",
+      "image": "1522911938100695",
+      "sequence": "fa1uqvjv2d8uvlgul03poa",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 2.207,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          7.460498122175867e-18,
+          -0.005014776887573846
+        ],
+        "plane_rmse_m": 1.0636972910170421e-14,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 108,
+      "points_matched": 108,
+      "raw_all_points": {
+        "n": 108,
+        "mae_m": 1.3019368974695806,
+        "abs_p50_m": 1.288066870460234,
+        "abs_p90_m": 1.3794695889928694
+      },
+      "rank": 1,
+      "singular_values": [
+        11.944984912279994,
+        0.03379678808184656,
+        6.72933396769031e-15
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "171659758184754",
+      "sequence": "GXG6Z6Tnsq3u5vS3LX3kIA",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.828,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.172116116965134e-17,
+          3.658272956171862e-16
+        ],
+        "plane_rmse_m": 1.0825996103492558e-14,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 429,
+      "points_matched": 0,
+      "raw_all_points": {
+        "n": 429,
+        "mae_m": 10.644215884626957,
+        "abs_p50_m": 10.825523978070393,
+        "abs_p90_m": 11.073434740152472
+      },
+      "status": "insufficient_support",
+      "image": "176328417729030",
+      "sequence": "qlggo2zngbv1pwefusmf3n",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.299,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          0.00012737315862032522,
+          0.018498428964728177
+        ],
+        "plane_rmse_m": 0.0038043575270018844,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 214,
+      "points_matched": 214,
+      "raw_all_points": {
+        "n": 214,
+        "mae_m": 4.713174440419919,
+        "abs_p50_m": 4.864652581966981,
+        "abs_p90_m": 5.725362478445021
+      },
+      "rank": 2,
+      "singular_values": [
+        18.340543511264563,
+        6.511971121111903,
+        0.00015783738998336735
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "1999463877084899",
+      "sequence": "Lj8i2VdNxOKkJzFDlbXfUu",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 1.95,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -1.212303578126957e-16,
+          -1.9257106568047548e-16
+        ],
+        "plane_rmse_m": 7.177565525411543e-16,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 130,
+      "points_matched": 130,
+      "raw_all_points": {
+        "n": 130,
+        "mae_m": 1.7128441569547161,
+        "abs_p50_m": 1.7265664156197458,
+        "abs_p90_m": 1.8154923695455445
+      },
+      "rank": 1,
+      "singular_values": [
+        14.127894501442833,
+        0.0919199471575839,
+        1.0168558155214174e-15
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "2786425984943040",
+      "sequence": "TMfEnxI6FT4x7xw6T0K_ag",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.164,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.0005859196781453164,
+          0.01750058720940071
+        ],
+        "plane_rmse_m": 0.005543174226751665,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 396,
+      "points_matched": 395,
+      "raw_all_points": {
+        "n": 396,
+        "mae_m": 2.8174142979848895,
+        "abs_p50_m": 2.7817397689338055,
+        "abs_p90_m": 2.979381043335316
+      },
+      "rank": 1,
+      "singular_values": [
+        22.832552385277133,
+        0.3673215274069865,
+        4.98376468539329e-16
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "286164500904241",
+      "sequence": "msANV5uOYCkSjv8F0goX6B",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.63,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.1722187686118745e-17,
+          1.9692403556027934e-15
+        ],
+        "plane_rmse_m": 1.0048591735576161e-14,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 65,
+      "points_matched": 65,
+      "raw_all_points": {
+        "n": 65,
+        "mae_m": 3.223059247100997,
+        "abs_p50_m": 2.9764669167974582,
+        "abs_p90_m": 4.311136257975175
+      },
+      "rank": 2,
+      "singular_values": [
+        8.322641782817886,
+        4.273045392541293,
+        0.001471485814985719
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "2912992632170560",
+      "sequence": "BkIRyveOY0nETgFDtfrH9p",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.812,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.00012737347300527163,
+          0.028476833741856833
+        ],
+        "plane_rmse_m": 0.0029959016848781525,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 210,
+      "points_matched": 210,
+      "raw_all_points": {
+        "n": 210,
+        "mae_m": 3.669544405758042,
+        "abs_p50_m": 3.4457520645726625,
+        "abs_p90_m": 5.029635315890536
+      },
+      "rank": 2,
+      "singular_values": [
+        16.57587697136375,
+        4.099107115271053,
+        0.00302456144250165
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "298070443080480",
+      "sequence": "BkIRyveOY0nETgFDtfrH9p",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.812,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.0002802217309581533,
+          0.028016291842090577
+        ],
+        "plane_rmse_m": 0.0031583239878652525,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 592,
+      "points_matched": 590,
+      "raw_all_points": {
+        "n": 592,
+        "mae_m": 1.440278689349435,
+        "abs_p50_m": 1.101417101259028,
+        "abs_p90_m": 1.810585932513491
+      },
+      "rank": 2,
+      "singular_values": [
+        42.47194995928659,
+        22.431878798876458,
+        0.22447984043887942
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "316445531116333",
+      "sequence": "6ScTw1hnMzsBkvfXI7eVl5",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 2.448,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          0.015897632205332458,
+          -0.006421992078464728
+        ],
+        "plane_rmse_m": 0.04957283166530817,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 530,
+      "points_matched": 450,
+      "raw_all_points": {
+        "n": 530,
+        "mae_m": 3.5423661339069747,
+        "abs_p50_m": 2.2238056614697346,
+        "abs_p90_m": 10.825136659113417
+      },
+      "rank": 1,
+      "singular_values": [
+        26.155518387192597,
+        0.4304374550570905,
+        6.12299501383713e-15
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "463875525889265",
+      "sequence": "iWMfhPjb3DFnQJxa1olI74",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 1.822,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.1721281762958127e-17,
+          3.802110084688698e-15
+        ],
+        "plane_rmse_m": 1.7763568394002505e-14,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 440,
+      "points_matched": 414,
+      "raw_all_points": {
+        "n": 440,
+        "mae_m": 1.2522837296975158,
+        "abs_p50_m": 0.6356149163992771,
+        "abs_p90_m": 0.8834860863351819
+      },
+      "rank": 1,
+      "singular_values": [
+        26.28371492428305,
+        0.3855714272117168,
+        0.01211844440146194
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "533438285361796",
+      "sequence": "7pBiMnU9OI0jc632ZXh8Et",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 2.157,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.6559707681358893e-16,
+          9.483505834572068e-16
+        ],
+        "plane_rmse_m": 5.442658537071416e-15,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": true,
+      "points_total": 289,
+      "points_matched": 261,
+      "raw_all_points": {
+        "n": 289,
+        "mae_m": 2.337454461881882,
+        "abs_p50_m": 2.084328294547027,
+        "abs_p90_m": 3.393689475421395
+      },
+      "rank": 3,
+      "singular_values": [
+        13.94513393128,
+        7.507443993452264,
+        1.8404253950743443
+      ],
+      "parameters_identified": {
+        "east": true,
+        "north": true,
+        "scale": true
+      },
+      "status": "identified",
+      "bound_hit": false,
+      "inliers": 131,
+      "candidate_shift_m": [
+        -2.8250548253866294,
+        -3.415350161043713
+      ],
+      "candidate_scale": 1.001852907142343,
+      "raw_matched_points": {
+        "n": 261,
+        "mae_m": 2.4151900788927367,
+        "abs_p50_m": 2.710958548497736,
+        "abs_p90_m": 3.437797317275229
+      },
+      "oracle_residual": {
+        "n": 261,
+        "mae_m": 0.5396619983952062,
+        "abs_p50_m": 0.34769662068567353,
+        "abs_p90_m": 1.3565973614039906
+      },
+      "warning": "fitted reference is not held-out truth; scale is not proven height bias",
+      "image": "656880459905486",
+      "sequence": "C64yWHsEqxm2gMef0wNvTD",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 2.409,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.00012737344700130293,
+          0.029065303876221214
+        ],
+        "plane_rmse_m": 0.002611527324912245,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      },
+      "oracle_finite_segment_error": {
+        "n": 289,
+        "mae_m": 0.47092715693437726,
+        "abs_p50_m": 0.4781313035208517,
+        "abs_p90_m": 0.9631254815457406
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 622,
+      "points_matched": 597,
+      "raw_all_points": {
+        "n": 622,
+        "mae_m": 2.5754873887072436,
+        "abs_p50_m": 2.081227696786236,
+        "abs_p90_m": 2.648284717093726
+      },
+      "rank": 2,
+      "singular_values": [
+        30.39991085659177,
+        0.8472465023981917,
+        7.537324665169174e-15
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": true
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "670087928031093",
+      "sequence": "iWMfhPjb3DFnQJxa1olI74",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 1.822,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.1721162165294527e-17,
+          -1.5401630074728561e-15
+        ],
+        "plane_rmse_m": 1.0048591735576161e-14,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": true,
+      "points_total": 325,
+      "points_matched": 237,
+      "raw_all_points": {
+        "n": 325,
+        "mae_m": 3.662431731698423,
+        "abs_p50_m": 3.6218575768745356,
+        "abs_p90_m": 3.7004628173374283
+      },
+      "rank": 2,
+      "singular_values": [
+        16.676614218208382,
+        1.9415842751740269,
+        0.06802506978960986
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "bound_hit": true,
+      "inliers": 218,
+      "raw_matched_points": {
+        "n": 237,
+        "mae_m": 3.6965047607868167,
+        "abs_p50_m": 3.643287548851367,
+        "abs_p90_m": 3.7091856900322417
+      },
+      "oracle_residual": {
+        "n": 237,
+        "mae_m": 0.5529710173412875,
+        "abs_p50_m": 0.04900590073631328,
+        "abs_p90_m": 0.13168086969730572
+      },
+      "warning": "fitted reference is not held-out truth; scale is not proven height bias",
+      "image": "743511509668088",
+      "sequence": "G3ewhSDSu98gHgI9FQ6lNg",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.069,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          0.007260945624832196,
+          0.006498748867222998
+        ],
+        "plane_rmse_m": 0.03601260249587163,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 108,
+      "points_matched": 108,
+      "raw_all_points": {
+        "n": 108,
+        "mae_m": 1.7088845839236115,
+        "abs_p50_m": 1.6204461324446198,
+        "abs_p90_m": 1.949316641711423
+      },
+      "rank": 1,
+      "singular_values": [
+        14.129145531072018,
+        0.2126838009961042,
+        3.8820580181747756e-16
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "757857544923240",
+      "sequence": "TMfEnxI6FT4x7xw6T0K_ag",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.164,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -0.0004840209448516115,
+          0.014072109472819843
+        ],
+        "plane_rmse_m": 0.004075250111778619,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 43,
+      "points_matched": 0,
+      "raw_all_points": {
+        "n": 43,
+        "mae_m": 11.98366002510683,
+        "abs_p50_m": 12.005437716290082,
+        "abs_p90_m": 12.048499982912555
+      },
+      "status": "insufficient_support",
+      "image": "826123721778230",
+      "sequence": "jbrHIR475FKo1ydNzBcv93",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.349,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.1722204161214918e-17,
+          -3.1091686118106703e-15
+        ],
+        "plane_rmse_m": 1.3954782304807136e-14,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 25,
+      "points_matched": 25,
+      "raw_all_points": {
+        "n": 25,
+        "mae_m": 1.1599685368018204,
+        "abs_p50_m": 1.1625664005565863,
+        "abs_p90_m": 1.2138858656549572
+      },
+      "rank": 1,
+      "singular_values": [
+        6.012525378283333,
+        0.023640815437660688,
+        4.437082250045022e-17
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "851456776196388",
+      "sequence": "L6I7lfmsnVpENiTtQhRUF4",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 2.386,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.1722205259056362e-17,
+          1.8287059211436097e-15
+        ],
+        "plane_rmse_m": 7.105427357601002e-15,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 268,
+      "points_matched": 0,
+      "raw_all_points": {
+        "n": 268,
+        "mae_m": 5.724487230945408,
+        "abs_p50_m": 5.583182076246771,
+        "abs_p90_m": 6.490946460555038
+      },
+      "status": "insufficient_support",
+      "image": "919026962280854",
+      "sequence": "mod1dntlm5v4ywhzrpaym4",
+      "camera_type": "perspective",
+      "assumed_camera_height_m": 1.743,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          -4.2521609505828746e-17,
+          -0.0044774792687025475
+        ],
+        "plane_rmse_m": 0.0027664166758622883,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    },
+    {
+      "purpose": "oracle_alignment_diagnostic",
+      "publishable": false,
+      "optimization_attempted": false,
+      "points_total": 422,
+      "points_matched": 356,
+      "raw_all_points": {
+        "n": 422,
+        "mae_m": 3.5393750180026524,
+        "abs_p50_m": 2.142725644714936,
+        "abs_p90_m": 10.847076374175339
+      },
+      "rank": 1,
+      "singular_values": [
+        21.90903712775519,
+        0.38259720558101923,
+        7.798432324645526e-16
+      ],
+      "parameters_identified": {
+        "east": false,
+        "north": false,
+        "scale": false
+      },
+      "status": "ambiguous",
+      "warning": "data do not identify all parameters; no fitted candidate manufactured",
+      "image": "926071998374581",
+      "sequence": "iWMfhPjb3DFnQJxa1olI74",
+      "camera_type": "spherical",
+      "assumed_camera_height_m": 1.822,
+      "terrain_grade_ablation": {
+        "grade_e_n": [
+          1.172129432721112e-17,
+          -4.901002373769026e-16
+        ],
+        "plane_rmse_m": 2.6855991067210084e-15,
+        "basis": "lidar_terrain_conditioned_ablation_not_camera_only"
+      }
+    }
+  ]
+}

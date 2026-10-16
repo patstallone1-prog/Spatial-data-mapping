@@ -21,6 +21,7 @@ import numpy as np
 from smc.reconstruction.contracts import build_uses, load_rights, sha256_file
 from smc.reconstruction.fusion import mask_temporary_objects
 from smc.reconstruction.geo import EnuFrame
+from smc.reconstruction.matching_benchmark import assert_holdout_disjoint
 
 MIN_IMAGES = 20
 MIN_INDEPENDENT_SEQUENCES = 3
@@ -69,10 +70,8 @@ def preflight_inputs(input_manifest: Path, rights_path: Path,
         raise ValueError("SfM needs at least 20 images from three independent sequences")
     if len({r.observation_uid for r in rows}) != len(rows):
         raise ValueError("duplicate observation in reconstruction input")
-    withheld = {r["observation_uid"] for r in json.loads(benchmark_path.read_text())[
-        "held_out_observations"]}
-    if withheld & {r.observation_uid for r in rows}:
-        raise ValueError("held-out benchmark image used in reconstruction")
+    assert_holdout_disjoint(document["images"], json.loads(benchmark_path.read_text())[
+        "held_out_observations"])
     rights = load_rights(rights_path)
     for item in rows:
         source = rights.get(item.source_id)
@@ -90,10 +89,21 @@ def preflight_inputs(input_manifest: Path, rights_path: Path,
             raise ValueError(f"image hash mismatch on {item.observation_uid}")
         if not all(math.isfinite(v) for v in (item.lon, item.lat, item.altitude_m_ellipsoid)):
             raise ValueError(f"non-finite camera position on {item.observation_uid}")
+        if (not math.isfinite(item.reprojection_sigma_px) or item.reprojection_sigma_px < 0
+                or not item.observation_uid.replace("-", "").replace("_", "").isalnum()):
+            raise ValueError("safe observation ID and finite nonnegative mask uncertainty required")
+        if not item.camera_group or any(
+            not (c.isascii() and (c.isalnum() or c in "-_")) for c in item.camera_group
+        ):
+            raise ValueError("camera group must be a safe exact ID; do not merge sanitized aliases")
+    if len({r.image_sha256 for r in rows}) != len(rows):
+        raise ValueError("identical source-image aliases are not independent SfM views")
     return rows, frame
 
 
-def _redact_inputs(images: list[InputImage], work_dir: Path) -> tuple[Path, dict[str, tuple[float, float, float]]]:
+def _redact_inputs(
+    images: list[InputImage], work_dir: Path,
+) -> tuple[Path, dict[str, tuple[float, float, float]]]:
     image_dir = work_dir / "redacted_images"
     positions: dict[str, tuple[float, float, float]] = {}
     for item in images:
@@ -104,12 +114,13 @@ def _redact_inputs(images: list[InputImage], work_dir: Path) -> tuple[Path, dict
             masks = {name: archive[name].astype(bool) for name in archive.files}
         required = {"person", "face", "license_plate", "car", "sky"}
         if not required <= masks.keys():
-            raise ValueError(f"mask classes missing on {item.observation_uid}: {sorted(required - masks.keys())}")
+            missing = sorted(required - masks.keys())
+            raise ValueError(f"mask classes missing on {item.observation_uid}: {missing}")
         if any(mask.shape != image.shape[:2] for mask in masks.values()):
             raise ValueError(f"mask size mismatch on {item.observation_uid}")
         blocked = mask_temporary_objects(masks, item.reprojection_sigma_px)
         image[blocked] = 0
-        group = "".join(c for c in item.camera_group if c.isalnum() or c in "-_")
+        group = item.camera_group
         if not group:
             raise ValueError("camera group must contain a safe name")
         name = f"{group}/{item.observation_uid}.png"
@@ -128,17 +139,46 @@ def _write_pairs(names: list[str], frame: EnuFrame,
     for name in names:
         near = sorted(((float(np.linalg.norm(xyz[name] - xyz[other])), other)
                        for other in names if other != name), key=lambda item: item[0])
-        for distance, other in near[:MAX_NEIGHBOURS]:
-            if distance <= MAX_PAIR_DISTANCE_M:
-                pairs.add(tuple(sorted((name, other))))
+        eligible = [(distance, other) for distance, other in near
+                    if 0.25 <= distance <= MAX_PAIR_DISTANCE_M]
+        for _distance, other in eligible[:MAX_NEIGHBOURS]:
+            pairs.add(tuple(sorted((name, other))))
     if len(pairs) < len(names):
         raise ValueError("camera graph has too few overlapping candidate pairs")
+    pending, seen = [names[0]], set()
+    adjacency = {name: set() for name in names}
+    for a, b in pairs:
+        adjacency[a].add(b)
+        adjacency[b].add(a)
+    while pending:
+        name = pending.pop()
+        if name not in seen:
+            seen.add(name)
+            pending.extend(adjacency[name] - seen)
+    if len(seen) != len(names):
+        raise ValueError("disconnected candidate camera graph: reconstruct components separately")
     path.write_text("".join(f"{a} {b}\n" for a, b in sorted(pairs)))
     return len(pairs)
 
 
 def _run(args: list[str]) -> None:
     subprocess.run(args, check=True, capture_output=True, text=True)
+
+
+def require_metric_alignment_support(targets: np.ndarray) -> None:
+    """Check control geometry before invoking the Sim3 optimizer.
+
+    Collinear camera centres leave rotation about their trajectory unobservable.
+    GNSS coordinates alone are not independent survey validation afterward.
+    """
+    targets = np.asarray(targets, dtype=np.float64)
+    if targets.ndim != 2 or targets.shape[1] != 3 or not np.isfinite(targets).all():
+        raise ValueError("finite ENU camera positions required")
+    if len(targets) < 6:
+        raise ValueError("metric alignment needs six registered controls")
+    singular = np.linalg.svd(targets - targets.mean(axis=0), compute_uv=False)
+    if singular[1] < max(0.25, singular[0] * 0.01):
+        raise ValueError("unobservable metric alignment: need non-collinear independent controls")
 
 
 def reconstruct_cell(input_manifest: Path, rights_path: Path, benchmark_path: Path,
@@ -166,6 +206,11 @@ def reconstruct_cell(input_manifest: Path, rights_path: Path, benchmark_path: Pa
     if model is None or model.num_reg_images() < MIN_IMAGES:
         raise ValueError("sparse reconstruction registered too few cameras")
     targets = np.asarray([frame.to_enu(*positions[name]) for name in names], dtype=np.float64)
+    # A collinear trajectory cannot orient an absolute Sim3 around that line.
+    # Do not let an alignment optimizer invent that missing degree of freedom.
+    registered_names = {model.images[i].name for i in model.reg_image_ids()}
+    common = targets[[name in registered_names for name in names]]
+    require_metric_alignment_support(common)
     transform = pycolmap.align_reconstruction_to_locations(
         model, names, targets, min_common_images=6,
         ransac_options=pycolmap.RANSACOptions(),
