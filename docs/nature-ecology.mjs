@@ -71,14 +71,14 @@ export function floorColour(habitat,cover,natural=null){
 }
 export function undergrowthAt(x,y,s){
  const h=s?.habitat;if(!s||s.water||!h||h.canopy===null||[0,11,12,22,23,24].includes(s.cover))return null;
- const patch=field(x,y,34,503),canopy=clamp(h.canopy/100),forest=clamp(h.forest+(s.cover===21?canopy*.65:0));
+ const patch=field(x,y,34,503),canopy=clamp(h.canopy/100),forest=clamp(h.forest+(h.developed||0)*canopy*.65);
  const moisture=clamp((s.moisture??.5)*.7+forest*.25+h.wetland*.5);
  // Deep conifer shade is litter/ferns, not a uniform hedge beneath every tree.
  const density=clamp(h.scrub*.55+h.grass*.18+forest*(.07+moisture*.30)*(1-canopy*.35)+h.wetland*.42);
  if(noiseHash(Math.floor(x*2),Math.floor(y*2),509)>density*(.35+patch*1.15))return null;
  const selector=noiseHash(Math.floor(x),Math.floor(y),521);
  const kind=forest>.35?(moisture>.45?(selector<.65?'fern':selector<.82?'coffeeberry':'sorrel'):(selector<.65?'coffeeberry':'toyon')):
-  h.scrub>.25||(s.cover===21&&canopy>.15)?(selector<.65?'coyote_brush':'toyon'):h.wetland>.35?'sedge':'bunchgrass';
+  h.scrub>.25||(h.developed||0)*canopy>.15?(selector<.65?'coyote_brush':'toyon'):h.wetland>.35?'sedge':'bunchgrass';
  return {kind,height:kind==='fern'?.55+selector*.55:kind==='sorrel'?.10:kind==='bunchgrass'||kind==='sedge'?.35+selector*.45:.65+selector*.9,
   radius:kind==='sorrel'?.45:kind==='bunchgrass'||kind==='sedge'?.45:.65+selector*.45,
   certainty:'inferred-habitat-prior',patch};

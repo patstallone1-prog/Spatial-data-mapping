@@ -334,6 +334,9 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*canopyCover*(1.-n
     }
   }});
   const canopyTexture=new THREE.CanvasTexture(canopyCanvas);canopyTexture.colorSpace=THREE.NoColorSpace;
+  // Premultiplied filtering avoids black fringes around fine foliage in mipmaps.
+  // Recover straight colour before the explicit sRGB decode in the shader.
+  canopyTexture.premultiplyAlpha=true;
   const farMat=new THREE.PointsMaterial({color:0xffffff,size:1,sizeAttenuation:true,alphaTest:.3});
   function pointMaterial(mid=false){const mat=farMat.clone();mat.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>',
@@ -341,6 +344,10 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*canopyCover*(1.-n
       .replace('gl_PointSize = size;', `gl_PointSize = size * natureSize * .01 * max(1.,natureAspect*4.);
 vNatureRange = length(mvPosition.xyz);vNatureSpecies=natureSpecies;vNatureAspect=natureAspect*4.;
 if(${mid?`vNatureRange<${NEAR0}.||vNatureRange>${FAR1}.`:`vNatureRange<${FAR0}.`})gl_Position=vec4(2.,2.,2.,1.);`);
+    if(!mid)shader.vertexShader=shader.vertexShader.replace('#include <logdepthbuf_vertex>',`// Unresolved crowns are already represented by canopy averaging on the
+// terrain. Avoid rasterizing millions of sub-pixel alpha-tested points.
+if(vNatureRange>3500.&&gl_PointSize*min(1.,natureAspect*4.)*.5625<.75)gl_Position=vec4(2.,2.,2.,1.);
+#include <logdepthbuf_vertex>`);
     shader.uniforms.uCanopyAtlas={value:canopyTexture};
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
       '#include <common>\nvarying float vNatureRange;varying float vNatureAspect;varying float vNatureSpecies;uniform sampler2D uCanopyAtlas;')
@@ -357,7 +364,8 @@ float treeU=(gl_PointCoord.x-.5)*pointScale/vNatureAspect+.5;
 float treeV=(.5-gl_PointCoord.y)*pointScale+.5;
 if(treeU<0.||treeU>1.||treeV<0.||treeV>1.)discard;
 vec4 canopy=texture2D(uCanopyAtlas,(tile+vec2(treeU,treeV))/vec2(6.,3.));
-vec3 canopyLinear=mix(canopy.rgb/12.92,pow((canopy.rgb+.055)/1.055,vec3(2.4)),step(vec3(.04045),canopy.rgb));
+vec3 canopySRGB=canopy.rgb/max(canopy.a,.001);
+vec3 canopyLinear=mix(canopySRGB/12.92,pow((canopySRGB+.055)/1.055,vec3(2.4)),step(vec3(.04045),canopySRGB));
 diffuseColor*=vec4(canopyLinear,canopy.a);`);
     };mat.customProgramCacheKey=()=>`nature-species-canopy-v3-${mid}`;return mat;
   }
