@@ -1,0 +1,2784 @@
+{
+  "schema": 1,
+  "frame": {
+    "mid_lon": -122.1925,
+    "mid_lat": 37.602500000000006,
+    "metres_per_lon": 88194.71938594717,
+    "metres_per_lat": 111320.0,
+    "x0": -36048.82340503952,
+    "y0": -38938.30000000059,
+    "step_m": 40.0,
+    "cols": 1803,
+    "rows": 1947,
+    "bbox": {
+      "south": 37.252712899748474,
+      "west": -122.60124129036328,
+      "north": 37.95228710025153,
+      "east": -121.78375870963673
+    }
+  },
+  "tile_m": 4000,
+  "tiles": {
+    "12-3": {
+      "file": "paths/12-3.bin",
+      "sha256": "2038a967ef54cd84388335e4bfdac28cdc8ceaa98b49021e8ae0f0c8eba723f9",
+      "encoding": "gzip",
+      "decoded_bytes": 3599139,
+      "bytes": 470808
+    },
+    "12-2": {
+      "file": "paths/12-2.bin",
+      "sha256": "d8560014ee94a22cd96dd2967e3e47cf6ccdbd2f14b013f228f0a3e6c62d9e1c",
+      "encoding": "gzip",
+      "decoded_bytes": 3122827,
+      "bytes": 396407
+    },
+    "4-11": {
+      "file": "paths/4-11.bin",
+      "sha256": "5b47929e4b4ab2febe64c03da050469b179eacabbe4e82da31e02ca721c7545d",
+      "encoding": "gzip",
+      "decoded_bytes": 2407754,
+      "bytes": 302922
+    },
+    "10-4": {
+      "file": "paths/10-4.bin",
+      "sha256": "28c890d83704fd075c705c4e90b93483dde241ec0bdb5691cc680b9cf98e6886",
+      "encoding": "gzip",
+      "decoded_bytes": 3525526,
+      "bytes": 449737
+    },
+    "10-3": {
+      "file": "paths/10-3.bin",
+      "sha256": "bb91c30dd2f8313c6db8d0e524dfdcba631a0e6d72bfbf43330d81e654096271",
+      "encoding": "gzip",
+      "decoded_bytes": 3036601,
+      "bytes": 446597
+    },
+    "12-4": {
+      "file": "paths/12-4.bin",
+      "sha256": "ba02f63ea74b398b6d31153c536d150de8526ec81cf60ade9b1f7cd585b0ac09",
+      "encoding": "gzip",
+      "decoded_bytes": 1794720,
+      "bytes": 235695
+    },
+    "16-2": {
+      "file": "paths/16-2.bin",
+      "sha256": "78f979ae3c7ab4bdebb0841eeb79e1b1761f459989531552cc9d5633719077c0",
+      "encoding": "gzip",
+      "decoded_bytes": 3487281,
+      "bytes": 457001
+    },
+    "15-5": {
+      "file": "paths/15-5.bin",
+      "sha256": "eb7357af77b22cd32e64d1e0324b6ed88b12b58b19e2e6e6083588f744d8a1d7",
+      "encoding": "gzip",
+      "decoded_bytes": 1974349,
+      "bytes": 267160
+    },
+    "14-4": {
+      "file": "paths/14-4.bin",
+      "sha256": "af66eb841e04c58566715a88d8fbb0490b5a5a7fb1da3ed9e1e42b3ae7993c3f",
+      "encoding": "gzip",
+      "decoded_bytes": 2801341,
+      "bytes": 376960
+    },
+    "5-7": {
+      "file": "paths/5-7.bin",
+      "sha256": "f577d5bf425c502b646e1445c003d79fa30172a0281fa6d2dead68fcfbc2a597",
+      "encoding": "gzip",
+      "decoded_bytes": 1248393,
+      "bytes": 209602
+    },
+    "11-4": {
+      "file": "paths/11-4.bin",
+      "sha256": "755ce006b85c25bf092fe1562787b5658df9b85379bf3f0789621891b5a434dd",
+      "encoding": "gzip",
+      "decoded_bytes": 3804369,
+      "bytes": 517423
+    },
+    "11-3": {
+      "file": "paths/11-3.bin",
+      "sha256": "652e39d7d969f87587f5e6fdda2d8edfa4fa80cef7092e53bd7d0e33103712ac",
+      "encoding": "gzip",
+      "decoded_bytes": 3095834,
+      "bytes": 411584
+    },
+    "14-0": {
+      "file": "paths/14-0.bin",
+      "sha256": "d2b48df61c5291d6a5f3093eb5f539ed1f8c42a3356a85bf910eda51923c17a7",
+      "encoding": "gzip",
+      "decoded_bytes": 3472061,
+      "bytes": 466574
+    },
+    "11-5": {
+      "file": "paths/11-5.bin",
+      "sha256": "03efa13a4d29c60229e2a19a8a67ce956ecda830d53c3b467da4b13b755d812f",
+      "encoding": "gzip",
+      "decoded_bytes": 175300,
+      "bytes": 42032
+    },
+    "10-12": {
+      "file": "paths/10-12.bin",
+      "sha256": "7b40a7c2b78981e96ae781b43eab79d41a5e00999f742c477b96142b5dc5ac5a",
+      "encoding": "gzip",
+      "decoded_bytes": 2372083,
+      "bytes": 299238
+    },
+    "8-14": {
+      "file": "paths/8-14.bin",
+      "sha256": "ed80b801709066d617175e7bd0106f06cd269b9a56a429e759c2d6405ada3e86",
+      "encoding": "gzip",
+      "decoded_bytes": 2100467,
+      "bytes": 251936
+    },
+    "6-15": {
+      "file": "paths/6-15.bin",
+      "sha256": "99e3b10010961d842e6024c4501723232c02851f20a07cdd99fce453a24dbe29",
+      "encoding": "gzip",
+      "decoded_bytes": 1550658,
+      "bytes": 209797
+    },
+    "7-15": {
+      "file": "paths/7-15.bin",
+      "sha256": "94a8371b0ada602e7acacdd75995aafd69dc2591371f3327cba1472b4069ae2c",
+      "encoding": "gzip",
+      "decoded_bytes": 4710091,
+      "bytes": 565051
+    },
+    "10-2": {
+      "file": "paths/10-2.bin",
+      "sha256": "4b45b4cf0d413d74ac39917779ca35771c762f95bcd6df84e2e4e08c48cab1cf",
+      "encoding": "gzip",
+      "decoded_bytes": 1329345,
+      "bytes": 224685
+    },
+    "11-2": {
+      "file": "paths/11-2.bin",
+      "sha256": "23edeb13ac4cb8d409806d82cad4c5884d161b39baed87f5721b249e17102f22",
+      "encoding": "gzip",
+      "decoded_bytes": 2476821,
+      "bytes": 368004
+    },
+    "11-1": {
+      "file": "paths/11-1.bin",
+      "sha256": "d0b448c20f98002a0ff46bb81e843996857206eaa1de0612b6961a78339c10d4",
+      "encoding": "gzip",
+      "decoded_bytes": 1662028,
+      "bytes": 244747
+    },
+    "5-6": {
+      "file": "paths/5-6.bin",
+      "sha256": "a857a36f21ca103c260ac680c84386c0d66e4cf96f1776f233669d46caeff784",
+      "encoding": "gzip",
+      "decoded_bytes": 155444,
+      "bytes": 35791
+    },
+    "12-8": {
+      "file": "paths/12-8.bin",
+      "sha256": "b60059244ddfeb451209a6983fb13eb93f3c0dd7bf41eae087e5db9a19546d3b",
+      "encoding": "gzip",
+      "decoded_bytes": 2471201,
+      "bytes": 341608
+    },
+    "15-4": {
+      "file": "paths/15-4.bin",
+      "sha256": "56504db62a8f6d823247b7b0952666993ebdc1d288021a4e7ce9b483972b0ffc",
+      "encoding": "gzip",
+      "decoded_bytes": 2912808,
+      "bytes": 373505
+    },
+    "14-6": {
+      "file": "paths/14-6.bin",
+      "sha256": "9a7c34ebd0d7f50e8ecd28922631ed0e2f5e0d7a3b95543310a3058d81b1bbe2",
+      "encoding": "gzip",
+      "decoded_bytes": 1435335,
+      "bytes": 187528
+    },
+    "14-12": {
+      "file": "paths/14-12.bin",
+      "sha256": "dd6359339410f647131587f55157d1007d134928c739f33c598d880492dc67f4",
+      "encoding": "gzip",
+      "decoded_bytes": 2223355,
+      "bytes": 303017
+    },
+    "13-1": {
+      "file": "paths/13-1.bin",
+      "sha256": "233c389c6404474cffc18075f46006985629bbc7c8db07936666e4b8b4f36b10",
+      "encoding": "gzip",
+      "decoded_bytes": 3478008,
+      "bytes": 472915
+    },
+    "6-8": {
+      "file": "paths/6-8.bin",
+      "sha256": "ecb03d2c607869314c3ab9bc30ee4a8e8713d747c01ffff5db76522f9df73b01",
+      "encoding": "gzip",
+      "decoded_bytes": 2662576,
+      "bytes": 348939
+    },
+    "14-2": {
+      "file": "paths/14-2.bin",
+      "sha256": "572e68fc2a239739bcf246f3e968267041950a648789e9f0d16c2ff42588d1aa",
+      "encoding": "gzip",
+      "decoded_bytes": 4088718,
+      "bytes": 522201
+    },
+    "4-15": {
+      "file": "paths/4-15.bin",
+      "sha256": "83e75e4f12dfbe49360443ac6356cbfa7015d08d31e59e5253cbb89b49428cc1",
+      "encoding": "gzip",
+      "decoded_bytes": 2344620,
+      "bytes": 248063
+    },
+    "13-4": {
+      "file": "paths/13-4.bin",
+      "sha256": "977ca45fc42e87fd60703ecfba18acf0d1da76accfdcbfd897ccdab247a6f318",
+      "encoding": "gzip",
+      "decoded_bytes": 2029424,
+      "bytes": 273658
+    },
+    "13-3": {
+      "file": "paths/13-3.bin",
+      "sha256": "da4b15e39a7d5e8b4547da271541d87f2e8320e3977881dd3d0bfb8bfca8fa6e",
+      "encoding": "gzip",
+      "decoded_bytes": 3699661,
+      "bytes": 484325
+    },
+    "12-1": {
+      "file": "paths/12-1.bin",
+      "sha256": "76affb2fb4b8b37d1fdb85e156422f4dd3c2c015cda425c01b7cfeedda44bc3f",
+      "encoding": "gzip",
+      "decoded_bytes": 3657059,
+      "bytes": 498453
+    },
+    "14-1": {
+      "file": "paths/14-1.bin",
+      "sha256": "8d88f1bb47d8ae75e04338bf2065b31ba8e9f1fcb602efa4def07d59d772990c",
+      "encoding": "gzip",
+      "decoded_bytes": 4219601,
+      "bytes": 525724
+    },
+    "7-16": {
+      "file": "paths/7-16.bin",
+      "sha256": "547110a9d0d03f85cfc84df9a8642838f54dd453349c89b2985d6c87b3a0227d",
+      "encoding": "gzip",
+      "decoded_bytes": 3856584,
+      "bytes": 467246
+    },
+    "7-17": {
+      "file": "paths/7-17.bin",
+      "sha256": "83064fcaefc59a480d881504a3b249cea22277a4f6b12059daad5f3a26dcedac",
+      "encoding": "gzip",
+      "decoded_bytes": 4947534,
+      "bytes": 666446
+    },
+    "8-17": {
+      "file": "paths/8-17.bin",
+      "sha256": "76d17d29c24a383213252cb2897f8c23ad16ab2205c7d524e5cd1e5ee46c7480",
+      "encoding": "gzip",
+      "decoded_bytes": 953349,
+      "bytes": 163572
+    },
+    "13-2": {
+      "file": "paths/13-2.bin",
+      "sha256": "a75db530d0b91c8b7a66458322fe6e91f461cf1db2da5457137f07730f588a87",
+      "encoding": "gzip",
+      "decoded_bytes": 4156401,
+      "bytes": 544245
+    },
+    "4-12": {
+      "file": "paths/4-12.bin",
+      "sha256": "8dd1dc26e4c06074e26ec0880263ea2f313ef78c1637d31cf117b5da09438cc7",
+      "encoding": "gzip",
+      "decoded_bytes": 1381859,
+      "bytes": 199627
+    },
+    "8-16": {
+      "file": "paths/8-16.bin",
+      "sha256": "2e97c830fd858d7abf33e9511c3ca015979a4df7d5cdba3476f4a76fcb561f35",
+      "encoding": "gzip",
+      "decoded_bytes": 3758260,
+      "bytes": 577248
+    },
+    "6-16": {
+      "file": "paths/6-16.bin",
+      "sha256": "b846d21e93b0529583987ccf729217f8bb3bea946c5de333d7a123e240e4541b",
+      "encoding": "gzip",
+      "decoded_bytes": 1425549,
+      "bytes": 181668
+    },
+    "7-18": {
+      "file": "paths/7-18.bin",
+      "sha256": "35806024ce42d05efa5b9db83be68b621084a2c2d4a0c897aed7762d24ae34bc",
+      "encoding": "gzip",
+      "decoded_bytes": 756479,
+      "bytes": 137047
+    },
+    "11-12": {
+      "file": "paths/11-12.bin",
+      "sha256": "03a187492b254af650f45feebf62522e6ac9952c60afe6f5d5ad0fe992a9c429",
+      "encoding": "gzip",
+      "decoded_bytes": 2631837,
+      "bytes": 352670
+    },
+    "13-8": {
+      "file": "paths/13-8.bin",
+      "sha256": "bf7f5f3c41d343eb8d35f3ae8259e045c110c903484c97db5520ebfe503a89e4",
+      "encoding": "gzip",
+      "decoded_bytes": 2917746,
+      "bytes": 367960
+    },
+    "12-9": {
+      "file": "paths/12-9.bin",
+      "sha256": "b70d41a4c80a2010c40237a6cda80e3eaa1114b24f3e9a80b59bdda681e83904",
+      "encoding": "gzip",
+      "decoded_bytes": 2061185,
+      "bytes": 283745
+    },
+    "15-11": {
+      "file": "paths/15-11.bin",
+      "sha256": "defd00a3cf0189df827a72f42ee6a7e35fb752a3354fd01538f1b1dbc3627409",
+      "encoding": "gzip",
+      "decoded_bytes": 2023964,
+      "bytes": 271293
+    },
+    "17-12": {
+      "file": "paths/17-12.bin",
+      "sha256": "ade5c72fed5735d6506f77376fae27c4ba0f93356bf339244fb782174034732c",
+      "encoding": "gzip",
+      "decoded_bytes": 1205284,
+      "bytes": 165283
+    },
+    "9-12": {
+      "file": "paths/9-12.bin",
+      "sha256": "fbb80028d5a6239cdb1171c99b04924cd246b4c1118109a5b25ea74c03e074d2",
+      "encoding": "gzip",
+      "decoded_bytes": 1564729,
+      "bytes": 203424
+    },
+    "17-10": {
+      "file": "paths/17-10.bin",
+      "sha256": "1c61ae5700ad279133698e19b57a2326751360f84be30948646bc7f939451332",
+      "encoding": "gzip",
+      "decoded_bytes": 540236,
+      "bytes": 87672
+    },
+    "15-6": {
+      "file": "paths/15-6.bin",
+      "sha256": "7dd70918890a2fd081d55f2724702a32cba571e43f60e0d99747f8f68594753c",
+      "encoding": "gzip",
+      "decoded_bytes": 768327,
+      "bytes": 127883
+    },
+    "15-7": {
+      "file": "paths/15-7.bin",
+      "sha256": "a0f5efde2f8a72b9cb85c3d635cdf140879de63b37a3148ff04172bd1d151fd0",
+      "encoding": "gzip",
+      "decoded_bytes": 828446,
+      "bytes": 141397
+    },
+    "15-12": {
+      "file": "paths/15-12.bin",
+      "sha256": "8d14f1e4646f22165958d243266848990ef877ef9b77c88d3314682f31d5ff37",
+      "encoding": "gzip",
+      "decoded_bytes": 2654310,
+      "bytes": 331435
+    },
+    "10-10": {
+      "file": "paths/10-10.bin",
+      "sha256": "01715fb9e81169fb2111866daeabb57ba34006fc1f48a08f710a13702b85dcb8",
+      "encoding": "gzip",
+      "decoded_bytes": 933615,
+      "bytes": 113726
+    },
+    "15-13": {
+      "file": "paths/15-13.bin",
+      "sha256": "07071cef7c9b341fad33120360504b2a5eddc4cde493e930fa9b430ad0bd3653",
+      "encoding": "gzip",
+      "decoded_bytes": 1061155,
+      "bytes": 164849
+    },
+    "10-11": {
+      "file": "paths/10-11.bin",
+      "sha256": "4c5115ee3219ec5ba04573fc9a0842c649f4a52d04d448348dfc02a1a54822b2",
+      "encoding": "gzip",
+      "decoded_bytes": 1573625,
+      "bytes": 197924
+    },
+    "11-11": {
+      "file": "paths/11-11.bin",
+      "sha256": "ae013ae549a8b3e9d8e427793516076806520f48f3e4a24aabfd8d781aa7fd4e",
+      "encoding": "gzip",
+      "decoded_bytes": 3362164,
+      "bytes": 422525
+    },
+    "13-9": {
+      "file": "paths/13-9.bin",
+      "sha256": "448a35c116af940abc29871242c5e0039d046b84fa31d0a5c0652f7cb74f0df4",
+      "encoding": "gzip",
+      "decoded_bytes": 821881,
+      "bytes": 121960
+    },
+    "16-12": {
+      "file": "paths/16-12.bin",
+      "sha256": "0d6af8d79b96b29a6d5f5efda5d6ec3317be778e4ca44d29b78ecab83f5fe568",
+      "encoding": "gzip",
+      "decoded_bytes": 2026520,
+      "bytes": 266714
+    },
+    "11-10": {
+      "file": "paths/11-10.bin",
+      "sha256": "0e7603f587804ed0b383798163557df18c503e9d3e6a48f6c0a8ae146bde07d6",
+      "encoding": "gzip",
+      "decoded_bytes": 1886753,
+      "bytes": 243370
+    },
+    "9-13": {
+      "file": "paths/9-13.bin",
+      "sha256": "224643343856061a26ff468b79d24dbd744358507311ebb80d92ecc2294c71ff",
+      "encoding": "gzip",
+      "decoded_bytes": 1953102,
+      "bytes": 247136
+    },
+    "16-10": {
+      "file": "paths/16-10.bin",
+      "sha256": "a3211c997490c6bb1f8349e2ad5554305c64f5bb56c89eefeb7f7b6fdb5902cf",
+      "encoding": "gzip",
+      "decoded_bytes": 318267,
+      "bytes": 50177
+    },
+    "18-10": {
+      "file": "paths/18-10.bin",
+      "sha256": "a0a20328f04932193215f38d03364e96903e05d9013e4ea1b1ba361727b52301",
+      "encoding": "gzip",
+      "decoded_bytes": 28971,
+      "bytes": 5663
+    },
+    "15-8": {
+      "file": "paths/15-8.bin",
+      "sha256": "d5dcd54968b8107190b16f4b6fdd849f926d732d0e75b9cada70b9cf985302b9",
+      "encoding": "gzip",
+      "decoded_bytes": 171404,
+      "bytes": 31005
+    },
+    "14-9": {
+      "file": "paths/14-9.bin",
+      "sha256": "15015acd56d679b7bae1e9fa0c8c26a303a5f6e99ba242d6c584871fb21d21b3",
+      "encoding": "gzip",
+      "decoded_bytes": 182992,
+      "bytes": 35782
+    },
+    "15-10": {
+      "file": "paths/15-10.bin",
+      "sha256": "ffca88003f10848bdc0cc1ba0526e6a2ac925c16a078f7b2667aebfd96c6c8f6",
+      "encoding": "gzip",
+      "decoded_bytes": 745214,
+      "bytes": 124533
+    },
+    "9-14": {
+      "file": "paths/9-14.bin",
+      "sha256": "b9532438fdb024e7a60fb7f15111b553627542ca55e45452acd7458ee8574649",
+      "encoding": "gzip",
+      "decoded_bytes": 2424912,
+      "bytes": 335497
+    },
+    "14-7": {
+      "file": "paths/14-7.bin",
+      "sha256": "1733f588accc4c34846ad1e766b4635a85f47e02213c4f85639ddb6b46b5ccfe",
+      "encoding": "gzip",
+      "decoded_bytes": 2454328,
+      "bytes": 324047
+    },
+    "11-9": {
+      "file": "paths/11-9.bin",
+      "sha256": "73b1b49af597d4bf9c1d48f1a6de1b55daca8ea86f767f908f8be13517e94006",
+      "encoding": "gzip",
+      "decoded_bytes": 1553684,
+      "bytes": 198635
+    },
+    "14-13": {
+      "file": "paths/14-13.bin",
+      "sha256": "badc488678c764d50e177e99e781836412b486b40d4d7d2fb741242002ce6ac4",
+      "encoding": "gzip",
+      "decoded_bytes": 1715180,
+      "bytes": 244814
+    },
+    "6-17": {
+      "file": "paths/6-17.bin",
+      "sha256": "834a5d74a6ce63d349f2da8fc0824421e0b9fd5d1a9d43ea2c4708e4494e7053",
+      "encoding": "gzip",
+      "decoded_bytes": 1999114,
+      "bytes": 260937
+    },
+    "12-12": {
+      "file": "paths/12-12.bin",
+      "sha256": "81fe8578d9cd2062ba9ba601c93f88b5d1f73d878c478d09b4dd12f17448be02",
+      "encoding": "gzip",
+      "decoded_bytes": 1002028,
+      "bytes": 160045
+    },
+    "17-11": {
+      "file": "paths/17-11.bin",
+      "sha256": "33c80b8c25274e70e258df072f8b5247634ea21626e137e2642290410a25648a",
+      "encoding": "gzip",
+      "decoded_bytes": 951932,
+      "bytes": 139227
+    },
+    "16-11": {
+      "file": "paths/16-11.bin",
+      "sha256": "eb77b3464c530bb026c0f7adf7a86373ff6e09408e064e35b3fe50a482e4a782",
+      "encoding": "gzip",
+      "decoded_bytes": 1534466,
+      "bytes": 201757
+    },
+    "8-13": {
+      "file": "paths/8-13.bin",
+      "sha256": "44c9ab57fda224bcaee73f5871393b6c57914e34972c1831869af9bb3da89ce3",
+      "encoding": "gzip",
+      "decoded_bytes": 1572337,
+      "bytes": 206326
+    },
+    "11-7": {
+      "file": "paths/11-7.bin",
+      "sha256": "c2ad90d76791460f9b3ef1ce53da421d6d5a1edf126476bf42e02f313fdee142",
+      "encoding": "gzip",
+      "decoded_bytes": 289068,
+      "bytes": 45670
+    },
+    "11-8": {
+      "file": "paths/11-8.bin",
+      "sha256": "bea8f7a3fc99de5239dd1a7f42edfd72f0e274bb69490fa8360b4676d1961902",
+      "encoding": "gzip",
+      "decoded_bytes": 924267,
+      "bytes": 136203
+    },
+    "10-14": {
+      "file": "paths/10-14.bin",
+      "sha256": "21816c98cfaab2425761bc8178aeb2fa85662b32be78c974c68dde871c24e2c3",
+      "encoding": "gzip",
+      "decoded_bytes": 1024565,
+      "bytes": 165955
+    },
+    "16-9": {
+      "file": "paths/16-9.bin",
+      "sha256": "4a8c691d763403f5ba2b3d25f83ed00b7161bb4c275aaf31fa398d04ded4fff4",
+      "encoding": "gzip",
+      "decoded_bytes": 143509,
+      "bytes": 25843
+    },
+    "15-9": {
+      "file": "paths/15-9.bin",
+      "sha256": "387e077edba8c02f79df0bf2bacba7f49ef36945790fc10e9fb63b7167b08ea7",
+      "encoding": "gzip",
+      "decoded_bytes": 222352,
+      "bytes": 42796
+    },
+    "17-9": {
+      "file": "paths/17-9.bin",
+      "sha256": "a2c75a7c83b1f3334e03af9a46dd07403911b1133f1cc8c0359c0ada8da80d2d",
+      "encoding": "gzip",
+      "decoded_bytes": 46380,
+      "bytes": 11593
+    },
+    "13-7": {
+      "file": "paths/13-7.bin",
+      "sha256": "759c30a8dbd41969f42971cdf015e8eedda789265b42a7a0b270b809decd56d2",
+      "encoding": "gzip",
+      "decoded_bytes": 2073621,
+      "bytes": 271299
+    },
+    "18-9": {
+      "file": "paths/18-9.bin",
+      "sha256": "3d0ac1e4576c9baef1c1dbf893b765e1407168d321548bb6af10427a9f418561",
+      "encoding": "gzip",
+      "decoded_bytes": 11882,
+      "bytes": 3606
+    },
+    "12-10": {
+      "file": "paths/12-10.bin",
+      "sha256": "c32f7093991e244205bd8d03394152c924439ebf98c02ff908adf1c1fa0cfd04",
+      "encoding": "gzip",
+      "decoded_bytes": 1154064,
+      "bytes": 158689
+    },
+    "7-13": {
+      "file": "paths/7-13.bin",
+      "sha256": "96ace50e81c0f7976a5a0104005743815fb5f28bf1343abf79242dcee16f0ea6",
+      "encoding": "gzip",
+      "decoded_bytes": 742787,
+      "bytes": 103359
+    },
+    "17-7": {
+      "file": "paths/17-7.bin",
+      "sha256": "caf4b1d9d136661708588ef43cdcfe3f5679ee0fe2d2a029c6034521f5f92075",
+      "encoding": "gzip",
+      "decoded_bytes": 143848,
+      "bytes": 35548
+    },
+    "14-8": {
+      "file": "paths/14-8.bin",
+      "sha256": "91a51dd3a1d3d08f4b0a47908a9e4d7ccbf76d57672c2615c205408656ec5283",
+      "encoding": "gzip",
+      "decoded_bytes": 1364131,
+      "bytes": 194698
+    },
+    "7-14": {
+      "file": "paths/7-14.bin",
+      "sha256": "10a389e5644d90a4924543938b787bd7e855eba4f95ad761a2ddefe7cad458f7",
+      "encoding": "gzip",
+      "decoded_bytes": 2226873,
+      "bytes": 295463
+    },
+    "17-6": {
+      "file": "paths/17-6.bin",
+      "sha256": "856dcc84895b5182b7ed8da7e72840ce8c71902db2595de203236a56141a3702",
+      "encoding": "gzip",
+      "decoded_bytes": 75735,
+      "bytes": 20347
+    },
+    "8-15": {
+      "file": "paths/8-15.bin",
+      "sha256": "eba9fe71f3327dc2159b261a7387e9581eedfe406748fa3560d22ec4804535d5",
+      "encoding": "gzip",
+      "decoded_bytes": 3119850,
+      "bytes": 447189
+    },
+    "12-11": {
+      "file": "paths/12-11.bin",
+      "sha256": "c75ed2b30264a55d30a176017f28f62a25150f9963f488f29f55614d3b8bfb6e",
+      "encoding": "gzip",
+      "decoded_bytes": 2655602,
+      "bytes": 374765
+    },
+    "10-13": {
+      "file": "paths/10-13.bin",
+      "sha256": "c6699a830cb0e6f54d9835131f2082e94eeb343593ae9a1057dacfcfe2536760",
+      "encoding": "gzip",
+      "decoded_bytes": 1461163,
+      "bytes": 234343
+    },
+    "16-6": {
+      "file": "paths/16-6.bin",
+      "sha256": "b3b41d70328ba2cf677656f1ee1f8c87824e44374fc7231436455e98efee4ef7",
+      "encoding": "gzip",
+      "decoded_bytes": 93539,
+      "bytes": 22635
+    },
+    "11-14": {
+      "file": "paths/11-14.bin",
+      "sha256": "93dc0a1977906f3c73a6b432b37ea720ce70723a9873b78bd44f46e538486073",
+      "encoding": "gzip",
+      "decoded_bytes": 107285,
+      "bytes": 24817
+    },
+    "17-8": {
+      "file": "paths/17-8.bin",
+      "sha256": "4ebf31a181b250f726113e94f0aa49043ce6c1074bf2a7214cc54d8aaf20c86a",
+      "encoding": "gzip",
+      "decoded_bytes": 73266,
+      "bytes": 19474
+    },
+    "18-8": {
+      "file": "paths/18-8.bin",
+      "sha256": "3836dd223df8e58c8ce75de36d2f3d62db7447a891d98a0a52f6dc67a8cf96be",
+      "encoding": "gzip",
+      "decoded_bytes": 13379,
+      "bytes": 3900
+    },
+    "9-15": {
+      "file": "paths/9-15.bin",
+      "sha256": "001467720bc8889008a1d4b7eeed7683769d9703e26c8aa2142ade7967275f90",
+      "encoding": "gzip",
+      "decoded_bytes": 1750765,
+      "bytes": 292035
+    },
+    "6-14": {
+      "file": "paths/6-14.bin",
+      "sha256": "bc85ab37399107e767adde1a99d11ade9f129fd9f4f4ad89e4c67d33d1ad98f2",
+      "encoding": "gzip",
+      "decoded_bytes": 745727,
+      "bytes": 100736
+    },
+    "12-7": {
+      "file": "paths/12-7.bin",
+      "sha256": "28c489659b5a5719d25f85f56fc24c813a3c25d784a96a7b5ee0942143d1c27b",
+      "encoding": "gzip",
+      "decoded_bytes": 1568104,
+      "bytes": 208097
+    },
+    "11-13": {
+      "file": "paths/11-13.bin",
+      "sha256": "f872d1d7e19b0b1ae65d5d97134943ca49cfb52984ef57792c32aa1ef28562c6",
+      "encoding": "gzip",
+      "decoded_bytes": 395702,
+      "bytes": 76415
+    },
+    "13-10": {
+      "file": "paths/13-10.bin",
+      "sha256": "89ce024564a9dc6105c4838664ea44f22d434ad7649b9c0b66dd1b0399e39934",
+      "encoding": "gzip",
+      "decoded_bytes": 130161,
+      "bytes": 27854
+    },
+    "13-12": {
+      "file": "paths/13-12.bin",
+      "sha256": "f7b2e30ab00cbd526e646caefbb30ab001730ede61ff3dacefae59009ad97e47",
+      "encoding": "gzip",
+      "decoded_bytes": 297776,
+      "bytes": 46787
+    },
+    "12-14": {
+      "file": "paths/12-14.bin",
+      "sha256": "094664cba8e132222d669fe838f5672fc214dbc1d52ea37d004c3eaa201b089a",
+      "encoding": "gzip",
+      "decoded_bytes": 119955,
+      "bytes": 25192
+    },
+    "13-14": {
+      "file": "paths/13-14.bin",
+      "sha256": "ca6f8da268ae47810a26c8e76f18e00c2dc5db12e88063bb233ca32af643bbe7",
+      "encoding": "gzip",
+      "decoded_bytes": 1767856,
+      "bytes": 249516
+    },
+    "13-11": {
+      "file": "paths/13-11.bin",
+      "sha256": "42144ef12261d3f3866d391f26824d1a94ae1c4daf8d4acfc0e41693f400a64a",
+      "encoding": "gzip",
+      "decoded_bytes": 208040,
+      "bytes": 36913
+    },
+    "12-13": {
+      "file": "paths/12-13.bin",
+      "sha256": "e0596e30ecb68d506814c6be9bbb2ac5df690c1acb1e9a3a73be727719dabc42",
+      "encoding": "gzip",
+      "decoded_bytes": 193613,
+      "bytes": 36105
+    },
+    "9-11": {
+      "file": "paths/9-11.bin",
+      "sha256": "73fec2c3fb2a79854492b18487d798ec13da5aef3ad26cf79bda7b095dcb4cb7",
+      "encoding": "gzip",
+      "decoded_bytes": 300725,
+      "bytes": 43595
+    },
+    "18-11": {
+      "file": "paths/18-11.bin",
+      "sha256": "a331c32f4eccdda44cc983dfcf6b3280f8ce01363a9ae4ddffd8b93b1902a613",
+      "encoding": "gzip",
+      "decoded_bytes": 78015,
+      "bytes": 12020
+    },
+    "16-13": {
+      "file": "paths/16-13.bin",
+      "sha256": "0e2cb0d76a2cbc9afe31f6d908da9598b1494e88479afa2db602ad7bc345c22b",
+      "encoding": "gzip",
+      "decoded_bytes": 886696,
+      "bytes": 125858
+    },
+    "16-7": {
+      "file": "paths/16-7.bin",
+      "sha256": "2e9855556200b84b029ca2c7679a7bbaf828f34239c74a97a525fc9762ea4fc5",
+      "encoding": "gzip",
+      "decoded_bytes": 96409,
+      "bytes": 22636
+    },
+    "14-11": {
+      "file": "paths/14-11.bin",
+      "sha256": "6552de8802003975cce9d74e029e182679729941361b3bea1baeca4e3f99498c",
+      "encoding": "gzip",
+      "decoded_bytes": 215343,
+      "bytes": 44218
+    },
+    "18-12": {
+      "file": "paths/18-12.bin",
+      "sha256": "7a7bf25d4c7a67800b485e01364c1df5289596044acd815641e75fd490ea2c55",
+      "encoding": "gzip",
+      "decoded_bytes": 60377,
+      "bytes": 9461
+    },
+    "13-6": {
+      "file": "paths/13-6.bin",
+      "sha256": "6507341e20cab92592df29908e8b52683dad0a820bf73a66c54ef002c1372b85",
+      "encoding": "gzip",
+      "decoded_bytes": 329394,
+      "bytes": 50274
+    },
+    "9-16": {
+      "file": "paths/9-16.bin",
+      "sha256": "8b9eb0fe2167c15fe237a8fd9ca9a0e4bc80e2affa2ff2f063f4478b822c85ce",
+      "encoding": "gzip",
+      "decoded_bytes": 1202476,
+      "bytes": 199062
+    },
+    "17-13": {
+      "file": "paths/17-13.bin",
+      "sha256": "3b81e85f6bbcbac66a5a1fc815311b5e73b2b48619ebc3d3b278356407644da6",
+      "encoding": "gzip",
+      "decoded_bytes": 50571,
+      "bytes": 11148
+    },
+    "17-14": {
+      "file": "paths/17-14.bin",
+      "sha256": "55adc069141ce11f4c95ccca8e1fde46fc831120b5fc72d9c9bb0c4a74047133",
+      "encoding": "gzip",
+      "decoded_bytes": 127965,
+      "bytes": 30205
+    },
+    "10-15": {
+      "file": "paths/10-15.bin",
+      "sha256": "3a980e8227b5bb1d9b4709e879d40f55ce1ee57d08b39446083689bd73adb273",
+      "encoding": "gzip",
+      "decoded_bytes": 427712,
+      "bytes": 78875
+    },
+    "14-5": {
+      "file": "paths/14-5.bin",
+      "sha256": "558e072811565bb5e561dac6ac39f28a696b5321d077ac31b559671c91b1964f",
+      "encoding": "gzip",
+      "decoded_bytes": 382467,
+      "bytes": 63519
+    },
+    "16-8": {
+      "file": "paths/16-8.bin",
+      "sha256": "4d1cf7ce6e147e7864915cb9329f9f1af83c3947934a178f6602a423c61d75b8",
+      "encoding": "gzip",
+      "decoded_bytes": 65970,
+      "bytes": 16121
+    },
+    "16-17": {
+      "file": "paths/16-17.bin",
+      "sha256": "baaef44ad3a413fff40f1f41a3e5e1252b92f01d0ffef6f6fd16e66728c6f110",
+      "encoding": "gzip",
+      "decoded_bytes": 199925,
+      "bytes": 37752
+    },
+    "11-15": {
+      "file": "paths/11-15.bin",
+      "sha256": "69efebd94f08df21900f868dd690442f0d166538dcccdd948a5ed8a7dc875558",
+      "encoding": "gzip",
+      "decoded_bytes": 128709,
+      "bytes": 30672
+    },
+    "13-13": {
+      "file": "paths/13-13.bin",
+      "sha256": "7ad87159b0a5332726078d233c24527b1933c2da60654a62b5c2c0a93237357c",
+      "encoding": "gzip",
+      "decoded_bytes": 446696,
+      "bytes": 72470
+    },
+    "14-10": {
+      "file": "paths/14-10.bin",
+      "sha256": "f37b86206e645b7c3f77821ed58187ebe9fc6ed96e562e828b5e5f87c6463cd3",
+      "encoding": "gzip",
+      "decoded_bytes": 139066,
+      "bytes": 35295
+    },
+    "8-12": {
+      "file": "paths/8-12.bin",
+      "sha256": "ca5e92e081a8dd7d62e49298858f5b12941af70ab615986ce47a1976b1f49bec",
+      "encoding": "gzip",
+      "decoded_bytes": 383488,
+      "bytes": 55023
+    },
+    "18-7": {
+      "file": "paths/18-7.bin",
+      "sha256": "eec54e26efb25da0b36054d5928c4befb0f7a706d48b7dc8241bde2552ca655f",
+      "encoding": "gzip",
+      "decoded_bytes": 29017,
+      "bytes": 8332
+    },
+    "19-7": {
+      "file": "paths/19-7.bin",
+      "sha256": "d43f0b1aedf75273201922863c876c30dcd1bf21a191b30278c1cdeacfcfbe7b",
+      "encoding": "gzip",
+      "decoded_bytes": 7148,
+      "bytes": 2281
+    },
+    "19-8": {
+      "file": "paths/19-8.bin",
+      "sha256": "d43f0b1aedf75273201922863c876c30dcd1bf21a191b30278c1cdeacfcfbe7b",
+      "encoding": "gzip",
+      "decoded_bytes": 7148,
+      "bytes": 2281
+    },
+    "6-18": {
+      "file": "paths/6-18.bin",
+      "sha256": "6c0c2b2f521e425ad313560b54ae3c89732fff7e248e2b126321990a803a1689",
+      "encoding": "gzip",
+      "decoded_bytes": 2511060,
+      "bytes": 353180
+    },
+    "18-13": {
+      "file": "paths/18-13.bin",
+      "sha256": "701510a71c7778192ae2113505fa19ab92d397e9ed52bb18345ed970325198ab",
+      "encoding": "gzip",
+      "decoded_bytes": 2972,
+      "bytes": 975
+    },
+    "4-14": {
+      "file": "paths/4-14.bin",
+      "sha256": "867ea8f98954f5746930256f6d13caa283a1a8586c01d4075804cead1aa28a82",
+      "encoding": "gzip",
+      "decoded_bytes": 5461997,
+      "bytes": 593179
+    },
+    "11-18": {
+      "file": "paths/11-18.bin",
+      "sha256": "bcf10dbf032f34f2b26904281d6ad96ab72085dc73ccb5f2e09719d0dcb9e53e",
+      "encoding": "gzip",
+      "decoded_bytes": 2104714,
+      "bytes": 281156
+    },
+    "10-16": {
+      "file": "paths/10-16.bin",
+      "sha256": "590f285501b9a23e6cb8df4c1a6285f325b0ebee2f0fc4af688a2f97ab173cad",
+      "encoding": "gzip",
+      "decoded_bytes": 1199471,
+      "bytes": 184317
+    },
+    "13-19": {
+      "file": "paths/13-19.bin",
+      "sha256": "8c99e3a82de7b3ad03ae1dc205dd73ccf537650d7354377422d2f7b24d7cf8ed",
+      "encoding": "gzip",
+      "decoded_bytes": 521832,
+      "bytes": 82000
+    },
+    "13-15": {
+      "file": "paths/13-15.bin",
+      "sha256": "60de7a1f27c698df1ba7dea3df8cd095dc4d3e93e8c8d112d3498840d96af72a",
+      "encoding": "gzip",
+      "decoded_bytes": 2188948,
+      "bytes": 313479
+    },
+    "13-16": {
+      "file": "paths/13-16.bin",
+      "sha256": "387fd825cc0ccf2329cb13fc5a73a95dfd43a0eb8dbaef36770dd6c8754215eb",
+      "encoding": "gzip",
+      "decoded_bytes": 1193850,
+      "bytes": 185825
+    },
+    "12-18": {
+      "file": "paths/12-18.bin",
+      "sha256": "02606f87036b49eb3873e8473f7421489b74538ba4493d14c818573fb23c05c3",
+      "encoding": "gzip",
+      "decoded_bytes": 1844488,
+      "bytes": 270215
+    },
+    "12-17": {
+      "file": "paths/12-17.bin",
+      "sha256": "663ef44cb7e7f1c9153470994836ad51ede040402db7aa9729de7425ad8cc527",
+      "encoding": "gzip",
+      "decoded_bytes": 1223829,
+      "bytes": 186268
+    },
+    "11-16": {
+      "file": "paths/11-16.bin",
+      "sha256": "312b8e1316c6a797a0f1b6642e5eaa7b7b74c437c206fefd94cec9d57912bbda",
+      "encoding": "gzip",
+      "decoded_bytes": 457601,
+      "bytes": 89964
+    },
+    "11-17": {
+      "file": "paths/11-17.bin",
+      "sha256": "2f4deff0e95e04381326de11074504cff08ddb33af4526ac7f2c506fb1a40d11",
+      "encoding": "gzip",
+      "decoded_bytes": 2055812,
+      "bytes": 286269
+    },
+    "9-17": {
+      "file": "paths/9-17.bin",
+      "sha256": "625a51e89074bdbe132ed732f03dc0f21a091bc8c3b021852c16da5a4d7ab033",
+      "encoding": "gzip",
+      "decoded_bytes": 1039449,
+      "bytes": 170024
+    },
+    "17-17": {
+      "file": "paths/17-17.bin",
+      "sha256": "40e28239b1798fab4afe3e94635fb0c8f8abd7c693809b1ab959777526ae4d31",
+      "encoding": "gzip",
+      "decoded_bytes": 119444,
+      "bytes": 22279
+    },
+    "9-18": {
+      "file": "paths/9-18.bin",
+      "sha256": "15dd024fc4dc5a00ddf9491868e44a1efb4b2be1bbce3cddff722d671a9d0755",
+      "encoding": "gzip",
+      "decoded_bytes": 381984,
+      "bytes": 72187
+    },
+    "18-14": {
+      "file": "paths/18-14.bin",
+      "sha256": "b8affe243db914b03948404f13fb98b0c04be61e20bcb26c816f0272adf01b50",
+      "encoding": "gzip",
+      "decoded_bytes": 30692,
+      "bytes": 8687
+    },
+    "12-16": {
+      "file": "paths/12-16.bin",
+      "sha256": "ba681a0aa57f638ee42e17e513f35053481e2f000c14dd6b6643c46ac7f109b9",
+      "encoding": "gzip",
+      "decoded_bytes": 1036553,
+      "bytes": 160500
+    },
+    "4-18": {
+      "file": "paths/4-18.bin",
+      "sha256": "657f546bc1eabced9c846448a0931338b54096f4e781439be9ebd7c213c2e9da",
+      "encoding": "gzip",
+      "decoded_bytes": 647636,
+      "bytes": 93290
+    },
+    "15-18": {
+      "file": "paths/15-18.bin",
+      "sha256": "3dfde0247db780565367a40f8755f1dc3156d6201dc13e3945d9f2bb2eae43ef",
+      "encoding": "gzip",
+      "decoded_bytes": 181273,
+      "bytes": 39614
+    },
+    "16-14": {
+      "file": "paths/16-14.bin",
+      "sha256": "acff44d029f5652f3064a0d701cbd51a3088713af65c9097c7db70241ee9ad71",
+      "encoding": "gzip",
+      "decoded_bytes": 136030,
+      "bytes": 26596
+    },
+    "16-15": {
+      "file": "paths/16-15.bin",
+      "sha256": "e2037d186338d77318bdb89a65881036a366e313a83a7d0dfdf921df2723343a",
+      "encoding": "gzip",
+      "decoded_bytes": 245288,
+      "bytes": 48432
+    },
+    "5-19": {
+      "file": "paths/5-19.bin",
+      "sha256": "d2e7e0a6d742ecdde41d7ac689405f20053a7f005da811cf7bcea162c65b1e43",
+      "encoding": "gzip",
+      "decoded_bytes": 768883,
+      "bytes": 89576
+    },
+    "13-18": {
+      "file": "paths/13-18.bin",
+      "sha256": "e026cfd6121285126e94a9b4734b378ad7d965031d29e9e95fec5c6545da4e44",
+      "encoding": "gzip",
+      "decoded_bytes": 864700,
+      "bytes": 148556
+    },
+    "14-18": {
+      "file": "paths/14-18.bin",
+      "sha256": "68eb43529dea20226bcd6cf88afc95bc861eded59a1929da52ec23ffec2aa4eb",
+      "encoding": "gzip",
+      "decoded_bytes": 285711,
+      "bytes": 54539
+    },
+    "8-18": {
+      "file": "paths/8-18.bin",
+      "sha256": "90b5ee99d41cab7fff9fa47c57a0b69b8e1f6eeaa73b3eb4ef682c095753b4ef",
+      "encoding": "gzip",
+      "decoded_bytes": 280609,
+      "bytes": 58742
+    },
+    "16-18": {
+      "file": "paths/16-18.bin",
+      "sha256": "f054bd7ac230c6f89b3b5c362969fcd130868d6f1f7e0724f78b2e497f3f2b04",
+      "encoding": "gzip",
+      "decoded_bytes": 66825,
+      "bytes": 16549
+    },
+    "17-18": {
+      "file": "paths/17-18.bin",
+      "sha256": "9d31b859eb59844f2da8db747874558191489832f5f09457075a88560bf0d9e6",
+      "encoding": "gzip",
+      "decoded_bytes": 77167,
+      "bytes": 18789
+    },
+    "18-18": {
+      "file": "paths/18-18.bin",
+      "sha256": "fe3598199bebb8bb51aff644c5a1d6ff13c142f806cc4d3a3fe84b8a58d19bcb",
+      "encoding": "gzip",
+      "decoded_bytes": 9665,
+      "bytes": 2679
+    },
+    "16-19": {
+      "file": "paths/16-19.bin",
+      "sha256": "6960dc8b3fdec8a79ade061a0d78d5c983f438a131b63c8c1c737d41444007e4",
+      "encoding": "gzip",
+      "decoded_bytes": 60235,
+      "bytes": 14966
+    },
+    "17-19": {
+      "file": "paths/17-19.bin",
+      "sha256": "be8c96a193613fda4f3bc6bee1735339846a80439d4820d195ea8b8111ffeee6",
+      "encoding": "gzip",
+      "decoded_bytes": 39776,
+      "bytes": 9367
+    },
+    "18-19": {
+      "file": "paths/18-19.bin",
+      "sha256": "a1a4592d48698943255047622d14384607585c10709aa65defc35367ac897d1b",
+      "encoding": "gzip",
+      "decoded_bytes": 5817,
+      "bytes": 1660
+    },
+    "14-15": {
+      "file": "paths/14-15.bin",
+      "sha256": "cba59a343eddbd7ad9db06e83bb8ddce322890d9daa9b290923b1a4ddcc70b30",
+      "encoding": "gzip",
+      "decoded_bytes": 1114362,
+      "bytes": 175814
+    },
+    "15-15": {
+      "file": "paths/15-15.bin",
+      "sha256": "dc439f37439fc9e23ab71d9d7ad2cedf1af94f2fcf017d324635e51838c44ebd",
+      "encoding": "gzip",
+      "decoded_bytes": 1113605,
+      "bytes": 171360
+    },
+    "14-14": {
+      "file": "paths/14-14.bin",
+      "sha256": "06a5dd87f139e1dd9447717bcf4b5c0c4b8400c0ac1f7a1e982750871ae215b8",
+      "encoding": "gzip",
+      "decoded_bytes": 2566512,
+      "bytes": 378590
+    },
+    "10-19": {
+      "file": "paths/10-19.bin",
+      "sha256": "f1fb969f91a9a208659501434a732ef1c975b24b7d39f64e8038e2945fb2a024",
+      "encoding": "gzip",
+      "decoded_bytes": 155948,
+      "bytes": 32246
+    },
+    "11-19": {
+      "file": "paths/11-19.bin",
+      "sha256": "60d19288a1828e27340af8a61cbd3c990a2fae538b7e62c3a03aaeeea74ff688",
+      "encoding": "gzip",
+      "decoded_bytes": 617303,
+      "bytes": 83036
+    },
+    "6-19": {
+      "file": "paths/6-19.bin",
+      "sha256": "848ae22ea08dd1517888687ea2e29b212c2a35484139b84b38ee7b4be63b0814",
+      "encoding": "gzip",
+      "decoded_bytes": 523739,
+      "bytes": 79272
+    },
+    "16-16": {
+      "file": "paths/16-16.bin",
+      "sha256": "28dfb19d293b216408727578ee7fe4af6264c84c2abe6b4195cc827d9f98a188",
+      "encoding": "gzip",
+      "decoded_bytes": 141524,
+      "bytes": 34164
+    },
+    "14-16": {
+      "file": "paths/14-16.bin",
+      "sha256": "4b9f6711828707d2b69ae21ee16d22eea35b47dcfd2ca83190da446e2e4acc48",
+      "encoding": "gzip",
+      "decoded_bytes": 579126,
+      "bytes": 103323
+    },
+    "10-17": {
+      "file": "paths/10-17.bin",
+      "sha256": "60c68e4a00dcdd73644486fd6930f8014f98c4408c304ef3190ed34cc7853320",
+      "encoding": "gzip",
+      "decoded_bytes": 1204289,
+      "bytes": 180563
+    },
+    "15-14": {
+      "file": "paths/15-14.bin",
+      "sha256": "d2889120d4884b475ae185e7a87eb7b30440b5555615457f6d64bf47d52735a4",
+      "encoding": "gzip",
+      "decoded_bytes": 1858417,
+      "bytes": 273730
+    },
+    "5-18": {
+      "file": "paths/5-18.bin",
+      "sha256": "76e536f8e2f5d6c2a3fedb4e76743c49a436ff3ee561967c00703eb2138258f2",
+      "encoding": "gzip",
+      "decoded_bytes": 1347696,
+      "bytes": 173331
+    },
+    "17-15": {
+      "file": "paths/17-15.bin",
+      "sha256": "d6afce2ab0e66105cf7daa5c8c61fa077481618a47f68176329df7b7c31384ea",
+      "encoding": "gzip",
+      "decoded_bytes": 182890,
+      "bytes": 42590
+    },
+    "10-18": {
+      "file": "paths/10-18.bin",
+      "sha256": "5796f07a4f2d09b8a4b80242c4c3ae41ccb3efb004ca023d2c55b9ff945dbf4e",
+      "encoding": "gzip",
+      "decoded_bytes": 407018,
+      "bytes": 74256
+    },
+    "9-19": {
+      "file": "paths/9-19.bin",
+      "sha256": "b48a806ca643b3173816ee09ac31b9a22c5368b5cf1d32a6df8100c547144357",
+      "encoding": "gzip",
+      "decoded_bytes": 153313,
+      "bytes": 31514
+    },
+    "12-19": {
+      "file": "paths/12-19.bin",
+      "sha256": "46cb5add558caa3e36374a3425b991315ece0744205ebe039d2e120e3307659f",
+      "encoding": "gzip",
+      "decoded_bytes": 672498,
+      "bytes": 91403
+    },
+    "15-17": {
+      "file": "paths/15-17.bin",
+      "sha256": "2b8d25aa07ef8d08faebf07cff8a5809a88665c1b98e9c77dcc282040c443f2e",
+      "encoding": "gzip",
+      "decoded_bytes": 175693,
+      "bytes": 40870
+    },
+    "12-15": {
+      "file": "paths/12-15.bin",
+      "sha256": "39eb46d568ad7f43a1da7e4b69b5622ac2153927927b7aebf900c78a3ca9140f",
+      "encoding": "gzip",
+      "decoded_bytes": 343339,
+      "bytes": 66883
+    },
+    "15-19": {
+      "file": "paths/15-19.bin",
+      "sha256": "4e6e756d3b56cd4b9c7faf799c05f3a7d3640693933c0cb77f06042d1687d3f8",
+      "encoding": "gzip",
+      "decoded_bytes": 76967,
+      "bytes": 17728
+    },
+    "14-19": {
+      "file": "paths/14-19.bin",
+      "sha256": "5a2b9d61861e2892632a0d2a6d9c74d181a3cf2aab6c251e960dbcc715b4cf33",
+      "encoding": "gzip",
+      "decoded_bytes": 529025,
+      "bytes": 76930
+    },
+    "7-19": {
+      "file": "paths/7-19.bin",
+      "sha256": "663ea4506a8f0458530c4e4e9ca514fd7b59b59dbe91a2edef5e7ad16c1b546d",
+      "encoding": "gzip",
+      "decoded_bytes": 117322,
+      "bytes": 25903
+    },
+    "13-17": {
+      "file": "paths/13-17.bin",
+      "sha256": "0c6250f24d8c66e45bbb666d7244686ab0c52b4ffdc44d4d635fe71e646320dd",
+      "encoding": "gzip",
+      "decoded_bytes": 330961,
+      "bytes": 69173
+    },
+    "15-16": {
+      "file": "paths/15-16.bin",
+      "sha256": "f3b9c2e9538d9f476f7ccb13ea7940becbb65b559916275c2e26176a239f32bc",
+      "encoding": "gzip",
+      "decoded_bytes": 169319,
+      "bytes": 38397
+    },
+    "14-17": {
+      "file": "paths/14-17.bin",
+      "sha256": "18592fc6b7b06c8750b771231a02217e9456048a955c2238f5e3b3ca676391a7",
+      "encoding": "gzip",
+      "decoded_bytes": 199785,
+      "bytes": 47618
+    },
+    "4-19": {
+      "file": "paths/4-19.bin",
+      "sha256": "f59339fdddc8aec3f1785ad900106e48b93f265339dec9dac9bd64284dcb4583",
+      "encoding": "gzip",
+      "decoded_bytes": 219965,
+      "bytes": 37961
+    },
+    "8-19": {
+      "file": "paths/8-19.bin",
+      "sha256": "79a46daeed1074a0fce484cea983f2ce296e92aa0bed27720d17c69bd2dcfbb7",
+      "encoding": "gzip",
+      "decoded_bytes": 103207,
+      "bytes": 25839
+    },
+    "3-18": {
+      "file": "paths/3-18.bin",
+      "sha256": "49224d64120b79d6702a1812830044f85daecb927fe2653e45c008c58826abec",
+      "encoding": "gzip",
+      "decoded_bytes": 41640,
+      "bytes": 11305
+    },
+    "3-19": {
+      "file": "paths/3-19.bin",
+      "sha256": "ad133a840bd5cec7422172fd223252d80cc36950c01cc98a8a376e05bbe703f4",
+      "encoding": "gzip",
+      "decoded_bytes": 15064,
+      "bytes": 4467
+    },
+    "7-8": {
+      "file": "paths/7-8.bin",
+      "sha256": "038b09e87b3cd9a66a94651fcf0fd62b308b91633217618796596320cfc84114",
+      "encoding": "gzip",
+      "decoded_bytes": 2401334,
+      "bytes": 344211
+    },
+    "4-13": {
+      "file": "paths/4-13.bin",
+      "sha256": "1e2a2952b5e6131a45b9d7022128b656e57cb84298f7fa4ef4229aa7a0eda754",
+      "encoding": "gzip",
+      "decoded_bytes": 3169743,
+      "bytes": 391023
+    },
+    "2-13": {
+      "file": "paths/2-13.bin",
+      "sha256": "04876385a8d31fa33eca4108b195586af12bed1ccb397c2959f6a3e211b457f1",
+      "encoding": "gzip",
+      "decoded_bytes": 3703763,
+      "bytes": 485093
+    },
+    "2-14": {
+      "file": "paths/2-14.bin",
+      "sha256": "787f89d969df95737f30163c54c8f1ed26010eb22a10f75952047b11ca7d7810",
+      "encoding": "gzip",
+      "decoded_bytes": 3879595,
+      "bytes": 486175
+    },
+    "3-13": {
+      "file": "paths/3-13.bin",
+      "sha256": "b581024edc9741aa9553341d2d4e618d0d07d7a79815107a7cd6c66fe267574d",
+      "encoding": "gzip",
+      "decoded_bytes": 4183509,
+      "bytes": 558220
+    },
+    "3-12": {
+      "file": "paths/3-12.bin",
+      "sha256": "e760b7e635f4ddc98d3b38d551203dcbc23f0304fd524c3a4dc18385b78bf446",
+      "encoding": "gzip",
+      "decoded_bytes": 2075198,
+      "bytes": 295872
+    },
+    "5-13": {
+      "file": "paths/5-13.bin",
+      "sha256": "6a6bb46ea1194b94cff84d8405d397c42ba0d06284a95075daef106ef6a8515b",
+      "encoding": "gzip",
+      "decoded_bytes": 111331,
+      "bytes": 17418
+    },
+    "3-14": {
+      "file": "paths/3-14.bin",
+      "sha256": "7f33ffb82013d3f49c427e39cb37c59d356c5a64a7b3b1774031423cee368983",
+      "encoding": "gzip",
+      "decoded_bytes": 6558816,
+      "bytes": 748530
+    },
+    "2-12": {
+      "file": "paths/2-12.bin",
+      "sha256": "1fb923eccac9abc28617920f19a304e312e73b429837d3cb7973a1de4b0b9531",
+      "encoding": "gzip",
+      "decoded_bytes": 2100892,
+      "bytes": 295143
+    },
+    "3-15": {
+      "file": "paths/3-15.bin",
+      "sha256": "50bd29a9c3c006e5eb932b79cce7e41ff41b4763a2078ba297f6bdff19cfd36a",
+      "encoding": "gzip",
+      "decoded_bytes": 2247311,
+      "bytes": 290115
+    },
+    "2-15": {
+      "file": "paths/2-15.bin",
+      "sha256": "28625ce6c4461aa96cc87ea161470e31eca952fc074488ef669ee3c097a5e963",
+      "encoding": "gzip",
+      "decoded_bytes": 892948,
+      "bytes": 148698
+    },
+    "5-12": {
+      "file": "paths/5-12.bin",
+      "sha256": "eff8ca5ad218b960cb496e889c88384d978346921c2680ea541b1e978f5a1122",
+      "encoding": "gzip",
+      "decoded_bytes": 15821,
+      "bytes": 4075
+    },
+    "4-16": {
+      "file": "paths/4-16.bin",
+      "sha256": "1b85f0faea9a600e264d0719959384f92698fd4d1c403eb312cd2f83af1be97a",
+      "encoding": "gzip",
+      "decoded_bytes": 45589,
+      "bytes": 10300
+    },
+    "5-15": {
+      "file": "paths/5-15.bin",
+      "sha256": "0ceba764c2f39d6fcfc6e31e8a2465ada62059d04a6fc0b04dd3c80c292fb6e4",
+      "encoding": "gzip",
+      "decoded_bytes": 449640,
+      "bytes": 69252
+    },
+    "5-16": {
+      "file": "paths/5-16.bin",
+      "sha256": "cd6eb8ce0baee206f4648af3119707929ba681062c33f8443f0fc9f59cc4ce88",
+      "encoding": "gzip",
+      "decoded_bytes": 34956,
+      "bytes": 7187
+    },
+    "1-14": {
+      "file": "paths/1-14.bin",
+      "sha256": "9d4ad0eba6287452d5ec525f3d8f92d624f90607155c1d1d57e0e03344b58fef",
+      "encoding": "gzip",
+      "decoded_bytes": 230317,
+      "bytes": 34206
+    },
+    "2-10": {
+      "file": "paths/2-10.bin",
+      "sha256": "fc74fe28420ef5515b94c9368139fbef1ecdfe05bb3a6f23e9b598c757049a71",
+      "encoding": "gzip",
+      "decoded_bytes": 1234074,
+      "bytes": 188848
+    },
+    "9-5": {
+      "file": "paths/9-5.bin",
+      "sha256": "00cb7543e2b293061c6998f68e1b195ec18d89ce5690d4e580ea0c9fdd4cdd4c",
+      "encoding": "gzip",
+      "decoded_bytes": 6082038,
+      "bytes": 774350
+    },
+    "7-5": {
+      "file": "paths/7-5.bin",
+      "sha256": "b41b8ef162ddcd98595985938887821ca74b2c6b1e59cc82fb9039fff782ea83",
+      "encoding": "gzip",
+      "decoded_bytes": 2685144,
+      "bytes": 409130
+    },
+    "8-5": {
+      "file": "paths/8-5.bin",
+      "sha256": "45782913340451e4c31cd7a24ee795897479137c3dfcc343f401c3aad377ec40",
+      "encoding": "gzip",
+      "decoded_bytes": 3487363,
+      "bytes": 491182
+    },
+    "3-10": {
+      "file": "paths/3-10.bin",
+      "sha256": "372b401e0131d0b9562af6aa5996ea9ce0d5d2d116876aa9f06e520bc146a637",
+      "encoding": "gzip",
+      "decoded_bytes": 2089329,
+      "bytes": 305406
+    },
+    "6-7": {
+      "file": "paths/6-7.bin",
+      "sha256": "8f99d631c24dee701f890b95df6cc34788acc21919fb13664e9ef2f426b2ab1d",
+      "encoding": "gzip",
+      "decoded_bytes": 3041358,
+      "bytes": 465106
+    },
+    "1-7": {
+      "file": "paths/1-7.bin",
+      "sha256": "93aa4f767e664a9f5ea5d717a350a0949add861c6160f55e4a5389181f81b09c",
+      "encoding": "gzip",
+      "decoded_bytes": 251907,
+      "bytes": 38026
+    },
+    "3-11": {
+      "file": "paths/3-11.bin",
+      "sha256": "b5cf4783711c3ad85410a2f3b3e718efc26d1915b359d02f40dfd06ef9aef1d3",
+      "encoding": "gzip",
+      "decoded_bytes": 2181268,
+      "bytes": 319011
+    },
+    "10-5": {
+      "file": "paths/10-5.bin",
+      "sha256": "523218ff8caf99a044e095058fb575bc0adbf49c485e2769da5b2be92b5b3f51",
+      "encoding": "gzip",
+      "decoded_bytes": 1773475,
+      "bytes": 265766
+    },
+    "4-8": {
+      "file": "paths/4-8.bin",
+      "sha256": "21677b1b5dbef5582f217e228d6c4c3aceb72f07a4ead74b22166fd14d92d148",
+      "encoding": "gzip",
+      "decoded_bytes": 665974,
+      "bytes": 119925
+    },
+    "5-8": {
+      "file": "paths/5-8.bin",
+      "sha256": "7d0b12ac11cd3e97865720411a7491f18a6ce6f7d8f0f50195ac417e370c4981",
+      "encoding": "gzip",
+      "decoded_bytes": 2410551,
+      "bytes": 393787
+    },
+    "5-9": {
+      "file": "paths/5-9.bin",
+      "sha256": "c4bea656964a1450aefbc0a4ed9f547f46635b7e2d6c8cff2d3afaeb1f7cd7c6",
+      "encoding": "gzip",
+      "decoded_bytes": 1847862,
+      "bytes": 236507
+    },
+    "7-6": {
+      "file": "paths/7-6.bin",
+      "sha256": "a6f7714aade2968f1997d55132c23a6cf3fa3db49213662a2d1b91eed6e535ee",
+      "encoding": "gzip",
+      "decoded_bytes": 2650652,
+      "bytes": 388137
+    },
+    "3-6": {
+      "file": "paths/3-6.bin",
+      "sha256": "d0d7557af2e3204fa5f8f2596ae17003208cc3eb4407f02dbe5916d5dd776395",
+      "encoding": "gzip",
+      "decoded_bytes": 825371,
+      "bytes": 122936
+    },
+    "7-7": {
+      "file": "paths/7-7.bin",
+      "sha256": "8af32949c88c7179abe970adc0ea657197420d4c3672ffa0cc643b0b3f5e69b9",
+      "encoding": "gzip",
+      "decoded_bytes": 2864290,
+      "bytes": 407785
+    },
+    "2-11": {
+      "file": "paths/2-11.bin",
+      "sha256": "eed20fb7055c786e6d07bb4c1e92caa7b781c6f88b980036789386ce9d3456fa",
+      "encoding": "gzip",
+      "decoded_bytes": 1522340,
+      "bytes": 214289
+    },
+    "3-7": {
+      "file": "paths/3-7.bin",
+      "sha256": "137d6ce90d93d27e71a65ce6b9b3759289a924e74460894c34b5b8a5ed00b5d1",
+      "encoding": "gzip",
+      "decoded_bytes": 186168,
+      "bytes": 38891
+    },
+    "4-9": {
+      "file": "paths/4-9.bin",
+      "sha256": "f926e54d908f3591350a1cfa3880724714b4c8727182c2543adfdd2d8d2e3f29",
+      "encoding": "gzip",
+      "decoded_bytes": 2485543,
+      "bytes": 360888
+    },
+    "5-2": {
+      "file": "paths/5-2.bin",
+      "sha256": "3a9767fcba210e587d01c80185c7b684ac4beb0752cc686e25df4e38c8847971",
+      "encoding": "gzip",
+      "decoded_bytes": 110501,
+      "bytes": 24717
+    },
+    "2-9": {
+      "file": "paths/2-9.bin",
+      "sha256": "3f486622a6a84219c7413169529021403d0c00e1785a5776000ec24d50be542f",
+      "encoding": "gzip",
+      "decoded_bytes": 1751188,
+      "bytes": 268715
+    },
+    "6-6": {
+      "file": "paths/6-6.bin",
+      "sha256": "ba3f9383348dac1959d8705e0357ea526f552894566261cc18c73a4de8c07c17",
+      "encoding": "gzip",
+      "decoded_bytes": 1003767,
+      "bytes": 177972
+    },
+    "7-4": {
+      "file": "paths/7-4.bin",
+      "sha256": "c7a5a89191c820b87ad29f7f4140f1fc6084e87ccd9ce5ddc764a7ec7d89e525",
+      "encoding": "gzip",
+      "decoded_bytes": 1416303,
+      "bytes": 228625
+    },
+    "6-0": {
+      "file": "paths/6-0.bin",
+      "sha256": "305b020f96b5a897e361fd8a4ac44aad050d148c41682bd10f56c424ddddada0",
+      "encoding": "gzip",
+      "decoded_bytes": 139030,
+      "bytes": 26391
+    },
+    "9-6": {
+      "file": "paths/9-6.bin",
+      "sha256": "0d14d1458b4a0b70c3a887301626b09c06d8bc06b841c9b2dd972f63a4d93840",
+      "encoding": "gzip",
+      "decoded_bytes": 2758043,
+      "bytes": 344618
+    },
+    "6-1": {
+      "file": "paths/6-1.bin",
+      "sha256": "1d67d1dc631d9d9d06ef47be9764a9674760c031fdc5b2b02cfaf563419a6754",
+      "encoding": "gzip",
+      "decoded_bytes": 110983,
+      "bytes": 23571
+    },
+    "4-2": {
+      "file": "paths/4-2.bin",
+      "sha256": "0a65b25cef17133faa9db825ac0fc32167a7c343702d34f9be5c47a4a2771942",
+      "encoding": "gzip",
+      "decoded_bytes": 157436,
+      "bytes": 35461
+    },
+    "8-0": {
+      "file": "paths/8-0.bin",
+      "sha256": "8070e64636bff66314abd4ed44873422f49e7507ee275e747a25c8459809dc3a",
+      "encoding": "gzip",
+      "decoded_bytes": 136973,
+      "bytes": 29990
+    },
+    "7-2": {
+      "file": "paths/7-2.bin",
+      "sha256": "d612c2c33756afc8c0af9a47500eb9c4eb13f3da0135b78911c7576b3c04dc8a",
+      "encoding": "gzip",
+      "decoded_bytes": 189580,
+      "bytes": 43924
+    },
+    "7-3": {
+      "file": "paths/7-3.bin",
+      "sha256": "eed5ae006533079a9b8fd3de93c0e6414878322561ad4c44c5c3e5a314d7d7ce",
+      "encoding": "gzip",
+      "decoded_bytes": 606165,
+      "bytes": 107469
+    },
+    "7-1": {
+      "file": "paths/7-1.bin",
+      "sha256": "43567f33db9b37373ef78d7b339691132d161cb7f224f007d8753eaae1a36ccc",
+      "encoding": "gzip",
+      "decoded_bytes": 300778,
+      "bytes": 63002
+    },
+    "5-1": {
+      "file": "paths/5-1.bin",
+      "sha256": "ad3a1f8e949376c8c16114d1af0394e429999c5a41de9ebc9cb016f86951edae",
+      "encoding": "gzip",
+      "decoded_bytes": 102037,
+      "bytes": 21967
+    },
+    "8-6": {
+      "file": "paths/8-6.bin",
+      "sha256": "7c0e02a749fc77694e079c5ae622c69fbe5a0e9e753adb561968305671779075",
+      "encoding": "gzip",
+      "decoded_bytes": 2724564,
+      "bytes": 325426
+    },
+    "4-6": {
+      "file": "paths/4-6.bin",
+      "sha256": "6ec8e44703f3c19867e045db303677b7eacb2a0a543303bd1017c918dc45eb80",
+      "encoding": "gzip",
+      "decoded_bytes": 312334,
+      "bytes": 51508
+    },
+    "4-10": {
+      "file": "paths/4-10.bin",
+      "sha256": "f1b383e2a48ad2d80808c6a953517437725cfdb80df69f7cca1dfb9e13e85c14",
+      "encoding": "gzip",
+      "decoded_bytes": 2189076,
+      "bytes": 273869
+    },
+    "9-0": {
+      "file": "paths/9-0.bin",
+      "sha256": "1509fcdccef60d30d75dc32edd82ed976dd30f1db78fd01c267b8ab09f72fa50",
+      "encoding": "gzip",
+      "decoded_bytes": 140604,
+      "bytes": 30199
+    },
+    "6-9": {
+      "file": "paths/6-9.bin",
+      "sha256": "6c6e3b3a7a7e830663de2cb5214b8c12a7c516fbdc238b540f06cd402123725c",
+      "encoding": "gzip",
+      "decoded_bytes": 439567,
+      "bytes": 67259
+    },
+    "4-0": {
+      "file": "paths/4-0.bin",
+      "sha256": "a55b6a29afcb67f10949a01e29dabb405002eda9cdafc8ad47b739e2661531a0",
+      "encoding": "gzip",
+      "decoded_bytes": 209681,
+      "bytes": 42164
+    },
+    "8-4": {
+      "file": "paths/8-4.bin",
+      "sha256": "a617462087726a1833af69889d10e96f44c1b858e61e1e6f222ab43f589d8a80",
+      "encoding": "gzip",
+      "decoded_bytes": 2435435,
+      "bytes": 347952
+    },
+    "7-0": {
+      "file": "paths/7-0.bin",
+      "sha256": "0f06b462d46b32d344d48c0d5c63b162d697e57eb310a8cc3c7d4a31ecd76e29",
+      "encoding": "gzip",
+      "decoded_bytes": 126731,
+      "bytes": 28528
+    },
+    "6-5": {
+      "file": "paths/6-5.bin",
+      "sha256": "9e6ee7dd275a7a1ccacb6438907f4f0e9c8f63282ff68bdf70a959909a02e92f",
+      "encoding": "gzip",
+      "decoded_bytes": 325186,
+      "bytes": 67679
+    },
+    "8-1": {
+      "file": "paths/8-1.bin",
+      "sha256": "eada02cdeaa9be5b22e7f0597bf765c35b12f459e83fd3bb0c6e51afc78c0baa",
+      "encoding": "gzip",
+      "decoded_bytes": 156144,
+      "bytes": 35636
+    },
+    "4-1": {
+      "file": "paths/4-1.bin",
+      "sha256": "7089cdf10e3be5a18be8f3f52600b8b0956df07eb0e39373683d7cf9bf199dd1",
+      "encoding": "gzip",
+      "decoded_bytes": 121966,
+      "bytes": 28944
+    },
+    "3-4": {
+      "file": "paths/3-4.bin",
+      "sha256": "63f16ffb9b833bcf7d5500bf97909cbf4d2a5f425993f59a25cf74d86fdeb82d",
+      "encoding": "gzip",
+      "decoded_bytes": 226798,
+      "bytes": 41978
+    },
+    "6-3": {
+      "file": "paths/6-3.bin",
+      "sha256": "b53fdee00cef70b06364890cd6baf426d9de0bfeed0c7b62f591620b9a20002e",
+      "encoding": "gzip",
+      "decoded_bytes": 147127,
+      "bytes": 33331
+    },
+    "5-0": {
+      "file": "paths/5-0.bin",
+      "sha256": "c8883ebcde7ebb016d0f6aab6d777dca9d08e33e3528c05c5cedb92879240341",
+      "encoding": "gzip",
+      "decoded_bytes": 85484,
+      "bytes": 18349
+    },
+    "8-3": {
+      "file": "paths/8-3.bin",
+      "sha256": "de07bc9104acc5d0bba0e06deca9224496bb726476145d9d0d85b53d43577541",
+      "encoding": "gzip",
+      "decoded_bytes": 2441614,
+      "bytes": 364472
+    },
+    "3-9": {
+      "file": "paths/3-9.bin",
+      "sha256": "2a33c369de3fb0afba903d0c74fba92ba4480d6e1050e17a8a8c39c1441baef6",
+      "encoding": "gzip",
+      "decoded_bytes": 460938,
+      "bytes": 87083
+    },
+    "2-8": {
+      "file": "paths/2-8.bin",
+      "sha256": "829510da87a446b337b9c337f00399cbaa09d635b2bec889c00b2f5f6f244c27",
+      "encoding": "gzip",
+      "decoded_bytes": 386484,
+      "bytes": 78495
+    },
+    "9-1": {
+      "file": "paths/9-1.bin",
+      "sha256": "df8cf11092d088653634e1a901a1369ece8f52e9e48f590dbb8decc338ef1db1",
+      "encoding": "gzip",
+      "decoded_bytes": 275619,
+      "bytes": 59459
+    },
+    "2-7": {
+      "file": "paths/2-7.bin",
+      "sha256": "e0551c527090c8e09afafd145941b8d51a91150f4f7a72a630f67fe5d1bb29c2",
+      "encoding": "gzip",
+      "decoded_bytes": 797138,
+      "bytes": 121172
+    },
+    "3-8": {
+      "file": "paths/3-8.bin",
+      "sha256": "d7e272fe6adfbd62cc8ce5f9e61f4e7651d9fe40087eef016777a161199b910e",
+      "encoding": "gzip",
+      "decoded_bytes": 87768,
+      "bytes": 23599
+    },
+    "8-2": {
+      "file": "paths/8-2.bin",
+      "sha256": "9ddec1bf11112c3b4d41cd505d586472ef4174d615f95c6e7d27e409657459eb",
+      "encoding": "gzip",
+      "decoded_bytes": 598226,
+      "bytes": 112924
+    },
+    "3-5": {
+      "file": "paths/3-5.bin",
+      "sha256": "902de7a64c38ced26535438a406b2595755486a69b5394652f089afe0af9b10d",
+      "encoding": "gzip",
+      "decoded_bytes": 879077,
+      "bytes": 129799
+    },
+    "4-5": {
+      "file": "paths/4-5.bin",
+      "sha256": "60efe7113d7a5a777aa01f3aa603306b1cd1f5f496a0bf03963b7b2e8a2f070b",
+      "encoding": "gzip",
+      "decoded_bytes": 187760,
+      "bytes": 34065
+    },
+    "5-14": {
+      "file": "paths/5-14.bin",
+      "sha256": "273292ccbc67b408061431cb6f0f1863f0a05cc5cfa329e0396616114d08eaaa",
+      "encoding": "gzip",
+      "decoded_bytes": 16760,
+      "bytes": 4989
+    },
+    "6-2": {
+      "file": "paths/6-2.bin",
+      "sha256": "031c0485539b9fb7dbb75ef6cd3e1807c7a049adc20ac014758725c3e9e00461",
+      "encoding": "gzip",
+      "decoded_bytes": 30743,
+      "bytes": 8164
+    },
+    "9-4": {
+      "file": "paths/9-4.bin",
+      "sha256": "a9f62027b168e9d273d8df5b892b3e07c1c91a641c0516cd2b423d2c8d64f3b1",
+      "encoding": "gzip",
+      "decoded_bytes": 2930883,
+      "bytes": 402203
+    },
+    "1-8": {
+      "file": "paths/1-8.bin",
+      "sha256": "cac2721eafc740b53fa2fc76904359b94726384f3f03ef95a5d01f4a7c980a57",
+      "encoding": "gzip",
+      "decoded_bytes": 216606,
+      "bytes": 44814
+    },
+    "4--1": {
+      "file": "paths/4--1.bin",
+      "sha256": "3823f594e90e5913a2469a553874da910555374d7df843db8289b8923040a646",
+      "encoding": "gzip",
+      "decoded_bytes": 23034,
+      "bytes": 6293
+    },
+    "8--1": {
+      "file": "paths/8--1.bin",
+      "sha256": "9e61921e7feae6a2fa233850d95b2dcec82ecc1d74a60dfde52222fb0fa54a08",
+      "encoding": "gzip",
+      "decoded_bytes": 17979,
+      "bytes": 4851
+    },
+    "5--1": {
+      "file": "paths/5--1.bin",
+      "sha256": "8dd0cbee7f75a2330b2ce6dc1d3d1d89d5a5e4ef2d5bd22a07b70075138a1974",
+      "encoding": "gzip",
+      "decoded_bytes": 13824,
+      "bytes": 3776
+    },
+    "2-6": {
+      "file": "paths/2-6.bin",
+      "sha256": "8e11f3eddaffd6aa45fa8213ec13e6c3233e73605e51dd818786c2d65dde32ac",
+      "encoding": "gzip",
+      "decoded_bytes": 166720,
+      "bytes": 28082
+    },
+    "15-3": {
+      "file": "paths/15-3.bin",
+      "sha256": "8456a24ab73253537569602435c2e83bff04c69ba945db64925f51b7acf64023",
+      "encoding": "gzip",
+      "decoded_bytes": 3144087,
+      "bytes": 413732
+    },
+    "16-3": {
+      "file": "paths/16-3.bin",
+      "sha256": "f7becfbcc6bd771bde3f985d2305ed41cdd0a1ecc80ce12aa9c787d484fe785b",
+      "encoding": "gzip",
+      "decoded_bytes": 3059163,
+      "bytes": 419822
+    },
+    "16-4": {
+      "file": "paths/16-4.bin",
+      "sha256": "e29694a55cd29d08b1f6ae4616dd3c9281de3cff60eb41f7472ec39d8cd385d4",
+      "encoding": "gzip",
+      "decoded_bytes": 1901349,
+      "bytes": 277062
+    },
+    "16-1": {
+      "file": "paths/16-1.bin",
+      "sha256": "2dc0ec9953c4b32c32ecabd6e6009be80028ee4b4438f4c94aae1dafb9cc57b7",
+      "encoding": "gzip",
+      "decoded_bytes": 2892448,
+      "bytes": 389051
+    },
+    "17-4": {
+      "file": "paths/17-4.bin",
+      "sha256": "90f4c2ba2f6a7b28bdaf4fbf43334c6a405defccaaca2821d36a2a8e7281111b",
+      "encoding": "gzip",
+      "decoded_bytes": 315137,
+      "bytes": 57831
+    },
+    "17-0": {
+      "file": "paths/17-0.bin",
+      "sha256": "5381f99989be727daa280b12a8e7c9ad969ef113a837e48d88db76b2f1f95b41",
+      "encoding": "gzip",
+      "decoded_bytes": 2386875,
+      "bytes": 345596
+    },
+    "17-2": {
+      "file": "paths/17-2.bin",
+      "sha256": "30a424ba9a6584138dc06f782dafbc951cf67138e94593cbae406a1ae4613ec1",
+      "encoding": "gzip",
+      "decoded_bytes": 3041219,
+      "bytes": 436927
+    },
+    "14-3": {
+      "file": "paths/14-3.bin",
+      "sha256": "7c51149bea17c64bb97bed5d0d13520b540f638d6346267a99c7c3084bdf1c8e",
+      "encoding": "gzip",
+      "decoded_bytes": 2753399,
+      "bytes": 356147
+    },
+    "17-5": {
+      "file": "paths/17-5.bin",
+      "sha256": "15ce0c4c836594651e8c6577de0b5e9a587fc7a2212704f1af17cedbc80dd198",
+      "encoding": "gzip",
+      "decoded_bytes": 125841,
+      "bytes": 27673
+    },
+    "15-1": {
+      "file": "paths/15-1.bin",
+      "sha256": "78129f835ec670a7101e6406dba2a9a17ed7bea7a3631c8dd25a244f0d5df604",
+      "encoding": "gzip",
+      "decoded_bytes": 3376415,
+      "bytes": 434960
+    },
+    "12-0": {
+      "file": "paths/12-0.bin",
+      "sha256": "7199cd89be0a8f31b70a7b8a22f7626f4f9f6ca82ed53f15ebd0c088472bf4e2",
+      "encoding": "gzip",
+      "decoded_bytes": 1957933,
+      "bytes": 288338
+    },
+    "16-0": {
+      "file": "paths/16-0.bin",
+      "sha256": "b25397b4980d4b8acb04b6b0753f18faa70db0198bddca0da6790faba71fd283",
+      "encoding": "gzip",
+      "decoded_bytes": 3437856,
+      "bytes": 474805
+    },
+    "17-3": {
+      "file": "paths/17-3.bin",
+      "sha256": "df49135523e646a5079e7a0b16cb2c4504832a11f1656bf7cff6bf3035ee6759",
+      "encoding": "gzip",
+      "decoded_bytes": 1699191,
+      "bytes": 260589
+    },
+    "18-3": {
+      "file": "paths/18-3.bin",
+      "sha256": "e520f73f9c62d0253bee292e92f527e2c968cbe892a30fb0bbb93c4a2bd300cf",
+      "encoding": "gzip",
+      "decoded_bytes": 27433,
+      "bytes": 7787
+    },
+    "9-3": {
+      "file": "paths/9-3.bin",
+      "sha256": "f3a8c5015a591d6bf713e620599108461281aa5f9a1fb5ba0f0071dab8e98162",
+      "encoding": "gzip",
+      "decoded_bytes": 1535477,
+      "bytes": 262720
+    },
+    "17-1": {
+      "file": "paths/17-1.bin",
+      "sha256": "ba0c0122b2661b282c884618e918823686c94f0d54799d3fc4246ce2ffb29bde",
+      "encoding": "gzip",
+      "decoded_bytes": 3319144,
+      "bytes": 477877
+    },
+    "15-2": {
+      "file": "paths/15-2.bin",
+      "sha256": "5e8d9546d7c209e2c72431ad50a6ce73d78c7ba37bba6be71f6fd0cf515ef192",
+      "encoding": "gzip",
+      "decoded_bytes": 5305270,
+      "bytes": 612880
+    },
+    "13-0": {
+      "file": "paths/13-0.bin",
+      "sha256": "e30a9ed4d2399a50b931e0a668e7d278e3b661e6c60dfa758b74a4ed8e376945",
+      "encoding": "gzip",
+      "decoded_bytes": 2763093,
+      "bytes": 412535
+    },
+    "1-9": {
+      "file": "paths/1-9.bin",
+      "sha256": "5e02b8dcdd5048b47d3afdca77e70a417bd852b031016a0b0d35dfccd00e2709",
+      "encoding": "gzip",
+      "decoded_bytes": 137201,
+      "bytes": 29271
+    },
+    "5-3": {
+      "file": "paths/5-3.bin",
+      "sha256": "add5fd8d369754836572260628074b59c796c67d6a102413eb9745a29134c14c",
+      "encoding": "gzip",
+      "decoded_bytes": 99422,
+      "bytes": 21308
+    },
+    "18-2": {
+      "file": "paths/18-2.bin",
+      "sha256": "a6ce110c608f2d25d6b44f9467158a4e8ff3a8fdd5a6e78d50b993215a9ca345",
+      "encoding": "gzip",
+      "decoded_bytes": 95118,
+      "bytes": 17205
+    },
+    "10-6": {
+      "file": "paths/10-6.bin",
+      "sha256": "12902457bebc0a268758caa8a9053ea124c1b22fb77fd517601692dbe5f98ce9",
+      "encoding": "gzip",
+      "decoded_bytes": 636655,
+      "bytes": 88691
+    },
+    "15-0": {
+      "file": "paths/15-0.bin",
+      "sha256": "32ac7897f1f4478ae6a12e0857aa09601f62d073d1ffbd1d1c664aed1ef005c0",
+      "encoding": "gzip",
+      "decoded_bytes": 2859742,
+      "bytes": 391952
+    },
+    "4-3": {
+      "file": "paths/4-3.bin",
+      "sha256": "8b492724a180ae125a69ce264893ad4e637cc91eafe37ef81e3ae3428358bc17",
+      "encoding": "gzip",
+      "decoded_bytes": 185043,
+      "bytes": 35221
+    },
+    "16-5": {
+      "file": "paths/16-5.bin",
+      "sha256": "6df084126c80023c757a19d9bfc903fd30224f6021fd8aaffd83e9d63df35502",
+      "encoding": "gzip",
+      "decoded_bytes": 324822,
+      "bytes": 59527
+    },
+    "4-4": {
+      "file": "paths/4-4.bin",
+      "sha256": "7491b21e371821a23e7fb1ee8d01fc9f7d6a0fb6a9a6c37d35b95366af081d6b",
+      "encoding": "gzip",
+      "decoded_bytes": 108937,
+      "bytes": 26267
+    },
+    "8-7": {
+      "file": "paths/8-7.bin",
+      "sha256": "7c2ec1d89350066cd967be2278fe9cddaec3215ccbb7f4488c7e06a710ca5347",
+      "encoding": "gzip",
+      "decoded_bytes": 311437,
+      "bytes": 54097
+    },
+    "11-0": {
+      "file": "paths/11-0.bin",
+      "sha256": "0bb7d246915390e536ae01d9b1045c71f83ea70db5740751e00ad199740b2afc",
+      "encoding": "gzip",
+      "decoded_bytes": 350442,
+      "bytes": 70938
+    },
+    "6-4": {
+      "file": "paths/6-4.bin",
+      "sha256": "56a1c4079e4729bcc8112b773946ff52556922c7af1b6215f4d57dc1e021705c",
+      "encoding": "gzip",
+      "decoded_bytes": 334816,
+      "bytes": 75672
+    },
+    "5-4": {
+      "file": "paths/5-4.bin",
+      "sha256": "551ec5bed5cd8e938774fb1ac094efba1a08c7468da1abb4713f5fe1553f6deb",
+      "encoding": "gzip",
+      "decoded_bytes": 161856,
+      "bytes": 37228
+    },
+    "5-5": {
+      "file": "paths/5-5.bin",
+      "sha256": "773114b2834deb23d6183d77999e56d2ac7b62836db965d9d0f4bc869bdcc6dc",
+      "encoding": "gzip",
+      "decoded_bytes": 150919,
+      "bytes": 35445
+    },
+    "8-8": {
+      "file": "paths/8-8.bin",
+      "sha256": "c324177103badb5b91ddd8f29e33f8ff42e4a753df33169968d73599c748d7a8",
+      "encoding": "gzip",
+      "decoded_bytes": 155664,
+      "bytes": 27604
+    },
+    "6--1": {
+      "file": "paths/6--1.bin",
+      "sha256": "83afa74448a435881d45eeb899bdbe3d3333b157e910d9b3d7a38b5236bb4d96",
+      "encoding": "gzip",
+      "decoded_bytes": 9929,
+      "bytes": 2984
+    },
+    "10-1": {
+      "file": "paths/10-1.bin",
+      "sha256": "48c53c62f4c419b11b83269b913b008455899d9db1713186eb92cee4c91a724e",
+      "encoding": "gzip",
+      "decoded_bytes": 148806,
+      "bytes": 31491
+    },
+    "17--1": {
+      "file": "paths/17--1.bin",
+      "sha256": "e8b757452dffde8d4569f588523133c54ea1d3b743b68591f5945a590c4329d7",
+      "encoding": "gzip",
+      "decoded_bytes": 75173,
+      "bytes": 15053
+    },
+    "7--1": {
+      "file": "paths/7--1.bin",
+      "sha256": "9aaf970771113ced50778b7194d9abb08249336f0b7994d321f3611576b570ce",
+      "encoding": "gzip",
+      "decoded_bytes": 11921,
+      "bytes": 3668
+    },
+    "18-1": {
+      "file": "paths/18-1.bin",
+      "sha256": "a0b9bbf0c91e0e3735b2fff693ad65f2dfec494955d1b4ca53a8f007cdc24a9e",
+      "encoding": "gzip",
+      "decoded_bytes": 142194,
+      "bytes": 27244
+    },
+    "3-3": {
+      "file": "paths/3-3.bin",
+      "sha256": "f0e6b3caafaebf45bd90eb5322ee272c4324353f7df161a4aee0a32ba674f030",
+      "encoding": "gzip",
+      "decoded_bytes": 26931,
+      "bytes": 7986
+    },
+    "13--1": {
+      "file": "paths/13--1.bin",
+      "sha256": "b5c898e6605a10a27f5d1be4e903080dcad96cb270098a2ca2746510d3085bdf",
+      "encoding": "gzip",
+      "decoded_bytes": 41499,
+      "bytes": 9365
+    },
+    "9-2": {
+      "file": "paths/9-2.bin",
+      "sha256": "0fc41588e195924bb3ad5969ca3a6ac427023f6ebf12b666b88f8d3efc77cd9c",
+      "encoding": "gzip",
+      "decoded_bytes": 471840,
+      "bytes": 95933
+    },
+    "16--1": {
+      "file": "paths/16--1.bin",
+      "sha256": "dedd7ede16c11443e6dc110f2f8af81fd9c06e4aca7c5cab1bfa133457522769",
+      "encoding": "gzip",
+      "decoded_bytes": 84074,
+      "bytes": 17437
+    },
+    "4--2": {
+      "file": "paths/4--2.bin",
+      "sha256": "cc1ff7458e99ac7269e43ac49c31c32776077b5ac016ee059bf0daedabbea706",
+      "encoding": "gzip",
+      "decoded_bytes": 4394,
+      "bytes": 1550
+    },
+    "18-5": {
+      "file": "paths/18-5.bin",
+      "sha256": "1813562cdd44d09ae8756a5cae387ea8e471133b0026ebe6dc8ab11e9df93b05",
+      "encoding": "gzip",
+      "decoded_bytes": 31662,
+      "bytes": 9341
+    },
+    "19-5": {
+      "file": "paths/19-5.bin",
+      "sha256": "a5ab4952d89b28587d221019757ae605a17c31a07e10ddec62f62c3ad9170522",
+      "encoding": "gzip",
+      "decoded_bytes": 21431,
+      "bytes": 6499
+    },
+    "20-5": {
+      "file": "paths/20-5.bin",
+      "sha256": "a5ab4952d89b28587d221019757ae605a17c31a07e10ddec62f62c3ad9170522",
+      "encoding": "gzip",
+      "decoded_bytes": 21431,
+      "bytes": 6499
+    },
+    "18-6": {
+      "file": "paths/18-6.bin",
+      "sha256": "e7af6c7d1cd886aeb1b58ee23554530e51afc2948f9e76fa4cf637bb908b6b78",
+      "encoding": "gzip",
+      "decoded_bytes": 31907,
+      "bytes": 9555
+    },
+    "19-6": {
+      "file": "paths/19-6.bin",
+      "sha256": "a5ab4952d89b28587d221019757ae605a17c31a07e10ddec62f62c3ad9170522",
+      "encoding": "gzip",
+      "decoded_bytes": 21431,
+      "bytes": 6499
+    },
+    "20-6": {
+      "file": "paths/20-6.bin",
+      "sha256": "a5ab4952d89b28587d221019757ae605a17c31a07e10ddec62f62c3ad9170522",
+      "encoding": "gzip",
+      "decoded_bytes": 21431,
+      "bytes": 6499
+    },
+    "14--1": {
+      "file": "paths/14--1.bin",
+      "sha256": "f05bd0cd39085bcb06d702af5473009417f15b7d718c94755f080013db815000",
+      "encoding": "gzip",
+      "decoded_bytes": 51269,
+      "bytes": 10068
+    },
+    "15--1": {
+      "file": "paths/15--1.bin",
+      "sha256": "6c898a18e70fb00c3572f961ab56d4d876133b6ab6eb2be5beef240621c8391d",
+      "encoding": "gzip",
+      "decoded_bytes": 55231,
+      "bytes": 10861
+    },
+    "12--1": {
+      "file": "paths/12--1.bin",
+      "sha256": "b4599ca7a3fcc9eec69812d101d9afa8d1c7626fc2f11bdb0051554697c4b62f",
+      "encoding": "gzip",
+      "decoded_bytes": 26009,
+      "bytes": 5946
+    },
+    "18-0": {
+      "file": "paths/18-0.bin",
+      "sha256": "4f2e7b907c36652f54439fb1f78583f502a494635d7c00c1e6acbf775ac0a0ab",
+      "encoding": "gzip",
+      "decoded_bytes": 63854,
+      "bytes": 12368
+    },
+    "13-5": {
+      "file": "paths/13-5.bin",
+      "sha256": "e237fade14c5e7a18b85cede2af751e016658e4ba42c5641da055ae7592e2028",
+      "encoding": "gzip",
+      "decoded_bytes": 101263,
+      "bytes": 27172
+    },
+    "10-0": {
+      "file": "paths/10-0.bin",
+      "sha256": "831ec70474adf5c92a5d4458fd032182a67fbf511e811497acbe9a23dd0852ed",
+      "encoding": "gzip",
+      "decoded_bytes": 186810,
+      "bytes": 42369
+    },
+    "18-4": {
+      "file": "paths/18-4.bin",
+      "sha256": "d14732d5e00d25a7c88df6962ee895eff48df5a2790d043c1cc62239b7e7a23f",
+      "encoding": "gzip",
+      "decoded_bytes": 14804,
+      "bytes": 3979
+    },
+    "10--1": {
+      "file": "paths/10--1.bin",
+      "sha256": "4efe5dc124829308fc41dfcd06f60db3c071c99457f6b022f84b7ff6cf23f80f",
+      "encoding": "gzip",
+      "decoded_bytes": 24000,
+      "bytes": 6796
+    },
+    "9--1": {
+      "file": "paths/9--1.bin",
+      "sha256": "a3e80c1366e58bdbba511824f29d64c7d0dfee89e4d6eb078d29c3d74c282051",
+      "encoding": "gzip",
+      "decoded_bytes": 16425,
+      "bytes": 4771
+    },
+    "1-18": {
+      "file": "paths/1-18.bin",
+      "sha256": "193583d1e641616ae9c67b3b7bedfb0b11a4c5fe55c9ccdd4337299f09ab0e4b",
+      "encoding": "gzip",
+      "decoded_bytes": 3839023,
+      "bytes": 564797
+    },
+    "1-17": {
+      "file": "paths/1-17.bin",
+      "sha256": "1aa07531e77cdeddda382f182ba79a2e4cca334ae55827cc8b91a69c88953245",
+      "encoding": "gzip",
+      "decoded_bytes": 3086170,
+      "bytes": 470925
+    },
+    "0-18": {
+      "file": "paths/0-18.bin",
+      "sha256": "65b33db5a53eb538db859442d9d5ca2c843d6f9c9968034c1bf5db5454c04e7f",
+      "encoding": "gzip",
+      "decoded_bytes": 1095733,
+      "bytes": 205770
+    },
+    "2-17": {
+      "file": "paths/2-17.bin",
+      "sha256": "7b5287c66c6460743086815e89bc3e0405870deb454af8bec1024591ea1dee51",
+      "encoding": "gzip",
+      "decoded_bytes": 1474954,
+      "bytes": 245293
+    },
+    "1-15": {
+      "file": "paths/1-15.bin",
+      "sha256": "bfe8450800ab1c7144aa86d88d139e3681564e6d604bb4156c8305dfc398adca",
+      "encoding": "gzip",
+      "decoded_bytes": 168463,
+      "bytes": 33934
+    },
+    "1-16": {
+      "file": "paths/1-16.bin",
+      "sha256": "b6d891baf9b149efda23ca85d001caef3b69fec4e326b77023b08c85b4782d2e",
+      "encoding": "gzip",
+      "decoded_bytes": 342185,
+      "bytes": 72757
+    },
+    "1-19": {
+      "file": "paths/1-19.bin",
+      "sha256": "7bd997102e9ab77c3fd38d6f6450102e66e6a4a13996698cf3775ebd3fe59ef8",
+      "encoding": "gzip",
+      "decoded_bytes": 1672848,
+      "bytes": 259796
+    },
+    "-1-18": {
+      "file": "paths/-1-18.bin",
+      "sha256": "63c5fe91c338f5fad51c35f9a18c130e11446831caf59d3de1bb3c24cacf9b9f",
+      "encoding": "gzip",
+      "decoded_bytes": 59658,
+      "bytes": 16263
+    },
+    "2-19": {
+      "file": "paths/2-19.bin",
+      "sha256": "e37fd08019e5e1dff760f0396168b421c1424dfc2c6caaaa0dec0107701f0739",
+      "encoding": "gzip",
+      "decoded_bytes": 457781,
+      "bytes": 75368
+    },
+    "0-19": {
+      "file": "paths/0-19.bin",
+      "sha256": "75ed65c2fa0bed924adc4aa49a82039dae7d15739710e1a1b98f336e6af025a4",
+      "encoding": "gzip",
+      "decoded_bytes": 532004,
+      "bytes": 97602
+    },
+    "2-16": {
+      "file": "paths/2-16.bin",
+      "sha256": "d16fa2c04c79ba375a61e4126cdcb894b35e594b61380e75dfcc71dc0403c10d",
+      "encoding": "gzip",
+      "decoded_bytes": 1348722,
+      "bytes": 218328
+    },
+    "0-17": {
+      "file": "paths/0-17.bin",
+      "sha256": "1ff903e4146b1888c0870a489f9991d59744fdd9c5a92cd4c9b9226f86238c56",
+      "encoding": "gzip",
+      "decoded_bytes": 434074,
+      "bytes": 89963
+    },
+    "2-18": {
+      "file": "paths/2-18.bin",
+      "sha256": "9558e64ee8c3ea6017100d8b46d99c7225ee7219358c8ff2212e71195d897432",
+      "encoding": "gzip",
+      "decoded_bytes": 1231666,
+      "bytes": 206247
+    },
+    "3-17": {
+      "file": "paths/3-17.bin",
+      "sha256": "6e14a84139e8faa4fb8a10dde4b557599f3a727071c84f004e7eca8554540f75",
+      "encoding": "gzip",
+      "decoded_bytes": 916659,
+      "bytes": 159367
+    },
+    "-1-19": {
+      "file": "paths/-1-19.bin",
+      "sha256": "c12ce6d877aa438ccf248cd6d5097076b285b56f8962b3c11b5887956196a7a4",
+      "encoding": "gzip",
+      "decoded_bytes": 23030,
+      "bytes": 6386
+    },
+    "0-16": {
+      "file": "paths/0-16.bin",
+      "sha256": "d6a31c0b9b7a0720a8c7b4552ba3c59c8de6ab99888aa8b66b1e10101917b403",
+      "encoding": "gzip",
+      "decoded_bytes": 247419,
+      "bytes": 46523
+    },
+    "3-16": {
+      "file": "paths/3-16.bin",
+      "sha256": "1f8d9b652226256154059b388ca570f37708829f72686ffc969f47ca625e683d",
+      "encoding": "gzip",
+      "decoded_bytes": 152356,
+      "bytes": 33529
+    },
+    "-1-17": {
+      "file": "paths/-1-17.bin",
+      "sha256": "ec5857ed52a191c8b8eeba194ca12f3a1e910601229b562298afb3ca6d4e1707",
+      "encoding": "gzip",
+      "decoded_bytes": 28411,
+      "bytes": 7867
+    },
+    "18--1": {
+      "file": "paths/18--1.bin",
+      "sha256": "da9bdaf2977db6a91b721b231709ca8ec11fe7582d2d49dcd652af95810faa63",
+      "encoding": "gzip",
+      "decoded_bytes": 9802,
+      "bytes": 2865
+    },
+    "4-7": {
+      "file": "paths/4-7.bin",
+      "sha256": "f1ec5d4bf48da31113193e0b0bc2a16b517a55c3c8b80bc593dc49811456281f",
+      "encoding": "gzip",
+      "decoded_bytes": 55031,
+      "bytes": 14229
+    },
+    "12-5": {
+      "file": "paths/12-5.bin",
+      "sha256": "1bf319a8b858b89491cbfe738eb6a0cf253f7514a2d1f6767dcfb09174d5adf0",
+      "encoding": "gzip",
+      "decoded_bytes": 74145,
+      "bytes": 20732
+    },
+    "10-7": {
+      "file": "paths/10-7.bin",
+      "sha256": "87e289fce1e338f6af777416f7244c8594faf04063d8c0d17b18e8c28ac06a64",
+      "encoding": "gzip",
+      "decoded_bytes": 47853,
+      "bytes": 11877
+    },
+    "9-10": {
+      "file": "paths/9-10.bin",
+      "sha256": "3350c3d8b1b7ca15b010a4a48fda0e037ad4d220cf8d8b7d5d682867e86f0379",
+      "encoding": "gzip",
+      "decoded_bytes": 42726,
+      "bytes": 8141
+    },
+    "10-8": {
+      "file": "paths/10-8.bin",
+      "sha256": "cdfb65bb0ee614597667479f3c6c3a73fb21fd82b528f33c52b8fe371fe12632",
+      "encoding": "gzip",
+      "decoded_bytes": 18344,
+      "bytes": 5371
+    },
+    "10-9": {
+      "file": "paths/10-9.bin",
+      "sha256": "461094134002fbbd1702b54b781ded98f7ba4ba5721db6f98ebde615fd99f859",
+      "encoding": "gzip",
+      "decoded_bytes": 27359,
+      "bytes": 7041
+    },
+    "11-6": {
+      "file": "paths/11-6.bin",
+      "sha256": "ed3d86aa27466d26dc0ce8ade1dffea4e1968637120644a52cf523ca6935819c",
+      "encoding": "gzip",
+      "decoded_bytes": 8826,
+      "bytes": 2689
+    },
+    "9-7": {
+      "file": "paths/9-7.bin",
+      "sha256": "4ec880755afc89dd063669d787a4a63045e03a627529df75582e111fb8c6f015",
+      "encoding": "gzip",
+      "decoded_bytes": 24713,
+      "bytes": 6116
+    },
+    "5-17": {
+      "file": "paths/5-17.bin",
+      "sha256": "18ac3c8f04b86d218514b6b6e4d047ea9853d84c19cb007e81f238e973180947",
+      "encoding": "gzip",
+      "decoded_bytes": 11435,
+      "bytes": 2919
+    },
+    "2-5": {
+      "file": "paths/2-5.bin",
+      "sha256": "111cc46c853e2d96fc5f35e893e4c00660fa03a548b4ede15d7fab7088f4587c",
+      "encoding": "gzip",
+      "decoded_bytes": 6250,
+      "bytes": 1880
+    },
+    "17-16": {
+      "file": "paths/17-16.bin",
+      "sha256": "67a8df39feea61ffcef73a81f2fb55e25a0b12f4fbffaeab56c83a7136673284",
+      "encoding": "gzip",
+      "decoded_bytes": 95932,
+      "bytes": 23597
+    },
+    "18-16": {
+      "file": "paths/18-16.bin",
+      "sha256": "691fe55077f7ecdf9c4c6a8764935d85ddbf8790b8c5ad184db401aa821f19c5",
+      "encoding": "gzip",
+      "decoded_bytes": 16527,
+      "bytes": 4621
+    },
+    "18-17": {
+      "file": "paths/18-17.bin",
+      "sha256": "b5d4b6533186e48ba20253551dcae1cd067dbf6cc6c57da5d65757010d19faea",
+      "encoding": "gzip",
+      "decoded_bytes": 17896,
+      "bytes": 5088
+    },
+    "18-15": {
+      "file": "paths/18-15.bin",
+      "sha256": "0670008b8e4d0527695ed146de6412664d217f89e66813951269f3e922883966",
+      "encoding": "gzip",
+      "decoded_bytes": 35945,
+      "bytes": 9674
+    },
+    "9-8": {
+      "file": "paths/9-8.bin",
+      "sha256": "7bd289ea2c8878fca75cf2f81558ce5f8eee737d4a11d76d3766acdecd38c151",
+      "encoding": "gzip",
+      "decoded_bytes": 6598,
+      "bytes": 2144
+    },
+    "7-9": {
+      "file": "paths/7-9.bin",
+      "sha256": "db38c7784ec2974ea878d25ed3d9ca62606cf07f431ef040b24aa15d9c7ebfb5",
+      "encoding": "gzip",
+      "decoded_bytes": 3201,
+      "bytes": 1092
+    },
+    "8-9": {
+      "file": "paths/8-9.bin",
+      "sha256": "45d1d974b645b0926424dd9f72e429c5356a4b7526d0212c3aeea98995a24036",
+      "encoding": "gzip",
+      "decoded_bytes": 2739,
+      "bytes": 933
+    },
+    "9-9": {
+      "file": "paths/9-9.bin",
+      "sha256": "7bd289ea2c8878fca75cf2f81558ce5f8eee737d4a11d76d3766acdecd38c151",
+      "encoding": "gzip",
+      "decoded_bytes": 6598,
+      "bytes": 2144
+    },
+    "7-10": {
+      "file": "paths/7-10.bin",
+      "sha256": "45d1d974b645b0926424dd9f72e429c5356a4b7526d0212c3aeea98995a24036",
+      "encoding": "gzip",
+      "decoded_bytes": 2739,
+      "bytes": 933
+    },
+    "8-10": {
+      "file": "paths/8-10.bin",
+      "sha256": "45d1d974b645b0926424dd9f72e429c5356a4b7526d0212c3aeea98995a24036",
+      "encoding": "gzip",
+      "decoded_bytes": 2739,
+      "bytes": 933
+    },
+    "11--1": {
+      "file": "paths/11--1.bin",
+      "sha256": "c1b48e86fb262803d547ec40e5368a660849df095efecb05b20ec693ca175014",
+      "encoding": "gzip",
+      "decoded_bytes": 12766,
+      "bytes": 3726
+    },
+    "5-10": {
+      "file": "paths/5-10.bin",
+      "sha256": "71815c3309851d3d1e287c910dbd443164d17de91b813c3d942ffb4bcff75f2a",
+      "encoding": "gzip",
+      "decoded_bytes": 29979,
+      "bytes": 6554
+    },
+    "12-6": {
+      "file": "paths/12-6.bin",
+      "sha256": "7d40d45e035c4484253ea80988de3922044ffe08ea051fdce8048b93cf060fda",
+      "encoding": "gzip",
+      "decoded_bytes": 57700,
+      "bytes": 15564
+    },
+    "1-13": {
+      "file": "paths/1-13.bin",
+      "sha256": "c44dec621ce375e4fc6abf62e128c2501cfa65fd326245830fcf19a881e2ad4e",
+      "encoding": "gzip",
+      "decoded_bytes": 19656,
+      "bytes": 3731
+    },
+    "19-17": {
+      "file": "paths/19-17.bin",
+      "sha256": "11a3463fe309480caa70364fee3d7a26a7e9357c7fa4cb985f0444d1d9286987",
+      "encoding": "gzip",
+      "decoded_bytes": 3641,
+      "bytes": 1305
+    },
+    "3-2": {
+      "file": "paths/3-2.bin",
+      "sha256": "3609c5de8e8acb3fa009c5f0e66e1cc0e2e7fabdcde2ac53707cc850b114d5df",
+      "encoding": "gzip",
+      "decoded_bytes": 18196,
+      "bytes": 5617
+    },
+    "12-20": {
+      "file": "paths/12-20.bin",
+      "sha256": "9617006ecaa9142053554be33ba091e1925976cb12e7d3bff191c5a6ea43c7a7",
+      "encoding": "gzip",
+      "decoded_bytes": 2763,
+      "bytes": 979
+    },
+    "7-12": {
+      "file": "paths/7-12.bin",
+      "sha256": "61f84a3e19b5bc931a97b7d372d13a872467cca001474eecf01d9359dfd50675",
+      "encoding": "gzip",
+      "decoded_bytes": 5229,
+      "bytes": 1692
+    },
+    "5-11": {
+      "file": "paths/5-11.bin",
+      "sha256": "9efb5bc14d755ca0f378468805671dc7235393bd740b5535fdb66ee2efeccee5",
+      "encoding": "gzip",
+      "decoded_bytes": 2466,
+      "bytes": 803
+    },
+    "3-1": {
+      "file": "paths/3-1.bin",
+      "sha256": "86de2a4104cf0ce1c6e1946eec12f8cd4c986fbe6ef8b2238f03a92bac76543c",
+      "encoding": "gzip",
+      "decoded_bytes": 13248,
+      "bytes": 3906
+    },
+    "2-4": {
+      "file": "paths/2-4.bin",
+      "sha256": "95fd927e657fc84c40695347ba3225872c15f59f16cc5844b527f7f0f271a319",
+      "encoding": "gzip",
+      "decoded_bytes": 3070,
+      "bytes": 1080
+    },
+    "1-6": {
+      "file": "paths/1-6.bin",
+      "sha256": "4c9b1b290732edb5a3ad64e5a33506e5db5ab79d420b46d70c611f2dc9665c24",
+      "encoding": "gzip",
+      "decoded_bytes": 6778,
+      "bytes": 2111
+    },
+    "1-10": {
+      "file": "paths/1-10.bin",
+      "sha256": "fbe970406b110375c5db9e06e96c5f8f5af59e98277a67976186a4b6435aa539",
+      "encoding": "gzip",
+      "decoded_bytes": 5819,
+      "bytes": 1803
+    },
+    "4-17": {
+      "file": "paths/4-17.bin",
+      "sha256": "b51d1cafbd3d193f533e655b154ba26f2d2e8a68c9d2a1678047afddfca441c6",
+      "encoding": "gzip",
+      "decoded_bytes": 3873,
+      "bytes": 1238
+    }
+  },
+  "unique_ways": 760126,
+  "attribution": "\u00a9 OpenStreetMap contributors",
+  "license": "ODbL-1.0",
+  "source": "https://www.openstreetmap.org/copyright",
+  "role": "Separate mapped visual/exclusion layer, not survey truth",
+  "unknown_trail_surface": "inferred natural earth; paved only when tagged",
+  "coastline_source_snapshots": [
+    {
+      "sha256": "e91b25e07f54495dcb986246f0abbb7b01177d0b7aa4a09a8d856313fa401ce3",
+      "timestamp": "2026-09-22T01:36:49Z"
+    },
+    {
+      "sha256": "adbe9e667bbc1431a7703aa073bfa1a531f68da55596f20ff27c3134ec00dd50",
+      "timestamp": "2026-09-22T01:37:50Z"
+    },
+    {
+      "sha256": "b6a41cd8f096f1a2e75f5140ff04326a26a46f6938c9996aa7f63a110100f29f",
+      "timestamp": "2026-09-22T01:37:50Z"
+    },
+    {
+      "sha256": "341fc4dd201aeabe2929836989929efd6c19987090a83bfd81158db609f2014f",
+      "timestamp": "2026-09-22T01:38:48Z"
+    },
+    {
+      "sha256": "1b799adf5a68870cca78019e9032eda70c70cdde3e7b4c0c7845f4a4e082d328",
+      "timestamp": "2026-09-22T01:38:48Z"
+    },
+    {
+      "sha256": "a8ee2c1f07bf178f3c65d9012f742d6a073d41683bc103865bce44d291af3167",
+      "timestamp": "2026-09-22T01:38:48Z"
+    },
+    {
+      "sha256": "03f717eb7f0c8652ce10611f6514c2672dd8cbabbb0c281eea88e1c2c48dce4e",
+      "timestamp": "2026-09-22T01:38:48Z"
+    },
+    {
+      "sha256": "cea56f65f847ffb0412e757fdac1520366964c8dbcfb2172c6814aa34b3ee794",
+      "timestamp": "2026-07-24T11:04:51Z"
+    },
+    {
+      "sha256": "f23ec8ffa49484bc2bbb8321d3c0d1d703831abcf7908bb255c70fb5ee975310",
+      "timestamp": "2026-09-22T01:41:43Z"
+    },
+    {
+      "sha256": "902bfef31b70793d114a4042694e7218104203c166313afea8c7533f4d15b7fe",
+      "timestamp": "2026-09-22T01:41:43Z"
+    },
+    {
+      "sha256": "465fced36d296c317a43e270c623ec307677fac5228d6719901e5eea0f13ad7f",
+      "timestamp": "2026-09-22T01:41:43Z"
+    },
+    {
+      "sha256": "e8ceff0e587cbbea3902d7c4480e2bd01cb1a7c6fada89e48ccf8f20900dda7d",
+      "timestamp": "2026-09-22T01:41:43Z"
+    },
+    {
+      "sha256": "256860779509509ab9dce1b6098c2453a4eb58c4b156a88d8b67da58ff6269cb",
+      "timestamp": "2026-09-22T01:41:43Z"
+    },
+    {
+      "sha256": "56c0e3cc2a954c819a41eed20511db00816b865f0691049de5d1e58d9194266f",
+      "timestamp": "2026-09-22T01:44:57Z"
+    },
+    {
+      "sha256": "2d6d511b785eb1b648031bd2e35c391e66c665a930508cc046437741e324abd9",
+      "timestamp": "2026-09-22T01:44:57Z"
+    },
+    {
+      "sha256": "481cb20a3a51365d0690ecbe772da4886dc7c667d4c090c41e14a0a36e7ea0a4",
+      "timestamp": "2026-09-22T01:44:57Z"
+    },
+    {
+      "sha256": "c4a6a830002ec02619dff08fdb78e5265462392eae67ddc6f30eecef0ff059e5",
+      "timestamp": "2026-07-15T15:22:01Z"
+    },
+    {
+      "sha256": "bd1c88066ac3e79d04bc1a68b39dbd131ec3fa279fa113f62f9048e509716ced",
+      "timestamp": "2026-09-22T01:46:00Z"
+    },
+    {
+      "sha256": "97ad345107b82f2f96c083d385599fe04a4fbc80c77e93207f390dafc2e60679",
+      "timestamp": "2026-09-22T01:46:00Z"
+    },
+    {
+      "sha256": "3273a48eed46f7597d87593e6d5c4b5c30cf120c7b80b683b8c4d0c6123f7e33",
+      "timestamp": "2026-09-22T01:46:00Z"
+    },
+    {
+      "sha256": "b2454100ce39c080690c9dbeedcaa3150aab8fb641f7d871941607f74cee545a",
+      "timestamp": "2026-09-22T01:46:00Z"
+    },
+    {
+      "sha256": "9d836874754b4d0e58967e2c761b6d5656b67980457e7b3e8898ee1a4afac361",
+      "timestamp": "2026-09-22T01:49:06Z"
+    },
+    {
+      "sha256": "fe24e080ef257b50074aee9f9e3670aeafcc44cb9d477540979a4b1b42a8ce14",
+      "timestamp": "2026-09-22T01:49:06Z"
+    },
+    {
+      "sha256": "20d17f61069c5c1e38e9235f26b2af9d393903773b1a8d21be5e3ee32349463e",
+      "timestamp": "2026-09-22T01:50:06Z"
+    },
+    {
+      "sha256": "7fdc7a3839f9b6ff7705c1936b46d9a3adb5c3de7a44865c4ba9b98b56f0c00e",
+      "timestamp": "2026-09-22T01:50:06Z"
+    },
+    {
+      "sha256": "991c6a243be471cc6d56aab353da4cf6c1b0eb883dbb1a9074f7d3e5d4f2f2fe",
+      "timestamp": "2026-09-22T01:50:06Z"
+    },
+    {
+      "sha256": "593b9043af32935d45bef43d6bedec88790d34eb9b5ac1d4381c65c02f98e177",
+      "timestamp": "2026-09-22T01:50:06Z"
+    },
+    {
+      "sha256": "05ee9187d5dd08bf972a6e92eb313fac8e17f3a2ae1c3fdf98dd7803db68754c",
+      "timestamp": "2026-09-22T01:50:06Z"
+    },
+    {
+      "sha256": "be5b34144ecb9f435a603eaa2714a46d129374940af7b7370833620ea1f2373a",
+      "timestamp": "2026-09-22T01:50:06Z"
+    },
+    {
+      "sha256": "d42635eb71564c146288ae51f25fd0a7d00780c4ecf8509ed9166725a3e94c34",
+      "timestamp": "2026-09-22T01:51:06Z"
+    },
+    {
+      "sha256": "c87a0be7c51bb02af48427dee2a1bd0554b1e27a95a5f87d4052a4deccd008e2",
+      "timestamp": "2026-09-22T01:51:06Z"
+    },
+    {
+      "sha256": "bc131b55cf167767a8ce292b0b295f4442bb09fe25c740e3482b55ae13b1c06a",
+      "timestamp": "2026-09-22T01:51:06Z"
+    },
+    {
+      "sha256": "24cc214a1c0e5149f0996ab618d6bac8565fdff587ce41bd3e7a4e34c5c1f2b1",
+      "timestamp": "2026-09-22T01:51:06Z"
+    },
+    {
+      "sha256": "46745f151f851c677bb9364cb0760b811e22ce22665eddfd39c2ccff362b2938",
+      "timestamp": "2026-06-01T08:52:28Z"
+    },
+    {
+      "sha256": "9a7624b64a2c4ba049d393d3311a2fa679134d9ccd0701c8527b15b3731b874e",
+      "timestamp": "2026-09-22T01:54:01Z"
+    },
+    {
+      "sha256": "6eabc019a90e75ec5a53981b1aaeb37a50380532d23f2f3749b2ee60ae502e6c",
+      "timestamp": "2026-09-22T01:54:01Z"
+    }
+  ],
+  "extract": {
+    "provider": "Geofabrik Northern California",
+    "url": "https://download.geofabrik.de/north-america/us/california/norcal.html",
+    "sha256": "5e75133debc127c820dc186da353bf1470b7c37de8bda6defc0eafb5735709c7"
+  }
+}

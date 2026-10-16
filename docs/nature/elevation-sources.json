@@ -1,0 +1,1718 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "fields": [
+    {
+      "name": "OBJECTID",
+      "type": "esriFieldTypeOID",
+      "alias": "OBJECTID",
+      "domain": null
+    },
+    {
+      "name": "Name",
+      "type": "esriFieldTypeString",
+      "alias": "Name",
+      "domain": null,
+      "length": 200
+    },
+    {
+      "name": "VerticalDatum",
+      "type": "esriFieldTypeString",
+      "alias": "VerticalDatum",
+      "domain": null,
+      "length": 100
+    },
+    {
+      "name": "AcquisitionDate",
+      "type": "esriFieldTypeDate",
+      "alias": "AcquisitionDate",
+      "domain": null,
+      "length": 8
+    },
+    {
+      "name": "Resolution_X",
+      "type": "esriFieldTypeString",
+      "alias": "Resolution_X",
+      "domain": null,
+      "length": 50
+    },
+    {
+      "name": "URL",
+      "type": "esriFieldTypeString",
+      "alias": "URL",
+      "domain": null,
+      "length": 1000
+    }
+  ],
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 1978,
+        "Name": "n38w122",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1697155200000,
+        "Resolution_X": "2.77777777787003E-04",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n38w122/USGS_1_n38w122.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 3748,
+        "Name": "n38w123",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1681948800000,
+        "Resolution_X": "2.77777777786999E-04",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n38w123/USGS_1_n38w123.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 5399,
+        "Name": "n38w122",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1697155200000,
+        "Resolution_X": "9.25925926922043E-05",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/current/n38w122/USGS_13_n38w122.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 5637,
+        "Name": "n38w123",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1681948800000,
+        "Resolution_X": "9.25925926922017E-05",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/current/n38w123/USGS_13_n38w123.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11855,
+        "Name": "ned19_n37x50_w122x00_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x00_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11856,
+        "Name": "ned19_n37x50_w122x00_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x00_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11857,
+        "Name": "ned19_n37x50_w122x00_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x00_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11858,
+        "Name": "ned19_n37x50_w122x00_ca_santaclaraco_2006",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1136419200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x00_ca_santaclaraco_2006.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11859,
+        "Name": "ned19_n37x50_w122x25_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x25_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11860,
+        "Name": "ned19_n37x50_w122x25_ca_centralcoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x25_ca_centralcoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11861,
+        "Name": "ned19_n37x50_w122x25_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x25_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11862,
+        "Name": "ned19_n37x50_w122x25_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x25_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11863,
+        "Name": "ned19_n37x50_w122x25_ca_santaclaraco_2006",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1136419200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x25_ca_santaclaraco_2006.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11864,
+        "Name": "ned19_n37x50_w122x50_ca_goldengate_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x50_ca_goldengate_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11865,
+        "Name": "ned19_n37x50_w122x50_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x50_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11866,
+        "Name": "ned19_n37x50_w122x50_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x50_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11867,
+        "Name": "ned19_n37x50_w122x50_ca_santaclaraco_2006",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1136419200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x50_ca_santaclaraco_2006.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11868,
+        "Name": "ned19_n37x50_w122x75_ca_goldengate_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x75_ca_goldengate_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11869,
+        "Name": "ned19_n37x50_w122x75_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x50_w122x75_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11870,
+        "Name": "ned19_n37x75_w122x00_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x00_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11871,
+        "Name": "ned19_n37x75_w122x00_ca_contracostaco_2008",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1199145600000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x00_ca_contracostaco_2008.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11872,
+        "Name": "ned19_n37x75_w122x00_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x00_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11873,
+        "Name": "ned19_n37x75_w122x00_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x00_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11874,
+        "Name": "ned19_n37x75_w122x25_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x25_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11875,
+        "Name": "ned19_n37x75_w122x25_ca_contracostaco_2008",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1199145600000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x25_ca_contracostaco_2008.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11876,
+        "Name": "ned19_n37x75_w122x25_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x25_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11877,
+        "Name": "ned19_n37x75_w122x25_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x25_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11878,
+        "Name": "ned19_n37x75_w122x25_ca_santaclaraco_2006",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1136419200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x25_ca_santaclaraco_2006.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11879,
+        "Name": "ned19_n37x75_w122x50_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x50_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11880,
+        "Name": "ned19_n37x75_w122x50_ca_goldengate_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x50_ca_goldengate_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11881,
+        "Name": "ned19_n37x75_w122x50_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x50_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11882,
+        "Name": "ned19_n37x75_w122x50_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x50_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11883,
+        "Name": "ned19_n37x75_w122x75_ca_goldengate_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x75_ca_goldengate_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11884,
+        "Name": "ned19_n37x75_w122x75_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x75_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 11885,
+        "Name": "ned19_n37x75_w122x75_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n37x75_w122x75_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16765,
+        "Name": "ned19_n38x00_w122x00_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x00_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16766,
+        "Name": "ned19_n38x00_w122x00_ca_contracostaco_2008",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1199145600000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x00_ca_contracostaco_2008.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16767,
+        "Name": "ned19_n38x00_w122x00_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x00_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16768,
+        "Name": "ned19_n38x00_w122x25_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x25_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16769,
+        "Name": "ned19_n38x00_w122x25_ca_contracostaco_2008",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1199145600000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x25_ca_contracostaco_2008.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16770,
+        "Name": "ned19_n38x00_w122x25_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x25_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16771,
+        "Name": "ned19_n38x00_w122x25_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x25_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16772,
+        "Name": "ned19_n38x00_w122x50_ca_alamedaco_2007",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x50_ca_alamedaco_2007.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16773,
+        "Name": "ned19_n38x00_w122x50_ca_contracostaco_2008",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1199145600000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x50_ca_contracostaco_2008.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16774,
+        "Name": "ned19_n38x00_w122x50_ca_goldengate_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x50_ca_goldengate_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16775,
+        "Name": "ned19_n38x00_w122x50_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x50_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16776,
+        "Name": "ned19_n38x00_w122x50_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x50_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16777,
+        "Name": "ned19_n38x00_w122x75_ca_goldengate_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1388534400000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x75_ca_goldengate_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16778,
+        "Name": "ned19_n38x00_w122x75_ca_sanfrancisco_topobathy_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1293667200000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x75_ca_sanfrancisco_topobathy_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 16779,
+        "Name": "ned19_n38x00_w122x75_ca_sanfrancisocoast_2010",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1301788800000,
+        "Resolution_X": "0.00001",
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/19/IMG/ned19_n38x00_w122x75_ca_sanfrancisocoast_2010.zip"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 22509,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCal_Wildfires_B5b_QL1_2018/TIFF/USGS_1m_x54y421_CA_NoCal_Wildfires_B5b_QL1_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 23148,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x56y414_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 25679,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x55y421_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 26153,
+        "Name": "CA_Sacramento_2017",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1516492800000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_Sacramento_2017/TIFF/USGS_one_meter_x60y421_CA_Sacramento_2017.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 26760,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x54y421_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 29576,
+        "Name": "CA_NoCAL_3DEP_Supp_Funding_2018_D18",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1552435200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_3DEP_Supp_Funding_2018_D18/TIFF/USGS_1M_10_x55y421_CA_NoCAL_3DEP_Supp_Funding_2018_D18.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 30428,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x58y415_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 30811,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x54y418_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 30902,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x56y415_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 31343,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCal_Wildfires_B5b_QL1_2018/TIFF/USGS_1m_x55y419_CA_NoCal_Wildfires_B5b_QL1_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 33226,
+        "Name": "CA_ContraCosta_B22",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1650240000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_ContraCosta_B22/TIFF/USGS_1M_10_x59y421_CA_ContraCosta_B22.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 33363,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x55y414_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 33756,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x57y420_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 36505,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x60y417_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 39988,
+        "Name": "CA_SantaCruzCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1586908800000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaCruzCounty_2020_A20/TIFF/USGS_1M_10_x57y413_CA_SantaCruzCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 41090,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x58y416_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 42646,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x56y413_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 45848,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x55y416_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 46589,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x55y413_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 47224,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x59y416_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 48785,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x58y416_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 51869,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x59y420_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 52542,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x59y418_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 52762,
+        "Name": "CA_Sacramento_2017",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1516492800000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_Sacramento_2017/TIFF/USGS_one_meter_x59y421_CA_Sacramento_2017.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 54142,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x56y413_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 56380,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x55y418_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 58804,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x58y421_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 58836,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x57y418_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 58931,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x59y415_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 59831,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x60y415_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 60755,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x56y419_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 61030,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x60y416_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 64091,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x59y417_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 65066,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x58y417_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 65216,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x56y420_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 66131,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x59y415_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 66319,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x58y418_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 66659,
+        "Name": "CA_SanFrancisco_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1681948800000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SanFrancisco_B23/TIFF/USGS_1M_10_x54y418_CA_SanFrancisco_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 66704,
+        "Name": "CA_NoCAL_3DEP_Supp_Funding_2018_D18",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1552435200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_3DEP_Supp_Funding_2018_D18/TIFF/USGS_1M_10_x55y420_CA_NoCAL_3DEP_Supp_Funding_2018_D18.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 67070,
+        "Name": "CA_ContraCosta_B22",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1650240000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_ContraCosta_B22/TIFF/USGS_1M_10_x60y419_CA_ContraCosta_B22.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 68890,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x54y417_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 68981,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x56y418_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 71693,
+        "Name": "CA_SanFrancisco_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1681948800000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SanFrancisco_B23/TIFF/USGS_1M_10_x55y419_CA_SanFrancisco_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 74160,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x58y418_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 75040,
+        "Name": "CA_ContraCosta_B22",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1650240000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_ContraCosta_B22/TIFF/USGS_1M_10_x59y419_CA_ContraCosta_B22.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 76364,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x60y419_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 76836,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x56y417_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 77435,
+        "Name": "CA_SanFrancisco_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1681948800000,
+        "Resolution_X": null,
+        "URL": "20240826"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 80962,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 82165,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 84452,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200114"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 85631,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "20250820"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 87229,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200318"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 87694,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 87822,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200114"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 87934,
+        "Name": "CA_ContraCosta_B22",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1650240000000,
+        "Resolution_X": null,
+        "URL": "20221230"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 88901,
+        "Name": "CA_AZ_FEMA_R9_Lidar_2017_D18",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1550966400000,
+        "Resolution_X": null,
+        "URL": "20210619"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 89924,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 90547,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "20250820"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 90893,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 90949,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200318"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 91243,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200318"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 93101,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "20210611"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 93347,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 93434,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "20210611"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 95776,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 96558,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "20250820"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 96821,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "20220810"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 96889,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "20250820"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 98650,
+        "Name": "CA_SanFrancisco_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1681948800000,
+        "Resolution_X": null,
+        "URL": "20240826"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 99201,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200318"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 102203,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "20210611"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 102351,
+        "Name": "CA_ContraCosta_B22",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1650240000000,
+        "Resolution_X": null,
+        "URL": "20221230"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 103208,
+        "Name": "CA_ContraCosta_B22",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1650240000000,
+        "Resolution_X": null,
+        "URL": "20221230"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 105015,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "20210611"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 106149,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200114"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 106584,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "20200318"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 107341,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x60y414_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 110498,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x55y419_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 111477,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x59y419_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 112087,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x59y418_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 112126,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x58y413_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 112185,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x56y415_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 113677,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x54y418_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 114027,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x54y415_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 115020,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCal_Wildfires_B5b_QL1_2018/TIFF/USGS_1m_x55y421_CA_NoCal_Wildfires_B5b_QL1_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 115133,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x57y416_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 115168,
+        "Name": "CA_ContraCosta_B22",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1650240000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_ContraCosta_B22/TIFF/USGS_1M_10_x60y418_CA_ContraCosta_B22.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 115874,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x54y416_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 115997,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x55y415_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 116547,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x57y416_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 117692,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x55y420_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 119365,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x56y416_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 120832,
+        "Name": "CA_CaliforniaGaps_B23",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1699747200000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_CaliforniaGaps_B23/TIFF/USGS_1M_10_x55y417_CA_CaliforniaGaps_B23.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 122435,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCal_Wildfires_B5b_QL1_2018/TIFF/USGS_1m_x54y419_CA_NoCal_Wildfires_B5b_QL1_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 123020,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x56y419_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 123628,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x59y419_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 123966,
+        "Name": "CA_AZ_FEMA_R9_Lidar_2017_D18",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1550966400000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AZ_FEMA_R9_Lidar_2017_D18/TIFF/USGS_1M_10_x57y413_CA_AZ_FEMA_R9_Lidar_2017_D18.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 127565,
+        "Name": "CA_AlamedaCounty_2021_B21",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1612656000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_AlamedaCounty_2021_B21/TIFF/USGS_1M_10_x58y419_CA_AlamedaCounty_2021_B21.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 133012,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x57y421_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 134164,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCal_Wildfires_B5b_QL1_2018/TIFF/USGS_1m_x53y419_CA_NoCal_Wildfires_B5b_QL1_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 135297,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x57y414_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 136025,
+        "Name": "CA_NoCal_Wildfires_B5b_QL1_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCal_Wildfires_B5b_QL1_2018/TIFF/USGS_1m_x55y420_CA_NoCal_Wildfires_B5b_QL1_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 136340,
+        "Name": "CA_NoCAL_Wildfires_B5b_2018",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1524528000000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_NoCAL_Wildfires_B5b_2018/TIFF/USGS_1m_x60y420_CA_NoCAL_Wildfires_B5b_2018.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 136589,
+        "Name": "CA_SantaClaraCounty_2020_A20",
+        "VerticalDatum": "North American Vertical Datum of 1988 (NAVD 88)",
+        "AcquisitionDate": 1587513600000,
+        "Resolution_X": null,
+        "URL": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_SantaClaraCounty_2020_A20/TIFF/USGS_1M_10_x60y413_CA_SantaClaraCounty_2020_A20.tif"
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 137143,
+        "Name": "Ov_i02_L01_R0000005A_C00000010.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 137973,
+        "Name": "Ov_i02_L02_R0000002D_C00000008.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138219,
+        "Name": "Ov_i02_L03_R00000016_C00000004.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138311,
+        "Name": "Ov_i02_L04_R0000000B_C00000002.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138352,
+        "Name": "Ov_i02_L05_R00000005_C00000001.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138378,
+        "Name": "Ov_i02_L06_R00000002_C00000000.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138399,
+        "Name": "Ov_i02_L07_R00000001_C00000000.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138416,
+        "Name": "Ov_i02_L08_R00000000_C00000000.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138433,
+        "Name": "Ov_i02_L09_R00000000_C00000000.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138450,
+        "Name": "Ov_i02_L0A_R00000000_C00000000.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138467,
+        "Name": "Ov_i02_L0B_R00000000_C00000000.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 138484,
+        "Name": "Ov_i02_L0C_R00000000_C00000000.tif",
+        "VerticalDatum": null,
+        "AcquisitionDate": null,
+        "Resolution_X": null,
+        "URL": null
+      }
+    }
+  ]
+}
