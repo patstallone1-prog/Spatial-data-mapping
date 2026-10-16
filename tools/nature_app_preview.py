@@ -59,6 +59,17 @@ const treeButton=document.createElement('button');treeButton.textContent='Audit 
   }
  });results.cityTrees={...window.kerbsideTreeClearance,tested,inside,pass:tested>0&&inside===0};audit();
 };panel.append(treeButton);
+const oceanButton=document.createElement('button');oceanButton.textContent='Audit ocean materials';oceanButton.onclick=()=>{
+ const shader={uniforms:{},vertexShader:'#include <common>\n#include <project_vertex>',
+ fragmentShader:'void main() {\n#include <map_fragment>\n#include <color_fragment>\n#include <roughnessmap_fragment>\n#include <metalnessmap_fragment>\n#include <normal_fragment_maps>\n}'};
+ TERRAIN_MATERIAL.onBeforeCompile(shader);
+ results.ocean={colour:TERRAIN_SEA.getHexString(),envMapIntensity:TERRAIN_MATERIAL.envMapIntensity,
+ grainBypassed:shader.fragmentShader.includes('diffuseColor.rgb = mix(diffuseColor.rgb, vec3('),
+ roughness:shader.fragmentShader.includes('mix(roughnessFactor, .62, terrainWet)'),
+ metalness:shader.fragmentShader.includes('mix(metalnessFactor, .04, terrainWet)'),
+ flatWaterNormal:shader.fragmentShader.includes('mat3(viewMatrix) * vec3(0., 1., 0.)'),
+ renderPrograms:renderer.info.programs?.length};audit();
+};panel.append(oceanButton);
 document.body.append(panel);audit();
 }
 """

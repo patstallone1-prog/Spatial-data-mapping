@@ -135,3 +135,5 @@ data/electrical/imagery-cache/
 
 # Local caches for the electrical span build (re-fetched on demand).
 data/electrical/osm/
+# Raw municipal reference snapshots stay private until rights and geometry review.
+/data/municipal_evidence/

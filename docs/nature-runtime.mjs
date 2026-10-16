@@ -263,9 +263,12 @@ float canopyCover=texture2D(uNatureCanopy,natureUV).r;
 vec3 canopyAverage=vec3(${linearColour([.24,.33,.20]).join(',')})*(.84+.30*natureNoise(rotated*.013));
 diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*canopyCover*(1.-natureWet));`)
         .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(1.,.62,natureWet);')
-        .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=.04*natureWet;');
+        .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=.04*natureWet;')
+        // Coast triangles have sloping vertex normals. Open water shares the
+        // same flat normal/BRDF as the city water, independent of region bounds.
+        .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(mix(normal,normalize(mat3(viewMatrix)*vec3(0.,1.,0.)),natureWet));');
     };
-    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v3-${coarse}`;return m;
+    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v4-${coarse}`;return m;
   }
   const coarseMaterial=terrainMaterial(true);
   const geoAt=(x,y)=>{const [lon,lat]=atlas.geographic(x,y);return toPage(lon,lat);};

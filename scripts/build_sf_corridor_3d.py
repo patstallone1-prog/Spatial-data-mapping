@@ -3935,11 +3935,8 @@ Object.values(groups).forEach((g) => root.add(g));
     post.position.set(x, 75 + PENINSULA_Y, -y);
     post.userData.hideWithin = REGION_MARKER_HIDE_M;
     regionMarkers.add(post);
-    // The region's box, outlined on the ground: where the rendered area stands in the country.
-    const outline = new THREE.LineLoop(
-      new THREE.BufferGeometry().setFromPoints([v3(west, south, PENINSULA_Y + 1), v3(east, south, PENINSULA_Y + 1), v3(east, north, PENINSULA_Y + 1), v3(west, north, PENINSULA_Y + 1)]),
-      new THREE.LineBasicMaterial({ color: 0xe8f4ff, transparent: true, opacity: 0.55 }));
-    regionMarkers.add(outline);
+    // Regional extents are a loading boundary, not a physical rectangle on land
+    // or sea. Keep the navigable signpost; do not draw a box through the ocean.
   }
 })();
 //: Closer than this to a region's marker you are at the region, and the tile tree is drawing
@@ -5189,7 +5186,7 @@ function addBackdropTile(xs, zs, apronOf) {
 const TERRAIN_GRAIN = LANDWATER ? noiseTexture("#ffffff", "#777771", 512, 0.09) : null;
 if (TERRAIN_GRAIN) TERRAIN_GRAIN.colorSpace = THREE.SRGBColorSpace;
 const TERRAIN_MATERIAL = new THREE.MeshStandardMaterial({ map: TERRAIN_GRAIN, color: 0xffffff,
-  vertexColors: true, roughness: 0.99, metalness: 0.0, side: THREE.DoubleSide });
+  vertexColors: true, roughness: 0.99, metalness: 0.0, envMapIntensity: 0.5, side: THREE.DoubleSide });
 //: A house whose rooms were brought down to its street door (ROOMS_LOWERED_MAX_M) has a floor
 //: below the hill it stands on. While the walker is in or at such a house, the terrain inside
 //: its footprint and above its floor is not drawn: one footprint, as a ring of up to
@@ -5231,9 +5228,19 @@ uniform vec4 uGuestBox;`)
           && (vCutWorld.x < (b.x - a.x) * (vCutWorld.z - a.y) / (b.y - a.y) + a.x)) inside = !inside;
     }
     if (inside) discard;
-  }`);
+  }`)
+    // Water used to inherit the city's concrete grain and .99 roughness while
+    // the adjoining nature ocean used untextured .62/.04 water. This made the
+    // rectangular terrain footprint visible offshore even with identical colours.
+    // Classify the untouched vertex colour, not the already-grained diffuse value.
+    .replace("#include <color_fragment>", `#include <color_fragment>
+  float terrainWet = 1.0 - step(0.0001, distance(vColor.rgb, vec3(${TERRAIN_SEA.r}, ${TERRAIN_SEA.g}, ${TERRAIN_SEA.b})));
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(${TERRAIN_SEA.r}, ${TERRAIN_SEA.g}, ${TERRAIN_SEA.b}), terrainWet);`)
+    .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, .62, terrainWet);")
+    .replace("#include <metalnessmap_fragment>", "#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, .04, terrainWet);")
+    .replace("#include <normal_fragment_maps>", "#include <normal_fragment_maps>\nnormal = normalize(mix(normal, normalize(mat3(viewMatrix) * vec3(0., 1., 0.)), terrainWet));");
 };
-TERRAIN_MATERIAL.customProgramCacheKey = () => "terrain-indoor-cut";
+TERRAIN_MATERIAL.customProgramCacheKey = () => "terrain-indoor-cut-unified-ocean-v2";
 if (TERRAIN_FRAME) {
   const f = TERRAIN_FRAME;
   const cols = Math.floor((f.cols - 1) / TERRAIN_MESH_STRIDE) + 1;
