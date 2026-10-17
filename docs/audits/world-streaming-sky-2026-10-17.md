@@ -106,6 +106,35 @@ requires explicit `--allow-intake`. No gap-region ingestion was started.
 
 ## Reproduction / ownership
 
+### Unexpected HP700 disconnects
+
+The photo filter now has an optional internal working set. Writable selection
+SQLite files never run on USB storage in this mode. The SQLite backup API takes
+consistent standalone snapshots (including committed WAL rows); external copies
+are written under temporary names, fsynced, checksum-verified, atomically renamed
+and acknowledged. A live archival WAL blocks replacement rather than risking it.
+Current decoded-pixel blobs are saved locally first and mirrored as they arrive.
+The local model cache is staged before processing so inference does not depend on
+reading model weights from the disconnected drive.
+
+On disconnect, the filter can finish its loaded photo-screening batch locally.
+Other external-drive workers stop; this is not a promise that every house-fitting
+stage or Unreal task continues without the drive. New filter batches wait for the
+verified volume UUID and both disks' 4 GiB reserve. Completed batches have hashed
+commit manifests. Local photo copies are removed only after the complete archive
+acknowledgement; failed copies keep the local originals. Current selection state
+and small metadata remain local; obsolete selection databases are removed only
+after a successful archival snapshot. Imported metadata from other contributors
+is not overwritten by a stale local seed.
+
+Tests simulate mid-write disconnect, reconnect after a corrupted archive copy,
+WAL input, local progress while disconnected, and contributor metadata changes.
+No physical drive ejection is used as a test. Safe macOS Eject remains recommended:
+software checkpoints cannot protect unrelated files or guarantee hardware survival.
+The previously corrupted filter database was preserved and 10,350 valid JSON rows
+were recovered into an integrity-checked replacement; this does not certify that
+every formerly present row was recoverable. Accepted house facts were untouched.
+
 - Renderer source: `scripts/build_sf_corridor_3d.py`; regenerate only app viewers
   using `tools/build_app_worlds.py`. Do not edit generated regional pages separately.
 - Source integration: `scripts/integrate_municipal_evidence.py`, then

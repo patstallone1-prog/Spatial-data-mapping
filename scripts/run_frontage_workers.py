@@ -169,6 +169,8 @@ def main():
                         help="Allow battery processing only strictly above this percentage.")
     parser.add_argument("--storage-volume", type=Path)
     parser.add_argument("--storage-volume-uuid")
+    parser.add_argument("--local-working-set", type=Path,
+                        help="Keep filter SQLite and current images on the Mac; drain the batch after external eject")
     parser.add_argument(
         "--full-private-proposals", action="store_true",
         help="Process full batches privately; does not approve or publish any photo fit.",
@@ -176,6 +178,12 @@ def main():
     args = parser.parse_args()
     if bool(args.storage_volume) != bool(args.storage_volume_uuid):
         parser.error("external storage volume and UUID must be supplied together")
+    if args.local_working_set and not args.storage_volume:
+        parser.error("local working set requires an explicit archival drive")
+    if args.local_working_set:
+        if args.local_working_set.is_symlink() or args.local_working_set.resolve().is_relative_to(Path("/Volumes")):
+            parser.error("working set must be on the internal disk")
+        args.local_working_set.mkdir(parents=True, exist_ok=True)
     if args.battery_min_percent is not None and not 0 <= args.battery_min_percent <= 100:
         parser.error("battery minimum must be between 0 and 100")
     folder = ROOT / "build/frontage-supervisor"
@@ -212,15 +220,25 @@ def main():
             eligible = power_eligible(power, args.battery_min_percent)
             storage, capacity = storage_state(folder, args.storage_volume, args.storage_volume_uuid)
             if not eligible or not capacity:
-                stop_children()
+                # Filter outputs and logs are internal in this mode. Let its
+                # already-loaded batch finish; it refuses new batches offline.
+                drain = bool(args.local_working_set and eligible
+                             and shutil.disk_usage(args.local_working_set).free >= 4*1024**3)
+                for name, process in list(children.items()):
+                    if not (drain and name == "filter"):
+                        stop_process(process)
+                        if process.poll() is not None:
+                            children.pop(name)
                 # Reopen from the verified mount on resume, never reuse an old drive FD.
-                for stream in logs.values():
+                for name, stream in list(logs.items()):
+                    if drain and name == "filter":
+                        continue
                     with contextlib.suppress(OSError):
                         stream.close()
-                logs.clear()
-                if caffeine and caffeine.poll() is None:
+                    logs.pop(name)
+                if not drain and caffeine and caffeine.poll() is None:
                     caffeine.terminate()
-                caffeine = None
+                    caffeine = None
                 status(
                     folder / "status.json",
                     {
@@ -240,6 +258,7 @@ def main():
                         "full_private_proposals": args.full_private_proposals,
                         "configured_private_batch_size": proposal_batch_size(False, args.full_private_proposals),
                         "automatically_publishes": False,
+                        "filter_can_finish_current_local_batch": drain,
                     },
                 )
             else:
@@ -330,6 +349,18 @@ def main():
                         "--watch-seconds", "300",
                     ],
                 }
+                if args.local_working_set:
+                    commands["filter"] += ["--local-working-set", str(args.local_working_set),
+                        "--storage-volume",str(args.storage_volume),"--volume-uuid",args.storage_volume_uuid]
+                    # Finish the loaded batch even if the model's archival drive
+                    # disappears: give the filter its small, local model cache.
+                    local_models=args.local_working_set.parent / "pixel-model-cache"
+                    if not (local_models / ".staged").exists():
+                        shutil.copytree(ROOT / "build/frontage-pilot-v2/model-cache", local_models,
+                                        dirs_exist_ok=True)
+                        (local_models / ".staged").touch()
+                    index=commands["filter"].index("--model-cache")+1
+                    commands["filter"][index]=str(local_models)
                 # A one-off pass refitting the decided houses whose fronts have a window gap
                 # (scripts/refit_window_gaps.py): run beside the matcher while it is asked for
                 # and not finished; it writes done.json when through, and is not run again.

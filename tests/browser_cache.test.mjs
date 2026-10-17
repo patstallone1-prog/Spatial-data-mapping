@@ -108,6 +108,7 @@ async function loadCase({ chosen, mark, legacy, query = '', attached = false } =
   const window = { kerbsideReady: { streets: true, ground: false }, kerbsideBoot: { error: null } };
   const result = await vm.runInNewContext(`(async()=>{${loadCode}\nreturn {level:LIGHT_LEVEL,markLoadSurvived};})()`, {
     window,
+    document: { querySelector: () => null },
     ATTACH: attached, navigator: { deviceMemory: 16, userAgent: 'Desktop', maxTouchPoints: 0 },
     localStorage: local, sessionStorage: session, caches: h.caches, location: { search: query },
     Date, Number, Math, JSON, Promise, URLSearchParams,

@@ -3676,7 +3676,10 @@ function checkLightWindow(frame) {
   // Only where the square is not already the region's own edge.
   const atRegionEdge = b && ((lon - b.west) * kLon < LIGHT_EDGE_M || (b.east - lon) * kLon < LIGHT_EDGE_M
     || (lat - b.south) * kLat < LIGHT_EDGE_M || (b.north - lat) * kLat < LIGHT_EDGE_M);
-  if (margin < LIGHT_EDGE_M && !atRegionEdge) rebuildRoundHere(lon, lat);
+  if (margin < LIGHT_EDGE_M && !atRegionEdge) {
+    rebuildRoundHere(lon, lat);
+    lightWindowStart=[avatar.position.x,avatar.position.z];
+  }
 }
 //: The ground cover, the furniture: each kept to the square, list by list.
 function windowLists(container) {
@@ -31913,13 +31916,13 @@ function requestFrame() {
   }, FRAME_STAND_IN_MS);
 }
 function animate(now) {
+  requestFrame();
+  now = now || performance.now();
   environmentController?.update(now,{indoors:Boolean(state.indoors)});
   if(frameCount%60===0 && environmentController){const clock=document.getElementById("world-clock");
     if(clock)clock.textContent=`San Francisco time: ${environmentController.snapshot()?.localTime || ""}`;}
   if(frameCount%60===0 && !ATTACH){const output=document.getElementById("stream-status");
     if(output)output.textContent=window.kerbsideStreamDetail?.() || "Preparing world streaming…";}
-  requestFrame();
-  now = now || performance.now();
   // The frame-rate cap, and the idle rate when nothing moves.
   const eye = camera.matrixWorld.elements, drawn = lastDrawnEye.elements;
   for (let i = 0; i < 16; i += 1) if (Math.abs(eye[i] - drawn[i]) > 1e-4) { lastMovedAt = now; break; }

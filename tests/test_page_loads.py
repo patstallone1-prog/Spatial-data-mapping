@@ -29,6 +29,10 @@ def page_module(out: Path, page: Path = PAGE) -> Path:
     js = re.sub(r'^import \* as THREE from "[^"]+";', "const THREE = globalThis.__THREE;", js, flags=re.M)
     js = re.sub(r'^import \{ GLTFLoader \} from "[^"]+";',
                 "const GLTFLoader = globalThis.__THREE.GLTFLoader;", js, flags=re.M)
+    # This pure scheduler runs unchanged. Node cannot import an HTTP module URL;
+    # resolve its same checked-in source locally, without stubbing its behavior.
+    js = js.replace('import(sharedAsset("world-streaming.mjs"))',
+                    f'import({json.dumps((ROOT / "docs/world-streaming.mjs").as_uri())})')
     out.write_text(js, encoding="utf-8")
     return out
 
