@@ -2,7 +2,9 @@
 // Public pure functions also run in Node regression tests; THREE is injected by the viewer.
 import {SPECIES,habitatMixture,speciesAt,field,undergrowthAt,smooth} from './nature-ecology.mjs';
 import {vegetationAssets,botanicalGeometry} from './vegetation-geometry.mjs';
-const NEAR0=180,NEAR1=260,FAR0=600,FAR1=820;
+import {createGrassStrands} from './grass-strands.mjs';
+// Keep each existing botanical LOD 30% farther out, without inventing more trees.
+const NEAR0=234,NEAR1=338,FAR0=780,FAR1=1066;
 export function plantLODWeights(range){const a=smooth(NEAR0,NEAR1,range),b=smooth(FAR0,FAR1,range);return [1-a,a-b,b];}
 export function hash2(x, y, salt = 0) {
   let h = Math.imul(x ^ salt, 374761393) ^ Math.imul(y, 668265263);
@@ -177,6 +179,14 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
   const f=atlas.f,detailMeshes=new Map(),plantGroups=new Map(),pending=new Set(),pathTiles=new Map();
   const stats={source:"3DEP + Annual NLCD 2024 + USFS TCC 2024",inferred:true,speciesBasis:'regional ecological priors, not an individual-tree inventory',trees:0,shrubs:0,rocks:0,trails:0,farCanopyProxies:0,overviewReady:false,errors:[]};
   let pathsManifest=null,lastX=Infinity,lastY=Infinity,working=false,forceVersion=0,builtVersion=0;
+  let grassFocus=null;
+  const grassStrands=createGrassStrands(THREE,{parent:features,sample:(x,z)=>{
+    const outside=visibleNatureGround(x,z,false,[hostBox?.value,guestBox?.value],false);
+    if(!outside)return null;
+    const [ax,ay]=atlas.local(...fromPage(x,z)),s=surface(ax,ay);
+    if(!s||s.water||![21,71,81,90,95].includes(s.cover)||blocked(ax,ay,.06))return null;
+    return {y:s.height+.008,heightScale:s.cover===21?.8:1.7,hueShift:s.cover===71?-.035:0};
+  }});
   const material=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,envMapIntensity:.5});
   const maskCols=Math.ceil((f.cols-1)*f.step_m/2000),maskRows=Math.ceil((f.rows-1)*f.step_m/2000);
   const activeTexture=new THREE.DataTexture(new Uint8Array(maskCols*maskRows),maskCols,maskRows,THREE.RedFormat);
@@ -607,6 +617,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       stats.decodedPathBytes=[...pathTiles.values()].reduce((n,p)=>n+(p.decodedBytes||0),0);
       stats.decodedHeightBytes=[...atlas.detail.values()].reduce((n,p)=>n+p.data.byteLength,0);
       builtVersion=version;if(forceVersion!==version)lastX=Infinity;
+      grassFocus={x,z};grassStrands.invalidate();
     }catch(e){stats.errors.push(String(e));console.warn("kerbside: landscape refinement failed; retaining coarse terrain",e);lastX=Infinity;}
     finally{working=false;}
   }
@@ -630,6 +641,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         [hostBox?.value,guestBox?.value],detailMeshes.has(key));
     },invalidate(){forceVersion++;lastX=Infinity;},
     tick(now,camera){
+      if(camera&&grassFocus)grassStrands.update(grassFocus.x,grassFocus.z,camera.position.y-(groundInfoAt(grassFocus.x,grassFocus.z)?.y||0));
       if(camera)features.traverse(o=>{if(o.userData.natureFullPlant&&o.geometry.boundingSphere){
         const sphere=o.boundingSphere||o.geometry.boundingSphere;
         o.visible=camera.position.distanceTo(sphere.center)<NEAR1+sphere.radius;

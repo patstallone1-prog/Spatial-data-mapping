@@ -2,16 +2,16 @@
   "schema": 1,
   "authoritative_branch": "main",
   "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
-  "renderer_sha256": "600beaea855ef55c37e7f21d9eb82f376d7a7b918fd319a113c695325fad0fd7",
+  "renderer_sha256": "0edacaa5f91a69c027e9fa69558f1d7ec5a9d46469008c3fa6070538e97d59e4",
   "consumers": {
-    "app-model.html": "3ccfdf9c34e055dfd13d61360922fa40aca25bb59c063efa2bdff44a143a731a",
-    "app-regions/berkeley-downtown/app-model.html": "422dc3977017461b502a06b0b92ccff1696d96dfc3d537e956e7fa7faa447a49",
-    "app-regions/oakland-downtown/app-model.html": "f7e3b460c17cd638d1341bd0d481abc4626c5ea2d23eb5014081cbb609bb52ba",
-    "app-regions/palo-alto-downtown/app-model.html": "3c8e7fcb5324d82624a70a1f3655f5a0b548aa115999d89e2644f8bc2944c93c",
-    "app-regions/san-jose-downtown/app-model.html": "439f11172d3bab46eb4ea41f5ad7d7d1e8c164d55ef5aa7acd823543773c5352",
-    "app-regions/sf-haight-castro/app-model.html": "e6fc503b5bbb202d35a229e671d2f645dcc039e9627f5ea1666fa2b3f1ffaf15",
-    "app-regions/sf-mission/app-model.html": "6efa5de7d9861309125e24abcd39f240d3c92445b391d06aec50f0d6b4bcc86f",
-    "app-regions/sf-sunset/app-model.html": "d9cabd99696c60743eae414d6af96d705d6a537cd78cc9369f2553cfb703094f"
+    "app-model.html": "e02c924c0cf4744b29ab1aece0dc231679230f03c8bc63b07c9a0908bbc00e79",
+    "app-regions/berkeley-downtown/app-model.html": "427b6342d9e41a45929532eb33f6149e119c2cffaeb92d94ff82a6488f509255",
+    "app-regions/oakland-downtown/app-model.html": "a9a196e252edf4867faa4499535dd9b49d0d5e5a6130555bd83686dd5a82bd0f",
+    "app-regions/palo-alto-downtown/app-model.html": "23fcc4a8312d98214da04a5f6ada7b427d0a478ec6995750430a1f9e32bdc53d",
+    "app-regions/san-jose-downtown/app-model.html": "6d650fdcb6c3671f44da13f7f5e0a2ddf032216bc0c17948807b4f7372e6989b",
+    "app-regions/sf-haight-castro/app-model.html": "a95eb9531604a2817db32afa5148e03662c7e6dc35bc8f69c8cd6a5ec8eaa7ed",
+    "app-regions/sf-mission/app-model.html": "1151d65035ac3199dea3a7c12fc9534024c959118070fc7ae57acea1779b47e4",
+    "app-regions/sf-sunset/app-model.html": "af9f7a68b2dc831d5d1698ff85aaf719eacb708393e15b807847c103050ce979"
   },
   "runtime_assets_sha256": {
     "recoverable-geometry.mjs": "d591eb1913b11a96f0ab3c3b9d54803978c8c204a1a7725906240d467a5e138b",
@@ -22,9 +22,10 @@
     "municipal/oakland-downtown-bfd98b91b57b.json": "9617152dcff6ae39c77532f399483e05ab806743525469671f24ea9a08668e52",
     "municipal/palo-alto-downtown-97c7bdfc8976.json": "07699ae5431ace4d3063c338777f3841da9b5474ecabb179856ff2e87afbd44f",
     "municipal/san-jose-downtown-1a61e7d26102.json": "51dced217cd4ce863bbb538bd0625cf4a5b07a2c3dde515eacc728954c9545ab",
-    "nature-runtime.mjs": "cd8be1cdead3fb13d3d5859c704329244d5c6a18e073b2d3d1fddb7167bfb9c5",
+    "nature-runtime.mjs": "32c9f89bd975f567a06e461a8ef5828e60e21e2494576d2a94a892ab9782de54",
     "nature-ecology.mjs": "fb0515a6643a61f63f6054d3f3ff5ae51736d0a3f36381ae61b955e47a3a81e9",
     "vegetation-geometry.mjs": "bcd95721fbc38f4fd271140e7c644d7901b239fd12da0b86cbc4a6848ea70518",
+    "grass-strands.mjs": "056535c7cdbf590de9ea1d367718b49b0e2bf9e149f018b1ef8461aa86638744",
     "nature/ecology.json": "de547947351d413c808717db3905d7ad0525823e4fd811e9f0ab276d9f173f0c",
     "nature/manifest.json": "2dd4fdb61bf8f1ce1be93050689cd0f750c56f8056a19be7d573ef5f97d9fc2f",
     "nature/paths.json": "3f792d517966aeb7d92743a99522a28cf3694617aaf35f7b32e19ad584a31160",
@@ -49,8 +50,8 @@
   },
   "app_shell_sha256": "6444dec4da5e6af4c84226001375f5e5e925f6b99b2ff238a95edee16185f34c",
   "photo_derived_houses": {
-    "count": 4058,
-    "manifest_sha256": "868a44e6e2f755e94b26e5ad6cfd1162106210c061c44227d01c37d60011af5a"
+    "count": 4059,
+    "manifest_sha256": "6c97efb1f37bdf983dfc57a5aea18b1ebc4a68d5edd1f853420a2e209d61b2c6"
   },
   "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
   "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates."

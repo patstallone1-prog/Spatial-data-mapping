@@ -159,7 +159,7 @@ def main() -> None:
             for path in [DOCS / "recoverable-geometry.mjs", DOCS / "world-streaming.mjs",
                          DOCS / "environment-runtime.mjs", DOCS / "sky-clock.mjs", DOCS / "municipal-context.manifest.json",
                          *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
-                         DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "nature/ecology.json",
+                         DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "nature/ecology.json",
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
                          *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
         },

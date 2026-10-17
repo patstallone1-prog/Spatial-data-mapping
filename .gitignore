@@ -137,3 +137,6 @@ data/electrical/imagery-cache/
 data/electrical/osm/
 # Raw municipal reference snapshots stay private until rights and geometry review.
 /data/municipal_evidence/
+# Connector acquisition directories are private external-volume aliases. The
+# committed plan/registry and public status audit retain coverage and provenance.
+/data/regions/*-gap-p*

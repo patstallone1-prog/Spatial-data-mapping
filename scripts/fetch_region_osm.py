@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import runpy
 import sys
 from pathlib import Path
@@ -21,13 +22,28 @@ sys.path.insert(0, str(ROOT / "src"))
 from smc.imagery.region import SF_CORRIDOR, get_region  # noqa: E402
 
 
+def response_floor(capabilities: dict, bounds: list[float], default: int = 2000) -> int:
+    """A small cell is not the entire corridor. Require a matching independent probe."""
+    if capabilities.get("bbox") != bounds:
+        return default
+    counts = capabilities.get("osm", {})
+    values = [counts.get(k) for k in ("highway_ways", "buildings")]
+    if not all(isinstance(v, int) and not isinstance(v, bool) and v >= 0 for v in values):
+        return default
+    return max(1, math.ceil(sum(values) * .8))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("region")
     args = ap.parse_args()
     region = get_region(args.region)
     builder = runpy.run_path(str(ROOT / "scripts" / "build_sf_corridor_3d.py"), run_name="kerbside_builder")
-    ways = builder["fetch_osm"](region.bbox)
+    caps_path = ROOT / "data/regions" / region.name / "capabilities.json"
+    caps = json.loads(caps_path.read_text()) if caps_path.exists() else {}
+    b = region.bbox
+    floor = response_floor(caps, [b.south, b.west, b.north, b.east])
+    ways = builder["fetch_osm"](region.bbox, minimum_elements=floor)
     out = (ROOT / "data" / "sf_corridor" / "stats" / "osm_ways.json" if region.name == SF_CORRIDOR.name
            else ROOT / "data" / "regions" / region.name / "osm_ways.json")
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -484,6 +484,8 @@ def tuned(html: str, detail: str) -> str:
     """The page, cut for where it is going to be read."""
     streaming_hash = hashlib.sha256((ROOT / "docs/world-streaming.mjs").read_bytes()).hexdigest()[:16]
     html = html.replace("__WORLD_STREAMING_HASH__", streaming_hash)
+    for key, filename in (("GRASS_STRANDS", "grass-strands.mjs"), ("NATURE_RUNTIME", "nature-runtime.mjs")):
+        html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
     swaps = DETAIL_TUNING.get(detail) or {}
     for old, new in swaps.items():
         if old not in html:
@@ -555,7 +557,7 @@ def fetch_osm_kerb_nodes(bbox: BBox) -> list[dict[str, Any]]:
     raise RuntimeError(f"all Overpass mirrors refused kerb nodes: {last}")
 
 
-def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
+def fetch_osm(bbox: BBox, *, attempts: int = 3, minimum_elements: int = OSM_MIN_ELEMENTS) -> list[dict[str, Any]]:
     query = overpass_query(bbox)
     data = None
     last: Exception | None = None
@@ -580,10 +582,12 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3) -> list[dict[str, Any]]:
     # built a corridor of no ways at all, wrote it over the cache, and exited 0.
     elements = data.get("elements") or []
     remark = str(data.get("remark") or "")
-    if len(elements) < OSM_MIN_ELEMENTS or "error" in remark.lower():
+    if minimum_elements < 1:
+        raise ValueError("a positive independently justified response floor is required")
+    if len(elements) < minimum_elements or remark:
         raise RuntimeError(f"Overpass answered with {len(elements)} elements"
-                           f"{' and remark ' + remark if remark else ''}; the corridor has tens "
-                           f"of thousands. Not building from that.")
+                           f"{' and remark ' + remark if remark else ''}; expected at least "
+                           f"{minimum_elements} for these bounds. Not building from that.")
     ways = []
     # Coastlines cannot be turned into water until the buildings are known, because which side
     # of one is wet is decided by which side has no buildings on it.
@@ -3179,13 +3183,17 @@ const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=__WORLD
 const worldCellCache = ATTACH?.cellCache || new worldStreaming.CellCache();
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=__NATURE_RUNTIME_HASH__"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
 const NATURE = natureLibrary ? await natureLibrary.loadNatureAtlas(sharedAsset)
   .catch(error => { console.warn("kerbside: landscape evidence unavailable", error); return null; }) : null;
 var natureWorld = null;
+const grassLibrary = await import(sharedAsset("grass-strands.mjs?rev=__GRASS_STRANDS_HASH__"))
+  .catch(error=>{console.warn("kerbside: grass strands unavailable; retaining textured turf",error);return null;});
+var grassStrands = null;
+var grassSurfaceAt = null;
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 // Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
@@ -18870,8 +18878,11 @@ function indexPublicStairs(flights) {
 }
 //: The tread of a public flight under (x, z), or null.
 function publicStairAt(x, z) {
-  const bucket = publicStairGrid.get(`${Math.floor(x / STAIR_CELL_M)}:${Math.floor(z / STAIR_CELL_M)}`);
-  if (!bucket) return null;
+  // The centreline's cell does not own the whole tread width at cell boundaries.
+  const bucket=new Set();
+  for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)
+    for(const stair of publicStairGrid.get(`${Math.floor(x/STAIR_CELL_M)+dx}:${Math.floor(z/STAIR_CELL_M)+dz}`)||[])bucket.add(stair);
+  if (!bucket.size) return null;
   let best = null, bestD2 = Infinity;
   for (const stair of bucket) {
     const { xs, zs, q, half } = stair;
@@ -21146,6 +21157,7 @@ function hardGroundExclusion(ground) {
   const grid = new Map();
   const rows = [
     ...(ground.front_walks || []), ...(ground.plazas || []), ...(ground.service_yards || []),
+    ...(DATA.ways||[]).filter(w=>w.kind==="parking_lot").map(w=>({p:w.points})),
     ...(ground.pitches || []).filter((p) => COURT_STYLE[p.s] && COURT_STYLE[p.s].surround !== null),
     // A playground's safety surface and a skatepark's concrete: no grass under them to show
     // through where the hill bulges between the surface's own vertices.
@@ -22894,6 +22906,42 @@ const groundReady = (async () => {
     : (ground.yards || []);
   const grassMask = grassHardMask(excludeGrassAt,
     [...(ground.parks || []), ...grassRings].map((item) => item.p));
+  if(grassLibrary){
+    const grid=new Map();
+    const walls=new Map();
+    for(const way of DATA.ways||[])if(way.kind==="wall"){
+      const points=(way.points||[]).map(p=>{const [x,y]=xy(...p);return [x,-y];});
+      for(let i=1;i<points.length;i++){const [a,b]=[points[i-1],points[i]];
+        for(let z=Math.floor((Math.min(a[1],b[1])-.5)/16);z<=Math.floor((Math.max(a[1],b[1])+.5)/16);z++)
+          for(let x=Math.floor((Math.min(a[0],b[0])-.5)/16);x<=Math.floor((Math.max(a[0],b[0])+.5)/16);x++){
+            const key=`${x}:${z}`;if(!walls.has(key))walls.set(key,[]);walls.get(key).push([a,b]);
+          }
+      }
+    }
+    for(const [items,park] of [[ground.parks||[],true],[grassRings,false]])for(const item of items){
+      const ring=clipRingToBox(item.p);if(!ring)continue;
+      const local=ring.map(p=>{const [x,y]=xy(...p);return [x,-y];});
+      const xs=local.map(p=>p[0]),zs=local.map(p=>p[1]);
+      for(let z=Math.floor(Math.min(...zs)/16);z<=Math.floor(Math.max(...zs)/16);z++)
+        for(let x=Math.floor(Math.min(...xs)/16);x<=Math.floor(Math.max(...xs)/16);x++){
+          const key=`${x}:${z}`;if(!grid.has(key))grid.set(key,[]);grid.get(key).push({local,park});
+        }
+    }
+    grassStrands=grassLibrary.createGrassStrands(THREE,{parent:groups.ground,
+      onMesh:mesh=>{if(BUILD_WINDOW)applyBoxClip(mesh,detailClipBox);},
+      sample:(x,z)=>{
+        if(excludeGrassAt(x,z)||insideCarriageway(x,z,.15)||parkPavementAt(x,z)||buildingAt(x,z)||mappedWaterAt(x,z))return null;
+        const mask=grassMask.texture.image;
+        const mx=Math.floor((x-grassMask.west)/(grassMask.east-grassMask.west)*mask.width);
+        const my=Math.floor((-z-grassMask.south)/(grassMask.north-grassMask.south)*mask.height);
+        if(mx<0||my<0||mx>=mask.width||my>=mask.height||mask.data[my*mask.width+mx]<255)return null;
+        if((walls.get(`${Math.floor(x/16)}:${Math.floor(z/16)}`)||[])
+          .some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<.5**2))return null;
+        const row=(grid.get(`${Math.floor(x/16)}:${Math.floor(z/16)}`)||[]).find(r=>pointInRing(x,z,r.local));
+        if(!row)return null;
+        const y=grassSurfaceAt?.(x,z);return y===null||y===undefined?null:{y:y+.002};
+      }});
+  }
   const parkVariants = GRASS_VARIANTS;
   for (let variant = 0; variant < parkVariants; variant += 1) {
     const rings = (ground.parks || [])
@@ -23121,6 +23169,9 @@ const groundReady = (async () => {
   window.kerbsideParkAreas = buildParkAreas(PARK_EVIDENCE?.areas || []);
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
+  if(grassStrands&&grassLibrary){const meshes=[];
+    groups.ground.traverse(o=>{if(o.isMesh&&["yard","park"].includes(o.userData.surface))meshes.push(o);});
+    grassSurfaceAt=grassLibrary.triangleGroundSampler(meshes);grassStrands.invalidate();}
   installTunnelVoidCuts(groups.ground,true);
   window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { ground: true });
   // The ground is down; now the things that stand on it.
@@ -27649,6 +27700,8 @@ function keepWalkerOutside() {
     ? occupiedTunnelAt(avatar.position.x,avatar.position.z,walkerFeetY()) : null;
   if(underground || (typeof occupiedApproachAt === "function"
       && occupiedApproachAt(avatar.position.x,avatar.position.z,walkerFeetY()))) return;
+  // An evidence-backed recessed stairwell is exterior, not an interior room.
+  if(typeof walkableStairRecessAt === "function" && walkableStairRecessAt(avatar.position.x,avatar.position.z))return;
   const at = walkerExteriorAt(avatar.position.x, avatar.position.z);
   if (!at) { avatar.visible = false; return; }
   if (Math.hypot(at.x - avatar.position.x, at.z - avatar.position.z) < 1e-6) return;
@@ -28406,6 +28459,7 @@ function walkerFootprintBlocked(x, z) {
       seen.add(entry);
       // Inside the house entered by its door, its walls (wallSegmentsNear) are what hold the walker.
       if (typeof enteredEntry !== "undefined" && entry === enteredEntry) continue;
+      if(typeof stairRecessClear === "function" && stairRecessClear(entry,x,z))continue;
       if (insideFootprint(entry, x, z)) return true;
       const ring = entry.local;
       for (let i = 1; i < ring.length; i += 1) {
@@ -29224,6 +29278,23 @@ function insideEntranceRecess(entry, x, z) {
     return Math.abs(across) <= d.stoopPlan.width / 2 + 0.1
       && inward >= -0.1 && inward <= d.stoopPlan.depth + 0.1;
   });
+}
+
+// Leave ordinary doors/walls solid. Only an actually rendered stair recess is
+// walkable, with body clearance at both sides and at its property-interior end.
+function stairRecessClear(entry,x,z){
+  return (entry?.doors||[]).some(d=>{
+    const p=d.stoopPlan;if(!p||!(p.steps>0)||!d.stoopSurface?.stairs)return false;
+    const dx=x-d.cx,dz=z-d.cz,across=dx*d.ux+dz*d.uz,inward=dx*d.nx+dz*d.nz;
+    return Math.abs(across)<=p.width/2-WALKER_RADIUS_M
+      && inward>=-WALKER_RADIUS_M-.05 && inward<=p.depth-WALKER_RADIUS_M;
+  });
+}
+function walkableStairRecessAt(x,z){
+  const guest=typeof guestUnder === "function" ? guestUnder(x,z) : null;
+  if(guest?.ready&&guest.api.walkableStairRecessAt)return guest.api.walkableStairRecessAt(...hostToGuest(guest,x,z));
+  const entries=footprintGrid.get(`${Math.floor(x/FOOTPRINT_CELL)}:${Math.floor(z/FOOTPRINT_CELL)}`)||[];
+  return entries.some(e=>stairRecessClear(e,x,z));
 }
 
 addEventListener("keydown", (e) => {
@@ -31550,6 +31621,7 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
 
 let previous = performance.now();
 function animateAvatar(distance, direction, moving) {
+  avatar.userData.lastMoving=moving;
   if (moving && direction.lengthSq()) {
     avatar.rotation.y = Math.atan2(direction.x, direction.z);
     avatar.userData.lastMove = [direction.x, direction.z, performance.now()];
@@ -31559,20 +31631,24 @@ function animateAvatar(distance, direction, moving) {
   // Keep the contact plane on the sampled surface.  Limbs and the imported walk
   // clip carry the gait; lifting the whole rig made both feet hover each step.
   avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
-  avatar.userData.leftLeg.rotation.x = swing * 0.58;
-  avatar.userData.rightLeg.rotation.x = -swing * 0.58;
+  const climbing=moving&&avatar.userData.onStairs;
+  avatar.userData.leftLeg.rotation.x = swing * (climbing?.85:.58);
+  avatar.userData.rightLeg.rotation.x = -swing * (climbing?.85:.58);
   avatar.userData.leftArm.rotation.x = -swing * 0.48;
   avatar.userData.rightArm.rotation.x = swing * 0.48;
   avatar.userData.leftArm.rotation.z = 0.10;
   avatar.userData.rightArm.rotation.z = -0.10;
   // Up a hill or a flight of steps the walker walks, and its stride slows with the pace.
   const pace = moving ? (avatar.userData.pace ?? 1) : 1;
-  setAvatarAction(moving ? (pace < 0.7 && avatarActions.Walk ? "Walk" : "Run") : "Idle");
+  setAvatarAction(moving ? ((climbing || pace < 0.7) && avatarActions.Walk ? "Walk" : "Run") : "Idle");
   if (avatarActiveAction) avatarActiveAction.timeScale = moving ? Math.max(0.5, Math.min(1.15, pace)) : 1;
 }
 function updateAvatarMixer(dt) {
   if (!avatarMixer) return;
   avatarMixer.update(dt);
+  const model=avatar.getObjectByName("imported-realistic-demo-character");
+  if(model)model.rotation.x=avatar.userData.lastMoving
+    ? Math.max(-.12,Math.min(.12,-(avatar.userData.grade||0)*.18)) : 0;
 }
 function firstBuildingCollision(fromX, fromZ, toX, toZ) {
   // Sweep the whole movement segment so zoom-scaled steps cannot tunnel through a building.
@@ -31602,6 +31678,7 @@ function firstBuildingCollision(fromX, fromZ, toX, toZ) {
           const along = (qx * ez - qz * ex) / denominator;
           const onEdge = (qx * dz - qz * dx) / denominator;
           if (along < 0 || along > 1 || onEdge < 0 || onEdge > 1) continue;
+          if(typeof stairRecessClear === "function" && stairRecessClear(entry,fromX+dx*along,fromZ+dz*along))continue;
           if (first === null || along < first) first = along;
         }
       }
@@ -31707,6 +31784,11 @@ const MAX_DROP_GRADE = 1.2;
 //: A flight of steps is climbed at this share of the walking pace, up or down.
 const STAIR_PACE = 0.55;
 const PACE_PROBE_M = 0.6;
+function walkSurfaceSpeed(base,pace){
+  if(pace.stairs)return Math.min(1.35,base*pace.factor);
+  if(Math.abs(pace.grade||0)>.08)return Math.min(2.2,base*pace.factor);
+  return base*pace.factor;
+}
 //: How the ground ahead lets the walker go: the pace (``factor``) and, where the way ahead is
 //: a cliff of plain ground, the move turned along the slope instead (``move`` is changed in
 //: place, to nothing where there is no way along). Stairs, floors and stoops are walked as they
@@ -31764,8 +31846,12 @@ function stepAvatar(now) {
   // Hills and stairs set the pace, and a cliff is not walked up (walkPace).
   const pace = walkPace(move);
   avatar.userData.pace = pace.factor;
+  avatar.userData.onStairs=pace.stairs;
+  avatar.userData.grade=pace.grade;
   if (!move.lengthSq()) { animateAvatar(0, new THREE.Vector3(), false); updateAvatarMixer(dt); return; }
-  move.multiplyScalar(scaled * dt * pace.factor);
+  // Zoom changes flat-ground travel, not the rate at which a body climbs risers.
+  const surfaceSpeed=walkSurfaceSpeed(scaled,pace);
+  move.multiplyScalar(surfaceSpeed * dt);
   GPS_LEASH.on = false;   // walking yourself: the walker is yours until R or Reset view
   requestInteriors();
   // Canonical footprints stay solid for the walker, including when a door is open.
@@ -31773,7 +31859,8 @@ function stepAvatar(now) {
   const lon = midLon + avatar.position.x / metersPerLon;
   const lat = midLat - avatar.position.z / metersPerLat;
   if (window.kerbsideOpenFullRegionAt && window.kerbsideOpenFullRegionAt(lon, lat)) return;
-  animateAvatar(moved, move, true);
+  avatar.userData.lastMoving=moved>0;
+  animateAvatar(moved, move, moved>0);
   updateAvatarMixer(dt);
   state.target.copy(avatar.position);
   placeCamera();
@@ -32048,6 +32135,8 @@ function animate(now) {
   if (progress && !progress.hidden) progress.hidden = true;
   markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
   if(natureWorld?.tick(now,camera))lastMovedAt=now;
+  if(grassStrands&&grassSurfaceAt){const focus=state.firstPerson?avatar.position:state.target;
+    grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
   stepAvatar(now);
   updateCompass(now);
   if (frameCount % 30 === 0) updateRouteWidth();
@@ -33468,6 +33557,7 @@ function guestTick({ eye, dist, firstPerson, at, dt }) {
   state.dist = dist;
   state.firstPerson = firstPerson;
   avatar.position.copy(at);
+  if(grassStrands&&grassSurfaceAt)grassStrands.update(at.x,at.z,camera.position.y-at.y);
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
   frameCount += 1;
   updateDoors(dt);
@@ -33502,7 +33592,7 @@ window.kerbsideGuestApi = {
             Math.max(corners[0][0], corners[1][0]), Math.max(corners[0][1], corners[1][1])];
   })() : (() => { const [x0, y0] = xy(DATA.bbox.west, DATA.bbox.south); const [x1, y1] = xy(DATA.bbox.east, DATA.bbox.north);
     return [x0, -y1, x1, -y0]; })(),
-  walkerGroundAt, walkerGroundInfo, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
+  walkerGroundAt, walkerGroundInfo, walkableStairRecessAt, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
   walkerFootprintBlocked,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   tick: guestTick,

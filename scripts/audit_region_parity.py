@@ -39,6 +39,12 @@ def audit_region(source: Path, published: Path, region: str) -> dict:
     site = (
         published / "docs" if region == "sf-corridor" else published / "docs" / "regions" / region
     )
+    asset_site = site
+    app_site = published / "docs/app-regions" / region
+    if (app_site / "sf-corridor-3d.json").is_file():
+        site = app_site  # The app's expanded Oakland payload outranks its frozen website.
+    if region == "oakland-downtown" and site == app_site:
+        asset_site = app_site
     payload_path = site / "sf-corridor-3d.json"
     payload = read(payload_path)
     if payload is None:
@@ -63,7 +69,10 @@ def audit_region(source: Path, published: Path, region: str) -> dict:
     not_served = sorted(k for k in source_colours if not buildings[k].get("colour"))
     survey_ids = set(survey) & buildings.keys()
     source_ground = read(official / "ground_cover.json", {})
-    served_ground = read(site / "sf-corridor-ground.json", {})
+    ground_path = asset_site / "sf-corridor-ground.json"
+    if region == "sf-corridor" and (site / "app-sf-corridor-ground.json").is_file():
+        ground_path = site / "app-sf-corridor-ground.json"
+    served_ground = read(ground_path, {})
     ground_counts = {
         k: {"source": len(source_ground.get(k, [])), "served": len(served_ground.get(k, []))}
         for k in ("trees", "parks", "yards", "lawns", "front_walks", "courts")
@@ -76,8 +85,8 @@ def audit_region(source: Path, published: Path, region: str) -> dict:
                 row = json.loads(line)
                 latest[row["cell"]] = row
     errors = [r for r in latest.values() if r.get("error") or r.get("retry")]
-    official_sidecar = read(site / "sf-corridor-official.json", {})
-    terrain = read(site / "sf-corridor-terrain.json", {})
+    official_sidecar = read(asset_site / "sf-corridor-official.json", {})
+    terrain = read(asset_site / "sf-corridor-terrain.json", {})
     metrics = {
         "sampled_colour": fraction(sum(bool(w.get("colour")) for w in buildings.values()), bcount),
         "lidar_height": fraction(
@@ -92,6 +101,13 @@ def audit_region(source: Path, published: Path, region: str) -> dict:
         "measured_kerb_stations": fraction(grades["S"] + grades["L"], sum(grades.values())),
         "surveyed_facade_available": fraction(len(survey_ids), bcount),
     }
+    context = read(published / "docs/municipal-context.manifest.json", {})
+    municipal = next((r for r in context.get("regions", []) if r["region"] == region), {})
+    fits = read(published / "docs/sf-corridor-frontage-fits.manifest.json", {})
+    fit_count = 0
+    for tile in fits.get("tiles", []):
+        if tile.get("region") == region or f"/{region}/" in tile.get("path", ""):
+            fit_count += len(read(published / "docs" / tile["path"], {}).get("buildings", {}))
     issues = []
     if not_served:
         issues.append(f"{len(not_served)} sampled source colours absent from served buildings")
@@ -123,6 +139,10 @@ def audit_region(source: Path, published: Path, region: str) -> dict:
         "metrics": metrics,
         "kerb_grades": dict(grades),
         "ground_counts": ground_counts,
+        "ground_path": str(ground_path.relative_to(published)),
+        "photo_derived_facades": {"count": fit_count, "measured_geometry": False},
+        "additional_municipal_evidence": municipal,
+        "kerb_share_basis": "Canonical evidence grades; does not imply measured curb shapes are drawn.",
         "terrain": {
             "grid_step_m": terrain.get("frame", {}).get("step_m"),
             "reported_roadway_accuracy": terrain.get("accuracy", {}).get("roadway"),
