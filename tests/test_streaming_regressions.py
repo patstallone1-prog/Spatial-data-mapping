@@ -62,6 +62,13 @@ def test_generated_viewers_pin_the_matching_streaming_module():
         assert f'world-streaming.mjs?rev={digest}' in page.read_text(), page
 
 
+def test_house_only_publications_are_part_of_the_installed_app_release():
+    manifest = ROOT / "docs/sf-corridor-frontage-fits.manifest.json"
+    released = json.loads((ROOT / "docs/runtime-release.json").read_text())["photo_derived_houses"]
+    assert released["count"] == json.loads(manifest.read_text())["houses"]
+    assert released["manifest_sha256"] == hashlib.sha256(manifest.read_bytes()).hexdigest()
+
+
 def test_roof_and_facade_picking_is_not_dependent_on_render_mesh_visibility():
     result = run("""
       import {rayPrism} from './docs/world-streaming.mjs';
@@ -104,6 +111,22 @@ def test_distant_unloaded_click_never_snaps_back_to_initial_streets():
       console.log(JSON.stringify(eligibleLanding({x:20000,y:30,z:40000},true)));
     """)
     assert result == {"x": 20000, "y": 30, "z": 40000}
+
+
+def test_street_and_corner_names_follow_the_destination_owner():
+    js = _page_js()
+    result = run("""
+      const g={api:{streetNameAt:(x,z)=>({x,z,name:'Destination Street'}),
+        crossStreetsAt:(x,z,name)=>({x,z,name,at:'Destination Corner'})}};
+      function guestUnder(){return g;}
+      function hostToGuest(g,x,z){return [(x-10000)/2,z-20000];}
+    """ + _extract("streetNameAt", js) + _extract("crossStreetsAt", js) + """
+      console.log(JSON.stringify({street:streetNameAt(10050,20040),
+        corner:crossStreetsAt(10050,20040,'Destination Street')}));
+    """)
+    assert result["street"] == {"x": 25, "z": 40, "name": "Destination Street"}
+    assert result["corner"] == {"x": 25, "z": 40, "name": "Destination Street",
+                                "at": "Destination Corner"}
 
 
 def test_proactive_growth_lead_and_true_region_edges_do_not_thrash():

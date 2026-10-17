@@ -1,9 +1,9 @@
 {
  "schema": "kerbside.facade_fit_tiles/1",
- "version": "0394c71425f330e8",
+ "version": "e7dd2784fd737286",
  "base": "",
  "tile_degrees": 0.01,
- "houses": 4052,
+ "houses": 4058,
  "tiles": [
   {
    "region": "berkeley-downtown",
@@ -425,10 +425,10 @@
     -122.4397758,
     37.8055128
    ],
-   "count": 222,
-   "path": "fits/sf-corridor/-12245_3780-761cf3238796.json",
-   "sha256": "761cf3238796031802474a70a2f226f92b4754e97ec60727ffae730b3e904102",
-   "bytes": 1557880
+   "count": 223,
+   "path": "fits/sf-corridor/-12245_3780-25eb4a1883f8.json",
+   "sha256": "25eb4a1883f835f3270336c40514c94b128cfb2bddccb818fc706611884dd672",
+   "bytes": 1562828
   },
   {
    "region": "sf-corridor",
@@ -493,10 +493,10 @@
     -122.419831,
     37.7901828
    ],
-   "count": 81,
-   "path": "fits/sf-corridor/-12243_3778-678b013779a9.json",
-   "sha256": "678b013779a958c2ecc75b06cba8839364f585cc55e150b76db999282a54bb5a",
-   "bytes": 498224
+   "count": 82,
+   "path": "fits/sf-corridor/-12243_3778-25cd9cb0f966.json",
+   "sha256": "25cd9cb0f966e54e8edcb328cc1bc17131ee91fc50f68e7cbe96214159bde0ac",
+   "bytes": 501908
   },
   {
    "region": "sf-corridor",
@@ -510,10 +510,10 @@
     -122.4197803,
     37.7999028
    ],
-   "count": 142,
-   "path": "fits/sf-corridor/-12243_3779-1784abb08277.json",
-   "sha256": "1784abb0827721165a1711b8e7d6899430a86977429731a48ba899bb515c326b",
-   "bytes": 922380
+   "count": 144,
+   "path": "fits/sf-corridor/-12243_3779-d73ebd991ce8.json",
+   "sha256": "d73ebd991ce814a182a1ddd81d501fccb20f4ba9ac26893700a79d422d1e2612",
+   "bytes": 929431
   },
   {
    "region": "sf-corridor",
@@ -574,14 +574,14 @@
    ],
    "bbox": [
     -122.4201549,
-    37.7999113,
+    37.7999006,
     -122.4100001,
     37.8090923
    ],
-   "count": 112,
-   "path": "fits/sf-corridor/-12242_3780-763f06b389f2.json",
-   "sha256": "763f06b389f2cccca4d0cea97f1380b01caf599a598b852158e7364404976e71",
-   "bytes": 716153
+   "count": 113,
+   "path": "fits/sf-corridor/-12242_3780-afa4e83e1f45.json",
+   "sha256": "afa4e83e1f45d85051ae27b68461e246b7567b73b3d50d5c7269271f9101a981",
+   "bytes": 720409
   },
   {
    "region": "sf-corridor",
@@ -612,10 +612,10 @@
     -122.4003461,
     37.8001329
    ],
-   "count": 224,
-   "path": "fits/sf-corridor/-12241_3779-a10db5af146e.json",
-   "sha256": "a10db5af146e28ed0d6a3a29ab04ada003e540314cb964f10b8f5714acabbbb5",
-   "bytes": 1350883
+   "count": 225,
+   "path": "fits/sf-corridor/-12241_3779-46d06cce8f25.json",
+   "sha256": "46d06cce8f257a55d4ece2ae84a6de42e77fa68903a88ea97a53ff7cb68d1366",
+   "bytes": 1357762
   },
   {
    "region": "sf-corridor",

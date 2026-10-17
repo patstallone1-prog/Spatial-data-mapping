@@ -1,12 +1,12 @@
 {
   "schema": "kerbside.house_publication/1",
-  "worker_accepted_index": 4042,
-  "eligible_worker_records": 4042,
+  "worker_accepted_index": 4044,
+  "eligible_worker_records": 4044,
   "skipped_records": 0,
-  "before": 4048,
-  "published": 4052,
-  "net_added": 4,
-  "version": "0394c71425f330e8",
+  "before": 4052,
+  "published": 4058,
+  "net_added": 6,
+  "version": "e7dd2784fd737286",
   "raw_photos_published": false,
   "representation": "image_derived_inferred_visual_parameters_not_dense_scan_or_measured_collision"
 }

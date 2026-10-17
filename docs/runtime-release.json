@@ -48,6 +48,10 @@
     "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Public/KerbsideWorldActors.h": "16b7a92e88a3d7fa29baf1d9738d99c87aa2cb0c35c87e33547ba6378933ae93"
   },
   "app_shell_sha256": "6444dec4da5e6af4c84226001375f5e5e925f6b99b2ff238a95edee16185f34c",
+  "photo_derived_houses": {
+    "count": 4058,
+    "manifest_sha256": "868a44e6e2f755e94b26e5ad6cfd1162106210c061c44227d01c37d60011af5a"
+  },
   "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
   "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates."
 }

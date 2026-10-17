@@ -50,6 +50,9 @@
 - Three open-ground right clicks recorded distinct destinations. The clicked and final
   horizontal positions matched exactly in those checks (0 m safe-landing adjustment),
   including Oakland after the cross-region handoff. This checks picking, not survey accuracy.
+- Final-policy check: SF reached a stable 700 m window in 12.6 s; a San Jose window took
+  6.7 s locally. In San Jose, S returned **260 East Santa Clara Street** and a right-click
+  retained the exact open-ground destination. Normal walking remained on detailed ground.
 - Two 20-second movement sweeps exercised proactive rebuilds in Oakland while detailed
   roads remained visible. The oversize-window experiment above was observed during this
   check and removed; subsequent release uses the smaller rolling-window policy.
@@ -62,3 +65,12 @@ renderer. Cell manifests include source SHA-256 and indexing version; CI rejects
 indexes or mismatched runtime imports. Visual checks sample SF and Oakland, not every street
 or device. Extremely fast travel or slow networking can still show the coarse fallback while
 a destination builds. Required CI and the committed render baseline remain release gates.
+
+## House snapshot included in this release
+
+Six newly eligible photo-derived facades join the preserved baseline: **4,052 → 4,058**.
+All six passed the renderer's actual canonical-footprint, height, acceptance and front-normal
+checks and retain CC-BY-SA-4.0 attribution. They are **low-certainty inferred visual parameters**,
+not lidar-verified geometry or dense scans. No raw photographs are published. Examples include
+1330 Union Street, 1001 Powell Street and 1990 Beach Street, San Francisco. The release manifest
+fingerprints the house manifest so a house-only publication also updates installed apps.
