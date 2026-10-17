@@ -314,6 +314,7 @@ def main():
                         # The reconstructor: every fit accepted or rejected automatically, into
                         # a bucket per house, and the accepted published as parameters.
                         "--auto-accept",
+                        "--publish-to", str(ROOT / "build/facade-match/candidate-published-fits.json"),
                     ],
                     # The cladding of every reconstructed house, read off its own photographs
                     # (CLIP), laid over the published fits by the matcher.

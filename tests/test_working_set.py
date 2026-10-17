@@ -2,8 +2,17 @@
 import hashlib
 import json
 import sqlite3
+from pathlib import Path
 
 from smc.storage.working_set import WorkingSet
+
+
+def test_background_proposals_cannot_overwrite_served_frontage_artifacts():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "scripts/match_frontage_facades.py").read_text()
+    assert 'default=ROOT / "build/facade-match/candidate-published-fits.json"' in source
+    runner = (root / "scripts/run_frontage_workers.py").read_text()
+    assert '"--publish-to", str(ROOT / "build/facade-match/candidate-published-fits.json")' in runner
 
 
 def workspace(tmp_path, mounted):
