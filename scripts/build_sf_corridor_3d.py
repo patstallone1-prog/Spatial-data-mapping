@@ -26966,6 +26966,8 @@ let searchPlaces = () => [];
   // time anyone types: a place across the bay is found the same way as one down the street, and
   // travelling to it hands over to that region's full model -- no region to choose first.
   const elsewhere = { corners: [], addresses: [], places: [], loading: null };
+  function searchEntryKey(label,lon,lat) { return `${label}|${lon.toFixed(5)}|${lat.toFixed(5)}`; }
+  const localSearchKeys=new Set([...corners,...addresses,...places].map(p=>searchEntryKey(p.label,p.lon,p.lat)));
   function loadElsewhere() {
     if (elsewhere.loading) return elsewhere.loading;
     const index = document.querySelector('meta[name="kerbside-regions"]')?.content;
@@ -26975,8 +26977,9 @@ let searchPlaces = () => [];
       if (!all) return;
       const titles = (all.regions || []).map((r) => r.title);
       const take = (rows) => rows
-        // This region's own places are searched from its own payload above.
-        .filter(([, lon, lat]) => !tileOwnGround(lon, lat))
+        // Only the INITIAL payload supplies the local lists above. A later guest
+        // owning this address does not mean it exists in those frozen lists.
+        .filter(([label, lon, lat]) => !localSearchKeys.has(searchEntryKey(label,lon,lat)))
         .map(([label, lon, lat, r]) => ({ label: `${label} · ${titles[r] || ""}`,
           hay: `${label} ${titles[r] || ""}`.toLowerCase(), lon, lat }));
       elsewhere.corners = take(all.corners || []);

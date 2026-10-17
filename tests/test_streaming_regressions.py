@@ -129,6 +129,22 @@ def test_street_and_corner_names_follow_the_destination_owner():
                                 "at": "Destination Corner"}
 
 
+def test_global_search_keeps_addresses_in_later_detail_windows():
+    js = _page_js()
+    result = run("""
+      const elsewhere={loading:null},location={href:'https://city.test/app-model.html'},field={value:''};
+      const document={querySelector:()=>({content:'app-regions.json'})};
+      function tileOwnGround(){throw Error('moving ownership must not remove search results');}
+      const fetch=async()=>({ok:true,json:async()=>({regions:[{title:'SF'}],
+        addresses:[['Initial House',-122.42,37.8,0],['1330 Union Street',-122.4213,37.799129,0]]})});
+    """ + _extract("searchEntryKey", js) + """
+      const localSearchKeys=new Set([searchEntryKey('Initial House',-122.42,37.8)]);
+    """ + _extract("loadElsewhere", js) + """
+      await loadElsewhere();console.log(JSON.stringify(elsewhere.addresses));
+    """)
+    assert len(result) == 1 and result[0]["label"] == "1330 Union Street · SF"
+
+
 def test_proactive_growth_lead_and_true_region_edges_do_not_thrash():
     result = run("""
       import {detailRequest} from './docs/world-streaming.mjs';

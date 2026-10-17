@@ -35,6 +35,8 @@
 5. **S address picking:** picking now ray-tests canonical building prisms in the correct
    coordinate frame, independently of merged/hidden facade meshes, with exact-centre priority
    and an eight-pixel edge tolerance. Streets and cross-street queries likewise use the owner.
+   Global search excludes only entries actually present in its initial local lists, rather
+   than dropping addresses inside whichever detail window happens to own them later.
 
 ## Evidence
 
