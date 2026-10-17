@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="0edacaa5f91a69c027e9fa69558f1d7ec5a9d46469008c3fa6070538e97d59e4" />
+<meta name="kerbside-renderer-sha256" content="34d592f787f0daa6b9d325be85da80feaf30fe787775e431315a8f437d90d577" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -30426,6 +30426,8 @@ function releaseHostWorld() {
   if(natureWorld){natureWorld.hostBox.value.set(1,1,0,0);natureWorld.invalidate();}
   if (!hostWorldActive) return;
   hostWorldActive = false;
+  if(grassStrands)grassStrands.dispose();
+  grassStrands=null;grassSurfaceAt=null;
   for (const child of [...root.children]) {
     if (child === tileGroupRoot || child === avatar || child.userData.bayWide) continue;
     root.remove(child);
@@ -30734,6 +30736,8 @@ window.kerbsideGuestApi = {
   },
   // Let go: what this world holds is emptied, since the code that built it stays loaded.
   release() {
+    if(grassStrands)grassStrands.dispose();
+    grassStrands=null;grassSurfaceAt=null;
     terrainTiles.length = 0;
     tunnelBores.length = 0;
     billboardFaces.length = 0;

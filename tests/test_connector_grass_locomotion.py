@@ -103,6 +103,14 @@ walkSurfaceSpeed(8.94,{factor:.6,grade:.2}),walkSurfaceSpeed(5.36,{factor:1,grad
     assert json.loads(subprocess.check_output(["node", "-e", script], text=True)) == [1.35, 2.2, 5.36]
 
 
+def test_retired_world_releases_blades_and_triangle_sampler_instead_of_rebuilding_it():
+    source = _page_js()
+    host = _extract("releaseHostWorld", source)
+    assert "grassStrands.dispose()" in host and "grassStrands=null;grassSurfaceAt=null" in host
+    release = source.split("release() {", 1)[1].split("footprintGrid.clear()", 1)[0]
+    assert "grassStrands.dispose()" in release and "grassSurfaceAt=null" in release
+
+
 def test_connector_schedule_starts_each_envelope_before_second_job_and_before_lidar():
     spec = importlib.util.spec_from_file_location("gap_runner", ROOT / "scripts/run_gap_intake.py")
     runner = importlib.util.module_from_spec(spec)
