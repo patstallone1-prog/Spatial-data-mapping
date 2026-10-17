@@ -31,8 +31,8 @@ def page_module(out: Path, page: Path = PAGE) -> Path:
                 "const GLTFLoader = globalThis.__THREE.GLTFLoader;", js, flags=re.M)
     # This pure scheduler runs unchanged. Node cannot import an HTTP module URL;
     # resolve its same checked-in source locally, without stubbing its behavior.
-    js = js.replace('import(sharedAsset("world-streaming.mjs"))',
-                    f'import({json.dumps((ROOT / "docs/world-streaming.mjs").as_uri())})')
+    js = re.sub(r'import\(sharedAsset\("world-streaming\.mjs(?:\?rev=[^"\s]+)?"\)\)',
+                f'import({json.dumps((ROOT / "docs/world-streaming.mjs").as_uri())})', js)
     out.write_text(js, encoding="utf-8")
     return out
 
@@ -61,6 +61,20 @@ def test_the_shipped_page_loads_without_an_error(tmp_path: Path) -> None:
     pairs = corners["laid"] + corners["skipped"]["onRoad"]
     assert corners["laid"] / pairs >= 0.9, corners
     assert corners["skipped"]["shape"] == 0 and corners["skipped"]["unlaid"] == 0, corners
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to run the page")
+def test_bounded_installed_app_boots_with_real_cell_loading(tmp_path: Path) -> None:
+    module = page_module(tmp_path / "bounded-page.mjs")
+    result = subprocess.run(
+        [NODE, str(ROOT / "tests/page_smoke/run.mjs"), str(ROOT), str(module),
+         str(ROOT / "docs"), "?light=3&at=-122.429,37.798"],
+        capture_output=True, text=True, timeout=180,
+    )
+    assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
+    state = json.loads(result.stdout.strip().splitlines()[-1])
+    assert state["ok"] and state["terrain"] and state["streets"] > 20, state
+    assert 100 < state["ways"] < 5000, state  # must not silently load a whole city
 
 
 @pytest.mark.skipif(NODE is None, reason="node is needed to run regional pages")

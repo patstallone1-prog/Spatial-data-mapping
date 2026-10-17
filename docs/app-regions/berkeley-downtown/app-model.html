@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="553b30e14842586a16727b75fa1a7e802286cff5a3a1c428347ac26c8c842f0d" />
+<meta name="kerbside-renderer-sha256" content="600beaea855ef55c37e7f21d9eb82f376d7a7b918fd319a113c695325fad0fd7" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -278,6 +278,8 @@ const WORLD_BUILD_STARTED=performance.now();
 //: page's own world is still drawn; and the built regions, from the page's region index.
 let activeGuest = null;
 let hostWorldActive = true;
+let regionStreamingReady = false;
+let attaching = null, attachWanted = null, detailRetryAt=0, detailCheckAt=0, detailPreviousFocus=null;
 const REGION_INDEX = { list: [], root: "", host: null };
 const ASSET_BASE = ATTACH ? ATTACH.assets
   : (document.querySelector('meta[name="kerbside-assets"]') || {}).content || "";
@@ -297,7 +299,7 @@ function viaStore(href) {
 const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
 const sharedAsset = (name) => viaStore(new URL(name, new URL(
   document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
-const worldStreaming = await import(sharedAsset("world-streaming.mjs"));
+const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=f1206819e21a9c55"));
 const worldCellCache = ATTACH?.cellCache || new worldStreaming.CellCache();
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
@@ -429,7 +431,13 @@ function makeWindow(spec) {
     if (depth > 5 || value === null || typeof value !== "object") return false;
     if (Array.isArray(value)) {
       if (value.length >= 2 && typeof value[0] === "number" && typeof value[1] === "number") return inside(value[0], value[1]);
-      return value.some((v) => near(v, depth + 1));
+      if (value.some((v) => near(v, depth + 1))) return true;
+      // A segment can cross the window with BOTH ends outside; a polygon can
+      // enclose it without any vertex inside. Preserve this contextual geometry.
+      const points=value.filter(v=>Array.isArray(v)&&v.length>=2&&typeof v[0]==="number"&&typeof v[1]==="number");
+      return points.length>1 && Math.min(...points.map(p=>p[0]))<=box[2]
+        && Math.max(...points.map(p=>p[0]))>=box[0] && Math.min(...points.map(p=>p[1]))<=box[3]
+        && Math.max(...points.map(p=>p[1]))>=box[1];
     }
     if (typeof value.lon === "number" && typeof value.lat === "number") return inside(value.lon, value.lat);
     for (const key of ["centroid", "p", "points", "c", "anchor", "lines", "position"]) {
@@ -447,7 +455,7 @@ async function fetchWindowed(url, full) {
   const folder = url.replace(/([^/]+)\.json$/, "cells/$1/");
   try {
     const manifest = await worldCellCache.load(`${folder}manifest.json`,100);
-    if (!manifest) return full();
+    if (!manifest) throw Error(`Missing cell manifest: ${folder}`);
     const doc = await worldCellCache.load(`${folder}base.json`,100);
     const keys = worldStreaming.windowCells(manifest,LIGHT_SPEC.box,LIGHT_SPEC.lon,LIGHT_SPEC.lat);
     const gathered = new Map(manifest.paths.map((path) => [path, new Map()]));
@@ -464,14 +472,22 @@ async function fetchWindowed(url, full) {
       const [head, tail] = path.split(".");
       if (tail) doc[head][tail] = list; else doc[head] = list;
     }
-    // Warm a one-cell halo at low priority. Parsed cells are bounded by the shared
-    // LRU; no hidden full-detail meshes and no second region renderer are built.
-    const b=LIGHT_SPEC.box,padLon=250/(111320*Math.cos(LIGHT_SPEC.lat*Math.PI/180)),padLat=250/111320;
+    // Expand source readiness up to a kilometre beyond the current square, nearest
+    // first. Do not queue more decoded data than the shared LRU can retain.
+    const b=LIGHT_SPEC.box,padLon=1000/(111320*Math.cos(LIGHT_SPEC.lat*Math.PI/180)),padLat=1000/111320;
     const halo=worldStreaming.windowCells(manifest,[b[0]-padLon,b[1]-padLat,b[2]+padLon,b[3]+padLat],LIGHT_SPEC.lon,LIGHT_SPEC.lat);
-    for(const key of halo) if(!keys.includes(key)) worldCellCache.load(`${folder}${key}.json`,-20).catch(()=>{});
+    let warmBytes=0;
+    const room=Math.max(0,48*1048576-worldCellCache.snapshot().residentBytes);
+    for(const key of halo)if(!keys.includes(key)) {
+      const bytes=(manifest.cells[key] || 0)*4;if(warmBytes+bytes>room)continue;
+      warmBytes+=bytes;worldCellCache.load(`${folder}${key}.json`,-20).catch(()=>{});
+    }
     return doc;
   } catch (error) {
-    return full();
+    // Only genuinely unindexed sidecars may use the whole-file path. A transient
+    // failed cell must not silently allocate a whole city and kill the installed app.
+    if (String(error.message).includes("cell HTTP 404") && String(error.message).includes("manifest.json")) return full();
+    throw error;
   }
 }
 //: The payload's and the ground's own URLs, which the app's pages point at their own copies.
@@ -769,7 +785,7 @@ const QUALITY = () => QUALITY_PRESETS[SETTINGS.quality];
 const BUILD_WINDOW = LIGHT_LEVEL ? makeWindow(LIGHT_SPEC || windowSpec(DATA.bbox)) : null;
 if (BUILD_WINDOW) {
   const before = DATA.ways.length;
-  DATA.ways = DATA.ways.filter((way) => BUILD_WINDOW.near(way.kind === "building" && way.centroid ? way.centroid : way.points));
+  DATA.ways = DATA.ways.filter((way) => BUILD_WINDOW.near(way.points || way.centroid));
   for (const key of ["intersections", "observations", "coverage", "sequence_paths", "gaps"]) {
     if (Array.isArray(DATA[key])) DATA[key] = DATA[key].filter((item) => BUILD_WINDOW.near(item));
   }
@@ -1102,6 +1118,48 @@ const midLat = (bbox.south + bbox.north) / 2;
 const midLon = (bbox.west + bbox.east) / 2;
 const metersPerLat = 111320;
 const metersPerLon = metersPerLat * Math.cos(midLat * Math.PI / 180);
+function localWindowBox(box) {
+  const a=xy(box[0],box[1]),b=xy(box[2],box[3]);
+  return new THREE.Vector4(a[0],-b[1],b[0],-a[1]);
+}
+const detailClipBox={value:BUILD_WINDOW ? localWindowBox(BUILD_WINDOW.box) : new THREE.Vector4(-1e12,-1e12,1e12,1e12)};
+const tileDetailBox={value:BUILD_WINDOW ? localWindowBox(BUILD_WINDOW.box) : localWindowBox([bbox.west,bbox.south,bbox.east,bbox.north])};
+// Both tiers share an exact fragment boundary. Never rebuild/drop whole coarse tiles
+// on a handoff: their geometry remains ready outside the new full-detail rectangle.
+function applyBoxClip(object, uniform, excludeInside=false) {
+  object.traverse(o=>{
+    for(const material of o.material ? (Array.isArray(o.material)?o.material:[o.material]) : []) {
+      if(material.userData.detailOwnership===uniform)return;
+      material.userData.detailOwnership=uniform;
+      const before=material.onBeforeCompile,cacheKey=material.customProgramCacheKey();
+      material.onBeforeCompile=function(shader,renderer){
+        before.call(this,shader,renderer);shader.uniforms.uDetailBounds=uniform;
+        shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vDetailWorld;')
+          .replace('#include <project_vertex>',`#include <project_vertex>
+          vec4 detailPosition=vec4(transformed,1.0);
+          #ifdef USE_INSTANCING
+          detailPosition=instanceMatrix*detailPosition;
+          #endif
+          vDetailWorld=(modelMatrix*detailPosition).xyz;`);
+        shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
+          '#include <common>\nvarying vec3 vDetailWorld;\nuniform vec4 uDetailBounds;')
+          .replace('void main() {',`void main() {
+          bool inDetail=vDetailWorld.x>=uDetailBounds.x && vDetailWorld.x<=uDetailBounds.z
+            && vDetailWorld.z>=uDetailBounds.y && vDetailWorld.z<=uDetailBounds.w;
+          if(${excludeInside ? 'inDetail' : '!inDetail'}) discard;`);
+      };
+      material.customProgramCacheKey=()=>cacheKey+':ownership-v1:'+excludeInside;
+      material.needsUpdate=true;
+    }
+  });
+}
+function clipDetailWorld() {
+  if(!BUILD_WINDOW)return;
+  for(const child of root.children) {
+    if(child.name==="kerbside-walker" || child===tileGroupRoot || child.userData.bayWide)continue;
+    applyBoxClip(child,detailClipBox);
+  }
+}
 function xy(lon, lat) { return [(lon - midLon) * metersPerLon, (lat - midLat) * metersPerLat]; }
 
 // ---- the ground -----------------------------------------------------------------------------
@@ -2284,6 +2342,10 @@ function inTubePortalOpening(x, z) {
   });
 }
 function addBackdropTile(xs, zs, apronOf) {
+  if(BUILD_WINDOW) {
+    const b=localWindowBox(BUILD_WINDOW.box);
+    if(Math.max(...xs)<b.x || Math.min(...xs)>b.z || Math.max(...zs)<b.y || Math.min(...zs)>b.w)return;
+  }
   const w = xs.length, h = zs.length;
   const position = new Float32Array(w * h * 3);
   const colour = new Float32Array(w * h * 3);
@@ -2328,6 +2390,7 @@ function addBackdropTile(xs, zs, apronOf) {
   // Backdrop first; inferred ground-cover polygons mask it before streets/buildings draw.
   tile.renderOrder = -2;
   terrainTiles.push(tile);
+  if(BUILD_WINDOW)applyBoxClip(tile,detailClipBox);
   root.add(tile);
 }
 const TERRAIN_GRAIN = LANDWATER ? noiseTexture("#ffffff", "#777771", 512, 0.09) : null;
@@ -3271,7 +3334,7 @@ function natureVisualHeightAt(x,z,h,wet) {
   return y;
 }
 if (NATURE) {
-  const localBounds = TERRAIN_FRAME ? (() => {
+  const localBounds = BUILD_WINDOW ? localWindowBox(BUILD_WINDOW.box) : TERRAIN_FRAME ? (() => {
     const f=TERRAIN_FRAME,stride=TERRAIN_MESH_STRIDE;
     const a=terrainToPage(f.x0+.5*f.step_m,f.y0+.5*f.step_m,f);
     const b=terrainToPage(f.x0+(Math.floor((f.cols-1)/stride)*stride+.5)*f.step_m,
@@ -3959,19 +4022,9 @@ function tileOwnGround(lon, lat) {
 //: ``stations`` carry at least ``lon`` and ``lat``; the runs come back as the same objects,
 //: so a caller keeps whatever else it put in them.
 function tileOutsideRuns(stations) {
-  if (TILE_OWN_BOX === null) return stations.length >= 2 ? [stations] : [];
-  const runs = [];
-  let run = [];
-  for (const station of stations) {
-    if (tileOwnGround(station.lon, station.lat)) {
-      if (run.length >= 2) runs.push(run);
-      run = [];
-      continue;
-    }
-    run.push(station);
-  }
-  if (run.length >= 2) runs.push(run);
-  return runs;
+  // Ownership is per fragment, not per station/feature. Endpoint-only clipping
+  // let a two-vertex ribbon cross right through the measured world.
+  return stations.length >= 2 ? [stations] : [];
 }
 
 function tileFocalPx(eye = camera) {
@@ -4088,6 +4141,7 @@ function buildTile(tile, layers) {
     }),
   };
   tile.materials = Object.values(materials);
+  for(const material of tile.materials)applyBoxClip({traverse:visit=>visit({material})},tileDetailBox,true);
   if (layers.massing) addTileMeshes(group, tileMassing(layers.massing, f, lonOf, latOf, materials.massing));
   if (layers.buildings) addTileMeshes(group, tileBuildings(layers.buildings, f, lonOf, latOf, materials.buildings));
   // The street, from the outside in: carriageway and footways.  Crossings are not a wide road
@@ -4198,7 +4252,6 @@ function syncNatureTileHeights(boxes) {
 function tileMassing(rows, f, lonOf, latOf, material) {
   const kept = [];
   for (const [cx, cy, halfA, halfB, bearing, height] of rows) {
-    if (tileOwnGround(lonOf(cx), latOf(cy))) continue;
     kept.push([cx, cy, halfA, halfB, bearing, height]);
   }
   if (!kept.length) return [];
@@ -4254,7 +4307,7 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
     // renderer had already drawn.
     let ringX = 0, ringY = 0, corners = 0;
     for (let i = 3; i + 1 < row.length; i += 2) { ringX += row[i]; ringY += row[i + 1]; corners += 1; }
-    if (!corners || tileOwnGround(lonOf(ringX / corners), latOf(ringY / corners))) continue;
+    if (!corners) continue;
     const ring = [];
     for (let i = 3; i + 1 < row.length; i += 2) ring.push([f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)]);
     if (ring.length >= 3 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring.pop();
@@ -4430,7 +4483,7 @@ function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMater
     // whichever end the map happened to draw first.
     let midX = 0, midY = 0, ends = 0;
     for (let i = 1; i + 1 < row.length; i += 2) { midX += row[i]; midY += row[i + 1]; ends += 1; }
-    if (!ends || tileOwnGround(lonOf(midX / ends), latOf(midY / ends))) continue;
+    if (!ends) continue;
     const points = [];
     for (let i = 1; i + 1 < row.length; i += 2) {
       points.push([f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)]);
@@ -5231,6 +5284,7 @@ function mergeParts(parts) {
 //: mesh is split by where its instances stand. Run before the group is lifted, so that the
 //: pieces get their bounds from the lift.
 function tileGroup(group) {
+  if(BUILD_WINDOW)applyBoxClip(group,detailClipBox);
   let cut = 0;
   for (const mesh of group.children.slice()) {
     if (!mesh.isMesh || !mesh.geometry) continue;
@@ -18190,7 +18244,9 @@ const RING_CLIP_M = 3.0;
 //: triangle a kilometre long tilted seventy metres into the air over the apron.
 const RING_BOX_MARGIN_M = 40.0;
 function clipRingToBox(ring) {
-  const [bw, bs] = xy(bbox.west, bbox.south), [be, bn] = xy(bbox.east, bbox.north);
+  const b=typeof BUILD_WINDOW!=="undefined" && BUILD_WINDOW
+    ? {west:BUILD_WINDOW.box[0],south:BUILD_WINDOW.box[1],east:BUILD_WINDOW.box[2],north:BUILD_WINDOW.box[3]} : bbox;
+  const [bw, bs] = xy(b.west, b.south), [be, bn] = xy(b.east, b.north);
   const west = bw - RING_BOX_MARGIN_M, east = be + RING_BOX_MARGIN_M, south = bs - RING_BOX_MARGIN_M, north = bn + RING_BOX_MARGIN_M;
   let poly = ring.map(([lon, lat]) => xy(lon, lat));
   // Sutherland-Hodgman against each of the four edges.
@@ -18281,7 +18337,9 @@ function grassRasterRows(rings, west, south, width, height, step) {
 }
 
 function grassHardMask(excludeAt, rings = null) {
-  const [bw, bs] = xy(bbox.west, bbox.south), [be, bn] = xy(bbox.east, bbox.north);
+  const b=typeof BUILD_WINDOW!=="undefined" && BUILD_WINDOW
+    ? {west:BUILD_WINDOW.box[0],south:BUILD_WINDOW.box[1],east:BUILD_WINDOW.box[2],north:BUILD_WINDOW.box[3]} : bbox;
+  const [bw, bs] = xy(b.west, b.south), [be, bn] = xy(b.east, b.north);
   // Three-quarter-metre cells retain the old two-channel mask's memory budget while
   // resolving narrow paths and stair-step edges more faithfully. One channel encodes
   // hard surface (0), park-only underlay (128), or grass (255).
@@ -18328,7 +18386,10 @@ function maskedGrassMaterial(map, hardMask, roughness, park = false) {
     shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>",
       `#include <clipping_planes_fragment>\nif (texture2D(groundHardMask, vGroundHardUv).r < ${park ? "0.75" : "0.25"}) discard;`);
   };
-  material.customProgramCacheKey = () => `ground-hard-mask-v3-${park ? "park" : "yard"}`;
+  // These extents are baked into the shader above. A shared key reused the
+  // previous window/city's UV transform with the new mask, exposing random patches.
+  material.customProgramCacheKey = () => `ground-hard-mask-v4-${park ? "park" : "yard"}-`
+    + [hardMask.west,hardMask.east,hardMask.south,hardMask.north].map(glslFloat).join(":");
   return material;
 }
 
@@ -20592,6 +20653,8 @@ for (const [name, label] of [["kerbs", "Standing the measured kerbs on the groun
 }
 await settleOntoPavement();
 cellFineSurfaces(groups.streets);
+clipDetailWorld();
+groundReady.then(()=>clipDetailWorld());
 //: For anything driving the page -- the audit's photographs, a test -- the moment the streets
 //: are finished; the ground cover sets its own flag when it is down (see the ground fetch).
 window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { streets: true });
@@ -24033,6 +24096,8 @@ let searchPlaces = () => [];
   // time anyone types: a place across the bay is found the same way as one down the street, and
   // travelling to it hands over to that region's full model -- no region to choose first.
   const elsewhere = { corners: [], addresses: [], places: [], loading: null };
+  function searchEntryKey(label,lon,lat) { return `${label}|${lon.toFixed(5)}|${lat.toFixed(5)}`; }
+  const localSearchKeys=new Set([...corners,...addresses,...places].map(p=>searchEntryKey(p.label,p.lon,p.lat)));
   function loadElsewhere() {
     if (elsewhere.loading) return elsewhere.loading;
     const index = document.querySelector('meta[name="kerbside-regions"]')?.content;
@@ -24042,8 +24107,9 @@ let searchPlaces = () => [];
       if (!all) return;
       const titles = (all.regions || []).map((r) => r.title);
       const take = (rows) => rows
-        // This region's own places are searched from its own payload above.
-        .filter(([, lon, lat]) => !tileOwnGround(lon, lat))
+        // Only the INITIAL payload supplies the local lists above. A later guest
+        // owning this address does not mean it exists in those frozen lists.
+        .filter(([label, lon, lat]) => !localSearchKeys.has(searchEntryKey(label,lon,lat)))
         .map(([label, lon, lat, r]) => ({ label: `${label} · ${titles[r] || ""}`,
           hay: `${label} ${titles[r] || ""}`.toLowerCase(), lon, lat }));
       elsewhere.corners = take(all.corners || []);
@@ -24331,6 +24397,7 @@ function buildCharacterAvatar() {
   return rig;
 }
 const avatar = buildCharacterAvatar();
+avatar.name="kerbside-walker";
 // An attached region's walker is the page's: its own stands in for it unseen (guestTick moves it).
 if (ATTACH) avatar.visible = false;
 avatar.scale.setScalar(AVATAR_SCALE);
@@ -24542,19 +24609,35 @@ async function featureSummary(feature) {
   return lines.join("<br>");
 }
 
-function pickedFeature(clientX, clientY) {
-  // Where the ray meets the roofs, and where it meets the ground. A tall building is picked by
-  // the first, a low one or a gap between them by the second, and taking whichever is nearer
-  // the camera is what makes clicking a facade from street level pick that facade's building.
-  pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
-  ray.setFromCamera(pointer, camera);
-  const hit = ray.intersectObjects(groups.mapped3d.children, false)[0];
-  if (hit) {
-    const found = buildingAt(hit.point.x, hit.point.z);
-    if (found) return found;
+function pickRayBuilding(origin,direction) {
+  let best=null,bestT=Infinity;
+  const seen=new Set();
+  for(const bucket of footprintGrid.values())for(const entry of bucket) {
+    if(seen.has(entry))continue;seen.add(entry);
+    const floor=groundBaseFor(entry.way.points);
+    const t=worldStreaming.rayPrism(origin,direction,entry.local,floor,floor+Math.max(3,entry.way.height_m || 10.5));
+    if(t===null || t>=bestT)continue;
+    const x=origin[0]+t*direction[0],z=origin[2]+t*direction[2];
+    if(BUILD_WINDOW && !BUILD_WINDOW.inside(midLon+x/metersPerLon,midLat-z/metersPerLat))continue;
+    bestT=t;best={feature:entry.way,t};
   }
-  const landing = new THREE.Vector3();
-  if (ray.ray.intersectPlane(groundPlane, landing)) return buildingAt(landing.x, landing.z);
+  return best;
+}
+function pickedFeature(clientX, clientY) {
+  // Exact centre ray first, then an eight-pixel halo for narrow/edge-on facades.
+  // Canonical prisms keep roofs/merged facade meshes and guest windows pickable.
+  for(const [dx,dy] of [[0,0],[-8,0],[8,0],[0,-8],[0,8],[-6,-6],[6,-6],[-6,6],[6,6]]) {
+    pointer.set(((clientX+dx)/innerWidth)*2-1,-((clientY+dy)/innerHeight)*2+1);
+    ray.setFromCamera(pointer,camera);
+    const o=ray.ray.origin,d=ray.ray.direction;
+    let hit=hostWorldActive ? pickRayBuilding([o.x,o.y,o.z],[d.x,d.y,d.z]) : null;
+    if(activeGuest?.ready) {
+      const g=activeGuest;
+      const other=g.api.pickRayBuilding([(o.x-g.ox)/g.sx,o.y-g.oy,o.z-g.oz],[d.x/g.sx,d.y,d.z]);
+      if(other && (!hit || other.t<hit.t))hit=other;
+    }
+    if(hit)return hit.feature;
+  }
   return null;
 }
 
@@ -24568,11 +24651,15 @@ function groundAt(clientX, clientY) {
     .filter(h=>h.distance<blocker-.01);
   // The ground is the terrain where there is one -- a click on Russian Hill lands on the
   // hill, not on the sea-level plane under it -- and the flat plane elsewhere.
-  if (terrainMesh) {
+  if (terrainTiles.length || activeGuest?.ready || natureWorld) {
     const natureGround = natureWorld ? [...natureWorld.terrain.children] : [];
     const hits = ray.intersectObjects(activeGuest && activeGuest.ready
       ? [...terrainTiles, ...activeGuest.api.terrainTiles, ...natureGround] : [...terrainTiles,...natureGround], false);
-    const visibleHits=hits.filter(h=>h.distance<blocker-.01 && !pointInTunnelVoid(h.point.x,h.point.y,h.point.z)
+    const visibleHits=hits.filter(h=>h.distance<blocker-.01
+      && (h.object.userData.surface!=="terrain" || (activeGuest?.api.terrainTiles.includes(h.object)
+        ? Boolean(guestUnder(h.point.x,h.point.z))
+        : hostWorldActive && (!BUILD_WINDOW || BUILD_WINDOW.inside(midLon+h.point.x/metersPerLon,midLat-h.point.z/metersPerLat))))
+      && !pointInTunnelVoid(h.point.x,h.point.y,h.point.z)
       && (!natureWorld || natureWorld.isVisibleGroundHit(h)));
     if (visibleHits.length) {
       if(tunnelHits.length && tunnelHits[0].distance<visibleHits[0].distance)return tunnelHits[0].point.clone();
@@ -24602,9 +24689,20 @@ for (const way of DATA.ways) {
 }
 function eligibleLanding(landing, forceStreet = false) {
   if (!landing) return null;
+  // Consult the owner of the clicked point, never the original city's segments.
+  const guest=guestUnder(landing.x,landing.z);
+  if(guest) {
+    const [x,z]=hostToGuest(guest,landing.x,landing.z);
+    const at=guest.api.eligibleLanding({x,y:landing.y-guest.oy,z},forceStreet);
+    return at ? new THREE.Vector3(guest.ox+at.x*guest.sx,guest.oy+at.y,guest.oz+at.z) : null;
+  }
+  // Far outside the loaded window, retain the clicked point. The destination
+  // window resolves its exterior after loading instead of snapping across cities.
+  const lon=midLon+landing.x/metersPerLon,lat=midLat-landing.z/metersPerLat;
+  if(!hostWorldActive || !tileOwnGround(lon,lat))return landing;
   if (!forceStreet && undergroundLanding(landing)) return landing;
   if (!forceStreet && !buildingAt(landing.x, landing.z)) return landing;
-  let best = null, bestD2 = Infinity;
+  let best = null, bestD2 = 150 ** 2;
   for (const [ax, az, dx, dz] of streetLandingSegments) {
     const t = Math.max(0, Math.min(1, ((landing.x - ax) * dx + (landing.z - az) * dz) / (dx * dx + dz * dz)));
     const x = ax + t * dx, z = az + t * dz;
@@ -24700,7 +24798,7 @@ function goTo(landing, { travel = false, zoom = false } = {}) {
   // Exploring there is no walker to send: the view goes, and comes in close as it would.
   if (state.explore && travel) {
     if (zoom) state.dist = ARRIVAL_DIST;
-    state.target.set(landing.x, groundLiftAt(landing.x, landing.z), landing.z);
+    state.target.set(landing.x, walkerGroundAt(landing.x, landing.z,landing.y), landing.z);
     placeCamera();
     return;
   }
@@ -24785,10 +24883,13 @@ canvas.addEventListener("contextmenu", async (e) => {
   if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
   const distant = !state.firstPerson && state.dist > 1200;
   hideAddress();
-  const landing = eligibleLanding(groundAt(e.clientX, e.clientY), distant);
+  const clicked=groundAt(e.clientX,e.clientY);
+  const landing = eligibleLanding(clicked, distant);
   if (!landing) return;
   if (state.firstPerson) setFirstPerson(false);
   goTo(landing, { travel: true, zoom: true });
+  console.info("kerbside: teleport",JSON.stringify({clicked:[clicked.x,clicked.z],landed:[avatar.position.x,avatar.position.z],
+    adjustedMetres:Math.hypot(clicked.x-avatar.position.x,clicked.z-avatar.position.z)}));
 });
 canvas.addEventListener("pointerdown", hideAddress);
 addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
@@ -24798,6 +24899,8 @@ addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
 let pointerAt = null;
 canvas.addEventListener("pointermove", (e) => { pointerAt = [e.clientX, e.clientY]; });
 function streetNameAt(x, z) {
+  const guest=guestUnder(x,z);
+  if(guest){const p=hostToGuest(guest,x,z);return guest.api.streetNameAt(...p);}
   let best = null;
   for (const way of DATA.ways) {
     // The bus lanes down Van Ness are not the street a walker is on: the avenue is.
@@ -24817,6 +24920,8 @@ const BUSWAY_NAMES = new Set(BUSWAY_WAYS.map((way) => way.name).filter(Boolean))
 //: Within a corner's width the point is at that corner, and the next corners each way are given.
 const AT_CORNER_M = 18;
 function crossStreetsAt(x, z, name) {
+  const guest=guestUnder(x,z);
+  if(guest){const p=hostToGuest(guest,x,z);return guest.api.crossStreetsAt(...p,name);}
   // The street's own direction here, from its nearest segment.
   let best = null;
   for (const way of DATA.ways) {
@@ -29077,6 +29182,7 @@ function animate(now) {
   updateCompass(now);
   if (frameCount % 30 === 0) updateRouteWidth();
   checkLightWindow(frameCount);
+  checkDetailExpansion(now);
   // Labels are re-sized and culled with the detail: only when the view has changed.
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
   frameCount += 1;
@@ -30308,16 +30414,34 @@ regionBadge.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:30;bac
   + "font:12px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;pointer-events:none;transition:opacity .5s";
 regionBadge.hidden = true;
 document.body.appendChild(regionBadge);
-let attaching = null, attachWanted = null;
+function checkDetailExpansion(now) {
+  if(ATTACH || !regionStreamingReady || attaching || now<detailRetryAt || now-detailCheckAt<1000
+    || !window.kerbsideReady?.streets || !window.kerbsideReady?.ground)return;
+  detailCheckAt=now;
+  const focus=state.firstPerson ? avatar.position : state.target;
+  const lon=midLon+focus.x/metersPerLon,lat=midLat-focus.z/metersPerLat;
+  const region=regionAt(lon,lat);if(!region)return;
+  const owner=activeGuest,box=owner?.windowBox || BUILD_WINDOW?.box;
+  if(!box)return;
+  if(region!==(owner?.region || REGION_INDEX.host)) {
+    attachRegion(region,{lon,lat},220);detailPreviousFocus=[lon,lat];return;
+  }
+  const [s,w,n,e]=region.bbox;
+  const request=worldStreaming.detailRequest(box,owner?.detailRadius || BUILD_WINDOW.radius,
+    [lon,lat],[metersPerLon,metersPerLat],detailPreviousFocus,[w,s,e,n]);
+  detailPreviousFocus=[lon,lat];
+  if(request)attachRegion(region,{lon:Math.max(w,Math.min(e,request.lon)),lat:Math.max(s,Math.min(n,request.lat))},request.radius);
+}
 window.kerbsideStreamDetail=()=>{
   const cache=worldCellCache.snapshot(),usage=activeGuest?.api.municipalUsage || municipalUsage;
   return `Detail: ${activeGuest?.region.title || REGION_INDEX.host?.title || "local"}`
-    +`${attaching ? " (loading nearby window)" : ""}; ${activeGuest?.buildSeconds?.toFixed(1) || "initial"} s build; `
+    +`${attaching ? ` (loading nearby window: ${attaching.progress?.textContent || "fetching"})` : ""}; `
+    +`${2*(activeGuest?.detailRadius || BUILD_WINDOW?.radius || 0)} m detail width; ${activeGuest?.buildSeconds?.toFixed(1) || "initial"} s build; `
     +`cells ${(cache.residentBytes/1048576).toFixed(1)} / 48 MiB, ${cache.active} fetching, ${cache.hits} reused. `
     +`Municipal sidewalks: ${usage.sidewalks}; curb records: ${usage.curbColourRecords}.`;
 };
-async function attachRegion(region, centre = null) {
-  if (ATTACH || !region) return;
+async function attachRegion(region, centre = null, radius = 220) {
+  if (ATTACH || !regionStreamingReady || !region) return;
   const isHost = REGION_INDEX.host && region.name === REGION_INDEX.host.name;
   if (!centre && ((isHost && hostWorldActive) || (activeGuest && activeGuest.region === region))) return;
   centre ||= {lon:midLon+avatar.position.x/metersPerLon,lat:midLat-avatar.position.z/metersPerLat};
@@ -30326,13 +30450,13 @@ async function attachRegion(region, centre = null) {
     || centre.lon<rw || centre.lon>re || centre.lat<rs || centre.lat>rn)return;
   if (activeGuest?.region === region && activeGuest.windowBox) {
     const b=activeGuest.windowBox;
-    if(Math.min((centre.lon-b[0])*metersPerLon,(b[2]-centre.lon)*metersPerLon,
-      (centre.lat-b[1])*metersPerLat,(b[3]-centre.lat)*metersPerLat)>Math.min(140,activeGuest.detailRadius*.45))return;
+    if(radius<=activeGuest.detailRadius && worldStreaming.windowMargin(b,[centre.lon,centre.lat],
+      [metersPerLon,metersPerLat],[rw,rs,re,rn])>=280)return;
   }
   if (attaching) {
     if(attaching.region===region && Math.hypot((centre.lon-attaching.centre.lon)*metersPerLon,
       (centre.lat-attaching.centre.lat)*metersPerLat)<100)return;
-    attachWanted = {region,centre}; return;
+    attachWanted = {region,centre,radius}; return;
   }
   worldCellCache.focus();
   attaching = {region,centre};
@@ -30340,7 +30464,6 @@ async function attachRegion(region, centre = null) {
   regionBadge.style.opacity = "1";
   regionBadge.hidden = false;
   const previous = activeGuest;
-  const previousBox = TILE_OWN_BOX;
   let candidate=null;
   try {
     // Build a bounded replacement offscreen. Never discard the last working window
@@ -30361,7 +30484,8 @@ async function attachRegion(region, centre = null) {
       "kerbside-app-mode": meta("kerbside-app-mode") || "",
     };
     const stand = guestStandIns(pageUrl, metas);
-    const holder = { region, ready: false, centre, detailRadius:220, startedAt:performance.now() };
+    attaching.progress=stand.document.getElementById("progress");
+    const holder = { region, ready: false, centre, detailRadius:radius, startedAt:performance.now() };
     candidate=holder;
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
@@ -30420,7 +30544,7 @@ async function attachRegion(region, centre = null) {
     natureWorld?.invalidate();
     // The tree draws the simple city everywhere but here, and the country under it gives way.
     TILE_OWN_BOX = holder.windowBox.slice();
-    invalidateTilesTouching([previousBox,TILE_OWN_BOX]);
+    tileDetailBox.value.copy(localWindowBox(TILE_OWN_BOX));
     const [x0, z0, x1, z1] = holder.box;
     indoorCut.guestBox.value.set(holder.ox + x0 * holder.sx, holder.oz + z0, holder.ox + x1 * holder.sx, holder.oz + z1);
     cullForced = true;
@@ -30432,11 +30556,12 @@ async function attachRegion(region, centre = null) {
     regionBadge.textContent = `Could not load ${region.title}`;
     setTimeout(() => { regionBadge.style.opacity = "0"; }, 4000);
     globalThis.__kerbsideGuest = null;
+    detailRetryAt=performance.now()+10000;
   } finally {
     attaching = null;
     const next = attachWanted;
     attachWanted = null;
-    if (next) attachRegion(next.region,next.centre);
+    if (next && performance.now()>=detailRetryAt) attachRegion(next.region,next.centre,next.radius);
   }
 }
 window.kerbsideAttachRegion = (name) => attachRegion(REGION_INDEX.list.find((r) => r.name === name));
@@ -30450,17 +30575,6 @@ function guestFrame(now) {
   keepWalkerOutside();
   const dt = Math.min(0.1, (now - g.lastAt) / 1000);
   g.lastAt = now;
-  if (frameCount % 60 === 0 && !attaching && g.windowBox) {
-    const focus=state.firstPerson ? avatar.position : state.target;
-    const lon=midLon+focus.x/metersPerLon,lat=midLat-focus.z/metersPerLat;
-    const b=g.windowBox, r=g.api.bbox;
-    const margin=Math.min((lon-b[0])*metersPerLon,(b[2]-lon)*metersPerLon,
-      (lat-b[1])*metersPerLat,(b[3]-lat)*metersPerLat);
-    const atEdge=Math.min((lon-r.west)*metersPerLon,(r.east-lon)*metersPerLon,
-      (lat-r.south)*metersPerLat,(r.north-lat)*metersPerLat)<LIGHT_EDGE_M;
-    if(lon>=r.west && lon<=r.east && lat>=r.south && lat<=r.north
-      && margin<Math.min(140,g.detailRadius*.45) && !atEdge) attachRegion(g.region,{lon,lat});
-  }
   const [gx, gz] = hostToGuest(g, avatar.position.x, avatar.position.z);
   guestAvatarAt.set(gx, avatar.position.y - g.oy, gz);
   const said = g.api.tick({ eye: camera, dist: state.dist, firstPerson: state.firstPerson, at: guestAvatarAt, dt });
@@ -30520,9 +30634,18 @@ window.kerbsideGuestApi = {
     return [x0, -y1, x1, -y0]; })(),
   walkerGroundAt, walkerGroundInfo, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
   walkerFootprintBlocked,
+  eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   tick: guestTick,
   toggleNearestDoor() { const door = nearestDoor(); return door ? { at: toggleDoor(door) } : null; },
-  setRootInverse(matrix) { ROOT_INVERSE.copy(matrix); tunnelVoidInverse.copy(matrix); detailCells = null; cullForced = true; },
+  setRootInverse(matrix) {
+    ROOT_INVERSE.copy(matrix); tunnelVoidInverse.copy(matrix); detailCells = null; cullForced = true;
+    // Box uniforms are in renderer/world metres, just like the fragment position.
+    if(BUILD_WINDOW) {
+      const b=localWindowBox(BUILD_WINDOW.box),a=new THREE.Vector3(b.x,0,b.y).applyMatrix4(root.matrixWorld),
+        c=new THREE.Vector3(b.z,0,b.w).applyMatrix4(root.matrixWorld);
+      detailClipBox.value.set(a.x,a.z,c.x,c.z);
+    }
+  },
   // Let go: what this world holds is emptied, since the code that built it stays loaded.
   release() {
     terrainTiles.length = 0;
@@ -30542,6 +30665,9 @@ window.kerbsideGuestApi = {
     if (TERRAIN) { TERRAIN.data = null; TERRAIN.visualData = null; }
   },
 };
+// Animation can start while later top-level awaits are still building labels/UI.
+// Only enable handoffs once every declaration and the guest API are initialized.
+regionStreamingReady = true;
 </script>
 </body>
 </html>

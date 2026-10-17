@@ -20,6 +20,7 @@ def test_s_names_the_cross_streets_either_side() -> None:
     # a busway's corner at 0 that is never a cross street. Metres = degrees x 1000 here.
     script = "\n".join([
         "function xy(lon, lat) { return [lon * 1000, lat * 1000]; }",
+        "function guestUnder(){return null;}",  # isolated host-world fixture
         _extract("distanceToSegmentSquared", js),
         "const DATA = { ways: [{ kind: 'street', name: 'Main', points: [[-0.5, 0], [0.5, 0]] }],",
         "  intersections: [{ a: 'Main', b: 'Oak', lon: -0.1, lat: 0 }, { a: 'Pine', b: 'Main', lon: 0.1, lat: 0 },",

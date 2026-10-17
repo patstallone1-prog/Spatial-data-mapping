@@ -31,9 +31,10 @@ const el = () => stub("element");
 globalThis.document = { getElementById: el, querySelector: () => null, querySelectorAll: () => [], createElement: el, body: el(), documentElement: el(), addEventListener() {}, hidden: false, visibilityState: "visible" };
 globalThis.window = globalThis;
 globalThis.devicePixelRatio = 1; globalThis.innerWidth = 1280; globalThis.innerHeight = 800;
-globalThis.location = { search: "", hash: "", href: "http://localhost/" };
+globalThis.location = { search: process.argv[5] || "", hash: "", href: "http://localhost/" };
 Object.defineProperty(globalThis, "navigator", { value: { userAgent: "node", hardwareConcurrency: 4 }, configurable: true });
 globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+globalThis.sessionStorage = { getItem: () => null, setItem() {}, removeItem() {} };
 globalThis.requestAnimationFrame = () => 0; globalThis.cancelAnimationFrame = () => {};
 globalThis.addEventListener = () => {}; globalThis.removeEventListener = () => {};
 globalThis.matchMedia = () => ({ matches: false, addEventListener() {} });
@@ -41,7 +42,7 @@ globalThis.Image = class { set src(v) { setTimeout(() => this.onload && this.onl
 globalThis.OffscreenCanvas = class { getContext() { return stub("ctx"); } };
 globalThis.ResizeObserver = class { observe() {} };
 globalThis.fetch = async (url) => {
-  const name = String(url).split("?")[0];
+  const name = String(url).replace(/^http:\/\/localhost\//, "").split("?")[0];
   try {
     const bytes = readFileSync(`${ASSET_ROOT}/${name}`);
     return { ok: true, status: 200, json: async () => JSON.parse(bytes.toString("utf8")),

@@ -170,13 +170,17 @@ def main() -> None:
             if path.is_file() and path.suffix in (".cpp", ".h", ".cs", ".uplugin")
         },
         "app_shell_sha256": hashlib.sha256((DOCS / "app.html").read_bytes()).hexdigest(),
+        "photo_derived_houses": {
+            "count": json.loads((DOCS / "sf-corridor-frontage-fits.manifest.json").read_text())["houses"],
+            "manifest_sha256": hashlib.sha256((DOCS / "sf-corridor-frontage-fits.manifest.json").read_bytes()).hexdigest(),
+        },
         "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
         "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates.",
     }
     (DOCS / "runtime-release.json").write_text(json.dumps(release, indent=2) + "\n")
     digest = hashlib.blake2b(digest_size=8)
     app_assets = [DOCS / "app.html", DOCS / "app-model.html", DOCS / "app-regions.json",
-                  DOCS / "runtime-release.json"]
+                  DOCS / "runtime-release.json", DOCS / "sf-corridor-frontage-fits.manifest.json"]
     app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
     app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json",

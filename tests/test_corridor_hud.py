@@ -72,7 +72,8 @@ def test_published_app_viewers_and_shell_have_the_new_controls():
     for path in viewers:
         page = path.read_text()
         assert 'aria-controls="map-sidebar"' in page
-        assert 'const landing = eligibleLanding(groundAt(e.clientX, e.clientY), distant);' in page
+        assert 'const clicked=groundAt(e.clientX,e.clientY);' in page
+        assert 'const landing = eligibleLanding(clicked, distant);' in page
         assert 'if (zoom) state.dist = ARRIVAL_DIST;' in page
         assert '#addr .sub { color:#fff; }' in page
     app = (DOCS / "app.html").read_text()
