@@ -129,6 +129,7 @@ def test_stream_handoff_keeps_old_world_until_ready_and_updates_all_search_regio
     assert "centre.lon<rw || centre.lon>re || centre.lat<rs || centre.lat>rn" in attach
     guest_frame=source.split("function guestFrame(now)")[1].split("function guestTick")[0]
     assert "const focus=state.firstPerson ? avatar.position : state.target" in guest_frame
+    assert "if (!state.firstPerson && state.dist > REGION_ENTER_DIST_M) return" in source
     opener = source.split("window.kerbsideOpenFullRegionAt =")[1].split("for (const region of list)")[0]
     assert "location.assign" not in opener and "openFullRegion(destination" not in opener
     index = json.loads((ROOT / "docs/search-index.json").read_text())

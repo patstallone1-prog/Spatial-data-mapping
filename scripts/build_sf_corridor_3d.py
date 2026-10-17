@@ -3870,10 +3870,11 @@ Object.values(groups).forEach((g) => root.add(g));
   setInterval(() => {
     // Not until the page is built and drawing (the timers below are declared with it).
     if (!window.kerbside || !window.kerbsideOpenFullRegionAt) return;
-    if (state.firstPerson || state.dist > REGION_ENTER_DIST_M) return;
-    if (performance.now() - Math.max(lastMovedAt, lastInputAt) < REGION_SETTLE_MS) return;
-    const lon = midLon + state.target.x / metersPerLon;
-    const lat = midLat - state.target.z / metersPerLat;
+    if (!state.firstPerson && state.dist > REGION_ENTER_DIST_M) return;
+    if (!state.firstPerson && performance.now() - Math.max(lastMovedAt, lastInputAt) < REGION_SETTLE_MS) return;
+    const focus=state.firstPerson ? avatar.position : state.target;
+    const lon = midLon + focus.x / metersPerLon;
+    const lat = midLat - focus.z / metersPerLat;
     window.kerbsideOpenFullRegionAt(lon, lat);
   }, 1000);
   //: How much of the screen a region should fill when you are flown to it: far enough out that
