@@ -1493,12 +1493,13 @@ console.log(JSON.stringify({ bottoms: [...new Set(bottoms)], minY: Math.min(...y
     assert result["maxY"] == 15, result              # ground plus ten-metre height
 
 
-def test_a_tile_line_stops_at_the_edge_of_the_region_drawn_in_full() -> None:
+def test_a_tile_line_remains_complete_for_dynamic_fragment_ownership() -> None:
     """Inside the region this page draws in full the street renderer already has the real
     thing, so a tile's copy of it has to stop at the boundary. Kept or dropped by its first
     vertex alone, every street and footway that crossed the boundary was drawn whole -- a
-    second carriageway over the real one, for as far as the way ran, which from above is a set
-    of long pale lines lying across the city with the real roadwork showing underneath."""
+    second carriageway over the real one. Ownership now clips fragments using a shared,
+    moving rectangle: keep geometry complete so moving that rectangle needs no rebuild.
+    test_streaming_regressions checks the actual composed shader and moving uniform."""
     js = _page_js()
     parts = ["""
 const TILE_GROUND_Y = 0;
@@ -1537,7 +1538,7 @@ console.log(JSON.stringify({ ribbon, strip }));
     for name in ("ribbon", "strip"):
         xs = result[name]
         assert xs, f"{name}: the parts outside the region are still drawn"
-        assert all(x > 1 or x < 0 for x in xs), (name, xs)
+        assert any(0 <= x <= 1 for x in xs), (name, xs)  # retained, but masked by the shader
         assert max(xs) > 1 and min(xs) < 0, f"{name}: both sides of the region are kept"
 
 

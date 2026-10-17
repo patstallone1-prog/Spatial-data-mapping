@@ -63,7 +63,7 @@ def test_a_page_that_died_loads_lighter_and_never_builds_two_regions() -> None:
     assert "let TILE_OWN_BOX = BUILD_WINDOW ? BUILD_WINDOW.box.slice()" in js
     # One bounded replacement replaces page navigation; no second whole city builds.
     assert "if (destination) attachRegion(destination,{lon,lat});" in js
-    assert "detailRadius:220" in js
+    assert "centre = null, radius = 220" in js and "detailRadius:radius" in js
     attach = js.split("async function attachRegion(")[1].split("window.kerbsideAttachRegion")[0]
     assert attach.index("await api.ready()") < attach.index("releaseHostWorld()")
     assert "checkLightWindow(frameCount);" in _extract("animate", js)

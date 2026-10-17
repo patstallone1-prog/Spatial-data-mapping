@@ -20,6 +20,7 @@ only spare it what is nowhere near.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import shutil
@@ -96,11 +97,18 @@ def cut(path: Path) -> dict | None:
     cells: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
     for dotted, items in lists.items():
         for index, item in enumerate(items):
+            points = list(positions(item))
             seen = set()
-            for lon, lat in positions(item):
-                key = f"{int((lon - origin[0]) // cell[0])}_{int((lat - origin[1]) // cell[1])}"
-                if key not in seen:
-                    seen.add(key)
+            if points:
+                # Vertex-only indexing loses a road through the middle of a cell,
+                # or a yard polygon enclosing it. Conservative bbox indexing keeps
+                # full features/context; the renderer applies the exact window cut.
+                xs = [math.floor((p[0] - origin[0]) / cell[0]) for p in points]
+                ys = [math.floor((p[1] - origin[1]) / cell[1]) for p in points]
+                count = (max(xs) - min(xs) + 1) * (max(ys) - min(ys) + 1)
+                seen = ({f"{x}_{y}" for x in range(min(xs), max(xs) + 1)
+                         for y in range(min(ys), max(ys) + 1)} if count <= 256 else {"any"})
+                for key in sorted(seen):
                     cells[key][dotted].append([index, item])
             if not seen:      # nowhere in particular: in every square
                 cells["any"][dotted].append([index, item])
@@ -122,6 +130,7 @@ def cut(path: Path) -> dict | None:
         (out / f"{key}.json").write_text(text)
         sizes[key] = len(text)
     manifest = {"schema": "kerbside.window_cells/1", "source": path.name, "origin": origin, "cell": cell,
+                "indexing": "feature-bounds-v2", "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 "cell_m": CELL_M, "paths": sorted(lists), "cells": sizes, "bbox": document.get("bbox")}
     (out / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
     name = str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)

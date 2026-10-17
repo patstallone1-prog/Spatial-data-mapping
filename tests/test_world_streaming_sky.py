@@ -40,7 +40,7 @@ def test_cache_bounds_concurrency_retries_and_never_shares_mutable_payloads():
     """)
     assert result["max"] <= 2
     assert result["value"] == "1234567890"
-    assert result["calls"] == 7
+    assert result["calls"] == 11  # each persistent 503 gets two bounded retries
     assert result["failed"] == 2
     assert result["residentBytes"] <= 150
     assert result["evicted"] > 0
@@ -127,8 +127,8 @@ def test_stream_handoff_keeps_old_world_until_ready_and_updates_all_search_regio
     assert 'query.has("fps") && FPS_CHOICES.includes(Number(query.get("fps")))' in source
     assert 'throw Error("Destination ground unavailable; previous window retained")' in source
     assert "centre.lon<rw || centre.lon>re || centre.lat<rs || centre.lat>rn" in attach
-    guest_frame=source.split("function guestFrame(now)")[1].split("function guestTick")[0]
-    assert "const focus=state.firstPerson ? avatar.position : state.target" in guest_frame
+    expansion=source.split("function checkDetailExpansion(now)")[1].split("window.kerbsideStreamDetail")[0]
+    assert "const focus=state.firstPerson ? avatar.position : state.target" in expansion
     assert "if (!state.firstPerson && state.dist > REGION_ENTER_DIST_M) return" in source
     opener = source.split("window.kerbsideOpenFullRegionAt =")[1].split("for (const region of list)")[0]
     assert "location.assign" not in opener and "openFullRegion(destination" not in opener
