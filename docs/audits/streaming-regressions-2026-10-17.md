@@ -9,7 +9,9 @@
    window filtering retains intersecting/enclosing geometry, and complementary world-space
    shader masks give coarse and detailed surfaces one exact boundary. Background terrain,
    grass masks and park polygons are bounded to the data actually loaded, not a whole-city
-   terrain box backed by partial ground classification.
+   terrain box backed by partial ground classification. Grass shader cache keys include
+   their baked mask extents: reusing a previous city's coordinate transform with a new
+   texture otherwise exposes apparently random uncovered patches.
 2. **Failed handoffs:** a transient cell error silently fetched an entire city. This can
    exhaust a returning installed app's memory. Transient network/server errors now get
    bounded retries; a failed indexed cell propagates instead of allocating the whole file.

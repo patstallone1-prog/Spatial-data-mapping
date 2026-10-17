@@ -21256,7 +21256,10 @@ function maskedGrassMaterial(map, hardMask, roughness, park = false) {
     shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>",
       `#include <clipping_planes_fragment>\nif (texture2D(groundHardMask, vGroundHardUv).r < ${park ? "0.75" : "0.25"}) discard;`);
   };
-  material.customProgramCacheKey = () => `ground-hard-mask-v3-${park ? "park" : "yard"}`;
+  // These extents are baked into the shader above. A shared key reused the
+  // previous window/city's UV transform with the new mask, exposing random patches.
+  material.customProgramCacheKey = () => `ground-hard-mask-v4-${park ? "park" : "yard"}-`
+    + [hardMask.west,hardMask.east,hardMask.south,hardMask.north].map(glslFloat).join(":");
   return material;
 }
 

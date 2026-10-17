@@ -176,6 +176,18 @@ def test_scheduler_state_exists_before_first_animation_frame():
     assert "invalidateTilesTouching([previousBox,TILE_OWN_BOX])" not in js
 
 
+def test_ground_shader_cache_cannot_reuse_another_windows_baked_mask_coordinates():
+    result = run("""
+      const THREE={DoubleSide:2,MeshStandardMaterial:class{constructor(p){Object.assign(this,p);}}};
+    """ + _extract("maskedGrassMaterial", _page_js()) + """
+      const a={west:0,east:800,south:0,north:800},b={...a,west:1000,east:1800};
+      console.log(JSON.stringify([maskedGrassMaterial(null,a,1).customProgramCacheKey(),
+        maskedGrassMaterial(null,b,1).customProgramCacheKey(),
+        maskedGrassMaterial(null,{...a},1).customProgramCacheKey()]));
+    """)
+    assert result[0] != result[1] and result[0] == result[2]
+
+
 def test_streaming_cannot_start_before_ui_and_guest_exports_exist():
     js = _page_js()
     result = run("const ATTACH=null,regionStreamingReady=false;"
