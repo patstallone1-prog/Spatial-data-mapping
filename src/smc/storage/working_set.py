@@ -94,7 +94,15 @@ class WorkingSet:
             target = self.local / relative
             key = str(relative)
             if target.exists():
-                if key not in self.seeded or sha(target) != self.acknowledged.get(key):
+                local_hash = sha(target)
+                if key not in self.seeded:
+                    # A restart during the first seed may precede the ledger.
+                    # Only exact equality proves this was an imported copy.
+                    if local_hash == sha(source):
+                        self.seeded.add(key)
+                        self.acknowledged[key] = local_hash
+                    continue
+                if local_hash != self.acknowledged.get(key):
                     continue  # Pending local work wins over an older archive.
                 if sha(source) == self.acknowledged.get(key):
                     continue

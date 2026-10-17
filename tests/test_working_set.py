@@ -13,6 +13,8 @@ def test_background_proposals_cannot_overwrite_served_frontage_artifacts():
     assert 'default=ROOT / "build/facade-match/candidate-published-fits.json"' in source
     runner = (root / "scripts/run_frontage_workers.py").read_text()
     assert '"--publish-to", str(ROOT / "build/facade-match/candidate-published-fits.json")' in runner
+    filter_source = (root / "scripts/filter_frontage_photos.py").read_text()
+    assert 'prune_rejected(args.output) if WORKSPACE is None' in filter_source
 
 
 def workspace(tmp_path, mounted):

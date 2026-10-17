@@ -826,10 +826,13 @@ def review_samples(args, summaries, policy):
                 progress(report, region, candidate["observation"], row)
     from smc.facades.frontage_retention import prune_rejected
 
-    cleanup = prune_rejected(args.output)
+    # In durable mode even rejected scratch pixels stay until the complete
+    # batch's archival acknowledgement. The checkpoint owns local cleanup.
+    cleanup = (prune_rejected(args.output) if WORKSPACE is None else
+               {"files_removed": 0, "basis": "deferred_to_verified_external_batch_ack"})
     emit(args.output / "retention.json", cleanup)
     for r in records:
-        if r["status"] == "pixel_rejected":
+        if r["status"] == "pixel_rejected" and WORKSPACE is None:
             r["local_pixels_deleted"] = True
     emit(samples / "index.json", records)
     cards = []
