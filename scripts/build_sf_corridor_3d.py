@@ -3239,6 +3239,10 @@ const LIGHT_LEVEL = (() => {
     const chosen = localStorage.getItem(LIGHT_KEY);
     level = validLightLevel(chosen, level);
   } catch (error) { /* preferences may be unavailable */ }
+  // Retire a legacy persisted whole-city choice in installed apps: returning
+  // visitors must get bounded streaming too, not another multi-GB reload loop.
+  // Explicit ?full remains available to geometry exports and full-world audits.
+  if (document.querySelector('meta[name="kerbside-app-mode"]') && level === 0) level = 2;
   const query = new URLSearchParams(location.search);
   if (query.has("full")) level = 0;
   if (query.has("light")) level = validLightLevel(query.get("light"), 1);
@@ -32687,7 +32691,7 @@ settingsPart("settings-display", "section").insertAdjacentHTML("beforeend", `
   <label class="row">Quality
     <select name="quality">${Object.entries(QUALITY_PRESETS).map(([k, q]) => `<option value="${k}">${q.label}</option>`).join("")}</select></label>
   <label class="row">Build
-    <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}">${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region"}</option>`).join("")}</select></label>
+    <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}"${!i && document.querySelector('meta[name="kerbside-app-mode"]') ? " disabled" : ""}>${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region (export only)"}</option>`).join("")}</select></label>
   <p class="note">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</p>
   <output id="stream-status" class="note" aria-live="polite"></output>
   <label class="row">Show me at my location<input type="checkbox" name="gps" /></label>
