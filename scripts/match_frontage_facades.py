@@ -36,6 +36,7 @@ from smc.facades.version import implementation_sha256  # noqa: E402
 
 LOADED_IMPLEMENTATION = implementation_sha256(ROOT)
 
+from smc.facades import multiview  # noqa: E402
 from smc.facades.architecture_logic import (  # noqa: E402
     NeighbourIndex,
     front_footprint_frame,
@@ -49,7 +50,6 @@ from smc.facades.consensus import (  # noqa: E402
     neighbourhood_reference,
     strict_view_gate,
 )
-from smc.facades import multiview  # noqa: E402
 from smc.facades.detail_detection import FacadeDetailDetector  # noqa: E402
 from smc.facades.fit import extract_front, opening_design  # noqa: E402
 from smc.facades.frontage_retention import prune_finalized, retained_fact  # noqa: E402
@@ -741,7 +741,8 @@ if __name__ == "__main__":
     parser.add_argument("--watch-seconds", type=int, default=0)
     parser.add_argument("--auto-accept", action="store_true",
                         help="decide every fit automatically (auto_review) and publish the accepted")
-    parser.add_argument("--publish-to", type=Path, default=ROOT / "docs/sf-corridor-frontage-fits.json")
+    parser.add_argument("--publish-to", type=Path, default=ROOT / "build/facade-match/candidate-published-fits.json",
+                        help="Private parameter export by default; live immutable tiles require explicit promotion")
     parser.add_argument("--refit-all", action="store_true",
                         help="refit and re-decide every house, finished ones included (passes "
                              "otherwise move forward: settled_houses)")

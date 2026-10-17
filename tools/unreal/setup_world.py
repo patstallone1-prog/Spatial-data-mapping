@@ -145,9 +145,10 @@ def main() -> None:
     if not levels.new_level(LEVEL):
         raise RuntimeError("Could not create dedicated Kerbside map")
     actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-    scene = actors.spawn_actor_from_class(unreal.KerbsideSky, unreal.Vector(0, 0, 0))
-    scene.set_actor_label("Kerbside — physical sky and sun")
-    scene.update_daylight()
+    scene = actors.spawn_actor_from_class(unreal.KerbsideCelestialSky, unreal.Vector(0, 0, 0))
+    scene.set_actor_label("Kerbside — Epic Celestial Vault, San Francisco live clock")
+    scene.sync_clock()
+    scene.apply_weather()
     meshes, colliders = 0, 0
     collision_audit = []
     spawn = None
@@ -234,7 +235,7 @@ def main() -> None:
               "static_colliders": colliders, "spawn_gltf_m": spawn, "import_yaw": yaw,
               "collision_triangle_audit": collision_audit,
               "physics": "Chaos static triangle collision + CharacterMovement capsule",
-              "lighting": "SkyAtmosphere + atmospheric DirectionalLight + realtime SkyLight + volumetric fog",
+              "lighting": "Epic Celestial Vault sun/moon/clouds, SF live clock + realtime SkyLight + volumetric fog",
               "validation_state": "requires native walking/shadow/spawn acceptance; NOT release approved"}
     dest = Path(unreal.Paths.project_saved_dir()) / "KerbsideValidation/import.json"
     dest.parent.mkdir(parents=True, exist_ok=True)

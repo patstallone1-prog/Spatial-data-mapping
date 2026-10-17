@@ -105,6 +105,7 @@ def test_the_page_loads_only_its_own_tiles_and_follows_the_asset_map() -> None:
         """
         const location = { href: "https://site.test/app-regions/sf-mission/app-model.html", origin: "https://site.test" };
         const DATA = { bbox: { west: -122.43, east: -122.40, south: 37.74, north: 37.77 } };
+        const LIGHT_SPEC = null;
         const sharedAsset = (name) => new URL(name, "https://site.test/").href;
         const asked = [];
         globalThis.fetch = async (url) => { asked.push(String(url));

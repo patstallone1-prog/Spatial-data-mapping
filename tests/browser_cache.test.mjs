@@ -99,7 +99,7 @@ test('worker shell ownership respects deployment path and HTTP errors are not ca
   assert.equal(missing.records.size, 0);
 });
 
-async function loadCase({ chosen, mark, legacy, query = '', attached = false } = {}) {
+async function loadCase({ chosen, mark, legacy, query = '', attached = false, app = false } = {}) {
   const local = storage(chosen === undefined ? [] : [['kerbside:light', chosen]]);
   if (legacy) local.setItem('kerbside:loading', JSON.stringify(legacy));
   const session = storage(mark ? [['kerbside:loading', JSON.stringify(mark)]] : []);
@@ -108,6 +108,7 @@ async function loadCase({ chosen, mark, legacy, query = '', attached = false } =
   const window = { kerbsideReady: { streets: true, ground: false }, kerbsideBoot: { error: null } };
   const result = await vm.runInNewContext(`(async()=>{${loadCode}\nreturn {level:LIGHT_LEVEL,markLoadSurvived};})()`, {
     window,
+    document: { querySelector: () => app ? {} : null },
     ATTACH: attached, navigator: { deviceMemory: 16, userAgent: 'Desktop', maxTouchPoints: 0 },
     localStorage: local, sessionStorage: session, caches: h.caches, location: { search: query },
     Date, Number, Math, JSON, Promise, URLSearchParams,
@@ -119,6 +120,10 @@ async function loadCase({ chosen, mark, legacy, query = '', attached = false } =
 test('a second map tab or a legacy global mark cannot trigger false recovery', async () => {
   const r = await loadCase({ legacy: { at: Date.now(), level: 0 } });
   assert.equal(r.result.level, 0); assert.ok(r.h.records.has(oldName));
+});
+test('returning installed apps retire legacy whole-city loads but explicit exports stay available', async () => {
+  assert.equal((await loadCase({chosen:'0',app:true})).result.level,2);
+  assert.equal((await loadCase({chosen:'0',app:true,query:'?full'})).result.level,0);
 });
 test('actual interrupted load recovers before fetches, scoped to obsolete world responses', async () => {
   const r = await loadCase({ mark: { at: Date.now(), level: 0 } });

@@ -6,7 +6,7 @@ public class KerbsideWorld : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new[] {
-            "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore"
+            "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "CelestialVault", "DaySequence"
         });
     }
 }

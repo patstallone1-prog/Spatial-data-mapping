@@ -3147,6 +3147,7 @@ const STOP_ROOF_RED = 0xb4282e;
 // in its own scene, and draws nothing, listens to nothing and shows nothing of its own; its
 // document and window are stand-ins the page gives it (see guestSource).
 const ATTACH = globalThis.__kerbsideGuest || null;
+const WORLD_BUILD_STARTED=performance.now();
 //: The region drawn in full besides this page's own, once the walker has gone there; whether this
 //: page's own world is still drawn; and the built regions, from the page's region index.
 let activeGuest = null;
@@ -3170,6 +3171,9 @@ function viaStore(href) {
 const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
 const sharedAsset = (name) => viaStore(new URL(name, new URL(
   document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
+const worldStreaming = await import(sharedAsset("world-streaming.mjs"));
+const worldCellCache = ATTACH?.cellCache || new worldStreaming.CellCache();
+window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
 const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
@@ -3205,7 +3209,7 @@ const VISUAL_SUPPORT_URL = ATTACH ? ATTACH.visualSupport || ""
 const LOAD_MARK_KEY = "kerbside:loading";
 const LIGHT_KEY = "kerbside:light";
 //: Half the side of the square built in full, by level: 0 is the whole region.
-const LIGHT_RADII_M = [0, 1000, 650, 420];
+const LIGHT_RADII_M = [0, 650, 350, 220];
 let runtimeCacheRecovery = Promise.resolve();
 function clearLegacyRuntimeCaches() {
   if (typeof caches === "undefined") return Promise.resolve();
@@ -3227,14 +3231,18 @@ function deviceIsSmall() {
         || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent || "")));
 }
 const LIGHT_LEVEL = (() => {
-  if (ATTACH) return 0;
+  if (ATTACH) return ATTACH.detailWindow ? 1 : 0;
   // A choice made in the settings stands; otherwise the device's own say. Either way a load
   // that died takes the next one a step lighter.
-  let level = deviceIsSmall() ? 1 : 0;
+  let level = document.querySelector('meta[name="kerbside-app-mode"]') ? 2 : (deviceIsSmall() ? 1 : 0);
   try {
     const chosen = localStorage.getItem(LIGHT_KEY);
     level = validLightLevel(chosen, level);
   } catch (error) { /* preferences may be unavailable */ }
+  // Retire a legacy persisted whole-city choice in installed apps: returning
+  // visitors must get bounded streaming too, not another multi-GB reload loop.
+  // Explicit ?full remains available to geometry exports and full-world audits.
+  if (document.querySelector('meta[name="kerbside-app-mode"]') && level === 0) level = 2;
   const query = new URLSearchParams(location.search);
   if (query.has("full")) level = 0;
   if (query.has("light")) level = validLightLevel(query.get("light"), 1);
@@ -3279,7 +3287,8 @@ function windowSpec(bbox) {
     if (at && at.split(",").length === 2 && at.split(",").every((v) => Number.isFinite(Number(v)))) [lon, lat] = at.split(",").map(Number);
     else if (arrival && arrival.path === location.pathname && Number.isFinite(arrival.lon)) [lon, lat] = [arrival.lon, arrival.lat];
   } catch (error) { /* the middle of the region */ }
-  const radius = LIGHT_RADII_M[LIGHT_LEVEL];
+  if (ATTACH?.detailWindow) ({lon, lat} = ATTACH.detailWindow);
+  const radius = ATTACH?.detailWindow?.radius || LIGHT_RADII_M[LIGHT_LEVEL];
   const kLon = 111320 * Math.cos(lat * Math.PI / 180), kLat = 111320;
   const box = [Math.max(bbox.west, lon - radius / kLon), Math.max(bbox.south, lat - radius / kLat),
                Math.min(bbox.east, lon + radius / kLon), Math.min(bbox.north, lat + radius / kLat)];
@@ -3308,21 +3317,17 @@ function makeWindow(spec) {
 //: where it has no cells. ``full`` fetches it whole.
 async function fetchWindowed(url, full) {
   if (!LIGHT_SPEC) return full();
+  url = ATTACH ? ATTACH.resolve(url) : new URL(url,location.href).href;
   const folder = url.replace(/([^/]+)\.json$/, "cells/$1/");
   try {
-    const manifest = await fetch(`${folder}manifest.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null));
+    const manifest = await worldCellCache.load(`${folder}manifest.json`,100);
     if (!manifest) return full();
-    const doc = await fetch(`${folder}base.json`, { cache: "no-cache" }).then((r) => r.json());
-    const [ox, oy] = manifest.origin, [dx, dy] = manifest.cell, box = LIGHT_SPEC.box;
-    const keys = ["any"];
-    for (let cx = Math.floor((box[0] - ox) / dx); cx <= Math.floor((box[2] - ox) / dx); cx += 1) {
-      for (let cy = Math.floor((box[1] - oy) / dy); cy <= Math.floor((box[3] - oy) / dy); cy += 1) keys.push(`${cx}_${cy}`);
-    }
+    const doc = await worldCellCache.load(`${folder}base.json`,100);
+    const keys = worldStreaming.windowCells(manifest,LIGHT_SPEC.box,LIGHT_SPEC.lon,LIGHT_SPEC.lat);
     const gathered = new Map(manifest.paths.map((path) => [path, new Map()]));
-    // One at a time: each is parsed and folded in before the next arrives.
-    for (const key of keys) {
-      if (!(key in manifest.cells)) continue;
-      const cell = await fetch(`${folder}${key}.json`, { cache: "no-cache" }).then((r) => r.json());
+    // Closest cells first, with bounded shared fetch/parse concurrency.
+    const cells = await Promise.all(keys.map((key,i)=>worldCellCache.load(`${folder}${key}.json`,90-i)));
+    for (const cell of cells) {
       for (const [path, rows] of Object.entries(cell)) {
         const into = gathered.get(path);
         if (into) for (const [index, item] of rows) into.set(index, item);
@@ -3333,6 +3338,11 @@ async function fetchWindowed(url, full) {
       const [head, tail] = path.split(".");
       if (tail) doc[head][tail] = list; else doc[head] = list;
     }
+    // Warm a one-cell halo at low priority. Parsed cells are bounded by the shared
+    // LRU; no hidden full-detail meshes and no second region renderer are built.
+    const b=LIGHT_SPEC.box,padLon=250/(111320*Math.cos(LIGHT_SPEC.lat*Math.PI/180)),padLat=250/111320;
+    const halo=worldStreaming.windowCells(manifest,[b[0]-padLon,b[1]-padLat,b[2]+padLon,b[3]+padLat],LIGHT_SPEC.lon,LIGHT_SPEC.lat);
+    for(const key of halo) if(!keys.includes(key)) worldCellCache.load(`${folder}${key}.json`,-20).catch(()=>{});
     return doc;
   } catch (error) {
     return full();
@@ -3477,12 +3487,21 @@ const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { 
 // tiles over this page's area are fetched -- each named by its content's hash, so cached for good.
 // The whole city's fits in one file was 67 MB fetched by every page before it drew a building.
 const FRONTAGE_FITS = await loadFrontageFits();
+const MUNICIPAL_CONTEXT = await (async()=>{
+  const index=await fetch(sharedAsset("municipal-context.manifest.json"),{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null);
+  const b=DATA.bbox, found=index?.regions?.find(r=>r.bbox[0]<b.north && r.bbox[2]>b.south && r.bbox[1]<b.east && r.bbox[3]>b.west);
+  if(!found)return null;
+  const context=await fetch(sharedAsset(found.path)).then(r=>r.ok?r.json():null).catch(()=>null);
+  return context?.schema==="kerbside.municipal_context/1" ? context : null;
+})();
+const municipalUsage={sidewalks:0,curbColourRecords:0,referenceRecords:MUNICIPAL_CONTEXT?.references?.length || 0};
+window.kerbsideMunicipal=()=>({...municipalUsage,sources:MUNICIPAL_CONTEXT?.sources || [],measuredGeometryChanged:false});
 async function loadFrontageFits() {
   const empty = { schema: "kerbside.facade_fits/1", buildings: {} };
   const manifest = await fetch(sharedAsset("sf-corridor-frontage-fits.manifest.json"), { cache: "no-cache" })
     .then((r) => r.ok ? r.json() : null).catch(() => null);
   if (!manifest || !Array.isArray(manifest.tiles)) return empty;
-  const b = DATA.bbox;
+  const b = LIGHT_SPEC ? {west:LIGHT_SPEC.box[0],south:LIGHT_SPEC.box[1],east:LIGHT_SPEC.box[2],north:LIGHT_SPEC.box[3]} : DATA.bbox;
   const wanted = manifest.tiles.filter((t) => !b || (t.bbox[0] <= b.east && t.bbox[2] >= b.west
     && t.bbox[1] <= b.north && t.bbox[3] >= b.south));
   const url = (path) => manifest.base ? `${manifest.base.replace(/\/+$/, "")}/${path}` : sharedAsset(path);
@@ -3616,7 +3635,7 @@ try {
 {
   const query = new URLSearchParams(location.search);
   if (QUALITY_PRESETS[query.get("quality")]) SETTINGS.quality = query.get("quality");
-  if (FPS_CHOICES.includes(Number(query.get("fps")))) SETTINGS.fps = Number(query.get("fps"));
+  if (query.has("fps") && FPS_CHOICES.includes(Number(query.get("fps")))) SETTINGS.fps = Number(query.get("fps"));
 }
 const QUALITY = () => QUALITY_PRESETS[SETTINGS.quality];
 
@@ -3640,40 +3659,31 @@ if (BUILD_WINDOW) {
 }
 //: Past the square's edge, less this, the square is built again round the walker.
 const LIGHT_EDGE_M = 120;
-let lightRebuilding = false;
 let lightWindowStart = null;
-//: Build the square again, round a place in this region: the page reloads there, arriving as a
-//: region hand-over arrives, where it was and looking the way it looked.
+// Build a replacement in-page, retaining the last working window until it is ready.
 function rebuildRoundHere(lon, lat) {
-  if (lightRebuilding) return;
-  lightRebuilding = true;
-  try {
-    sessionStorage.setItem("kerbside:region-arrival", JSON.stringify({
-      path: location.pathname, lon, lat, yaw: state.yaw, pitch: state.pitch,
-      dist: state.dist, firstPerson: state.firstPerson,
-    }));
-  } catch (error) { /* it arrives in the middle of the new square */ }
-  const url = new URL(location.href);
-  url.searchParams.set("at", `${lon.toFixed(6)},${lat.toFixed(6)}`);
-  location.replace(url.href);
+  if (!ATTACH && REGION_INDEX.host) attachRegion(REGION_INDEX.host,{lon,lat});
 }
 //: The walker has walked, or been taken, near the edge of the square: build round it again.
 function checkLightWindow(frame) {
-  if (!BUILD_WINDOW || lightRebuilding || frame % 30 !== 0) return;
+  if (!hostWorldActive || !BUILD_WINDOW || frame % 30 !== 0) return;
   // Never navigate merely because a restored/default spawn is near a window boundary.
   // Only actual movement or teleporting after the first frame can request a new window.
   if (!lightWindowStart) { lightWindowStart = [avatar.position.x, avatar.position.z]; return; }
   if (Math.hypot(avatar.position.x - lightWindowStart[0], avatar.position.z - lightWindowStart[1]) < 1) return;
   const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
   const b = DATA.bbox;
-  if (b && (lon < b.west || lon > b.east || lat < b.south || lat > b.north)) return;   // another region's: its own page
+  if (b && (lon < b.west || lon > b.east || lat < b.south || lat > b.north)) return;
   const kLon = metersPerLon, kLat = metersPerLat;
   const [w, s0, e, n] = BUILD_WINDOW.box;
   const margin = Math.min((lon - w) * kLon, (e - lon) * kLon, (lat - s0) * kLat, (n - lat) * kLat);
   // Only where the square is not already the region's own edge.
   const atRegionEdge = b && ((lon - b.west) * kLon < LIGHT_EDGE_M || (b.east - lon) * kLon < LIGHT_EDGE_M
     || (lat - b.south) * kLat < LIGHT_EDGE_M || (b.north - lat) * kLat < LIGHT_EDGE_M);
-  if (margin < LIGHT_EDGE_M && !atRegionEdge) rebuildRoundHere(lon, lat);
+  if (margin < LIGHT_EDGE_M && !atRegionEdge) {
+    rebuildRoundHere(lon, lat);
+    lightWindowStart=[avatar.position.x,avatar.position.z];
+  }
 }
 //: The ground cover, the furniture: each kept to the square, list by list.
 function windowLists(container) {
@@ -3830,17 +3840,9 @@ Object.values(groups).forEach((g) => root.add(g));
   window.kerbsideOpenFullRegionAt = (lon, lat) => {
     if (tileOwnGround(lon, lat)) return false;
     const destination = regionAt(lon, lat);
-    // A lighter build never builds a second region beside its own -- that is twice the memory
-    // it could not hold once. Elsewhere in its own region, or in another, it opens the page for
-    // the place, built round it.
-    if (BUILD_WINDOW) {
-      const host = REGION_INDEX.host;
-      const inOwn = DATA.bbox && lon >= DATA.bbox.west && lon <= DATA.bbox.east && lat >= DATA.bbox.south && lat <= DATA.bbox.north;
-      if (inOwn) { rebuildRoundHere(lon, lat); return true; }
-      if (destination && destination !== host) { openFullRegion(destination, lon, lat); return true; }
-      return false;
-    }
-    if (destination) attachRegion(destination);
+    // Build one bounded replacement, not a second whole city. Retain the old
+    // window until the replacement's streets and ground are ready.
+    if (destination) attachRegion(destination,{lon,lat});
     return false;
   };
   for (const region of list) {
@@ -3858,8 +3860,7 @@ Object.values(groups).forEach((g) => root.add(g));
     const region = list.find((r) => new URL(root + r.path, location.href).pathname === select.value);
     // The installed app's regional pages use the full local renderer and local region payload.
     // Do not stop at the far-field tree when its user asks to enter a different city.
-    if (document.querySelector('meta[name="kerbside-app-mode"]')) location.href = select.value;
-    else if (region && region.bbox) flyToRegion(region);
+    if (region && region.bbox) flyToRegion(region);
     else location.href = select.value;
   });
   const current = list.find((r) => new URL(root + r.path, location.href).pathname.replace(/[^/]*$/, "") === here);
@@ -3873,10 +3874,11 @@ Object.values(groups).forEach((g) => root.add(g));
   setInterval(() => {
     // Not until the page is built and drawing (the timers below are declared with it).
     if (!window.kerbside || !window.kerbsideOpenFullRegionAt) return;
-    if (state.firstPerson || state.dist > REGION_ENTER_DIST_M) return;
-    if (performance.now() - Math.max(lastMovedAt, lastInputAt) < REGION_SETTLE_MS) return;
-    const lon = midLon + state.target.x / metersPerLon;
-    const lat = midLat - state.target.z / metersPerLat;
+    if (!state.firstPerson && state.dist > REGION_ENTER_DIST_M) return;
+    if (!state.firstPerson && performance.now() - Math.max(lastMovedAt, lastInputAt) < REGION_SETTLE_MS) return;
+    const focus=state.firstPerson ? avatar.position : state.target;
+    const lon = midLon + focus.x / metersPerLon;
+    const lat = midLat - focus.z / metersPerLat;
     window.kerbsideOpenFullRegionAt(lon, lat);
   }, 1000);
   //: How much of the screen a region should fill when you are flown to it: far enough out that
@@ -3886,10 +3888,7 @@ Object.values(groups).forEach((g) => root.add(g));
     const [south, west, north, east] = region.bbox;
     // An overview tile omits signs, lawns and other city details. Load that
     // city's complete survey, preserving the destination and view direction.
-    if (new URL(root + region.path, location.href).pathname !== location.pathname) {
-      openFullRegion(region, (west + east) / 2, (south + north) / 2);
-      return;
-    }
+    attachRegion(region,{lon:(west+east)/2,lat:(south+north)/2});
     const [x, y] = xy((west + east) / 2, (south + north) / 2);
     const [x0, y0] = xy(west, south);
     const [x1, y1] = xy(east, north);
@@ -4891,8 +4890,8 @@ function skyEnvironment(renderer, texture) {
   return environment;
 }
 
-const SKY = skyTexture();
-scene.environment = skyEnvironment(renderer, SKY);
+const SKY = ATTACH ? null : skyTexture();
+scene.environment = ATTACH ? null : skyEnvironment(renderer, SKY);
 scene.background = SKY;
 // Turned down with the tone mapper in place: the old pair were set to be bright enough to read
 // through the clipping, and left as they were they simply saturate a wider part of the scene.
@@ -4904,6 +4903,28 @@ scene.add(amb);
 const sun = new THREE.DirectionalLight(0xfff4e2, 2.0);
 sun.position.copy(sunDirection()).multiplyScalar(900);
 scene.add(sun);
+let environmentController=null;
+if(!ATTACH) {
+  // Do not add a top-level suspension here: regional labels initialize later.
+  import(sharedAsset("environment-runtime.mjs")).then(({createEnvironment})=>{
+  environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon});
+  window.kerbsideEnvironment={snapshot:()=>environmentController.snapshot(),
+    setWeather:value=>environmentController.setWeather(value),setTime:value=>environmentController.setTime(value)};
+  const section=document.createElement("section");section.className="group";
+  const label=document.createElement("label");label.textContent="Weather preview (not live weather) ";
+  const select=document.createElement("select");select.setAttribute("aria-label","Weather preview");
+  for(const [value,title] of [["sunny","Sunny"],["partly_cloudy","Partly cloudy"],["cloudy","Cloudy"],["rain","Rain"]]){
+    const option=document.createElement("option");option.value=value;option.textContent=title;select.append(option);}
+  select.addEventListener("change",()=>environmentController.setWeather(select.value));label.append(select);
+  const timeLabel=document.createElement("label");timeLabel.textContent="Time ";
+  const timeSelect=document.createElement("select");timeSelect.setAttribute("aria-label","Time preview");
+  for(const [value,title] of [["live","Live SF time"],["dawn","Dawn preview"],["noon","Noon preview"],["dusk","Dusk preview"],["night","Night preview"]]){
+    const option=document.createElement("option");option.value=value;option.textContent=title;timeSelect.append(option);}
+  timeSelect.addEventListener("change",()=>environmentController.setPhase(timeSelect.value));timeLabel.append(timeSelect);
+  const clock=document.createElement("p");clock.id="world-clock";clock.style.fontSize="12px";
+  section.append(label,timeLabel,clock);document.getElementById("settings-display")?.append(section);
+  }).catch(error=>console.warn("kerbside: dynamic sky unavailable; static fallback retained",error));
+}
 
 const [westX, northY] = xy(bbox.west, bbox.north);
 const [eastX, southY] = xy(bbox.east, bbox.south);
@@ -6978,6 +6999,15 @@ const TILE_ROOF = new THREE.Color(0x6f7a85);
 const TILE_ROAD = new THREE.Color(0x4a4f55);
 const TILE_MASSING_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_WALL, roughness: 0.92, metalness: 0.0, transparent: true });
 const TILE_BUILDING_MATERIAL = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.0, transparent: true });
+const TILE_FACADE_TEXTURE = (()=>{
+  const canvas=document.createElement("canvas");canvas.width=canvas.height=128;
+  const c=canvas.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,128,128);
+  c.fillStyle="#bac2c5";c.fillRect(35,32,58,72);c.fillStyle="#41515b";c.fillRect(39,36,50,64);
+  c.fillStyle="#bfc4c5";c.fillRect(62,36,3,64);c.fillRect(39,66,50,3);
+  const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
+})();
+TILE_BUILDING_MATERIAL.map=TILE_FACADE_TEXTURE;
 const TILE_ROAD_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_ROAD, roughness: 0.96, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
 //: The footway and the paint on the road. The page's own concrete and its own white are what
 //: the street renderer uses a few metres away, so the seam at the region's edge is a seam in
@@ -7080,7 +7110,7 @@ function tileInventedColour(archetype, at, height) {
 }
 
 function tileBuildings(rows, f, lonOf, latOf, material) {
-  const position = [], colour = [], index = [];
+  const position = [], colour = [], index = [], uv = [];
   const nature=typeof NATURE!=="undefined"&&NATURE,profiles=[];
   const roof = new THREE.Color();
   for (const row of rows) {
@@ -7119,6 +7149,9 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
       const p = flip ? [b, a] : [a, b];
       position.push(p[0][0], groundY, p[0][1], p[1][0], groundY, p[1][1],
                     p[1][0], top, p[1][1], p[0][0], top, p[0][1]);
+      const repeats=Math.max(1,Math.round(Math.hypot(a[0]-b[0],a[1]-b[1])/2.7));
+      const floors=Math.max(1,Math.round(height/3.1));
+      uv.push(0,0,repeats,0,repeats,floors,0,floors);
       for (let k = 0; k < 4; k += 1) colour.push(wall.r, wall.g, wall.b);
       index.push(vertexBase, vertexBase + 1, vertexBase + 2,
                  vertexBase, vertexBase + 2, vertexBase + 3);
@@ -7130,7 +7163,7 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
     if (faces.length) {
       const base = position.length / 3;
       const shade = wall.clone().multiplyScalar(0.82);
-      for (const [x, z] of ring) { position.push(x, top, z); colour.push(shade.r, shade.g, shade.b); }
+      for (const [x, z] of ring) { position.push(x, top, z); colour.push(shade.r, shade.g, shade.b); uv.push(.01,.01); }
       const up = THREE.ShapeUtils.isClockWise(contour);
       for (const [a, b, c] of faces) index.push(base + a, base + (up ? b : c), base + (up ? c : b));
     }
@@ -7140,6 +7173,7 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
   geometry.setAttribute("color", new THREE.Float32BufferAttribute(colour, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   geometry.setIndex(index);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -22761,17 +22795,20 @@ for (const feature of PARK_STRUCTURES) {
   const mesh=parkFacilityMesh(feature);if(mesh)groups.mapped3d.add(mesh);
 }
 
-(async () => {
+const groundReady = (async () => {
   let ground;
   try {
     ground = windowLists(await fetchWindowed(GROUND_URL, () => fetch(GROUND_URL, { cache: "no-cache" }).then((r) => r.json())));
+    const publicWalks=(MUNICIPAL_CONTEXT?.sidewalks || []).filter(r=>!BUILD_WINDOW || BUILD_WINDOW.near(r));
+    ground.front_walks=[...(ground.front_walks || []),...publicWalks];
+    municipalUsage.sidewalks=publicWalks.length;
     // The lattice asks how much is drawn on a cell before it decides how finely to cut it.
     GROUND = ground;
     latticeCover = null;
     latticeField.clear();
   } catch (err) {
     window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { ground: true });
-    return;
+    return false;
   }
 
   // Height matters more than it looks. There is a base plane at y=0 spanning the whole bbox in
@@ -26424,6 +26461,8 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   const plates = addOfficialSignPlates(officialSigns.concat(osmApproach, generic, corners), signalHeads);
   const posts = stops.concat(smallAds);
   const lights = addStreetLights(official.street_lights || []);
+  const municipalCurbs=(MUNICIPAL_CONTEXT?.curb_colours || []).filter(r=>!BUILD_WINDOW || BUILD_WINDOW.near(r));
+  municipalUsage.curbColourRecords=municipalCurbs.length;
   const placed = {
     street_lights: { drawn: lights.drawn, forms: lights.forms },
     posts: addStreetFurniturePosts(posts),
@@ -26442,7 +26481,8 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
     transit: transitStops ? addTransitStops(transitStops) : null,
     benches: addBenches(inferred.benches || []),
     // The paint inventory first, then the policy zones that are paint by definition.
-    curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [])),
+    curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [],
+      municipalCurbs)),
     bus_zone_paint: addBusZonePaint((official.curb_zones || [])
       .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
     parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],
@@ -26616,7 +26656,7 @@ function setFirstPerson(on) {
   if (!on) state.autoFirstPerson = false;
   if (typeof avatar !== "undefined") {
     // The walker is not drawn from inside its own head.
-    avatar.visible = !on;
+    avatar.visible = !on && !ATTACH; // Only the host owns the visible player.
     if (on) state.target.copy(avatar.position);
   }
   const button = document.getElementById("firstperson");
@@ -31883,6 +31923,11 @@ function requestFrame() {
 function animate(now) {
   requestFrame();
   now = now || performance.now();
+  environmentController?.update(now,{indoors:Boolean(state.indoors)});
+  if(frameCount%60===0 && environmentController){const clock=document.getElementById("world-clock");
+    if(clock)clock.textContent=`San Francisco time: ${environmentController.snapshot()?.localTime || ""}`;}
+  if(frameCount%60===0 && !ATTACH){const output=document.getElementById("stream-status");
+    if(output)output.textContent=window.kerbsideStreamDetail?.() || "Preparing world streaming…";}
   // The frame-rate cap, and the idle rate when nothing moves.
   const eye = camera.matrixWorld.elements, drawn = lastDrawnEye.elements;
   for (let i = 0; i < 16; i += 1) if (Math.abs(eye[i] - drawn[i]) > 1e-4) { lastMovedAt = now; break; }
@@ -32646,8 +32691,9 @@ settingsPart("settings-display", "section").insertAdjacentHTML("beforeend", `
   <label class="row">Quality
     <select name="quality">${Object.entries(QUALITY_PRESETS).map(([k, q]) => `<option value="${k}">${q.label}</option>`).join("")}</select></label>
   <label class="row">Build
-    <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}">${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region"}</option>`).join("")}</select></label>
+    <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}"${!i && document.querySelector('meta[name="kerbside-app-mode"]') ? " disabled" : ""}>${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region (export only)"}</option>`).join("")}</select></label>
   <p class="note">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</p>
+  <output id="stream-status" class="note" aria-live="polite"></output>
   <label class="row">Show me at my location<input type="checkbox" name="gps" /></label>
   <p class="note">Your walker stands where your device says you are, and walks and turns with you, while you are in this region. Your location stays in this browser except as the start of directions you ask for.</p>`);
 function showSettings(open) {
@@ -32709,7 +32755,7 @@ window.kerbsideSettings = {
     });
     if (triangles) byGroup[name] = `${(triangles / 1e6).toFixed(2)}M`;
   }
-  console.info(`kerbside: built in ${(performance.now() / 1000).toFixed(1)} s; merged ${mergeStats.parts.toLocaleString()} parts into ${mergeStats.meshes.toLocaleString()} tiled meshes; triangles by group`, byGroup);
+  console.info(`kerbside: built in ${((performance.now()-WORLD_BUILD_STARTED) / 1000).toFixed(1)} s; merged ${mergeStats.parts.toLocaleString()} parts into ${mergeStats.meshes.toLocaleString()} tiled meshes; triangles by group`, byGroup);
 }
 if (!ATTACH) animate();
 setTimeout(() => { loadPhotoMaterialLibrary(); }, 1500);
@@ -33070,7 +33116,8 @@ function releaseHostWorld() {
   detailTiles = [];
   detailCells = null;
   labelSprites = [];
-  footprintGrid.clear();
+  // Keep this initial bounded window's lightweight collision footprints: looking
+  // at another city must not let the stationary walker pass through its old house.
   MERGED.clear();
   BUILDING_VISUAL_RANGES.clear();
   indoorCutEntry = null;
@@ -33130,25 +33177,42 @@ regionBadge.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:30;bac
 regionBadge.hidden = true;
 document.body.appendChild(regionBadge);
 let attaching = null, attachWanted = null;
-async function attachRegion(region) {
+window.kerbsideStreamDetail=()=>{
+  const cache=worldCellCache.snapshot(),usage=activeGuest?.api.municipalUsage || municipalUsage;
+  return `Detail: ${activeGuest?.region.title || REGION_INDEX.host?.title || "local"}`
+    +`${attaching ? " (loading nearby window)" : ""}; ${activeGuest?.buildSeconds?.toFixed(1) || "initial"} s build; `
+    +`cells ${(cache.residentBytes/1048576).toFixed(1)} / 48 MiB, ${cache.active} fetching, ${cache.hits} reused. `
+    +`Municipal sidewalks: ${usage.sidewalks}; curb records: ${usage.curbColourRecords}.`;
+};
+async function attachRegion(region, centre = null) {
   if (ATTACH || !region) return;
   const isHost = REGION_INDEX.host && region.name === REGION_INDEX.host.name;
-  if ((isHost && hostWorldActive) || (activeGuest && activeGuest.region === region)) return;
-  if (attaching) { attachWanted = region; return; }
-  attaching = region;
+  if (!centre && ((isHost && hostWorldActive) || (activeGuest && activeGuest.region === region))) return;
+  centre ||= {lon:midLon+avatar.position.x/metersPerLon,lat:midLat-avatar.position.z/metersPerLat};
+  const [rs,rw,rn,re]=region.bbox;
+  if(!Number.isFinite(centre.lon) || !Number.isFinite(centre.lat)
+    || centre.lon<rw || centre.lon>re || centre.lat<rs || centre.lat>rn)return;
+  if (activeGuest?.region === region && activeGuest.windowBox) {
+    const b=activeGuest.windowBox;
+    if(Math.min((centre.lon-b[0])*metersPerLon,(b[2]-centre.lon)*metersPerLon,
+      (centre.lat-b[1])*metersPerLat,(b[3]-centre.lat)*metersPerLat)>Math.min(140,activeGuest.detailRadius*.45))return;
+  }
+  if (attaching) {
+    if(attaching.region===region && Math.hypot((centre.lon-attaching.centre.lon)*metersPerLon,
+      (centre.lat-attaching.centre.lat)*metersPerLat)<100)return;
+    attachWanted = {region,centre}; return;
+  }
+  worldCellCache.focus();
+  attaching = {region,centre};
   regionBadge.textContent = `Loading ${region.title} in full…`;
   regionBadge.style.opacity = "1";
   regionBadge.hidden = false;
   const previous = activeGuest;
   const previousBox = TILE_OWN_BOX;
+  let candidate=null;
   try {
-    // The region left behind is let go first: the page holds one region's detail at a time,
-    // and the simple city stands in while the next is built.
-    if (hostWorldActive) releaseHostWorld();
-    if (previous) { releaseGuest(previous); activeGuest = null; natureWorld?.invalidate(); }
-    indoorCut.guestBox.value.set(1, 1, 0, 0);
-    TILE_OWN_BOX = null;
-    invalidateTilesTouching([previousBox]);
+    // Build a bounded replacement offscreen. Never discard the last working window
+    // before the new one succeeds; network errors retain the old world.
     const pageUrl = new URL(REGION_INDEX.root + region.path, location.href);
     const html = await fetch(pageUrl.href, { cache: "no-cache" }).then((r) => {
       if (!r.ok) throw new Error(`${region.name} page ${r.status}`);
@@ -33165,10 +33229,14 @@ async function attachRegion(region) {
       "kerbside-app-mode": meta("kerbside-app-mode") || "",
     };
     const stand = guestStandIns(pageUrl, metas);
-    const holder = { region, ready: false };
+    const holder = { region, ready: false, centre, detailRadius:220, startedAt:performance.now() };
+    candidate=holder;
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
       natureBacked:Boolean(NATURE),
+      detailWindow:{...centre,radius:holder.detailRadius},cellCache:{
+        load:(url,priority)=>worldCellCache.load(new URL(url,pageUrl).href,priority),
+        snapshot:()=>worldCellCache.snapshot(),focus:()=>worldCellCache.focus()},
       document: stand.document, window: stand.window,
       onRoot(groupRoot) {
         holder.root = groupRoot;
@@ -33183,12 +33251,18 @@ async function attachRegion(region) {
       + "const addEventListener = () => {}, removeEventListener = () => {};\n";
     // A region page fetches some files by a path relative to itself; run from this page those
     // paths would be this page's, and the region would be built from this region's data.
-    const located = code.replace(/fetch\("(?!https?:)([^"]+)"/g, 'fetch(__kerbsideGuestIn.resolve("$1")');
+    const located = code.replace(/fetch\("(?!https?:)([^"]+)"/g, 'fetch(__kerbsideGuestIn.resolve("$1")')
+      .replace(/const (PAYLOAD_URL|GROUND_URL) = ("[^"]+");/g,'const $1 = __kerbsideGuestIn.resolve($2);');
     holder.url = URL.createObjectURL(new Blob([prelude + located], { type: "text/javascript" }));
     await import(holder.url);
     const api = stand.own.kerbsideGuestApi;
     if (!api || !holder.root) throw new Error(`${region.name} did not build`);
     holder.api = api;
+    await api.ready();
+    if(attachWanted && (attachWanted.region!==region || Math.hypot(
+      (attachWanted.centre.lon-centre.lon)*metersPerLon,(attachWanted.centre.lat-centre.lat)*metersPerLat)>holder.detailRadius*.8)) {
+      releaseGuest(holder);candidate=null;return;
+    }
     // Where its world stands in this page: its middle at that place in this page's metres, its
     // east-west metres scaled to this page's (the two differ by the cosine of their latitudes),
     // and lowered by the Earth's curve between the two middles, as the simple city is.
@@ -33202,21 +33276,26 @@ async function attachRegion(region) {
     holder.root.updateMatrixWorld(true);
     api.setRootInverse(holder.root.matrixWorld.clone().invert());
     holder.box = api.groundBox;
+    holder.windowBox = api.windowBox || [api.bbox.west,api.bbox.south,api.bbox.east,api.bbox.north];
     holder.lastAt = performance.now();
     holder.ready = true;
+    holder.buildSeconds=(performance.now()-holder.startedAt)/1000;
+    console.info(`kerbside: ${region.name} detail handoff ready in ${holder.buildSeconds.toFixed(1)} s`);
+    if (hostWorldActive) releaseHostWorld();
+    if (previous) releaseGuest(previous);
     holder.root.visible = true;
     activeGuest = holder;
     natureWorld?.invalidate();
     // The tree draws the simple city everywhere but here, and the country under it gives way.
-    const b = api.bbox;
-    TILE_OWN_BOX = [b.west, b.south, b.east, b.north];
-    invalidateTilesTouching([TILE_OWN_BOX]);
+    TILE_OWN_BOX = holder.windowBox.slice();
+    invalidateTilesTouching([previousBox,TILE_OWN_BOX]);
     const [x0, z0, x1, z1] = holder.box;
     indoorCut.guestBox.value.set(holder.ox + x0 * holder.sx, holder.oz + z0, holder.ox + x1 * holder.sx, holder.oz + z1);
     cullForced = true;
     regionBadge.textContent = `${region.title}`;
     setTimeout(() => { regionBadge.style.opacity = "0"; }, 2500);
   } catch (error) {
+    if(candidate && candidate!==activeGuest)releaseGuest(candidate);
     console.warn("kerbside: could not build", region.name, error);
     regionBadge.textContent = `Could not load ${region.title}`;
     setTimeout(() => { regionBadge.style.opacity = "0"; }, 4000);
@@ -33225,7 +33304,7 @@ async function attachRegion(region) {
     attaching = null;
     const next = attachWanted;
     attachWanted = null;
-    if (next) attachRegion(next);
+    if (next) attachRegion(next.region,next.centre);
   }
 }
 window.kerbsideAttachRegion = (name) => attachRegion(REGION_INDEX.list.find((r) => r.name === name));
@@ -33239,6 +33318,17 @@ function guestFrame(now) {
   keepWalkerOutside();
   const dt = Math.min(0.1, (now - g.lastAt) / 1000);
   g.lastAt = now;
+  if (frameCount % 60 === 0 && !attaching && g.windowBox) {
+    const focus=state.firstPerson ? avatar.position : state.target;
+    const lon=midLon+focus.x/metersPerLon,lat=midLat-focus.z/metersPerLat;
+    const b=g.windowBox, r=g.api.bbox;
+    const margin=Math.min((lon-b[0])*metersPerLon,(b[2]-lon)*metersPerLon,
+      (lat-b[1])*metersPerLat,(b[3]-lat)*metersPerLat);
+    const atEdge=Math.min((lon-r.west)*metersPerLon,(r.east-lon)*metersPerLon,
+      (lat-r.south)*metersPerLat,(r.north-lat)*metersPerLat)<LIGHT_EDGE_M;
+    if(lon>=r.west && lon<=r.east && lat>=r.south && lat<=r.north
+      && margin<Math.min(140,g.detailRadius*.45) && !atEdge) attachRegion(g.region,{lon,lat});
+  }
   const [gx, gz] = hostToGuest(g, avatar.position.x, avatar.position.z);
   guestAvatarAt.set(gx, avatar.position.y - g.oy, gz);
   const said = g.api.tick({ eye: camera, dist: state.dist, firstPerson: state.firstPerson, at: guestAvatarAt, dt });
@@ -33272,10 +33362,15 @@ function guestTick({ eye, dist, firstPerson, at, dt }) {
   };
 }
 window.kerbsideGuestApi = {
+  ready:async()=>{if(await groundReady===false)throw Error("Destination ground unavailable; previous window retained");},
+  municipalUsage,
+  windowBox:BUILD_WINDOW?.box,
   billboardFaces,
   root, bbox: DATA.bbox, midLon, midLat, metersPerLon,
   // The ground this world draws, in its own metres: its terrain grid and the apron round it.
-  groundBox: TERRAIN_FRAME ? (() => {
+  groundBox: BUILD_WINDOW ? (()=>{
+    const b=BUILD_WINDOW.box,a=xy(b[0],b[1]),c=xy(b[2],b[3]);return [a[0],-c[1],c[0],-a[1]];
+  })() : TERRAIN_FRAME ? (() => {
     const f = TERRAIN_FRAME;
     if(ATTACH?.natureBacked) {
       const stride=TERRAIN_MESH_STRIDE;

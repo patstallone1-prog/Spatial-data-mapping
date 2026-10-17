@@ -61,8 +61,11 @@ def test_a_page_that_died_loads_lighter_and_never_builds_two_regions() -> None:
     assert 'fetchWindowed(asset("sf-corridor-furniture.json"),' in js
     # The rest of the city from the tile tree, outside the square.
     assert "let TILE_OWN_BOX = BUILD_WINDOW ? BUILD_WINDOW.box.slice()" in js
-    # A lighter build opens a page for another place rather than building a second region in this one.
-    assert "if (inOwn) { rebuildRoundHere(lon, lat); return true; }" in js
+    # One bounded replacement replaces page navigation; no second whole city builds.
+    assert "if (destination) attachRegion(destination,{lon,lat});" in js
+    assert "detailRadius:220" in js
+    attach = js.split("async function attachRegion(")[1].split("window.kerbsideAttachRegion")[0]
+    assert attach.index("await api.ready()") < attach.index("releaseHostWorld()")
     assert "checkLightWindow(frameCount);" in _extract("animate", js)
 
 
@@ -95,6 +98,7 @@ def test_a_stationary_restored_spawn_cannot_trigger_an_endless_window_reload():
     js = _page_js()
     script = """
 const BUILD_WINDOW={box:[-2,-2,2,2]},LIGHT_EDGE_M=120;
+const hostWorldActive=true;
 let lightRebuilding=false,lightWindowStart=null;
 const midLon=0,midLat=0,metersPerLon=100,metersPerLat=100;
 const DATA={bbox:{west:-5,south:-5,east:5,north:5}};

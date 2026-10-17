@@ -1,0 +1,19 @@
+{
+  "schema":"kerbside.gap_regions/1",
+  "intake_enabled":false,
+  "basis":"Planning envelopes, not surveyed jurisdiction boundaries; water/land and rights checked at discovery",
+  "regions":[
+    {"name":"sf-central-gap","bbox":[37.765,-122.47,37.792,-122.42],"adapter":"san-francisco","reason":"Connect corridor, Haight/Castro, Richmond and Mission"},
+    {"name":"sf-south-gap","bbox":[37.708,-122.47,37.765,-122.38],"adapter":"san-francisco","reason":"Southern SF connection to the Peninsula"},
+    {"name":"daly-south-sf-gap","bbox":[37.60,-122.50,37.708,-122.375],"adapter":"san-mateo-county","reason":"Daly City, South SF, San Bruno; coast and airport screened before intake"},
+    {"name":"millbrae-burlingame-gap","bbox":[37.55,-122.425,37.60,-122.30],"adapter":"san-mateo-county","reason":"Peninsula connection south of SFO"},
+    {"name":"san-mateo-foster-gap","bbox":[37.49,-122.37,37.55,-122.23],"adapter":"san-mateo-county","reason":"San Mateo, Foster City and bay shore"},
+    {"name":"belmont-san-carlos-gap","bbox":[37.45,-122.33,37.49,-122.23],"adapter":"san-mateo-county","reason":"Connect San Mateo and Redwood City"},
+    {"name":"redwood-menlo-gap","bbox":[37.43,-122.26,37.50,-122.13],"adapter":"san-mateo-county","reason":"Redwood City, Menlo Park and Palo Alto approach"},
+    {"name":"mountain-view-gap","bbox":[37.37,-122.155,37.45,-122.04],"adapter":"santa-clara-county","reason":"Connect Palo Alto to Mountain View"},
+    {"name":"sunnyvale-santa-clara-gap","bbox":[37.32,-122.04,37.42,-121.90],"adapter":"santa-clara-county","reason":"Connect Mountain View to San Jose"},
+    {"name":"emeryville-north-oakland-gap","bbox":[37.815,-122.33,37.865,-122.235],"adapter":"alameda-county","reason":"Connect Oakland and Berkeley"},
+    {"name":"alameda-gap","bbox":[37.73,-122.29,37.785,-122.20],"adapter":"alameda-county","reason":"Continue Posey Tube approach into Alameda"},
+    {"name":"east-bay-south-gap","bbox":[37.45,-122.20,37.785,-121.94],"adapter":"alameda-county","reason":"San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay"}
+  ]
+}

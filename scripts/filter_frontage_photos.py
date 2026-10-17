@@ -49,15 +49,22 @@ from smc.facades.frontage import (  # noqa: E402
 from smc.facades.geometry import Camera, LocalFrame  # noqa: E402
 from smc.facades.poses import _pose  # noqa: E402
 from smc.facades.rectify import rectify_wall  # noqa: E402
-from smc.imagery.http import HttpClient  # noqa: E402
-from smc.imagery.schema import Observation  # noqa: E402
-from smc.imagery.frontage_sources import (  # noqa: E402
-    RESTRICTED_DATASETS, SUPPORTED_PROVIDERS, provider_for, read_source_pixels, source_block_reason,
-)
 from smc.facades.scheduling import fair_batch  # noqa: E402
 from smc.facades.selection_cache import compatible_selection  # noqa: E402
+from smc.imagery.frontage_sources import (  # noqa: E402
+    RESTRICTED_DATASETS,
+    SUPPORTED_PROVIDERS,
+    provider_for,
+    read_source_pixels,
+    source_block_reason,
+)
+from smc.imagery.http import HttpClient  # noqa: E402
+from smc.imagery.schema import Observation  # noqa: E402
 from smc.net import use_certifi  # noqa: E402
 from smc.reconstruction.pixel_store import CanonicalPixels, LocalBlobStore  # noqa: E402
+from smc.storage.working_set import WorkingSet  # noqa: E402
+
+WORKSPACE = None
 
 METHOD = "frontage-v3"
 LANDMARK_API = "https://sfplanninggis.org/arcgiswa/rest/services/PlanningData/MapServer/11/query"
@@ -300,12 +307,18 @@ def scan_region(args, region, poses, landmarks, now, policy):
     run_id = hashlib.sha256(json.dumps(stamp, sort_keys=True).encode()).hexdigest()[:20]
     folder = args.output / region / run_id
     reusable = compatible_selection((args.output / region).resolve(), stamp, args.code_hash)
+    if not reusable and WORKSPACE and WORKSPACE.ready():
+        reusable = compatible_selection(WORKSPACE.archive / region, stamp, args.code_hash)
+        if reusable:
+            reusable["folder"] = str(WORKSPACE.stage_database(Path(reusable["folder"])))
     if reusable:
         print(f"{region}: verified compatible selection resumed ({reusable['run']})", flush=True)
         return reusable
     folder.mkdir(parents=True, exist_ok=True)
     emit(folder / "run.json", stamp)
     database = folder / "selection.sqlite"
+    if WORKSPACE and not database.exists():
+        WORKSPACE.stage_database(WORKSPACE.archive / region / run_id)
     if (folder / "summary.json").exists() and database.exists():
         previous = json.loads((folder / "summary.json").read_text())
         if previous.get("status") == "indexed":
@@ -458,6 +471,8 @@ def scan_region(args, region, poses, landmarks, now, policy):
         conn.execute("INSERT INTO buildings VALUES (?,?)", (key, json.dumps(record, default=str)))
         conn.commit()
         if i % 100 == 0:
+            if WORKSPACE:
+                WORKSPACE.checkpoint_database(database)
             print(
                 f"{region}: {i + 1}/{len(buildings)} buildings, "
                 f"latest={len(candidates)} passing views",
@@ -500,6 +515,8 @@ def scan_region(args, region, poses, landmarks, now, policy):
     }
     emit(folder / "summary.json", summary)
     conn.close()
+    if WORKSPACE:
+        WORKSPACE.checkpoint_database(database)
     return summary
 
 
@@ -641,9 +658,12 @@ def review_samples(args, summaries, policy):
             with tempfile.NamedTemporaryFile(dir=samples, suffix=".image") as fh:
                 fh.write(raw)
                 fh.flush()
+                os.fsync(fh.fileno())
                 pixels = CanonicalPixels.from_image(Path(fh.name))
             digest = pixels.sha256
-            store.put_if_absent(digest, zlib.compress(pixels.payload(), 6))
+            pixel_key = store.put_if_absent(digest, zlib.compress(pixels.payload(), 6))
+            if WORKSPACE:
+                WORKSPACE.copy_file(store.root / pixel_key)
             alias = {
                 "observation_uid": uid,
                 "pixel_sha256": digest,
@@ -718,7 +738,8 @@ def review_samples(args, summaries, policy):
                     "status": "awaiting_review",
                     "pixel_sha256": digest,
                     "ground_reference": candidate.get("ground_reference"),
-                    "crop": str(report_path.with_suffix(".jpg")),
+                    "crop": str((WORKSPACE.archive / report_path.relative_to(args.output)).with_suffix(".jpg")
+                                if WORKSPACE else report_path.with_suffix(".jpg")),
                     "pixel_frame_coverage": view.coverage,
                     "resolved_pixels_per_m": source_ppm,
                     "vegetation_heuristic": vegetation_share(view.image, view.mask),
@@ -805,10 +826,13 @@ def review_samples(args, summaries, policy):
                 progress(report, region, candidate["observation"], row)
     from smc.facades.frontage_retention import prune_rejected
 
-    cleanup = prune_rejected(args.output)
+    # In durable mode even rejected scratch pixels stay until the complete
+    # batch's archival acknowledgement. The checkpoint owns local cleanup.
+    cleanup = (prune_rejected(args.output) if WORKSPACE is None else
+               {"files_removed": 0, "basis": "deferred_to_verified_external_batch_ack"})
     emit(args.output / "retention.json", cleanup)
     for r in records:
-        if r["status"] == "pixel_rejected":
+        if r["status"] == "pixel_rejected" and WORKSPACE is None:
             r["local_pixels_deleted"] = True
     emit(samples / "index.json", records)
     cards = []
@@ -859,6 +883,7 @@ def selection_fingerprint():
 
 
 def main():
+    global WORKSPACE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=ROOT)
     parser.add_argument("--regions", nargs="+", default=["sf-corridor"])
@@ -899,12 +924,22 @@ def main():
         type=Path,
         help="screen exactly these claimed photographs (a contributor's machine) and stop",
     )
+    parser.add_argument("--local-working-set", type=Path,
+                        help="Internal active batch/state; external output receives verified checkpoints only")
+    parser.add_argument("--storage-volume", type=Path)
+    parser.add_argument("--volume-uuid")
     args = parser.parse_args()
     if args.sample < 0 or (args.limit is not None and args.limit <= 0) or args.watch_seconds < 0:
         parser.error("invalid bounds")
     use_certifi()
     if args.env_file:
         load_env_file(args.env_file)
+    if args.local_working_set:
+        if not args.storage_volume or not args.volume_uuid:
+            parser.error("local working set requires explicit external volume and UUID")
+        WORKSPACE = WorkingSet(args.local_working_set, args.output.resolve(), args.storage_volume, args.volume_uuid)
+        WORKSPACE.seed_metadata()
+        args.output = WORKSPACE.local
     args.output.mkdir(parents=True, exist_ok=True)
     # The same output cannot have two writers, even if a watcher/restart overlaps.
     lock = (args.output / ".worker.lock").open("a")
@@ -953,6 +988,23 @@ def main():
                                            "at": datetime.now(UTC), "review": dict(counts)})
         return
     while True:
+        if WORKSPACE and not WORKSPACE.can_begin():
+            emit(args.output / "storage-status.json", {"state":"pending_external_checkpoint",
+                 "current_batch_retained_locally":True,"new_batches_started":False})
+            if not args.watch_seconds:
+                return
+            time.sleep(args.watch_seconds)
+            continue
+        if WORKSPACE:
+            if not WORKSPACE.checkpoint("resume-pending", clean_pixels=True):
+                if not args.watch_seconds:
+                    return
+                time.sleep(args.watch_seconds)
+                continue
+            WORKSPACE.seed_metadata()
+            assigned = WORKSPACE.archive / "contrib-assigned.json"
+            if assigned.exists():
+                WORKSPACE._copy(assigned, args.output / assigned.name, WORKSPACE.ready)
         now = datetime.now(UTC)
         poses = {}
         pose_path = (
@@ -974,8 +1026,20 @@ def main():
                     except (ValueError, KeyError, TypeError):
                         continue
         landmarks = landmark_records(args.output, args.refresh_landmarks) if args.landmarks else []
-        summaries = [scan_region(args, r, poses, landmarks, now, policy) for r in args.regions]
+        summaries = []
+        for region in args.regions:
+            summaries.append(scan_region(args, region, poses, landmarks, now, policy))
+            if WORKSPACE and not WORKSPACE.ready():
+                break  # Finish local selection, not another region after eject.
+        if WORKSPACE and not WORKSPACE.ready():
+            continue
         counts = review_samples(args, summaries, policy) if args.sample else {}
+        if WORKSPACE:
+            checkpoint = WORKSPACE.checkpoint(now.isoformat(), clean_pixels=True)
+            if checkpoint:
+                WORKSPACE.prune_stale_databases({Path(s["folder"]) for s in summaries if s.get("folder")})
+            emit(args.output / "storage-status.json", {"state":"checkpointed" if checkpoint else "pending_external_checkpoint",
+                 "current_batch_retained_locally":not checkpoint,"new_batches_started":False})
         emit(
             args.output / "status.json",
             {

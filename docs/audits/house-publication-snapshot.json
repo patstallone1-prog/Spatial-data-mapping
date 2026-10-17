@@ -1,0 +1,12 @@
+{
+  "schema": "kerbside.house_publication/1",
+  "worker_accepted_index": 4042,
+  "eligible_worker_records": 4042,
+  "skipped_records": 0,
+  "before": 4048,
+  "published": 4052,
+  "net_added": 4,
+  "version": "0394c71425f330e8",
+  "raw_photos_published": false,
+  "representation": "image_derived_inferred_visual_parameters_not_dense_scan_or_measured_collision"
+}

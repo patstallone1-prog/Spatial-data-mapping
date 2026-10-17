@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "KerbsideWorldActors.h"
+#include "KerbsideCelestialSky.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/DirectionalLightComponent.h"
@@ -36,6 +37,22 @@ bool FKerbsideSkyDefaults::RunTest(const FString& Parameters)
     TestEqual(TEXT("Dynamic sun"), Sky->Sun->Mobility.GetValue(), EComponentMobility::Movable);
     TestTrue(TEXT("Shadow casting enabled"), bool(Sky->Sun->CastShadows));
     TestTrue(TEXT("Realtime sky capture enabled"), bool(Sky->SkyLight->bRealTimeCapture));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKerbsideCelestialDefaults, "Kerbside.World.CelestialDefaults",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FKerbsideCelestialDefaults::RunTest(const FString& Parameters)
+{
+    const AKerbsideCelestialSky* Sky = GetDefault<AKerbsideCelestialSky>();
+    TestEqual(TEXT("SF latitude"), Sky->Latitude, 37.7749);
+    TestEqual(TEXT("SF longitude"), Sky->Longitude, -122.4194);
+    TestTrue(TEXT("Wall clock enabled"), Sky->bLiveClock);
+    TestFalse(TEXT("No accelerated day cycle"), Sky->GetRunDayCycle());
+    TestNotNull(TEXT("Epic atmosphere"), Sky->SkyAtmosphereComponent.Get());
+    TestNotNull(TEXT("Epic volumetric clouds"), Sky->VolumetricCloudComponent.Get());
+    TestNotNull(TEXT("Sun"), Sky->SunLightComponent.Get());
+    TestNotNull(TEXT("Moon"), Sky->MoonLightComponent.Get());
     return true;
 }
 
