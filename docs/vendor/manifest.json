@@ -1,4 +1,25 @@
 {
+  "three-sky": {
+    "version": "r160",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/jsm/objects/Sky.js",
+    "upstream": "https://github.com/mrdoob/three.js/tree/r160",
+    "file": "three-sky-r160.mjs",
+    "sha256": "0ae6bc62457b3e76a0164f3dcef47034ebd57f28ca690cf4c4c6d3be2eaa2962",
+    "license_file": "three-LICENSE.txt",
+    "modification": "Import uses the renderer's pinned Three.js 0.160.0 module",
+    "purpose": "Preetham atmospheric sky for the web consumer"
+  },
+  "suncalc": {
+    "version": "1.9.0",
+    "license": "BSD-2-Clause",
+    "source": "https://cdn.jsdelivr.net/npm/suncalc@1.9.0/+esm",
+    "upstream": "https://github.com/mourner/suncalc/tree/v1.9.0",
+    "file": "suncalc-1.9.0.mjs",
+    "sha256": "899eae799cd96131ef50e2639385c69f00fef0a2ac48eb666696511276df8729",
+    "license_file": "suncalc-LICENSE.txt",
+    "purpose": "Geographic solar position and dawn/noon/dusk previews"
+  },
   "fflate": {
     "version": "0.8.2",
     "license": "MIT",

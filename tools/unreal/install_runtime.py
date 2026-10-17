@@ -102,7 +102,7 @@ def install(project: Path) -> dict:
     if not modules:
         modules.append({"Name": "Kerbside", "Type": "Runtime", "LoadingPhase": "Default"})
     plugins = metadata.setdefault("Plugins", [])
-    for name in ("KerbsideWorld", "PythonScriptPlugin", "EditorScriptingUtilities", "Interchange", "InterchangeEditor"):
+    for name in ("KerbsideWorld", "CelestialVault", "PythonScriptPlugin", "EditorScriptingUtilities", "Interchange", "InterchangeEditor"):
         entry = next((p for p in plugins if p["Name"] == name), None)
         if entry is None:
             plugins.append({"Name": name, "Enabled": True})

@@ -156,7 +156,9 @@ def main() -> None:
                       for path in viewers},
         "runtime_assets_sha256": {
             str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in [DOCS / "recoverable-geometry.mjs", DOCS / "nature-runtime.mjs",
+            for path in [DOCS / "recoverable-geometry.mjs", DOCS / "world-streaming.mjs",
+                         DOCS / "environment-runtime.mjs", DOCS / "sky-clock.mjs", DOCS / "municipal-context.manifest.json",
+                         *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
                          DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "nature/ecology.json",
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
                          *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
@@ -178,7 +180,9 @@ def main() -> None:
     app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
     app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json",
-                   DOCS / "search-index.json"]
+                   DOCS / "search-index.json", DOCS / "world-streaming.mjs", DOCS / "environment-runtime.mjs",
+                   DOCS / "sky-clock.mjs", DOCS / "municipal-context.manifest.json"]
+    app_assets += sorted((DOCS / "municipal").glob("*.json"))
     app_assets += [DOCS / "billboard-creatives.json"] if (DOCS / "billboard-creatives.json").exists() else []
     app_assets += sorted((DOCS / "billboards").glob("*"))
     app_assets += sorted(path for directory in ("interior-assets", "materials", "vendor")

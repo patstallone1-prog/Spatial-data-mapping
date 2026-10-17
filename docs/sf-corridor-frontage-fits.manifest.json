@@ -1,9 +1,9 @@
 {
  "schema": "kerbside.facade_fit_tiles/1",
- "version": "7b5d521efadd5258",
+ "version": "0394c71425f330e8",
  "base": "",
  "tile_degrees": 0.01,
- "houses": 4048,
+ "houses": 4052,
  "tiles": [
   {
    "region": "berkeley-downtown",
@@ -391,10 +391,10 @@
     -122.4396098,
     37.7901407
    ],
-   "count": 79,
-   "path": "fits/sf-corridor/-12245_3778-680c9f5f2e75.json",
-   "sha256": "680c9f5f2e7550fabab2a73a83f510886c53bd79d7dd5d290b29c8e18bde3eb7",
-   "bytes": 483616
+   "count": 80,
+   "path": "fits/sf-corridor/-12245_3778-256a41034598.json",
+   "sha256": "256a410345989d129a46789c1355aeb4db2ce357f32bce54ef7eb9598c59fc8f",
+   "bytes": 487322
   },
   {
    "region": "sf-corridor",
@@ -442,10 +442,10 @@
     -122.4300241,
     37.7898321
    ],
-   "count": 75,
-   "path": "fits/sf-corridor/-12244_3778-4bbda920b445.json",
-   "sha256": "4bbda920b445b544c277b972f21d152ccc34cd56ba99853f4bed56aea88eafbb",
-   "bytes": 493122
+   "count": 76,
+   "path": "fits/sf-corridor/-12244_3778-ccc724a56ae8.json",
+   "sha256": "ccc724a56ae8ded98fa502dfdf2db587df240ddc527ea16360d7bc1ab8bf9597",
+   "bytes": 499264
   },
   {
    "region": "sf-corridor",
@@ -561,10 +561,10 @@
     -122.4097389,
     37.8001187
    ],
-   "count": 217,
-   "path": "fits/sf-corridor/-12242_3779-1e814054812a.json",
-   "sha256": "1e814054812a7ab627aa84f39a85f0ce71caf7aa23aa5f76f467e13efad5bf8d",
-   "bytes": 1379981
+   "count": 218,
+   "path": "fits/sf-corridor/-12242_3779-d9d46988b2c5.json",
+   "sha256": "d9d46988b2c5e50aabec8e8c4e3b1c0057c87ea224fc91bce9005934709308b6",
+   "bytes": 1386720
   },
   {
    "region": "sf-corridor",
@@ -578,10 +578,10 @@
     -122.4100001,
     37.8090923
    ],
-   "count": 111,
-   "path": "fits/sf-corridor/-12242_3780-b6a14475b06b.json",
-   "sha256": "b6a14475b06bb39c5a4812a22e32d24baac542a51f0ddb81cda8c49c4364cf8f",
-   "bytes": 711508
+   "count": 112,
+   "path": "fits/sf-corridor/-12242_3780-763f06b389f2.json",
+   "sha256": "763f06b389f2cccca4d0cea97f1380b01caf599a598b852158e7364404976e71",
+   "bytes": 716153
   },
   {
    "region": "sf-corridor",

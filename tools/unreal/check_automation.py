@@ -5,7 +5,8 @@ import argparse
 import json
 from pathlib import Path
 
-REQUIRED = {"Kerbside.World.CollisionAcceptance", "Kerbside.World.SkyDefaults", "Kerbside.World.WalkerDefaults"}
+REQUIRED = {"Kerbside.World.CollisionAcceptance", "Kerbside.World.SkyDefaults", "Kerbside.World.WalkerDefaults",
+            "Kerbside.World.CelestialDefaults"}
 
 
 def validate_report(path: Path) -> dict:

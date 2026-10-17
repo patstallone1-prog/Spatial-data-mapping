@@ -1,0 +1,133 @@
+{
+  "schema": "kerbside.source_consumption/1",
+  "lidar": [
+    {
+      "region": "oakland-downtown",
+      "source": "CA_AlamedaCo_2_2021",
+      "served_terrain_source": "USGS 3DEP CA_AlamedaCo_2_2021 ground returns (class 2), via Entwine",
+      "probe_sha256": "3db901c76008cda617cd042f65799b269e135cfc164290a930ad473a513621cb",
+      "attempted_ground_returns": 7234,
+      "supported": 7234,
+      "unresolved_vertical_offset_m": 0.0019894441900989435,
+      "relative_shape_median_abs_m": 0.007408061620140849,
+      "relative_shape_p90_abs_m": 0.026623983945438388,
+      "independent_accuracy_claim": false,
+      "datum_certified": false,
+      "note": "Same collection may underlie terrain; offset removal is a diagnostic, not held-out accuracy."
+    },
+    {
+      "region": "berkeley-downtown",
+      "source": "CA_AlamedaCo_3_2021",
+      "served_terrain_source": "USGS 3DEP CA_AlamedaCo_3_2021 ground returns (class 2), via Entwine",
+      "probe_sha256": "609a09dae3e4dede0bae1439a34b8c1085470c24ad7722dfcc16621e2d65bc5f",
+      "attempted_ground_returns": 5845,
+      "supported": 5845,
+      "unresolved_vertical_offset_m": 0.0007478666457245708,
+      "relative_shape_median_abs_m": 0.02330343121838041,
+      "relative_shape_p90_abs_m": 0.10701841707198699,
+      "independent_accuracy_claim": false,
+      "datum_certified": false,
+      "note": "Same collection may underlie terrain; offset removal is a diagnostic, not held-out accuracy."
+    },
+    {
+      "region": "palo-alto-downtown",
+      "source": "CA_SantaClaraCounty_2020",
+      "served_terrain_source": "USGS 3DEP CA_SantaClaraCounty_2020 ground returns (class 2), via Entwine",
+      "probe_sha256": "ba072cdafd40c9630c1208e1b9562ee97c2a68dff47ac496d4fa1b550aee305b",
+      "attempted_ground_returns": 3274,
+      "supported": 3274,
+      "unresolved_vertical_offset_m": -0.0014055164559714228,
+      "relative_shape_median_abs_m": 0.011245017173358463,
+      "relative_shape_p90_abs_m": 0.030138854421504394,
+      "independent_accuracy_claim": false,
+      "datum_certified": false,
+      "note": "Same collection may underlie terrain; offset removal is a diagnostic, not held-out accuracy."
+    },
+    {
+      "region": "san-jose-downtown",
+      "source": "CA_SantaClaraCounty_2020",
+      "served_terrain_source": "USGS 3DEP CA_SantaClaraCounty_2020 ground returns (class 2), via Entwine",
+      "probe_sha256": "1c1f99ea2ee86a674a38eb3bb03a24418c173e1b43fbc8d7e7e6c0f8aa2751fb",
+      "attempted_ground_returns": 764,
+      "supported": 764,
+      "unresolved_vertical_offset_m": 0.004394660737728984,
+      "relative_shape_median_abs_m": 0.015793750522469452,
+      "relative_shape_p90_abs_m": 0.041454214916401715,
+      "independent_accuracy_claim": false,
+      "datum_certified": false,
+      "note": "Same collection may underlie terrain; offset removal is a diagnostic, not held-out accuracy."
+    }
+  ],
+  "municipal": [
+    {
+      "region": "oakland-downtown",
+      "bbox": [
+        37.785,
+        -122.285,
+        37.815,
+        -122.26
+      ],
+      "path": "municipal/oakland-downtown-bfd98b91b57b.json",
+      "sha256": "9617152dcff6ae39c77532f399483e05ab806743525469671f24ea9a08668e52",
+      "sources": 1,
+      "sidewalks": 0,
+      "curb_colours": 0,
+      "validation_references": 2558
+    },
+    {
+      "region": "palo-alto-downtown",
+      "bbox": [
+        37.44,
+        -122.17,
+        37.452,
+        -122.155
+      ],
+      "path": "municipal/palo-alto-downtown-97c7bdfc8976.json",
+      "sha256": "07699ae5431ace4d3063c338777f3841da9b5474ecabb179856ff2e87afbd44f",
+      "sources": 1,
+      "sidewalks": 0,
+      "curb_colours": 0,
+      "validation_references": 1441
+    },
+    {
+      "region": "san-jose-downtown",
+      "bbox": [
+        37.325,
+        -121.905,
+        37.345,
+        -121.875
+      ],
+      "path": "municipal/san-jose-downtown-1a61e7d26102.json",
+      "sha256": "51dced217cd4ce863bbb538bd0625cf4a5b07a2c3dde515eacc728954c9545ab",
+      "sources": 4,
+      "sidewalks": 1255,
+      "curb_colours": 476,
+      "validation_references": 52
+    }
+  ],
+  "palo_alto_road_edge_check": {
+    "attempted": 1441,
+    "supported": 523,
+    "median_discrepancy_m": 0.9730863171702806,
+    "p90_discrepancy_m": 2.3925970220941184,
+    "source_cohorts": {
+      "as blt cpa / TF": 80,
+      "p40 1993 / heads up": 106,
+      "p40 1993 / stereodig": 230,
+      "obsc 1993 / stereodig": 84,
+      "devr impr / traced": 17,
+      "devr impr / heads up": 4,
+      "as blt cpa / heads up": 1,
+      "as blt cpa / traced": 1
+    },
+    "independent_accuracy_claim": false,
+    "note": "Mixed edge inventory vs nominal road; correspondence/edge role need review before fitting."
+  },
+  "canonical_geometry_changed": false,
+  "new_region_intake_started": false,
+  "limitations": [
+    "Historical Oakland inventory cannot establish present parking restrictions",
+    "Palo Alto mixed road edges are validation references, not universally surveyed curbs",
+    "Survey-control datum review remains required; project lines are not as-built geometry"
+  ]
+}

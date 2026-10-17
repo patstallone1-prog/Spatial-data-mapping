@@ -6,5 +6,6 @@
   "Description": "City collision, grounded movement, physically based atmosphere and dynamic daylight.",
   "Category": "Kerbside",
   "CanContainContent": false,
+  "Plugins": [{"Name":"CelestialVault","Enabled":true}],
   "Modules": [{"Name": "KerbsideWorld", "Type": "Runtime", "LoadingPhase": "Default"}]
 }

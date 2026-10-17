@@ -1,0 +1,50 @@
+{
+  "schema": "kerbside.municipal_context_index/1",
+  "regions": [
+    {
+      "region": "oakland-downtown",
+      "bbox": [
+        37.785,
+        -122.285,
+        37.815,
+        -122.26
+      ],
+      "path": "municipal/oakland-downtown-bfd98b91b57b.json",
+      "sha256": "9617152dcff6ae39c77532f399483e05ab806743525469671f24ea9a08668e52",
+      "sources": 1,
+      "sidewalks": 0,
+      "curb_colours": 0,
+      "validation_references": 2558
+    },
+    {
+      "region": "palo-alto-downtown",
+      "bbox": [
+        37.44,
+        -122.17,
+        37.452,
+        -122.155
+      ],
+      "path": "municipal/palo-alto-downtown-97c7bdfc8976.json",
+      "sha256": "07699ae5431ace4d3063c338777f3841da9b5474ecabb179856ff2e87afbd44f",
+      "sources": 1,
+      "sidewalks": 0,
+      "curb_colours": 0,
+      "validation_references": 1441
+    },
+    {
+      "region": "san-jose-downtown",
+      "bbox": [
+        37.325,
+        -121.905,
+        37.345,
+        -121.875
+      ],
+      "path": "municipal/san-jose-downtown-1a61e7d26102.json",
+      "sha256": "51dced217cd4ce863bbb538bd0625cf4a5b07a2c3dde515eacc728954c9545ab",
+      "sources": 4,
+      "sidewalks": 1255,
+      "curb_colours": 476,
+      "validation_references": 52
+    }
+  ]
+}
