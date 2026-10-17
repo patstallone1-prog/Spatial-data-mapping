@@ -3154,6 +3154,7 @@ const WORLD_BUILD_STARTED=performance.now();
 //: page's own world is still drawn; and the built regions, from the page's region index.
 let activeGuest = null;
 let hostWorldActive = true;
+let regionStreamingReady = false;
 let attaching = null, attachWanted = null, detailRetryAt=0, detailCheckAt=0, detailPreviousFocus=null;
 const REGION_INDEX = { list: [], root: "", host: null };
 const ASSET_BASE = ATTACH ? ATTACH.assets
@@ -33278,7 +33279,7 @@ regionBadge.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:30;bac
 regionBadge.hidden = true;
 document.body.appendChild(regionBadge);
 function checkDetailExpansion(now) {
-  if(ATTACH || attaching || now<detailRetryAt || now-detailCheckAt<1000
+  if(ATTACH || !regionStreamingReady || attaching || now<detailRetryAt || now-detailCheckAt<1000
     || !window.kerbsideReady?.streets || !window.kerbsideReady?.ground)return;
   detailCheckAt=now;
   const focus=state.firstPerson ? avatar.position : state.target;
@@ -33304,7 +33305,7 @@ window.kerbsideStreamDetail=()=>{
     +`Municipal sidewalks: ${usage.sidewalks}; curb records: ${usage.curbColourRecords}.`;
 };
 async function attachRegion(region, centre = null, radius = 220) {
-  if (ATTACH || !region) return;
+  if (ATTACH || !regionStreamingReady || !region) return;
   const isHost = REGION_INDEX.host && region.name === REGION_INDEX.host.name;
   if (!centre && ((isHost && hostWorldActive) || (activeGuest && activeGuest.region === region))) return;
   centre ||= {lon:midLon+avatar.position.x/metersPerLon,lat:midLat-avatar.position.z/metersPerLat};
@@ -33528,6 +33529,9 @@ window.kerbsideGuestApi = {
     if (TERRAIN) { TERRAIN.data = null; TERRAIN.visualData = null; }
   },
 };
+// Animation can start while later top-level awaits are still building labels/UI.
+// Only enable handoffs once every declaration and the guest API are initialized.
+regionStreamingReady = true;
 </script>
 </body>
 </html>

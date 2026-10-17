@@ -174,3 +174,12 @@ def test_scheduler_state_exists_before_first_animation_frame():
     js = _page_js()
     assert js.index("let attaching = null") < js.index("function animate(now)")
     assert "invalidateTilesTouching([previousBox,TILE_OWN_BOX])" not in js
+
+
+def test_streaming_cannot_start_before_ui_and_guest_exports_exist():
+    js = _page_js()
+    result = run("const ATTACH=null,regionStreamingReady=false;"
+                 + _extract("checkDetailExpansion", js)
+                 + "checkDetailExpansion(1000);console.log(JSON.stringify({safe:true}));")
+    assert result["safe"]
+    assert js.rindex("regionStreamingReady = true") > js.index("window.kerbsideGuestApi =")

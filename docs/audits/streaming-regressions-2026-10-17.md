@@ -16,7 +16,9 @@
    The last ready world remains until the replacement's ground succeeds. Coarse tiles remain
    resident and update their ownership uniform rather than being discarded at each handoff.
    Viewer imports pin the streaming module's content hash, preventing old browser modules
-   from being paired with a newer viewer.
+   from being paired with a newer viewer. Handoffs are disabled until the complete UI and
+   guest API initialize; animation can otherwise call them during a later top-level await
+   and strand the loading state. A real-cell bounded-boot smoke test covers this path.
 3. **Running into the edge:** small arrivals grow to a rolling 700 m detail square. Work
    starts with 280 m of margin, leads movement by 160 m, and can warm source cells up to
    1 km farther out within the shared 48 MiB decoded-cell cache. Unexpected long jumps
