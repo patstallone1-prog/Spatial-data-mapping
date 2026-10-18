@@ -35,6 +35,7 @@ TILE_M = 1000.0
 #: The service goes down for minutes at a time (504s for every request, its metadata included);
 #: a tile still missing after these is read as no aerial evidence (Vegetation.unavailable).
 RETRY_S = (5, 20, 60, 120)
+GIVE_UP_AFTER = 2
 
 
 @dataclass
@@ -65,7 +66,7 @@ def index_from_composite(rgb: np.ndarray) -> np.ndarray:
 
 
 def fetch_tile(west: float, south: float, east: float, north: float, *, pixel_m: float,
-               cache: Path | None = None) -> VegetationRaster:
+               cache: Path | None = None, offline: bool = False) -> VegetationRaster:
     # The image is asked for in degrees, so its sides must be in the box's proportions in
     # degrees: given any other shape the service widens the box to fit, and every pixel lands
     # metres from where it is read.
@@ -74,6 +75,8 @@ def fetch_tile(west: float, south: float, east: float, north: float, *, pixel_m:
     path = cache / f"{west:.5f}_{south:.5f}_{east:.5f}_{north:.5f}_{pixel_m}.png" if cache else None
     if path and path.exists():
         raw = path.read_bytes()
+    elif offline:
+        raise urllib.error.URLError("NAIP service given up on for this run")
     else:
         params = {"bbox": f"{west},{south},{east},{north}", "bboxSR": 4326, "imageSR": 4326,
                   "size": f"{width},{height}", "format": "png",
@@ -106,6 +109,11 @@ class Vegetation:
         self.pixel_m = pixel_m
         self._tiles: dict[tuple[int, int], VegetationRaster] = {}
         self.unavailable: set[tuple[int, int]] = set()
+        # When the service is down (504s for every export), each tile spends its retries --
+        # near twenty minutes -- before it gives up; after GIVE_UP_AFTER tiles in a row fail,
+        # the rest of the run asks no more and reads only what is cached.
+        self.failed_in_row = 0
+        self.service_down = False
 
     def _tile(self, ix: int, iy: int) -> VegetationRaster | None:
         """The tile, or None where the service would not give it up after every retry: the
@@ -120,9 +128,14 @@ class Vegetation:
             west = ix * dlon
             try:
                 self._tiles[key] = fetch_tile(west, south, west + dlon, south + dlat,
-                                              pixel_m=self.pixel_m, cache=self.cache)
+                                              pixel_m=self.pixel_m, cache=self.cache,
+                                              offline=self.service_down)
+                self.failed_in_row = 0
             except (urllib.error.URLError, TimeoutError, OSError):
                 self.unavailable.add(key)
+                if not self.service_down:
+                    self.failed_in_row += 1
+                    self.service_down = self.failed_in_row >= GIVE_UP_AFTER
                 return None
         return self._tiles[key]
 
