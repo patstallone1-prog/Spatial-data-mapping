@@ -2039,6 +2039,22 @@ def annotate_region_lidar(ways: list[dict[str, Any]]) -> dict[str, Any]:
                 way["kerb_n"] = found["curb_height_n"]
                 way["kerb_source"] = "lidar_region"
                 counts["street kerb height from the lidar"] += 1
+    # Photographed kerb heights (scripts/curbmeasure/photo_kerb_heights.py) for a street with
+    # neither a city nor a lidar height, and only where the photographs agreed with the lidar
+    # on the streets both measured: a lower rung, labelled so, never a kerb position.
+    photo_path = lidar_dir / "kerb_heights_photo.json"
+    if photo_path.exists():
+        photo = json.loads(photo_path.read_text())
+        if photo.get("accepted") and photo.get("grade") == "image":
+            for way in ways:
+                if way.get("kind") != "street" or way.get("osm_id") is None or way.get("kerb_m"):
+                    continue
+                found = photo.get("heights", {}).get(f"osm:{way['osm_id']}")
+                if found:
+                    way["kerb_m"] = found["curb_height_m"]
+                    way["kerb_n"] = found["curb_height_n"]
+                    way["kerb_source"] = "photo_semantic"
+                    counts["street kerb height from photographs (below the lidar)"] += 1
     return dict(counts)
 
 
