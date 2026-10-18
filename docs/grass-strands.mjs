@@ -39,7 +39,7 @@ export function triangleGroundSampler(meshes,cell=4){
     }return y;
   };
 }
-export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8,radius=14,maxCells=16}={}){
+export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8,radius=14,maxCells=16,motion=null}={}){
   const group=new THREE.Group();group.name='inferred-grass-strands';parent.add(group);
   const cells=new Map(),material=new THREE.MeshStandardMaterial({vertexColors:true,
     side:THREE.DoubleSide,roughness:1,metalness:0});
@@ -49,9 +49,11 @@ export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vBladeRange;')
       .replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))<smoothstep(14.,20.,vBladeRange))discard;');
   };material.customProgramCacheKey=()=> 'physical-grass-strands-v1';
+  // Wind and a walker's feet bend the blades (foliage-motion.mjs); bladeT is root 0 to tip 1.
+  motion?.apply(material,'grass');
   const colour=new THREE.Color();let lastX=Infinity,lastZ=Infinity,lastBuild=0,desired=[];
   function make(tx,tz){
-    const positions=[],colours=[],indices=[];
+    const positions=[],colours=[],indices=[],tips=[];
     const slots=Math.round(cellSize/.125);
     for(let r=tz*slots;r<(tz+1)*slots;r++)for(let c=tx*slots;c<(tx+1)*slots;c++){
       const blade=grassBlade(c,r),at=sample(blade.x,blade.z);
@@ -70,11 +72,13 @@ export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8
         colours.push(colour.r,colour.g,colour.b);
       }
       indices.push(base,base+1,base+2,base+1,base+3,base+2,base+2,base+3,base+4);
+      tips.push(0,0,.55,.55,1);
     }
     if(!indices.length)return null;
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
     geometry.setAttribute('color',new THREE.Float32BufferAttribute(colours,3));
+    geometry.setAttribute('bladeT',new THREE.Float32BufferAttribute(tips,1));
     geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingSphere();
     const mesh=new THREE.Mesh(geometry,material);mesh.userData={surface:'grass_strands',inferred:true,liftedOntoGround:true};
     mesh.receiveShadow=true;onMesh(mesh);return mesh;

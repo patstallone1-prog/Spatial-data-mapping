@@ -54,24 +54,32 @@ def node(code: str) -> dict:
     return json.loads(result.stdout)
 
 
-def test_trees_cross_density_cells_without_overlapping_or_load_order_dependence():
+def test_trees_cross_density_cells_with_clear_spacing_and_load_order_independence():
     result = node("""
 const sample=()=>({cover:42,canopy:85,water:false});
 const all=[];for(let r=-4;r<42;r++)for(let c=-4;c<42;c++){
   const a=n.acceptedTree(c,r,sample);if(a)all.push(a);
 }
-let overlap=0;for(let i=0;i<all.length;i++)for(let j=0;j<i;j++){
-  if(Math.hypot(all[i].x-all[j].x,all[i].y-all[j].y)<all[i].radius+all[j].radius)overlap++;
+let spacingOverlap=0,crownOverlap=0;
+for(let i=0;i<all.length;i++)for(let j=0;j<i;j++){
+  const distance=Math.hypot(all[i].x-all[j].x,all[i].y-all[j].y);
+  if(distance<all[i].spacing+all[j].spacing+.25-1e-9)spacingOverlap++;
+  if(distance<all[i].radius+all[j].radius)crownOverlap++;
 }
 const reverse=[];for(let r=41;r>=-4;r--)for(let c=41;c>=-4;c--){
   const a=n.acceptedTree(c,r,sample);if(a)reverse.push(a.id);
 }
-console.log(JSON.stringify({count:all.length,overlap,
+console.log(JSON.stringify({count:all.length,spacingOverlap,crownOverlap,
+ validSpacing:all.every(a=>Number.isFinite(a.spacing)&&a.spacing>0&&a.spacing<a.radius),
  same:JSON.stringify(all.map(a=>a.id).sort())===JSON.stringify(reverse.sort()),
  boundary:all.some(a=>Math.abs(a.x-100)<a.radius)}));
 """)
     assert result["count"] > 300
-    assert result["overlap"] == 0
+    # The current forest design allows crowns to interlock, not tree centres to
+    # crowd their exclusion envelopes. Keep the actual spacing and load-order
+    # guarantees; also reject a regression back to fully isolated crown discs.
+    assert result["validSpacing"] and result["spacingOverlap"] == 0
+    assert result["crownOverlap"] > 0
     assert result["same"] and result["boundary"]
 
 

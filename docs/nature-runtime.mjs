@@ -1,6 +1,6 @@
 // Source-backed bare earth and land cover. All individual plants/rocks are visual inference.
 // Public pure functions also run in Node regression tests; THREE is injected by the viewer.
-import {SPECIES,habitatMixture,speciesAt,field,undergrowthAt,smooth} from './nature-ecology.mjs';
+import {SPECIES,UNDERGROWTH,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize} from './nature-ecology.mjs';
 import {vegetationAssets,botanicalGeometry} from './vegetation-geometry.mjs';
 import {createGrassStrands} from './grass-strands.mjs';
 // Keep each existing botanical LOD 30% farther out, without inventing more trees.
@@ -86,12 +86,13 @@ export function treeCandidate(c, r, sample) {
   // from a random fill of a treeless beach, bare summit or developed road.
   if(s.cover===31&&(!habitat||habitat.forest+habitat.scrub<.08||canopy<3))return null;
   const species=speciesAt(x,y,s.lon??-122.45,s.lat??37.79,habitat||{}),spec=SPECIES[species];
-  const radius=spec.radius[0]+hash2(c,r,11)*(spec.radius[1]-spec.radius[0]);
+  const {height,radius}=treeSize(spec,hash2(c,r,31),hash2(c,r,11));
   // Dense patches emerge from the continuous observed canopy field, not 100 m squares.
   const probability = Math.min(1, canopy / 55)*(.78+.32*field(x,y,65,593));
   if (hash2(c,r,19) > probability) return null;
-  return {id:`tree:${c}:${r}`,x,y,radius,priority:hash2(c,r,23),
-    height: spec.height[0]+hash2(c,r,31)*(spec.height[1]-spec.height[0]),species,
+  // Neighbouring crowns interlock in a stand, so trees are spaced by a part of their spread.
+  return {id:`tree:${c}:${r}`,x,y,radius,spacing:radius*.6,priority:hash2(c,r,23),
+    height,species,
     variant:s.cover===41 ? 0 : s.cover===42 ? [1,2,3][Math.floor(hash2(c,r,29)*3)] : Math.floor(hash2(c,r,29)*4),
     densityCell:[Math.floor(x/100),Math.floor(y/100)],certainty:"inferred-canopy-constrained"};
 }
@@ -99,14 +100,14 @@ export function acceptedTree(c, r, sample, blocked = () => false,cache=null) {
   const candidate=(c,r)=>{const key=`${c}:${r}`;if(cache?.has(key))return cache.get(key);
     const a=treeCandidate(c,r,sample);cache?.set(key,a);return a;};
   const a = candidate(c,r);
-  if (!a || blocked(a.x,a.y,a.radius)) return null;
+  if (!a || blocked(a.x,a.y,a.spacing)) return null;
   // Matérn-II inhibition compares *all* neighbouring candidates, including unloaded cells.
   // Thus loading order cannot introduce overlaps or create different boundary trees.
   for (let dr=-2;dr<=2;dr++) for (let dc=-2;dc<=2;dc++) {
     if (!dc&&!dr) continue;
     const b=candidate(c+dc,r+dr);
-    if (b && b.priority<a.priority && !blocked(b.x,b.y,b.radius)
-        && Math.hypot(a.x-b.x,a.y-b.y)<a.radius+b.radius+.25) return null;
+    if (b && b.priority<a.priority && !blocked(b.x,b.y,b.spacing)
+        && Math.hypot(a.x-b.x,a.y-b.y)<a.spacing+b.spacing+.25) return null;
   }
   return a;
 }
@@ -173,14 +174,14 @@ export async function loadNatureAtlas(resolve) {
   return atlas;
 }
 
-export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{}}) {
+export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{},motion=null}) {
   const world=new THREE.Group();world.name="nature-atlas-v1";world.userData.bayWide=true;root.add(world);
   const terrain=new THREE.Group(),features=new THREE.Group();world.add(terrain,features);
   const f=atlas.f,detailMeshes=new Map(),plantGroups=new Map(),pending=new Set(),pathTiles=new Map();
   const stats={source:"3DEP + Annual NLCD 2024 + USFS TCC 2024",inferred:true,speciesBasis:'regional ecological priors, not an individual-tree inventory',trees:0,shrubs:0,rocks:0,trails:0,farCanopyProxies:0,overviewReady:false,errors:[]};
   let pathsManifest=null,lastX=Infinity,lastY=Infinity,working=false,forceVersion=0,builtVersion=0;
   let grassFocus=null;
-  const grassStrands=createGrassStrands(THREE,{parent:features,sample:(x,z)=>{
+  const grassStrands=createGrassStrands(THREE,{parent:features,motion,sample:(x,z)=>{
     const outside=visibleNatureGround(x,z,false,[hostBox?.value,guestBox?.value],false);
     if(!outside)return null;
     const [ax,ay]=atlas.local(...fromPage(x,z)),s=surface(ax,ay);
@@ -405,8 +406,7 @@ diffuseColor*=vec4(canopyLinear,canopy.a);`);
         const sx=c*24+(k%2)*12+2+hash2(c,r,887+k)*8,sy=r*24+Math.floor(k/2)*12+2+hash2(c,r,897+k)*8;
         if(hash2(c,r,907+k)>Math.min(.9,h.canopy/60)||atlas.farBlocked(sx,sy))continue;
         const at=surface(sx,sy);if(!at||at.water||blockedAt(...at.p,12))continue;
-        const species=speciesAt(sx,sy,s.lon,s.lat,h),spec=SPECIES[species],height=spec.height[0]+hash2(c,r,917+k)*(spec.height[1]-spec.height[0]);
-        const radius=spec.radius[0]+hash2(c,r,927+k)*(spec.radius[1]-spec.radius[0]);
+        const species=speciesAt(sx,sy,s.lon,s.lat,h),spec=SPECIES[species],{height,radius}=treeSize(spec,hash2(c,r,917+k),hash2(c,r,927+k));
         P.push(at.p[0],at.height+height*.5,at.p[1]);S.push(height);K.push(speciesKeys.indexOf(species)*2+(hash2(c,r,k+31)>.5?1:0));A.push(radius*2/height/(144/256));
       }
     }
@@ -472,15 +472,20 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         if(!trees.has(key))trees.set(key,[]);
         trees.get(key).push({p:[s.p[0],s.height,s.p[1]],scale:[R,h,R],turn,shade:.85+hash2(c,r,43)*.3});
       }
+      // Understorey on a 4 m lattice: four chances in every 8 m slot, so a forest floor is
+      // filled rather than dotted. Trails, roads and buildings stay clear (blocked).
+      for(let k=0;k<4;k++){
+        const sx=(c*2+(k&1)+.2+hash2(c,r,61+k*5)*.6)*4,sy=(r*2+(k>>1)+.2+hash2(c,r,63+k*5)*.6)*4,at=surface(sx,sy);
+        if(!at||at.water)continue;
+        const shrub=undergrowthAt(sx,sy,{...atlas.ecologicalSample(sx,sy),...at});
+        if(!shrub||blocked(sx,sy,shrub.radius))continue;
+        if(!shrubs.has(shrub.kind))shrubs.set(shrub.kind,[]);
+        const shade=.80+hash2(c,r,71+k)*.35;
+        shrubs.get(shrub.kind).push({p:[at.p[0],at.height+.025,at.p[1]],scale:[shrub.radius,shrub.height,shrub.radius],turn:hash2(c,r,73+k)*6.283,
+          colour:(UNDERGROWTH[shrub.kind]?.colour||[.29,.39,.18]).map(v=>v*shade)});
+      }
       const x=(c+.2+hash2(c,r,61)*.6)*8,y=(r+.2+hash2(c,r,63)*.6)*8,s=surface(x,y);
       if(!s||s.water)continue;
-      const shrub=undergrowthAt(x,y,{...atlas.ecologicalSample(x,y),...s});
-      if(shrub&&!blocked(x,y,shrub.radius)){
-        if(!shrubs.has(shrub.kind))shrubs.set(shrub.kind,[]);
-        const shade=.80+hash2(c,r,71)*.35;
-        shrubs.get(shrub.kind).push({p:[s.p[0],s.height+.025,s.p[1]],scale:[shrub.radius,shrub.height,shrub.radius],turn:hash2(c,r,73)*6.283,
-          colour:(['bunchgrass','sedge'].includes(shrub.kind)?[.48,.48,.27]:[.29,.39,.18]).map(v=>v*shade)});
-      }
       if(hash2(c,r,67)>.23||blocked(x,y,.9))continue;
       // Barren alone does not prove beach rocks: only a steep barren slope or mapped rock.
       const east=atlas.sample(x+10,y),west=atlas.sample(x-10,y);
@@ -489,13 +494,14 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const group=new THREE.Group();group.userData.bayWide=true;
     const midP=[],midS=[],midK=[],midA=[];
     for(const [key,items] of trees){const [species,variant]=key.split(':');for(const part of assets.tree(species,Number(variant))){
-      fadePlant(part.material);const mesh=instances(part.geometry,part.material,items.map(v=>({...v,colour:part.colour.map(c=>c*v.shade)})));
+      fadePlant(part.material);motion?.apply(part.material,part.material.map?'leaves':'bark');
+      const mesh=instances(part.geometry,part.material,items.map(v=>({...v,colour:part.colour.map(c=>c*v.shade)})));
       mesh.userData.species=species;group.add(mesh);
     }
       for(const v of items){midP.push(v.p[0],v.p[1]+v.scale[1]*.5,v.p[2]);midS.push(v.scale[1]);midK.push(speciesKeys.indexOf(species)*2+Number(variant));midA.push(v.scale[0]*2/v.scale[1]/(144/256));}
     }
     if(midP.length){const middle=treePoints(midP,midS,midK,midA,middleMaterial);middle.userData={surface:'nature_tree_middle',bayWide:true,inferred:true,liftedOntoGround:true};group.add(middle);}
-    for(const [kind,items] of shrubs){const part=assets.undergrowth(kind);fadePlant(part.material);group.add(instances(part.geometry,part.material,items));}
+    for(const [kind,items] of shrubs){const part=assets.undergrowth(kind);fadePlant(part.material);motion?.apply(part.material,'shrub');group.add(instances(part.geometry,part.material,items));}
     const rockMesh=instances(sphere,leafMat,rocks);if(rockMesh)group.add(rockMesh);
     const trailP=[],trailC=[],trailI=[];
     const trailColours={asphalt:[.29,.30,.29],concrete:[.57,.56,.51],stone:[.52,.50,.45],paving_stones:[.54,.49,.42],gravel:[.54,.49,.39],sand:[.68,.60,.44],ground:[.47,.37,.24],dirt:[.47,.37,.24],unknown:[.47,.37,.24]};

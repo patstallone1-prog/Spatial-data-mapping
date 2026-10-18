@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""San Francisco's own streetlights, by pole type, into every San Francisco region's furniture.
+"""San Francisco's own streetlights, by pole type, into every San Francisco region's furniture
+(and San Jose's, from its DOT fixture layer, into San Jose's).
 
 The SFPUC owns about 25,000 of the city's streetlights and publishes every one of them as a point
 with its pole type and material (the "SFPUC Streetlights" layer behind its streetlight map,
@@ -299,15 +300,187 @@ SOURCE = {
 }
 
 
+# San Jose publishes its lights too: DOT's Street Light Fixture layer, a record per fixture with
+# its pole number, fixture type and mount, updated weekly. It says what the fixture is and not
+# how tall the pole is, so the heights are the usual ones for each kind and say so.
+#
+# Mapillary's street-light map features were tried first, for the cities that publish nothing,
+# and measured against this layer: 30% of them stand within 8 m of a light the city has, and
+# 44% even among those seen four times or more. Drawn, most would be lamps where none stands,
+# so they are not drawn; Oakland and Palo Alto have no streetlights until a city record turns
+# up. Berkeley's turned up: below.
+SAN_JOSE_LAYER = ("https://geo.sanjoseca.gov/server/rest/services/OPN/OPN_OpenDataService/"
+                  "MapServer/425/query")
+_SJ_ROADWAY = ("mast_arm", 30, 6, "cobra_head", "galvanized_steel",
+               "roadway fixture on a mast arm; 30 ft pole and 6 ft arm assumed (the layer gives neither)")
+_SJ_ACORN = ("post_top", 14, 0, "acorn", "dark_steel", "acorn post top; 14 ft pedestrian pole assumed")
+#: San Jose fixture type: (form, pole height ft, arm ft, luminaire, finish, basis).
+SAN_JOSE_FORMS = {
+    "ROADWAY-LED": _SJ_ROADWAY, "ROADWAY-NONLED": _SJ_ROADWAY,
+    "POST TOP-ACORN": _SJ_ACORN,
+    "POST TOP-TWIN ACORN": ("twin_pendant", 14, 1.5, "acorn", "dark_steel",
+                            "twin acorns on a crossarm; 14 ft pedestrian pole assumed"),
+    "DOWNTOWN HELMET": ("post_top", 16, 0, "dome", "dark_steel",
+                        "downtown helmet post top; 16 ft pedestrian pole assumed"),
+    "MARTINI": ("post_top", 14, 0, "acorn", "dark_steel", "martini post top; 14 ft pole assumed"),
+    "CANE": ("pendant", 16, 3, "acorn_pendant", "dark_steel",
+             "cane arm with a hung luminaire; 16 ft pole and 3 ft arm assumed"),
+}
+#: Not a pole of its own: lights on buildings (uplight, soffit, wall), floodlights, and the
+#: lights on a traffic signal's mast, which is drawn with the signal.
+SAN_JOSE_NOT_POLES = {"UPLIGHT", "SOFFIT", "WALL", "WALLPACK", "FLOODLIGHT"}
+SAN_JOSE_SOURCE = {
+    "id": "san_jose_dot_streetlights", "name": "Street Light Fixture (City of San José DOT)",
+    "url": SAN_JOSE_LAYER.removesuffix("/query"),
+    "license": "City of San José GIS data, provided as is (no licence stated)",
+    "provenance": "official_asset_point",
+    "methodology": "Existing fixtures on their own poles, one per pole number; form from the fixture and mount "
+                   "type, heights assumed per kind; building-mounted lights, floodlights and traffic-signal "
+                   "mounts not drawn as poles. Mapillary poles within 6 m of one dropped as the same pole.",
+}
+
+
+def san_jose_streetlights(bbox: dict, refresh: bool, name: str) -> list[dict]:
+    path = CACHE.parent / f"sanjose-streetlights-{name}.json"
+    if path.exists() and not refresh:
+        return json.loads(path.read_text())
+    rows, offset = [], 0
+    while True:
+        query = urllib.parse.urlencode({
+            "geometry": f"{bbox['west']},{bbox['south']},{bbox['east']},{bbox['north']}",
+            "geometryType": "esriGeometryEnvelope", "inSR": 4326, "spatialRel": "esriSpatialRelIntersects",
+            "outFields": "OBJECTID,BADGEID,LIGHTFIXTURETYPE,MOUNTTYPE,LIGHTSTATUS,POLEUSE,ISDUPLICATE",
+            "outSR": 4326, "orderByFields": "OBJECTID", "resultOffset": offset, "resultRecordCount": 1000,
+            "f": "json"})
+        page = json.loads(fetch(f"{SAN_JOSE_LAYER}?{query}", timeout=180))
+        if "error" in page:
+            raise SystemExit(f"San Jose streetlight layer: {page['error']}")
+        features = page.get("features") or []
+        rows += [{**f["attributes"], "lon": f["geometry"]["x"], "lat": f["geometry"]["y"]}
+                 for f in features if f.get("geometry")]
+        if not features or not page.get("exceededTransferLimit"):
+            break
+        offset += len(features)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rows))
+    return rows
+
+
+def san_jose_records(rows: list[dict]) -> list[dict]:
+    poles: dict[str, dict] = {}
+    for row in rows:
+        fixture = (row.get("LIGHTFIXTURETYPE") or "").upper()
+        mount = (row.get("MOUNTTYPE") or "").upper()
+        if ((row.get("LIGHTSTATUS") or "").upper() != "EXISTING"
+                or (row.get("ISDUPLICATE") or "").upper() == "YES"
+                or fixture in SAN_JOSE_NOT_POLES or mount in SAN_JOSE_NOT_POLES
+                or (row.get("POLEUSE") or "").upper() == "ST LIGHT & TRAFFIC SIGNAL"):
+            continue
+        spec = SAN_JOSE_FORMS.get(fixture) or (_SJ_ROADWAY if mount == "MAST ARM" else
+                                               _SJ_ACORN if mount == "POST TOP" else None)
+        if spec is None:
+            continue
+        form, height, arm, luminaire, finish, basis = spec
+        if (row.get("POLEUSE") or "").upper() == "UTILITY":
+            finish, basis = "wood", basis + "; on a utility pole"
+        pole = str(row.get("BADGEID") or f"oid{row.get('OBJECTID')}")
+        record = {
+            "id": f"sanjose:streetlight:{pole}", "kind": "street_light",
+            "p": [round(row["lon"], 7), round(row["lat"], 7)], "pole_type": fixture or mount,
+            "form": form, "height_m": round(height * FT, 2), "arm_m": round(arm * FT, 2),
+            "luminaire": luminaire, "finish": finish, "dimension_basis": basis,
+            "source": SAN_JOSE_SOURCE["id"], "provenance": "official_asset_point",
+        }
+        # Two fixtures on one pole are one pole: the roadway arm is the one drawn.
+        if pole not in poles or (form == "mast_arm" and poles[pole]["form"] != "mast_arm"):
+            poles[pole] = record
+    return list(poles.values())
+
+
+# Berkeley's lights are the inventory its 2017 LED conversion made of every one of them
+# (Socrata dz4s-un9u, "Streetlights20170921"): pole material, mounting height in bands, arm
+# length in feet, single or twin heads. Not the "Streetlights" map (w9v4-y3pu), which is the
+# empty shell smc.official.city_records describes.
+BERKELEY_TABLE = "https://data.cityofberkeley.info/resource/dz4s-un9u.json"
+#: Mounting-height band: the pole height drawn, in feet (the middle of the band).
+BERKELEY_HEIGHT_FT = {"< 25 feet": 21, "<25 feet": 21, "25-30 feet": 27.5, "> 30 feet": 32}
+BERKELEY_SOURCE = {
+    "id": "berkeley_streetlights_2017", "name": "Streetlights20170921 (City of Berkeley)",
+    "url": "https://data.cityofberkeley.info/d/dz4s-un9u",
+    "license": "City of Berkeley open data (no licence stated)",
+    "provenance": "official_asset_point",
+    "methodology": "Every light in the city's 2017 LED conversion inventory; height the middle of its "
+                   "mounting band, arm as recorded; a metal pole with an arm of 2 ft or less under 25 ft is a "
+                   "post top (twin heads a pair on a crossarm); lights on wood poles drawn on wood. "
+                   "Mapillary poles within 6 m of one dropped as the same pole.",
+}
+
+
+def berkeley_streetlights(bbox: dict, refresh: bool, name: str) -> list[dict]:
+    path = CACHE.parent / f"berkeley-streetlights-{name}.json"
+    if path.exists() and not refresh:
+        return json.loads(path.read_text())
+    query = urllib.parse.urlencode({
+        "$where": f"within_box(the_geom,{bbox['north']},{bbox['west']},{bbox['south']},{bbox['east']})",
+        "$limit": 50000})
+    rows = json.loads(fetch(f"{BERKELEY_TABLE}?{query}", timeout=180))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rows))
+    return rows
+
+
+def berkeley_records(rows: list[dict]) -> list[dict]:
+    out = []
+    for row in rows:
+        point = (row.get("the_geom") or {}).get("coordinates")
+        if not point or (row.get("installed") or "YES").upper() != "YES":
+            continue
+        wood = (row.get("pole_mater") or "").lower() == "wood"
+        band = (row.get("mounting_h") or "").strip()
+        height = BERKELEY_HEIGHT_FT.get(band.lower(), 27.5)
+        try:
+            arm = float(row.get("arm_length") or 0)
+        except ValueError:
+            arm = 0.0
+        twin = (row.get("heads") or "").lower() == "twin"
+        if not wood and arm <= 2 and height < 25:
+            form, luminaire, finish = ("twin_pendant" if twin else "post_top"), "acorn", "dark_steel"
+            arm = 1.5 if twin else 0
+        else:
+            form, luminaire, finish = "mast_arm", "cobra_head", "wood" if wood else "galvanized_steel"
+        out.append({
+            "id": f"berkeley:streetlight:{row.get('facilityid') or row.get('unique_id')}", "kind": "street_light",
+            "p": [round(float(point[0]), 7), round(float(point[1]), 7)],
+            "pole_type": f"{row.get('pole_mater') or '?'} {band or '?'}", "material": (row.get("pole_mater") or "").lower() or None,
+            "form": form, "height_m": round(height * FT, 2), "arm_m": round(arm * FT, 2),
+            "luminaire": luminaire, "finish": finish, "heads": 2 if twin else 1,
+            "dimension_basis": f"mounting band {band or 'unknown'}, arm {row.get('arm_length') or '?'} ft as recorded",
+            "source": BERKELEY_SOURCE["id"], "provenance": "official_asset_point",
+        })
+    return out
+
+
+#: The cities other than San Francisco that publish their lights: region prefix -> how.
+CITY_LIGHTS = {
+    "san-jose": (san_jose_streetlights, san_jose_records, SAN_JOSE_SOURCE),
+    "berkeley": (berkeley_streetlights, berkeley_records, BERKELEY_SOURCE),
+}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--region", action="append",
+                    help="only these regions' furniture files (sf-corridor for the corridor's)")
     args = ap.parse_args()
     use_certifi()
     lights = records(streetlights(args.refresh))
     files = [ROOT / "docs/sf-corridor-furniture.json",
              *sorted((ROOT / "docs/regions").glob("*/sf-corridor-furniture.json")),
              *sorted((ROOT / "docs/app-regions").glob("*/sf-corridor-furniture.json"))]
+    if args.region:
+        files = [f for f in files
+                 if ("sf-corridor" if f.parent == ROOT / "docs" else f.parent.name) in args.region]
     cut = runpy.run_path(str(ROOT / "tools/build_window_cells.py"))["cut"]
     report = {}
     for path in files:
@@ -321,14 +494,20 @@ def main() -> int:
         if not bbox:
             continue
         here = [light for light in lights if inside(bbox, *light["p"])]
+        source = SOURCE
+        city = next((c for c in CITY_LIGHTS if path.parent.name.startswith(c)), None)
+        if not here and city:
+            fetch_city, to_records, source = CITY_LIGHTS[city]
+            here = [light for light in to_records(fetch_city(bbox, args.refresh, path.parent.name))
+                    if inside(bbox, *light["p"])]
         inferred = document.setdefault("inferred", {})
         before = len(inferred.get("detected_utility_poles") or [])
         entry = {}
         if here:
             document.setdefault("geometry_based", {})["street_lights"] = here
             inferred["detected_utility_poles"] = off_streetlights(inferred.get("detected_utility_poles") or [], here, span_ends)
-            if SOURCE["id"] not in {s.get("id") for s in document.get("sources", []) if isinstance(s, dict)}:
-                document.setdefault("sources", []).append(SOURCE)
+            if source["id"] not in {s.get("id") for s in document.get("sources", []) if isinstance(s, dict)}:
+                document.setdefault("sources", []).append(source)
             entry = {"street_lights": len(here),
                      "forms": {f: sum(1 for x in here if x["form"] == f) for f in sorted({x["form"] for x in here})},
                      "mapillary_poles_that_were_streetlights": before - len(inferred["detected_utility_poles"])}

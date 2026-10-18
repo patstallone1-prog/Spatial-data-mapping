@@ -127,6 +127,102 @@ def meters_from_rows(rows: list[dict]) -> list[dict]:
     return out
 
 
+#: San Jose's own meters: DOT's Parking Meters layer, one record per meter head, the heads that
+#: share a post numbered alike (SNW018, SNW018B).
+SAN_JOSE_METERS = ("https://geo.sanjoseca.gov/server/rest/services/OPN/OPN_OpenDataService/"
+                   "MapServer/422/query")
+
+
+def san_jose_meter_rows(bbox: dict, refresh: bool, name: str) -> list[dict]:
+    path = CACHE / f"sanjose-parking-meters-{name}.json"
+    if path.exists() and not refresh:
+        return json.loads(path.read_text())
+    rows, offset = [], 0
+    while True:
+        query = urllib.parse.urlencode({
+            "geometry": f"{bbox['west']},{bbox['south']},{bbox['east']},{bbox['north']}",
+            "geometryType": "esriGeometryEnvelope", "inSR": 4326, "spatialRel": "esriSpatialRelIntersects",
+            "outFields": "OBJECTID,METERID,METERTYPE,PAYDEVICE,PARKINGTYPE,DEACTIVATED,IPSPOLE,METERADDRESS",
+            "outSR": 4326, "orderByFields": "OBJECTID", "resultOffset": offset, "resultRecordCount": 1000,
+            "f": "json"})
+        page = json.loads(fetch(f"{SAN_JOSE_METERS}?{query}"))
+        if "error" in page:
+            raise SystemExit(f"San Jose meter layer: {page['error']}")
+        features = page.get("features") or []
+        rows += [{**f["attributes"], "lon": f["geometry"]["x"], "lat": f["geometry"]["y"]}
+                 for f in features if f.get("geometry")]
+        if not features or not page.get("exceededTransferLimit"):
+            break
+        offset += len(features)
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rows))
+    return rows
+
+
+def san_jose_meters(rows: list[dict]) -> list[dict]:
+    """One record per post, its heads counted; a multi-space meter is a pay station."""
+    posts: dict[str, list[dict]] = defaultdict(list)
+    out = []
+    for row in rows:
+        if (row.get("DEACTIVATED") or "").lower() == "yes":
+            continue
+        base = {"source": "san_jose_dot_parking_meters", "provenance": "official_meter_inventory",
+                "street": row.get("METERADDRESS")}
+        if (row.get("METERTYPE") or "").lower().startswith("multi") or row.get("PAYDEVICE") == "Multispace":
+            out.append({"id": f"sanjose:pay_station:{row.get('METERID') or row['OBJECTID']}", "kind": "parking_meter",
+                        "p": [round(row["lon"], 7), round(row["lat"], 7)], "meter_type": "pay_station", **base})
+            continue
+        pole = str(row.get("IPSPOLE") or f"oid{row['OBJECTID']}")
+        posts[pole.removesuffix("B") if len(pole) > 1 else pole].append(row)
+    for post, heads in posts.items():
+        row = heads[0]
+        out.append({"id": f"sanjose:parking_meter:{post}", "kind": "parking_meter",
+                    "p": [round(row["lon"], 7), round(row["lat"], 7)], "meter_type": "single_space",
+                    "heads": min(2, len(heads)), "cap_color": "-", "source": "san_jose_dot_parking_meters",
+                    "provenance": "official_meter_inventory", "street": row.get("METERADDRESS")})
+    return out
+
+
+#: Oakland's own meters: Parking's IPS inventory, one row per pole -- MK5 single-space heads and
+#: MS1 multi-space pay stations -- with the pole's surveyed position and its rate and limit.
+OAKLAND_METERS = "https://data.oaklandca.gov/resource/wnjv-tz7z.json"
+
+
+def oakland_meter_rows(bbox: dict, refresh: bool, name: str) -> list[dict]:
+    path = CACHE / f"oakland-parking-meters-{name}.json"
+    if path.exists() and not refresh:
+        return json.loads(path.read_text())
+    where = (f"within_box(the_geom,{bbox['north']},{bbox['west']},{bbox['south']},{bbox['east']})")
+    query = urllib.parse.urlencode({"$where": where, "$limit": 50000, "$order": "pole"})
+    rows = json.loads(fetch(f"{OAKLAND_METERS}?{query}"))
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rows))
+    return rows
+
+
+def oakland_meters(rows: list[dict]) -> list[dict]:
+    """One record per pole in service (a bagged meter still stands); MS1 is a pay station."""
+    out = []
+    for row in rows:
+        if (row.get("pole_statu") or "").lower() not in {"active", "bagged"}:
+            continue
+        try:
+            lon, lat = float(row["longitude"]), float(row["latitude"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        station = (row.get("meter_type") or "").upper().startswith("MS")
+        pole = row.get("pole") or row.get("rfid")
+        out.append({"id": f"oakland:{'pay_station' if station else 'parking_meter'}:{pole}", "kind": "parking_meter",
+                    "p": [round(lon, 7), round(lat, 7)],
+                    "meter_type": "pay_station" if station else "single_space",
+                    **({} if station else {"heads": 1, "cap_color": "-"}),
+                    "street": " ".join(filter(None, [row.get("block_numb") if row.get("block_numb") not in (None, "0") else None,
+                                                     row.get("street_add") or row.get("sub_area")])),
+                    "rate": row.get("config__na"), "source": "oakland_parking_meters",
+                    "provenance": "official_meter_inventory"})
+    return out
+
+
 def overpass(bbox: dict, refresh: bool, name: str) -> dict:
     path = CACHE / f"osm-kerb-{name}.json"
     if path.exists() and not refresh:
@@ -312,6 +408,8 @@ def inside(bbox: dict, lon: float, lat: float) -> bool:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--region", action="append",
+                    help="only these regions' furniture files (sf-corridor for the corridor's)")
     args = ap.parse_args()
     use_certifi()
     load_env_file(ROOT / ".env.local")
@@ -321,6 +419,9 @@ def main() -> int:
     files = [ROOT / "docs/sf-corridor-furniture.json",
              *sorted((ROOT / "docs/regions").glob("*/sf-corridor-furniture.json")),
              *sorted((ROOT / "docs/app-regions").glob("*/sf-corridor-furniture.json"))]
+    if args.region:
+        files = [f for f in files
+                 if ("sf-corridor" if f.parent == ROOT / "docs" else f.parent.name) in args.region]
     meters = meters_from_rows(sfmta_meters(args.refresh))
     cells = sf_small_cells(args.refresh)
     cut = runpy.run_path(str(ROOT / "tools/build_window_cells.py"))["cut"]
@@ -333,6 +434,15 @@ def main() -> int:
         region = path.parent.name if path.parent.name != "docs" else "sf-corridor"
         machines, wires = osm_assets(overpass(bbox, args.refresh, region))
         official = [m for m in meters if inside(bbox, *m["p"])]
+        city_inventory = False
+        if not official and region.startswith("san-jose"):
+            official = [m for m in san_jose_meters(san_jose_meter_rows(bbox, args.refresh, region))
+                        if inside(bbox, *m["p"])]
+            city_inventory = True
+        if not official and region.startswith("oakland"):
+            official = [m for m in oakland_meters(oakland_meter_rows(bbox, args.refresh, region))
+                        if inside(bbox, *m["p"])]
+            city_inventory = True
         document.setdefault("geometry_based", {})["parking_meters"] = official
         document.setdefault("inferred", {})["parking_meters"] = [m for m in machines
             if not any(abs(m["p"][0] - o["p"][0]) < 2e-5 and abs(m["p"][1] - o["p"][1]) < 2e-5 for o in official)]
@@ -340,7 +450,9 @@ def main() -> int:
         poles, seen_meters = detected_assets(mapillary_features(bbox, token, args.refresh, region))
         poles = off_trolley_lines([p for p in poles if inside(bbox, *p["p"])], wires)
         document["inferred"]["detected_utility_poles"] = dedupe(poles, document["inferred"].get("utility_poles") or [], 7.0)
-        document["inferred"]["detected_parking_meters"] = dedupe(
+        # Where a city publishes every meter, Mapillary's are not added beside them: against
+        # San Jose's layer only 46% of its meters stood within 8 m of one the city has.
+        document["inferred"]["detected_parking_meters"] = [] if city_inventory else dedupe(
             [m for m in seen_meters if inside(bbox, *m["p"])],
             official + document["inferred"]["parking_meters"], 8.0)
         document["geometry_based"]["small_cells"] = [c for c in cells if inside(bbox, *c["p"])]
@@ -351,6 +463,22 @@ def main() -> int:
                 "license": "Open Data Commons Public Domain Dedication and License",
                 "provenance": "official_meter_inventory",
                 "methodology": "On-street meters in service (active flag M); one record per post or pay station."})
+        if city_inventory and region.startswith("oakland") and "oakland_parking_meters" not in sources:
+            document["sources"].append({
+                "id": "oakland_parking_meters", "name": "City of Oakland Parking Meters",
+                "url": "https://data.oaklandca.gov/d/wnjv-tz7z",
+                "license": "City of Oakland open data (no licence stated)",
+                "provenance": "official_meter_inventory",
+                "methodology": "Poles active or bagged; MK5 single-space heads one post each, MS1 multi-space "
+                               "meters as pay stations, each with its configured rate. Mapillary's meters not added."})
+        if city_inventory and region.startswith("san-jose") and "san_jose_dot_parking_meters" not in sources:
+            document["sources"].append({
+                "id": "san_jose_dot_parking_meters", "name": "Parking Meters (City of San José DOT)",
+                "url": SAN_JOSE_METERS.removesuffix("/query"),
+                "license": "City of San José GIS data, provided as is (no licence stated)",
+                "provenance": "official_meter_inventory",
+                "methodology": "Meters not deactivated; heads sharing a post (SNW018, SNW018B) one post; "
+                               "multi-space meters as pay stations. Mapillary's meters not added."})
         for source in ({"id": "mapillary_map_features", "name": "Mapillary map features",
                         "url": "https://www.mapillary.com/developer/api-documentation",
                         "license": "CC BY-SA 4.0", "attribution": "© Mapillary",
@@ -368,7 +496,7 @@ def main() -> int:
         path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
         if (path.parent / "cells/sf-corridor-furniture/manifest.json").exists():
             cut(path)
-        report[str(path.relative_to(ROOT))] = {"sfmta_meters": len(official),
+        report[str(path.relative_to(ROOT))] = {"official_meters": len(official),
                                                "osm_parking_machines": len(document["inferred"]["parking_meters"]),
                                                "trolley_wire_ways": len(wires),
                                                "mapillary_poles": len(document["inferred"]["detected_utility_poles"]),

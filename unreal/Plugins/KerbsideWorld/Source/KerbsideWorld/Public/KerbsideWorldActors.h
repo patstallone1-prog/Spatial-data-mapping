@@ -41,6 +41,9 @@ private:
     void MoveRight(float Value);
     void LookYaw(float Value);
     void LookPitch(float Value);
+    /** K and J: the next weather, the next wind (KerbsideCelestialSky). */
+    void NextWeather();
+    void NextWind();
 };
 
 UCLASS()

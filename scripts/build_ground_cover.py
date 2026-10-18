@@ -35,7 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from smc.ground.courts import layout_courts, oriented_rect, resolve_sport  # noqa: E402
+from smc.ground.courts import court_complexes, layout_courts, oriented_rect, resolve_sport  # noqa: E402
 from smc.ground.cover import Lattice  # noqa: E402
 from smc.ground.exclusion import RoadMask  # noqa: E402
 from smc.imagery.region import SF_CORRIDOR  # noqa: E402
@@ -86,10 +86,14 @@ CITY_SOURCES: dict[str, dict[str, dict]] = {
         # rather than a position. Taken at face value it plants the whole city on one corner.
         "trees_note": "4jcx-enxf has one placeholder coordinate for every row",
     },
-    # Berkeley's portal lists parcels (bhxd-e6up) and parks (5zw5-qt7z) but both answer empty
-    # to an unauthenticated read, and the city publishes nothing equivalent through ArcGIS
-    # either. Berkeley's green is OpenStreetMap's until that changes.
-    "berkeley": {"host": "data.cityofberkeley.info", "note": "datasets answer empty unauthenticated"},
+    # Berkeley's portal lists parcels (bhxd-e6up) and parks (5zw5-qt7z) as map layers that
+    # answer empty; the same records are published again as plain tables, which do not: the
+    # Assessor's 2017 tax parcels (29,024 lots) and the city's park polygons.
+    "berkeley": {
+        "host": "data.cityofberkeley.info",
+        "parcels": {"id": "rax9-nuvx", "geom": "the_geom", "name": "apn"},
+        "parks": {"id": "ixpz-824i", "geom": "the_geom", "name": "name"},
+    },
     # Palo Alto and San Jose are ArcGIS rather than Socrata; see ARCGIS_SOURCES.
     "palo-alto": {"arcgis": True},
     "san-jose": {"arcgis": True},
@@ -749,6 +753,8 @@ def main() -> int:
                 by_sport[kind] = by_sport.get(kind, 0) + 1
     progress(f"{len(courts)} courts across {len(pitches)} pitches: "
              + ", ".join(f"{n} {s}" for s, n in sorted(by_sport.items())))
+    complexes = court_complexes(pitches, to_metres, to_lonlat)
+    progress(f"{len(complexes)} blocks of adjoining courts, padded and fenced as one")
 
     street_band = Lattice(bbox, cell_m=1.0)
     footprints = Lattice(bbox, cell_m=1.0)
@@ -1190,7 +1196,8 @@ def main() -> int:
                                "parks": parks, "yards": yards, "lawns": lawns,
                                "front_walks": front_walks, "service_yards": service_yards,
                                "backyards": backyards, "plazas": plazas, "trees": trees,
-                               "courts": courts, "pitches": pitches, "fences": fences},
+                               "courts": courts, "pitches": pitches, "court_complexes": complexes,
+                               "fences": fences},
                               separators=(",", ":")))
     progress(f"wrote {OUT.name}: described after ground cover {lattice.grid.mean():.1%}")
     return 0

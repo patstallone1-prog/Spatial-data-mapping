@@ -7,6 +7,9 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/WindDirectionalSourceComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineGlobals.h"
@@ -53,6 +56,36 @@ bool FKerbsideCelestialDefaults::RunTest(const FString& Parameters)
     TestNotNull(TEXT("Epic volumetric clouds"), Sky->VolumetricCloudComponent.Get());
     TestNotNull(TEXT("Sun"), Sky->SunLightComponent.Get());
     TestNotNull(TEXT("Moon"), Sky->MoonLightComponent.Get());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKerbsideWeatherLooks, "Kerbside.World.WeatherLooks",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FKerbsideWeatherLooks::RunTest(const FString& Parameters)
+{
+    FKerbsideWeatherLook Sunny, Partly, Cloudy, Fog, Rain, None;
+    TestTrue(TEXT("sunny"), AKerbsideCelestialSky::LookFor("sunny", Sunny));
+    TestTrue(TEXT("partly_cloudy"), AKerbsideCelestialSky::LookFor("partly_cloudy", Partly));
+    TestTrue(TEXT("cloudy"), AKerbsideCelestialSky::LookFor("cloudy", Cloudy));
+    TestTrue(TEXT("fog"), AKerbsideCelestialSky::LookFor("fog", Fog));
+    TestTrue(TEXT("rain"), AKerbsideCelestialSky::LookFor("rain", Rain));
+    TestFalse(TEXT("Unknown weather refused"), AKerbsideCelestialSky::LookFor("hail", None));
+    TestEqual(TEXT("Five weathers to step through"), AKerbsideCelestialSky::WeatherNames().Num(), 5);
+    TestTrue(TEXT("Cloud cover rises sunny < partly < cloudy"),
+        Sunny.CloudCoverage < Partly.CloudCoverage && Partly.CloudCoverage < Cloudy.CloudCoverage);
+    TestTrue(TEXT("Fog is the densest fog"), Fog.FogDensity > Rain.FogDensity && Fog.FogDensity > 10 * Sunny.FogDensity);
+    TestTrue(TEXT("Only rain rains"), Rain.Rain > .9f && Sunny.Rain + Partly.Rain + Cloudy.Rain + Fog.Rain == 0.f);
+    const FKerbsideWeatherLook Half = FKerbsideWeatherLook::Lerp(Sunny, Rain, .5f);
+    TestEqual(TEXT("Blends halfway"), Half.Rain, .5f);
+    // A westerly blows toward the east (+X); a northerly toward the south (+Y in this frame).
+    TestTrue(TEXT("Westerly blows east"), AKerbsideCelestialSky::WindVector(270.f).Equals(FVector(1, 0, 0), 1e-4));
+    TestTrue(TEXT("Northerly blows south"), AKerbsideCelestialSky::WindVector(0.f).Equals(FVector(0, 1, 0), 1e-4));
+    const AKerbsideCelestialSky* Sky = GetDefault<AKerbsideCelestialSky>();
+    TestNotNull(TEXT("Rain streaks"), Sky->RainStreaks.Get());
+    const UStaticMesh* Streak = Sky->RainStreaks ? Sky->RainStreaks->GetStaticMesh().Get() : nullptr;
+    TestNotNull(TEXT("Rain streak mesh"), Streak);
+    TestNotNull(TEXT("Wind source"), Sky->WindSource.Get());
+    TestTrue(TEXT("Rain never collides"), Sky->RainStreaks && !Sky->RainStreaks->IsCollisionEnabled());
     return true;
 }
 
