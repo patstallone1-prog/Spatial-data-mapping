@@ -2005,8 +2005,10 @@ def record_activation(payload: dict[str, Any]) -> None:
 
 def annotate_region_lidar(ways: list[dict[str, Any]]) -> dict[str, Any]:
     """What the region's own lidar pass measured (scripts/measure_region_lidar.py): a roof
-    height for every footprint it saw, taken over the map's storey count and the default but
-    not over a height a mapper wrote down; and the kerb height along each street."""
+    height for every footprint it saw, taken over the map's storey count and the default, and
+    over a height a mapper wrote down where the two agree (smc.buildings.lidar_heights); and
+    the kerb height along each street."""
+    from smc.buildings.lidar_heights import adopt_lidar_height
     lidar_dir = ROOT / "data" / "regions" / REGION.name / "lidar"
     counts: Counter[str] = Counter()
     heights_path = lidar_dir / "building_heights.json"
@@ -2019,13 +2021,10 @@ def annotate_region_lidar(ways: list[dict[str, Any]]) -> dict[str, Any]:
             if not found:
                 counts["building without a lidar roof"] += 1
                 continue
-            if way.get("height_source") == "osm_height":
-                counts["building kept the mapper's height"] += 1
-                continue
-            way["height_m"] = found["height_m"]
-            way["height_source"] = "lidar_region"
-            way["height_points"] = found["roof_points"]
-            counts["building height from the lidar"] += 1
+            counts[{"adopted": "building height from the lidar",
+                     "confirmed": "building's mapped height confirmed by the lidar",
+                     "disagrees": "building kept the mapper's height over the lidar's",
+                     }.get(adopt_lidar_height(way, found), "building height measured elsewhere")] += 1
     kerbs_path = lidar_dir / "kerb_heights.json"
     if kerbs_path.exists():
         kerbs = json.loads(kerbs_path.read_text())
@@ -14847,7 +14846,8 @@ function structureClass(feature, areaM2) {
   // A height OpenStreetMap states is a statement about this building and is believed. A lidar
   // median over a forty square metre footprint in a dense block is a measurement of whatever
   // was tallest in the cell, which is usually the building next door.
-  const stated = feature.height_source === "osm_height" || feature.height_source === "osm_levels";
+  const stated = feature.height_source === "osm_height" || feature.height_source === "osm_levels"
+    || feature.height_osm_m != null;
   if (stated || areaM2 >= 150) return "building";
   const height = feature.height_m || 0;
   if (feature.height_source === "inferred_default" || !feature.height_source) return "outbuilding";
@@ -33678,7 +33678,7 @@ PAGE_FIELDS = {
     "address", "alley_mouth", "archetype", "centroid", "colour", "continental", "covered", "facade",
     "crossing_m", "cycleway", "cycleway_both", "cycleway_left", "cycleway_right",
     "divider_source", "divider_surface", "divider_width_m", "garages",
-    "google_places", "height_m", "height_source", "kerb_m", "kind", "land_use", "lanes",
+    "google_places", "height_m", "height_osm_m", "height_source", "kerb_m", "kind", "land_use", "lanes",
     "lanes_back", "lanes_fwd", "name", "oneway", "osm_id", "osm_oneway", "parcel", "place",
     "points", "road_m", "road_source", "sources", "tags", "turn", "turn_back", "turn_fwd", "busway",
     "shops", "track_m", "walk_fallback_m", "walk_m", "walk_sides", "zoning", "coastline_band", "underground",
