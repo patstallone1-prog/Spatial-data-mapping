@@ -1,0 +1,160 @@
+{
+  "schema": "kerbside.connector_intake_snapshot/1",
+  "snapshot_at": 1792281026.771389,
+  "run_state": "running",
+  "active_at_snapshot": {
+    "job": "san-mateo-foster-gap-p0-0-0",
+    "stage": "osm"
+  },
+  "planned_jobs": 337,
+  "corridors": [
+    {
+      "region": "sf-central-gap",
+      "adapter": "san-francisco",
+      "purpose": "Connect corridor, Haight/Castro, Richmond and Mission",
+      "jobs": 5,
+      "completed_stages": {
+        "discover": 1,
+        "osm": 1
+      }
+    },
+    {
+      "region": "sf-south-gap",
+      "adapter": "san-francisco",
+      "purpose": "Southern SF connection to the Peninsula",
+      "jobs": 13,
+      "completed_stages": {
+        "discover": 1,
+        "osm": 1
+      }
+    },
+    {
+      "region": "daly-south-sf-gap",
+      "adapter": "san-mateo-county",
+      "purpose": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+      "jobs": 25,
+      "completed_stages": {
+        "discover": 1,
+        "osm": 1
+      }
+    },
+    {
+      "region": "millbrae-burlingame-gap",
+      "adapter": "san-mateo-county",
+      "purpose": "Peninsula connection south of SFO",
+      "jobs": 15,
+      "completed_stages": {
+        "discover": 1
+      }
+    },
+    {
+      "region": "san-mateo-foster-gap",
+      "adapter": "san-mateo-county",
+      "purpose": "San Mateo, Foster City and bay shore",
+      "jobs": 15,
+      "completed_stages": {
+        "discover": 1
+      }
+    },
+    {
+      "region": "belmont-san-carlos-gap",
+      "adapter": "san-mateo-county",
+      "purpose": "Connect San Mateo and Redwood City",
+      "jobs": 8,
+      "completed_stages": {
+        "discover": 1
+      }
+    },
+    {
+      "region": "redwood-menlo-gap",
+      "adapter": "san-mateo-county",
+      "purpose": "Redwood City, Menlo Park and Palo Alto approach",
+      "jobs": 25,
+      "completed_stages": {
+        "discover": 1
+      }
+    },
+    {
+      "region": "mountain-view-gap",
+      "adapter": "santa-clara-county",
+      "purpose": "Connect Palo Alto to Mountain View",
+      "jobs": 19,
+      "completed_stages": {}
+    },
+    {
+      "region": "sunnyvale-santa-clara-gap",
+      "adapter": "santa-clara-county",
+      "purpose": "Connect Mountain View to San Jose",
+      "jobs": 30,
+      "completed_stages": {}
+    },
+    {
+      "region": "emeryville-north-oakland-gap",
+      "adapter": "alameda-county",
+      "purpose": "Connect Oakland and Berkeley",
+      "jobs": 12,
+      "completed_stages": {}
+    },
+    {
+      "region": "alameda-gap",
+      "adapter": "alameda-county",
+      "purpose": "Continue Posey Tube approach into Alameda",
+      "jobs": 12,
+      "completed_stages": {}
+    },
+    {
+      "region": "east-bay-south-gap",
+      "adapter": "alameda-county",
+      "purpose": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+      "jobs": 158,
+      "completed_stages": {}
+    }
+  ],
+  "acquisitions": [
+    {
+      "job": "sf-central-gap-p0-0-0",
+      "dataset": "OpenStreetMap",
+      "license": "ODbL-1.0",
+      "bbox": [
+        37.77,
+        -122.47,
+        37.786,
+        -122.44158646866181
+      ],
+      "bytes": 11933977,
+      "sha256": "77efb0dc04a7ace453bcddeb8a909b241b6c7568df54ed75a5d6bd3e4c6d4a45",
+      "ways": 12678
+    },
+    {
+      "job": "sf-south-gap-p0-0-0",
+      "dataset": "OpenStreetMap",
+      "license": "ODbL-1.0",
+      "bbox": [
+        37.708,
+        -122.47,
+        37.730457779374774,
+        -122.44160566296911
+      ],
+      "bytes": 14892365,
+      "sha256": "a4c45eb33686866cb454d238d40903ccff7c78e775fa57173217b46ce120d2f6",
+      "ways": 16175
+    },
+    {
+      "job": "daly-south-sf-gap-p0-0-0",
+      "dataset": "OpenStreetMap",
+      "license": "ODbL-1.0",
+      "bbox": [
+        37.6,
+        -122.5,
+        37.62245777937478,
+        -122.47163398339094
+      ],
+      "bytes": 1535919,
+      "sha256": "1dfee0c64523ceca9bf6544f7928fa631e907a809a1e601e2e106497d736d4ba",
+      "ways": 1765
+    }
+  ],
+  "new_coverage_published": false,
+  "scope": "Discovery, OSM geometry, then 3DEP terrain/kerb intake; private until built and audited.",
+  "note": "Point-in-time receipt, not a live completion counter. Runner status is build/gap-intake/status.json."
+}

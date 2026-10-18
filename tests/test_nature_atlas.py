@@ -238,7 +238,7 @@ def test_runtime_is_fingerprinted_and_not_an_older_regional_template():
     builder = (ROOT / "tools/build_app_worlds.py").read_text()
     assert 'DOCS / "nature-runtime.mjs"' in builder
     source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
-    assert 'import(sharedAsset("nature-runtime.mjs"))' in source
+    assert 'import(sharedAsset("nature-runtime.mjs?rev=__NATURE_RUNTIME_HASH__"))' in source
     assert "if (PERIMETER && !NATURE)" in source
 
 

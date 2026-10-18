@@ -33,6 +33,8 @@ def page_module(out: Path, page: Path = PAGE) -> Path:
     # resolve its same checked-in source locally, without stubbing its behavior.
     js = re.sub(r'import\(sharedAsset\("world-streaming\.mjs(?:\?rev=[^"\s]+)?"\)\)',
                 f'import({json.dumps((ROOT / "docs/world-streaming.mjs").as_uri())})', js)
+    js = re.sub(r'import\(sharedAsset\("grass-strands\.mjs(?:\?rev=[^"\s]+)?"\)\)',
+                f'import({json.dumps((ROOT / "docs/grass-strands.mjs").as_uri())})', js)
     out.write_text(js, encoding="utf-8")
     return out
 
