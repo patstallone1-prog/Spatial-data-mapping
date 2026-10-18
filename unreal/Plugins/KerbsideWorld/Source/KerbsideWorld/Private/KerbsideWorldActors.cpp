@@ -1,4 +1,5 @@
 #include "KerbsideWorldActors.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/DirectionalLightComponent.h"
@@ -145,4 +146,26 @@ bool UKerbsideWorldLibrary::ConfigureWorldMesh(UStaticMesh* Mesh, bool BlocksPla
     Mesh->MarkPackageDirty();
 #endif
     return true;
+}
+
+AKerbsideGrassField::AKerbsideGrassField()
+{
+    Grass = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Grass"));
+    RootComponent = Grass;
+    Grass->SetMobility(EComponentMobility::Static);
+    Grass->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    Grass->SetCastShadow(false);
+    Grass->bEvaluateWorldPositionOffset = true;
+    PrimaryActorTick.bCanEverTick = false;
+}
+
+int32 AKerbsideGrassField::PlantClumps(UStaticMesh* Clump, UMaterialInterface* Material, const TArray<FTransform>& Clumps, float CullCm)
+{
+    if (!Clump || !Grass) return 0;
+    Grass->SetStaticMesh(Clump);
+    if (Material) Grass->SetMaterial(0, Material);
+    // Fade out over the last fifth of the range rather than stopping at a line.
+    Grass->SetCullDistances(FMath::RoundToInt(CullCm * .8f), FMath::RoundToInt(CullCm));
+    Grass->AddInstances(Clumps, false, true);
+    return Grass->GetInstanceCount();
 }

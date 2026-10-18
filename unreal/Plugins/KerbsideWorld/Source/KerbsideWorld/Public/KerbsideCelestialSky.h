@@ -30,6 +30,7 @@ struct KERBSIDEWORLD_API FKerbsideWeatherLook
  * In play, K steps through the weather and J through the wind (calm, breeze, windy, gale);
  * from the console, Kerbside.Weather <name> and Kerbside.Wind <m/s> [from-degrees]; at launch,
  * -KerbsideWeather=<name> -KerbsideWind=<m/s>, and -KerbsideShot=<png> [-KerbsideShotAfter=<s>]
+ * [-KerbsideShotPose=x,y,z,pitch,yaw]
  * saves one frame and quits, for looking at a weather without sitting in it.
  */
 UCLASS(Blueprintable)
@@ -55,6 +56,15 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Kerbside|Sky") TObjectPtr<class UInstancedStaticMeshComponent> RainStreaks;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Kerbside|Sky") TObjectPtr<class UWindDirectionalSourceComponent> WindSource;
+    /**
+     * The foliage materials' wind and walker (tools/unreal/foliage_setup.py makes it): every
+     * frame the sky writes Wind = (toward east, toward south, m/s, 0) and Walker = (the player's
+     * feet in world cm, how far round them grass is pressed). Trees and shrubs sway in the wind
+     * and grass parts round the walker in the material's world-position offset -- on the GPU,
+     * as games do it, not as simulated branches. Nothing is moved that collides.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Kerbside|Foliage") TSoftObjectPtr<class UMaterialParameterCollection> FoliageParameters;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Kerbside|Foliage", meta=(ClampMin="0")) float WalkerPressRadius = 55.f;
 
     UFUNCTION(BlueprintCallable, Category="Kerbside|Sky") void SyncClock();
     /** Jump straight to the chosen weather and wind (the editor, and the first frame). */
@@ -79,6 +89,8 @@ private:
     void ShowWind();
     void UpdateRain(float DeltaSeconds);
     UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> CloudMaterial;
+    UPROPERTY(Transient) TObjectPtr<class UMaterialParameterCollection> FoliageCollection;
+    void ShowFoliage();
     FKerbsideWeatherLook Current;
     FKerbsideWeatherLook Target;
     float ClockSeconds = 0.f;

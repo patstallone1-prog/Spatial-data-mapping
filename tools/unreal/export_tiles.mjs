@@ -102,6 +102,10 @@ globalThis.FileReader = class {
   readAsArrayBuffer(blob) { blob.arrayBuffer().then((buffer) => { this.result = buffer; this.onloadend && this.onloadend(); }); }
   readAsDataURL(blob) { blob.arrayBuffer().then((buffer) => { this.result = `data:${blob.type};base64,${Buffer.from(buffer).toString("base64")}`; this.onloadend && this.onloadend(); }); }
 };
+globalThis.__kerbsideImport = (url) => {
+  const path = decodeURIComponent(new URL(String(url), "http://localhost/").pathname).replace(/^\/+/, "");
+  return import(pathToFileURL(resolve(ROOT, "docs", path)).href);
+};
 globalThis.fetch = async (url) => {
   const name = String(url).split("?")[0];
   try {
@@ -112,6 +116,15 @@ globalThis.fetch = async (url) => {
   } catch (e) { return { ok: false, status: 404, json: async () => { throw e; }, arrayBuffer: async () => null }; }
 };
 
+//: Which plants sway in Unreal: trees (trunks and leaves) and shrubs. Litter and deadwood lie.
+function plantMotion(surface) {
+  const s = String(surface);
+  if (s.startsWith("tree:") || s.startsWith("foliage:")) return "tree";
+  if (s.startsWith("understorey:")) return "shrub";
+  return null;
+}
+const material_of = (o) => (Array.isArray(o.material) ? o.material[0] : o.material);
+
 // ---- the page, as a module ---------------------------------------------------------------
 function pageModule() {
   const html = readFileSync(resolve(ROOT, WORLD, PAGE), "utf8");
@@ -119,6 +132,9 @@ function pageModule() {
   let js = html.slice(start, html.indexOf("</script>", start));
   js = js.replace(/^import \* as THREE from "[^"]+";/m, "const THREE = globalThis.__THREE;");
   js = js.replace(/^import \{ GLTFLoader \} from "[^"]+";/m, "const GLTFLoader = globalThis.__THREE.GLTFLoader;");
+  // The page loads its shared modules (streaming, nature, grass, foliage) by dynamic import from
+  // its own site; Node's loader takes files only, so each is read from docs/ where it is built.
+  js = js.replace(/\bimport\((?=sharedAsset\(|asset\()/g, "globalThis.__kerbsideImport(");
   mkdirSync(OUT, { recursive: true });
   const path = resolve(OUT, "page.mjs");
   writeFileSync(path, js);
@@ -151,7 +167,14 @@ async function main() {
     g.applyMatrix4(matrixWorld);
     // Positions, uvs and vertex colours only. Normals are left to the importer (tick
     // "recompute normals"): shipping them was a third of every tile.
-    for (const name of Object.keys(g.attributes)) if (!["position", "uv", "color"].includes(name)) g.deleteAttribute(name);
+    for (const name of Object.keys(g.attributes)) if (!["position", "uv", "color", "uv1", "uv2"].includes(name)) g.deleteAttribute(name);
+    // Every plant in a bucket carries the sway channels, or none can be merged with it: a tree
+    // cut at a wall is baked whole in the page and stands still (weight 0).
+    if (plantMotion(surface) && !g.getAttribute("uv1")) {
+      const n = g.getAttribute("position").count;
+      g.setAttribute("uv1", new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+      g.setAttribute("uv2", new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    }
     const pos = g.getAttribute("position");
     const [start, end] = triangleRange(geometry, pos.count);
     // Cut by triangle centroid into tiles.
@@ -189,6 +212,77 @@ async function main() {
     meshes += 1;
   }
 
+  //: The native foliage material's inputs, per vertex (unreal/Content/README.md, Foliage):
+  //: UV1 = (how far up its plant this vertex is, 0 root to 1 top; the plant's height in
+  //: metres) and UV2 = (a phase of its own, 0-1; the kind: 1 tree, 2 shrub). Unreal sways a
+  //: vertex by the square of its height fraction times its plant's height, as the page does.
+  function swayCopy(flat, world, kind) {
+    const pos = flat.getAttribute("position"), n = pos.count;
+    if (!flat.boundingBox) flat.computeBoundingBox();
+    const top = Math.max(1e-3, flat.boundingBox.max.y);
+    const scaleY = new THREE.Vector3().setFromMatrixColumn(world, 1).length();
+    const at = new THREE.Vector3().setFromMatrixPosition(world);
+    const phase = ((Math.sin(at.x * 12.9898 + at.z * 78.233) * 43758.5453) % 1 + 1) % 1;
+    const uv1 = new Float32Array(n * 2), uv2 = new Float32Array(n * 2);
+    for (let i = 0; i < n; i += 1) {
+      uv1[i * 2] = Math.max(0, Math.min(1, pos.getY(i) / top)); uv1[i * 2 + 1] = top * scaleY;
+      uv2[i * 2] = phase; uv2[i * 2 + 1] = kind === "tree" ? 1 : 2;
+    }
+    const copy = flat.clone();
+    copy.setAttribute("uv1", new THREE.BufferAttribute(uv1, 2));
+    copy.setAttribute("uv2", new THREE.BufferAttribute(uv2, 2));
+    return copy;
+  }
+
+  //: Grass clumps for Unreal over a tile's lawns -- park and yard ground -- about one a square
+  //: metre, deterministic per tile, and none where any hard surface (a path, a walk, a court,
+  //: a kerb, a tree pit) lies over the lawn: the page draws those on top of the turf.
+  const LAWN = new Set(["park", "yard"]), CLUMPS_PER_M2 = 0.9;
+  const SOFT = (s) => LAWN.has(s) || s === "terrain" || /^(tree|foliage|understorey|litter|deadwood):/.test(s)
+    || s.startsWith("building") || s === "roof" || s.startsWith("fence") || s === "wall";
+  function lawnClumps(key, buckets) {
+    const lawn = [], hard = new Map(), cell = 4;
+    for (const bucket of buckets.values()) {
+      const surface = String(bucket.surface).split("|")[0];
+      const isLawn = LAWN.has(surface);
+      if (!isLawn && SOFT(surface)) continue;
+      for (const g of bucket.geometries) {
+        const pos = g.getAttribute("position");
+        for (let t = 0; t + 2 < pos.count; t += 3) {
+          const a = [pos.getX(t), pos.getY(t), pos.getZ(t)], b = [pos.getX(t + 1), pos.getY(t + 1), pos.getZ(t + 1)], c = [pos.getX(t + 2), pos.getY(t + 2), pos.getZ(t + 2)];
+          const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+          const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, len = Math.hypot(nx, ny, nz);
+          if (len < 1e-9 || Math.abs(ny) / len < 0.7) continue;          // only ground that faces up
+          if (isLawn) { lawn.push([a, b, c, Math.abs(ny) / 2]); continue; }
+          const minX = Math.floor(Math.min(a[0], b[0], c[0]) / cell), maxX = Math.floor(Math.max(a[0], b[0], c[0]) / cell);
+          const minZ = Math.floor(Math.min(a[2], b[2], c[2]) / cell), maxZ = Math.floor(Math.max(a[2], b[2], c[2]) / cell);
+          if ((maxX - minX + 1) * (maxZ - minZ + 1) > 4096) continue;
+          for (let gx = minX; gx <= maxX; gx += 1) for (let gz = minZ; gz <= maxZ; gz += 1) {
+            const k2 = `${gx}:${gz}`; if (!hard.has(k2)) hard.set(k2, []); hard.get(k2).push([a, b, c]);
+          }
+        }
+      }
+    }
+    const inside = (x, z, [a, b, c]) => {
+      const d = (b[2] - c[2]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[2] - c[2]); if (Math.abs(d) < 1e-12) return false;
+      const u = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2])) / d, v = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2])) / d;
+      return u >= -1e-6 && v >= -1e-6 && u + v <= 1 + 1e-6;
+    };
+    let seed = [...key].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 2166136261);
+    const rnd = () => { seed = (Math.imul(seed ^ (seed >>> 15), 2246822519) + 0x9e3779b9) >>> 0; return seed / 4294967296; };
+    const out = [];
+    for (const [a, b, c, area] of lawn) {
+      let n = area * CLUMPS_PER_M2; const whole = Math.floor(n) + (rnd() < n - Math.floor(n) ? 1 : 0);
+      for (let i = 0; i < whole; i += 1) {
+        let u = rnd(), v = rnd(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
+        const x = a[0] + (b[0] - a[0]) * u + (c[0] - a[0]) * v, y = a[1] + (b[1] - a[1]) * u + (c[1] - a[1]) * v, z = a[2] + (b[2] - a[2]) * u + (c[2] - a[2]) * v;
+        if ((hard.get(`${Math.floor(x / cell)}:${Math.floor(z / cell)}`) || []).some((t) => inside(x, z, t))) continue;
+        out.push([+x.toFixed(2), +y.toFixed(3), +z.toFixed(2), Math.round(rnd() * 360), +(0.75 + rnd() * 0.6).toFixed(2)]);
+      }
+    }
+    return out;
+  }
+
   const roots = GROUPS.map((name) => k.groups[name]).filter(Boolean);
   k.scene.traverse((o) => { if (o.userData && o.userData.surface === "terrain") roots.push(o); });
   for (const root of roots) {
@@ -204,6 +298,10 @@ async function main() {
       const surface = o.userData.surface || o.userData.kind || o.parent?.userData?.surface
         || `${layer}:${(o.geometry.type || "mesh").replace(/Geometry$/, "").toLowerCase()}`;
       if (surface === "water" || surface === "beach") return;
+      // A tree's leaf cards are their own surface, so Unreal can give them the masked, two-sided
+      // leaf material; its trunk and limbs keep the tree's.
+      const leaf = String(surface).startsWith("tree:") && material_of(o)?.alphaTest > 0;
+      const named = leaf ? String(surface).replace(/^tree:/, "foliage:") : surface;
       if (o.isInstancedMesh) {
         // The shared geometry made flat once, not once per instance; and with --only, an
         // instance whose place is nowhere near the tiles asked for is not cut at all (a region
@@ -218,12 +316,17 @@ async function main() {
             at.setFromMatrixPosition(world);
             if (!near(at.x, at.z)) continue;
           }
-          add(flat, world, Array.isArray(o.material) ? o.material[0] : o.material, surface);
+          const kind = plantMotion(named);
+          if (kind) {
+            const copy = swayCopy(flat, world, kind);
+            add(copy, world, material_of(o), named);
+            copy.dispose();
+          } else add(flat, world, material_of(o), named);
         }
         if (flat !== o.geometry) flat.dispose();
         return;
       }
-      add(o.geometry, o.matrixWorld, Array.isArray(o.material) ? o.material[0] : o.material, surface);
+      add(o.geometry, o.matrixWorld, material_of(o), named);
     });
   }
   console.log(`${meshes} meshes cut into ${tiles.size} tiles, ${triangles} triangles; ${degenerateDropped} zero-area placeholders excluded`);
@@ -234,10 +337,12 @@ async function main() {
                      units: "metres, y up (glTF); the importer turns it z up",
                      degenerate_dropped: degenerateDropped, duplicate_faces_dropped: 0, tiles: [], surfaces: {} };
   mkdirSync(resolve(OUT, "tiles"), { recursive: true });
+  mkdirSync(resolve(OUT, "grass"), { recursive: true });
   for (const [key, buckets] of [...tiles.entries()].sort()) {
     const scene = new THREE.Scene();
     const [ix, iz] = key.split(":").map(Number);
     let tileTris = 0;
+    const grass = lawnClumps(key, buckets);
     const surfaces = {};
     let spawn = null;
     for (const [matKey, bucket] of buckets) {
@@ -273,8 +378,16 @@ async function main() {
     const x0 = ix * TILE_M, z0 = iz * TILE_M;
     const lonlat = frame ? [[frame.mid_lon + x0 / frame.metres_per_lon, frame.mid_lat - z0 / frame.metres_per_lat],
                             [frame.mid_lon + (x0 + TILE_M) / frame.metres_per_lon, frame.mid_lat - (z0 + TILE_M) / frame.metres_per_lat]] : null;
+    let grassEntry = null;
+    if (grass.length) {
+      const text = JSON.stringify({ schema: "kerbside.grass_clumps/1", units: "glTF metres, y up; yaw degrees",
+        basis: "inferred lawn cover on park/yard ground, off hard surfaces; not surveyed plants", clumps: grass });
+      const file = `grass/${name.replace(/\.glb$/, ".json")}`;
+      writeFileSync(resolve(OUT, file), text);
+      grassEntry = { file, count: grass.length, sha256: createHash("sha256").update(text).digest("hex") };
+    }
     manifest.tiles.push({ file: `tiles/${name}`, ix, iz, x0, z0, x1: x0 + TILE_M, z1: z0 + TILE_M, corners_lonlat: lonlat,
-                          triangles: tileTris, surfaces, bytes: glb.byteLength, spawn_gltf_m: spawn,
+                          triangles: tileTris, surfaces, bytes: glb.byteLength, spawn_gltf_m: spawn, grass: grassEntry,
                           sha256: createHash("sha256").update(Buffer.from(glb)).digest("hex") });
     console.log(`  ${name}: ${tileTris} triangles, ${(glb.byteLength / 1e6).toFixed(1)} MB`);
   }
