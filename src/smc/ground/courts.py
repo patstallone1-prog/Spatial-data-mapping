@@ -267,3 +267,126 @@ def layout_courts(sport: str, rect: Rect) -> list[tuple[str, Rect]]:
     if not best and sport in FALLBACK:
         return layout_courts(FALLBACK[sport], rect)
     return [(sport, court) for court in best]
+
+
+# -- complexes -----------------------------------------------------------------------------------
+#
+# OpenStreetMap maps each court of a block of courts as its own pitch, and drawn one by one
+# each got its own pad and its own fence: Moscone's two blocks of tennis and basketball courts
+# came out as six islands of asphalt in the grass, fenced from each other. They are two pads,
+# laid as one, with one fence round each. Pitches whose edges come within ``COMPLEX_GAP_M`` of
+# each other, and that are laid alike -- hard court with hard court, grass with grass -- are one
+# complex; its outline is the pitches' together with the strips between them closed up.
+
+#: Two pitches this close are one block of courts. OpenStreetMap maps the painted court, not
+#: the pad, and a pad keeps run-off between its courts: 3.7 m beside a tennis court and 6.4 m
+#: behind each baseline. Moscone's courts are 3.8 to 8.8 m apart within a block and 190 m
+#: between its two blocks.
+COMPLEX_GAP_M = 9.0
+COMPLEX_CELL_M = 0.25
+#: A complex's outline is simplified to this; the courts' own rings are far finer than a fence.
+COMPLEX_SIMPLIFY_M = 0.3
+GRASS_SPORTS = frozenset({"soccer"})
+
+
+def _surface(sport: str) -> str:
+    return "grass" if sport in GRASS_SPORTS else "hard"
+
+
+def _gap(a: list[tuple[float, float]], b: list[tuple[float, float]]) -> float:
+    """The least distance between two rings' edges (zero where one has a vertex in the other)."""
+    def seg(p, q, r):
+        qx, qy = q[0] - p[0], q[1] - p[1]
+        t = max(0.0, min(1.0, ((r[0] - p[0]) * qx + (r[1] - p[1]) * qy) / max(qx * qx + qy * qy, 1e-12)))
+        return math.hypot(p[0] + qx * t - r[0], p[1] + qy * t - r[1])
+
+    def inside(point, ring):
+        x, y = point
+        hit = False
+        for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1], strict=True):
+            if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+                hit = not hit
+        return hit
+
+    if any(inside(p, b) for p in a) or any(inside(p, a) for p in b):
+        return 0.0
+    best = math.inf
+    for ring, other in ((a, b), (b, a)):
+        for p, q in zip(ring, ring[1:] + ring[:1], strict=True):
+            for r in other:
+                best = min(best, seg(p, q, r))
+    return best
+
+
+def court_complexes(pitches: list[dict], to_metres, to_lonlat) -> list[dict]:
+    """Blocks of adjoining pitches, each as one outline: ``{"id", "s", "surface", "p"}``.
+
+    ``pitches`` are the ground file's (``{"s", "p": [[lon, lat], ...]}``); each one in a block is
+    given the block's id as ``"k"``, which is how the page knows not to pad and fence it alone (an
+    index would not do: the page gathers the lists cell by cell). A pitch on its own is not a
+    complex and is drawn as before.
+    """
+    import cv2
+    import numpy as np
+
+    for pitch in pitches:
+        pitch.pop("k", None)
+    rings = [[to_metres(lon, lat) for lon, lat in pitch["p"]] for pitch in pitches]
+    rings = [r[:-1] if len(r) > 1 and r[0] == r[-1] else r for r in rings]
+    parent = list(range(len(pitches)))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    boxes = [(min(x for x, _ in r), min(y for _, y in r), max(x for x, _ in r), max(y for _, y in r))
+             for r in rings]
+    for i in range(len(pitches)):
+        for j in range(i + 1, len(pitches)):
+            if _surface(pitches[i]["s"]) != _surface(pitches[j]["s"]):
+                continue
+            a, b = boxes[i], boxes[j]
+            if (a[0] - b[2] > COMPLEX_GAP_M or b[0] - a[2] > COMPLEX_GAP_M
+                    or a[1] - b[3] > COMPLEX_GAP_M or b[1] - a[3] > COMPLEX_GAP_M):
+                continue
+            if _gap(rings[i], rings[j]) <= COMPLEX_GAP_M:
+                parent[find(i)] = find(j)
+    groups: dict[int, list[int]] = {}
+    for i in range(len(pitches)):
+        groups.setdefault(find(i), []).append(i)
+
+    out = []
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        xs = [x for i in members for x, _ in rings[i]]
+        ys = [y for i in members for _, y in rings[i]]
+        pad = COMPLEX_GAP_M * 2
+        x0, y0 = min(xs) - pad, min(ys) - pad
+        w = int((max(xs) + pad - x0) / COMPLEX_CELL_M) + 1
+        h = int((max(ys) + pad - y0) / COMPLEX_CELL_M) + 1
+        mask = np.zeros((h, w), dtype=np.uint8)
+        for i in members:
+            pts = np.array([[(x - x0) / COMPLEX_CELL_M, (y - y0) / COMPLEX_CELL_M] for x, y in rings[i]],
+                           dtype=np.float32)
+            cv2.fillPoly(mask, [np.round(pts).astype(np.int32)], 1)
+        size = round(COMPLEX_GAP_M / COMPLEX_CELL_M) | 1
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE,
+                                cv2.getStructuringElement(cv2.MORPH_RECT, (size, size)))
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            continue
+        outline = max(contours, key=cv2.contourArea)
+        outline = cv2.approxPolyDP(outline, COMPLEX_SIMPLIFY_M / COMPLEX_CELL_M, True)[:, 0, :]
+        ring = [to_lonlat(x0 + (u + 0.5) * COMPLEX_CELL_M, y0 + (v + 0.5) * COMPLEX_CELL_M)
+                for u, v in outline]
+        ring.append(ring[0])
+        sports = [pitches[i]["s"] for i in members]
+        key = f"c{len(out)}"
+        for i in members:
+            pitches[i]["k"] = key
+        out.append({"id": key, "s": max(set(sports), key=sports.count), "surface": _surface(sports[0]),
+                    "p": [[round(lon, 6), round(lat, 6)] for lon, lat in ring]})
+    return out

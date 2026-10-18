@@ -35,7 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from smc.ground.courts import layout_courts, oriented_rect, resolve_sport  # noqa: E402
+from smc.ground.courts import court_complexes, layout_courts, oriented_rect, resolve_sport  # noqa: E402
 from smc.ground.cover import Lattice  # noqa: E402
 from smc.ground.exclusion import RoadMask  # noqa: E402
 from smc.imagery.region import SF_CORRIDOR  # noqa: E402
@@ -749,6 +749,8 @@ def main() -> int:
                 by_sport[kind] = by_sport.get(kind, 0) + 1
     progress(f"{len(courts)} courts across {len(pitches)} pitches: "
              + ", ".join(f"{n} {s}" for s, n in sorted(by_sport.items())))
+    complexes = court_complexes(pitches, to_metres, to_lonlat)
+    progress(f"{len(complexes)} blocks of adjoining courts, padded and fenced as one")
 
     street_band = Lattice(bbox, cell_m=1.0)
     footprints = Lattice(bbox, cell_m=1.0)
@@ -1190,7 +1192,8 @@ def main() -> int:
                                "parks": parks, "yards": yards, "lawns": lawns,
                                "front_walks": front_walks, "service_yards": service_yards,
                                "backyards": backyards, "plazas": plazas, "trees": trees,
-                               "courts": courts, "pitches": pitches, "fences": fences},
+                               "courts": courts, "pitches": pitches, "court_complexes": complexes,
+                               "fences": fences},
                               separators=(",", ":")))
     progress(f"wrote {OUT.name}: described after ground cover {lattice.grid.mean():.1%}")
     return 0

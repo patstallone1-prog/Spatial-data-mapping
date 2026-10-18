@@ -5497,7 +5497,7 @@ function latticeCoverCounts() {
   latticeCover = new Map();
   const ground = (typeof GROUND === "object" && GROUND) || {};
   for (const key of ["parks", "yards", "lawns", "front_walks", "service_yards", "backyards",
-                     "plazas", "courts", "pitches"]) {
+                     "plazas", "courts", "pitches", "court_complexes"]) {
     for (const ring of ground[key] || []) {
       const pts = ring.p || ring;
       if (!Array.isArray(pts)) continue;
@@ -21159,6 +21159,8 @@ function hardGroundExclusion(ground) {
     ...(ground.front_walks || []), ...(ground.plazas || []), ...(ground.service_yards || []),
     ...(DATA.ways||[]).filter(w=>w.kind==="parking_lot").map(w=>({p:w.points})),
     ...(ground.pitches || []).filter((p) => COURT_STYLE[p.s] && COURT_STYLE[p.s].surround !== null),
+    // The pad between a block's courts is asphalt too, not grass showing between them.
+    ...(ground.court_complexes || []).filter((c) => c.surface === "hard"),
     // A playground's safety surface and a skatepark's concrete: no grass under them to show
     // through where the hill bulges between the surface's own vertices.
     ...((typeof PARK_EVIDENCE === "undefined" ? null : PARK_EVIDENCE)?.areas || []).filter((a) => (a.kind === "playground" && a.surface?.material !== "grass")
@@ -22025,7 +22027,13 @@ function markCourt(court, paint) {
 
 function buildCourts(ground) {
   const courts = ground.courts || [];
-  const pitches = ground.pitches || [];
+  // A block of adjoining courts is one pad with one fence round it, not a fenced island per
+  // court (smc.ground.courts.court_complexes): a pitch in a block that has arrived is drawn as
+  // part of it. One whose block is in a cell not yet fetched is drawn on its own, as before.
+  const complexes = ground.court_complexes || [];
+  const inBlock = new Set(complexes.map((c) => c.id));
+  const pitches = [...(ground.pitches || []).filter((p) => !inBlock.has(p.k)),
+    ...complexes.map((c) => ({ s: c.s, p: c.p, block: true }))];
   if (!courts.length && !pitches.length) return;
 
   // The ground each pitch stands on, one merged mesh per sport: asphalt round the hard courts,
