@@ -485,7 +485,8 @@ def tuned(html: str, detail: str) -> str:
     streaming_hash = hashlib.sha256((ROOT / "docs/world-streaming.mjs").read_bytes()).hexdigest()[:16]
     html = html.replace("__WORLD_STREAMING_HASH__", streaming_hash)
     for key, filename in (("GRASS_STRANDS", "grass-strands.mjs"), ("NATURE_RUNTIME", "nature-runtime.mjs"),
-                          ("FOLIAGE_MOTION", "foliage-motion.mjs")):
+                          ("FOLIAGE_MOTION", "foliage-motion.mjs"), ("FOREST_FLOOR", "forest-floor.mjs"),
+                          ("GLOBE", "globe.mjs"), ("TELEPORT_MAP", "teleport-map.mjs")):
         html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
     swaps = DETAIL_TUNING.get(detail) or {}
     for old, new in swaps.items():
@@ -3198,6 +3199,17 @@ const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.m
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
+//: The near forest floor's scanned plants, leaves and grass (docs/forest-floor.mjs), and the
+//: globe the view zooms out to (docs/globe.mjs). Without either the landscape stands as it was.
+const forestFloorLibrary = natureLibrary ? await import(sharedAsset("forest-floor.mjs?rev=__FOREST_FLOOR_HASH__"))
+  .catch(error => { console.warn("kerbside: forest floor unavailable", error); return null; }) : null;
+const globeLibrary = natureLibrary ? await import(sharedAsset("globe.mjs?rev=__GLOBE_HASH__"))
+  .catch(error => { console.warn("kerbside: globe unavailable", error); return null; }) : null;
+var globe = null;
+//: A long hop goes by the map (docs/teleport-map.mjs): the overlay, made on the first one.
+const teleportLibrary = natureLibrary ? await import(sharedAsset("teleport-map.mjs?rev=__TELEPORT_MAP_HASH__"))
+  .catch(error => { console.warn("kerbside: teleport map unavailable", error); return null; }) : null;
+var teleportOverlay = null;
 const NATURE = natureLibrary ? await natureLibrary.loadNatureAtlas(sharedAsset)
   .catch(error => { console.warn("kerbside: landscape evidence unavailable", error); return null; }) : null;
 var natureWorld = null;
@@ -3929,8 +3941,13 @@ Object.values(groups).forEach((g) => root.add(g));
   //: How much of the screen a region should fill when you are flown to it: far enough out that
   //: its whole box is in view, which for a two-kilometre district is about two kilometres up.
   const REGION_FRAME = 1.4;
-  function flyToRegion(region) {
+  function flyToRegion(region, { now = false } = {}) {
     const [south, west, north, east] = region.bbox;
+    if (!now && teleportLibrary && NATURE && typeof avatar !== "undefined" && !teleportOverlay?.busy) {
+      const [cx, cy] = xy((west + east) / 2, (south + north) / 2);
+      teleportTrip(avatar.position, { x: cx, z: -cy }, () => flyToRegion(region, { now: true }));
+      return;
+    }
     // An overview tile omits signs, lawns and other city details. Load that
     // city's complete survey, preserving the destination and view direction.
     attachRegion(region,{lon:(west+east)/2,lat:(south+north)/2});
@@ -6245,8 +6262,15 @@ if (NATURE) {
     heightAt:natureVisualHeightAt,
     waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : perimeterWaterAt(x,z)===true || s.water),
     blockedAt:(x,z)=>inCity(x,z)||mappedBuiltAt(x,z)||Boolean(typeof guestUnder==="function"&&guestUnder(x,z)),
-    hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights,motion:natureMotion});
+    hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights,motion:natureMotion,
+    forestFloor:forestFloorLibrary,loadModel:(url)=>new GLTFLoader().loadAsync(url)});
   natureWorld.hostBox=hostBox;natureWorld.localBounds=localBounds.clone();
+  if(globeLibrary){
+    // The disc under the atlas reaches its farthest corner from here; the globe rounds off past it.
+    const b=NATURE.f.bbox;let cap=0;
+    for(const lon of [b.west,b.east])for(const lat of [b.south,b.north]){const [x,y]=xy(lon,lat);cap=Math.max(cap,Math.hypot(x,y));}
+    globe=globeLibrary.createGlobe(THREE,{parent:scene,lon0:midLon,lat0:midLat,maskUrl:sharedAsset("world/land-mask.png"),cap:cap+3000});
+  }
   if(PERIMETER)buildBayBridges(TERRAIN_FRAME);
 }
 
@@ -26837,7 +26861,8 @@ for (const s of DATA.sequence_paths) {
 //: which for a region a few kilometres across is a dozen kilometres up. A click brings the
 //: walker down to a street; the wheel zooms in from here.
 const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0 };
-const MAX_ORBIT_DIST_M = 20000;
+//: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
+const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
 //: ``autoFirstPerson``: the walker went into a building and the view went to its eyes by
 //: itself; walking out puts back the view it had. There is no view from above into a house:
 //: a house keeps its roof, always.
@@ -26867,6 +26892,19 @@ function placeCamera() {
   }
   constrainWorldCamera();
   camera.lookAt(state.target);
+  fitViewToAltitude();
+}
+//: Climbing, the view sees further and the haze lifts: the far plane reaches past the Earth's
+//: horizon and the fog draws back with the height, so from on high the Bay -- and then the
+//: world -- is seen clear rather than fading to grey. At the street both are as they were.
+function fitViewToAltitude() {
+  const h = Math.max(0, camera.position.y);
+  const far = Math.max(FAR_M, Math.sqrt(2 * EARTH_RADIUS_M * h + h * h) * 1.15 + h);
+  const near = state.firstPerson ? 0.12 : Math.max(0.5, Math.min(h * 0.002, 4000));
+  if (Math.abs(far - camera.far) > far * 0.02 || Math.abs(near - camera.near) > near * 0.05) {
+    camera.far = far; camera.near = near; camera.updateProjectionMatrix();
+  }
+  if (scene.fog) { scene.fog.near = 2400 + h * 4; scene.fog.far = FAR_M * 0.96 + h * 12; }
 }
 
 var worldCameraRay = null;
@@ -26981,6 +27019,8 @@ function zoomBy(factor) {
     return;
   }
   factor **= zoomSensitivity(state.dist);
+  // Past the Bay each turn of the wheel covers more: a few turns from the region to the globe.
+  if (state.dist > 30000) factor **= 1.9;
   state.dist = Math.max(8, Math.min(MAX_ORBIT_DIST_M, state.dist * factor));
   placeCamera();
 }
@@ -27866,7 +27906,47 @@ function keepWalkerOutside() {
 var GPS_LEASH = { on: true };
 // A click moves the walker without changing zoom. Right-click is the deliberate
 // street-level teleport; dragging and wheel zoom never move the walker.
-function goTo(landing, { travel = false, zoom = false } = {}) {
+//: Further than this and the place is past what is drawn round the walker: the hop goes by the
+//: map, whose seven seconds are the time the new place has to stream in.
+const TELEPORT_MAP_M = 700;
+function goTo(landing, options = {}) {
+  if (landing && options.travel && !state.explore && !ATTACH && teleportLibrary && NATURE
+      && typeof avatar !== "undefined" && !teleportOverlay?.busy
+      && Math.hypot(landing.x - avatar.position.x, landing.z - avatar.position.z) > TELEPORT_MAP_M) {
+    teleportTrip(avatar.position, landing, () => goToNow(landing, options));
+    return;
+  }
+  goToNow(landing, options);
+}
+//: The trip: the camera pulls up and away into black, the map plays the hop, and the camera comes
+//: back down over the walker where it landed. `perform` moves the walker, behind the black.
+function teleportTrip(fromPage, toPage, perform) {
+  teleportOverlay ||= teleportLibrary.createTeleport({ map: teleportLibrary.drawBayMap(NATURE) });
+  const local = (p) => NATURE.local(midLon + p.x / metersPerLon, midLat - p.z / metersPerLat);
+  const start = { dist: state.dist, pitch: state.pitch };
+  let arrival = null;
+  return teleportOverlay.run({
+    from: local(fromPage), to: local(toPage),
+    perform: () => {
+      state.dist = start.dist; state.pitch = start.pitch;
+      perform();
+      arrival = { dist: state.dist, pitch: state.pitch };
+    },
+    ready: () => {
+      const s = worldCellCache.snapshot(), at = state.firstPerson ? avatar.position : state.target;
+      return !s.active && !s.queued && (!natureWorld?.plantsReadyAt || natureWorld.plantsReadyAt(at.x, at.z));
+    },
+    onPull: (u) => {
+      if (state.firstPerson) return;
+      state.dist = start.dist * (1 + 7 * u * u); state.pitch = start.pitch + (1.3 - start.pitch) * u; placeCamera();
+    },
+    onReturn: (u) => {
+      if (!arrival || state.firstPerson) return;
+      state.dist = arrival.dist * (1 + 5 * (1 - u) ** 2); state.pitch = arrival.pitch + (1.3 - arrival.pitch) * (1 - u); placeCamera();
+    },
+  });
+}
+function goToNow(landing, { travel = false, zoom = false } = {}) {
   if (!landing) return;
   // Exploring there is no walker to send: the view goes, and comes in close as it would.
   if (state.explore && travel) {
@@ -32475,7 +32555,8 @@ function animate(now) {
   const progress = document.getElementById("progress");
   if (progress && !progress.hidden) progress.hidden = true;
   markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
-  if(natureWorld?.tick(now,camera))lastMovedAt=now;
+  if(natureWorld?.tick(now,camera,state.firstPerson?avatar.position:state.target))lastMovedAt=now;
+  globe?.update(camera);
   foliageMotion?.update(now,avatar.position);natureMotion?.update(now,avatar.position);
   if(grassStrands&&grassSurfaceAt){const focus=state.firstPerson?avatar.position:state.target;
     grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
@@ -33363,6 +33444,8 @@ window.kerbside = {
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
   pickedFeature,
+  // The landscape (forest floor, scans) and the globe, for inspection.
+  get natureWorld() { return natureWorld; }, get globe() { return globe; }, teleportTrip,
   // The corner pieces: how many cuts were decided and how many pieces laid between them.
   recentred,
   junctionBoxes, insideJunctionBox, rampRecordAt, indexCurbRamps, cornerOf,
