@@ -174,12 +174,12 @@ export async function loadNatureAtlas(resolve) {
   return atlas;
 }
 
-export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{},motion=null}) {
+export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{},motion=null,forestFloor=null,loadModel=null}) {
   const world=new THREE.Group();world.name="nature-atlas-v1";world.userData.bayWide=true;root.add(world);
   const terrain=new THREE.Group(),features=new THREE.Group();world.add(terrain,features);
   const f=atlas.f,detailMeshes=new Map(),plantGroups=new Map(),pending=new Set(),pathTiles=new Map();
   const stats={source:"3DEP + Annual NLCD 2024 + USFS TCC 2024",inferred:true,speciesBasis:'regional ecological priors, not an individual-tree inventory',trees:0,shrubs:0,rocks:0,trails:0,farCanopyProxies:0,overviewReady:false,errors:[]};
-  let pathsManifest=null,lastX=Infinity,lastY=Infinity,working=false,forceVersion=0,builtVersion=0;
+  let pathsManifest=null,lastX=Infinity,lastY=Infinity,working=false,forceVersion=0,builtVersion=0,requested=null;
   let grassFocus=null;
   const grassStrands=createGrassStrands(THREE,{parent:features,motion,sample:(x,z)=>{
     const outside=visibleNatureGround(x,z,false,[hostBox?.value,guestBox?.value],false);
@@ -269,17 +269,32 @@ diffuseColor.rgb+=vec3(.018,.012,.004)*(leaf-.22)*(1.-natureWet);
 // At kilometre scale a crown becomes sub-pixel, but a forest must not turn
 // into bare dirt. Filter the observed canopy fraction into its aggregate
 // appearance. The near-field substrate remains soil/litter, not green paint.
-float unresolved=smoothstep(1200.,3500.,distance(cameraPosition,vNatureWorld));
+float unresolved=smoothstep(650.,1500.,distance(cameraPosition,vNatureWorld));
 float canopyCover=texture2D(uNatureCanopy,natureUV).r;
-vec3 canopyAverage=vec3(${linearColour([.24,.33,.20]).join(',')})*(.84+.30*natureNoise(rotated*.013));
-diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*canopyCover*(1.-natureWet));`)
+// Seen from afar a wood is crowns: lit tops, dark gaps between them, stands of one tone and the
+// next. A crown-sized cellular pattern holds the observed canopy fraction, and fades into its
+// own average only once a crown is smaller than a pixel, so a forest reads as a forest.
+vec2 crownP=rotated/8.5;vec2 crownI=floor(crownP),crownF=fract(crownP);float crownD=1.5;
+for(int cy=-1;cy<=1;cy++)for(int cx=-1;cx<=1;cx++){vec2 o=vec2(float(cx),float(cy));
+  vec2 h=vec2(natureHash(crownI+o),natureHash(crownI+o+17.31));crownD=min(crownD,length(o+.15+.7*h-crownF));}
+float crownSeen=1.-smoothstep(2.5,11.,footprint);
+float crownR=sqrt(clamp(canopyCover,0.,1.)/3.1416)*1.12+.04;
+float crownIn=1.-smoothstep(crownR-.07,crownR+.05,crownD);
+float crownCover=mix(clamp(canopyCover*1.08,0.,1.),crownIn,crownSeen);
+float crownLit=mix(.86,1.18-.75*clamp(crownD/max(crownR,.05),0.,1.),crownSeen);
+float stand=natureNoise(rotated*.016)*.62+natureNoise(rotated*.055)*.38,tone=natureNoise(rotated*.0042+7.3);
+vec3 canopyAverage=mix(mix(vec3(0.0174,0.0432,0.0153),vec3(0.0470,0.0946,0.0301),stand),mix(vec3(0.0890,0.1128,0.0363),vec3(0.0301,0.0684,0.0470),tone),.32);
+canopyAverage*=crownLit*(.88+.24*natureNoise(rotated*.21));
+// The ground between crowns is in their shade.
+diffuseColor.rgb*=mix(1.,.62,unresolved*canopyCover*(1.-crownIn)*crownSeen);
+diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-natureWet));`)
         .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(1.,.62,natureWet);')
         .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=.04*natureWet;')
         // Coast triangles have sloping vertex normals. Open water shares the
         // same flat normal/BRDF as the city water, independent of region bounds.
         .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(mix(normal,normalize(mat3(viewMatrix)*vec3(0.,1.,0.)),natureWet));');
     };
-    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v4-${coarse}`;return m;
+    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v5-${coarse}`;return m;
   }
   const coarseMaterial=terrainMaterial(true);
   const geoAt=(x,y)=>{const [lon,lat]=atlas.geographic(x,y);return toPage(lon,lat);};
@@ -428,8 +443,43 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     mat.customProgramCacheKey=()=> 'nature-near-plant-fade-v1';
   }
   fadePlant(leafMat);
+  // The near forest floor (forest-floor.mjs) and the plant scans it and the middle distance
+  // share. Without them (no loader, or the scans fail) the landscape keeps its cut-out cards.
+  const floorBand={value:new THREE.Vector2(-2,-1)},MID_SCAN_RANGE=[150,185];
+  let scans=null,floor=null,floorStale=false,floorLive=false;
+  const midMaterials=new Map();
+  const midScanMaterial=source=>{const key=`scan:${source.uuid}`;if(!midMaterials.has(key)){const m=source.clone();
+    forestFloor.rangeFade(m,{fadeIn:floorBand,fadeOut:{value:new THREE.Vector2(...MID_SCAN_RANGE)},cull:MID_SCAN_RANGE[1]+4,key:'mid-scan-v1'});
+    motion?.apply(m,'shrub');midMaterials.set(key,m);}return midMaterials.get(key);};
+  const midCardMaterial=source=>{const key=`card:${source.uuid}`;if(!midMaterials.has(key)){const m=source.clone();
+    forestFloor.rangeFade(m,{fadeIn:{value:new THREE.Vector2(...MID_SCAN_RANGE)},fadeOut:{value:new THREE.Vector2(NEAR0,NEAR1)},key:'mid-card-v1'});
+    motion?.apply(m,'shrub');midMaterials.set(key,m);}return midMaterials.get(key);};
+  let midGrassMaterial=null;const midGrass=new Map(),midGrassGeometry=(kind,variant)=>{const key=`${kind}:${variant}`;if(midGrass.has(key))return midGrass.get(key);
+    const d=forestFloor.wildGrassGeometry(kind,variant,0),g=new THREE.BufferGeometry(),c=new THREE.Color(),lin=[];
+    for(let i=0;i<d.colour.length;i+=3){c.setRGB(d.colour[i],d.colour[i+1],d.colour[i+2],THREE.SRGBColorSpace);lin.push(c.r,c.g,c.b);}
+    g.setAttribute('position',new THREE.Float32BufferAttribute(d.position,3));g.setAttribute('color',new THREE.Float32BufferAttribute(lin,3));
+    g.setIndex(d.index);g.computeVertexNormals();const n=g.getAttribute('normal'),v=new THREE.Vector3();
+    for(let i=0;i<n.count;i++){v.set(n.getX(i),n.getY(i),n.getZ(i)).lerp(new THREE.Vector3(0,1,0),.65).normalize();n.setXYZ(i,v.x,v.y,v.z);}
+    g.computeBoundingSphere();midGrass.set(key,g);return g;};
+  const floorTrees=new Map();
+  const floorCtx={
+    ground(x,y){const s=surface(x,y);return s&&{height:s.height,p:s.p,water:s.water,cover:s.cover,natural:s.natural};},
+    ecology:(x,y)=>atlas.ecologicalSample(x,y),blocked:(x,y,r)=>blocked(x,y,r),floorColour:(x,y)=>atlas.floorColourAt(x,y),
+    //: The trunks over and around a cell: the landscape's own accepted trees, so leaves fall from them.
+    treesNear(x0,y0,x1,y1){const out=[];if(floorTrees.size>40000)floorTrees.clear();
+      for(let r=Math.floor(y0/8);r<=Math.floor(y1/8);r++)for(let c=Math.floor(x0/8);c<=Math.floor(x1/8);c++){const key=`${c}:${r}`;
+        if(!floorTrees.has(key)){const a=acceptedTree(c,r,(x,y)=>atlas.ecologicalSample(x,y),blocked,candidateCache);
+          floorTrees.set(key,a&&{x:a.x,y:a.y,radius:a.radius,height:a.height,species:a.species,forest:atlas.ecologicalSample(a.x,a.y)?.habitat?.forest||0});}
+        const t=floorTrees.get(key);if(t)out.push(t);}
+      return out;}};
+  const scansReady=forestFloor&&loadModel?forestFloor.loadScanLibrary(THREE,{loadModel,resolve:atlas.resolve}).then(library=>{
+    scans=library;midGrassMaterial=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.95,envMapIntensity:.4});
+    forestFloor.rangeFade(midGrassMaterial,{fadeIn:floorBand,fadeOut:{value:new THREE.Vector2(...MID_SCAN_RANGE)},cull:MID_SCAN_RANGE[1]+4,key:'mid-grass-v1'});
+    motion?.apply(midGrassMaterial,'shrub');
+    floor=forestFloor.createForestFloor(THREE,{parent:features,ctx:floorCtx,scans,motion,band:floorBand});stats.forestFloor=floor.stats;
+  }).catch(error=>{scans=null;stats.errors.push(String(error));console.warn('kerbside: plant scans unavailable; keeping cut-out plants',error);}):Promise.resolve();
   const dummy=new THREE.Object3D(),colour=new THREE.Color();
-  function instances(geometry,mat,items){
+  function instances(geometry,mat,items,range=null){
     if(!items.length)return null;
     const buckets=new Map();for(const v of items){const k=`${Math.floor(v.p[0]/100)}:${Math.floor(v.p[2]/100)}`;
       if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(v);}
@@ -437,7 +487,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     for(const list of buckets.values()){
       const mesh=new THREE.InstancedMesh(geometry,mat,list.length);
       list.forEach((v,i)=>{dummy.position.set(...v.p);dummy.scale.set(...v.scale);if(v.q)dummy.quaternion.fromArray(v.q);else dummy.rotation.set(0,v.turn||0,v.tilt||0);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(v.colour)mesh.setColorAt(i,colour.setRGB(...v.colour,THREE.SRGBColorSpace));});
-      mesh.computeBoundingSphere();mesh.userData={surface:"nature_vegetation",natureFullPlant:true,inferred:true,liftedOntoGround:true,
+      mesh.computeBoundingSphere();mesh.userData={surface:"nature_vegetation",natureFullPlant:true,natureRange:range,inferred:true,liftedOntoGround:true,
         confidence:"canopy-constrained visual inference; regional species prior, not surveyed",sourceEpoch:2024,provenance:"nature/ecology.json",canonical:false};group.add(mesh);
     }return group;
   }
@@ -470,7 +520,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     return {p:o.p,height:o.height,q:slopeQ.toArray()};
   }
   async function plants(tx,ty){
-    const trees=new Map(),shrubs=new Map(),rocks=[],litter=new Map(),sticks=[],logs=[];
+    const trees=new Map(),shrubs=new Map(),rocks=[],logs=[],wildGrass=new Map(),floorKit=forestFloor&&scans?forestFloor:null;
     const x0=tx*PLANT_TILE_M,y0=ty*PLANT_TILE_M;
     let yieldAt=performance.now();
     for(let r=Math.floor(y0/8);r<Math.floor((y0+PLANT_TILE_M)/8);r++)for(let c=Math.floor(x0/8);c<Math.floor((x0+PLANT_TILE_M)/8);c++){
@@ -480,18 +530,9 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         const key=`${a.species}:${hash2(c,r,47)>.5?1:0}`;
         if(!trees.has(key))trees.set(key,[]);
         trees.get(key).push({p:[s.p[0],s.height,s.p[1]],scale:[R,h,R],turn,shade:.85+hash2(c,r,43)*.3});
-        // What has fallen from it: litter over the ground it shades, sticks, now and then a log.
+        // What has fallen from it: now and then a log. Leaves and twigs lie on the near forest
+        // floor (forest-floor.mjs), each on its own; past it the ground's own shading carries them.
         const fall=litterScatter(a.x,a.y,R,a.species,{forest:atlas.ecologicalSample(a.x,a.y)?.habitat?.forest||0});
-        for(const patch of fall.patches){
-          if(blocked(patch.x,patch.y,.4))continue;
-          const q=groundQuaternion(patch.x,patch.y,patch.turn);if(!q)continue;
-          if(!litter.has(patch.kind))litter.set(patch.kind,[]);
-          litter.get(patch.kind).push({p:[q.p[0],q.height+.03,q.p[1]],scale:[patch.size,1,patch.size],q:q.q,colour:[patch.shade,patch.shade,patch.shade]});
-        }
-        for(const stick of fall.sticks){
-          if(blocked(stick.x,stick.y,.3))continue;const g=surface(stick.x,stick.y);if(!g||g.water)continue;
-          sticks.push({p:[g.p[0],g.height+stick.radius*.7,g.p[1]],scale:[stick.length,stick.radius,stick.radius],turn:stick.turn,colour:[.42,.34,.26]});
-        }
         for(const log of fall.logs){
           if(blocked(log.x,log.y,log.length/2))continue;const g=surface(log.x,log.y);if(!g||g.water)continue;
           // Half sunk into the duff, and greener with moss the further gone it is.
@@ -505,13 +546,22 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       for(let k=0;k<4;k++){
         const sx=(c*2+(k&1)+.2+hash2(c,r,61+k*5)*.6)*4,sy=(r*2+(k>>1)+.2+hash2(c,r,63+k*5)*.6)*4,at=surface(sx,sy);
         if(!at||at.water)continue;
-        const shrub=undergrowthAt(sx,sy,{...atlas.ecologicalSample(sx,sy),...at});
+        const shrub=undergrowthAt(sx,sy,{...atlas.ecologicalSample(sx,sy),...at},1.8);
         if(!shrub||blocked(sx,sy,shrub.radius))continue;
         if(!shrubs.has(shrub.kind))shrubs.set(shrub.kind,[]);
         const shade=.80+hash2(c,r,71+k)*.35;
         shrubs.get(shrub.kind).push({p:[at.p[0],at.height+.025,at.p[1]],scale:[shrub.radius,shrub.height,shrub.radius],turn:hash2(c,r,73+k)*6.283,
-          colour:(UNDERGROWTH[shrub.kind]?.colour||[.29,.39,.18]).map(v=>v*shade)});
+          colour:(UNDERGROWTH[shrub.kind]?.colour||[.29,.39,.18]).map(v=>v*shade),shade,variant:Math.floor(hash2(c,r,75+k)*997)});
       }
+      // Long wild grass between them, on a 4 m lattice: the gaps of a meadow or a wood filled.
+      if(floorKit){const e=atlas.ecologicalSample(c*8+4,r*8+4);
+        if(e&&e.habitat&&e.habitat.grass+e.habitat.scrub+e.habitat.forest+e.habitat.wetland>.15)for(let k=0;k<4;k++){
+          const gx=(c*2+k%2+.15+hash2(c,r,131+k)*.7)*4,gy=(r*2+Math.floor(k/2)+.15+hash2(c,r,141+k)*.7)*4,at=surface(gx,gy);
+          if(!at||at.water)continue;const g=floorKit.wildGrassAt(gx,gy,{...e,cover:at.cover,natural:at.natural},1.1);
+          if(!g||blocked(gx,gy,.2))continue;const key=`${g.kind}:${g.variant}`,shade=.84+hash2(c,r,151+k)*.3;
+          if(!wildGrass.has(key))wildGrass.set(key,[]);
+          wildGrass.get(key).push({p:[at.p[0],at.height-.02,at.p[1]],scale:[g.height*1.25,g.height*1.15,g.height*1.25],turn:hash2(c,r,161+k)*6.283,colour:[shade,shade,shade]});
+        }}
       const x=(c+.2+hash2(c,r,61)*.6)*8,y=(r+.2+hash2(c,r,63)*.6)*8,s=surface(x,y);
       if(!s||s.water)continue;
       if(hash2(c,r,67)>.23||blocked(x,y,.9))continue;
@@ -529,10 +579,25 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       for(const v of items){midP.push(v.p[0],v.p[1]+v.scale[1]*.5,v.p[2]);midS.push(v.scale[1]);midK.push(speciesKeys.indexOf(species)*2+Number(variant));midA.push(v.scale[0]*2/v.scale[1]/(144/256));}
     }
     if(midP.length){const middle=treePoints(midP,midS,midK,midA,middleMaterial);middle.userData={surface:'nature_tree_middle',bayWide:true,inferred:true,liftedOntoGround:true};group.add(middle);}
-    for(const [kind,items] of shrubs){const part=assets.undergrowth(kind);fadePlant(part.material);motion?.apply(part.material,'shrub');group.add(instances(part.geometry,part.material,items));}
-    for(const [kind,items] of litter){const part=assets.litter(kind);fadePlant(part.material);const mesh=instances(part.geometry,part.material,items);
-      if(mesh){mesh.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.userData.surface='nature_litter';}});group.add(mesh);}}
-    for(const [kind,items] of [['stick',sticks],['log',logs]]){if(!items.length)continue;const part=assets.deadwood(kind);fadePlant(part.material);
+    for(const [kind,items] of shrubs){
+      const scan=floorKit&&floorKit.SCAN_FOR[kind],grass=floorKit&&floorKit.GRASS_FOR[kind];
+      if(grass){for(const v of items){const key=`${grass}:${v.variant%3}`;if(!wildGrass.has(key))wildGrass.set(key,[]);
+        wildGrass.get(key).push({...v,scale:[v.scale[1]*1.2,v.scale[1]*1.2,v.scale[1]*1.2],colour:[v.shade,v.shade,v.shade]});}continue;}
+      if(scan&&scans.far[scan]){
+        // The scan's lighter version from the floor's edge to the middle distance, then the
+        // cut-out cards to the plant horizon: each faded into the next by a dithered band.
+        const variants=scans.far[scan],tint=floorKit.SCAN_TINT[kind];
+        variants.forEach((part,i)=>{const list=items.filter(v=>v.variant%variants.length===i);if(!list.length)return;
+          const mesh=instances(part.geometry,midScanMaterial(part.material),list.map(v=>{const w=v.scale[1]*Math.max(.8,Math.min(1.25,v.scale[0]/(part.ratio*v.scale[1]||1)));
+            return {...v,scale:[w,v.scale[1],w],colour:tint.map(t=>t*v.shade)};}),MID_SCAN_RANGE[1]+5);
+          if(mesh)group.add(mesh);});
+        const part=assets.undergrowth(kind);group.add(instances(part.geometry,midCardMaterial(part.material),items));continue;
+      }
+      const part=assets.undergrowth(kind);fadePlant(part.material);motion?.apply(part.material,'shrub');group.add(instances(part.geometry,part.material,items));}
+    for(const [key,items] of wildGrass){const [kind,variant]=key.split(':');const mesh=instances(midGrassGeometry(kind,Number(variant)),midGrassMaterial,items,MID_SCAN_RANGE[1]+5);
+      if(mesh){mesh.userData.surface='nature_wild_grass';group.add(mesh);}}
+    for(const [kind,items] of [['log',logs]]){if(!items.length)continue;const part=assets.deadwood(kind);fadePlant(part.material);
+      if(floorKit)floorKit.rangeFade(part.material,{fadeIn:floorBand,key:'mid-log-v1'});
       const mesh=instances(part.geometry,part.material,items);mesh.traverse(o=>{if(o.isMesh){o.castShadow=kind==='log';o.receiveShadow=true;o.userData.surface=`nature_${kind}`;}});group.add(mesh);}
     const rockMesh=instances(sphere,leafMat,rocks);if(rockMesh)group.add(rockMesh);
     const trailP=[],trailC=[],trailI=[];
@@ -573,7 +638,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     if(trailI.length){const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(trailP,3));g.setAttribute("color",new THREE.Float32BufferAttribute(trailC,3));g.setIndex(trailI);g.computeVertexNormals();
       const mesh=new THREE.Mesh(g,material);mesh.userData.surface="nature_trail";mesh.userData.provenance="OpenStreetMap; unknown widths/finish inferred";group.add(mesh);}
     group.userData.counts={trees:[...trees.values()].reduce((n,a)=>n+a.length,0),shrubs:[...shrubs.values()].reduce((n,a)=>n+a.length,0),rocks:rocks.length,trails:trailI.length/6,
-      litter:[...litter.values()].reduce((n,a)=>n+a.length,0),deadwood:sticks.length+logs.length};features.add(group);return group;
+      wildGrass:[...wildGrass.values()].reduce((n,a)=>n+a.length,0),deadwood:logs.length};features.add(group);return group;
   }
   function drop(group){group.removeFromParent();group.traverse(o=>{if((o.isMesh&&!o.isInstancedMesh)||o.isPoints)o.geometry.dispose();if(o.isInstancedMesh)o.dispose();if(o.material?.userData.ownedNature){o.material.userData.coastTexture?.dispose();o.material.dispose();}});}
   const pathsReady=fetch(atlas.resolve("nature/paths.json"),{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(m=>pathsManifest=m).catch(e=>stats.errors.push(String(e)));
@@ -598,10 +663,11 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       if(w.area){const xs=w.local.map(p=>p[0]),ys=w.local.map(p=>p[1]);insert({w,area:true},Math.min(...xs)-7,Math.min(...ys)-7,Math.max(...xs)+7,Math.max(...ys)+7);}
       else for(let i=1;i<w.local.length;i++){const a=w.local[i-1],b=w.local[i],R=w.natural==="coastline"?100:w.width_m/2+7;insert({w,a,b},Math.min(a[0],b[0])-R,Math.min(a[1],b[1])-R,Math.max(a[0],b[0])+R,Math.max(a[1],b[1])+R);}
       delete w.points;delete w.source_tags;
-    }data.decodedBytes=file.decoded_bytes;pathTiles.set(key,data);
+    }data.decodedBytes=file.decoded_bytes;pathTiles.set(key,data);floorStale=true;
   }
   async function update(x,z){
     const [lon,lat]=fromPage(x,z),[ax,ay]=atlas.local(lon,lat);
+    requested=[ax,ay];
     if(working||Math.hypot(ax-lastX,ay-lastY)<100)return;
     working=true;lastX=ax;lastY=ay;
     const version=forceVersion,force=version!==builtVersion,changed=[];
@@ -635,19 +701,31 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         onHeightsChanged(changed.map(([tx,ty])=>[
           ...atlas.geographic(tx*2000,ty*2000),...atlas.geographic((tx+1)*2000,(ty+1)*2000)]));
       }
+      await scansReady;
+      if(changed.length)floorStale=true;
       const plantDesired=new Set();
       // Load the neighbouring clearance cells before sampling across a cell boundary.
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)await loadPaths(ax+dx*1100,ay+dy*1100);
       candidateCache.clear();
+      // New clearance or heights under the floor: draw it again on them, before the far plants.
+      if(floor&&(floorStale||!floorLive)){floorTrees.clear();floor.invalidate();floorStale=false;}floorLive=Boolean(floor);
+      // Nearest tiles first, so the ground underfoot is planted before the horizon; and a jump
+      // elsewhere (a teleport) abandons this place's remaining tiles rather than finishing them.
+      const tiles=[];
       for(let ty=Math.floor((ay-900)/PLANT_TILE_M);ty<=Math.floor((ay+900)/PLANT_TILE_M);ty++)for(let tx=Math.floor((ax-900)/PLANT_TILE_M);tx<=Math.floor((ax+900)/PLANT_TILE_M);tx++){
-        if(Math.hypot(tx*PLANT_TILE_M+PLANT_TILE_M/2-ax,ty*PLANT_TILE_M+PLANT_TILE_M/2-ay)>1100)continue;
+        const d=Math.hypot(tx*PLANT_TILE_M+PLANT_TILE_M/2-ax,ty*PLANT_TILE_M+PLANT_TILE_M/2-ay);if(d<=1100)tiles.push([d,tx,ty]);}
+      tiles.sort((a,b)=>a[0]-b[0]);let abandoned=false;
+      for(const [,tx,ty] of tiles){
+        if(Math.hypot(requested[0]-ax,requested[1]-ay)>600){abandoned=true;break;}
         const key=`${tx}:${ty}`;plantDesired.add(key);if(!plantGroups.has(key)||force){
-          const old=plantGroups.get(key),next=await plants(tx,ty);if(old)drop(old);plantGroups.set(key,next);
+          const began=performance.now(),old=plantGroups.get(key),next=await plants(tx,ty);if(old)drop(old);plantGroups.set(key,next);
+          stats.plantTileMs=Math.round(performance.now()-began);
         }
         await new Promise(r=>setTimeout(r,0));
       }
+      if(abandoned){lastX=Infinity;return;}
       for(const [key,group] of plantGroups)if(!plantDesired.has(key)){drop(group);plantGroups.delete(key);}
-      stats.trees=stats.shrubs=stats.rocks=stats.trails=stats.litter=stats.deadwood=0;for(const group of plantGroups.values())for(const k of ["trees","shrubs","rocks","trails","litter","deadwood"])stats[k]+=group.userData.counts[k]||0;
+      stats.trees=stats.shrubs=stats.rocks=stats.trails=stats.wildGrass=stats.deadwood=0;for(const group of plantGroups.values())for(const k of ["trees","shrubs","rocks","trails","wildGrass","deadwood"])stats[k]+=group.userData.counts[k]||0;
       stats.detailTiles=detailMeshes.size;stats.plantTiles=plantGroups.size;
       // Retain only the actual 3x3 query set, not every path tile visited during a flight.
       const pathDesired=new Set();for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
@@ -679,14 +757,21 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       return visibleNatureGround(hit.point.x,hit.point.z,hit.object.userData.natureCoarse,
         [hostBox?.value,guestBox?.value],detailMeshes.has(key));
     },invalidate(){forceVersion++;lastX=Infinity;},
-    tick(now,camera){
-      if(camera&&grassFocus)grassStrands.update(grassFocus.x,grassFocus.z,camera.position.y-(groundInfoAt(grassFocus.x,grassFocus.z)?.y||0));
+    //: Whether the plants within `radius` metres of page point (x, z) are standing.
+    plantsReadyAt(x,z,radius=220){const [ax,ay]=atlas.local(...fromPage(x,z));
+      for(let ty=Math.floor((ay-radius)/PLANT_TILE_M);ty<=Math.floor((ay+radius)/PLANT_TILE_M);ty++)for(let tx=Math.floor((ax-radius)/PLANT_TILE_M);tx<=Math.floor((ax+radius)/PLANT_TILE_M);tx++)
+        if(Math.hypot(tx*PLANT_TILE_M+PLANT_TILE_M/2-ax,ty*PLANT_TILE_M+PLANT_TILE_M/2-ay)<=radius+PLANT_TILE_M*.71&&!plantGroups.has(`${tx}:${ty}`))return false;
+      return true;},
+    tick(now,camera,focus=null){
+      const at=focus||grassFocus;
+      if(camera&&at){const eye=camera.position.y-(groundInfoAt(at.x,at.z)?.y||0);grassStrands.update(at.x,at.z,eye);
+        if(floor&&floorLive){const [ax,ay]=atlas.local(...fromPage(at.x,at.z));floor.update(ax,ay,eye);}}
       if(camera)features.traverse(o=>{if(o.userData.natureFullPlant&&o.geometry.boundingSphere){
         const sphere=o.boundingSphere||o.geometry.boundingSphere;
-        o.visible=camera.position.distanceTo(sphere.center)<NEAR1+sphere.radius;
+        o.visible=camera.position.distanceTo(sphere.center)<(o.userData.natureRange||NEAR1)+sphere.radius;
       }});
       let active=false;for(const tile of atlas.detail.values())if(tile.blend.value<1){
       tile.blend.value=Math.min(1,Math.max(0,(now-tile.morphStart)/600));active=active||tile.blend.value<1;
     }return active;},
-    groundAt(x,z){return groundInfoAt(x,z)?.y??null;},ready:Promise.all([pathsReady,farReady])};
+    groundAt(x,z){return groundInfoAt(x,z)?.y??null;},ready:Promise.all([pathsReady,farReady]),scansReady};
 }

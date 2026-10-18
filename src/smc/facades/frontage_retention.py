@@ -158,3 +158,112 @@ def prune_rejected(root: Path) -> dict:
         "removed": deleted,
         "source_catalogues_untouched": True,
     }
+
+
+SCREENED_FOR_FIT = {"verified", "screened_candidate_needs_privacy_and_identity_review",
+                    "screened_candidate_needs_pose_review"}
+IMAGE_SUFFIXES = (".jpg", ".labels.png", ".context.jpg")
+
+
+def settled_houses(match_root: Path) -> dict[tuple[str, str], dict]:
+    """The houses the matcher has decided (``houses/`` or ``rejected/``), by (region, id)."""
+    settled = {}
+    for bucket in ("houses", "rejected"):
+        for path in (match_root / bucket).glob("*/*.json"):
+            try:
+                record = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue
+            if isinstance(record, dict) and record.get("building_id") and record.get("fit_rank") is not None:
+                settled[(path.parent.name, str(record["building_id"]))] = {**record, "_bucket": bucket}
+    return settled
+
+
+def materials_read(match_root: Path) -> set[str]:
+    """The pictures the materials worker has already read (its journal, by the jpg's sha256)."""
+    read = set()
+    try:
+        with (match_root / "materials-journal.jsonl").open() as journal:
+            for line in journal:
+                try:
+                    read.add(json.loads(line)["image"])
+                except (ValueError, KeyError, TypeError):
+                    continue
+    except OSError:
+        pass
+    return read
+
+
+def still_needed(row: dict, settled: dict) -> bool:
+    """A screened photograph the matcher will still use: its house is undecided, or it ranks
+    above the photograph the house was decided on (the matcher's own test)."""
+    if row.get("status") not in SCREENED_FOR_FIT:
+        return False
+    done = settled.get((row.get("region"), str(row.get("building_id"))))
+    if done is None:
+        return True
+    rank = (row.get("candidate") or {}).get("rank")
+    return (rank is not None and row.get("pixel_sha256") != done.get("image_sha256")
+            and list(rank) > list(done["fit_rank"]))
+
+
+def prune_settled_views(live_root: Path, match_root: Path, *, dry_run: bool = False) -> dict:
+    """Delete the pictures of every house the matcher has moved past, and every full frame no
+    photograph still waiting on the matcher shares; never a record. An accepted house's pictures
+    wait until the materials worker has read them (classify_scanned_materials.py).
+
+    Each review row, view manifest, alias and decision stays, with its provider's image id, so
+    any of it can be fetched again (scripts/rehydrate_house_views.py). Rows are not rewritten:
+    a missing picture is what the matcher already treats as "nothing new for this house".
+    """
+    live_root, match_root = live_root.resolve(), match_root.resolve()
+    review, store, views = live_root / "review", live_root / "pixel-store", match_root / "views"
+    if not review.is_dir() or not views.is_dir() or live_root == live_root.parent:
+        raise ValueError("expected the frontage run's review folder and view store")
+    settled = settled_houses(match_root)
+    rows = []
+    for path in review.glob("*.json"):
+        try:
+            row = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        if isinstance(row, dict) and row.get("building_id"):
+            rows.append((path, row))
+    read = materials_read(match_root)
+
+    def unread_by_materials(path: Path, row: dict) -> bool:
+        done = settled.get((row.get("region"), str(row.get("building_id"))))
+        photo, labels = path.with_suffix(".jpg"), path.with_suffix(".labels.png")
+        if not done or done["_bucket"] != "houses" or not photo.is_file() or not labels.is_file():
+            return False
+        return hashlib.sha256(photo.read_bytes()).hexdigest() not in read
+
+    keep = {path.stem for path, row in rows if still_needed(row, settled)
+            or row.get("status") in {"awaiting_review", "not_downloaded"}
+            or (row.get("status") in SCREENED_FOR_FIT and unread_by_materials(path, row))}
+    protected = {row.get("pixel_sha256") for path, row in rows if path.stem in keep}
+    removed, size = 0, 0
+
+    def drop(target: Path) -> None:
+        nonlocal removed, size
+        if target.is_symlink():
+            raise ValueError("unexpected symlink in retention target")
+        if target.is_file():
+            if not (target.resolve().is_relative_to(live_root) or target.resolve().is_relative_to(match_root)):
+                raise ValueError("retention escaped the run")
+            size += target.stat().st_size
+            removed += 1
+            if not dry_run:
+                target.unlink()
+
+    for path, row in rows:
+        if path.stem in keep:
+            continue
+        for suffix in IMAGE_SUFFIXES:
+            drop(path.with_suffix(suffix))
+            drop(views / str(row.get("region")) / str(row["building_id"]) / f"{path.stem}{suffix}")
+        digest = row.get("pixel_sha256", "")
+        if store.is_dir() and re.fullmatch(r"[a-f0-9]{64}", digest) and digest not in protected:
+            drop(store / blob_key(digest))
+    return {"files_removed": removed, "bytes_removed": size, "photos_kept_for_matcher": len(keep),
+            "houses_settled": len(settled), "records_untouched": True, "dry_run": dry_run}

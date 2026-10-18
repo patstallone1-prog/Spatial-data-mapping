@@ -160,6 +160,8 @@ def main() -> None:
                          DOCS / "environment-runtime.mjs", DOCS / "sky-clock.mjs", DOCS / "sky-history.mjs", DOCS / "municipal-context.manifest.json",
                          *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
                          DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
+                         DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
+                         *sorted((DOCS / "nature/models").glob("*")), *sorted((DOCS / "world").glob("*")),
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
                          *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
         },

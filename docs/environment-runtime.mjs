@@ -7,6 +7,7 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
   const skyScene=new THREE.Scene(),captureSky=new Sky();captureSky.scale.setScalar(90000);skyScene.add(captureSky);
   const pmrem=new THREE.PMREMGenerator(renderer);
   const priorEnvironment=scene.environment;
+  const spaceColour=new THREE.Color(0x02050b);let inSpace=false;
   let environment=null,preset='sunny',override=null,observed=null,lastClock=-Infinity,lastCapture=-Infinity,latest=null;
   const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
   const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(256,256);
@@ -33,6 +34,9 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
   rain.frustumCulled=false;scene.add(rain);
   function update(now,{indoors=false}={}) {
     sky.position.copy(camera.position);clouds.position.copy(camera.position);
+    // Above the air the sky is space: the dome and the cloud deck go, and the globe stands in black.
+    const altitude=camera.position.y,space=altitude>100000;sky.visible=!space;clouds.visible=altitude<25000;
+    if(space!==inSpace){inSpace=space;scene.background=space?spaceColour:null;}
     cloudMaterial.uniforms.time.value=(now/1000000)%1;
     rain.position.copy(camera.position);rain.position.y-=((now/1000*12)%32);
     // An observed hour's weather (sky-history.mjs) stands in for the chosen preset while it is set.

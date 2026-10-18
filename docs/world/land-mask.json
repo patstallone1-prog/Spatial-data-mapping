@@ -1,0 +1,11 @@
+{
+ "schema": 1,
+ "file": "land-mask.png",
+ "sha256": "4a6b2017a8667dd3d903bb9883c72275f21e9ccf7e987ca33a86c457a7a8c2ba",
+ "width": 8192,
+ "height": 4096,
+ "projection": "equirectangular, lon -180..180 left to right, lat 90..-90 top to bottom",
+ "values": "255 land, 0 water (lakes cut out), antialiased",
+ "source": "Natural Earth 1:50m land and lakes (ne_50m_land, ne_50m_lakes)",
+ "license": "public domain (naturalearthdata.com/about/terms-of-use)"
+}

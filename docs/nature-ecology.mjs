@@ -92,14 +92,15 @@ export const UNDERGROWTH={
  sedge:{name:'Carex spp.',colour:[.38,.42,.22]},
  bunchgrass:{name:'Stipa pulchra',colour:[.48,.48,.27]},
 };
-export function undergrowthAt(x,y,s){
+//: boost thickens it -- the near forest floor draws on a finer lattice than the landscape's plants.
+export function undergrowthAt(x,y,s,boost=1){
  const h=s?.habitat;if(!s||s.water||!h||h.canopy===null||[0,11,12,22,23,24].includes(s.cover))return null;
  const patch=field(x,y,34,503),canopy=clamp(h.canopy/100),forest=clamp(h.forest+(h.developed||0)*canopy*.65);
  const moisture=clamp((s.moisture??.5)*.7+forest*.25+h.wetland*.5);
  // A forest floor is mostly understorey, thinning only in the deepest shade; open scrub is
  // nearly continuous shrub. Patchy, so there are glades and thickets rather than a lawn of
  // evenly spaced bushes.
- const density=clamp(h.scrub*.80+h.grass*.22+forest*(.30+moisture*.40)*(1-canopy*.30)+h.wetland*.55);
+ const density=clamp((h.scrub*.80+h.grass*.22+forest*(.30+moisture*.40)*(1-canopy*.30)+h.wetland*.55)*boost);
  if(noiseHash(Math.floor(x*2),Math.floor(y*2),509)>density*(.30+patch*1.25))return null;
  const selector=noiseHash(Math.floor(x),Math.floor(y),521);
  const kind=forest>.35?(moisture>.45?(selector<.45?'fern':selector<.62?'thimbleberry':selector<.80?'huckleberry':'sorrel'):
