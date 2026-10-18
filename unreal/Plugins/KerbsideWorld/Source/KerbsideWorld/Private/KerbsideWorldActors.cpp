@@ -4,6 +4,9 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/InputComponent.h"
+#include "EngineUtils.h"
+#include "InputCoreTypes.h"
+#include "KerbsideCelestialSky.h"
 #include "Components/SkyAtmosphereComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Engine/StaticMesh.h"
@@ -74,6 +77,19 @@ void AKerbsideWalker::SetupPlayerInputComponent(UInputComponent* Input)
     Input->BindAxis(TEXT("KerbsideRight"), this, &AKerbsideWalker::MoveRight);
     Input->BindAxis(TEXT("KerbsideYaw"), this, &AKerbsideWalker::LookYaw);
     Input->BindAxis(TEXT("KerbsidePitch"), this, &AKerbsideWalker::LookPitch);
+    // Bound to the keys themselves, so the managed input config is not edited for them.
+    Input->BindKey(EKeys::K, IE_Pressed, this, &AKerbsideWalker::NextWeather);
+    Input->BindKey(EKeys::J, IE_Pressed, this, &AKerbsideWalker::NextWind);
+}
+
+void AKerbsideWalker::NextWeather()
+{
+    for (TActorIterator<AKerbsideCelestialSky> It(GetWorld()); It; ++It) It->CycleWeather();
+}
+
+void AKerbsideWalker::NextWind()
+{
+    for (TActorIterator<AKerbsideCelestialSky> It(GetWorld()); It; ++It) It->CycleWind();
 }
 
 void AKerbsideWalker::MoveForward(float Value)

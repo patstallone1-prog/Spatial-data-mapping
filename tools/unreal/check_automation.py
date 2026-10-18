@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 REQUIRED = {"Kerbside.World.CollisionAcceptance", "Kerbside.World.SkyDefaults", "Kerbside.World.WalkerDefaults",
-            "Kerbside.World.CelestialDefaults"}
+            "Kerbside.World.CelestialDefaults", "Kerbside.World.WeatherLooks"}
 
 
 def validate_report(path: Path) -> dict:
