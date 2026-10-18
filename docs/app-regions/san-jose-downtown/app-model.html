@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="c41fcff8d2247345a782081f69b17ffc3bd668497f340b8c27324dc8eb5087e9" />
+<meta name="kerbside-renderer-sha256" content="fae515050197ffd98af6b6b3bce9cb11d0ad31df2ec99ce2781e58ea9ddcc1f2" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -314,7 +314,7 @@ const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=580b6b722293b3cf"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=5e85ae9c38f75222"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
@@ -18743,7 +18743,11 @@ let understoreyReady = null;
 function buildParkUnderstorey(trees) {
   const assets = vegetationLibrary?.vegetationAssets?.(THREE), at = vegetationLibrary?.undergrowthAt;
   if (!assets || !at || !grassSampleAt || !grassSurfaceAt) return null;
-  const items = new Map(), stats = { trees: 0, plants: 0, inferred: true, basis: "nature-ecology understorey prior under mapped crowns" };
+  const dummy = new THREE.Object3D(), colour = new THREE.Color(), colours = vegetationLibrary.UNDERGROWTH || {};
+  const kind_of_tree = (tree) => tree.v || "street";
+  const items = new Map(), litter = new Map(), sticks = [], stats = { trees: 0, plants: 0, litter: 0, deadwood: 0, inferred: true,
+    basis: "nature-ecology understorey and litter priors under mapped crowns" };
+  const up = new THREE.Vector3(0, 1, 0), normal = new THREE.Vector3(), q = new THREE.Quaternion(), yaw = new THREE.Quaternion();
   const placed = new Set();
   for (const tree of trees) {
     const [tx, ty] = xy(tree.p[0], tree.p[1]), tz = -ty;
@@ -18767,8 +18771,48 @@ function buildParkUnderstorey(trees) {
       if (!items.has(plant.kind)) items.set(plant.kind, []);
       items.get(plant.kind).push({ x, y: ground.y, z, r: plant.radius, h: plant.height, turn: a * 3.1 });
     }
+    // And what has fallen from it: litter laid on the ground's slope, and sticks. No logs: a
+    // city park's deadwood is cleared.
+    if (kind_of_tree(tree) === "palm" || !vegetationLibrary.litterScatter) continue;
+    const fall = vegetationLibrary.litterScatter(tx, tz, crown, kind_of_tree(tree) === "conifer" ? "pine" : "oak", { seed: 17 });
+    for (const patch of fall.patches) {
+      const ground = grassSampleAt(patch.x, patch.y);
+      if (!ground?.park) continue;
+      const e = grassSurfaceAt(patch.x + 1, patch.y), n = grassSurfaceAt(patch.x, patch.y - 1);
+      normal.set(0, 1, 0);
+      if (Number.isFinite(e) && Number.isFinite(n)) normal.set(-(e - ground.y), 1, (n - ground.y)).normalize();
+      q.setFromUnitVectors(up, normal).multiply(yaw.setFromAxisAngle(up, patch.turn));
+      if (!litter.has(patch.kind)) litter.set(patch.kind, []);
+      litter.get(patch.kind).push({ x: patch.x, y: ground.y + 0.02, z: patch.y, size: patch.size * 0.8, q: q.toArray(), shade: patch.shade });
+    }
+    for (const stick of fall.sticks) {
+      const ground = grassSampleAt(stick.x, stick.y);
+      if (ground?.park) sticks.push({ x: stick.x, y: ground.y + stick.radius * 0.7, z: stick.y, ...stick });
+    }
   }
-  const dummy = new THREE.Object3D(), colour = new THREE.Color(), colours = vegetationLibrary.UNDERGROWTH || {};
+  const assetsLitter = assets.litter && assets.deadwood;
+  for (const [kind, list] of assetsLitter ? litter : []) {
+    const part = assets.litter(kind), mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length);
+    list.forEach((v, i) => {
+      dummy.position.set(v.x, v.y, v.z); dummy.quaternion.fromArray(v.q); dummy.scale.set(v.size, 1, v.size); dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix); mesh.setColorAt(i, colour.setRGB(v.shade, v.shade, v.shade));
+    });
+    mesh.computeBoundingSphere(); mesh.receiveShadow = true;
+    mesh.userData = { surface: `litter:${kind}`, inferred: true, liftedOntoGround: true, confidence: "visual prior under mapped tree crowns" };
+    if (BUILD_WINDOW) applyBoxClip(mesh, detailClipBox);
+    groups.ground.add(mesh); stats.litter += list.length;
+  }
+  if (assetsLitter && sticks.length) {
+    const part = assets.deadwood("stick"), mesh = new THREE.InstancedMesh(part.geometry, part.material, sticks.length);
+    sticks.forEach((v, i) => {
+      dummy.position.set(v.x, v.y, v.z); dummy.rotation.set(0, v.turn, 0); dummy.scale.set(v.length, v.radius, v.radius); dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.computeBoundingSphere(); mesh.receiveShadow = true;
+    mesh.userData = { surface: "deadwood:stick", inferred: true, liftedOntoGround: true };
+    if (BUILD_WINDOW) applyBoxClip(mesh, detailClipBox);
+    groups.ground.add(mesh); stats.deadwood += sticks.length;
+  }
   for (const [kind, list] of items) {
     const part = assets.undergrowth(kind);
     foliageMotion?.apply(part.material, "shrub");
@@ -25367,6 +25411,186 @@ function updateCompass(now) {
   compassReading.textContent = `${COMPASS_POINTS[Math.round(heading / 45) % 8]} ${heading}°`;
 }
 
+// ---- the compass box: turn the walker, move the sun ------------------------------------------
+//
+// Click the compass: a larger rose opens with the walker's heading on its red needle -- drag the
+// needle (or use the arrow keys) and the walker turns to face that way. Under it, the day's sun
+// path as a semicircle from sunrise on the left to sunset on the right, the sun a blue dot on it
+// where the sun is now. Drag the dot and the sun moves across the sky, the time it stands for
+// shown as it goes; ‹ › step a day back or forward. The sky then shows the weather a National
+// Weather Service station observed at that hour (sky-history.mjs) -- for an hour still to come,
+// the day before's at that hour. R puts the sky back on live San Francisco time.
+const SF_TIME = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", weekday: "short",
+  month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+const SF_CLOCK = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" });
+const sunDial = { open: false, date: null, sunCalc: null, history: null, ask: 0, timer: 0, dragging: null };
+const sunDialBox = compass ? document.createElement("div") : null;
+if (sunDialBox) {
+  sunDialBox.id = "sun-dial";
+  sunDialBox.setAttribute("role", "dialog");
+  sunDialBox.setAttribute("aria-label", "Heading and sun");
+  sunDialBox.hidden = true;
+  sunDialBox.style.cssText = "position:fixed;right:16px;top:104px;z-index:26;width:272px;max-width:calc(100vw - 32px);"
+    + "background:rgba(255,255,255,.95);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:12px 12px 10px;"
+    + "font:500 12px/1.35 system-ui,sans-serif;color:#1d2a33;user-select:none;touch-action:none";
+  sunDialBox.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+  <strong style="font-size:13px">Heading &amp; sun</strong>
+  <button id="sun-dial-close" aria-label="Close" style="border:0;background:none;font-size:18px;line-height:1;cursor:pointer;color:#55616a">×</button></div>
+<svg id="sun-dial-rose" viewBox="-60 -60 120 120" width="176" height="176" tabindex="0" aria-label="Drag the needle to turn"
+  style="display:block;margin:4px auto 0;cursor:grab;outline:none">
+  <circle r="57" fill="#f4f6f7" stroke="rgba(0,0,0,.2)" stroke-width="1.2"/>
+  ${Array.from({ length: 72 }, (_, i) => { const a = i * 5 * Math.PI / 180, l = i % 9 === 0 ? 7 : i % 3 === 0 ? 4 : 2;
+    return `<line x1="${(Math.sin(a) * 56).toFixed(2)}" y1="${(-Math.cos(a) * 56).toFixed(2)}" x2="${(Math.sin(a) * (56 - l)).toFixed(2)}" y2="${(-Math.cos(a) * (56 - l)).toFixed(2)}" stroke="#7d8a93" stroke-width="${l > 4 ? 1.2 : .6}"/>`; }).join("")}
+  <path d="M0,-40 L6,-6 L40,0 L6,6 L0,40 L-6,6 L-40,0 L-6,-6 Z" fill="#c8d0d6" stroke="#7d8a93" stroke-width="0.8"/>
+  <path d="M0,-40 L6,-6 L0,0 Z M40,0 L6,6 L0,0 Z M0,40 L-6,6 L0,0 Z M-40,0 L-6,-6 L0,0 Z" fill="#7d8a93"/>
+  <text y="-46" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#b4282e">N</text>
+  <text x="46" font-size="9" text-anchor="middle" dominant-baseline="middle">E</text>
+  <text y="47" font-size="9" text-anchor="middle" dominant-baseline="middle">S</text>
+  <text x="-46" font-size="9" text-anchor="middle" dominant-baseline="middle">W</text>
+  <g id="sun-dial-needle"><path d="M0,-50 L6,-8 L0,-11 L-6,-8 Z" fill="#d23a2c" stroke="#7a1c14" stroke-width=".8"/>
+    <path d="M0,50 L5,8 L0,11 L-5,8 Z" fill="#e9eef1" stroke="#7d8a93" stroke-width=".8"/>
+    <circle r="4.5" fill="#1d2a33"/></g>
+</svg>
+<div id="sun-dial-heading" style="text-align:center;font-weight:700;margin:2px 0 6px"></div>
+<svg id="sun-dial-arc" viewBox="0 0 240 132" width="248" height="136" aria-label="Drag the sun to set the time"
+  style="display:block;margin:0 auto;cursor:grab;overflow:visible">
+  <line x1="6" y1="120" x2="234" y2="120" stroke="#9aa6ae" stroke-width="1.2"/>
+  <path d="M20,120 A100,100 0 0 1 220,120" fill="none" stroke="#f0b429" stroke-width="2" stroke-dasharray="4 4"/>
+  <text x="20" y="131" font-size="9" text-anchor="middle" fill="#55616a" id="sun-dial-rise"></text>
+  <text x="220" y="131" font-size="9" text-anchor="middle" fill="#55616a" id="sun-dial-set"></text>
+  <circle id="sun-dial-sun" r="9" fill="#2f7de1" stroke="#fff" stroke-width="2.5" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))"/>
+</svg>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+  <button id="sun-dial-back" aria-label="A day earlier" style="border:0;background:#e9eef1;border-radius:8px;width:28px;height:26px;cursor:pointer">‹</button>
+  <div id="sun-dial-time" style="font-weight:700;text-align:center;flex:1"></div>
+  <button id="sun-dial-forward" aria-label="A day later" style="border:0;background:#e9eef1;border-radius:8px;width:28px;height:26px;cursor:pointer">›</button></div>
+<div id="sun-dial-weather" style="color:#55616a;text-align:center;margin-top:4px;min-height:16px"></div>
+<button id="sun-dial-live" style="display:block;margin:6px auto 0;border:0;background:#1d2a33;color:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font:600 11px system-ui,sans-serif">Live SF time (R)</button>`;
+  document.body.append(sunDialBox);
+  const svg = compass.querySelector("svg");
+  svg.style.pointerEvents = "auto";
+  svg.style.cursor = "pointer";
+  svg.setAttribute("role", "button");
+  svg.setAttribute("aria-label", "Open heading and sun");
+  svg.addEventListener("click", () => toggleSunDial());
+  sunDialBox.querySelector("#sun-dial-close").addEventListener("click", () => toggleSunDial(false));
+  sunDialBox.querySelector("#sun-dial-live").addEventListener("click", () => resetSkyToLive());
+  sunDialBox.querySelector("#sun-dial-back").addEventListener("click", () => stepSunDay(-1));
+  sunDialBox.querySelector("#sun-dial-forward").addEventListener("click", () => stepSunDay(1));
+  const rose = sunDialBox.querySelector("#sun-dial-rose"), arc = sunDialBox.querySelector("#sun-dial-arc");
+  const pointIn = (el, e, box) => { const r = el.getBoundingClientRect();
+    return [box[0] + (e.clientX - r.left) / r.width * box[2], box[1] + (e.clientY - r.top) / r.height * box[3]]; };
+  rose.addEventListener("pointerdown", (e) => { sunDial.dragging = "rose"; rose.setPointerCapture(e.pointerId); turnRoseTo(e); });
+  arc.addEventListener("pointerdown", (e) => { sunDial.dragging = "sun"; arc.setPointerCapture(e.pointerId); moveSunTo(e); });
+  for (const el of [rose, arc]) {
+    el.addEventListener("pointermove", (e) => { if (sunDial.dragging === "rose") turnRoseTo(e); else if (sunDial.dragging === "sun") moveSunTo(e); });
+    el.addEventListener("pointerup", () => { sunDial.dragging = null; });
+    el.addEventListener("pointercancel", () => { sunDial.dragging = null; });
+  }
+  function turnRoseTo(e) {
+    const [x, y] = pointIn(rose, e, [-60, -60, 120, 120]);
+    if (Math.hypot(x, y) < 3) return;
+    faceBearing(bearingOf(x, -y));
+  }
+  rose.addEventListener("keydown", (e) => {
+    const step = e.key === "ArrowLeft" ? -5 : e.key === "ArrowRight" ? 5 : 0;
+    if (!step) return;
+    e.preventDefault(); e.stopPropagation();
+    faceBearing((compassBearings().view + step + 360) % 360);
+  });
+  function moveSunTo(e) {
+    const day = sunDayOf(sunDial.date || new Date());
+    if (!day) return;
+    const [x, y] = pointIn(arc, e, [0, 0, 240, 132]);
+    const theta = Math.min(Math.PI, Math.max(0, Math.atan2(120 - y, x - 120)));
+    setSkyTime(new Date(+day.rise + (1 - theta / Math.PI) * (day.set - day.rise)));
+  }
+}
+//: Turn the walker -- and the view with it -- to face `bearing` degrees clockwise from north.
+function faceBearing(bearing) {
+  const b = bearing * Math.PI / 180;
+  state.yaw = -b;
+  if (typeof avatar !== "undefined" && avatar) avatar.rotation.y = Math.PI - b;
+  placeCamera();
+  drawSunDial();
+}
+//: Sunrise and sunset of the San Francisco day holding `date`.
+function sunDayOf(date) {
+  if (!sunDial.sunCalc) return null;
+  const local = new Date(new Date(date).toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const noonish = new Date(+date + (12 - local.getHours()) * 3600000 - local.getMinutes() * 60000);
+  const t = sunDial.sunCalc.getTimes(noonish, midLat, midLon);
+  return { rise: t.sunrise, set: t.sunset };
+}
+function setSkyTime(date) {
+  if (!environmentController) return;
+  sunDial.date = date;
+  environmentController.setTime(date);
+  const preview = document.querySelector('select[aria-label="Time preview"]');
+  if (preview) preview.value = "live";
+  drawSunDial();
+  // The weather that was, once the dragging pauses -- not a request per pixel.
+  clearTimeout(sunDial.timer);
+  const ask = ++sunDial.ask;
+  sunDial.timer = setTimeout(async () => {
+    const line = sunDialBox?.querySelector("#sun-dial-weather");
+    if (line) line.textContent = "Looking up the weather then…";
+    try {
+      sunDial.history ??= (await import(sharedAsset("sky-history.mjs"))).createWeatherHistory(midLat, midLon);
+      const seen = await sunDial.history.at(date);
+      if (ask !== sunDial.ask || !sunDial.date) return;
+      environmentController.setConditions(seen || null);
+      if (line) line.textContent = seen
+        ? `${seen.text || seen.preset.replace("_", " ")} · ${Math.round(seen.wind)} m/s — ${seen.standsIn ? "not yet happened; weather observed" : "observed"} at ${seen.station} ${(seen.standsIn ? SF_TIME : SF_CLOCK).format(new Date(seen.observed))}`
+        : "No observation near that hour — weather preset shown";
+    } catch (error) {
+      if (ask === sunDial.ask && line) line.textContent = "Observed weather unavailable — weather preset shown";
+    }
+  }, 350);
+}
+function stepSunDay(days) {
+  const now = Date.now(), from = sunDial.date || new Date();
+  // weather.gov keeps about a week of observations; ahead, a day or two of yesterday's weather.
+  const next = new Date(Math.min(now + 3 * 86400000, Math.max(now - 6 * 86400000, +from + days * 86400000)));
+  setSkyTime(next);
+}
+function resetSkyToLive() {
+  sunDial.date = null; sunDial.ask += 1;
+  clearTimeout(sunDial.timer);
+  environmentController?.setTime(null);
+  environmentController?.setConditions(null);
+  const preview = document.querySelector('select[aria-label="Time preview"]');
+  if (preview) preview.value = "live";
+  const line = sunDialBox?.querySelector("#sun-dial-weather");
+  if (line) line.textContent = "";
+  drawSunDial();
+}
+async function toggleSunDial(open = !sunDial.open) {
+  if (!sunDialBox) return;
+  sunDial.open = open;
+  sunDialBox.hidden = !open;
+  if (open && !sunDial.sunCalc) sunDial.sunCalc = (await import(sharedAsset("vendor/suncalc-1.9.0.mjs"))).default;
+  drawSunDial();
+  if (open) sunDialBox.querySelector("#sun-dial-rose").focus({ preventScroll: true });
+}
+function drawSunDial() {
+  if (!sunDialBox || !sunDial.open) return;
+  const view = compassBearings().view, heading = Math.round(view) % 360;
+  sunDialBox.querySelector("#sun-dial-needle").setAttribute("transform", `rotate(${view})`);
+  sunDialBox.querySelector("#sun-dial-heading").textContent = `Facing ${COMPASS_POINTS[Math.round(heading / 45) % 8]} ${heading}°`;
+  const date = sunDial.date || new Date(), day = sunDayOf(date);
+  if (!day) return;
+  const f = (date - day.rise) / (day.set - day.rise), night = f < 0 || f > 1;
+  const theta = Math.PI * (1 - Math.min(1, Math.max(0, f)));
+  const sunDot = sunDialBox.querySelector("#sun-dial-sun");
+  sunDot.setAttribute("cx", (120 + 100 * Math.cos(theta)).toFixed(1));
+  sunDot.setAttribute("cy", (120 - 100 * Math.sin(theta)).toFixed(1));
+  sunDot.setAttribute("opacity", night ? ".35" : "1");
+  sunDialBox.querySelector("#sun-dial-rise").textContent = `↑ ${SF_CLOCK.format(day.rise)}`;
+  sunDialBox.querySelector("#sun-dial-set").textContent = `${SF_CLOCK.format(day.set)} ↓`;
+  sunDialBox.querySelector("#sun-dial-time").textContent = `${SF_TIME.format(date)}${sunDial.date ? "" : " · live"}${night ? " · night" : ""}`;
+}
+
 // ---- solid buildings, doors that open, and the rooms behind them ------------------------------
 //
 // A building is solid: the walker is a circle WALKER_RADIUS_M across its feet and is held off
@@ -28969,6 +29193,11 @@ addEventListener("keydown", (e) => {
   if (ATTACH || e.repeat || e.metaKey || e.ctrlKey || e.altKey || (e.key !== "r" && e.key !== "R")) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
   e.preventDefault();
+  // A sky set to another hour (the compass box) goes back to live San Francisco time first.
+  if (sunDial.date || environmentController?.snapshot()?.live === false) {
+    resetSkyToLive();
+    if (!gps.enabled) { pinSay("Sky back on live San Francisco time"); return; }
+  }
   if (returnToGps()) pinSay("Back where you are");
   else pinSay(gps.enabled ? "Waiting for your location" : "Turn on “Show me at my location” in settings");
 });
@@ -29378,6 +29607,7 @@ function animate(now) {
     grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
   stepAvatar(now);
   updateCompass(now);
+  if (sunDial.open && frameCount % 30 === 0) drawSunDial();
   if (frameCount % 30 === 0) updateRouteWidth();
   checkLightWindow(frameCount);
   checkDetailExpansion(now);
