@@ -2,8 +2,8 @@
 
 Follows `native-relaunch-2026-10-17.md`, whose "explicit remaining native limitation" listed
 the UV2 sway export, masked leaf master material, material-parameter collection and native
-grass as absent. They now exist in source, build, and import; they are **not yet visually
-verified in a running game**, for the reason below.
+grass as absent. They now exist in source, build, and import, and the grass field is seen
+rendering in a running game; leaf cards and sway are not yet visually checked (below).
 
 ## What is in place
 
@@ -28,12 +28,16 @@ Lafayette Park tiles `-3:2;-3:3` imported to `/Game/KerbsideRuntime/Maps/City_fo
 grass clumps, collision triangle audit passed. Its first launch loaded the map in 189 s on Metal
 SM6 and rendered (spawn camera faced the sky; no foliage in frame).
 
-## Why it is not visually verified
+## Visual check
 
-The installed project is `~/Documents/Unreal Projects/Kerbside`, and iCloud *Desktop &
-Documents* is on. macOS evicted the project's files to iCloud under disk pressure: every
-`.uproject`, `.ini`, `.umap` and `.uasset` is `compressed,dataless`. Unreal's reads of them time
-out (`ReadFile failed … Error=60: Operation timed out`). The second launch hung an hour in
-`LoadMap`, and the third could not open `Kerbside.uproject`. Native work cannot continue until
-the project is local again: mark the folder *Keep Downloaded* in Finder, or move the project
-out of `Documents` (e.g. onto the HP P700 beside its caches).
+The project's files were evicted to iCloud (*Desktop & Documents* sync) and Unreal's reads timed
+out (`Error=60`), so earlier launches hung in `LoadMap`. Once the folder was set to *Keep
+Downloaded* the trial map loaded in 9–22 s. A Metal SM6 frame from the Lafayette Park lawn
+(`-KerbsideShotPose=-70500,69000,11400,-6,20`, wind 9 m/s) shows the grass field rendering:
+clumps on the park surface, none on the path, faded with distance
+(`HP P700 1/Kerbside/unreal-foliage-test/foliage-shot4.png`). A still cannot show sway, and no
+tree crown was in that frame, so leaf cards under `M_KerbsideFoliage` are imported but not yet
+looked at. The tiles themselves remain untextured (white), as before.
+
+Keep the project downloaded; an evicted project stalls Unreal without an error. A launch alongside
+the 3D web preview pushed swap past the disk's free space, so run one at a time.
