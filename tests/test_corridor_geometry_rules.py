@@ -3040,16 +3040,17 @@ def test_grass_excludes_paved_paths_and_hard_courts_but_not_sports_grass() -> No
         _extract("pointInRing", js),
         _extract("hardGroundExclusion", js),
         "const square = (x) => [[x,1],[x+2,1],[x+2,3],[x,3],[x,1]];",
+        "const DATA = {ways:[{kind:'parking_lot',points:square(16)}]};",
         "const mask = hardGroundExclusion({front_walks:[{p:square(1)}], "
         "plazas:[{p:square(12)}], pitches:[{s:'tennis',p:square(4)}, "
         "{s:'soccer',p:square(7)}]});",
         "console.log(JSON.stringify([mask(2,-2),mask(5,-2),mask(8,-2),"
-        "mask(10.5,-2),mask(13,-2),mask(15,-2)]));",
+        "mask(10.5,-2),mask(13,-2),mask(15,-2),mask(17,-2)]));",
     ])
     out = subprocess.run([NODE, "--input-type=module", "-e", script],
                          capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
-    assert json.loads(out.stdout) == [True, True, False, True, True, False]
+    assert json.loads(out.stdout) == [True, True, False, True, True, False, True]
     assert "ringGeometry(rings, PARK_Y, true, excludeParkAt)" in js
     assert "ringGeometry(rings, YARD_Y, true, excludeGrassAt)" in js
     # Grass is clipped to road geometry on the CPU; a fine GPU mask removes paths

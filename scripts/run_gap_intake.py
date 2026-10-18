@@ -48,6 +48,25 @@ def schedule(jobs, stages):
     ]
 
 
+def artifact_receipt(stage, folder):
+    anchor = {
+        "discover": "capabilities.json",
+        "osm": "osm_ways.json",
+        "terrain": "site/sf-corridor-terrain.bin",
+        "lidar": "lidar/completion.json",
+        "imagery": "catalog/observations/external-000.parquet",
+        "official": "site/sf-corridor-official.json",
+    }[stage]
+    path = folder / anchor
+    try:
+        raw = path.read_bytes()
+        if not raw or (path.suffix == ".json" and not json.loads(raw)):
+            return None
+        return {"path": anchor, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+    except (OSError, ValueError):
+        return None
+
+
 def prepare(jobs, destination, registry_path, region_root):
     registry = json.loads(registry_path.read_text())
     by_name = {r["name"]: r for r in registry["regions"]}
@@ -147,7 +166,9 @@ def main():
         for job, stage in schedule(jobs, stages):
             key = job["name"]
             records = state["jobs"].setdefault(key, {})
-            if records.get(stage, {}).get("status") == "done":
+            previous = records.get(stage, {})
+            receipt = artifact_receipt(stage, destination / key)
+            if previous.get("status") == "done" and receipt and previous.get("artifact") == receipt:
                 continue
             pending = True
             while not eligible() and not stopping:
@@ -180,8 +201,11 @@ def main():
                             child.wait()
                         break
                     time.sleep(5)
+                mounted = volume_ready(args.volume, args.volume_uuid)
+                receipt = artifact_receipt(stage, destination / key) if mounted else None
                 records[stage] = {
-                    "status": "done" if child.returncode == 0 else "retry",
+                    "status": "done" if child.returncode == 0 and receipt and mounted else "retry",
+                    "artifact": receipt,
                     "exit_code": child.returncode,
                     "at": time.time(),
                     "seconds": round(time.time() - started, 1),

@@ -147,3 +147,20 @@ def test_sparse_region_response_floor_requires_independent_matching_probe():
     assert response_floor(caps, [1, 2, 3, 4]) == 2000
     assert response_floor({"bbox": box, "osm": {}}, box) == 2000
     assert response_floor({"bbox": box, "osm": {"highway_ways": 0, "buildings": 0}}, box) == 1
+
+
+def test_intake_checkpoint_requires_present_parseable_unchanged_artifact(tmp_path):
+    spec = importlib.util.spec_from_file_location("gap_runner", ROOT / "scripts/run_gap_intake.py")
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    path = tmp_path / "osm_ways.json"
+    assert runner.artifact_receipt("osm", tmp_path) is None
+    path.write_text("[")
+    assert runner.artifact_receipt("osm", tmp_path) is None
+    path.write_text("[]")
+    assert runner.artifact_receipt("osm", tmp_path) is None
+    path.write_text('[{"kind":"building"}]')
+    before = runner.artifact_receipt("osm", tmp_path)
+    assert before and before["bytes"] == path.stat().st_size
+    path.write_text('[{"kind":"street"}]')
+    assert runner.artifact_receipt("osm", tmp_path) != before
