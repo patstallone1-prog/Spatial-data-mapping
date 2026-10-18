@@ -14,6 +14,7 @@ the intake passes over whatever this has finished. Two processes must never work
 
 * within an area, cells are taken in the reverse of the intake's order, so the two meet once;
 * a cell the intake is on, or is about to start, is left for later;
+* a stage that fails three times running rests two hours before the next try;
 * if the intake starts the cell this is working on anyway, this one stops its own stage and
   returns to it afterwards.
 
@@ -51,6 +52,7 @@ INTAKE_STATUS = Path(
     "/Applications/Spatial-data-mapping-tunnel-ground-safety/build/gap-intake/status.json"
 )
 UNFIT_GRACE_S = 60
+REST_S = 2 * 3600
 LIMIT_S = {"osm": 900, "imagery": 3 * 3600}
 
 
@@ -84,6 +86,13 @@ def intake_next(state: dict, plan_jobs: list[dict], horizon: int = 2) -> set[str
     except ValueError:
         return {active["job"]}
     return {name for name, _ in keys[at : at + horizon + 1]}
+
+
+def resting(record: dict, now: float) -> bool:
+    """After three failures in a row a stage rests two hours before one more try: a city
+    service that is down ("Service ROW/rightofway/MapServer not started") comes back, and a
+    stage broken for good is tried a few times a day, not in a loop."""
+    return record.get("failures", 0) >= 3 and now - record.get("at", 0) < REST_S
 
 
 def focus_cells(plan_jobs: list[dict], areas: list[str]) -> list[str]:
@@ -185,8 +194,8 @@ def main() -> int:
                     break
                 if stage_done(cell, stage):
                     continue
-                if state["runs"].get(f"{cell}|{stage}", {}).get("failures", 0) >= 3:
-                    break  # three failures: leave the cell for a person; go on to the next
+                if resting(state["runs"].get(f"{cell}|{stage}", {}), time.time()):
+                    break  # failed three times running; rest it and go on to the next cell
                 if cell in intake_next(intake_state(args.intake_status), plan_jobs):
                     waiting = True
                     break  # the intake is here or nearly; come back to this cell later

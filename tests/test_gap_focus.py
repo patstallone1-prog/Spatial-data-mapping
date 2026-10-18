@@ -47,3 +47,10 @@ def test_a_probe_that_fails_again_leaves_the_file_alone(tmp_path, monkeypatch):
 
     assert not focus.refresh_osm_probe(cell, counts=bad)
     assert json.loads((folder / "capabilities.json").read_text()) == {"osm": {}}
+
+
+def test_a_stage_failing_three_times_rests_then_is_tried_again():
+    now = 10_000_000.0
+    assert not focus.resting({"failures": 2, "at": now}, now)
+    assert focus.resting({"failures": 3, "at": now - 60}, now)
+    assert not focus.resting({"failures": 3, "at": now - focus.REST_S - 1}, now)
