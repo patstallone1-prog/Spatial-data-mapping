@@ -25,16 +25,26 @@ export function windowMargin(box, focus, metres, region=null) {
   const distances=[(lon-box[0])*kx,(lat-box[1])*ky,(box[2]-lon)*kx,(box[3]-lat)*ky];
   return Math.min(...distances.map((d,i)=>region && Math.abs(box[i]-region[i])<1e-8 ? Infinity : d));
 }
-export function detailRequest(box, radius, focus, metres, previous=null, region=null) {
+// The defaults are a small device's. A roomier one passes a wider square (radius), and every
+// caller passes how fast the focus is going and how long a window last took to build: a
+// window is asked for while the walker still has that many metres of it left, centred that
+// far ahead, so a drive or a glide does not outrun the build onto the simple city.
+export const DETAIL_SMALL={radius:350,arrival:220,keep:280,lead:160};
+export function detailRequest(box, radius, focus, metres, previous=null, region=null, options={}) {
+  const {radius:full,arrival,keep,lead:minLead,speed=0,buildSeconds=0}={...DETAIL_SMALL,...options};
   const [lon,lat]=focus,[kx,ky]=metres;
   const margin=windowMargin(box,focus,metres,region);
   // An unexpected jump prioritizes a small arrival, not an expensive outer ring.
-  if(margin < -100)return {lon,lat,radius:220};
+  if(margin < -100)return {lon,lat,radius:arrival};
   if(!Number.isFinite(margin))return null;
-  if(radius>=350 && margin>=280)return null;
+  // Metres covered while the next window builds (and a couple of seconds to fetch it).
+  const ahead=Math.max(0,speed)*(Math.max(0,buildSeconds)+2);
+  const trigger=Math.max(keep,Math.min(full-40,ahead+120));
+  if(radius>=full && margin>=trigger)return null;
   let dx=previous?(lon-previous[0])*kx:0,dy=previous?(lat-previous[1])*ky:0;
-  const length=Math.hypot(dx,dy),lead=length>1?160/length:0;
-  return {lon:lon+dx*lead/kx,lat:lat+dy*lead/ky,radius:350};
+  const lead=Math.min(0.7*full,Math.max(minLead,ahead));
+  const length=Math.hypot(dx,dy),step=length>1?lead/length:0;
+  return {lon:lon+dx*step/kx,lat:lat+dy*step/ky,radius:full};
 }
 
 export function windowCells(manifest, box, lon, lat) {

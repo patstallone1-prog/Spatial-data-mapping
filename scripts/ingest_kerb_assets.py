@@ -183,6 +183,46 @@ def san_jose_meters(rows: list[dict]) -> list[dict]:
     return out
 
 
+#: Oakland's own meters: Parking's IPS inventory, one row per pole -- MK5 single-space heads and
+#: MS1 multi-space pay stations -- with the pole's surveyed position and its rate and limit.
+OAKLAND_METERS = "https://data.oaklandca.gov/resource/wnjv-tz7z.json"
+
+
+def oakland_meter_rows(bbox: dict, refresh: bool, name: str) -> list[dict]:
+    path = CACHE / f"oakland-parking-meters-{name}.json"
+    if path.exists() and not refresh:
+        return json.loads(path.read_text())
+    where = (f"within_box(the_geom,{bbox['north']},{bbox['west']},{bbox['south']},{bbox['east']})")
+    query = urllib.parse.urlencode({"$where": where, "$limit": 50000, "$order": "pole"})
+    rows = json.loads(fetch(f"{OAKLAND_METERS}?{query}"))
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rows))
+    return rows
+
+
+def oakland_meters(rows: list[dict]) -> list[dict]:
+    """One record per pole in service (a bagged meter still stands); MS1 is a pay station."""
+    out = []
+    for row in rows:
+        if (row.get("pole_statu") or "").lower() not in {"active", "bagged"}:
+            continue
+        try:
+            lon, lat = float(row["longitude"]), float(row["latitude"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        station = (row.get("meter_type") or "").upper().startswith("MS")
+        pole = row.get("pole") or row.get("rfid")
+        out.append({"id": f"oakland:{'pay_station' if station else 'parking_meter'}:{pole}", "kind": "parking_meter",
+                    "p": [round(lon, 7), round(lat, 7)],
+                    "meter_type": "pay_station" if station else "single_space",
+                    **({} if station else {"heads": 1, "cap_color": "-"}),
+                    "street": " ".join(filter(None, [row.get("block_numb") if row.get("block_numb") not in (None, "0") else None,
+                                                     row.get("street_add") or row.get("sub_area")])),
+                    "rate": row.get("config__na"), "source": "oakland_parking_meters",
+                    "provenance": "official_meter_inventory"})
+    return out
+
+
 def overpass(bbox: dict, refresh: bool, name: str) -> dict:
     path = CACHE / f"osm-kerb-{name}.json"
     if path.exists() and not refresh:
@@ -399,6 +439,10 @@ def main() -> int:
             official = [m for m in san_jose_meters(san_jose_meter_rows(bbox, args.refresh, region))
                         if inside(bbox, *m["p"])]
             city_inventory = True
+        if not official and region.startswith("oakland"):
+            official = [m for m in oakland_meters(oakland_meter_rows(bbox, args.refresh, region))
+                        if inside(bbox, *m["p"])]
+            city_inventory = True
         document.setdefault("geometry_based", {})["parking_meters"] = official
         document.setdefault("inferred", {})["parking_meters"] = [m for m in machines
             if not any(abs(m["p"][0] - o["p"][0]) < 2e-5 and abs(m["p"][1] - o["p"][1]) < 2e-5 for o in official)]
@@ -419,7 +463,15 @@ def main() -> int:
                 "license": "Open Data Commons Public Domain Dedication and License",
                 "provenance": "official_meter_inventory",
                 "methodology": "On-street meters in service (active flag M); one record per post or pay station."})
-        if city_inventory and "san_jose_dot_parking_meters" not in sources:
+        if city_inventory and region.startswith("oakland") and "oakland_parking_meters" not in sources:
+            document["sources"].append({
+                "id": "oakland_parking_meters", "name": "City of Oakland Parking Meters",
+                "url": "https://data.oaklandca.gov/d/wnjv-tz7z",
+                "license": "City of Oakland open data (no licence stated)",
+                "provenance": "official_meter_inventory",
+                "methodology": "Poles active or bagged; MK5 single-space heads one post each, MS1 multi-space "
+                               "meters as pay stations, each with its configured rate. Mapillary's meters not added."})
+        if city_inventory and region.startswith("san-jose") and "san_jose_dot_parking_meters" not in sources:
             document["sources"].append({
                 "id": "san_jose_dot_parking_meters", "name": "Parking Meters (City of San José DOT)",
                 "url": SAN_JOSE_METERS.removesuffix("/query"),

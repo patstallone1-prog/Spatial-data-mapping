@@ -100,3 +100,20 @@ def test_pins_drop_and_return_and_typing_is_never_a_pin() -> None:
     page = (ROOT / "docs/app-model.html").read_text()
     assert 'id="controls-help"' in page and "<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>" in page
     assert 'id="pins-clear"' in page
+
+
+def test_oakland_poles_are_posts_and_its_ms1_meters_are_pay_stations() -> None:
+    ingest = runpy.run_path(str(ROOT / "scripts/ingest_kerb_assets.py"))
+    rows = [{"pole": "15-622", "meter_type": "MK5", "pole_statu": "Active", "longitude": "-122.275174",
+             "latitude": "37.806816", "sub_area": "15th St", "config__na": "$2.00 per hr 2 Hour"},
+            {"pole": "14-PS1", "meter_type": "MS1", "pole_statu": "Active", "longitude": "-122.27",
+             "latitude": "37.80", "street_add": "Broadway"},
+            {"pole": "9-101", "meter_type": "MK5", "pole_statu": "Bagged", "longitude": "-122.27", "latitude": "37.79"},
+            {"pole": "9-102", "meter_type": "MS1", "pole_statu": "Temporarily removed",
+             "longitude": "-122.27", "latitude": "37.79"}]
+    meters = ingest["oakland_meters"](rows)
+    assert [(m["id"], m["meter_type"]) for m in meters] == [
+        ("oakland:parking_meter:15-622", "single_space"), ("oakland:pay_station:14-PS1", "pay_station"),
+        ("oakland:parking_meter:9-101", "single_space")]
+    assert meters[0]["p"] == [-122.275174, 37.806816] and meters[0]["rate"].startswith("$2.00")
+    assert meters[0]["provenance"] == "official_meter_inventory"

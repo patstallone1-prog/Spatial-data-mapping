@@ -484,7 +484,8 @@ def tuned(html: str, detail: str) -> str:
     """The page, cut for where it is going to be read."""
     streaming_hash = hashlib.sha256((ROOT / "docs/world-streaming.mjs").read_bytes()).hexdigest()[:16]
     html = html.replace("__WORLD_STREAMING_HASH__", streaming_hash)
-    for key, filename in (("GRASS_STRANDS", "grass-strands.mjs"), ("NATURE_RUNTIME", "nature-runtime.mjs")):
+    for key, filename in (("GRASS_STRANDS", "grass-strands.mjs"), ("NATURE_RUNTIME", "nature-runtime.mjs"),
+                          ("FOLIAGE_MOTION", "foliage-motion.mjs")):
         html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
     swaps = DETAIL_TUNING.get(detail) or {}
     for old, new in swaps.items():
@@ -3158,7 +3159,7 @@ const WORLD_BUILD_STARTED=performance.now();
 let activeGuest = null;
 let hostWorldActive = true;
 let regionStreamingReady = false;
-let attaching = null, attachWanted = null, detailRetryAt=0, detailCheckAt=0, detailPreviousFocus=null;
+let attaching = null, attachWanted = null, detailRetryAt=0, detailCheckAt=0, detailPreviousFocus=null, detailPreviousAt=0;
 const REGION_INDEX = { list: [], root: "", host: null };
 const ASSET_BASE = ATTACH ? ATTACH.assets
   : (document.querySelector('meta[name="kerbside-assets"]') || {}).content || "";
@@ -3179,7 +3180,18 @@ const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}
 const sharedAsset = (name) => viaStore(new URL(name, new URL(
   document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
 const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=__WORLD_STREAMING_HASH__"));
-const worldCellCache = ATTACH?.cellCache || new worldStreaming.CellCache();
+//: How much of the world is held, and how wide a square is built in full round the walker. A
+//: desktop or laptop (not a phone or a tablet, and 8 GB or more where the browser says) builds an
+//: 800 m square, keeps 192 MiB of cells so a rebuild reuses what the last one fetched, and keeps
+//: more of the simple city resident; a small device keeps the 700 m square and 48 MiB it had.
+//: Wider is not better: a 900 m square took 17.5 s to build round Pacific Heights, a 700 m one
+//: 7 s, and a walker who arrives before the build is on the simple city all that while. An
+//: arrival after a jump is built small (220 m) so the block underfoot comes first.
+const STREAM = (!deviceIsSmall() && !(navigator.deviceMemory && navigator.deviceMemory < 8))
+  ? { radius: 400, arrival: 220, keep: 310, lead: 200, cellBytes: 192 * 1048576, cellConcurrency: 6, tileBytes: 160 * 1048576 }
+  : { ...worldStreaming.DETAIL_SMALL, cellBytes: 48 * 1048576, cellConcurrency: 4, tileBytes: 48 * 1048576 };
+const worldCellCache = ATTACH?.cellCache
+  || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
 const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=__NATURE_RUNTIME_HASH__"))
@@ -3193,6 +3205,14 @@ const grassLibrary = await import(sharedAsset("grass-strands.mjs?rev=__GRASS_STR
   .catch(error=>{console.warn("kerbside: grass strands unavailable; retaining textured turf",error);return null;});
 var grassStrands = null;
 var grassSurfaceAt = null;
+//: Where grass grows on this page's ground: off every path, wall, road, building and water.
+var grassSampleAt = null;
+//: Wind in the trees and shrubs, grass parted underfoot (docs/foliage-motion.mjs): one for this
+//: page's own plants, in its own coordinates, and one for the landscape's.
+const foliageLibrary = await import(sharedAsset("foliage-motion.mjs?rev=__FOLIAGE_MOTION_HASH__"))
+  .catch(error=>{console.warn("kerbside: foliage motion unavailable; plants stand still",error);return null;});
+const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
+const natureMotion = foliageLibrary && !ATTACH ? foliageLibrary.createFoliageMotion(THREE) : null;
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 // Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
@@ -3687,7 +3707,7 @@ const LIGHT_EDGE_M = 120;
 let lightWindowStart = null;
 // Build a replacement in-page, retaining the last working window until it is ready.
 function rebuildRoundHere(lon, lat) {
-  if (!ATTACH && REGION_INDEX.host) attachRegion(REGION_INDEX.host,{lon,lat});
+  if (!ATTACH && REGION_INDEX.host) attachRegion(REGION_INDEX.host,{lon,lat},STREAM.radius);
 }
 //: The walker has walked, or been taken, near the edge of the square: build round it again.
 function checkLightWindow(frame) {
@@ -6225,7 +6245,7 @@ if (NATURE) {
     heightAt:natureVisualHeightAt,
     waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : perimeterWaterAt(x,z)===true || s.water),
     blockedAt:(x,z)=>inCity(x,z)||mappedBuiltAt(x,z)||Boolean(typeof guestUnder==="function"&&guestUnder(x,z)),
-    hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights});
+    hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights,motion:natureMotion});
   natureWorld.hostBox=hostBox;natureWorld.localBounds=localBounds.clone();
   if(PERIMETER)buildBayBridges(TERRAIN_FRAME);
 }
@@ -6852,7 +6872,7 @@ const TILE_MAX_SCREEN_ERROR_PX = 3.0;
 const TILE_MAX_CONCURRENT = 6;
 //: Tiles are dropped when more than this is resident, furthest first, and never one that is
 //: being drawn. Source bytes, which is what the index knows before it asks for anything.
-const TILE_RESIDENT_BUDGET = 48 * 1024 * 1024;
+const TILE_RESIDENT_BUDGET = STREAM.tileBytes;
 //: The swap is faded rather than cut: at a boundary the new tile's first frame is otherwise a
 //: visible step even when the geometry lines up.
 const TILE_FADE_MS = 150;
@@ -21562,9 +21582,85 @@ function treeVariant(kind) {
   const leafMesh = new THREE.Mesh(mergeParts(leaves), new THREE.MeshStandardMaterial({
     map: treeLeafTexture(kind === "palm" ? "palm" : kind === "conifer" ? "conifer" : "broad"),
     vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.85, metalness: 0.0 }));
+  // Lit as a crown, not as cards; and swayed by the wind (foliage-motion.mjs).
+  vegetationLibrary?.foliageNormals?.(leafMesh.geometry.getAttribute("position").array,
+    leafMesh.geometry.getAttribute("normal").array);
   leafMesh.geometry.computeBoundingSphere();
   group.add(leafMesh);
+  foliageMotion?.apply(barkMesh.material, "bark");
+  foliageMotion?.apply(leafMesh.material, "leaves");
   return group;
+}
+//: A tree's size: what the lidar measured where it measured one (its height and its crown,
+//: tools/plant_lidar_trees.py), else the trunk the city measured -- roughly a foot of tree per
+//: inch of diameter, capped where the prototype stops looking like the kind. A measured tree is
+//: scaled to its own height and spread, within the kind's believable proportions; the trunk
+//: rule capped every lidar tree at nine metres, a quarter of the tallest the city has.
+function treeScale(tree, kind, protoHeight, protoRadius) {
+  const maxScale = kind === "palm" ? 5.6 : kind === "columnar" ? 6.2 : kind === "conifer" ? 7.0 : 7.4;
+  const byTrunk = Math.max(2.2, Math.min(maxScale, tree.d * 0.34));
+  if (!(tree.h > 0) || !(protoHeight > 0)) return [byTrunk, byTrunk];
+  const up = Math.min(60, tree.h) / protoHeight;
+  const across = tree.crown_m > 0 && protoRadius > 0 ? (tree.crown_m / 2) / protoRadius : up;
+  return [Math.max(up * 0.45, Math.min(up * 1.6, across)), up];
+}
+
+// ---- the understorey in the parks ----
+//
+// Under the park trees -- Golden Gate Park's woods, the Presidio's edges, a square's planes --
+// the ground is shrubs and ferns, not mown turf. The city's inventory has the trees and none of
+// what grows under them, so this is the landscape's own visual prior (nature-ecology.mjs's
+// understorey, by how moist the fog belt keeps it) placed only beneath a tree's crown, only on
+// park ground and only where grass would grow: never on a path, a court or a wall. Inferred,
+// and marked so; a lawn in the open stays a lawn.
+let understoreyReady = null;
+function buildParkUnderstorey(trees) {
+  const assets = vegetationLibrary?.vegetationAssets?.(THREE), at = vegetationLibrary?.undergrowthAt;
+  if (!assets || !at || !grassSampleAt || !grassSurfaceAt) return null;
+  const items = new Map(), stats = { trees: 0, plants: 0, inferred: true, basis: "nature-ecology understorey prior under mapped crowns" };
+  const placed = new Set();
+  for (const tree of trees) {
+    const [tx, ty] = xy(tree.p[0], tree.p[1]), tz = -ty;
+    const centre = grassSampleAt(tx + 1.2, tz) || grassSampleAt(tx - 1.2, tz) || grassSampleAt(tx, tz + 1.2);
+    if (!centre?.park) continue;
+    stats.trees += 1;
+    const crown = tree.crown_m ? tree.crown_m / 2 : Math.max(2, Math.min(6, (tree.d || 8) * 0.22));
+    const [lon] = tree.p;
+    // The fog belt west of Twin Peaks keeps a forest floor moist; downtown it is drier.
+    const moisture = 0.45 + 0.35 * Math.max(0, Math.min(1, (-122.42 - lon) / 0.08));
+    for (let k = 0; k < 14; k += 1) {
+      const a = random(tree.p[0] * 1e6 + k * 17) * Math.PI * 2, r = crown * (0.25 + 0.85 * Math.sqrt(random(tree.p[1] * 1e6 + k * 29)));
+      const x = tx + Math.cos(a) * r, z = tz + Math.sin(a) * r, key = `${Math.round(x / 1.5)}:${Math.round(z / 1.5)}`;
+      if (placed.has(key)) continue;
+      const ground = grassSampleAt(x, z);
+      if (!ground?.park) continue;
+      const plant = at(x, z, { cover: 41, water: false, moisture,
+        habitat: { canopy: 65, forest: 0.85, scrub: 0.1, grass: 0.05, wetland: 0, developed: 0 } });
+      if (!plant) continue;
+      placed.add(key);
+      if (!items.has(plant.kind)) items.set(plant.kind, []);
+      items.get(plant.kind).push({ x, y: ground.y, z, r: plant.radius, h: plant.height, turn: a * 3.1 });
+    }
+  }
+  const dummy = new THREE.Object3D(), colour = new THREE.Color(), colours = vegetationLibrary.UNDERGROWTH || {};
+  for (const [kind, list] of items) {
+    const part = assets.undergrowth(kind);
+    foliageMotion?.apply(part.material, "shrub");
+    const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length);
+    list.forEach((v, i) => {
+      dummy.position.set(v.x, v.y, v.z); dummy.scale.set(v.r, v.h, v.r); dummy.rotation.set(0, v.turn, 0); dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      const shade = 0.82 + random(i * 13 + kind.length) * 0.32;
+      mesh.setColorAt(i, colour.setRGB(...(colours[kind]?.colour || [0.29, 0.39, 0.18]).map((c) => c * shade), THREE.SRGBColorSpace));
+    });
+    mesh.computeBoundingSphere();
+    mesh.userData = { surface: `understorey:${kind}`, inferred: true, liftedOntoGround: true,
+      confidence: "visual prior under mapped tree crowns; not surveyed plants" };
+    if (BUILD_WINDOW) applyBoxClip(mesh, detailClipBox);
+    groups.ground.add(mesh);
+    stats.plants += list.length;
+  }
+  return stats;
 }
 
 // ---- garden fences ----
@@ -22935,9 +23031,7 @@ const groundReady = (async () => {
           const key=`${x}:${z}`;if(!grid.has(key))grid.set(key,[]);grid.get(key).push({local,park});
         }
     }
-    grassStrands=grassLibrary.createGrassStrands(THREE,{parent:groups.ground,
-      onMesh:mesh=>{if(BUILD_WINDOW)applyBoxClip(mesh,detailClipBox);},
-      sample:(x,z)=>{
+    grassSampleAt=(x,z)=>{
         if(excludeGrassAt(x,z)||insideCarriageway(x,z,.15)||parkPavementAt(x,z)||buildingAt(x,z)||mappedWaterAt(x,z))return null;
         const mask=grassMask.texture.image;
         const mx=Math.floor((x-grassMask.west)/(grassMask.east-grassMask.west)*mask.width);
@@ -22947,8 +23041,10 @@ const groundReady = (async () => {
           .some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<.5**2))return null;
         const row=(grid.get(`${Math.floor(x/16)}:${Math.floor(z/16)}`)||[]).find(r=>pointInRing(x,z,r.local));
         if(!row)return null;
-        const y=grassSurfaceAt?.(x,z);return y===null||y===undefined?null:{y:y+.002};
-      }});
+        const y=grassSurfaceAt?.(x,z);return y===null||y===undefined?null:{y:y+.002,park:row.park};
+      };
+    grassStrands=grassLibrary.createGrassStrands(THREE,{parent:groups.ground,motion:foliageMotion,
+      onMesh:mesh=>{if(BUILD_WINDOW)applyBoxClip(mesh,detailClipBox);},sample:grassSampleAt});
   }
   const parkVariants = GRASS_VARIANTS;
   for (let variant = 0; variant < parkVariants; variant += 1) {
@@ -23132,11 +23228,13 @@ const groundReady = (async () => {
   }
   for (const [kind, list] of byVariant) {
     const proto = treeVariant(kind);
-    let prototypeRadius=0;for(const part of proto.children){part.geometry.computeBoundingBox();const b=part.geometry.boundingBox;
-      prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));}
-    const clipping=list.map(tree=>{if(!vegetationLibrary)return null;
-      const [x,y]=xy(...tree.p),maxScale=kind==='palm'?5.6:kind==='columnar'?6.2:kind==='conifer'?7:7.4,scale=Math.max(2.2,Math.min(maxScale,tree.d*.34));
-      const prisms=treeBuildingPrisms(x,-y,scale*prototypeRadius);if(prisms.length)treeClipStats.clipped++;return prisms.length?prisms:null;});
+    let prototypeRadius=0,prototypeHeight=0;for(const part of proto.children){part.geometry.computeBoundingBox();const b=part.geometry.boundingBox;
+      prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));
+      prototypeHeight=Math.max(prototypeHeight,b.max.y);}
+    const scales=list.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
+    const clipping=list.map((tree,i)=>{if(!vegetationLibrary)return null;
+      const [x,y]=xy(...tree.p);
+      const prisms=treeBuildingPrisms(x,-y,scales[i][0]*prototypeRadius);if(prisms.length)treeClipStats.clipped++;return prisms.length?prisms:null;});
     for (const part of proto.children) {
       const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length-clipping.filter(Boolean).length);
       mesh.userData.surface = `tree:${kind}`;   // named for the tile exporter and the audit
@@ -23144,15 +23242,13 @@ const groundReady = (async () => {
       for (let i = 0; i < list.length; i += 1) {
         const tree = list[i];
         const [x, y] = xy(tree.p[0], tree.p[1]);
-        // Height from the trunk: roughly a foot of tree per inch of diameter, which is the
-        // rule of thumb an arborist would use and is close enough for a canopy.
-      const maxScale = kind === "palm" ? 5.6 : kind === "columnar" ? 6.2 : kind === "conifer" ? 7.0 : 7.4;
-      const scale = Math.max(2.2, Math.min(maxScale, tree.d * 0.34));
+        // Measured height and crown where the lidar gave them; else from the trunk.
+        const [across, up] = scales[i];
         dummy.position.set(x, 0, -y);
-        dummy.scale.setScalar(scale);
+        dummy.scale.set(across, up, across);
         // At zero here: liftOntoGround(groups.ground) puts every instance on the hill once.
         // Adding the ground here as well stood every tree twice as high as the hill it was on.
-        dummy.position.y = part.position.y * scale;
+        dummy.position.y = part.position.y * up;
         dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);
         dummy.updateMatrix();
         if(clipping[i]){
@@ -23171,6 +23267,7 @@ const groundReady = (async () => {
     }
   }
   window.kerbsideTreeClearance=treeClipStats;
+  understoreyReady=()=>buildParkUnderstorey(trees);
 
   buildCourts(ground);
   // What is inside the parks: playgrounds and the other recreation areas (RPD / OpenStreetMap).
@@ -23179,7 +23276,8 @@ const groundReady = (async () => {
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
   if(grassStrands&&grassLibrary){const meshes=[];
     groups.ground.traverse(o=>{if(o.isMesh&&["yard","park"].includes(o.userData.surface))meshes.push(o);});
-    grassSurfaceAt=grassLibrary.triangleGroundSampler(meshes);grassStrands.invalidate();}
+    grassSurfaceAt=grassLibrary.triangleGroundSampler(meshes);grassStrands.invalidate();
+    window.kerbsideUnderstorey=understoreyReady?.();}
   installTunnelVoidCuts(groups.ground,true);
   window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { ground: true });
   // The ground is down; now the things that stand on it.
@@ -32037,6 +32135,12 @@ function cullDetailByDistance(frame, eye = camera) {
     cell.active = true;
     for (const tile of cell.tiles) {
       if (hidden(tile.userData.surface)) { tile.visible = false; continue; }
+      // The lift cuts a very large mesh into pieces after the cells were indexed and lets the
+      // whole go; until the cells are indexed again it is listed here without geometry.
+      if (!tile.geometry) { tile.visible = false; continue; }
+      // An instanced batch added after the cells were indexed may not have its sphere yet.
+      if (tile.isInstancedMesh && !tile.boundingSphere) tile.computeBoundingSphere();
+      if (!tile.isInstancedMesh && !tile.geometry.boundingSphere) tile.geometry.computeBoundingSphere();
       const sphere = tile.isInstancedMesh ? tile.boundingSphere : tile.geometry.boundingSphere;
       detailCentre.copy(sphere.center).applyMatrix4(tile.matrixWorld).applyMatrix4(ROOT_INVERSE);
       const gap = eye.position.distanceTo(detailCentre) - sphere.radius;
@@ -32143,6 +32247,7 @@ function animate(now) {
   if (progress && !progress.hidden) progress.hidden = true;
   markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
   if(natureWorld?.tick(now,camera))lastMovedAt=now;
+  foliageMotion?.update(now,avatar.position);natureMotion?.update(now,avatar.position);
   if(grassStrands&&grassSurfaceAt){const focus=state.firstPerson?avatar.position:state.target;
     grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
   stepAvatar(now);
@@ -33393,12 +33498,19 @@ function checkDetailExpansion(now) {
   const owner=activeGuest,box=owner?.windowBox || BUILD_WINDOW?.box;
   if(!box)return;
   if(region!==(owner?.region || REGION_INDEX.host)) {
-    attachRegion(region,{lon,lat},220);detailPreviousFocus=[lon,lat];return;
+    attachRegion(region,{lon,lat},STREAM.arrival);detailPreviousFocus=[lon,lat];detailPreviousAt=now;return;
   }
   const [s,w,n,e]=region.bbox;
+  // How fast the focus is going (metres a second since the last look, a teleport aside) and
+  // how long the last window took: the next is asked for that much sooner, that far ahead.
+  const seconds=detailPreviousAt ? (now-detailPreviousAt)/1000 : 0;
+  const moved=detailPreviousFocus && seconds>0 ? Math.hypot((lon-detailPreviousFocus[0])*metersPerLon,
+    (lat-detailPreviousFocus[1])*metersPerLat)/seconds : 0;
+  const speed=moved<60 ? moved : 0;
   const request=worldStreaming.detailRequest(box,owner?.detailRadius || BUILD_WINDOW.radius,
-    [lon,lat],[metersPerLon,metersPerLat],detailPreviousFocus,[w,s,e,n]);
-  detailPreviousFocus=[lon,lat];
+    [lon,lat],[metersPerLon,metersPerLat],detailPreviousFocus,[w,s,e,n],
+    {...STREAM,speed,buildSeconds:owner?.buildSeconds || 8});
+  detailPreviousFocus=[lon,lat];detailPreviousAt=now;
   if(request)attachRegion(region,{lon:Math.max(w,Math.min(e,request.lon)),lat:Math.max(s,Math.min(n,request.lat))},request.radius);
 }
 window.kerbsideStreamDetail=()=>{
@@ -33406,7 +33518,7 @@ window.kerbsideStreamDetail=()=>{
   return `Detail: ${activeGuest?.region.title || REGION_INDEX.host?.title || "local"}`
     +`${attaching ? ` (loading nearby window: ${attaching.progress?.textContent || "fetching"})` : ""}; `
     +`${2*(activeGuest?.detailRadius || BUILD_WINDOW?.radius || 0)} m detail width; ${activeGuest?.buildSeconds?.toFixed(1) || "initial"} s build; `
-    +`cells ${(cache.residentBytes/1048576).toFixed(1)} / 48 MiB, ${cache.active} fetching, ${cache.hits} reused. `
+    +`cells ${(cache.residentBytes/1048576).toFixed(1)} / ${(STREAM.cellBytes/1048576).toFixed(0)} MiB, ${cache.active} fetching, ${cache.hits} reused. `
     +`Municipal sidewalks: ${usage.sidewalks}; curb records: ${usage.curbColourRecords}.`;
 };
 async function attachRegion(region, centre = null, radius = 220) {
@@ -33420,7 +33532,7 @@ async function attachRegion(region, centre = null, radius = 220) {
   if (activeGuest?.region === region && activeGuest.windowBox) {
     const b=activeGuest.windowBox;
     if(radius<=activeGuest.detailRadius && worldStreaming.windowMargin(b,[centre.lon,centre.lat],
-      [metersPerLon,metersPerLat],[rw,rs,re,rn])>=280)return;
+      [metersPerLon,metersPerLat],[rw,rs,re,rn])>=STREAM.keep)return;
   }
   if (attaching) {
     if(attaching.region===region && Math.hypot((centre.lon-attaching.centre.lon)*metersPerLon,
@@ -33525,7 +33637,7 @@ async function attachRegion(region, centre = null, radius = 220) {
     regionBadge.textContent = `Could not load ${region.title}`;
     setTimeout(() => { regionBadge.style.opacity = "0"; }, 4000);
     globalThis.__kerbsideGuest = null;
-    detailRetryAt=performance.now()+10000;
+    detailRetryAt=performance.now()+4000;
   } finally {
     attaching = null;
     const next = attachWanted;
@@ -33568,6 +33680,7 @@ function guestTick({ eye, dist, firstPerson, at, dt }) {
   state.firstPerson = firstPerson;
   avatar.position.copy(at);
   if(grassStrands&&grassSurfaceAt)grassStrands.update(at.x,at.z,camera.position.y-at.y);
+  foliageMotion?.update(performance.now(),at);
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
   frameCount += 1;
   updateDoors(dt);

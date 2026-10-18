@@ -135,6 +135,7 @@ def main() -> int:
     # building's index and are not read; the file they made was re-keyed and is the record.
     PARTS.mkdir(parents=True, exist_ok=True)
     done: dict[str, dict] = {}
+    table: dict = {}
     if OUT.exists():
         table = json.loads(OUT.read_text())
         if table.get("keyed_by") != "osm_id":
@@ -248,11 +249,15 @@ def main() -> int:
         (PARTS / f"part-{part_number:05d}.json").write_text(json.dumps(results))
         done.update(results)
 
+    # A later pass (the view test) may have written its own note and fields into the table;
+    # they describe the same records and are kept.
     OUT.write_text(json.dumps({
+        **{k: v for k, v in table.items() if k != "buildings"},
         "keyed_by": "osm_id",
-        "note": "Colour sampled off photographs of each building: c = median wall colour, n = "
-                "views, spread = disagreement between views. Keyed by osm_id; nothing sampled is "
-                "ever discarded.",
+        "note": table.get("note") or (
+            "Colour sampled off photographs of each building: c = median wall colour, n = "
+            "views, spread = disagreement between views. Keyed by osm_id; nothing sampled is "
+            "ever discarded."),
         "buildings": done}, separators=(",", ":")))
     progress(f"wrote {OUT.name}: {len(done)} buildings with a sampled colour, {dict(counters)}")
     return 0
