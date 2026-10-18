@@ -6,6 +6,11 @@
 #include "Components/WindDirectionalSourceComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMaterialLibrary.h"
+#include "Materials/MaterialParameterCollection.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
@@ -90,6 +95,8 @@ AKerbsideCelestialSky::AKerbsideCelestialSky(const FObjectInitializer& Init) : S
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.TickInterval = 0.f;     // the rain moves every frame; the clock once a second
     SetRunDayCycle(false); // Wall clock, not an accelerated game-time loop.
+    FoliageParameters = TSoftObjectPtr<UMaterialParameterCollection>(
+        FSoftObjectPath(TEXT("/Game/KerbsideRuntime/Foliage/MPC_KerbsideFoliage.MPC_KerbsideFoliage")));
 
     RainStreaks = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("RainStreaks"));
     if (USceneComponent* Root = GetRootComponent()) RainStreaks->SetupAttachment(Root);
@@ -270,13 +277,31 @@ void AKerbsideCelestialSky::BeginPlay()
     {
         float After = 10.f;
         FParse::Value(FCommandLine::Get(), TEXT("KerbsideShotAfter="), After);
-        GetWorldTimerManager().SetTimer(ShotTimer, FTimerDelegate::CreateWeakLambda(this, [this, Shot]()
+        // -KerbsideShotPose=x,y,z,pitch,yaw (world cm, degrees) stands the walker there first.
+        FString Pose;
+        FParse::Value(FCommandLine::Get(), TEXT("KerbsideShotPose="), Pose, false);
+        GetWorldTimerManager().SetTimer(ShotTimer, FTimerDelegate::CreateWeakLambda(this, [this, Shot, Pose]()
         {
-            FScreenshotRequest::RequestScreenshot(Shot, false, false);
-            GetWorldTimerManager().SetTimer(ShotTimer, FTimerDelegate::CreateWeakLambda(this, []()
+            TArray<FString> Parts;
+            Pose.ParseIntoArray(Parts, TEXT(","));
+            APlayerController* Player = UGameplayStatics::GetPlayerController(this, 0);
+            if (Parts.Num() == 5 && Player)
             {
-                FPlatformMisc::RequestExit(false, TEXT("KerbsideShot"));
-            }), 3.f, false);
+                if (APawn* Walker = Player->GetPawn())
+                {
+                    Walker->SetActorLocation(FVector(FCString::Atof(*Parts[0]), FCString::Atof(*Parts[1]), FCString::Atof(*Parts[2])), false, nullptr, ETeleportType::TeleportPhysics);
+                }
+                Player->SetControlRotation(FRotator(FCString::Atof(*Parts[3]), FCString::Atof(*Parts[4]), 0.f));
+            }
+            // Two seconds for the view to settle and stream before the frame is taken.
+            GetWorldTimerManager().SetTimer(ShotTimer, FTimerDelegate::CreateWeakLambda(this, [this, Shot]()
+            {
+                FScreenshotRequest::RequestScreenshot(Shot, false, false);
+                GetWorldTimerManager().SetTimer(ShotTimer, FTimerDelegate::CreateWeakLambda(this, []()
+                {
+                    FPlatformMisc::RequestExit(false, TEXT("KerbsideShot"));
+                }), 3.f, false);
+            }), Parts.Num() == 5 ? 2.f : .01f, false);
         }), After, false);
     }
     if (RainStreaks && RainStreaks->GetMaterial(0))
@@ -297,6 +322,30 @@ void AKerbsideCelestialSky::Tick(float DeltaSeconds)
     Current = FKerbsideWeatherLook::Lerp(Current, Target, T);
     ShowLook(Current);
     UpdateRain(DeltaSeconds);
+    ShowFoliage();
+}
+
+void AKerbsideCelestialSky::ShowFoliage()
+{
+    // A world without the foliage collection (one imported before it existed) simply has
+    // plants that stand still; it is looked for once, not every frame.
+    if (!FoliageCollection)
+    {
+        if (FoliageParameters.IsNull()) return;
+        FoliageCollection = FoliageParameters.LoadSynchronous();
+        if (!FoliageCollection) { FoliageParameters.Reset(); return; }
+    }
+    const FVector Toward = WindVector(WindFromDegrees);
+    UKismetMaterialLibrary::SetVectorParameterValue(this, FoliageCollection, TEXT("Wind"),
+        FLinearColor(Toward.X, Toward.Y, WindSpeed, 0.f));
+    if (const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0))
+    {
+        FVector Feet = Pawn->GetActorLocation();
+        if (const ACharacter* Walker = Cast<ACharacter>(Pawn))
+            Feet.Z -= Walker->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+        UKismetMaterialLibrary::SetVectorParameterValue(this, FoliageCollection, TEXT("Walker"),
+            FLinearColor(Feet.X, Feet.Y, Feet.Z, WalkerPressRadius));
+    }
 }
 
 void AKerbsideCelestialSky::OnConstruction(const FTransform& Transform)

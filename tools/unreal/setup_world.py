@@ -151,6 +151,10 @@ def main() -> None:
     scene.apply_weather()
     meshes, colliders = 0, 0
     collision_audit = []
+    # Leaves, bark, shrubs and litter get the wind-driven foliage material; lawns get grass.
+    import foliage_setup
+    foliage, clump = foliage_setup.ensure_assets(Path(unreal.Paths.project_saved_dir()) / "KerbsideFoliage")
+    foliage_slots, grass_clumps = 0, 0
     spawn = None
     for tile in manifest["tiles"]:
         base = f"/Game/KerbsideRuntime/Tiles/City_{reuse}" if reuse else CONTENT
@@ -202,6 +206,7 @@ def main() -> None:
             component.set_collision_profile_name("BlockAll" if blocking else "NoCollision")
             component.set_simulate_physics(False)
             component.set_cast_shadow(not all(s in {"marking", "crossing"} for s in surfaces))
+            foliage_slots += foliage_setup.dress_component(component, surfaces, foliage)
             unreal.EditorAssetLibrary.save_loaded_asset(mesh)
             meshes += 1
             colliders += int(blocking)
@@ -211,6 +216,7 @@ def main() -> None:
                                f"{fallback_triangles} fallback vs {expected_triangles} exported")
         collision_audit.append({"tile": tile["file"], "exported_blocking_triangles": expected_triangles,
                                 "fallback_blocking_triangles": fallback_triangles})
+        grass_clumps += foliage_setup.plant_grass(actors, tile, path.parent, clump, foliage["grass"])
         if spawn is None and tile.get("spawn_gltf_m"):
             spawn = tile["spawn_gltf_m"]
     if colliders == 0 or spawn is None:
@@ -222,17 +228,20 @@ def main() -> None:
     world.get_world_settings().set_editor_property("default_game_mode", unreal.KerbsideGameMode.static_class())
     if not levels.save_current_level():
         raise RuntimeError("City save failed; default map unchanged")
-    # Only make the city the default after it actually exists and collision import passed.
-    from install_runtime import ENGINE_CONFIG, managed_config
-    config = Path(unreal.Paths.project_dir()) / "Config/DefaultEngine.ini"
-    maps = ("\n[/Script/EngineSettings.GameMapsSettings]\n"
-            f"GameDefaultMap={LEVEL}.{MAP_NAME}\nEditorStartupMap={LEVEL}.{MAP_NAME}\n")
-    config.write_text(managed_config(config.read_text(), ENGINE_CONFIG + maps))
+    # Only make the city the default after it actually exists and collision import passed,
+    # and not for a trial import (KERBSIDE_KEEP_DEFAULT_MAP=1): that is opened by its path.
+    if os.environ.get("KERBSIDE_KEEP_DEFAULT_MAP") != "1":
+        from install_runtime import ENGINE_CONFIG, managed_config
+        config = Path(unreal.Paths.project_dir()) / "Config/DefaultEngine.ini"
+        maps = ("\n[/Script/EngineSettings.GameMapsSettings]\n"
+                f"GameDefaultMap={LEVEL}.{MAP_NAME}\nEditorStartupMap={LEVEL}.{MAP_NAME}\n")
+        config.write_text(managed_config(config.read_text(), ENGINE_CONFIG + maps))
     report = {"schema_version": 1, "level": LEVEL, "manifest": str(path),
               "diagnostic_only": manifest.get("diagnostic_only", False),
               "diagnostic_reuse_revision": reuse,
               "renderer_sha256": manifest["renderer_sha256"], "meshes": meshes,
-              "static_colliders": colliders, "spawn_gltf_m": spawn, "import_yaw": yaw,
+              "static_colliders": colliders,
+              "foliage_material_slots": foliage_slots, "grass_clumps": grass_clumps, "spawn_gltf_m": spawn, "import_yaw": yaw,
               "collision_triangle_audit": collision_audit,
               "physics": "Chaos static triangle collision + CharacterMovement capsule",
               "lighting": "Epic Celestial Vault sun/moon/clouds, SF live clock + realtime SkyLight + volumetric fog",

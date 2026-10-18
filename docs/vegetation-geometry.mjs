@@ -1,7 +1,7 @@
 // Render-only botanical forms. Unit crown radius and unit height let clearance use
 // real bounding dimensions. No plant here claims to be an observed individual.
 import {SPECIES,noiseHash} from './nature-ecology.mjs';
-export {UNDERGROWTH,undergrowthAt} from './nature-ecology.mjs';
+export {UNDERGROWTH,undergrowthAt,LITTER,litterScatter,litterKind} from './nature-ecology.mjs';
 
 export function botanicalGeometry(species,variant=0){
   const form=SPECIES[species]?.form||species,bark={position:[],uv:[]},leaf={position:[],uv:[]};
@@ -254,5 +254,58 @@ export function vegetationAssets(THREE){
       ...(kind==='fern'||kind==='bunchgrass'||kind==='sedge'?{}:{map:texture('oak'),alphaTest:.35})})};
     cache.set(key,part);return part;
   }
-  return {tree,undergrowth};
+  //: The ground under trees: a litter patch is a flat card of fallen leaves, bark or needles,
+  //: thick in the middle and thinning to nothing at its edge so patches overlap into a floor.
+  function litterTexture(kind){
+    const key=`litter:${kind}`;if(textures.has(key))return textures.get(key);
+    const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');
+    const at=(j,salt)=>{const a=noiseHash(j,salt,1301)*6.283,r=118*Math.pow(noiseHash(j,salt+1,1301),.75);return [128+Math.cos(a)*r,128+Math.sin(a)*r];};
+    const browns=[[107,74,43],[138,106,62],[167,132,79],[90,61,34],[120,96,48],[150,140,80]];
+    // No backing disc: the patch is only the things lying in it, thinning towards its edge, so
+    // its outline is ragged and overlapping patches run together into a floor.
+    for(let j=0;j<160;j++){const [x,y]=at(j,77),r=2+noiseHash(j,78,1301)*5,b=browns[(j+2)%4];
+      ctx.fillStyle=`rgb(${b[0]-30},${b[1]-28},${b[2]-18})`;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,noiseHash(j,79,1301)*3,0,6.283);ctx.fill();}
+    if(kind==='needle_duff'){
+      for(let j=0;j<1600;j++){const [x,y]=at(j,3),a=noiseHash(j,5,1301)*6.283,l=6+noiseHash(j,6,1301)*10,b=browns[j%4];
+        ctx.strokeStyle=`rgb(${b[0]+30},${b[1]+10},${b[2]})`;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);ctx.stroke();}
+    }else{
+      const euc=kind==='eucalyptus_litter';
+      if(euc)for(let j=0;j<26;j++){
+        // Blue gum sheds its bark in long pale ribbons, curling as they dry.
+        const [x,y]=at(j,40),a=noiseHash(j,41,1301)*6.283,l=40+noiseHash(j,42,1301)*60;
+        ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle=`rgb(${190+j%30},${170+j%25},${135+j%20})`;
+        ctx.fillRect(-l/2,-3,l,6);ctx.fillStyle='rgba(110,90,70,.6)';ctx.fillRect(-l/2,1.5,l,1.5);ctx.restore();
+      }
+      for(let j=0;j<(euc?420:700);j++){
+        const [x,y]=at(j,7),a=noiseHash(j,8,1301)*6.283,l=(euc?16:9)+noiseHash(j,9,1301)*(euc?10:8),w=euc?l*.16:l*.42;
+        const b=euc?[[150,140,110],[170,150,110],[120,110,80]][j%3]:browns[j%browns.length],k=.8+noiseHash(j,10,1301)*.35;
+        ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle=`rgb(${Math.round(b[0]*k)},${Math.round(b[1]*k)},${Math.round(b[2]*k)})`;
+        ctx.beginPath();ctx.moveTo(0,-l/2);
+        if(euc){ctx.quadraticCurveTo(w*2.2,0,0,l/2);ctx.quadraticCurveTo(w*.6,0,0,-l/2);}
+        else{ctx.bezierCurveTo(w,-l/4,w,l/4,0,l/2);ctx.bezierCurveTo(-w,l/4,-w,-l/4,0,-l/2);}
+        ctx.fill();ctx.strokeStyle='rgba(60,40,25,.5)';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(0,-l/2);ctx.lineTo(0,l/2);ctx.stroke();ctx.restore();
+      }
+    }
+    const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;textures.set(key,t);return t;
+  }
+  function litter(kind){
+    const key=`litter:${kind}`;if(cache.has(key))return cache.get(key);
+    const g=new THREE.PlaneGeometry(1,1);g.rotateX(-Math.PI/2);g.computeBoundingSphere();
+    const part={geometry:g,material:new THREE.MeshStandardMaterial({map:litterTexture(kind),color:0xffffff,alphaTest:.45,roughness:1,
+      polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4})};
+    cache.set(key,part);return part;
+  }
+  //: Deadwood: a stick or a log lying along its own x axis, unit length and radius; a log's
+  //: ends are left open and dark, the way the heart rots first.
+  function deadwood(kind){
+    const key=`deadwood:${kind}`;if(cache.has(key))return cache.get(key);
+    const g=new THREE.CylinderGeometry(1,1,1,kind==='log'?9:5,1,kind!=='log');g.rotateZ(Math.PI/2);
+    const pos=g.getAttribute('position');for(let i=0;i<pos.count;i++){const x=pos.getX(i);
+      // A little crooked, so a stick is not a dowel.
+      pos.setY(i,pos.getY(i)+Math.sin(x*5.1+1.3)*.35);pos.setZ(i,pos.getZ(i)+Math.sin(x*3.7)*.3);}
+    g.computeVertexNormals();g.computeBoundingSphere();
+    const part={geometry:g,material:new THREE.MeshStandardMaterial({color:kind==='log'?0x5b4a3a:0x6b5640,roughness:1})};
+    cache.set(key,part);return part;
+  }
+  return {tree,undergrowth,litter,deadwood};
 }

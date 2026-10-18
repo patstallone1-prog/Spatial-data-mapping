@@ -156,3 +156,31 @@ def test_vendored_sky_assets_have_checked_licenses_and_hashes():
         entry = manifest[name]
         assert hashlib.sha256((ROOT / "docs/vendor" / entry["file"]).read_bytes()).hexdigest() == entry["sha256"]
         assert (ROOT / "docs/vendor" / entry["license_file"]).stat().st_size > 500
+
+
+def test_moved_sun_takes_observed_weather_and_a_future_hour_the_day_befores():
+    result = node("""
+      import {conditionsOf,observedInstant,createWeatherHistory} from './docs/sky-history.mjs';
+      const now=Date.parse('2026-10-18T07:00:00Z'), urls=[];
+      const obs=(t,amount,text,kmh,dir)=>({properties:{timestamp:t,textDescription:text,cloudLayers:[{amount}],
+        windSpeed:{value:kmh},windDirection:{value:dir},precipitationLastHour:{value:null}}});
+      const fetcher=async url=>{urls.push(url);return {ok:true,json:async()=>
+        url.includes('/points/')?{properties:{observationStations:'https://api.weather.gov/x/stations'}}
+        :url.endsWith('/stations')?{features:[{properties:{stationIdentifier:'SFOC1'}},{properties:{stationIdentifier:'KSFO'}}]}
+        :{features:[obs('2026-10-17T21:56:00Z','OVC','Light Rain',36,200),obs('2026-10-17T19:00:00Z','CLR','Clear',10,290)]}};};
+      const history=createWeatherHistory(37.8,-122.43,fetcher);
+      const future=await history.at(new Date('2026-10-18T22:00:00Z'),now);
+      console.log(JSON.stringify({future,urls,
+        fog:conditionsOf({textDescription:'Fog/Mist',cloudLayers:[]}).preset,
+        broken:conditionsOf({textDescription:'Mostly Cloudy',cloudLayers:[{amount:'BKN'}]}).preset,
+        scattered:conditionsOf({textDescription:'Partly Cloudy',cloudLayers:[{amount:'SCT'}]}).preset,
+        none:conditionsOf({textDescription:'',cloudLayers:[]}),
+        past:observedInstant(new Date('2026-10-16T12:00:00Z'),now)===Date.parse('2026-10-16T12:00:00Z')}));
+    """)
+    future = result["future"]
+    assert future["standsIn"] is True and future["station"] == "KSFO"  # an airport, for its cloud layers
+    assert future["preset"] == "rain" and future["wind"] == pytest.approx(10)
+    assert future["observed"] == "2026-10-17T21:56:00Z"  # the day before, at that hour
+    assert "start=2026-10-17T20:30:00Z" in result["urls"][-1]
+    assert (result["fog"], result["broken"], result["scattered"]) == ("cloudy", "cloudy", "partly_cloudy")
+    assert result["none"] is None and result["past"] is True

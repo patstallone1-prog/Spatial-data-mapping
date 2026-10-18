@@ -1,6 +1,6 @@
 // Source-backed bare earth and land cover. All individual plants/rocks are visual inference.
 // Public pure functions also run in Node regression tests; THREE is injected by the viewer.
-import {SPECIES,UNDERGROWTH,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize} from './nature-ecology.mjs';
+import {SPECIES,UNDERGROWTH,LITTER,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize,litterScatter} from './nature-ecology.mjs';
 import {vegetationAssets,botanicalGeometry} from './vegetation-geometry.mjs';
 import {createGrassStrands} from './grass-strands.mjs';
 // Keep each existing botanical LOD 30% farther out, without inventing more trees.
@@ -436,7 +436,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const group=new THREE.Group();
     for(const list of buckets.values()){
       const mesh=new THREE.InstancedMesh(geometry,mat,list.length);
-      list.forEach((v,i)=>{dummy.position.set(...v.p);dummy.scale.set(...v.scale);dummy.rotation.set(0,v.turn||0,v.tilt||0);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(v.colour)mesh.setColorAt(i,colour.setRGB(...v.colour,THREE.SRGBColorSpace));});
+      list.forEach((v,i)=>{dummy.position.set(...v.p);dummy.scale.set(...v.scale);if(v.q)dummy.quaternion.fromArray(v.q);else dummy.rotation.set(0,v.turn||0,v.tilt||0);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(v.colour)mesh.setColorAt(i,colour.setRGB(...v.colour,THREE.SRGBColorSpace));});
       mesh.computeBoundingSphere();mesh.userData={surface:"nature_vegetation",natureFullPlant:true,inferred:true,liftedOntoGround:true,
         confidence:"canopy-constrained visual inference; regional species prior, not surveyed",sourceEpoch:2024,provenance:"nature/ecology.json",canonical:false};group.add(mesh);
     }return group;
@@ -459,9 +459,18 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     }
     return false;
   }
-  const PLANT_TILE_M=200,candidateCache=new Map();
+  const PLANT_TILE_M=200,candidateCache=new Map(),upAxis=new THREE.Vector3(0,1,0),slopeNormal=new THREE.Vector3(),slopeQ=new THREE.Quaternion(),yawQ=new THREE.Quaternion();
+  //: A flat card laid on the ground's own slope at (x, y), turned by `turn` about the normal.
+  function groundQuaternion(x,y,turn){
+    const o=surface(x,y),e=surface(x+1,y),n=surface(x,y+1);
+    if(!o||o.water||!e||!n)return null;
+    const ax=e.p[0]-o.p[0],ay=e.height-o.height,az=e.p[1]-o.p[1],bx=n.p[0]-o.p[0],by=n.height-o.height,bz=n.p[1]-o.p[1];
+    slopeNormal.set(ay*bz-az*by,az*bx-ax*bz,ax*by-ay*bx);if(slopeNormal.y<0)slopeNormal.negate();slopeNormal.normalize();
+    slopeQ.setFromUnitVectors(upAxis,slopeNormal).multiply(yawQ.setFromAxisAngle(upAxis,turn));
+    return {p:o.p,height:o.height,q:slopeQ.toArray()};
+  }
   async function plants(tx,ty){
-    const trees=new Map(),shrubs=new Map(),rocks=[];
+    const trees=new Map(),shrubs=new Map(),rocks=[],litter=new Map(),sticks=[],logs=[];
     const x0=tx*PLANT_TILE_M,y0=ty*PLANT_TILE_M;
     let yieldAt=performance.now();
     for(let r=Math.floor(y0/8);r<Math.floor((y0+PLANT_TILE_M)/8);r++)for(let c=Math.floor(x0/8);c<Math.floor((x0+PLANT_TILE_M)/8);c++){
@@ -471,6 +480,25 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         const key=`${a.species}:${hash2(c,r,47)>.5?1:0}`;
         if(!trees.has(key))trees.set(key,[]);
         trees.get(key).push({p:[s.p[0],s.height,s.p[1]],scale:[R,h,R],turn,shade:.85+hash2(c,r,43)*.3});
+        // What has fallen from it: litter over the ground it shades, sticks, now and then a log.
+        const fall=litterScatter(a.x,a.y,R,a.species,{forest:atlas.ecologicalSample(a.x,a.y)?.habitat?.forest||0});
+        for(const patch of fall.patches){
+          if(blocked(patch.x,patch.y,.4))continue;
+          const q=groundQuaternion(patch.x,patch.y,patch.turn);if(!q)continue;
+          if(!litter.has(patch.kind))litter.set(patch.kind,[]);
+          litter.get(patch.kind).push({p:[q.p[0],q.height+.03,q.p[1]],scale:[patch.size,1,patch.size],q:q.q,colour:[patch.shade,patch.shade,patch.shade]});
+        }
+        for(const stick of fall.sticks){
+          if(blocked(stick.x,stick.y,.3))continue;const g=surface(stick.x,stick.y);if(!g||g.water)continue;
+          sticks.push({p:[g.p[0],g.height+stick.radius*.7,g.p[1]],scale:[stick.length,stick.radius,stick.radius],turn:stick.turn,colour:[.42,.34,.26]});
+        }
+        for(const log of fall.logs){
+          if(blocked(log.x,log.y,log.length/2))continue;const g=surface(log.x,log.y);if(!g||g.water)continue;
+          // Half sunk into the duff, and greener with moss the further gone it is.
+          const moss=Math.max(0,log.decay-.45)*1.4;
+          logs.push({p:[g.p[0],g.height+log.radius*.45,g.p[1]],scale:[log.length,log.radius,log.radius],turn:log.turn,
+            colour:[.36*(1-moss)+.30*moss,.29*(1-moss)+.36*moss,.22*(1-moss)+.18*moss]});
+        }
       }
       // Understorey on a 4 m lattice: four chances in every 8 m slot, so a forest floor is
       // filled rather than dotted. Trails, roads and buildings stay clear (blocked).
@@ -502,6 +530,10 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     }
     if(midP.length){const middle=treePoints(midP,midS,midK,midA,middleMaterial);middle.userData={surface:'nature_tree_middle',bayWide:true,inferred:true,liftedOntoGround:true};group.add(middle);}
     for(const [kind,items] of shrubs){const part=assets.undergrowth(kind);fadePlant(part.material);motion?.apply(part.material,'shrub');group.add(instances(part.geometry,part.material,items));}
+    for(const [kind,items] of litter){const part=assets.litter(kind);fadePlant(part.material);const mesh=instances(part.geometry,part.material,items);
+      if(mesh){mesh.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.userData.surface='nature_litter';}});group.add(mesh);}}
+    for(const [kind,items] of [['stick',sticks],['log',logs]]){if(!items.length)continue;const part=assets.deadwood(kind);fadePlant(part.material);
+      const mesh=instances(part.geometry,part.material,items);mesh.traverse(o=>{if(o.isMesh){o.castShadow=kind==='log';o.receiveShadow=true;o.userData.surface=`nature_${kind}`;}});group.add(mesh);}
     const rockMesh=instances(sphere,leafMat,rocks);if(rockMesh)group.add(rockMesh);
     const trailP=[],trailC=[],trailI=[];
     const trailColours={asphalt:[.29,.30,.29],concrete:[.57,.56,.51],stone:[.52,.50,.45],paving_stones:[.54,.49,.42],gravel:[.54,.49,.39],sand:[.68,.60,.44],ground:[.47,.37,.24],dirt:[.47,.37,.24],unknown:[.47,.37,.24]};
@@ -540,7 +572,8 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     }
     if(trailI.length){const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(trailP,3));g.setAttribute("color",new THREE.Float32BufferAttribute(trailC,3));g.setIndex(trailI);g.computeVertexNormals();
       const mesh=new THREE.Mesh(g,material);mesh.userData.surface="nature_trail";mesh.userData.provenance="OpenStreetMap; unknown widths/finish inferred";group.add(mesh);}
-    group.userData.counts={trees:[...trees.values()].reduce((n,a)=>n+a.length,0),shrubs:[...shrubs.values()].reduce((n,a)=>n+a.length,0),rocks:rocks.length,trails:trailI.length/6};features.add(group);return group;
+    group.userData.counts={trees:[...trees.values()].reduce((n,a)=>n+a.length,0),shrubs:[...shrubs.values()].reduce((n,a)=>n+a.length,0),rocks:rocks.length,trails:trailI.length/6,
+      litter:[...litter.values()].reduce((n,a)=>n+a.length,0),deadwood:sticks.length+logs.length};features.add(group);return group;
   }
   function drop(group){group.removeFromParent();group.traverse(o=>{if((o.isMesh&&!o.isInstancedMesh)||o.isPoints)o.geometry.dispose();if(o.isInstancedMesh)o.dispose();if(o.material?.userData.ownedNature){o.material.userData.coastTexture?.dispose();o.material.dispose();}});}
   const pathsReady=fetch(atlas.resolve("nature/paths.json"),{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(m=>pathsManifest=m).catch(e=>stats.errors.push(String(e)));
@@ -614,7 +647,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         await new Promise(r=>setTimeout(r,0));
       }
       for(const [key,group] of plantGroups)if(!plantDesired.has(key)){drop(group);plantGroups.delete(key);}
-      stats.trees=stats.shrubs=stats.rocks=stats.trails=0;for(const group of plantGroups.values())for(const k of ["trees","shrubs","rocks","trails"])stats[k]+=group.userData.counts[k];
+      stats.trees=stats.shrubs=stats.rocks=stats.trails=stats.litter=stats.deadwood=0;for(const group of plantGroups.values())for(const k of ["trees","shrubs","rocks","trails","litter","deadwood"])stats[k]+=group.userData.counts[k]||0;
       stats.detailTiles=detailMeshes.size;stats.plantTiles=plantGroups.size;
       // Retain only the actual 3x3 query set, not every path tile visited during a flight.
       const pathDesired=new Set();for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)

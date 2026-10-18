@@ -208,3 +208,19 @@ const kinds=new Set();let water=0;for(let x=0;x<2000;x+=4){
     assert result["water"] == 0
     assert "fern" not in result["kinds"] and "sorrel" not in result["kinds"]
     assert len(result["kinds"]) >= 1
+
+
+def test_litter_lies_under_its_tree_by_species_and_logs_only_in_a_stand():
+    result = node("""
+const a=e.litterScatter(120,340,6,'oak',{forest:.9}),b=e.litterScatter(120,340,6,'oak',{forest:.9});
+let far=0,logsLone=0,logsStand=0;
+for(let i=0;i<400;i++){const s=e.litterScatter(i*13.7,i*7.1,5,'redwood',{forest:1});logsStand+=s.logs.length;
+ logsLone+=e.litterScatter(i*13.7,i*7.1,5,'redwood',{forest:0}).logs.length;
+ for(const p of s.patches)if(Math.hypot(p.x-i*13.7,p.y-i*7.1)>5*1.15+1e-9)far++;}
+console.log(JSON.stringify({same:JSON.stringify(a)===JSON.stringify(b),kinds:[e.litterKind('oak'),e.litterKind('eucalyptus'),e.litterKind('redwood'),e.litterKind('cypress')],
+ far,logsLone,logsStand,patches:a.patches.length}));
+""")
+    assert result["same"]
+    assert result["kinds"] == ["leaf_litter", "eucalyptus_litter", "needle_duff", "needle_duff"]
+    assert result["far"] == 0 and result["patches"] >= 3
+    assert result["logsLone"] == 0 and 20 < result["logsStand"] < 120

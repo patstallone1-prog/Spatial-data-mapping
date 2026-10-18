@@ -111,3 +111,39 @@ export function undergrowthAt(x,y,s){
   radius:kind==='sorrel'?.45:low?.45:.65+selector*.45,
   certainty:'inferred-habitat-prior',patch};
 }
+//: What falls from a tree and lies under it, by the tree's form: a broadleaf's dead leaves, a
+//: blue gum's shed bark ribbons and sickle leaves, a conifer's needle duff. A visual prior, like
+//: the understorey: no leaf here was observed.
+export const LITTER={
+ leaf_litter:{trees:['oak','broadleaf','willow'],colour:[.52,.40,.27]},
+ eucalyptus_litter:{trees:['eucalyptus'],colour:[.62,.56,.46]},
+ needle_duff:{trees:['pine','cypress','redwood','fir'],colour:[.46,.32,.22]},
+};
+export function litterKind(species){
+ const form=SPECIES[species]?.form||species;
+ for(const [kind,spec] of Object.entries(LITTER))if(spec.trees.includes(form))return kind;
+ return 'leaf_litter';
+}
+//: Where the litter and the deadwood under one tree lie, from the tree's own seed: patches of
+//: litter over the ground its crown shades (and a little past it, where the wind takes it),
+//: sticks shed from the crown, and -- in a stand, not under a lone tree -- now and then a
+//: fallen limb or a log going back to the soil. x, y are the trunk; radius its crown.
+export function litterScatter(x,y,radius,species,{forest=0,seed=0}={}){
+ const h=k=>noiseHash(Math.floor(x*7)+seed,Math.floor(y*7)+k,1201);
+ const kind=litterKind(species),patches=[],sticks=[],logs=[];
+ const n=Math.max(3,Math.min(26,Math.round(radius*radius*.45)));
+ for(let k=0;k<n;k++){
+  const a=h(k*3)*6.283,r=radius*1.15*Math.sqrt(h(k*3+1)),size=1.4+h(k*3+2)*1.8;
+  patches.push({x:x+Math.cos(a)*r,y:y+Math.sin(a)*r,size,turn:h(k*5+90)*6.283,shade:.78+h(k*7+91)*.4,kind});
+ }
+ const twigs=1+Math.floor(h(301)*Math.min(5,radius*.7));
+ for(let k=0;k<twigs;k++){
+  const a=h(k*4+310)*6.283,r=radius*Math.sqrt(h(k*4+311));
+  sticks.push({x:x+Math.cos(a)*r,y:y+Math.sin(a)*r,length:.4+h(k*4+312)*1.4,radius:.012+h(k*4+313)*.03,turn:h(k*4+314)*6.283});
+ }
+ if(forest>.4&&h(401)<.14*forest){
+  const a=h(402)*6.283,r=radius*(.6+h(403)*.9);
+  logs.push({x:x+Math.cos(a)*r,y:y+Math.sin(a)*r,length:2.5+h(404)*5.5,radius:.12+h(405)*.22,turn:h(406)*6.283,decay:h(407)});
+ }
+ return {kind,patches,sticks,logs};
+}

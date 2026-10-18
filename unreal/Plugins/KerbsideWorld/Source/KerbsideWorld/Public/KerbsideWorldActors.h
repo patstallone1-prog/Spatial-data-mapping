@@ -54,6 +54,24 @@ public:
     AKerbsideGameMode();
 };
 
+/**
+ * The grass on a tile's lawns: clumps of blades as hierarchical instances, placed by the
+ * exporter on park and yard ground and off every path, court and kerb. Its material bends the
+ * blades in the wind and away from the walker (KerbsideCelestialSky::FoliageParameters). Drawn
+ * only near the camera; never collides. Inferred ground cover, not surveyed plants.
+ */
+UCLASS(Blueprintable)
+class KERBSIDEWORLD_API AKerbsideGrassField : public AActor
+{
+    GENERATED_BODY()
+public:
+    AKerbsideGrassField();
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Kerbside|Foliage") TObjectPtr<class UHierarchicalInstancedStaticMeshComponent> Grass;
+    /** Clumps as (x, y, z cm, yaw degrees) and scale; the mesh and material set before. */
+    UFUNCTION(BlueprintCallable, Category="Kerbside|Foliage")
+    int32 PlantClumps(class UStaticMesh* Clump, class UMaterialInterface* Material, const TArray<FTransform>& Clumps, float CullCm = 6000.f);
+};
+
 /** Editor importer bridge; the imported city is static, never simulated as a loose body. */
 UCLASS()
 class KERBSIDEWORLD_API UKerbsideWorldLibrary : public UBlueprintFunctionLibrary
