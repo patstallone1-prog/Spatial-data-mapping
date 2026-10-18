@@ -86,10 +86,14 @@ CITY_SOURCES: dict[str, dict[str, dict]] = {
         # rather than a position. Taken at face value it plants the whole city on one corner.
         "trees_note": "4jcx-enxf has one placeholder coordinate for every row",
     },
-    # Berkeley's portal lists parcels (bhxd-e6up) and parks (5zw5-qt7z) but both answer empty
-    # to an unauthenticated read, and the city publishes nothing equivalent through ArcGIS
-    # either. Berkeley's green is OpenStreetMap's until that changes.
-    "berkeley": {"host": "data.cityofberkeley.info", "note": "datasets answer empty unauthenticated"},
+    # Berkeley's portal lists parcels (bhxd-e6up) and parks (5zw5-qt7z) as map layers that
+    # answer empty; the same records are published again as plain tables, which do not: the
+    # Assessor's 2017 tax parcels (29,024 lots) and the city's park polygons.
+    "berkeley": {
+        "host": "data.cityofberkeley.info",
+        "parcels": {"id": "rax9-nuvx", "geom": "the_geom", "name": "apn"},
+        "parks": {"id": "ixpz-824i", "geom": "the_geom", "name": "name"},
+    },
     # Palo Alto and San Jose are ArcGIS rather than Socrata; see ARCGIS_SOURCES.
     "palo-alto": {"arcgis": True},
     "san-jose": {"arcgis": True},
