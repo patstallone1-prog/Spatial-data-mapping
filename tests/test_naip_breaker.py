@@ -22,6 +22,7 @@ def test_two_failed_tiles_in_a_row_stop_further_requests(monkeypatch):
 
 def test_offline_fetch_reads_a_cached_tile_and_refuses_an_uncached_one(tmp_path):
     import io
+
     import numpy as np
     from PIL import Image
     box = (-122.5, 37.75, -122.49, 37.76)
