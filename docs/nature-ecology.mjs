@@ -5,17 +5,26 @@ export const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t);};
 export function noiseHash(x,y,s=0){let h=Math.imul(x^s,374761393)^Math.imul(y,668265263);h=Math.imul(h^h>>>13,1274126177);return ((h^h>>>16)>>>0)/4294967296;}
 export function field(x,y,scale=120,salt=0){const u=x/scale,v=y/scale,c=Math.floor(u),r=Math.floor(v),a=smooth(0,1,u-c),b=smooth(0,1,v-r);
  return (noiseHash(c,r,salt)*(1-a)+noiseHash(c+1,r,salt)*a)*(1-b)+(noiseHash(c,r+1,salt)*(1-a)+noiseHash(c+1,r+1,salt)*a)*b;}
+// Crown radii are half the crown spreads published for open- and stand-grown trees of these
+// heights (Calflora, the USFS Silvics manual, UF/IFAS species sheets). They were a third of
+// that, so a 30 m pine stood a 6 m-wide crown on a pole -- the stretched trees.
 export const SPECIES={
- oak:{name:'Quercus agrifolia',form:'oak',height:[9,19],radius:[3.4,6.0],leaf:[.25,.34,.16],bark:[.34,.30,.23]},
- bay:{name:'Umbellularia californica',form:'broadleaf',height:[12,24],radius:[3.0,4.8],leaf:[.22,.34,.20],bark:[.40,.35,.27]},
- cypress:{name:'Hesperocyparis macrocarpa',form:'cypress',height:[13,25],radius:[3.8,5.6],leaf:[.22,.32,.21],bark:[.40,.32,.24]},
- pine:{name:'Pinus radiata',form:'pine',height:[18,32],radius:[3.0,5.0],leaf:[.28,.37,.20],bark:[.41,.30,.21]},
- eucalyptus:{name:'Eucalyptus globulus',form:'eucalyptus',height:[22,38],radius:[2.5,4.5],leaf:[.39,.46,.34],bark:[.66,.61,.49]},
- acacia:{name:'Acacia melanoxylon',form:'broadleaf',height:[12,23],radius:[3.0,4.7],leaf:[.29,.40,.22],bark:[.34,.29,.22]},
- redwood:{name:'Sequoia sempervirens',form:'redwood',height:[28,52],radius:[2.8,4.3],leaf:[.19,.31,.22],bark:[.43,.26,.17]},
- douglas:{name:'Pseudotsuga menziesii',form:'fir',height:[25,43],radius:[3.1,4.9],leaf:[.24,.35,.26],bark:[.38,.30,.23]},
- willow:{name:'Salix spp.',form:'willow',height:[6,14],radius:[2.6,4.2],leaf:[.40,.47,.24],bark:[.42,.36,.26]},
+ oak:{name:'Quercus agrifolia',form:'oak',height:[9,19],radius:[5.0,9.5],leaf:[.25,.34,.16],bark:[.34,.30,.23]},
+ bay:{name:'Umbellularia californica',form:'broadleaf',height:[12,24],radius:[4.0,8.0],leaf:[.22,.34,.20],bark:[.40,.35,.27]},
+ cypress:{name:'Hesperocyparis macrocarpa',form:'cypress',height:[13,25],radius:[5.0,10.0],leaf:[.22,.32,.21],bark:[.40,.32,.24]},
+ pine:{name:'Pinus radiata',form:'pine',height:[18,32],radius:[5.0,9.0],leaf:[.28,.37,.20],bark:[.41,.30,.21]},
+ eucalyptus:{name:'Eucalyptus globulus',form:'eucalyptus',height:[22,38],radius:[4.5,8.5],leaf:[.39,.46,.34],bark:[.66,.61,.49]},
+ acacia:{name:'Acacia melanoxylon',form:'broadleaf',height:[12,23],radius:[3.5,6.5],leaf:[.29,.40,.22],bark:[.34,.29,.22]},
+ redwood:{name:'Sequoia sempervirens',form:'redwood',height:[28,52],radius:[3.5,6.5],leaf:[.19,.31,.22],bark:[.43,.26,.17]},
+ douglas:{name:'Pseudotsuga menziesii',form:'fir',height:[25,43],radius:[4.0,7.0],leaf:[.24,.35,.26],bark:[.38,.30,.23]},
+ willow:{name:'Salix spp.',form:'willow',height:[6,14],radius:[3.0,6.0],leaf:[.40,.47,.24],bark:[.42,.36,.26]},
 };
+//: A tree's height and crown from one draw, so a tall tree is a wide one: drawn apart, the
+//: tallest trees came with the narrowest crowns as often as the widest.
+export function treeSize(spec,u,v){
+ const t=Math.max(0,Math.min(1,u)),w=Math.max(0,Math.min(1,.7*t+.3*v));
+ return {height:spec.height[0]+t*(spec.height[1]-spec.height[0]),radius:spec.radius[0]+w*(spec.radius[1]-spec.radius[0])};
+}
 const MIX={presidio:{eucalyptus:.42,cypress:.34,pine:.17,acacia:.04,redwood:.03},
  peninsula:{redwood:.44,douglas:.23,bay:.20,oak:.13},eastbay:{oak:.57,bay:.25,douglas:.12,pine:.06},
  coastal:{cypress:.30,pine:.25,eucalyptus:.25,oak:.20},wetland:{willow:.62,bay:.23,oak:.15}};
@@ -69,17 +78,36 @@ export function floorColour(habitat,cover,natural=null){
  }
  return total?out.map(v=>v/total):FLOOR_PALETTES.barren;
 }
+//: What grows under and between the trees, by habitat: Bay Area understoreys as the CNPS
+//: vegetation descriptions give them. A visual prior: no plant here is an observed individual.
+export const UNDERGROWTH={
+ fern:{name:'Polystichum munitum',colour:[.20,.38,.15]},
+ thimbleberry:{name:'Rubus parviflorus',colour:[.33,.46,.20]},
+ huckleberry:{name:'Vaccinium ovatum',colour:[.19,.29,.14]},
+ sorrel:{name:'Oxalis oregana',colour:[.28,.45,.20]},
+ coffeeberry:{name:'Frangula californica',colour:[.22,.32,.16]},
+ toyon:{name:'Heteromeles arbutifolia',colour:[.24,.33,.17]},
+ coyote_brush:{name:'Baccharis pilularis',colour:[.30,.40,.20]},
+ sagebrush:{name:'Artemisia californica',colour:[.43,.47,.37]},
+ sedge:{name:'Carex spp.',colour:[.38,.42,.22]},
+ bunchgrass:{name:'Stipa pulchra',colour:[.48,.48,.27]},
+};
 export function undergrowthAt(x,y,s){
  const h=s?.habitat;if(!s||s.water||!h||h.canopy===null||[0,11,12,22,23,24].includes(s.cover))return null;
  const patch=field(x,y,34,503),canopy=clamp(h.canopy/100),forest=clamp(h.forest+(h.developed||0)*canopy*.65);
  const moisture=clamp((s.moisture??.5)*.7+forest*.25+h.wetland*.5);
- // Deep conifer shade is litter/ferns, not a uniform hedge beneath every tree.
- const density=clamp(h.scrub*.55+h.grass*.18+forest*(.07+moisture*.30)*(1-canopy*.35)+h.wetland*.42);
- if(noiseHash(Math.floor(x*2),Math.floor(y*2),509)>density*(.35+patch*1.15))return null;
+ // A forest floor is mostly understorey, thinning only in the deepest shade; open scrub is
+ // nearly continuous shrub. Patchy, so there are glades and thickets rather than a lawn of
+ // evenly spaced bushes.
+ const density=clamp(h.scrub*.80+h.grass*.22+forest*(.30+moisture*.40)*(1-canopy*.30)+h.wetland*.55);
+ if(noiseHash(Math.floor(x*2),Math.floor(y*2),509)>density*(.30+patch*1.25))return null;
  const selector=noiseHash(Math.floor(x),Math.floor(y),521);
- const kind=forest>.35?(moisture>.45?(selector<.65?'fern':selector<.82?'coffeeberry':'sorrel'):(selector<.65?'coffeeberry':'toyon')):
-  h.scrub>.25||(h.developed||0)*canopy>.15?(selector<.65?'coyote_brush':'toyon'):h.wetland>.35?'sedge':'bunchgrass';
- return {kind,height:kind==='fern'?.55+selector*.55:kind==='sorrel'?.10:kind==='bunchgrass'||kind==='sedge'?.35+selector*.45:.65+selector*.9,
-  radius:kind==='sorrel'?.45:kind==='bunchgrass'||kind==='sedge'?.45:.65+selector*.45,
+ const kind=forest>.35?(moisture>.45?(selector<.45?'fern':selector<.62?'thimbleberry':selector<.80?'huckleberry':'sorrel'):
+   (selector<.45?'coffeeberry':selector<.75?'toyon':'huckleberry')):
+  h.scrub>.25||(h.developed||0)*canopy>.15?(selector<.50?'coyote_brush':selector<.78?'sagebrush':'toyon'):h.wetland>.35?'sedge':'bunchgrass';
+ const low=['fern','sorrel','sedge','bunchgrass'].includes(kind);
+ return {kind,height:kind==='fern'?.55+selector*.55:kind==='sorrel'?.12:kind==='bunchgrass'||kind==='sedge'?.35+selector*.45:
+   kind==='sagebrush'?.6+selector*.6:kind==='thimbleberry'?.7+selector*.8:.65+selector*.9,
+  radius:kind==='sorrel'?.45:low?.45:.65+selector*.45,
   certainty:'inferred-habitat-prior',patch};
 }

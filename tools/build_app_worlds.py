@@ -159,7 +159,7 @@ def main() -> None:
             for path in [DOCS / "recoverable-geometry.mjs", DOCS / "world-streaming.mjs",
                          DOCS / "environment-runtime.mjs", DOCS / "sky-clock.mjs", DOCS / "municipal-context.manifest.json",
                          *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
-                         DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "nature/ecology.json",
+                         DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
                          *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
         },
@@ -185,7 +185,7 @@ def main() -> None:
                                            "sf-corridor-furniture.json") if (DOCS / name).exists()]
     app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json",
                    DOCS / "search-index.json", DOCS / "world-streaming.mjs", DOCS / "environment-runtime.mjs",
-                   DOCS / "sky-clock.mjs", DOCS / "municipal-context.manifest.json"]
+                   DOCS / "sky-clock.mjs", DOCS / "foliage-motion.mjs", DOCS / "municipal-context.manifest.json"]
     app_assets += sorted((DOCS / "municipal").glob("*.json"))
     app_assets += [DOCS / "billboard-creatives.json"] if (DOCS / "billboard-creatives.json").exists() else []
     app_assets += sorted((DOCS / "billboards").glob("*"))

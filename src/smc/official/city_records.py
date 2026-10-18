@@ -59,8 +59,18 @@ CITY_RECORDS: dict[str, list[Record]] = {
     # "Parcels2020city3000sqft", filtered to lots over 3,000 square feet, and it has six
     # features inside this region. Alameda County's own parcel service does not answer.
     #
-    # So Berkeley's ground is OpenStreetMap's and the lidar's, and that is why it is the
-    # region with a quarter of its area drawn as bare plane. Recorded here rather than left
+    # Not the end of it, as it turned out (2026-10-17): those map layers are shells, but the
+    # same records are published a second time as plain tables that do answer --
+    # TaxParcel2017 (rax9-nuvx, 29,024 parcels with their rings), Parks (ixpz-824i, 82
+    # polygons), Signal (nxqb-ng9a, 873 points) and Streetlights20170921 (dz4s-un9u, 7,850
+    # lights with arm length and mounting height). scripts/build_ground_cover.py and
+    # scripts/ingest_streetlights.py read them.
+    #
+    # Before that, Berkeley's ground was OpenStreetMap's and the lidar's, and that is why it was the
+    # region with a quarter of its area drawn as bare plane. Checked again 2026-10-17: the
+    # state's Alameda County layer (services.gis.ca.gov .../Boundaries/UCD_Parcels/MapServer/0)
+    # is map-only and refuses a query, and the Accela-hosted Berkeley_Basemap wants a token.
+    # Recorded here rather than left
     # as an empty list, so the next person does not spend the afternoon finding it out again.
     "berkeley": [],
     "oakland": [

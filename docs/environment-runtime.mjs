@@ -36,6 +36,8 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     cloudMaterial.uniforms.time.value=(now/1000000)%1;
     rain.position.copy(camera.position);rain.position.y-=((now/1000*12)%32);
     rain.visible=Boolean(WEATHER[preset].rain && !indoors);
+    // The wind the plants sway in (foliage-motion.mjs), and the rain slanting with it.
+    globalThis.kerbsideWind={speed:WEATHER[preset].wind,from:WEATHER[preset].windFrom};
     if(now-lastClock<1000)return;lastClock=now;
     const date=override || new Date(), s=solarState(date,lat,lon),weather=WEATHER[preset];
     const day=THREE.MathUtils.smoothstep(s.altitude,-.12,.15);

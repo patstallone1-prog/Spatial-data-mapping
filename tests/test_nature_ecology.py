@@ -151,6 +151,7 @@ def test_release_fingerprints_every_new_runtime_dependency():
         "nature-runtime.mjs",
         "nature-ecology.mjs",
         "vegetation-geometry.mjs",
+        "foliage-motion.mjs",
         "nature/ecology.json",
     ]:
         assert (

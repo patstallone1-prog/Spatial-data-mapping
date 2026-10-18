@@ -234,3 +234,24 @@ def test_streaming_cannot_start_before_ui_and_guest_exports_exist():
                  + "checkDetailExpansion(1000);console.log(JSON.stringify({safe:true}));")
     assert result["safe"]
     assert js.rindex("regionStreamingReady = true") > js.index("window.kerbsideGuestApi =")
+
+
+def test_a_fast_focus_asks_sooner_and_further_ahead():
+    result = run("""
+      import {detailRequest} from './docs/world-streaming.mjs';
+      const metres=[1,1],region=[-5000,-5000,5000,5000],box=[-400,-400,400,400];
+      const roomy={radius:400,arrival:220,keep:310,lead:200};
+      console.log(JSON.stringify([
+        detailRequest(box,400,[50,0],metres,[49,0],region,{...roomy,speed:1.4,buildSeconds:7}),
+        detailRequest(box,400,[60,0],metres,[35,0],region,{...roomy,speed:25,buildSeconds:7}),
+        detailRequest(box,400,[100,0],metres,[98,0],region,{...roomy,speed:1.4,buildSeconds:7}),
+        detailRequest(box,400,[0,0],metres,null,region,{...roomy,speed:0})]));
+    """)
+    walking, driving, walked_on, standing = result
+    # A walker 50 m in is not rebuilt round; a car going 25 m/s, 60 m in, is: it covers 225 m
+    # while the next square builds, so that is asked for 225 m ahead of it.
+    assert walking is None
+    assert driving == {"lon": 285, "lat": 0, "radius": 400}
+    # Past the keep line a walker's next square is the ordinary lead ahead.
+    assert walked_on == {"lon": 300, "lat": 0, "radius": 400}
+    assert standing is None
