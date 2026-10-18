@@ -46,7 +46,7 @@ def test_cliffs_are_not_walked_and_stairs_are_climbed_tread_by_tread() -> None:
 def test_the_walker_is_left_where_you_put_it_until_r_or_reset() -> None:
     js = _page_js()
     assert "if (!gps.target || held.size || !GPS_LEASH.on) return false;" in _extract("followGps", js)
-    assert "if (travel && GPS_LEASH) GPS_LEASH.on = false;" in _extract("goTo", js)
+    assert "if (travel && GPS_LEASH) GPS_LEASH.on = false;" in _extract("goToNow", js)
     assert "GPS_LEASH.on = false;   // walking yourself" in _extract("stepAvatar", js)
     assert 'e.key !== "r" && e.key !== "R"' in js and "returnToGps()" in js
     assert "GPS_LEASH.on = true;" in _extract("returnToGps", js)

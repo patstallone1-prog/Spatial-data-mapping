@@ -65,7 +65,7 @@ console.log(JSON.stringify(log));
 def test_explore_is_wired_to_e_the_button_the_frame_and_clicks() -> None:
     js = _page_js()
     assert "if (state.explore) { exploreStep(dt); return; }" in _extract("stepAvatar", js)
-    assert "if (state.explore && travel) {" in _extract("goTo", js)
+    assert "if (state.explore && travel) {" in _extract("goToNow", js)
     assert "if (on && state.explore) setExplore(false);" in _extract("setFirstPerson", js)
     assert 'document.getElementById("explore").addEventListener("click", () => setExplore(!state.explore));' in js
     assert '(e.key !== "e" && e.key !== "E")' in js

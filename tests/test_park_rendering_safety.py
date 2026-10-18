@@ -123,4 +123,4 @@ def test_all_worlds_and_gps_share_exterior_guard():
     assert "moveWalker(move.x, move.z)" in _extract("followGps", js)
     assert "walkerExteriorAt(gps.target.x, gps.target.z)" in _extract("followGps", js)
     assert "walkerExteriorAt(gps.target.x, gps.target.z)" in _extract("returnToGps", js)
-    assert "walkerExteriorAt(landing.x, landing.z,pickedHeight)" in _extract("goTo", js)
+    assert "walkerExteriorAt(landing.x, landing.z,pickedHeight)" in _extract("goToNow", js)
