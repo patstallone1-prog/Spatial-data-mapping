@@ -8,6 +8,16 @@ integrates that checkpoint rather than rebuilding its design.
 The installed Unreal project contains the weather/wind revision `49f3c3d9`.
 Its existing five required native automation cases passed with no warnings.
 Those are automation results, not proof of a graphical foliage acceptance pass.
+After unlocking, the Metal SM6 game window was visually confirmed rendering the
+installed pilot's buildings, ground and sky. Its existing untextured appearance
+is not evidence of a completed photographic-material or native-foliage import.
+
+The first release CI run passed 1,796 tests but failed the old isolated-crown
+assertion. The saved forest design explicitly allows interlocking crowns, with
+separate exclusion radii (`spacing`). The regression now checks those exclusion
+envelopes plus their 0.25 m margin, valid positive spacing, interlocking crowns,
+cross-cell placement and reverse-load-order identity. No tree positions, species,
+spacing, density or renderer code were changed to resolve this test mismatch.
 
 ## Relaunch
 
