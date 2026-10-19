@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -14,18 +15,31 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.skipif(NODE is None, reason="node is not installed")
-def test_the_pace_slows_uphill_and_on_steep_descents() -> None:
+def test_the_pace_slows_uphill_and_quickens_downhill_the_steeper_it_is() -> None:
     js = _page_js()
-    script = _extract("toblerPace", js) + """
-        console.log(JSON.stringify([0, 0.1, 0.2, 0.3, -0.05, -0.3].map((g) => +toblerPace(g).toFixed(3))));
+    consts = "\n".join(re.search(rf"const {name} = [0-9.]+;", js).group(0)
+                       for name in ("DOWNHILL_PACE_MAX", "DOWNHILL_FULL_GRADE"))
+    script = consts + "\n" + _extract("toblerPace", js) + """
+        console.log(JSON.stringify([0, 0.1, 0.2, 0.3, -0.05, -0.3, -0.6, -1.0].map((g) => +toblerPace(g).toFixed(3))));
     """
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
-    level, up10, up20, up30, gentle_down, steep_down = json.loads(out.stdout)
+    level, up10, up20, up30, gentle_down, steep_down, steeper_down, steepest_down = json.loads(out.stdout)
     assert abs(level - 1) < 1e-6
     assert up10 < 0.75 and up20 < up10 and up30 < up20, "every step up the hill is slower"
-    assert gentle_down > 1, "a gentle slope down is a little quicker"
-    assert steep_down < 0.7
+    assert 1 < gentle_down < steep_down < steeper_down, "every step down the hill is quicker"
+    assert steeper_down == steepest_down <= 1.5, "to a limit"
+
+
+def test_the_view_looks_straight_up_and_down() -> None:
+    js = _page_js()
+    assert "const LOOK_LIMIT = 1.55;" in js
+    assert "state.look = Math.max(-LOOK_LIMIT, Math.min(LOOK_LIMIT, state.look - dy * 0.004));" in js
+    # Orbiting, the drag past the lowest pitch tilts the view up to the sky.
+    assert "state.tilt = Math.max(0, Math.min(ORBIT_MAX_TILT, ORBIT_MIN_PITCH - v));" in js
+    assert "if (state.tilt > 0) camera.rotateX(Math.min(state.tilt, ORBIT_MAX_TILT));" in js
+    # Looked at along cos/sin rather than tan, so straight up does not fly off to infinity.
+    assert "Math.cos(state.look)" in _extract("placeCamera", js)
 
 
 def test_cliffs_are_not_walked_and_stairs_are_climbed_tread_by_tread() -> None:

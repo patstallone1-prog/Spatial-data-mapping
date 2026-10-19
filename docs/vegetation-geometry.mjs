@@ -196,12 +196,175 @@ export function foliageNormals(position,normal,keep=.3){
   }
   return normal;
 }
+// ---- leaves, painted as a leaf is built ----
+//
+// A leaf is a blade on a petiole, its veins a tree of their own: the midrib up the middle,
+// thick at the base and fine at the tip; secondary veins leaving it alternately and arching up
+// towards the margin, where each bends forward to join the one above (the loops of a
+// brochidodromous leaf, as most broadleaves are); tertiary veins laddered across between them;
+// and the finest network filling every space. Each vein stands a little proud of the blade, so
+// the normal map catches the light along it the way a real leaf does. The blade is painted
+// pale -- the instance or vertex colour makes it green -- and no two leaves are alike: each has
+// its own length, breadth, asymmetry, shade, a touch of yellow or blue in its green, and now
+// and then one turned over, showing the paler underside where its veins stand out most.
+//: Blade forms. ratio: breadth over length; widest: where along it the blade is broadest;
+//: teeth: serrations a side (0, an entire margin); veins: secondary pairs.
+export const LEAF_FORMS={
+  broad:{ratio:.56,widest:.42,teeth:0,veins:8,tip:1.4},
+  street:{ratio:.62,widest:.38,teeth:22,veins:7,tip:1.2},
+  narrow:{ratio:.2,widest:.4,teeth:0,veins:14,tip:1.8},
+  oak:{ratio:.62,widest:.5,teeth:7,veins:6,tip:1},
+};
+//: The blade's half-width at t (0 base, 1 tip) as a share of its length.
+export function leafHalfWidth(form,t){
+  const f=LEAF_FORMS[form]||LEAF_FORMS.broad;if(t<=0||t>=1)return 0;
+  const u=t<f.widest?t/f.widest:(1-t)/(1-f.widest);
+  const shape=t<f.widest?Math.sin(u*Math.PI/2)**.8:Math.sin(u*Math.PI/2)**f.tip;
+  return f.ratio/2*shape;
+}
+//: The blade's outline in leaf units (petiole at (0, 0), tip at (0, 1)), with its teeth and a
+//: little asymmetry of its own. [[x, y], ...] round the margin.
+export function leafOutline(form,rnd){
+  const f=LEAF_FORMS[form]||LEAF_FORMS.broad,n=72,skew=1+(rnd()-.5)*.14,right=[],left=[];
+  for(let k=0;k<=n;k++){
+    const t=k/n;let w=leafHalfWidth(form,t);
+    if(f.teeth&&t>.12&&t<.96){const p=(t*f.teeth)%1;w*=1-(form==='oak'?.18:.07)*(p<.7?p/.7:(1-p)/.3);}
+    right.push([w*skew,t]);left.push([-w/skew,t]);
+  }
+  return right.concat(left.reverse());
+}
+function leafPath(ctx,outline,len){ctx.beginPath();outline.forEach(([x,y],i)=>i?ctx.lineTo(x*len,-y*len):ctx.moveTo(x*len,-y*len));ctx.closePath();}
+//: One leaf onto the colour canvas `c` and the height canvas `h`, at (x, y), pointing along
+//: `angle`, `len` pixels long. tone: [r, g, b] of the blade (pale, 0..255).
+export function paintLeaf(c,h,{x,y,angle,len,form='broad',tone=[214,222,196],underside=false,squeeze=1,rnd}){
+  const f=LEAF_FORMS[form]||LEAF_FORMS.broad,outline=leafOutline(form,rnd);
+  const rgb=(k,a=1)=>`rgba(${tone.map(v=>Math.max(0,Math.min(255,Math.round(v*k)))).join(',')},${a})`;
+  for(const [g,height] of [[c,false],[h,true]]){
+    g.save();g.translate(x,y);g.rotate(angle);g.scale(squeeze,1);
+    // The petiole.
+    g.strokeStyle=height?'rgb(150,150,150)':rgb(.86);g.lineWidth=Math.max(1,len*.028);g.lineCap='round';
+    g.beginPath();g.moveTo(0,len*.13);g.quadraticCurveTo(len*.02,len*.05,0,0);g.stroke();
+    // The blade, a little darker at its margin and lighter along its middle.
+    leafPath(g,outline,len);
+    if(height){const r=g.createRadialGradient(0,-len*.45,len*.05,0,-len*.45,len*.6);r.addColorStop(0,'rgb(150,150,150)');r.addColorStop(1,'rgb(108,108,108)');g.fillStyle=r;}
+    else{const w=f.ratio*len/2,lg=g.createLinearGradient(-w,0,w,0),k=underside?1.1:1;
+      lg.addColorStop(0,rgb(.84*k));lg.addColorStop(.5,rgb(1.0*k));lg.addColorStop(1,rgb(.88*k));g.fillStyle=lg;}
+    g.fill();g.save();leafPath(g,outline,len);g.clip();
+    if(!height){
+      // Mottling: the blade is not one even colour.
+      for(let m=0;m<26;m++){const mx=(rnd()-.5)*f.ratio*len,my=-rnd()*len,r=len*(.04+rnd()*.1);
+        g.fillStyle=rgb(rnd()<.5?.9:1.08,.08+rnd()*.07);g.beginPath();g.ellipse(mx,my,r,r*.6,rnd()*3,0,6.283);g.fill();}
+    }
+    // Veins: lighter than the blade on both faces, raised on the height map.
+    const vein=(k,a)=>height?`rgba(${k},${k},${k},${a})`:rgb(underside?1.16:1.1,a);
+    const vy=t=>-t*len;
+    // The finest network first, under the rest.
+    const fine=Math.round(len*len/260);
+    for(let q=0;q<fine;q++){
+      const t=.04+rnd()*.92,hw=leafHalfWidth(form,t)*len,sx=(rnd()*2-1)*hw*.92,sy=vy(t),a=rnd()*6.283,l=len*(.02+rnd()*.035);
+      g.strokeStyle=vein(150,underside?.5:.32);g.lineWidth=Math.max(.5,len*.0035);
+      g.beginPath();g.moveTo(sx,sy);g.lineTo(sx+Math.cos(a)*l,sy+Math.sin(a)*l);g.lineTo(sx+Math.cos(a+1.4)*l*1.2,sy+Math.sin(a+1.4)*l*1.2);g.stroke();
+    }
+    // Secondary veins, alternate, arching to the margin and looping into the next.
+    const pairs=f.veins,stations=[];
+    for(let s=0;s<pairs;s++)stations.push(.08+(s+.3+(rnd()-.5)*.3)/pairs*.82);
+    for(const side of [1,-1]){
+      let prevEnd=null;
+      stations.forEach((t0,s)=>{
+        const t=Math.min(.95,t0+(side>0?0:.5/pairs*.82));
+        const reach=.86*leafHalfWidth(form,Math.min(.97,t+.1))*len,ey=vy(Math.min(.97,t+(form==='narrow'?.22:.13)));
+        const sw=Math.max(.7,len*(.011-.006*t)),sy=vy(t),mid=[side*reach*.55,(sy+ey)/2+len*.02];
+        g.strokeStyle=vein(205,underside?.95:.85);
+        g.lineWidth=sw;g.beginPath();g.moveTo(0,sy);g.quadraticCurveTo(mid[0],mid[1],side*reach,ey);g.stroke();
+        if(prevEnd){g.lineWidth=sw*.55;g.beginPath();g.moveTo(...prevEnd);g.quadraticCurveTo(side*(Math.abs(prevEnd[0])+reach)/2*1.06,(prevEnd[1]+ey)/2,side*reach*.94,ey+len*.03);g.stroke();}
+        // Tertiary veins laddered across to the next secondary.
+        const next=stations[s+1];if(next!==undefined){
+          const rungs=Math.max(2,Math.round(len/38));
+          for(let r=1;r<=rungs;r++){const u=r/(rungs+1),ax=side*reach*u*.9,ay=sy+(ey-sy)*u-len*.01,by=ay-(vy(t)-vy(Math.min(.95,next)))*.85;
+            g.lineWidth=Math.max(.5,len*.005);g.globalAlpha=height?.8:.6;g.beginPath();g.moveTo(ax,ay);
+            g.quadraticCurveTo(ax+side*len*.015*(rnd()-.3),(ay+by)/2,ax+side*len*.01,by);g.stroke();g.globalAlpha=1;}
+        }
+        prevEnd=[side*reach,ey];
+      });
+    }
+    // The midrib, thick at the base and fine at the tip.
+    for(let k=0;k<12;k++){const t0=k/12,t1=(k+1)/12;g.strokeStyle=height?vein(230,1):rgb(underside?1.14:1.07);
+      g.lineWidth=Math.max(.8,len*(.021-.017*t0));g.beginPath();g.moveTo(0,vy(t0));g.lineTo(0,vy(t1));g.stroke();}
+    g.restore();
+    // A fine dark edge, where the blade turns away.
+    leafPath(g,outline,len);g.strokeStyle=height?'rgba(80,80,80,.9)':rgb(.62,.55);g.lineWidth=Math.max(.6,len*.006);g.stroke();
+    g.restore();
+  }
+}
+//: The relief of a height canvas as a tangent-space normal map (a canvas of the same size).
+export function normalsFromHeight(h,strength=2.2){
+  const w=h.canvas.width,H=h.canvas.height,src=h.getImageData(0,0,w,H).data,out=h.createImageData(w,H),d=out.data;
+  const at=(x,y)=>src[((Math.min(H-1,Math.max(0,y)))*w+Math.min(w-1,Math.max(0,x)))*4]/255;
+  for(let y=0;y<H;y++)for(let x=0;x<w;x++){
+    const dx=(at(x+1,y)-at(x-1,y))*strength,dy=(at(x,y+1)-at(x,y-1))*strength,l=Math.hypot(dx,dy,1),i=(y*w+x)*4;
+    d[i]=Math.round((-dx/l*.5+.5)*255);d[i+1]=Math.round((dy/l*.5+.5)*255);d[i+2]=Math.round((1/l*.5+.5)*255);d[i+3]=255;}
+  return out;
+}
+//: A card of leaves on twigs: { map, normalMap } textures, `size` pixels square. layout
+//: 'spray': a few twigs of large leaves, a branch-end seen close (street trees); 'crown': many
+//: twigs of smaller leaves, a piece of a crown (the landscape's trees).
+export function leafCardTextures(THREE,{form='broad',layout='spray',size=1024,seed=1}={}){
+  const make=()=>{const cv=document.createElement('canvas');cv.width=cv.height=size;return cv;};
+  const colour=make(),relief=make(),c=colour.getContext('2d'),h=relief.getContext('2d',{willReadFrequently:true});
+  h.fillStyle='rgb(128,128,128)';h.fillRect(0,0,size,size);
+  let n=seed*7919;const rnd=()=>noiseHash(++n,seed,2207);
+  const twigs=layout==='spray'?6:30,per=layout==='spray'?(form==='narrow'?9:6):(form==='narrow'?14:10);
+  const base=layout==='spray'?size*.24:size*(form==='narrow'?.11:.085);
+  // Twigs spread over the card: one in each cell of a grid, placed at random within it, so the
+  // card is foliage all over rather than a clump in one corner.
+  const cols=Math.ceil(Math.sqrt(twigs));
+  for(let j=0;j<twigs;j++){
+    const x=size*((j%cols+.15+rnd()*.7)/cols),y=size*((Math.floor(j/cols)+.15+rnd()*.7)/Math.ceil(twigs/cols)),a=rnd()*6.283,tl=base*(2.2+rnd()*1.4);
+    const ux=Math.cos(a),uy=Math.sin(a);
+    c.strokeStyle='rgb(128,112,92)';c.lineWidth=Math.max(1.5,base*.035);c.lineCap='round';
+    c.beginPath();c.moveTo(x-ux*tl/2,y-uy*tl/2);c.lineTo(x+ux*tl/2,y+uy*tl/2);c.stroke();
+    h.strokeStyle='rgb(170,170,170)';h.lineWidth=c.lineWidth;h.beginPath();h.moveTo(x-ux*tl/2,y-uy*tl/2);h.lineTo(x+ux*tl/2,y+uy*tl/2);h.stroke();
+    for(let k=0;k<per;k++){
+      const t=(k+.5)/per-.5,side=k%2?1:-1,len=base*(.75+rnd()*.45)*(k===per-1?1.1:1);
+      // Each leaf its own: a shade, a hint of yellow or blue, its breadth, and now and then its underside.
+      const shade=.86+rnd()*.24,warm=(rnd()-.5)*.16,underside=rnd()<.14;
+      const tone=[214*(shade+warm),222*shade,196*(shade-warm*.6)].map(v=>underside?v*1.06+10:v);
+      // The petiole's end on the twig, the blade beyond it.
+      const angle=a+Math.PI/2+side*(.55+rnd()*.55)+(k===per-1?-side*.6:0),stalk=len*.13;
+      paintLeaf(c,h,{x:x+ux*t*tl+Math.sin(angle)*stalk,y:y+uy*t*tl-Math.cos(angle)*stalk,angle,len,form,tone,underside,
+        squeeze:.78+rnd()*.3,rnd});
+    }
+  }
+  // A leaf's surface is not flat colour: a fine grain of cells over every blade (drawn only
+  // where a leaf is), and the same grain faintly in the relief.
+  const grain=document.createElement('canvas');grain.width=grain.height=128;const gg=grain.getContext('2d'),img=gg.createImageData(128,128);
+  for(let i=0;i<img.data.length;i+=4){const v=96+Math.round(noiseHash(i>>2,seed,2213)*64);img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}
+  gg.putImageData(img,0,0);
+  const mask=make(),mg=mask.getContext('2d');mg.fillStyle=mg.createPattern(grain,'repeat');mg.fillRect(0,0,size,size);
+  mg.globalCompositeOperation='destination-in';mg.drawImage(colour,0,0);
+  c.save();c.globalCompositeOperation='overlay';c.globalAlpha=.45;c.drawImage(mask,0,0);c.restore();
+  h.save();h.globalAlpha=.12;h.globalCompositeOperation='overlay';h.fillStyle=h.createPattern(grain,'repeat');h.fillRect(0,0,size,size);h.restore();
+  const map=new THREE.CanvasTexture(colour);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=8;
+  const nm=make();nm.getContext('2d').putImageData(normalsFromHeight(h),0,0);
+  const normalMap=new THREE.CanvasTexture(nm);normalMap.anisotropy=8;
+  return {map,normalMap};
+}
+
 // Raster leaf silhouettes only; tree shape is actual branched geometry, not spheres.
 export function vegetationAssets(THREE){
   const textures=new Map(),cache=new Map();
+  const normals=new Map();
+  //: The leaf card's normal map (veins standing proud), for a broadleaf; none for needles.
+  function normalOf(species){texture(species);const form=SPECIES[species]?.form||species;return normals.get(form)||null;}
   function texture(species){
     const form=SPECIES[species]?.form||species,key=['pine','redwood','fir','cypress'].includes(form)?'needle':form;
     if(textures.has(key))return textures.get(key);
+    if(key!=='needle'){
+      // A piece of crown: twigs of leaves painted vein by vein (leafCardTextures).
+      const leafForm=form==='oak'?'oak':form==='eucalyptus'||form==='willow'?'narrow':'broad';
+      const pair=leafCardTextures(THREE,{form:leafForm,layout:'crown',size:1024,seed:key.length*31+7});
+      textures.set(key,pair.map);normals.set(key,pair.normalMap);return pair.map;
+    }
     const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');
     if(key==='needle'){
       // Sprays of needles off twigs, darker at the base of each spray.
@@ -245,7 +408,8 @@ export function vegetationAssets(THREE){
     const key=`${species}:${variant}`;if(cache.has(key))return cache.get(key);
     const model=botanicalGeometry(species,variant),spec=SPECIES[species];
     const parts=[{geometry:geometry(model.bark),material:new THREE.MeshStandardMaterial({color:0xffffff,roughness:1}),colour:spec.bark},
-      {geometry:geometry(model.leaf,true),material:new THREE.MeshStandardMaterial({map:texture(species),color:0xffffff,alphaTest:.28,side:THREE.DoubleSide,roughness:1}),colour:spec.leaf.map(v=>v*1.15)}];
+      {geometry:geometry(model.leaf,true),material:new THREE.MeshStandardMaterial({map:texture(species),color:0xffffff,alphaTest:.28,side:THREE.DoubleSide,roughness:.82,
+        ...(normalOf(species)?{normalMap:normalOf(species),normalScale:new THREE.Vector2(.9,.9)}:{})}),colour:spec.leaf.map(v=>v*1.15)}];
     cache.set(key,parts);return parts;
   }
   function undergrowth(kind){

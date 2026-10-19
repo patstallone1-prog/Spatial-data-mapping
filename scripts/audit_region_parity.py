@@ -35,16 +35,21 @@ def fraction(n: int, d: int) -> dict:
     return {"count": n, "of": d, "share": round(n / d, 4) if d else None}
 
 
-def audit_region(source: Path, published: Path, region: str) -> dict:
-    site = (
-        published / "docs" if region == "sf-corridor" else published / "docs" / "regions" / region
-    )
-    asset_site = site
-    app_site = published / "docs/app-regions" / region
-    if (app_site / "sf-corridor-3d.json").is_file():
-        site = app_site  # The app's expanded Oakland payload outranks its frozen website.
-    if region == "oakland-downtown" and site == app_site:
-        asset_site = app_site
+def audit_region(source: Path, published: Path, region: str, *, site: Path | None = None) -> dict:
+    """``site`` audits a build that is not published yet -- a cell's own ``site`` folder, as the
+    cloud gate does (smc.cloud.gate) -- by the same rules as a published region."""
+    if site is not None:
+        asset_site = site
+    else:
+        site = (
+            published / "docs" if region == "sf-corridor" else published / "docs" / "regions" / region
+        )
+        asset_site = site
+        app_site = published / "docs/app-regions" / region
+        if (app_site / "sf-corridor-3d.json").is_file():
+            site = app_site  # The app's expanded Oakland payload outranks its frozen website.
+        if region == "oakland-downtown" and site == app_site:
+            asset_site = app_site
     payload_path = site / "sf-corridor-3d.json"
     payload = read(payload_path)
     if payload is None:
@@ -126,7 +131,8 @@ def audit_region(source: Path, published: Path, region: str) -> dict:
         "region": region,
         "status": "reference" if region == "sf-corridor" else "audited",
         "payload": {
-            "path": str(payload_path.relative_to(published)),
+            "path": str(payload_path.relative_to(published))
+            if payload_path.is_relative_to(published) else str(payload_path),
             "sha256": hashlib.sha256(payload_path.read_bytes()).hexdigest(),
         },
         "counts": {
@@ -139,7 +145,8 @@ def audit_region(source: Path, published: Path, region: str) -> dict:
         "metrics": metrics,
         "kerb_grades": dict(grades),
         "ground_counts": ground_counts,
-        "ground_path": str(ground_path.relative_to(published)),
+        "ground_path": str(ground_path.relative_to(published))
+        if ground_path.is_relative_to(published) else str(ground_path),
         "photo_derived_facades": {"count": fit_count, "measured_geometry": False},
         "additional_municipal_evidence": municipal,
         "kerb_share_basis": "Canonical evidence grades; does not imply measured curb shapes are drawn.",

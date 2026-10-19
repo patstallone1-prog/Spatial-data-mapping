@@ -224,3 +224,49 @@ console.log(JSON.stringify({same:JSON.stringify(a)===JSON.stringify(b),kinds:[e.
     assert result["kinds"] == ["leaf_litter", "eucalyptus_litter", "needle_duff", "needle_duff"]
     assert result["far"] == 0 and result["patches"] >= 3
     assert result["logsLone"] == 0 and 20 < result["logsStand"] < 120
+
+
+def test_a_painted_leaf_has_a_blade_its_teeth_and_veins_to_the_margin():
+    r = node("""
+    let s = 0; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    const out = {};
+    for (const form of ["broad", "street", "narrow", "oak"]) {
+      const o = g.leafOutline(form, rnd);
+      const widest = Math.max(...o.map(([x]) => Math.abs(x)));
+      out[form] = { n: o.length, widest, base: g.leafHalfWidth(form, 0), tip: g.leafHalfWidth(form, 1),
+        mid: g.leafHalfWidth(form, g.LEAF_FORMS[form].widest), veins: g.LEAF_FORMS[form].veins, teeth: g.LEAF_FORMS[form].teeth };
+    }
+    console.log(JSON.stringify(out));
+    """)
+    for form, f in r.items():
+        assert f["base"] == 0 and f["tip"] == 0, form
+        assert f["widest"] == pytest.approx(f["mid"], rel=0.12), form
+        assert f["veins"] >= 6
+    assert r["narrow"]["mid"] < 0.5 * r["broad"]["mid"], "a lanceolate blade is narrow"
+    assert r["street"]["teeth"] > 0 and r["broad"]["teeth"] == 0
+
+
+def test_a_fallen_trunk_blocks_but_a_thin_one_and_the_undergrowth_do_not():
+    r = node("""
+    const log = { x: 0, z: 0, dx: 3, dz: 0, r: 0.25 };
+    console.log(JSON.stringify({ on: n.logHit(log, 1, 0.2, 0.25), end: n.logHit(log, 3.3, 0, 0.25),
+      past: n.logHit(log, 3.8, 0, 0.25), beside: n.logHit(log, 0, 0.6, 0.25), threshold: n.LOG_BLOCKS_RADIUS_M }));
+    """)
+    assert r["on"] and r["end"] and not r["past"] and not r["beside"]
+    assert 0.1 <= r["threshold"] <= 0.2
+    runtime = (ROOT / "docs/nature-runtime.mjs").read_text()
+    assert "if(log.radius>=LOG_BLOCKS_RADIUS_M)obstacles.push(" in runtime
+    floor = (ROOT / "docs/forest-floor.mjs").read_text()
+    assert "blockedAt(x,z,r=.25)" in floor and "d.plants" not in floor.split("blockedAt(x,z,r=.25)")[1][:400], \
+        "plants and grass never block"
+    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    assert "natureWorld.deadwoodBlocked(nextX, nextZ, WALKER_DEADWOOD_RADIUS_M)" in page
+    assert "!natureWorld.deadwoodBlocked(p.x, p.z, WALKER_DEADWOOD_RADIUS_M)" in page, "never trapped inside one"
+
+
+def test_both_tree_systems_use_the_painted_leaves_and_their_relief():
+    veg = (ROOT / "docs/vegetation-geometry.mjs").read_text()
+    assert "leafCardTextures(THREE,{form:leafForm,layout:'crown'" in veg and "normalMap:normalOf(species)" in veg
+    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    assert 'vegetationLibrary.leafCardTextures(THREE, { form: "street", layout: "spray"' in page
+    assert "normalMap: leafNormal" in page

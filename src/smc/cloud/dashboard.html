@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kerbside Cloud</title>
+<style>
+:root { --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#5b6470; --line:#e2e5ea;
+        --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e; --accent:#0969da; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --card:#161b22; --ink:#e6edf3;
+        --muted:#8b949e; --line:#30363d; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --accent:#58a6ff; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui, sans-serif; }
+header { padding:16px; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+h1 { font-size:18px; margin:0; } h2 { font-size:14px; margin:0 0 8px; color:var(--muted); font-weight:600; }
+main { display:grid; gap:12px; padding:0 16px 24px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+section { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+.big { font-size:26px; font-weight:650; } .muted { color:var(--muted); }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+table { width:100%; border-collapse:collapse; } td, th { text-align:left; padding:3px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--muted); font-weight:600; } td.n { text-align:right; font-variant-numeric:tabular-nums; }
+.bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin-top:6px; }
+.bar > i { display:block; height:100%; background:var(--accent); }
+code { font-size:12px; word-break:break-all; } .wide { grid-column:1/-1; }
+pre { white-space:pre-wrap; word-break:break-word; margin:0; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header><h1>Kerbside Cloud</h1><span class="muted" id="at">loading…</span><span id="paused" class="bad"></span></header>
+<main>
+  <section><h2>Cells</h2><div class="big" id="cells">–</div><div class="bar"><i id="cellbar" style="width:0"></i></div><div class="muted" id="cellnote"></div></section>
+  <section><h2>Houses</h2><div class="big" id="houses">–</div><div class="muted" id="housenote"></div></section>
+  <section><h2>Spend</h2><div class="big" id="spend">–</div><div class="muted" id="budget"></div><div class="muted" id="estimate"></div></section>
+  <section><h2>Release</h2><div id="release" class="muted">–</div></section>
+  <section class="wide"><h2>Queue</h2><table id="queue"></table></section>
+  <section class="wide"><h2>Workers</h2><table id="workers"></table></section>
+  <section class="wide"><h2>Held for review</h2><table id="held"></table></section>
+  <section class="wide"><h2>Failures</h2><table id="failures"></table></section>
+</main>
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const usd = v => "$" + (v || 0).toFixed(2);
+function rows(el, head, data) {
+  document.getElementById(el).innerHTML = "<tr>" + head.map(h => `<th>${h}</th>`).join("") + "</tr>" +
+    (data.length ? data.join("") : `<tr><td colspan="${head.length}" class="muted">none</td></tr>`);
+}
+async function load() {
+  let s;
+  try { s = await (await fetch("api/status", { cache: "no-store" })).json(); }
+  catch (e) { document.getElementById("at").textContent = "controller unreachable: " + e; return; }
+  document.getElementById("at").textContent = "updated " + new Date(s.at * 1000).toLocaleTimeString();
+  document.getElementById("paused").textContent = s.paused ? "paused: " + s.paused : "";
+  const c = s.cells;
+  document.getElementById("cells").textContent = `${c.finished} / ${c.total}`;
+  document.getElementById("cellbar").style.width = (c.total ? 100 * c.finished / c.total : 0) + "%";
+  document.getElementById("cellnote").textContent = `${s.held.length} held for review · ${s.blocked.length} waiting on them`;
+  const h = s.houses || {};
+  document.getElementById("houses").textContent = `${h.done || 0} batches done`;
+  document.getElementById("housenote").textContent = Object.entries(h).map(([k, v]) => `${k} ${v}`).join(" · ");
+  const b = s.budget;
+  document.getElementById("spend").innerHTML = `${usd(b.today_usd)} <span class="muted">today</span>`;
+  document.getElementById("budget").innerHTML = `${usd(b.month_usd)} this month of ${usd(b.monthly_usd)} · hard stop ${usd(b.hard_monthly_usd)}` + (b.hard_stop ? ' <b class="bad">STOPPED</b>' : "");
+  document.getElementById("estimate").textContent = `≈ ${usd(s.estimate.remaining_usd)} to finish what is queued (${s.estimate.basis})`;
+  const r = s.release || {};
+  document.getElementById("release").innerHTML = r.version ? `live <code>${esc(r.version)}</code> since ${new Date(r.at * 1000).toLocaleString()}` + (r.rolled_back_from ? ` <span class="warn">rolled back from ${esc(r.rolled_back_from)}</span>` : "") : "nothing published yet";
+  const states = ["pending","leased","failed","held","quarantined","done","cancelled"];
+  rows("queue", ["kind", ...states], Object.entries(s.counts).map(([k, v]) =>
+    `<tr><td>${esc(k)}</td>${states.map(st => `<td class="n">${v[st] || ""}</td>`).join("")}</tr>`));
+  rows("workers", ["worker","pool","type","state","age","busy","$/h"], s.workers.map(w =>
+    `<tr><td><code>${esc(w.id)}</code></td><td>${esc(w.resource)}</td><td>${esc(w.instance_type)}</td><td>${esc(w.state)}</td><td class="n">${Math.round(w.age_s/60)} min</td><td class="n">${Math.round(100*w.utilisation)}%</td><td class="n">${w.hourly_usd.toFixed(3)}</td></tr>`));
+  rows("held", ["job","reasons"], s.held.map(x =>
+    `<tr><td><code>${esc(x.id)}</code></td><td><pre>${esc(x.reasons.join("\n"))}</pre></td></tr>`));
+  rows("failures", ["job","state","tries","last error"], s.failures.map(x =>
+    `<tr><td><code>${esc(x.id)}</code></td><td class="${x.state === "quarantined" ? "bad" : "warn"}">${esc(x.state)}</td><td class="n">${x.attempts}</td><td><pre>${esc(x.error)}</pre></td></tr>`));
+}
+load(); setInterval(load, 10000);
+</script>
+</body>
+</html>

@@ -33,12 +33,33 @@ const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 //: How much of the map to show for a hop of `distance` metres: both ends with room round them,
 //: never so little that the hop is a twitch, never more than the whole Bay.
 export function mapSpanFor(distance){return Math.min(90000,Math.max(5000,distance*2.4));}
-//: The timeline, in seconds from the click.
-export const TELEPORT_TIMES={dark:1.1,mapIn:1.6,widen:2.3,hop:4.5,land:4.9,close:5.9,back:7.0,maxHold:15};
+//: The timeline, in seconds from the click, at normal speed.
+export const TELEPORT_TIMES={dark:1.1,mapIn:1.6,widen:2.3,hop:4.5,land:4.9,close:5.9,back:7.0};
+//: The trip plays slower while the place is still loading and faster once it has, never under
+//: half or over twice its normal length: the playback rate stays within [1/max, 1/min].
+//: `smoothing` is how quickly (seconds) the rate follows its target, so a change is never a jolt.
+export const TELEPORT_STRETCH={min:0.5,max:2,smoothing:0.35};
+
+//: The rate the trip should play at now (1 normal). Until the walker has moved nothing is
+//: loading, so it plays as normal. While the place loads, the rate is set so the view opens
+//: (T.close) as the last of it arrives -- the time left estimated from how much of the most
+//: that was pending has come in so far -- and at the slowest once the view is opening and it
+//: still has not. Once it is ready the rest plays at the fastest to the opening, then as normal.
+export function teleportRate({t,ready,pending=0,peak=0,sinceMove=0,T=TELEPORT_TIMES,S=TELEPORT_STRETCH}){
+  const slowest=1/S.max,fastest=1/S.min;
+  if(t<T.dark)return 1;
+  if(ready)return t<T.close?fastest:1;
+  if(t>=T.close)return slowest;
+  const done=peak>0?1-pending/peak:0;
+  if(done<=0||sinceMove<=0)return slowest;
+  const left=sinceMove*(1-done)/Math.max(done,.05);
+  return Math.min(fastest,Math.max(slowest,(T.close-t)/Math.max(left,1e-3)));
+}
 
 //: The overlay. `run` plays one trip: from and to are atlas-local [x, y]; perform() moves the
-//: walker (behind the black); ready() says whether the place has streamed in; onPull(t) and
-//: onReturn(t) let the page pull the camera away and bring it back (t 0..1).
+//: walker (behind the black); ready() says whether the place has streamed in, and pending()
+//: how many of its pieces are still to come; onPull(t) and onReturn(t) let the page pull the
+//: camera away and bring it back (t 0..1). The trip's speed follows the load (teleportRate).
 export function createTeleport({map,parent=document.body}){
   const canvas=document.createElement('canvas');
   Object.assign(canvas.style,{position:'fixed',inset:'0',width:'100%',height:'100%',zIndex:'40',pointerEvents:'none',display:'none'});
@@ -75,25 +96,31 @@ export function createTeleport({map,parent=document.body}){
     }
     if(black>0){ctx.fillStyle=`rgba(0,0,0,${black})`;ctx.fillRect(0,0,W,H);}
   }
-  async function run({from,to,perform,ready=()=>true,onPull=()=>{},onReturn=()=>{}}){
+  async function run({from,to,perform,ready=()=>true,pending=()=>0,onPull=()=>{},onReturn=()=>{}}){
     if(busy){await perform();return;}
     busy=true;canvas.style.display='block';
     const T=TELEPORT_TIMES,distance=Math.hypot(to[0]-from[0],to[1]-from[1]),span=mapSpanFor(distance);
     const middle=[(from[0]+to[0])/2,(from[1]+to[1])/2],closeSpan=Math.min(span,4000);
-    const started=performance.now();let moved=false,released=false,paused=0;
+    const started=performance.now();let moved=false,movedAt=0,last=started,t=0,rate=1,peak=0,loaded=false;
     try{
       await new Promise(resolve=>{
         const step=()=>{
-          const now=performance.now();
-          let t=(now-started)/1000-paused;
-          // The dot has landed: the map waits there, up to a limit, until the place has loaded.
-          // However long a frame took, the trip does not run past the landing while it waits.
-          if(moved&&!released&&t>=T.land){
-            if(!ready()&&(now-started)/1000<T.maxHold){paused+=t-T.land;t=T.land;}else released=true;}
+          const now=performance.now(),dt=(now-last)/1000;last=now;
+          // The trip's own clock runs at `rate`, which eases toward what the load asks for.
+          if(moved){
+            loaded||=Boolean(ready());
+            const left=loaded?0:Math.max(0,Number(pending())||0);peak=Math.max(peak,left);
+            const want=teleportRate({t,ready:loaded,pending:left,peak,sinceMove:(now-movedAt)/1000});
+            rate+=(want-rate)*(1-Math.exp(-dt/TELEPORT_STRETCH.smoothing));
+          }
+          // However long a frame took (streaming makes some long), the trip's clock stays
+          // between half and twice real time, so it never runs under half or over twice its length.
+          const wall=(now-started)/1000;
+          t=Math.min(wall/TELEPORT_STRETCH.min,Math.max(wall/TELEPORT_STRETCH.max,t+dt*rate));
           const s={black:0,mapAlpha:0,centre:from,span:closeSpan,from,to,hop:0,landed:0};
           if(t<T.dark){const u=ease(t/T.dark);onPull(u);s.black=u;}
           else{
-            if(!moved){moved=true;Promise.resolve(perform()).catch(e=>console.warn('kerbside: teleport',e));}
+            if(!moved){moved=true;movedAt=now;Promise.resolve(perform()).catch(e=>console.warn('kerbside: teleport',e));}
             if(t<T.mapIn){const u=ease((t-T.dark)/(T.mapIn-T.dark));s.black=1-u;s.mapAlpha=1;s.centre=from;s.span=closeSpan*1.4-closeSpan*.4*u;}
             else if(t<T.widen){const u=ease((t-T.mapIn)/(T.widen-T.mapIn));s.mapAlpha=1;
               s.centre=[from[0]+(middle[0]-from[0])*u,from[1]+(middle[1]-from[1])*u];s.span=closeSpan*Math.pow(span/closeSpan,u);}

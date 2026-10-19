@@ -123,7 +123,52 @@ def test_teleport_map_widens_with_the_hop_and_the_trip_fits_the_streaming_time()
     times = r["T"]
     order = ["dark", "mapIn", "widen", "hop", "land", "close", "back"]
     assert all(times[a] < times[b] for a, b in itertools.pairwise(order))
-    assert 6.5 <= times["back"] <= 7.5 and times["maxHold"] >= times["back"]
+    assert 6.5 <= times["back"] <= 7.5
+
+
+TRIP = """
+let clock=0;const frames=[];
+Object.defineProperty(globalThis,'performance',{value:{now:()=>clock},configurable:true,writable:true});
+const ctx2d=new Proxy({},{get:()=>()=>{}});
+Object.assign(globalThis,{innerWidth:800,innerHeight:600,devicePixelRatio:1,requestAnimationFrame:cb=>frames.push(cb),
+  document:{body:{appendChild(){}},createElement:()=>({style:{},setAttribute(){},getContext:()=>ctx2d,width:0,height:0})}});
+const map={metresPerPixel:10,pixel:(x,y)=>[x/10,y/10],canvas:{}};
+async function trip({readyAt=0,pieces=40,frameMs=1000/60,slowFrames=false}){
+  clock=0;frames.length=0;const trip=t.createTeleport({map});let movedAt=null,openedAt=null;
+  // Pieces arrive evenly from the move until readyAt (seconds after it).
+  const left=()=>movedAt===null?pieces:Math.max(0,Math.ceil(pieces*(1-(clock/1000-movedAt)/Math.max(readyAt,1e-9))));
+  const done=trip.run({from:[0,0],to:[30000,0],perform:()=>{movedAt=clock/1000;},
+    ready:()=>movedAt!==null&&clock/1000-movedAt>=readyAt,pending:left,
+    onReturn:u=>{if(openedAt===null)openedAt=clock/1000;}});
+  let finished=false;done.then(()=>{finished=true;});
+  for(let n=0;!finished&&n<20000;n++){
+    const cb=frames.shift();if(!cb){await null;continue;}
+    clock+=slowFrames&&n%5===0?400:frameMs;cb();await null;
+  }
+  return {total:clock/1000,movedAt,openedAt};
+}
+"""
+
+
+def test_the_trip_plays_slower_while_the_place_loads_and_faster_once_it_has():
+    r = node(TRIP + """
+    const normal=t.TELEPORT_TIMES.back;
+    console.log(JSON.stringify({normal,instant:await trip({readyAt:0}),mid:await trip({readyAt:7}),
+      slow:await trip({readyAt:11}),never:await trip({readyAt:1e9}),hitchy:await trip({readyAt:1e9,slowFrames:true}),
+      hitchyFast:await trip({readyAt:0,slowFrames:true})}));
+    """)
+    normal = r["normal"]
+    for case in ("instant", "mid", "slow", "never", "hitchy", "hitchyFast"):
+        assert 0.5 * normal - 0.05 <= r[case]["total"] <= 2 * normal + 0.05, (case, r[case])
+    # Loaded at once, it takes well under its normal length; never loaded, close to twice it
+    # (the pull into black, before the walker moves and anything loads, plays as normal).
+    assert r["instant"]["total"] < 0.75 * normal
+    assert r["never"]["total"] >= 1.75 * normal
+    assert r["instant"]["total"] < r["mid"]["total"] < r["slow"]["total"] < r["never"]["total"]
+    # A load that ends within the stretch is in by the time the view opens; one that runs past
+    # it opens no later than the slowest trip would.
+    assert r["mid"]["openedAt"] >= r["mid"]["movedAt"] + 7 - 0.5, r["mid"]
+    assert r["slow"]["openedAt"] <= r["never"]["openedAt"] + 0.05
 
 
 def test_page_wires_the_floor_globe_and_trip():

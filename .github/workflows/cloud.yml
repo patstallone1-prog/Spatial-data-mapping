@@ -1,0 +1,92 @@
+# The cloud system's images and infrastructure, built and tested on every change to them.
+#
+# CPU image: built, then the cloud tests and the whole-lifecycle self-test run inside it.
+# GPU image: built (no GPU on the runner), its CUDA torch stack imported, the self-test run.
+# Terraform: formatted, initialised without a backend, validated.
+# On main, both images are pushed to GHCR as :main and :<sha>, which the controller pulls.
+name: cloud
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/smc/cloud/**", "cloud/**", "tests/test_cloud_*", "pyproject.toml", ".github/workflows/cloud.yml"]
+  pull_request:
+    paths: ["src/smc/cloud/**", "cloud/**", "tests/test_cloud_*", "pyproject.toml", ".github/workflows/cloud.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: cloud-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  cpu-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: cloud/containers/cpu.Dockerfile
+          load: true
+          tags: kerbside-cpu:test
+          cache-from: type=gha,scope=cpu
+          cache-to: type=gha,mode=max,scope=cpu
+      - name: cloud tests inside the image
+        run: docker run --rm --entrypoint python kerbside-cpu:test -m pytest -q tests/test_cloud_queue.py tests/test_cloud_storage.py tests/test_cloud_scheduler.py tests/test_cloud_control.py -p no:cacheprovider
+      - name: the whole lifecycle inside the image
+        run: docker run --rm kerbside-cpu:test selftest
+      - name: push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for tag in main "${GITHUB_SHA}"; do
+            docker tag kerbside-cpu:test "ghcr.io/${GITHUB_REPOSITORY_OWNER}/kerbside-cpu:${tag}"
+            docker push "ghcr.io/${GITHUB_REPOSITORY_OWNER}/kerbside-cpu:${tag}"
+          done
+
+  gpu-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: room for CUDA
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: cloud/containers/gpu.Dockerfile
+          load: true
+          tags: kerbside-gpu:test
+          cache-from: type=gha,scope=gpu
+          cache-to: type=gha,mode=max,scope=gpu
+      - name: the CUDA stack imports
+        run: docker run --rm --entrypoint python kerbside-gpu:test -c "import torch, torchvision, transformers, kornia, lightglue; print(torch.__version__, torch.version.cuda, transformers.__version__)"
+      - name: the whole lifecycle inside the image
+        run: docker run --rm kerbside-gpu:test selftest
+      - name: push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for tag in main "${GITHUB_SHA}"; do
+            docker tag kerbside-gpu:test "ghcr.io/${GITHUB_REPOSITORY_OWNER}/kerbside-gpu:${tag}"
+            docker push "ghcr.io/${GITHUB_REPOSITORY_OWNER}/kerbside-gpu:${tag}"
+          done
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloud/infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate

@@ -120,6 +120,9 @@ export function wildGrassGeometry(kind,variant=0,detail=1){
 //: the ecological sample (habitat, moisture); ctx.blocked(x, y, r); ctx.trees: trunks with
 //: x, y, radius, height, species near the cell. Every item comes from its own global slot's
 //: seed, so a cell builds the same however and whenever it is built.
+//: A stump's footprint and a rock's, as shares of their drawn size; a rock smaller than
+//: ROCK_BLOCKS_SIZE is stepped over.
+export const STUMP_RADIUS=.32,ROCK_RADIUS=.4,ROCK_BLOCKS_SIZE=.45;
 export function floorCell(x0,y0,size,ctx){
   const G=size+1,ground=[],free=[];
   for(let r=0;r<G;r++)for(let c=0;c<G;c++){const s=ctx.ground(x0+c,y0+r);ground.push(s);
@@ -441,5 +444,12 @@ export function createForestFloor(THREE,{parent,ctx,scans,motion=null,radius=58,
       for(const c of cells.values())for(const [k,v] of Object.entries(c.userData.counts))stats[k]=(stats[k]||0)+v;
     },
     invalidate(){lastX=Infinity;for(const g of cells.values())drop(g);cells.clear();},
+    //: Whether a walker of radius r at page point (x, z) stands in a stump or a rock too big
+    //: to step over, on the near floor's cells. Plants, grass and litter are walked through.
+    blockedAt(x,z,r=.25){
+      for(const g of cells.values()){const d=g.userData.data;if(!d)continue;
+        for(const v of d.stumps)if(Math.hypot(v.p[0]-x,v.p[1]-z)<v.size*STUMP_RADIUS+r)return true;
+        for(const v of d.rocks)if(v.size>=ROCK_BLOCKS_SIZE&&Math.hypot(v.p[0]-x,v.p[1]-z)<v.size*ROCK_RADIUS+r)return true;}
+      return false;},
   };
 }

@@ -174,6 +174,14 @@ export async function loadNatureAtlas(resolve) {
   return atlas;
 }
 
+//: A fallen log this thick (radius, metres) or more is climbed over, not walked through.
+export const LOG_BLOCKS_RADIUS_M=.15;
+//: Whether a circle of radius r at (x, z) touches a log: a capsule from (o.x - o.dx, o.z - o.dz)
+//: to (o.x + o.dx, o.z + o.dz), o.r thick.
+export function logHit(o,x,z,r){
+  const L=o.dx*o.dx+o.dz*o.dz,t=L>0?Math.max(-1,Math.min(1,((x-o.x)*o.dx+(z-o.z)*o.dz)/L)):0;
+  return Math.hypot(x-(o.x+o.dx*t),z-(o.z+o.dz*t))<o.r+r;
+}
 export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{},motion=null,forestFloor=null,loadModel=null}) {
   const world=new THREE.Group();world.name="nature-atlas-v1";world.userData.bayWide=true;root.add(world);
   const terrain=new THREE.Group(),features=new THREE.Group();world.add(terrain,features);
@@ -520,7 +528,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     return {p:o.p,height:o.height,q:slopeQ.toArray()};
   }
   async function plants(tx,ty){
-    const trees=new Map(),shrubs=new Map(),rocks=[],logs=[],wildGrass=new Map(),floorKit=forestFloor&&scans?forestFloor:null;
+    const trees=new Map(),shrubs=new Map(),rocks=[],logs=[],obstacles=[],wildGrass=new Map(),floorKit=forestFloor&&scans?forestFloor:null;
     const x0=tx*PLANT_TILE_M,y0=ty*PLANT_TILE_M;
     let yieldAt=performance.now();
     for(let r=Math.floor(y0/8);r<Math.floor((y0+PLANT_TILE_M)/8);r++)for(let c=Math.floor(x0/8);c<Math.floor((x0+PLANT_TILE_M)/8);c++){
@@ -537,6 +545,8 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
           if(blocked(log.x,log.y,log.length/2))continue;const g=surface(log.x,log.y);if(!g||g.water)continue;
           // Half sunk into the duff, and greener with moss the further gone it is.
           const moss=Math.max(0,log.decay-.45)*1.4;
+          // A fallen trunk thick enough not to step over stops the walker (deadwoodBlocked).
+          if(log.radius>=LOG_BLOCKS_RADIUS_M)obstacles.push({x:g.p[0],z:g.p[1],dx:Math.cos(log.turn)*log.length/2,dz:-Math.sin(log.turn)*log.length/2,r:log.radius});
           logs.push({p:[g.p[0],g.height+log.radius*.45,g.p[1]],scale:[log.length,log.radius,log.radius],turn:log.turn,
             colour:[.36*(1-moss)+.30*moss,.29*(1-moss)+.36*moss,.22*(1-moss)+.18*moss]});
         }
@@ -638,7 +648,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     if(trailI.length){const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(trailP,3));g.setAttribute("color",new THREE.Float32BufferAttribute(trailC,3));g.setIndex(trailI);g.computeVertexNormals();
       const mesh=new THREE.Mesh(g,material);mesh.userData.surface="nature_trail";mesh.userData.provenance="OpenStreetMap; unknown widths/finish inferred";group.add(mesh);}
     group.userData.counts={trees:[...trees.values()].reduce((n,a)=>n+a.length,0),shrubs:[...shrubs.values()].reduce((n,a)=>n+a.length,0),rocks:rocks.length,trails:trailI.length/6,
-      wildGrass:[...wildGrass.values()].reduce((n,a)=>n+a.length,0),deadwood:logs.length};features.add(group);return group;
+      wildGrass:[...wildGrass.values()].reduce((n,a)=>n+a.length,0),deadwood:logs.length};group.userData.obstacles=obstacles;features.add(group);return group;
   }
   function drop(group){group.removeFromParent();group.traverse(o=>{if((o.isMesh&&!o.isInstancedMesh)||o.isPoints)o.geometry.dispose();if(o.isInstancedMesh)o.dispose();if(o.material?.userData.ownedNature){o.material.userData.coastTexture?.dispose();o.material.dispose();}});}
   const pathsReady=fetch(atlas.resolve("nature/paths.json"),{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(m=>pathsManifest=m).catch(e=>stats.errors.push(String(e)));
@@ -757,6 +767,14 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       return visibleNatureGround(hit.point.x,hit.point.z,hit.object.userData.natureCoarse,
         [hostBox?.value,guestBox?.value],detailMeshes.has(key));
     },invalidate(){forceVersion++;lastX=Infinity;},
+    //: Whether a walker of radius `r` standing at page point (x, z) would be inside fallen
+    //: deadwood: a trunk too thick to step over (the plant tiles' logs), or a stump or a big
+    //: rock on the near forest floor. Undergrowth, grass and litter are walked through.
+    deadwoodBlocked(x,z,r=.25){
+      const [ax,ay]=atlas.local(...fromPage(x,z)),tx=Math.floor(ax/PLANT_TILE_M),ty=Math.floor(ay/PLANT_TILE_M);
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        for(const o of plantGroups.get(`${tx+dx}:${ty+dy}`)?.userData.obstacles||[])if(logHit(o,x,z,r))return true;}
+      return Boolean(floor?.blockedAt?.(x,z,r));},
     //: Whether the plants within `radius` metres of page point (x, z) are standing.
     plantsReadyAt(x,z,radius=220){const [ax,ay]=atlas.local(...fromPage(x,z));
       for(let ty=Math.floor((ay-radius)/PLANT_TILE_M);ty<=Math.floor((ay+radius)/PLANT_TILE_M);ty++)for(let tx=Math.floor((ax-radius)/PLANT_TILE_M);tx<=Math.floor((ax+radius)/PLANT_TILE_M);tx++)

@@ -58,7 +58,8 @@ def test_meters_and_trolley_wires_reach_the_streets() -> None:
     spot = _extract("meterSpot", js)
     assert "streetSquareKerb(nearestKerbAt(x, -y, 8))" in spot and "!insideCarriageway(mx, mz, 0.05)" in spot
     wires = _extract("addTrolleyWires", js)
-    assert ("TROLLEY.height" in wires and "span poles" not in wires.lower()) or "TROLLEY.span" in wires
+    # Span wires every TROLLEY.span metres along a line (trolleySpanStations places them).
+    assert "trolleySpanStations(" in wires and "TROLLEY.span" in _extract("trolleySpanStations", js)
     furniture = json.loads((ROOT / "docs/sf-corridor-furniture.json").read_text())
     assert len(furniture["geometry_based"]["parking_meters"]) > 5000
     assert len(furniture["inferred"]["trolley_wires"]) > 300
