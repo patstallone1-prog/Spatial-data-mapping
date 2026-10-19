@@ -26367,6 +26367,100 @@ const TROLLEY_POLE_SNAP_M = 9;
 //: A span pole this close to another already standing is that pole.
 const TROLLEY_POLE_SHARE_M = 6;
 const TROLLEY = { height: 5.6, pair: 0.6, laneOffset: 2.4, onewayOffset: 1.4, span: 36, poleHeight: 7.6, crossAt: 6.6 };
+//: Way ends this close are one node.
+const TROLLEY_JOIN_M = 0.5;
+//: A line's last span stands this far back from a junction it ends at, on the block, where
+//: there are kerbs to stand its poles on (the junction's middle has none).
+const TROLLEY_END_SPAN_BACK_M = 6;
+
+function trolleyChains(paths) {
+  // OpenStreetMap splits a street's wire into ways at every tag change, and a route that turns
+  // the corner (Fillmore into Green) is two ways meeting at the junction. Drawn one way at a
+  // time, each way's offset wires stop square at its end and the next way's start square at
+  // its own: at a turn, the four wires end in the air across the junction. Ways meeting end to
+  // end, where nothing else meets them, are one line -- two-way ways in either direction,
+  // one-way ways only head to tail. paths: [{ path: [[x, z], ...], oneway }].
+  // Returns [{ path, oneway, startOpen, endOpen }], open meaning nothing else meets that end.
+  const keyOf = ([x, z]) => `${Math.round(x / TROLLEY_JOIN_M)},${Math.round(z / TROLLEY_JOIN_M)}`;
+  const ends = new Map();
+  paths.forEach((w, i) => {
+    if (w.path.length < 2) return;
+    for (const [at, end] of [[0, "start"], [w.path.length - 1, "end"]]) {
+      const k = keyOf(w.path[at]);
+      if (!ends.has(k)) ends.set(k, []);
+      ends.get(k).push({ i, end });
+    }
+  });
+  const used = new Set();
+  const partner = (i, end) => {
+    const here = ends.get(keyOf(end === "start" ? paths[i].path[0] : paths[i].path.at(-1))) || [];
+    if (here.length !== 2) return null;
+    const other = here.find((e) => e.i !== i);
+    if (!other || used.has(other.i) || paths[other.i].oneway !== paths[i].oneway) return null;
+    if (paths[i].oneway && other.end === end) return null;  // head to head: opposite directions
+    return other;
+  };
+  const degree = (pt) => (ends.get(keyOf(pt)) || []).length;
+  const chains = [];
+  paths.forEach((w, i) => {
+    if (used.has(i) || w.path.length < 2) return;
+    used.add(i);
+    let path = w.path.slice();
+    // Forward from the end, then back from the start.
+    for (let cur = { i, end: "end" }, next; (next = partner(cur.i, cur.end));) {
+      used.add(next.i);
+      const p = paths[next.i].path;
+      const along = next.end === "start" ? p : p.slice().reverse();
+      path = path.concat(along.slice(1));
+      cur = { i: next.i, end: next.end === "start" ? "end" : "start" };
+    }
+    for (let cur = { i, end: "start" }, next; (next = partner(cur.i, cur.end));) {
+      used.add(next.i);
+      const p = paths[next.i].path;
+      const along = next.end === "end" ? p : p.slice().reverse();
+      path = along.slice(0, -1).concat(path);
+      cur = { i: next.i, end: next.end === "end" ? "start" : "end" };
+    }
+    chains.push({ path, oneway: w.oneway, startOpen: degree(path[0]) <= 1, endOpen: degree(path.at(-1)) <= 1 });
+  });
+  return chains;
+}
+
+function mitredOffsets(path) {
+  // Each vertex's offset direction and length: the mean of the two segments' left normals,
+  // lengthened so an offset line keeps its distance through the bend (at most twice, so a
+  // hairpin does not throw a wire across the street). [[nx, nz, scale], ...]
+  const normals = [];
+  for (let i = 1; i < path.length; i += 1) {
+    const dx = path[i][0] - path[i - 1][0], dz = path[i][1] - path[i - 1][1];
+    const len = Math.hypot(dx, dz) || 1;
+    normals.push([-dz / len, dx / len]);
+  }
+  return path.map((_, i) => {
+    const a = normals[Math.max(0, i - 1)], b = normals[Math.min(normals.length - 1, i)];
+    let mx = a[0] + b[0], mz = a[1] + b[1];
+    const m = Math.hypot(mx, mz);
+    if (m < 1e-6) return [a[0], a[1], 1];
+    mx /= m; mz /= m;
+    const cosHalf = mx * a[0] + mz * a[1];
+    return [mx, mz, Math.min(2, 1 / Math.max(cosHalf, 0.5))];
+  });
+}
+
+function trolleySpanStations(length, startOpen, endOpen) {
+  // Distances along a line where its span wires cross: every TROLLEY.span metres, the first
+  // and last on the block -- at an open end, at the end itself (the wire ends on that span);
+  // at a junction, TROLLEY_END_SPAN_BACK_M short of it -- so no length of wire hangs past its
+  // last support.
+  const first = startOpen ? 0 : TROLLEY_END_SPAN_BACK_M;
+  const last = length - (endOpen ? 0 : TROLLEY_END_SPAN_BACK_M);
+  if (last <= first) return [length / 2];
+  const stations = [];
+  for (let d = first; d < last - TROLLEY.span / 4; d += TROLLEY.span) stations.push(d);
+  stations.push(last);
+  return stations;
+}
+
 function addTrolleyWires(records, lightRows = []) {
   const segments = [], poles = [];
   // Muni's span wires hang from the city's trolley poles, which carry streetlights and are in
@@ -26395,57 +26489,72 @@ function addTrolleyWires(records, lightRows = []) {
     return null;
   };
   const groundAt = (x, z) => groundLiftAt(x, z) + ROAD_TOP_M;
-  for (const wire of records) {
-    const path = (wire.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  const spanAt = (px, pz, nx, nz) => {
+    // A span wire across the street at (px, pz), between poles at the kerbs either side.
+    const ends = [];
+    for (const side of [1, -1]) {
+      const kerb = streetSquareKerb(nearestKerbAt(px + nx * side * 7, pz + nz * side * 7, 6));
+      if (!kerb) continue;
+      const qx = kerb.x + kerb.nx * 0.5, qz = kerb.z + kerb.nz * 0.5;
+      if (buildingAt(qx, qz) || insideCarriageway(qx, qz, 0.05)) continue;
+      const real = standing(qx, qz);
+      if (real) {
+        ends.push([real.anchor.x, real.anchor.y + TROLLEY.crossAt, real.anchor.z]);
+        continue;
+      }
+      const shared = standingSpanPole(qx, qz);
+      if (shared) {
+        ends.push([shared.x, shared.y + TROLLEY.crossAt, shared.z]);
+        continue;
+      }
+      const top = pavementTopAt(qx, qz);
+      const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
+      const pole = { x: qx, y, z: qz };
+      poles.push(pole);
+      const key = cellOf(qx, qz);
+      if (!placedPoles.has(key)) placedPoles.set(key, []);
+      placedPoles.get(key).push(pole);
+      ends.push([qx, y + TROLLEY.crossAt, qz]);
+    }
+    if (ends.length === 2) segments.push(...ends[0], ...ends[1]);
+  };
+  const projected = records.map((wire) => ({
+    oneway: Boolean(wire.oneway),
+    path: (wire.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }),
+  }));
+  for (const chain of trolleyChains(projected)) {
+    const path = chain.path.filter((pt, i, all) => i === 0 || Math.hypot(pt[0] - all[i - 1][0], pt[1] - all[i - 1][1]) >= 0.5);
     if (path.length < 2) continue;
-    const offsets = wire.oneway
+    const offsets = chain.oneway
       ? [TROLLEY.onewayOffset - TROLLEY.pair / 2, TROLLEY.onewayOffset + TROLLEY.pair / 2]
       : [-TROLLEY.laneOffset - TROLLEY.pair / 2, -TROLLEY.laneOffset + TROLLEY.pair / 2,
          TROLLEY.laneOffset - TROLLEY.pair / 2, TROLLEY.laneOffset + TROLLEY.pair / 2];
-    let carried = 0;
+    const mitres = mitredOffsets(path);
+    const at = (i, o) => [path[i][0] + mitres[i][0] * mitres[i][2] * o, path[i][1] + mitres[i][1] * mitres[i][2] * o];
+    const lengths = [0];
     for (let i = 1; i < path.length; i += 1) {
       const [ax, az] = path[i - 1], [bx, bz] = path[i];
       const len = Math.hypot(bx - ax, bz - az);
-      if (len < 0.5) continue;
-      const ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz, nz = ux;
+      lengths.push(lengths[i - 1] + len);
       const steps = Math.max(1, Math.ceil(len / 12));
-      for (let k = 0; k < steps; k += 1) {
-        const t0 = k / steps, t1 = (k + 1) / steps;
-        const p0 = [ax + (bx - ax) * t0, az + (bz - az) * t0], p1 = [ax + (bx - ax) * t1, az + (bz - az) * t1];
-        const y0 = groundAt(...p0) + TROLLEY.height, y1 = groundAt(...p1) + TROLLEY.height;
-        for (const o of offsets) segments.push(p0[0] + nx * o, y0, p0[1] + nz * o, p1[0] + nx * o, y1, p1[1] + nz * o);
-      }
-      // Span poles at the kerbs either side, every TROLLEY.span metres along the street.
-      for (let d = (TROLLEY.span - carried) % TROLLEY.span; d < len; d += TROLLEY.span) {
-        const px = ax + ux * d, pz = az + uz * d;
-        const ends = [];
-        for (const side of [1, -1]) {
-          const kerb = streetSquareKerb(nearestKerbAt(px + nx * side * 7, pz + nz * side * 7, 6));
-          if (!kerb) continue;
-          const qx = kerb.x + kerb.nx * 0.5, qz = kerb.z + kerb.nz * 0.5;
-          if (buildingAt(qx, qz) || insideCarriageway(qx, qz, 0.05)) continue;
-          const real = standing(qx, qz);
-          if (real) {
-            ends.push([real.anchor.x, real.anchor.y + TROLLEY.crossAt, real.anchor.z]);
-            continue;
-          }
-          const shared = standingSpanPole(qx, qz);
-          if (shared) {
-            ends.push([shared.x, shared.y + TROLLEY.crossAt, shared.z]);
-            continue;
-          }
-          const top = pavementTopAt(qx, qz);
-          const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
-          const pole = { x: qx, y, z: qz };
-          poles.push(pole);
-          const key = cellOf(qx, qz);
-          if (!placedPoles.has(key)) placedPoles.set(key, []);
-          placedPoles.get(key).push(pole);
-          ends.push([qx, y + TROLLEY.crossAt, qz]);
+      for (const o of offsets) {
+        const a = at(i - 1, o), b = at(i, o);
+        for (let k = 0; k < steps; k += 1) {
+          const t0 = k / steps, t1 = (k + 1) / steps;
+          const p0 = [a[0] + (b[0] - a[0]) * t0, a[1] + (b[1] - a[1]) * t0];
+          const p1 = [a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1];
+          segments.push(p0[0], groundAt(...p0) + TROLLEY.height, p0[1], p1[0], groundAt(...p1) + TROLLEY.height, p1[1]);
         }
-        if (ends.length === 2) segments.push(...ends[0], ...ends[1]);
       }
-      carried = (carried + len) % TROLLEY.span;
+    }
+    // Span wires along the line, the first and last where they hold its ends.
+    let seg = 1;
+    for (const d of trolleySpanStations(lengths.at(-1), chain.startOpen, chain.endOpen)) {
+      while (seg < path.length - 1 && lengths[seg] < d) seg += 1;
+      const [ax, az] = path[seg - 1], [bx, bz] = path[seg];
+      const len = lengths[seg] - lengths[seg - 1] || 1;
+      const ux = (bx - ax) / len, uz = (bz - az) / len, t = d - lengths[seg - 1];
+      spanAt(ax + ux * t, az + uz * t, -uz, ux);
     }
   }
   if (segments.length) {
@@ -27952,6 +28061,7 @@ function teleportTrip(fromPage, toPage, perform) {
       const s = worldCellCache.snapshot(), at = state.firstPerson ? avatar.position : state.target;
       return !s.active && !s.queued && (!natureWorld?.plantsReadyAt || natureWorld.plantsReadyAt(at.x, at.z));
     },
+    pending: () => { const s = worldCellCache.snapshot(); return s.active + s.queued; },
     onPull: (u) => {
       if (state.firstPerson) return;
       state.dist = start.dist * (1 + 7 * u * u); state.pitch = start.pitch + (1.3 - start.pitch) * u; placeCamera();
