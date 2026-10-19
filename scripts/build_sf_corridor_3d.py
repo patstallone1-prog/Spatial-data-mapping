@@ -3427,7 +3427,7 @@ const GROUND_URL = asset("sf-corridor-ground.json");
 //: Where the square is, read from the payload's cells before anything is fetched.
 const LIGHT_SPEC = LIGHT_LEVEL ? await fetch(PAYLOAD_URL.replace(/([^/]+)\.json$/, "cells/$1/manifest.json"), { cache: "no-cache" })
   .then((r) => (r.ok ? r.json() : null)).then((m) => windowSpec(m && m.bbox)).catch(() => null) : null;
-const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS] = await Promise.all([
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS, INVENTORY_CROSSINGS] = await Promise.all([
   fetchWindowed(PAYLOAD_URL, () => fetch(PAYLOAD_URL, { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -3490,7 +3490,17 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
   // (scripts/build_electrical_spans.py). Only photograph-confirmed spans are in it.
   fetch(asset("sf-corridor-electrical.json"), { cache: "no-cache" })
     .then(r => r.ok ? r.json() : null).catch(() => null),
+  // The crosswalks SFMTA's inventory records at junctions OpenStreetMap maps no crossing at
+  // (tools/build_inventory_crossings.py): the app's own, beside the payload, so the website's
+  // payload is not changed. A page without the file draws the payload's crossings alone.
+  fetch(asset("app-inventory-crossings.json"), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
 ]);
+if (INVENTORY_CROSSINGS?.schema === "kerbside.inventory_crossings/1" && Array.isArray(DATA?.ways)) {
+  for (const crossing of INVENTORY_CROSSINGS.crossings || []) {
+    if (crossing.kind === "crossing" && Array.isArray(crossing.points) && crossing.points.length >= 2) DATA.ways.push(crossing);
+  }
+}
 // Evidence annotations are not a replacement world. An exact-footprint guard prevents a
 // stale sidecar from applying a restroom style to a newer/changed canonical building.
 function applyParkEvidence(data, evidence) {
@@ -3973,7 +3983,7 @@ Object.values(groups).forEach((g) => root.add(g));
     setFirstPerson(false);
     state.target.set(x, PENINSULA_Y, -y);
     state.dist = Math.max(600, Math.hypot(x1 - x0, y1 - y0) * REGION_FRAME);
-    state.pitch = 0.95;
+    state.pitch = 0.95; state.tilt = 0;
     if (typeof avatar !== "undefined") avatar.position.set(x, AVATAR_STAND_Y, -y);
     placeCamera();
     // The tree has a moment's warning that the world is about to be somewhere else.
@@ -21462,9 +21472,18 @@ function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
 // street tree is a rounded crown on a few spreading limbs, a broad tree a wide flat-topped one,
 // a columnar tree a narrow spire of upright limbs, a conifer a tiered cone of drooping whorls
 // of needles, and a palm a bare ringed trunk with a crown of long arching fronds.
-const TREE_LEAF_TEXTURES = new Map();
+const TREE_LEAF_TEXTURES = new Map(), TREE_LEAF_NORMALS = new Map();
+//: A broadleaf's leaf card: branch-ends of leaves painted vein by vein, with a normal map so
+//: the veins catch the light (vegetation-geometry.mjs, leafCardTextures). Pale, so the
+//: tree's own green (its vertex colour) colours it. Without the module, the older drawing.
 function treeLeafTexture(kind) {
   if (TREE_LEAF_TEXTURES.has(kind)) return TREE_LEAF_TEXTURES.get(kind);
+  if (kind === "broad" && vegetationLibrary?.leafCardTextures) {
+    const pair = vegetationLibrary.leafCardTextures(THREE, { form: "street", layout: "spray", size: 1024, seed: 11 });
+    TREE_LEAF_TEXTURES.set(kind, pair.map);
+    TREE_LEAF_NORMALS.set(kind, pair.normalMap);
+    return pair.map;
+  }
   const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
@@ -21548,7 +21567,12 @@ function treeVariant(kind) {
   const rnd = () => { s += 1; return random(s * 2654435761 % 1000003); };
   const bark = [], leaves = [];
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const tint = new THREE.Color(kind === "broad" ? 0xe0ffd0 : kind === "columnar" ? 0xd0f0c0 : 0xffffff);
+  // The painted leaves are pale and take the tree's green from here; the older drawing (and the
+  // palm's fronds and the conifer's needles) carry their own colour and want almost none.
+  const painted = Boolean(vegetationLibrary?.leafCardTextures) && kind !== "palm" && kind !== "conifer";
+  const tint = new THREE.Color(painted
+    ? (kind === "broad" ? 0x7fae5a : kind === "columnar" ? 0x6f9e55 : 0x86b35e)
+    : (kind === "broad" ? 0xe0ffd0 : kind === "columnar" ? 0xd0f0c0 : 0xffffff));
   // A cluster of leaf cards in an ellipsoid round c.
   const cluster = (c, rx, ry, cards, size, droop = 0) => {
     for (let i = 0; i < cards; i += 1) {
@@ -21619,9 +21643,11 @@ function treeVariant(kind) {
     color: kind === "palm" ? 0x7a6a55 : kind === "conifer" ? 0x4a3a2c : 0x5a4a3a, roughness: 0.95 }));
   barkMesh.geometry.computeBoundingSphere();
   group.add(barkMesh);
+  const leafKind = kind === "palm" ? "palm" : kind === "conifer" ? "conifer" : "broad";
+  const leafMap = treeLeafTexture(leafKind), leafNormal = TREE_LEAF_NORMALS.get(leafKind);
   const leafMesh = new THREE.Mesh(mergeParts(leaves), new THREE.MeshStandardMaterial({
-    map: treeLeafTexture(kind === "palm" ? "palm" : kind === "conifer" ? "conifer" : "broad"),
-    vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.85, metalness: 0.0 }));
+    map: leafMap, vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, roughness: leafNormal ? 0.72 : 0.85, metalness: 0.0,
+    ...(leafNormal ? { normalMap: leafNormal, normalScale: new THREE.Vector2(0.9, 0.9) } : {}) }));
   // Lit as a crown, not as cards; and swayed by the wind (foliage-motion.mjs).
   vegetationLibrary?.foliageNormals?.(leafMesh.geometry.getAttribute("position").array,
     leafMesh.geometry.getAttribute("normal").array);
@@ -25770,6 +25796,8 @@ const POLE_DEFAULT_M = 10.5;
 //: A small cell's own pole: a street light's height.
 const SMALL_CELL_POLE_M = 8.5;
 const TOWER_DEFAULT_M = 32;
+//: A mapped line turning more than this at a point turns on a pole there.
+const POWER_BEND_DEG = 15;
 const MAST_DEFAULT_M = 30;
 
 function catenaryPoints(a, b, out, parameter = WIRE_CATENARY_A_M) {
@@ -25845,6 +25873,27 @@ function addElectricalNetwork(furniture, lightRows = []) {
   }
   const lines = (inferred.power_lines || []).filter(mappedOverheadLine).map((line) => ({ line,
     path: (line.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return { x, z: -y }; }) }));
+  // A conductor cannot turn in the air: where a mapped line bends, something holds it. Where no
+  // pole is mapped or photographed at a bend, one stands there, marked inferred; where none can
+  // stand (a roof, a carriageway), the spans either side of the bend are not drawn.
+  const unsupportedBends = new Set();
+  for (const { line, path } of lines) {
+    if (line.power_kind === "line") continue;  // towers: spans need mapped supports at both ends
+    for (let i = 1; i < path.length - 1; i += 1) {
+      const a = path[i - 1], b = path[i], c = path[i + 1];
+      const l0 = Math.hypot(b.x - a.x, b.z - a.z), l1 = Math.hypot(c.x - b.x, c.z - b.z);
+      if (l0 < 1 || l1 < 1) continue;
+      const cos = ((b.x - a.x) * (c.x - b.x) + (b.z - a.z) * (c.z - b.z)) / (l0 * l1);
+      if (cos > Math.cos(POWER_BEND_DEG * Math.PI / 180)) continue;
+      if (poleRows.some((row) => Math.hypot(row.anchor.x - b.x, row.anchor.z - b.z) < 4)) continue;
+      if (buildingAt(b.x, b.z) || insideCarriageway(b.x, b.z, 0.05)) { unsupportedBends.add(`${line.id}:${i}`); continue; }
+      const top = pavementTopAt(b.x, b.z);
+      poleRows.push({ item: { id: `inferred:line_bend_pole:${line.id}:${i}`, inferred: true,
+        basis: "mapped overhead line turns here; no pole mapped or photographed" },
+        anchor: { x: b.x, z: b.z, y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(b.x, b.z) },
+        height: POLE_DEFAULT_M, yaw: Math.atan2(-(c.x - a.x), -(c.z - a.z)), inferredAtBend: true });
+    }
+  }
   // Poles.
   const dummy = new THREE.Object3D();
   if (poleRows.length) {
@@ -26027,6 +26076,7 @@ function addElectricalNetwork(furniture, lightRows = []) {
       const a = path[i - 1], b = path[i];
       const d = Math.hypot(b.x - a.x, b.z - a.z);
       if (d < 1 || d > (tower ? 450 : 90)) continue;
+      if (unsupportedBends.has(`${line.id}:${i - 1}`) || unsupportedBends.has(`${line.id}:${i}`)) continue;
       const sa = supportsNear(a.x, a.z), sb = supportsNear(b.x, b.z);
       // A transmission line is strung only between supports that are mapped: its height is
       // the tower's, and guessed at both ends it flew across the city at roof height. An
@@ -26461,6 +26511,47 @@ function trolleySpanStations(length, startOpen, endOpen) {
   return stations;
 }
 
+//: Overhead wire never turns a corner sharply in the air: it rounds it in a curve of short
+//: chords, each held out to a pole on the outside of the turn by a pull-off wire. A bend
+//: sharper than TROLLEY_BEND_DEG is drawn so, on a curve of about TROLLEY_CURVE_R_M.
+const TROLLEY_BEND_DEG = 20;
+const TROLLEY_CURVE_R_M = 9;
+//: The pull-off pole stands at the kerb about this far out from the bend's apex.
+const TROLLEY_PULL_OFF_M = 9;
+function filletTrolleyPath(path) {
+  // path: [[x, z], ...]. Returns { path, bends: [{ apex, out, from, to }] }: each bend
+  // sharper than TROLLEY_BEND_DEG replaced by an arc (indices from..to in the new path), with
+  // out the unit vector to the outside of the turn.
+  const out = [path[0]], bends = [];
+  for (let i = 1; i < path.length - 1; i += 1) {
+    const [px, pz] = path[i - 1], [cx, cz] = path[i], [nx, nz] = path[i + 1];
+    const l0 = Math.hypot(cx - px, cz - pz), l1 = Math.hypot(nx - cx, nz - cz);
+    if (l0 < 1e-6 || l1 < 1e-6) { out.push(path[i]); continue; }
+    const d0 = [(cx - px) / l0, (cz - pz) / l0], d1 = [(nx - cx) / l1, (nz - cz) / l1];
+    const turn = Math.acos(Math.max(-1, Math.min(1, d0[0] * d1[0] + d0[1] * d1[1])));
+    if (turn < TROLLEY_BEND_DEG * Math.PI / 180) { out.push(path[i]); continue; }
+    const t = Math.min(TROLLEY_CURVE_R_M * Math.tan(turn / 2), 0.45 * l0, 0.45 * l1);
+    const r = t / Math.tan(turn / 2);
+    const left = [-d0[1], d0[0]], side = d1[0] * left[0] + d1[1] * left[1] >= 0 ? 1 : -1;
+    const inside = [left[0] * side, left[1] * side];
+    const A = [cx - d0[0] * t, cz - d0[1] * t], B = [cx + d1[0] * t, cz + d1[1] * t];
+    const C = [A[0] + inside[0] * r, A[1] + inside[1] * r];
+    const steps = Math.max(3, Math.ceil(turn / (15 * Math.PI / 180)));
+    const a0 = Math.atan2(A[1] - C[1], A[0] - C[0]);
+    const rot = (sign) => [C[0] + Math.cos(a0 + sign * turn) * r, C[1] + Math.sin(a0 + sign * turn) * r];
+    const sign = Math.hypot(...[0, 1].map((k) => rot(1)[k] - B[k])) < Math.hypot(...[0, 1].map((k) => rot(-1)[k] - B[k])) ? 1 : -1;
+    const from = out.length;
+    for (let k = 0; k <= steps; k += 1) {
+      const a = a0 + sign * turn * (k / steps);
+      out.push([C[0] + Math.cos(a) * r, C[1] + Math.sin(a) * r]);
+    }
+    const ox = d0[0] - d1[0], oz = d0[1] - d1[1], ol = Math.hypot(ox, oz) || 1;
+    bends.push({ apex: [cx, cz], out: [ox / ol, oz / ol], from, to: out.length - 1 });
+  }
+  out.push(path.at(-1));
+  return { path: out, bends };
+}
+
 function addTrolleyWires(records, lightRows = []) {
   const segments = [], poles = [];
   // Muni's span wires hang from the city's trolley poles, which carry streetlights and are in
@@ -26489,42 +26580,40 @@ function addTrolleyWires(records, lightRows = []) {
     return null;
   };
   const groundAt = (x, z) => groundLiftAt(x, z) + ROAD_TOP_M;
+  const supportAt = (x, z, reach) => {
+    // Where a wire is tied off near (x, z): the city's trolley pole, a span pole already
+    // standing, or a new pole at the kerb. [x, y, z] of the tie, or null where none can stand.
+    const kerb = streetSquareKerb(nearestKerbAt(x, z, reach));
+    if (!kerb) return null;
+    const qx = kerb.x + kerb.nx * 0.5, qz = kerb.z + kerb.nz * 0.5;
+    if (buildingAt(qx, qz) || insideCarriageway(qx, qz, 0.05)) return null;
+    const real = standing(qx, qz);
+    if (real) return [real.anchor.x, real.anchor.y + TROLLEY.crossAt, real.anchor.z];
+    const shared = standingSpanPole(qx, qz);
+    if (shared) return [shared.x, shared.y + TROLLEY.crossAt, shared.z];
+    const top = pavementTopAt(qx, qz);
+    const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
+    const pole = { x: qx, y, z: qz };
+    poles.push(pole);
+    const key = cellOf(qx, qz);
+    if (!placedPoles.has(key)) placedPoles.set(key, []);
+    placedPoles.get(key).push(pole);
+    return [qx, y + TROLLEY.crossAt, qz];
+  };
   const spanAt = (px, pz, nx, nz) => {
     // A span wire across the street at (px, pz), between poles at the kerbs either side.
-    const ends = [];
-    for (const side of [1, -1]) {
-      const kerb = streetSquareKerb(nearestKerbAt(px + nx * side * 7, pz + nz * side * 7, 6));
-      if (!kerb) continue;
-      const qx = kerb.x + kerb.nx * 0.5, qz = kerb.z + kerb.nz * 0.5;
-      if (buildingAt(qx, qz) || insideCarriageway(qx, qz, 0.05)) continue;
-      const real = standing(qx, qz);
-      if (real) {
-        ends.push([real.anchor.x, real.anchor.y + TROLLEY.crossAt, real.anchor.z]);
-        continue;
-      }
-      const shared = standingSpanPole(qx, qz);
-      if (shared) {
-        ends.push([shared.x, shared.y + TROLLEY.crossAt, shared.z]);
-        continue;
-      }
-      const top = pavementTopAt(qx, qz);
-      const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
-      const pole = { x: qx, y, z: qz };
-      poles.push(pole);
-      const key = cellOf(qx, qz);
-      if (!placedPoles.has(key)) placedPoles.set(key, []);
-      placedPoles.get(key).push(pole);
-      ends.push([qx, y + TROLLEY.crossAt, qz]);
-    }
+    const ends = [1, -1].map((side) => supportAt(px + nx * side * 7, pz + nz * side * 7, 6)).filter(Boolean);
     if (ends.length === 2) segments.push(...ends[0], ...ends[1]);
+    return ends.length === 2;
   };
   const projected = records.map((wire) => ({
     oneway: Boolean(wire.oneway),
     path: (wire.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }),
   }));
   for (const chain of trolleyChains(projected)) {
-    const path = chain.path.filter((pt, i, all) => i === 0 || Math.hypot(pt[0] - all[i - 1][0], pt[1] - all[i - 1][1]) >= 0.5);
-    if (path.length < 2) continue;
+    const cleaned = chain.path.filter((pt, i, all) => i === 0 || Math.hypot(pt[0] - all[i - 1][0], pt[1] - all[i - 1][1]) >= 0.5);
+    if (cleaned.length < 2) continue;
+    const { path, bends } = filletTrolleyPath(cleaned);
     const offsets = chain.oneway
       ? [TROLLEY.onewayOffset - TROLLEY.pair / 2, TROLLEY.onewayOffset + TROLLEY.pair / 2]
       : [-TROLLEY.laneOffset - TROLLEY.pair / 2, -TROLLEY.laneOffset + TROLLEY.pair / 2,
@@ -26545,6 +26634,28 @@ function addTrolleyWires(records, lightRows = []) {
           const p1 = [a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1];
           segments.push(p0[0], groundAt(...p0) + TROLLEY.height, p0[1], p1[0], groundAt(...p1) + TROLLEY.height, p1[1]);
         }
+      }
+    }
+    // Each curve hangs from a pole on the outside of its turn: a pull-off wire from the pole to
+    // every wire at each of the curve's inner points. Where no pole can stand there, a span
+    // across the street at either end of the curve holds it instead.
+    for (const bend of bends) {
+      const reach = TROLLEY.laneOffset + TROLLEY_PULL_OFF_M;
+      const tie = supportAt(bend.apex[0] + bend.out[0] * reach, bend.apex[1] + bend.out[1] * reach, 7)
+        || supportAt(bend.apex[0] + bend.out[0] * reach, bend.apex[1] + bend.out[1] * reach, 12);
+      if (tie) {
+        for (let k = bend.from + 1; k < bend.to; k += 1) {
+          for (const o of offsets) {
+            const w = at(k, o);
+            segments.push(...tie, w[0], groundAt(...w) + TROLLEY.height, w[1]);
+          }
+        }
+        continue;
+      }
+      for (const k of [bend.from, bend.to]) {
+        const j = Math.min(path.length - 1, Math.max(1, k));
+        const dx = path[j][0] - path[j - 1][0], dz = path[j][1] - path[j - 1][1], l = Math.hypot(dx, dz) || 1;
+        spanAt(path[k][0], path[k][1], -dz / l, dx / l);
       }
     }
     // Span wires along the line, the first and last where they hold its ends.
@@ -26985,7 +27096,14 @@ for (const s of DATA.sequence_paths) {
 //: with the other regions' markers standing in it -- from high enough that all of it fits,
 //: which for a region a few kilometres across is a dozen kilometres up. A click brings the
 //: walker down to a street; the wheel zooms in from here.
-const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0 };
+const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0, tilt: 0 };
+//: How far the view turns up or down: just short of straight up and straight down (exactly
+//: vertical, "up" is undefined and the view would spin).
+const LOOK_LIMIT = 1.55;
+//: The orbit's lowest pitch. Dragged on past it, the camera stays where it is and the view
+//: tilts up (state.tilt) -- to the sky overhead at most.
+const ORBIT_MIN_PITCH = 0.25;
+const ORBIT_MAX_TILT = ORBIT_MIN_PITCH + LOOK_LIMIT;
 //: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
 const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
 //: ``autoFirstPerson``: the walker went into a building and the view went to its eyes by
@@ -27000,7 +27118,7 @@ function placeCamera() {
     const eye = avatar.position.clone();
     eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
     const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw)).negate();
-    const aim = eye.clone().add(forward.multiplyScalar(10)).add(new THREE.Vector3(0, Math.tan(state.look) * 10, 0));
+    const aim = eye.clone().add(forward.multiplyScalar(10 * Math.cos(state.look))).add(new THREE.Vector3(0, Math.sin(state.look) * 10, 0));
     camera.position.copy(eye);
     camera.lookAt(aim);
     return;
@@ -27017,6 +27135,7 @@ function placeCamera() {
   }
   constrainWorldCamera();
   camera.lookAt(state.target);
+  if (state.tilt > 0) camera.rotateX(Math.min(state.tilt, ORBIT_MAX_TILT));
   fitViewToAltitude();
 }
 //: Climbing, the view sees further and the haze lifts: the far plane reaches past the Earth's
@@ -27112,9 +27231,12 @@ canvas.addEventListener("pointermove", (e) => {
   const dx = e.clientX - last[0], dy = e.clientY - last[1];
   state.yaw -= dx * 0.006;
   if (state.firstPerson) {
-    state.look = Math.max(-0.7, Math.min(0.7, state.look - dy * 0.004));
+    state.look = Math.max(-LOOK_LIMIT, Math.min(LOOK_LIMIT, state.look - dy * 0.004));
   } else {
-    state.pitch = Math.max(0.25, Math.min(1.28, state.pitch + dy * 0.004));
+    // Pitch and tilt are one motion: below the lowest pitch the drag tilts the view up instead.
+    const v = state.pitch - (state.tilt || 0) + dy * 0.004;
+    state.pitch = Math.max(ORBIT_MIN_PITCH, Math.min(1.28, v));
+    state.tilt = Math.max(0, Math.min(ORBIT_MAX_TILT, ORBIT_MIN_PITCH - v));
   }
   last = [e.clientX, e.clientY];
   placeCamera();
@@ -27714,7 +27836,7 @@ try {
     const [x, y] = xy(saved.lon, saved.lat);
     avatar.position.set(x, AVATAR_STAND_Y + walkerGroundAt(x, -y), -y);
     state.yaw = Number.isFinite(saved.yaw) ? saved.yaw : state.yaw;
-    state.pitch = Number.isFinite(saved.pitch) ? saved.pitch : state.pitch;
+    state.pitch = Number.isFinite(saved.pitch) ? saved.pitch : state.pitch; state.tilt = 0;
     state.dist = Number.isFinite(saved.dist) ? Math.max(8, saved.dist) : ARRIVAL_DIST;
     state.firstPerson = Boolean(saved.firstPerson);
     sessionStorage.removeItem("kerbside:region-arrival");
@@ -28053,7 +28175,7 @@ function teleportTrip(fromPage, toPage, perform) {
   return teleportOverlay.run({
     from: local(fromPage), to: local(toPage),
     perform: () => {
-      state.dist = start.dist; state.pitch = start.pitch;
+      state.dist = start.dist; state.pitch = start.pitch; state.tilt = 0;
       perform();
       arrival = { dist: state.dist, pitch: state.pitch };
     },
@@ -29008,6 +29130,8 @@ function walkerFootprintBlocked(x, z) {
 
 // Move the walker by (mx, mz), in steps short enough that no wall is crossed between checks,
 // sliding along whatever it meets.
+//: The walker's width against deadwood on the forest floor.
+const WALKER_DEADWOOD_RADIUS_M = 0.25;
 function moveWalker(mx, mz) {
   const distance = Math.hypot(mx, mz);
   const steps = Math.max(1, Math.ceil(distance / WALK_SUBSTEP_M));
@@ -29040,6 +29164,11 @@ function moveWalker(mx, mz) {
       ? guest.api.walkerFootprintBlocked(...hostToGuest(guest, nextX, nextZ))
       : walkerFootprintBlocked(nextX, nextZ));
     if (blocked) break;
+    // Fallen trunks, stumps and big rocks in a wood are climbed round, not walked through;
+    // undergrowth is pushed through. A walker already standing in one may walk out of it.
+    const wood = !belowBuildings && typeof natureWorld !== "undefined" && natureWorld?.deadwoodBlocked;
+    if (wood && natureWorld.deadwoodBlocked(nextX, nextZ, WALKER_DEADWOOD_RADIUS_M)
+        && !natureWorld.deadwoodBlocked(p.x, p.z, WALKER_DEADWOOD_RADIUS_M)) break;
     p.x = nextX;
     p.z = nextZ;
     if (typeof walkerGroundAt === "function") feet=walkerGroundAt(p.x,p.z,feet);
@@ -32314,9 +32443,14 @@ function followGps(dt) {
   if (gps.follow) { state.target.copy(avatar.position); placeCamera(); }
   return true;
 }
-//: The pace of walking on a slope (Tobler's hiking function, relative to the level): slower
-//: uphill, a little quicker down a gentle slope, slower again down a steep one.
+//: The pace of walking on a slope, relative to the level: slower uphill, and quicker downhill
+//: the steeper it is -- half as fast again at DOWNHILL_FULL_GRADE and steeper.
+const DOWNHILL_PACE_MAX = 1.5;
+const DOWNHILL_FULL_GRADE = 0.35;
 function toblerPace(grade) {
+  // Up: Tobler's hiking function, every step slower. Down: the slope helps, more the steeper
+  // it is, to DOWNHILL_PACE_MAX (past MAX_DROP_GRADE the ground is a drop and is not walked).
+  if (grade < 0) return 1 + (DOWNHILL_PACE_MAX - 1) * Math.min(1, -grade / DOWNHILL_FULL_GRADE);
   return Math.max(0.3, Math.min(1.15, Math.exp(-3.5 * Math.abs(grade + 0.05)) / Math.exp(-3.5 * 0.05)));
 }
 //: Steeper than this, plain ground is a cliff or a wall: not walked up, or off.

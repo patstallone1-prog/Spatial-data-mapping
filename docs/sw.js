@@ -2,7 +2,7 @@
  * Keeps the installed app shell launchable without a connection. The 3D world
  * streams on demand, from the network, and is never stored here.
  */
-const VERSION = "f6ee54f2ca2cd914";
+const VERSION = "d142598ad5ba417a";
 const CACHE = "kerbside-shell-" + VERSION;
 const SHELL = [
   "./app.html",

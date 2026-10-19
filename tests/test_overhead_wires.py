@@ -119,3 +119,37 @@ def test_fillmore_and_green_are_one_line_in_the_published_corridor() -> None:
                                                     for lon, lat in w["points"]]} for w in (fillmore, green)]
     result = _trolley(f"console.log(JSON.stringify(trolleyChains({json.dumps(paths)}).length));")
     assert result == 1
+
+
+def test_a_corner_is_a_curve_held_by_pull_offs_never_a_square_turn_in_the_air() -> None:
+    js = _page_js()
+    consts = "\n".join(re.search(rf"const {name} = [^\n]+;", js).group(0)
+                       for name in ("TROLLEY_BEND_DEG", "TROLLEY_CURVE_R_M"))
+    script = consts + "\n" + _extract("filletTrolleyPath", js) + """
+    const r = filletTrolleyPath([[0, -60], [0, 0], [-60, 0]]);           // a right-angle turn
+    const p = r.path, turns = [];
+    for (let i = 1; i < p.length - 1; i += 1) {
+      const a = [p[i][0] - p[i-1][0], p[i][1] - p[i-1][1]], b = [p[i+1][0] - p[i][0], p[i+1][1] - p[i][1]];
+      turns.push(Math.acos((a[0]*b[0] + a[1]*b[1]) / Math.hypot(...a) / Math.hypot(...b)) * 180 / Math.PI);
+    }
+    const straight = filletTrolleyPath([[0, 0], [0, 40], [1, 80]]);
+    console.log(JSON.stringify({ n: p.length, maxTurn: Math.max(...turns), bends: r.bends, straight: straight.path.length }));
+    """
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    r = json.loads(out.stdout)
+    assert r["maxTurn"] <= 20 + 1e-6, "no chord of the curve turns sharply"
+    assert len(r["bends"]) == 1 and r["straight"] == 3
+    bend = r["bends"][0]
+    # The pull-off pole stands outside the turn: away from the inside corner at (-, -).
+    assert bend["out"][0] > 0.5 and bend["out"][1] > 0.5
+    wires = _extract("addTrolleyWires", js)
+    assert "const { path, bends } = filletTrolleyPath(cleaned);" in wires
+    assert "segments.push(...tie, w[0], groundAt(...w) + TROLLEY.height, w[1]);" in wires, "a pull-off to every wire"
+
+
+def test_a_mapped_power_line_turns_only_on_a_pole() -> None:
+    network = _extract("addElectricalNetwork", _page_js())
+    assert "if (cos > Math.cos(POWER_BEND_DEG * Math.PI / 180)) continue;" in network
+    assert "inferred:line_bend_pole:" in network and "inferred: true" in network
+    assert "if (unsupportedBends.has(`${line.id}:${i - 1}`) || unsupportedBends.has(`${line.id}:${i}`)) continue;" in network

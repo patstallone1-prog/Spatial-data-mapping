@@ -193,8 +193,9 @@ def main() -> None:
     app_assets += sorted((DOCS / "billboards").glob("*"))
     app_assets += sorted(path for directory in ("interior-assets", "materials", "vendor")
                          for path in (DOCS / directory).rglob("*") if path.is_file())
-    if (DOCS / "app-sf-corridor-ground.json").exists():
-        app_assets.append(DOCS / "app-sf-corridor-ground.json")
+    for name in ("app-sf-corridor-ground.json", "app-inventory-crossings.json"):
+        if (DOCS / name).exists():
+            app_assets.append(DOCS / name)
     if sf_support:
         app_assets.extend((DOCS / sf_support, (DOCS / sf_support).with_suffix(".json")))
     app_assets += sorted(path for path in APP_REGIONS.rglob("*") if path.is_file())

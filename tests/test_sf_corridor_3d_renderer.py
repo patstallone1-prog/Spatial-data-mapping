@@ -289,7 +289,7 @@ def test_renderer_defers_optional_survey_layers_until_opened() -> None:
     assert "function registerLazyLayer(layer, builder)" in source
     assert "function ensureLazyLayer(layer)" in source
     assert ("const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, "
-            "VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS] = "
+            "VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS, INVENTORY_CROSSINGS] = "
             "await Promise.all([") in source
     assert 'fetch(VISUAL_SUPPORT_URL, { cache: "no-cache" })' in source
     assert 'fetch(asset("sf-corridor-world-objects.json"), { cache: "no-cache" })' in source
