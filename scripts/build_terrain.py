@@ -31,6 +31,7 @@ import argparse
 import itertools
 import json
 import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -46,7 +47,8 @@ from smc.net import use_certifi  # noqa: E402
 use_certifi()
 
 STEP_M = 2.0
-#: Fetched in tiles this wide; the reader caches them, so a re-run costs no download.
+#: Fetched in tiles this wide. Each tile's points are cleared from disk once it is read, so a
+#: re-run downloads them again: kept, they came to a gigabyte or more a region and filled the disk.
 TILE_M = 200.0
 MARGIN_M = 120.0
 FILL_REACH = 6
@@ -177,6 +179,11 @@ def discovered_datasets(region_name: str) -> list[str]:
             if c.get("coverage", 0) > 0]
 
 
+def terrain_cache(region_name: str) -> Path:
+    """Where the tiles being read sit on disk; empty again when the stage is done."""
+    return ROOT / "build" / "regions" / region_name / "terrain-cache"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", type=Path, default=None,
@@ -226,8 +233,12 @@ def main() -> int:
     # that returns no ground in its first PROBE_TILES tiles is set aside for the next.
     tiles = 0
     dataset = None
+    cache_root = terrain_cache(region.name)
     for candidate in candidates:
-        reader = EptReader(candidate)
+        # One reader per collection keeps ept.json and the hierarchy pages in memory across
+        # tiles; only the points go to disk, and they are cleared after every tile.
+        cache = cache_root / candidate
+        reader = EptReader(candidate, cache_dir=cache)
         print(f"region {region.name}, lidar collection {candidate}", flush=True)
         total[:] = 0
         count[:] = 0
@@ -247,6 +258,8 @@ def main() -> int:
                     print(f"  tile at {lat:.4f},{lon:.4f} unavailable: {exc}", flush=True)
                     ty += TILE_M
                     continue
+                finally:
+                    shutil.rmtree(cache, ignore_errors=True)
                 tiles += 1
                 if tiles == PROBE_TILES and not (count > 0).any():
                     print(f"  no ground in the first {PROBE_TILES} tiles of {candidate}: not this collection", flush=True)
@@ -271,6 +284,7 @@ def main() -> int:
         if not empty_probe and (count > 0).any():
             dataset = candidate
             break
+    shutil.rmtree(cache_root, ignore_errors=True)
     if dataset is None:
         print(f"no lidar collection had ground over {region.name}: tried {candidates}", file=sys.stderr)
         return 1

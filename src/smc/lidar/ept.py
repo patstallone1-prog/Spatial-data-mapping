@@ -40,6 +40,10 @@ USGS_LIDAR_PUBLIC = "https://s3-us-west-2.amazonaws.com/usgs-lidar-public"
 #: The San Francisco collection. Its cube covers the whole city and then some.
 SF_DATASET = "CA_SanFrancisco_1_B23"
 
+#: Where a reader given no cache folder keeps its tiles: the checkout's build/, wherever the
+#: script was started from.
+DEFAULT_CACHE = Path(__file__).resolve().parents[3] / "build" / "lidar-cache"
+
 #: ASPRS classification codes. Only these two carry ground truth about a kerb: the classifier's
 #: "ground" is the road and footway surface, and unclassified holds what it declined to call
 #: ground -- which at a kerb face is often the kerb itself.
@@ -118,7 +122,7 @@ class EptReader:
         strict: bool = False,
     ) -> None:
         self._url = f"{base_url.rstrip('/')}/{dataset}"
-        self._cache = cache_dir or Path("build/lidar-cache") / dataset
+        self._cache = cache_dir or DEFAULT_CACHE / dataset
         self._timeout = timeout_s
         self.strict = strict
         self._hierarchy: dict[str, dict[str, int]] = {}
