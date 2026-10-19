@@ -2,7 +2,8 @@
 
 `smc-cloud estimate` produces these figures. Stage times come from this repository's own
 journals, measured on the owner's Mac (Apple silicon) across 43 cells. Prices are list prices,
-checked 2026-10-18; Hetzner's are after its June 2026 increase, converted at €1 = $1.08.
+checked 2026-10-18. Hetzner's are after its 2026 increase; the CX prices are its dollar list
+prices, and the CPX prices are converted at €1 = $1.08.
 Re-measure in the cloud before fixing pool sizes: the queue's ledger records the time, CPU,
 bytes moved and cost of every attempt, and `estimate.from_attempts` turns that into the same
 table.
@@ -23,60 +24,75 @@ Terrain, lidar and imagery spend most of their time waiting on USGS, Mapillary a
 That is why a worker runs several of them at once (`slots`) and the estimate divides those
 stages by the slots. Build and audit are CPU-bound and are not divided.
 
-## The plan: 337 gap cells, 1,578.5 km²
+## The $50 month
 
-| CPU pool | slots | worker-hours | compute | per cell |
+This is the default configuration (`cloud/config/kerbside-cloud.toml`, `cloud/infra/terraform`).
+
+| item | choice | month |
+|---|---|---:|
+| controller | Hetzner **CX23** (2 vCPU, 4 GB), Falkenstein, always on, no Hetzner backups (the queue is backed up to R2) | $6.49 |
+| geographic CPU work | Hetzner **CX43** (8 vCPU, 16 GB, $0.0253/h, capped at $18.49 a month each), 8 cells at once, up to 3 servers, deleted when the work runs out | ≈ $6–12 |
+| storage | R2: about 44 GB private (uploaded once) + 2–4 GB of published cells, less the 10 GB free | ≈ $0.60 |
+| streaming | R2 has no egress fees; the viewer's reads are Class B (10 M a month free, then $0.36 per million), and Cloudflare's cache answers most of them | ≈ $0 |
+| GPU house batches | RunPod **RTX A5000** Secure Cloud, $0.27/h, no persistent volume; about 110 hours fit in the budget | ≈ $27–30 |
+| **total** | | **≈ $41–50** |
+
+The budget makes this a limit, not just an estimate. Workers and storage get $40 a month,
+with a hard stop at $43.50. With the controller that is $50 in all.
+
+**The plan is bigger than 180 cells.** `data/regions/gap-plan.json` has **337 cells,
+1,578.5 km²**, every gap between the Bay Area regions already built. The CPU cost is small
+either way:
+
+| CPU pool | slots | worker-hours | whole plan | per cell |
 |---|---:|---:|---:|---:|
-| **Hetzner CPX32** (4 vCPU shared, $0.0615/h), the default | 4 | 461 | **$28.31** | $0.084 |
-| Hetzner CPX42 (8 vCPU shared, $0.120/h) | 8 | 232 | $27.90 | $0.083 |
-| Hetzner CPX22 (2 vCPU shared, $0.034/h) | 2 | 919 | $30.95 | $0.092 |
-| Hetzner CCX13 (2 vCPU dedicated, $0.074/h) | 2 | 919 | $68.35 | $0.203 |
+| **Hetzner CX43** (EU), the default | 8 | 232 | **$5.87** | $0.017 |
+| Hetzner CPX32 (Hillsboro, US) | 4 | 461 | $28.31 | $0.084 |
+| Hetzner CPX42 (Hillsboro, US) | 8 | 232 | $27.90 | $0.083 |
 
-CPX32 and CPX42 come out the same. CPX32 is the default because a failure or a straggler
-holds a smaller server. Six CPX32 workers finish the plan in about 3–4 days of wall time and
-cost about $8.90 a day at full use, well inside the $25 daily limit.
+Billing is hourly, so one CX43 for ten days costs the same as three for three or four days.
+Three finish the plan in about 3–4 days.
 
-Fixed costs, a month:
+**The CPU figure assumes Mac-like network times.** The CX line is sold only in Germany and
+Finland. The lidar and terrain stages read USGS's EPT tiles from AWS us-west-2, so from
+Europe they cross the Atlantic. Even at twice the Mac's time, CPU stays under about $12.
+Measure one cell first. If EU is more than about 4× slower, switch the pool to `cpx32` in
+`hil`; that runs the plan for about $28 and leaves about 70 GPU-hours.
 
-| item | cost |
-|---|---:|
-| controller, Hetzner CPX22 (+20 % backups) | ≈ $29.50 |
-| R2 storage: 44 GB uploaded once + releases ≈ 50 GB × $0.015 | ≈ $0.75 |
-| R2 operations: migration ≈ 0.3 M Class A writes (free tier 1 M/month); viewer reads are Class B (free tier 10 M) | ≈ $0 |
-| R2 egress | $0 (R2 has none) |
-| GitHub Actions watchdog (public repository) | $0 |
+**The GPU is the swing.** No one has measured how many GPU-hours the remaining houses need.
+At $0.27/h, 50 hours is $13.50, 100 hours is $27 and 250 hours is $67.50. The budget stops
+work at the limit rather than overspending; whatever is left continues next month. Run the
+benchmark below before assuming 100 hours is enough.
 
-The controller is the largest steady cost. It can be stopped between campaigns: the queue is
-backed up to R2, and a new controller restores it.
+After the CPU work, the steady cost is the controller plus storage, about $7 a month. The
+controller can be stopped between campaigns: the queue is in R2, and a new controller
+restores it.
 
 ## GPU: not measured yet
 
 There is no CUDA measurement of the house pipeline. The Mac ran it on MPS, and that time is
-not a CUDA estimate. These are the bounds until there is one:
+not a CUDA estimate.
 
-- A batch is capped at 6 hours. On an RTX 4090 at $0.69/h (secure) that is at most $4.14 per
-  batch, or $2.04 at the community price of $0.34/h. The daily and monthly limits apply either
-  way.
-- GPUs run only while a batch is leased. They stop 5 minutes after the last batch and have no
-  persistent volume, so idle cost is zero. Pod disk is ephemeral, and the weights come from
-  the private bucket's `frontage-models` checkpoint at each start. A persistent volume would
-  only pay for itself if those downloads took longer than about 10 % of a batch; measure that
-  before adding one.
+- A batch is capped at 6 hours, which is at most $1.62 on an A5000.
+- GPUs run only while a batch is leased and stop 5 minutes after the last one. They have no
+  persistent volume, so idle cost is zero. The pod's 120 GB container disk is billed only
+  while it runs, about $1.60 per 100 hours. The weights come from the private bucket at
+  each start. A persistent volume would only pay for itself if those downloads took more than
+  about 10 % of a batch; measure that before adding one.
 
 **Benchmark first.** After setup, submit a single sampled batch:
-`smc-cloud plan --cells none --house-batches 1 --house-sample 200`. Then read its attempt in
-the dashboard (seconds, cost, houses fitted) and compare an L4 or A40 pool ($0.39–0.49/h)
-against the 4090 by changing `instance_type` and `hourly_usd`. Keep whichever has the lowest
-cost per accepted fit. Do the same for CPU with one cell on CPX32 and one on CPX42 before
-running the whole plan.
+`smc-cloud plan --cells none --house-batches 1 --house-sample 200`. Read its attempt in the
+dashboard (seconds, cost, houses fitted). Compare the A5000 with a 4090 ($0.34 community,
+$0.69 secure) by changing `instance_type` and `hourly_usd`, and keep the GPU with the lowest
+cost per accepted fit. A faster card can cost less per house even at a higher hourly rate.
 
 ## Limits that hold regardless
 
-`[budget]` in `cloud/config/kerbside-cloud.toml` sets these:
+`[budget]` in `cloud/config/kerbside-cloud.toml` sets these, for workers and storage:
 
-- $25 a day
-- $300 a month
-- $400 a month as a hard stop: everything is stopped and the queue is paused
+- $10 a day
+- $40 a month
+- $43.50 a month as a hard stop: everything is stopped and the queue is paused
 
 Limits set inside each provider's own account are a second line of defence. Set a spend limit
 on RunPod and a project limit on Hetzner.

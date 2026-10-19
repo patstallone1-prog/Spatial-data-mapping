@@ -11,15 +11,15 @@ Nothing here is switched on. Every account, token and deploy step is in
 [setup-checklist.md](setup-checklist.md) and needs the owner's action.
 
 ```
-                 ┌──────────────── Hetzner (hil) ────────────────┐
-  operator ──────▶ controller (cpx22): queue.sqlite, scheduler,   │
+                 ┌──────────────── Hetzner (fsn1) ───────────────┐
+  operator ──────▶ controller (cx23):  queue.sqlite, scheduler,   │
   smc-cloud       │ gate, publisher, dashboard  /  Caddy HTTPS    │
   dashboard       └──┬──────────────┬───────────────┬─────────────┘
                      │ lease/heartbeat (HMAC worker tokens)
           ┌──────────▼───┐   ┌──────▼────────┐      │ publish (controller only)
           │ CPU workers  │   │ GPU worker    │      ▼
-          │ Hetzner cpx32│   │ RunPod 4090   │   R2 kerbside-public ──▶ assets.<domain>
-          │ 4 cells each │   │ house batches │      (chunks/<sha>, releases/<v>.json,
+          │ Hetzner cx43 │   │ RunPod A5000  │   R2 kerbside-public ──▶ assets.<domain>
+          │ 8 cells each │   │ house batches │      (chunks/<sha>, releases/<v>.json,
           └──────┬───────┘   └──────┬────────┘       releases/current.json)
                  │ checkpoints (content-addressed)          ▲
                  ▼                                          │ /asset-map.json (viaStore)
@@ -59,7 +59,7 @@ lifecycle inside them, and pushes to GHCR from `main`) and `.github/workflows/cl
 
 | workload | where | why |
 |---|---|---|
-| discover, osm, terrain, lidar, imagery, official | CPU pool (Hetzner, 4 slots per server) | Mostly waiting on USGS, Overpass, Mapillary and city services. Hillsboro sits beside USGS's EPT bucket in us-west-2. |
+| discover, osm, terrain, lidar, imagery, official | CPU pool (Hetzner CX43, 8 slots per server) | Mostly waiting on USGS, Overpass, Mapillary and city services. The CX line is EU-only, so lidar crosses the Atlantic from us-west-2; the first cell measures whether that costs more than it saves. |
 | build, audit | CPU pool | Python and node, single-threaded per cell. |
 | gate, publish | controller | Small, and they need the public bucket's write key, which only the controller holds. |
 | house filter → match → materials | GPU pool (RunPod, one at a time) | torch/LightGlue with `--device cuda`. The journals are one shared state (`build/frontage-live`, `build/facade-match`), so batches run serially. Fits stay in the private bucket (`KERBSIDE_HOUSES_PUBLISH=0`). |
@@ -125,7 +125,7 @@ Recovery and limits:
   refused by its fencing token.
 - **Lost controller:** the queue is backed up to `queue/backups/` every five minutes. A
   controller that starts without a database restores the latest backup.
-- **Budget:** the default limits are $25 a day, $300 a month, and a hard stop at $400. New
+- **Budget:** the default limits are $10 a day, $40 a month for workers and storage, and a hard stop at $43.50. With the $6.49 controller that is $50 in all. New
   launches are refused if keeping the pool to midnight would pass the daily limit. At the hard
   limit every worker is stopped and the queue is paused.
 - **Fail-safes:** the scheduler stops a worker after 10 minutes with no work (GPU after 5).

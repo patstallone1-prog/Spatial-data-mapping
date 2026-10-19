@@ -21,31 +21,36 @@ private = "r2://${R2_PRIVATE_BUCKET}"   # kerbside-private
 public = "r2://${R2_PUBLIC_BUCKET}"     # kerbside-public
 public_base = "${R2_PUBLIC_BASE}"       # the public bucket's custom domain, https://assets...
 
+# The $50 month (cloud/docs/costs.md). These limits count workers and storage; the controller
+# ($6.49 a month, fixed) is on top, so $43.50 here is $50 in all. Launches stop at $40 and
+# the hard limit stops everything and pauses the queue: about 110 GPU-hours fit after the CPU.
 [budget]
-daily_usd = 25.0
-monthly_usd = 300.0
-hard_monthly_usd = 400.0
+daily_usd = 10.0
+monthly_usd = 40.0
+hard_monthly_usd = 43.5
 
-# CPU: terrain and lidar spend most of their time waiting on USGS, so a 4-vCPU shared server
-# runs four cells at once. Hillsboro (hil) sits beside USGS's EPT bucket in AWS us-west-2.
+# CPU: terrain and lidar spend most of their time waiting on USGS, so an 8-vCPU shared CX43
+# runs eight cells at once. The CX line is sold only in Germany and Finland, so the lidar
+# crosses the Atlantic from AWS us-west-2; measure one cell before running the plan, and move
+# to cpx32 in "hil" if that makes it slower per dollar.
 [pools.cpu]
 provider = "hetzner"
-instance_type = "cpx32"
-hourly_usd = 0.0615
+instance_type = "cx43"
+hourly_usd = 0.0253
 image = "ghcr.io/patstallone1-prog/kerbside-cpu:main"
-max_workers = 6
-slots = 4
+max_workers = 3
+slots = 8
 idle_minutes = 10
 max_hours = 24
 min_billed_hours = 1
-location = "hil"
+location = "fsn1"
 disk_gb = 160
 
 # GPU: the house pipeline, one batch at a time (its journals are one state; smc.cloud.stages).
 [pools.gpu]
 provider = "runpod"
-instance_type = "NVIDIA GeForce RTX 4090"
-hourly_usd = 0.69
+instance_type = "NVIDIA RTX A5000"
+hourly_usd = 0.27
 image = "ghcr.io/patstallone1-prog/kerbside-gpu:main"
 max_workers = 1
 slots = 1

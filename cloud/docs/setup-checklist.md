@@ -10,7 +10,7 @@ changes what is public. The owner does it, in this order. Steps marked **(spend)
   - Set a project spending alert.
   - Create an API token (Read & Write) → `HCLOUD_TOKEN`.
 - [ ] **RunPod**
-  - Create an account and set an account **spend limit** (e.g. $50).
+  - Create an account and set an account **spend limit** (e.g. $35, which is also the prepaid credit: about 120 A5000 hours).
   - Add credit, since RunPod is prepaid.
   - Create an API key with restricted permissions (pods only) → `RUNPOD_API_KEY`.
 - [ ] **Cloudflare**
@@ -33,7 +33,7 @@ changes what is public. The owner does it, in this order. Steps marked **(spend)
   inside them, and that they were pushed as `:main` and `:<sha>`.
 - [ ] Optionally pin `image` in `cloud/config/kerbside-cloud.toml` to the `:<sha>` tag.
 
-## 3. Infrastructure (spend: the controller, about $30 a month)
+## 3. Infrastructure (spend: the controller, $6.49 a month)
 
 - [ ] `cp cloud/infra/terraform/kerbside.tfvars.example cloud/infra/terraform/kerbside.tfvars`,
   then fill it in. `operator_cidrs` should be your IP addresses.

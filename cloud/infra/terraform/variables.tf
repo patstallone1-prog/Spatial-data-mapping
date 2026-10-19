@@ -35,7 +35,7 @@ variable "public_domain" {
 variable "controller_type" {
   description = "Two shared vCPUs are plenty: the controller schedules, gates and publishes."
   type        = string
-  default     = "cpx22"
+  default     = "cx23"
 }
 
 variable "controller_backups" {
@@ -45,9 +45,9 @@ variable "controller_backups" {
 }
 
 variable "location" {
-  description = "Hillsboro, Oregon: beside USGS's lidar in AWS us-west-2."
+  description = "Falkenstein: the cost-optimised CX line is sold only in Germany and Finland, and the controller's work does not depend on where it is."
   type        = string
-  default     = "hil"
+  default     = "fsn1"
 }
 
 variable "image_cpu" {

@@ -33,6 +33,10 @@ PRICES = {
     "hetzner:cpx42": {"usd_h": 0.1114 * 1.08, "vcpu": 8, "ram_gb": 16, "note": "shared vCPU"},
     "hetzner:ccx13": {"usd_h": 0.0689 * 1.08, "vcpu": 2, "ram_gb": 8, "note": "dedicated vCPU"},
     "hetzner:ccx23": {"usd_h": 0.1378 * 1.08, "vcpu": 4, "ram_gb": 16, "note": "dedicated vCPU"},
+    # Cost-optimised CX line, Germany/Finland only ($6.49 and $18.49 a month, capped; 2026-10-18).
+    "hetzner:cx23": {"usd_h": 6.49 / 730, "vcpu": 2, "ram_gb": 4, "note": "shared vCPU, EU only"},
+    "hetzner:cx43": {"usd_h": 18.49 / 730, "vcpu": 8, "ram_gb": 16, "note": "shared vCPU, EU only"},
+    "runpod:a5000-secure": {"usd_h": 0.27, "vram_gb": 24, "note": "secure cloud"},
     "runpod:rtx4090-community": {"usd_h": 0.34, "vram_gb": 24, "note": "community cloud"},
     "runpod:l4-secure": {"usd_h": 0.49, "vram_gb": 24, "note": "secure cloud"},
     "runpod:a40-secure": {"usd_h": 0.49, "vram_gb": 48, "note": "secure cloud"},
@@ -119,7 +123,7 @@ def report(root: Path, *, options: dict[str, tuple[str, int]] | None = None) -> 
             continue
         done[job["name"]] = {s for s, r in journal.get("stages", {}).items() if r.get("status") == "done"}
     chain = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "audit")
-    options = options or {"cpx22 x2 slots": ("hetzner:cpx22", 2), "cpx32 x4 slots": ("hetzner:cpx32", 4),
+    options = options or {"cx43 x8 slots": ("hetzner:cx43", 8), "cpx22 x2 slots": ("hetzner:cpx22", 2), "cpx32 x4 slots": ("hetzner:cpx32", 4),
                           "cpx42 x8 slots": ("hetzner:cpx42", 8), "ccx13 x2 slots": ("hetzner:ccx13", 2)}
     costs = {name: plan_cost(plan, done, times, cpu_usd_h=PRICES[key]["usd_h"], cpu_slots=slots,
                              chain=chain) for name, (key, slots) in options.items()}
