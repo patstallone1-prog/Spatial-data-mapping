@@ -19,7 +19,8 @@ the intake passes over whatever this has finished. Two processes must never work
   returns to it afterwards.
 
 Like the intake it pauses on battery at or under 30 % and when the drive is missing or under
-8 GB free. It publishes nothing: building a cell's page is not promoting it to the site.
+8 GB free, and when the Mac's own disk is under 1.5 GB free. It publishes nothing: building a
+cell's page is not promoting it to the site.
 
     .venv/bin/python scripts/run_gap_focus.py --areas sf-central-gap,sf-south-gap \\
         --volume "/Volumes/HP P700 1" --volume-uuid 65DF9122-13CE-4515-8C1A-73F608AB4171
@@ -53,6 +54,7 @@ INTAKE_STATUS = Path(
 )
 UNFIT_GRACE_S = 60
 REST_S = 2 * 3600
+INTERNAL_MIN_FREE = 1.5 * 1024**3
 LIMIT_S = {"osm": 900, "imagery": 3 * 3600}
 
 
@@ -126,6 +128,10 @@ def refresh_osm_probe(cell: str, counts=None) -> bool:
 
 def eligible(volume: Path, uuid: str) -> bool:
     if not volume_ready(volume, uuid) or shutil.disk_usage(volume).free < 8 * 1024**3:
+        return False
+    # The Mac's own disk too: logs, swap and any cache left at its default land there, and a
+    # full one stops every process on the machine, not only this one.
+    if shutil.disk_usage(ROOT).free < INTERNAL_MIN_FREE:
         return False
     from run_frontage_workers import power_eligible, power_state
 
