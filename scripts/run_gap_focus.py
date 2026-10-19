@@ -18,9 +18,9 @@ the intake passes over whatever this has finished. Two processes must never work
 * if the intake starts the cell this is working on anyway, this one stops its own stage and
   returns to it afterwards.
 
-Like the intake it pauses on battery at or under 30 % and when the drive is missing or under
-8 GB free, and when the Mac's own disk is under 1.5 GB free. It publishes nothing: building a
-cell's page is not promoting it to the site.
+Like the intake it pauses on battery at or under 20 % (``BATTERY_MIN_PERCENT``), when the drive
+is missing or under 8 GB free, and when the Mac's own disk is under 1.5 GB free. It publishes
+nothing: building a cell's page is not promoting it to the site.
 
     .venv/bin/python scripts/run_gap_focus.py --areas sf-central-gap,sf-south-gap \\
         --volume "/Volumes/HP P700 1" --volume-uuid 65DF9122-13CE-4515-8C1A-73F608AB4171
@@ -41,7 +41,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
-from run_gap_intake import interleaved, schedule  # noqa: E402
+from run_gap_intake import BATTERY_MIN_PERCENT, interleaved, schedule  # noqa: E402
 
 from smc.imagery.streetview_reference import atomic_json  # noqa: E402
 from smc.storage.external_volume import volume_ready  # noqa: E402
@@ -135,7 +135,7 @@ def eligible(volume: Path, uuid: str) -> bool:
         return False
     from run_frontage_workers import power_eligible, power_state
 
-    return power_eligible(power_state(), 30)
+    return power_eligible(power_state(), BATTERY_MIN_PERCENT)
 
 
 def main() -> int:

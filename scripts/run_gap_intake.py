@@ -22,6 +22,8 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+#: On battery, cell stages pause at or under this charge (on mains they always run).
+BATTERY_MIN_PERCENT = 20
 sys.path.insert(0, str(ROOT / "src"))
 from smc.imagery.streetview_reference import atomic_json  # noqa: E402
 from smc.storage.external_volume import volume_ready  # noqa: E402
@@ -159,7 +161,7 @@ def main():
             return False
         from run_frontage_workers import power_eligible, power_state
 
-        return power_eligible(power_state(), 30)
+        return power_eligible(power_state(), BATTERY_MIN_PERCENT)
 
     while not stopping:
         pending = False
