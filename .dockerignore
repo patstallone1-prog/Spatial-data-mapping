@@ -1,0 +1,25 @@
+# The images are built from the repository's tracked files; local work never goes in.
+.git
+.venv
+.env
+.env.*
+!cloud/config/*.example.*
+build
+graphify-out
+photos
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+data/regions/*-gap-p*
+data/captures
+unreal
+# Restricted-licence and private inputs never go into an image, even where a manifest of them is
+# tracked (the stages that run in the cloud do not read them).
+data/waymo_sf
+data/sf_corridor_pandaset
+data/sf_corridor_urbanloco
+data/interiors
+data/sf_corridor_mapillary_dense/images
+**/private-datasets

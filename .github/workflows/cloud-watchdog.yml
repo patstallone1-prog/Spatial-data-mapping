@@ -1,0 +1,46 @@
+# The independent fail-safe: every 30 minutes, outside the controller and outside the Mac.
+#
+# If the controller has not answered /healthz for an hour, or any worker instance is older than
+# 30 hours, those instances are deleted (smc-cloud watchdog). It touches only instances the
+# system labelled as its own (Hetzner kerbside=worker; RunPod pods named kw-...).
+#
+# Off until the repository variable KERBSIDE_CLOUD_ENABLED is "true" and the secrets below
+# exist (cloud/docs/secrets.md): it never runs against accounts that are not set up.
+name: cloud-watchdog
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  watchdog:
+    if: vars.KERBSIDE_CLOUD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[cloud]"
+      - name: watchdog
+        env:
+          KERBSIDE_SECRET: ${{ secrets.KERBSIDE_SECRET }}
+          KERBSIDE_OPS_TOKEN: ${{ secrets.KERBSIDE_OPS_TOKEN }}
+          KERBSIDE_CONTROLLER_URL: ${{ vars.KERBSIDE_CONTROLLER_URL }}
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_PRIVATE_BUCKET: kerbside-private
+          R2_PRIVATE_ACCESS_KEY_ID: ${{ secrets.R2_PRIVATE_ACCESS_KEY_ID }}
+          R2_PRIVATE_SECRET_ACCESS_KEY: ${{ secrets.R2_PRIVATE_SECRET_ACCESS_KEY }}
+          R2_PUBLIC_BUCKET: kerbside-public
+          R2_PUBLIC_BASE: ${{ vars.R2_PUBLIC_BASE }}
+          # The watchdog never writes the public bucket: it is handed no key that could.
+          R2_PUBLIC_ACCESS_KEY_ID: ${{ secrets.R2_PRIVATE_ACCESS_KEY_ID }}
+          R2_PUBLIC_SECRET_ACCESS_KEY: ${{ secrets.R2_PRIVATE_SECRET_ACCESS_KEY }}
+        run: smc-cloud watchdog --config cloud/config/kerbside-cloud.toml --grace-min 60 --max-hours 30

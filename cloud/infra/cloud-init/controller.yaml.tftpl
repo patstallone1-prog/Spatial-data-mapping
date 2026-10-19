@@ -1,0 +1,45 @@
+#cloud-config
+# The controller's server: Caddy for HTTPS, the controller in Docker, restarted by systemd.
+# No secret is here: /etc/kerbside/controller.env is copied in by cloud/deploy/push-secrets.sh,
+# and the service waits for it.
+package_update: true
+packages: [caddy]
+write_files:
+  - path: /etc/caddy/Caddyfile
+    content: |
+      ${domain} {
+        encode gzip
+        reverse_proxy 127.0.0.1:8080
+      }
+  - path: /etc/systemd/system/kerbside-controller.service
+    content: |
+      [Unit]
+      Description=Kerbside cloud controller
+      After=docker.service network-online.target
+      Requires=docker.service
+      ConditionPathExists=/etc/kerbside/controller.env
+      [Service]
+      Restart=always
+      RestartSec=10
+      ExecStartPre=-/usr/bin/docker pull ${image}
+      ExecStartPre=-/usr/bin/docker rm -f kerbside-controller
+      ExecStart=/usr/bin/docker run --rm --name kerbside-controller --env-file /etc/kerbside/controller.env -v /var/lib/kerbside:/data -p 127.0.0.1:8080:8080 ${image} controller --config /app/cloud/config/kerbside-cloud.toml --port 8080
+      ExecStop=/usr/bin/docker stop -t 60 kerbside-controller
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/systemd/system/kerbside-controller.path
+    content: |
+      [Unit]
+      Description=Start the controller once its secrets are in place
+      [Path]
+      PathExists=/etc/kerbside/controller.env
+      [Install]
+      WantedBy=multi-user.target
+runcmd:
+  - [mkdir, -p, /var/lib/kerbside, /etc/kerbside]
+  - [chown, "10001:10001", /var/lib/kerbside]
+  - [chmod, "700", /etc/kerbside]
+  - [systemctl, daemon-reload]
+  - [systemctl, enable, --now, caddy]
+  - [systemctl, enable, kerbside-controller.service]
+  - [systemctl, enable, --now, kerbside-controller.path]

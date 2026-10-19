@@ -1,0 +1,8 @@
+# Copy to kerbside.tfvars (gitignored by *.tfvars) and fill in. Never commit the copy.
+hcloud_token          = "..."
+cloudflare_api_token  = "..."
+cloudflare_account_id = "..."
+ssh_public_key        = "ssh-ed25519 AAAA... you@mac"
+operator_cidrs        = ["203.0.113.7/32"]
+controller_domain     = "control.example.org"
+public_domain         = "assets.example.org"

@@ -1,0 +1,68 @@
+# Kerbside cloud: the controller's settings. Committed; holds no secret. ``${NAME}`` is filled
+# from the controller's environment (cloud/docs/secrets.md lists every variable).
+#
+# Pool sizes and prices are the starting point from cloud/docs/costs.md (measured stage times
+# on the Mac, list prices of 2026-10-18). Re-measure with bench jobs once the first cells have
+# run in the cloud, then adjust: the dashboard shows cost per finished stage.
+
+pass_env = ["R2_ACCOUNT_ID", "R2_PRIVATE_ACCESS_KEY_ID", "R2_PRIVATE_SECRET_ACCESS_KEY",
+            "MAPILLARY_ACCESS_TOKEN", "MAPILLARY_TOKEN", "HUGGINGFACE_TOKEN"]
+
+[controller]
+url = "${KERBSIDE_CONTROLLER_URL}"      # e.g. https://control.example.org
+db = "/data/queue.sqlite"
+root = "/app"
+lease_ttl_s = 120
+tick_s = 20
+backup_s = 300
+
+[stores]
+private = "r2://${R2_PRIVATE_BUCKET}"   # kerbside-private
+public = "r2://${R2_PUBLIC_BUCKET}"     # kerbside-public
+public_base = "${R2_PUBLIC_BASE}"       # the public bucket's custom domain, https://assets...
+
+[budget]
+daily_usd = 25.0
+monthly_usd = 300.0
+hard_monthly_usd = 400.0
+
+# CPU: terrain and lidar spend most of their time waiting on USGS, so a 4-vCPU shared server
+# runs four cells at once. Hillsboro (hil) sits beside USGS's EPT bucket in AWS us-west-2.
+[pools.cpu]
+provider = "hetzner"
+instance_type = "cpx32"
+hourly_usd = 0.0615
+image = "ghcr.io/patstallone1-prog/kerbside-cpu:main"
+max_workers = 6
+slots = 4
+idle_minutes = 10
+max_hours = 24
+min_billed_hours = 1
+location = "hil"
+disk_gb = 160
+
+# GPU: the house pipeline, one batch at a time (its journals are one state; smc.cloud.stages).
+[pools.gpu]
+provider = "runpod"
+instance_type = "NVIDIA GeForce RTX 4090"
+hourly_usd = 0.69
+image = "ghcr.io/patstallone1-prog/kerbside-gpu:main"
+max_workers = 1
+slots = 1
+idle_minutes = 5
+max_hours = 12
+min_billed_hours = 0
+disk_gb = 120
+extra = { cloud_type = "SECURE", interruptible = false }
+
+[hetzner]
+ssh_keys = []
+firewall_ids = []
+
+# Given to every worker at boot, after its one-time token is redeemed. ``pass_env`` names
+# variables copied from the controller's own environment (never written here). Deliberately
+# absent: the Google Maps key (restricted Street View is never acquired in the cloud), the
+# public bucket's write key (only the controller publishes), the contributor and launcher tokens.
+[worker_env]
+KERBSIDE_PRIVATE_STORE = "r2://${R2_PRIVATE_BUCKET}"
+KERBSIDE_ROOT = "/app"

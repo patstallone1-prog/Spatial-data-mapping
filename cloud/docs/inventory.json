@@ -1,0 +1,2376 @@
+{
+ "schema": "kerbside.inventory/1",
+ "git_tracked_bytes": 1461800601,
+ "git_files": 22006,
+ "totals": {
+  "cache": 24789029032,
+  "local_only": 10599199581,
+  "restricted": 26882786,
+  "upload_once": 44245885715,
+  "review": 156006,
+  "reacquirable": 831237218,
+  "git": 1461800601
+ },
+ "rows": [
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "frontage-run-2026-10-10",
+   "bytes": 28047685266,
+   "files": 193420,
+   "class": "upload_once",
+   "why": "the house pipeline's journals, buckets and fits"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "lidar-cache-intake",
+   "bytes": 21722892893,
+   "files": 82170,
+   "class": "cache",
+   "why": "USGS 3DEP EPT tiles, fetched again by the stage"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/sf-sunset",
+   "bytes": 2737537641,
+   "files": 16108,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/sf-corridor",
+   "bytes": 2309415455,
+   "files": 908,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-cache",
+   "bytes": 2022815642,
+   "files": 1515,
+   "class": "cache",
+   "why": "facade photo cache, refetched from providers"
+  },
+  {
+   "root": "repo",
+   "path": "build/unreal-regions",
+   "bytes": 1669595468,
+   "files": 6136,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "repo",
+   "path": "build/photo-mesh",
+   "bytes": 1662846665,
+   "files": 278,
+   "class": "local_only",
+   "why": "photo mesh pilot outputs"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "unreal-ddc",
+   "bytes": 1581822008,
+   "files": 17711,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "old-session-scratch",
+   "bytes": 1569637437,
+   "files": 808,
+   "class": "local_only",
+   "why": "old scratch, archived"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "connector-intake-2026-10-17",
+   "bytes": 1450106743,
+   "files": 2215,
+   "class": "upload_once",
+   "why": "the gap cells' folders (linked as data/regions/<cell>)"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "unreal-ddc-backup-20261017",
+   "bytes": 1447758785,
+   "files": 18789,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/sf-mission",
+   "bytes": 1342269559,
+   "files": 7427,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/berkeley-downtown",
+   "bytes": 1276100175,
+   "files": 3118,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/sf-soma",
+   "bytes": 1262690644,
+   "files": 449,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "sky-build-2026-10-17",
+   "bytes": 1246762857,
+   "files": 236,
+   "class": "local_only",
+   "why": "shared sky build folder (kept, never deleted)"
+  },
+  {
+   "root": "repo",
+   "path": "data/interiors",
+   "bytes": 1123172631,
+   "files": 4,
+   "class": "upload_once",
+   "why": "interior scans (licensed inputs, private)"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/sf-haight-castro",
+   "bytes": 981766350,
+   "files": 5800,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/oakland-downtown",
+   "bytes": 834828509,
+   "files": 2965,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "data/transit",
+   "bytes": 828725034,
+   "files": 99,
+   "class": "reacquirable",
+   "why": "transit feeds, refetched by ingest_transit.py"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/san-jose-downtown",
+   "bytes": 794888203,
+   "files": 1310,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "build/unreal",
+   "bytes": 667426565,
+   "files": 1295,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "repo",
+   "path": "data/sf_corridor_mapillary_dense",
+   "bytes": 564346270,
+   "files": 3,
+   "class": "upload_once",
+   "why": "Mapillary imagery (CC BY-SA; private bucket, attribution kept)"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "curbphoto-gap",
+   "bytes": 473489282,
+   "files": 11290,
+   "class": "local_only",
+   "why": "prototype photo kerb outputs (not canonical)"
+  },
+  {
+   "root": "repo",
+   "path": "data/electrical",
+   "bytes": 352112247,
+   "files": 29,
+   "class": "upload_once",
+   "why": "electrical inputs read by build"
+  },
+  {
+   "root": "repo",
+   "path": "build/street_furniture",
+   "bytes": 335016672,
+   "files": 55,
+   "class": "upload_once",
+   "why": "street furniture inputs read by build"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/palo-alto-downtown",
+   "bytes": 282314555,
+   "files": 2804,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "electrical-imagery-cache",
+   "bytes": 276380838,
+   "files": 7,
+   "class": "cache",
+   "why": "imagery cache, refetched"
+  },
+  {
+   "root": "repo",
+   "path": "build/naip",
+   "bytes": 210220815,
+   "files": 57,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/kerbside-unreal-tiles-v1.tar.gz",
+   "bytes": 160715432,
+   "files": 1,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "repo",
+   "path": "data/observation_enrichment",
+   "bytes": 158695719,
+   "files": 6,
+   "class": "upload_once",
+   "why": "observation enrichment read by build"
+  },
+  {
+   "root": "repo",
+   "path": "data/captures",
+   "bytes": 103931426,
+   "files": 291,
+   "class": "upload_once",
+   "why": "contributor captures (private imagery: private bucket only)"
+  },
+  {
+   "root": "repo",
+   "path": "data/sf_corridor",
+   "bytes": 85730599,
+   "files": 17,
+   "class": "upload_once",
+   "why": "corridor inputs read by build"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "plant-assets",
+   "bytes": 78338471,
+   "files": 665,
+   "class": "local_only",
+   "why": "plant asset sources; the published scans are in git"
+  },
+  {
+   "root": "repo",
+   "path": "build/release_assets",
+   "bytes": 73497638,
+   "files": 16,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sfmta",
+   "bytes": 72875161,
+   "files": 12,
+   "class": "upload_once",
+   "why": "city records cache read by build"
+  },
+  {
+   "root": "repo",
+   "path": "build/regions",
+   "bytes": 69097751,
+   "files": 149,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf_public_works",
+   "bytes": 68917178,
+   "files": 7,
+   "class": "upload_once",
+   "why": "city records cache read by build"
+  },
+  {
+   "root": "repo",
+   "path": "build/kerb_assets",
+   "bytes": 46100889,
+   "files": 37,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/park-evidence",
+   "bytes": 44377409,
+   "files": 8,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "data/sf_rpd",
+   "bytes": 44178228,
+   "files": 3,
+   "class": "upload_once",
+   "why": "SF Rec and Park inputs read by build"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-survey",
+   "bytes": 40232722,
+   "files": 403,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf-corridor-3d.before-busway.json",
+   "bytes": 32864019,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/perimeter",
+   "bytes": 29456584,
+   "files": 51,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "data/sf_corridor_pandaset",
+   "bytes": 26785257,
+   "files": 1,
+   "class": "restricted",
+   "why": "PandaSet benchmark (CC BY 4.0 but private research inputs)"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "unreal-foliage-test",
+   "bytes": 26467927,
+   "files": 14,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "repo",
+   "path": "build/osm_ways.backup.json",
+   "bytes": 24516889,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ground-cover",
+   "bytes": 20655143,
+   "files": 32,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf_building_heights",
+   "bytes": 18187093,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "data/park_paths",
+   "bytes": 17304417,
+   "files": 8,
+   "class": "upload_once",
+   "why": "park path inputs read by build"
+  },
+  {
+   "root": "repo",
+   "path": "build/ground_cover",
+   "bytes": 15527900,
+   "files": 5,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/electrical",
+   "bytes": 13628392,
+   "files": 7,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/mv2",
+   "bytes": 13428149,
+   "files": 210,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/mv",
+   "bytes": 13427264,
+   "files": 210,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-survey.scale-bug",
+   "bytes": 12460856,
+   "files": 190,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/curbphoto",
+   "bytes": 8451302,
+   "files": 159,
+   "class": "local_only",
+   "why": "prototype photo kerb outputs (not canonical)"
+  },
+  {
+   "root": "repo",
+   "path": "build/landing-shots",
+   "bytes": 8087842,
+   "files": 25,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-fingerprints",
+   "bytes": 7891563,
+   "files": 171,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/terrain.backup.bin",
+   "bytes": 7319338,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/fullstack",
+   "bytes": 7297068,
+   "files": 240,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-c14r03-before",
+   "bytes": 6700284,
+   "files": 221,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "data/curbmeasure",
+   "bytes": 5861779,
+   "files": 7,
+   "class": "local_only",
+   "why": "kerb measurement prototype work (not canonical)"
+  },
+  {
+   "root": "repo",
+   "path": "build/nightly",
+   "bytes": 5781628,
+   "files": 24,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/photobank",
+   "bytes": 5669274,
+   "files": 121,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-photo-materials",
+   "bytes": 4879460,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/res",
+   "bytes": 3998699,
+   "files": 80,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/dc-14th",
+   "bytes": 2981505,
+   "files": 3,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/building-colours",
+   "bytes": 2657944,
+   "files": 232,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "natural-earth",
+   "bytes": 2512184,
+   "files": 2,
+   "class": "reacquirable",
+   "why": "Natural Earth, public domain"
+  },
+  {
+   "root": "repo",
+   "path": "build/bridge",
+   "bytes": 2124447,
+   "files": 30,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/realmatch",
+   "bytes": 2011859,
+   "files": 50,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/gallery",
+   "bytes": 1840566,
+   "files": 22,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/grouptest",
+   "bytes": 1838740,
+   "files": 4,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/photo_audit_20260901",
+   "bytes": 1644739,
+   "files": 64,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/app-viewer.html",
+   "bytes": 1612431,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/contrib",
+   "bytes": 1400492,
+   "files": 3,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/demo",
+   "bytes": 1125581,
+   "files": 3,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/iphone-demo",
+   "bytes": 1080844,
+   "files": 4,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/seedcheck",
+   "bytes": 1066348,
+   "files": 75,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/seed",
+   "bytes": 1008051,
+   "files": 75,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/app-viewer-test.html",
+   "bytes": 930134,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/vantage_sheet.png",
+   "bytes": 896185,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/iso",
+   "bytes": 828640,
+   "files": 12,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-regions.log",
+   "bytes": 766830,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/photo_audit_20260902",
+   "bytes": 719134,
+   "files": 31,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-labels",
+   "bytes": 582561,
+   "files": 7,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/tex",
+   "bytes": 519675,
+   "files": 4,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-survey.log",
+   "bytes": 480721,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/render",
+   "bytes": 357638,
+   "files": 2,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/exiftest.jpg",
+   "bytes": 310568,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/static-server.log",
+   "bytes": 309076,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-background.log",
+   "bytes": 295309,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/kerbside-app.html",
+   "bytes": 277767,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf_overpass.json",
+   "bytes": 265669,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/kerbside.html",
+   "bytes": 235901,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/logs",
+   "bytes": 226014,
+   "files": 14,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf-corridor-3d-local-smoke.png",
+   "bytes": 207671,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/map_data.json",
+   "bytes": 203793,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/phototest",
+   "bytes": 137589,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "data/sf_public_works",
+   "bytes": 130618,
+   "files": 134,
+   "class": "review",
+   "why": "no rule"
+  },
+  {
+   "root": "repo",
+   "path": "build/waymo_proto",
+   "bytes": 90439,
+   "files": 20,
+   "class": "restricted",
+   "why": "Waymo Open Dataset: non-commercial licence"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf-corridor-3d-extracted.mjs",
+   "bytes": 88301,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/semantics-full.log",
+   "bytes": 74957,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/phone",
+   "bytes": 65536,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/vantage_pairs.json",
+   "bytes": 51166,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/interiors-download.log",
+   "bytes": 43385,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/benchmarks",
+   "bytes": 27798,
+   "files": 3,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/colmap-install.log",
+   "bytes": 27192,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/landing.html",
+   "bytes": 24062,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/static-server-regions.log",
+   "bytes": 17114,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "cloud",
+   "bytes": 15144,
+   "files": 10,
+   "class": "review",
+   "why": "no rule"
+  },
+  {
+   "root": "repo",
+   "path": "build/.DS_Store",
+   "bytes": 14340,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/unreal-export.log",
+   "bytes": 14298,
+   "files": 1,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "repo",
+   "path": "build/furniture-refresh.log",
+   "bytes": 13764,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-fingerprints.log",
+   "bytes": 12805,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ingest-all.log",
+   "bytes": 11527,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/photo-mesh.log",
+   "bytes": 11201,
+   "files": 1,
+   "class": "local_only",
+   "why": "photo mesh pilot outputs"
+  },
+  {
+   "root": "repo",
+   "path": "data/.DS_Store",
+   "bytes": 10244,
+   "files": 1,
+   "class": "review",
+   "why": "no rule"
+  },
+  {
+   "root": "repo",
+   "path": "build/transit-schedules-launchd.log",
+   "bytes": 9474,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/gap-focus",
+   "bytes": 8510,
+   "files": 5,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/overture",
+   "bytes": 8157,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/thin_cells.json",
+   "bytes": 7978,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/building-colours.log",
+   "bytes": 7711,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-all.log",
+   "bytes": 6762,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/points-a.log",
+   "bytes": 4907,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/pandaset-index.json",
+   "bytes": 4846,
+   "files": 1,
+   "class": "restricted",
+   "why": "PandaSet benchmark (CC BY 4.0 but private research inputs)"
+  },
+  {
+   "root": "repo",
+   "path": "build/transit-realtime-launchd.log",
+   "bytes": 4732,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/rebuild_regions.log",
+   "bytes": 4677,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/oakland-build.log",
+   "bytes": 4651,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ground-cover-all.log",
+   "bytes": 4113,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/coverage-report.py",
+   "bytes": 4091,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/points-b.log",
+   "bytes": 3871,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/deploy-when-measured.sh",
+   "bytes": 3860,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/lidar-oakland.log",
+   "bytes": 3820,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-second-pass.log",
+   "bytes": 3585,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/background-status.json",
+   "bytes": 3535,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/_moved.txt",
+   "bytes": 3443,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/cloud-estimate.json",
+   "bytes": 3430,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/interiors-fit.log",
+   "bytes": 2773,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/region-parity.log",
+   "bytes": 2427,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/region-parity2.log",
+   "bytes": 2244,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/perimeter-atlas.log",
+   "bytes": 2211,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/terrain.backup.json",
+   "bytes": 2142,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/remeasure2.log",
+   "bytes": 2116,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/gap-photo",
+   "bytes": 2090,
+   "files": 3,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "data/regions/sf-richmond",
+   "bytes": 2067,
+   "files": 1,
+   "class": "upload_once",
+   "why": "a cell's folder after its stages"
+  },
+  {
+   "root": "repo",
+   "path": "build/interior-assets.log",
+   "bytes": 2036,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/lidar-depth.log",
+   "bytes": 1975,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-rebuild.log",
+   "bytes": 1933,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/deploy-build.log",
+   "bytes": 1906,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/pandaset-probe.py",
+   "bytes": 1906,
+   "files": 1,
+   "class": "restricted",
+   "why": "PandaSet benchmark (CC BY 4.0 but private research inputs)"
+  },
+  {
+   "root": "repo",
+   "path": "build/material-labels.log",
+   "bytes": 1866,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/points-c.log",
+   "bytes": 1833,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/repair-street-ids.log",
+   "bytes": 1794,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/finish-cells.log",
+   "bytes": 1627,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/perimeters.log",
+   "bytes": 1624,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/coverage-report.json",
+   "bytes": 1612,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/enrichment_overture_places.log",
+   "bytes": 1608,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/enrichment_google.log",
+   "bytes": 1607,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/deploy-when-measured.log",
+   "bytes": 1508,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ingest-oakland.log",
+   "bytes": 1484,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/transit-ingest.log",
+   "bytes": 1463,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/furniture-refresh.sh",
+   "bytes": 1364,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/finish-cells.sh",
+   "bytes": 1361,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facade-photo-materials.log",
+   "bytes": 1357,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/rebuild-regions.log",
+   "bytes": 1325,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_verify.json",
+   "bytes": 1301,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/export-worlds.log",
+   "bytes": 1282,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/session2_pairs.json",
+   "bytes": 1237,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/finish-measurements.sh",
+   "bytes": 1208,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ingest-sf-mission-rest.log",
+   "bytes": 1100,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_dt5.json",
+   "bytes": 1090,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ground_cover.log",
+   "bytes": 1072,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf-ground-cover.log",
+   "bytes": 1061,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_perim.json",
+   "bytes": 1061,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_water.json",
+   "bytes": 1048,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/finish-measurements.log",
+   "bytes": 1046,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_polk.json",
+   "bytes": 1003,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_polk2.json",
+   "bytes": 999,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/remeasure.sh",
+   "bytes": 992,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_polk3.json",
+   "bytes": 992,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_v7.json",
+   "bytes": 978,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/repair-street-ids.sh",
+   "bytes": 975,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_water2.json",
+   "bytes": 964,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_dt1.json",
+   "bytes": 957,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/building-enrichment.log",
+   "bytes": 952,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_edges.json",
+   "bytes": 926,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_dt.json",
+   "bytes": 922,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/region-parity.sh",
+   "bytes": 882,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-all.sh",
+   "bytes": 857,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/oakland-rebuild.log",
+   "bytes": 855,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_corners.json",
+   "bytes": 847,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/shoot.sh",
+   "bytes": 828,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_waterfront.json",
+   "bytes": 797,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_dt4.json",
+   "bytes": 770,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_dt3.json",
+   "bytes": 768,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_cost.json",
+   "bytes": 766,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_round.json",
+   "bytes": 761,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_edge.json",
+   "bytes": 758,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_tiles.json",
+   "bytes": 753,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-second-pass.sh",
+   "bytes": 750,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/corridor-payload.log",
+   "bytes": 743,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/berkeley-lidar.log",
+   "bytes": 740,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_world.json",
+   "bytes": 735,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/rebuild_regions.sh",
+   "bytes": 734,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_world2.json",
+   "bytes": 723,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_v4.json",
+   "bytes": 699,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/finish-haight-cells.log",
+   "bytes": 689,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/export-worlds.sh",
+   "bytes": 685,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_st.json",
+   "bytes": 679,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_v5.json",
+   "bytes": 674,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_v2.json",
+   "bytes": 657,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/rebuild_shore.log",
+   "bytes": 655,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-regions.status.json",
+   "bytes": 642,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_bike.json",
+   "bytes": 642,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_hunt_oak.json",
+   "bytes": 638,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_2nd2.json",
+   "bytes": 635,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_san-jose-downtown.json",
+   "bytes": 630,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_final.json",
+   "bytes": 626,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_v3.json",
+   "bytes": 626,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_palo-alto-downtown.json",
+   "bytes": 618,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_sf-haight-castro.json",
+   "bytes": 617,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_dt2.json",
+   "bytes": 610,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_piers.json",
+   "bytes": 602,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_sf-mission.json",
+   "bytes": 592,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/interiors-ingest.log",
+   "bytes": 591,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_sf-sunset.json",
+   "bytes": 585,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_2nd.json",
+   "bytes": 576,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/corridor-build.log",
+   "bytes": 573,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/run-facade-survey.sh",
+   "bytes": 559,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/run-scans.sh",
+   "bytes": 522,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/run-point-cells.sh",
+   "bytes": 516,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_posey.json",
+   "bytes": 516,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_pine.json",
+   "bytes": 515,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/deploy.log",
+   "bytes": 513,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_pine2.json",
+   "bytes": 513,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_stockton.json",
+   "bytes": 513,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/rebuild-regions.sh",
+   "bytes": 507,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sag-spec.json",
+   "bytes": 507,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/rebuild_shore_regions.sh",
+   "bytes": 500,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_kearny.json",
+   "bytes": 481,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/remeasure.log",
+   "bytes": 472,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ground-cover-all.sh",
+   "bytes": 460,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_sj.json",
+   "bytes": 427,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_berk.json",
+   "bytes": 425,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_oak_page.json",
+   "bytes": 415,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_lines.json",
+   "bytes": 404,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_probe_sunset.json",
+   "bytes": 385,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/perimeters.sh",
+   "bytes": 375,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_harrison.json",
+   "bytes": 371,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_oak.json",
+   "bytes": 367,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_paving.json",
+   "bytes": 367,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/oakland-refetch.log",
+   "bytes": 353,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_apron.json",
+   "bytes": 352,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_portal.json",
+   "bytes": 348,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_v6.json",
+   "bytes": 344,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/pandaset-probe.log",
+   "bytes": 338,
+   "files": 1,
+   "class": "restricted",
+   "why": "PandaSet benchmark (CC BY 4.0 but private research inputs)"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_2nd3.json",
+   "bytes": 338,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_black.json",
+   "bytes": 338,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_beach.json",
+   "bytes": 328,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_sunset.json",
+   "bytes": 320,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_oak2.json",
+   "bytes": 315,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/sf-ground-cover.sh",
+   "bytes": 290,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_scan.json",
+   "bytes": 284,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/run-point-cells-b.sh",
+   "bytes": 257,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/ingest-oakland-terrain.log",
+   "bytes": 221,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/pytest-full.log",
+   "bytes": 216,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_probe2.json",
+   "bytes": 195,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_probe.json",
+   "bytes": 193,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_probe3.json",
+   "bytes": 179,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_palo-alto-downtown.json",
+   "bytes": 141,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_san-jose-downtown.json",
+   "bytes": 140,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_sf-haight-castro.json",
+   "bytes": 139,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_berkeley-downtown.json",
+   "bytes": 138,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_oakland-downtown.json",
+   "bytes": 138,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/facades-background.status.json",
+   "bytes": 134,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_sf-mission.json",
+   "bytes": 132,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_sf-sunset.json",
+   "bytes": 132,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_x.json",
+   "bytes": 132,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/scan_berk.json",
+   "bytes": 129,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_info.json",
+   "bytes": 122,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_oakland-downtown.json",
+   "bytes": 122,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_col.json",
+   "bytes": 121,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_info2.json",
+   "bytes": 121,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/s1.json",
+   "bytes": 107,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_site.json",
+   "bytes": 107,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/kerbside-unreal-tiles-v1.sha256",
+   "bytes": 104,
+   "files": 1,
+   "class": "local_only",
+   "why": "Unreal editor data: macOS/Windows only"
+  },
+  {
+   "root": "repo",
+   "path": "build/s3.json",
+   "bytes": 104,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/s5.json",
+   "bytes": 103,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/s4.json",
+   "bytes": 102,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/s2.json",
+   "bytes": 101,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/run-scans.log",
+   "bytes": 97,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/spots_test.json",
+   "bytes": 97,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/semantics-compact.log",
+   "bytes": 61,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "repo",
+   "path": "build/motionbricks-lfs.log",
+   "bytes": 33,
+   "files": 1,
+   "class": "cache",
+   "why": "build outputs a stage rewrites"
+  },
+  {
+   "root": "/Volumes/HP P700 1/Kerbside",
+   "path": "lidar-cache-main",
+   "bytes": 0,
+   "files": 0,
+   "class": "cache",
+   "why": "USGS 3DEP EPT tiles, fetched again by the stage"
+  }
+ ]
+}

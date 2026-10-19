@@ -40,8 +40,18 @@ photo-matching = [
 ]
 # Uploading the nightly batch to Google Cloud Storage.
 gcs = ["google-cloud-storage>=2.14"]
+# The cloud controller and workers' object storage: Cloudflare R2 through its S3 API.
+cloud = ["boto3>=1.34,<2"]
+# The house pipeline's models (frontage pixel screen, detail detector, CLIP materials), pinned
+# to what the local supervisor ran on 2026-10-18. The GPU image installs torch's CUDA build
+# first (cloud/containers/gpu.Dockerfile); these pins then match it.
+houses = ["torch==2.14.0", "torchvision==0.29.0", "transformers==5.16.1", "huggingface_hub==1.30.0",
+          "safetensors==0.8.0", "tokenizers==0.23.2", "scipy>=1.14"]
 # MegaLoc global descriptors. ~230M parameters; runs on MPS, CUDA or CPU.
 learned = ["torch>=2.2", "torchvision>=0.17", "huggingface_hub>=0.23", "safetensors>=0.4"]
+
+[project.scripts]
+smc-cloud = "smc.cloud.cli:main"
 
 [build-system]
 requires = ["hatchling"]

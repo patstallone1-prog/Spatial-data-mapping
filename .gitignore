@@ -140,3 +140,9 @@ data/electrical/osm/
 # Connector acquisition directories are private external-volume aliases. The
 # committed plan/registry and public status audit retain coverage and provenance.
 /data/regions/*-gap-p*
+
+# Cloud deployment secrets: examples are committed, filled copies never.
+*.tfvars
+cloud/config/controller.env
+cloud/infra/terraform/.terraform/
+cloud/infra/terraform/*.tfstate*
