@@ -26,6 +26,7 @@ class V { constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;}
   normalize(){const l=Math.sqrt(this.lengthSq())||1;return this.set(this.x/l,this.y/l,this.z/l);}
   multiplyScalar(k){return this.set(this.x*k,this.y*k,this.z*k);} }
 const THREE = { Vector3: V };
+const META = false;
 const state = { yaw: 0, dist: 100, target: new V(0, 0, 0), firstPerson: false };
 const avatar = { position: new V(5, 1, 5), visible: true };
 const gps = { follow: true }; var GPS_LEASH = { on: true };

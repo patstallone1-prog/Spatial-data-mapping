@@ -187,7 +187,10 @@ def test_the_frame_loop_goes_on_when_the_browser_withholds_frames() -> None:
     request = _extract("requestFrame", js)
     assert "requestAnimationFrame(" in request and "setTimeout(" in request
     assert "id === frameRequest" in request and "!document.hidden" in request
-    assert _extract("animate", js).split("\n")[1].strip() == "requestFrame();"
+    animate = _extract("animate", js)
+    # Every frame asks for the next -- except in the headset, whose session hands them out.
+    assert "const xrFrame = META && renderer.xr.isPresenting;" in animate
+    assert animate.index("if (!xrFrame) requestFrame();") < animate.index("now = now || performance.now();")
 
 
 def test_a_garage_stands_straight_back_from_its_kerb_cut_and_a_little_narrower() -> None:

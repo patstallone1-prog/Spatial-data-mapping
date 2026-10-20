@@ -260,7 +260,7 @@ console.log(JSON.stringify(Boolean(tunnelSurfaceAt(x,z,-10))));
 
 
 def test_clicks_cannot_reach_a_tunnel_floor_through_its_roof_or_wall():
-    pick = _extract("groundAt", _page_js())
+    pick = _extract("groundAt", _page_js()) + _extract("groundOnRay", _page_js())
     assert "tunnelWalkMeshes(true)" in pick
     assert "h.distance<blocker-.01" in pick
     assert "if(Number.isFinite(blocker))return null;" in pick

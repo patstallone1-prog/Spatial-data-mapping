@@ -96,6 +96,18 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
+    # The headset version: the same renderer in its META mode (docs/meta-xr.mjs), the SF page's
+    # world, with its own web-app manifest so it can be installed on a Meta Quest.
+    meta_page = app_page(
+        template,
+        title="for Meta Quest",
+        index="app-regions.json",
+        local_ground=(DOCS / "app-sf-corridor-ground.json").exists(),
+        visual_support=sf_support,
+    ).replace("<title>Kerbside for Meta Quest 3D</title>", "<title>Kerbside for Meta Quest</title>", 1).replace(
+        "</head>", '<meta name="kerbside-mode" content="meta" />\n'
+              '<link rel="manifest" href="meta.webmanifest" />\n</head>', 1)
+    (DOCS / "meta.html").write_text(meta_page, encoding="utf-8")
     published = 0
     for region in index["regions"]:
         if region["name"] == "sf-corridor":
@@ -146,7 +158,7 @@ def main() -> None:
     (DOCS / "app-regions.json").write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
     # The nearby render window must not remove names from global search.
     runpy.run_path(str(ROOT / "tools/build_search_index.py"))["main"]()
-    viewers = [DOCS / "app-model.html", *sorted(APP_REGIONS.glob("*/app-model.html"))]
+    viewers = [DOCS / "app-model.html", DOCS / "meta.html", *sorted(APP_REGIONS.glob("*/app-model.html"))]
     release = {
         "schema": 1,
         "authoritative_branch": "main",
@@ -161,6 +173,7 @@ def main() -> None:
                          *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
                          DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
                          DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
+                         DOCS / "meta-xr.mjs", DOCS / "meta.webmanifest",
                          *sorted((DOCS / "nature/models").glob("*")), *sorted((DOCS / "world").glob("*")),
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
                          *sorted((DOCS / "nature/bark").glob("*")),
