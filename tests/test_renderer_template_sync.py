@@ -78,7 +78,8 @@ def test_entire_app_module_and_release_manifest_match_authoritative_source() -> 
     assert release["native_sources_sha256"]
     for name, expected_hash in release["native_sources_sha256"].items():
         assert hashlib.sha256((ROOT / name).read_bytes()).hexdigest() == expected_hash, f"stale native release: {name}"
-    pages = [ROOT / "docs/app-model.html", *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]
+    pages = [ROOT / "docs/app-model.html", ROOT / "docs/meta.html",
+             *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]
     assert set(release["consumers"]) == {str(p.relative_to(ROOT / "docs")) for p in pages}
     for page in pages:
         text = page.read_text()

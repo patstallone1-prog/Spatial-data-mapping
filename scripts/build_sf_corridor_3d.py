@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import subprocess
 import sys
 import time
@@ -480,14 +481,41 @@ DETAIL_TUNING = {
 }
 
 
+def release_module_scope(html: str) -> str:
+    """What a released window runs to let go of its module's top-level names.
+
+    A window's code is a module and is never unloaded, so whatever its top-level names point at
+    stays for as long as the page does. Read from the module's own declarations (at the left
+    margin): each `let` and `var` is pointed at nothing, and each Map, Set and list made there is
+    emptied. Each in its own try: a name read wrongly costs nothing."""
+    at = html.find("/*__RELEASE_MODULE_SCOPE__*/")
+    if at < 0:
+        return ""
+    # The script element round it: its tags at the left margin (the code itself mentions them).
+    starts = [m.start() for m in re.finditer(r"^<script\b[^>]*>", html[:at], re.M)]
+    end = re.compile(r"^</script>", re.M).search(html, at)
+    module = html[starts[-1] if starts else 0:end.start() if end else len(html)]
+    keep = {"ATTACH", "META", "metaLibrary"}
+    names, emptied = [], []
+    for match in re.finditer(r"^(?:let|var) ([A-Za-z_$][\w$]*)", module, re.M):
+        if match.group(1) not in keep and match.group(1) not in names:
+            names.append(match.group(1))
+    for match in re.finditer(r"^const ([A-Za-z_$][\w$]*) = (new (?:Map|Set)\(|\[\];)", module, re.M):
+        emptied.append((match.group(1), "clear()" if match.group(2).startswith("new") else "length = 0"))
+    lines = [f"try {{ {name} = null; }} catch (error) {{ /* kept */ }}" for name in names]
+    lines += [f"try {{ {name}.{how}; }} catch (error) {{ /* kept */ }}" for name, how in emptied]
+    return "\n  ".join(lines)
+
+
 def tuned(html: str, detail: str) -> str:
     """The page, cut for where it is going to be read."""
     streaming_hash = hashlib.sha256((ROOT / "docs/world-streaming.mjs").read_bytes()).hexdigest()[:16]
     html = html.replace("__WORLD_STREAMING_HASH__", streaming_hash)
     for key, filename in (("GRASS_STRANDS", "grass-strands.mjs"), ("NATURE_RUNTIME", "nature-runtime.mjs"),
                           ("FOLIAGE_MOTION", "foliage-motion.mjs"), ("FOREST_FLOOR", "forest-floor.mjs"),
-                          ("GLOBE", "globe.mjs"), ("TELEPORT_MAP", "teleport-map.mjs")):
+                          ("GLOBE", "globe.mjs"), ("TELEPORT_MAP", "teleport-map.mjs"), ("META_XR", "meta-xr.mjs")):
         html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
+    html = html.replace("/*__RELEASE_MODULE_SCOPE__*/", release_module_scope(html), 1)
     swaps = DETAIL_TUNING.get(detail) or {}
     for old, new in swaps.items():
         if old not in html:
@@ -3170,6 +3198,9 @@ const STOP_ROOF_RED = 0xb4282e;
 // in its own scene, and draws nothing, listens to nothing and shows nothing of its own; its
 // document and window are stand-ins the page gives it (see guestSource).
 const ATTACH = globalThis.__kerbsideGuest || null;
+//: The headset version (docs/meta.html; docs/meta-xr.mjs): first person only, always noon, a
+//: short view, and only the few blocks round you built and held, inside a memory budget.
+const META = !ATTACH && document.querySelector('meta[name="kerbside-mode"]')?.content === "meta";
 const WORLD_BUILD_STARTED=performance.now();
 //: The region drawn in full besides this page's own, once the walker has gone there; whether this
 //: page's own world is still drawn; and the built regions, from the page's region index.
@@ -3204,7 +3235,8 @@ const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=__WORLD
 //: Wider is not better: a 900 m square took 17.5 s to build round Pacific Heights, a 700 m one
 //: 7 s, and a walker who arrives before the build is on the simple city all that while. An
 //: arrival after a jump is built small (220 m) so the block underfoot comes first.
-const STREAM = (!deviceIsSmall() && !(navigator.deviceMemory && navigator.deviceMemory < 8))
+const metaLibrary = META ? await import(sharedAsset("meta-xr.mjs?rev=__META_XR_HASH__")) : null;
+const STREAM = META ? { ...metaLibrary.META_STREAM } : (!deviceIsSmall() && !(navigator.deviceMemory && navigator.deviceMemory < 8))
   ? { radius: 400, arrival: 220, keep: 310, lead: 200, cellBytes: 192 * 1048576, cellConcurrency: 6, tileBytes: 160 * 1048576 }
   : { ...worldStreaming.DETAIL_SMALL, cellBytes: 48 * 1048576, cellConcurrency: 4, tileBytes: 48 * 1048576 };
 const worldCellCache = ATTACH?.cellCache
@@ -3347,7 +3379,7 @@ function windowSpec(bbox) {
     else if (arrival && arrival.path === location.pathname && Number.isFinite(arrival.lon)) [lon, lat] = [arrival.lon, arrival.lat];
   } catch (error) { /* the middle of the region */ }
   if (ATTACH?.detailWindow) ({lon, lat} = ATTACH.detailWindow);
-  const radius = ATTACH?.detailWindow?.radius || LIGHT_RADII_M[LIGHT_LEVEL];
+  const radius = ATTACH?.detailWindow?.radius || (META ? STREAM.radius : LIGHT_RADII_M[LIGHT_LEVEL]);
   const kLon = 111320 * Math.cos(lat * Math.PI / 180), kLat = 111320;
   const clip = (b) => [Math.max(bbox.west, b[0]), Math.max(bbox.south, b[1]), Math.min(bbox.east, b[2]), Math.min(bbox.north, b[3])];
   const core = clip([lon - radius / kLon, lat - radius / kLat, lon + radius / kLon, lat + radius / kLat]);
@@ -3694,7 +3726,9 @@ if (!ATTACH) {
 // about 0.6 m, and street markings separated by two centimetres flickered in and out as the
 // depth test picked a different winner each frame.
 const renderer = ATTACH ? ATTACH.renderer : new THREE.WebGLRenderer({
-  canvas, antialias: true, alpha: false, logarithmicDepthBuffer: true,
+  // In the headset the view ends a couple of hundred metres off, where the ordinary buffer is
+  // fine-grained enough, and the logarithmic one costs a headset's GPU its early depth test.
+  canvas, antialias: true, alpha: false, logarithmicDepthBuffer: !META,
 });
 // Each new shader was checked for errors by reading its program log at once, which waits for
 // the driver to finish compiling it: a whole-second stall the first time a house's windows,
@@ -3731,6 +3765,8 @@ try {
   if (QUALITY_PRESETS[query.get("quality")]) SETTINGS.quality = query.get("quality");
   if (query.has("fps") && FPS_CHOICES.includes(Number(query.get("fps")))) SETTINGS.fps = Number(query.get("fps"));
 }
+// The headset: the light preset, every frame the headset asks for (it sets the rate).
+if (META) { SETTINGS.quality = "low"; SETTINGS.fps = 0; }
 const QUALITY = () => QUALITY_PRESETS[SETTINGS.quality];
 
 //: The square built in full on a lighter build, round the place decided before the fetches.
@@ -3755,8 +3791,8 @@ if (BUILD_WINDOW) {
 const LIGHT_EDGE_M = 120;
 let lightWindowStart = null;
 // Build a replacement in-page, retaining the last working window until it is ready.
-function rebuildRoundHere(lon, lat) {
-  if (!ATTACH && REGION_INDEX.host) attachRegion(REGION_INDEX.host,{lon,lat},STREAM.radius);
+function rebuildRoundHere(lon, lat, force = false) {
+  if (!ATTACH && REGION_INDEX.host) attachRegion(REGION_INDEX.host,{lon,lat},STREAM.radius,force);
 }
 //: The walker has walked, or been taken, near the edge of the square: build round it again.
 function checkLightWindow(frame) {
@@ -5075,6 +5111,11 @@ if(!ATTACH) {
   // Do not add a top-level suspension here: regional labels initialize later.
   import(sharedAsset("environment-runtime.mjs")).then(({createEnvironment})=>{
   environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon});
+  if(META){
+    // Always the same light: noon, clear, whatever the hour or the weather outside.
+    environmentController.setWeather("sunny");environmentController.setTime(metaLibrary.META_NOON);
+    for(const name of ["setWeather","setTime","setPhase","setConditions"])environmentController[name]=()=>{};
+  }
   window.kerbsideEnvironment={snapshot:()=>environmentController.snapshot(),
     setWeather:value=>environmentController.setWeather(value),setTime:value=>environmentController.setTime(value)};
   const section=document.createElement("section");section.className="group";
@@ -6960,7 +7001,7 @@ const TILE_MAX_SCREEN_ERROR_PX = 3.0;
 const TILE_MAX_CONCURRENT = 6;
 //: Tiles are dropped when more than this is resident, furthest first, and never one that is
 //: being drawn. Source bytes, which is what the index knows before it asks for anything.
-const TILE_RESIDENT_BUDGET = STREAM.tileBytes;
+let TILE_RESIDENT_BUDGET = STREAM.tileBytes;
 //: The swap is faded rather than cut: at a boundary the new tile's first frame is otherwise a
 //: visible step even when the geometry lines up.
 const TILE_FADE_MS = 150;
@@ -7634,6 +7675,7 @@ function tileFillDepth(tile) {
   return d <= tileFill.radius ? TILE_FULL_DEPTH : null;
 }
 function growTileFill(now) {
+  if (META) { tileFill.rect = null; return; }   // the headset holds only the blocks round you
   const region = typeof activeGuest !== "undefined" && activeGuest ? activeGuest.region : REGION_INDEX.host;
   if (!region || !TILE_INDEX?.regions?.[region.name]) { tileFill.rect = null; return; }
   if (tileFill.region !== region || tileFill.focus.distanceTo(tileFocus) > 500) {
@@ -27298,6 +27340,8 @@ const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
 //: a house keeps its roof, always.
 const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: false, autoFirstPerson: false };
 function placeCamera() {
+  // In the headset the headset places the view.
+  if (META && renderer.xr.isPresenting) return;
   camera.up.set(0, 1, 0);
   if (state.firstPerson && typeof avatar !== "undefined") {
     // Out of the walker's eyes: the camera stands at eye height where the walker stands and
@@ -27386,6 +27430,7 @@ function orbitInsideBuilding(position, target) {
   }
 }
 function setFirstPerson(on) {
+  if (META && !on) return;   // the headset is first person only
   if (on && state.explore) setExplore(false);
   state.firstPerson = on;
   if (!on) state.autoFirstPerson = false;
@@ -27512,6 +27557,7 @@ document.getElementById("reset").addEventListener("click", () => {
 const EXPLORE_SPEED_PER_M = 0.8;
 const EXPLORE_SPEED_MIN = 8;
 function setExplore(on) {
+  if (META && on) return;   // no explore mode in the headset
   if (typeof avatar === "undefined" || typeof gps === "undefined" || Boolean(state.explore) === on) return;
   if (on) {
     if (state.firstPerson) setFirstPerson(false);
@@ -27609,6 +27655,8 @@ if (!ATTACH) {
 // every time because nobody types a number when they mean a junction.
 //: The same search, for the directions' stop fields (set inside the block below).
 let searchPlaces = () => [];
+//: Resolves once every region's places are searchable too (the headset's menu waits on it).
+let searchPlacesLoaded = () => Promise.resolve();
 {
   const field = document.getElementById("find");
   const hits = document.getElementById("hits");
@@ -27748,6 +27796,7 @@ let searchPlaces = () => [];
   }
 
   searchPlaces = (query) => { loadElsewhere(); return search(query); };
+  searchPlacesLoaded = () => loadElsewhere();
   field.addEventListener("focus", loadElsewhere);
   field.addEventListener("input", () => {
     loadElsewhere();
@@ -28174,21 +28223,29 @@ function pickedFeature(clientX, clientY) {
   for(const [dx,dy] of [[0,0],[-8,0],[8,0],[0,-8],[0,8],[-6,-6],[6,-6],[-6,6],[6,6]]) {
     pointer.set(((clientX+dx)/innerWidth)*2-1,-((clientY+dy)/innerHeight)*2+1);
     ray.setFromCamera(pointer,camera);
-    const o=ray.ray.origin,d=ray.ray.direction;
-    let hit=hostWorldActive ? pickRayBuilding([o.x,o.y,o.z],[d.x,d.y,d.z]) : null;
-    if(activeGuest?.ready) {
-      const g=activeGuest;
-      const other=g.api.pickRayBuilding([(o.x-g.ox)/g.sx,o.y-g.oy,o.z-g.oz],[d.x/g.sx,d.y,d.z]);
-      if(other && (!hit || other.t<hit.t))hit=other;
-    }
-    if(hit)return hit.feature;
+    const feature=featureOnRay(ray.ray.origin,ray.ray.direction);
+    if(feature)return feature;
   }
   return null;
+}
+//: The building a ray from `o` along `d` meets first, here or in the region drawn beside.
+function featureOnRay(o,d) {
+  let hit=hostWorldActive ? pickRayBuilding([o.x,o.y,o.z],[d.x,d.y,d.z]) : null;
+  if(activeGuest?.ready) {
+    const g=activeGuest;
+    const other=g.api.pickRayBuilding([(o.x-g.ox)/g.sx,o.y-g.oy,o.z-g.oz],[d.x/g.sx,d.y,d.z]);
+    if(other && (!hit || other.t<hit.t))hit=other;
+  }
+  return hit ? hit.feature : null;
 }
 
 function groundAt(clientX, clientY) {
   pointer.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
+  return groundOnRay();
+}
+//: The ground the picking ray (`ray`, set by the caller) meets first.
+function groundOnRay() {
   const guestMeshes=solids=>activeGuest?.ready && activeGuest.api.tunnelWalkMeshes
     ? activeGuest.api.tunnelWalkMeshes(solids) : [];
   const blocker=ray.intersectObjects(tunnelWalkMeshes(true).concat(guestMeshes(true)),false)[0]?.distance ?? Infinity;
@@ -28231,6 +28288,16 @@ for (const way of DATA.ways) {
     const dx = bx - ax, dz = ay - by;
     if (dx * dx + dz * dz > 1) streetLandingSegments.push([ax, -ay, dx, dz]);
   }
+}
+//: The heading (as state.yaw) along the street nearest (x, z), or NaN with none near.
+function streetHeadingAt(x, z) {
+  let best = null;
+  for (const [ax, az, dx, dz] of streetLandingSegments) {
+    const len2 = dx * dx + dz * dz, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2));
+    const d = Math.hypot(x - ax - dx * t, z - az - dz * t);
+    if (!best || d < best.d) best = { d, dx, dz };
+  }
+  return best && best.d < 60 ? Math.atan2(-best.dx, -best.dz) : NaN;
 }
 function eligibleLanding(landing, forceStreet = false) {
   if (!landing) return null;
@@ -28344,7 +28411,7 @@ var GPS_LEASH = { on: true };
 //: map, whose seven seconds are the time the new place has to stream in.
 const TELEPORT_MAP_M = 700;
 function goTo(landing, options = {}) {
-  if (landing && options.travel && !state.explore && !ATTACH && teleportLibrary && NATURE
+  if (landing && options.travel && !META && !state.explore && !ATTACH && teleportLibrary && NATURE
       && typeof avatar !== "undefined" && !teleportOverlay?.busy
       && Math.hypot(landing.x - avatar.position.x, landing.z - avatar.position.z) > TELEPORT_MAP_M) {
     teleportTrip(avatar.position, landing, () => goToNow(landing, options));
@@ -28605,6 +28672,37 @@ function crossStreetsAt(x, z, name) {
   return out;
 }
 
+//: What is in the middle of the headset's view: a house's address, or the street and its cross
+//: streets. {title, lines} or null. The ray from the eye straight ahead.
+function describeAhead() {
+  const o = new THREE.Vector3(), d = new THREE.Vector3();
+  camera.getWorldPosition(o); camera.getWorldDirection(d);
+  const feature = featureOnRay(o, d);
+  if (feature && feature.kind === "building") {
+    const address = feature.address || {};
+    const line = address.formatted || [address.house_number, address.street].filter(Boolean).join(" ");
+    const lines = [feature.name && line ? feature.name : "", ...(feature.tenant_names || []).slice(0, 2).map((t) => t.n),
+      feature.parcel?.analysis_neighborhood || ""].filter(Boolean);
+    // "41 White Street" on the first line; the city and zip under it.
+    const [street, ...rest] = (line || "").split(",").map((part) => part.trim());
+    if (rest.length) lines.unshift(rest.join(", "));
+    if (line || feature.name) return { title: street || feature.name, lines };
+  }
+  ray.ray.origin.copy(o); ray.ray.direction.copy(d); ray.near = 0; ray.far = Infinity;
+  let ground = groundOnRay();
+  // Looking level down the street the ray meets no ground near: the street a few metres ahead.
+  if (!ground || Math.hypot(ground.x - o.x, ground.z - o.z) > 80) {
+    const flat = Math.hypot(d.x, d.z) || 1;
+    ground = new THREE.Vector3(avatar.position.x + d.x / flat * 6, 0, avatar.position.z + d.z / flat * 6);
+  }
+  const name = streetNameAt(ground.x, ground.z) || streetNameAt(avatar.position.x, avatar.position.z);
+  if (!name) return null;
+  const cross = crossStreetsAt(ground.x, ground.z, name);
+  const lines = cross.at ? [`at ${cross.at}`, cross.next.length ? `next: ${cross.next.join(" · ")}` : ""]
+    : cross.behind && cross.ahead ? [`between ${cross.behind} and ${cross.ahead}`]
+    : cross.behind || cross.ahead ? [`near ${cross.behind || cross.ahead}`] : [];
+  return { title: name, lines: lines.filter(Boolean) };
+}
 addEventListener("keydown", async (e) => {
   if (e.key !== "s" && e.key !== "S") return;
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
@@ -30201,31 +30299,34 @@ function walkableStairRecessAt(x,z){
   return entries.some(e=>stairRecessClear(e,x,z));
 }
 
-addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" || e.repeat) return;
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+//: The nearest door, gate or room door opened or shut, and the walker taken through a front door
+//: (Enter; X in the headset). What happened, in a few words, or null where there is none near.
+function enterOrLeave() {
   if (!hostWorldActive && activeGuest && activeGuest.ready) {
     const g = activeGuest, said = g.api.toggleNearestDoor();
-    if (!said) return;
-    e.preventDefault();
+    if (!said) return null;
     // The attached region says where, in its own metres (mirrored when its sx is negative).
     if (said.at) placeWalkerAtDoor({ x: g.ox + said.at.x * g.sx, z: g.oz + said.at.z, yaw: said.at.yaw * Math.sign(g.sx) });
-    return;
+    return said.at ? (state.indoors ? "Inside" : "Outside") : "Door";
   }
   const roomDoor = nearestRoomDoor();
-  if (roomDoor) { roomDoor.open = !roomDoor.open; e.preventDefault(); return; }
+  if (roomDoor) { roomDoor.open = !roomDoor.open; return roomDoor.open ? "Door opened" : "Door shut"; }
   const gate = nearestGate();
   const door = nearestDoor();
   const ax = avatar.position.x, az = avatar.position.z;
   if (gate && (!door || Math.hypot(gate.cx - ax, gate.cz - az) < Math.hypot(door.cx - ax, door.cz - az))) {
     gate.open = !gate.open;
-    e.preventDefault();
-    return;
+    return gate.open ? "Gate opened" : "Gate shut";
   }
-  if (!door) return;
+  if (!door) return null;
   const at = toggleDoor(door);
   if (at) placeWalkerAtDoor(at);
-  e.preventDefault();
+  return at ? (state.indoors ? "Inside" : "Outside") : "Door";
+}
+addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || e.repeat) return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (enterOrLeave()) e.preventDefault();
 });
 
 //: The light of the room the walker is in: one lamp, moved to the ceiling light of whichever
@@ -33098,7 +33199,10 @@ function requestFrame() {
   }, FRAME_STAND_IN_MS);
 }
 function animate(now) {
-  requestFrame();
+  // In the headset the session hands out the frames (renderer.setAnimationLoop), and every one
+  // is drawn: a frame withheld there is a frame of nothing in front of your eyes.
+  const xrFrame = META && renderer.xr.isPresenting;
+  if (!xrFrame) requestFrame();
   now = now || performance.now();
   environmentController?.update(now,{indoors:Boolean(state.indoors)});
   if(frameCount%60===0 && environmentController){const clock=document.getElementById("world-clock");
@@ -33110,7 +33214,7 @@ function animate(now) {
   for (let i = 0; i < 16; i += 1) if (Math.abs(eye[i] - drawn[i]) > 1e-4) { lastMovedAt = now; break; }
   const idle = now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors;
   const interval = Math.max(SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0, idle ? IDLE_FRAME_MS : 0);
-  if (interval && now - lastFrameDrawnAt < interval - 2) return;
+  if (!xrFrame && interval && now - lastFrameDrawnAt < interval - 2) return;
   lastFrameDrawnAt = now;
   lastDrawnEye.copy(camera.matrixWorld);
   // The first frame drawn is the end of loading.
@@ -33144,6 +33248,7 @@ function animate(now) {
     natureWorld.update(focus.x,focus.z);
   }
   keepMarkersFindable();
+  metaXR?.update(now);
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
@@ -33841,7 +33946,24 @@ if (!ATTACH) {
     }
   });
   renderStops();
-  window.kerbsideRoute = { request: requestRoutes, routeRequest, decodePolyline6, tagRoutes, state: route, group: routeGroup };
+  //: Directions from where you are to `place`, laid on the ground (the headset's menu): the
+  //: chosen route, or null.
+  async function directionsTo(place, mode = "walk") {
+    route.mode = mode;
+    route.stops = [null, place];
+    renderStops();
+    const stops = [here(), place];
+    placeRoutePins(stops);
+    const ticket = route.pending = Symbol("route");
+    const found = await requestRoutes(stops, mode);
+    if (ticket !== route.pending) return null;
+    route.results = found;
+    route.chosen = 0;
+    renderResults(drawRoutes());
+    return found[0] || null;
+  }
+  window.kerbsideRoute = { request: requestRoutes, routeRequest, decodePolyline6, tagRoutes, state: route, group: routeGroup,
+    directionsTo, end: endRoute };
 }
 
 // The settings panel: the gear at the top right.
@@ -33942,6 +34064,178 @@ window.kerbsideSettings = {
     if (triangles) byGroup[name] = `${(triangles / 1e6).toFixed(2)}M`;
   }
   console.info(`kerbside: built in ${((performance.now()-WORLD_BUILD_STARTED) / 1000).toFixed(1)} s; merged ${mergeStats.parts.toLocaleString()} parts into ${mergeStats.meshes.toLocaleString()} tiled meshes; triangles by group`, byGroup);
+}
+// ---- the headset (META) --------------------------------------------------------------------
+//
+// docs/meta-xr.mjs runs the session, the controllers and the panels; the page lends it the world
+// through these hooks. The page's own controls are put away: there is one way to see (out of
+// your own eyes), one light, and the few blocks round you.
+var metaXR = null;
+//: What the page holds, in bytes, as the memory governor reads it: the browser's own share (an
+//: allowance), the script heap, and the geometry and textures handed to the GPU -- counted
+//: from the scene every couple of seconds, each buffer once.
+function metaMemory() {
+  const geometries = new Set(), textures = new Set();
+  let gpu = 0;
+  scene.traverse((o) => {
+    if (o.geometry && !geometries.has(o.geometry)) {
+      geometries.add(o.geometry);
+      for (const attribute of Object.values(o.geometry.attributes || {})) gpu += attribute.array?.byteLength || 0;
+      gpu += o.geometry.index?.array?.byteLength || 0;
+    }
+    if (o.isInstancedMesh) gpu += o.instanceMatrix.array.byteLength;
+    for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
+      for (const key of ["map", "normalMap", "roughnessMap", "alphaMap", "emissiveMap", "aoMap"]) {
+        const t = m[key];
+        if (!t || textures.has(t)) continue;
+        textures.add(t);
+        const image = t.image || {};
+        // Mipmapped RGBA: a third again for the smaller levels.
+        gpu += (image.width || 0) * (image.height || 0) * 4 * (t.generateMipmaps === false ? 1 : 4 / 3);
+      }
+    }
+  });
+  const cells = worldCellCache.snapshot().residentBytes;
+  const js = performance.memory?.usedJSHeapSize || cells + tileResidentBytes + 300 * 1048576;
+  const baseline = metaLibrary.META_MEMORY.baseline;
+  return { baseline, js, gpu: Math.round(gpu), cells, tiles: tileResidentBytes, total: baseline + js + Math.round(gpu),
+    measuredHeap: Boolean(performance.memory) };
+}
+//: The governor's plan carried out: the square's size for the next build, and what is shed.
+function applyMetaMemoryPlan(plan) {
+  const M = metaLibrary.META_STREAM;
+  STREAM.radius = plan.radius;
+  STREAM.arrival = Math.min(M.arrival, plan.radius);
+  STREAM.keep = Math.round(plan.radius * M.keep / M.radius);
+  STREAM.lead = Math.round(plan.radius * M.lead / M.radius);
+  if (plan.shed) {
+    worldCellCache.maxBytes = Math.max(16 * 1048576, Math.round(worldCellCache.maxBytes / 2));
+    worldCellCache.evict();
+    TILE_RESIDENT_BUDGET = Math.max(8 * 1048576, Math.round(TILE_RESIDENT_BUDGET / 2));
+    evictTiles();
+  } else if (plan.level === "restore") {
+    worldCellCache.maxBytes = Math.min(M.cellBytes, worldCellCache.maxBytes * 2);
+    TILE_RESIDENT_BUDGET = Math.min(M.tileBytes, TILE_RESIDENT_BUDGET * 2);
+  }
+  // Over the emergency line the square round you is built again at once, at its smallest; the
+  // one it replaces goes when the new one stands.
+  if (plan.shed === "all" && !attaching) {
+    const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
+    const region = regionAt(lon, lat);
+    if (region) attachRegion(region, { lon, lat }, plan.radius, true);
+  }
+  console.info(`kerbside: memory ${plan.level}: ${(metaMemory().total / 1073741824).toFixed(2)} GiB; square ${2 * plan.radius} m`);
+}
+if (META) {
+  for (const id of ["hud", "settings-toggle", "settings-page", "compass", "addr", "route-end", "fold"]) {
+    const element = document.getElementById(id);
+    if (element) { element.hidden = true; element.style.display = "none"; }
+  }
+  document.querySelectorAll(".compass, #compass-rose").forEach((element) => { element.closest("div")?.setAttribute("hidden", ""); });
+  avatar.visible = false;
+  setFirstPerson(true);
+  // Started at the street corner nearest where you were put down (unless a place was asked
+  // for), looking along the street -- not into the side of the house beside you.
+  let resume = null;
+  try {
+    resume = JSON.parse(sessionStorage.getItem("kerbside:meta-resume") || "null");
+    sessionStorage.removeItem("kerbside:meta-resume");
+  } catch (error) { /* a fresh start */ }
+  if (resume && Number.isFinite(resume.lon) && Number.isFinite(resume.lat)) {
+    // Started again by the memory governor: back where you stood, facing the same way.
+    const [x, y] = xy(resume.lon, resume.lat);
+    goToNow(new THREE.Vector3(x, 0, -y), { travel: true });
+  } else if (!new URLSearchParams(location.search).has("at")) {
+    let corner = null;
+    for (const c of DATA.intersections || []) {
+      if (!c.a || !c.b) continue;
+      const [cx, cy] = xy(c.lon, c.lat), d = Math.hypot(cx - avatar.position.x, -cy - avatar.position.z);
+      if (!corner || d < corner.d) corner = { d, x: cx, z: -cy };
+    }
+    if (corner && corner.d < 400) goToNow(new THREE.Vector3(corner.x, 0, corner.z), { travel: true });
+  }
+  { const yaw = Number.isFinite(resume?.yaw) ? resume.yaw : streetHeadingAt(avatar.position.x, avatar.position.z);
+    if (Number.isFinite(yaw)) { state.yaw = yaw; state.look = 0; placeCamera(); } }
+  camera.near = metaLibrary.META_VIEW.near;
+  camera.far = metaLibrary.META_VIEW.far;
+  camera.updateProjectionMatrix();
+  if (scene.fog) { scene.fog.near = metaLibrary.META_VIEW.fogNear; scene.fog.far = metaLibrary.META_VIEW.fogFar; }
+  metaXR = metaLibrary.createMetaXR({ THREE, renderer, scene, camera, hooks: {
+    // In once the streets and ground stand and the square round you is built.
+    ready: () => Boolean(window.kerbsideReady?.streets && window.kerbsideReady?.ground) && detailCovers(avatar.position),
+    status: () => (attaching?.progress?.textContent) || document.getElementById("progress")?.textContent || "Loading the streets round you…",
+    feet: () => ({ x: avatar.position.x, y: avatar.position.y - AVATAR_STAND_Y, z: avatar.position.z }),
+    heading: (yaw, place) => { state.yaw = yaw; state.look = 0; if (place) placeCamera(); },
+    walk: (dx, dz) => { moveWalker(dx, dz); state.target.copy(avatar.position); },
+    describeCentre: () => describeAhead(),
+    enterOrLeave: () => enterOrLeave(),
+    search: async (query) => { searchPlaces(query); await searchPlacesLoaded(); return searchPlaces(query); },
+    facing: () => streetHeadingAt(avatar.position.x, avatar.position.z),
+    travelTo: (place) => {
+      const [x, y] = xy(place.lon, place.lat);
+      gps.follow = false;
+      goToNow(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true });
+    },
+    directionsTo: (place, mode) => window.kerbsideRoute.directionsTo(place, mode),
+    endRoute: () => window.kerbsideRoute.end(),
+    // Starting again where you stand (the governor's last step): `ask` says only whether it may.
+    reload: (ask) => {
+      try {
+        const last = Number(sessionStorage.getItem("kerbside:meta-reloaded") || 0);
+        if (Date.now() - last < 120000) return false;
+        if (ask) return true;
+        const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
+        sessionStorage.setItem("kerbside:meta-reloaded", String(Date.now()));
+        sessionStorage.setItem("kerbside:meta-resume", JSON.stringify({ lon, lat, yaw: state.yaw }));
+        sessionStorage.setItem("kerbside:meta-reload-why", JSON.stringify(metaXR?.state?.planLog || []));
+      } catch (error) { return false; }
+      location.reload();
+      return true;
+    },
+    resetView: () => {
+      const at = walkerExteriorAt(avatar.position.x, avatar.position.z);
+      if (at) goToNow(at, { travel: true });
+      state.indoors = false;
+    },
+    radius: () => STREAM.radius,
+    memory: metaMemory,
+    applyMemoryPlan: applyMetaMemoryPlan,
+    onEnter: () => { ++frameRequest; renderer.setAnimationLoop(animate); },
+    onExit: () => { renderer.setAnimationLoop(null); requestFrame(); },
+  } });
+  window.kerbsideMeta = { xr: metaXR, memory: metaMemory, stream: STREAM, applyMemoryPlan: applyMetaMemoryPlan,
+    //: Why the window round you is or is not being built again, for looking into on the headset.
+    get streaming() { return { attaching: Boolean(attaching), wanted: Boolean(attachWanted), retryIn: Math.round(detailRetryAt - performance.now()),
+      checkedAgo: Math.round(performance.now() - detailCheckAt), frames: frameCount, ready: window.kerbsideReady,
+      guest: activeGuest ? { region: activeGuest.region.name, radius: activeGuest.detailRadius, ready: activeGuest.ready } : null,
+      host: hostWorldActive, plan: metaXR.state.plan }; } };
+  // Without a headset (a desktop, for a look): the same buttons on the keyboard, the arrows to walk.
+  addEventListener("keydown", (e) => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typingIn(e.target)) return;
+    const key = e.key.toLowerCase();
+    if (key === "a") metaXR.describe();
+    else if (key === "b") metaXR.toggleMenu();
+    else if (key === "x") metaXR.enterOrLeave();
+    else return;
+    e.preventDefault();
+  });
+  canvas.addEventListener("pointerdown", (e) => {
+    if (metaXR.clickAt((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1)) e.stopImmediatePropagation();
+  }, true);
+  // In: straight into the headset where the browser allows it, else from the button.
+  const enter = document.createElement("button");
+  enter.id = "meta-enter";
+  enter.textContent = "Enter Kerbside";
+  enter.style.cssText = "position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:60;font:600 20px system-ui,sans-serif;"
+    + "padding:16px 28px;border-radius:999px;border:0;background:#2563eb;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.35)";
+  const help = document.createElement("p");
+  help.id = "meta-help";
+  help.style.cssText = "position:fixed;left:50%;bottom:104px;transform:translateX(-50%);z-index:60;margin:0;max-width:min(92vw,560px);"
+    + "font:14px/1.45 system-ui,sans-serif;color:#fff;background:rgba(15,20,28,.85);padding:10px 16px;border-radius:12px;text-align:center";
+  help.textContent = "Left stick: walk (hold the left trigger to walk faster) · Right stick: turn · A: what you are looking at · "
+    + "B: menu (search, directions, reset view) · X: in and out of houses";
+  document.body.append(help, enter);
+  metaXR.startWhenAllowed(enter).then((started) => { if (started) { enter.hidden = true; help.hidden = true; } });
 }
 if (!ATTACH) animate();
 setTimeout(() => { loadPhotoMaterialLibrary(); }, 1500);
@@ -34260,9 +34554,9 @@ function regionAt(lon, lat) {
   }
   return best;
 }
-function disposeTree(object) {
+function disposeTree(object, all = false) {
   object.traverse((o) => {
-    if (o.geometry && !o.userData.sharedInteriorAsset) o.geometry.dispose();
+    if (o.geometry && (all || !o.userData.sharedInteriorAsset)) o.geometry.dispose();
     for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
       for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap"])
         if (m[key] && m[key].dispose) m[key].dispose();
@@ -34292,7 +34586,7 @@ function releaseHostWorld() {
   if (!hostWorldActive) return;
   hostWorldActive = false;
   if(grassStrands)grassStrands.dispose();
-  grassStrands=null;grassSurfaceAt=null;
+  grassSurfaceAt?.clear?.();grassStrands=null;grassSurfaceAt=null;grassSampleAt=null;
   for (const child of [...root.children]) {
     if (child === tileGroupRoot || child === avatar || child.userData.bayWide) continue;
     root.remove(child);
@@ -34313,10 +34607,47 @@ function releaseHostWorld() {
   indoorCutEntry = null;
   indoorCut.count.value = 0;
 }
+//: A released window's own copies of its geometry and pictures, emptied. Its module can never be
+//: unloaded -- a script once run stays -- and whatever it still points at stays with it: two
+//: hundred megabytes a hop, measured, until these went. The GPU's copies went with dispose().
+//: `all`: a released window's own furniture models too -- they are shared only within it.
+function emptyTree(object, all = false) {
+  object.traverse((o) => {
+    if (o.userData.sharedInteriorAsset && !all) return;
+    if (o.geometry) {
+      for (const attribute of Object.values(o.geometry.attributes || {})) {
+        // An interleaved attribute reads its array from the buffer it shares with others.
+        const holder = attribute.isInterleavedBufferAttribute ? attribute.data : attribute;
+        if (holder?.array?.length) { holder.array = new holder.array.constructor(0); holder.count = 0; }
+      }
+      if (o.geometry.index?.array) { o.geometry.index.array = new o.geometry.index.array.constructor(0); o.geometry.index.count = 0; }
+    }
+    if (o.isInstancedMesh && o.instanceMatrix) { o.instanceMatrix.array = new Float32Array(0); o.count = 0; }
+    for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
+      for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap"]) {
+        const image = m[key]?.image;
+        if (!image) continue;
+        if (typeof image.close === "function") image.close();
+        else if (typeof HTMLCanvasElement !== "undefined" && image instanceof HTMLCanvasElement) image.width = image.height = 0;
+      }
+    }
+  });
+}
 function releaseGuest(g) {
   if (!g) return;
-  if (g.root) { scene.remove(g.root); disposeTree(g.root); }
-  try { if (g.api && g.api.release) g.api.release(); } catch (error) { /* what is left is collected */ }
+  if (g.root) {
+    scene.remove(g.root); disposeTree(g.root, true);
+    try {
+      emptyTree(g.root, true);
+      // Every group let go of what it holds, not only the root: the window's code stays loaded
+      // and keeps its own groups (its rooms, its doors), and a model still on its way when the
+      // window went is hung on a group nothing then holds.
+      const all = [];
+      g.root.traverse((o) => { all.push(o); });
+      for (const o of all) { o.children.length = 0; o.parent = null; }
+    } catch (error) { console.warn("kerbside: released window kept its arrays", error); }
+  }
+  try { if (g.api && g.api.release) g.api.release(); } catch (error) { console.warn("kerbside: a released window kept some of its world", error); }
   if (g.url) URL.revokeObjectURL(g.url);
   g.api = null;
   g.root = null;
@@ -34377,6 +34708,7 @@ document.body.appendChild(regionBadge);
 const ROUTE_STRIP = { halfM: 100, pieceM: 220, maxBoxes: BOX_SET_MAX - 1,
   km2: STREAM.radius >= 400 ? 0.8 : 0.3, aheadM: 160 };
 function routeLine() {
+  if (META) return null;   // the headset holds only the blocks round you
   const result = typeof route !== "undefined" ? route.results[route.chosen] : null;
   return result?.line?.length > 1 ? result.line : null;
 }
@@ -34498,7 +34830,9 @@ window.kerbsideStreamDetail=()=>{
     +`cells ${(cache.residentBytes/1048576).toFixed(1)} / ${(STREAM.cellBytes/1048576).toFixed(0)} MiB, ${cache.active} fetching, ${cache.hits} reused. `
     +`Municipal sidewalks: ${usage.sidewalks}; curb records: ${usage.curbColourRecords}.`;
 };
-async function attachRegion(region, centre = null, radius = 220) {
+//: `force`: built again even where the square asked for fits in the one drawn (the headset's
+//: memory governor, shrinking it).
+async function attachRegion(region, centre = null, radius = META ? STREAM.arrival : 220, force = false) {
   if (ATTACH || !regionStreamingReady || !region) return;
   const isHost = REGION_INDEX.host && region.name === REGION_INDEX.host.name;
   if (!centre && ((isHost && hostWorldActive) || (activeGuest && activeGuest.region === region))) return;
@@ -34511,7 +34845,7 @@ async function attachRegion(region, centre = null, radius = 220) {
   // window is built for a set of directions once.
   const strip = radius > STREAM.arrival ? routeStrip(region, centre) : [];
   const stripKey = radius > STREAM.arrival ? routeStripKey() : "";
-  if (activeGuest?.region === region && activeGuest.windowBox && (activeGuest.stripKey || "") === stripKey) {
+  if (!force && activeGuest?.region === region && activeGuest.windowBox && (activeGuest.stripKey || "") === stripKey) {
     const b=activeGuest.windowBox;
     if(radius<=activeGuest.detailRadius && worldStreaming.windowMargin(b,[centre.lon,centre.lat],
       [metersPerLon,metersPerLat],[rw,rs,re,rn])>=STREAM.keep)return;
@@ -34677,6 +35011,12 @@ function guestTick({ eye, dist, firstPerson, at, dt }) {
     light: indoorLight.intensity > 0 ? [indoorLight.position.x, indoorLight.position.y, indoorLight.position.z] : null,
   };
 }
+//: Every name at the top of this module let go of what it holds -- written out when the page is
+//: built (tuned), from the module's own declarations: each `let` and `var` pointed at nothing,
+//: each Map, Set and list made here emptied. Only a released window calls it.
+function releaseModuleScope() {
+  /*__RELEASE_MODULE_SCOPE__*/
+}
 window.kerbsideGuestApi = {
   ready:async()=>{if(await groundReady===false)throw Error("Destination ground unavailable; previous window retained");},
   cityAsTiles:(simple)=>showDetailBuildings(!simple),
@@ -34725,7 +35065,7 @@ window.kerbsideGuestApi = {
   // Let go: what this world holds is emptied, since the code that built it stays loaded.
   release() {
     if(grassStrands)grassStrands.dispose();
-    grassStrands=null;grassSurfaceAt=null;
+    grassSurfaceAt?.clear?.();grassStrands=null;grassSurfaceAt=null;grassSampleAt=null;
     terrainTiles.length = 0;
     tunnelBores.length = 0;
     billboardFaces.length = 0;
@@ -34741,6 +35081,135 @@ window.kerbsideGuestApi = {
     interiorsBuilt.clear();
     if (DATA.ways) DATA.ways.length = 0;
     if (TERRAIN) { TERRAIN.data = null; TERRAIN.visualData = null; }
+    // And everything else held at the top of the module -- every grid, cache and list, and what
+    // was fetched -- since a module, once run, is never unloaded: whatever it still points at
+    // stays for as long as the page does. A hundred megabytes a window, before this.
+    for (const kept of [
+      typeof lazyLayerBuilders !== "undefined" ? lazyLayerBuilders : null,
+      typeof lazyLayersWanted !== "undefined" ? lazyLayersWanted : null,
+      typeof WORLD_MATERIAL_CACHE !== "undefined" ? WORLD_MATERIAL_CACHE : null,
+      typeof latticeField !== "undefined" ? latticeField : null, typeof TILES !== "undefined" ? TILES : null,
+      typeof TILE_CACHE !== "undefined" ? TILE_CACHE : null,
+      typeof PEDESTRIAN_TEXTURES !== "undefined" ? PEDESTRIAN_TEXTURES : null,
+      typeof MERGED !== "undefined" ? MERGED : null,
+      typeof BUILDING_VISUAL_RANGES !== "undefined" ? BUILDING_VISUAL_RANGES : null,
+      typeof HOME_RENDER !== "undefined" ? HOME_RENDER : null,
+      typeof CANONICAL_MATERIALS !== "undefined" ? CANONICAL_MATERIALS : null,
+      typeof officialCurbGrid !== "undefined" ? officialCurbGrid : null,
+      typeof officialIslandCurbGrid !== "undefined" ? officialIslandCurbGrid : null,
+      typeof crossingIslandCurbGrid !== "undefined" ? crossingIslandCurbGrid : null,
+      typeof mappedDividerCurbGrid !== "undefined" ? mappedDividerCurbGrid : null,
+      typeof officialMedianGrid !== "undefined" ? officialMedianGrid : null,
+      typeof rampNodeGrid !== "undefined" ? rampNodeGrid : null,
+      typeof crossingDrawGrid !== "undefined" ? crossingDrawGrid : null,
+      typeof mappedCrossingGrid !== "undefined" ? mappedCrossingGrid : null,
+      typeof bikeJoinGrid !== "undefined" ? bikeJoinGrid : null,
+      typeof bikeAreaGrid !== "undefined" ? bikeAreaGrid : null,
+      typeof PHOTO_MATERIAL_IMAGES !== "undefined" ? PHOTO_MATERIAL_IMAGES : null,
+      typeof FACADE_CACHE !== "undefined" ? FACADE_CACHE : null,
+      typeof bareWallMaps !== "undefined" ? bareWallMaps : null,
+      typeof ROOF_CACHE !== "undefined" ? ROOF_CACHE : null,
+      typeof SOUTH_WINDOW_CACHE !== "undefined" ? SOUTH_WINDOW_CACHE : null,
+      typeof ENTRY_CACHE !== "undefined" ? ENTRY_CACHE : null,
+      typeof GARAGE_CACHE !== "undefined" ? GARAGE_CACHE : null,
+      typeof carriagewayGrid !== "undefined" ? carriagewayGrid : null,
+      typeof footprintGrid !== "undefined" ? footprintGrid : null,
+      typeof pavedGrid !== "undefined" ? pavedGrid : null,
+      typeof underlayGrid !== "undefined" ? underlayGrid : null,
+      typeof pavedBearing !== "undefined" ? pavedBearing : null,
+      typeof mappedWalkGrid !== "undefined" ? mappedWalkGrid : null,
+      typeof streetEndGrid !== "undefined" ? streetEndGrid : null,
+      typeof cornerLegGrid !== "undefined" ? cornerLegGrid : null,
+      typeof pavementCornerCuts !== "undefined" ? pavementCornerCuts : null,
+      typeof pavementCornerLaid !== "undefined" ? pavementCornerLaid : null,
+      typeof junctionBoxGrid !== "undefined" ? junctionBoxGrid : null,
+      typeof intersectionGrid !== "undefined" ? intersectionGrid : null,
+      typeof planeAtlases !== "undefined" ? planeAtlases : null,
+      typeof planeAtlasSlots !== "undefined" ? planeAtlasSlots : null,
+      typeof GAS_PRICE_CACHE !== "undefined" ? GAS_PRICE_CACHE : null,
+      typeof PHOTO_OPENING_TEXTURES !== "undefined" ? PHOTO_OPENING_TEXTURES : null,
+      typeof homeDesignMaterials !== "undefined" ? homeDesignMaterials : null,
+      typeof SIGN_SLOTS !== "undefined" ? SIGN_SLOTS : null,
+      typeof SIGN_MATERIALS !== "undefined" ? SIGN_MATERIALS : null,
+      typeof SIGN_SINKS !== "undefined" ? SIGN_SINKS : null,
+      typeof STOREFRONT_TEXTURES !== "undefined" ? STOREFRONT_TEXTURES : null,
+      typeof ROOF_PARTS !== "undefined" ? ROOF_PARTS : null,
+      typeof OUTBUILDING_CACHE !== "undefined" ? OUTBUILDING_CACHE : null,
+      typeof facadeLive !== "undefined" ? facadeLive : null,
+      typeof facadeGrid !== "undefined" ? facadeGrid : null,
+      typeof publicStairGrid !== "undefined" ? publicStairGrid : null,
+      typeof CENTRAL_DECK_NODES !== "undefined" ? CENTRAL_DECK_NODES : null,
+      typeof GROUND_JOIN_NODES !== "undefined" ? GROUND_JOIN_NODES : null,
+      typeof roadFillGrid !== "undefined" ? roadFillGrid : null,
+      typeof GRASS_TEXTURES !== "undefined" ? GRASS_TEXTURES : null,
+      typeof TREE_BARK_MATERIALS !== "undefined" ? TREE_BARK_MATERIALS : null,
+      typeof billboardTextureCache !== "undefined" ? billboardTextureCache : null,
+      typeof PLATE_SLOTS !== "undefined" ? PLATE_SLOTS : null,
+      typeof PLATE_MATERIALS !== "undefined" ? PLATE_MATERIALS : null,
+      typeof signPlateGrid !== "undefined" ? signPlateGrid : null,
+      typeof touches !== "undefined" ? touches : null, typeof held !== "undefined" ? held : null,
+      typeof detailShardCache !== "undefined" ? detailShardCache : null,
+      typeof detailRegionsSeen !== "undefined" ? detailRegionsSeen : null,
+      typeof findableMarkers !== "undefined" ? findableMarkers : null,
+      typeof standingSurfaces !== "undefined" ? standingSurfaces : null,
+      typeof footprintById !== "undefined" ? footprintById : null,
+      typeof doorsShown !== "undefined" ? doorsShown : null,
+      typeof gateMaterials !== "undefined" ? gateMaterials : null,
+      typeof homeShells !== "undefined" ? homeShells : null,
+      typeof homeDecalIndex !== "undefined" ? homeDecalIndex : null,
+      typeof homeDecalHidden !== "undefined" ? homeDecalHidden : null,
+      typeof interiorsBuilt !== "undefined" ? interiorsBuilt : null,
+      typeof interiorWallMaterials !== "undefined" ? interiorWallMaterials : null,
+      typeof paintMaterials !== "undefined" ? paintMaterials : null,
+      typeof carpetMaterials !== "undefined" ? carpetMaterials : null,
+      typeof interiorAssetPromises !== "undefined" ? interiorAssetPromises : null,
+      typeof interiorModelPromises !== "undefined" ? interiorModelPromises : null,
+      typeof paintingMaterials !== "undefined" ? paintingMaterials : null,
+      typeof houseFloorMaterials !== "undefined" ? houseFloorMaterials : null]) try { if (typeof kept?.clear === "function") kept.clear(); } catch (error) { /* a frozen one stays */ }
+    for (const list of [
+      typeof yieldWaiters !== "undefined" ? yieldWaiters : null,
+      typeof terrainTiles !== "undefined" ? terrainTiles : null,
+      typeof PERIMETER_FILL !== "undefined" ? PERIMETER_FILL : null,
+      typeof tileQueue !== "undefined" ? tileQueue : null,
+      typeof osmRampNodes !== "undefined" ? osmRampNodes : null,
+      typeof cornerLegs !== "undefined" ? cornerLegs : null,
+      typeof junctionBoxHulls !== "undefined" ? junctionBoxHulls : null,
+      typeof tactileWarningPads !== "undefined" ? tactileWarningPads : null,
+      typeof deferredTactilePads !== "undefined" ? deferredTactilePads : null,
+      typeof signAtlases !== "undefined" ? signAtlases : null,
+      typeof facadePanels !== "undefined" ? facadePanels : null,
+      typeof DRIVEWAY_ZONES !== "undefined" ? DRIVEWAY_ZONES : null,
+      typeof facadeQueue !== "undefined" ? facadeQueue : null,
+      typeof tunnelBores !== "undefined" ? tunnelBores : null,
+      typeof publicStairs !== "undefined" ? publicStairs : null,
+      typeof TRANSIT_CANOPIES !== "undefined" ? TRANSIT_CANOPIES : null,
+      typeof TRANSIT_ISLAND_SPOTS !== "undefined" ? TRANSIT_ISLAND_SPOTS : null,
+      typeof PARK_PARTS !== "undefined" ? PARK_PARTS : null,
+      typeof billboardFaces !== "undefined" ? billboardFaces : null,
+      typeof stationWalls !== "undefined" ? stationWalls : null,
+      typeof plateAtlases !== "undefined" ? plateAtlases : null,
+      typeof streetLandingSegments !== "undefined" ? streetLandingSegments : null,
+      typeof homeDecalMeshes !== "undefined" ? homeDecalMeshes : null,
+      typeof modelWaiters !== "undefined" ? modelWaiters : null,
+      typeof frameSamples !== "undefined" ? frameSamples : null,
+      typeof detailTiles !== "undefined" ? detailTiles : null,
+      typeof labelSprites !== "undefined" ? labelSprites : null,
+      typeof releaseQueue !== "undefined" ? releaseQueue : null]) try { if (Array.isArray(list)) list.length = 0; } catch (error) { /* a frozen one stays */ }
+    const emptyRecord = (record) => {
+      if (!record || typeof record !== "object") return;
+      for (const key of Object.keys(record)) {
+        const value = record[key];
+        if (Array.isArray(value)) value.length = 0;
+        else if (value instanceof Map || value instanceof Set) value.clear();
+        else if (value && typeof value === "object" && !ArrayBuffer.isView(value)) delete record[key];
+        else if (ArrayBuffer.isView(value)) delete record[key];
+      }
+    };
+    for (const record of [DATA, OFFICIAL_GEOMETRY, WORLD_OBJECTS, PERIMETER, VISUAL_SUPPORT, STORE_NAMES, PARK_EVIDENCE,
+      ELECTRICAL_SPANS, INVENTORY_CROSSINGS, MUNICIPAL_CONTEXT, GROUND, FRONTAGE_FITS, MATERIAL_ASSIGNMENTS, ASSET_MAP,
+      INTERIORS]) try { emptyRecord(record); } catch (error) { /* a frozen one stays */ }
+    GROUND = null;
+    releaseModuleScope();
   },
 };
 // Animation can start while later top-level awaits are still building labels/UI.

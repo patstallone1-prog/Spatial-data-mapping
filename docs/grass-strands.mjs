@@ -29,7 +29,7 @@ export function triangleGroundSampler(meshes,cell=4){
       }
     }
   }
-  return (x,z)=>{
+  const sample=(x,z)=>{
     let y=null;
     for(const {a,b,c,den} of grid.get(`${Math.floor(x/cell)}:${Math.floor(z/cell)}`)||[]){
       const u=((b[2]-c[2])*(x-c[0])+(c[0]-b[0])*(z-c[2]))/den;
@@ -38,6 +38,9 @@ export function triangleGroundSampler(meshes,cell=4){
       const at=a[1]*u+b[1]*v+c[1]*w;y=y===null?at:Math.max(y,at);
     }return y;
   };
+  // The grid let go with the world it was drawn from: a closure kept anywhere keeps no triangles.
+  sample.clear=()=>grid.clear();
+  return sample;
 }
 export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8,radius=14,maxCells=16,motion=null}={}){
   const group=new THREE.Group();group.name='inferred-grass-strands';parent.add(group);

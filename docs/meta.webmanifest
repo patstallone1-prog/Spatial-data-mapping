@@ -1,0 +1,18 @@
+{
+  "id": "/meta.html",
+  "name": "Kerbside",
+  "short_name": "Kerbside",
+  "description": "Walk the Bay Area's streets in your headset, down to the kerb: the address of any house you look at, the cross streets, search and directions, and in and out of houses.",
+  "start_url": "./meta.html?from=quest",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0c1015",
+  "theme_color": "#0b0e12",
+  "categories": ["navigation", "travel"],
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
