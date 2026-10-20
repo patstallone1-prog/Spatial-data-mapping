@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.spatial_data_mapping.kerbside",
+      "sha256_cert_fingerprints": [
+        "8B:64:80:6A:3F:96:9A:5E:96:0C:6F:0D:F6:58:C8:B6:BB:59:D3:40:F1:0B:0A:6D:D6:5D:F5:54:B6:A5:2F:2A"
+      ]
+    }
+  }
+]

@@ -146,3 +146,6 @@ data/electrical/osm/
 cloud/config/controller.env
 cloud/infra/terraform/.terraform/
 cloud/infra/terraform/*.tfstate*
+
+# The Quest app package: its signing key and builds never go in the repo
+/Kerbside Quest/
