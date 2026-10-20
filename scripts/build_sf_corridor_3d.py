@@ -435,6 +435,19 @@ REGION: Region = SF_CORRIDOR
 SITE_DIR = ROOT / "docs"
 
 
+def project_path(path: Path) -> str:
+    """Where a file sits, as the project names it: a region's site may be a link onto another
+    drive (data/regions/<cell> on the HP P700), which resolves outside the checkout."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        pass
+    try:
+        return str(Path("data") / "regions" / REGION.name / "site" / path.relative_to(SITE_DIR))
+    except ValueError:
+        return path.name
+
+
 def configure_region(region: Region, out: Path, official_dir: Path | None = None) -> None:
     """Point the build at a region: its box, its official records and where its site goes."""
     global REGION, SITE_DIR, OFFICIAL, TUNNEL_PORTALS, GROUND_COVER, GROUND_VIEWER, FURNITURE_VIEWER, FACADE_ROOT
@@ -2117,7 +2130,7 @@ def annotate_building_enrichment(ways: list[dict[str, Any]]) -> dict[str, Any]:
     )
     summary["final_height_sources"] = dict(height_sources)
     summary["inferred_default_heights"] = height_sources.get("inferred_default", 0)
-    summary["source"] = str(BUILDING_ENRICHMENT.relative_to(ROOT))
+    summary["source"] = project_path(BUILDING_ENRICHMENT)
     return summary
 
 
@@ -2304,7 +2317,7 @@ def publish_street_furniture() -> dict:
     data = json.loads(FURNITURE_VIEWER.read_text(encoding="utf-8"))
     summary = dict(data.get("summary") or {})
     summary["available"] = True
-    summary["source"] = str(FURNITURE_VIEWER.relative_to(ROOT))
+    summary["source"] = project_path(FURNITURE_VIEWER)
     return summary
 
 
