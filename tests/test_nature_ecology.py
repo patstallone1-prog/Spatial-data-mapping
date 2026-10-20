@@ -74,7 +74,8 @@ console.log(JSON.stringify(records));
 """)
     for record in result:
         assert record["maxR"] <= 1.000001
-        assert record["minY"] >= -1e-8 and record["maxY"] <= 1.000001
+        # The trunk's foot is sunk a little (bark only), so on a slope it stands in the ground.
+        assert record["minY"] >= -0.04 and record["maxY"] <= 1.000001
         assert record["distinct"] and record["vertices"] > 500
 
 
@@ -246,19 +247,23 @@ def test_a_painted_leaf_has_a_blade_its_teeth_and_veins_to_the_margin():
     assert r["street"]["teeth"] > 0 and r["broad"]["teeth"] == 0
 
 
-def test_a_fallen_trunk_blocks_but_a_thin_one_and_the_undergrowth_do_not():
+def test_every_fallen_trunk_blocks_but_the_undergrowth_does_not():
     r = node("""
     const log = { x: 0, z: 0, dx: 3, dz: 0, r: 0.25 };
+    // The thinnest log the landscape lays down, over many trees.
+    let thinnest = 9;
+    for (let i = 0; i < 400; i++) for (const l of e.litterScatter(i * 7.3, i * 3.1, 6, 'oak', { forest: 1 }).logs) thinnest = Math.min(thinnest, l.radius);
     console.log(JSON.stringify({ on: n.logHit(log, 1, 0.2, 0.25), end: n.logHit(log, 3.3, 0, 0.25),
-      past: n.logHit(log, 3.8, 0, 0.25), beside: n.logHit(log, 0, 0.6, 0.25), threshold: n.LOG_BLOCKS_RADIUS_M }));
+      past: n.logHit(log, 3.8, 0, 0.25), beside: n.logHit(log, 0, 0.6, 0.25), threshold: n.LOG_BLOCKS_RADIUS_M, thinnest }));
     """)
     assert r["on"] and r["end"] and not r["past"] and not r["beside"]
-    assert 0.1 <= r["threshold"] <= 0.2
+    assert r["threshold"] <= r["thinnest"], "every fallen trunk is climbed round, the thin ones too"
     runtime = (ROOT / "docs/nature-runtime.mjs").read_text()
     assert "if(log.radius>=LOG_BLOCKS_RADIUS_M)obstacles.push(" in runtime
     floor = (ROOT / "docs/forest-floor.mjs").read_text()
-    assert "blockedAt(x,z,r=.25)" in floor and "d.plants" not in floor.split("blockedAt(x,z,r=.25)")[1][:400], \
-        "plants and grass never block"
+    blocked = floor.split("blockedAt(x,z,r=.25)")[1][:900]
+    assert "d.plants" not in blocked and "d.branches" not in blocked, "plants, grass and branches never block"
+    assert "for(const v of d.logs)" in blocked, "the near floor's own logs block where they are drawn"
     page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
     assert "natureWorld.deadwoodBlocked(nextX, nextZ, WALKER_DEADWOOD_RADIUS_M)" in page
     assert "!natureWorld.deadwoodBlocked(p.x, p.z, WALKER_DEADWOOD_RADIUS_M)" in page, "never trapped inside one"
@@ -270,3 +275,33 @@ def test_both_tree_systems_use_the_painted_leaves_and_their_relief():
     page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
     assert 'vegetationLibrary.leafCardTextures(THREE, { form: "street", layout: "spray"' in page
     assert "normalMap: leafNormal" in page
+
+
+def test_bark_tubes_are_round_in_metres_and_wrap_the_tile_whole():
+    r = node("""const out={position:[],normal:[],uv:[]};
+    // A unit tree stretched 2 wide and 8 tall: a ring round in metres is not round in units.
+    g.barkTube(out,[[0,0,0],[0,.5,0],[0,1,0]],[.1,.08,.05],[2,8],{sides:8,size:[2,8]});
+    const P=out.position,N=out.normal,U=out.uv,dist=[],norms=[],us=[];
+    for(let i=0;i<P.length/3;i++){const y=P[i*3+1]*8,x=P[i*3]*2,z=P[i*3+2]*2;
+      const r=(y<.01?.1:y>7.99?.05:.08)*2;dist.push(Math.hypot(x,z)/r);norms.push(Math.hypot(N[i*3],N[i*3+1],N[i*3+2]));us.push(U[i*2]);}
+    console.log(JSON.stringify({n:P.length/3,dmin:Math.min(...dist),dmax:Math.max(...dist),nmin:Math.min(...norms),nmax:Math.max(...norms),umax:Math.max(...us)}))""")
+    assert r["n"] == 2 * 8 * 6
+    assert r["dmin"] == pytest.approx(1, abs=1e-6) and r["dmax"] == pytest.approx(1, abs=1e-6)
+    assert r["nmin"] == pytest.approx(1, abs=1e-6) and r["nmax"] == pytest.approx(1, abs=1e-6)
+    assert r["umax"] >= 1 and r["umax"] == round(r["umax"])
+
+
+def test_every_limb_starts_on_its_trunk_and_the_trunk_stands_in_the_ground():
+    r = node("""const bad=[],feet=[];
+    for(const species of Object.keys(e.SPECIES))for(let v=0;v<4;v++){
+      const {skeleton}=g.botanicalGeometry(species,v),[trunk,...limbs]=skeleton;feet.push(trunk.points[0][1]);
+      // The nearest point of the trunk's axis to a limb's root, and the trunk's radius there.
+      const onTrunk=(p)=>{let best=Infinity;for(let i=1;i<trunk.points.length;i++){
+        const a=trunk.points[i-1],b=trunk.points[i],d=b.map((x,k)=>x-a[k]),len2=d.reduce((s,x)=>s+x*x,0)||1;
+        const t=Math.max(0,Math.min(1,p.reduce((s,x,k)=>s+(x-a[k])*d[k],0)/len2));
+        const q=a.map((x,k)=>x+d[k]*t),r=trunk.radii[i-1]+(trunk.radii[i]-trunk.radii[i-1])*t;
+        best=Math.min(best,Math.hypot(...p.map((x,k)=>x-q[k]))-r);}return best;};
+      for(const limb of limbs){const gap=onTrunk(limb.points[0]);if(gap>1e-6)bad.push([species,v,+gap.toFixed(4)]);}}
+    console.log(JSON.stringify({bad:bad.slice(0,8),count:bad.length,feet:Math.max(...feet)}))""")
+    assert r["count"] == 0, r["bad"]
+    assert r["feet"] < 0

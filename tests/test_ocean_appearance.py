@@ -11,6 +11,7 @@ def test_city_water_bypasses_land_grain_and_matches_ocean_brdf():
     result = node('''
 const THREE={Vector2:class{},Vector4:class{}};
 const TERRAIN_MATERIAL={},TERRAIN_SEA={r:.025,g:.12,b:.24};
+const BOX_SET_MAX=12;const boxSet=(list=[])=>list;
 ''' + js[start:end] + '''
 const shader={uniforms:{},vertexShader:'#include <common>\\n#include <project_vertex>',
  fragmentShader:'void main() {\\n#include <map_fragment>\\n#include <color_fragment>\\n#include <roughnessmap_fragment>\\n#include <metalnessmap_fragment>\\n#include <normal_fragment_maps>\\n}'};

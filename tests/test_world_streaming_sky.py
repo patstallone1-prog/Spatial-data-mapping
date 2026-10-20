@@ -121,8 +121,8 @@ def test_stream_handoff_keeps_old_world_until_ready_and_updates_all_search_regio
     source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
     attach = source.split("async function attachRegion(")[1].split("window.kerbsideAttachRegion")[0]
     assert attach.index("await api.ready()") < attach.index("releaseHostWorld()")
-    assert "TILE_OWN_BOX = holder.windowBox.slice()" in attach
-    assert "detailWindow:{...centre,radius:holder.detailRadius}" in attach
+    assert "TILE_OWN_BOXES = holder.windowBoxes.map((b) => b.slice())" in attach
+    assert "detailWindow:{...centre,radius:holder.detailRadius,strip:holder.strip}" in attach
     assert "avatar.visible = !on && !ATTACH" in source
     assert 'query.has("fps") && FPS_CHOICES.includes(Number(query.get("fps")))' in source
     assert 'throw Error("Destination ground unavailable; previous window retained")' in source
@@ -184,3 +184,17 @@ def test_moved_sun_takes_observed_weather_and_a_future_hour_the_day_befores():
     assert "start=2026-10-17T20:30:00Z" in result["urls"][-1]
     assert (result["fog"], result["broken"], result["scattered"]) == ("cloudy", "cloudy", "partly_cloudy")
     assert result["none"] is None and result["past"] is True
+
+
+def test_directions_build_a_full_detail_strip_along_the_route():
+    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    strip = source.split("const ROUTE_STRIP = {")[1].split("window.kerbsideRouteStrip")[0]
+    # A few blocks wide, cut into pieces each a box, within a bounded area beside the core.
+    assert "halfM: 100" in strip and "maxBoxes: BOX_SET_MAX - 1" in strip and "km2:" in strip
+    expansion = source.split("function checkDetailExpansion(now)")[1].split("window.kerbsideStreamDetail")[0]
+    # New directions rebuild the window with the strip; the core leads along the route.
+    assert "routeStripKey()" in expansion and "routeAheadOf(" in expansion
+    attach = source.split("async function attachRegion(")[1].split("window.kerbsideAttachRegion")[0]
+    assert "activeGuest.stripKey" in attach and "strip, stripKey" in attach and "strip:holder.strip" in attach
+    spec = source.split("function windowSpec(")[1].split("\nfunction ")[0]
+    assert "detailWindow?.strip" in spec and "const boxes = [core, ...strip];" in spec

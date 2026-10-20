@@ -163,6 +163,7 @@ def main() -> None:
                          DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
                          *sorted((DOCS / "nature/models").glob("*")), *sorted((DOCS / "world").glob("*")),
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
+                         *sorted((DOCS / "nature/bark").glob("*")),
                          *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
         },
         "native_source": "unreal/Plugins/KerbsideWorld",

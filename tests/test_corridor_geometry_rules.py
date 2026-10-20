@@ -1270,13 +1270,15 @@ function tile(id, depth, error, cx, cz, radius, children, state) {
 def _run_tiles(js_body: str) -> dict:
     js = _page_js()
     names = ("tileFocalPx", "tileScreenErrorPx", "tilePriority", "tileHasContent",
-             "tilePending", "tileRect", "tileRingDistance", "tileRingDepth", "selectTiles")
+             "tilePending", "tileRect", "tileRingDistance", "tileFillDepth", "tileRingDepth", "selectTiles")
     parts = [TILE_PREAMBLE]
     parts.append(re.search(r"const TILE_MAX_SCREEN_ERROR_PX = [0-9.]+;", js).group(0))
     for constant in ("TILE_FULL_DEPTH", "TILE_CORE_DEPTH", "TILE_FULL_RING_M", "TILE_CORE_RING_M"):
         parts.append(re.search(rf"const {constant} = [0-9.]+;", js).group(0))
     # The rings are off unless a test turns them on: up high, the screen-error rule alone.
     parts.append("const tileFocus = { x: 0, y: 0, z: 0 };\nlet tileRingsActive = false;")
+    # The region's fill, empty unless a test grows it; the zoom at the street.
+    parts.append("const tileFill = { rect: null, radius: 0 };\nlet zoomTier = 4;")
     parts += [_extract(name, js) for name in names]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],
@@ -1339,6 +1341,32 @@ def test_near_the_ground_the_walkers_block_and_its_neighbours_load_in_full_which
     assert result["rings"] == ["6/9/9", "8/0/0"], result
     # With the rings off, what is off screen is not drawn and the far tile refines by error.
     assert "8/0/0" not in result["high"], result
+
+
+def test_the_region_fill_brings_the_finest_tiles_out_past_the_rings_leaning_the_way_you_go() -> None:
+    """Once the window round the walker is built, the region fills at its finest depth a ring
+    at a time (growTileFill): a tile inside the fill's radius and the region is drawn to the
+    finest depth even off screen; past the radius, or outside the region, the rings decide;
+    ahead of a moving walker counts nearer; and right out over the Bay the fill gives way."""
+    result = _run_tiles("""
+    const far = tile("8/9/9", 8, 0.15, 900, 0, 215, []); far.rect = [750, -150, 1050, 150];
+    const behind = tile("8/1/1", 8, 0.15, -900, 0, 215, []); behind.rect = [-1050, -150, -750, 150];
+    const out = tile("8/7/7", 8, 0.15, 3000, 0, 215, []); out.rect = [2850, -150, 3150, 150];
+    tileFill.rect = [-1200, -1200, 1200, 1200];
+    const depths = () => [far, behind, out].map((t) => tileFillDepth(t));
+    const result = {};
+    tileFill.radius = 500; result.small = depths();
+    motion = { x: 1, z: 0 }; result.moving = depths();
+    motion = { x: 0, z: 0 }; tileFill.radius = 800; result.grown = depths();
+    zoomTier = 0; result.bay = depths();
+    console.log(JSON.stringify(result));
+    """)
+    # 750 m off: not within 500 m standing still, but ahead of a walker moving its way it is,
+    # and the one behind is not; at 800 m both; never a tile outside the region.
+    assert result["small"] == [None, None, None]
+    assert result["moving"] == [8, None, None]
+    assert result["grown"] == [8, 8, None]
+    assert result["bay"] == [None, None, None]
 
 
 def test_a_parent_stays_drawn_until_every_child_on_screen_has_its_geometry() -> None:

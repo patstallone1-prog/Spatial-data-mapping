@@ -1,7 +1,7 @@
 // Source-backed bare earth and land cover. All individual plants/rocks are visual inference.
 // Public pure functions also run in Node regression tests; THREE is injected by the viewer.
 import {SPECIES,UNDERGROWTH,LITTER,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize,litterScatter} from './nature-ecology.mjs';
-import {vegetationAssets,botanicalGeometry} from './vegetation-geometry.mjs';
+import {vegetationAssets,botanicalGeometry,BARK_GRAIN_URL} from './vegetation-geometry.mjs';
 import {createGrassStrands} from './grass-strands.mjs';
 // Keep each existing botanical LOD 30% farther out, without inventing more trees.
 const NEAR0=234,NEAR1=338,FAR0=780,FAR1=1066;
@@ -35,8 +35,12 @@ export function segmentDistance(x, y, a, b) {
   const t = l ? Math.max(0, Math.min(1, ((x-a[0])*dx+(y-a[1])*dy)/l)) : 0;
   return Math.hypot(x-a[0]-t*dx, y-a[1]-t*dy);
 }
+//: Where another world is drawn in full (a page's own box, an attached region's boxes), the
+//: landscape's ground gives way. A guest's is a set of boxes: the square round the walker and
+//: the strip along the way (NATURE_GUEST_BOXES of them, the rest empty).
+export const NATURE_GUEST_BOXES=12;
 export function visibleNatureGround(x,z,coarse,boxes,fineActive) {
-  if(boxes.some(b=>b && x>b.x && x<b.z && z>b.y && z<b.w))return false;
+  if(boxes.flat().some(b=>b && x>b.x && x<b.z && z>b.y && z<b.w))return false;
   return !coarse || !fineActive;
 }
 export function pathTileCoordinates(key) {
@@ -174,8 +178,9 @@ export async function loadNatureAtlas(resolve) {
   return atlas;
 }
 
-//: A fallen log this thick (radius, metres) or more is climbed over, not walked through.
-export const LOG_BLOCKS_RADIUS_M=.15;
+//: A fallen log this thick (radius, metres) or more is climbed round, not walked through. Every
+//: log the landscape lays down is thicker (litterScatter: 12 to 34 cm); a stick is not a log.
+export const LOG_BLOCKS_RADIUS_M=.1;
 //: Whether a circle of radius r at (x, z) touches a log: a capsule from (o.x - o.dx, o.z - o.dz)
 //: to (o.x + o.dx, o.z + o.dz), o.r thick.
 export function logHit(o,x,z,r){
@@ -231,7 +236,7 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
       shader.uniforms.uNatureCanopy={value:canopyTextureGrid};
       shader.uniforms.uNatureOrigin={value:new THREE.Vector2(...origin)};
       shader.uniforms.uNatureScale={value:new THREE.Vector2(end[0]-origin[0],end[1]-origin[1])};
-      shader.uniforms.uNatureGuest=guestBox || {value:new THREE.Vector4(1,1,0,0)};
+      shader.uniforms.uNatureGuest=guestBox || {value:Array.from({length:NATURE_GUEST_BOXES},()=>new THREE.Vector4(1,1,0,0))};
       shader.uniforms.uNatureHost=hostBox || {value:new THREE.Vector4(1,1,0,0)};
       if(!coarse){shader.uniforms.uNatureCoast={value:m.userData.coastTexture};
         shader.uniforms.uNatureCoastBounds={value:m.userData.coastBounds};}
@@ -240,12 +245,12 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
         .replace("#include <project_vertex>","#include <project_vertex>\nvNatureWorld=(modelMatrix*vec4(transformed,1.0)).xyz;");
       shader.fragmentShader=shader.fragmentShader.replace("#include <common>",`#include <common>
 varying vec3 vNatureWorld;
-uniform sampler2D uNatureActive;uniform sampler2D uNatureCover;uniform sampler2D uNatureCanopy;uniform vec2 uNatureOrigin;uniform vec2 uNatureScale;uniform vec4 uNatureGuest;uniform vec4 uNatureHost;
+uniform sampler2D uNatureActive;uniform sampler2D uNatureCover;uniform sampler2D uNatureCanopy;uniform vec2 uNatureOrigin;uniform vec2 uNatureScale;uniform vec4 uNatureGuest[${NATURE_GUEST_BOXES}];uniform vec4 uNatureHost;
 ${coarse?'':'uniform sampler2D uNatureCoast;uniform vec4 uNatureCoastBounds;varying float vNatureWater;'}
 float natureHash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
 float natureNoise(vec2 p){vec2 i=floor(p),a=fract(p);a=a*a*(3.0-2.0*a);return mix(mix(natureHash(i),natureHash(i+vec2(1,0)),a.x),mix(natureHash(i+vec2(0,1)),natureHash(i+vec2(1,1)),a.x),a.y);}`)
         .replace("#include <color_fragment>",`#include <color_fragment>
-if(vNatureWorld.x>uNatureGuest.x&&vNatureWorld.x<uNatureGuest.z&&vNatureWorld.z>uNatureGuest.y&&vNatureWorld.z<uNatureGuest.w)discard;
+for(int i=0;i<${NATURE_GUEST_BOXES};i++){vec4 g=uNatureGuest[i];if(vNatureWorld.x>g.x&&vNatureWorld.x<g.z&&vNatureWorld.z>g.y&&vNatureWorld.z<g.w)discard;}
 if(vNatureWorld.x>uNatureHost.x&&vNatureWorld.x<uNatureHost.z&&vNatureWorld.z>uNatureHost.y&&vNatureWorld.z<uNatureHost.w)discard;
 ${coarse?`if(texture2D(uNatureActive,(floor((vNatureWorld.xz-uNatureOrigin)/uNatureScale)+.5)/vec2(${maskCols}.,${maskRows}.)).r>.5)discard;`:""}
 vec2 natureUV=(((vNatureWorld.xz-uNatureOrigin)/uNatureScale)*50.+.5)/vec2(${f.cols}.,${f.rows}.);
@@ -353,7 +358,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
   // Every area has terrain from boot; fine tiles replace it locally, not an empty horizon.
   for(let y=0;y<(f.rows-1)*40;y+=8000)for(let x=0;x<(f.cols-1)*40;x+=8000)
     terrain.add(groundMesh(x,y,Math.min(x+8000,(f.cols-1)*40),Math.min(y+8000,(f.rows-1)*40),160,coarseMaterial));
-  const sphere=new THREE.IcosahedronGeometry(1,1),assets=vegetationAssets(THREE);
+  const sphere=new THREE.IcosahedronGeometry(1,1),assets=vegetationAssets(THREE,{grainUrl:atlas.resolve?.(BARK_GRAIN_URL)});
   const leafMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1});
   // Far canopy is an aggregate visual proxy, not a set of invented measured trees.
   // Point primitives avoid millions of distant tree triangles. Full 3D trees replace
@@ -441,14 +446,16 @@ diffuseColor*=vec4(canopyLinear,canopy.a);`);
   }stats.overviewReady=true;stats.overviewBuildMs=Math.round(performance.now()-overviewStarted);})().catch(error=>{stats.errors.push(String(error));console.warn('kerbside: overview vegetation unavailable',error);});
   function fadePlant(mat){
     if(mat.userData.natureFade)return;mat.userData.natureFade=true;
-    mat.onBeforeCompile=shader=>{
+    // On top of whatever the material already does to its shader (keepLeavesAtDistance).
+    const before=mat.onBeforeCompile,beforeKey=mat.customProgramCacheKey?.bind(mat);
+    mat.onBeforeCompile=(shader,renderer)=>{if(before)before.call(mat,shader,renderer);
       shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying float vPlantRange;')
         .replace('#include <project_vertex>','#include <project_vertex>\nvPlantRange=length(mvPosition.xyz);');
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vPlantRange;')
         .replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>
 if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.,${NEAR1}.,vPlantRange))discard;`);
     };
-    mat.customProgramCacheKey=()=> 'nature-near-plant-fade-v1';
+    mat.customProgramCacheKey=()=>`${beforeKey?beforeKey():''}|nature-near-plant-fade-v1`;
   }
   fadePlant(leafMat);
   // The near forest floor (forest-floor.mjs) and the plant scans it and the middle distance
@@ -582,7 +589,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const group=new THREE.Group();group.userData.bayWide=true;
     const midP=[],midS=[],midK=[],midA=[];
     for(const [key,items] of trees){const [species,variant]=key.split(':');for(const part of assets.tree(species,Number(variant))){
-      fadePlant(part.material);motion?.apply(part.material,part.material.map?'leaves':'bark');
+      fadePlant(part.material);motion?.apply(part.material,part.material.userData.barkStyle||!part.material.map?'bark':'leaves');
       const mesh=instances(part.geometry,part.material,items.map(v=>({...v,colour:part.colour.map(c=>c*v.shade)})));
       mesh.userData.species=species;group.add(mesh);
     }

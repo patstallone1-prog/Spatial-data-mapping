@@ -141,8 +141,17 @@ def test_settings_pace_the_page_and_detail_comes_with_zoom() -> None:
     assert "window.kerbsideSettings = {" in js and 'const settingsButton = document.getElementById("settings-toggle");' in js
     animate = _extract("animate", js)
     assert "SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0" in animate and "IDLE_FRAME_MS" in animate
-    tiers = js[js.index("const ZOOM_HIDDEN = {"):js.index("let zoomTier")]
-    assert 'surface === "house_window"' in tiers and 'surface.startsWith("furniture:")' in tiers
+    drops = js[js.index("const ZOOM_DROPS = {"):js.index("const ZOOM_HIDDEN")]
+    tier = {n: drops[drops.index(f"  {n}: "):] for n in (3, 2, 1, 0)}
+    for n in (3, 2, 1):
+        tier[n] = tier[n][:tier[n].index(f"  {n - 1}: ")]
+    # Pulling back: the poles, wires and street furniture first, then the houses' windows and
+    # doors, then the kerbs; the paint and the houses' own colours and shapes last of all.
+    assert 'surface.startsWith("furniture:")' in tier[3] and '"house_window"' in tier[2]
+    assert '"kerb"' in tier[1] and '"marking"' in tier[0] and '"footprint"' in tier[0]
+    assert '"marking"' not in tier[3] + tier[2] + tier[1]
+    zoom = _extract("updateZoomTier", js)
+    assert "setPavingJoints(tier >= 4)" in zoom and "setCityAsTiles(tier === 0)" in zoom
     cull = _extract("cullDetailByDistance", js)
     # Only when the view changed, and cell by cell.
     assert "!viewChanged(eye)" in cull and "for (const cell of detailCells)" in cull
