@@ -3214,6 +3214,11 @@ const ATTACH = globalThis.__kerbsideGuest || null;
 //: The headset version (docs/meta.html; docs/meta-xr.mjs): first person only, always noon, a
 //: short view, and only the few blocks round you built and held, inside a memory budget.
 const META = !ATTACH && document.querySelector('meta[name="kerbside-mode"]')?.content === "meta";
+//: Built for the headset: the page in headset mode, or a square it is building. The ground is cut
+//: coarser, only the fences in the square are made, and the grass has no blades -- a Quest 3
+//: draws about a million triangles a frame at its frame rate; a square built for a desktop
+//: is three.
+const HEADSET = META || Boolean(ATTACH?.headset);
 const WORLD_BUILD_STARTED=performance.now();
 //: The region drawn in full besides this page's own, once the walker has gone there; whether this
 //: page's own world is still drawn; and the built regions, from the page's region index.
@@ -5544,8 +5549,8 @@ const TERRAIN_REFINE_M = 12.0;
 //: everywhere and refines the whole city to its smallest edge: at 0.12 m and 2.5 m the scene
 //: was 238 million triangles. What put yards a metre off the hill was not this tolerance but
 //: the refinement budget running out (see refineForTerrain).
-const TERRAIN_CHORD_M = 0.25;
-const TERRAIN_REFINE_MIN_M = 4.0;
+const TERRAIN_CHORD_M = HEADSET ? 0.6 : 0.25;
+const TERRAIN_REFINE_MIN_M = HEADSET ? 8.0 : 4.0;
 //: By surface, [longest edge, chord]. What lies under something else -- the underlay behind a
 //: pavement, the footprint under a building -- is refined coarsely for length, but still for
 //: curvature: a chord that sags below the ground is unseen, a chord that stands above it pokes
@@ -5755,7 +5760,7 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
                          : Math.min(minEdge, maxEdge);
   const areaBudget = area / (finest * finest) * 2;
   const budget = Math.min(REFINE_VERTEX_CAP,
-                          Math.max(position.count * TERRAIN_REFINE_GROWTH + 50000, areaBudget));
+                          Math.max(position.count * TERRAIN_REFINE_GROWTH + (HEADSET ? 8000 : 50000), areaBudget));
   // Where an edge is cut, and whether. Every part is refined on its own -- a pavement ribbon, the
   // corner piece beside it, the kerb tile in front -- and two parts that meet along a line used
   // to bisect it differently, so that on a hill one side stood on the ground where the other
@@ -22188,6 +22193,11 @@ function buildFences(ground) {
       const bx = flat[i + 2], bz = -flat[i + 3];
       const span = Math.hypot(bx - ax, bz - az);
       if (span < 0.4) continue;
+      // In the headset, only the fences in the square: the rest of the region's are clipped
+      // away on the desktop, but are still drawn.
+      if (HEADSET && WINDOW_BOXES && !detailClipBox.value.some((b) => b.z >= b.x
+        && Math.max(ax, bx) >= b.x - 10 && Math.min(ax, bx) <= b.z + 10
+        && Math.max(az, bz) >= b.y - 10 && Math.min(az, bz) <= b.w + 10)) continue;
       // A last check against the one authority on where the road is. Along the run, not at its
       // two ends: a boundary fence can have both of its posts on somebody's lawn and pass clean
       // through the street in between, and testing only the endpoints let 35 of them do exactly
@@ -23395,7 +23405,7 @@ const groundReady = (async () => {
         if(!row)return null;
         const y=grassSurfaceAt?.(x,z);return y===null||y===undefined?null:{y:y+.002,park:row.park};
       };
-    grassStrands=grassLibrary.createGrassStrands(THREE,{parent:groups.ground,motion:foliageMotion,
+    if(!HEADSET)grassStrands=grassLibrary.createGrassStrands(THREE,{parent:groups.ground,motion:foliageMotion,
       onMesh:mesh=>{if(BUILD_WINDOW)applyBoxClip(mesh,detailClipBox);},sample:grassSampleAt});
   }
   const parkVariants = GRASS_VARIANTS;
@@ -23628,7 +23638,7 @@ const groundReady = (async () => {
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
   if(grassStrands&&grassLibrary){const meshes=[];
     groups.ground.traverse(o=>{if(o.isMesh&&["yard","park"].includes(o.userData.surface))meshes.push(o);});
-    grassSurfaceAt=grassLibrary.triangleGroundSampler(meshes);grassStrands.invalidate();
+    grassSurfaceAt=grassLibrary.triangleGroundSampler(meshes);grassStrands?.invalidate();
     window.kerbsideUnderstorey=understoreyReady?.();}
   installTunnelVoidCuts(groups.ground,true);
   window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { ground: true });
@@ -34216,7 +34226,51 @@ if (META) {
     onEnter: () => { ++frameRequest; renderer.setAnimationLoop(animate); },
     onExit: () => { renderer.setAnimationLoop(null); requestFrame(); },
   } });
-  window.kerbsideMeta = { xr: metaXR, memory: metaMemory, stream: STREAM, applyMemoryPlan: applyMetaMemoryPlan,
+  // What the headset draws: only what you could see. A Quest 3 holds its frame rate at about a
+  // million triangles and a few hundred draws; the page as built draws eight million -- most of
+  // it past the haze (the canopy and hills round the Bay, the simple city, the bridges) or out
+  // of sight (the furniture inside every house). Past the far plane, the Bay-wide canopy, and
+  // rooms you are not in are left out of the drawing (their layers, so whatever else
+  // shows or hides them is left alone); twice a second, as you walk.
+  const metaSphere = new THREE.Sphere();
+  const metaCulled = { hidden: 0, shown: 0, triangles: 0 };
+  function metaCullLeaf(o, bayWide, interior) {
+    const g = o.geometry;
+    if (!g) return;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    metaSphere.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+    const near = metaSphere.center.distanceTo(avatar.position) - metaSphere.radius;
+    // Small things far off -- a door, a sign, a house's porch -- are a draw each for a few
+    // pixels: a thing a few metres across is left out past fifty metres, one under twenty past
+    // a hundred and twenty.
+    const r = metaSphere.radius;
+    const hide = o.userData.surface === "nature_canopy_proxy" || near > metaLibrary.META_VIEW.far
+      || (r < 4 && near > 50) || (r < 20 && near > 120)
+      || (interior && !(state.indoors && near < metaLibrary.META_VIEW.room));
+    if (hide) {
+      if (o.userData.metaMask === undefined) o.userData.metaMask = o.layers.mask;
+      o.layers.mask = 0;
+      metaCulled.hidden++;
+    } else {
+      if (o.userData.metaMask !== undefined) { o.layers.mask = o.userData.metaMask; delete o.userData.metaMask; }
+      metaCulled.shown++;
+      metaCulled.triangles += (g.index ? g.index.count : g.attributes.position?.count || 0) / 3 * (o.isInstancedMesh ? o.count : 1);
+    }
+  }
+  function metaCullTree(o, bayWide, interior) {
+    if (!o.visible) return;
+    bayWide = bayWide || Boolean(o.userData.bayWide);
+    interior = interior || o.name === "interiors" || Boolean(o.userData.sharedInteriorAsset);
+    if (o.isMesh || o.isPoints || o.isLine || o.isSprite) metaCullLeaf(o, bayWide, interior);
+    for (const child of o.children) metaCullTree(child, bayWide, interior);
+  }
+  function metaCull() {
+    metaCulled.hidden = metaCulled.shown = metaCulled.triangles = 0;
+    scene.updateMatrixWorld();
+    metaCullTree(scene, false, false);
+  }
+  setInterval(metaCull, 500);
+  window.kerbsideMeta = { xr: metaXR, memory: metaMemory, stream: STREAM, applyMemoryPlan: applyMetaMemoryPlan, culled: metaCulled, cull: metaCull,
     //: Why the window round you is or is not being built again, for looking into on the headset.
     get streaming() { return { attaching: Boolean(attaching), wanted: Boolean(attachWanted), retryIn: Math.round(detailRetryAt - performance.now()),
       checkedAgo: Math.round(performance.now() - detailCheckAt), frames: frameCount, ready: window.kerbsideReady,
@@ -34899,7 +34953,7 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     candidate=holder;
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
-      natureBacked:Boolean(NATURE),
+      natureBacked:Boolean(NATURE), headset: META,
       detailWindow:{...centre,radius:holder.detailRadius,strip:holder.strip},cellCache:{
         load:(url,priority)=>worldCellCache.load(new URL(url,pageUrl).href,priority),
         snapshot:()=>worldCellCache.snapshot(),focus:()=>worldCellCache.focus()},

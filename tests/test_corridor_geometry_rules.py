@@ -2974,8 +2974,10 @@ class BufferGeometry {
 }
 const THREE = { Float32BufferAttribute, BufferGeometry };
 """]
+    # The desktop's cut (the headset's is coarser).
+    parts.append("const HEADSET = false;")
     for constant in ("TERRAIN_REFINE_M", "TERRAIN_CHORD_M", "TERRAIN_REFINE_MIN_M", "TERRAIN_REFINE_GROWTH"):
-        parts.append(re.search(rf"const {constant} = [0-9.]+;", js).group(0))
+        parts.append(re.search(rf"const {constant} = (?:HEADSET \? [0-9.]+ : )?[0-9.]+;", js).group(0))
     # The hard cap on how far a mesh may be cut, which the lattice branch is held to.
     parts.append(re.search(r"const REFINE_VERTEX_CAP = [0-9_]+;", js).group(0))
     # Flat ground first: nothing bends, only length splits.
