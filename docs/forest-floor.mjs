@@ -444,10 +444,15 @@ export function createForestFloor(THREE,{parent,ctx,scans,motion=null,radius=58,
       for(const c of cells.values())for(const [k,v] of Object.entries(c.userData.counts))stats[k]=(stats[k]||0)+v;
     },
     invalidate(){lastX=Infinity;for(const g of cells.values())drop(g);cells.clear();},
-    //: Whether a walker of radius r at page point (x, z) stands in a stump or a rock too big
-    //: to step over, on the near floor's cells. Plants, grass and litter are walked through.
+    //: Whether a walker of radius r at page point (x, z) stands in a fallen trunk, a stump or a
+    //: rock too big to step over, on the near floor's cells. Plants, grass, branches and litter
+    //: are walked through.
     blockedAt(x,z,r=.25){
       for(const g of cells.values()){const d=g.userData.data;if(!d)continue;
+        // A fallen trunk as drawn here: along its turn, its length long, its radius thick.
+        for(const v of d.logs){const hx=Math.cos(v.turn)*v.length/2,hz=-Math.sin(v.turn)*v.length/2,L=hx*hx+hz*hz;
+          const t=L>0?Math.max(-1,Math.min(1,((x-v.p[0])*hx+(z-v.p[1])*hz)/L)):0;
+          if(Math.hypot(x-(v.p[0]+hx*t),z-(v.p[1]+hz*t))<v.radius+r)return true;}
         for(const v of d.stumps)if(Math.hypot(v.p[0]-x,v.p[1]-z)<v.size*STUMP_RADIUS+r)return true;
         for(const v of d.rocks)if(v.size>=ROCK_BLOCKS_SIZE&&Math.hypot(v.p[0]-x,v.p[1]-z)<v.size*ROCK_RADIUS+r)return true;}
       return false;},

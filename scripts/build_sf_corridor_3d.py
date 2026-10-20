@@ -3349,14 +3349,22 @@ function windowSpec(bbox) {
   if (ATTACH?.detailWindow) ({lon, lat} = ATTACH.detailWindow);
   const radius = ATTACH?.detailWindow?.radius || LIGHT_RADII_M[LIGHT_LEVEL];
   const kLon = 111320 * Math.cos(lat * Math.PI / 180), kLat = 111320;
-  const box = [Math.max(bbox.west, lon - radius / kLon), Math.max(bbox.south, lat - radius / kLat),
-               Math.min(bbox.east, lon + radius / kLon), Math.min(bbox.north, lat + radius / kLat)];
-  return { lon, lat, radius, box };
+  const clip = (b) => [Math.max(bbox.west, b[0]), Math.max(bbox.south, b[1]), Math.min(bbox.east, b[2]), Math.min(bbox.north, b[3])];
+  const core = clip([lon - radius / kLon, lat - radius / kLat, lon + radius / kLon, lat + radius / kLat]);
+  // With directions, the strip along the way (routeStrip, [west, south, east, north] each),
+  // inside the region, beside the square round the walker.
+  const strip = (ATTACH?.detailWindow?.strip || []).map(clip).filter((b) => b[2] > b[0] && b[3] > b[1]);
+  const boxes = [core, ...strip];
+  const box = [Math.min(...boxes.map((b) => b[0])), Math.min(...boxes.map((b) => b[1])),
+               Math.max(...boxes.map((b) => b[2])), Math.max(...boxes.map((b) => b[3]))];
+  return { lon, lat, radius, box, core, boxes };
 }
 function makeWindow(spec) {
   if (!spec) return null;
   const { box } = spec;
-  const inside = (x, y) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3];
+  const boxes = spec.boxes || [box];
+  const inside = (x, y) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3]
+    && boxes.some((b) => x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]);
   // Anything with a position: a [lon, lat] pair, or an object or list holding them anywhere.
   const near = (value, depth = 0) => {
     if (depth > 5 || value === null || typeof value !== "object") return false;
@@ -3366,9 +3374,10 @@ function makeWindow(spec) {
       // A segment can cross the window with BOTH ends outside; a polygon can
       // enclose it without any vertex inside. Preserve this contextual geometry.
       const points=value.filter(v=>Array.isArray(v)&&v.length>=2&&typeof v[0]==="number"&&typeof v[1]==="number");
-      return points.length>1 && Math.min(...points.map(p=>p[0]))<=box[2]
-        && Math.max(...points.map(p=>p[0]))>=box[0] && Math.min(...points.map(p=>p[1]))<=box[3]
-        && Math.max(...points.map(p=>p[1]))>=box[1];
+      if(points.length<2)return false;
+      const w=Math.min(...points.map(p=>p[0])),e=Math.max(...points.map(p=>p[0])),
+        s=Math.min(...points.map(p=>p[1])),n=Math.max(...points.map(p=>p[1]));
+      return boxes.some(b=>w<=b[2] && e>=b[0] && s<=b[3] && n>=b[1]);
     }
     if (typeof value.lon === "number" && typeof value.lat === "number") return inside(value.lon, value.lat);
     for (const key of ["centroid", "p", "points", "c", "anchor", "lines", "position"]) {
@@ -3376,7 +3385,7 @@ function makeWindow(spec) {
     }
     return false;
   };
-  return { ...spec, inside, near };
+  return { ...spec, boxes, core: spec.core || box, inside, near };
 }
 //: The cells of a file the square touches, put back together as the file was; the whole file
 //: where it has no cells. ``full`` fetches it whole.
@@ -3388,7 +3397,9 @@ async function fetchWindowed(url, full) {
     const manifest = await worldCellCache.load(`${folder}manifest.json`,100);
     if (!manifest) throw Error(`Missing cell manifest: ${folder}`);
     const doc = await worldCellCache.load(`${folder}base.json`,100);
-    const keys = worldStreaming.windowCells(manifest,LIGHT_SPEC.box,LIGHT_SPEC.lon,LIGHT_SPEC.lat);
+    // The square's cells nearest first, then the strip's, each once.
+    const keys = [...new Set((LIGHT_SPEC.boxes || [LIGHT_SPEC.box]).flatMap((b) =>
+      worldStreaming.windowCells(manifest,b,LIGHT_SPEC.lon,LIGHT_SPEC.lat)))];
     const gathered = new Map(manifest.paths.map((path) => [path, new Map()]));
     // Closest cells first, with bounded shared fetch/parse concurrency.
     const cells = await Promise.all(keys.map((key,i)=>worldCellCache.load(`${folder}${key}.json`,90-i)));
@@ -3405,7 +3416,7 @@ async function fetchWindowed(url, full) {
     }
     // Expand source readiness up to a kilometre beyond the current square, nearest
     // first. Do not queue more decoded data than the shared LRU can retain.
-    const b=LIGHT_SPEC.box,padLon=1000/(111320*Math.cos(LIGHT_SPEC.lat*Math.PI/180)),padLat=1000/111320;
+    const b=LIGHT_SPEC.core || LIGHT_SPEC.box,padLon=1000/(111320*Math.cos(LIGHT_SPEC.lat*Math.PI/180)),padLat=1000/111320;
     const halo=worldStreaming.windowCells(manifest,[b[0]-padLon,b[1]-padLat,b[2]+padLon,b[3]+padLat],LIGHT_SPEC.lon,LIGHT_SPEC.lat);
     let warmBytes=0;
     const room=Math.max(0,48*1048576-worldCellCache.snapshot().residentBytes);
@@ -4068,33 +4079,59 @@ function localWindowBox(box) {
   const a=xy(box[0],box[1]),b=xy(box[2],box[3]);
   return new THREE.Vector4(a[0],-b[1],b[0],-a[1]);
 }
-const detailClipBox={value:BUILD_WINDOW ? localWindowBox(BUILD_WINDOW.box) : new THREE.Vector4(-1e12,-1e12,1e12,1e12)};
-const tileDetailBox={value:BUILD_WINDOW ? localWindowBox(BUILD_WINDOW.box) : localWindowBox([bbox.west,bbox.south,bbox.east,bbox.north])};
+//: What is drawn in full is a set of boxes, not one: the square round the walker and, with
+//: directions, the strip along the way (routeStrip). A clip is up to BOX_SET_MAX of them, the
+//: rest empty (EMPTY_BOX: x1 < x0, inside nothing), as x0, z0, x1, z1 in the scene's metres.
+const BOX_SET_MAX = 12;
+const EMPTY_BOX = new THREE.Vector4(1e12, 1e12, -1e12, -1e12);
+function boxSet(list = []) { return Array.from({ length: BOX_SET_MAX }, (_, i) => (list[i] || EMPTY_BOX).clone()); }
+function setBoxSet(uniform, list) { for (let i = 0; i < BOX_SET_MAX; i += 1) uniform.value[i].copy(list[i] || EMPTY_BOX); }
+function inBoxSet(boxes, x, z) { return boxes.some((b) => x >= b.x && x <= b.z && z >= b.y && z <= b.w); }
+const WINDOW_BOXES = BUILD_WINDOW ? BUILD_WINDOW.boxes : null;
+const detailClipBox={value:boxSet(WINDOW_BOXES ? WINDOW_BOXES.map(localWindowBox) : [new THREE.Vector4(-1e12,-1e12,1e12,1e12)])};
+const tileDetailBox={value:boxSet(WINDOW_BOXES ? WINDOW_BOXES.map(localWindowBox) : [localWindowBox([bbox.west,bbox.south,bbox.east,bbox.north])])};
+//: The houses' own clip, inside the one above: emptied when the view is right out over the Bay
+//: and the tile tree's simple city stands in for them (setCityAsTiles); and the tile tree's
+//: houses', let in over the region then.
+const BUILDING_SURFACES = new Set(["wall", "roof", "garage", "plane", "footprint", "reconstructed", "facade"]);
+const detailBuildingBox = { value: boxSet(detailClipBox.value) };
+const tileBuildingBox = { value: boxSet(tileDetailBox.value) };
 // Both tiers share an exact fragment boundary. Never rebuild/drop whole coarse tiles
 // on a handoff: their geometry remains ready outside the new full-detail rectangle.
+//: A material clipped to a box set: drawn only inside it, or (excludeInside) only outside. A
+//: material may carry more than one clip (a house's: the window's and the houses' own), each
+//: under its own uniform name.
+let boxClipCount = 0;
 function applyBoxClip(object, uniform, excludeInside=false) {
+  uniform.clipName ||= `uDetailBoxes${++boxClipCount}`;
+  const name = uniform.clipName;
   object.traverse(o=>{
     for(const material of o.material ? (Array.isArray(o.material)?o.material:[o.material]) : []) {
-      if(material.userData.detailOwnership===uniform)return;
-      material.userData.detailOwnership=uniform;
+      const owners=material.userData.detailOwnerships ||= [];
+      if(owners.includes(uniform))continue;
+      owners.push(uniform);
       const before=material.onBeforeCompile,cacheKey=material.customProgramCacheKey();
       material.onBeforeCompile=function(shader,renderer){
-        before.call(this,shader,renderer);shader.uniforms.uDetailBounds=uniform;
-        shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vDetailWorld;')
-          .replace('#include <project_vertex>',`#include <project_vertex>
+        before.call(this,shader,renderer);shader.uniforms[name]=uniform;
+        if(!shader.vertexShader.includes('varying vec3 vDetailWorld;'))
+          shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vDetailWorld;')
+            .replace('#include <project_vertex>',`#include <project_vertex>
           vec4 detailPosition=vec4(transformed,1.0);
           #ifdef USE_INSTANCING
           detailPosition=instanceMatrix*detailPosition;
           #endif
           vDetailWorld=(modelMatrix*detailPosition).xyz;`);
+        if(!shader.fragmentShader.includes('varying vec3 vDetailWorld;'))
+          shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vDetailWorld;');
         shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
-          '#include <common>\nvarying vec3 vDetailWorld;\nuniform vec4 uDetailBounds;')
+          `#include <common>\nuniform vec4 ${name}[${BOX_SET_MAX}];`)
           .replace('void main() {',`void main() {
-          bool inDetail=vDetailWorld.x>=uDetailBounds.x && vDetailWorld.x<=uDetailBounds.z
-            && vDetailWorld.z>=uDetailBounds.y && vDetailWorld.z<=uDetailBounds.w;
-          if(${excludeInside ? 'inDetail' : '!inDetail'}) discard;`);
+          {bool inDetail=false;
+          for(int i=0;i<${BOX_SET_MAX};i++){vec4 b=${name}[i];
+            if(vDetailWorld.x>=b.x && vDetailWorld.x<=b.z && vDetailWorld.z>=b.y && vDetailWorld.z<=b.w)inDetail=true;}
+          if(${excludeInside ? 'inDetail' : '!inDetail'}) discard;}`);
       };
-      material.customProgramCacheKey=()=>cacheKey+':ownership-v1:'+excludeInside;
+      material.customProgramCacheKey=()=>cacheKey+`:ownership-v2:${name}:`+excludeInside;
       material.needsUpdate=true;
     }
   });
@@ -5289,8 +5326,8 @@ function inTubePortalOpening(x, z) {
 }
 function addBackdropTile(xs, zs, apronOf) {
   if(BUILD_WINDOW) {
-    const b=localWindowBox(BUILD_WINDOW.box);
-    if(Math.max(...xs)<b.x || Math.min(...xs)>b.z || Math.max(...zs)<b.y || Math.min(...zs)>b.w)return;
+    const x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);
+    if(!BUILD_WINDOW.boxes.map(localWindowBox).some(b=>x1>=b.x && x0<=b.z && z1>=b.y && z0<=b.w))return;
   }
   const w = xs.length, h = zs.length;
   const position = new Float32Array(w * h * 3);
@@ -5354,7 +5391,7 @@ const indoorCut = {
   floor: { value: 0 },
   //: Where another region is drawn in full in this page: the country under it is not drawn
   //: (x0, z0, x1, z1 in this page's metres; empty when x1 < x0).
-  guestBox: { value: new THREE.Vector4(1, 1, 0, 0) },
+  guestBox: { value: boxSet([]) },
 };
 TERRAIN_MATERIAL.onBeforeCompile = (shader) => {
   shader.uniforms.uCutRing = indoorCut.ring;
@@ -5371,9 +5408,10 @@ varying vec3 vCutWorld;
 uniform vec2 uCutRing[${INDOOR_CUT_MAX}];
 uniform int uCutCount;
 uniform float uCutFloor;
-uniform vec4 uGuestBox;`)
+uniform vec4 uGuestBox[${BOX_SET_MAX}];`)
     .replace("void main() {", `void main() {
-  if (vCutWorld.x > uGuestBox.x && vCutWorld.x < uGuestBox.z && vCutWorld.z > uGuestBox.y && vCutWorld.z < uGuestBox.w) discard;
+  for (int i = 0; i < ${BOX_SET_MAX}; i++) { vec4 g = uGuestBox[i];
+    if (vCutWorld.x > g.x && vCutWorld.x < g.z && vCutWorld.z > g.y && vCutWorld.z < g.w) discard; }
   if (uCutCount > 2 && vCutWorld.y > uCutFloor - 0.02) {
     bool inside = false;
     for (int i = 0; i < ${INDOOR_CUT_MAX}; i++) {
@@ -6953,11 +6991,10 @@ const tileStats = { built: 0, drawn: 0, requested: 0, failed: 0, evicted: 0, byt
 //: region and its other half is wanted.
 //: Which region that is changes as the walker goes (attachRegion); the tree then rebuilds the
 //: tiles over the old region and the new.
-let TILE_OWN_BOX = BUILD_WINDOW ? BUILD_WINDOW.box.slice()
-  : DATA.bbox ? [DATA.bbox.west, DATA.bbox.south, DATA.bbox.east, DATA.bbox.north] : null;
+let TILE_OWN_BOXES = BUILD_WINDOW ? BUILD_WINDOW.boxes.map((b) => b.slice())
+  : DATA.bbox ? [[DATA.bbox.west, DATA.bbox.south, DATA.bbox.east, DATA.bbox.north]] : null;
 function tileOwnGround(lon, lat) {
-  return TILE_OWN_BOX !== null && lon >= TILE_OWN_BOX[0] && lon <= TILE_OWN_BOX[2]
-      && lat >= TILE_OWN_BOX[1] && lat <= TILE_OWN_BOX[3];
+  return TILE_OWN_BOXES !== null && TILE_OWN_BOXES.some((b) => lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3]);
 }
 //: A line, cut into the runs of it that lie outside the region this page draws in full.
 //:
@@ -7082,13 +7119,16 @@ function buildTile(tile, layers) {
     roads: TILE_ROAD_MATERIAL.clone(),
     pavement: TILE_WALK_MATERIAL.clone(),
     paint: TILE_PAINT_MATERIAL.clone(),
+    yellow: TILE_YELLOW_MATERIAL.clone(),
     tactile: new THREE.MeshStandardMaterial({
       map: TACTILE_WARNING, color: 0xffffff, roughness: 0.86, metalness: 0.0,
       transparent: true, side: THREE.DoubleSide,
     }),
   };
   tile.materials = Object.values(materials);
-  for(const material of tile.materials)applyBoxClip({traverse:visit=>visit({material})},tileDetailBox,true);
+  // The houses are let in over the region drawn in full when the view is right out (tier 0).
+  for(const material of tile.materials)applyBoxClip({traverse:visit=>visit({material})},
+    material===materials.buildings || material===materials.massing ? tileBuildingBox : tileDetailBox,true);
   if (layers.massing) addTileMeshes(group, tileMassing(layers.massing, f, lonOf, latOf, materials.massing));
   if (layers.buildings) addTileMeshes(group, tileBuildings(layers.buildings, f, lonOf, latOf, materials.buildings));
   // The street, from the outside in: carriageway and footways.  Crossings are not a wide road
@@ -7108,6 +7148,9 @@ function buildTile(tile, layers) {
     addTileMeshes(group, tileCrossings(layers.crossings_parallel, "parallel", f, lonOf, latOf,
                                        materials.paint, materials.tactile));
   }
+  // The lane lines (derived: from the lanes the street facts inferred, as the street renderer's).
+  if (layers.lanes_white) addTileMeshes(group, tileLaneLines(layers.lanes_white, "white", f, materials.paint));
+  if (layers.lanes_yellow) addTileMeshes(group, tileLaneLines(layers.lanes_yellow, "yellow", f, materials.yellow));
   group.visible = false;
   // Deeper tiles draw after shallower ones, so a parent fading out lies over its children
   // rather than fighting them for the depth buffer while it goes.
@@ -7149,6 +7192,12 @@ const TILE_WALK = new THREE.Color(0x8e918a);
 const TILE_PAINT_COLOUR = new THREE.Color(0xe8e8e4);
 const TILE_WALK_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_WALK, roughness: 0.96, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
 const TILE_PAINT_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_PAINT_COLOUR, roughness: 0.9, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
+//: The centre line's yellow, as the street renderer paints it.
+const TILE_YELLOW_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xd9a514, roughness: 0.9, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
+//: The lines between lanes from a little way off: San Francisco's broken white (ten feet of
+//: line, thirty of gap) and its double yellow (two four-inch lines, four inches apart), a
+//: little wider than painted so a line a kilometre off is still a line and not a shimmer.
+const TILE_LANE = { dashM: 3.05, gapM: 9.15, whiteM: 0.15, yellowM: 0.12, yellowGapM: 0.12 };
 //: The tile street's own stack, over the atlas's ground: tarmac, the paint on it, the kerb's
 //: height to the footway. Millimetres apart would fight; these are the real steps.
 const TILE_ROAD_Y = 0.15;
@@ -7488,6 +7537,53 @@ function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMater
   return meshes;
 }
 
+//: A tile's lane lines: each row a polyline in the tile's centimetres. White is broken, the
+//: dashes running on along the line across its vertices; yellow is two solid lines.
+function tileLaneLines(rows, kind, f, material) {
+  const position = [], index = [];
+  const ground = (x, z) => (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(x,z) : TILE_GROUND_Y-earthDrop(x,z)) + TILE_PAINT_Y;
+  const strip = (a, b, offset, half) => {
+    const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz);
+    if (!(len > 0.05)) return;
+    const nx = -dz / len, nz = dx / len, base = position.length / 3;
+    for (const [p, side] of [[a, -1], [b, -1], [b, 1], [a, 1]]) {
+      const x = p[0] + nx * (offset + side * half), z = p[1] + nz * (offset + side * half);
+      position.push(x, ground(x, z), z);
+    }
+    index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  for (const row of rows) {
+    const pts = [];
+    for (let i = 0; i + 1 < row.length; i += 2) pts.push([f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)]);
+    if (pts.length < 2) continue;
+    if (kind === "yellow") {
+      const off = (TILE_LANE.yellowM + TILE_LANE.yellowGapM) / 2;
+      for (let i = 1; i < pts.length; i += 1) for (const side of [-1, 1]) strip(pts[i - 1], pts[i], side * off, TILE_LANE.yellowM / 2);
+      continue;
+    }
+    // Broken white: the pattern's phase carried from one segment to the next.
+    const period = TILE_LANE.dashM + TILE_LANE.gapM;
+    let phase = 0;
+    for (let i = 1; i < pts.length; i += 1) {
+      const a = pts[i - 1], b = pts[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (!(len > 0)) continue;
+      const at = (t) => [a[0] + (b[0] - a[0]) * t / len, a[1] + (b[1] - a[1]) * t / len];
+      for (let s = -phase; s < len; s += period) {
+        const from = Math.max(0, s), to = Math.min(len, s + TILE_LANE.dashM);
+        if (to > from + 0.05) strip(at(from), at(to), 0, TILE_LANE.whiteM / 2);
+      }
+      phase = (phase + len) % period;
+    }
+  }
+  if (!index.length) return [];
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return [new THREE.Mesh(geometry, material)];
+}
+
 //: The tiles to draw: from the root down, refining only where the tile being drawn would be
 //: visibly wrong, and only where the children are already here. A parent stays up until every
 //: child that is on screen has its geometry -- which is what makes the swap silent rather
@@ -7523,12 +7619,53 @@ function tileRingDistance(tile) {
   const dz = Math.max(z0 - tileFocus.z, 0, tileFocus.z - z1);
   return Math.hypot(dx, dz);
 }
+//: The region round the walker, filled out to its edges at the finest depth once the window
+//: round the walker is built: the houses' real footprints in their own colours, the streets,
+//: pavements and crossings -- the simple city at its best, wherever the walker goes next in it.
+//: It grows a ring at a time while nothing else is loading, furthest ahead first.
+const TILE_FILL_STEP_M = 250, TILE_FILL_EVERY_MS = 900;
+const tileFill = { region: null, rect: null, radius: 0, reach: 0, lastAt: 0, focus: new THREE.Vector3() };
+function tileFillDepth(tile) {
+  if (!tileFill.rect || tileFill.radius <= 0 || zoomTier < 1) return null;
+  const [x0, z0, x1, z1] = tileRect(tile), r = tileFill.rect;
+  if (x1 < r[0] || x0 > r[2] || z1 < r[1] || z0 > r[3]) return null;
+  // Ahead of a moving walker counts nearer, behind further: the fill leans the way it goes.
+  const d = tileRingDistance(tile) * (1 - 0.45 * tileAheadness(tile));
+  return d <= tileFill.radius ? TILE_FULL_DEPTH : null;
+}
+function growTileFill(now) {
+  const region = typeof activeGuest !== "undefined" && activeGuest ? activeGuest.region : REGION_INDEX.host;
+  if (!region || !TILE_INDEX?.regions?.[region.name]) { tileFill.rect = null; return; }
+  if (tileFill.region !== region || tileFill.focus.distanceTo(tileFocus) > 500) {
+    // A new region, or a jump within one: begin again from the walker.
+    const [s, w, n, e] = region.bbox, [ax, ay] = xy(w, s), [bx, by] = xy(e, n);
+    tileFill.region = region;
+    tileFill.rect = [Math.min(ax, bx), Math.min(-ay, -by), Math.max(ax, bx), Math.max(-ay, -by)];
+    tileFill.radius = TILE_FULL_RING_M;
+    tileFill.lastAt = now;
+  }
+  tileFill.focus.copy(tileFocus);
+  const r = tileFill.rect;
+  tileFill.reach = Math.max(...[[r[0], r[1]], [r[2], r[1]], [r[0], r[3]], [r[2], r[3]]]
+    .map(([x, z]) => Math.hypot(x - tileFocus.x, z - tileFocus.z)));
+  // Only while the window and the tiles are idle: the street underfoot always comes first.
+  const cells = worldCellCache.snapshot();
+  const idle = !attaching && !cells.active && !cells.queued && tileInFlight === 0 && tileQueue.length === 0;
+  if (idle && tileFill.radius < tileFill.reach && now - tileFill.lastAt > TILE_FILL_EVERY_MS) {
+    tileFill.radius = Math.min(tileFill.reach, tileFill.radius + TILE_FILL_STEP_M);
+    tileFill.lastAt = now;
+  }
+}
+window.kerbsideTileFill = () => ({ region: tileFill.region?.name || null, radius: Math.round(tileFill.radius),
+  reach: Math.round(tileFill.reach), complete: tileFill.reach > 0 && tileFill.radius >= tileFill.reach });
 //: The depth this tile should be drawn to near the walker, or null where the screen-error
 //: rule decides.
 function tileRingDepth(tile) {
-  if (!tileRingsActive) return null;
+  const fill = tileFillDepth(tile);
+  if (!tileRingsActive) return fill;
   const d = tileRingDistance(tile);
   if (d <= TILE_FULL_RING_M) return TILE_FULL_DEPTH;
+  if (fill !== null) return fill;
   if (d <= TILE_CORE_RING_M) return TILE_CORE_DEPTH;
   return null;
 }
@@ -7651,6 +7788,7 @@ function updateTileTree(now, eye = camera) {
   // Where the walker is, or the point the map camera orbits; the rings apply near the ground.
   tileFocus.copy(typeof state !== "undefined" ? (state.firstPerson ? avatar.position : state.target) : eye.position);
   tileRingsActive = eye.position.y - tileFocus.y < TILE_RING_HEIGHT_M;
+  if (eye === camera) growTileFill(at);
   const drawn = [];
   const rootTile = TILES.get("0/0/0");
   if (rootTile) selectTiles(rootTile, drawn, eye);
@@ -21562,11 +21700,45 @@ function leafCard(c, size, rnd, tint, droop = 0) {
   return geometry;
 }
 
+//: A street tree's bark, by kind: its pattern (vegetation-geometry.mjs, BARK_STYLES) in the
+//: kind's own colour, with the photograph's grain laid in when it has loaded.
+const TREE_BARK_STYLE = { palm: "palm", conifer: "pine", broad: "broadleaf", street: "broadleaf", columnar: "broadleaf" };
+const TREE_BARK_MATERIALS = new Map();
+let treeBarkGrain = null;
+function treeBarkMaterial(kind, colour) {
+  const style = TREE_BARK_STYLE[kind] || "broadleaf";
+  if (TREE_BARK_MATERIALS.has(kind)) return TREE_BARK_MATERIALS.get(kind);
+  const t = vegetationLibrary.barkTextures(THREE, { style, seed: kind.length * 17 + 3, grain: treeBarkGrain });
+  const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(colour).multiplyScalar(vegetationLibrary.BARK_GAIN),
+    map: t.map, normalMap: t.normalMap, normalScale: new THREE.Vector2(1.3, 1.3), roughness: 0.94, metalness: 0 });
+  TREE_BARK_MATERIALS.set(kind, material);
+  return material;
+}
+if (vegetationLibrary?.barkGrain) vegetationLibrary.barkGrain(sharedAsset(vegetationLibrary.BARK_GRAIN_URL)).then((grain) => {
+  if (!grain) return;
+  treeBarkGrain = grain;
+  for (const [kind, material] of TREE_BARK_MATERIALS) {
+    const t = vegetationLibrary.barkTextures(THREE, { style: TREE_BARK_STYLE[kind] || "broadleaf", seed: kind.length * 17 + 3, grain });
+    material.map.dispose(); material.normalMap.dispose();
+    material.map = t.map; material.normalMap = t.normalMap; material.needsUpdate = true;
+  }
+});
+//: Metres to the unit tree, about: a street tree is drawn a few times its unit size.
+const TREE_UNIT_M = 5;
+
 function treeVariant(kind) {
   let s = 1 + kind.length * 101;
   const rnd = () => { s += 1; return random(s * 2654435761 % 1000003); };
   const bark = [], leaves = [];
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // With the vegetation module, trunk and limbs are continuous round tubes, a limb running on
+  // from its twig without a seam (barkTube); without it, a cylinder a piece.
+  const tubes = vegetationLibrary?.barkTube ? { position: [], normal: [], uv: [] } : null;
+  const limb = (points, radii, sides) => {
+    if (tubes) vegetationLibrary.barkTube(tubes, points.map((p) => [p.x, p.y, p.z]), radii,
+      [TREE_UNIT_M, TREE_UNIT_M], { sides, size: [TREE_UNIT_M, TREE_UNIT_M] });
+    else for (let i = 1; i < points.length; i += 1) bark.push(branchGeometry(points[i - 1], points[i], radii[i - 1], radii[i], sides));
+  };
   // The painted leaves are pale and take the tree's green from here; the older drawing (and the
   // palm's fronds and the conifer's needles) carry their own colour and want almost none.
   const painted = Boolean(vegetationLibrary?.leafCardTextures) && kind !== "palm" && kind !== "conifer";
@@ -21584,8 +21756,7 @@ function treeVariant(kind) {
   if (kind === "palm") {
     // A tall slender trunk, a little bent, and fronds arching out and down from the top.
     const top = V(0.05, 1.05, 0.02);
-    bark.push(branchGeometry(V(0, 0, 0), V(0.02, 0.55, 0.01), 0.06, 0.05, 7));
-    bark.push(branchGeometry(V(0.02, 0.55, 0.01), top, 0.05, 0.045, 7));
+    limb([V(0, -0.03, 0), V(0, 0.01, 0), V(0.02, 0.55, 0.01), top], [0.07, 0.065, 0.05, 0.045], 8);
     for (let i = 0; i < 11; i += 1) {
       const a = (i / 11) * Math.PI * 2 + rnd() * 0.3, len = 0.5 + rnd() * 0.14;
       const frond = new THREE.PlaneGeometry(0.3, len);
@@ -21599,14 +21770,14 @@ function treeVariant(kind) {
     }
   } else if (kind === "conifer") {
     // A trunk to the tip and whorls of branches shortening up it, needles along each.
-    bark.push(branchGeometry(V(0, 0, 0), V(0, 1.15, 0), 0.07, 0.015, 6));
+    limb([V(0, -0.03, 0), V(0, 0.01, 0), V(0, 0.5, 0), V(0, 1.15, 0)], [0.085, 0.078, 0.045, 0.015], 8);
     const whorls = 7;
     for (let w = 0; w < whorls; w += 1) {
       const y = 0.28 + w * 0.12, reach = 0.36 * (1 - w / whorls) + 0.05;
       for (let b = 0; b < 4; b += 1) {
         const a = (b / 4) * Math.PI * 2 + w * 0.7 + rnd() * 0.4;
         const tip = V(Math.cos(a) * reach, y - reach * 0.35, Math.sin(a) * reach);
-        bark.push(branchGeometry(V(0, y, 0), tip, 0.018, 0.006, 4));
+        limb([V(0, y, 0), tip], [0.018, 0.006], 4);
         cluster(V(tip.x * 0.6, y - reach * 0.18, tip.z * 0.6), reach * 0.55, 0.06, 4, reach * 1.1, 0.5);
       }
     }
@@ -21620,34 +21791,50 @@ function treeVariant(kind) {
       columnar: { trunk: 0.26, limbs: 4, spread: 0.22, rise: 0.62, reach: 0.12, crown: [0.11, 0.26], cards: 10 },
     }[kind] || { trunk: 0.38, limbs: 4, spread: 0.75, rise: 0.30, reach: 0.24, crown: [0.20, 0.17], cards: 11 };
     const fork = V(0, shape.trunk, 0);
-    bark.push(branchGeometry(V(0, 0, 0), fork, 0.07, 0.05, 6));
+    // Sunk a little and flared at the foot, and on past the fork a short way so the limbs
+    // leave a trunk and not the open end of one.
+    limb([V(0, -0.03, 0), V(0, 0.01, 0), V(0, shape.trunk * 0.3, 0), fork, V(0, fork.y + 0.05, 0)],
+      [0.085, 0.078, 0.066, 0.05, 0.035], 9);
     for (let l = 0; l < shape.limbs; l += 1) {
       const a = (l / shape.limbs) * Math.PI * 2 + rnd() * 0.6;
       const out = shape.reach * (0.8 + rnd() * 0.4);
       const tip = V(Math.cos(a) * out * shape.spread / 0.75, fork.y + shape.rise * (0.8 + rnd() * 0.4),
         Math.sin(a) * out * shape.spread / 0.75);
-      bark.push(branchGeometry(fork, tip, 0.04, 0.022, 5));
-      for (let t = 0; t < 2; t += 1) {
+      const twigs = [0, 1].map((t) => {
         const b = a + (t ? 0.6 : -0.6) + (rnd() - 0.5) * 0.3;
-        const twig = V(tip.x + Math.cos(b) * shape.reach * 0.45, tip.y + shape.rise * 0.35 * (0.6 + rnd() * 0.6),
+        return V(tip.x + Math.cos(b) * shape.reach * 0.45, tip.y + shape.rise * 0.35 * (0.6 + rnd() * 0.6),
           tip.z + Math.sin(b) * shape.reach * 0.45);
-        bark.push(branchGeometry(tip, twig, 0.02, 0.008, 4));
-        cluster(twig, shape.crown[0], shape.crown[1], shape.cards, kind === "columnar" ? 0.22 : 0.32);
-      }
+      });
+      // The limb runs on into its first twig; the second leaves it at the tip.
+      limb([fork.clone().multiplyScalar(0.92), tip, twigs[0]], [0.04, 0.022, 0.008], 6);
+      limb([tip, twigs[1]], [0.02, 0.008], 4);
+      for (const twig of twigs) cluster(twig, shape.crown[0], shape.crown[1], shape.cards, kind === "columnar" ? 0.22 : 0.32);
     }
     // The middle of the crown, so it is not hollow from below.
     cluster(V(0, fork.y + shape.rise * 1.15, 0), shape.crown[0] * 1.4, shape.crown[1] * 1.2, 14, 0.34);
   }
   const group = new THREE.Group();
-  const barkMesh = new THREE.Mesh(mergeParts(bark), new THREE.MeshStandardMaterial({
-    color: kind === "palm" ? 0x7a6a55 : kind === "conifer" ? 0x4a3a2c : 0x5a4a3a, roughness: 0.95 }));
+  const barkColour = kind === "palm" ? 0x7a6a55 : kind === "conifer" ? 0x4a3a2c : 0x5a4a3a;
+  let barkGeometry;
+  if (tubes) {
+    barkGeometry = new THREE.BufferGeometry();
+    barkGeometry.setAttribute("position", new THREE.Float32BufferAttribute(tubes.position, 3));
+    barkGeometry.setAttribute("normal", new THREE.Float32BufferAttribute(tubes.normal, 3));
+    barkGeometry.setAttribute("uv", new THREE.Float32BufferAttribute(tubes.uv, 2));
+  } else barkGeometry = mergeParts(bark);
+  const barkMesh = new THREE.Mesh(barkGeometry, tubes ? treeBarkMaterial(kind, barkColour)
+    : new THREE.MeshStandardMaterial({ color: barkColour, roughness: 0.95 }));
   barkMesh.geometry.computeBoundingSphere();
   group.add(barkMesh);
   const leafKind = kind === "palm" ? "palm" : kind === "conifer" ? "conifer" : "broad";
   const leafMap = treeLeafTexture(leafKind), leafNormal = TREE_LEAF_NORMALS.get(leafKind);
-  const leafMesh = new THREE.Mesh(mergeParts(leaves), new THREE.MeshStandardMaterial({
+  const leafMaterial = new THREE.MeshStandardMaterial({
     map: leafMap, vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, roughness: leafNormal ? 0.72 : 0.85, metalness: 0.0,
-    ...(leafNormal ? { normalMap: leafNormal, normalScale: new THREE.Vector2(0.9, 0.9) } : {}) }));
+    ...(leafNormal ? { normalMap: leafNormal, normalScale: new THREE.Vector2(0.9, 0.9) } : {}) });
+  // A far crown keeps its leaves (vegetation-geometry.mjs: its alpha held up in the texture's
+  // smaller versions), rather than thinning to a bare trunk.
+  vegetationLibrary?.keepLeavesAtDistance?.(leafMaterial, leafMap.image?.width || 128);
+  const leafMesh = new THREE.Mesh(mergeParts(leaves), leafMaterial);
   // Lit as a crown, not as cards; and swayed by the wind (foliage-motion.mjs).
   vegetationLibrary?.foliageNormals?.(leafMesh.geometry.getAttribute("position").array,
     leafMesh.geometry.getAttribute("normal").array);
@@ -28167,6 +28354,55 @@ function goTo(landing, options = {}) {
 }
 //: The trip: the camera pulls up and away into black, the map plays the hop, and the camera comes
 //: back down over the walker where it landed. `perform` moves the walker, behind the black.
+//: How long a detail window takes to build here, in seconds a square kilometre: from the windows
+//: built so far (smoothed), before any the page's own first build; DETAIL_FIRST_SECONDS for a
+//: region whose page has not been fetched yet (its code, its manifest, its first cells).
+let detailSecondsPerKm2 = null;
+const DETAIL_DEFAULT_SECONDS = 8, DETAIL_FIRST_SECONDS = 1.5;
+const detailRegionsSeen = new Set();
+function noteDetailBuild(seconds, boxes) {
+  const km2 = Math.max(0.01, windowAreaKm2(boxes));
+  if (!(seconds > 0)) return;
+  const rate = seconds / km2;
+  detailSecondsPerKm2 = detailSecondsPerKm2 === null ? rate : detailSecondsPerKm2 * 0.6 + rate * 0.4;
+}
+function windowAreaKm2(boxes) {
+  let area = 0;
+  for (const b of boxes || []) area += Math.max(0, (b[2] - b[0]) * metersPerLon) * Math.max(0, (b[3] - b[1]) * metersPerLat) / 1e6;
+  return area;
+}
+//: Whether the window drawn in full has the page point (x, z) in it.
+function detailCovers(at) {
+  const lon = midLon + at.x / metersPerLon, lat = midLat - at.z / metersPerLat;
+  const region = typeof regionAt === "function" ? regionAt(lon, lat) : null;
+  if (!region) return true;  // the open country: the landscape alone
+  const owner = activeGuest;
+  if (owner ? owner.region !== region : region !== REGION_INDEX.host || !hostWorldActive) return false;
+  const boxes = owner?.windowBoxes || (owner?.windowBox ? [owner.windowBox] : BUILD_WINDOW ? [BUILD_WINDOW.box] : null);
+  return !boxes || boxes.some((b) => lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3]);
+}
+//: How long the place at page point (x, z) will take to come in, in seconds: nothing where the
+//: window already has it; else an arrival window's build at the rate measured so far.
+function estimateDetailSeconds(at) {
+  if (detailCovers(at)) return 0.4;
+  const lon = midLon + at.x / metersPerLon, lat = midLat - at.z / metersPerLat;
+  const region = regionAt(lon, lat);
+  const side = 2 * STREAM.arrival, km2 = (side / 1000) ** 2;
+  const reference = (2 * (BUILD_WINDOW?.radius || STREAM.arrival) / 1000) ** 2;
+  const rate = detailSecondsPerKm2 ?? DETAIL_DEFAULT_SECONDS / reference;
+  // A window is asked for within a second of the landing (checkDetailExpansion).
+  return 1 + rate * km2 + (region && !detailRegionsSeen.has(region.name) ? DETAIL_FIRST_SECONDS : 0);
+}
+//: The page's own first window is the first measure of how fast this device builds: from the
+//: page starting to its streets and ground standing (fetching included, as an arrival's is).
+let firstBuildNoted = false;
+function noteFirstBuild() {
+  if (firstBuildNoted || ATTACH || !BUILD_WINDOW || !window.kerbsideReady?.streets || !window.kerbsideReady?.ground) return;
+  firstBuildNoted = true;
+  const started = window.kerbsideBoot?.startedAt;
+  if (started) noteDetailBuild((Date.now() - started) / 1000, [BUILD_WINDOW.box]);
+  if (REGION_INDEX.host) detailRegionsSeen.add(REGION_INDEX.host.name);
+}
 function teleportTrip(fromPage, toPage, perform) {
   teleportOverlay ||= teleportLibrary.createTeleport({ map: teleportLibrary.drawBayMap(NATURE) });
   const local = (p) => NATURE.local(midLon + p.x / metersPerLon, midLat - p.z / metersPerLat);
@@ -28179,11 +28415,14 @@ function teleportTrip(fromPage, toPage, perform) {
       perform();
       arrival = { dist: state.dist, pitch: state.pitch };
     },
+    // In: no cell still coming, no window still building, the window round the walker built,
+    // and the plants round it standing.
     ready: () => {
       const s = worldCellCache.snapshot(), at = state.firstPerson ? avatar.position : state.target;
-      return !s.active && !s.queued && (!natureWorld?.plantsReadyAt || natureWorld.plantsReadyAt(at.x, at.z));
+      return !s.active && !s.queued && !attaching && detailCovers(at)
+        && (!natureWorld?.plantsReadyAt || natureWorld.plantsReadyAt(at.x, at.z));
     },
-    pending: () => { const s = worldCellCache.snapshot(); return s.active + s.queued; },
+    estimate: () => estimateDetailSeconds(state.firstPerson ? avatar.position : state.target),
     onPull: (u) => {
       if (state.firstPerson) return;
       state.dist = start.dist * (1 + 7 * u * u); state.pitch = start.pitch + (1.3 - start.pitch) * u; placeCamera();
@@ -32589,33 +32828,49 @@ const DETAIL_RANGE_M = {
   "furniture:post": 500, "furniture:sign_plate": 400, "furniture:sign_back": 400, "furniture:bike_rack": 300,
   "furniture:shelter": 900, "furniture:curb_zone": 500, "furniture:bus_zone": 700, sign: 400, detail: 700,
   roof_furniture: 600,
+  // Poles and wires, lamps and signals: a wire is a pixel wide at a few hundred metres.
+  "furniture:utility_pole": 900, "furniture:overhead_wire": 700, "furniture:trolley_wire": 700,
+  "furniture:trolley_pole": 900, "furniture:street_light": 900, "furniture:traffic_signal": 700,
+  "furniture:small_cell": 500, "furniture:bench": 400, "furniture:parking_meter": 400, "furniture:bus_stop": 500,
+  "furniture:blank_ad": 500, "furniture:billboard": 1500, "furniture:station_entrance": 900,
+  "furniture:power_tower": 5000, "furniture:comm_tower": 5000, window: 900,
 };
 let detailTiles = [];
 let detailTilesFrame = 0;
 //: The detail index walks the whole scene; it is rebuilt every few seconds, for what has loaded.
 const DETAIL_REINDEX_FRAMES = 240;
 const detailCentre = new THREE.Vector3();
-// ---- detail by zoom: the city first as shapes, then as materials, then as doors and windows ----
+// ---- detail by zoom: the city falls away a layer at a time ----------------------------------
 //
-// From far out a house is its shape in its colour: no material, no windows, no door, and a street
-// is its asphalt and its pavement at their heights, without kerb blocks, paint or furniture. Come
-// closer and the materials are laid on and the trees, kerbs and crossings come; closer again the
-// windows, doors, signs and street furniture. ZOOM_TIERS_M are camera distances (to the point
-// the camera looks at), scaled by the quality preset; each tier is entered a little closer than
-// it is left, so standing at a boundary does not flicker.
-const ZOOM_TIERS_M = { materials: 1300, doorsAndWindows: 520 };
-const ZOOM_HIDDEN = {
-  0: (surface) => surface === "house_window" || surface.startsWith("furniture:") || surface === "sign"
-    || surface === "roof_furniture" || surface === "detail" || surface === "kerb" || surface === "marking"
-    || surface === "crossing_edges" || surface === "crossing" || surface === "tactile_warning"
-    || surface === "curb_ramp" || surface === "court_line" || surface === "bike" || surface === "tree_pit"
-    || surface === "walk_underlay" || surface.startsWith("tree:"),
-  1: (surface) => surface === "house_window" || surface.startsWith("furniture:") || surface === "sign"
-    || surface === "roof_furniture" || surface === "detail" || surface === "tactile_warning"
-    || surface === "curb_ramp",
-  2: () => false,
+// Pulling back from the street, the smallest things go first and the city's own shape last:
+//   4  everything, to the paving joints;
+//   3  the paving's joints and the poles, wires, lamps, signals and street furniture go;
+//   2  then the houses' windows and doors (the facade's painted openings with them) and signs;
+//   1  then the kerbs and the bike lanes' edges -- the lane lines, crossings and the houses'
+//      own colours and shapes stay;
+//   0  only when the view is right out over the Bay: the paint, the trees and the houses' own
+//      colours and footprints give way to the simple city the tile tree draws everywhere else.
+// ZOOM_TIERS_M are camera distances (to the point the camera looks at), each the far side of a
+// tier, scaled by the quality preset; each is entered a little closer than it is left, so
+// standing at a boundary does not flicker. First person is always tier 4.
+const ZOOM_TIERS_M = { street: 380, windows: 650, kerbs: 1300, city: 2600 };
+const ZOOM_TOP = 4;
+//: What goes at each tier, added to what went at the tier above.
+const ZOOM_DROPS = {
+  3: (surface) => surface.startsWith("furniture:") && !["furniture:power_tower", "furniture:comm_tower",
+    "furniture:billboard", "furniture:station_entrance"].includes(surface)
+    || surface === "tactile_warning" || surface === "curb_ramp" || surface === "detail" || surface === "sign",
+  2: (surface) => surface === "house_window" || surface === "window" || surface === "roof_furniture"
+    || surface === "furniture:billboard" || surface === "furniture:station_entrance",
+  1: (surface) => surface === "kerb" || surface === "tree_pit" || surface === "walk_underlay"
+    || surface === "court_line" || surface === "front_walk",
+  0: (surface) => surface === "marking" || surface === "crossing_edges" || surface === "crossing"
+    || surface === "bike" || surface.startsWith("tree:") || surface === "footprint"
+    || surface === "furniture:power_tower" || surface === "furniture:comm_tower",
 };
-let zoomTier = 2;
+const ZOOM_HIDDEN = Object.fromEntries([0, 1, 2, 3, 4].map((tier) => [tier,
+  (surface) => [3, 2, 1, 0].some((t) => t >= tier && ZOOM_DROPS[t](surface))]));
+let zoomTier = ZOOM_TOP;
 const PLAIN_MAP = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
 PLAIN_MAP.needsUpdate = true;
 let plainMaterials = null;
@@ -32634,18 +32889,53 @@ function setBuildingsPlain(plain) {
     else if (!plain && m.map === PLAIN_MAP && m.userData.fullMap) m.map = m.userData.fullMap;
   }
 }
+//: The paving's scored squares, there or not: the texture itself is given its own average
+//: tone, so every pavement, kerb and plaza using it loses its joints at once and nothing
+//: recompiles; the squares come back the same way.
+const PAVING_TEXTURES = [SIDEWALK, NARROW_SIDEWALK];
+function setPavingJoints(shown) {
+  for (const texture of PAVING_TEXTURES) {
+    if (!texture.userData.plain) {
+      const plain = document.createElement("canvas");
+      plain.width = plain.height = 4;
+      plain.getContext("2d").drawImage(texture.image, 0, 0, 4, 4);
+      texture.userData.full = texture.image;
+      texture.userData.plain = plain;
+    }
+    const want = shown ? texture.userData.full : texture.userData.plain;
+    if (texture.image !== want) { texture.image = want; texture.needsUpdate = true; }
+  }
+}
+//: The houses as drawn here, or as the tile tree's simple city (tier 0): a clip box the
+//: buildings' materials share, emptied to hide them, and the tile tree's buildings let in.
+let cityAsTiles = false;
+//: Called by the page that draws the tile tree: on an attached region's page by its host
+//: (kerbsideGuestApi.cityAsTiles), which alone knows whether its tree has the region.
+let detailBuildingsShown = true;
+function showDetailBuildings(shown) { detailBuildingsShown = shown; setBoxSet(detailBuildingBox, shown ? detailClipBox.value : []); }
+function setCityAsTiles(simple) {
+  if (ATTACH) return;
+  const region = activeGuest?.region || REGION_INDEX.host;
+  // Only where the tile tree has this region: elsewhere the houses would just vanish.
+  const swap = Boolean(simple && region && TILE_INDEX?.regions?.[region.name]);
+  cityAsTiles = swap;
+  setBoxSet(tileBuildingBox, swap ? [] : tileDetailBox.value);
+  if (activeGuest?.ready) activeGuest.api.cityAsTiles?.(swap);
+  else showDetailBuildings(!swap);
+}
 function updateZoomTier() {
   const scale = QUALITY().lodScale;
   const d = state.firstPerson ? 0 : state.dist;
-  const enter = (tier) => (tier === 1 ? ZOOM_TIERS_M.materials : ZOOM_TIERS_M.doorsAndWindows) * scale;
+  const edges = [ZOOM_TIERS_M.city, ZOOM_TIERS_M.kerbs, ZOOM_TIERS_M.windows, ZOOM_TIERS_M.street].map((m) => m * scale);
+  // The tier for d, with a margin: go down a tier past 1.1 of its edge, come back under 0.9.
   let tier = zoomTier;
-  if (tier < 2 && d < enter(2) * 0.9) tier = 2;
-  else if (tier < 1 && d < enter(1) * 0.9) tier = 1;
-  else if (tier === 2 && d > enter(2) * 1.1) tier = d > enter(1) * 1.1 ? 0 : 1;
-  else if (tier === 1 && d > enter(1) * 1.1) tier = 0;
+  while (tier < ZOOM_TOP && d < edges[tier] * 0.9) tier += 1;
+  while (tier > 0 && d > edges[tier - 1] * 1.1) tier -= 1;
   if (tier === zoomTier) return false;
   zoomTier = tier;
-  setBuildingsPlain(tier === 0);
+  setPavingJoints(tier >= 4);
+  setBuildingsPlain(tier <= 2);
+  setCityAsTiles(tier === 0);
   return true;
 }
 //: The view the detail was last culled for: the culling only runs again once the camera has
@@ -32661,8 +32951,10 @@ function viewChanged(eye) {
 }
 function cullDetailByDistance(frame, eye = camera) {
   // The ground and the furniture arrive after the first frame: the list is rebuilt now and then.
-  const reindex = frame % DETAIL_REINDEX_FRAMES === 0;
   const tierChanged = eye === camera && updateZoomTier();
+  // A new tier is applied to everything there is now, poles and wires that came in since the
+  // last index too.
+  const reindex = frame % DETAIL_REINDEX_FRAMES === 0 || tierChanged;
   if (eye === camera && !reindex && !tierChanged && !cullForced && !viewChanged(eye)) return false;
   cullForced = false;
   if (reindex) {
@@ -32677,7 +32969,13 @@ function cullDetailByDistance(frame, eye = camera) {
         for (const m of Array.isArray(o.material) ? o.material : [o.material])
           if (m.transparent && m.side === THREE.DoubleSide && !m.forceSinglePass) m.forceSinglePass = true;
       }
-      if (!o.isMesh || !o.frustumCulled || !o.geometry || DETAIL_RANGE_M[o.userData.surface] === undefined) return;
+      // A building's materials share the clip that hands the houses to the tile tree (tier 0).
+      if (o.isMesh && BUILDING_SURFACES.has(o.userData.surface) && !o.userData.buildingClip) {
+        o.userData.buildingClip = true; applyBoxClip(o, detailBuildingBox);
+      }
+      // Wires are lines, not meshes; they are culled the same.
+      if (!(o.isMesh || o.isLine) || !o.frustumCulled || !o.geometry || DETAIL_RANGE_M[o.userData.surface] === undefined) return;
+      if (!o.isInstancedMesh && !o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
       // An instanced mesh's bounds are its own, over its instances; its geometry's are the one
       // unit box at the origin, and read as the tile's they culled every sign post, planter
       // and tree more than a few hundred metres from the corridor's centre wherever the camera
@@ -32686,8 +32984,12 @@ function cullDetailByDistance(frame, eye = camera) {
       if (o.isInstancedMesh ? o.boundingSphere : o.geometry.boundingSphere) detailTiles.push(o);
     });
   }
-  const zoom = FIRST_PERSON_FOV / eye.fov * QUALITY().detailScale;
-  const hidden = ZOOM_HIDDEN[eye === camera ? zoomTier : 2];
+  // From above, what each tier keeps is seen from further off than at street level: its reach
+  // grows with the view's distance, so pulling back drops a layer at a time and never the
+  // paint the tier still shows.
+  const overhead = eye === camera && !state.firstPerson ? Math.max(1, state.dist / 350) : 1;
+  const zoom = FIRST_PERSON_FOV / eye.fov * QUALITY().detailScale * overhead;
+  const hidden = ZOOM_HIDDEN[eye === camera ? zoomTier : ZOOM_TOP];
   if (reindex || !detailCells) indexDetailCells();
   // Cell by cell: a cell wholly out of sight or out of reach has its detail hidden once, and is
   // then passed over until it comes back -- the work follows what can be seen, not the city.
@@ -32825,6 +33127,7 @@ function animate(now) {
   if (sunDial.open && frameCount % 30 === 0) drawSunDial();
   if (frameCount % 30 === 0) updateRouteWidth();
   checkLightWindow(frameCount);
+  noteFirstBuild();
   checkDetailExpansion(now);
   // Labels are re-sized and culled with the detail: only when the view has changed.
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
@@ -33550,8 +33853,10 @@ function applySettings(changes = {}) {
   renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY().pixelRatio));
   resize();
   cullForced = true;
-  zoomTier = 2;
+  zoomTier = ZOOM_TOP;
   setBuildingsPlain(false);
+  setPavingJoints(true);
+  setCityAsTiles(false);
   updateZoomTier();
   settingsForm.fps.value = String(SETTINGS.fps);
   settingsForm.quality.value = SETTINGS.quality;
@@ -33943,7 +34248,7 @@ function guestUnder(x, z) {
   const g = activeGuest;
   if (!g || !g.ready) return null;
   const [gx, gz] = hostToGuest(g, x, z);
-  return gx >= g.box[0] && gx <= g.box[2] && gz >= g.box[1] && gz <= g.box[3] ? g : null;
+  return (g.boxes || [g.box]).some((b) => gx >= b[0] && gx <= b[2] && gz >= b[1] && gz <= b[3]) ? g : null;
 }
 function regionAt(lon, lat) {
   let best = null, bestD = Infinity;
@@ -34061,6 +34366,90 @@ regionBadge.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:30;bac
   + "font:12px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;pointer-events:none;transition:opacity .5s";
 regionBadge.hidden = true;
 document.body.appendChild(regionBadge);
+// ---- the way, in full: a strip along the directions ------------------------------------------
+//
+// With directions chosen, the window drawn in full is the square round the walker and a strip
+// along the way -- a couple of blocks wide (ROUTE_STRIP.halfM either side), from the walker on to
+// the end, as far as its area allows -- so a jump along the way lands in the street as it is,
+// and a walk along it never meets the simple city. The square leads along the way, wider where
+// the walker is and is going. The strip is cut into pieces a few hundred metres long, a box
+// each (merged where the way runs straight), within the region being drawn.
+const ROUTE_STRIP = { halfM: 100, pieceM: 220, maxBoxes: BOX_SET_MAX - 1,
+  km2: STREAM.radius >= 400 ? 0.8 : 0.3, aheadM: 160 };
+function routeLine() {
+  const result = typeof route !== "undefined" ? route.results[route.chosen] : null;
+  return result?.line?.length > 1 ? result.line : null;
+}
+function routeStripKey() {
+  const line = routeLine();
+  return line ? `${route.chosen}:${line.length}:${line[0].join(",")}:${line[line.length - 1].join(",")}` : "";
+}
+//: The strip's boxes in `region` for a walker at `centre` ({lon, lat}): [west, south, east,
+//: north] each, nearest the walker first, ahead along the way before behind.
+function routeStrip(region, centre) {
+  const line = routeLine();
+  if (!line || !region) return [];
+  const [rs, rw, rn, re] = region.bbox;
+  const P = line.map(([lon, lat]) => [(lon - midLon) * metersPerLon, (lat - midLat) * metersPerLat]);
+  const [cx, cy] = [(centre.lon - midLon) * metersPerLon, (centre.lat - midLat) * metersPerLat];
+  let at = 0, best = Infinity;
+  P.forEach(([x, y], i) => { const d = Math.hypot(x - cx, y - cy); if (d < best) { best = d; at = i; } });
+  // Pieces of the way, walking out from the walker: ahead first, then behind.
+  const pieces = [];
+  for (const step of [1, -1]) {
+    let piece = [P[at]], run = 0;
+    for (let i = at + step; i >= 0 && i < P.length; i += step) {
+      run += Math.hypot(P[i][0] - P[i - step][0], P[i][1] - P[i - step][1]);
+      piece.push(P[i]);
+      if (run >= ROUTE_STRIP.pieceM) { pieces.push(piece); piece = [P[i]]; run = 0; }
+    }
+    if (piece.length > 1) pieces.push(piece);
+  }
+  const boxes = [];
+  let area = 0;
+  const h = ROUTE_STRIP.halfM;
+  for (const piece of pieces) {
+    const xs = piece.map((p) => p[0]), ys = piece.map((p) => p[1]);
+    const b = [Math.min(...xs) - h, Math.min(...ys) - h, Math.max(...xs) + h, Math.max(...ys) + h];
+    // In the region's own box, in degrees.
+    const box = [Math.max(rw, midLon + b[0] / metersPerLon), Math.max(rs, midLat + b[1] / metersPerLat),
+                 Math.min(re, midLon + b[2] / metersPerLon), Math.min(rn, midLat + b[3] / metersPerLat)];
+    if (box[2] <= box[0] || box[3] <= box[1]) continue;
+    const km2 = windowAreaKm2([box]);
+    if (area + km2 > ROUTE_STRIP.km2) break;
+    // A straight run is one box: merged with the last when that adds little but the join.
+    const last = boxes[boxes.length - 1];
+    if (last) {
+      const union = [Math.min(last[0], box[0]), Math.min(last[1], box[1]), Math.max(last[2], box[2]), Math.max(last[3], box[3])];
+      const grow = windowAreaKm2([union]) - windowAreaKm2([last]);
+      if (grow <= km2 * 1.15 && area + grow <= ROUTE_STRIP.km2) { boxes[boxes.length - 1] = union; area += grow; continue; }
+    }
+    if (boxes.length >= ROUTE_STRIP.maxBoxes) break;
+    boxes.push(box);
+    area += km2;
+  }
+  return boxes;
+}
+//: Where the way goes on from (lon, lat), ROUTE_STRIP.aheadM along it, if the walker is on it.
+function routeAheadOf(lon, lat) {
+  const line = routeLine();
+  if (!line) return null;
+  const P = line.map(([a, b]) => [(a - midLon) * metersPerLon, (b - midLat) * metersPerLat]);
+  const x = (lon - midLon) * metersPerLon, y = (lat - midLat) * metersPerLat;
+  let at = 0, best = Infinity;
+  P.forEach(([px, py], i) => { const d = Math.hypot(px - x, py - y); if (d < best) { best = d; at = i; } });
+  if (best > 80) return null;
+  let run = 0, i = at;
+  while (i + 1 < P.length && run < ROUTE_STRIP.aheadM) { run += Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]); i += 1; }
+  return i > at ? [midLon + P[i][0] / metersPerLon, midLat + P[i][1] / metersPerLat] : null;
+}
+window.kerbsideRouteStrip = () => {
+  const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
+  const region = regionAt(lon, lat), boxes = region ? routeStrip(region, { lon, lat }) : [];
+  return { key: routeStripKey(), boxes, km2: +windowAreaKm2(boxes).toFixed(3),
+    drawn: activeGuest?.windowBoxes?.length ? activeGuest.windowBoxes.length - 1 : 0, active: activeGuest?.stripKey || "" };
+};
+
 function checkDetailExpansion(now) {
   if(ATTACH || !regionStreamingReady || attaching || now<detailRetryAt || now-detailCheckAt<1000
     || !window.kerbsideReady?.streets || !window.kerbsideReady?.ground)return;
@@ -34074,17 +34463,32 @@ function checkDetailExpansion(now) {
     attachRegion(region,{lon,lat},STREAM.arrival);detailPreviousFocus=[lon,lat];detailPreviousAt=now;return;
   }
   const [s,w,n,e]=region.bbox;
+  // Directions chosen since this window was built: built again, with the strip along the way.
+  const stripKey=routeStripKey();
+  if(stripKey && stripKey!==(owner?.stripKey || "")) {
+    const ahead=routeAheadOf(lon,lat),c=ahead ? {lon:(lon+ahead[0])/2,lat:(lat+ahead[1])/2} : {lon,lat};
+    attachRegion(region,{lon:Math.max(w,Math.min(e,c.lon)),lat:Math.max(s,Math.min(n,c.lat))},STREAM.radius);
+    detailPreviousFocus=[lon,lat];detailPreviousAt=now;return;
+  }
   // How fast the focus is going (metres a second since the last look, a teleport aside) and
   // how long the last window took: the next is asked for that much sooner, that far ahead.
   const seconds=detailPreviousAt ? (now-detailPreviousAt)/1000 : 0;
   const moved=detailPreviousFocus && seconds>0 ? Math.hypot((lon-detailPreviousFocus[0])*metersPerLon,
     (lat-detailPreviousFocus[1])*metersPerLat)/seconds : 0;
   const speed=moved<60 ? moved : 0;
+  // On the way, the square leads along it rather than along the last step.
+  const ahead=routeAheadOf(lon,lat);
+  const previous=ahead ? [2*lon-ahead[0],2*lat-ahead[1]] : detailPreviousFocus;
   const request=worldStreaming.detailRequest(box,owner?.detailRadius || BUILD_WINDOW.radius,
-    [lon,lat],[metersPerLon,metersPerLat],detailPreviousFocus,[w,s,e,n],
+    [lon,lat],[metersPerLon,metersPerLat],previous,[w,s,e,n],
     {...STREAM,speed,buildSeconds:owner?.buildSeconds || 8});
   detailPreviousFocus=[lon,lat];detailPreviousAt=now;
-  if(request)attachRegion(region,{lon:Math.max(w,Math.min(e,request.lon)),lat:Math.max(s,Math.min(n,request.lat))},request.radius);
+  if(!request)return;
+  // Landed on the strip: it is already drawn, so the next square is built at full size round
+  // the walker, offscreen, rather than a small arrival square in a hurry.
+  const onStrip=(owner?.windowBoxes || []).slice(1).some(b=>lon>=b[0] && lon<=b[2] && lat>=b[1] && lat<=b[3]);
+  const radius=onStrip ? Math.max(request.radius,STREAM.radius) : request.radius;
+  attachRegion(region,{lon:Math.max(w,Math.min(e,request.lon)),lat:Math.max(s,Math.min(n,request.lat))},radius);
 }
 window.kerbsideStreamDetail=()=>{
   const cache=worldCellCache.snapshot(),usage=activeGuest?.api.municipalUsage || municipalUsage;
@@ -34102,7 +34506,12 @@ async function attachRegion(region, centre = null, radius = 220) {
   const [rs,rw,rn,re]=region.bbox;
   if(!Number.isFinite(centre.lon) || !Number.isFinite(centre.lat)
     || centre.lon<rw || centre.lon>re || centre.lat<rs || centre.lat>rn)return;
-  if (activeGuest?.region === region && activeGuest.windowBox) {
+  // The strip along the way, with any square but a hurried arrival's.
+  // Keyed by the directions it was laid for, even where none of the way is in this region, so a
+  // window is built for a set of directions once.
+  const strip = radius > STREAM.arrival ? routeStrip(region, centre) : [];
+  const stripKey = radius > STREAM.arrival ? routeStripKey() : "";
+  if (activeGuest?.region === region && activeGuest.windowBox && (activeGuest.stripKey || "") === stripKey) {
     const b=activeGuest.windowBox;
     if(radius<=activeGuest.detailRadius && worldStreaming.windowMargin(b,[centre.lon,centre.lat],
       [metersPerLon,metersPerLat],[rw,rs,re,rn])>=STREAM.keep)return;
@@ -34139,12 +34548,12 @@ async function attachRegion(region, centre = null, radius = 220) {
     };
     const stand = guestStandIns(pageUrl, metas);
     attaching.progress=stand.document.getElementById("progress");
-    const holder = { region, ready: false, centre, detailRadius:radius, startedAt:performance.now() };
+    const holder = { region, ready: false, centre, detailRadius:radius, strip, stripKey, startedAt:performance.now() };
     candidate=holder;
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
       natureBacked:Boolean(NATURE),
-      detailWindow:{...centre,radius:holder.detailRadius},cellCache:{
+      detailWindow:{...centre,radius:holder.detailRadius,strip:holder.strip},cellCache:{
         load:(url,priority)=>worldCellCache.load(new URL(url,pageUrl).href,priority),
         snapshot:()=>worldCellCache.snapshot(),focus:()=>worldCellCache.focus()},
       document: stand.document, window: stand.window,
@@ -34186,10 +34595,14 @@ async function attachRegion(region, centre = null, radius = 220) {
     holder.root.updateMatrixWorld(true);
     api.setRootInverse(holder.root.matrixWorld.clone().invert());
     holder.box = api.groundBox;
+    holder.boxes = api.groundBoxes || [api.groundBox];
     holder.windowBox = api.windowBox || [api.bbox.west,api.bbox.south,api.bbox.east,api.bbox.north];
+    holder.windowBoxes = api.windowBoxes || [holder.windowBox];
     holder.lastAt = performance.now();
     holder.ready = true;
     holder.buildSeconds=(performance.now()-holder.startedAt)/1000;
+    noteDetailBuild(holder.buildSeconds, holder.windowBoxes || [holder.windowBox]);
+    detailRegionsSeen.add(region.name);
     console.info(`kerbside: ${region.name} detail handoff ready in ${holder.buildSeconds.toFixed(1)} s`);
     if (hostWorldActive) releaseHostWorld();
     if (previous) releaseGuest(previous);
@@ -34197,10 +34610,11 @@ async function attachRegion(region, centre = null, radius = 220) {
     activeGuest = holder;
     natureWorld?.invalidate();
     // The tree draws the simple city everywhere but here, and the country under it gives way.
-    TILE_OWN_BOX = holder.windowBox.slice();
-    tileDetailBox.value.copy(localWindowBox(TILE_OWN_BOX));
-    const [x0, z0, x1, z1] = holder.box;
-    indoorCut.guestBox.value.set(holder.ox + x0 * holder.sx, holder.oz + z0, holder.ox + x1 * holder.sx, holder.oz + z1);
+    TILE_OWN_BOXES = holder.windowBoxes.map((b) => b.slice());
+    setBoxSet(tileDetailBox, TILE_OWN_BOXES.map(localWindowBox));
+    setCityAsTiles(zoomTier === 0);
+    setBoxSet(indoorCut.guestBox, holder.boxes.map(([x0, z0, x1, z1]) =>
+      new THREE.Vector4(holder.ox + x0 * holder.sx, holder.oz + z0, holder.ox + x1 * holder.sx, holder.oz + z1)));
     cullForced = true;
     regionBadge.textContent = `${region.title}`;
     setTimeout(() => { regionBadge.style.opacity = "0"; }, 2500);
@@ -34265,8 +34679,11 @@ function guestTick({ eye, dist, firstPerson, at, dt }) {
 }
 window.kerbsideGuestApi = {
   ready:async()=>{if(await groundReady===false)throw Error("Destination ground unavailable; previous window retained");},
+  cityAsTiles:(simple)=>showDetailBuildings(!simple),
   municipalUsage,
-  windowBox:BUILD_WINDOW?.box,
+  windowBox:BUILD_WINDOW?.core,
+  windowBoxes:BUILD_WINDOW?.boxes,
+  groundBoxes:BUILD_WINDOW ? BUILD_WINDOW.boxes.map((b)=>{const a=xy(b[0],b[1]),c=xy(b[2],b[3]);return [a[0],-c[1],c[0],-a[1]];}) : null,
   billboardFaces,
   root, bbox: DATA.bbox, midLon, midLat, metersPerLon,
   // The ground this world draws, in its own metres: its terrain grid and the apron round it.
@@ -34297,9 +34714,12 @@ window.kerbsideGuestApi = {
     ROOT_INVERSE.copy(matrix); tunnelVoidInverse.copy(matrix); detailCells = null; cullForced = true;
     // Box uniforms are in renderer/world metres, just like the fragment position.
     if(BUILD_WINDOW) {
-      const b=localWindowBox(BUILD_WINDOW.box),a=new THREE.Vector3(b.x,0,b.y).applyMatrix4(root.matrixWorld),
-        c=new THREE.Vector3(b.z,0,b.w).applyMatrix4(root.matrixWorld);
-      detailClipBox.value.set(a.x,a.z,c.x,c.z);
+      setBoxSet(detailClipBox,BUILD_WINDOW.boxes.map(box=>{
+        const b=localWindowBox(box),a=new THREE.Vector3(b.x,0,b.y).applyMatrix4(root.matrixWorld),
+          c=new THREE.Vector3(b.z,0,b.w).applyMatrix4(root.matrixWorld);
+        return new THREE.Vector4(Math.min(a.x,c.x),Math.min(a.z,c.z),Math.max(a.x,c.x),Math.max(a.z,c.z));
+      }));
+      showDetailBuildings(detailBuildingsShown);
     }
   },
   // Let go: what this world holds is emptied, since the code that built it stays loaded.

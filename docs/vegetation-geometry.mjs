@@ -3,22 +3,56 @@
 import {SPECIES,noiseHash} from './nature-ecology.mjs';
 export {UNDERGROWTH,undergrowthAt,LITTER,litterScatter,litterKind} from './nature-ecology.mjs';
 
+//: The bark's tile, in metres across and up: a furrow or a plate is a few centimetres whatever
+//: the limb, so a trunk wraps the tile round several times and a twig once.
+export const BARK_TILE_M=[.6,1.2];
+//: A tube along a chain of points, its radius at each: the rings at a joint shared by the
+//: segments either side, so a bend in a limb is a bend and not a gap. `metric` maps a point
+//: of the unit tree to metres for a tree of its species' typical size, so the rings are
+//: round once the instance has stretched the tree to that size (a tree is stretched four times
+//: taller than it is wide, and a ring drawn round in unit space came out a flat board). The
+//: normals are the tube's own, smooth; u wraps the bark tile a whole number of times round.
+export function barkTube(out,points,radii,metric,{sides=6,size=[1,1]}={}){
+  const [sx,sy]=metric,[SR,SH]=size,M=p=>[p[0]*sx,p[1]*sy,p[2]*sx];
+  const P=points.map(M),R=radii.map(r=>r*sx),n=P.length;
+  if(n<2)return;
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],norm=a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l);};
+  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const tangents=P.map((p,i)=>norm(i===0?sub(P[1],P[0]):i===n-1?sub(P[n-1],P[n-2]):
+    sub(norm(sub(P[i+1],P[i])),norm(sub(P[i-1],P[i])))));
+  // Parallel transport: each ring's frame turned from the last by the bend, never flipped.
+  let u=Math.abs(tangents[0][1])<.9?norm(cross(tangents[0],[0,1,0])):norm(cross(tangents[0],[1,0,0]));
+  const around=Math.max(1,Math.round(2*Math.PI*Math.max(...R)/BARK_TILE_M[0]));
+  const rings=[];let along=0;
+  for(let i=0;i<n;i++){
+    const t=tangents[i];u=norm(sub(u,t.map(v=>v*dot(u,t))));const v=cross(t,u);
+    if(i)along+=Math.hypot(...sub(P[i],P[i-1]));
+    const ring=[];
+    for(let k=0;k<=sides;k++){const a=k/sides*Math.PI*2,c=Math.cos(a),s=Math.sin(a);
+      const o=[u[0]*c+v[0]*s,u[1]*c+v[1]*s,u[2]*c+v[2]*s];
+      // Back to the unit tree. The normal is for the tree once scaled to `size` (its crown
+      // radius and height): the instance's stretch turns it by the inverse, back to the ring's.
+      ring.push({p:[(P[i][0]+o[0]*R[i])/sx,(P[i][1]+o[1]*R[i])/sy,(P[i][2]+o[2]*R[i])/sx],
+        n:norm([o[0]*SR,o[1]*SH,o[2]*SR]),uv:[k/sides*around,along/BARK_TILE_M[1]]});}
+    rings.push(ring);
+  }
+  const put=q=>{out.position.push(...q.p);out.normal.push(...q.n);out.uv.push(...q.uv);};
+  for(let i=1;i<n;i++)for(let k=0;k<sides;k++){
+    const a=rings[i-1][k],b=rings[i-1][k+1],c=rings[i][k+1],d=rings[i][k];
+    put(a);put(b);put(c);put(a);put(c);put(d);
+  }
+}
+
 export function botanicalGeometry(species,variant=0){
-  const form=SPECIES[species]?.form||species,bark={position:[],uv:[]},leaf={position:[],uv:[]};
+  const form=SPECIES[species]?.form||species,bark={position:[],uv:[],normal:[]},leaf={position:[],uv:[]};
   let seed=variant*887+Array.from(species).reduce((n,c)=>n+c.charCodeAt(0),0);
   const rnd=()=>noiseHash(++seed,variant,701);
   const triangle=(out,a,b,c,uv=[[0,0],[1,0],[1,1]])=>{out.position.push(...a,...b,...c);out.uv.push(...uv.flat());};
-  const branch=(a,b,r0,r1)=>{
-    const d=b.map((v,i)=>v-a[i]),L=Math.hypot(...d),u=[d[2],0,-d[0]];
-    if(Math.hypot(...u)<1e-6)u.splice(0,3,1,0,0);
-    const ul=Math.hypot(...u);for(let i=0;i<3;i++)u[i]/=ul;
-    const v=[d[1]*u[2]-d[2]*u[1],d[2]*u[0]-d[0]*u[2],d[0]*u[1]-d[1]*u[0]].map(x=>x/L);
-    const ring=(p,r,k)=>p.map((x,i)=>x+r*(u[i]*Math.cos(k*Math.PI/3)+v[i]*Math.sin(k*Math.PI/3)));
-    for(let k=0;k<6;k++){
-      const p=ring(a,r0,k),q=ring(a,r0,k+1),r=ring(b,r1,k+1),s=ring(b,r1,k);
-      triangle(bark,p,q,r);triangle(bark,p,r,s);
-    }
-  };
+  // Limbs are gathered as chains and drawn once the crown's size is known (barkTube).
+  const chains=[];
+  const chain=(points,radii,sides=6)=>chains.push({points,radii,sides});
+  const branch=(a,b,r0,r1)=>chain([a,b],[r0,r1],4);
   const card=(p,w,h,angle,tilt)=>{
     const u=[Math.cos(angle)*w/2,0,Math.sin(angle)*w/2],v=[-Math.sin(angle)*Math.cos(tilt)*h/2,Math.sin(tilt)*h/2,Math.cos(angle)*Math.cos(tilt)*h/2];
     const at=(x,y)=>p.map((a,i)=>a+x*u[i]+y*v[i]);
@@ -51,7 +85,8 @@ export function botanicalGeometry(species,variant=0){
   if(ENVELOPE.cone){
     // A conifer: a trunk to the tip and whorls of down-swept branches all the way up, each
     // carrying sprays of needles along its length, shortening to the leader.
-    branch([0,0,0],trunkAt(1),.05,.006);
+    // Sunk a little and flared at the foot, so on a slope it stands in the ground, not on a point.
+    chain([[0,-.03,0],[0,.01,0],trunkAt(.08),trunkAt(.5),trunkAt(1)],[.062,.058,.05,.03,.006],9);
     const whorls=14;
     for(let w=0;w<whorls;w++){
       const t=w/(whorls-1),y=ENVELOPE.base+(1-ENVELOPE.base)*t*.96,reach=(1-t)*.95+.06;
@@ -71,28 +106,40 @@ export function botanicalGeometry(species,variant=0){
     cluster(trunkAt(.995),.04,.05,4);
   }else{
     const E=ENVELOPE,fork=trunkAt(E.base);
-    branch([0,0,0],fork,.07,.05);
-    // The leader carries on up the middle of a tall tree.
-    if(['eucalyptus','pine'].includes(form))branch(fork,trunkAt(.82),.05,.02);
+    // The trunk sunk a little and flared at the foot; the leader carries on up a tall tree.
+    // The trunk runs on up the middle as a tapering leader to the highest limb it carries (a
+    // tall tree's further), so no limb starts in the air above the end of it.
+    const leader=['eucalyptus','pine'].includes(form),trunk={points:null,radii:null};
+    chains.push(trunk);trunk.sides=9;let highest=E.base+.05;
     for(let j=0;j<E.clumps;j++){
       // Clumps over the envelope's outer shell, some deeper in, none hollowing the middle.
       const a=j*2.39996+rnd()*.5,y=E.base+.08+(1-E.base-.12)*Math.pow(rnd(),.8);
       const shell=E.shape(y)*(.55+.40*Math.sqrt(rnd())),c=[Math.cos(a)*shell,y,Math.sin(a)*shell];
-      const from=trunkAt(Math.min(y-.04,E.base+(y-E.base)*.45));
+      const from=trunkAt(Math.min(y-.04,E.base+(y-E.base)*.45));highest=Math.max(highest,from[1]+.02);
       const mid=[(from[0]+c[0])*.55,(from[1]+c[1])/2+.03,(from[2]+c[2])*.55];
-      branch(from,mid,.035,.02);branch(mid,c,.02,.008);
+      chain([from,mid,c],[.035,.02,.008],6);
       cluster(c,E.clump[0]*(.8+rnd()*.4),E.clump[1]*(.8+rnd()*.4),E.cards,E.droop||0);
     }
     // And the middle filled, so the crown is not hollow from below or through a gap.
     cluster(trunkAt((E.base+1)/2+.08),E.shape((E.base+1)/2)*.45,(1-E.base)*.22,Math.round(E.cards*1.2),E.droop||0);
+    const top=Math.max(highest,leader?.82:0);
+    trunk.points=[[0,-.03,0],[0,.01,0],trunkAt(E.base*.25),fork,trunkAt((E.base+top)/2),trunkAt(top)];
+    trunk.radii=[.088,.082,.07,.05,.034,.016];
   }
   // Scale the completed crown once, including cards, so advertised clearance is true.
   // The trunk stands at y = 0; a spray tipped below the ground is laid on it rather than the
   // whole tree lifted off the ground to make room for it.
   let radius=0,height=0;
-  for(const g of [bark,leaf])for(let i=0;i<g.position.length;i+=3){g.position[i+1]=Math.max(0,g.position[i+1]);radius=Math.max(radius,Math.hypot(g.position[i],g.position[i+2]));height=Math.max(height,g.position[i+1]);}
+  for(let i=0;i<leaf.position.length;i+=3){leaf.position[i+1]=Math.max(0,leaf.position[i+1]);radius=Math.max(radius,Math.hypot(leaf.position[i],leaf.position[i+2]));height=Math.max(height,leaf.position[i+1]);}
+  for(const c of chains)for(const p of c.points){p[1]=Math.max(c===chains[0]?-1:0,p[1]);radius=Math.max(radius,Math.hypot(p[0],p[2]));height=Math.max(height,p[1]);}
+  // The unit tree is stretched to the species' size; for its typical size, this is metres.
+  const spec=SPECIES[species],R=spec?(spec.radius[0]+spec.radius[1])/2:5,H=spec?(spec.height[0]+spec.height[1])/2:15;
+  const metric=[R/radius,H/height];
+  for(const c of chains)barkTube(bark,c.points,c.radii,metric,{sides:c.sides,size:[R,H]});
   for(const g of [bark,leaf])for(let i=0;i<g.position.length;i+=3){g.position[i]/=radius;g.position[i+2]/=radius;g.position[i+1]/=height;}
-  return {bark,leaf,species,form};
+  // The skeleton, in the unit tree: the trunk first, then every limb, for inspection.
+  const skeleton=chains.map(c=>({points:c.points.map(p=>[p[0]/radius,p[1]/height,p[2]/radius]),radii:c.radii.map(r=>r/radius)}));
+  return {bark,leaf,species,form,skeleton};
 }
 
 export function plantGeometry(kind){
@@ -305,6 +352,143 @@ export function normalsFromHeight(h,strength=2.2){
     d[i]=Math.round((-dx/l*.5+.5)*255);d[i+1]=Math.round((dy/l*.5+.5)*255);d[i+2]=Math.round((1/l*.5+.5)*255);d[i+3]=255;}
   return out;
 }
+//: Bark, by species form: how its surface is cut. Each is a network of cells over the tile --
+//: cells `cells` across and up, stretched up the trunk -- whose edges are the cracks: long
+//: narrow cells are the ridges and fissures of oak and fir, short wide ones the plates of
+//: pine, very long thin ones the fibres of redwood and cypress; `fine` is a second, shallower
+//: network inside the first (flakes on a plate, checks on a ridge). 'smooth' is a skin with
+//: lenticels (bay, acacia, a street tree), 'peeling' the blue gum's patches of grey, cream and
+//: olive, 'rings' a palm's leaf scars. `crevice` and `ridge` multiply the species' bark colour
+//: (the instance's), so one texture serves every shade of a species. The fine grain under it
+//: all is a photograph (BARK_GRAIN_URL), where the page can load one.
+export const BARK_STYLES={
+  oak:       {kind:'cracked',cells:[7,3],crack:.34,fine:[16,9,.35],depth:1,crevice:[.30,.28,.27],ridge:[1.16,1.14,1.10]},
+  fir:       {kind:'cracked',cells:[5,2],crack:.42,fine:[12,6,.30],depth:1.15,crevice:[.42,.24,.15],ridge:[1.12,1.04,.98]},
+  willow:    {kind:'cracked',cells:[9,4],crack:.30,fine:[18,10,.3],depth:.85,crevice:[.40,.40,.38],ridge:[1.12,1.10,1.06]},
+  pine:      {kind:'cracked',cells:[4,5],crack:.10,fine:[11,13,.45],depth:1.1,crevice:[.20,.16,.14],ridge:[1.22,1.08,.95],dome:.5},
+  redwood:   {kind:'cracked',cells:[16,1],crack:.30,fine:[34,3,.4],depth:1,crevice:[.40,.28,.22],ridge:[1.20,1.08,1.00]},
+  cypress:   {kind:'cracked',cells:[20,2],crack:.26,fine:[40,4,.35],depth:.8,crevice:[.46,.42,.40],ridge:[1.14,1.10,1.06]},
+  broadleaf: {kind:'smooth',depth:.5,crevice:[.60,.58,.56],ridge:[1.08,1.06,1.04]},
+  eucalyptus:{kind:'peeling',depth:.55,crevice:[.72,.68,.62],ridge:[1.08,1.06,1.03]},
+  palm:      {kind:'rings',rings:9,depth:.8,crevice:[.55,.50,.45],ridge:[1.12,1.08,1.02]},
+};
+export const BARK_GRAIN_URL='nature/bark/bark-grain.jpg';
+//: Value noise that tiles: `px` by `py` lattice cells over the unit square.
+function tiledNoise(px,py,seed){
+  const v=(i,j)=>noiseHash(((i%px)+px)%px,((j%py)+py)%py,seed);
+  return (x,y)=>{const fx=x*px,fy=y*py,i=Math.floor(fx),j=Math.floor(fy),u=fx-i,w=fy-j;
+    const su=u*u*(3-2*u),sw=w*w*(3-2*w);
+    return (v(i,j)*(1-su)+v(i+1,j)*su)*(1-sw)+(v(i,j+1)*(1-su)+v(i+1,j+1)*su)*sw;};
+}
+function tiledFbm(px,py,seed,octaves=4){
+  const layers=Array.from({length:octaves},(_,k)=>tiledNoise(px<<k,py<<k,seed+k*131));
+  return (x,y)=>{let a=0,s=0,amp=1;for(const n of layers){a+=n(x,y)*amp;s+=amp;amp*=.5;}return a/s;};
+}
+//: A cell network that tiles: for (u, v), the distance to the nearest cell's point and to the
+//: second nearest (in cell widths), and which cell is nearest.
+function tiledCells(cx,cy,seed){
+  const pts=[];for(let j=0;j<cy;j++)for(let i=0;i<cx;i++)pts.push([(i+.1+.8*noiseHash(i,j,seed))/cx,(j+.1+.8*noiseHash(i,j,seed+1))/cy]);
+  return (u,v)=>{let f1=9,f2=9,id=0;const ci=Math.floor(u*cx),cj=Math.floor(v*cy);
+    for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
+      const i=((ci+di)%cx+cx)%cx,j=((cj+dj)%cy+cy)%cy,p=pts[j*cx+i];
+      // The neighbour across the tile's edge is the cell on the far side, moved over a tile.
+      const dist=Math.hypot((p[0]+(ci+di-i)/cx-u)*cx,(p[1]+(cj+dj-j)/cy-v)*cy);
+      if(dist<f1){f2=f1;f1=dist;id=j*cx+i;}else if(dist<f2)f2=dist;}
+    return [f1,f2,id];};
+}
+//: The bark's surface, tiling both ways: a height (0 deep, 1 proud) and a colour multiplier
+//: per pixel, `w` by `h` (h is twice w: the tile is BARK_TILE_M, twice as tall as wide).
+//: `grain`, if given, is the photograph's fine relief (w by h, mean 1), laid over the pattern.
+export function barkField(style,w=256,h=512,seed=1,grain=null){
+  const S=BARK_STYLES[style]||BARK_STYLES.broadleaf,height=new Float32Array(w*h),colour=new Float32Array(w*h*3);
+  const detail=tiledFbm(16,32,seed+7,4),warpX=tiledFbm(4,6,seed+11,3),warpY=tiledFbm(4,6,seed+13,3),mottle=tiledFbm(4,6,seed+17,3);
+  const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+  const coarse=S.cells?tiledCells(S.cells[0],S.cells[1],seed+19):null,fine=S.fine?tiledCells(S.fine[0],S.fine[1],seed+23):null;
+  const patches=S.kind==='peeling'?tiledCells(3,4,seed+29):null,lenticels=S.kind==='smooth'?tiledCells(12,40,seed+31):null;
+  const checks=S.kind==='smooth'?tiledCells(6,3,seed+41):null;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const u=x/w,v=y/h,d=detail(u,v);let ht=.5,tone=1;
+    // The cracks wander: the network is sampled through a gentle warp.
+    const wu=((u+(warpX(u,v)-.5)*.08)%1+1)%1,wv=((v+(warpY(u,v)-.5)*.05)%1+1)%1;
+    if(S.kind==='cracked'){
+      const [f1,f2,id]=coarse(wu,wv),edge=f2-f1;
+      // A ridge is rounded over, a fissure deep and narrow; inside it, shallower checks.
+      ht=Math.pow(smooth(0,S.crack,edge),.7)*(S.dome?1-S.dome*.5*f1*f1:1);
+      const [g1,g2]=fine(wu,wv);ht-=(1-smooth(0,.12,g2-g1))*S.fine[2]*smooth(.1,.4,ht);
+      ht=ht*.82+d*.18;tone=.88+.24*noiseHash(id,0,seed+37);
+    }else if(S.kind==='smooth'){
+      // A skin: a little relief, dark lenticels lying across the trunk, faint checks.
+      const [l1]=lenticels(wu,wv),[f1,f2]=checks(wu,wv);
+      ht=.62+.22*(d-.5)-.28*(1-smooth(.0,.05,f2-f1))-.3*(1-smooth(.12,.22,l1));
+      tone=.9+.2*mottle(u,v);
+    }else if(S.kind==='peeling'){
+      // Patches of new and old bark; an old patch's edge lifts as it curls away.
+      const [f1,f2,id]=patches(wu,wv),edge=f2-f1;
+      ht=.55+.1*(d-.5)+.18*(1-smooth(0,.06,edge))-.22*(1-smooth(0,.025,edge));
+      const age=noiseHash(id,1,seed+43);tone=.8+.35*age;
+    }else if(S.kind==='rings'){
+      const r=v*S.rings*2+(warpX(u,v)-.5)*.5,f=r-Math.floor(r);
+      ht=smooth(0,.25,f)*(1-smooth(.75,1,f))*.85+d*.15;
+    }
+    const i=y*w+x,g=grain?grain[i]:1;
+    // The photograph's grain is the bark's own fine relief: more of it on the ridges.
+    ht=Math.max(0,Math.min(1,.5+(ht-.5)*S.depth+(g-1)*(.10+.12*ht)));
+    height[i]=ht;
+    const lit=smooth(.08,.8,ht),shade=(.86+.28*d)*tone*(grain?Math.max(.4,Math.min(1.6,g)):1);
+    for(let c=0;c<3;c++)colour[i*3+c]=(S.crevice[c]+(S.ridge[c]-S.crevice[c])*lit)*shade;
+    if(S.kind==='peeling'){const m=mottle(u,v),olive=smooth(.6,.78,m)*(tone<.95?1:.3),cream=1-smooth(.25,.42,m);
+      colour[i*3]*=1+.10*cream-.12*olive;colour[i*3+1]*=1+.06*cream-.02*olive;colour[i*3+2]*=1-.02*cream-.20*olive;}
+  }
+  return {height,colour,w,h};
+}
+//: The bark's textures: a colour multiplier (stored linear, over BARK_GAIN so a ridge can be
+//: brighter than the species colour) and a normal map from the height, both tiling. `grain`
+//: is the photograph's fine relief, if loaded (barkGrain); without it the pattern alone.
+export const BARK_GAIN=1.4;
+export function barkTextures(THREE,{style='broadleaf',width=256,seed=1,grain=null}={}){
+  const f=barkField(style,width,width*2,seed,grain),{w,h}=f;
+  const make=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+  const colourCanvas=make(),normalCanvas=make(),ci=colourCanvas.getContext('2d').createImageData(w,h),ni=normalCanvas.getContext('2d').createImageData(w,h);
+  const at=(x,y)=>f.height[((y+h)%h)*w+((x+w)%w)];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,o=i*4;
+    for(let c=0;c<3;c++)ci.data[o+c]=Math.round(Math.min(1,f.colour[i*3+c]/BARK_GAIN)*255);ci.data[o+3]=255;
+    const dx=(at(x+1,y)-at(x-1,y))*4,dy=(at(x,y+1)-at(x,y-1))*4,l=Math.hypot(dx,dy,1);
+    ni.data[o]=Math.round((-dx/l*.5+.5)*255);ni.data[o+1]=Math.round((dy/l*.5+.5)*255);ni.data[o+2]=Math.round((1/l*.5+.5)*255);ni.data[o+3]=255;}
+  colourCanvas.getContext('2d').putImageData(ci,0,0);normalCanvas.getContext('2d').putImageData(ni,0,0);
+  const texture=(canvas)=>{const t=new THREE.CanvasTexture(canvas);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t;};
+  return {map:texture(colourCanvas),normalMap:texture(normalCanvas)};
+}
+//: The photograph's grain (BARK_GRAIN_URL: a fallen trunk's bark from a Poly Haven scan, CC0,
+//: tiled), `width` by twice that, as relief about 1. Null where it cannot be had.
+export async function barkGrain(url,width=256){
+  try{
+    const image=new Image();image.crossOrigin='anonymous';image.src=url;await image.decode();
+    const c=document.createElement('canvas');c.width=width;c.height=width*2;const x=c.getContext('2d',{willReadFrequently:true});
+    x.drawImage(image,0,0,width,width*2);const d=x.getImageData(0,0,width,width*2).data,out=new Float32Array(width*width*2);
+    for(let i=0;i<out.length;i++)out[i]=d[i*4]/255*2;
+    return out;
+  }catch(error){return null;}
+}
+//: Leaves that stay leaves at a distance. A cut-out leaf is kept where its texture's alpha
+//: passes the material's alphaTest; the smaller versions of the texture a far crown is drawn
+//: from average each leaf's edge with the sky round it, so a crown of thin leaves thinned with
+//: distance and then vanished, leaving its trunk standing bare -- the floating trunks of the
+//: far wood. The alpha is raised by how far down those versions the texture is read, so a far
+//: crown keeps the cover it has close to. `size` is the texture's width in pixels.
+export function keepLeavesAtDistance(material,size=1024,gain=.45){
+  if(material.userData.leavesKept)return material;material.userData.leavesKept=true;
+  const before=material.onBeforeCompile,key=material.customProgramCacheKey?.bind(material);
+  material.onBeforeCompile=function(shader,renderer){
+    if(before)before.call(this,shader,renderer);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+#ifdef USE_MAP
+{vec2 texel=vMapUv*${size.toFixed(1)};float lod=log2(max(max(length(dFdx(texel)),length(dFdy(texel))),1.0));
+diffuseColor.a=min(1.0,diffuseColor.a*(1.0+${gain.toFixed(2)}*lod));}
+#endif`);
+  };
+  material.customProgramCacheKey=function(){return `${key?key():''}|leaves-kept-v1`;};
+  material.needsUpdate=true;return material;
+}
 //: A card of leaves on twigs: { map, normalMap } textures, `size` pixels square. layout
 //: 'spray': a few twigs of large leaves, a branch-end seen close (street trees); 'crown': many
 //: twigs of smaller leaves, a piece of a crown (the landscape's trees).
@@ -351,9 +535,23 @@ export function leafCardTextures(THREE,{form='broad',layout='spray',size=1024,se
 }
 
 // Raster leaf silhouettes only; tree shape is actual branched geometry, not spheres.
-export function vegetationAssets(THREE){
+export function vegetationAssets(THREE,{grainUrl=null}={}){
   const textures=new Map(),cache=new Map();
   const normals=new Map();
+  //: Bark, one material a form (BARK_STYLES), its tile wrapped round each limb (barkTube). The
+  //: photograph's grain is laid in when it arrives; until then the pattern alone.
+  const barks=new Map();let grain=null;
+  function bark(style){
+    if(!BARK_STYLES[style])style='broadleaf';
+    if(barks.has(style))return barks.get(style);
+    const t=barkTextures(THREE,{style,seed:style.length*13+5,grain});
+    const m=new THREE.MeshStandardMaterial({color:new THREE.Color(BARK_GAIN,BARK_GAIN,BARK_GAIN),map:t.map,normalMap:t.normalMap,
+      normalScale:new THREE.Vector2(1.3,1.3),roughness:.94,metalness:0});
+    m.userData.barkStyle=style;barks.set(style,m);return m;
+  }
+  if(grainUrl&&typeof document!=='undefined')barkGrain(grainUrl).then(g=>{if(!g)return;grain=g;
+    for(const [style,m] of barks){const t=barkTextures(THREE,{style,seed:style.length*13+5,grain});
+      m.map.dispose();m.normalMap.dispose();m.map=t.map;m.normalMap=t.normalMap;m.needsUpdate=true;}});
   //: The leaf card's normal map (veins standing proud), for a broadleaf; none for needles.
   function normalOf(species){texture(species);const form=SPECIES[species]?.form||species;return normals.get(form)||null;}
   function texture(species){
@@ -402,14 +600,16 @@ export function vegetationAssets(THREE){
     }
     const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;textures.set(key,t);return t;
   }
-  function geometry(data,foliage=false){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(data.position,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(data.uv,2));g.computeVertexNormals();
+  function geometry(data,foliage=false){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(data.position,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(data.uv,2));
+    // A limb's own normals (barkTube), round; a card's from its faces.
+    if(data.normal&&data.normal.length===data.position.length)g.setAttribute('normal',new THREE.Float32BufferAttribute(data.normal,3));else g.computeVertexNormals();
     if(foliage)foliageNormals(g.getAttribute('position').array,g.getAttribute('normal').array);g.computeBoundingSphere();return g;}
   function tree(species,variant=0){
     const key=`${species}:${variant}`;if(cache.has(key))return cache.get(key);
     const model=botanicalGeometry(species,variant),spec=SPECIES[species];
-    const parts=[{geometry:geometry(model.bark),material:new THREE.MeshStandardMaterial({color:0xffffff,roughness:1}),colour:spec.bark},
-      {geometry:geometry(model.leaf,true),material:new THREE.MeshStandardMaterial({map:texture(species),color:0xffffff,alphaTest:.28,side:THREE.DoubleSide,roughness:.82,
-        ...(normalOf(species)?{normalMap:normalOf(species),normalScale:new THREE.Vector2(.9,.9)}:{})}),colour:spec.leaf.map(v=>v*1.15)}];
+    const parts=[{geometry:geometry(model.bark),material:bark(spec.form),colour:spec.bark},
+      {geometry:geometry(model.leaf,true),material:keepLeavesAtDistance(new THREE.MeshStandardMaterial({map:texture(species),color:0xffffff,alphaTest:.28,side:THREE.DoubleSide,roughness:.82,
+        ...(normalOf(species)?{normalMap:normalOf(species),normalScale:new THREE.Vector2(.9,.9)}:{})}),texture(species).image.width||1024),colour:spec.leaf.map(v=>v*1.15)}];
     cache.set(key,parts);return parts;
   }
   function undergrowth(kind){
@@ -471,5 +671,5 @@ export function vegetationAssets(THREE){
     const part={geometry:g,material:new THREE.MeshStandardMaterial({color:kind==='log'?0x5b4a3a:0x6b5640,roughness:1})};
     cache.set(key,part);return part;
   }
-  return {tree,undergrowth,litter,deadwood};
+  return {tree,undergrowth,litter,deadwood,bark};
 }

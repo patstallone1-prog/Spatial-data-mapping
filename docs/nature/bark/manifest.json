@@ -1,0 +1,11 @@
+{
+ "schema": 1,
+ "files": {
+  "bark-grain.jpg": {
+   "source": "https://polyhaven.com/a/dead_tree_trunk",
+   "license": "CC0-1.0 (Poly Haven); no attribution required, credited anyway",
+   "derivation": "A crop of the scan's diffuse map, high-passed to its fine grain and made tileable (256 x 512). Not any species' bark: the plates, fissures and fibres of each species' bark are drawn by vegetation-geometry.mjs (BARK_STYLES) and this grain laid over them.",
+   "sha256": "509846e363ed1d5dfe475458ffdd9dce5390efadbcfab932902d40e07731e834"
+  }
+ }
+}

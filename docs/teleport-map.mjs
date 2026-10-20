@@ -36,30 +36,43 @@ export function mapSpanFor(distance){return Math.min(90000,Math.max(5000,distanc
 //: The timeline, in seconds from the click, at normal speed.
 export const TELEPORT_TIMES={dark:1.1,mapIn:1.6,widen:2.3,hop:4.5,land:4.9,close:5.9,back:7.0};
 //: The trip plays slower while the place is still loading and faster once it has, never under
-//: half or over twice its normal length: the playback rate stays within [1/max, 1/min].
+//: half or over three times its normal length: the playback rate stays within [1/max, 1/min].
+//: Three, so a slow device's build is met by a slower trip, not by the view opening on streets
+//: still going up.
 //: `smoothing` is how quickly (seconds) the rate follows its target, so a change is never a jolt.
-export const TELEPORT_STRETCH={min:0.5,max:2,smoothing:0.35};
+export const TELEPORT_STRETCH={min:0.5,max:3,smoothing:0.35};
+//: How much longer than the build is expected to take the trip is planned to run before the
+//: view opens: a share of the estimate and a moment more, so the place is in as it appears.
+export const TELEPORT_BUFFER={share:0.12,seconds:0.35};
+
+//: The rate (1 normal) at which the trip, from the move to the view opening (T.dark to T.close),
+//: lasts `seconds` of building and the buffer -- within the stretch. Decided in the dark, from
+//: the page's estimate of how long the destination takes to build. A plan never hurries: a
+//: place guessed quick plays at normal speed until it is in (then teleportRate hurries it), so
+//: a guess that is wrong has not spent the trip before the trip can slow for it.
+export function teleportPlan(seconds,{T=TELEPORT_TIMES,S=TELEPORT_STRETCH,B=TELEPORT_BUFFER}={}){
+  const want=Math.max(0,Number(seconds)||0)*(1+B.share)+B.seconds;
+  return Math.min(1,Math.max(1/S.max,(T.close-T.dark)/Math.max(want,1e-3)));
+}
 
 //: The rate the trip should play at now (1 normal). Until the walker has moved nothing is
-//: loading, so it plays as normal. While the place loads, the rate is set so the view opens
-//: (T.close) as the last of it arrives -- the time left estimated from how much of the most
-//: that was pending has come in so far -- and at the slowest once the view is opening and it
-//: still has not. Once it is ready the rest plays at the fastest to the opening, then as normal.
-export function teleportRate({t,ready,pending=0,peak=0,sinceMove=0,T=TELEPORT_TIMES,S=TELEPORT_STRETCH}){
+//: building, so it plays as normal; then at the plan (teleportPlan), the whole trip at one
+//: speed. Should the place be in early, the rest plays at the fastest to the opening, then as
+//: normal; should it run past its estimate, the rest plays at the slowest, so the trip waits
+//: as long as it may (three times its length) for the place to come in.
+export function teleportRate({t,ready,planned=1,estimate=Infinity,sinceMove=0,T=TELEPORT_TIMES,S=TELEPORT_STRETCH}){
   const slowest=1/S.max,fastest=1/S.min;
   if(t<T.dark)return 1;
   if(ready)return t<T.close?fastest:1;
-  if(t>=T.close)return slowest;
-  const done=peak>0?1-pending/peak:0;
-  if(done<=0||sinceMove<=0)return slowest;
-  const left=sinceMove*(1-done)/Math.max(done,.05);
-  return Math.min(fastest,Math.max(slowest,(T.close-t)/Math.max(left,1e-3)));
+  if(t>=T.close||sinceMove>estimate)return Math.min(planned,slowest);
+  return planned;
 }
 
 //: The overlay. `run` plays one trip: from and to are atlas-local [x, y]; perform() moves the
-//: walker (behind the black); ready() says whether the place has streamed in, and pending()
-//: how many of its pieces are still to come; onPull(t) and onReturn(t) let the page pull the
-//: camera away and bring it back (t 0..1). The trip's speed follows the load (teleportRate).
+//: walker (behind the black); estimate() says, just after, how many seconds the place will
+//: take to build there, and ready() whether it has; onPull(t) and onReturn(t) let the page
+//: pull the camera away and bring it back (t 0..1). The trip is paced to the estimate
+//: (teleportPlan) and kept to the build as it goes (teleportRate).
 export function createTeleport({map,parent=document.body}){
   const canvas=document.createElement('canvas');
   Object.assign(canvas.style,{position:'fixed',inset:'0',width:'100%',height:'100%',zIndex:'40',pointerEvents:'none',display:'none'});
@@ -96,12 +109,12 @@ export function createTeleport({map,parent=document.body}){
     }
     if(black>0){ctx.fillStyle=`rgba(0,0,0,${black})`;ctx.fillRect(0,0,W,H);}
   }
-  async function run({from,to,perform,ready=()=>true,pending=()=>0,onPull=()=>{},onReturn=()=>{}}){
+  async function run({from,to,perform,ready=()=>true,estimate=null,onPull=()=>{},onReturn=()=>{}}){
     if(busy){await perform();return;}
     busy=true;canvas.style.display='block';
     const T=TELEPORT_TIMES,distance=Math.hypot(to[0]-from[0],to[1]-from[1]),span=mapSpanFor(distance);
     const middle=[(from[0]+to[0])/2,(from[1]+to[1])/2],closeSpan=Math.min(span,4000);
-    const started=performance.now();let moved=false,movedAt=0,last=started,t=0,rate=1,peak=0,loaded=false;
+    const started=performance.now();let moved=false,movedAt=0,last=started,t=0,rate=1,loaded=false,planned=1,expected=Infinity;
     try{
       await new Promise(resolve=>{
         const step=()=>{
@@ -109,18 +122,19 @@ export function createTeleport({map,parent=document.body}){
           // The trip's own clock runs at `rate`, which eases toward what the load asks for.
           if(moved){
             loaded||=Boolean(ready());
-            const left=loaded?0:Math.max(0,Number(pending())||0);peak=Math.max(peak,left);
-            const want=teleportRate({t,ready:loaded,pending:left,peak,sinceMove:(now-movedAt)/1000});
+            const want=teleportRate({t,ready:loaded,planned,estimate:expected,sinceMove:(now-movedAt)/1000});
             rate+=(want-rate)*(1-Math.exp(-dt/TELEPORT_STRETCH.smoothing));
           }
-          // However long a frame took (streaming makes some long), the trip's clock stays
-          // between half and twice real time, so it never runs under half or over twice its length.
+          // However long a frame took (streaming makes some long), the trip's clock stays within
+          // the stretch of real time, so it never runs under half or over three times its length.
           const wall=(now-started)/1000;
           t=Math.min(wall/TELEPORT_STRETCH.min,Math.max(wall/TELEPORT_STRETCH.max,t+dt*rate));
           const s={black:0,mapAlpha:0,centre:from,span:closeSpan,from,to,hop:0,landed:0};
           if(t<T.dark){const u=ease(t/T.dark);onPull(u);s.black=u;}
           else{
-            if(!moved){moved=true;movedAt=now;Promise.resolve(perform()).catch(e=>console.warn('kerbside: teleport',e));}
+            if(!moved){moved=true;movedAt=now;Promise.resolve(perform()).catch(e=>console.warn('kerbside: teleport',e));
+              // In the dark: how long the place will take to build, and the trip's pace to match.
+              if(estimate){const seconds=Number(estimate());if(Number.isFinite(seconds)){expected=Math.max(0,seconds);planned=teleportPlan(expected);rate=planned;}}}
             if(t<T.mapIn){const u=ease((t-T.dark)/(T.mapIn-T.dark));s.black=1-u;s.mapAlpha=1;s.centre=from;s.span=closeSpan*1.4-closeSpan*.4*u;}
             else if(t<T.widen){const u=ease((t-T.mapIn)/(T.widen-T.mapIn));s.mapAlpha=1;
               s.centre=[from[0]+(middle[0]-from[0])*u,from[1]+(middle[1]-from[1])*u];s.span=closeSpan*Math.pow(span/closeSpan,u);}

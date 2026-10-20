@@ -47,6 +47,45 @@ from smc.tiles.tree import (  # noqa: E402
 CARRIED = ("building", "street", "cycleway", "sidewalk", "path", "crossing", "beach", "water")
 
 
+#: Layers drawn from what the street facts inferred rather than from a measurement.
+DERIVED_LAYERS = {
+    "lanes_white": "derived: lane lines between the travel lanes the street facts inferred (xs)",
+    "lanes_yellow": "derived: centre lines where the inferred lanes meet going opposite ways (xs)",
+}
+
+
+def add_layers(out_dir: Path, root: Frame, per_tile: dict[TileId, list[dict]], names: set[str]) -> int:
+    """Compile only `names` into the published tree: each tile's other layers, its children and
+    the tree's shape stay as they are. A tile the tree does not have is not added."""
+    index_path = out_dir / "index.json"
+    index = json.loads(index_path.read_text())
+    added = 0
+    for entry in index["tiles"]:
+        depth, x, y = (int(v) for v in entry["id"].split("/"))
+        tile_id = TileId(depth, x, y)
+        assets = entry.setdefault("assets", {})
+        for name in names:
+            assets.pop(name, None)
+            stale = out_dir / str(depth) / str(x) / str(y) / f"{name}.json"
+            if stale.exists():
+                stale.unlink()
+        if tile_id not in per_tile:
+            continue
+        compiled = assets_for(per_tile[tile_id], tile_box(root, tile_id), depth)
+        for name in sorted(names & set(compiled)):
+            body = json.dumps(compiled[name], separators=(",", ":"))
+            path = out_dir / str(depth) / str(x) / str(y) / f"{name}.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body)
+            assets[name] = {"bytes": len(body), "rows": len(compiled[name]), "url": f"{depth}/{x}/{y}/{name}.json"}
+            added += len(body)
+    index["derived_layers"] = {**index.get("derived_layers", {}),
+                               **{k: v for k, v in DERIVED_LAYERS.items() if k in names}}
+    index_path.write_text(json.dumps(index, separators=(",", ":")))
+    print(f"{', '.join(sorted(names))}: {added / 1e6:.2f} MB into {out_dir.relative_to(ROOT)}")
+    return 0
+
+
 def site_of(name: str) -> Path:
     if name == SF_CORRIDOR.name:
         return ROOT / "docs"
@@ -71,6 +110,9 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=ROOT / "docs" / "tiles")
     ap.add_argument("--allow-region-removal", action="store_true",
                     help="explicitly permit removal of previously published regions")
+    ap.add_argument("--only-layers", nargs="+", metavar="LAYER",
+                    help="compile only these layers into the existing tree, leaving every other "
+                         "layer and tile as published (e.g. lanes_white lanes_yellow)")
     args = ap.parse_args()
 
     atlas_path = ROOT / "docs" / "sf-corridor-perimeter.json"
@@ -92,6 +134,11 @@ def main() -> int:
         ap.error("refusing to remove published regions from tile tree: "
                  + ", ".join(sorted(lost)))
 
+    if args.only_layers:
+        # Into the tree as published: only the regions it already draws.
+        published = set(json.loads((args.out / "index.json").read_text()).get("regions", {}))
+        built = {name: site for name, site in built.items() if name in published}
+
     # The ways of every built region, gathered per tile. A coarse tile takes several regions;
     # a fine one takes part of one.
     per_tile: dict[TileId, list[dict]] = defaultdict(list)
@@ -106,6 +153,9 @@ def main() -> int:
                 square = tile_box(root, tile)
                 per_tile[tile].extend(w for w in ways if way_in_box(w, square))
         print(f"  {name}: {len(ways)} ways carried", flush=True)
+
+    if args.only_layers:
+        return add_layers(args.out, root, per_tile, set(args.only_layers))
 
     # Compile each tile, then keep only the ones with something in them.
     tiles: dict[TileId, Tile] = {}
@@ -153,6 +203,7 @@ def main() -> int:
         "regions": boxes,
         "error_at_depth": {str(d): round(error_at(d), 4) for d in range(DEEPEST_BUILT + 1)},
         "shown_from_m": {str(d): round(refine_distance_m(d, 3.0, 900, 50)) for d in range(DEEPEST_BUILT + 1)},
+        "derived_layers": DERIVED_LAYERS,
         "tiles": [tiles[t].to_json() for t in sorted(tiles, key=lambda t: (t.depth, t.x, t.y))],
     }
     out_dir.mkdir(parents=True, exist_ok=True)

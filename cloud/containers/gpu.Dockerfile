@@ -6,11 +6,12 @@
 #   docker build -f cloud/containers/gpu.Dockerfile -t kerbside-gpu .
 #   docker run --rm --gpus all kerbside-gpu selftest
 #
-# The torch build must match the driver the GPU host offers; CUDA 12.8 runs on RunPod's
-# current hosts (driver >= 570). TORCH_INDEX can point at another CUDA build.
-FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
+# The torch build must match the driver the GPU host offers. torch 2.14 (the Mac's) is built
+# for CUDA 13.0 at the oldest, which needs driver >= 580, so pods ask RunPod for hosts that
+# run CUDA 13.0 (gpu pool's cuda_versions). TORCH_INDEX can point at another CUDA build.
+FROM nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
 
-ARG TORCH_INDEX=https://download.pytorch.org/whl/cu128
+ARG TORCH_INDEX=https://download.pytorch.org/whl/cu130
 # A pod deletes itself with runpodctl when its work is done (smc.cloud.worker.self_terminate).
 # Not fatal if the download fails: the scheduler and the watchdog delete idle pods anyway.
 ARG RUNPODCTL_VERSION=1.14.4

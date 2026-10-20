@@ -187,6 +187,9 @@ class RunPodProvider(Provider):
             "env": {**boot, "KERBSIDE_WORKER_LABEL": f"kerbside-worker:{worker_id}"},
             "dockerStartCmd": ["worker"],
         }
+        # Only hosts whose driver runs the image's CUDA build.
+        if pool.extra.get("cuda_versions"):
+            body["allowedCudaVersions"] = list(pool.extra["cuda_versions"])
         out = self._request("POST", f"{self.API}/pods", self.token, body)
         return Instance(str(out["id"]), worker_id, pool.name, out.get("desiredStatus", "starting"),
                         time.time())

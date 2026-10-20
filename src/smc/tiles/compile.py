@@ -582,6 +582,128 @@ def cut_at_crossings(pavements: list[list[int]], crossings: list[list[int]],
     return out
 
 
+#: The paint between a street's lanes, for the finest tiles: from the cross-sections the
+#: street facts built (``xs``), the same bands the street renderer paints from -- a white line
+#: between lanes going the same way, the double yellow where they meet going opposite ways.
+#: Those bands are inferred (travel lanes chosen against width priors where the map's lane
+#: count and the measured kerbs allowed), so the layer is labelled derived in the tile index;
+#: a station the facts left unresolved, or whose lanes cannot close to its own width, is not
+#: painted. Lanes narrower or wider than this are not lanes (the renderer's bounds).
+LANE_MIN_M, LANE_MAX_M = 2.55, 5.2
+#: A line carries on from one station to the next while it stays within this sideways.
+LANE_CONTINUE_M = 1.2
+#: Lane lines stop short of the block's ends, where the junction is: no lane has priority
+#: across it.
+LANE_END_TRIM_M = 3.0
+LANE_TRAVEL = ("t", "n")
+
+
+def _lane_mark(a: list, b: list) -> str | None:
+    """What is painted between two neighbouring bands, as the street renderer decides it."""
+    if a[0] not in LANE_TRAVEL or b[0] not in LANE_TRAVEL:
+        return None
+    if "shared" in (a[5] if len(a) > 5 else "", b[5] if len(b) > 5 else ""):
+        return None
+    da, db = (a[4] if len(a) > 4 else 0), (b[4] if len(b) > 4 else 0)
+    if "n" in (a[0], b[0]) or (da and db and da != db):
+        return "yellow"
+    return "white"
+
+
+def lane_boundaries(row: list) -> list[tuple[str, float]] | None:
+    """The painted boundaries at one station: ``(kind, offset_m)`` with the offset left of the
+    way positive, or None where the station is unresolved or its lanes do not close."""
+    if len(row) < 6 or row[4] == "u" or not isinstance(row[5], list):
+        return None
+    bands = row[5]
+    if not bands or any(b[0] == "u" for b in bands):
+        return None
+    travel = [b for b in bands if b[0] in LANE_TRAVEL]
+    if not travel:
+        return None
+    fixed = sum(float(b[1]) for b in bands if b[0] not in LANE_TRAVEL)
+    lane = (float(row[1]) - float(row[2]) - fixed) / len(travel)
+    if not LANE_MIN_M <= lane <= LANE_MAX_M:
+        return None
+    out: list[tuple[str, float]] = []
+    edge = float(row[1])
+    for a, b in itertools.pairwise(bands):
+        edge -= lane if a[0] in LANE_TRAVEL else float(a[1])
+        kind = _lane_mark(a, b)
+        if kind:
+            out.append((kind, edge))
+    return out
+
+
+def _point_along(local: list[tuple[float, float]], lengths: list[float],
+                 s: float) -> tuple[float, float, float, float]:
+    """The point `s` metres along a polyline and its unit direction there."""
+    i = max(1, min(len(local) - 1, next((k for k, v in enumerate(lengths) if v >= s), len(local) - 1)))
+    (x1, y1), (x2, y2) = local[i - 1], local[i]
+    seg = max(1e-9, lengths[i] - lengths[i - 1])
+    t = min(1.0, max(0.0, (s - lengths[i - 1]) / seg))
+    return x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, (x2 - x1) / seg, (y2 - y1) / seg
+
+
+def lane_lines(ways: Iterable[dict[str, Any]], box: Frame, error_m: float) -> dict[str, list[list[int]]]:
+    """``{"lanes_white": rows, "lanes_yellow": rows}``, each row ``[x0, y0, x1, y1, ...]`` in
+    centimetres: the lines at their stations, kept to this tile's square."""
+    kx, ky = box.metres_per_lon, box.metres_per_lat
+    out: dict[str, list[list[int]]] = {"white": [], "yellow": []}
+    margin = 2.0
+    width_m, height_m = (box.east - box.west) * kx, (box.north - box.south) * ky
+    for way in ways:
+        if way.get("kind") != "street" or way.get("tunnel") or not way.get("xs"):
+            continue
+        points = way.get("points") or []
+        if len(points) < 2 or not way_in_box(way, box):
+            continue
+        local = [((p[0] - box.west) * kx, (p[1] - box.south) * ky) for p in points]
+        lengths = [0.0]
+        for (x1, y1), (x2, y2) in itertools.pairwise(local):
+            lengths.append(lengths[-1] + math.hypot(x2 - x1, y2 - y1))
+        total = lengths[-1]
+
+        runs: list[dict[str, Any]] = []
+        open_runs: list[dict[str, Any]] = []
+        for row in way["xs"]:
+            s = float(row[0])
+            if s < LANE_END_TRIM_M or s > total - LANE_END_TRIM_M:
+                continue
+            marks = lane_boundaries(row)
+            if not marks:
+                runs.extend(open_runs)
+                open_runs = []
+                continue
+            x, y, tx, ty = _point_along(local, lengths, s)
+            kept: list[dict[str, Any]] = []
+            for kind, offset in marks:
+                px, py = x - ty * offset, y + tx * offset
+                inside = -margin <= px <= width_m + margin and -margin <= py <= height_m + margin
+                if not inside:
+                    continue
+                run = next((r for r in open_runs if r["kind"] == kind and r not in kept
+                            and abs(r["offset"] - offset) <= LANE_CONTINUE_M), None)
+                if run is None:
+                    run = {"kind": kind, "offset": offset, "points": []}
+                run["offset"] = offset
+                run["points"].append((px, py))
+                kept.append(run)
+            runs.extend(r for r in open_runs if r not in kept)
+            open_runs = kept
+        runs.extend(open_runs)
+        for run in runs:
+            if len(run["points"]) < 2:
+                continue
+            pts = [[box.west + px / kx, box.south + py / ky] for px, py in run["points"]]
+            kept_pts = simplify(pts, error_m / 2.0, box)
+            row_cm: list[int] = []
+            for lon, lat in kept_pts:
+                row_cm.extend((round((lon - box.west) * kx * 100.0), round((lat - box.south) * ky * 100.0)))
+            out[run["kind"]].append(row_cm)
+    return {"lanes_white": out["white"], "lanes_yellow": out["yellow"]}
+
+
 def assets_for(ways: list[dict[str, Any]], box: Frame, depth: int) -> dict[str, list]:
     """Every layer a tile of this depth carries, at its own error.
 
@@ -613,6 +735,7 @@ def assets_for(ways: list[dict[str, Any]], box: Frame, depth: int) -> dict[str, 
         if depth >= 8:
             out["crossings_continental"] = crossing_styles["continental"]
             out["crossings_parallel"] = crossing_styles["parallel"]
+            out.update(lane_lines(ways, box, error))
     elif depth >= 4:
         out["roads"] = lines(ways, box, error, kinds=("street", "cycleway"))
     elif depth >= 2:

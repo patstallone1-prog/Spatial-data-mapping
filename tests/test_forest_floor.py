@@ -133,12 +133,11 @@ const ctx2d=new Proxy({},{get:()=>()=>{}});
 Object.assign(globalThis,{innerWidth:800,innerHeight:600,devicePixelRatio:1,requestAnimationFrame:cb=>frames.push(cb),
   document:{body:{appendChild(){}},createElement:()=>({style:{},setAttribute(){},getContext:()=>ctx2d,width:0,height:0})}});
 const map={metresPerPixel:10,pixel:(x,y)=>[x/10,y/10],canvas:{}};
-async function trip({readyAt=0,pieces=40,frameMs=1000/60,slowFrames=false}){
+async function trip({readyAt=0,estimate=readyAt,frameMs=1000/60,slowFrames=false}){
   clock=0;frames.length=0;const trip=t.createTeleport({map});let movedAt=null,openedAt=null;
-  // Pieces arrive evenly from the move until readyAt (seconds after it).
-  const left=()=>movedAt===null?pieces:Math.max(0,Math.ceil(pieces*(1-(clock/1000-movedAt)/Math.max(readyAt,1e-9))));
+  // The place is in readyAt seconds after the move; the page guessed `estimate`.
   const done=trip.run({from:[0,0],to:[30000,0],perform:()=>{movedAt=clock/1000;},
-    ready:()=>movedAt!==null&&clock/1000-movedAt>=readyAt,pending:left,
+    ready:()=>movedAt!==null&&clock/1000-movedAt>=readyAt,estimate:()=>estimate,
     onReturn:u=>{if(openedAt===null)openedAt=clock/1000;}});
   let finished=false;done.then(()=>{finished=true;});
   for(let n=0;!finished&&n<20000;n++){
@@ -150,25 +149,46 @@ async function trip({readyAt=0,pieces=40,frameMs=1000/60,slowFrames=false}){
 """
 
 
-def test_the_trip_plays_slower_while_the_place_loads_and_faster_once_it_has():
+def test_the_trip_is_paced_to_the_estimated_build_and_kept_to_the_actual_one():
     r = node(TRIP + """
-    const normal=t.TELEPORT_TIMES.back;
-    console.log(JSON.stringify({normal,instant:await trip({readyAt:0}),mid:await trip({readyAt:7}),
-      slow:await trip({readyAt:11}),never:await trip({readyAt:1e9}),hitchy:await trip({readyAt:1e9,slowFrames:true}),
-      hitchyFast:await trip({readyAt:0,slowFrames:true})}));
+    const normal=t.TELEPORT_TIMES.back,S=t.TELEPORT_STRETCH;
+    console.log(JSON.stringify({normal,S,instant:await trip({readyAt:0}),mid:await trip({readyAt:7}),
+      slow:await trip({readyAt:11}),never:await trip({readyAt:1e9}),
+      under:await trip({readyAt:1e9,estimate:2}),over:await trip({readyAt:1,estimate:12}),
+      hitchy:await trip({readyAt:1e9,slowFrames:true}),hitchyFast:await trip({readyAt:0,slowFrames:true})}));
     """)
-    normal = r["normal"]
-    for case in ("instant", "mid", "slow", "never", "hitchy", "hitchyFast"):
-        assert 0.5 * normal - 0.05 <= r[case]["total"] <= 2 * normal + 0.05, (case, r[case])
-    # Loaded at once, it takes well under its normal length; never loaded, close to twice it
+    normal, S = r["normal"], r["S"]
+    for case in ("instant", "mid", "slow", "never", "under", "over", "hitchy", "hitchyFast"):
+        assert S["min"] * normal - 0.05 <= r[case]["total"] <= S["max"] * normal + 0.05, (case, r[case])
+    # Loaded at once, it takes well under its normal length; never loaded, close to its longest
     # (the pull into black, before the walker moves and anything loads, plays as normal).
     assert r["instant"]["total"] < 0.75 * normal
-    assert r["never"]["total"] >= 1.75 * normal
+    assert r["never"]["total"] >= 0.85 * S["max"] * normal
     assert r["instant"]["total"] < r["mid"]["total"] < r["slow"]["total"] < r["never"]["total"]
-    # A load that ends within the stretch is in by the time the view opens; one that runs past
-    # it opens no later than the slowest trip would.
-    assert r["mid"]["openedAt"] >= r["mid"]["movedAt"] + 7 - 0.5, r["mid"]
-    assert r["slow"]["openedAt"] <= r["never"]["openedAt"] + 0.05
+    # An accurate estimate: the whole trip plays at one pace and opens just after the place is
+    # in -- within the buffer, not held on its last frame.
+    for case, seconds in (("mid", 7), ("slow", 11)):
+        opened = r[case]["openedAt"] - r[case]["movedAt"]
+        assert seconds <= opened <= seconds * (1 + t_buffer()["share"]) + t_buffer()["seconds"] + 0.3, (case, r[case])
+    # Underestimated, it slows to its slowest once past the estimate; overestimated, it speeds
+    # up to the opening as soon as the place is in.
+    assert r["under"]["total"] >= 0.7 * r["never"]["total"]
+    assert r["over"]["total"] < r["slow"]["total"]
+
+
+def t_buffer():
+    return node("console.log(JSON.stringify(t.TELEPORT_BUFFER))")
+
+
+def test_the_plan_lasts_the_build_and_a_little_more_within_the_stretch():
+    r = node("""const T=t.TELEPORT_TIMES,S=t.TELEPORT_STRETCH,span=T.close-T.dark;
+    console.log(JSON.stringify({span,S,B:t.TELEPORT_BUFFER,quick:t.teleportPlan(0),fit:t.teleportPlan(6),
+      long:t.teleportPlan(600),bad:t.teleportPlan(NaN)}))""")
+    S, B = r["S"], r["B"]
+    # Never hurried by a guess (only by the place being in), never slower than the stretch.
+    assert r["quick"] == 1 and r["long"] == pytest.approx(1 / S["max"])
+    assert r["span"] / r["fit"] == pytest.approx(6 * (1 + B["share"]) + B["seconds"])
+    assert r["bad"] == 1
 
 
 def test_page_wires_the_floor_globe_and_trip():

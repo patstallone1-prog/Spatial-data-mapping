@@ -156,10 +156,12 @@ def test_runpod_pods_have_no_volume_and_only_our_pods_are_listed():
                                    {"id": "p1", "name": "kw-gpu-1", "desiredStatus": "RUNNING"},
                                    {"id": "p2", "name": "owners-own-pod", "desiredStatus": "RUNNING"}]})
     r = RunPodProvider("rkey", request=request)
-    pool = Pool("gpu", "runpod", "NVIDIA GeForce RTX 4090", 0.34, "img", disk_gb=60)
+    pool = Pool("gpu", "runpod", "NVIDIA GeForce RTX 4090", 0.34, "img", disk_gb=60,
+                extra={"cuda_versions": ["13.0"]})
     r.launch("kw-gpu-1", pool, {"KERBSIDE_BOOT_TOKEN": "one-time"})
     body = calls[0]["body"]
     assert body["volumeInGb"] == 0 and body["gpuCount"] == 1 and body["dockerStartCmd"] == ["worker"]
+    assert body["allowedCudaVersions"] == ["13.0"]  # the image's torch needs a CUDA 13 driver
     assert [i.id for i in r.list()] == ["p1"]
 
 

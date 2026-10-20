@@ -192,21 +192,25 @@ def test_transient_503_retries_but_missing_cells_do_not_spin():
 def test_exact_shader_ownership_is_dynamic_and_preserves_existing_shader_hooks():
     js = _page_js()
     function = "function applyBoxClip" + js.split("function applyBoxClip", 1)[1].split("\nfunction clipDetailWorld", 1)[0]
-    result = run(function + r"""
-      let called=0;const uniform={value:[0,0,10,10]},material={userData:{},
+    result = run("const BOX_SET_MAX=12;let boxClipCount=0;\n" + function + r"""
+      let called=0;const uniform={value:[0,0,10,10]},houses={value:[1,1,2,2]},material={userData:{},
         onBeforeCompile(s){s.uniforms.original=true;called++;},customProgramCacheKey(){return 'original';}};
       const object={traverse:fn=>fn({material})};
-      applyBoxClip(object,uniform,true);applyBoxClip(object,uniform,true);
+      applyBoxClip(object,uniform,true);applyBoxClip(object,uniform,true);applyBoxClip(object,houses);
       const shader={uniforms:{},vertexShader:'#include <common>\n#include <project_vertex>',
         fragmentShader:'#include <common>\nvoid main() {'};
       material.onBeforeCompile(shader);uniform.value=[20,20,30,30];
       console.log(JSON.stringify({called,original:shader.uniforms.original,
-        bounds:shader.uniforms.uDetailBounds.value,fragment:shader.fragmentShader,
+        bounds:shader.uniforms.uDetailBoxes1.value,houses:shader.uniforms.uDetailBoxes2.value,fragment:shader.fragmentShader,
         instancing:shader.vertexShader.includes('instanceMatrix*detailPosition')}));
     """)
     assert result["called"] == 1 and result["original"] and result["instancing"]
-    assert result["bounds"] == [20, 20, 30, 30]
-    assert "if(inDetail) discard" in result["fragment"]
+    assert result["bounds"] == [20, 20, 30, 30] and result["houses"] == [1, 1, 2, 2]
+    # Two clips on one material: each its own box set, one shared varying, both tests applied.
+    fragment = result["fragment"]
+    assert "if(inDetail) discard" in fragment and "if(!inDetail) discard" in fragment
+    assert fragment.count("varying vec3 vDetailWorld;") == 1
+    assert "uniform vec4 uDetailBoxes1[12];" in fragment and "uniform vec4 uDetailBoxes2[12];" in fragment
 
 
 def test_scheduler_state_exists_before_first_animation_frame():

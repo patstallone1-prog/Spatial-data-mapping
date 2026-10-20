@@ -60,7 +60,7 @@ def test_a_page_that_died_loads_lighter_and_never_builds_two_regions() -> None:
     assert "fetchWindowed(PAYLOAD_URL," in js and "fetchWindowed(GROUND_URL," in js
     assert 'fetchWindowed(asset("sf-corridor-furniture.json"),' in js
     # The rest of the city from the tile tree, outside the square.
-    assert "let TILE_OWN_BOX = BUILD_WINDOW ? BUILD_WINDOW.box.slice()" in js
+    assert "let TILE_OWN_BOXES = BUILD_WINDOW ? BUILD_WINDOW.boxes.map((b) => b.slice())" in js
     # One bounded replacement replaces page navigation; no second whole city builds.
     assert "if (destination) attachRegion(destination,{lon,lat});" in js
     assert "centre = null, radius = 220" in js and "detailRadius:radius" in js

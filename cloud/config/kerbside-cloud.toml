@@ -58,7 +58,7 @@ idle_minutes = 5
 max_hours = 12
 min_billed_hours = 0
 disk_gb = 120
-extra = { cloud_type = "SECURE", interruptible = false }
+extra = { cloud_type = "SECURE", interruptible = false, cuda_versions = ["13.0"] }
 
 [hetzner]
 ssh_keys = []
