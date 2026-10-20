@@ -25,8 +25,9 @@ const MiB = 1024 * 1024, GiB = 1024 * MiB;
 //: cells and 32 MiB of the simple city: a tenth of the desktop app's.
 export const META_STREAM = { radius: 150, arrival: 100, keep: 80, lead: 70,
   cellBytes: 64 * MiB, cellConcurrency: 4, tileBytes: 32 * MiB };
-//: How far you see: the near and far planes, and the haze the far edge fades into.
-export const META_VIEW = { near: 0.1, far: 240, fogNear: 60, fogFar: 220 };
+//: How far you see: the near and far planes, and the haze the far edge fades into; `room`, how
+//: near a room must be (with you indoors) to be drawn at all.
+export const META_VIEW = { near: 0.1, far: 240, fogNear: 60, fogFar: 220, room: 25 };
 //: The memory the page may use, in bytes. It aims to stay under `aim` (4 GiB), sheds what it
 //: holds above it, sheds everything it can above `emergency`, and `ceiling` (5 GiB) is the line
 //: never crossed. `baseline` is what the browser itself takes before the page holds anything

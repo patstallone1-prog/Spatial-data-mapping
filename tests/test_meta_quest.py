@@ -129,3 +129,22 @@ def test_the_headset_page_is_built_and_installable():
     assert {icon["sizes"] for icon in manifest["icons"]} >= {"512x512"}
     release = json.loads((ROOT / "docs/runtime-release.json").read_text())
     assert "meta.html" in release["consumers"] and "meta-xr.mjs" in release["runtime_assets_sha256"]
+
+
+def test_the_headset_draws_only_what_you_could_see_and_builds_its_squares_lean():
+    """On the Quest 3 the page as built drew 7.3 million triangles in 918 draws a frame, about
+    one frame a second: what stands past the far plane, the Bay-wide canopy, rooms you are not
+    in, and small things far off are left out of the drawing, and the squares built for the
+    headset are cut coarser, keep only their own fences and grow no grass blades."""
+    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    assert "const HEADSET = META || Boolean(ATTACH?.headset);" in source
+    assert "natureBacked:Boolean(NATURE), headset: META," in source
+    assert "const TERRAIN_CHORD_M = HEADSET ? 0.6 : 0.25;" in source
+    assert "if(!HEADSET)grassStrands=grassLibrary.createGrassStrands(" in source
+    assert "if (HEADSET && WINDOW_BOXES && !detailClipBox.value.some(" in source
+    assert "setInterval(metaCull, 500);" in source
+    assert 'o.userData.surface === "nature_canopy_proxy" || near > metaLibrary.META_VIEW.far' in source
+    # Left out by layer, so the code that shows and hides things keeps its own say.
+    assert "o.layers.mask = 0;" in source and "o.layers.mask = o.userData.metaMask;" in source
+    xr = (ROOT / "docs/meta-xr.mjs").read_text()
+    assert "room: 25" in xr
