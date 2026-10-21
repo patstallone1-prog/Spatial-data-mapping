@@ -479,3 +479,50 @@ def storage_half_bath(rooms, hall, room_fits):
             if all(room_fits({**r, "_preview_rooms": trial}) for r in changed):
                 return trial, 1
     return rooms, 0
+
+
+def hall_laundry_niche(rooms, openings, room_fits):
+    """Turn an otherwise blind hall end into a fitted stacked-laundry destination."""
+    hall = next(r for r in rooms if r["kind"] == "hallway")
+    portals = [
+        LineString(o["segment"]["coordinates"]) for o in openings if hall["id"] in o["rooms"]
+    ]
+    protected = unary_union([o_line.buffer(0.70, cap_style=3) for o_line in portals])
+    for edge in blind_corridor_ends(hall["shape"], portals):
+        a, b = edge.coords[0], edge.coords[-1]
+        nx, ny = -(b[1] - a[1]) / edge.length, (b[0] - a[0]) / edge.length
+        c = edge.interpolate(0.5, normalized=True)
+        if not hall["shape"].covers(Point(c.x + nx * 0.2, c.y + ny * 0.2)):
+            nx, ny = -nx, -ny
+        for depth in (1.8, 1.9, 2.0):
+            niche = Polygon(
+                [
+                    a,
+                    b,
+                    (b[0] + nx * depth, b[1] + ny * depth),
+                    (a[0] + nx * depth, a[1] + ny * depth),
+                ]
+            )
+            if not hall["shape"].buffer(1e-6).covers(niche) or niche.intersects(protected):
+                continue
+            niche = hall["shape"].intersection(niche, grid_size=1e-7)
+            rest = polygons(hall["shape"].difference(niche, grid_size=1e-7))
+            if (
+                niche.geom_type != "Polygon"
+                or len(rest) != 1
+                or shared(niche, rest[0]).length < 1.06
+            ):
+                continue
+            laundry = {
+                "id": hall["id"] + ":laundry",
+                "kind": "utility",
+                "shape": niche,
+                "laundry_stack": True,
+                "reused_space": "former_hall_end",
+            }
+            trial = [
+                {**r, "shape": rest[0]} if r["id"] == hall["id"] else dict(r) for r in rooms
+            ] + [laundry]
+            if room_fits({**laundry, "_preview_rooms": trial}):
+                return trial, niche.area
+    return rooms, 0.0

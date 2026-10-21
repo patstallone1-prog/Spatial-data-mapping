@@ -64,6 +64,14 @@ class Catalog:
         ]
 
     def choose(self, role: str, style: dict, size: tuple[float, float, float], key: str) -> dict:
+        restaurant_seat = style.get("usage") == "restaurant" and role in {
+            "dining_chair",
+            "dining_table",
+            "booth",
+            "bar_stool",
+        }
+        if restaurant_seat:
+            key = str(style["seed"]) + ":" + role
         source_role = "dining_chair" if role == "office_chair" else role
         rows = [r for r in self.assets if r.get("role", r.get("kind")) == source_role]
         if style.get("usage") == "restaurant":
@@ -71,13 +79,22 @@ class Catalog:
                 rows = [r for r in rows if "metal" in r["id"].lower()]
             elif role in {"dining_chair", "dining_table"}:
                 rows = [r for r in rows if r.get("style", asset_style(r["id"])) == style["style"]]
+        if restaurant_seat and role == "dining_table":
+            rows = [
+                r
+                for r in rows
+                if "round" not in r["id"].lower()
+                and min(r.get("dimensions_m", [1, 1, 1])[::2]) > 0.5
+            ]
         if role in {"sofa", "bed"}:
             # Do not force an ornate source model into a contemporary palette simply
             # because that role exists. A matching parametric piece is a valid fallback.
             rows = [r for r in rows if r.get("style", asset_style(r["id"])) == style["style"]]
         if not rows:
             return {
-                "id": f"procedural:{role}",
+                "id": f"procedural:{role}"
+                + (":" + style["booth_design"] if role == "booth" and restaurant_seat else ""),
+                "design_id": style.get("booth_design") if role == "booth" else None,
                 "role": role,
                 "procedural": True,
                 "license": "project",
@@ -106,7 +123,12 @@ class Catalog:
             score = match + min(2, distortion) + max(0, price / allowance - 1)
             score += (seed_for(key + row["id"]) % 1000) / 5000
             scored.append((score, row, price))
-        _, row, price = min(scored, key=lambda x: x[0])
+        if restaurant_seat:
+            ranked = sorted(scored, key=lambda x: x[0])
+            plausible = [r for r in ranked if r[0] <= ranked[0][0] + 0.6][:4]
+            _, row, price = plausible[seed_for(key) % len(plausible)]
+        else:
+            _, row, price = min(scored, key=lambda x: x[0])
         return {
             k: row[k]
             for k in (

@@ -12,6 +12,7 @@ from shapely.ops import nearest_points, unary_union
 
 from smc.interiors.inference.catalog import Catalog
 from smc.interiors.inference.efficiency import (
+    hall_laundry_niche,
     reclaim_hallway,
     rightsize_wet_rooms,
     storage_half_bath,
@@ -272,6 +273,7 @@ def _build(
     output = []
     stairways = []
     elevation = 0.0
+    laundry_installed = False
     stair_access = None
     if partition.stair is not None:
         common_hall = partition.floors[0]["hall"]
@@ -357,6 +359,12 @@ def _build(
             wet_fits,
             add_half_bath=len(spec.storeys) == 1 and floor["inside"].area >= 85,
         )
+        efficiency["laundry_reused_m2"] = 0.0
+        if not laundry_installed:
+            preliminary = connect(rooms, floor["inside"], spec.entrance, level, stair_access)
+            rooms, reused = hall_laundry_niche(rooms, preliminary, wet_fits)
+            efficiency["laundry_reused_m2"] = reused
+            laundry_installed = reused > 0
         efficiency["hallway_reclaimed_m2"] = 0.0
         for _ in range(8):
             preliminary = connect(rooms, floor["inside"], spec.entrance, level, stair_access)

@@ -5,8 +5,9 @@ metres and explicit storey heights, then exports one house with distinct floors,
 stairs, rooms, openings, coordinated materials and physically placed furniture. The existing
 ResPlan/Swiss Dwellings source adapters and their observed-template contract remain separate.
 
-The review build is in the `codex/interior-engine` worktree at
-`/Users/elialbukerk/Projects/Applications/kerbside-interior-engine`.
+The engines, local tour and asset library are integrated into the main
+`spatial-mapping-crowdsource` checkout. The `codex/interior-engine` branch retains the
+isolated development history.
 
 ## Review and run
 
@@ -70,6 +71,9 @@ become a second WC in a single-storey home when all fixtures and approaches fit.
 furnishing attempts select another cut or closet-free variant, without address-specific rules.
 A WC-only room requires a toilet and basin; a full bathroom also requires a combined tub/shower.
 Laundry and closets require their functional equipment rather than passing as empty rooms.
+Suitable blind hall ends are first offered as fitted laundry niches with a washer and
+supported dryer stack against the wall. Their full height is checked against windows;
+existing door and stair approaches must survive. Other unsupported tails are reclaimed.
 
 Circulation is pruned around actual room entrances and shared stair approaches. A separate
 closed-end audit detects full-width blind branches extending beyond all destinations. Those

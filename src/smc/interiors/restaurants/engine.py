@@ -21,6 +21,13 @@ from smc.interiors.inference.furnish import RoomFurnisher, inward_point, oriente
 from smc.interiors.inference.model import geo, polygon, stamp_inference
 from smc.interiors.inference.partition import lines, polygons, shared, width
 from smc.interiors.inference.style import door_finish, house_style, room_materials
+from smc.interiors.restaurants.seating import (
+    assembly,
+    back_edge,
+    frame_angles,
+    solid_backing,
+    wall_backed,
+)
 
 ROUTE_RADIUS = 0.475  # 0.95m clear customer route; design heuristic, not certification.
 KITCHEN_ROLES = {
@@ -107,6 +114,7 @@ def restaurant_style(spec):
             "premium": "solid timber, leather & stone",
         }[tier],
         style="contemporary",
+        booth_design=("channel", "tufted", "timber")[int(s["seed"]) % 3],
         furnishing_budget_usd=round(
             spec.footprint.area * {"economy": 120, "standard": 220, "premium": 380}[tier]
         ),
@@ -323,80 +331,62 @@ def _seating(room, style, catalog, opens, mode):
     if mode == "pickup":
         f.wall("pickup_shelf", [(0.9, 0.35, 1.15), (0.6, 0.35, 1.15)], required=False)
         return f.items, [], staff_targets, queue, []
-    # Prefer wall booths in higher-budget rooms. All assemblies are atomic.
+    backing = solid_backing(room, opens)
     x0, y0, x1, y1 = room["shape"].bounds
     spots = [
         (x, y) for x in _steps(x0 + 0.7, x1 - 0.7, 0.55) for y in _steps(y0 + 0.7, y1 - 0.7, 0.55)
     ]
     spots.sort(key=lambda p: room["shape"].boundary.distance(Point(p)))
-    for booth in [True, False] if style["tier"] != "economy" else [False]:
-        for angle in (0, 90):
-            for x, y in spots:
-                if len(groups) >= 60:
-                    break
-                # Standard 2-top, or a 2-person banquette facing a single chair.
-                table_size = (1.1, 0.7) if booth else (0.8, 0.75)
-                w, d = table_size
-                theta = math.radians(angle)
-                nx, ny = -math.sin(theta), math.cos(theta)
-                defs = [("dining_table", x, y, w, d, 0.75, angle)]
-                if booth:
-                    bx, by = x - nx * (d / 2 + 0.36), y - ny * (d / 2 + 0.36)
-                    bench = oriented_box(bx, by, 1.35, 0.58, angle)
-                    if bench.distance(room["shape"].boundary) > 0.17:
-                        continue
-                    defs.append(("booth", bx, by, 1.35, 0.58, 1.05, angle))
-                else:
-                    defs.append(
-                        (
-                            "dining_chair",
-                            x - nx * (d / 2 + 0.32),
-                            y - ny * (d / 2 + 0.32),
-                            0.45,
-                            0.45,
-                            0.85,
-                            angle,
-                        )
-                    )
-                defs.append(
-                    (
-                        "dining_chair",
-                        x + nx * (d / 2 + 0.32),
-                        y + ny * (d / 2 + 0.32),
-                        0.45,
-                        0.45,
-                        0.85,
-                        angle + 180,
-                    )
-                )
-                footprints = [oriented_box(a, b, c, e, rot) for _, a, b, c, e, _, rot in defs]
-                seated = [
-                    oriented_box(a, b, 0.55, 0.78, rot)
-                    for role, a, b, _, _, _, rot in defs
-                    if role == "dining_chair"
-                ]
-                assembly = unary_union(footprints + seated)
-                if (
-                    not room["shape"].buffer(-0.07).covers(assembly)
-                    or assembly.intersects(queue)
-                    or any(
-                        assembly.intersects(shape(o["clearance"]))
-                        for o in opens
-                        if room["id"] in o["rooms"]
-                    )
+
+    def place(seats, booth):
+        n = seats // 2
+        if booth:
+            candidates = []
+            for bx, by, angle, _target, nx, ny in f.wall_spots(n * 0.72, 0.58):
+                # The bench is already wall-backed; move the table in front of it.
+                x, y = bx + nx * (0.29 + 0.12 + 0.39), by + ny * (0.29 + 0.12 + 0.39)
+                candidates.append((x, y, angle))
+        else:
+            candidates = [(x, y, angle) for angle in frame_angles(room["shape"]) for x, y in spots]
+        for x, y, angle in candidates:
+            defs, targets = assembly(x, y, angle, seats, booth)
+            if booth:
+                bench = next(row for row in defs if row[0] == "booth")
+                if not wall_backed(
+                    back_edge(bench[1], bench[2], bench[3], bench[4], bench[6]), backing
                 ):
                     continue
-                if any(assembly.buffer(0.08).intersects(p) for p in obstacles + reservations):
-                    continue
-                # Approach a short end without passing through a seated diner's pull-back envelope.
-                target = Point(
-                    x + math.cos(theta) * (w / 2 + 0.58), y + math.sin(theta) * (w / 2 + 0.58)
+            footprints = [oriented_box(a, b, c, d, rot) for _, a, b, c, d, _, rot in defs]
+            seated = [
+                oriented_box(a, b, 0.55, 0.78, rot)
+                for role, a, b, _, _, _, rot in defs
+                if role == "dining_chair"
+            ]
+            occupied_shape = unary_union(footprints + seated)
+            if (
+                not room["shape"].buffer(-0.065).covers(occupied_shape)
+                or occupied_shape.intersects(queue)
+                or any(
+                    occupied_shape.intersects(shape(o["clearance"]))
+                    for o in opens
+                    if room["id"] in o["rooms"]
                 )
+                or any(occupied_shape.buffer(0.08).intersects(p) for p in obstacles + reservations)
+            ):
+                continue
+            for target in targets:
                 acc = None
                 if not accessible:
+                    # Reserve a clear approach at this joined table's short end.
+                    theta = math.radians(angle)
+                    sign = (
+                        1
+                        if (target.x - x) * math.cos(theta) + (target.y - y) * math.sin(theta) > 0
+                        else -1
+                    )
                     acc = oriented_box(
-                        x + math.cos(theta) * (w / 2 + 0.63),
-                        y + math.sin(theta) * (w / 2 + 0.63),
+                        x + sign * math.cos(theta) * (n * 0.72 / 2 + 0.63),
+                        y + sign * math.sin(theta) * (n * 0.72 / 2 + 0.63),
                         1.22,
                         0.80,
                         angle,
@@ -406,41 +396,66 @@ def _seating(room, style, catalog, opens, mode):
                     ):
                         continue
                 if (
-                    _component(room["shape"], obstacles + occupied + [assembly], [*starts, target])
+                    _component(
+                        room["shape"], obstacles + occupied + [occupied_shape], [*starts, target]
+                    )
                     is None
                 ):
                     continue
                 gid = f"{room['id']}:seating:{len(groups)}"
                 items = []
-                for role, a, b, c, e, h, rot in defs:
-                    item = _item(f, role, a, b, c, e, h, rot)
+                for role, a, b, c, d, h, rot in defs:
+                    item = _item(f, role, a, b, c, d, h, rot)
                     item["seating_group"] = gid
+                    if role == "booth":
+                        item["seat_capacity"] = n
+                        item["backing_segment"] = geo(back_edge(a, b, c, d, rot))
                     items.append(item)
-                table = items[0]
-                f.on_top(table, "table_item", (0.18, 0.12, 0.18))
+                tables = [o for o in items if o["role"] == "dining_table"]
+                for table in tables:
+                    f.on_top(table, "table_item", (0.18, 0.12, 0.18))
                 groups.append(
                     {
                         "id": gid,
-                        "table_id": table["id"],
-                        "seat_count": 3 if booth else 2,
+                        "table_id": tables[0]["id"],
+                        "table_ids": [o["id"] for o in tables],
+                        "joined_modules": n,
+                        "seat_count": seats,
                         "booth": booth,
-                        "occupied_envelope": geo(assembly),
+                        "occupied_envelope": geo(occupied_shape),
                         "approach": [target.x, target.y],
                     }
                 )
                 obstacles.extend(footprints)
-                reservations.append(assembly)
-                occupied.append(assembly)
+                reservations.append(occupied_shape)
+                occupied.append(occupied_shape)
                 starts.append(target)
                 if acc is not None:
                     accessible.append(
                         {
-                            "table_id": table["id"],
+                            "table_id": tables[0]["id"],
                             "clear_floor": geo(acc),
                             "approach": [target.x, target.y],
                         }
                     )
                     reservations.append(acc)
+                return True
+        return False
+
+    # Reserve different party sizes before filling spare capacity. Booths never
+    # consume every wall position before freestanding four/six-tops get a chance.
+    for seats in (6, 4, 2):
+        if seats > 2 and style["tier"] != "economy" and place(seats, True):
+            continue
+        place(seats, False)
+    for index in range(60):
+        placed = False
+        for seats in (4, 2, 6) if index % 2 == 0 else (2, 4, 6):
+            if place(seats, False):
+                placed = True
+                break
+        if not placed:
+            break
     if not groups:
         raise ValueError("no seating assembly with connected 0.95m routes")
     return (
@@ -724,7 +739,12 @@ def validate_restaurant(h):
     for group in h["seating"]:
         members = [o for o in objects if o.get("seating_group") == group["id"]]
         seats = sum(
-            2 if o["role"] == "booth" else 1 if o["role"] == "dining_chair" else 0 for o in members
+            o.get("seat_capacity", 2)
+            if o["role"] == "booth"
+            else 1
+            if o["role"] == "dining_chair"
+            else 0
+            for o in members
         )
         if seats != group["seat_count"]:
             errors.append("seating capacity does not match furniture")
@@ -732,6 +752,29 @@ def validate_restaurant(h):
             not shape(group["occupied_envelope"]).buffer(0.001).covers(ps[o["id"]]) for o in members
         ):
             errors.append("seated clearance omits furniture")
+    chairs = {o["asset"]["id"] for o in objects if o["role"] == "dining_chair"}
+    booths = {o["asset"]["id"] for o in objects if o["role"] == "booth"}
+    if len(chairs) > 1 or len(booths) > 1:
+        errors.append("inconsistent seating design within restaurant")
+    for booth in (o for o in objects if o["role"] == "booth"):
+        r = next(r for r in f["rooms"] if r["id"] == booth["room_id"])
+        backing = solid_backing({**r, "shape": rooms[r["id"]]}, f["openings"])
+        x, _, y = booth["position_m"]
+        w, _, d = booth["size_m"]
+        if not wall_backed(back_edge(x, y, w, d, booth["rotation_deg"]), backing):
+            errors.append("booth back is not against a solid wall")
+    for group in h["seating"]:
+        table_ids = group.get("table_ids", [group["table_id"]])
+        if group["seat_count"] not in {2, 4, 6} or len(table_ids) * 2 != group["seat_count"]:
+            errors.append("invalid modular table capacity")
+        tables = [o for o in objects if o["id"] in table_ids]
+        if len(tables) != len(table_ids) or any(o["role"] != "dining_table" for o in tables):
+            errors.append("missing joined table module")
+        elif (
+            len(tables) > 1
+            and unary_union([ps[o["id"]].buffer(0.003) for o in tables]).geom_type != "Polygon"
+        ):
+            errors.append("joined table modules are separated")
     for counter in objects:
         if counter.get("staff_aisle"):
             aisle = shape(counter["staff_aisle"])
@@ -799,6 +842,10 @@ def validate_restaurant(h):
             "objects": len(objects),
             "seats": sum(g["seat_count"] for g in h["seating"]),
             "tables": len(h["seating"]),
+            "table_sizes": {
+                str(n): sum(g["seat_count"] == n for g in h["seating"]) for n in (2, 4, 6)
+            },
+            "table_modules": sum(len(g.get("table_ids", [g["table_id"]])) for g in h["seating"]),
             "booths": sum(g["booth"] for g in h["seating"]),
             "customer_route_width_m": 0.95,
             "staff_route_width_m": 0.9,
@@ -837,7 +884,8 @@ def infer_restaurant(spec: RestaurantInput, catalog=None):
                         ]
                     )
                     score = (
-                        len(result["seating"]) * 2
+                        sum(g["seat_count"] for g in result["seating"])
+                        + len({g["seat_count"] for g in result["seating"]}) * 2
                         + sum(g["booth"] for g in result["seating"]) * 0.2
                         - result["space_efficiency"]["isolated_clear_floor_m2"] * 5
                     )

@@ -12,3 +12,9 @@ export function wallRoomCuts(floor,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.h
  if(off<.35&&u>.001&&u<L-.001)cuts.push(u);
  }return cuts;
 }
+
+// Sanitary/food-service tile follows the room's own wall hue throughout restaurants,
+// including the portions hidden by equipment. House bathroom stone stays unchanged.
+export function wallTileColour(house,paint){return house.style.usage==='restaurant'?paint:house.style.stone;}
+
+export function wallCapColour(house,faceColour,interiorColour=null){return house.style.usage==='restaurant'?(interiorColour||faceColour):'#e8e4da';}

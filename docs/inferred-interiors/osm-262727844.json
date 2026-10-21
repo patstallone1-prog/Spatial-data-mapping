@@ -4542,6 +4542,7 @@
           },
           "asset": {
             "id": "procedural:sink_counter",
+            "design_id": null,
             "role": "sink_counter",
             "procedural": true,
             "license": "project",
@@ -4623,6 +4624,7 @@
           },
           "asset": {
             "id": "procedural:cooker",
+            "design_id": null,
             "role": "cooker",
             "procedural": true,
             "license": "project",
@@ -4704,6 +4706,7 @@
           },
           "asset": {
             "id": "procedural:refrigerator",
+            "design_id": null,
             "role": "refrigerator",
             "procedural": true,
             "license": "project",
@@ -4785,6 +4788,7 @@
           },
           "asset": {
             "id": "procedural:counter",
+            "design_id": null,
             "role": "counter",
             "procedural": true,
             "license": "project",
@@ -5304,6 +5308,7 @@
           },
           "asset": {
             "id": "procedural:toilet",
+            "design_id": null,
             "role": "toilet",
             "procedural": true,
             "license": "project",
@@ -5385,6 +5390,7 @@
           },
           "asset": {
             "id": "procedural:bath_sink",
+            "design_id": null,
             "role": "bath_sink",
             "procedural": true,
             "license": "project",
@@ -5466,6 +5472,7 @@
           },
           "asset": {
             "id": "procedural:washing_machine",
+            "design_id": null,
             "role": "washing_machine",
             "procedural": true,
             "license": "project",
@@ -5853,6 +5860,7 @@
       "space_efficiency": {
         "wet_area_reclaimed_m2": 19.692232321472208,
         "half_baths_added": 0,
+        "laundry_reused_m2": 0.0,
         "hallway_reclaimed_m2": 0.0
       },
       "grade": "inferred",
@@ -9159,6 +9167,7 @@
           },
           "asset": {
             "id": "procedural:toilet",
+            "design_id": null,
             "role": "toilet",
             "procedural": true,
             "license": "project",
@@ -9240,6 +9249,7 @@
           },
           "asset": {
             "id": "procedural:bath_sink",
+            "design_id": null,
             "role": "bath_sink",
             "procedural": true,
             "license": "project",
@@ -9321,6 +9331,7 @@
           },
           "asset": {
             "id": "procedural:bath_shower",
+            "design_id": null,
             "role": "bath_shower",
             "procedural": true,
             "license": "project",
@@ -9812,6 +9823,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -10303,6 +10315,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -11568,6 +11581,7 @@
       "space_efficiency": {
         "wet_area_reclaimed_m2": 0.0,
         "half_baths_added": 0,
+        "laundry_reused_m2": 0.0,
         "hallway_reclaimed_m2": 3.695402957631165
       },
       "grade": "inferred",

@@ -135,6 +135,28 @@ def validate_house(house: dict) -> dict:
                 "toilet": {"toilet", "bath_sink"},
                 "full_bathroom": {"toilet", "bath_sink", "bath_shower"},
             }.get(room["kind"], set())
+            if room.get("laundry_stack"):
+                required = required | {"washing_machine", "clothes_dryer"}
+                washer = next((o for o in contents if o["role"] == "washing_machine"), None)
+                dryer = next((o for o in contents if o["role"] == "clothes_dryer"), None)
+                if washer and dryer:
+                    from shapely.geometry import LineString
+
+                    x, _, y = washer["position_m"]
+                    w, _, d = washer["size_m"]
+                    angle = math.radians(washer["rotation_deg"])
+                    ux, uy = math.cos(angle), math.sin(angle)
+                    nx, ny = -uy, ux
+                    back = LineString(
+                        [
+                            (x - ux * w / 2 - nx * d / 2, y - uy * w / 2 - ny * d / 2),
+                            (x + ux * w / 2 - nx * d / 2, y + uy * w / 2 - ny * d / 2),
+                        ]
+                    )
+                    if not shapes[key].boundary.buffer(0.11).covers(back):
+                        errors.append(f"{key}: laundry stack is not wall-backed")
+                    if dryer["support"].get("id") != washer["id"]:
+                        errors.append(f"{key}: dryer is not supported by washer")
             if not required.issubset(roles):
                 errors.append(f"{key}: missing required furniture {required - set(roles)}")
             if room["kind"] == "dining" and roles.count("dining_chair") < 2:

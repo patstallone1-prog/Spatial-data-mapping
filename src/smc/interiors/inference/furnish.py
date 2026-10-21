@@ -361,5 +361,28 @@ class RoomFurnisher:
         elif kind == "closet":
             self.wall("closet_rail", [(0.8, 0.36, 1.65), (0.55, 0.3, 1.65)], required=True)
         elif kind == "utility":
-            self.wall("washing_machine", [(0.62, 0.62, 0.9)], required=True)
+            if self.room.get("laundry_stack"):
+                # Check the complete stack against windows before splitting its two
+                # physical support boxes. The upper appliance rests on the washer.
+                washer = self.wall("washing_machine", [(0.62, 0.62, 1.75)], required=True)
+                washer["size_m"][1] = 0.9
+                washer["asset"] = self.catalog.choose(
+                    "washing_machine", self.style, (0.62, 0.9, 0.62), self.room["id"] + ":washer"
+                )
+                x, _, y = washer["position_m"]
+                self.put(
+                    "clothes_dryer",
+                    x,
+                    y,
+                    0.62,
+                    0.62,
+                    0.85,
+                    washer["rotation_deg"],
+                    required=True,
+                    supported_by=washer,
+                    base_y=self.floor_y + 0.9,
+                    solid=False,
+                )
+            else:
+                self.wall("washing_machine", [(0.62, 0.62, 0.9)], required=True)
         return self.items

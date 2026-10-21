@@ -10,12 +10,12 @@
       "storeys": 1,
       "style": "Walnut & muted terracotta",
       "metrics": {
-        "room_count": 7,
-        "objects": 21,
+        "room_count": 8,
+        "objects": 23,
         "coverage_min": 0.9999999999999998,
-        "hallway_area_fraction_max": 0.15515151515151532,
+        "hallway_area_fraction_max": 0.16006687565308259,
         "downloaded_assets_used": 13,
-        "connected_rooms": 7
+        "connected_rooms": 8
       },
       "search": {
         "candidates_tried": 43,
@@ -74,12 +74,12 @@
       "storeys": 2,
       "style": "Coastal linen & blue",
       "metrics": {
-        "room_count": 18,
-        "objects": 41,
-        "coverage_min": 1.0,
-        "hallway_area_fraction_max": 0.18786777689664302,
+        "room_count": 19,
+        "objects": 43,
+        "coverage_min": 0.9999999999999998,
+        "hallway_area_fraction_max": 0.20380694334302576,
         "downloaded_assets_used": 23,
-        "connected_rooms": 18
+        "connected_rooms": 19
       },
       "search": {
         "candidates_tried": 7,
@@ -103,9 +103,9 @@
       "style": "Walnut & muted terracotta",
       "metrics": {
         "room_count": 9,
-        "objects": 27,
-        "coverage_min": 0.9999999999999997,
-        "hallway_area_fraction_max": 0.13883141971933669,
+        "objects": 28,
+        "coverage_min": 0.9999999999999994,
+        "hallway_area_fraction_max": 0.14138290504829604,
         "downloaded_assets_used": 17,
         "connected_rooms": 9
       },
@@ -134,12 +134,12 @@
       "storeys": 1,
       "style": "Coastal linen & blue",
       "metrics": {
-        "room_count": 8,
-        "objects": 25,
-        "coverage_min": 1.0,
-        "hallway_area_fraction_max": 0.1339061871429722,
+        "room_count": 9,
+        "objects": 27,
+        "coverage_min": 0.9999999999999998,
+        "hallway_area_fraction_max": 0.14270110226084157,
         "downloaded_assets_used": 14,
-        "connected_rooms": 8
+        "connected_rooms": 9
       },
       "search": {
         "candidates_tried": 11,
@@ -166,12 +166,12 @@
       "storeys": 1,
       "style": "Coastal linen & blue",
       "metrics": {
-        "room_count": 12,
-        "objects": 32,
+        "room_count": 13,
+        "objects": 34,
         "coverage_min": 0.9999999999999999,
-        "hallway_area_fraction_max": 0.11173521258553137,
+        "hallway_area_fraction_max": 0.14338803438797595,
         "downloaded_assets_used": 17,
-        "connected_rooms": 12
+        "connected_rooms": 13
       },
       "search": {
         "candidates_tried": 33,
@@ -220,12 +220,12 @@
       "storeys": 1,
       "style": "Ash & slate",
       "metrics": {
-        "room_count": 11,
-        "objects": 31,
-        "coverage_min": 1.0,
-        "hallway_area_fraction_max": 0.1276766600044414,
+        "room_count": 12,
+        "objects": 34,
+        "coverage_min": 0.9999999999999998,
+        "hallway_area_fraction_max": 0.19275919757198895,
         "downloaded_assets_used": 17,
-        "connected_rooms": 11
+        "connected_rooms": 12
       },
       "search": {
         "candidates_tried": 11,
@@ -252,15 +252,15 @@
       "storeys": 1,
       "style": "Walnut & muted terracotta",
       "metrics": {
-        "room_count": 9,
-        "objects": 26,
-        "coverage_min": 0.999999996576827,
-        "hallway_area_fraction_max": 0.11201691372620949,
+        "room_count": 10,
+        "objects": 28,
+        "coverage_min": 0.99999999744834,
+        "hallway_area_fraction_max": 0.17073303148141175,
         "downloaded_assets_used": 17,
-        "connected_rooms": 9
+        "connected_rooms": 10
       },
       "search": {
-        "candidates_tried": 63,
+        "candidates_tried": 49,
         "rejected": [
           "oversize wet room cannot be compacted with usable fixtures and surplus",
           "oversize wet room cannot be compacted with usable fixtures and surplus",
@@ -300,20 +300,6 @@
           "oversize wet room cannot be compacted with usable fixtures and surplus",
           "oversize wet room cannot be compacted with usable fixtures and surplus",
           "oversize wet room cannot be compacted with usable fixtures and surplus",
-          "stress-angled:L0:R3: no reachable bath_shower fits",
-          "stress-angled:L0:R3: no reachable bath_shower fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
-          "stress-angled:L0:R2: no reachable dining set fits",
           "stress-angled:L0:R2: no reachable dining set fits",
           "stress-angled:L0:R2: no reachable dining set fits",
           "stress-angled:L0:R2: no reachable dining set fits",
@@ -336,12 +322,12 @@
       "storeys": 3,
       "style": "Warm oak & sage",
       "metrics": {
-        "room_count": 22,
-        "objects": 49,
-        "coverage_min": 1.0,
-        "hallway_area_fraction_max": 0.16372111392488134,
+        "room_count": 23,
+        "objects": 51,
+        "coverage_min": 0.9999999999999998,
+        "hallway_area_fraction_max": 0.17125324611488046,
         "downloaded_assets_used": 27,
-        "connected_rooms": 22
+        "connected_rooms": 23
       },
       "search": {
         "candidates_tried": 3,

@@ -354,20 +354,12 @@
             "coordinates": [
               [
                 [
-                  9.895000000000001,
+                  13.85,
                   0.15000000000000036
                 ],
                 [
-                  8.775000000000002,
-                  0.15000000000000036
-                ],
-                [
-                  8.775000000000002,
-                  2.9879999999999995
-                ],
-                [
                   9.895000000000001,
-                  2.9879999999999995
+                  0.15000000000000036
                 ],
                 [
                   9.895000000000001,
@@ -379,16 +371,12 @@
                 ],
                 [
                   13.85,
-                  0.15000000000000036
-                ],
-                [
-                  9.895000000000001,
                   0.15000000000000036
                 ]
               ]
             ]
           },
-          "area_m2": 16.696749999999987,
+          "area_m2": 13.518189999999992,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -418,41 +406,41 @@
             "coordinates": [
               [
                 [
-                  4.820000000000002,
-                  3.5679999999999996
+                  4.82,
+                  3.568
                 ],
                 [
-                  8.775000000000002,
-                  3.5679999999999996
+                  8.775,
+                  3.568
                 ],
                 [
-                  8.775000000000002,
-                  0.15000000000000036
+                  8.775,
+                  0.15
                 ],
                 [
-                  4.820000000000002,
-                  0.15000000000000036
+                  4.82,
+                  0.15
                 ],
                 [
-                  3.700000000000001,
-                  0.15000000000000036
+                  3.7,
+                  0.15
                 ],
                 [
-                  3.700000000000001,
-                  2.9879999999999995
+                  3.7,
+                  3.05
                 ],
                 [
-                  4.820000000000002,
-                  2.9879999999999995
+                  4.82,
+                  3.05
                 ],
                 [
-                  4.820000000000002,
-                  3.5679999999999996
+                  4.82,
+                  3.568
                 ]
               ]
             ]
           },
-          "area_m2": 16.696749999999998,
+          "area_m2": 16.76619,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -482,61 +470,61 @@
             "coordinates": [
               [
                 [
-                  9.895000000000001,
-                  2.9879999999999995
+                  9.895,
+                  1.95
                 ],
                 [
-                  8.775000000000002,
-                  2.9879999999999995
+                  8.775,
+                  1.95
                 ],
                 [
-                  8.775000000000002,
-                  3.5679999999999996
+                  8.775,
+                  3.568
                 ],
                 [
-                  4.820000000000002,
-                  3.5679999999999996
+                  4.82,
+                  3.568
                 ],
                 [
-                  4.820000000000002,
-                  2.9879999999999995
+                  4.82,
+                  3.05
                 ],
                 [
-                  3.700000000000001,
-                  2.9879999999999995
+                  3.7,
+                  3.05
                 ],
                 [
-                  3.700000000000001,
-                  3.5679999999999996
+                  3.7,
+                  3.568
                 ],
                 [
-                  0.15000000000000036,
-                  3.5679999999999996
+                  0.15,
+                  3.568
                 ],
                 [
-                  0.15000000000000036,
-                  4.688000000000001
-                ],
-                [
-                  13.85,
-                  4.688000000000001
+                  0.15,
+                  4.688
                 ],
                 [
                   13.85,
-                  3.5679999999999996
+                  4.688
                 ],
                 [
-                  9.895000000000001,
-                  3.5679999999999996
+                  13.85,
+                  3.568
                 ],
                 [
-                  9.895000000000001,
-                  2.9879999999999995
+                  9.895,
+                  3.568
+                ],
+                [
+                  9.895,
+                  1.95
                 ]
               ]
             ]
           },
-          "area_m2": 16.643200000000014,
+          "area_m2": 17.736319999999996,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -598,6 +586,60 @@
             ]
           },
           "area_m2": 5.6539,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-L-wing:L0:hall:laundry",
+          "kind": "utility",
+          "laundry_stack": true,
+          "reused_space": "former_hall_end",
+          "materials": {
+            "wall": "#c4947b",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#e3e0d6",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.895,
+                  0.15
+                ],
+                [
+                  8.775,
+                  0.15
+                ],
+                [
+                  8.775,
+                  1.95
+                ],
+                [
+                  9.895,
+                  1.95
+                ],
+                [
+                  9.895,
+                  0.15
+                ]
+              ]
+            ]
+          },
+          "area_m2": 2.0159999999999987,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -749,12 +791,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                5.2501000000000015,
-                3.5679999999999996
+                5.2501,
+                3.568
               ],
               [
-                6.130100000000002,
-                3.5679999999999996
+                6.1301000000000005,
+                3.568
               ]
             ]
           },
@@ -768,24 +810,24 @@
             "coordinates": [
               [
                 [
-                  6.130100000000002,
-                  4.287999999999999
+                  6.1301000000000005,
+                  4.288
                 ],
                 [
-                  6.130100000000002,
+                  6.1301000000000005,
                   2.848
                 ],
                 [
-                  5.2501000000000015,
+                  5.2501,
                   2.848
                 ],
                 [
-                  5.2501000000000015,
-                  4.287999999999999
+                  5.2501,
+                  4.288
                 ],
                 [
-                  6.130100000000002,
-                  4.287999999999999
+                  6.1301000000000005,
+                  4.288
                 ]
               ]
             ]
@@ -1103,7 +1145,305 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-L-wing:L0:R0:opening:4",
+          "id": "stress-L-wing:L0:hall:laundry:opening:4",
+          "rooms": [
+            "stress-L-wing:L0:hall:laundry",
+            "stress-L-wing:L0:hall"
+          ],
+          "type": "doorway",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                8.815000000000001,
+                1.95
+              ],
+              [
+                9.855,
+                1.95
+              ]
+            ]
+          },
+          "width_m": 1.0399999999999991,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "material": null,
+          "swing_into": null,
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.635000000000002,
+                  1.95
+                ],
+                [
+                  9.63355541800166,
+                  1.9205948579011318
+                ],
+                [
+                  9.62923558412097,
+                  1.8914729033951614
+                ],
+                [
+                  9.622082100719663,
+                  1.8629145968236613
+                ],
+                [
+                  9.612163859753387,
+                  1.835194970290473
+                ],
+                [
+                  9.599576379304507,
+                  1.8085809789522007
+                ],
+                [
+                  9.584440883690764,
+                  1.7833289300941193
+                ],
+                [
+                  9.566903136008822,
+                  1.7596820147509062
+                ],
+                [
+                  9.547132034355965,
+                  1.7378679656440357
+                ],
+                [
+                  9.525317985249094,
+                  1.718096863991179
+                ],
+                [
+                  9.501671069905882,
+                  1.7005591163092364
+                ],
+                [
+                  9.4764190210478,
+                  1.6854236206954936
+                ],
+                [
+                  9.449805029709529,
+                  1.6728361402466139
+                ],
+                [
+                  9.42208540317634,
+                  1.6629178992803373
+                ],
+                [
+                  9.393527096604839,
+                  1.6557644158790308
+                ],
+                [
+                  9.36440514209887,
+                  1.651444581998341
+                ],
+                [
+                  9.335,
+                  1.65
+                ],
+                [
+                  9.305594857901132,
+                  1.6514445819983408
+                ],
+                [
+                  9.276472903395163,
+                  1.6557644158790308
+                ],
+                [
+                  9.247914596823662,
+                  1.6629178992803373
+                ],
+                [
+                  9.220194970290473,
+                  1.6728361402466139
+                ],
+                [
+                  9.193580978952202,
+                  1.6854236206954933
+                ],
+                [
+                  9.16832893009412,
+                  1.7005591163092364
+                ],
+                [
+                  9.144682014750908,
+                  1.718096863991179
+                ],
+                [
+                  9.122867965644037,
+                  1.7378679656440357
+                ],
+                [
+                  9.10309686399118,
+                  1.7596820147509062
+                ],
+                [
+                  9.085559116309238,
+                  1.7833289300941193
+                ],
+                [
+                  9.070423620695495,
+                  1.8085809789522007
+                ],
+                [
+                  9.057836140246614,
+                  1.835194970290473
+                ],
+                [
+                  9.047917899280339,
+                  1.8629145968236613
+                ],
+                [
+                  9.040764415879032,
+                  1.8914729033951614
+                ],
+                [
+                  9.036444581998342,
+                  1.9205948579011316
+                ],
+                [
+                  9.035,
+                  1.95
+                ],
+                [
+                  9.036444581998342,
+                  1.979405142098868
+                ],
+                [
+                  9.040764415879032,
+                  2.0085270966048383
+                ],
+                [
+                  9.047917899280339,
+                  2.037085403176339
+                ],
+                [
+                  9.057836140246614,
+                  2.064805029709527
+                ],
+                [
+                  9.070423620695495,
+                  2.091419021047799
+                ],
+                [
+                  9.085559116309238,
+                  2.1166710699058804
+                ],
+                [
+                  9.10309686399118,
+                  2.1403179852490934
+                ],
+                [
+                  9.122867965644037,
+                  2.162132034355964
+                ],
+                [
+                  9.144682014750908,
+                  2.181903136008821
+                ],
+                [
+                  9.16832893009412,
+                  2.1994408836907633
+                ],
+                [
+                  9.193580978952202,
+                  2.2145763793045066
+                ],
+                [
+                  9.220194970290473,
+                  2.227163859753386
+                ],
+                [
+                  9.247914596823662,
+                  2.2370821007196624
+                ],
+                [
+                  9.276472903395161,
+                  2.244235584120969
+                ],
+                [
+                  9.305594857901132,
+                  2.248555418001659
+                ],
+                [
+                  9.335,
+                  2.25
+                ],
+                [
+                  9.36440514209887,
+                  2.248555418001659
+                ],
+                [
+                  9.393527096604839,
+                  2.244235584120969
+                ],
+                [
+                  9.42208540317634,
+                  2.237082100719663
+                ],
+                [
+                  9.449805029709529,
+                  2.227163859753386
+                ],
+                [
+                  9.4764190210478,
+                  2.2145763793045066
+                ],
+                [
+                  9.501671069905882,
+                  2.1994408836907637
+                ],
+                [
+                  9.525317985249094,
+                  2.1819031360088212
+                ],
+                [
+                  9.547132034355965,
+                  2.1621320343559645
+                ],
+                [
+                  9.566903136008822,
+                  2.140317985249094
+                ],
+                [
+                  9.584440883690764,
+                  2.1166710699058804
+                ],
+                [
+                  9.599576379304507,
+                  2.091419021047799
+                ],
+                [
+                  9.612163859753387,
+                  2.064805029709527
+                ],
+                [
+                  9.622082100719663,
+                  2.037085403176339
+                ],
+                [
+                  9.62923558412097,
+                  2.0085270966048387
+                ],
+                [
+                  9.63355541800166,
+                  1.979405142098868
+                ],
+                [
+                  9.635000000000002,
+                  1.95
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-L-wing:L0:R0:opening:5",
           "rooms": [
             "stress-L-wing:L0:R0",
             "stress-L-wing:L0:R1"
@@ -1401,7 +1741,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-L-wing:L0:R0:opening:5",
+          "id": "stress-L-wing:L0:R0:opening:6",
           "rooms": [
             "stress-L-wing:L0:R0",
             "stress-L-wing:L0:hall"
@@ -1699,7 +2039,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-L-wing:L0:R1:opening:6",
+          "id": "stress-L-wing:L0:R1:opening:7",
           "rooms": [
             "stress-L-wing:L0:R1",
             "stress-L-wing:L0:R2"
@@ -2017,7 +2357,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-L-wing:L0:R1:opening:7",
+          "id": "stress-L-wing:L0:R1:opening:8",
           "rooms": [
             "stress-L-wing:L0:R1",
             "stress-L-wing:L0:hall"
@@ -2315,7 +2655,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-L-wing:L0:R2:opening:8",
+          "id": "stress-L-wing:L0:R2:opening:9",
           "rooms": [
             "stress-L-wing:L0:R2",
             "stress-L-wing:L0:hall"
@@ -2613,7 +2953,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-L-wing:L0:R2:opening:9",
+          "id": "stress-L-wing:L0:R2:opening:10",
           "rooms": [
             "stress-L-wing:L0:R2",
             "outside"
@@ -2671,7 +3011,7 @@
             "timber": "#b79a73",
             "frame": "#b79a73",
             "hardware": "#505a59",
-            "panel_count": 2,
+            "panel_count": 3,
             "glass": "clear"
           },
           "confidence": 0.25,
@@ -2687,7 +3027,7 @@
             "coordinates": [
               [
                 3.700000000000001,
-                2.9880009999999997
+                3.050001
               ],
               [
                 3.700000000000001,
@@ -2793,7 +3133,7 @@
               ],
               [
                 3.700000000000001,
-                2.9879989999999994
+                3.0499989999999997
               ]
             ]
           },
@@ -2924,76 +3264,8 @@
             "type": "LineString",
             "coordinates": [
               [
-                8.775000000000002,
-                0.15000000000000036
-              ],
-              [
-                8.775000000000002,
-                2.9879999999999995
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#617e90",
-            "#c4947b"
-          ],
-          "side_materials": [
-            "#c4947b",
-            "#617e90"
-          ],
-          "rooms": [
-            "stress-L-wing:L0:R4",
-            "stress-L-wing:L0:R5"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                8.775000000000002,
-                2.9879999999999995
-              ],
-              [
                 9.895000000000001,
-                2.9879999999999995
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#71988b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#71988b"
-          ],
-          "rooms": [
-            "stress-L-wing:L0:R4",
-            "stress-L-wing:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                9.895000000000001,
-                2.9879999999999995
+                1.949999
               ],
               [
                 9.895000000000001,
@@ -3004,12 +3276,12 @@
           "thickness_m": 0.1,
           "height_m": 2.65,
           "materials": [
-            "#71988b",
+            "#617e90",
             "#d8c5a9"
           ],
           "side_materials": [
             "#d8c5a9",
-            "#71988b"
+            "#617e90"
           ],
           "rooms": [
             "stress-L-wing:L0:R4",
@@ -3094,181 +3366,215 @@
             "type": "LineString",
             "coordinates": [
               [
-                4.820000000000002,
-                3.5679999999999996
-              ],
-              [
-                5.249100000000001,
-                3.5679999999999996
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#c4947b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#c4947b"
-          ],
-          "rooms": [
-            "stress-L-wing:L0:R5",
-            "stress-L-wing:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                6.131100000000003,
-                3.5679999999999996
-              ],
-              [
-                8.775000000000002,
-                3.5679999999999996
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#c4947b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#c4947b"
-          ],
-          "rooms": [
-            "stress-L-wing:L0:R5",
-            "stress-L-wing:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                8.775000000000002,
-                3.5679999999999996
-              ],
-              [
-                8.775000000000002,
-                2.9879989999999994
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#c4947b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#c4947b"
-          ],
-          "rooms": [
-            "stress-L-wing:L0:R5",
-            "stress-L-wing:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                3.700000000000001,
-                2.9879999999999995
-              ],
-              [
-                4.820000000000002,
-                2.9879999999999995
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#c4947b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#c4947b"
-          ],
-          "rooms": [
-            "stress-L-wing:L0:R5",
-            "stress-L-wing:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                4.820000000000002,
-                2.9879999999999995
-              ],
-              [
-                4.820000000000002,
-                3.5679999999999996
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#c4947b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#c4947b"
-          ],
-          "rooms": [
-            "stress-L-wing:L0:R5",
-            "stress-L-wing:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                3.700000000000001,
+                9.895000000000001,
                 0.15000000000000036
               ],
               [
-                3.700000000000001,
+                9.895000000000001,
+                1.9500009999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#71988b",
+            "#c4947b"
+          ],
+          "side_materials": [
+            "#c4947b",
+            "#71988b"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:R4",
+            "stress-L-wing:L0:hall:laundry"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.82,
+                3.568
+              ],
+              [
+                5.249099999999999,
+                3.568
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:R5",
+            "stress-L-wing:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.131100000000001,
+                3.568
+              ],
+              [
+                8.775,
+                3.568
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:R5",
+            "stress-L-wing:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                8.775,
+                3.568
+              ],
+              [
+                8.775,
+                1.949999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:R5",
+            "stress-L-wing:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.7,
+                3.05
+              ],
+              [
+                4.82,
+                3.05
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:R5",
+            "stress-L-wing:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.82,
+                3.05
+              ],
+              [
+                4.82,
+                3.568
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:R5",
+            "stress-L-wing:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.7,
+                0.15
+              ],
+              [
+                3.7,
                 1.1680009999999994
               ]
             ]
@@ -3298,12 +3604,46 @@
             "type": "LineString",
             "coordinates": [
               [
-                1.0000010000000008,
-                3.5679999999999996
+                8.775,
+                1.9500009999999999
               ],
               [
-                0.15000000000000036,
-                3.5679999999999996
+                8.775,
+                0.15
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#c4947b",
+            "#c4947b"
+          ],
+          "side_materials": [
+            "#c4947b",
+            "#c4947b"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:R5",
+            "stress-L-wing:L0:hall:laundry"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.0000010000000008,
+                3.568
+              ],
+              [
+                0.15,
+                3.568
               ]
             ]
           },
@@ -3320,6 +3660,74 @@
           "rooms": [
             "stress-L-wing:L0:hall",
             "stress-L-wing:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                9.895,
+                1.95
+              ],
+              [
+                9.856,
+                1.95
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "side_materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:hall",
+            "stress-L-wing:L0:hall:laundry"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                8.814000000000002,
+                1.95
+              ],
+              [
+                8.775,
+                1.95
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "side_materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "rooms": [
+            "stress-L-wing:L0:hall",
+            "stress-L-wing:L0:hall:laundry"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -3379,6 +3787,7 @@
           },
           "asset": {
             "id": "procedural:sofa",
+            "design_id": null,
             "role": "sofa",
             "procedural": true,
             "license": "project",
@@ -3722,6 +4131,7 @@
           },
           "asset": {
             "id": "procedural:sink_counter",
+            "design_id": null,
             "role": "sink_counter",
             "procedural": true,
             "license": "project",
@@ -3803,6 +4213,7 @@
           },
           "asset": {
             "id": "procedural:cooker",
+            "design_id": null,
             "role": "cooker",
             "procedural": true,
             "license": "project",
@@ -3884,6 +4295,7 @@
           },
           "asset": {
             "id": "procedural:refrigerator",
+            "design_id": null,
             "role": "refrigerator",
             "procedural": true,
             "license": "project",
@@ -3965,6 +4377,7 @@
           },
           "asset": {
             "id": "procedural:counter",
+            "design_id": null,
             "role": "counter",
             "procedural": true,
             "license": "project",
@@ -4484,6 +4897,7 @@
           },
           "asset": {
             "id": "procedural:toilet",
+            "design_id": null,
             "role": "toilet",
             "procedural": true,
             "license": "project",
@@ -4565,6 +4979,7 @@
           },
           "asset": {
             "id": "procedural:bath_sink",
+            "design_id": null,
             "role": "bath_sink",
             "procedural": true,
             "license": "project",
@@ -4646,6 +5061,7 @@
           },
           "asset": {
             "id": "procedural:bath_shower",
+            "design_id": null,
             "role": "bath_shower",
             "procedural": true,
             "license": "project",
@@ -4681,39 +5097,39 @@
           "id": "stress-L-wing:L0:R4:item:0",
           "role": "bed",
           "position_m": [
-            12.098,
+            11.8725,
             0.0,
-            2.4929999999999994
+            1.2250000000000003
           ],
           "size_m": [
             1.5,
             0.85,
             2
           ],
-          "rotation_deg": -180.0,
+          "rotation_deg": -0.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  11.348,
-                  3.4929999999999994
+                  12.6225,
+                  0.2250000000000003
                 ],
                 [
-                  11.348,
-                  1.4929999999999994
+                  12.6225,
+                  2.2250000000000005
                 ],
                 [
-                  12.848,
-                  1.4929999999999994
+                  11.1225,
+                  2.2250000000000005
                 ],
                 [
-                  12.848,
-                  3.4929999999999994
+                  11.1225,
+                  0.2250000000000003
                 ],
                 [
-                  11.348,
-                  3.4929999999999994
+                  12.6225,
+                  0.2250000000000003
                 ]
               ]
             ]
@@ -4727,6 +5143,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -4750,32 +5167,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            12.098,
-            1.0629999999999995
+            11.8725,
+            2.6550000000000002
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  11.348,
-                  1.4629999999999996
+                  12.6225,
+                  2.2550000000000003
                 ],
                 [
-                  11.348,
-                  0.7629999999999996
+                  12.6225,
+                  2.9550000000000005
                 ],
                 [
-                  12.848,
-                  0.7629999999999996
+                  11.1225,
+                  2.9550000000000005
                 ],
                 [
-                  12.848,
-                  1.4629999999999996
+                  11.1225,
+                  2.2550000000000003
                 ],
                 [
-                  11.348,
-                  1.4629999999999996
+                  12.6225,
+                  2.2550000000000003
                 ]
               ]
             ]
@@ -4785,24 +5202,24 @@
             "coordinates": [
               [
                 [
-                  12.883000000000001,
-                  3.4929999999999994
+                  11.0875,
+                  0.2250000000000003
                 ],
                 [
-                  12.883000000000001,
-                  1.4929999999999994
+                  11.0875,
+                  2.2250000000000005
                 ],
                 [
-                  13.533,
-                  1.4929999999999994
+                  10.437500000000002,
+                  2.2250000000000005
                 ],
                 [
-                  13.533,
-                  3.4929999999999994
+                  10.437500000000002,
+                  0.2250000000000003
                 ],
                 [
-                  12.883000000000001,
-                  3.4929999999999994
+                  11.0875,
+                  0.2250000000000003
                 ]
               ]
             ]
@@ -4816,7 +5233,7 @@
           "id": "stress-L-wing:L0:R4:item:1",
           "role": "nightstand",
           "position_m": [
-            11.8725,
+            13.052857142857142,
             0.0,
             0.4250000000000004
           ],
@@ -4831,23 +5248,23 @@
             "coordinates": [
               [
                 [
-                  12.0975,
+                  13.277857142857142,
                   0.22500000000000037
                 ],
                 [
-                  12.0975,
+                  13.277857142857142,
                   0.6250000000000004
                 ],
                 [
-                  11.6475,
+                  12.827857142857143,
                   0.6250000000000004
                 ],
                 [
-                  11.6475,
+                  12.827857142857143,
                   0.22500000000000037
                 ],
                 [
-                  12.0975,
+                  13.277857142857142,
                   0.22500000000000037
                 ]
               ]
@@ -4894,7 +5311,7 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            11.8725,
+            13.052857142857142,
             1.0550000000000004
           ],
           "confidence": 0.25,
@@ -4906,7 +5323,7 @@
           "id": "stress-L-wing:L0:R4:item:2",
           "role": "counter_item",
           "position_m": [
-            11.8725,
+            13.052857142857142,
             0.5,
             0.4250000000000004
           ],
@@ -4921,23 +5338,23 @@
             "coordinates": [
               [
                 [
-                  11.922500000000001,
+                  13.102857142857143,
                   0.3750000000000004
                 ],
                 [
-                  11.922500000000001,
+                  13.102857142857143,
                   0.47500000000000037
                 ],
                 [
-                  11.8225,
+                  13.002857142857142,
                   0.47500000000000037
                 ],
                 [
-                  11.8225,
+                  13.002857142857142,
                   0.3750000000000004
                 ],
                 [
-                  11.922500000000001,
+                  13.102857142857143,
                   0.3750000000000004
                 ]
               ]
@@ -4992,39 +5409,39 @@
           "id": "stress-L-wing:L0:R4:item:3",
           "role": "dresser",
           "position_m": [
-            12.824166666666667,
+            11.8725,
             0.0,
-            0.45000000000000034
+            3.268
           ],
           "size_m": [
             0.9,
             0.85,
             0.45
           ],
-          "rotation_deg": -0.0,
+          "rotation_deg": -180.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  13.274166666666666,
-                  0.22500000000000034
+                  11.422500000000001,
+                  3.493
                 ],
                 [
-                  13.274166666666666,
-                  0.6750000000000004
+                  11.422500000000001,
+                  3.0429999999999997
                 ],
                 [
-                  12.374166666666667,
-                  0.6750000000000004
+                  12.3225,
+                  3.0429999999999997
                 ],
                 [
-                  12.374166666666667,
-                  0.22500000000000034
+                  12.3225,
+                  3.493
                 ],
                 [
-                  13.274166666666666,
-                  0.22500000000000034
+                  11.422500000000001,
+                  3.493
                 ]
               ]
             ]
@@ -5070,8 +5487,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            12.824166666666667,
-            1.1050000000000004
+            11.8725,
+            2.6129999999999995
           ],
           "confidence": 0.25,
           "measured": false,
@@ -5082,9 +5499,9 @@
           "id": "stress-L-wing:L0:R5:item:0",
           "role": "bed",
           "position_m": [
-            7.0230000000000015,
+            7.023,
             0.0,
-            2.4929999999999994
+            2.4930000000000003
           ],
           "size_m": [
             1.5,
@@ -5097,24 +5514,24 @@
             "coordinates": [
               [
                 [
-                  6.2730000000000015,
-                  3.4929999999999994
+                  6.273,
+                  3.4930000000000003
                 ],
                 [
-                  6.2730000000000015,
-                  1.4929999999999994
+                  6.273,
+                  1.4930000000000003
                 ],
                 [
-                  7.7730000000000015,
-                  1.4929999999999994
+                  7.773,
+                  1.4930000000000003
                 ],
                 [
-                  7.7730000000000015,
-                  3.4929999999999994
+                  7.773,
+                  3.4930000000000003
                 ],
                 [
-                  6.2730000000000015,
-                  3.4929999999999994
+                  6.273,
+                  3.4930000000000003
                 ]
               ]
             ]
@@ -5128,6 +5545,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -5151,32 +5569,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            7.0230000000000015,
-            1.0629999999999995
+            7.023,
+            1.0630000000000004
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  6.2730000000000015,
-                  1.4629999999999996
+                  6.273,
+                  1.4630000000000005
                 ],
                 [
-                  6.2730000000000015,
-                  0.7629999999999996
+                  6.273,
+                  0.7630000000000005
                 ],
                 [
-                  7.7730000000000015,
-                  0.7629999999999996
+                  7.773,
+                  0.7630000000000005
                 ],
                 [
-                  7.7730000000000015,
-                  1.4629999999999996
+                  7.773,
+                  1.4630000000000005
                 ],
                 [
-                  6.2730000000000015,
-                  1.4629999999999996
+                  6.273,
+                  1.4630000000000005
                 ]
               ]
             ]
@@ -5186,24 +5604,24 @@
             "coordinates": [
               [
                 [
-                  7.808000000000001,
-                  3.4929999999999994
+                  7.807999999999999,
+                  3.4930000000000003
                 ],
                 [
-                  7.808000000000001,
-                  1.4929999999999994
+                  7.807999999999999,
+                  1.4930000000000003
                 ],
                 [
-                  8.458,
-                  1.4929999999999994
+                  8.457999999999998,
+                  1.4930000000000003
                 ],
                 [
-                  8.458,
-                  3.4929999999999994
+                  8.457999999999998,
+                  3.4930000000000003
                 ],
                 [
-                  7.808000000000001,
-                  3.4929999999999994
+                  7.807999999999999,
+                  3.4930000000000003
                 ]
               ]
             ]
@@ -5217,9 +5635,9 @@
           "id": "stress-L-wing:L0:R5:item:1",
           "role": "nightstand",
           "position_m": [
-            6.797500000000002,
+            6.7975,
             0.0,
-            0.4250000000000004
+            0.42500000000000004
           ],
           "size_m": [
             0.45,
@@ -5232,24 +5650,24 @@
             "coordinates": [
               [
                 [
-                  7.022500000000002,
-                  0.22500000000000037
+                  7.0225,
+                  0.22500000000000003
                 ],
                 [
-                  7.022500000000002,
-                  0.6250000000000004
+                  7.0225,
+                  0.625
                 ],
                 [
-                  6.5725000000000025,
-                  0.6250000000000004
+                  6.572500000000001,
+                  0.625
                 ],
                 [
-                  6.5725000000000025,
-                  0.22500000000000037
+                  6.572500000000001,
+                  0.22500000000000003
                 ],
                 [
-                  7.022500000000002,
-                  0.22500000000000037
+                  7.0225,
+                  0.22500000000000003
                 ]
               ]
             ]
@@ -5295,8 +5713,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            6.797500000000002,
-            1.0550000000000004
+            6.7975,
+            1.0550000000000002
           ],
           "confidence": 0.25,
           "measured": false,
@@ -5307,9 +5725,9 @@
           "id": "stress-L-wing:L0:R5:item:2",
           "role": "counter_item",
           "position_m": [
-            6.797500000000002,
+            6.7975,
             0.5,
-            0.4250000000000004
+            0.42500000000000004
           ],
           "size_m": [
             0.1,
@@ -5322,24 +5740,24 @@
             "coordinates": [
               [
                 [
-                  6.847500000000002,
-                  0.3750000000000004
+                  6.8475,
+                  0.37500000000000006
                 ],
                 [
-                  6.847500000000002,
-                  0.47500000000000037
+                  6.8475,
+                  0.47500000000000003
                 ],
                 [
-                  6.747500000000002,
-                  0.47500000000000037
+                  6.7475000000000005,
+                  0.47500000000000003
                 ],
                 [
-                  6.747500000000002,
-                  0.3750000000000004
+                  6.7475000000000005,
+                  0.37500000000000006
                 ],
                 [
-                  6.847500000000002,
-                  0.3750000000000004
+                  6.8475,
+                  0.37500000000000006
                 ]
               ]
             ]
@@ -5393,9 +5811,9 @@
           "id": "stress-L-wing:L0:R5:item:3",
           "role": "dresser",
           "position_m": [
-            7.749166666666669,
+            7.749166666666667,
             0.0,
-            0.45000000000000034
+            0.44999999999999996
           ],
           "size_m": [
             0.9,
@@ -5408,24 +5826,24 @@
             "coordinates": [
               [
                 [
-                  8.199166666666668,
-                  0.22500000000000034
+                  8.199166666666667,
+                  0.22499999999999995
                 ],
                 [
-                  8.199166666666668,
-                  0.6750000000000004
+                  8.199166666666667,
+                  0.6749999999999999
                 ],
                 [
-                  7.299166666666669,
-                  0.6750000000000004
+                  7.299166666666667,
+                  0.6749999999999999
                 ],
                 [
-                  7.299166666666669,
-                  0.22500000000000034
+                  7.299166666666667,
+                  0.22499999999999995
                 ],
                 [
-                  8.199166666666668,
-                  0.22500000000000034
+                  8.199166666666667,
+                  0.22499999999999995
                 ]
               ]
             ]
@@ -5471,8 +5889,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            7.749166666666669,
-            1.1050000000000004
+            7.749166666666667,
+            1.105
           ],
           "confidence": 0.25,
           "measured": false,
@@ -5529,6 +5947,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -5559,12 +5978,173 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "id": "stress-L-wing:L0:hall:laundry:item:0",
+          "role": "washing_machine",
+          "position_m": [
+            9.335,
+            0.0,
+            0.535
+          ],
+          "size_m": [
+            0.62,
+            0.9,
+            0.62
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.645000000000001,
+                  0.22500000000000003
+                ],
+                [
+                  9.645000000000001,
+                  0.845
+                ],
+                [
+                  9.025,
+                  0.845
+                ],
+                [
+                  9.025,
+                  0.22500000000000003
+                ],
+                [
+                  9.645000000000001,
+                  0.22500000000000003
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-L-wing:L0:hall:laundry",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "stress-L-wing:L0:hall:laundry",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "procedural:washing_machine",
+            "design_id": null,
+            "role": "washing_machine",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 195
+          },
+          "materials": {
+            "wall": "#c4947b",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#e3e0d6",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.335,
+            1.275
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-L-wing:L0:hall:laundry:item:1",
+          "role": "clothes_dryer",
+          "position_m": [
+            9.335,
+            0.9,
+            0.535
+          ],
+          "size_m": [
+            0.62,
+            0.85,
+            0.62
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.645000000000001,
+                  0.22500000000000003
+                ],
+                [
+                  9.645000000000001,
+                  0.845
+                ],
+                [
+                  9.025,
+                  0.845
+                ],
+                [
+                  9.025,
+                  0.22500000000000003
+                ],
+                [
+                  9.645000000000001,
+                  0.22500000000000003
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-L-wing:L0:hall:laundry",
+          "required": true,
+          "support": {
+            "kind": "object",
+            "id": "stress-L-wing:L0:hall:laundry:item:0",
+            "surface_y_m": 0.9
+          },
+          "asset": {
+            "id": "procedural:clothes_dryer",
+            "design_id": null,
+            "role": "clothes_dryer",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 195
+          },
+          "materials": {
+            "wall": "#c4947b",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#e3e0d6",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "space_efficiency": {
         "wet_area_reclaimed_m2": 5.653899999999999,
         "half_baths_added": 0,
-        "hallway_reclaimed_m2": 6.357119999999998
+        "laundry_reused_m2": 2.0159999999999987,
+        "hallway_reclaimed_m2": 3.248
       },
       "grade": "inferred",
       "confidence": 0.25,
@@ -5576,7 +6156,7 @@
   "stairs": [],
   "total_height_m": 2.8,
   "partition_score": 0.2150536648161559,
-  "estimated_furniture_cost_usd": 6100,
+  "estimated_furniture_cost_usd": 6490,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -5589,12 +6169,12 @@
     "errors": [],
     "warnings": [],
     "metrics": {
-      "room_count": 8,
-      "objects": 25,
-      "coverage_min": 1.0,
-      "hallway_area_fraction_max": 0.1339061871429722,
+      "room_count": 9,
+      "objects": 27,
+      "coverage_min": 0.9999999999999998,
+      "hallway_area_fraction_max": 0.14270110226084157,
       "downloaded_assets_used": 14,
-      "connected_rooms": 8
+      "connected_rooms": 9
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
   },
@@ -5614,7 +6194,7 @@
     "valid_layouts_compared": 3,
     "objective": "least circulation and oversized low-use room area"
   },
-  "space_score": 1.339061871429722,
+  "space_score": 1.4270110226084156,
   "name": "L-wing",
   "input_evidence": {
     "id": "stress-L-wing",

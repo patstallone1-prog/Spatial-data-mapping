@@ -1,5 +1,5 @@
 import {inPolygon} from './tour-world.mjs';
-import {wallRoom,wallRoomCuts} from './finishes.mjs';
+import {wallRoom,wallRoomCuts,wallTileColour,wallCapColour} from './finishes.mjs';
 // Shared renderer for the bounded interior lab and Kerbside's generated-house overlay.
 // Geometry uses the serialized metre contract. GLTFs fit the exact collision/support box.
 export function buildInferredHouse(THREE, house, options = {}) {
@@ -49,9 +49,12 @@ export function buildInferredHouse(THREE, house, options = {}) {
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);
     mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);return mesh;
   }
-  function wall(parent,a,b,y,h,color,thick=.10) {
+  function wall(parent,a,b,y,h,color,thick=.10,interiorColour=null) {
     const length=Math.hypot(b[0]-a[0],b[1]-a[1]);if(length<.015)return;
-    const mats=Array.isArray(color)?[material('#e8e4da'),material('#e8e4da'),material('#e8e4da'),material('#e8e4da'),color[0]?.isMaterial?color[0]:material(color[0]),color[1]?.isMaterial?color[1]:material(color[1])]:material(color);
+    let mats;
+    if(Array.isArray(color)){const cap=wallCapColour(house,color[0],interiorColour),capMat=cap?.isMaterial?cap:material(cap);
+      mats=[capMat,capMat,capMat,capMat,color[0]?.isMaterial?color[0]:material(color[0]),color[1]?.isMaterial?color[1]:material(color[1])];
+    }else mats=material(color);
     const mesh=box(parent,length,h,thick,(a[0]+b[0])/2,y+h/2,(a[1]+b[1])/2,mats);
     mesh.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);const uv=mesh.geometry.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*length,uv.getY(i)*h);return mesh;
   }
@@ -83,8 +86,13 @@ export function buildInferredHouse(THREE, house, options = {}) {
       }else if(role==='dishwasher') {
         box(parent,w,h,d,0,h/2,0,steel);box(parent,w*.9,.025,.04,0,h*.8,d/2+.025,dark);box(parent,w*.8,.18,.022,0,h*.4,d/2+.015,steel);
       }else if(role==='booth') {
-        box(parent,w,.22,d,0,.22,0,wood);box(parent,w,.16,d*.94,0,.46,.02,fabric);box(parent,w,h*.6,.13,0,h*.7,-d*.4,fabric);
-        for(let x=-w*.4;x<w*.45;x+=.22)box(parent,.012,h*.48,.012,x,h*.71,-d*.32,cream);
+        const design=o.asset.design_id||house.style.booth_design||'channel';
+        box(parent,w,.12,d,0,.06,0,wood);box(parent,w,.30,d,0,.27,0,wood);box(parent,w,.16,d*.94,0,.46,.02,fabric);
+        box(parent,w,h-.44,.13,0,(h+.44)/2,-d/2+.065,design==='timber'?timber(house.style.wood):fabric);
+        if(design==='channel')for(let x=-w*.45;x<w*.46;x+=.18)box(parent,.012,h*.44,.012,x,h*.73,-d/2+.135,cream);
+        if(design==='tufted')for(let x=-w*.4;x<w*.42;x+=.24)for(const y of [.66,.87]){
+          const button=new THREE.Mesh(new THREE.SphereGeometry(.018,8,6),dark);button.position.set(x,y,-d/2+.14);parent.add(button);}
+        if(design==='timber')for(let x=-w*.44;x<w*.45;x+=.18)box(parent,.045,h*.48,.035,x,h*.74,-d/2+.14,timber(house.style.wood));
       }else if(['service_counter','bar_counter'].includes(role)) {
         box(parent,w,h-.07,d,0,(h-.07)/2,0,wood);box(parent,w,.07,d,0,h-.035,0,material(house.style.stone));
         for(let x=-w*.45;x<w*.45;x+=.12)box(parent,.035,h*.83,.018,x,h*.45,d/2+.01,dark);
@@ -149,10 +157,13 @@ export function buildInferredHouse(THREE, house, options = {}) {
     } else if(role==='closet_rail') {
       box(parent,w,.04,d,0,h,0);box(parent,w,.035,.035,0,h*.86,0,dark);
       for(let i=0;i<5;i++)box(parent,.06,h*.4,d*.65,(i-2)*w/6,h*.57,0,fabric);
-    } else if(role==='washing_machine') {
+    } else if(role==='washing_machine'||role==='clothes_dryer') {
       box(parent,w,h,d,0,h/2,0,ceramic);
       const drum=new THREE.Mesh(new THREE.CylinderGeometry(w*.32,w*.32,.04,32),dark);drum.rotation.x=Math.PI/2;
       drum.position.set(0,h*.48,d/2+.01);parent.add(drum);
+      box(parent,w*.88,.11,.024,0,h-.10,d/2+.014,role==='clothes_dryer'?dark:material('#ccc9bf'));
+      const dial=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.025,16),steel);dial.rotation.x=Math.PI/2;dial.position.set(w*.25,h-.10,d/2+.035);parent.add(dial);
+      box(parent,w*.24,.035,.008,-w*.22,h-.10,d/2+.031,material('#56888c'));
     } else {
       box(parent,w,h,d,0,h/2,0,role.includes('item')?ceramic:wood);
     }
@@ -247,7 +258,7 @@ export function buildInferredHouse(THREE, house, options = {}) {
       if(wallHeight>1.5)wall(fg,a,b,f.elevation_m+Math.min(wallHeight,w.height_m)-.06,.06,'#eadbc3',(w.thickness_m||.10)+.025);
       const p=[(a[0]+b[0])/2,(a[1]+b[1])/2],L=Math.hypot(b[0]-a[0],b[1]-a[1]),left=[p[0]-(b[1]-a[1])/L*.12,p[1]+(b[0]-a[0])/L*.12],right=[2*p[0]-left[0],2*p[1]-left[1]];
       const wet=point=>f.rooms.some(r=>['full_bathroom','toilet','professional_kitchen'].includes(r.kind)&&inPolygon(...point,r.polygon));
-      const paint=w.side_materials||w.materials,faces=[wet(left)?floorMaterial(house.style.stone,'tile'):paint[0],wet(right)?floorMaterial(house.style.stone,'tile'):paint[1]];
+      const paint=w.side_materials||w.materials,faces=[wet(left)?floorMaterial(wallTileColour(house,paint[0]),'tile'):paint[0],wet(right)?floorMaterial(wallTileColour(house,paint[1]),'tile'):paint[1]];
       if(wet(left)||wet(right))wall(fg,a,b,f.elevation_m+.12,Math.min(1.08,wallHeight-.12),faces,(w.thickness_m||.10)+.006);
       segments.push({level:f.level,line:[...a,...b]});
     }
@@ -270,7 +281,7 @@ export function buildInferredHouse(THREE, house, options = {}) {
           if(!holes.some(o=>u>o[0]&&u<o[2]&&v>o[1]&&v<o[3])){
             const room=wallRoom(f,a,b,u),insideLeft=inPolygon(a[0]+ux*u-uz*.2,a[1]+uz*u+ux*.2,f.inside),inner=room?.materials.wall||house.style.walls[0],outer=house.style.stone;
             const p=[a[0]+ux*xs[x],a[1]+uz*xs[x]],q=[a[0]+ux*xs[x+1],a[1]+uz*xs[x+1]];
-            wall(fg,p,q,f.elevation_m+ys[y],ys[y+1]-ys[y],insideLeft?[inner,outer]:[outer,inner],.28);
+            wall(fg,p,q,f.elevation_m+ys[y],ys[y+1]-ys[y],insideLeft?[inner,outer]:[outer,inner],.28,inner);
             if(ys[y]===0)wall(fg,p,q,f.elevation_m,.11,house.style.wood,.305);
           }
         }

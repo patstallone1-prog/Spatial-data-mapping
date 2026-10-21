@@ -3611,6 +3611,7 @@
           },
           "asset": {
             "id": "procedural:sofa",
+            "design_id": null,
             "role": "sofa",
             "procedural": true,
             "license": "project",
@@ -3954,6 +3955,7 @@
           },
           "asset": {
             "id": "procedural:sink_counter",
+            "design_id": null,
             "role": "sink_counter",
             "procedural": true,
             "license": "project",
@@ -4035,6 +4037,7 @@
           },
           "asset": {
             "id": "procedural:cooker",
+            "design_id": null,
             "role": "cooker",
             "procedural": true,
             "license": "project",
@@ -4116,6 +4119,7 @@
           },
           "asset": {
             "id": "procedural:refrigerator",
+            "design_id": null,
             "role": "refrigerator",
             "procedural": true,
             "license": "project",
@@ -4197,6 +4201,7 @@
           },
           "asset": {
             "id": "procedural:counter",
+            "design_id": null,
             "role": "counter",
             "procedural": true,
             "license": "project",
@@ -4716,6 +4721,7 @@
           },
           "asset": {
             "id": "procedural:toilet",
+            "design_id": null,
             "role": "toilet",
             "procedural": true,
             "license": "project",
@@ -4797,6 +4803,7 @@
           },
           "asset": {
             "id": "procedural:bath_sink",
+            "design_id": null,
             "role": "bath_sink",
             "procedural": true,
             "license": "project",
@@ -5234,6 +5241,7 @@
           },
           "asset": {
             "id": "procedural:washing_machine",
+            "design_id": null,
             "role": "washing_machine",
             "procedural": true,
             "license": "project",
@@ -5269,6 +5277,7 @@
       "space_efficiency": {
         "wet_area_reclaimed_m2": 9.424619999999994,
         "half_baths_added": 0,
+        "laundry_reused_m2": 0.0,
         "hallway_reclaimed_m2": 2.797760000000002
       },
       "grade": "inferred",
@@ -5562,27 +5571,27 @@
               [
                 [
                   9.869705103999998,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   9.674929981119998,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   9.523005385273597,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   9.404504200513406,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   9.312073276400456,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   9.239977155592355,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   9.239977155592355,
@@ -5606,19 +5615,19 @@
                 ],
                 [
                   10.85,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   10.439559999999998,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   10.119416799999998,
-                  6.379999999999999
+                  6.38
                 ],
                 [
                   9.869705103999998,
-                  6.379999999999999
+                  6.38
                 ]
               ]
             ]
@@ -5653,6 +5662,10 @@
             "coordinates": [
               [
                 [
+                  3.2279999999999998,
+                  0.15000000000000002
+                ],
+                [
                   0.15000000000000036,
                   0.15000000000000002
                 ],
@@ -5661,33 +5674,17 @@
                   4.4399999999999995
                 ],
                 [
-                  0.15000000000000036,
-                  5.5600000000000005
-                ],
-                [
-                  2.6479999999999997,
-                  5.5600000000000005
-                ],
-                [
-                  2.6479999999999997,
-                  4.4399999999999995
-                ],
-                [
                   3.2279999999999998,
                   4.4399999999999995
                 ],
                 [
                   3.2279999999999998,
-                  0.15000000000000002
-                ],
-                [
-                  0.15000000000000036,
                   0.15000000000000002
                 ]
               ]
             ]
           },
-          "area_m2": 16.002379999999995,
+          "area_m2": 13.204619999999995,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -5722,46 +5719,46 @@
                 ],
                 [
                   9.239977155592355,
-                  6.379999999999999
+                  6.38
                 ],
                 [
-                  4.347999999999999,
-                  6.379999999999999
+                  4.348,
+                  6.38
                 ],
                 [
-                  4.347999999999999,
-                  0.15000000000000002
+                  4.348,
+                  0.15
                 ],
                 [
-                  3.2279999999999998,
-                  0.15000000000000002
+                  3.228,
+                  0.15
                 ],
                 [
-                  3.2279999999999998,
-                  4.4399999999999995
+                  3.228,
+                  4.44
                 ],
                 [
-                  2.6479999999999997,
-                  4.4399999999999995
+                  1.95,
+                  4.44
                 ],
                 [
-                  2.6479999999999997,
-                  5.5600000000000005
+                  1.95,
+                  5.56
                 ],
                 [
-                  3.2279999999999998,
-                  5.5600000000000005
+                  3.228,
+                  5.56
                 ],
                 [
-                  3.2279999999999998,
+                  3.228,
                   9.85
                 ],
                 [
-                  4.347999999999999,
+                  4.348,
                   9.85
                 ],
                 [
-                  4.347999999999999,
+                  4.348,
                   7.5
                 ],
                 [
@@ -5771,7 +5768,7 @@
               ]
             ]
           },
-          "area_m2": 16.992614414263432,
+          "area_m2": 17.77437441426344,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -5885,6 +5882,60 @@
             ]
           },
           "area_m2": 6.724619999999997,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-three-storey:L1:hall:laundry",
+          "kind": "utility",
+          "laundry_stack": true,
+          "reused_space": "former_hall_end",
+          "materials": {
+            "wall": "#d6b06c",
+            "accent_wall": "#61735f",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a47a50",
+            "fabric": "#a8aa98",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#ded8cb",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.15,
+                  4.44
+                ],
+                [
+                  0.15,
+                  5.56
+                ],
+                [
+                  1.95,
+                  5.56
+                ],
+                [
+                  1.95,
+                  4.44
+                ],
+                [
+                  0.15,
+                  4.44
+                ]
+              ]
+            ]
+          },
+          "area_m2": 2.0159999999999987,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -7050,6 +7101,304 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "id": "stress-three-storey:L1:hall:laundry:opening:7",
+          "rooms": [
+            "stress-three-storey:L1:hall:laundry",
+            "stress-three-storey:L1:hall"
+          ],
+          "type": "doorway",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.95,
+                5.52
+              ],
+              [
+                1.95,
+                4.48
+              ]
+            ]
+          },
+          "width_m": 1.0399999999999991,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "material": null,
+          "swing_into": null,
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.25,
+                  5.0
+                ],
+                [
+                  2.248555418001659,
+                  4.970594857901132
+                ],
+                [
+                  2.244235584120969,
+                  4.941472903395161
+                ],
+                [
+                  2.2370821007196624,
+                  4.912914596823661
+                ],
+                [
+                  2.227163859753386,
+                  4.885194970290473
+                ],
+                [
+                  2.2145763793045066,
+                  4.858580978952201
+                ],
+                [
+                  2.1994408836907633,
+                  4.833328930094119
+                ],
+                [
+                  2.1819031360088212,
+                  4.809682014750907
+                ],
+                [
+                  2.162132034355964,
+                  4.787867965644036
+                ],
+                [
+                  2.1403179852490934,
+                  4.768096863991179
+                ],
+                [
+                  2.116671069905881,
+                  4.750559116309237
+                ],
+                [
+                  2.091419021047799,
+                  4.735423620695493
+                ],
+                [
+                  2.064805029709527,
+                  4.722836140246614
+                ],
+                [
+                  2.037085403176339,
+                  4.712917899280337
+                ],
+                [
+                  2.0085270966048383,
+                  4.705764415879031
+                ],
+                [
+                  1.979405142098868,
+                  4.701444581998341
+                ],
+                [
+                  1.95,
+                  4.7
+                ],
+                [
+                  1.9205948579011318,
+                  4.701444581998341
+                ],
+                [
+                  1.8914729033951616,
+                  4.705764415879031
+                ],
+                [
+                  1.8629145968236613,
+                  4.712917899280337
+                ],
+                [
+                  1.835194970290473,
+                  4.722836140246614
+                ],
+                [
+                  1.8085809789522007,
+                  4.735423620695493
+                ],
+                [
+                  1.7833289300941193,
+                  4.750559116309236
+                ],
+                [
+                  1.7596820147509065,
+                  4.768096863991179
+                ],
+                [
+                  1.7378679656440357,
+                  4.787867965644036
+                ],
+                [
+                  1.718096863991179,
+                  4.809682014750907
+                ],
+                [
+                  1.7005591163092364,
+                  4.833328930094119
+                ],
+                [
+                  1.6854236206954936,
+                  4.858580978952201
+                ],
+                [
+                  1.6728361402466139,
+                  4.885194970290473
+                ],
+                [
+                  1.6629178992803373,
+                  4.912914596823661
+                ],
+                [
+                  1.6557644158790308,
+                  4.941472903395161
+                ],
+                [
+                  1.651444581998341,
+                  4.970594857901132
+                ],
+                [
+                  1.65,
+                  5.0
+                ],
+                [
+                  1.6514445819983408,
+                  5.029405142098868
+                ],
+                [
+                  1.6557644158790308,
+                  5.058527096604839
+                ],
+                [
+                  1.6629178992803373,
+                  5.087085403176339
+                ],
+                [
+                  1.6728361402466139,
+                  5.114805029709527
+                ],
+                [
+                  1.6854236206954933,
+                  5.141419021047799
+                ],
+                [
+                  1.7005591163092364,
+                  5.16667106990588
+                ],
+                [
+                  1.718096863991179,
+                  5.190317985249093
+                ],
+                [
+                  1.7378679656440357,
+                  5.212132034355964
+                ],
+                [
+                  1.7596820147509062,
+                  5.231903136008821
+                ],
+                [
+                  1.7833289300941193,
+                  5.249440883690763
+                ],
+                [
+                  1.8085809789522005,
+                  5.264576379304507
+                ],
+                [
+                  1.8351949702904728,
+                  5.277163859753386
+                ],
+                [
+                  1.8629145968236611,
+                  5.287082100719663
+                ],
+                [
+                  1.8914729033951614,
+                  5.294235584120969
+                ],
+                [
+                  1.9205948579011318,
+                  5.298555418001659
+                ],
+                [
+                  1.95,
+                  5.3
+                ],
+                [
+                  1.979405142098868,
+                  5.298555418001659
+                ],
+                [
+                  2.0085270966048383,
+                  5.294235584120969
+                ],
+                [
+                  2.037085403176339,
+                  5.287082100719663
+                ],
+                [
+                  2.064805029709527,
+                  5.277163859753386
+                ],
+                [
+                  2.091419021047799,
+                  5.264576379304507
+                ],
+                [
+                  2.1166710699058804,
+                  5.249440883690764
+                ],
+                [
+                  2.1403179852490934,
+                  5.231903136008821
+                ],
+                [
+                  2.162132034355964,
+                  5.212132034355965
+                ],
+                [
+                  2.181903136008821,
+                  5.190317985249094
+                ],
+                [
+                  2.1994408836907633,
+                  5.166671069905881
+                ],
+                [
+                  2.2145763793045066,
+                  5.141419021047799
+                ],
+                [
+                  2.227163859753386,
+                  5.114805029709527
+                ],
+                [
+                  2.2370821007196624,
+                  5.087085403176339
+                ],
+                [
+                  2.244235584120969,
+                  5.058527096604839
+                ],
+                [
+                  2.248555418001659,
+                  5.029405142098868
+                ],
+                [
+                  2.25,
+                  5.0
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "walls": [
@@ -7603,7 +7952,7 @@
             "coordinates": [
               [
                 9.239977155592355,
-                6.379999999999999
+                6.38
               ],
               [
                 9.239977155592355,
@@ -7738,11 +8087,11 @@
             "type": "LineString",
             "coordinates": [
               [
-                2.6479999999999997,
-                5.5600000000000005
+                1.949999,
+                4.4399999999999995
               ],
               [
-                2.6479999999999997,
+                3.2279999999999998,
                 4.4399999999999995
               ]
             ]
@@ -7756,40 +8105,6 @@
           "side_materials": [
             "#dfc5a3",
             "#61735f"
-          ],
-          "rooms": [
-            "stress-three-storey:L1:R3",
-            "stress-three-storey:L1:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                2.6479999999999997,
-                4.4399999999999995
-              ],
-              [
-                3.2279999999999998,
-                4.4399999999999995
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.65,
-          "materials": [
-            "#c58f75",
-            "#dfc5a3"
-          ],
-          "side_materials": [
-            "#dfc5a3",
-            "#c58f75"
           ],
           "rooms": [
             "stress-three-storey:L1:R3",
@@ -7875,11 +8190,11 @@
             "coordinates": [
               [
                 0.15000000000000036,
-                5.5600000000000005
+                4.4399999999999995
               ],
               [
-                2.6479999999999997,
-                5.5600000000000005
+                1.9500009999999999,
+                4.4399999999999995
               ]
             ]
           },
@@ -7887,15 +8202,15 @@
           "height_m": 2.65,
           "materials": [
             "#c58f75",
-            "#c58f75"
+            "#d6b06c"
           ],
           "side_materials": [
-            "#c58f75",
+            "#d6b06c",
             "#c58f75"
           ],
           "rooms": [
             "stress-three-storey:L1:R3",
-            "stress-three-storey:L1:R0:reclaimed:0"
+            "stress-three-storey:L1:hall:laundry"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -7908,12 +8223,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                2.6479999999999997,
-                5.5600000000000005
+                1.95,
+                5.56
               ],
               [
-                3.2279999999999998,
-                5.5600000000000005
+                3.228,
+                5.56
               ]
             ]
           },
@@ -7942,11 +8257,11 @@
             "type": "LineString",
             "coordinates": [
               [
-                3.2279999999999998,
-                5.5600000000000005
+                3.228,
+                5.56
               ],
               [
-                3.2279999999999998,
+                3.228,
                 7.450001
               ]
             ]
@@ -7964,6 +8279,108 @@
           "rooms": [
             "stress-three-storey:L1:hall",
             "stress-three-storey:L1:R0:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.95,
+                4.44
+              ],
+              [
+                1.95,
+                4.479
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#dfc5a3",
+            "#d6b06c"
+          ],
+          "side_materials": [
+            "#d6b06c",
+            "#dfc5a3"
+          ],
+          "rooms": [
+            "stress-three-storey:L1:hall",
+            "stress-three-storey:L1:hall:laundry"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.95,
+                5.521
+              ],
+              [
+                1.95,
+                5.56
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#dfc5a3",
+            "#d6b06c"
+          ],
+          "side_materials": [
+            "#d6b06c",
+            "#dfc5a3"
+          ],
+          "rooms": [
+            "stress-three-storey:L1:hall",
+            "stress-three-storey:L1:hall:laundry"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.9500009999999999,
+                5.5600000000000005
+              ],
+              [
+                0.15000000000000036,
+                5.5600000000000005
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.65,
+          "materials": [
+            "#c58f75",
+            "#d6b06c"
+          ],
+          "side_materials": [
+            "#d6b06c",
+            "#c58f75"
+          ],
+          "rooms": [
+            "stress-three-storey:L1:R0:reclaimed:0",
+            "stress-three-storey:L1:hall:laundry"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -8023,6 +8440,7 @@
           },
           "asset": {
             "id": "procedural:toilet",
+            "design_id": null,
             "role": "toilet",
             "procedural": true,
             "license": "project",
@@ -8104,6 +8522,7 @@
           },
           "asset": {
             "id": "procedural:bath_sink",
+            "design_id": null,
             "role": "bath_sink",
             "procedural": true,
             "license": "project",
@@ -8185,6 +8604,7 @@
           },
           "asset": {
             "id": "procedural:bath_shower",
+            "design_id": null,
             "role": "bath_shower",
             "procedural": true,
             "license": "project",
@@ -8266,6 +8686,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -8667,6 +9088,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -8748,6 +9170,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -9149,6 +9572,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -9550,6 +9974,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -9580,12 +10005,173 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "id": "stress-three-storey:L1:hall:laundry:item:0",
+          "role": "washing_machine",
+          "position_m": [
+            0.535,
+            3.0,
+            5.0
+          ],
+          "size_m": [
+            0.62,
+            0.9,
+            0.62
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22500000000000003,
+                  4.69
+                ],
+                [
+                  0.845,
+                  4.69
+                ],
+                [
+                  0.845,
+                  5.31
+                ],
+                [
+                  0.22500000000000003,
+                  5.31
+                ],
+                [
+                  0.22500000000000003,
+                  4.69
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-three-storey:L1:hall:laundry",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "stress-three-storey:L1:hall:laundry",
+            "surface_y_m": 3.0
+          },
+          "asset": {
+            "id": "procedural:washing_machine",
+            "design_id": null,
+            "role": "washing_machine",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d6b06c",
+            "accent_wall": "#61735f",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a47a50",
+            "fabric": "#a8aa98",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#ded8cb",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.275,
+            5.0
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-three-storey:L1:hall:laundry:item:1",
+          "role": "clothes_dryer",
+          "position_m": [
+            0.535,
+            3.9,
+            5.0
+          ],
+          "size_m": [
+            0.62,
+            0.85,
+            0.62
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22500000000000003,
+                  4.69
+                ],
+                [
+                  0.845,
+                  4.69
+                ],
+                [
+                  0.845,
+                  5.31
+                ],
+                [
+                  0.22500000000000003,
+                  5.31
+                ],
+                [
+                  0.22500000000000003,
+                  4.69
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-three-storey:L1:hall:laundry",
+          "required": true,
+          "support": {
+            "kind": "object",
+            "id": "stress-three-storey:L1:hall:laundry:item:0",
+            "surface_y_m": 3.9
+          },
+          "asset": {
+            "id": "procedural:clothes_dryer",
+            "design_id": null,
+            "role": "clothes_dryer",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d6b06c",
+            "accent_wall": "#61735f",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a47a50",
+            "fabric": "#a8aa98",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#ded8cb",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "space_efficiency": {
         "wet_area_reclaimed_m2": 6.724619999999996,
         "half_baths_added": 0,
-        "hallway_reclaimed_m2": 4.600985585736566
+        "laundry_reused_m2": 2.0159999999999987,
+        "hallway_reclaimed_m2": 1.8032255857365627
       },
       "grade": "inferred",
       "confidence": 0.25,
@@ -11508,6 +12094,7 @@
           },
           "asset": {
             "id": "procedural:toilet",
+            "design_id": null,
             "role": "toilet",
             "procedural": true,
             "license": "project",
@@ -11589,6 +12176,7 @@
           },
           "asset": {
             "id": "procedural:bath_sink",
+            "design_id": null,
             "role": "bath_sink",
             "procedural": true,
             "license": "project",
@@ -11670,6 +12258,7 @@
           },
           "asset": {
             "id": "procedural:bath_shower",
+            "design_id": null,
             "role": "bath_shower",
             "procedural": true,
             "license": "project",
@@ -11751,6 +12340,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -12152,6 +12742,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -12553,6 +13144,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -12588,6 +13180,7 @@
       "space_efficiency": {
         "wet_area_reclaimed_m2": 6.724619999999996,
         "half_baths_added": 0,
+        "laundry_reused_m2": 0.0,
         "hallway_reclaimed_m2": 2.7977600000000016
       },
       "grade": "inferred",
@@ -14022,7 +14615,7 @@
   ],
   "total_height_m": 8.4,
   "partition_score": 0.19127539583132608,
-  "estimated_furniture_cost_usd": 16073,
+  "estimated_furniture_cost_usd": 16673,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -14035,12 +14628,12 @@
     "errors": [],
     "warnings": [],
     "metrics": {
-      "room_count": 22,
-      "objects": 49,
-      "coverage_min": 1.0,
-      "hallway_area_fraction_max": 0.16372111392488134,
+      "room_count": 23,
+      "objects": 51,
+      "coverage_min": 0.9999999999999998,
+      "hallway_area_fraction_max": 0.17125324611488046,
       "downloaded_assets_used": 27,
-      "connected_rooms": 22
+      "connected_rooms": 23
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
   },
@@ -14051,7 +14644,7 @@
     "valid_layouts_compared": 3,
     "objective": "least circulation and oversized low-use room area"
   },
-  "space_score": 1.3699648517866718,
+  "space_score": 1.3950719590866691,
   "name": "three-storey",
   "input_evidence": {
     "id": "stress-three-storey",

@@ -1,20 +1,26 @@
 {
   "schema": "kerbside.restaurant_batch/1",
-  "round": 10,
+  "round": 11,
   "houses": [
     {
-      "id": "restaurant-288391504",
-      "name": "Scoma's Restaurant",
-      "file": "restaurant-288391504.json",
+      "id": "restaurant-272632304",
+      "name": "S F Hospitality Inc",
+      "file": "restaurant-272632304.json",
       "passed": true,
       "storeys": 1,
       "style": "Ash & slate",
       "metrics": {
-        "coverage_min": 0.9999999999999999,
+        "coverage_min": 0.9999999999999998,
         "room_count": 3,
         "objects": 14,
         "seats": 0,
         "tables": 0,
+        "table_sizes": {
+          "2": 0,
+          "4": 0,
+          "6": 0
+        },
+        "table_modules": 0,
         "booths": 0,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
@@ -22,32 +28,32 @@
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-288391504",
-        "osm_id": "288391504",
-        "name": "Scoma's Restaurant",
+        "id": "restaurant-272632304",
+        "osm_id": "272632304",
+        "name": "S F Hospitality Inc",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                2.4713770536354334,
-                3.161488000560553
+                -4.04616141894909,
+                2.4601719994836913
               ],
               [
-                2.1811441608909234,
-                -3.328468000138969
+                3.061009073150619,
+                3.6178999995664185
               ],
               [
-                -2.497761862975724,
-                -3.150355999639487
+                4.0549574227620155,
+                -2.4601720002746674
               ],
               [
-                -2.163554289663844,
-                3.295072000539676
+                -3.052213070587681,
+                -3.6290320004874843
               ],
               [
-                2.4713770536354334,
-                3.161488000560553
+                -4.04616141894909,
+                2.4601719994836913
               ]
             ]
           ]
@@ -55,74 +61,80 @@
         "units": "metres",
         "height_m": 3.2,
         "entrance": [
-          0.15391138198579446,
-          3.2282800005501144
+          -0.4925761728992355,
+          3.039035999525055
         ],
         "origin_lon_lat": [
-          -122.4189926,
-          37.80898
+          -122.4402264,
+          37.8000211
         ],
         "stratum": "pickup",
         "service_mode": "pickup",
         "bar": false,
         "average_spend_per_person": 15,
         "currency": "USD",
-        "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+        "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+        "selection_hash": "b4fdcd8880fd561f9b1336fff553f64dc2f62fd6906e84e82f491c9724349c6c"
       },
       "service_mode": "pickup"
     },
     {
-      "id": "restaurant-262749427",
-      "name": "Grandeho\u2019s Kamekyo",
-      "file": "restaurant-262749427.json",
+      "id": "restaurant-256080526",
+      "name": "Bow Hon Seafood Restaurant",
+      "file": "restaurant-256080526.json",
       "passed": true,
       "storeys": 1,
       "style": "Coastal linen & blue",
       "metrics": {
-        "coverage_min": 0.9999999999999999,
+        "coverage_min": 1.0,
         "room_count": 3,
-        "objects": 41,
-        "seats": 14,
-        "tables": 7,
+        "objects": 45,
+        "seats": 16,
+        "tables": 5,
+        "table_sizes": {
+          "2": 3,
+          "4": 1,
+          "6": 1
+        },
+        "table_modules": 8,
         "booths": 0,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 7,
+        "downloaded_assets_used": 8,
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-262749427",
-        "osm_id": "262749427",
-        "name": "Grandeho\u2019s Kamekyo",
+        "id": "restaurant-256080526",
+        "osm_id": "256080526",
+        "name": "Bow Hon Seafood Restaurant",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                10.325651723603789,
-                4.1077080005445055
+                7.424333994085092,
+                -2.449040000144578
               ],
               [
-                11.284336593290027,
-                -1.9147039994371085
+                -6.755792071318003,
+                -4.4416679997013375
               ],
               [
-                -6.913085394961821,
-                -4.809024000039415
+                -7.7058253311713045,
+                1.2467840003324682
               ],
               [
-                -7.871770264648059,
-                1.2133879999421993
+                0.4134403993921356,
+                2.382248000155016
               ],
               [
-                -6.816337380016474,
-                1.3803680003115915
+                6.6150464027748965,
+                3.2505440000193175
               ],
               [
-                10.325651723603789,
-                4.1077080005445055
+                7.424333994085092,
+                -2.449040000144578
               ]
             ]
           ]
@@ -130,12 +142,12 @@
         "units": "metres",
         "height_m": 3.2,
         "entrance": [
-          3.204681230506207,
-          -3.1997820797045327
+          -7.230808701244653,
+          -1.5974419996844347
         ],
         "origin_lon_lat": [
-          -122.4207039,
-          37.8061429
+          -122.4062982,
+          37.7949724
         ],
         "stratum": "narrow",
         "service_mode": "auto",
@@ -144,112 +156,62 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "8ddb9fb64be96c555a05ec22917cfd653aca8b0cef6508f15b306d7ac5b485eb"
+        "selection_hash": "a7903230180eecb5ae18448bb87a660f3e7048755a142b9e8bd4052e7f1bb0f5"
       },
       "service_mode": "table"
     },
     {
-      "id": "restaurant-288485994",
-      "name": "Cafe Zoetrope",
-      "file": "restaurant-288485994.json",
+      "id": "restaurant-206629809",
+      "name": "Eight Tables by George Chen",
+      "file": "restaurant-206629809.json",
       "passed": true,
       "storeys": 1,
-      "style": "Walnut & muted terracotta",
+      "style": "Coastal linen & blue",
       "metrics": {
-        "coverage_min": 0.9999999999999994,
+        "coverage_min": 1.0000000000000002,
         "room_count": 3,
-        "objects": 61,
-        "seats": 26,
-        "tables": 12,
+        "objects": 78,
+        "seats": 34,
+        "tables": 11,
+        "table_sizes": {
+          "2": 6,
+          "4": 4,
+          "6": 1
+        },
+        "table_modules": 17,
         "booths": 2,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 46,
+        "downloaded_assets_used": 63,
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-288485994",
-        "osm_id": "288485994",
-        "name": "Cafe Zoetrope",
+        "id": "restaurant-206629809",
+        "osm_id": "206629809",
+        "name": "Eight Tables by George Chen",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                13.845552164017692,
-                -9.785028000448222
+                5.576792080505845,
+                -11.521619999385848
               ],
               [
-                -0.299078000734807,
-                -12.133880000212969
+                -1.7856290101915426,
+                -12.679347999468575
               ],
               [
-                -1.0027909437137674,
-                -12.245199999931913
+                -6.2365072315495125,
+                15.696119999919915
               ],
               [
-                -3.157911834008796,
-                0.44527999966675225
+                2.4277517569907094,
+                8.493716000386371
               ],
               [
-                -3.456989834743603,
-                0.6790520000257061
-              ],
-              [
-                -3.8968104245742206,
-                1.391499999650705
-              ],
-              [
-                -4.07273866000645,
-                2.215267999785624
-              ],
-              [
-                -3.9759781297686962,
-                3.0501680000506326
-              ],
-              [
-                -3.597732422589368,
-                3.7960120000659003
-              ],
-              [
-                -2.999576421119754,
-                4.3860079998418655
-              ],
-              [
-                -2.243085006761098,
-                4.731099999919763
-              ],
-              [
-                -1.4074258859579207,
-                4.820155999378528
-              ],
-              [
-                -0.6245452365344393,
-                4.630911999539933
-              ],
-              [
-                0.07037129517292774,
-                4.20789600013336
-              ],
-              [
-                0.5805631789264274,
-                3.573371999837036
-              ],
-              [
-                0.8620483558680025,
-                2.8163959996916788
-              ],
-              [
-                0.8796411796612345,
-                2.5158320001341394
-              ],
-              [
-                14.452504578008943,
-                -9.128239999891719
-              ],
-              [
-                13.845552164017692,
-                -9.785028000448222
+                5.576792080505845,
+                -11.521619999385848
               ]
             ]
           ]
@@ -257,12 +219,12 @@
         "units": "metres",
         "height_m": 3.2,
         "entrance": [
-          -2.080351388861282,
-          -5.89996000013258
+          -1.9043777372794013,
+          12.094918000153143
         ],
         "origin_lon_lat": [
-          -122.4050856,
-          37.7965888
+          -122.4077442,
+          37.7983505
         ],
         "stratum": "irregular",
         "service_mode": "auto",
@@ -271,84 +233,66 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "451d16904de8118a742c40f7fc5e5ce81356a94b7b5afb6168e8f33937b7c398"
+        "selection_hash": "4f4eea81390ddee59bf6bca04258d86e4145c50b3f98d5b8ea92f6ddca08cfac"
       },
       "service_mode": "table"
     },
     {
-      "id": "restaurant-262397369",
-      "name": "Pizza Avellino",
-      "file": "restaurant-262397369.json",
+      "id": "restaurant-32611674",
+      "name": "North Beach Restaurant",
+      "file": "restaurant-32611674.json",
       "passed": true,
       "storeys": 1,
-      "style": "Walnut & muted terracotta",
+      "style": "Warm oak & sage",
       "metrics": {
         "coverage_min": 1.0,
         "room_count": 4,
-        "objects": 72,
-        "seats": 31,
-        "tables": 14,
-        "booths": 3,
+        "objects": 165,
+        "seats": 76,
+        "tables": 25,
+        "table_sizes": {
+          "2": 13,
+          "4": 11,
+          "6": 1
+        },
+        "table_modules": 38,
+        "booths": 2,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 55,
+        "downloaded_assets_used": 149,
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-262397369",
-        "osm_id": "262397369",
-        "name": "Pizza Avellino",
+        "id": "restaurant-32611674",
+        "osm_id": "32611674",
+        "name": "North Beach Restaurant",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                5.436054915672192,
-                11.109735999318389
+                11.10938331553577,
+                -5.109587999596954
               ],
               [
-                7.767049337902183,
-                -4.1633680004039775
+                -14.003276514237294,
+                -9.10597599963154
               ],
               [
-                7.96936206054855,
-                -5.49920800019521
+                -15.929606637141957,
+                2.326588000295544
               ],
               [
-                1.8735917428773101,
-                -6.434296000049073
+                9.297401555588921,
+                6.668068000408027
               ],
               [
-                2.1638665189568806,
-                -8.382396000667427
+                9.543690338882664,
+                5.198643999846695
               ],
               [
-                -1.4953549121145193,
-                -8.938996000053123
-              ],
-              [
-                -4.213382369950615,
-                -9.362012000250672
-              ],
-              [
-                -6.26289822094435,
-                4.08544399949335
-              ],
-              [
-                -6.949002238723355,
-                8.582771999845136
-              ],
-              [
-                -3.1138566995355306,
-                9.161635999491011
-              ],
-              [
-                -3.210614959062065,
-                9.785027999657245
-              ],
-              [
-                5.436054915672192,
-                11.109735999318389
+                11.10938331553577,
+                -5.109587999596954
               ]
             ]
           ]
@@ -356,12 +300,12 @@
         "units": "metres",
         "height_m": 3.2,
         "entrance": [
-          1.1127199783050639,
-          10.447381999487817
+          -14.966441575689625,
+          -3.3896939996679976
         ],
         "origin_lon_lat": [
-          -122.4470049,
-          37.7983224
+          -122.4087829,
+          37.7998122
         ],
         "stratum": "large",
         "service_mode": "auto",
@@ -370,80 +314,62 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "0cc3849b6f98f322e544ce513096fb39ac2fb7a0a46ef4f7fc1a19e9974bda04"
+        "selection_hash": "13e849ba96c14ecc1697e614106835df0c14546fe1c60f93c39fc66f925ac84b"
       },
       "service_mode": "table"
     },
     {
-      "id": "restaurant-272632243",
-      "name": "Squat & Gobble",
-      "file": "restaurant-272632243.json",
+      "id": "restaurant-260526936",
+      "name": "Today Food",
+      "file": "restaurant-260526936.json",
       "passed": true,
       "storeys": 1,
-      "style": "Warm oak & sage",
+      "style": "Ash & slate",
       "metrics": {
-        "coverage_min": 0.9999999999999998,
+        "coverage_min": 1.0,
         "room_count": 3,
-        "objects": 65,
-        "seats": 31,
-        "tables": 13,
-        "booths": 5,
+        "objects": 42,
+        "seats": 16,
+        "tables": 4,
+        "table_sizes": {
+          "2": 1,
+          "4": 2,
+          "6": 1
+        },
+        "table_modules": 8,
+        "booths": 2,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 47,
+        "downloaded_assets_used": 27,
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-272632243",
-        "osm_id": "272632243",
-        "name": "Squat & Gobble",
+        "id": "restaurant-260526936",
+        "osm_id": "260526936",
+        "name": "Today Food",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                -5.805359159994498,
-                13.29160799950472
+                -3.712233236430601,
+                -4.630911999539933
               ],
               [
-                1.7240157505892746,
-                14.49386399931683
+                -4.96137332992737,
+                3.2505440000193175
               ],
               [
-                3.8790354382008747,
-                1.046407999572807
+                3.721029998383099,
+                4.619780000200819
               ],
               [
-                3.2633155276332726,
-                0.9462199999839527
+                4.970170091879868,
+                -3.261675999358431
               ],
               [
-                3.3512755146786466,
-                0.3562239994170113
-              ],
-              [
-                4.925759287040789,
-                -9.439936000370324
-              ],
-              [
-                -1.9790997135208528,
-                -10.553136000723669
-              ],
-              [
-                -2.02307970704354,
-                -10.252572000375153
-              ],
-              [
-                -2.7179636064519723,
-                -5.91109200026267
-              ],
-              [
-                -4.635491328791066,
-                6.022411999981614
-              ],
-              [
-                -5.805359159994498,
-                13.29160799950472
+                -3.712233236430601,
+                -4.630911999539933
               ]
             ]
           ]
@@ -451,12 +377,12 @@
         "units": "metres",
         "height_m": 3.2,
         "entrance": [
-          -2.0406717047026115,
-          13.892735999410775
+          0.628968427724633,
+          -3.946293999449182
         ],
         "origin_lon_lat": [
-          -122.4405287,
-          37.8000577
+          -122.4048259,
+          37.7936541
         ],
         "stratum": "regular",
         "service_mode": "auto",
@@ -465,7 +391,7 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "091029d48394d29826b38d9b045e6f81d886de3c73b4868f624fd421a7ba9c10"
+        "selection_hash": "0a266185334aef67950ac816f1d7f789eda6e2d622b4a25debe7cd1d9a1b41be"
       },
       "service_mode": "table"
     }

@@ -73,7 +73,15 @@ space, and every existing approach must remain in one connected free-space compo
 another assembly is accepted. A separate space audit counts disconnected clear-floor pockets
 of at least 0.5 m² after equipment, seated envelopes and walking clearances. Candidate scoring
 penalizes these unusable pockets while retaining required service routes and seated capacity.
-Capacity comes from the actual chairs and booths, not a floor area multiplier. Table props are centred, reference their support and contact its exact top.
+Capacity comes from the actual chairs and booths, not a floor area multiplier.
+
+Dining groups seat two, four or six people by joining one, two or three rectangular two-top
+modules. The first placement pass reserves different party sizes before filling spare
+capacity. Each restaurant has one stable dining-chair design and one booth family; venue
+seeds and spend tiers vary those designs between restaurants. Booth lengths vary with their
+capacity. Every booth back must follow a solid wall throughout its length; doors, open
+transitions and glazed entrance frontage do not qualify. Restaurant wall caps and sanitary
+tile use the room wall hue, including the sections behind equipment. Table props are centred, reference their support and contact its exact top.
 
 The prototype uses 0.95 m continuous customer route and 0.90 m staff route checks. These are
 geometric heuristics, not certification. The U.S. Access Board's [accessible routes guide](https://www.access-board.gov/ada/guides/chapter-4-accessible-routes/) describes further

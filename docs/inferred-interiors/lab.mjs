@@ -1,7 +1,7 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import {OrbitControls} from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 import {GLTFLoader} from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildInferredHouse} from './renderer.mjs?v=space-finishes-2';
+import {buildInferredHouse} from './renderer.mjs?v=seating-laundry-3';
 import {TourWorld,inPolygon} from './tour-world.mjs';
 const restaurant=location.pathname.includes('inferred-restaurants');
 const $=id=>document.getElementById(id),canvas=$('canvas'),viewport=$('viewport');
@@ -26,7 +26,7 @@ function render(now=performance.now()){requestAnimationFrame(render);const dt=Ma
  if(keys.has('ArrowLeft'))yaw+=dt*1.5;if(keys.has('ArrowRight'))yaw-=dt*1.5;
  const scale=dt*2.0/Math.max(1,Math.hypot(forward,side));position=world.move(position,(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*scale,(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*scale);
  camera.position.set(position.x,position.y+1.62,position.z);camera.rotation.set(pitch,yaw,0,'YXZ');
- const f=world.level(position.y),room=f.rooms.find(r=>inPolygon(position.x,position.z,r.polygon));$('location').textContent=`Floor ${f.level+1} · ${(room?.kind||'stairs').replaceAll('_',' ')}`;
+ const f=world.level(position.y),room=f.rooms.find(r=>inPolygon(position.x,position.z,r.polygon));$('location').textContent=`Floor ${f.level+1} · ${roomLabel(room)}`;
  }else controls.update();renderer.render(scene,camera);}render();
 function escape(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function dispose(group){const mats=new Set(),textures=new Set();group.traverse(n=>{if(n.userData?.sharedInteriorAsset)return;if(n.geometry)n.geometry.dispose();for(const m of Array.isArray(n.material)?n.material:[n.material])if(m)mats.add(m);});for(const m of mats){for(const key of ['map','normalMap','bumpMap','roughnessMap'])if(m[key])textures.add(m[key]);m.dispose();}for(const t of textures)t.dispose();}
@@ -55,7 +55,7 @@ function drawPlan(){
  for(const r of f.rooms){html+=`<path data-room="${escape(r.id)}" d="${path(r.polygon)}" fill="${r.materials.wall}" stroke="#a6b09d" stroke-width=".035" fill-rule="evenodd"/>`;}
  for(const o of f.objects){html+=`<path d="${path(o.footprint)}" fill="${o.support.kind==='object'?'#f5f1e5':current.style.wood}" fill-opacity=".75" stroke="#665b47" stroke-width=".025"/>`;}
  for(const r of f.rooms){const ps=r.polygon.coordinates[0],x=ps.reduce((s,p)=>s+p[0],0)/ps.length,y=ps.reduce((s,p)=>s+p[1],0)/ps.length;
-  html+=`<text class="label" x="${x}" y="${y}" text-anchor="middle">${escape(r.kind.replaceAll('_',' '))}</text><text x="${x}" y="${y+.45}" text-anchor="middle">${r.area_m2.toFixed(1)} m²</text>`;}
+  html+=`<text class="label" x="${x}" y="${y}" text-anchor="middle">${escape(roomLabel(r))}</text><text x="${x}" y="${y+.45}" text-anchor="middle">${r.area_m2.toFixed(1)} m²</text>`;}
  for(const o of f.openings){const [a,b]=o.segment.coordinates;html+=`<path d="M${a[0]},${a[1]}L${b[0]},${b[1]}" stroke="${o.leaf_count?'#54785c':'#fafbf5'}" stroke-width=".13"/>`;}
  $('plan').innerHTML=html;
  $('plan').querySelectorAll('[data-room]').forEach(el=>el.addEventListener('click',()=>{
@@ -73,14 +73,29 @@ async function choose(record){
  $('rooms').textContent=h.validation.metrics.room_count;$('objects').textContent=`Rooms · ${h.validation.metrics.objects} placed objects`;
  $('swatches').innerHTML=[...h.style.walls,h.style.wood,h.style.accent].map(c=>`<i style="background:${c}"></i>`).join('');$('palette').textContent=h.style.name;
  $('validation').textContent=h.validation.passed?'Geometry checks passed':'Validation failed';
- $('inspector').textContent=restaurant?`${h.validation.metrics.seats} seats · ${h.validation.metrics.tables} tables · ${h.validation.metrics.booths} booths. ${h.service_mode} service. ${h.style.economic_evidence}. Tenant boundary is an assumption. ${(h.omitted_optional_features||[]).join('; ')}`:`${(h.validation.metrics.coverage_min*100).toFixed(0)}% usable area covered. ${(h.validation.metrics.hallway_area_fraction_max*100).toFixed(0)}% maximum hallway share. ${h.storeys.reduce((sum,f)=>sum+(f.space_efficiency?.hallway_reclaimed_m2||0),0).toFixed(1)} m² of corridor returned to rooms. ${h.style.economic_evidence}.`;
+ $('inspector').textContent=restaurant?`${h.validation.metrics.seats} seats · ${h.validation.metrics.tables} tables · ${h.validation.metrics.booths} booths. ${Object.entries(h.validation.metrics.table_sizes||{}).filter(([_,n])=>n).map(([size,n])=>`${n} × ${size}-person`).join(', ')}. ${h.service_mode} service. ${h.style.economic_evidence}. Tenant boundary is an assumption. ${(h.omitted_optional_features||[]).join('; ')}`:`${(h.validation.metrics.coverage_min*100).toFixed(0)}% usable area covered. ${(h.validation.metrics.hallway_area_fraction_max*100).toFixed(0)}% maximum hallway share. ${h.storeys.reduce((sum,f)=>sum+(f.space_efficiency?.hallway_reclaimed_m2||0),0).toFixed(1)} m² of corridor returned to rooms. ${h.style.economic_evidence}.`;
  if(restaurant){$('spend').value=h.style.average_spend_per_person??'';$('economics').textContent=`${h.style.furnishing_finish} · ${h.style.economic_evidence}`;}
  const sources=new Map();for(const f of h.storeys)for(const o of f.objects)if(!o.asset.procedural)sources.set(o.asset.attribution,o.asset.source);
  $('credits').innerHTML=[...sources].map(([name,url])=>`<a href="${escape(url)}" target="_blank" rel="noreferrer">${escape(name)}</a>`).join(' · ');
  rebuild(true);if(mode==='tour')spawnTour();
 }
-function roomOptions(){const level=Math.max(0,Number($('floor').value));$('visit').innerHTML=current.storeys[level].rooms.filter(r=>!['closet','stair'].includes(r.kind)).map(r=>`<option value="${escape(r.id)}">${escape(r.kind.replaceAll('_',' '))}</option>`).join('');}
-function spawnTour(roomId=null){const level=Math.max(0,Number($('floor').value));const chosen=roomId||current.storeys[level].rooms.find(r=>['living','dining'].includes(r.kind))?.id;position=world.spawn(level,chosen);const f=current.storeys[level],ring=(chosen?f.rooms.find(r=>r.id===chosen).polygon:f.inside).coordinates[0],cx=ring.reduce((s,p)=>s+p[0],0)/ring.length,cz=ring.reduce((s,p)=>s+p[1],0)/ring.length;yaw=world.viewYaw(position);pitch=-.10;camera.fov=72;camera.updateProjectionMatrix();roomOptions();if(chosen)$('visit').value=chosen;canvas.focus();}
+function roomLabel(r){return r?.laundry_stack?'laundry alcove':(r?.kind||'stairs').replaceAll('_',' ');}
+function roomOptions(){const level=Math.max(0,Number($('floor').value));$('visit').innerHTML=current.storeys[level].rooms.filter(r=>!['closet','stair'].includes(r.kind)).map(r=>`<option value="${escape(r.id)}">${escape(roomLabel(r))}</option>`).join('');}
+function spawnTour(roomId=null){
+ const level=Math.max(0,Number($('floor').value)),f=current.storeys[level];
+ const chosen=roomId||f.rooms.find(r=>['living','dining'].includes(r.kind))?.id,room=f.rooms.find(r=>r.id===chosen);
+ position=world.spawn(level,chosen);yaw=world.viewYaw(position);pitch=-.10;
+ if(room?.laundry_stack){
+  const washer=f.objects.find(o=>o.room_id===room.id&&o.role==='washing_machine');
+  if(washer){const a=washer.rotation_deg*Math.PI/180,nx=-Math.sin(a),nz=Math.cos(a),[x,,z]=washer.position_m;
+   // Stand on the clear approach so the complete fitted stack is visible, rather
+   // than placing the eye almost against the dryer in a shallow service niche.
+   for(const d of [1.6,1.4,1.2]){const p={x:x+nx*d,z:z+nz*d,y:f.elevation_m};
+    if(world.clear(p.x,p.z,p.y)){position=p;yaw=Math.atan2(p.x-x,p.z-z);pitch=-.35;break;}}
+  }
+ }
+ camera.fov=72;camera.updateProjectionMatrix();roomOptions();if(chosen)$('visit').value=chosen;canvas.focus();
+}
 function toggleDoor(){if(!position)return;const near=built.doors.filter(d=>d.level===world.level(position.y).level).sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];if(near&&Math.hypot(near.x-position.x,near.z-position.z)<2){near.open=!near.open;near.leaf.rotation.y=near.open?near.angle:0;}}
 $('floor').addEventListener('change',()=>{rebuild(mode!=='tour');if(mode==='tour')spawnTour();});$('walls').onclick=()=>{fullWalls=!fullWalls;$('walls').classList.toggle('on',fullWalls);rebuild();};
 function setMode(m){const wasTour=mode==='tour';mode=m;controls.enabled=m==='3d';canvas.style.display=m!=='2d'?'block':'none';$('plan').style.display=m==='2d'?'block':'none';$('three').classList.toggle('on',m==='3d');$('two').classList.toggle('on',m==='2d');$('tour').classList.toggle('on',m==='tour');$('tourbar').style.display=m==='tour'?'block':'none';$('walls').disabled=m==='tour';$('hint').textContent=m==='tour'?'WASD to walk · drag to look · arrows to turn · E for doors · walk up stairs or select a floor':m==='3d'?'Drag to orbit · scroll to zoom · select a floor above':'Select a room to inspect its inventory · local metre coordinates';

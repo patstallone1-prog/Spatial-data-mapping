@@ -370,24 +370,12 @@
             "coordinates": [
               [
                 [
-                  11.509,
-                  7.405472000000001
-                ],
-                [
-                  11.3692,
-                  7.405472000000001
-                ],
-                [
-                  11.3692,
-                  8.5676
-                ],
-                [
-                  11.3692,
-                  13.85
+                  15.850000000000001,
+                  5.770000000000001
                 ],
                 [
                   12.4892,
-                  13.85
+                  5.770000000000001
                 ],
                 [
                   12.4892,
@@ -400,51 +388,11 @@
                 [
                   15.850000000000001,
                   5.770000000000001
-                ],
-                [
-                  12.4892,
-                  5.770000000000001
-                ],
-                [
-                  12.4892,
-                  7.270000000000002
-                ],
-                [
-                  11.509,
-                  7.270000000000002
-                ],
-                [
-                  11.509,
-                  6.85
-                ],
-                [
-                  11.3692,
-                  6.85
-                ],
-                [
-                  11.3692,
-                  7.405472
-                ],
-                [
-                  11.509,
-                  7.405472
-                ],
-                [
-                  12.4892,
-                  7.405472
-                ],
-                [
-                  12.4892,
-                  7.405472000000001
-                ],
-                [
-                  11.509,
-                  7.405472000000001
                 ]
               ]
             ]
           },
-          "area_m2": 34.58358000000001,
+          "area_m2": 27.155264,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -547,12 +495,16 @@
                   4.82
                 ],
                 [
-                  14.225019999999999,
-                  4.820000000000002
+                  14.22502,
+                  4.82
                 ],
                 [
-                  15.850000000000001,
-                  4.820000000000002
+                  15.85,
+                  4.82
+                ],
+                [
+                  15.85,
+                  3.700000000000001
                 ],
                 [
                   15.850000000000001,
@@ -569,7 +521,7 @@
               ]
             ]
           },
-          "area_m2": 14.155970000000012,
+          "area_m2": 14.155970000000007,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -785,6 +737,18 @@
             "coordinates": [
               [
                 [
+                  11.509,
+                  3.65
+                ],
+                [
+                  10.389,
+                  3.65
+                ],
+                [
+                  10.389,
+                  3.7
+                ],
+                [
                   6.048,
                   3.7
                 ],
@@ -814,19 +778,11 @@
                 ],
                 [
                   11.3692,
-                  6.85
-                ],
-                [
-                  11.509,
-                  6.85
-                ],
-                [
-                  11.509,
-                  7.270000000000002
+                  12.05
                 ],
                 [
                   12.4892,
-                  7.270000000000002
+                  12.05
                 ],
                 [
                   12.4892,
@@ -847,23 +803,11 @@
                 [
                   11.509,
                   3.65
-                ],
-                [
-                  10.389,
-                  3.65
-                ],
-                [
-                  10.389,
-                  3.7
-                ],
-                [
-                  6.048,
-                  3.7
                 ]
               ]
             ]
           },
-          "area_m2": 19.105604000000007,
+          "area_m2": 24.517920000000007,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -925,6 +869,60 @@
             ]
           },
           "area_m2": 6.652435999999971,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-U-court:L0:hall:laundry",
+          "kind": "utility",
+          "laundry_stack": true,
+          "reused_space": "former_hall_end",
+          "materials": {
+            "wall": "#8dabad",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#e3e0d6",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  12.4892,
+                  13.85
+                ],
+                [
+                  12.4892,
+                  12.05
+                ],
+                [
+                  11.3692,
+                  12.05
+                ],
+                [
+                  11.3692,
+                  13.85
+                ],
+                [
+                  12.4892,
+                  13.85
+                ]
+              ]
+            ]
+          },
+          "area_m2": 2.0160000000000005,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -1011,11 +1009,11 @@
             "coordinates": [
               [
                 12.4892,
-                5.810000000000001
+                6.71160022
               ],
               [
                 12.4892,
-                6.690000000000002
+                7.591600220000001
               ]
             ]
           },
@@ -1030,23 +1028,23 @@
               [
                 [
                   11.7692,
-                  6.690000000000002
+                  7.591600220000001
                 ],
                 [
                   13.209200000000001,
-                  6.690000000000002
+                  7.591600220000001
                 ],
                 [
                   13.209200000000001,
-                  5.810000000000001
+                  6.71160022
                 ],
                 [
                   11.7692,
-                  5.810000000000001
+                  6.71160022
                 ],
                 [
                   11.7692,
-                  6.690000000000002
+                  7.591600220000001
                 ]
               ]
             ]
@@ -2390,7 +2388,305 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-U-court:L0:R0:opening:8",
+          "id": "stress-U-court:L0:hall:laundry:opening:8",
+          "rooms": [
+            "stress-U-court:L0:hall:laundry",
+            "stress-U-court:L0:hall"
+          ],
+          "type": "doorway",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                12.449200000000001,
+                12.05
+              ],
+              [
+                11.409199999999998,
+                12.05
+              ]
+            ]
+          },
+          "width_m": 1.040000000000001,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "material": null,
+          "swing_into": null,
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  12.2292,
+                  12.05
+                ],
+                [
+                  12.227755418001658,
+                  12.020594857901132
+                ],
+                [
+                  12.223435584120969,
+                  11.991472903395163
+                ],
+                [
+                  12.216282100719662,
+                  11.962914596823662
+                ],
+                [
+                  12.206363859753386,
+                  11.935194970290473
+                ],
+                [
+                  12.193776379304506,
+                  11.908580978952202
+                ],
+                [
+                  12.178640883690763,
+                  11.88332893009412
+                ],
+                [
+                  12.16110313600882,
+                  11.859682014750907
+                ],
+                [
+                  12.141332034355964,
+                  11.837867965644037
+                ],
+                [
+                  12.119517985249093,
+                  11.81809686399118
+                ],
+                [
+                  12.095871069905881,
+                  11.800559116309238
+                ],
+                [
+                  12.070619021047799,
+                  11.785423620695495
+                ],
+                [
+                  12.044005029709528,
+                  11.772836140246614
+                ],
+                [
+                  12.016285403176338,
+                  11.762917899280339
+                ],
+                [
+                  11.987727096604837,
+                  11.755764415879032
+                ],
+                [
+                  11.958605142098868,
+                  11.751444581998342
+                ],
+                [
+                  11.9292,
+                  11.75
+                ],
+                [
+                  11.899794857901131,
+                  11.751444581998342
+                ],
+                [
+                  11.870672903395162,
+                  11.755764415879032
+                ],
+                [
+                  11.842114596823661,
+                  11.762917899280339
+                ],
+                [
+                  11.814394970290472,
+                  11.772836140246614
+                ],
+                [
+                  11.7877809789522,
+                  11.785423620695495
+                ],
+                [
+                  11.762528930094119,
+                  11.800559116309238
+                ],
+                [
+                  11.738882014750907,
+                  11.81809686399118
+                ],
+                [
+                  11.717067965644036,
+                  11.837867965644037
+                ],
+                [
+                  11.697296863991179,
+                  11.859682014750907
+                ],
+                [
+                  11.679759116309237,
+                  11.88332893009412
+                ],
+                [
+                  11.664623620695494,
+                  11.908580978952202
+                ],
+                [
+                  11.652036140246613,
+                  11.935194970290473
+                ],
+                [
+                  11.642117899280338,
+                  11.962914596823662
+                ],
+                [
+                  11.63496441587903,
+                  11.991472903395161
+                ],
+                [
+                  11.630644581998341,
+                  12.020594857901132
+                ],
+                [
+                  11.629199999999999,
+                  12.05
+                ],
+                [
+                  11.630644581998341,
+                  12.079405142098869
+                ],
+                [
+                  11.63496441587903,
+                  12.108527096604838
+                ],
+                [
+                  11.642117899280336,
+                  12.13708540317634
+                ],
+                [
+                  11.652036140246613,
+                  12.164805029709528
+                ],
+                [
+                  11.664623620695494,
+                  12.1914190210478
+                ],
+                [
+                  11.679759116309237,
+                  12.216671069905882
+                ],
+                [
+                  11.697296863991179,
+                  12.240317985249094
+                ],
+                [
+                  11.717067965644036,
+                  12.262132034355965
+                ],
+                [
+                  11.738882014750907,
+                  12.281903136008822
+                ],
+                [
+                  11.762528930094119,
+                  12.299440883690764
+                ],
+                [
+                  11.7877809789522,
+                  12.314576379304507
+                ],
+                [
+                  11.814394970290472,
+                  12.327163859753387
+                ],
+                [
+                  11.842114596823661,
+                  12.337082100719662
+                ],
+                [
+                  11.87067290339516,
+                  12.34423558412097
+                ],
+                [
+                  11.899794857901131,
+                  12.34855541800166
+                ],
+                [
+                  11.9292,
+                  12.350000000000001
+                ],
+                [
+                  11.958605142098868,
+                  12.34855541800166
+                ],
+                [
+                  11.987727096604837,
+                  12.34423558412097
+                ],
+                [
+                  12.016285403176338,
+                  12.337082100719662
+                ],
+                [
+                  12.044005029709528,
+                  12.327163859753387
+                ],
+                [
+                  12.070619021047799,
+                  12.314576379304507
+                ],
+                [
+                  12.095871069905881,
+                  12.299440883690764
+                ],
+                [
+                  12.119517985249093,
+                  12.281903136008822
+                ],
+                [
+                  12.141332034355964,
+                  12.262132034355965
+                ],
+                [
+                  12.16110313600882,
+                  12.240317985249094
+                ],
+                [
+                  12.178640883690763,
+                  12.216671069905882
+                ],
+                [
+                  12.193776379304506,
+                  12.1914190210478
+                ],
+                [
+                  12.206363859753386,
+                  12.164805029709528
+                ],
+                [
+                  12.216282100719662,
+                  12.13708540317634
+                ],
+                [
+                  12.223435584120969,
+                  12.10852709660484
+                ],
+                [
+                  12.227755418001658,
+                  12.079405142098869
+                ],
+                [
+                  12.2292,
+                  12.05
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-U-court:L0:R0:opening:9",
           "rooms": [
             "stress-U-court:L0:R0",
             "stress-U-court:L0:R1"
@@ -2707,7 +3003,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-U-court:L0:R1:opening:9",
+          "id": "stress-U-court:L0:R1:opening:10",
           "rooms": [
             "stress-U-court:L0:R1",
             "stress-U-court:L0:R2"
@@ -3024,7 +3320,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-U-court:L0:R1:opening:10",
+          "id": "stress-U-court:L0:R1:opening:11",
           "rooms": [
             "stress-U-court:L0:R1",
             "stress-U-court:L0:hall"
@@ -3322,7 +3618,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-U-court:L0:R2:opening:11",
+          "id": "stress-U-court:L0:R2:opening:12",
           "rooms": [
             "stress-U-court:L0:R2",
             "stress-U-court:L0:hall"
@@ -3620,7 +3916,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-U-court:L0:R0:opening:12",
+          "id": "stress-U-court:L0:R0:opening:13",
           "rooms": [
             "stress-U-court:L0:R0",
             "outside"
@@ -3936,7 +4232,7 @@
               ],
               [
                 12.4892,
-                5.809000000000001
+                6.71060022
               ]
             ]
           },
@@ -3966,11 +4262,11 @@
             "coordinates": [
               [
                 12.4892,
-                6.6910000000000025
+                7.592600220000001
               ],
               [
                 12.4892,
-                7.270000000000002
+                12.050001
               ]
             ]
           },
@@ -4000,11 +4296,11 @@
             "coordinates": [
               [
                 12.4892,
-                7.270000000000002
+                12.049999000000001
               ],
               [
-                11.509,
-                7.270000000000002
+                12.4892,
+                13.849999999999998
               ]
             ]
           },
@@ -4012,151 +4308,15 @@
           "height_m": 2.95,
           "materials": [
             "#71988b",
-            "#d8c5a9"
+            "#8dabad"
           ],
           "side_materials": [
-            "#d8c5a9",
+            "#8dabad",
             "#71988b"
           ],
           "rooms": [
             "stress-U-court:L0:R4",
-            "stress-U-court:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                11.509,
-                7.270000000000002
-              ],
-              [
-                11.509,
-                6.85
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.95,
-          "materials": [
-            "#71988b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#71988b"
-          ],
-          "rooms": [
-            "stress-U-court:L0:R4",
-            "stress-U-court:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                11.509,
-                6.85
-              ],
-              [
-                11.3692,
-                6.85
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.95,
-          "materials": [
-            "#71988b",
-            "#d8c5a9"
-          ],
-          "side_materials": [
-            "#d8c5a9",
-            "#71988b"
-          ],
-          "rooms": [
-            "stress-U-court:L0:R4",
-            "stress-U-court:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                11.3692,
-                7.405472000000001
-              ],
-              [
-                11.3692,
-                13.85
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.95,
-          "materials": [
-            "#71988b",
-            "#c4947b"
-          ],
-          "side_materials": [
-            "#c4947b",
-            "#71988b"
-          ],
-          "rooms": [
-            "stress-U-court:L0:R4",
-            "stress-U-court:L0:R3:reclaimed:0"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                11.3692,
-                6.85
-              ],
-              [
-                11.3692,
-                7.405472
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.95,
-          "materials": [
-            "#71988b",
-            "#c4947b"
-          ],
-          "side_materials": [
-            "#c4947b",
-            "#71988b"
-          ],
-          "rooms": [
-            "stress-U-court:L0:R4",
-            "stress-U-court:L0:R3:reclaimed:0"
+            "stress-U-court:L0:hall:laundry"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -4922,7 +5082,7 @@
               ],
               [
                 11.3692,
-                6.85
+                12.05
               ]
             ]
           },
@@ -4939,6 +5099,108 @@
           "rooms": [
             "stress-U-court:L0:hall",
             "stress-U-court:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                11.3692,
+                12.05
+              ],
+              [
+                11.408199999999999,
+                12.05
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.95,
+          "materials": [
+            "#d8c5a9",
+            "#8dabad"
+          ],
+          "side_materials": [
+            "#8dabad",
+            "#d8c5a9"
+          ],
+          "rooms": [
+            "stress-U-court:L0:hall",
+            "stress-U-court:L0:hall:laundry"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                12.4502,
+                12.05
+              ],
+              [
+                12.4892,
+                12.05
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.95,
+          "materials": [
+            "#d8c5a9",
+            "#8dabad"
+          ],
+          "side_materials": [
+            "#8dabad",
+            "#d8c5a9"
+          ],
+          "rooms": [
+            "stress-U-court:L0:hall",
+            "stress-U-court:L0:hall:laundry"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                11.3692,
+                13.85
+              ],
+              [
+                11.3692,
+                12.049999000000001
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.95,
+          "materials": [
+            "#c4947b",
+            "#8dabad"
+          ],
+          "side_materials": [
+            "#8dabad",
+            "#c4947b"
+          ],
+          "rooms": [
+            "stress-U-court:L0:R3:reclaimed:0",
+            "stress-U-court:L0:hall:laundry"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -4998,6 +5260,7 @@
           },
           "asset": {
             "id": "procedural:sofa",
+            "design_id": null,
             "role": "sofa",
             "procedural": true,
             "license": "project",
@@ -5341,6 +5604,7 @@
           },
           "asset": {
             "id": "procedural:sink_counter",
+            "design_id": null,
             "role": "sink_counter",
             "procedural": true,
             "license": "project",
@@ -5422,6 +5686,7 @@
           },
           "asset": {
             "id": "procedural:cooker",
+            "design_id": null,
             "role": "cooker",
             "procedural": true,
             "license": "project",
@@ -5503,6 +5768,7 @@
           },
           "asset": {
             "id": "procedural:refrigerator",
+            "design_id": null,
             "role": "refrigerator",
             "procedural": true,
             "license": "project",
@@ -5584,6 +5850,7 @@
           },
           "asset": {
             "id": "procedural:counter",
+            "design_id": null,
             "role": "counter",
             "procedural": true,
             "license": "project",
@@ -6103,6 +6370,7 @@
           },
           "asset": {
             "id": "procedural:toilet",
+            "design_id": null,
             "role": "toilet",
             "procedural": true,
             "license": "project",
@@ -6184,6 +6452,7 @@
           },
           "asset": {
             "id": "procedural:bath_sink",
+            "design_id": null,
             "role": "bath_sink",
             "procedural": true,
             "license": "project",
@@ -6265,6 +6534,7 @@
           },
           "asset": {
             "id": "procedural:bath_shower",
+            "design_id": null,
             "role": "bath_shower",
             "procedural": true,
             "license": "project",
@@ -6300,7 +6570,7 @@
           "id": "stress-U-court:L0:R4:item:0",
           "role": "bed",
           "position_m": [
-            14.750000000000002,
+            13.5892,
             0.0,
             9.809999999999999
           ],
@@ -6309,30 +6579,30 @@
             0.9,
             2.05
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  15.775000000000002,
-                  10.709999999999999
-                ],
-                [
-                  13.725000000000001,
-                  10.709999999999999
-                ],
-                [
-                  13.725000000000001,
+                  12.5642,
                   8.909999999999998
                 ],
                 [
-                  15.775000000000002,
+                  14.6142,
                   8.909999999999998
                 ],
                 [
-                  15.775000000000002,
+                  14.6142,
                   10.709999999999999
+                ],
+                [
+                  12.5642,
+                  10.709999999999999
+                ],
+                [
+                  12.5642,
+                  8.909999999999998
                 ]
               ]
             ]
@@ -6346,6 +6616,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -6369,7 +6640,7 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            13.295000000000002,
+            15.0442,
             9.809999999999999
           ],
           "reserved_clearance": {
@@ -6377,24 +6648,24 @@
             "coordinates": [
               [
                 [
-                  13.695000000000002,
-                  10.709999999999999
-                ],
-                [
-                  12.995000000000003,
-                  10.709999999999999
-                ],
-                [
-                  12.995000000000003,
+                  14.6442,
                   8.909999999999998
                 ],
                 [
-                  13.695000000000002,
+                  15.344199999999999,
                   8.909999999999998
                 ],
                 [
-                  13.695000000000002,
+                  15.344199999999999,
                   10.709999999999999
+                ],
+                [
+                  14.6442,
+                  10.709999999999999
+                ],
+                [
+                  14.6442,
+                  8.909999999999998
                 ]
               ]
             ]
@@ -6404,24 +6675,24 @@
             "coordinates": [
               [
                 [
-                  15.775000000000002,
-                  8.874999999999998
+                  12.5642,
+                  10.745
                 ],
                 [
-                  13.725000000000001,
-                  8.874999999999998
+                  14.6142,
+                  10.745
                 ],
                 [
-                  13.725000000000001,
-                  8.225
+                  14.6142,
+                  11.394999999999998
                 ],
                 [
-                  15.775000000000002,
-                  8.225
+                  12.5642,
+                  11.394999999999998
                 ],
                 [
-                  15.775000000000002,
-                  8.874999999999998
+                  12.5642,
+                  10.745
                 ]
               ]
             ]
@@ -6435,39 +6706,39 @@
           "id": "stress-U-court:L0:R4:item:1",
           "role": "nightstand",
           "position_m": [
-            15.575000000000001,
+            12.7642,
             0.0,
-            11.128225806451612
+            8.491774193548387
           ],
           "size_m": [
             0.45,
             0.5,
             0.4
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  15.775,
-                  11.353225806451611
+                  12.564200000000001,
+                  8.266774193548388
                 ],
                 [
-                  15.375000000000002,
-                  11.353225806451611
+                  12.9642,
+                  8.266774193548388
                 ],
                 [
-                  15.375000000000002,
-                  10.903225806451612
+                  12.9642,
+                  8.716774193548387
                 ],
                 [
-                  15.775,
-                  10.903225806451612
+                  12.564200000000001,
+                  8.716774193548387
                 ],
                 [
-                  15.775,
-                  11.353225806451611
+                  12.564200000000001,
+                  8.266774193548388
                 ]
               ]
             ]
@@ -6513,8 +6784,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            14.945,
-            11.128225806451612
+            13.394200000000001,
+            8.491774193548387
           ],
           "confidence": 0.25,
           "measured": false,
@@ -6525,39 +6796,39 @@
           "id": "stress-U-court:L0:R4:item:2",
           "role": "counter_item",
           "position_m": [
-            15.575000000000001,
+            12.7642,
             0.5,
-            11.128225806451612
+            8.491774193548387
           ],
           "size_m": [
             0.1,
             0.1,
             0.1
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  15.625000000000002,
-                  11.178225806451612
+                  12.7142,
+                  8.441774193548387
                 ],
                 [
-                  15.525,
-                  11.178225806451612
+                  12.814200000000001,
+                  8.441774193548387
                 ],
                 [
-                  15.525,
-                  11.078225806451611
+                  12.814200000000001,
+                  8.541774193548388
                 ],
                 [
-                  15.625000000000002,
-                  11.078225806451611
+                  12.7142,
+                  8.541774193548388
                 ],
                 [
-                  15.625000000000002,
-                  11.178225806451612
+                  12.7142,
+                  8.441774193548387
                 ]
               ]
             ]
@@ -6611,39 +6882,39 @@
           "id": "stress-U-court:L0:R4:item:3",
           "role": "dresser",
           "position_m": [
-            15.55,
+            12.789200000000001,
             0.0,
-            7.716000000000001
+            11.903999999999998
           ],
           "size_m": [
             0.9,
             0.85,
             0.45
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  15.775,
-                  8.166
+                  12.564200000000001,
+                  11.453999999999999
                 ],
                 [
-                  15.325000000000001,
-                  8.166
+                  13.0142,
+                  11.453999999999999
                 ],
                 [
-                  15.325000000000001,
-                  7.266000000000001
+                  13.0142,
+                  12.353999999999997
                 ],
                 [
-                  15.775,
-                  7.266000000000001
+                  12.564200000000001,
+                  12.353999999999997
                 ],
                 [
-                  15.775,
-                  8.166
+                  12.564200000000001,
+                  11.453999999999999
                 ]
               ]
             ]
@@ -6689,8 +6960,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            14.895000000000001,
-            7.716000000000001
+            13.4442,
+            11.903999999999998
           ],
           "confidence": 0.25,
           "measured": false,
@@ -6747,6 +7018,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -6828,6 +7100,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -7229,6 +7502,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -7310,6 +7584,7 @@
           },
           "asset": {
             "id": "procedural:bed",
+            "design_id": null,
             "role": "bed",
             "procedural": true,
             "license": "project",
@@ -7711,6 +7986,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -7792,6 +8068,7 @@
           },
           "asset": {
             "id": "procedural:closet_rail",
+            "design_id": null,
             "role": "closet_rail",
             "procedural": true,
             "license": "project",
@@ -7822,12 +8099,173 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "id": "stress-U-court:L0:hall:laundry:item:0",
+          "role": "washing_machine",
+          "position_m": [
+            11.9292,
+            0.0,
+            13.465
+          ],
+          "size_m": [
+            0.62,
+            0.9,
+            0.62
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  11.6192,
+                  13.775
+                ],
+                [
+                  11.6192,
+                  13.155
+                ],
+                [
+                  12.2392,
+                  13.155
+                ],
+                [
+                  12.2392,
+                  13.775
+                ],
+                [
+                  11.6192,
+                  13.775
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-U-court:L0:hall:laundry",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "stress-U-court:L0:hall:laundry",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "procedural:washing_machine",
+            "design_id": null,
+            "role": "washing_machine",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#8dabad",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#e3e0d6",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            11.9292,
+            12.725
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-U-court:L0:hall:laundry:item:1",
+          "role": "clothes_dryer",
+          "position_m": [
+            11.9292,
+            0.9,
+            13.465
+          ],
+          "size_m": [
+            0.62,
+            0.85,
+            0.62
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  11.6192,
+                  13.775
+                ],
+                [
+                  11.6192,
+                  13.155
+                ],
+                [
+                  12.2392,
+                  13.155
+                ],
+                [
+                  12.2392,
+                  13.775
+                ],
+                [
+                  11.6192,
+                  13.775
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-U-court:L0:hall:laundry",
+          "required": true,
+          "support": {
+            "kind": "object",
+            "id": "stress-U-court:L0:hall:laundry:item:0",
+            "surface_y_m": 0.9
+          },
+          "asset": {
+            "id": "procedural:clothes_dryer",
+            "design_id": null,
+            "role": "clothes_dryer",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#8dabad",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#e3e0d6",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "space_efficiency": {
         "wet_area_reclaimed_m2": 6.6524359999999705,
         "half_baths_added": 0,
-        "hallway_reclaimed_m2": 13.466236000000013
+        "laundry_reused_m2": 2.0160000000000005,
+        "hallway_reclaimed_m2": 6.037920000000006
       },
       "grade": "inferred",
       "confidence": 0.25,
@@ -7839,7 +8277,7 @@
   "stairs": [],
   "total_height_m": 3.1,
   "partition_score": 0.2204897362418855,
-  "estimated_furniture_cost_usd": 10798,
+  "estimated_furniture_cost_usd": 11398,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -7852,12 +8290,12 @@
     "errors": [],
     "warnings": [],
     "metrics": {
-      "room_count": 12,
-      "objects": 32,
+      "room_count": 13,
+      "objects": 34,
       "coverage_min": 0.9999999999999999,
-      "hallway_area_fraction_max": 0.11173521258553137,
+      "hallway_area_fraction_max": 0.14338803438797595,
       "downloaded_assets_used": 17,
-      "connected_rooms": 12
+      "connected_rooms": 13
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
   },
@@ -7899,7 +8337,7 @@
     "valid_layouts_compared": 3,
     "objective": "least circulation and oversized low-use room area"
   },
-  "space_score": 1.1535256423388303,
+  "space_score": 1.4338803438797596,
   "name": "U-court",
   "input_evidence": {
     "id": "stress-U-court",
