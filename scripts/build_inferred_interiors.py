@@ -172,8 +172,11 @@ def main() -> None:
         return
     catalog = Catalog()
     records, overlay = [], {}
+    rejected = envelope.get("rejected", {})
     for row in inputs:
         try:
+            if row["id"] in rejected:
+                raise ValueError(f"Kerbside's facade rules reject this shell: {rejected[row['id']]}")
             if args.reuse_synthetic and not row.get("osm_id"):
                 house = json.loads((args.out / f"{row['id']}.json").read_text())
             elif args.refresh_assets:

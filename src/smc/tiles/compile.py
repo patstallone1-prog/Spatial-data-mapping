@@ -704,6 +704,13 @@ def lane_lines(ways: Iterable[dict[str, Any]], box: Frame, error_m: float) -> di
     return {"lanes_white": out["white"], "lanes_yellow": out["yellow"]}
 
 
+#: The smallest lawn a tile of each depth keeps, in square metres: a park from depth 5, a back
+#: yard by depth 7, every one at depth 8 -- the grass falling away a size at a time, as the
+#: buildings' boxes do.
+LAWN_MIN_AREA_M2 = {5: 2000.0, 6: 300.0, 7: 60.0, 8: 0.0}
+DEEPEST_LAWN_DEPTH = 8
+
+
 def assets_for(ways: list[dict[str, Any]], box: Frame, depth: int) -> dict[str, list]:
     """Every layer a tile of this depth carries, at its own error.
 
@@ -740,4 +747,9 @@ def assets_for(ways: list[dict[str, Any]], box: Frame, depth: int) -> dict[str, 
         out["roads"] = lines(ways, box, error, kinds=("street", "cycleway"))
     elif depth >= 2:
         out["roads_major"] = lines(ways, box, error, kinds=("street",), major_only=True)
+    if depth >= 5:
+        # The grass, plain green: from far off a city's gardens are its colour, and without
+        # them the ground between the houses read as bare.
+        out["lawns"] = rings(ways, box, error, kinds=("lawn",),
+                             min_area_m2=LAWN_MIN_AREA_M2[min(depth, DEEPEST_LAWN_DEPTH)])
     return {name: rows for name, rows in out.items() if rows}

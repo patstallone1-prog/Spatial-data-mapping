@@ -302,3 +302,33 @@ def test_every_building_names_an_archetype_the_page_knows():
     rows = assets_for([{"kind": "building", "height_m": 12.0, "archetype": "hotel", "points": ring}],
                       box, 8)["buildings"]
     assert rows[0][0] == 1200 and rows[0][1] == -1 and rows[0][2] == ARCHETYPES.index("hotel")
+
+
+def test_the_grass_is_carried_green_into_the_distance_a_size_at_a_time():
+    box = Frame(-122.41, 37.79, -122.40, 37.80)
+    def at(x_m, y_m):
+        return [box.west + x_m / box.metres_per_lon, box.south + y_m / box.metres_per_lat]
+    def lawn(x, y, w, h):
+        return {"kind": "lawn", "points": [at(x, y), at(x + w, y), at(x + w, y + h), at(x, y + h), at(x, y)]}
+    ways = [lawn(0, 0, 80, 50),          # a park: 4000 m2
+            lawn(200, 200, 12, 10),      # a back yard: 120 m2
+            lawn(300, 300, 5, 4)]        # a strip: 20 m2
+    counts = {d: len(assets_for(ways, box, d).get("lawns", [])) for d in range(3, 9)}
+    assert counts == {3: 0, 4: 0, 5: 1, 6: 1, 7: 2, 8: 3}
+    # A lawn is grass, not a building: it makes no box and no footprint.
+    deep = assets_for(ways, box, 8)
+    assert "buildings" not in deep and "massing" not in deep
+
+
+def test_the_tile_builder_takes_the_grass_the_region_renderer_lays(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("build_tiles", ROOT / "scripts/build_tiles.py")
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    ring = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]
+    (tmp_path / "sf-corridor-ground.json").write_text(json.dumps(
+        {"parks": [{"p": ring}], "lawns": [{"p": ring}], "backyards": [{"p": ring}], "yards": [{"p": ring}] * 5}))
+    assert len(build.lawn_ways(tmp_path)) == 3        # classified: parks, lawns and back yards
+    (tmp_path / "sf-corridor-ground.json").write_text(json.dumps({"parks": [{"p": ring}], "yards": [{"p": ring}] * 5}))
+    assert len(build.lawn_ways(tmp_path)) == 6        # unclassified: parks and yards
+    assert all(w["kind"] == "lawn" for w in build.lawn_ways(tmp_path))

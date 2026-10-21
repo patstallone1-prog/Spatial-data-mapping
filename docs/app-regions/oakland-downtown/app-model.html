@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="541d0bb373cc1143543638304d0cbc7a266ad64004663b83ace0d4b5f8aa10ca" />
+<meta name="kerbside-renderer-sha256" content="251af018ec01248c89688393f7207711d56b41d32b8e15d7033bf80fc2bd6b07" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -1343,9 +1343,13 @@ function applyBoxClip(object, uniform, excludeInside=false) {
   object.traverse(o=>{
     for(const material of o.material ? (Array.isArray(o.material)?o.material:[o.material]) : []) {
       const owners=material.userData.detailOwnerships ||= [];
-      if(owners.includes(uniform))continue;
-      owners.push(uniform);
       const before=material.onBeforeCompile,cacheKey=material.customProgramCacheKey();
+      // Known by its name too: a material cloned after it was clipped (the tunnel cut does) has
+      // its userData copied through JSON, so the list no longer holds this uniform itself, and
+      // a second copy of the clip redefined its uniform -- the shader failed to compile and
+      // every lawn and car park in the window drew nothing over the bare ground.
+      if(owners.includes(uniform)||cacheKey.includes(`:ownership-v2:${name}:`))continue;
+      owners.push(uniform);
       material.onBeforeCompile=function(shader,renderer){
         before.call(this,shader,renderer);shader.uniforms[name]=uniform;
         if(!shader.vertexShader.includes('varying vec3 vDetailWorld;'))
@@ -4433,6 +4437,7 @@ function buildTile(tile, layers) {
     buildings: TILE_BUILDING_MATERIAL.clone(),
     roads: TILE_ROAD_MATERIAL.clone(),
     pavement: TILE_WALK_MATERIAL.clone(),
+    lawns: TILE_LAWN_MATERIAL.clone(),
     paint: TILE_PAINT_MATERIAL.clone(),
     yellow: TILE_YELLOW_MATERIAL.clone(),
     tactile: new THREE.MeshStandardMaterial({
@@ -4446,6 +4451,7 @@ function buildTile(tile, layers) {
     material===materials.buildings || material===materials.massing ? tileBuildingBox : tileDetailBox,true);
   if (layers.massing) addTileMeshes(group, tileMassing(layers.massing, f, lonOf, latOf, materials.massing));
   if (layers.buildings) addTileMeshes(group, tileBuildings(layers.buildings, f, lonOf, latOf, materials.buildings));
+  if (layers.lawns) addTileMeshes(group, tileLawns(layers.lawns, f, materials.lawns));
   // The street, from the outside in: carriageway and footways.  Crossings are not a wide road
   // ribbon: their resolved style becomes either repeated continental bars or two parallel lines,
   // plus the same full rectangular yellow warning fields used by the near-region renderer.
@@ -4508,6 +4514,10 @@ const TILE_ROAD_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_ROAD, ro
 const TILE_WALK = new THREE.Color(0x8e918a);
 const TILE_PAINT_COLOUR = new THREE.Color(0xe8e8e4);
 const TILE_WALK_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_WALK, roughness: 0.96, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
+//: The grass from far off (the tiles' lawns layer: parks, lawns and back yards): one plain
+//: green, the average of the turf the street renderer lays, a shade lighter for the distance.
+const TILE_LAWN = new THREE.Color(0x3a6630);
+const TILE_LAWN_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_LAWN, roughness: 0.98, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
 const TILE_PAINT_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_PAINT_COLOUR, roughness: 0.9, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
 //: The centre line's yellow, as the street renderer paints it.
 const TILE_YELLOW_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xd9a514, roughness: 0.9, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
@@ -4520,6 +4530,8 @@ const TILE_LANE = { dashM: 3.05, gapM: 9.15, whiteM: 0.15, yellowM: 0.12, yellow
 const TILE_ROAD_Y = 0.15;
 const TILE_PAINT_Y = 0.22;
 const TILE_WALK_Y = 0.30;
+//: Lawns lie under the roads and footways, so a ring that runs into a street gives way to it.
+const TILE_LAWN_Y = 0.08;
 //: The ground the tile city stands on: the atlas's own surface, which is drawn
 //: PERIMETER_UNDER_M under the region grid's apron so the two do not fight for the pixels
 //: where they meet. Built on PENINSULA_Y instead, every street outside a region stood on a
@@ -4691,6 +4703,35 @@ function natureTileStations(run) {
     }
   }return output;
 }
+//: The lawns layer: each ring ([x0, y0, ...] in the tile's centimetres) laid flat on the ground
+//: and filled, all of a tile's in one mesh. Inside the region drawn in full the clip hides them
+//: (tileDetailBox), and the street renderer's turf is there instead.
+function tileLawns(rows, f, material) {
+  const position = [], index = [];
+  const nature = typeof NATURE !== "undefined" && NATURE;
+  for (const row of rows) {
+    const ring = [];
+    for (let i = 0; i + 1 < row.length; i += 2) ring.push(new THREE.Vector2(f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)));
+    if (ring.length > 3 && ring[0].equals(ring[ring.length - 1])) ring.pop();
+    if (ring.length < 3) continue;
+    const base = position.length / 3;
+    for (const p of ring) {
+      const y = nature ? rawTerrainHeightAt(p.x, p.y) : TILE_GROUND_Y - earthDrop(p.x, p.y);
+      position.push(p.x, y + TILE_LAWN_Y, p.y);
+    }
+    for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(ring, [])) index.push(base + a, base + b, base + c);
+  }
+  if (!index.length) return [];
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.receiveShadow = true;
+  return [mesh];
+}
+
 function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
   const position = [], index = [];
   for (const row of rows) {
@@ -16514,6 +16555,8 @@ function installTunnelVoidCuts(group, allSurfaces=false) {
     let remaining=originals.length;
     const materials=originals.map(original=>{
     const material=original.clone(),before=original.onBeforeCompile;
+    // The clips it carries, as themselves: clone() copies userData through JSON.
+    if(original.userData.detailOwnerships)material.userData.detailOwnerships=original.userData.detailOwnerships.slice();
     const cacheKey=original.customProgramCacheKey?.() || "default";
     material.onBeforeCompile=shader=>{
       if(before)before.call(material,shader);
@@ -25516,6 +25559,7 @@ function zoomBy(factor) {
   if (state.dist > 30000) factor **= 1.9;
   state.dist = Math.max(8, Math.min(MAX_ORBIT_DIST_M, state.dist * factor));
   placeCamera();
+  if (typeof autoExploreByZoom === "function") autoExploreByZoom();
 }
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
@@ -25570,9 +25614,13 @@ document.getElementById("reset").addEventListener("click", () => {
 //: Metres a second the view moves at, per metre of its distance, and at least.
 const EXPLORE_SPEED_PER_M = 0.8;
 const EXPLORE_SPEED_MIN = 8;
-function setExplore(on) {
+function setExplore(on, auto = false) {
   if (META && on) return;   // no explore mode in the headset
   if (typeof avatar === "undefined" || typeof gps === "undefined" || Boolean(state.explore) === on) return;
+  // Chosen (E or the button), explore stays at any zoom; left by hand while far out, the zoom
+  // does not take it straight back.
+  state.exploreAuto = on && auto;
+  if (!auto) state.exploreAutoHeld = !on;
   if (on) {
     if (state.firstPerson) setFirstPerson(false);
     state.explore = true;
@@ -25593,6 +25641,21 @@ function setExplore(on) {
   }
   const button = document.getElementById("explore");
   if (button) button.setAttribute("aria-pressed", on ? "true" : "false");
+}
+//: Explore by zoom: out past where the walker is drawn a few pixels tall, the view goes to
+//: explore; back in, the walker stands where the view is. Out at 5 px, back at 8: a gap, so the
+//: switch does not flicker at the edge. (A 2.1 m walker in an 800 px window: about 370 m out,
+//: 230 m back.)
+const AUTO_EXPLORE_OUT_PX = 5, AUTO_EXPLORE_IN_PX = 8;
+function walkerPixelsAt(dist) {
+  return innerHeight * AVATAR_HEIGHT * AVATAR_SCALE / (2 * dist * Math.tan(camera.fov * Math.PI / 360));
+}
+function autoExploreByZoom() {
+  if (META || ATTACH || state.firstPerson) return;
+  const px = walkerPixelsAt(state.dist);
+  if (px >= AUTO_EXPLORE_IN_PX) state.exploreAutoHeld = false;
+  if (!state.explore && !state.exploreAutoHeld && px < AUTO_EXPLORE_OUT_PX) setExplore(true, true);
+  else if (state.explore && state.exploreAuto && px >= AUTO_EXPLORE_IN_PX) setExplore(false, true);
 }
 function exploreStep(dt) {
   if (!held.size) return;

@@ -6,9 +6,11 @@ const root=new URL('../',import.meta.url),read=p=>JSON.parse(fs.readFileSync(new
 const source=fs.readFileSync(new URL('scripts/build_sf_corridor_3d.py',root),'utf8');
 const names=['random','xy','pageToTerrain','rawTerrainHeightAt','groundBaseFor','entryFloorY','insideFootprint','buildingAt','frontageNormalFor','frontageFitFor','homeStoreyCount','homeStoreyHeight','regularHomeWindows','frontageWindowsOnEdge','homeWindowLayout','photographedEdge','balconyPart','balconyProposal','inferredBalconies','footprintWalls','bestFacadeWall','wallPoint','garagesOnWall','streetDistanceFacing','frontDoorSpot','indexJunctionVertices','isUnmarkedService','isTunnelWay','distanceToSegmentSquared','garageSpansOnEdge','doorOn','photoEntryDoor','settleDoors'];
 const functions=names.map(n=>{const match=source.match(new RegExp(`function ${n}\\([^\n]*?\{[^\n]*?\}[^\n]*$`,'m')) || source.match(new RegExp(`function ${n}\\([^]*?\\n}`));if(!match)throw Error(`missing canonical ${n}`);return match[0];}).join('\n');
-const DATA=read('docs/sf-corridor-3d.json'),meta=read('docs/sf-corridor-terrain.json'),bytes=fs.readFileSync(new URL('docs/sf-corridor-terrain.bin',root));
+// Which region's shells: KERBSIDE_REGION names one under docs/regions/; unset, the corridor beside the page.
+const REGION=process.env.KERBSIDE_REGION||'sf-corridor',BASE=REGION==='sf-corridor'?'docs/':`docs/regions/${REGION}/`;
+const DATA=read(BASE+'sf-corridor-3d.json'),meta=read(BASE+'sf-corridor-terrain.json'),bytes=fs.readFileSync(new URL(BASE+'sf-corridor-terrain.bin',root));
 const FRONTAGE_FITS={schema:'kerbside.facade_fits/1',buildings:{}};
-for(const tile of read('docs/sf-corridor-frontage-fits.manifest.json').tiles)if(tile.region==='sf-corridor')Object.assign(FRONTAGE_FITS.buildings,read('docs/'+tile.path).buildings);
+for(const tile of read('docs/sf-corridor-frontage-fits.manifest.json').tiles)if(tile.region===REGION)Object.assign(FRONTAGE_FITS.buildings,read('docs/'+tile.path).buildings);
 const context=vm.createContext({DATA,FRONTAGE_FITS,HOME_OPENINGS:read('docs/sf-corridor-home-openings.json'),TERRAIN:{meta,data:new Int16Array(bytes.buffer,bytes.byteOffset,bytes.byteLength/2)},console});
 vm.runInContext(`const bbox=DATA.bbox,midLon=(bbox.west+bbox.east)/2,midLat=(bbox.south+bbox.north)/2,metersPerLat=111320,metersPerLon=metersPerLat*Math.cos(midLat*Math.PI/180);
 const TERRAIN_FRAME=TERRAIN.meta.frame,OPEN_WATER_GROUND_M=-.14,HOME_STOREY_MAX_M=7,HILLSIDE_RISE_M=1.2,WINDOW_GROUND_CLEAR_M=.45,FRONT_DOOR_PANEL_W_M=3.2,DOOR_HEIGHT_M=2.1,GARAGE_HEIGHT_M=2.7,DOOR_LEAF_M=1.05,DOOR_CLEAR_M=.35,FOOTPRINT_CELL=40,JUNCTION_CELL_M=20,FACADE_PHOTOS=false;
@@ -22,9 +24,10 @@ const local=way.points.map(p=>{const [x,y]=xy(...p);return [x,-y];}),xs=local.ma
 const e={way,local,minX:Math.min(...xs),maxX:Math.max(...xs),minZ:Math.min(...zs),maxZ:Math.max(...zs)};entries.set(String(way.osm_id),e);
 for(let x=Math.floor(e.minX/FOOTPRINT_CELL);x<=Math.floor(e.maxX/FOOTPRINT_CELL);x++)for(let z=Math.floor(e.minZ/FOOTPRINT_CELL);z<=Math.floor(e.maxZ/FOOTPRINT_CELL);z++){const k=x+':'+z;if(!footprintGrid.has(k))footprintGrid.set(k,[]);footprintGrid.get(k).push(e);}}
 `,context);
-context.fits=read('docs/sf-corridor-interiors.json').buildings;
+context.fits=read(BASE+'sf-corridor-interiors.json').buildings;
 context.inputs=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
-const result=vm.runInContext(`inputs.map(row=>{
+// A shell the rules cannot make a home of is reported, not the batch's end.
+const result=vm.runInContext(`inputs.map(row=>{try{
 if(!row.osm_id)return null;const entry=entries.get(row.osm_id);if(!entry)throw Error('missing mapped shell');entry.fit=fits[row.osm_id];
 const way=entry.way,seed=Math.round(way.points[0][0]*1e5+way.points[0][1]*1e5*7919),base=groundBaseFor(way.points);
 if(!frontageFitFor(way)){const spot=frontDoorSpot(way);if(spot){const anchor=wallPoint(spot.wall,spot.along);way._frontDoor={x:anchor.x,z:anchor.z};}}
@@ -40,7 +43,8 @@ for(const y of d.platform_heights_m||[])if(y>0&&y<=fit.height_m-1.2)balconies.pu
 if(!fit&&way.height_m>7.5&&random(seed+701)<.34){const wall=footprintWalls(way.points).filter(w=>w.nz>.38&&w.span>5.5).sort((a,b)=>b.span-a.span)[0];if(wall){const parts=[];balconyPart(parts,wall,base+Math.min(way.height_m-1.1,3.2*1.2),seed);const width=Math.min(3.4,Math.max(2,wall.span*.24)),along=(random(seed+19)-.5)*wall.span*.28,c=wallPoint(wall,along,0),tx=Math.cos(wall.yaw),tz=-Math.sin(wall.yaw);balconies.push({kind:'balcony',a:local([c.x-tx*width/2,c.z-tz*width/2]),b:local([c.x+tx*width/2,c.z+tz*width/2]),u:0,w:width,depth_m:.72,normal:[wall.nx,-wall.nz],elevation_m:base+Math.min(way.height_m-1.1,3.2*1.2)-layout.floor,colour:'#d4d0c2',grade:'procedural_not_measured',parts:parts.map(p=>({...p,position:[...local([p.x,p.z])],bottom_m:p.y-layout.floor}))});}}
 const door=entry.doors[0],entrance=door?local([door.cx,door.cz]):row.entrance;
 return {id:row.id,windows,balconies,entrance,storeys:Array.from({length:count},()=>({height_m:height})),floor_y_m:layout.floor,shell_base_y_m:base,shell_top_y_m:layout.top,footprint:{type:'Polygon',coordinates:[entry.local.map(local)]},source:'Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail',measured:false,confidence:.25,freshness:null,corroboration_count:0};
-})`,context);
-for(const row of result.filter(Boolean))for(const element of [...row.windows,...row.balconies]){element.confidence??=.25;element.measured=false;element.freshness=null;element.corroboration_count=0;}
+}catch(error){return {id:row.id,rejected:error.message};}})`,context);
+const rejected=Object.fromEntries(result.filter(r=>r?.rejected).map(r=>[r.id,r.rejected])),built=result.filter(r=>r&&!r.rejected);
+for(const row of built)for(const element of [...row.windows,...row.balconies]){element.confidence??=.25;element.measured=false;element.freshness=null;element.corroboration_count=0;}
 const hash=crypto.createHash('sha256').update(functions).digest('hex');
-console.log(JSON.stringify({schema:'kerbside.interior_envelopes/1',canonical_rules_sha256:hash,canonical_source_sha256:crypto.createHash('sha256').update(source).digest('hex'),buildings:Object.fromEntries(result.filter(Boolean).map(r=>[r.id,r]))}));
+console.log(JSON.stringify({schema:'kerbside.interior_envelopes/1',canonical_rules_sha256:hash,canonical_source_sha256:crypto.createHash('sha256').update(source).digest('hex'),buildings:Object.fromEntries(built.map(r=>[r.id,r])),...(Object.keys(rejected).length?{rejected}:{})}));
