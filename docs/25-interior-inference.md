@@ -1,0 +1,229 @@
+# Kerbside interior inference pilot
+
+A complementary engine lives in `src/smc/interiors/inference/`. It reads a footprint in local
+metres and explicit storey heights, then exports one house with distinct floors, connected
+stairs, rooms, openings, coordinated materials and physically placed furniture. The existing
+ResPlan/Swiss Dwellings source adapters and their observed-template contract remain separate.
+
+The engines, local tour and asset library are integrated into the main
+`spatial-mapping-crowdsource` checkout. The `codex/interior-engine` branch retains the
+isolated development history.
+
+## Review and run
+
+From the worktree root:
+
+```sh
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -e '.[interiors,dev]'
+.venv/bin/python scripts/build_inferred_interiors.py
+.venv/bin/python scripts/serve_interior_lab.py --port 8794
+```
+
+Open [Interior Lab](http://127.0.0.1:8794/inferred-interiors/). The viewer provides house
+selection, individual floors, a separated multi-floor view, full-height walls, labeled plans,
+room inventories, palettes and validation statistics. It loads actual textured GLTF/GLB assets;
+parametric fixtures cover kitchen appliances, sanitaryware, storage and laundry equipment.
+Beds and sofas use a coordinated parametric fallback when the library lacks a matching style.
+
+To generate other houses, pass a JSON array with `--input path/to/houses.json --out path/to/output`.
+The command limits each batch to twenty houses. Fixture selection occurs before inference;
+it does not select only addresses the solver can handle.
+
+```json
+[{
+  "id": "example-house",
+  "units": "metres",
+  "footprint": [[0,0],[12,0],[12,10],[0,10]],
+  "entrance": [4,0],
+  "storeys": [{"height_m": 2.9}, {"height_m": 2.7}],
+  "total_height_m": 5.6,
+  "bedrooms": 3,
+  "office": true,
+  "neighborhood_price_per_sqft": 650
+}]
+```
+
+`footprint` also accepts a GeoJSON Polygon, including holes. A storey may override the
+footprint for setbacks. Coordinates must already be in a local metre frame. Object positions
+are `[x, elevation, y]`; floor polygons use `[x,y]`. Supplied entrances must lie on the outline.
+The Python API is `infer_house(HouseInput.from_json(record))`.
+
+## Layout and placement
+
+The search tries the footprint's dominant orientations, circulation cuts, public-zone
+orientations and centre/side stair positions. It preserves the polygon rather than stretching
+a source drawing. Cuts must leave connected rooms with usable dimensions and access to a
+connected hallway. The score penalizes circulation area, undersized bedrooms and separating
+bedrooms onto the ground floor. Sleeping rooms are kept upstairs together when feasible.
+
+Living, dining and kitchen zones connect without partition walls or door leaves. Bedrooms,
+full bathrooms, WC-only bathrooms and offices receive private single doors. Utility and
+closet access stays open. The opening contract supports full access, cabinet partitions,
+doorways, single doors and double doors. The pilot emits the first four; double-door leaves
+are represented in the contract but are not automatically chosen by this minimal-door policy.
+Cabinet partitions record the blocking objects and remaining passable spans.
+
+Closets are carved only when bed access survives. Wet rooms are compacted around fixtures:
+WC rooms are limited to 5.5 m² and full bathrooms to 8.5 m². Surplus is first offered to
+adjacent useful rooms or furnished sitting/study spaces. A hall-access storage region can
+become a second WC in a single-storey home when all fixtures and approaches fit. Failed
+furnishing attempts select another cut or closet-free variant, without address-specific rules.
+A WC-only room requires a toilet and basin; a full bathroom also requires a combined tub/shower.
+Laundry and closets require their functional equipment rather than passing as empty rooms.
+Suitable blind hall ends are first offered as fitted laundry niches with a washer and
+supported dryer stack against the wall. Their full height is checked against windows;
+existing door and stair approaches must survive. Other unsupported tails are reclaimed.
+
+Circulation is pruned around actual room entrances and shared stair approaches. A separate
+closed-end audit detects full-width blind branches extending beyond all destinations. Those
+branches are absorbed into adjacent rooms, conserving floor area and keeping turning and door
+approaches. The final search compares three valid partitions by actual hallway share and
+oversized room area. This is a bounded heuristic, not a proof of a global space optimum.
+Rotated overlay arithmetic snaps at 0.1 micrometre resolution to avoid false disconnected
+shared edges; serialized outline coverage and room overlap are checked independently.
+
+Beds back onto a wall and reserve a foot aisle and one side aisle. Placement protects door
+approaches and verifies connected walking space between portals and furniture interaction
+points. Dining tables and chairs are placed as a group. Offices include a desk and reachable
+chair. Tabletop objects have parent references, exact contact elevations and matching XY
+centres. The renderer scales source meshes to the same boxes the validator checks, including
+support heights, and orients backrests/headboards toward the planned wall.
+
+One aligned U-shaped core connects all storeys. Storey elevations accumulate the supplied
+heights; riser count, tread depth, flight width, landing and upper slab openings are explicit.
+The map adapter selects floors and collision segments by the walker's elevation.
+
+## Materials, economics and objects
+
+SHA-256 of the stable house ID selects a whole-house palette. Rooms vary within it; walls,
+wood, fabric, stone, metal and accents have separate assignments. The renderer adds timber
+and tile patterns and preserves the source models' textured finishes. Outer-wall interior
+faces follow the adjoining room's paint, eliminating the previous white lining. Timber
+jambs, recessed door panels, glazed entries/offices, reeded bathroom glass, hinges, handles,
+skirting, cornices and warm ceiling lights carry the palette into the eye-level tour. Window
+cuts and balcony geometry still come from Kerbside's canonical envelope exporter.
+
+An explicitly supplied USD/ft² neighbourhood value selects an illustrative economy,
+standard or premium allowance. Floor area scales the furnishing budget; model selection
+scores style, source dimensions and the allowance. These are editable proxy rules, not
+observed product prices or an estimate of the occupants' wealth. Missing market data remains
+missing in provenance. The eight mapped pilot houses use an unspecified market value;
+prices on synthetic fixtures are deliberately illustrative.
+
+The existing **44** local models are retained. The library now contains **86** assets:
+40 additional Poly Haven models and two pinned Khronos models, alongside the existing Google
+Scanned Objects. Every local asset has dimensions, bounds, triangle count, role, style,
+allowance tier, source, license, attribution and file hashes. Downloaded models
+are used by the pilot; unused library entries remain available for subsequent furnishing.
+
+```sh
+.venv/bin/python scripts/expand_interior_library.py
+# Refresh library choices without solving room geometry again:
+.venv/bin/python scripts/build_inferred_interiors.py --refresh-assets
+# Offline metadata refresh without downloading more models:
+.venv/bin/python scripts/expand_interior_library.py --measure-only
+```
+
+The importer resumes existing downloads, verifies Poly Haven upstream checksums, checkpoints
+successful additions and records failures. Khronos models are pinned to commit
+`15cd02d304e54cb42a4db4eefe719f76190f4b68`; their individual license metadata is stored locally.
+The sofa retains both original and improvement credits.
+
+Sources reviewed:
+
+- [Infinigen Indoors](https://github.com/princeton-vl/infinigen/tree/indoors-stable): a strong
+  free procedural reference. This pilot uses an independently implemented polygon solver
+  to keep Kerbside's footprint and runtime contracts direct; it does not require Blender or
+  downloaded inference weights.
+- [Poly Haven license](https://polyhaven.com/license) and
+  [official file API](https://github.com/Poly-Haven/Public-API): CC0 textured household models.
+- [Google Scanned Objects](https://github.com/google-research-datasets/Google-scanned-objects):
+  existing CC-BY household scans retained with their credits.
+- [Khronos Sheen Chair](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/SheenChair)
+  and [Sheen Wood Leather Sofa](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/SheenWoodLeatherSofa):
+  a third source of detailed furniture, with model-specific rights and attribution.
+
+## Kerbside integration
+
+`build_inferred_interiors.py` selects eight published OSM house/detached footprints, ordered
+by SHA-256 of OSM ID, plus eight fixed artificial shapes. Real fixtures preserve the existing
+fitted entrance locations. The source shell height supplies an explicitly inferred storey
+count and equal heights; these are not represented as a survey of the interior.
+
+The batch writes `map-overlay.json`, keyed by OSM ID. Regenerate the existing viewer:
+
+```sh
+.venv/bin/python scripts/build_sf_corridor_3d.py --page-only
+```
+
+The map's `?inferredInteriors=1` option lazily loads the eight generated houses through
+`renderer.mjs` and `kerbside-adapter.mjs`. Other addresses retain their existing fitted plans.
+The adapter converts local east/north to Kerbside's scene frame, attaches per-storey collision
+geometry, door leaves and stair standing surfaces, and loads textured assets on demand.
+
+The standalone lab and adapter probes are verified. A full live-map walking acceptance run
+remains open: the existing overview/region lifecycle produced a disposed-terrain callback
+(`TERRAIN.data` null) and the browser stalled when switching to first person. This is recorded
+rather than claiming an end-to-end walking pass. The overlay is opt-in for that reason.
+
+## Validation and present bounds
+
+The final sixteen-house batch passes serialized-geometry validation and contains **577**
+objects. It covers compact, narrow, L, U, T, angled and one/two/three/four-storey cases, plus eight
+real outlines. No room or object extends outside its floor. All rooms connect to the exterior
+entrance, and usable polygon coverage is complete. Maximum hallway share in this batch is
+**25.1%**. This is a scored search, not a proof of a globally optimal layout.
+
+Ninety-three focused checks now pass across house and restaurant geometry, walking, interiors,
+rooms, storeys, object rendering and shell assets. The corruption
+checks deliberately introduce floating objects, blocked doors, missing furniture and missing
+stair slab openings. The adapter probe checks stair elevations and floor-specific room data.
+
+The pilot supports one to six storeys, per-storey area of at least 48 m² and heights of
+2.4–7 m. Infeasible narrow, disconnected or self-intersecting inputs fail explicitly. It
+cannot infer a real interior accurately from the exterior alone: every generated room and
+object is labeled inferred, with confidence, corroboration and provenance fields. No ground
+truth interior survey was available for accuracy scoring. Apartments, mixed-use buildings,
+code certification, real market-data ingestion and expansion beyond the bounded pilot are
+future work.
+
+The isolated Python 3.12 environment installs and runs. Whole-project `uv lock` still hits
+an existing project-wide conflict: `scan-build` pins SciPy 1.18.1 while the project advertises
+Python >=3.11, and that SciPy build requires >=3.12. The existing lockfile is preserved; use
+the `uv pip install` command above for this worktree.
+
+Graphify's AST graph was refreshed. Its existing Terraform extraction warning remains:
+`tree_sitter_hcl` is absent for two `.tf` files; the interior Python/JS extraction is present.
+
+
+## Canonical openings and eye-level tours (2026-10-21)
+
+Run `.venv/bin/python scripts/serve_interior_lab.py --port 8794`, then open the house lab.
+**Walk inside** enables WASD, drag-to-look, arrow turning, E for private doors, and physical
+stair walking. Room and floor selection provide explicit navigation shortcuts. **Expand view**
+fills the browser. This standalone tour is verified independently of the map's existing
+region lifecycle limitation above.
+
+Before partitioning a mapped house, `scripts/export_interior_envelopes.mjs` evaluates the
+existing Kerbside `homeWindowLayout`, door-settlement, floor-count and balcony rules against
+published SF footprints, frontage fits, window observations and terrain. It records source
+hashes in `inferred-interiors/envelopes.json`. The mapped pilot now uses the canonical usable
+height above its terrain foundation rather than truncating buildings to three floors. The
+sixteen-house batch includes a four-storey mapped house as a result.
+
+The viewer cuts actual window holes and renders glazing/frames at those coordinates. Photo
+balconies preserve canonical frontage positions and platform elevations; procedural balcony
+parts are captured from `balconyPart` itself, including its offsets and heights. Their
+measured/inferred grades remain explicit. Detailed arched glazing profiles and every custom
+trim are not fully reproduced by the standalone renderer. Existing map shells continue to
+own exterior geometry in the opt-in map adapter. No full live-map walking pass is claimed.
+
+Tall furniture is excluded from window strips. A common stair approach is selected across
+all storeys; every flight exits through that same opening. The independent walking probe
+ascends and descends all 17 stair connections, including rotated houses. Surface membership
+uses a tiny boundary tolerance so adjacent treads never expose a zero-height crack.
+
+The [restaurant extension](26-restaurant-inference.md) shares the renderer, local server,
+licensed asset catalogue and walking geometry. House price-per-square-foot inputs and
+restaurant spend-per-person inputs remain separate economic contracts.

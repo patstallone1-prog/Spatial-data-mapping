@@ -99,8 +99,10 @@ test('worker shell ownership respects deployment path and HTTP errors are not ca
   assert.equal(missing.records.size, 0);
 });
 
-async function loadCase({ chosen, mark, legacy, query = '', attached = false, app = false } = {}) {
-  const local = storage(chosen === undefined ? [] : [['kerbside:light', chosen]]);
+async function loadCase({ chosen, mark, legacy, held, retired, query = '', attached = false, app = false } = {}) {
+  const local = storage(chosen === undefined ? [] : [['kerbside:world', chosen]]);
+  if (held) local.setItem('kerbside:world-recovery', JSON.stringify(held));
+  if (retired !== undefined) local.setItem('kerbside:light', retired);
   if (legacy) local.setItem('kerbside:loading', JSON.stringify(legacy));
   const session = storage(mark ? [['kerbside:loading', JSON.stringify(mark)]] : []);
   const h = harness({ initial: [oldName, currentName, 'kerbside-captures', 'unrelated'] });
@@ -144,6 +146,27 @@ test('future/expired marks and invalid persisted levels cannot create NaN build 
   }
   assert.equal((await loadCase({ mark: { at: Date.now() - 16 * 60_000, level: 0 } })).result.level, 0);
   assert.equal((await loadCase({ query: '?light=2.9' })).result.level, 2);
+});
+test('a load that died steps the next ones down for a day, then the device decides again', async () => {
+  const r = await loadCase({ app: true, mark: { at: Date.now(), level: 2 } });
+  assert.equal(r.result.level, 3);
+  const held = JSON.parse(r.local.getItem('kerbside:world-recovery'));
+  assert.equal(held.level, 3);
+  assert.equal(r.local.getItem('kerbside:world'), null, 'a step down is not a choice');
+  assert.equal((await loadCase({ app: true, held })).result.level, 3, 'the next visit that day');
+  const later = await loadCase({ app: true, held: { ...held, at: Date.now() - 25 * 3600_000 } });
+  assert.equal(later.result.level, 2, 'a day on, the computer gets its own size back');
+  assert.equal(later.local.getItem('kerbside:world-recovery'), null);
+});
+test('the old key, which mixed a choice and a step down, is retired', async () => {
+  const r = await loadCase({ app: true, retired: '3' });
+  assert.equal(r.result.level, 2);
+  assert.equal(r.local.getItem('kerbside:light'), null);
+});
+test('a size chosen in the settings is kept, and a step down only goes lighter than it', async () => {
+  assert.equal((await loadCase({ app: true, chosen: '1' })).result.level, 1);
+  assert.equal((await loadCase({ app: true, chosen: '1', held: { at: Date.now(), level: 2 } })).result.level, 2);
+  assert.equal((await loadCase({ app: true, chosen: '3', held: { at: Date.now(), level: 2 } })).result.level, 3);
 });
 test('guest region cannot write or delete the host load marker', async () => {
   const mark = { at: Date.now(), level: 2 };

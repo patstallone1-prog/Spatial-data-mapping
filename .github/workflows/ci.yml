@@ -50,7 +50,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: pip install -e ".[dev]"
+      # The interior engine's tests need its geometry libraries (shapely, trimesh).
+      - run: pip install -e ".[dev,interiors]"
       - name: Validate published visual cells if present
         run: python scripts/publish_visual_pilot.py
       # The audit's baseline test (tests/test_width_vs_kerb.py) is its own job below so that a

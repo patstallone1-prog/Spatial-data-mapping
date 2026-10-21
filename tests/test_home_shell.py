@@ -295,10 +295,17 @@ def test_imported_furniture_hashes_and_gltf_dependencies():
     for role in ("sofa", "bed", "dresser", "nightstand", "tv_stand", "coffee_table", "ceiling_lamp", "bulb"):
         assert role in roles, role
     for asset in manifest["assets"]:
-        # Poly Haven's are CC0; Google's scans are CC BY and carry their credit.
+        # Poly Haven is CC0; Google scans and the reviewed Khronos sofa retain their credit.
         assert asset["license"] in ("CC0-1.0", "CC-BY-4.0")
         if asset["license"] == "CC-BY-4.0":
-            assert "Google" in asset["attribution"] and asset["source"].startswith("https://")
+            assert asset["source"].startswith("https://")
+            if asset["model"].startswith("scanned/"):
+                assert "Google" in asset["attribution"]
+            else:
+                assert asset["id"] == "khronos_SheenWoodLeatherSofa"
+                assert "Eric Chadwick" in asset["attribution"]
+                assert "Fran Calvente" in asset["attribution"]
+                assert asset["source_commit"] in asset["source"]
         for file in asset["files"]:
             data = (root / file["path"]).read_bytes()
             assert len(data) == file["bytes"]

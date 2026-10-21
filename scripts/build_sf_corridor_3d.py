@@ -3420,9 +3420,17 @@ const VISUAL_SUPPORT_URL = ATTACH ? ATTACH.visualSupport || ""
 // file that the square touches (tools/build_window_cells.py): parsing the whole files first was
 // a gigabyte and a half on its own. A page that dies while it loads (a mark is left in storage as
 // it starts and taken away once it has drawn and held for half a minute) loads lighter next
-// time, a step at a time, whatever the device said about itself.
+// time, a step at a time, whatever the device said about itself -- for a day, not for good. A
+// computer that once ran short (swap full, the tab discarded while it built) is not small; held
+// for good, one bad hour kept a Mac on the smallest square for every visit after.
 const LOAD_MARK_KEY = "kerbside:loading";
-const LIGHT_KEY = "kerbside:light";
+//: The size chosen in the settings: kept until it is chosen again.
+const LIGHT_KEY = "kerbside:world";
+//: The size a load that died stepped down to, and when: held for RECOVERY_HOLD_MS.
+const RECOVERY_KEY = "kerbside:world-recovery";
+const RECOVERY_HOLD_MS = 24 * 60 * 60 * 1000;
+//: The key that held both, a choice and a step down, with no way to tell them apart.
+const RETIRED_LIGHT_KEY = "kerbside:light";
 //: Half the side of the square built in full, by level: 0 is the whole region.
 const LIGHT_RADII_M = [0, 650, 350, 220];
 let runtimeCacheRecovery = Promise.resolve();
@@ -3448,11 +3456,16 @@ function deviceIsSmall() {
 const LIGHT_LEVEL = (() => {
   if (ATTACH) return ATTACH.detailWindow ? 1 : 0;
   // A choice made in the settings stands; otherwise the device's own say. Either way a load
-  // that died takes the next one a step lighter.
+  // that died takes the next one a step lighter, and the step holds for a day.
   let level = document.querySelector('meta[name="kerbside-app-mode"]') ? 2 : (deviceIsSmall() ? 1 : 0);
   try {
+    localStorage.removeItem(RETIRED_LIGHT_KEY);
     const chosen = localStorage.getItem(LIGHT_KEY);
     level = validLightLevel(chosen, level);
+    const held = JSON.parse(localStorage.getItem(RECOVERY_KEY) || "null");
+    const age = held && Date.now() - held.at;
+    if (held && Number.isFinite(age) && age >= 0 && age < RECOVERY_HOLD_MS) level = Math.max(level, validLightLevel(held.level));
+    else if (held) localStorage.removeItem(RECOVERY_KEY);
   } catch (error) { /* preferences may be unavailable */ }
   // Retire a legacy persisted whole-city choice in installed apps: returning
   // visitors must get bounded streaming too, not another multi-GB reload loop.
@@ -3467,7 +3480,7 @@ const LIGHT_LEVEL = (() => {
     const age = mark && Date.now() - mark.at;
     if (mark && Number.isFinite(age) && age >= 0 && age < 15 * 60 * 1000) {
       level = Math.min(LIGHT_RADII_M.length - 1, Math.max(level, validLightLevel(mark.level)) + 1);
-      try { localStorage.setItem(LIGHT_KEY, String(level)); } catch (error) { /* this tab still recovers */ }
+      try { localStorage.setItem(RECOVERY_KEY, JSON.stringify({ at: Date.now(), level })); } catch (error) { /* this tab still recovers */ }
       runtimeCacheRecovery = clearLegacyRuntimeCaches();
     }
   } catch (error) { /* without storage, the device's own say is all there is */ }
@@ -30134,6 +30147,49 @@ fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
   })
   .catch(() => {})
   .finally(() => { HOME_OPENINGS_SETTLED = true; });
+// Bounded pilot: opt in with ?inferredInteriors=1. Eight mapped houses only.
+let generatedInteriorModules = null;
+function requestGeneratedInteriors() {
+  if (new URLSearchParams(location.search).get("inferredInteriors") !== "1") return;
+  const base = new URL("../inferred-interiors/", interiorAssetBase());
+  fetch(new URL("map-overlay.json", base)).then(r => r.ok ? r.json() : null).then(data => {
+    for (const [id, ref] of Object.entries(data?.buildings || {})) {
+      const entry = footprintById.get(id);
+      if (entry && !entry.way.parkFacility) {
+        entry.generatedInteriorRef = {...ref, base};
+        if (entry.interior) removeInterior(entry);
+      }
+    }
+  }).catch(error => console.warn("kerbside: generated pilot unavailable", error));
+}
+function requestGeneratedInterior(entry) {
+  if (entry.generatedInteriorPending) return;
+  entry.generatedInteriorPending = true;
+  const ref = entry.generatedInteriorRef;
+  if (!generatedInteriorModules) generatedInteriorModules = Promise.all([
+    import(new URL("renderer.mjs", ref.base).href),
+    import(new URL("kerbside-adapter.mjs", ref.base).href)
+  ]);
+  Promise.all([generatedInteriorModules,
+    fetch(new URL(ref.file, ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); })
+  ]).then(([[rendererModule, adapter], house]) => {
+    if (!house.validation?.passed || house.grade !== "inferred") throw new Error("invalid generated hypothesis");
+    if (entry.interior) removeInterior(entry);
+    const [lon, lat] = ref.origin_lon_lat;
+    const floorY = entryFloorY(entry);
+    const interior = adapter.mountGeneratedInterior(THREE, house, entry, {
+      origin: xy(lon, lat), floorY, assetBase: interiorAssetBase(),
+      loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
+      feetY: walkerFeetY, pointInRing
+    }, rendererModule.buildInferredHouse);
+    entry.interior = interior;
+    interiorGroup.add(interior.group); standingSurfaces.add(interior.floorSurface); interiorsBuilt.add(entry);
+  }).catch(error => {
+    entry.generatedInteriorFailed = true;
+    console.warn("kerbside: generated interior rejected; using fitted plan", error);
+    buildInterior(entry);
+  });
+}
 let interiorsRequested = false;
 function requestInteriors() {
   if (interiorsRequested) return;
@@ -30143,6 +30199,7 @@ function requestInteriors() {
     .then((data) => {
       if (!data || !data.buildings) return;
       INTERIORS = data;
+      requestGeneratedInteriors();
       for (const [id, record] of Object.entries(data.buildings)) {
         const entry = footprintById.get(id);
         if (!entry || entry.way.parkFacility) continue;
@@ -31134,6 +31191,7 @@ function nearestRoomDoor() {
   let best = null, bestD = 1.7;
   for (const entry of interiorsBuilt) {
     for (const d of entry.interior?.roomDoors || []) {
+      if (d.y !== undefined && Math.abs(d.y - walkerFeetY()) > 1.5) continue;
       const dist = Math.hypot(d.x - avatar.position.x, d.z - avatar.position.z);
       if (dist < bestD) { best = d; bestD = dist; }
     }
@@ -33261,6 +33319,10 @@ function entryTunnelConflict(entry) {
 function buildInterior(entry) {
   if (entry.way.parkFacility) return;
   if(entryTunnelConflict(entry))return;
+  if (entry.generatedInteriorRef && !entry.generatedInteriorFailed) {
+    if (!entry.interior) requestGeneratedInterior(entry);
+    return;
+  }
   if (entry.interior || !INTERIORS || !entry.fit) return;
   const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W, storeys, storeyM] = entry.fit;
   const plan = INTERIORS.library[ti];
@@ -35176,7 +35238,8 @@ settingsForm.addEventListener("change", (e) => {
   }
   if (e.target === settingsForm.world) {
     // How much is built is decided before anything is: the page builds again.
-    try { localStorage.setItem(LIGHT_KEY, settingsForm.world.value); } catch (error) { /* this visit only */ }
+    try { localStorage.setItem(LIGHT_KEY, settingsForm.world.value); localStorage.removeItem(RECOVERY_KEY); }
+    catch (error) { /* this visit only */ }
     const url = new URL(location.href);
     url.searchParams.delete("full"); url.searchParams.delete("light");
     location.replace(url.href);

@@ -1,0 +1,3 @@
+# glTF buffers are binary even when their first bytes happen to look like text.
+docs/interior-assets/**/*.bin binary
+docs/interior-assets/**/*.glb binary

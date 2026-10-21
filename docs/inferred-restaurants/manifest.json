@@ -1,0 +1,402 @@
+{
+  "schema": "kerbside.restaurant_batch/1",
+  "round": 11,
+  "houses": [
+    {
+      "id": "restaurant-272632304",
+      "name": "S F Hospitality Inc",
+      "file": "restaurant-272632304.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Ash & slate",
+      "metrics": {
+        "coverage_min": 0.9999999999999998,
+        "room_count": 3,
+        "objects": 14,
+        "seats": 0,
+        "tables": 0,
+        "table_sizes": {
+          "2": 0,
+          "4": 0,
+          "6": 0
+        },
+        "table_modules": 0,
+        "booths": 0,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 0,
+        "isolated_clear_floor_m2": 0.0
+      },
+      "input": {
+        "id": "restaurant-272632304",
+        "osm_id": "272632304",
+        "name": "S F Hospitality Inc",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -4.04616141894909,
+                2.4601719994836913
+              ],
+              [
+                3.061009073150619,
+                3.6178999995664185
+              ],
+              [
+                4.0549574227620155,
+                -2.4601720002746674
+              ],
+              [
+                -3.052213070587681,
+                -3.6290320004874843
+              ],
+              [
+                -4.04616141894909,
+                2.4601719994836913
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          -0.4925761728992355,
+          3.039035999525055
+        ],
+        "origin_lon_lat": [
+          -122.4402264,
+          37.8000211
+        ],
+        "stratum": "pickup",
+        "service_mode": "pickup",
+        "bar": false,
+        "average_spend_per_person": 15,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "b4fdcd8880fd561f9b1336fff553f64dc2f62fd6906e84e82f491c9724349c6c"
+      },
+      "service_mode": "pickup"
+    },
+    {
+      "id": "restaurant-256080526",
+      "name": "Bow Hon Seafood Restaurant",
+      "file": "restaurant-256080526.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "coverage_min": 1.0,
+        "room_count": 3,
+        "objects": 45,
+        "seats": 16,
+        "tables": 5,
+        "table_sizes": {
+          "2": 3,
+          "4": 1,
+          "6": 1
+        },
+        "table_modules": 8,
+        "booths": 0,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 8,
+        "isolated_clear_floor_m2": 0.0
+      },
+      "input": {
+        "id": "restaurant-256080526",
+        "osm_id": "256080526",
+        "name": "Bow Hon Seafood Restaurant",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                7.424333994085092,
+                -2.449040000144578
+              ],
+              [
+                -6.755792071318003,
+                -4.4416679997013375
+              ],
+              [
+                -7.7058253311713045,
+                1.2467840003324682
+              ],
+              [
+                0.4134403993921356,
+                2.382248000155016
+              ],
+              [
+                6.6150464027748965,
+                3.2505440000193175
+              ],
+              [
+                7.424333994085092,
+                -2.449040000144578
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          -7.230808701244653,
+          -1.5974419996844347
+        ],
+        "origin_lon_lat": [
+          -122.4062982,
+          37.7949724
+        ],
+        "stratum": "narrow",
+        "service_mode": "auto",
+        "bar": false,
+        "average_spend_per_person": 18,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "a7903230180eecb5ae18448bb87a660f3e7048755a142b9e8bd4052e7f1bb0f5"
+      },
+      "service_mode": "table"
+    },
+    {
+      "id": "restaurant-206629809",
+      "name": "Eight Tables by George Chen",
+      "file": "restaurant-206629809.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "coverage_min": 1.0000000000000002,
+        "room_count": 3,
+        "objects": 78,
+        "seats": 34,
+        "tables": 11,
+        "table_sizes": {
+          "2": 6,
+          "4": 4,
+          "6": 1
+        },
+        "table_modules": 17,
+        "booths": 2,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 63,
+        "isolated_clear_floor_m2": 0.0
+      },
+      "input": {
+        "id": "restaurant-206629809",
+        "osm_id": "206629809",
+        "name": "Eight Tables by George Chen",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                5.576792080505845,
+                -11.521619999385848
+              ],
+              [
+                -1.7856290101915426,
+                -12.679347999468575
+              ],
+              [
+                -6.2365072315495125,
+                15.696119999919915
+              ],
+              [
+                2.4277517569907094,
+                8.493716000386371
+              ],
+              [
+                5.576792080505845,
+                -11.521619999385848
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          -1.9043777372794013,
+          12.094918000153143
+        ],
+        "origin_lon_lat": [
+          -122.4077442,
+          37.7983505
+        ],
+        "stratum": "irregular",
+        "service_mode": "auto",
+        "bar": false,
+        "average_spend_per_person": 40,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "4f4eea81390ddee59bf6bca04258d86e4145c50b3f98d5b8ea92f6ddca08cfac"
+      },
+      "service_mode": "table"
+    },
+    {
+      "id": "restaurant-32611674",
+      "name": "North Beach Restaurant",
+      "file": "restaurant-32611674.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Warm oak & sage",
+      "metrics": {
+        "coverage_min": 1.0,
+        "room_count": 4,
+        "objects": 165,
+        "seats": 76,
+        "tables": 25,
+        "table_sizes": {
+          "2": 13,
+          "4": 11,
+          "6": 1
+        },
+        "table_modules": 38,
+        "booths": 2,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 149,
+        "isolated_clear_floor_m2": 0.0
+      },
+      "input": {
+        "id": "restaurant-32611674",
+        "osm_id": "32611674",
+        "name": "North Beach Restaurant",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                11.10938331553577,
+                -5.109587999596954
+              ],
+              [
+                -14.003276514237294,
+                -9.10597599963154
+              ],
+              [
+                -15.929606637141957,
+                2.326588000295544
+              ],
+              [
+                9.297401555588921,
+                6.668068000408027
+              ],
+              [
+                9.543690338882664,
+                5.198643999846695
+              ],
+              [
+                11.10938331553577,
+                -5.109587999596954
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          -14.966441575689625,
+          -3.3896939996679976
+        ],
+        "origin_lon_lat": [
+          -122.4087829,
+          37.7998122
+        ],
+        "stratum": "large",
+        "service_mode": "auto",
+        "bar": true,
+        "average_spend_per_person": 70,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "13e849ba96c14ecc1697e614106835df0c14546fe1c60f93c39fc66f925ac84b"
+      },
+      "service_mode": "table"
+    },
+    {
+      "id": "restaurant-260526936",
+      "name": "Today Food",
+      "file": "restaurant-260526936.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Ash & slate",
+      "metrics": {
+        "coverage_min": 1.0,
+        "room_count": 3,
+        "objects": 42,
+        "seats": 16,
+        "tables": 4,
+        "table_sizes": {
+          "2": 1,
+          "4": 2,
+          "6": 1
+        },
+        "table_modules": 8,
+        "booths": 2,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 27,
+        "isolated_clear_floor_m2": 0.0
+      },
+      "input": {
+        "id": "restaurant-260526936",
+        "osm_id": "260526936",
+        "name": "Today Food",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -3.712233236430601,
+                -4.630911999539933
+              ],
+              [
+                -4.96137332992737,
+                3.2505440000193175
+              ],
+              [
+                3.721029998383099,
+                4.619780000200819
+              ],
+              [
+                4.970170091879868,
+                -3.261675999358431
+              ],
+              [
+                -3.712233236430601,
+                -4.630911999539933
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          0.628968427724633,
+          -3.946293999449182
+        ],
+        "origin_lon_lat": [
+          -122.4048259,
+          37.7936541
+        ],
+        "stratum": "regular",
+        "service_mode": "auto",
+        "bar": false,
+        "average_spend_per_person": 32,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "0a266185334aef67950ac816f1d7f789eda6e2d622b4a25debe7cd1d9a1b41be"
+      },
+      "service_mode": "table"
+    }
+  ],
+  "passed": 5,
+  "total": 5,
+  "measured": false
+}
