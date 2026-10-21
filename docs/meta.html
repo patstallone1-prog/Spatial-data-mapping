@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="72f9acb179e6bf1d58d3d4163803efb3705cfc744c01096327ee331a633d0fa6" />
+<meta name="kerbside-renderer-sha256" content="3a648b546f6df5ac841ab644542fbddab25cc74934fe9afd901b979c70ab9433" />
 <meta name="kerbside-mode" content="meta" />
 <link rel="manifest" href="meta.webmanifest" />
 </head>
@@ -317,7 +317,7 @@ const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=8039059
 //: Wider is not better: a 900 m square took 17.5 s to build round Pacific Heights, a 700 m one
 //: 7 s, and a walker who arrives before the build is on the simple city all that while. An
 //: arrival after a jump is built small (220 m) so the block underfoot comes first.
-const metaLibrary = META ? await import(sharedAsset("meta-xr.mjs?rev=f21534e47d610e57")) : null;
+const metaLibrary = META ? await import(sharedAsset("meta-xr.mjs?rev=adb460a88a1ff7bc")) : null;
 const STREAM = META ? { ...metaLibrary.META_STREAM } : (!deviceIsSmall() && !(navigator.deviceMemory && navigator.deviceMemory < 8))
   ? { radius: 400, arrival: 220, keep: 310, lead: 200, cellBytes: 192 * 1048576, cellConcurrency: 6, tileBytes: 160 * 1048576 }
   : { ...worldStreaming.DETAIL_SMALL, cellBytes: 48 * 1048576, cellConcurrency: 4, tileBytes: 48 * 1048576 };
@@ -30338,10 +30338,17 @@ function animate(now) {
   if(natureWorld && (frameCount===1 || frameCount%20===0)) {
     natureWorld.hostBox.value.copy(hostWorldActive ? natureWorld.localBounds : new THREE.Vector4(1,1,0,0));
     const focus=state.firstPerson ? avatar.position : state.target;
-    natureWorld.update(focus.x,focus.z);
+    // Not in the headset: the near detail of the hills round the Bay (nine squares two
+    // kilometres across, generated as you go) stands past its haze.
+    if(!HEADSET)natureWorld.update(focus.x,focus.z);
   }
   keepMarkersFindable();
   metaXR?.update(now);
+  // In the headset the world's positions are brought up to date every sixth frame, not every
+  // frame (scene.matrixWorldAutoUpdate is off there): almost none of it moves, and walking its
+  // thousands of objects was a fifth of every frame. What does move each frame -- the panels,
+  // the pointers -- the headset module places itself.
+  if (META && frameCount % 6 === 0) scene.updateMatrixWorld();
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
@@ -31310,12 +31317,12 @@ if (META) {
     if (!g.boundingSphere) g.computeBoundingSphere();
     metaSphere.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
     const near = metaSphere.center.distanceTo(avatar.position) - metaSphere.radius;
-    // Small things far off -- a door, a sign, a house's porch -- are a draw each for a few
-    // pixels: a thing a few metres across is left out past fifty metres, one under twenty past
-    // a hundred and twenty.
+    // Small things off -- a door, a sign, a house's porch -- are a draw each for a few pixels:
+    // a thing a few metres across is left out past twenty-five metres, one under twenty past
+    // a hundred.
     const r = metaSphere.radius;
     const hide = o.userData.surface === "nature_canopy_proxy" || near > metaLibrary.META_VIEW.far
-      || (r < 4 && near > 50) || (r < 20 && near > 120)
+      || (r < 4 && near > 25) || (r < 20 && near > 100)
       || (interior && !(state.indoors && near < metaLibrary.META_VIEW.room));
     if (hide) {
       if (o.userData.metaMask === undefined) o.userData.metaMask = o.layers.mask;
@@ -31340,6 +31347,7 @@ if (META) {
     metaCullTree(scene, false, false);
   }
   setInterval(metaCull, 500);
+  scene.matrixWorldAutoUpdate = false;
   window.kerbsideMeta = { xr: metaXR, memory: metaMemory, stream: STREAM, applyMemoryPlan: applyMetaMemoryPlan, culled: metaCulled, cull: metaCull,
     //: Why the window round you is or is not being built again, for looking into on the headset.
     get streaming() { return { attaching: Boolean(attaching), wanted: Boolean(attachWanted), retryIn: Math.round(detailRetryAt - performance.now()),

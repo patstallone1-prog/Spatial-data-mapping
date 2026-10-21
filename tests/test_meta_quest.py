@@ -25,14 +25,14 @@ def node(code: str):
 
 def test_the_memory_governor_aims_at_four_gib_and_never_lets_five_be_reached():
     r = node("""const M=m.META_MEMORY,G=1024**3;
-    console.log(JSON.stringify({M,low:m.metaMemoryPlan(2*G,150),grow:m.metaMemoryPlan(2*G,96),
-      over:m.metaMemoryPlan(4.1*G,150),emergency:m.metaMemoryPlan(4.6*G,150),reload:m.metaMemoryPlan(4.6*G,80),floor:m.metaMemoryPlan(4.2*G,80),
-      unknown:m.metaMemoryPlan(NaN,150)}))""")
+    console.log(JSON.stringify({M,low:m.metaMemoryPlan(2*G,100),grow:m.metaMemoryPlan(2*G,64),
+      over:m.metaMemoryPlan(4.1*G,100),emergency:m.metaMemoryPlan(4.6*G,100),reload:m.metaMemoryPlan(4.6*G,60),floor:m.metaMemoryPlan(4.2*G,60),
+      unknown:m.metaMemoryPlan(NaN,100)}))""")
     M = r["M"]
     assert M["aim"] == 4 * GiB and M["ceiling"] == 5 * GiB and M["aim"] < M["emergency"] < M["ceiling"]
-    assert r["low"] == {"radius": 150, "shed": None, "level": "ok"}
-    assert r["grow"]["level"] == "restore" and 96 < r["grow"]["radius"] <= 150
-    assert r["over"]["level"] == "over" and r["over"]["radius"] < 150 and r["over"]["shed"] == "caches"
+    assert r["low"] == {"radius": 100, "shed": None, "level": "ok"}
+    assert r["grow"]["level"] == "restore" and 64 < r["grow"]["radius"] <= 100
+    assert r["over"]["level"] == "over" and r["over"]["radius"] < 100 and r["over"]["shed"] == "caches"
     assert r["emergency"] == {"radius": M["minRadius"], "shed": "all", "level": "emergency"}
     # Already at its smallest and still over: the page starts again where you stand.
     assert r["reload"] == {"radius": M["minRadius"], "shed": "all", "level": "reload"}
@@ -43,10 +43,10 @@ def test_the_memory_governor_aims_at_four_gib_and_never_lets_five_be_reached():
 def test_only_the_blocks_round_you_are_held_and_the_view_ends_in_haze():
     r = node("console.log(JSON.stringify({S:m.META_STREAM,V:m.META_VIEW,noon:m.META_NOON}))")
     S, V = r["S"], r["V"]
-    # A 300 m square, a tenth of the desktop app's caches; seen to 240 m, hazed from 60 m.
-    assert S["radius"] == 150 and S["cellBytes"] == 64 * 1024 ** 2 and S["tileBytes"] == 32 * 1024 ** 2
+    # A 200 m square, a tenth of the desktop app's caches; seen to 150 m, hazed from 40 m.
+    assert S["radius"] == 100 and S["cellBytes"] == 64 * 1024 ** 2 and S["tileBytes"] == 32 * 1024 ** 2
     assert S["keep"] < S["radius"] and S["arrival"] < S["radius"]
-    assert V["fogNear"] < V["fogFar"] <= V["far"] <= 300
+    assert V["fogNear"] < V["fogFar"] <= V["far"] <= 200
     assert r["noon"].startswith("2026-09-22T12:00")
 
 
