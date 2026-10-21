@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="54f89ca34e0ceb14b24bd756cdbf2d60357a5893842eea73393d4541d9f8dcaf" />
+<meta name="kerbside-renderer-sha256" content="6671025673225c3a266945497a85b1e584244a2f4db71d05363e2a140eca9f87" />
 <meta name="kerbside-mode" content="meta" />
 <link rel="manifest" href="meta.webmanifest" />
 </head>
@@ -336,6 +336,10 @@ function headsetSimplify(object) {
         const picture = headsetAverage(m.map);
         if (picture && picture.alpha >= HEADSET_CUTOUT_ALPHA) {
           m.color.multiply(picture.colour); m.map = null; changed = true; headsetStats.flattened += 1;
+        } else if (!picture && HEADSET_PENDING) {
+          // Not loaded yet: drawn plain until it is (headsetSettlePictures), rather than drawn
+          // in full until a pass finds it -- the house that came up textured and then went flat.
+          HEADSET_PENDING.set(m, m.map); m.map = null; changed = true;
         }
       }
       for (const key of HEADSET_DROPPED_MAPS) if (m[key]) { m[key] = null; changed = true; }
@@ -352,6 +356,34 @@ function headsetSimplify(object) {
       m.needsUpdate = true;
     }
   });
+}
+//: Materials whose picture had not loaded when they were made plain, with the picture: once it
+//: has, an opaque one gives its colour and a see-through one (a leaf, a decal) goes back on.
+//: One list for the page and every square it builds (kept on three's Object3D, which they
+//: share), settled by the page's frame.
+const HEADSET_PENDING = HEADSET ? (THREE.Object3D.prototype.kerbsideHeadsetPending ??= new Map()) : null;
+function headsetSettlePictures() {
+  for (const [m, map] of HEADSET_PENDING || []) {
+    const picture = headsetAverage(map);
+    if (!picture) continue;
+    HEADSET_PENDING.delete(m);
+    if (picture.alpha >= HEADSET_CUTOUT_ALPHA) { m.color.multiply(picture.colour); headsetStats.flattened += 1; }
+    else m.map = map;
+    m.needsUpdate = true;
+  }
+}
+//: Made plain as it is put in the scene, not on the next pass: drawn once in full, a material
+//: was a second shader program and an uploaded picture for nothing, and it showed -- the world
+//: came up in full and then went plain, a house at a time. (Once, on three's own Object3D,
+//: which the squares built for the headset share.)
+if (HEADSET && !THREE.Object3D.prototype.kerbsideHeadsetAdd) {
+  const add = THREE.Object3D.prototype.add;
+  THREE.Object3D.prototype.add = function headsetAdd(...objects) {
+    const result = add.apply(this, objects);
+    for (const object of objects) if (object?.isObject3D) headsetSimplify(object);
+    return result;
+  };
+  THREE.Object3D.prototype.kerbsideHeadsetAdd = true;
 }
 //: With no sky reflection on a plain surface, the shade side of a street was nearly black: the
 //: headset's own fill light makes up the light the reflection gave.
@@ -391,7 +423,7 @@ const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=8039059
 //: Wider is not better: a 900 m square took 17.5 s to build round Pacific Heights, a 700 m one
 //: 7 s, and a walker who arrives before the build is on the simple city all that while. An
 //: arrival after a jump is built small (220 m) so the block underfoot comes first.
-const metaLibrary = META ? await import(sharedAsset("meta-xr.mjs?rev=adb460a88a1ff7bc")) : null;
+const metaLibrary = META ? await import(sharedAsset("meta-xr.mjs?rev=ca0edc6ee4c01f2b")) : null;
 const STREAM = META ? { ...metaLibrary.META_STREAM } : (!deviceIsSmall() && !(navigator.deviceMemory && navigator.deviceMemory < 8))
   ? { radius: 400, arrival: 220, keep: 310, lead: 200, cellBytes: 192 * 1048576, cellConcurrency: 6, tileBytes: 160 * 1048576 }
   : { ...worldStreaming.DETAIL_SMALL, cellBytes: 48 * 1048576, cellConcurrency: 4, tileBytes: 48 * 1048576 };
@@ -19619,12 +19651,14 @@ function treeBarkMaterial(kind, colour) {
   TREE_BARK_MATERIALS.set(kind, material);
   return material;
 }
-if (vegetationLibrary?.barkGrain) vegetationLibrary.barkGrain(sharedAsset(vegetationLibrary.BARK_GRAIN_URL)).then((grain) => {
+// (Not in the headset: its bark is one plain colour, and the finer grain would only be drawn
+// for a moment before it was made plain again.)
+if (vegetationLibrary?.barkGrain && !HEADSET) vegetationLibrary.barkGrain(sharedAsset(vegetationLibrary.BARK_GRAIN_URL)).then((grain) => {
   if (!grain) return;
   treeBarkGrain = grain;
   for (const [kind, material] of TREE_BARK_MATERIALS) {
     const t = vegetationLibrary.barkTextures(THREE, { style: TREE_BARK_STYLE[kind] || "broadleaf", seed: kind.length * 17 + 3, grain });
-    material.map.dispose(); material.normalMap.dispose();
+    material.map?.dispose(); material.normalMap?.dispose();
     material.map = t.map; material.normalMap = t.normalMap; material.needsUpdate = true;
   }
 });
@@ -25309,6 +25343,8 @@ function placeCamera() {
     camera.lookAt(aim);
     return;
   }
+  // The headset's follow view is always on the walker, wherever it was put down or walked to.
+  if (META && typeof avatar !== "undefined") state.target.copy(avatar.position);
   const x = Math.sin(state.yaw) * Math.cos(state.pitch) * state.dist;
   const z = Math.cos(state.yaw) * Math.cos(state.pitch) * state.dist;
   const y = Math.sin(state.pitch) * state.dist;
@@ -25328,6 +25364,7 @@ function placeCamera() {
 //: horizon and the fog draws back with the height, so from on high the Bay -- and then the
 //: world -- is seen clear rather than fading to grey. At the street both are as they were.
 function fitViewToAltitude() {
+  if (META) return;   // the headset's short view and its haze (META_VIEW) are fixed
   const h = Math.max(0, camera.position.y);
   const far = Math.max(FAR_M, Math.sqrt(2 * EARTH_RADIUS_M * h + h * h) * 1.15 + h);
   const near = state.firstPerson ? 0.12 : Math.max(0.5, Math.min(h * 0.002, 4000));
@@ -25385,7 +25422,6 @@ function orbitInsideBuilding(position, target) {
   }
 }
 function setFirstPerson(on) {
-  if (META && !on) return;   // the headset is first person only
   if (on && state.explore) setExplore(false);
   state.firstPerson = on;
   if (!on) state.autoFirstPerson = false;
@@ -25446,6 +25482,18 @@ function zoomSensitivity(dist) {
 }
 // Zoom by a factor on the distance (> 1 out); in the walker's eyes, by field of view, 1x to 2x.
 function zoomBy(factor) {
+  // The headset's follow view: in as far as the walker's eyes, out no further than it starts.
+  // (Guarded: the tests run this on its own.)
+  if (typeof META !== "undefined" && META) {
+    if (state.firstPerson) {
+      if (factor > 1 && !state.indoors) { setFirstPerson(false); state.dist = META_FOLLOW_NEAREST_M; placeCamera(); }
+      return;
+    }
+    state.dist = Math.min(metaFollowDistance(), state.dist * factor);
+    if (state.dist < META_FOLLOW_NEAREST_M) { setFirstPerson(true); return; }
+    placeCamera();
+    return;
+  }
   if (state.firstPerson) {
     state.zoom = Math.max(1, Math.min(FIRST_PERSON_MAX_ZOOM, (state.zoom || 1) / factor));
     camera.fov = FIRST_PERSON_FOV / state.zoom;
@@ -28906,8 +28954,9 @@ function buildHomeShell(entry) {
   // The windows the street is already shown, where they are drawn; otherwise worked out now.
   const laidOut = entry.decalLayout || homeWindowLayout(entry, spec);
   if (!laidOut) return;
-  // In the headset a house has its doors and no windows: no pane, frame or sill to draw.
-  const layout = HEADSET ? { ...laidOut, edges: laidOut.edges.map((e) => ({ ...e, windows: [] })) } : laidOut;
+  // In the headset too: a house with only its door read as a block of colour, and changed to
+  // one with its windows each time it was rebuilt from a distance.
+  const layout = laidOut;
   const { bottom, top, floor } = layout;
   // The same wall as the batched one it replaces: the same texture, mapped from the same end of
   // each wall at the same scale (FACADE_UV), and the same response to light -- including how
@@ -29168,9 +29217,9 @@ function pumpHomeDecals() {
     job.layouts.set(id, layout);
     // A house's windows all go in the cell of its first corner, so they come and go together.
     const cellKey = Math.floor(entry.local[0][0] / HOME_DECAL_CELL_M) * 1048576 + Math.floor(entry.local[0][1] / HOME_DECAL_CELL_M);
-    // In the headset no pane is drawn, but each house is still laid out: its shell -- its open
-    // doorway, its rooms -- is built only on a layout this pass has made.
-    for (const { a, ux, uz, nx, nz, windows } of HEADSET ? [] : layout.edges) {
+    // Every house's windows, in the headset as well: one plane drawn for all of them in a cell,
+    // a small picture for each design -- little to hold for what it shows.
+    for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
       q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
       for (const o of windows) {
         const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || [],o.design.trim?.colour || WINDOW_FRAME_DEFAULT,o.design.glass_colour || "#2a3740"]) : "default";
@@ -31413,7 +31462,9 @@ function animate(now) {
   // the pointers -- the headset module places itself.
   if (META && frameCount % 6 === 0) scene.updateMatrixWorld();
   // What was built since -- a house's shell and rooms as you come to it -- made plain as well.
-  if (META && frameCount % 120 === 0) headsetSimplify(scene);
+  // (A material given a new picture after it went in -- a photographed facade arriving -- is
+  // still found by this pass.)
+  if (META && frameCount % 30 === 0) { headsetSettlePictures(); headsetSimplify(scene); }
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
@@ -32232,6 +32283,14 @@ window.kerbsideSettings = {
 }
 // ---- the headset (META) --------------------------------------------------------------------
 //
+//: The follow view off the headset (the page in the headset's browser, before you go in): the
+//: same place behind and above the walker as in the headset (META_FOLLOW), and nearer than
+//: META_FOLLOW_NEAREST_M it is the walker's eyes.
+const META_FOLLOW_NEAREST_M = 0.8;
+//: (The orbit looks at the walker's middle, so the view stands `up` and a little more over it.)
+function metaFollowDistance() { const F = metaLibrary.META_FOLLOW; return Math.hypot(F.back, F.up + 0.6); }
+function metaFollowPitch() { const F = metaLibrary.META_FOLLOW; return Math.atan2(F.up + 0.6, F.back); }
+//
 // docs/meta-xr.mjs runs the session, the controllers and the panels; the page lends it the world
 // through these hooks. The page's own controls are put away: there is one way to see (out of
 // your own eyes), one light, and the few blocks round you.
@@ -32297,8 +32356,11 @@ if (META) {
     if (element) { element.hidden = true; element.style.display = "none"; }
   }
   document.querySelectorAll(".compass, #compass-rose").forEach((element) => { element.closest("div")?.setAttribute("hidden", ""); });
-  avatar.visible = false;
-  setFirstPerson(true);
+  // Following the walker from a little behind and above (META_FOLLOW), not out of its eyes.
+  setFirstPerson(false);
+  state.dist = metaFollowDistance();
+  state.pitch = metaFollowPitch();
+  state.tilt = 0;
   scene.add(new THREE.AmbientLight(HEADSET_FILL.colour, HEADSET_FILL.intensity));
   // Started at the street corner nearest where you were put down (unless a place was asked
   // for), looking along the street -- not into the side of the house beside you.
@@ -32331,6 +32393,17 @@ if (META) {
     ready: () => Boolean(window.kerbsideReady?.streets && window.kerbsideReady?.ground) && detailCovers(avatar.position),
     status: () => (attaching?.progress?.textContent) || document.getElementById("progress")?.textContent || "Loading the streets round you…",
     feet: () => ({ x: avatar.position.x, y: avatar.position.y - AVATAR_STAND_Y, z: avatar.position.z }),
+    indoors: () => Boolean(state.indoors),
+    showWalker: (on) => { avatar.visible = on; },
+    // How far back from the walker the view can stand before a building is in the way.
+    clearBehind: (x0, z0, x1, z1) => {
+      const length = Math.hypot(x1 - x0, z1 - z0);
+      for (let d = 0.25; d <= length; d += 0.25) {
+        const t = d / length;
+        if (buildingAt(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t)) return d;
+      }
+      return Infinity;
+    },
     heading: (yaw, place) => { state.yaw = yaw; state.look = 0; if (place) placeCamera(); },
     walk: (dx, dz) => { moveWalker(dx, dz); state.target.copy(avatar.position); },
     describeCentre: () => describeAhead(),

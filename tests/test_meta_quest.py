@@ -1,4 +1,4 @@
-"""The headset version (docs/meta.html, docs/meta-xr.mjs): first person, noon, a short view,
+"""The headset version (docs/meta.html, docs/meta-xr.mjs): a follow view, noon, a short view,
 the controllers' buttons, and a memory budget it never crosses."""
 from __future__ import annotations
 
@@ -79,6 +79,28 @@ def test_the_floor_is_moved_to_your_feet_and_heading():
     assert r["heading"] == pytest.approx(math.pi / 2)
 
 
+def test_the_view_follows_the_walker_and_comes_in_to_its_eyes_but_no_further_out():
+    r = node("""const F=m.META_FOLLOW;
+    console.log(JSON.stringify({F,
+      out:m.followOrigin(10,2,-30,0,1), eyes:m.followOrigin(10,2,-30,0,0), half:m.followOrigin(10,2,-30,0,.5),
+      beyond:m.followOrigin(10,2,-30,0,3), turned:m.followOrigin(0,0,0,Math.PI/2,1),
+      wall:m.followOrigin(0,0,0,0,1,1.0)}))""")
+    F = r["F"]
+    # Behind (facing -z, behind is +z) and above the feet; never further out than the start.
+    assert r["out"] == pytest.approx({"x": 10, "y": 2 + F["up"], "z": -30 + F["back"], "distance": F["back"]})
+    assert r["beyond"] == pytest.approx(r["out"])
+    assert r["eyes"] == pytest.approx({"x": 10, "y": 2, "z": -30, "distance": 0})
+    assert r["half"]["distance"] == pytest.approx(F["back"] / 2) and r["half"]["y"] == pytest.approx(2 + F["up"] / 2)
+    # Turned to face -x (yaw +90 degrees), behind is +x.
+    assert r["turned"]["x"] == pytest.approx(F["back"]) and r["turned"]["z"] == pytest.approx(0, abs=1e-9)
+    # A wall a metre back brings it in to the wall.
+    assert r["wall"]["distance"] == pytest.approx(1.0) and r["wall"]["z"] == pytest.approx(1.0)
+    xr = (ROOT / "docs/meta-xr.mjs").read_text()
+    assert "const share = hooks.indoors?.() ? 0 : state.follow;" in xr      # in its eyes indoors
+    assert "state.follow = Math.max(0, Math.min(1, state.follow + axes[1] * META_FOLLOW.rate * dt));" in xr
+    assert "hooks.showWalker?.(shown)" in xr
+
+
 def test_the_menu_is_search_directions_and_reset_and_its_rows_are_hit_where_drawn():
     r = node("""const rows=m.menuRows({query:'600 mont',results:[{label:'600 Montgomery'},{label:'Pyramid Cafe'}],mode:'walk',route:true});
     const at=(id)=>{const row=rows.find(x=>x.id===id);const x0=(row.x0??0),x1=(row.x1??1);
@@ -87,7 +109,7 @@ def test_the_menu_is_search_directions_and_reset_and_its_rows_are_hit_where_draw
       miss:m.menuHit(rows,.5,.001)}))""")
     assert r["ids"][:1] == ["search"] and "reset" in r["ids"] and "end-route" in r["ids"]
     assert {"go:0", "dir:0", "go:1", "dir:1", "mode:walk", "mode:drive", "mode:transit"} <= set(r["ids"])
-    # No explore mode and no switching views: the headset is first person only.
+    # No explore mode and no view switch on the menu: the right stick brings the view in.
     assert not any(i.startswith(("explore", "view", "firstperson")) for i in r["ids"])
     assert r["hits"] == ["search", "go:1", "dir:0", "mode:transit", "end-route", "reset", "close"]
     assert r["miss"] is None
@@ -98,8 +120,18 @@ def test_the_page_puts_the_headset_mode_together():
     assert "const META = !ATTACH && document.querySelector('meta[name=\"kerbside-mode\"]')?.content === \"meta\";" in source
     assert "const STREAM = META ? { ...metaLibrary.META_STREAM }" in source
     assert "logarithmicDepthBuffer: !META" in source
-    # First person only, no explore, no teleport animation, no strip or region fill to hold.
-    assert "if (META && !on) return;   // the headset is first person only" in source
+    # A follow view that zooms in to the walker's eyes and no further out than it starts; no
+    # explore, no teleport animation, no strip or region fill to hold.
+    assert "if (META && !on) return;" not in source
+    assert "if (typeof META !== \"undefined\" && META) {" in source
+    assert "state.dist = Math.min(metaFollowDistance(), state.dist * factor);" in source
+    assert "if (state.dist < META_FOLLOW_NEAREST_M) { setFirstPerson(true); return; }" in source
+    assert "if (META) return;   // the headset's short view and its haze (META_VIEW) are fixed" in source
+    assert "clearBehind: (x0, z0, x1, z1) => {" in source and "showWalker: (on) => { avatar.visible = on; }," in source
+    # Made plain as it goes into the scene, not a pass later: no house drawn in full first.
+    assert "THREE.Object3D.prototype.add = function headsetAdd(...objects) {" in source
+    assert "HEADSET_PENDING.set(m, m.map); m.map = null;" in source
+    assert "headsetSettlePictures(); headsetSimplify(scene);" in source
     assert "if (META && on) return;   // no explore mode in the headset" in source
     assert "options.travel && !META && !state.explore" in source
     assert "if (META) return null;   // the headset holds only the blocks round you" in source
