@@ -166,7 +166,11 @@ def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() ->
     interior = _extract("buildInterior", js)
     assert "const slabRing = insetRing(entry, ring.slice(0, -1), INTERIOR_WALL_INSET_M);" in interior
     assert "floorShapeWithStairCuts(slabRing, stairCuts)" in interior
-    assert "nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, INTERIOR_WALL_INSET_M + 0.01), shellPlaster)" in build
+    # Each end of the lining meets the next lining round the corner: short of an outside corner,
+    # on past an inside one, where a lining cut at the corner left an open shaft to the outer
+    # wall and the neighbour's party wall behind it.
+    assert "nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, liningMitre(entry, edge, INTERIOR_WALL_INSET_M)), shellPlaster)" in build
+    assert "liningMitre(entry, i, INTERIOR_WALL_INSET_M)" in interior
 
 
 def test_window_pictures_exist_before_the_first_building_is_drawn() -> None:
@@ -226,3 +230,25 @@ def test_two_cuts_in_front_of_one_house_make_one_door_across_both_never_between(
     assert result["n"] == 1
     lo, hi = 2.4 - 1.2, 4.6 + 1.2
     assert lo <= result["x"] - result["w"] / 2 and result["x"] + result["w"] / 2 <= hi, "within the cuts"
+
+
+def test_the_lining_meets_round_an_inside_corner() -> None:
+    """An L-shaped house: at its outside corners the lining stops where the next lining stands,
+    and at its inside corner it runs on past the corner to meet it. Cut at the corner, the two
+    linings at the inside corner stood apart and left an open shaft down the room's corner."""
+    js = _page_js()
+    script = "\n".join(_extract(n, js) for n in ("insideFootprint", "liningMitre")) + """
+// An L, counter-clockwise: 10 x 10 with the 5 x 5 north-east quarter taken out.
+const local = [[0, 0], [10, 0], [10, 5], [5, 5], [5, 10], [0, 10], [0, 0]];
+const entry = { local, minX: 0, maxX: 10, minZ: 0, maxZ: 10 };
+console.log(JSON.stringify(local.slice(0, -1).map((_, i) => liningMitre(entry, i, 0.08)
+  .map((m) => Math.round(m * 1000) / 1000))));
+"""
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    mitres = json.loads(out.stdout)
+    # Edge 2 (10,5)->(5,5) ends at the inside corner, edge 3 (5,5)->(5,10) starts there.
+    assert mitres[2] == [0.08, -0.08], mitres
+    assert mitres[3] == [-0.08, 0.08], mitres
+    for edge in (0, 1, 4, 5):
+        assert mitres[edge] == [0.08, 0.08], mitres

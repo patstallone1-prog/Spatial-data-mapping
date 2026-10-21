@@ -156,6 +156,8 @@ CARRIAGEWAY_FUNCTIONS = (
     "lerpLonLat",
     "wayLength",
     "pavementRunsOutsideCarriageway",
+    "settleRunEnd",
+    "lonLatFromXZ",
 )
 
 #: A flat local frame, the same shape as the page's, with the origin at the test street.
@@ -182,6 +184,9 @@ const metersPerLat = 111320;
 const metersPerLon = 88000;
 const SIDEWALK_INTERSECTION_CUT_EXTRA_M = 3.0;
 const SIDEWALK_INTERSECTION_CUT_MAX_M = 10.5;
+const RUN_END_BACK_M = 2.6;
+const RUN_END_ON_M = 2.2;
+const RUN_END_STEP_M = 0.2;
 function xy(lon, lat) { return [lon * metersPerLon, lat * metersPerLat]; }
 // Junction boxes are not built in the harness; nothing here is inside one.
 function insideJunctionBox() { return false; }
@@ -1908,6 +1913,8 @@ PAVEMENT_FUNCTIONS = (
     "trimWayEnds",
     "densifyWay",
     "pavementRunsOutsideCarriageway",
+    "settleRunEnd",
+    "lonLatFromXZ",
     "walkFitsAt",
     "kerbsideBlockedAt",
     "streetContinuationsAt",
@@ -2320,13 +2327,13 @@ def test_the_corner_pieces_are_laid_once_every_pavement_is_down() -> None:
     assert "indexPavementCorners(DATA.ways);" in js
     assert "const cornersLaid = addPavementCorners();" in js
     body = _extract("addPavementCorners", js)
-    # The slab merges with the pavements it joins, and its kerb is the pavements' kerb tile.
+    # The slab merges with the pavements it joins, and runs square out to both kerb lines with
+    # its own kerb faces: no rounded kerb strip is laid round the return, where its curve met
+    # the measured pavement in steps and slivers.
     assert ('addMerged(`walk:walk:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`, '
             'mesh, "walk");') in body
-    # ...except where a reconstructed kerb stands: that stretch is its to draw.
-    assert "for (const run of unclaimedKerbRuns(kerb.map((q) => lonLatFromXZ(q[0], -q[1])))) {" in body
-    assert ('addPavementRibbon(run, KERB_LIP_M, mine.color, mine.opacity, y, thickness, '
-            '"kerb");') in body
+    assert "squarePavementMesh([K0, A0, C, B0], [[0, 1], [3, 0]]" in body
+    assert "unclaimedKerbRuns" not in body and '"kerb");' not in body
     # A piece on a third road is not laid; its own two legs' carriageways and their end caps
     # are never the reason, which is what refused 403 corners and lost the corner chunks.
     assert "onAnotherCarriageway(sx, -sy, 0.15, legs)" in body

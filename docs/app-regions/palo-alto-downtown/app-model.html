@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="85783c7ddd92b95f818b4a035d387f9eeddbb102ca930c838eb7983ca58d3d73" />
+<meta name="kerbside-renderer-sha256" content="931fce0a495b5c24817abc5c943b73af021b5bc84fc2e90c88e8208424a61d1f" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -281,6 +281,80 @@ const META = !ATTACH && document.querySelector('meta[name="kerbside-mode"]')?.co
 //: draws about a million triangles a frame at its frame rate; a square built for a desktop
 //: is three.
 const HEADSET = META || Boolean(ATTACH?.headset);
+//: The headset's materials: one plain lit surface each (Lambert), its colour the colour its
+//: picture averaged to. A house's walls, the streets and the pavements were each a photograph
+//: or a painted texture with its relief and its gloss, lit by the sky's reflection -- more than
+//: the headset could draw. A cut-out (a leaf, a decal with see-through parts) keeps its
+//: picture: without it a leaf is a square. (A cut-out by its picture's own alpha: a tile is
+//: transparent only to fade in.) Changed where it stands, so whatever holds a material -- a
+//: fade, a door, a clip into the detail window -- holds the same one.
+const HEADSET_AVERAGES = new WeakMap();
+//: A picture whose least opaque sample is below this has see-through parts, and is kept.
+const HEADSET_CUTOUT_ALPHA = 0.97;
+function headsetAverage(texture) {
+  // { colour, alpha (the least opaque sample) }, or null while it cannot be read.
+  if (HEADSET_AVERAGES.has(texture)) return HEADSET_AVERAGES.get(texture);
+  let found = null;
+  try {
+    const image = texture.image, space = texture.colorSpace === THREE.SRGBColorSpace ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace;
+    let r = 0, g = 0, b = 0, alpha = 1, n = 0;
+    if (image?.data && image.width) {
+      const d = image.data, unit = d instanceof Uint8Array || d instanceof Uint8ClampedArray ? 255 : 1;
+      const stride = (d.length / (image.width * image.height)) | 0 || 4;
+      const step = Math.max(1, Math.floor(image.width * image.height / 4096)) * stride;
+      for (let i = 0; i + 2 < d.length; i += step) {
+        r += d[i]; g += d[i + 1]; b += d[i + 2]; n += 1;
+        if (stride >= 4) alpha = Math.min(alpha, d[i + 3] / unit);
+      }
+      if (n) found = { colour: new THREE.Color().setRGB(r / n / unit, g / n / unit, b / n / unit, space), alpha };
+    } else if (image && (image.naturalWidth || image.width)) {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 8;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.drawImage(image, 0, 0, 8, 8);
+      const d = context.getImageData(0, 0, 8, 8).data;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; alpha = Math.min(alpha, d[i + 3] / 255); n += 1; }
+      found = { colour: new THREE.Color().setRGB(r / n / 255, g / n / 255, b / n / 255, space), alpha };
+    }
+  } catch (error) { found = null; }   // not loaded yet, or not readable: tried again next pass
+  if (found) HEADSET_AVERAGES.set(texture, found);
+  return found;
+}
+const HEADSET_DROPPED_MAPS = ["normalMap", "roughnessMap", "metalnessMap", "aoMap", "bumpMap", "displacementMap",
+  "lightMap", "envMap", "emissiveMap"];
+const headsetStats = { materials: 0, flattened: 0 };
+function headsetSimplify(object) {
+  object.traverse((o) => {
+    for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
+      const fresh = m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial;
+      if (!fresh && !m.userData.headsetPlain) continue;
+      let changed = fresh;
+      // (A picture loaded later -- the bark's grain -- is flattened when the next pass finds it.)
+      if (m.map && !(m.alphaTest > 0) && !m.alphaMap) {
+        const picture = headsetAverage(m.map);
+        if (picture && picture.alpha >= HEADSET_CUTOUT_ALPHA) {
+          m.color.multiply(picture.colour); m.map = null; changed = true; headsetStats.flattened += 1;
+        }
+      }
+      for (const key of HEADSET_DROPPED_MAPS) if (m[key]) { m[key] = null; changed = true; }
+      if (!changed) continue;
+      if (fresh) {
+        // The page's own Standard material, drawn with three's Lambert program: the same
+        // colour, opacity, sides, depth and stencil, and the same shader additions.
+        m.type = "MeshLambertMaterial";
+        m.isMeshStandardMaterial = false;
+        m.isMeshLambertMaterial = true;
+        m.userData.headsetPlain = true;
+        headsetStats.materials += 1;
+      }
+      m.needsUpdate = true;
+    }
+  });
+}
+//: With no sky reflection on a plain surface, the shade side of a street was nearly black: the
+//: headset's own fill light makes up the light the reflection gave.
+const HEADSET_FILL = { colour: 0xe8eef5, intensity: 1.3 };
+
 const WORLD_BUILD_STARTED=performance.now();
 //: The region drawn in full besides this page's own, once the walker has gone there; whether this
 //: page's own world is still drawn; and the built regions, from the page's region index.
@@ -2556,6 +2630,63 @@ uniform vec4 uGuestBox[${BOX_SET_MAX}];`)
     .replace("#include <normal_fragment_maps>", "#include <normal_fragment_maps>\nnormal = normalize(mix(normal, normalize(mat3(viewMatrix) * vec3(0., 1., 0.)), terrainWet));");
 };
 TERRAIN_MATERIAL.customProgramCacheKey = () => "terrain-indoor-cut-unified-ocean-v2";
+//: What else is laid on the hill and can stand up through a lowered house's floor: the pavement
+//: underlay, which reaches to the property line and under the front of a house; the yards and
+//: lawns, whose rings overlap the footprints they were traced beside; a front path or a lot. The
+//: terrain alone was cut, so walking up through such a house the walker stayed on the level
+//: floor while the underlay and the yards went on up the hill round him -- a sloping floor he
+//: sank into, with the house's real floor showing under it.
+const INDOOR_CUT_SURFACES = /^(walk_underlay|yard|lawn|backyard|front_walk|service_yard|parking_lot|footprint|park|plaza|court|garden|tree_pit|planting|grass)/;
+function installIndoorGroundCut(object) {
+  let installed = 0;
+  object.traverse((o) => {
+    if (!o.isMesh || !INDOOR_CUT_SURFACES.test(String(o.userData.surface || ""))) return;
+    for (const material of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (!material || material.userData.indoorCut) continue;
+      material.userData.indoorCut = true;
+      const before = material.onBeforeCompile;
+      const cacheKey = material.customProgramCacheKey();
+      material.onBeforeCompile = function (shader, renderer) {
+        before.call(this, shader, renderer);
+        shader.uniforms.uCutRing = indoorCut.ring;
+        shader.uniforms.uCutCount = indoorCut.count;
+        shader.uniforms.uCutFloor = indoorCut.floor;
+        if (!shader.vertexShader.includes("varying vec3 vCutWorld;")) {
+          shader.vertexShader = shader.vertexShader
+            .replace("#include <common>", "#include <common>\nvarying vec3 vCutWorld;")
+            .replace("#include <project_vertex>", `#include <project_vertex>
+  { vec4 cutPosition = vec4(transformed, 1.0);
+  #ifdef USE_INSTANCING
+  cutPosition = instanceMatrix * cutPosition;
+  #endif
+  vCutWorld = (modelMatrix * cutPosition).xyz; }`);
+        }
+        shader.fragmentShader = shader.fragmentShader
+          .replace("#include <common>", `#include <common>
+varying vec3 vCutWorld;
+uniform vec2 uCutRing[${INDOOR_CUT_MAX}];
+uniform int uCutCount;
+uniform float uCutFloor;`)
+          .replace("void main() {", `void main() {
+  if (uCutCount > 2 && vCutWorld.y > uCutFloor - 0.02) {
+    bool cutInside = false;
+    for (int i = 0; i < ${INDOOR_CUT_MAX}; i++) {
+      if (i >= uCutCount) break;
+      vec2 a = uCutRing[i];
+      vec2 b = uCutRing[i == 0 ? uCutCount - 1 : i - 1];
+      if (((a.y > vCutWorld.z) != (b.y > vCutWorld.z))
+          && (vCutWorld.x < (b.x - a.x) * (vCutWorld.z - a.y) / (b.y - a.y) + a.x)) cutInside = !cutInside;
+    }
+    if (cutInside) discard;
+  }`);
+      };
+      material.customProgramCacheKey = () => `${cacheKey}:indoor-cut-v1`;
+      material.needsUpdate = true;
+      installed += 1;
+    }
+  });
+  return installed;
+}
 if (TERRAIN_FRAME) {
   const f = TERRAIN_FRAME;
   const cols = Math.floor((f.cols - 1) / TERRAIN_MESH_STRIDE) + 1;
@@ -2632,6 +2763,9 @@ const TERRAIN_UNDER_CHORD_M = 0.2;
 //: and are a couple of lanes wide; turning it on for them took the corridor from 15.53 M
 //: triangles to 26.19 M and its build from 56 s to 161 s, and fixed nothing, because the sag
 //: was never there.
+//: The surfaces laid at street level, which have to follow the hill together (see below).
+const STREET_GRID_SURFACES = ["road", "walk", "walk_narrow", "kerb", "median", "bike", "busway",
+  "marking", "crossing", "crossing_edges", "tactile_warning"];
 const TERRAIN_REFINE_BY_SURFACE = {
   // Not the underlay: it is a backstop laid five centimetres under everything else so that
   // grass and frontages win over it, so its own sag is never what anybody sees -- and it is
@@ -2651,6 +2785,15 @@ const TERRAIN_REFINE_BY_SURFACE = {
   // A playground's safety surface lies on the grass of a park on a hill: as fine as the grass,
   // or the grass shows through it in patches where the ground bulges between its corners.
   "park:play_surface": [2.0, 0, 2.0, true], "park:skatepark_surface": [2.0, 0, 2.0, true],
+  // The street, its pavements, its kerbs and its paint, cut on the terrain grid itself, so that
+  // every one of them runs from one measured ground point to the next in the same straight line.
+  // Refined each on its own to a quarter-metre chord, the road and the pavement beside it sagged
+  // differently between their vertices, and where a hill breaks its grade at a crossing -- every
+  // corner of Russian Hill -- the road stood up through the pavement's 13 cm: ragged chunks of
+  // asphalt along the kerb, specks of it inside the footway, and a step wherever one surface
+  // met another. Cut together they cannot cross. A fifth more street triangles in a window; not
+  // the headset, which is held to its frame budget.
+  ...(HEADSET ? {} : Object.fromEntries(STREET_GRID_SURFACES.map((s) => [s, [2.0, 0, 2.0, true]]))),
 };
 //: The bend rule may not multiply a mesh past this: the grid is stepped wherever a wall or a
 //: stair stands, and chasing every step to the grid's own cell size ran a yard to millions.
@@ -4291,6 +4434,8 @@ function buildTile(tile, layers) {
     }
   } });
   tile.group = group;
+  // In the headset a tile is plain before it is first drawn (headsetSimplify), not a pass later.
+  if (HEADSET) headsetSimplify(group);
   tileGroupRoot.add(group);
   tileStats.built += 1;
 }
@@ -9466,7 +9611,11 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
     const runLength = run.length >= 2 ? wayLength(run) : 0;
     const detachedRemnant = discardDetached
       && (runStartsAfterOverlap || endedByOverlap) && runLength < 8.0;
-    if (run.length >= 2 && runLength > minimumRun && !detachedRemnant) runs.push(run);
+    if (run.length >= 2 && runLength > minimumRun && !detachedRemnant) {
+      run.startsAtRoad = runStartsAfterOverlap;
+      run.endsAtRoad = endedByOverlap;
+      runs.push(run);
+    }
     run = [];
     runStartsAfterOverlap = false;
   };
@@ -9546,12 +9695,96 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
     const mx = (ax + bx) / 2, mz = -(ay + by) / 2;
     if (Math.hypot(bx - ax, by - ay) < WALK_GAP_FILL_M && !insideJunctionBox(mx, mz)
         && !crossedAt(mx, mz, Math.atan2(-(by - ay), bx - ax))) {
-      bridged[bridged.length - 1] = prev.concat(next);
+      const joined = prev.concat(next);
+      joined.startsAtRoad = prev.startsAtRoad;
+      joined.endsAtRoad = next.endsAtRoad;
+      bridged[bridged.length - 1] = joined;
     } else {
       bridged.push(next);
     }
   }
+  // An end that meets a road is put on its kerb. The guard above asks every two metres and
+  // about the middle of the strip, so a pavement ran up to two metres on past the kerb of the
+  // street it met -- its corner standing out over the asphalt, a chunk at every corner -- or
+  // stopped up to two metres short of it. Each such end is moved to where its whole end, both
+  // corners and the middle, is last clear of the road, a fifth of a metre at a time.
+  // An end that stops on its own -- a mapped footway drawn to the crossing's node, which is on
+  // the kerb, at an angle -- is only ever moved back: half of it stood over the road as a flap.
+  const half = width / 2;
+  for (const run of bridged) {
+    settleRunEnd(run, half, discardDetached, run.endsAtRoad);
+    run.reverse();
+    settleRunEnd(run, half, discardDetached, run.startsAtRoad);
+    run.reverse();
+  }
   return bridged;
+}
+
+//: How far a pavement's end may be moved back off the road, or on to meet it, and by what steps.
+const RUN_END_BACK_M = 2.6;
+const RUN_END_ON_M = 2.2;
+const RUN_END_STEP_M = 0.2;
+
+function settleRunEnd(run, half, discardDetached, meetsRoad) {
+  // The last point of `run`, moved along its last segment until the end of the strip there --
+  // its middle and both corners -- is clear of every carriageway by five centimetres.
+  if (run.length < 2) return;
+  const clear = (x, z, nx, nz) => {
+    for (const s of [0, 1, -1]) {
+      const px = x + nx * half * s, pz = z + nz * half * s;
+      if (insideCarriageway(px, pz, 0.05)) return false;
+      if (!discardDetached && insideJunctionBox(px, pz)) return false;
+    }
+    return true;
+  };
+  const toXZ = (p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; };
+  let [ex, ez] = toXZ(run[run.length - 1]);
+  let [px, pz] = toXZ(run[run.length - 2]);
+  let span = Math.hypot(ex - px, ez - pz);
+  if (span < 1e-6) return;
+  let ux = (ex - px) / span, uz = (ez - pz) / span;
+  const normal = () => [-uz, ux];
+  let [nx, nz] = normal();
+  if (clear(ex, ez, nx, nz)) {
+    if (!meetsRoad) return;
+    // Short of the road: on along the same line while the end stays clear.
+    let t = 0;
+    while (t + RUN_END_STEP_M <= RUN_END_ON_M && clear(ex + ux * (t + RUN_END_STEP_M), ez + uz * (t + RUN_END_STEP_M), nx, nz)) {
+      t += RUN_END_STEP_M;
+    }
+    if (t > 0) run[run.length - 1] = lonLatFromXZ(ex + ux * t, ez + uz * t);
+    return;
+  }
+  // Over the road: back along the run until it is clear, giving up whole segments as it goes.
+  let back = 0;
+  while (back < RUN_END_BACK_M) {
+    back += RUN_END_STEP_M;
+    let remaining = back;
+    let i = run.length - 1;
+    let [ax, az] = toXZ(run[i]);
+    let x = ax, z = az;
+    while (i > 0) {
+      const [bx, bz] = toXZ(run[i - 1]);
+      const seg = Math.hypot(ax - bx, az - bz);
+      if (remaining <= seg) {
+        const f = seg > 1e-6 ? remaining / seg : 0;
+        x = ax + (bx - ax) * f; z = az + (bz - az) * f;
+        ux = (ax - bx) / (seg || 1); uz = (az - bz) / (seg || 1);
+        break;
+      }
+      remaining -= seg;
+      ax = bx; az = bz; i -= 1;
+      x = ax; z = az;
+    }
+    if (i === 0) return;                      // the whole run is on the road; leave it to the guard
+    [nx, nz] = normal();
+    if (clear(x, z, nx, nz)) {
+      run.length = i + 1;
+      run[i] = lonLatFromXZ(x, z);
+      if (run.length < 2) return;
+      return;
+    }
+  }
 }
 
 //: Where pavement was actually laid, as a coarse grid. A tree pit belongs in a footway and
@@ -10503,7 +10736,7 @@ function cornerQuad(leg, side) {
   const [tk2] = frame.meet(innerA + lip / 2, innerB + lip / 2);
   const kerb = [frame.alongA(cutA, innerA + lip / 2), frame.alongA(tk2, innerA + lip / 2),
                 frame.alongB(cutB, innerB + lip / 2)];
-  return { K, A1, C, B1, kerb, frame, cutA, vC };
+  return { K, A1, C, B1, kerb, frame, cutA, cutB, vC };
 }
 
 // ---- the junction box ----
@@ -10586,6 +10819,257 @@ function addJunctionBoxes() {
   return laid;
 }
 
+//: A flat-topped piece of pavement over a convex ring of points (metres east and north), with a
+//: kerb face down to `bottom` along each of the edges named (index pairs into the ring) -- the
+//: edges that face the road. Without the faces a slab stood on its kerb line is a lid: from
+//: the road you saw under it, a slit of sky the depth of the kerb.
+function squarePavementMesh(ring, kerbEdges, topAt, bottom, uOf, vOf, color, opacity) {
+  if (!ring || ring.length < 3 || ring.some((q) => !q || !Number.isFinite(q[0]) || !Number.isFinite(q[1]))) return null;
+  // Counter-clockwise from above (east, north), so the triangles face up.
+  let area = 0;
+  for (let i = 0; i < ring.length; i += 1) {
+    const [ax, an] = ring[i], [bx, bn] = ring[(i + 1) % ring.length];
+    area += ax * bn - bx * an;
+  }
+  if (!(Math.abs(area) > 0.05)) return null;
+  const order = area > 0 ? ring.map((_, i) => i) : ring.map((_, i) => ring.length - 1 - i);
+  const position = [];
+  const uv = [];
+  const index = [];
+  for (const i of order) {
+    const q = ring[i];
+    position.push(q[0], topAt(q), -q[1]);
+    uv.push(uOf(q), vOf(q));
+  }
+  // Counter-clockwise in (east, north) is counter-clockwise seen from above, which faces up.
+  for (let i = 1; i + 1 < order.length; i += 1) index.push(0, i, i + 1);
+  for (const [a, b] of kerbEdges) {
+    const qa = ring[a], qb = ring[b];
+    const base = position.length / 3;
+    const run = Math.hypot(qb[0] - qa[0], qb[1] - qa[1]) / WALK_UV_M, face = 0.15 / WALK_UV_M;
+    position.push(qa[0], topAt(qa), -qa[1], qb[0], topAt(qb), -qb[1],
+                  qb[0], bottom, -qb[1], qa[0], bottom, -qa[1]);
+    uv.push(0, 0, run, 0, run, face, 0, face);
+    index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, surfaceMaterial("walk", color, opacity));
+  mesh.userData.surface = "walk";
+  return mesh;
+}
+
+// ---- the square at every corner ----
+//
+// The corner pieces above are made where a street's way ends at a junction. Where two streets
+// both carry on through it -- Hyde across Union, most of the grid -- no way ends, no corner was
+// decided, and the corner was left to the two pavements, each of which stops where the other
+// street's carriageway begins, a few decimetres short of the kerb line and on its own sampling.
+// What met there was two ragged ends, a notch of road between them and the curb's curve stood
+// in it: a corner of five or six sides where there should be four. Every corner of every
+// junction is now completed as the square the two pavements make between them -- the strip
+// between each street's kerb line and the far side of the other's pavement -- drawn over both
+// pavement ends in the same concrete, with its kerb faces down to the road. It is inferred, not
+// measured: its shape is the two pavements', and nothing here says the city's corner is square.
+const JUNCTION_SQUARE_MIN_DEG = 35;
+//: A pavement narrower than this is not one to make a corner of.
+const JUNCTION_SQUARE_MIN_WALK_M = 1.0;
+//: Where the two pavements stand at different heights, the square takes the higher and runs down
+//: to the lower over this much of it -- a slope, not a cut.
+const JUNCTION_SQUARE_RAMP_M = 1.5;
+const junctionSquares = [];
+
+function streetForSquares(way) {
+  return Boolean(way && way.kind === "street" && !isUnmarkedService(way) && !isTunnelWay(way)
+    && !way.busway && !way._junctionInternal && !wayFollowsCut(way) && !way.bridge);
+}
+
+function carriagewayAlong(x, z, bearing, name, ways) {
+  // Is (x, z) on a carriageway running this way: the street itself, or the next piece of it.
+  const cx = Math.floor(x / CARRIAGEWAY_CELL), cz = Math.floor(z / CARRIAGEWAY_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (const [ax, az, bx, bz, half, other, source] of carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz)) || []) {
+        if (!source || !(ways.includes(source) || (name && source.name === name))) continue;
+        let difference = Math.abs(other - bearing) % Math.PI;
+        if (difference > Math.PI / 2) difference = Math.PI - difference;
+        if (difference > Math.PI / 6) continue;
+        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < half * half) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function onThirdCarriageway(x, z, names, ways) {
+  // On the body of a carriageway that is neither of the two streets nor a piece of either.
+  const cx = Math.floor(x / CARRIAGEWAY_CELL), cz = Math.floor(z / CARRIAGEWAY_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (const [ax, az, bx, bz, half, , source] of carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz)) || []) {
+        if (!source || ways.includes(source) || (source.name && names.includes(source.name))) continue;
+        if (isUnmarkedService(source)) continue;
+        const limit = Math.max(0, half - 0.15);
+        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function junctionCrossings() {
+  // Every place two streets' centrelines cross at a real angle, from the carriageway segments:
+  // [x, z] of the crossing, and each street's segment there (unit direction, kerb offset, way).
+  const found = [];
+  const seen = new Map();
+  const wayIndex = new Map(DATA.ways.map((w, i) => [w, i]));
+  const minSin = Math.sin(JUNCTION_SQUARE_MIN_DEG * Math.PI / 180);
+  for (const bucket of carriagewayGrid.values()) {
+    for (let i = 0; i < bucket.length; i += 1) {
+      const [ax, az, bx, bz, ha, , wa] = bucket[i];
+      if (!streetForSquares(wa)) continue;
+      const la = Math.hypot(bx - ax, bz - az);
+      if (la < 0.5) continue;
+      for (let j = i + 1; j < bucket.length; j += 1) {
+        const [cx, cz, dx, dz, hb, , wb] = bucket[j];
+        if (wb === wa || !streetForSquares(wb) || (wa.name && wa.name === wb.name)) continue;
+        if (Math.abs(wa.layer || 0) !== Math.abs(wb.layer || 0)) continue;
+        const lb = Math.hypot(dx - cx, dz - cz);
+        if (lb < 0.5) continue;
+        const ux = (bx - ax) / la, uz = (bz - az) / la, vx = (dx - cx) / lb, vz = (dz - cz) / lb;
+        const cross = ux * vz - uz * vx;
+        if (Math.abs(cross) < minSin) continue;
+        // Where the two lines meet, as distances along each segment.
+        const qx = cx - ax, qz = cz - az;
+        const s = (qx * vz - qz * vx) / cross;
+        const t = (qx * uz - qz * ux) / cross;
+        // Reaching a little past each segment's ends, for a street that stops at the other's
+        // centreline (or at its kerb, where the city's kerbs moved it).
+        const reachA = hb + 1.0, reachB = ha + 1.0;
+        if (s < -reachA || s > la + reachA || t < -reachB || t > lb + reachB) continue;
+        const x = ax + ux * s, z = az + uz * s;
+        // One junction once, however many of its streets' segments and cells find it: a street
+        // split at the junction finds it from both pieces. Named streets by their names, an
+        // unnamed one by its way.
+        const label = (w) => w.name || `#${wayIndex.get(w)}`;
+        const pair = [label(wa), label(wb)].sort().join("|");
+        const near = seen.get(pair) || [];
+        if (near.some(([px, pz]) => Math.hypot(px - x, pz - z) < Math.max(8, ha + hb))) continue;
+        near.push([x, z]);
+        seen.set(pair, near);
+        found.push({ x, z, a: { ux, uz, half: ha, way: wa }, b: { ux: vx, uz: vz, half: hb, way: wb } });
+      }
+    }
+  }
+  return found;
+}
+
+function addJunctionSquares() {
+  junctionSquares.length = 0;
+  let laid = 0;
+  const skipped = { noPavement: 0, onRoad: 0, shape: 0 };
+  addJunctionSquares.skipped = skipped;
+  for (const junction of junctionCrossings()) {
+    const { a, b } = junction;
+    // Left normals in x/z; offsets across each street are measured along them.
+    const nA = [-a.uz, a.ux], nB = [-b.uz, b.ux];
+    const dBnA = b.ux * nA[0] + b.uz * nA[1];
+    const dAnB = a.ux * nB[0] + a.uz * nB[1];
+    // The point offset u across A and v across B from the crossing.
+    const at = (u, v) => [junction.x + a.ux * (v / dAnB) + b.ux * (u / dBnA),
+                          junction.z + a.uz * (v / dAnB) + b.uz * (u / dBnA)];
+    const names = [a.way.name, b.way.name].filter(Boolean);
+    const ways = [a.way, b.way];
+    const bearingA = Math.atan2(a.uz, a.ux), bearingB = Math.atan2(b.uz, b.ux);
+    // Which sides of A the street B goes on to, and which sides of B the street A does.
+    const sidesOf = (s, other, bearing, way) => [1, -1].filter((dir) => {
+      const px = junction.x + s.ux * dir * (other.half + 2.5), pz = junction.z + s.uz * dir * (other.half + 2.5);
+      return carriagewayAlong(px, pz, bearing, way.name, [way]);
+    }).map((dir) => Math.sign(dir * (s === b ? dBnA : dAnB)));
+    const bSides = sidesOf(b, a, bearingB, b.way);   // sides of A that B reaches
+    const aSides = sidesOf(a, b, bearingA, a.way);   // sides of B that A reaches
+    for (const sa of [1, -1]) {
+      for (const sb of [1, -1]) {
+        if (!bSides.includes(sa) || !aSides.includes(sb)) continue;
+        const hA = a.half, hB = b.half;
+        // Each pavement's width: the street's own, no further than the building line.
+        let eA = renderedWalkWidth(a.way, 4.0), eB = renderedWalkWidth(b.way, 4.0);
+        const facade = (u0, v0, dirx, dirz, nominal) => {
+          const [px, pz] = at(u0, v0);
+          const d = rayFootprintDistance(px, pz, dirx, dirz, nominal + 1.0);
+          return d === null ? nominal : Math.max(JUNCTION_SQUARE_MIN_WALK_M, Math.min(nominal, d - FACADE_GAP_M));
+        };
+        eA = facade(sa * hA, sb * (hB + eB + 1.0), sa * nA[0], sa * nA[1], eA);
+        eB = facade(sa * (hA + eA + 1.0), sb * hB, sb * nB[0], sb * nB[1], eB);
+        // And there has to be pavement there to complete: each band, just past the square.
+        const topOf = (points) => {
+          let top;
+          for (const [px, pz] of points) {
+            const here = pavementTopAt(px, pz);
+            if (here !== undefined && (top === undefined || here > top)) top = here;
+          }
+          return top;
+        };
+        const topA = topOf([at(sa * (hA + eA / 2), sb * (hB + eB + 1.2)), at(sa * (hA + eA / 2), sb * (hB + eB + 3.0))]);
+        const topB = topOf([at(sa * (hA + eA + 1.2), sb * (hB + eB / 2)), at(sa * (hA + eA + 3.0), sb * (hB + eB / 2))]);
+        if (topA === undefined || topB === undefined || eA < JUNCTION_SQUARE_MIN_WALK_M || eB < JUNCTION_SQUARE_MIN_WALK_M) {
+          skipped.noPavement += 1;
+          continue;
+        }
+        const K = at(sa * hA, sb * hB);
+        const A1 = at(sa * hA, sb * (hB + eB));
+        const C = at(sa * (hA + eA), sb * (hB + eB));
+        const B1 = at(sa * (hA + eA), sb * hB);
+        const mid = [(K[0] + C[0]) / 2, (K[1] + C[1]) / 2];
+        if ([mid, K, A1, C, B1].some(([px, pz]) => onThirdCarriageway(px + (mid[0] - px) * 0.2, pz + (mid[1] - pz) * 0.2, names, ways))) {
+          skipped.onRoad += 1;
+          continue;
+        }
+        const top = Math.max(topA, topB) + 0.002;
+        // Tiled square to street A, as A's pavement is.
+        const uOf = (q) => (q[0] * a.ux + q[1] * a.uz) / WALK_UV_M;
+        const vOf = (q) => (q[0] * nA[0] + q[1] * nA[1]) / WALK_UV_M;
+        // The ring in metres east and north, which is what the mesh is built from.
+        const en = (q) => [q[0], -q[1]];
+        const square = squarePavementMesh([K, A1, C, B1].map(en), [[0, 1], [3, 0]], () => top,
+          ROAD_TOP_M - 0.02, (q) => uOf(en(q)), (q) => vOf(en(q)), 0xffffff, 1.0);
+        if (!square) { skipped.shape += 1; continue; }
+        addMerged("walk:corner-square", square, "walk");
+        // Down to the lower pavement, over the start of it: a slope, not a step. The ramp lies
+        // on the lower pavement beyond the square's edge, from the square's height at that edge
+        // to the pavement's own a ramp's length on; its kerb face continues the square's.
+        const R = JUNCTION_SQUARE_RAMP_M;
+        const ramps = [
+          // A's pavement, past the edge A1-C.
+          [topA, [A1, C, at(sa * (hA + eA), sb * (hB + eB + R)), at(sa * hA, sb * (hB + eB + R))]],
+          // B's pavement, past the edge B1-C.
+          [topB, [B1, C, at(sa * (hA + eA + R), sb * (hB + eB)), at(sa * (hA + eA + R), sb * hB)]],
+        ];
+        for (const [lower, corners] of ramps) {
+          if (!(top - lower > 0.006)) continue;
+          const ring = corners.map(en);
+          const heights = new Map([[ring[0], top], [ring[1], top], [ring[2], lower + 0.002], [ring[3], lower + 0.002]]);
+          const ramp = squarePavementMesh(ring, [[3, 0]], (q) => heights.get(q), ROAD_TOP_M - 0.02,
+            (q) => uOf(en(q)), (q) => vOf(en(q)), 0xffffff, 1.0);
+          if (ramp) addMerged("walk:corner-square", ramp, "walk");
+        }
+        stampPaved([lonLatFromXZ(K[0], K[1]), lonLatFromXZ(C[0], C[1])], Math.max(eA, eB) * 1.2, top);
+        junctionSquares.push({ x: +mid[0].toFixed(2), z: +mid[1].toFixed(2), streets: names,
+                               basis: "inferred", top: +top.toFixed(3),
+                               // The kerb corner, and how far round it a curb return reaches.
+                               kx: K[0], kz: K[1], reach: Math.max(eA, eB) + 2.0,
+                               // Its outline: a measured kerb inside it or along its kerb lines is its own to draw.
+                               ring: [K, A1, C, B1].map(([x, z]) => [+x.toFixed(2), +z.toFixed(2)]) });
+        laid += 1;
+      }
+    }
+  }
+  return laid;
+}
+
 function addPavementCorners() {
   // Every corner between two pavements that were both laid up to their cuts.
   let laid = 0;
@@ -10637,27 +11121,21 @@ function addPavementCorners() {
       // u runs along the leg from the cut, v across from the outer edge, as the ribbon's do.
       const uOf = (q) => ((q[0] - frame.P[0]) * frame.a[0] + (q[1] - frame.P[1]) * frame.a[1] - cutA) / WALK_UV_M;
       const vOf = (q) => (vC - ((q[0] - frame.P[0]) * frame.na[0] + (q[1] - frame.P[1]) * frame.na[1])) / WALK_UV_M;
-      const ring = side > 0 ? [K, A1, C, B1] : [K, B1, C, A1];
-      const position = [];
-      const uv = [];
-      for (const q of ring) {
-        position.push(q[0], top, -q[1]);
-        uv.push(uOf(q), vOf(q));
-      }
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
-      geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-      geometry.setIndex([0, 2, 1, 0, 3, 2]);
-      geometry.computeVertexNormals();
-      const mesh = new THREE.Mesh(geometry, surfaceMaterial("walk", mine.color, mine.opacity));
-      mesh.userData.surface = "walk";
+      // Square to the kerb lines, with no kerb strip of its own round the return: the strip
+      // was a curve of separate tile stood on the corner, and where it met the straight kerbs
+      // either side the joins showed as slivers of road. The slab now reaches the two kerb lines
+      // and carries its own kerb faces down to the road, so the corner is one square of
+      // pavement that meets the kerbs either side flush.
+      const [tKerb] = frame.meet(legInner(leg, side), legInner(corner.B, -side));
+      const K0 = frame.alongA(tKerb, legInner(leg, side));
+      const A0 = frame.alongA(cutA, legInner(leg, side));
+      const B0 = frame.alongB(quad.cutB ?? cutA, legInner(corner.B, -side));
+      const mesh = squarePavementMesh([K0, A0, C, B0], [[0, 1], [3, 0]], () => top,
+        ROAD_TOP_M - 0.02, uOf, vOf, mine.color, mine.opacity);
+      if (!mesh) { skipped.shape += 1; continue; }
       addMerged(`walk:walk:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`, mesh, "walk");
-      // Its kerb, round the curb return, the same tile the pavements' kerbs are.
-      for (const run of unclaimedKerbRuns(kerb.map((q) => lonLatFromXZ(q[0], -q[1])))) {
-        addPavementRibbon(run, KERB_LIP_M, mine.color, mine.opacity, y, thickness, "kerb");
-      }
-      stampPaved([lonLatFromXZ(K[0], -K[1]), lonLatFromXZ(C[0], -C[1])],
-                 Math.hypot(A1[0] - K[0], A1[1] - K[1]), top);
+      stampPaved([lonLatFromXZ(K0[0], -K0[1]), lonLatFromXZ(C[0], -C[1])],
+                 Math.hypot(A0[0] - K0[0], A0[1] - K0[1]), top);
       laid += 1;
     }
   }
@@ -17897,8 +18375,10 @@ function addDividedMedians() {
   return laid;
 }
 
-// The corner pieces, once every pavement that meets at one is down.
+// The corner pieces, once every pavement that meets at one is down; then the square at every
+// corner of every junction, which completes the corners no way ends at (addJunctionSquares).
 const cornersLaid = addPavementCorners();
+const squaresLaid = addJunctionSquares();
 //: The tactile pads at the crossings' ends, laid now that every pavement and corner piece is
 //: down, each on top of the pavement it stands on. They used to be laid with the crossing at
 //: the crossing's own kerb height, and a kerb height is measured per way: where the street's
@@ -18854,6 +19334,8 @@ if (vegetationLibrary?.barkGrain) vegetationLibrary.barkGrain(sharedAsset(vegeta
 //: Metres to the unit tree, about: a street tree is drawn a few times its unit size.
 const TREE_UNIT_M = 5;
 
+//: The one kind of street tree the headset draws (see the instancing in the ground build).
+const HEADSET_TREE_KIND = "street";
 function treeVariant(kind) {
   let s = 1 + kind.length * 101;
   const rnd = () => { s += 1; return random(s * 2654435761 % 1000003); };
@@ -20634,8 +21116,11 @@ const groundReady = (async () => {
   // a three inch stem is a sapling and a thirty inch one has a crown over the roadway.
   const byVariant = new Map();
   for (const tree of trees) {
-    if (!byVariant.has(tree.v)) byVariant.set(tree.v, []);
-    byVariant.get(tree.v).push(tree);
+    // In the headset every street tree is the one tree in the one bark: a model and a bark a
+    // kind was more than it could draw.
+    const kind = HEADSET ? HEADSET_TREE_KIND : tree.v;
+    if (!byVariant.has(kind)) byVariant.set(kind, []);
+    byVariant.get(kind).push(tree);
   }
   const dummy = new THREE.Object3D();
   const treeClipStats={anchors:trees.length,clipped:0};
@@ -20767,9 +21252,69 @@ function emitWorldSweeps() {
   }
   return worldSweepStats.drawn;
 }
+//: Where a swept kerb curves round a junction's corner -- its curb return -- it is not drawn.
+//: The corner is the square its two pavements make (addJunctionSquares), with its own kerb
+//: faces, and the measured curve stood on that square as a strip of white tile with slivers of
+//: road either side of it where it met the straight kerbs. A bend is a turn of more than this
+//: over CURB_RETURN_WINDOW_M either side of a point, within reach of a corner square.
+const CURB_RETURN_TURN_DEG = 22;
+const CURB_RETURN_WINDOW_M = 3;
+//: How near a corner square's outline a measured kerb point counts as on it.
+const CURB_ON_SQUARE_M = 0.35;
+// Inside the ring, or within ``slack`` of one of its sides.
+function nearRing(ring, x, z, slack) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [ax, az] = ring[j], [bx, bz] = ring[i];
+    if ((az > z) !== (bz > z) && x < (bx - ax) * (z - az) / ((bz - az) || 1e-9) + ax) inside = !inside;
+    const ex = bx - ax, ez = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / ((ex * ex + ez * ez) || 1)));
+    if (Math.hypot(ax + ex * t - x, az + ez * t - z) < slack) return true;
+  }
+  return inside;
+}
+function curbReturnAt(anchor, dense) {
+  if (!junctionSquares.length) return null;
+  const out = new Array(dense.length).fill(false);
+  const w = CURB_RETURN_WINDOW_M;     // the path is densified to a metre
+  // Out to the path's own ends: a return that began within a window of an end had that end
+  // left standing, a stub of curved kerb proud of the square.
+  for (let i = 1; i + 1 < dense.length; i += 1) {
+    const p = Math.max(0, i - w), n = Math.min(dense.length - 1, i + w);
+    const a = Math.atan2(dense[i][1] - dense[p][1], dense[i][0] - dense[p][0]);
+    const b = Math.atan2(dense[n][1] - dense[i][1], dense[n][0] - dense[i][0]);
+    let turn = Math.abs(b - a) * 180 / Math.PI;
+    turn = Math.min(turn, 360 - turn);
+    if (turn < CURB_RETURN_TURN_DEG) continue;
+    const [x, z] = worldLocalToPage(anchor, dense[i][0], dense[i][1]);
+    if (!junctionSquares.some((q) => Math.hypot(q.kx - x, q.kz - z) < q.reach)) continue;
+    for (let k = p; k <= n; k += 1) out[k] = true;
+  }
+  // Nor a kerb on the square itself -- along its kerb lines or across it: the square stands
+  // its own kerb faces there, and a measured kerb a hand's breadth off them stood up through
+  // its slab as a sliver.
+  for (let i = 0; i < dense.length; i += 1) {
+    if (out[i]) continue;
+    const [x, z] = worldLocalToPage(anchor, dense[i][0], dense[i][1]);
+    if (junctionSquares.some((q) => q.ring && Math.hypot(q.kx - x, q.kz - z) < q.reach + 1
+        && nearRing(q.ring, x, z, CURB_ON_SQUARE_M))) out[i] = true;
+  }
+  // Nor is what is left between a return and the path's end, or between two returns, kept when
+  // it is shorter than a window: a sliver of kerb standing on its own at the corner.
+  for (let i = 0; i < dense.length;) {
+    if (out[i]) { i += 1; continue; }
+    let j = i;
+    while (j < dense.length && !out[j]) j += 1;
+    if (j - i < w && (i === 0 || out[i - 1]) && (j === dense.length || out[j]) && (i > 0 || j < dense.length))
+      for (let k = i; k < j; k += 1) out[k] = true;
+    i = j;
+  }
+  return out;
+}
 //: The stretches of a swept kerb with the page's pavement on its footway side, each as its own
 //: path (densified to a metre, breaks carried across). A swept object with no footway side
 //: (a fence, a rail) is drawn whole.
+//: The shortest stretch of a measured kerb drawn on its own.
+const WORLD_KERB_MIN_PIECE_M = 1.5;
 function worldSupportedPieces(record, side) {
   const level = worldSweepLevel(record.sweep.lods);
   const base = worldSweepLocal(record);   // for the profile, uniform-kerb rule applied
@@ -20791,7 +21336,9 @@ function worldSupportedPieces(record, side) {
     dense.push(raw[i]);
     isBreak.push(breakSet.has(i));
   }
+  const returning = record.type === "curb" ? curbReturnAt(record.anchor, dense) : null;
   const supported = dense.map(([e, n], i) => {
+    if (returning && returning[i]) return false;
     const j = Math.min(i, dense.length - 2);
     const de = dense[j + 1][0] - dense[j][0], dn = dense[j + 1][1] - dense[j][1];
     const len = Math.hypot(de, dn) || 1;
@@ -20800,7 +21347,12 @@ function worldSupportedPieces(record, side) {
   const pieces = [];
   let run = [], runBreaks = [];
   const flush = () => {
-    if (run.length >= 2) pieces.push({ path: run.map(([e, n]) => [e, n, 0]), breaks: runBreaks, profile });
+    // A stretch shorter than a kerb stone is not drawn: where the measured kerb and the page's
+    // pavement part company, a metre of it stood alone in the road at the corner, a sliver.
+    let length = 0;
+    for (let k = 1; k < run.length; k += 1) length += Math.hypot(run[k][0] - run[k - 1][0], run[k][1] - run[k - 1][1]);
+    if (run.length >= 2 && length >= WORLD_KERB_MIN_PIECE_M) pieces.push({ path: run.map(([e, n]) => [e, n, 0]), breaks: runBreaks, profile });
+    else if (run.length >= 2) { worldSweepStats.supported_m -= length; worldSweepStats.unsupported_m += length; }
     run = [];
     runBreaks = [];
   };
@@ -21112,6 +21664,9 @@ await settleOntoPavement();
 cellFineSurfaces(groups.streets);
 clipDetailWorld();
 groundReady.then(()=>clipDetailWorld());
+// The lowered houses' floors cut through whatever else is laid on the hill (INDOOR_CUT_SURFACES).
+installIndoorGroundCut(groups.streets);
+groundReady.then(() => installIndoorGroundCut(groups.ground));
 //: For anything driving the page -- the audit's photographs, a test -- the moment the streets
 //: are finished; the ground cover sets its own flag when it is down (see the ground fetch).
 window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { streets: true });
@@ -26458,6 +27013,13 @@ function wallSegmentsNear(x, z) {
     const [gx, gz] = hostToGuest(guest, x, z);
     for (const [ax, az, bx, bz] of guest.api.wallSegmentsNear(gx, gz))
       out.push([guest.ox + ax * guest.sx, guest.oz + az, guest.ox + bx * guest.sx, guest.oz + bz]);
+    // Where the attached region is drawn it is the only one with walls. This page's own
+    // footprints are kept after it lets its world go (releaseHostWorld), so that the walker
+    // cannot pass through a house the page no longer draws -- but their doors are this page's,
+    // which it no longer opens, and over the attached region they stood as a second, closed
+    // wall in every doorway: no front door of the square the page first built could be walked
+    // through.
+    if (!hostWorldActive) return out;
   }
   const seen = new Set();
   for (let ix = -1; ix <= 1; ix += 1) {
@@ -27390,29 +27952,32 @@ function walkableStairRecessAt(x,z){
   return entries.some(e=>stairRecessClear(e,x,z));
 }
 
-//: The nearest door, gate or room door opened or shut, and the walker taken through a front door
-//: (Enter; X in the headset). What happened, in a few words, or null where there is none near.
-function enterOrLeave() {
-  if (!hostWorldActive && activeGuest && activeGuest.ready) {
-    const g = activeGuest, said = g.api.toggleNearestDoor();
-    if (!said) return null;
-    // The attached region says where, in its own metres (mirrored when its sx is negative).
-    if (said.at) placeWalkerAtDoor({ x: g.ox + said.at.x * g.sx, z: g.oz + said.at.z, yaw: said.at.yaw * Math.sign(g.sx) });
-    return said.at ? (state.indoors ? "Inside" : "Outside") : "Door";
-  }
+//: The nearest room door or gate opened or shut ({ said }), or the nearest front door opened and
+//: the walker taken through it ({ at }, in this world's metres; see toggleDoor); null where there
+//: is none near. An attached region answers for its own (toggleNearestDoor): it had only its
+//: front doors, so in a detail window no room door or garden gate ever opened.
+function operateNearestDoor() {
   const roomDoor = nearestRoomDoor();
-  if (roomDoor) { roomDoor.open = !roomDoor.open; return roomDoor.open ? "Door opened" : "Door shut"; }
+  if (roomDoor) { roomDoor.open = !roomDoor.open; return { said: roomDoor.open ? "Door opened" : "Door shut" }; }
   const gate = nearestGate();
   const door = nearestDoor();
   const ax = avatar.position.x, az = avatar.position.z;
   if (gate && (!door || Math.hypot(gate.cx - ax, gate.cz - az) < Math.hypot(door.cx - ax, door.cz - az))) {
     gate.open = !gate.open;
-    return gate.open ? "Gate opened" : "Gate shut";
+    return { said: gate.open ? "Gate opened" : "Gate shut" };
   }
-  if (!door) return null;
-  const at = toggleDoor(door);
-  if (at) placeWalkerAtDoor(at);
-  return at ? (state.indoors ? "Inside" : "Outside") : "Door";
+  return door ? { at: toggleDoor(door) } : null;
+}
+//: The nearest door, gate or room door opened or shut, and the walker taken through a front door
+//: (Enter; X in the headset). What happened, in a few words, or null where there is none near.
+function enterOrLeave() {
+  const g = !hostWorldActive && activeGuest && activeGuest.ready ? activeGuest : null;
+  const done = g ? g.api.toggleNearestDoor() : operateNearestDoor();
+  if (!done) return null;
+  if (done.said) return done.said;
+  // An attached region says where, in its own metres (mirrored when its sx is negative).
+  if (done.at) placeWalkerAtDoor(g ? { x: g.ox + done.at.x * g.sx, z: g.oz + done.at.z, yaw: done.at.yaw * Math.sign(g.sx) } : done.at);
+  return done.at ? (state.indoors ? "Inside" : "Outside") : "Door";
 }
 addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
@@ -27446,10 +28011,25 @@ function updateIndoorLight(entry, x, z) {
 //: Points the terrain cut at the lowered house the walker is in or at the door of.
 let indoorCutEntry = null;
 function updateIndoorGroundCut(x, z) {
+  // The house the walker is in; or, outside, the one whose walls are nearest. Measured by the
+  // boxes round the footprints, as it was, the houses of a terrace on a lot turned off the grid
+  // all stood at distance nought -- their boxes overlap -- and the first built won: inside one
+  // house the hill was cut out of its neighbour, and stood up through the walker's own floor.
   let best = null, bestD = 30;
   for (const entry of interiorsBuilt) {
     if (!entry.roomsLowered) continue;
-    const d = Math.hypot(Math.max(entry.minX - x, 0, x - entry.maxX), Math.max(entry.minZ - z, 0, z - entry.maxZ));
+    const box = Math.hypot(Math.max(entry.minX - x, 0, x - entry.maxX), Math.max(entry.minZ - z, 0, z - entry.maxZ));
+    if (box >= bestD) continue;
+    let d = 0;
+    if (!insideFootprint(entry, x, z)) {
+      d = Infinity;
+      const ring = entry.local;
+      for (let i = 0; i + 1 < ring.length; i += 1) {
+        d = Math.min(d, Math.sqrt(distanceToSegmentSquared(x, z, ring[i][0], ring[i][1], ring[i + 1][0], ring[i + 1][1])));
+      }
+      // Never level with the house one is in.
+      d += 1e-3;
+    }
     if (d < bestD) { best = entry; bestD = d; }
   }
   if (best === indoorCutEntry) return;
@@ -27629,14 +28209,19 @@ function setBatchedHomeVisible(id, visible) {
 //: Each panel of a shell wall overlaps its neighbours by this much, inside the wall's own
 //: outline: panels that only met edge to edge could leave hairline cracks.
 const HOME_PANEL_OVERLAP_M = 0.012;
-//: ``trim`` shortens the wall at both ends. The lining stands INTERIOR_WALL_INSET_M inside its
-//: wall, so at a corner its full length ran out to the neighbouring wall's face and showed
-//: through it from the street as a dotted line down the corner.
+//: ``trim`` shortens the wall at both ends, or [at its start, at its end]; a negative one runs
+//: it on past that end. The lining stands INTERIOR_WALL_INSET_M inside its wall, so at a corner
+//: its full length ran out to the neighbouring wall's face and showed through it from the
+//: street as a dotted line down the corner (liningMitre gives where it meets the next lining).
 //: ``uvMap`` (u along the wall, v height) -> [s, t]; three-metre tiles when there is none.
 function homeWallGeometry(a, ux, uz, panels, insetX = 0, insetZ = 0, trim = 0, uvMap = null) {
   const positions = [], uv = [];
   const e = HOME_PANEL_OVERLAP_M;
-  const uMin = Math.min(...panels.map((p) => p[0])) + trim, uMax = Math.max(...panels.map((p) => p[2])) - trim;
+  const [trimStart, trimEnd] = Array.isArray(trim) ? trim : [trim, trim];
+  const lo = Math.min(...panels.map((p) => p[0])), hi = Math.max(...panels.map((p) => p[2]));
+  if (trimStart < 0 || trimEnd < 0) panels = panels.map(([p0, q0, p1, q1]) => [
+    trimStart < 0 && p0 <= lo + 1e-6 ? lo + trimStart : p0, q0, trimEnd < 0 && p1 >= hi - 1e-6 ? hi - trimEnd : p1, q1]);
+  const uMin = lo + trimStart, uMax = hi - trimEnd;
   const vMin = Math.min(...panels.map((p) => p[1])), vMax = Math.max(...panels.map((p) => p[3]));
   for (const [p0, q0, p1, q1] of panels) {
     const u0 = Math.max(uMin, p0 - e), v0 = Math.max(vMin, q0 - e);
@@ -27698,6 +28283,43 @@ function photographedEdge(a, b) {
 }
 //: A footprint ring (open, [x, z] points) moved ``d`` inward, corner by corner along the two
 //: edges' inward normals (mitred, the mitre capped at a sharp corner).
+//: Where the lining of edge i of a footprint, set ``inset`` inside it, meets the linings of the
+//: walls either side: [metres short of the edge's start, metres short of its end] -- positive at
+//: an outside corner, negative at an inside one. Cut at the corner, the linings met at an
+//: outside corner but stood apart at an inside one (an L-shaped or stepped house), and left an
+//: open shaft down the room's corner to the outer wall and the neighbour's party wall beyond it.
+function liningMitre(entry, i, inset) {
+  const ring = entry.local, n = ring.length - 1;
+  const edge = (k) => {
+    for (let step = 0; step < n; step += 1) {
+      const m = ((k % n) + n) % n;
+      const [ax, az] = ring[m], [bx, bz] = ring[m + 1];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (len > 1e-6) {
+        const tx = (bx - ax) / len, tz = (bz - az) / len;
+        let nx = -tz, nz = tx;
+        if (!insideFootprint(entry, (ax + bx) / 2 + nx * 0.05, (az + bz) / 2 + nz * 0.05)) { nx = -nx; nz = -nz; }
+        return { ax, az, tx, tz, nx, nz, len };
+      }
+      k += k < i ? -1 : 1;
+    }
+    return null;
+  };
+  const self = edge(i);
+  if (!self || n < 3) return [0, 0];
+  // Along this edge's inset line, where it crosses the other's: u from this edge's start.
+  const meet = (other) => {
+    const along = other ? self.tx * other.nx + self.tz * other.nz : 0;
+    if (Math.abs(along) < 0.2) return null;
+    const px = self.ax + self.nx * inset - other.ax, pz = self.az + self.nz * inset - other.az;
+    return (inset - (px * other.nx + pz * other.nz)) / along;
+  };
+  const start = meet(edge(i - 1)), end = meet(edge(i + 1));
+  const limit = Math.min(0.3, self.len / 2);
+  const clamp = (v) => Math.max(-0.3, Math.min(limit, v));
+  return [start === null ? 0 : clamp(start), end === null ? 0 : clamp(self.len - end)];
+}
+
 function insetRing(entry, pts, d) {
   const n = pts.length;
   if (n < 3) return pts;
@@ -27968,8 +28590,10 @@ function buildHomeShell(entry) {
   if (!spec || entry.homeShell || !entry.fit || !BUILDING_VISUAL_RANGES.has(id)) return;
   if(entryTunnelConflict(entry))return;
   // The windows the street is already shown, where they are drawn; otherwise worked out now.
-  const layout = entry.decalLayout || homeWindowLayout(entry, spec);
-  if (!layout) return;
+  const laidOut = entry.decalLayout || homeWindowLayout(entry, spec);
+  if (!laidOut) return;
+  // In the headset a house has its doors and no windows: no pane, frame or sill to draw.
+  const layout = HEADSET ? { ...laidOut, edges: laidOut.edges.map((e) => ({ ...e, windows: [] })) } : laidOut;
   const { bottom, top, floor } = layout;
   // The same wall as the batched one it replaces: the same texture, mapped from the same end of
   // each wall at the same scale (FACADE_UV), and the same response to light -- including how
@@ -28016,7 +28640,7 @@ function buildHomeShell(entry) {
       group.add(wall);
     }
     const lining = new THREE.Mesh(homeWallGeometry(a, ux, uz, panels,
-      nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, INTERIOR_WALL_INSET_M + 0.01), shellPlaster);
+      nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, liningMitre(entry, edge, INTERIOR_WALL_INSET_M)), shellPlaster);
     group.add(lining);
     for(const surface of projected.surfaces) {
       for(let i=0;i<bands.length;i++) {
@@ -28108,7 +28732,8 @@ function buildHomeShell(entry) {
   group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };
   batchHomeShell(group);
   homeShellGroup.add(group);
-  entry.homeShell = { group, material, glass: shellGlass, layout,
+  // (The layout it was laid out from, which the decal pass compares against, not the headset's copy.)
+  entry.homeShell = { group, material, glass: shellGlass, layout: laidOut,
     glasses: [shellGlass],
     materials: [...new Set([material, shellPlaster, shellGlass, shellGlassInside, shellFrame,...bandMaterials,...trimMaterials.values()])] };
   entry.shellNeedsRebuild = false;
@@ -28216,7 +28841,9 @@ function pumpHomeDecals() {
     job.layouts.set(id, layout);
     // A house's windows all go in the cell of its first corner, so they come and go together.
     const cellKey = Math.floor(entry.local[0][0] / HOME_DECAL_CELL_M) * 1048576 + Math.floor(entry.local[0][1] / HOME_DECAL_CELL_M);
-    for (const { a, ux, uz, nx, nz, windows } of layout.edges) {
+    // In the headset no pane is drawn, but each house is still laid out: its shell -- its open
+    // doorway, its rooms -- is built only on a layout this pass has made.
+    for (const { a, ux, uz, nx, nz, windows } of HEADSET ? [] : layout.edges) {
       q.setFromAxisAngle(up, Math.atan2(-nx, -nz));
       for (const o of windows) {
         const designKey = o.design ? JSON.stringify([o.design.vertical_bars || [], o.design.horizontal_bars || [],o.design.trim?.colour || WINDOW_FRAME_DEFAULT,o.design.glass_colour || "#2a3740"]) : "default";
@@ -29493,6 +30120,12 @@ function buildInterior(entry) {
   }
   // The outside walls' inner face, inset, with the building's own doors open through it.
   const lining = [];
+  // The doorway through the wall's depth: its two sides and its head, from the facade to the
+  // lining, and its threshold over the floor's edge. The lining stands INTERIOR_WALL_INSET_M
+  // inside the facade and the floor stops at it, so every outside door had a hollow either
+  // side of it and over it, open to the windows and the gaps along the storey, and a slot in
+  // the floor at the step: light showed through all of them, a shaft at every door's edge.
+  const reveals = [], thresholds = [];
   const ring = entry.local;
   for (let i = 0; i + 1 < ring.length; i += 1) {
     const [ax, az] = ring[i];
@@ -29503,14 +30136,23 @@ function buildInterior(entry) {
     const mx = (ax + bx) / 2, mz = (az + bz) / 2;
     if (!insideFootprint(entry, mx + nxI * 0.3, mz + nzI * 0.3)) { nxI = -nxI; nzI = -nzI; }
     const ox = nxI * INTERIOR_WALL_INSET_M, oz = nzI * INTERIOR_WALL_INSET_M;
-    let from = 0;
+    // Its ends mitred to the linings round the corners (liningMitre), as fractions of the edge.
+    const [mitreStart, mitreEnd] = liningMitre(entry, i, INTERIOR_WALL_INSET_M).map((m) => m / len);
+    let from = mitreStart;
     for (const door of (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.t0 - q.t0)) {
       if (door.t0 > from) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz]);
       // Above the doorway.
       lining.push(null, [ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz, ax + (bx - ax) * door.t1 + ox, az + (bz - az) * door.t1 + oz]);
+      // From a hair outside the facade to a hair inside the lining, so both seams are covered.
+      const at = (t, o) => [ax + (bx - ax) * t + nxI * o, az + (bz - az) * t + nzI * o];
+      const outer = -0.02, inner = INTERIOR_WALL_INSET_M + 0.02;
+      for (const t of [door.t0, door.t1]) reveals.push({ kind: "side", a: at(t, outer), b: at(t, inner) });
+      reveals.push({ kind: "head", corners: [at(door.t0, outer), at(door.t1, outer), at(door.t1, inner), at(door.t0, inner)] });
+      thresholds.push([at(door.t0, outer - 0.03), at(door.t1, outer - 0.03), at(door.t1, inner), at(door.t0, inner)]);
       from = door.t1;
     }
-    if (from < 1) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, bx + ox, bz + oz]);
+    const to = 1 - mitreEnd;
+    if (from < to) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * to + ox, az + (bz - az) * to + oz]);
   }
   const full = [], lintels = [];
   for (let k = 0; k < lining.length; k += 1) {
@@ -29519,6 +30161,40 @@ function buildInterior(entry) {
   if (!entry.homeShell) {
     group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
     if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
+  }
+  // (A house drawn as its own shell has no lining, and its shell has its own reveals.)
+  if (reveals.length && !entry.homeShell) {
+    const position = [];
+    const quad = (p, q, r, s) => position.push(...p, ...q, ...r, ...p, ...r, ...s);
+    for (const reveal of reveals) {
+      if (reveal.kind === "side") {
+        const [px, pz] = reveal.a, [qx, qz] = reveal.b;
+        quad([px, floorY, pz], [qx, floorY, qz], [qx, floorY + DOOR_HEIGHT_M, qz], [px, floorY + DOOR_HEIGHT_M, pz]);
+      } else {
+        const y = floorY + DOOR_HEIGHT_M;
+        const [p, q, r, s] = reveal.corners.map(([x, z]) => [x, y, z]);
+        quad(p, q, r, s);
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.computeVertexNormals();
+    const revealMesh = new THREE.Mesh(geometry, plasterMaterial);
+    revealMesh.userData.surface = "interior_door_reveal";
+    group.add(revealMesh);
+  }
+  if (thresholds.length) {
+    const position = [];
+    for (const corners of thresholds) {
+      const [p, q, r, s] = corners.map(([x, z]) => [x, floorY + 0.004, z]);
+      position.push(...p, ...q, ...r, ...p, ...r, ...s);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.computeVertexNormals();
+    const sill = new THREE.Mesh(geometry, houseFloorMaterial(houseSeed));
+    sill.userData.surface = "interior_threshold";
+    group.add(sill);
   }
   for (const [paint, roomSegments] of colouredSegments) {
     const partitions = new THREE.Mesh(wallQuads(roomSegments, floorY, height), paintMaterial(paint));
@@ -30347,6 +31023,8 @@ function animate(now) {
   // thousands of objects was a fifth of every frame. What does move each frame -- the panels,
   // the pointers -- the headset module places itself.
   if (META && frameCount % 6 === 0) scene.updateMatrixWorld();
+  // What was built since -- a house's shell and rooms as you come to it -- made plain as well.
+  if (META && frameCount % 120 === 0) headsetSimplify(scene);
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
@@ -31232,6 +31910,7 @@ if (META) {
   document.querySelectorAll(".compass, #compass-rose").forEach((element) => { element.closest("div")?.setAttribute("hidden", ""); });
   avatar.visible = false;
   setFirstPerson(true);
+  scene.add(new THREE.AmbientLight(HEADSET_FILL.colour, HEADSET_FILL.intensity));
   // Started at the street corner nearest where you were put down (unless a place was asked
   // for), looking along the street -- not into the side of the house beside you.
   let resume = null;
@@ -31346,7 +32025,7 @@ if (META) {
   }
   setInterval(metaCull, 500);
   scene.matrixWorldAutoUpdate = false;
-  window.kerbsideMeta = { xr: metaXR, memory: metaMemory, stream: STREAM, applyMemoryPlan: applyMetaMemoryPlan, culled: metaCulled, cull: metaCull,
+  window.kerbsideMeta = { xr: metaXR, memory: metaMemory, stream: STREAM, applyMemoryPlan: applyMetaMemoryPlan, culled: metaCulled, cull: metaCull, plain: headsetStats,
     //: Why the window round you is or is not being built again, for looking into on the headset.
     get streaming() { return { attaching: Boolean(attaching), wanted: Boolean(attachWanted), retryIn: Math.round(detailRetryAt - performance.now()),
       checkedAgo: Math.round(performance.now() - detailCheckAt), frames: frameCount, ready: window.kerbsideReady,
@@ -31460,7 +32139,9 @@ window.kerbside = {
   twinInnerEdgeAt, halfWidthAt, filletBends, bendsFilleted, tunnelCoveredPoints, tunnelApproachWidth,
   corners: { cuts: pavementCornerCuts.size, valid: [...pavementCornerCuts.values()].filter((c) => c.valid).length,
              laid: cornersLaid, legs: cornerLegs.length,
-             ends: pavementCornerLaid.size, skipped: addPavementCorners.skipped },
+             ends: pavementCornerLaid.size, skipped: addPavementCorners.skipped,
+             squares: squaresLaid, squaresSkipped: addJunctionSquares.skipped },
+  junctionSquares,
   cornersAt(lon, lat, reach = 3.0) {
     // The legs at a junction, with what was decided and laid at each: for looking at one.
     const [x, y] = xy(lon, lat);
@@ -32080,6 +32761,9 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     // as each first came into view, each stalled the headset a fraction of a second, and where
     // you turned stayed black until it had. (On a Quest 3, once compiled, the square draws at
     // the headset's 90 frames a second.)
+    // Plain before the first compile, the page's own world as well as the one coming in, so the
+    // programs compiled behind the loading panel are the ones drawn.
+    if (META) { headsetSimplify(holder.root); headsetSimplify(scene); }
     if (META && renderer.compileAsync) {
       holder.root.visible = true;
       const compiled = renderer.compileAsync(holder.root, camera, scene);
@@ -32317,6 +33001,7 @@ function releaseModuleScope() {
   try { pavementCornerLaid.clear(); } catch (error) { /* kept */ }
   try { junctionBoxHulls.length = 0; } catch (error) { /* kept */ }
   try { junctionBoxGrid.clear(); } catch (error) { /* kept */ }
+  try { junctionSquares.length = 0; } catch (error) { /* kept */ }
   try { intersectionGrid.clear(); } catch (error) { /* kept */ }
   try { tactileWarningPads.length = 0; } catch (error) { /* kept */ }
   try { deferredTactilePads.length = 0; } catch (error) { /* kept */ }
@@ -32416,7 +33101,7 @@ window.kerbsideGuestApi = {
   walkerFootprintBlocked,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   tick: guestTick,
-  toggleNearestDoor() { const door = nearestDoor(); return door ? { at: toggleDoor(door) } : null; },
+  toggleNearestDoor: operateNearestDoor,
   setRootInverse(matrix) {
     ROOT_INVERSE.copy(matrix); tunnelVoidInverse.copy(matrix); detailCells = null; cullForced = true;
     // Box uniforms are in renderer/world metres, just like the fragment position.
