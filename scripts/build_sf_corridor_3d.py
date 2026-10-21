@@ -29774,6 +29774,49 @@ fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
   })
   .catch(() => {})
   .finally(() => { HOME_OPENINGS_SETTLED = true; });
+// Bounded pilot: opt in with ?inferredInteriors=1. Eight mapped houses only.
+let generatedInteriorModules = null;
+function requestGeneratedInteriors() {
+  if (new URLSearchParams(location.search).get("inferredInteriors") !== "1") return;
+  const base = new URL("../inferred-interiors/", interiorAssetBase());
+  fetch(new URL("map-overlay.json", base)).then(r => r.ok ? r.json() : null).then(data => {
+    for (const [id, ref] of Object.entries(data?.buildings || {})) {
+      const entry = footprintById.get(id);
+      if (entry && !entry.way.parkFacility) {
+        entry.generatedInteriorRef = {...ref, base};
+        if (entry.interior) removeInterior(entry);
+      }
+    }
+  }).catch(error => console.warn("kerbside: generated pilot unavailable", error));
+}
+function requestGeneratedInterior(entry) {
+  if (entry.generatedInteriorPending) return;
+  entry.generatedInteriorPending = true;
+  const ref = entry.generatedInteriorRef;
+  if (!generatedInteriorModules) generatedInteriorModules = Promise.all([
+    import(new URL("renderer.mjs", ref.base).href),
+    import(new URL("kerbside-adapter.mjs", ref.base).href)
+  ]);
+  Promise.all([generatedInteriorModules,
+    fetch(new URL(ref.file, ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); })
+  ]).then(([[rendererModule, adapter], house]) => {
+    if (!house.validation?.passed || house.grade !== "inferred") throw new Error("invalid generated hypothesis");
+    if (entry.interior) removeInterior(entry);
+    const [lon, lat] = ref.origin_lon_lat;
+    const floorY = entryFloorY(entry);
+    const interior = adapter.mountGeneratedInterior(THREE, house, entry, {
+      origin: xy(lon, lat), floorY, assetBase: interiorAssetBase(),
+      loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
+      feetY: walkerFeetY, pointInRing
+    }, rendererModule.buildInferredHouse);
+    entry.interior = interior;
+    interiorGroup.add(interior.group); standingSurfaces.add(interior.floorSurface); interiorsBuilt.add(entry);
+  }).catch(error => {
+    entry.generatedInteriorFailed = true;
+    console.warn("kerbside: generated interior rejected; using fitted plan", error);
+    buildInterior(entry);
+  });
+}
 let interiorsRequested = false;
 function requestInteriors() {
   if (interiorsRequested) return;
@@ -29783,6 +29826,7 @@ function requestInteriors() {
     .then((data) => {
       if (!data || !data.buildings) return;
       INTERIORS = data;
+      requestGeneratedInteriors();
       for (const [id, record] of Object.entries(data.buildings)) {
         const entry = footprintById.get(id);
         if (!entry || entry.way.parkFacility) continue;
@@ -30774,6 +30818,7 @@ function nearestRoomDoor() {
   let best = null, bestD = 1.7;
   for (const entry of interiorsBuilt) {
     for (const d of entry.interior?.roomDoors || []) {
+      if (d.y !== undefined && Math.abs(d.y - walkerFeetY()) > 1.5) continue;
       const dist = Math.hypot(d.x - avatar.position.x, d.z - avatar.position.z);
       if (dist < bestD) { best = d; bestD = dist; }
     }
@@ -32887,6 +32932,10 @@ function entryTunnelConflict(entry) {
 function buildInterior(entry) {
   if (entry.way.parkFacility) return;
   if(entryTunnelConflict(entry))return;
+  if (entry.generatedInteriorRef && !entry.generatedInteriorFailed) {
+    if (!entry.interior) requestGeneratedInterior(entry);
+    return;
+  }
   if (entry.interior || !INTERIORS || !entry.fit) return;
   const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W, storeys, storeyM] = entry.fit;
   const plan = INTERIORS.library[ti];

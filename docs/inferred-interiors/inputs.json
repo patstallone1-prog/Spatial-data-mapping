@@ -1,0 +1,1064 @@
+[
+  {
+    "id": "stress-compact",
+    "name": "compact",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            8.0
+          ],
+          [
+            0.0,
+            8.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 2.65
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 220,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": false
+  },
+  {
+    "id": "stress-family",
+    "name": "family",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            12.0,
+            0.0
+          ],
+          [
+            12.0,
+            10.0
+          ],
+          [
+            0.0,
+            10.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            12.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 2.7
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 550,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": true
+  },
+  {
+    "id": "stress-narrow",
+    "name": "narrow",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            6.5,
+            0.0
+          ],
+          [
+            6.5,
+            18.0
+          ],
+          [
+            0.0,
+            18.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.5,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 2.75
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 1100,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": false
+  },
+  {
+    "id": "stress-L-wing",
+    "name": "L-wing",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            6.0
+          ],
+          [
+            8.0,
+            6.0
+          ],
+          [
+            8.0,
+            12.0
+          ],
+          [
+            0.0,
+            12.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 2.8
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 220,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": false
+  },
+  {
+    "id": "stress-U-court",
+    "name": "U-court",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            14.0
+          ],
+          [
+            11.0,
+            14.0
+          ],
+          [
+            11.0,
+            7.0
+          ],
+          [
+            5.0,
+            7.0
+          ],
+          [
+            5.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 550,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": false
+  },
+  {
+    "id": "stress-T-wing",
+    "name": "T-wing",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            6.0
+          ],
+          [
+            11.0,
+            6.0
+          ],
+          [
+            11.0,
+            14.0
+          ],
+          [
+            5.0,
+            14.0
+          ],
+          [
+            5.0,
+            6.0
+          ],
+          [
+            0.0,
+            6.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 2.8
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 1100,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": false
+  },
+  {
+    "id": "stress-angled",
+    "name": "angled",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            11.966563094881725,
+            5.079504670360558
+          ],
+          [
+            5.827510974594833,
+            14.423595801358854
+          ],
+          [
+            -2.9868064314402964,
+            9.595779663013676
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.0
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 220,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": false
+  },
+  {
+    "id": "stress-three-storey",
+    "name": "three-storey",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            11.0,
+            0.0
+          ],
+          [
+            11.0,
+            10.0
+          ],
+          [
+            0.0,
+            10.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            11.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.0
+      },
+      {
+        "height_m": 2.8
+      },
+      {
+        "height_m": 2.6
+      }
+    ],
+    "source": "synthetic stress fixture; not an address",
+    "neighborhood_price_per_sqft": 550,
+    "economics_source": "illustrative fixture input, not measured neighbourhood data",
+    "office": true
+  },
+  {
+    "id": "osm-460228342",
+    "osm_id": "460228342",
+    "entrance": [
+      -0.08796156196950644,
+      5.142983999591735
+    ],
+    "name": "2455 Lombard St, San Francisco, CA",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -3.887901075677444,
+            4.564119999550371
+          ],
+          [
+            3.7119779517384313,
+            5.721847999633098
+          ],
+          [
+            5.717501583643313,
+            -5.766376000153457
+          ],
+          [
+            -1.9967274761454339,
+            -6.968631999965567
+          ],
+          [
+            -3.5360548252994004,
+            2.437908000014488
+          ],
+          [
+            -3.887901075677444,
+            4.564119999550371
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.441855,
+      37.7987346
+    ],
+    "storeys": [
+      {
+        "height_m": 3.15
+      },
+      {
+        "height_m": 3.15
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 6.3,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "osm-262096336",
+    "osm_id": "262096336",
+    "entrance": [
+      3.184487688593002,
+      -7.564194000202065
+    ],
+    "name": "2604 Jackson Street",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -5.849956666272438,
+            12.90198799969744
+          ],
+          [
+            1.6362284813972823,
+            13.970659999530426
+          ],
+          [
+            2.313591884623542,
+            9.20616400001137
+          ],
+          [
+            4.697559187358215,
+            -7.347120000433733
+          ],
+          [
+            1.6714161898277886,
+            -7.781267999970396
+          ],
+          [
+            1.5658530620360323,
+            -7.091084000605576
+          ],
+          [
+            -2.885392160058046,
+            -7.736740000241014
+          ],
+          [
+            -3.1229091972769676,
+            -6.111468000231355
+          ],
+          [
+            -5.849956666272438,
+            12.90198799969744
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.4381901,
+      37.7922591
+    ],
+    "storeys": [
+      {
+        "height_m": 3.81
+      },
+      {
+        "height_m": 3.81
+      },
+      {
+        "height_m": 3.81
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 11.43,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "osm-262727844",
+    "osm_id": "262727844",
+    "entrance": [
+      8.852926995556366,
+      0.9239560001192615
+    ],
+    "name": "2629 Larkin St, San Francisco, CA",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            5.514938128830178,
+            -3.573371999837036
+          ],
+          [
+            -9.490619204316602,
+            -6.100336000101265
+          ],
+          [
+            -10.783595129975323,
+            1.5473479998900075
+          ],
+          [
+            -9.569780995938554,
+            1.758855999988782
+          ],
+          [
+            6.6144074524685825,
+            4.48619599943072
+          ],
+          [
+            8.206439032727006,
+            4.753364000179943
+          ],
+          [
+            9.499414958385728,
+            -2.9054519999414197
+          ],
+          [
+            5.514938128830178,
+            -3.573371999837036
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.4216022,
+      37.8021078
+    ],
+    "storeys": [
+      {
+        "height_m": 3.6533333333333338
+      },
+      {
+        "height_m": 3.6533333333333338
+      },
+      {
+        "height_m": 3.6533333333333338
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 10.96,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "osm-407852081",
+    "osm_id": "407852081",
+    "entrance": [
+      -0.5893285053071615,
+      -8.343434000212113
+    ],
+    "name": "Union Street, San Francisco, CA, 94133",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            1.3985557045815815,
+            6.768255999996882
+          ],
+          [
+            1.055513739542699,
+            9.19503199988128
+          ],
+          [
+            -3.6942980896494264,
+            8.69409199956408
+          ],
+          [
+            -3.3952358636539914,
+            6.523351999507838
+          ],
+          [
+            -4.538709081283585,
+            6.100335999310289
+          ],
+          [
+            -2.2517626447744177,
+            -7.7701360006312825
+          ],
+          [
+            -1.7064138803856728,
+            -8.493716000386371
+          ],
+          [
+            0.5277568697713495,
+            -8.193152000037855
+          ],
+          [
+            1.0027380519405744,
+            -7.046556000085218
+          ],
+          [
+            3.7206859315755194,
+            -6.6903320006682065
+          ],
+          [
+            2.6387843488567477,
+            -0.4118840000674595
+          ],
+          [
+            1.5744746607553715,
+            -0.5677320003067621
+          ],
+          [
+            1.354575965538134,
+            0.879427999994391
+          ],
+          [
+            2.286946435259188,
+            1.0241439993126278
+          ],
+          [
+            1.3985557045815815,
+            6.768255999996882
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.4120737,
+      37.8004851
+    ],
+    "storeys": [
+      {
+        "height_m": 3.3366666666666664
+      },
+      {
+        "height_m": 3.3366666666666664
+      },
+      {
+        "height_m": 3.3366666666666664
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 10.01,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "osm-243591156",
+    "osm_id": "243591156",
+    "entrance": [
+      -1.6932829155811535,
+      -12.195106000137486
+    ],
+    "name": "1530 Green Street, San Francisco",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -7.846277195514297,
+            14.649711999556132
+          ],
+          [
+            -6.210170067024202,
+            4.508459999690899
+          ],
+          [
+            -4.802766086898343,
+            4.731099999919763
+          ],
+          [
+            -3.8439721241406994,
+            -1.2022560006030858
+          ],
+          [
+            -5.224987281186106,
+            -1.4248960000409738
+          ],
+          [
+            -3.4393434798232643,
+            -12.478972000290867
+          ],
+          [
+            0.05277764866095745,
+            -11.911239999984105
+          ],
+          [
+            -0.07916647424146202,
+            -11.076340000510072
+          ],
+          [
+            1.4953667299774982,
+            -10.820303999890939
+          ],
+          [
+            1.6361071272400687,
+            -11.71086400001542
+          ],
+          [
+            4.741192161377183,
+            -11.209924000489195
+          ],
+          [
+            3.8527683972508244,
+            -5.643924000304423
+          ],
+          [
+            2.973140909984669,
+            -5.788640000413636
+          ],
+          [
+            2.6476787386586698,
+            -3.7848799999358107
+          ],
+          [
+            3.3073993556708188,
+            -3.6735600002168667
+          ],
+          [
+            2.7620303128407873,
+            -0.33395999994780823
+          ],
+          [
+            2.2166612700107557,
+            -0.42301600019754915
+          ],
+          [
+            1.2842561328336168,
+            5.4101519999454695
+          ],
+          [
+            1.8384214500237992,
+            5.510339999534324
+          ],
+          [
+            1.3018486815539188,
+            8.805412000074
+          ],
+          [
+            0.255091971444688,
+            8.638431999704608
+          ],
+          [
+            -0.2199068727540583,
+            11.543883999646027
+          ],
+          [
+            0.9499976871474668,
+            11.733127999484623
+          ],
+          [
+            0.2726845201649899,
+            15.952155999748072
+          ],
+          [
+            -7.846277195514297,
+            14.649711999556132
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.4244275,
+      37.7977386
+    ],
+    "storeys": [
+      {
+        "height_m": 4.5
+      },
+      {
+        "height_m": 4.5
+      },
+      {
+        "height_m": 4.5
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 15.0,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "osm-262727846",
+    "osm_id": "262727846",
+    "entrance": [
+      7.089371634984812,
+      2.3488520001602353
+    ],
+    "name": "2621 Larkin Street",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            5.787601161428343,
+            -3.128092000170284
+          ],
+          [
+            -10.396572299104562,
+            -5.855431999612222
+          ],
+          [
+            -11.654364041168385,
+            1.6141399998795691
+          ],
+          [
+            -3.228038945183077,
+            3.039035999920543
+          ],
+          [
+            6.693563045301247,
+            4.70883600045056
+          ],
+          [
+            7.485180224668377,
+            -0.011132000130089637
+          ],
+          [
+            5.3214265999816,
+            -0.3784879996771906
+          ],
+          [
+            5.787601161428343,
+            -3.128092000170284
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.4215928,
+      37.8021762
+    ],
+    "storeys": [
+      {
+        "height_m": 4.236666666666667
+      },
+      {
+        "height_m": 4.236666666666667
+      },
+      {
+        "height_m": 4.236666666666667
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 12.71,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "osm-262096308",
+    "osm_id": "262096308",
+    "entrance": [
+      6.795626232808624,
+      -5.989016000382321
+    ],
+    "name": "2600 Jackson Street",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -4.037789567928567,
+            -7.491836000542946
+          ],
+          [
+            -6.42175682871805,
+            9.061447999902157
+          ],
+          [
+            -4.0026018588670595,
+            9.228427999480573
+          ],
+          [
+            -2.2784041348550774,
+            10.241439999454087
+          ],
+          [
+            -0.8181142263041659,
+            9.662575999808212
+          ],
+          [
+            0.1407508349959124,
+            8.616167999444428
+          ],
+          [
+            -0.39586172256654717,
+            7.291459999783285
+          ],
+          [
+            0.08796927140365081,
+            4.118839999883619
+          ],
+          [
+            1.2227728755110308,
+            4.285819999462035
+          ],
+          [
+            1.601040743546824,
+            1.246783999541492
+          ],
+          [
+            5.656424164756027,
+            1.8256479999783437
+          ],
+          [
+            7.934828300861223,
+            -13.803680000742986
+          ],
+          [
+            3.6683186265330923,
+            -14.41594000077913
+          ],
+          [
+            3.1580968513918224,
+            -10.875964000541387
+          ],
+          [
+            -2.4455457510220615,
+            -11.688600000546217
+          ],
+          [
+            -3.061330653347854,
+            -7.358252000563823
+          ],
+          [
+            -4.037789567928567,
+            -7.491836000542946
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.4380908,
+      37.7922604
+    ],
+    "storeys": [
+      {
+        "height_m": 4.11
+      },
+      {
+        "height_m": 4.11
+      },
+      {
+        "height_m": 4.11
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 12.33,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "osm-262419190",
+    "osm_id": "262419190",
+    "entrance": [
+      5.379333271397644,
+      4.09657599962344
+    ],
+    "name": "3090 Pacific Avenue",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -8.145973196052495,
+            0.08905599945876475
+          ],
+          [
+            -9.430327501240034,
+            8.170887999777676
+          ],
+          [
+            4.3808797532253,
+            10.37502399943321
+          ],
+          [
+            6.377786789569988,
+            -2.181872000186331
+          ],
+          [
+            5.524482901286085,
+            -2.3154560001654545
+          ],
+          [
+            5.067041642811844,
+            -3.217148000420025
+          ],
+          [
+            2.1728459818155406,
+            -3.5956360000972154
+          ],
+          [
+            1.5218718818232155,
+            -2.961112000591868
+          ],
+          [
+            -7.433420464895346,
+            -4.386008000632842
+          ],
+          [
+            -8.145973196052495,
+            0.08905599945876475
+          ]
+        ]
+      ]
+    },
+    "units": "metres",
+    "origin_lon_lat": [
+      -122.4460009,
+      37.7920913
+    ],
+    "storeys": [
+      {
+        "height_m": 3.9299999999999997
+      },
+      {
+        "height_m": 3.9299999999999997
+      },
+      {
+        "height_m": 3.9299999999999997
+      }
+    ],
+    "source": "Kerbside published OSM footprint, local tangent-plane metres",
+    "storey_evidence": "count and equal heights inferred from shell height",
+    "shell_height_m": 11.79,
+    "office": false,
+    "neighborhood_price_per_sqft": null
+  }
+]
