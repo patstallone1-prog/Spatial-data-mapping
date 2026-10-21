@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="28bf79f7c0ffba3681032a99d3a3d88c12a48dd3f306f31b2d52ebebf2ca5562" />
+<meta name="kerbside-renderer-sha256" content="541d0bb373cc1143543638304d0cbc7a266ad64004663b83ace0d4b5f8aa10ca" />
 <meta name="kerbside-mode" content="meta" />
 <link rel="manifest" href="meta.webmanifest" />
 </head>
@@ -484,9 +484,17 @@ const VISUAL_SUPPORT_URL = ATTACH ? ATTACH.visualSupport || ""
 // file that the square touches (tools/build_window_cells.py): parsing the whole files first was
 // a gigabyte and a half on its own. A page that dies while it loads (a mark is left in storage as
 // it starts and taken away once it has drawn and held for half a minute) loads lighter next
-// time, a step at a time, whatever the device said about itself.
+// time, a step at a time, whatever the device said about itself -- for a day, not for good. A
+// computer that once ran short (swap full, the tab discarded while it built) is not small; held
+// for good, one bad hour kept a Mac on the smallest square for every visit after.
 const LOAD_MARK_KEY = "kerbside:loading";
-const LIGHT_KEY = "kerbside:light";
+//: The size chosen in the settings: kept until it is chosen again.
+const LIGHT_KEY = "kerbside:world";
+//: The size a load that died stepped down to, and when: held for RECOVERY_HOLD_MS.
+const RECOVERY_KEY = "kerbside:world-recovery";
+const RECOVERY_HOLD_MS = 24 * 60 * 60 * 1000;
+//: The key that held both, a choice and a step down, with no way to tell them apart.
+const RETIRED_LIGHT_KEY = "kerbside:light";
 //: Half the side of the square built in full, by level: 0 is the whole region.
 const LIGHT_RADII_M = [0, 650, 350, 220];
 let runtimeCacheRecovery = Promise.resolve();
@@ -512,11 +520,16 @@ function deviceIsSmall() {
 const LIGHT_LEVEL = (() => {
   if (ATTACH) return ATTACH.detailWindow ? 1 : 0;
   // A choice made in the settings stands; otherwise the device's own say. Either way a load
-  // that died takes the next one a step lighter.
+  // that died takes the next one a step lighter, and the step holds for a day.
   let level = document.querySelector('meta[name="kerbside-app-mode"]') ? 2 : (deviceIsSmall() ? 1 : 0);
   try {
+    localStorage.removeItem(RETIRED_LIGHT_KEY);
     const chosen = localStorage.getItem(LIGHT_KEY);
     level = validLightLevel(chosen, level);
+    const held = JSON.parse(localStorage.getItem(RECOVERY_KEY) || "null");
+    const age = held && Date.now() - held.at;
+    if (held && Number.isFinite(age) && age >= 0 && age < RECOVERY_HOLD_MS) level = Math.max(level, validLightLevel(held.level));
+    else if (held) localStorage.removeItem(RECOVERY_KEY);
   } catch (error) { /* preferences may be unavailable */ }
   // Retire a legacy persisted whole-city choice in installed apps: returning
   // visitors must get bounded streaming too, not another multi-GB reload loop.
@@ -531,7 +544,7 @@ const LIGHT_LEVEL = (() => {
     const age = mark && Date.now() - mark.at;
     if (mark && Number.isFinite(age) && age >= 0 && age < 15 * 60 * 1000) {
       level = Math.min(LIGHT_RADII_M.length - 1, Math.max(level, validLightLevel(mark.level)) + 1);
-      try { localStorage.setItem(LIGHT_KEY, String(level)); } catch (error) { /* this tab still recovers */ }
+      try { localStorage.setItem(RECOVERY_KEY, JSON.stringify({ at: Date.now(), level })); } catch (error) { /* this tab still recovers */ }
       runtimeCacheRecovery = clearLegacyRuntimeCaches();
     }
   } catch (error) { /* without storage, the device's own say is all there is */ }
@@ -32295,7 +32308,8 @@ settingsForm.addEventListener("change", (e) => {
   }
   if (e.target === settingsForm.world) {
     // How much is built is decided before anything is: the page builds again.
-    try { localStorage.setItem(LIGHT_KEY, settingsForm.world.value); } catch (error) { /* this visit only */ }
+    try { localStorage.setItem(LIGHT_KEY, settingsForm.world.value); localStorage.removeItem(RECOVERY_KEY); }
+    catch (error) { /* this visit only */ }
     const url = new URL(location.href);
     url.searchParams.delete("full"); url.searchParams.delete("light");
     location.replace(url.href);

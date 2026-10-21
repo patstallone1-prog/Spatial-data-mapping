@@ -110,6 +110,10 @@ try{const manifest=await fetch('./manifest.json',{cache:'no-store'}).then(r=>r.j
  await choose(restaurant?[...manifest.houses].filter(r=>r.passed).sort((a,b)=>b.metrics.seats-a.metrics.seats)[0]:manifest.houses.find(r=>r.id==='stress-family'&&r.passed)||manifest.houses.find(r=>r.passed));
 }catch(e){$('inspector').textContent=e.message;console.error(e);}
 
+// A new spend runs the engine again, which only the local lab (scripts/serve_interior_lab.py) can;
+// the published tour shows the batch as it was generated.
+const LOCAL_LAB=['127.0.0.1','localhost','[::1]'].includes(location.hostname);
+if(restaurant&&!LOCAL_LAB)$('reprice').parentElement.hidden=true;
 if(restaurant)$('reprice').onclick=async()=>{
  const value=Number($('spend').value);if(!Number.isFinite(value)||value<=0){$('economics').textContent='Enter a positive average spend in USD.';return;}
  const button=$('reprice');button.disabled=true;button.textContent='Generating…';
