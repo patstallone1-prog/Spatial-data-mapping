@@ -220,7 +220,8 @@ def test_lamps_hang_clear_of_the_walker_and_pictures_face_the_room() -> None:
 def test_a_house_has_one_floor_under_every_room() -> None:
     js = _page_js()
     build = _extract("buildInterior", js)
-    # The rooms, the slab between them and the floors above: all the house's one wood.
-    assert build.count("houseFloorMaterial(houseSeed)") == 3
+    # The rooms, the slab between them, the floors above and the threshold through each outside
+    # door: all the house's one wood.
+    assert build.count("houseFloorMaterial(houseSeed)") == 4
     assert "roomFloorMaterial" not in js
     assert "HOUSE_FLOORS[index]" in _extract("houseFloorMaterial", js)

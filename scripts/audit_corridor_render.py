@@ -101,6 +101,7 @@ FUNCTIONS = (
     "indexMappedCrossing",
     "nearMappedCrossing",
     "pavementRunsOutsideCarriageway",
+    "settleRunEnd",
     "mappedWalkNear",
     "kerbsideBlockedAt",
     "isUnmarkedService",
@@ -182,6 +183,9 @@ const rampNodeGrid = new Map();
 const osmRampNodes = [];
 const CROSSING_END_STEP_M = 0.05;
 const CROSSING_MIN_ON_ROAD_M = 2.5;
+const RUN_END_BACK_M = 2.6;
+const RUN_END_ON_M = 2.2;
+const RUN_END_STEP_M = 0.2;
 const CROSSING_DEDUPE_CELL_M = 4.0;
 const CROSSING_DEDUPE_ANGLE_DEG = 12.0;
 const crossingDrawGrid = new Map();

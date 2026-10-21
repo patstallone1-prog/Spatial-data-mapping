@@ -222,8 +222,9 @@ def test_the_page_wires_reconstructed_objects_in_ahead_of_the_legacy_ones() -> N
     # Swept objects join the street geometry before it is merged and lifted onto the ground.
     assert js.index("const worldSweepsDrawn = emitWorldSweeps();") < \
         js.index("flushMerged(groups.streets, (key) => !isBuilt(key));")
-    # Every legacy kerb emission consults the claims.
-    assert js.count("unclaimedKerbRuns(") >= 4
+    # Every legacy kerb emission consults the claims. (The corner pieces have none of their
+    # own now: their slab runs square to the kerb lines with its own faces.)
+    assert js.count("unclaimedKerbRuns(") >= 3
     # The catalogue bench is the fallback, not the default.
     assert "!furnitureClaimedAt(row.anchor.x, row.anchor.z, \"bench\")" in _extract("addBenches",
                                                                                    js)
@@ -252,9 +253,12 @@ def test_a_kerb_is_only_drawn_where_the_page_has_pavement_to_meet_it() -> None:
                                    "side": {"value": 1.0, "grade": "inferred"}}}}
     js = _page_js()
     extra = "\n".join(_extract(name, js) for name in ("worldSupportedPieces",
-                                                      "worldPavedBeside"))
+                                                      "worldPavedBeside", "curbReturnAt"))
     out = run_page({"objects": [record]}, extra + """
+        // No corner squares in the harness: no kerb is a return into one.
+        const junctionSquares = [];
         const WORLD_KERB_SUPPORT_M = [0.3, 0.8, 1.5];
+        const WORLD_KERB_MIN_PIECE_M = 1.5;
         const worldSweepStats = { drawn: 0, unsupported_m: 0, supported_m: 0 };
         // The page's pavement: to the kerb's left (north, page z < 0) and only for x < 10.
         function pavementTopAt(x, z) { return (x < 10 && z < 0 && z > -3) ? 0.2 : undefined; }

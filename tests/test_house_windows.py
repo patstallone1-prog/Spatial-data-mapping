@@ -85,7 +85,9 @@ def test_no_window_over_a_door_a_garage_or_on_a_photographed_wall() -> None:
 def test_the_street_and_the_shell_draw_the_same_windows() -> None:
     js = _page_js()
     shell = _extract("buildHomeShell", js)
-    assert "const layout = entry.decalLayout || homeWindowLayout(entry, spec);" in shell
+    assert "const laidOut = entry.decalLayout || homeWindowLayout(entry, spec);" in shell
+    # (In the headset the shell is built from the same layout, its windows left out.)
+    assert "const layout = HEADSET ? { ...laidOut, edges: laidOut.edges.map((e) => ({ ...e, windows: [] })) } : laidOut;" in shell
     assert "setHomeDecalsVisible(id, false);" in shell
     decals = _extract("pumpHomeDecals", js)
     assert "homeWindowLayout(entry, spec)" in decals and "entry.decalLayout = layout" in decals
