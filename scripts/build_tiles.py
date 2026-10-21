@@ -54,6 +54,20 @@ DERIVED_LAYERS = {
 }
 
 
+def lawn_ways(site: Path) -> list[dict]:
+    """The region's grass as ``lawn`` rings, for the tiles to draw green from far off: its parks,
+    and the lawns and back yards its ground cover classified (or, where there is no
+    classification, its yards) -- the rings the region renderer lays its turf on."""
+    path = site / "sf-corridor-ground.json"
+    if not path.exists():
+        return []
+    ground = json.loads(path.read_text())
+    classified = bool(ground.get("lawns") or ground.get("backyards"))
+    grass = (ground.get("lawns", []) + ground.get("backyards", [])) if classified else ground.get("yards", [])
+    return [{"kind": "lawn", "points": item["p"]} for item in ground.get("parks", []) + grass
+            if len(item.get("p") or []) >= 4]
+
+
 def add_layers(out_dir: Path, root: Frame, per_tile: dict[TileId, list[dict]], names: set[str]) -> int:
     """Compile only `names` into the published tree: each tile's other layers, its children and
     the tree's shape stay as they are. A tile the tree does not have is not added."""
@@ -146,6 +160,7 @@ def main() -> int:
     for name, site in built.items():
         payload = json.loads((site / "sf-corridor-3d.json").read_text())
         ways = [w for w in payload.get("ways", []) if w.get("kind") in CARRIED and w.get("points")]
+        ways += lawn_ways(site)
         box = payload.get("bbox") or {}
         boxes[name] = [box["west"], box["south"], box["east"], box["north"]]
         for depth in range(1, DEEPEST_BUILT + 1):

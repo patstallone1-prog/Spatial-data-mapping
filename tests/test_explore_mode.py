@@ -70,3 +70,44 @@ def test_explore_is_wired_to_e_the_button_the_frame_and_clicks() -> None:
     assert "if (on && state.explore) setExplore(false);" in _extract("setFirstPerson", js)
     assert 'document.getElementById("explore").addEventListener("click", () => setExplore(!state.explore));' in js
     assert '(e.key !== "e" && e.key !== "E")' in js
+
+
+def test_zooming_out_past_the_walker_explores_and_back_in_returns_unless_explore_was_chosen() -> None:
+    js = _page_js()
+    out = _run(PRELUDE + """
+const ATTACH = null, innerHeight = 800, camera = { fov: 50 };
+const AVATAR_HEIGHT = 2.1336, AVATAR_SCALE = 1;
+""" + _extract("setExplore", js) + _extract("walkerPixelsAt", js) + _extract("autoExploreByZoom", js) + """
+const AUTO_EXPLORE_OUT_PX = 5, AUTO_EXPLORE_IN_PX = 8;
+const at = (d) => { state.dist = d; autoExploreByZoom(); return Boolean(state.explore); };
+const log = {};
+log.near = at(100);
+log.edge = at(300);            // about 6 px: neither switch
+log.far = at(500);             // about 3.7 px: explore
+log.hidden = !avatar.visible;
+log.between = at(300);         // still exploring inside the gap
+log.back = at(150);            // about 12 px: the walker again
+log.visible = avatar.visible;
+setExplore(true);              // chosen with E
+log.chosenNear = at(50);
+log.chosenFar = at(5000);
+log.chosenBack = at(50);
+setExplore(false);             // left by hand
+log.leftFar = at(5000);        // not taken straight back
+at(50);
+log.again = at(5000);          // once in and out again, it is
+console.log(JSON.stringify(log));
+""")
+    assert out["near"] is False and out["edge"] is False
+    assert out["far"] is True and out["hidden"] is True
+    assert out["between"] is True
+    assert out["back"] is False and out["visible"] is True
+    assert out["chosenNear"] and out["chosenFar"] and out["chosenBack"], "chosen explore stays at any zoom"
+    assert out["leftFar"] is False
+    assert out["again"] is True
+
+
+def test_the_zoom_drives_explore_on_a_computer_only() -> None:
+    js = _page_js()
+    assert 'if (typeof autoExploreByZoom === "function") autoExploreByZoom();' in _extract("zoomBy", js)
+    assert "if (META || ATTACH || state.firstPerson) return;" in _extract("autoExploreByZoom", js)
