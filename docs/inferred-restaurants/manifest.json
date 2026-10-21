@@ -1,0 +1,453 @@
+{
+  "schema": "kerbside.restaurant_batch/1",
+  "round": 7,
+  "houses": [
+    {
+      "id": "restaurant-288391504",
+      "name": "Scoma's Restaurant",
+      "passed": false,
+      "reason": "no feasible restaurant: no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area; restaurant-288391504:L0:0: no reachable service_counter fits",
+      "input": {
+        "id": "restaurant-288391504",
+        "osm_id": "288391504",
+        "name": "Scoma's Restaurant",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                2.4713770536354334,
+                3.161488000560553
+              ],
+              [
+                2.1811441608909234,
+                -3.328468000138969
+              ],
+              [
+                -2.497761862975724,
+                -3.150355999639487
+              ],
+              [
+                -2.163554289663844,
+                3.295072000539676
+              ],
+              [
+                2.4713770536354334,
+                3.161488000560553
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          0.15391138198579446,
+          3.2282800005501144
+        ],
+        "origin_lon_lat": [
+          -122.4189926,
+          37.80898
+        ],
+        "stratum": "pickup",
+        "service_mode": "pickup",
+        "bar": false,
+        "average_spend_per_person": 15,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+      }
+    },
+    {
+      "id": "restaurant-259266713",
+      "name": "Nob Hill Cafe",
+      "file": "restaurant-259266713.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Ash & slate",
+      "metrics": {
+        "coverage_min": 0.9999999999999998,
+        "room_count": 3,
+        "objects": 45,
+        "seats": 20,
+        "tables": 8,
+        "booths": 4,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 28
+      },
+      "input": {
+        "id": "restaurant-259266713",
+        "osm_id": "259266713",
+        "name": "Nob Hill Cafe",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -6.140184279398578,
+                -3.8294080004561692
+              ],
+              [
+                -6.39529222207415,
+                -2.326588000295544
+              ],
+              [
+                -6.017028720606901,
+                -1.6030080005404557
+              ],
+              [
+                -5.823498556077063,
+                -1.6030080005404557
+              ],
+              [
+                -6.025825545699119,
+                -0.044528000520358546
+              ],
+              [
+                -6.175371581017554,
+                -0.08905600024974092
+              ],
+              [
+                -6.923101758859834,
+                0.3562239994170113
+              ],
+              [
+                -7.178209701535406,
+                2.0594199995463214
+              ],
+              [
+                -6.729571594329997,
+                2.7162080001028244
+              ],
+              [
+                -6.518447779615722,
+                2.9165840000715093
+              ],
+              [
+                0.5102158853511438,
+                4.129972000013709
+              ],
+              [
+                0.7301365264077395,
+                2.8497920000819477
+              ],
+              [
+                6.571228733919344,
+                3.862804000055462
+              ],
+              [
+                6.351308094112851,
+                5.142983999987223
+              ],
+              [
+                13.529517795648257,
+                6.378636000189601
+              ],
+              [
+                14.822651160460657,
+                -1.135463999822548
+              ],
+              [
+                13.978155901603563,
+                -1.280179999931761
+              ],
+              [
+                7.42452081911876,
+                -2.415644000545285
+              ],
+              [
+                7.239787480931244,
+                -1.3581040000514122
+              ],
+              [
+                1.5658349589225118,
+                -2.3377200004256338
+              ],
+              [
+                1.7505682971100271,
+                -3.3952600001285305
+              ],
+              [
+                -5.269298542764622,
+                -4.59751599994064
+              ],
+              [
+                -5.313282670725919,
+                -4.285820000253011
+              ],
+              [
+                -6.140184279398578,
+                -3.8294080004561692
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          14.176084478054456,
+          2.6215860001835267
+        ],
+        "origin_lon_lat": [
+          -122.412576,
+          37.7931133
+        ],
+        "stratum": "regular",
+        "service_mode": "auto",
+        "bar": false,
+        "average_spend_per_person": 32,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "05e918909e6678c34d878dab28ffc4ea7125c50764a640064c7e54d0fe074c5f"
+      },
+      "service_mode": "table"
+    },
+    {
+      "id": "restaurant-148741774",
+      "name": "Cafe Tiramisu",
+      "file": "restaurant-148741774.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Warm oak & sage",
+      "metrics": {
+        "coverage_min": 1.0,
+        "room_count": 3,
+        "objects": 37,
+        "seats": 12,
+        "tables": 6,
+        "booths": 0,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 6
+      },
+      "input": {
+        "id": "restaurant-148741774",
+        "osm_id": "148741774",
+        "name": "Cafe Tiramisu",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -8.058098887672028,
+                1.1131999995623687
+              ],
+              [
+                -7.06403210380395,
+                -4.864683999898887
+              ],
+              [
+                10.908343471804864,
+                -1.8813079998378157
+              ],
+              [
+                9.808712073709644,
+                4.09657599962344
+              ],
+              [
+                -5.612518657868213,
+                1.5250839996298282
+              ],
+              [
+                -8.058098887672028,
+                1.1131999995623687
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          -7.561065495737989,
+          -1.875742000168259
+        ],
+        "origin_lon_lat": [
+          -122.40364,
+          37.7912187
+        ],
+        "stratum": "narrow",
+        "service_mode": "auto",
+        "bar": false,
+        "average_spend_per_person": 18,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "68a463f5969a752814e862b9276621ff79c27613d42440925021c4950cda342d"
+      },
+      "service_mode": "table"
+    },
+    {
+      "id": "restaurant-1410116170",
+      "name": "Hotpot Champ",
+      "file": "restaurant-1410116170.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Warm oak & sage",
+      "metrics": {
+        "coverage_min": 1.0,
+        "room_count": 3,
+        "objects": 81,
+        "seats": 39,
+        "tables": 17,
+        "booths": 5,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 63
+      },
+      "input": {
+        "id": "restaurant-1410116170",
+        "osm_id": "1410116170",
+        "name": "Hotpot Champ",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -10.45029210555361,
+                6.801651999596174
+              ],
+              [
+                -9.341927792085842,
+                0.6233919993752579
+              ],
+              [
+                -8.04003954971888,
+                0.8571639997342118
+              ],
+              [
+                -1.257905531594435,
+                2.0816839998065007
+              ],
+              [
+                1.117160856372312,
+                -12.968780000477977
+              ],
+              [
+                11.17160856372312,
+                -11.276716000478757
+              ],
+              [
+                8.849321429433443,
+                3.9073319997848444
+              ],
+              [
+                7.916887959055781,
+                10.00766799988611
+              ],
+              [
+                -10.45029210555361,
+                6.801651999596174
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          6.144384710047716,
+          -12.122748000478367
+        ],
+        "origin_lon_lat": [
+          -122.4052502,
+          37.7954938
+        ],
+        "stratum": "irregular",
+        "service_mode": "auto",
+        "bar": false,
+        "average_spend_per_person": 40,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "29400c6365acc908de59dbe315db0f02b891c957257c8abfff8e142b06532384"
+      },
+      "service_mode": "table"
+    },
+    {
+      "id": "restaurant-149705550",
+      "name": "Mayes Oyster House",
+      "file": "restaurant-149705550.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Walnut & muted terracotta",
+      "metrics": {
+        "coverage_min": 1.0,
+        "room_count": 4,
+        "objects": 112,
+        "seats": 54,
+        "tables": 24,
+        "booths": 6,
+        "customer_route_width_m": 0.95,
+        "staff_route_width_m": 0.9,
+        "downloaded_assets_used": 92
+      },
+      "input": {
+        "id": "restaurant-149705550",
+        "osm_id": "149705550",
+        "name": "Mayes Oyster House",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                17.656380015706322,
+                5.710716000293985
+              ],
+              [
+                19.222317058305837,
+                -3.6512959999566874
+              ],
+              [
+                -13.8031192062063,
+                -9.19503199988128
+              ],
+              [
+                -15.369056247555632,
+                0.17811200049948184
+              ],
+              [
+                -12.729836514593226,
+                0.6122600000361444
+              ],
+              [
+                -4.513065744928446,
+                1.992628000347736
+              ],
+              [
+                9.545178035360038,
+                4.352612000242573
+              ],
+              [
+                17.656380015706322,
+                5.710716000293985
+              ]
+            ]
+          ]
+        },
+        "units": "metres",
+        "height_m": 3.2,
+        "entrance": [
+          2.709598926049768,
+          -6.423163999918984
+        ],
+        "origin_lon_lat": [
+          -122.4205693,
+          37.7882963
+        ],
+        "stratum": "large",
+        "service_mode": "auto",
+        "bar": true,
+        "average_spend_per_person": 70,
+        "currency": "USD",
+        "economics_source": "illustrative test spend, not this venue's observed price",
+        "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+        "selection_hash": "098a2ed5fa58e88e66e56d090ef601fa2465fb1cbdd3fd7905c2914f97f93782"
+      },
+      "service_mode": "table"
+    }
+  ],
+  "passed": 4,
+  "total": 5,
+  "measured": false
+}

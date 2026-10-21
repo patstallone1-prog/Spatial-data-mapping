@@ -1,0 +1,5882 @@
+{
+  "schema": "kerbside.restaurant_rounds/1",
+  "rounds": [
+    {
+      "number": 1,
+      "status": "complete",
+      "selected": [
+        {
+          "id": "restaurant-272569008",
+          "osm_id": "272569008",
+          "name": "D Den Thai Cuisine",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -4.433229684520249,
+                  4.886948000159066
+                ],
+                [
+                  1.8207907642226022,
+                  5.866563999742311
+                ],
+                [
+                  2.1462461175256764,
+                  3.7960120000659003
+                ],
+                [
+                  3.2809418108999067,
+                  -3.4175239995977336
+                ],
+                [
+                  3.324922264015187,
+                  -3.6735600002168667
+                ],
+                [
+                  -2.929098184727665,
+                  -4.653175999800112
+                ],
+                [
+                  -3.2281652664115703,
+                  -2.7941320002224757
+                ],
+                [
+                  -4.433229684520249,
+                  4.886948000159066
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -1.3062194601488235,
+            5.376755999950689
+          ],
+          "origin_lon_lat": [
+            -122.4355105,
+            37.7992858
+          ],
+          "stratum": "pickup",
+          "service_mode": "pickup",
+          "bar": false,
+          "average_spend_per_person": 15,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "7bfde19879fb21f6055d33072565756c45fb5e144b68bd5c899e14db5256b758"
+        },
+        {
+          "id": "restaurant-32857648",
+          "osm_id": "32857648",
+          "name": "Tony's Coal Fired Pizza & Slice House",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -8.461730132090024,
+                  2.5158320001341394
+                ],
+                [
+                  9.693166949021013,
+                  5.39901999981538
+                ],
+                [
+                  10.335273290224302,
+                  0.17811200049948184
+                ],
+                [
+                  7.5469484955127335,
+                  -0.6011279999060548
+                ],
+                [
+                  5.40952602000038,
+                  -0.968484000244132
+                ],
+                [
+                  5.128054747880435,
+                  0.6679199998956165
+                ],
+                [
+                  1.2666207264147258,
+                  -0.011132000130089637
+                ],
+                [
+                  1.5217040670468596,
+                  -1.4694239997703562
+                ],
+                [
+                  0.7916379546341954,
+                  -1.6030079997494795
+                ],
+                [
+                  -7.65250022271396,
+                  -3.039035999920543
+                ],
+                [
+                  -8.637649677008742,
+                  -1.8256479999783437
+                ],
+                [
+                  -8.760793358951837,
+                  -0.05565999985947201
+                ],
+                [
+                  -8.171462881974154,
+                  0.768108000275447
+                ],
+                [
+                  -8.461730132090024,
+                  2.5158320001341394
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            10.014220119622657,
+            2.788566000157431
+          ],
+          "origin_lon_lat": [
+            -122.4089563,
+            37.8002379
+          ],
+          "stratum": "narrow",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 18,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "0c6576460c675fc23b29e3b03001a6294efecdc699182b0e65293354950cdd00"
+        },
+        {
+          "id": "restaurant-262574417",
+          "osm_id": "262574417",
+          "name": "Trattoria Contadina",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -2.7267555107348325,
+                  -2.3488519997647472
+                ],
+                [
+                  -3.0522069756733354,
+                  -2.8275279998217684
+                ],
+                [
+                  -3.324882526871817,
+                  -3.1614879997695766
+                ],
+                [
+                  -3.8614376430204516,
+                  -3.40639200025862
+                ],
+                [
+                  -4.802608094092628,
+                  -3.40639200025862
+                ],
+                [
+                  -5.506286935209686,
+                  -3.150355999639487
+                ],
+                [
+                  -5.858126356393208,
+                  -2.616019999722994
+                ],
+                [
+                  -6.042842052608305,
+                  -2.1707400000562416
+                ],
+                [
+                  -6.025250081361631,
+                  -1.758855999988782
+                ],
+                [
+                  -5.893310298886555,
+                  -1.280179999931761
+                ],
+                [
+                  -5.691002631424784,
+                  -0.768108000275447
+                ],
+                [
+                  -5.321571240244573,
+                  -0.38961999980728024
+                ],
+                [
+                  -5.67341066017811,
+                  2.0037600004778255
+                ],
+                [
+                  -6.93123658994046,
+                  2.3377200004256338
+                ],
+                [
+                  -7.247892068630635,
+                  4.408272000102045
+                ],
+                [
+                  -6.1220059225933445,
+                  5.031664000268279
+                ],
+                [
+                  -6.201169791328399,
+                  5.588264000444951
+                ],
+                [
+                  1.2754179010090245,
+                  6.71259600013741
+                ],
+                [
+                  5.216019414014515,
+                  7.269196000314082
+                ],
+                [
+                  5.515082921458015,
+                  5.232040000236964
+                ],
+                [
+                  11.241269495376146,
+                  6.066939999710996
+                ],
+                [
+                  12.217623887691687,
+                  -0.44527999966675225
+                ],
+                [
+                  12.287991772678382,
+                  -0.8460319996041221
+                ],
+                [
+                  9.877891739383738,
+                  -1.2022559998121096
+                ],
+                [
+                  9.737155971910317,
+                  -0.2449039996980673
+                ],
+                [
+                  6.544213227513576,
+                  -0.7124479996249988
+                ],
+                [
+                  6.139597893840018,
+                  -1.7365919997286028
+                ],
+                [
+                  4.195685092957299,
+                  -2.0594199995463214
+                ],
+                [
+                  3.597558078070299,
+                  -1.280179999931761
+                ],
+                [
+                  2.01428068461943,
+                  -1.5139520002907148
+                ],
+                [
+                  1.6800332346825824,
+                  -2.415643999754309
+                ],
+                [
+                  -0.3166554786901738,
+                  -2.727340000232914
+                ],
+                [
+                  -0.8180266535954451,
+                  -2.070551999676411
+                ],
+                [
+                  -2.7267555107348325,
+                  -2.3488519997647472
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -7.0895643292855475,
+            3.3729960002638393
+          ],
+          "origin_lon_lat": [
+            -122.4123316,
+            37.8001686
+          ],
+          "stratum": "irregular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 40,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "03d4816ab8ef4096b8e7dd509bcf1aba2cee2001a762f1f8b62bc8f2df4e1304"
+        },
+        {
+          "id": "restaurant-260121872",
+          "osm_id": "260121872",
+          "name": "Collina",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -8.01366918692724,
+                  -8.538244000115753
+                ],
+                [
+                  -11.066076660206623,
+                  11.543883999646027
+                ],
+                [
+                  3.703353159320957,
+                  13.78141599969183
+                ],
+                [
+                  3.8001153563845955,
+                  13.124627999926304
+                ],
+                [
+                  6.052035567251376,
+                  -1.6586680003999277
+                ],
+                [
+                  6.773353759452826,
+                  -6.222787999950299
+                ],
+                [
+                  5.198768924281315,
+                  -6.456560000309253
+                ],
+                [
+                  1.0819772895522424,
+                  -7.146744000465048
+                ],
+                [
+                  -7.521061641307972,
+                  -8.42692400039681
+                ],
+                [
+                  -8.01366918692724,
+                  -8.538244000115753
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -3.681361750442832,
+            12.662649999668929
+          ],
+          "origin_lon_lat": [
+            -122.4180601,
+            37.7953162
+          ],
+          "stratum": "large",
+          "service_mode": "auto",
+          "bar": true,
+          "average_spend_per_person": 70,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "02fd6b996a2d373f81c8246ecdee91c4e9c00253c060c7d19fff54fee70c7273"
+        },
+        {
+          "id": "restaurant-257825351",
+          "osm_id": "257825351",
+          "name": "Octavia",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.812126512946575,
+                  7.3693839999029365
+                ],
+                [
+                  9.47484262892423,
+                  -2.727340000232914
+                ],
+                [
+                  -5.172894582069227,
+                  -5.142983999987223
+                ],
+                [
+                  -5.287261299749015,
+                  -4.430536000362224
+                ],
+                [
+                  -6.835610698046883,
+                  4.942608000018538
+                ],
+                [
+                  7.812126512946575,
+                  7.3693839999029365
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            2.1509740234275014,
+            -3.9351620001100684
+          ],
+          "origin_lon_lat": [
+            -122.4271159,
+            37.7879548
+          ],
+          "stratum": "regular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 32,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "00d80e916b8995bef2764929c8f00d205a54844395bbc9fc7dd114c04c405c2b"
+        }
+      ],
+      "results": [
+        {
+          "id": "restaurant-272569008",
+          "name": "D Den Thai Cuisine",
+          "file": "restaurant-272569008.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 0.9999999999999999,
+            "room_count": 3,
+            "objects": 14,
+            "seats": 0,
+            "tables": 0,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 0
+          },
+          "input": {
+            "id": "restaurant-272569008",
+            "osm_id": "272569008",
+            "name": "D Den Thai Cuisine",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -4.433229684520249,
+                    4.886948000159066
+                  ],
+                  [
+                    1.8207907642226022,
+                    5.866563999742311
+                  ],
+                  [
+                    2.1462461175256764,
+                    3.7960120000659003
+                  ],
+                  [
+                    3.2809418108999067,
+                    -3.4175239995977336
+                  ],
+                  [
+                    3.324922264015187,
+                    -3.6735600002168667
+                  ],
+                  [
+                    -2.929098184727665,
+                    -4.653175999800112
+                  ],
+                  [
+                    -3.2281652664115703,
+                    -2.7941320002224757
+                  ],
+                  [
+                    -4.433229684520249,
+                    4.886948000159066
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -1.3062194601488235,
+              5.376755999950689
+            ],
+            "origin_lon_lat": [
+              -122.4355105,
+              37.7992858
+            ],
+            "stratum": "pickup",
+            "service_mode": "pickup",
+            "bar": false,
+            "average_spend_per_person": 15,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "7bfde19879fb21f6055d33072565756c45fb5e144b68bd5c899e14db5256b758"
+          },
+          "service_mode": "pickup"
+        },
+        {
+          "id": "restaurant-32857648",
+          "name": "Tony's Coal Fired Pizza & Slice House",
+          "file": "restaurant-32857648.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 0.9999999999999999,
+            "room_count": 3,
+            "objects": 29,
+            "seats": 8,
+            "tables": 4,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 16
+          },
+          "input": {
+            "id": "restaurant-32857648",
+            "osm_id": "32857648",
+            "name": "Tony's Coal Fired Pizza & Slice House",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -8.461730132090024,
+                    2.5158320001341394
+                  ],
+                  [
+                    9.693166949021013,
+                    5.39901999981538
+                  ],
+                  [
+                    10.335273290224302,
+                    0.17811200049948184
+                  ],
+                  [
+                    7.5469484955127335,
+                    -0.6011279999060548
+                  ],
+                  [
+                    5.40952602000038,
+                    -0.968484000244132
+                  ],
+                  [
+                    5.128054747880435,
+                    0.6679199998956165
+                  ],
+                  [
+                    1.2666207264147258,
+                    -0.011132000130089637
+                  ],
+                  [
+                    1.5217040670468596,
+                    -1.4694239997703562
+                  ],
+                  [
+                    0.7916379546341954,
+                    -1.6030079997494795
+                  ],
+                  [
+                    -7.65250022271396,
+                    -3.039035999920543
+                  ],
+                  [
+                    -8.637649677008742,
+                    -1.8256479999783437
+                  ],
+                  [
+                    -8.760793358951837,
+                    -0.05565999985947201
+                  ],
+                  [
+                    -8.171462881974154,
+                    0.768108000275447
+                  ],
+                  [
+                    -8.461730132090024,
+                    2.5158320001341394
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              10.014220119622657,
+              2.788566000157431
+            ],
+            "origin_lon_lat": [
+              -122.4089563,
+              37.8002379
+            ],
+            "stratum": "narrow",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 18,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "0c6576460c675fc23b29e3b03001a6294efecdc699182b0e65293354950cdd00"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-262574417",
+          "name": "Trattoria Contadina",
+          "file": "restaurant-262574417.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 1.0000000000000004,
+            "room_count": 3,
+            "objects": 53,
+            "seats": 24,
+            "tables": 10,
+            "booths": 4,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 36
+          },
+          "input": {
+            "id": "restaurant-262574417",
+            "osm_id": "262574417",
+            "name": "Trattoria Contadina",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -2.7267555107348325,
+                    -2.3488519997647472
+                  ],
+                  [
+                    -3.0522069756733354,
+                    -2.8275279998217684
+                  ],
+                  [
+                    -3.324882526871817,
+                    -3.1614879997695766
+                  ],
+                  [
+                    -3.8614376430204516,
+                    -3.40639200025862
+                  ],
+                  [
+                    -4.802608094092628,
+                    -3.40639200025862
+                  ],
+                  [
+                    -5.506286935209686,
+                    -3.150355999639487
+                  ],
+                  [
+                    -5.858126356393208,
+                    -2.616019999722994
+                  ],
+                  [
+                    -6.042842052608305,
+                    -2.1707400000562416
+                  ],
+                  [
+                    -6.025250081361631,
+                    -1.758855999988782
+                  ],
+                  [
+                    -5.893310298886555,
+                    -1.280179999931761
+                  ],
+                  [
+                    -5.691002631424784,
+                    -0.768108000275447
+                  ],
+                  [
+                    -5.321571240244573,
+                    -0.38961999980728024
+                  ],
+                  [
+                    -5.67341066017811,
+                    2.0037600004778255
+                  ],
+                  [
+                    -6.93123658994046,
+                    2.3377200004256338
+                  ],
+                  [
+                    -7.247892068630635,
+                    4.408272000102045
+                  ],
+                  [
+                    -6.1220059225933445,
+                    5.031664000268279
+                  ],
+                  [
+                    -6.201169791328399,
+                    5.588264000444951
+                  ],
+                  [
+                    1.2754179010090245,
+                    6.71259600013741
+                  ],
+                  [
+                    5.216019414014515,
+                    7.269196000314082
+                  ],
+                  [
+                    5.515082921458015,
+                    5.232040000236964
+                  ],
+                  [
+                    11.241269495376146,
+                    6.066939999710996
+                  ],
+                  [
+                    12.217623887691687,
+                    -0.44527999966675225
+                  ],
+                  [
+                    12.287991772678382,
+                    -0.8460319996041221
+                  ],
+                  [
+                    9.877891739383738,
+                    -1.2022559998121096
+                  ],
+                  [
+                    9.737155971910317,
+                    -0.2449039996980673
+                  ],
+                  [
+                    6.544213227513576,
+                    -0.7124479996249988
+                  ],
+                  [
+                    6.139597893840018,
+                    -1.7365919997286028
+                  ],
+                  [
+                    4.195685092957299,
+                    -2.0594199995463214
+                  ],
+                  [
+                    3.597558078070299,
+                    -1.280179999931761
+                  ],
+                  [
+                    2.01428068461943,
+                    -1.5139520002907148
+                  ],
+                  [
+                    1.6800332346825824,
+                    -2.415643999754309
+                  ],
+                  [
+                    -0.3166554786901738,
+                    -2.727340000232914
+                  ],
+                  [
+                    -0.8180266535954451,
+                    -2.070551999676411
+                  ],
+                  [
+                    -2.7267555107348325,
+                    -2.3488519997647472
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -7.0895643292855475,
+              3.3729960002638393
+            ],
+            "origin_lon_lat": [
+              -122.4123316,
+              37.8001686
+            ],
+            "stratum": "irregular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 40,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "03d4816ab8ef4096b8e7dd509bcf1aba2cee2001a762f1f8b62bc8f2df4e1304"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-260121872",
+          "name": "Collina",
+          "file": "restaurant-260121872.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Ash & slate",
+          "metrics": {
+            "coverage_min": 0.9999999999999996,
+            "room_count": 4,
+            "objects": 109,
+            "seats": 50,
+            "tables": 23,
+            "booths": 4,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 91
+          },
+          "input": {
+            "id": "restaurant-260121872",
+            "osm_id": "260121872",
+            "name": "Collina",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -8.01366918692724,
+                    -8.538244000115753
+                  ],
+                  [
+                    -11.066076660206623,
+                    11.543883999646027
+                  ],
+                  [
+                    3.703353159320957,
+                    13.78141599969183
+                  ],
+                  [
+                    3.8001153563845955,
+                    13.124627999926304
+                  ],
+                  [
+                    6.052035567251376,
+                    -1.6586680003999277
+                  ],
+                  [
+                    6.773353759452826,
+                    -6.222787999950299
+                  ],
+                  [
+                    5.198768924281315,
+                    -6.456560000309253
+                  ],
+                  [
+                    1.0819772895522424,
+                    -7.146744000465048
+                  ],
+                  [
+                    -7.521061641307972,
+                    -8.42692400039681
+                  ],
+                  [
+                    -8.01366918692724,
+                    -8.538244000115753
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -3.681361750442832,
+              12.662649999668929
+            ],
+            "origin_lon_lat": [
+              -122.4180601,
+              37.7953162
+            ],
+            "stratum": "large",
+            "service_mode": "auto",
+            "bar": true,
+            "average_spend_per_person": 70,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "02fd6b996a2d373f81c8246ecdee91c4e9c00253c060c7d19fff54fee70c7273"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-257825351",
+          "name": "Octavia",
+          "passed": false,
+          "reason": "TopologyException in room-union validation: rotated cut produced invalid geometry; captured from first test run",
+          "input": {
+            "id": "restaurant-257825351",
+            "osm_id": "257825351",
+            "name": "Octavia",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    7.812126512946575,
+                    7.3693839999029365
+                  ],
+                  [
+                    9.47484262892423,
+                    -2.727340000232914
+                  ],
+                  [
+                    -5.172894582069227,
+                    -5.142983999987223
+                  ],
+                  [
+                    -5.287261299749015,
+                    -4.430536000362224
+                  ],
+                  [
+                    -6.835610698046883,
+                    4.942608000018538
+                  ],
+                  [
+                    7.812126512946575,
+                    7.3693839999029365
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              2.1509740234275014,
+              -3.9351620001100684
+            ],
+            "origin_lon_lat": [
+              -122.4271159,
+              37.7879548
+            ],
+            "stratum": "regular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 32,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "00d80e916b8995bef2764929c8f00d205a54844395bbc9fc7dd114c04c405c2b"
+          }
+        }
+      ],
+      "selection": "five geometry strata, SHA256(id) order before inference; retain failures, exclude all prior successes"
+    },
+    {
+      "number": 2,
+      "status": "complete",
+      "selected": [
+        {
+          "id": "restaurant-257825351",
+          "osm_id": "257825351",
+          "name": "Octavia",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.812126512946575,
+                  7.3693839999029365
+                ],
+                [
+                  9.47484262892423,
+                  -2.727340000232914
+                ],
+                [
+                  -5.172894582069227,
+                  -5.142983999987223
+                ],
+                [
+                  -5.287261299749015,
+                  -4.430536000362224
+                ],
+                [
+                  -6.835610698046883,
+                  4.942608000018538
+                ],
+                [
+                  7.812126512946575,
+                  7.3693839999029365
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            2.1509740234275014,
+            -3.9351620001100684
+          ],
+          "origin_lon_lat": [
+            -122.4271159,
+            37.7879548
+          ],
+          "stratum": "regular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 32,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "00d80e916b8995bef2764929c8f00d205a54844395bbc9fc7dd114c04c405c2b"
+        },
+        {
+          "id": "restaurant-288391504",
+          "osm_id": "288391504",
+          "name": "Scoma's Restaurant",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ],
+                [
+                  2.1811441608909234,
+                  -3.328468000138969
+                ],
+                [
+                  -2.497761862975724,
+                  -3.150355999639487
+                ],
+                [
+                  -2.163554289663844,
+                  3.295072000539676
+                ],
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            0.15391138198579446,
+            3.2282800005501144
+          ],
+          "origin_lon_lat": [
+            -122.4189926,
+            37.80898
+          ],
+          "stratum": "pickup",
+          "service_mode": "pickup",
+          "bar": false,
+          "average_spend_per_person": 15,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+        },
+        {
+          "id": "restaurant-942288403",
+          "osm_id": "942288403",
+          "name": "Jack's",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -4.2752331535904995,
+                  13.00217600007727
+                ],
+                [
+                  1.5394358062131335,
+                  13.859339999811482
+                ],
+                [
+                  4.600713867611331,
+                  -6.790520000257061
+                ],
+                [
+                  0.9500518117701002,
+                  -7.335988000303644
+                ],
+                [
+                  -1.2051583166782671,
+                  -7.658816000121362
+                ],
+                [
+                  -1.5834196862835004,
+                  -5.0984560002578405
+                ],
+                [
+                  -4.2752331535904995,
+                  13.00217600007727
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -1.367898673688683,
+            13.430757999944376
+          ],
+          "origin_lon_lat": [
+            -122.4034915,
+            37.7935297
+          ],
+          "stratum": "narrow",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 18,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "21293462af42023cba2894c35d7bada3271d19aa29136e197e989e7a78b5e792"
+        },
+        {
+          "id": "restaurant-115921779",
+          "osm_id": "115921779",
+          "name": "Miller & Lux Provisions",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.818081542277107,
+                  1.70319600012931
+                ],
+                [
+                  4.759405793953215,
+                  -0.31169599968762896
+                ],
+                [
+                  4.9969362121564656,
+                  -3.8516719999253723
+                ],
+                [
+                  2.9911237891341775,
+                  -3.372995999868351
+                ],
+                [
+                  3.2286542073374274,
+                  -5.855432000403198
+                ],
+                [
+                  -5.683135199604974,
+                  -5.966752000122142
+                ],
+                [
+                  -5.621553239144845,
+                  -2.5158320001341394
+                ],
+                [
+                  -5.1376949791010755,
+                  0.7903719997446501
+                ],
+                [
+                  -3.994030001270416,
+                  4.085444000284326
+                ],
+                [
+                  -2.876757291851187,
+                  7.380516000033026
+                ],
+                [
+                  1.6627129299231285,
+                  5.588263999653975
+                ],
+                [
+                  1.8122691192548184,
+                  2.2931919999052752
+                ],
+                [
+                  3.818081542277107,
+                  1.70319600012931
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            4.87817100305484,
+            -2.0816839998065007
+          ],
+          "origin_lon_lat": [
+            -122.4069662,
+            37.7880964
+          ],
+          "stratum": "irregular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 40,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "06ce0ab1228e01d48c149ab9ea6ee2cdc1f63dd83390d94bf9e5957c5636e267"
+        },
+        {
+          "id": "restaurant-71739088",
+          "osm_id": "71739088",
+          "name": "heist",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -4.653849711258295,
+                  -9.862951999776897
+                ],
+                [
+                  -7.43384311153735,
+                  8.070700000188822
+                ],
+                [
+                  4.7330267387821126,
+                  9.907480000297255
+                ],
+                [
+                  7.33707118886933,
+                  -8.137492000178383
+                ],
+                [
+                  -4.653849711258295,
+                  -9.862951999776897
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -1.350408186377619,
+            8.989090000243039
+          ],
+          "origin_lon_lat": [
+            -122.4130854,
+            37.7878901
+          ],
+          "stratum": "large",
+          "service_mode": "auto",
+          "bar": true,
+          "average_spend_per_person": 70,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "048176bc922172a974bad18b244dc36677be5f6de5d9802343b75e83d737d82a"
+        }
+      ],
+      "results": [
+        {
+          "id": "restaurant-257825351",
+          "name": "Octavia",
+          "file": "restaurant-257825351.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 53,
+            "seats": 23,
+            "tables": 10,
+            "booths": 3,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 37
+          },
+          "input": {
+            "id": "restaurant-257825351",
+            "osm_id": "257825351",
+            "name": "Octavia",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    7.812126512946575,
+                    7.3693839999029365
+                  ],
+                  [
+                    9.47484262892423,
+                    -2.727340000232914
+                  ],
+                  [
+                    -5.172894582069227,
+                    -5.142983999987223
+                  ],
+                  [
+                    -5.287261299749015,
+                    -4.430536000362224
+                  ],
+                  [
+                    -6.835610698046883,
+                    4.942608000018538
+                  ],
+                  [
+                    7.812126512946575,
+                    7.3693839999029365
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              2.1509740234275014,
+              -3.9351620001100684
+            ],
+            "origin_lon_lat": [
+              -122.4271159,
+              37.7879548
+            ],
+            "stratum": "regular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 32,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "00d80e916b8995bef2764929c8f00d205a54844395bbc9fc7dd114c04c405c2b"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-288391504",
+          "name": "Scoma's Restaurant",
+          "passed": false,
+          "reason": "no feasible restaurant: no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area; no usable WC and continuous customer area",
+          "input": {
+            "id": "restaurant-288391504",
+            "osm_id": "288391504",
+            "name": "Scoma's Restaurant",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ],
+                  [
+                    2.1811441608909234,
+                    -3.328468000138969
+                  ],
+                  [
+                    -2.497761862975724,
+                    -3.150355999639487
+                  ],
+                  [
+                    -2.163554289663844,
+                    3.295072000539676
+                  ],
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              0.15391138198579446,
+              3.2282800005501144
+            ],
+            "origin_lon_lat": [
+              -122.4189926,
+              37.80898
+            ],
+            "stratum": "pickup",
+            "service_mode": "pickup",
+            "bar": false,
+            "average_spend_per_person": 15,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+          }
+        },
+        {
+          "id": "restaurant-942288403",
+          "name": "Jack's",
+          "file": "restaurant-942288403.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Warm oak & sage",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 49,
+            "seats": 18,
+            "tables": 9,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 36
+          },
+          "input": {
+            "id": "restaurant-942288403",
+            "osm_id": "942288403",
+            "name": "Jack's",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -4.2752331535904995,
+                    13.00217600007727
+                  ],
+                  [
+                    1.5394358062131335,
+                    13.859339999811482
+                  ],
+                  [
+                    4.600713867611331,
+                    -6.790520000257061
+                  ],
+                  [
+                    0.9500518117701002,
+                    -7.335988000303644
+                  ],
+                  [
+                    -1.2051583166782671,
+                    -7.658816000121362
+                  ],
+                  [
+                    -1.5834196862835004,
+                    -5.0984560002578405
+                  ],
+                  [
+                    -4.2752331535904995,
+                    13.00217600007727
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -1.367898673688683,
+              13.430757999944376
+            ],
+            "origin_lon_lat": [
+              -122.4034915,
+              37.7935297
+            ],
+            "stratum": "narrow",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 18,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "21293462af42023cba2894c35d7bada3271d19aa29136e197e989e7a78b5e792"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-115921779",
+          "name": "Miller & Lux Provisions",
+          "file": "restaurant-115921779.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Warm oak & sage",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 41,
+            "seats": 14,
+            "tables": 7,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 28
+          },
+          "input": {
+            "id": "restaurant-115921779",
+            "osm_id": "115921779",
+            "name": "Miller & Lux Provisions",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    3.818081542277107,
+                    1.70319600012931
+                  ],
+                  [
+                    4.759405793953215,
+                    -0.31169599968762896
+                  ],
+                  [
+                    4.9969362121564656,
+                    -3.8516719999253723
+                  ],
+                  [
+                    2.9911237891341775,
+                    -3.372995999868351
+                  ],
+                  [
+                    3.2286542073374274,
+                    -5.855432000403198
+                  ],
+                  [
+                    -5.683135199604974,
+                    -5.966752000122142
+                  ],
+                  [
+                    -5.621553239144845,
+                    -2.5158320001341394
+                  ],
+                  [
+                    -5.1376949791010755,
+                    0.7903719997446501
+                  ],
+                  [
+                    -3.994030001270416,
+                    4.085444000284326
+                  ],
+                  [
+                    -2.876757291851187,
+                    7.380516000033026
+                  ],
+                  [
+                    1.6627129299231285,
+                    5.588263999653975
+                  ],
+                  [
+                    1.8122691192548184,
+                    2.2931919999052752
+                  ],
+                  [
+                    3.818081542277107,
+                    1.70319600012931
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              4.87817100305484,
+              -2.0816839998065007
+            ],
+            "origin_lon_lat": [
+              -122.4069662,
+              37.7880964
+            ],
+            "stratum": "irregular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 40,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "06ce0ab1228e01d48c149ab9ea6ee2cdc1f63dd83390d94bf9e5957c5636e267"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-71739088",
+          "name": "heist",
+          "file": "restaurant-71739088.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Coastal linen & blue",
+          "metrics": {
+            "coverage_min": 1.0000000000000002,
+            "room_count": 4,
+            "objects": 85,
+            "seats": 39,
+            "tables": 17,
+            "booths": 5,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 66
+          },
+          "input": {
+            "id": "restaurant-71739088",
+            "osm_id": "71739088",
+            "name": "heist",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -4.653849711258295,
+                    -9.862951999776897
+                  ],
+                  [
+                    -7.43384311153735,
+                    8.070700000188822
+                  ],
+                  [
+                    4.7330267387821126,
+                    9.907480000297255
+                  ],
+                  [
+                    7.33707118886933,
+                    -8.137492000178383
+                  ],
+                  [
+                    -4.653849711258295,
+                    -9.862951999776897
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -1.350408186377619,
+              8.989090000243039
+            ],
+            "origin_lon_lat": [
+              -122.4130854,
+              37.7878901
+            ],
+            "stratum": "large",
+            "service_mode": "auto",
+            "bar": true,
+            "average_spend_per_person": 70,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "048176bc922172a974bad18b244dc36677be5f6de5d9802343b75e83d737d82a"
+          },
+          "service_mode": "table"
+        }
+      ],
+      "selection": "five geometry strata, SHA256(id) order before inference; retain failures, exclude all prior successes"
+    },
+    {
+      "number": 3,
+      "status": "complete",
+      "selected": [
+        {
+          "id": "restaurant-288391504",
+          "osm_id": "288391504",
+          "name": "Scoma's Restaurant",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ],
+                [
+                  2.1811441608909234,
+                  -3.328468000138969
+                ],
+                [
+                  -2.497761862975724,
+                  -3.150355999639487
+                ],
+                [
+                  -2.163554289663844,
+                  3.295072000539676
+                ],
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            0.15391138198579446,
+            3.2282800005501144
+          ],
+          "origin_lon_lat": [
+            -122.4189926,
+            37.80898
+          ],
+          "stratum": "pickup",
+          "service_mode": "pickup",
+          "bar": false,
+          "average_spend_per_person": 15,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+        },
+        {
+          "id": "restaurant-32858847",
+          "osm_id": "32858847",
+          "name": "A Taste of Vietnam",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -5.664815985354225,
+                  13.091231999536035
+                ],
+                [
+                  0.20231485711087663,
+                  14.015187999259808
+                ],
+                [
+                  1.9087966911655645,
+                  3.1392239995093973
+                ],
+                [
+                  4.71481578919234,
+                  -14.671976000607287
+                ],
+                [
+                  -1.1435187544309682,
+                  -15.59593200033106
+                ],
+                [
+                  -5.664815985354225,
+                  13.091231999536035
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -2.731250564121674,
+            13.553209999397922
+          ],
+          "origin_lon_lat": [
+            -122.4074906,
+            37.7975435
+          ],
+          "stratum": "narrow",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 18,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "344cdec9689eadf8c4f57e9a8e5dd95273709064f72dd3c37a0f0a149e7e8ac0"
+        },
+        {
+          "id": "restaurant-263242704",
+          "osm_id": "263242704",
+          "name": "Roostertail",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.287402190384461,
+                  -8.059567999267756
+                ],
+                [
+                  5.648106832170229,
+                  -10.308231999443649
+                ],
+                [
+                  -1.5835813546388176,
+                  -11.477091999656466
+                ],
+                [
+                  -2.2873952908673307,
+                  -7.124479999413893
+                ],
+                [
+                  -1.7155464672128296,
+                  -7.035423999955128
+                ],
+                [
+                  -2.3489790090683567,
+                  -3.1058279999101046
+                ],
+                [
+                  -4.099716174717904,
+                  -3.3952599993375543
+                ],
+                [
+                  -5.507344044674481,
+                  5.321096000486705
+                ],
+                [
+                  -4.319658029007924,
+                  5.5103400003253
+                ],
+                [
+                  -5.058662661172706,
+                  10.10785600026594
+                ],
+                [
+                  -3.862178970584413,
+                  11.677468000416127
+                ],
+                [
+                  -1.821118557522084,
+                  12.011428000363935
+                ],
+                [
+                  -0.8797674196605292,
+                  10.820304000681915
+                ],
+                [
+                  2.1730255256363407,
+                  11.31011200007805
+                ],
+                [
+                  4.020537106673407,
+                  -0.14471599931823675
+                ],
+                [
+                  4.319658029007924,
+                  -2.0037599996868494
+                ],
+                [
+                  3.263937125915379,
+                  -2.1707399992652654
+                ],
+                [
+                  3.888571994099395,
+                  -6.055807999580907
+                ],
+                [
+                  4.935495222270204,
+                  -5.888828000002491
+                ],
+                [
+                  5.287402190384461,
+                  -8.059567999267756
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -2.8416487640532484,
+            11.844448000390031
+          ],
+          "origin_lon_lat": [
+            -122.4325781,
+            37.7859856
+          ],
+          "stratum": "irregular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 40,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "13344dc296d20a1fdf78a5c9a2d77536ac1d12ec3ac84045d02309f926e4a27b"
+        },
+        {
+          "id": "restaurant-272616966",
+          "osm_id": "272616966",
+          "name": "Saiwalks",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ],
+                [
+                  -7.889975393771764,
+                  -6.478823999778456
+                ],
+                [
+                  -7.960343068125346,
+                  -6.055807999580907
+                ],
+                [
+                  -8.655223844242089,
+                  -5.666187999773626
+                ],
+                [
+                  -8.998266252340867,
+                  -3.4731839994572056
+                ],
+                [
+                  -8.452916782350513,
+                  -3.0501679992596564
+                ],
+                [
+                  -8.593652129807696,
+                  -2.181871999395355
+                ],
+                [
+                  -9.20936927290165,
+                  -1.8813079998378157
+                ],
+                [
+                  -9.54361572233122,
+                  0.2226400002288642
+                ],
+                [
+                  -9.05983796677526,
+                  0.6679200006865926
+                ],
+                [
+                  -9.13900159979805,
+                  1.1799920003429065
+                ],
+                [
+                  -8.707999598757295,
+                  1.2467840003324682
+                ],
+                [
+                  -1.0819029800615183,
+                  2.4601720002746674
+                ],
+                [
+                  2.234173635726599,
+                  2.9945080001911606
+                ],
+                [
+                  5.620617923368337,
+                  3.5288440001076538
+                ],
+                [
+                  7.0895431086246115,
+                  3.7626160004666076
+                ],
+                [
+                  11.496318663143454,
+                  4.463932000752493
+                ],
+                [
+                  13.792064013304447,
+                  4.831288000299594
+                ],
+                [
+                  21.004750549547865,
+                  5.989016000382321
+                ],
+                [
+                  21.10150610115905,
+                  5.410152000736446
+                ],
+                [
+                  22.227388877066566,
+                  -1.6697999997390411
+                ],
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -8.826745048291478,
+            -4.569685999615416
+          ],
+          "origin_lon_lat": [
+            -122.4376392,
+            37.8003897
+          ],
+          "stratum": "large",
+          "service_mode": "auto",
+          "bar": true,
+          "average_spend_per_person": 70,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+        },
+        {
+          "id": "restaurant-148285584",
+          "osm_id": "148285584",
+          "name": "Sunrise Deli",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  10.504072334546862,
+                  5.421284000075559
+                ],
+                [
+                  5.559944485790372,
+                  10.48634399994313
+                ],
+                [
+                  -7.073093934644742,
+                  -1.8367800001084333
+                ],
+                [
+                  -4.416285019156332,
+                  -4.5529879994202815
+                ],
+                [
+                  -3.430978401152303,
+                  -3.5845039999671258
+                ],
+                [
+                  -1.1348620866407773,
+                  -5.933355999731873
+                ],
+                [
+                  10.504072334546862,
+                  5.421284000075559
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            8.032008410168617,
+            7.953814000009345
+          ],
+          "origin_lon_lat": [
+            -122.400731,
+            37.7884525
+          ],
+          "stratum": "regular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 32,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "01f33dc9f717abbdcee9b0e6f163db2a1944673263ec96ae616a3b7b95411451"
+        }
+      ],
+      "results": [
+        {
+          "id": "restaurant-288391504",
+          "name": "Scoma's Restaurant",
+          "passed": false,
+          "reason": "no feasible restaurant: no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area; no usable WC and continuous customer area",
+          "input": {
+            "id": "restaurant-288391504",
+            "osm_id": "288391504",
+            "name": "Scoma's Restaurant",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ],
+                  [
+                    2.1811441608909234,
+                    -3.328468000138969
+                  ],
+                  [
+                    -2.497761862975724,
+                    -3.150355999639487
+                  ],
+                  [
+                    -2.163554289663844,
+                    3.295072000539676
+                  ],
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              0.15391138198579446,
+              3.2282800005501144
+            ],
+            "origin_lon_lat": [
+              -122.4189926,
+              37.80898
+            ],
+            "stratum": "pickup",
+            "service_mode": "pickup",
+            "bar": false,
+            "average_spend_per_person": 15,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+          }
+        },
+        {
+          "id": "restaurant-32858847",
+          "name": "A Taste of Vietnam",
+          "file": "restaurant-32858847.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Warm oak & sage",
+          "metrics": {
+            "coverage_min": 0.9999999999999998,
+            "room_count": 3,
+            "objects": 65,
+            "seats": 26,
+            "tables": 13,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 13
+          },
+          "input": {
+            "id": "restaurant-32858847",
+            "osm_id": "32858847",
+            "name": "A Taste of Vietnam",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -5.664815985354225,
+                    13.091231999536035
+                  ],
+                  [
+                    0.20231485711087663,
+                    14.015187999259808
+                  ],
+                  [
+                    1.9087966911655645,
+                    3.1392239995093973
+                  ],
+                  [
+                    4.71481578919234,
+                    -14.671976000607287
+                  ],
+                  [
+                    -1.1435187544309682,
+                    -15.59593200033106
+                  ],
+                  [
+                    -5.664815985354225,
+                    13.091231999536035
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -2.731250564121674,
+              13.553209999397922
+            ],
+            "origin_lon_lat": [
+              -122.4074906,
+              37.7975435
+            ],
+            "stratum": "narrow",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 18,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "344cdec9689eadf8c4f57e9a8e5dd95273709064f72dd3c37a0f0a149e7e8ac0"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-263242704",
+          "name": "Roostertail",
+          "file": "restaurant-263242704.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Ash & slate",
+          "metrics": {
+            "coverage_min": 1.0000000000000002,
+            "room_count": 3,
+            "objects": 57,
+            "seats": 26,
+            "tables": 11,
+            "booths": 4,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 40
+          },
+          "input": {
+            "id": "restaurant-263242704",
+            "osm_id": "263242704",
+            "name": "Roostertail",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    5.287402190384461,
+                    -8.059567999267756
+                  ],
+                  [
+                    5.648106832170229,
+                    -10.308231999443649
+                  ],
+                  [
+                    -1.5835813546388176,
+                    -11.477091999656466
+                  ],
+                  [
+                    -2.2873952908673307,
+                    -7.124479999413893
+                  ],
+                  [
+                    -1.7155464672128296,
+                    -7.035423999955128
+                  ],
+                  [
+                    -2.3489790090683567,
+                    -3.1058279999101046
+                  ],
+                  [
+                    -4.099716174717904,
+                    -3.3952599993375543
+                  ],
+                  [
+                    -5.507344044674481,
+                    5.321096000486705
+                  ],
+                  [
+                    -4.319658029007924,
+                    5.5103400003253
+                  ],
+                  [
+                    -5.058662661172706,
+                    10.10785600026594
+                  ],
+                  [
+                    -3.862178970584413,
+                    11.677468000416127
+                  ],
+                  [
+                    -1.821118557522084,
+                    12.011428000363935
+                  ],
+                  [
+                    -0.8797674196605292,
+                    10.820304000681915
+                  ],
+                  [
+                    2.1730255256363407,
+                    11.31011200007805
+                  ],
+                  [
+                    4.020537106673407,
+                    -0.14471599931823675
+                  ],
+                  [
+                    4.319658029007924,
+                    -2.0037599996868494
+                  ],
+                  [
+                    3.263937125915379,
+                    -2.1707399992652654
+                  ],
+                  [
+                    3.888571994099395,
+                    -6.055807999580907
+                  ],
+                  [
+                    4.935495222270204,
+                    -5.888828000002491
+                  ],
+                  [
+                    5.287402190384461,
+                    -8.059567999267756
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -2.8416487640532484,
+              11.844448000390031
+            ],
+            "origin_lon_lat": [
+              -122.4325781,
+              37.7859856
+            ],
+            "stratum": "irregular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 40,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "13344dc296d20a1fdf78a5c9a2d77536ac1d12ec3ac84045d02309f926e4a27b"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-272616966",
+          "name": "Saiwalks",
+          "passed": false,
+          "reason": "no feasible restaurant: no usable WC and continuous customer area; bar does not fit with staff/customer circulation; no workable back-of-house band; invalid or sliver room after cut",
+          "input": {
+            "id": "restaurant-272616966",
+            "osm_id": "272616966",
+            "name": "Saiwalks",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ],
+                  [
+                    -7.889975393771764,
+                    -6.478823999778456
+                  ],
+                  [
+                    -7.960343068125346,
+                    -6.055807999580907
+                  ],
+                  [
+                    -8.655223844242089,
+                    -5.666187999773626
+                  ],
+                  [
+                    -8.998266252340867,
+                    -3.4731839994572056
+                  ],
+                  [
+                    -8.452916782350513,
+                    -3.0501679992596564
+                  ],
+                  [
+                    -8.593652129807696,
+                    -2.181871999395355
+                  ],
+                  [
+                    -9.20936927290165,
+                    -1.8813079998378157
+                  ],
+                  [
+                    -9.54361572233122,
+                    0.2226400002288642
+                  ],
+                  [
+                    -9.05983796677526,
+                    0.6679200006865926
+                  ],
+                  [
+                    -9.13900159979805,
+                    1.1799920003429065
+                  ],
+                  [
+                    -8.707999598757295,
+                    1.2467840003324682
+                  ],
+                  [
+                    -1.0819029800615183,
+                    2.4601720002746674
+                  ],
+                  [
+                    2.234173635726599,
+                    2.9945080001911606
+                  ],
+                  [
+                    5.620617923368337,
+                    3.5288440001076538
+                  ],
+                  [
+                    7.0895431086246115,
+                    3.7626160004666076
+                  ],
+                  [
+                    11.496318663143454,
+                    4.463932000752493
+                  ],
+                  [
+                    13.792064013304447,
+                    4.831288000299594
+                  ],
+                  [
+                    21.004750549547865,
+                    5.989016000382321
+                  ],
+                  [
+                    21.10150610115905,
+                    5.410152000736446
+                  ],
+                  [
+                    22.227388877066566,
+                    -1.6697999997390411
+                  ],
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -8.826745048291478,
+              -4.569685999615416
+            ],
+            "origin_lon_lat": [
+              -122.4376392,
+              37.8003897
+            ],
+            "stratum": "large",
+            "service_mode": "auto",
+            "bar": true,
+            "average_spend_per_person": 70,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+          }
+        },
+        {
+          "id": "restaurant-148285584",
+          "name": "Sunrise Deli",
+          "file": "restaurant-148285584.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Coastal linen & blue",
+          "metrics": {
+            "coverage_min": 1.0000000000000002,
+            "room_count": 3,
+            "objects": 33,
+            "seats": 11,
+            "tables": 5,
+            "booths": 1,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 19
+          },
+          "input": {
+            "id": "restaurant-148285584",
+            "osm_id": "148285584",
+            "name": "Sunrise Deli",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    10.504072334546862,
+                    5.421284000075559
+                  ],
+                  [
+                    5.559944485790372,
+                    10.48634399994313
+                  ],
+                  [
+                    -7.073093934644742,
+                    -1.8367800001084333
+                  ],
+                  [
+                    -4.416285019156332,
+                    -4.5529879994202815
+                  ],
+                  [
+                    -3.430978401152303,
+                    -3.5845039999671258
+                  ],
+                  [
+                    -1.1348620866407773,
+                    -5.933355999731873
+                  ],
+                  [
+                    10.504072334546862,
+                    5.421284000075559
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              8.032008410168617,
+              7.953814000009345
+            ],
+            "origin_lon_lat": [
+              -122.400731,
+              37.7884525
+            ],
+            "stratum": "regular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 32,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "01f33dc9f717abbdcee9b0e6f163db2a1944673263ec96ae616a3b7b95411451"
+          },
+          "service_mode": "table"
+        }
+      ],
+      "selection": "five geometry strata, SHA256(id) order before inference; retain failures, exclude all prior successes"
+    },
+    {
+      "number": 4,
+      "status": "complete",
+      "selected": [
+        {
+          "id": "restaurant-288391504",
+          "osm_id": "288391504",
+          "name": "Scoma's Restaurant",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ],
+                [
+                  2.1811441608909234,
+                  -3.328468000138969
+                ],
+                [
+                  -2.497761862975724,
+                  -3.150355999639487
+                ],
+                [
+                  -2.163554289663844,
+                  3.295072000539676
+                ],
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            0.15391138198579446,
+            3.2282800005501144
+          ],
+          "origin_lon_lat": [
+            -122.4189926,
+            37.80898
+          ],
+          "stratum": "pickup",
+          "service_mode": "pickup",
+          "bar": false,
+          "average_spend_per_person": 15,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+        },
+        {
+          "id": "restaurant-272616966",
+          "osm_id": "272616966",
+          "name": "Saiwalks",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ],
+                [
+                  -7.889975393771764,
+                  -6.478823999778456
+                ],
+                [
+                  -7.960343068125346,
+                  -6.055807999580907
+                ],
+                [
+                  -8.655223844242089,
+                  -5.666187999773626
+                ],
+                [
+                  -8.998266252340867,
+                  -3.4731839994572056
+                ],
+                [
+                  -8.452916782350513,
+                  -3.0501679992596564
+                ],
+                [
+                  -8.593652129807696,
+                  -2.181871999395355
+                ],
+                [
+                  -9.20936927290165,
+                  -1.8813079998378157
+                ],
+                [
+                  -9.54361572233122,
+                  0.2226400002288642
+                ],
+                [
+                  -9.05983796677526,
+                  0.6679200006865926
+                ],
+                [
+                  -9.13900159979805,
+                  1.1799920003429065
+                ],
+                [
+                  -8.707999598757295,
+                  1.2467840003324682
+                ],
+                [
+                  -1.0819029800615183,
+                  2.4601720002746674
+                ],
+                [
+                  2.234173635726599,
+                  2.9945080001911606
+                ],
+                [
+                  5.620617923368337,
+                  3.5288440001076538
+                ],
+                [
+                  7.0895431086246115,
+                  3.7626160004666076
+                ],
+                [
+                  11.496318663143454,
+                  4.463932000752493
+                ],
+                [
+                  13.792064013304447,
+                  4.831288000299594
+                ],
+                [
+                  21.004750549547865,
+                  5.989016000382321
+                ],
+                [
+                  21.10150610115905,
+                  5.410152000736446
+                ],
+                [
+                  22.227388877066566,
+                  -1.6697999997390411
+                ],
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -8.826745048291478,
+            -4.569685999615416
+          ],
+          "origin_lon_lat": [
+            -122.4376392,
+            37.8003897
+          ],
+          "stratum": "large",
+          "service_mode": "auto",
+          "bar": true,
+          "average_spend_per_person": 70,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+        },
+        {
+          "id": "restaurant-148741771",
+          "osm_id": "148741771",
+          "name": "Tenmatsu Grab and Go",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -9.236893532081776,
+                  1.3803680003115915
+                ],
+                [
+                  8.28681305581065,
+                  4.30808400051319
+                ],
+                [
+                  9.236893533331912,
+                  -1.3803679995206153
+                ],
+                [
+                  -8.286813054560515,
+                  -4.308083999722214
+                ],
+                [
+                  -9.236893532081776,
+                  1.3803680003115915
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            9.236893533331912,
+            -1.3803679995206153
+          ],
+          "origin_lon_lat": [
+            -122.4039498,
+            37.7913004
+          ],
+          "stratum": "narrow",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 18,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "53f11ab0aaaa5e233c41b84fd71998047f20b921b57d8b39b7ea1fdc176380ca"
+        },
+        {
+          "id": "restaurant-939539788",
+          "osm_id": "939539788",
+          "name": "Barrio",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -4.731859804574334,
+                  -10.185779999594615
+                ],
+                [
+                  -5.285962346311239,
+                  -6.579012000158286
+                ],
+                [
+                  -3.8875130738324284,
+                  -6.356371999929422
+                ],
+                [
+                  -4.010646972273937,
+                  -5.599395999784065
+                ],
+                [
+                  -4.239324212058184,
+                  -4.163367999613001
+                ],
+                [
+                  0.8355514515675786,
+                  -3.372995999868351
+                ],
+                [
+                  -0.14951973346472214,
+                  2.9054519999414197
+                ],
+                [
+                  0.6948269972771838,
+                  4.252423999862742
+                ],
+                [
+                  -0.14951973346472214,
+                  9.640312000339009
+                ],
+                [
+                  -0.6332600480564294,
+                  12.70161200051973
+                ],
+                [
+                  9.067932077551045,
+                  14.237828000279649
+                ],
+                [
+                  12.49809067181498,
+                  -7.469571999491791
+                ],
+                [
+                  -4.731859804574334,
+                  -10.185779999594615
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            10.783011374683014,
+            3.384128000393929
+          ],
+          "origin_lon_lat": [
+            -122.4224048,
+            37.8061059
+          ],
+          "stratum": "irregular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 40,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "19adbb6261d320df110ca6ee81ee31badaf687eaafe0b4766ccb7ad6366a9c32"
+        },
+        {
+          "id": "restaurant-256080518",
+          "osm_id": "256080518",
+          "name": "Grant Place",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.659026685115032,
+                  -9.350880000120583
+                ],
+                [
+                  -1.5745915135129307,
+                  -10.753511999901377
+                ],
+                [
+                  -2.3750821716955093,
+                  -5.655055999643537
+                ],
+                [
+                  -5.480282198134566,
+                  12.167275999812261
+                ],
+                [
+                  2.7533360004933964,
+                  13.569908000384032
+                ],
+                [
+                  6.659026685115032,
+                  -9.350880000120583
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -1.3634730988205854,
+            12.868592000098147
+          ],
+          "origin_lon_lat": [
+            -122.406163,
+            37.7950028
+          ],
+          "stratum": "regular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 32,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "03e735ae5cf17a8f1174815e74fa42d352295b0005f74082a8eaa85e1c1cd44b"
+        }
+      ],
+      "results": [
+        {
+          "id": "restaurant-288391504",
+          "name": "Scoma's Restaurant",
+          "passed": false,
+          "reason": "no feasible restaurant: no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area; no usable WC and continuous customer area",
+          "input": {
+            "id": "restaurant-288391504",
+            "osm_id": "288391504",
+            "name": "Scoma's Restaurant",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ],
+                  [
+                    2.1811441608909234,
+                    -3.328468000138969
+                  ],
+                  [
+                    -2.497761862975724,
+                    -3.150355999639487
+                  ],
+                  [
+                    -2.163554289663844,
+                    3.295072000539676
+                  ],
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              0.15391138198579446,
+              3.2282800005501144
+            ],
+            "origin_lon_lat": [
+              -122.4189926,
+              37.80898
+            ],
+            "stratum": "pickup",
+            "service_mode": "pickup",
+            "bar": false,
+            "average_spend_per_person": 15,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+          }
+        },
+        {
+          "id": "restaurant-272616966",
+          "name": "Saiwalks",
+          "passed": false,
+          "reason": "no feasible restaurant: no usable WC and continuous customer area; invalid or sliver room after cut; bar does not fit with staff/customer circulation; no workable back-of-house band",
+          "input": {
+            "id": "restaurant-272616966",
+            "osm_id": "272616966",
+            "name": "Saiwalks",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ],
+                  [
+                    -7.889975393771764,
+                    -6.478823999778456
+                  ],
+                  [
+                    -7.960343068125346,
+                    -6.055807999580907
+                  ],
+                  [
+                    -8.655223844242089,
+                    -5.666187999773626
+                  ],
+                  [
+                    -8.998266252340867,
+                    -3.4731839994572056
+                  ],
+                  [
+                    -8.452916782350513,
+                    -3.0501679992596564
+                  ],
+                  [
+                    -8.593652129807696,
+                    -2.181871999395355
+                  ],
+                  [
+                    -9.20936927290165,
+                    -1.8813079998378157
+                  ],
+                  [
+                    -9.54361572233122,
+                    0.2226400002288642
+                  ],
+                  [
+                    -9.05983796677526,
+                    0.6679200006865926
+                  ],
+                  [
+                    -9.13900159979805,
+                    1.1799920003429065
+                  ],
+                  [
+                    -8.707999598757295,
+                    1.2467840003324682
+                  ],
+                  [
+                    -1.0819029800615183,
+                    2.4601720002746674
+                  ],
+                  [
+                    2.234173635726599,
+                    2.9945080001911606
+                  ],
+                  [
+                    5.620617923368337,
+                    3.5288440001076538
+                  ],
+                  [
+                    7.0895431086246115,
+                    3.7626160004666076
+                  ],
+                  [
+                    11.496318663143454,
+                    4.463932000752493
+                  ],
+                  [
+                    13.792064013304447,
+                    4.831288000299594
+                  ],
+                  [
+                    21.004750549547865,
+                    5.989016000382321
+                  ],
+                  [
+                    21.10150610115905,
+                    5.410152000736446
+                  ],
+                  [
+                    22.227388877066566,
+                    -1.6697999997390411
+                  ],
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -8.826745048291478,
+              -4.569685999615416
+            ],
+            "origin_lon_lat": [
+              -122.4376392,
+              37.8003897
+            ],
+            "stratum": "large",
+            "service_mode": "auto",
+            "bar": true,
+            "average_spend_per_person": 70,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+          }
+        },
+        {
+          "id": "restaurant-148741771",
+          "name": "Tenmatsu Grab and Go",
+          "file": "restaurant-148741771.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Ash & slate",
+          "metrics": {
+            "coverage_min": 0.9999999999999997,
+            "room_count": 3,
+            "objects": 41,
+            "seats": 14,
+            "tables": 7,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 7
+          },
+          "input": {
+            "id": "restaurant-148741771",
+            "osm_id": "148741771",
+            "name": "Tenmatsu Grab and Go",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -9.236893532081776,
+                    1.3803680003115915
+                  ],
+                  [
+                    8.28681305581065,
+                    4.30808400051319
+                  ],
+                  [
+                    9.236893533331912,
+                    -1.3803679995206153
+                  ],
+                  [
+                    -8.286813054560515,
+                    -4.308083999722214
+                  ],
+                  [
+                    -9.236893532081776,
+                    1.3803680003115915
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              9.236893533331912,
+              -1.3803679995206153
+            ],
+            "origin_lon_lat": [
+              -122.4039498,
+              37.7913004
+            ],
+            "stratum": "narrow",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 18,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "53f11ab0aaaa5e233c41b84fd71998047f20b921b57d8b39b7ea1fdc176380ca"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-939539788",
+          "name": "Barrio",
+          "file": "restaurant-939539788.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Ash & slate",
+          "metrics": {
+            "coverage_min": 0.9999999999999999,
+            "room_count": 3,
+            "objects": 113,
+            "seats": 58,
+            "tables": 25,
+            "booths": 8,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 92
+          },
+          "input": {
+            "id": "restaurant-939539788",
+            "osm_id": "939539788",
+            "name": "Barrio",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -4.731859804574334,
+                    -10.185779999594615
+                  ],
+                  [
+                    -5.285962346311239,
+                    -6.579012000158286
+                  ],
+                  [
+                    -3.8875130738324284,
+                    -6.356371999929422
+                  ],
+                  [
+                    -4.010646972273937,
+                    -5.599395999784065
+                  ],
+                  [
+                    -4.239324212058184,
+                    -4.163367999613001
+                  ],
+                  [
+                    0.8355514515675786,
+                    -3.372995999868351
+                  ],
+                  [
+                    -0.14951973346472214,
+                    2.9054519999414197
+                  ],
+                  [
+                    0.6948269972771838,
+                    4.252423999862742
+                  ],
+                  [
+                    -0.14951973346472214,
+                    9.640312000339009
+                  ],
+                  [
+                    -0.6332600480564294,
+                    12.70161200051973
+                  ],
+                  [
+                    9.067932077551045,
+                    14.237828000279649
+                  ],
+                  [
+                    12.49809067181498,
+                    -7.469571999491791
+                  ],
+                  [
+                    -4.731859804574334,
+                    -10.185779999594615
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              10.783011374683014,
+              3.384128000393929
+            ],
+            "origin_lon_lat": [
+              -122.4224048,
+              37.8061059
+            ],
+            "stratum": "irregular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 40,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "19adbb6261d320df110ca6ee81ee31badaf687eaafe0b4766ccb7ad6366a9c32"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-256080518",
+          "name": "Grant Place",
+          "file": "restaurant-256080518.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Ash & slate",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 57,
+            "seats": 27,
+            "tables": 11,
+            "booths": 5,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 39
+          },
+          "input": {
+            "id": "restaurant-256080518",
+            "osm_id": "256080518",
+            "name": "Grant Place",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    6.659026685115032,
+                    -9.350880000120583
+                  ],
+                  [
+                    -1.5745915135129307,
+                    -10.753511999901377
+                  ],
+                  [
+                    -2.3750821716955093,
+                    -5.655055999643537
+                  ],
+                  [
+                    -5.480282198134566,
+                    12.167275999812261
+                  ],
+                  [
+                    2.7533360004933964,
+                    13.569908000384032
+                  ],
+                  [
+                    6.659026685115032,
+                    -9.350880000120583
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -1.3634730988205854,
+              12.868592000098147
+            ],
+            "origin_lon_lat": [
+              -122.406163,
+              37.7950028
+            ],
+            "stratum": "regular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 32,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "03e735ae5cf17a8f1174815e74fa42d352295b0005f74082a8eaa85e1c1cd44b"
+          },
+          "service_mode": "table"
+        }
+      ],
+      "selection": "five geometry strata, SHA256(id) order before inference; retain failures, exclude all prior successes"
+    },
+    {
+      "number": 5,
+      "status": "complete",
+      "selected": [
+        {
+          "id": "restaurant-288391504",
+          "osm_id": "288391504",
+          "name": "Scoma's Restaurant",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ],
+                [
+                  2.1811441608909234,
+                  -3.328468000138969
+                ],
+                [
+                  -2.497761862975724,
+                  -3.150355999639487
+                ],
+                [
+                  -2.163554289663844,
+                  3.295072000539676
+                ],
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            0.15391138198579446,
+            3.2282800005501144
+          ],
+          "origin_lon_lat": [
+            -122.4189926,
+            37.80898
+          ],
+          "stratum": "pickup",
+          "service_mode": "pickup",
+          "bar": false,
+          "average_spend_per_person": 15,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+        },
+        {
+          "id": "restaurant-272616966",
+          "osm_id": "272616966",
+          "name": "Saiwalks",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ],
+                [
+                  -7.889975393771764,
+                  -6.478823999778456
+                ],
+                [
+                  -7.960343068125346,
+                  -6.055807999580907
+                ],
+                [
+                  -8.655223844242089,
+                  -5.666187999773626
+                ],
+                [
+                  -8.998266252340867,
+                  -3.4731839994572056
+                ],
+                [
+                  -8.452916782350513,
+                  -3.0501679992596564
+                ],
+                [
+                  -8.593652129807696,
+                  -2.181871999395355
+                ],
+                [
+                  -9.20936927290165,
+                  -1.8813079998378157
+                ],
+                [
+                  -9.54361572233122,
+                  0.2226400002288642
+                ],
+                [
+                  -9.05983796677526,
+                  0.6679200006865926
+                ],
+                [
+                  -9.13900159979805,
+                  1.1799920003429065
+                ],
+                [
+                  -8.707999598757295,
+                  1.2467840003324682
+                ],
+                [
+                  -1.0819029800615183,
+                  2.4601720002746674
+                ],
+                [
+                  2.234173635726599,
+                  2.9945080001911606
+                ],
+                [
+                  5.620617923368337,
+                  3.5288440001076538
+                ],
+                [
+                  7.0895431086246115,
+                  3.7626160004666076
+                ],
+                [
+                  11.496318663143454,
+                  4.463932000752493
+                ],
+                [
+                  13.792064013304447,
+                  4.831288000299594
+                ],
+                [
+                  21.004750549547865,
+                  5.989016000382321
+                ],
+                [
+                  21.10150610115905,
+                  5.410152000736446
+                ],
+                [
+                  22.227388877066566,
+                  -1.6697999997390411
+                ],
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -8.826745048291478,
+            -4.569685999615416
+          ],
+          "origin_lon_lat": [
+            -122.4376392,
+            37.8003897
+          ],
+          "stratum": "large",
+          "service_mode": "auto",
+          "bar": true,
+          "average_spend_per_person": 70,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+        },
+        {
+          "id": "restaurant-148741775",
+          "osm_id": "148741775",
+          "name": "Vida Cantina",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -8.920175980228462,
+                  -5.844300000273108
+                ],
+                [
+                  8.80581474900751,
+                  -2.9165840000715093
+                ],
+                [
+                  7.758969638600982,
+                  3.039035999920543
+                ],
+                [
+                  5.867610827351969,
+                  2.727339999441938
+                ],
+                [
+                  0.6245882593602192,
+                  1.8590439995776364
+                ],
+                [
+                  -4.240162546131702,
+                  1.046407999572807
+                ],
+                [
+                  -9.914238983629135,
+                  0.10018799958885438
+                ],
+                [
+                  -8.920175980228462,
+                  -5.844300000273108
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -9.417207481928799,
+            -2.872056000342127
+          ],
+          "origin_lon_lat": [
+            -122.4036761,
+            37.7914997
+          ],
+          "stratum": "narrow",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 18,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "588ffb53a8c599e5bea4fda589bcdc1efcd87314c020bd383facc11710014907"
+        },
+        {
+          "id": "restaurant-272604427",
+          "osm_id": "272604427",
+          "name": "Baan Yaai",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.174813367248019,
+                  -17.944783999304832
+                ],
+                [
+                  6.385918097730857,
+                  -19.25835999962686
+                ],
+                [
+                  1.3897728092203514,
+                  -20.037599999241422
+                ],
+                [
+                  -0.7476625878558808,
+                  -6.412031999788894
+                ],
+                [
+                  -0.36063724780401635,
+                  -6.356371999929422
+                ],
+                [
+                  -1.1698720488215577,
+                  -1.2356519994114024
+                ],
+                [
+                  -2.86750592260022,
+                  -1.502819999369649
+                ],
+                [
+                  -2.181415549155991,
+                  -5.866563999742311
+                ],
+                [
+                  -4.169318427661054,
+                  -6.17825999942994
+                ],
+                [
+                  -6.438694280976562,
+                  8.282208000287596
+                ],
+                [
+                  -0.2902690047264006,
+                  9.250692000531728
+                ],
+                [
+                  -0.7212744956080327,
+                  12.000296000233845
+                ],
+                [
+                  -1.785594179188171,
+                  11.83331600065543
+                ],
+                [
+                  -2.8499138627683096,
+                  18.634968000251604
+                ],
+                [
+                  0.36063724780401635,
+                  19.135908000568804
+                ],
+                [
+                  1.3194045648927444,
+                  13.035572000467539
+                ],
+                [
+                  3.711924844531574,
+                  -2.237531999254827
+                ],
+                [
+                  4.169318427661054,
+                  -5.120719999727044
+                ],
+                [
+                  6.174813367248019,
+                  -17.944783999304832
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            3.887845453475604,
+            -19.647979999434142
+          ],
+          "origin_lon_lat": [
+            -122.4389554,
+            37.7997914
+          ],
+          "stratum": "irregular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 40,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "1a64becf4765765618ac5b573b666d6fa06535ee761f7029f71984b199fac7ea"
+        },
+        {
+          "id": "restaurant-263347504",
+          "osm_id": "263347504",
+          "name": "Marina Sushi Bar",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.620629033059683,
+                  -11.198792000359106
+                ],
+                [
+                  -0.4134108983471234,
+                  -12.22293600046271
+                ],
+                [
+                  -2.8235084812377305,
+                  2.014891999816939
+                ],
+                [
+                  -4.204476803163202,
+                  10.196911999724705
+                ],
+                [
+                  1.8295631282436045,
+                  11.221055999828309
+                ],
+                [
+                  5.620629033059683,
+                  -11.198792000359106
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            2.6036090673562797,
+            -11.710864000410908
+          ],
+          "origin_lon_lat": [
+            -122.4349291,
+            37.8002437
+          ],
+          "stratum": "regular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 32,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "049a36bf6a6ab2336f5ca69b22e1b6b49ccc80be237f295243489206575ed48c"
+        }
+      ],
+      "results": [
+        {
+          "id": "restaurant-288391504",
+          "name": "Scoma's Restaurant",
+          "passed": false,
+          "reason": "no feasible restaurant: no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area; no usable WC and continuous customer area",
+          "input": {
+            "id": "restaurant-288391504",
+            "osm_id": "288391504",
+            "name": "Scoma's Restaurant",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ],
+                  [
+                    2.1811441608909234,
+                    -3.328468000138969
+                  ],
+                  [
+                    -2.497761862975724,
+                    -3.150355999639487
+                  ],
+                  [
+                    -2.163554289663844,
+                    3.295072000539676
+                  ],
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              0.15391138198579446,
+              3.2282800005501144
+            ],
+            "origin_lon_lat": [
+              -122.4189926,
+              37.80898
+            ],
+            "stratum": "pickup",
+            "service_mode": "pickup",
+            "bar": false,
+            "average_spend_per_person": 15,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+          }
+        },
+        {
+          "id": "restaurant-272616966",
+          "name": "Saiwalks",
+          "passed": false,
+          "reason": "no feasible restaurant: no usable WC and continuous customer area; restaurant-272616966:L0:0: no reachable service_counter fits; no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area",
+          "input": {
+            "id": "restaurant-272616966",
+            "osm_id": "272616966",
+            "name": "Saiwalks",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ],
+                  [
+                    -7.889975393771764,
+                    -6.478823999778456
+                  ],
+                  [
+                    -7.960343068125346,
+                    -6.055807999580907
+                  ],
+                  [
+                    -8.655223844242089,
+                    -5.666187999773626
+                  ],
+                  [
+                    -8.998266252340867,
+                    -3.4731839994572056
+                  ],
+                  [
+                    -8.452916782350513,
+                    -3.0501679992596564
+                  ],
+                  [
+                    -8.593652129807696,
+                    -2.181871999395355
+                  ],
+                  [
+                    -9.20936927290165,
+                    -1.8813079998378157
+                  ],
+                  [
+                    -9.54361572233122,
+                    0.2226400002288642
+                  ],
+                  [
+                    -9.05983796677526,
+                    0.6679200006865926
+                  ],
+                  [
+                    -9.13900159979805,
+                    1.1799920003429065
+                  ],
+                  [
+                    -8.707999598757295,
+                    1.2467840003324682
+                  ],
+                  [
+                    -1.0819029800615183,
+                    2.4601720002746674
+                  ],
+                  [
+                    2.234173635726599,
+                    2.9945080001911606
+                  ],
+                  [
+                    5.620617923368337,
+                    3.5288440001076538
+                  ],
+                  [
+                    7.0895431086246115,
+                    3.7626160004666076
+                  ],
+                  [
+                    11.496318663143454,
+                    4.463932000752493
+                  ],
+                  [
+                    13.792064013304447,
+                    4.831288000299594
+                  ],
+                  [
+                    21.004750549547865,
+                    5.989016000382321
+                  ],
+                  [
+                    21.10150610115905,
+                    5.410152000736446
+                  ],
+                  [
+                    22.227388877066566,
+                    -1.6697999997390411
+                  ],
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -8.826745048291478,
+              -4.569685999615416
+            ],
+            "origin_lon_lat": [
+              -122.4376392,
+              37.8003897
+            ],
+            "stratum": "large",
+            "service_mode": "auto",
+            "bar": true,
+            "average_spend_per_person": 70,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+          }
+        },
+        {
+          "id": "restaurant-148741775",
+          "name": "Vida Cantina",
+          "file": "restaurant-148741775.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Coastal linen & blue",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 33,
+            "seats": 10,
+            "tables": 5,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 5
+          },
+          "input": {
+            "id": "restaurant-148741775",
+            "osm_id": "148741775",
+            "name": "Vida Cantina",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -8.920175980228462,
+                    -5.844300000273108
+                  ],
+                  [
+                    8.80581474900751,
+                    -2.9165840000715093
+                  ],
+                  [
+                    7.758969638600982,
+                    3.039035999920543
+                  ],
+                  [
+                    5.867610827351969,
+                    2.727339999441938
+                  ],
+                  [
+                    0.6245882593602192,
+                    1.8590439995776364
+                  ],
+                  [
+                    -4.240162546131702,
+                    1.046407999572807
+                  ],
+                  [
+                    -9.914238983629135,
+                    0.10018799958885438
+                  ],
+                  [
+                    -8.920175980228462,
+                    -5.844300000273108
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -9.417207481928799,
+              -2.872056000342127
+            ],
+            "origin_lon_lat": [
+              -122.4036761,
+              37.7914997
+            ],
+            "stratum": "narrow",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 18,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "588ffb53a8c599e5bea4fda589bcdc1efcd87314c020bd383facc11710014907"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-272604427",
+          "name": "Baan Yaai",
+          "file": "restaurant-272604427.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 0.9999999999999999,
+            "room_count": 3,
+            "objects": 53,
+            "seats": 23,
+            "tables": 10,
+            "booths": 3,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 37
+          },
+          "input": {
+            "id": "restaurant-272604427",
+            "osm_id": "272604427",
+            "name": "Baan Yaai",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    6.174813367248019,
+                    -17.944783999304832
+                  ],
+                  [
+                    6.385918097730857,
+                    -19.25835999962686
+                  ],
+                  [
+                    1.3897728092203514,
+                    -20.037599999241422
+                  ],
+                  [
+                    -0.7476625878558808,
+                    -6.412031999788894
+                  ],
+                  [
+                    -0.36063724780401635,
+                    -6.356371999929422
+                  ],
+                  [
+                    -1.1698720488215577,
+                    -1.2356519994114024
+                  ],
+                  [
+                    -2.86750592260022,
+                    -1.502819999369649
+                  ],
+                  [
+                    -2.181415549155991,
+                    -5.866563999742311
+                  ],
+                  [
+                    -4.169318427661054,
+                    -6.17825999942994
+                  ],
+                  [
+                    -6.438694280976562,
+                    8.282208000287596
+                  ],
+                  [
+                    -0.2902690047264006,
+                    9.250692000531728
+                  ],
+                  [
+                    -0.7212744956080327,
+                    12.000296000233845
+                  ],
+                  [
+                    -1.785594179188171,
+                    11.83331600065543
+                  ],
+                  [
+                    -2.8499138627683096,
+                    18.634968000251604
+                  ],
+                  [
+                    0.36063724780401635,
+                    19.135908000568804
+                  ],
+                  [
+                    1.3194045648927444,
+                    13.035572000467539
+                  ],
+                  [
+                    3.711924844531574,
+                    -2.237531999254827
+                  ],
+                  [
+                    4.169318427661054,
+                    -5.120719999727044
+                  ],
+                  [
+                    6.174813367248019,
+                    -17.944783999304832
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              3.887845453475604,
+              -19.647979999434142
+            ],
+            "origin_lon_lat": [
+              -122.4389554,
+              37.7997914
+            ],
+            "stratum": "irregular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 40,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "1a64becf4765765618ac5b573b666d6fa06535ee761f7029f71984b199fac7ea"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-263347504",
+          "name": "Marina Sushi Bar",
+          "file": "restaurant-263347504.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Ash & slate",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 53,
+            "seats": 22,
+            "tables": 10,
+            "booths": 2,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 38
+          },
+          "input": {
+            "id": "restaurant-263347504",
+            "osm_id": "263347504",
+            "name": "Marina Sushi Bar",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    5.620629033059683,
+                    -11.198792000359106
+                  ],
+                  [
+                    -0.4134108983471234,
+                    -12.22293600046271
+                  ],
+                  [
+                    -2.8235084812377305,
+                    2.014891999816939
+                  ],
+                  [
+                    -4.204476803163202,
+                    10.196911999724705
+                  ],
+                  [
+                    1.8295631282436045,
+                    11.221055999828309
+                  ],
+                  [
+                    5.620629033059683,
+                    -11.198792000359106
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              2.6036090673562797,
+              -11.710864000410908
+            ],
+            "origin_lon_lat": [
+              -122.4349291,
+              37.8002437
+            ],
+            "stratum": "regular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 32,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "049a36bf6a6ab2336f5ca69b22e1b6b49ccc80be237f295243489206575ed48c"
+          },
+          "service_mode": "table"
+        }
+      ],
+      "selection": "five geometry strata, SHA256(id) order before inference; retain failures, exclude all prior successes"
+    },
+    {
+      "number": 6,
+      "status": "complete",
+      "selected": [
+        {
+          "id": "restaurant-288391504",
+          "osm_id": "288391504",
+          "name": "Scoma's Restaurant",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ],
+                [
+                  2.1811441608909234,
+                  -3.328468000138969
+                ],
+                [
+                  -2.497761862975724,
+                  -3.150355999639487
+                ],
+                [
+                  -2.163554289663844,
+                  3.295072000539676
+                ],
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            0.15391138198579446,
+            3.2282800005501144
+          ],
+          "origin_lon_lat": [
+            -122.4189926,
+            37.80898
+          ],
+          "stratum": "pickup",
+          "service_mode": "pickup",
+          "bar": false,
+          "average_spend_per_person": 15,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+        },
+        {
+          "id": "restaurant-272616966",
+          "osm_id": "272616966",
+          "name": "Saiwalks",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ],
+                [
+                  -7.889975393771764,
+                  -6.478823999778456
+                ],
+                [
+                  -7.960343068125346,
+                  -6.055807999580907
+                ],
+                [
+                  -8.655223844242089,
+                  -5.666187999773626
+                ],
+                [
+                  -8.998266252340867,
+                  -3.4731839994572056
+                ],
+                [
+                  -8.452916782350513,
+                  -3.0501679992596564
+                ],
+                [
+                  -8.593652129807696,
+                  -2.181871999395355
+                ],
+                [
+                  -9.20936927290165,
+                  -1.8813079998378157
+                ],
+                [
+                  -9.54361572233122,
+                  0.2226400002288642
+                ],
+                [
+                  -9.05983796677526,
+                  0.6679200006865926
+                ],
+                [
+                  -9.13900159979805,
+                  1.1799920003429065
+                ],
+                [
+                  -8.707999598757295,
+                  1.2467840003324682
+                ],
+                [
+                  -1.0819029800615183,
+                  2.4601720002746674
+                ],
+                [
+                  2.234173635726599,
+                  2.9945080001911606
+                ],
+                [
+                  5.620617923368337,
+                  3.5288440001076538
+                ],
+                [
+                  7.0895431086246115,
+                  3.7626160004666076
+                ],
+                [
+                  11.496318663143454,
+                  4.463932000752493
+                ],
+                [
+                  13.792064013304447,
+                  4.831288000299594
+                ],
+                [
+                  21.004750549547865,
+                  5.989016000382321
+                ],
+                [
+                  21.10150610115905,
+                  5.410152000736446
+                ],
+                [
+                  22.227388877066566,
+                  -1.6697999997390411
+                ],
+                [
+                  -7.344625923781411,
+                  -6.389767999528715
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -8.826745048291478,
+            -4.569685999615416
+          ],
+          "origin_lon_lat": [
+            -122.4376392,
+            37.8003897
+          ],
+          "stratum": "large",
+          "service_mode": "auto",
+          "bar": true,
+          "average_spend_per_person": 70,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+        },
+        {
+          "id": "restaurant-147507703",
+          "osm_id": "147507703",
+          "name": "Georgian Cheese Boat",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -9.81655944678607,
+                  0.8905600001244807
+                ],
+                [
+                  1.7592400448362207,
+                  2.5380960003943187
+                ],
+                [
+                  8.057319403199864,
+                  3.328468000138969
+                ],
+                [
+                  8.637868618345822,
+                  -1.1131999995623687
+                ],
+                [
+                  0.3958290102131512,
+                  -2.0816839998065007
+                ],
+                [
+                  -9.016105226660592,
+                  -3.551107999576857
+                ],
+                [
+                  -9.81655944678607,
+                  0.8905600001244807
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -9.41633233672333,
+            -1.330273999726188
+          ],
+          "origin_lon_lat": [
+            -122.4069656,
+            37.7983656
+          ],
+          "stratum": "narrow",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 18,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "627b71142718a0498306978309019db12be4277980ee965245f9efb9c74587a9"
+        },
+        {
+          "id": "restaurant-196841245",
+          "osm_id": "196841245",
+          "name": "Louie's Dim Sum Inc.",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -10.458834659868238,
+                  4.052047999894057
+                ],
+                [
+                  7.098637148890795,
+                  6.668068000408027
+                ],
+                [
+                  8.594013004306143,
+                  -3.183752000029756
+                ],
+                [
+                  2.331027069140111,
+                  -4.129972000013709
+                ],
+                [
+                  1.838432668944447,
+                  -0.8682959998643014
+                ],
+                [
+                  -9.403275232663292,
+                  -2.5714919999936114
+                ],
+                [
+                  -10.458834659868238,
+                  4.052047999894057
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -1.6800987554887215,
+            5.360058000151042
+          ],
+          "origin_lon_lat": [
+            -122.4083402,
+            37.7972878
+          ],
+          "stratum": "irregular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 40,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "1d6c3c8df8a16c723f72e4568f382be08d8c91f41e2c0de8726c0b175c6e425b"
+        },
+        {
+          "id": "restaurant-259266713",
+          "osm_id": "259266713",
+          "name": "Nob Hill Cafe",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -6.140184279398578,
+                  -3.8294080004561692
+                ],
+                [
+                  -6.39529222207415,
+                  -2.326588000295544
+                ],
+                [
+                  -6.017028720606901,
+                  -1.6030080005404557
+                ],
+                [
+                  -5.823498556077063,
+                  -1.6030080005404557
+                ],
+                [
+                  -6.025825545699119,
+                  -0.044528000520358546
+                ],
+                [
+                  -6.175371581017554,
+                  -0.08905600024974092
+                ],
+                [
+                  -6.923101758859834,
+                  0.3562239994170113
+                ],
+                [
+                  -7.178209701535406,
+                  2.0594199995463214
+                ],
+                [
+                  -6.729571594329997,
+                  2.7162080001028244
+                ],
+                [
+                  -6.518447779615722,
+                  2.9165840000715093
+                ],
+                [
+                  0.5102158853511438,
+                  4.129972000013709
+                ],
+                [
+                  0.7301365264077395,
+                  2.8497920000819477
+                ],
+                [
+                  6.571228733919344,
+                  3.862804000055462
+                ],
+                [
+                  6.351308094112851,
+                  5.142983999987223
+                ],
+                [
+                  13.529517795648257,
+                  6.378636000189601
+                ],
+                [
+                  14.822651160460657,
+                  -1.135463999822548
+                ],
+                [
+                  13.978155901603563,
+                  -1.280179999931761
+                ],
+                [
+                  7.42452081911876,
+                  -2.415644000545285
+                ],
+                [
+                  7.239787480931244,
+                  -1.3581040000514122
+                ],
+                [
+                  1.5658349589225118,
+                  -2.3377200004256338
+                ],
+                [
+                  1.7505682971100271,
+                  -3.3952600001285305
+                ],
+                [
+                  -5.269298542764622,
+                  -4.59751599994064
+                ],
+                [
+                  -5.313282670725919,
+                  -4.285820000253011
+                ],
+                [
+                  -6.140184279398578,
+                  -3.8294080004561692
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            14.176084478054456,
+            2.6215860001835267
+          ],
+          "origin_lon_lat": [
+            -122.412576,
+            37.7931133
+          ],
+          "stratum": "regular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 32,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "05e918909e6678c34d878dab28ffc4ea7125c50764a640064c7e54d0fe074c5f"
+        }
+      ],
+      "results": [
+        {
+          "id": "restaurant-288391504",
+          "name": "Scoma's Restaurant",
+          "passed": false,
+          "reason": "no feasible restaurant: no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area; no usable WC and continuous customer area",
+          "input": {
+            "id": "restaurant-288391504",
+            "osm_id": "288391504",
+            "name": "Scoma's Restaurant",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ],
+                  [
+                    2.1811441608909234,
+                    -3.328468000138969
+                  ],
+                  [
+                    -2.497761862975724,
+                    -3.150355999639487
+                  ],
+                  [
+                    -2.163554289663844,
+                    3.295072000539676
+                  ],
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              0.15391138198579446,
+              3.2282800005501144
+            ],
+            "origin_lon_lat": [
+              -122.4189926,
+              37.80898
+            ],
+            "stratum": "pickup",
+            "service_mode": "pickup",
+            "bar": false,
+            "average_spend_per_person": 15,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+          }
+        },
+        {
+          "id": "restaurant-272616966",
+          "name": "Saiwalks",
+          "file": "restaurant-272616966.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 0.9999999999999998,
+            "room_count": 3,
+            "objects": 77,
+            "seats": 37,
+            "tables": 16,
+            "booths": 5,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 59
+          },
+          "input": {
+            "id": "restaurant-272616966",
+            "osm_id": "272616966",
+            "name": "Saiwalks",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ],
+                  [
+                    -7.889975393771764,
+                    -6.478823999778456
+                  ],
+                  [
+                    -7.960343068125346,
+                    -6.055807999580907
+                  ],
+                  [
+                    -8.655223844242089,
+                    -5.666187999773626
+                  ],
+                  [
+                    -8.998266252340867,
+                    -3.4731839994572056
+                  ],
+                  [
+                    -8.452916782350513,
+                    -3.0501679992596564
+                  ],
+                  [
+                    -8.593652129807696,
+                    -2.181871999395355
+                  ],
+                  [
+                    -9.20936927290165,
+                    -1.8813079998378157
+                  ],
+                  [
+                    -9.54361572233122,
+                    0.2226400002288642
+                  ],
+                  [
+                    -9.05983796677526,
+                    0.6679200006865926
+                  ],
+                  [
+                    -9.13900159979805,
+                    1.1799920003429065
+                  ],
+                  [
+                    -8.707999598757295,
+                    1.2467840003324682
+                  ],
+                  [
+                    -1.0819029800615183,
+                    2.4601720002746674
+                  ],
+                  [
+                    2.234173635726599,
+                    2.9945080001911606
+                  ],
+                  [
+                    5.620617923368337,
+                    3.5288440001076538
+                  ],
+                  [
+                    7.0895431086246115,
+                    3.7626160004666076
+                  ],
+                  [
+                    11.496318663143454,
+                    4.463932000752493
+                  ],
+                  [
+                    13.792064013304447,
+                    4.831288000299594
+                  ],
+                  [
+                    21.004750549547865,
+                    5.989016000382321
+                  ],
+                  [
+                    21.10150610115905,
+                    5.410152000736446
+                  ],
+                  [
+                    22.227388877066566,
+                    -1.6697999997390411
+                  ],
+                  [
+                    -7.344625923781411,
+                    -6.389767999528715
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -8.826745048291478,
+              -4.569685999615416
+            ],
+            "origin_lon_lat": [
+              -122.4376392,
+              37.8003897
+            ],
+            "stratum": "large",
+            "service_mode": "auto",
+            "bar": true,
+            "average_spend_per_person": 70,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "0637e70d30d118bea6594d423728fe9e16df498cec826582a76803c075c15b9b"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-147507703",
+          "name": "Georgian Cheese Boat",
+          "file": "restaurant-147507703.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Coastal linen & blue",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 25,
+            "seats": 6,
+            "tables": 3,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 3
+          },
+          "input": {
+            "id": "restaurant-147507703",
+            "osm_id": "147507703",
+            "name": "Georgian Cheese Boat",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -9.81655944678607,
+                    0.8905600001244807
+                  ],
+                  [
+                    1.7592400448362207,
+                    2.5380960003943187
+                  ],
+                  [
+                    8.057319403199864,
+                    3.328468000138969
+                  ],
+                  [
+                    8.637868618345822,
+                    -1.1131999995623687
+                  ],
+                  [
+                    0.3958290102131512,
+                    -2.0816839998065007
+                  ],
+                  [
+                    -9.016105226660592,
+                    -3.551107999576857
+                  ],
+                  [
+                    -9.81655944678607,
+                    0.8905600001244807
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -9.41633233672333,
+              -1.330273999726188
+            ],
+            "origin_lon_lat": [
+              -122.4069656,
+              37.7983656
+            ],
+            "stratum": "narrow",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 18,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "627b71142718a0498306978309019db12be4277980ee965245f9efb9c74587a9"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-196841245",
+          "name": "Louie's Dim Sum Inc.",
+          "file": "restaurant-196841245.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 1.0000000000000004,
+            "room_count": 3,
+            "objects": 57,
+            "seats": 26,
+            "tables": 11,
+            "booths": 4,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 40
+          },
+          "input": {
+            "id": "restaurant-196841245",
+            "osm_id": "196841245",
+            "name": "Louie's Dim Sum Inc.",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -10.458834659868238,
+                    4.052047999894057
+                  ],
+                  [
+                    7.098637148890795,
+                    6.668068000408027
+                  ],
+                  [
+                    8.594013004306143,
+                    -3.183752000029756
+                  ],
+                  [
+                    2.331027069140111,
+                    -4.129972000013709
+                  ],
+                  [
+                    1.838432668944447,
+                    -0.8682959998643014
+                  ],
+                  [
+                    -9.403275232663292,
+                    -2.5714919999936114
+                  ],
+                  [
+                    -10.458834659868238,
+                    4.052047999894057
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -1.6800987554887215,
+              5.360058000151042
+            ],
+            "origin_lon_lat": [
+              -122.4083402,
+              37.7972878
+            ],
+            "stratum": "irregular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 40,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "1d6c3c8df8a16c723f72e4568f382be08d8c91f41e2c0de8726c0b175c6e425b"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-259266713",
+          "name": "Nob Hill Cafe",
+          "passed": false,
+          "reason": "no feasible restaurant: no usable WC and continuous customer area; input entrance is not in customer area; no workable back-of-house band",
+          "input": {
+            "id": "restaurant-259266713",
+            "osm_id": "259266713",
+            "name": "Nob Hill Cafe",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -6.140184279398578,
+                    -3.8294080004561692
+                  ],
+                  [
+                    -6.39529222207415,
+                    -2.326588000295544
+                  ],
+                  [
+                    -6.017028720606901,
+                    -1.6030080005404557
+                  ],
+                  [
+                    -5.823498556077063,
+                    -1.6030080005404557
+                  ],
+                  [
+                    -6.025825545699119,
+                    -0.044528000520358546
+                  ],
+                  [
+                    -6.175371581017554,
+                    -0.08905600024974092
+                  ],
+                  [
+                    -6.923101758859834,
+                    0.3562239994170113
+                  ],
+                  [
+                    -7.178209701535406,
+                    2.0594199995463214
+                  ],
+                  [
+                    -6.729571594329997,
+                    2.7162080001028244
+                  ],
+                  [
+                    -6.518447779615722,
+                    2.9165840000715093
+                  ],
+                  [
+                    0.5102158853511438,
+                    4.129972000013709
+                  ],
+                  [
+                    0.7301365264077395,
+                    2.8497920000819477
+                  ],
+                  [
+                    6.571228733919344,
+                    3.862804000055462
+                  ],
+                  [
+                    6.351308094112851,
+                    5.142983999987223
+                  ],
+                  [
+                    13.529517795648257,
+                    6.378636000189601
+                  ],
+                  [
+                    14.822651160460657,
+                    -1.135463999822548
+                  ],
+                  [
+                    13.978155901603563,
+                    -1.280179999931761
+                  ],
+                  [
+                    7.42452081911876,
+                    -2.415644000545285
+                  ],
+                  [
+                    7.239787480931244,
+                    -1.3581040000514122
+                  ],
+                  [
+                    1.5658349589225118,
+                    -2.3377200004256338
+                  ],
+                  [
+                    1.7505682971100271,
+                    -3.3952600001285305
+                  ],
+                  [
+                    -5.269298542764622,
+                    -4.59751599994064
+                  ],
+                  [
+                    -5.313282670725919,
+                    -4.285820000253011
+                  ],
+                  [
+                    -6.140184279398578,
+                    -3.8294080004561692
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              14.176084478054456,
+              2.6215860001835267
+            ],
+            "origin_lon_lat": [
+              -122.412576,
+              37.7931133
+            ],
+            "stratum": "regular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 32,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "05e918909e6678c34d878dab28ffc4ea7125c50764a640064c7e54d0fe074c5f"
+          }
+        }
+      ],
+      "selection": "five geometry strata, SHA256(id) order before inference; retain failures, exclude all prior successes"
+    },
+    {
+      "number": 7,
+      "status": "complete",
+      "selected": [
+        {
+          "id": "restaurant-288391504",
+          "osm_id": "288391504",
+          "name": "Scoma's Restaurant",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ],
+                [
+                  2.1811441608909234,
+                  -3.328468000138969
+                ],
+                [
+                  -2.497761862975724,
+                  -3.150355999639487
+                ],
+                [
+                  -2.163554289663844,
+                  3.295072000539676
+                ],
+                [
+                  2.4713770536354334,
+                  3.161488000560553
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            0.15391138198579446,
+            3.2282800005501144
+          ],
+          "origin_lon_lat": [
+            -122.4189926,
+            37.80898
+          ],
+          "stratum": "pickup",
+          "service_mode": "pickup",
+          "bar": false,
+          "average_spend_per_person": 15,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+        },
+        {
+          "id": "restaurant-259266713",
+          "osm_id": "259266713",
+          "name": "Nob Hill Cafe",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -6.140184279398578,
+                  -3.8294080004561692
+                ],
+                [
+                  -6.39529222207415,
+                  -2.326588000295544
+                ],
+                [
+                  -6.017028720606901,
+                  -1.6030080005404557
+                ],
+                [
+                  -5.823498556077063,
+                  -1.6030080005404557
+                ],
+                [
+                  -6.025825545699119,
+                  -0.044528000520358546
+                ],
+                [
+                  -6.175371581017554,
+                  -0.08905600024974092
+                ],
+                [
+                  -6.923101758859834,
+                  0.3562239994170113
+                ],
+                [
+                  -7.178209701535406,
+                  2.0594199995463214
+                ],
+                [
+                  -6.729571594329997,
+                  2.7162080001028244
+                ],
+                [
+                  -6.518447779615722,
+                  2.9165840000715093
+                ],
+                [
+                  0.5102158853511438,
+                  4.129972000013709
+                ],
+                [
+                  0.7301365264077395,
+                  2.8497920000819477
+                ],
+                [
+                  6.571228733919344,
+                  3.862804000055462
+                ],
+                [
+                  6.351308094112851,
+                  5.142983999987223
+                ],
+                [
+                  13.529517795648257,
+                  6.378636000189601
+                ],
+                [
+                  14.822651160460657,
+                  -1.135463999822548
+                ],
+                [
+                  13.978155901603563,
+                  -1.280179999931761
+                ],
+                [
+                  7.42452081911876,
+                  -2.415644000545285
+                ],
+                [
+                  7.239787480931244,
+                  -1.3581040000514122
+                ],
+                [
+                  1.5658349589225118,
+                  -2.3377200004256338
+                ],
+                [
+                  1.7505682971100271,
+                  -3.3952600001285305
+                ],
+                [
+                  -5.269298542764622,
+                  -4.59751599994064
+                ],
+                [
+                  -5.313282670725919,
+                  -4.285820000253011
+                ],
+                [
+                  -6.140184279398578,
+                  -3.8294080004561692
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            14.176084478054456,
+            2.6215860001835267
+          ],
+          "origin_lon_lat": [
+            -122.412576,
+            37.7931133
+          ],
+          "stratum": "regular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 32,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "05e918909e6678c34d878dab28ffc4ea7125c50764a640064c7e54d0fe074c5f"
+        },
+        {
+          "id": "restaurant-148741774",
+          "osm_id": "148741774",
+          "name": "Cafe Tiramisu",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -8.058098887672028,
+                  1.1131999995623687
+                ],
+                [
+                  -7.06403210380395,
+                  -4.864683999898887
+                ],
+                [
+                  10.908343471804864,
+                  -1.8813079998378157
+                ],
+                [
+                  9.808712073709644,
+                  4.09657599962344
+                ],
+                [
+                  -5.612518657868213,
+                  1.5250839996298282
+                ],
+                [
+                  -8.058098887672028,
+                  1.1131999995623687
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            -7.561065495737989,
+            -1.875742000168259
+          ],
+          "origin_lon_lat": [
+            -122.40364,
+            37.7912187
+          ],
+          "stratum": "narrow",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 18,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "68a463f5969a752814e862b9276621ff79c27613d42440925021c4950cda342d"
+        },
+        {
+          "id": "restaurant-1410116170",
+          "osm_id": "1410116170",
+          "name": "Hotpot Champ",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -10.45029210555361,
+                  6.801651999596174
+                ],
+                [
+                  -9.341927792085842,
+                  0.6233919993752579
+                ],
+                [
+                  -8.04003954971888,
+                  0.8571639997342118
+                ],
+                [
+                  -1.257905531594435,
+                  2.0816839998065007
+                ],
+                [
+                  1.117160856372312,
+                  -12.968780000477977
+                ],
+                [
+                  11.17160856372312,
+                  -11.276716000478757
+                ],
+                [
+                  8.849321429433443,
+                  3.9073319997848444
+                ],
+                [
+                  7.916887959055781,
+                  10.00766799988611
+                ],
+                [
+                  -10.45029210555361,
+                  6.801651999596174
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            6.144384710047716,
+            -12.122748000478367
+          ],
+          "origin_lon_lat": [
+            -122.4052502,
+            37.7954938
+          ],
+          "stratum": "irregular",
+          "service_mode": "auto",
+          "bar": false,
+          "average_spend_per_person": 40,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "29400c6365acc908de59dbe315db0f02b891c957257c8abfff8e142b06532384"
+        },
+        {
+          "id": "restaurant-149705550",
+          "osm_id": "149705550",
+          "name": "Mayes Oyster House",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  17.656380015706322,
+                  5.710716000293985
+                ],
+                [
+                  19.222317058305837,
+                  -3.6512959999566874
+                ],
+                [
+                  -13.8031192062063,
+                  -9.19503199988128
+                ],
+                [
+                  -15.369056247555632,
+                  0.17811200049948184
+                ],
+                [
+                  -12.729836514593226,
+                  0.6122600000361444
+                ],
+                [
+                  -4.513065744928446,
+                  1.992628000347736
+                ],
+                [
+                  9.545178035360038,
+                  4.352612000242573
+                ],
+                [
+                  17.656380015706322,
+                  5.710716000293985
+                ]
+              ]
+            ]
+          },
+          "units": "metres",
+          "height_m": 3.2,
+          "entrance": [
+            2.709598926049768,
+            -6.423163999918984
+          ],
+          "origin_lon_lat": [
+            -122.4205693,
+            37.7882963
+          ],
+          "stratum": "large",
+          "service_mode": "auto",
+          "bar": true,
+          "average_spend_per_person": 70,
+          "currency": "USD",
+          "economics_source": "illustrative test spend, not this venue's observed price",
+          "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+          "selection_hash": "098a2ed5fa58e88e66e56d090ef601fa2465fb1cbdd3fd7905c2914f97f93782"
+        }
+      ],
+      "results": [
+        {
+          "id": "restaurant-288391504",
+          "name": "Scoma's Restaurant",
+          "passed": false,
+          "reason": "no feasible restaurant: no workable back-of-house band; invalid or sliver room after cut; input entrance is not in customer area; restaurant-288391504:L0:0: no reachable service_counter fits",
+          "input": {
+            "id": "restaurant-288391504",
+            "osm_id": "288391504",
+            "name": "Scoma's Restaurant",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ],
+                  [
+                    2.1811441608909234,
+                    -3.328468000138969
+                  ],
+                  [
+                    -2.497761862975724,
+                    -3.150355999639487
+                  ],
+                  [
+                    -2.163554289663844,
+                    3.295072000539676
+                  ],
+                  [
+                    2.4713770536354334,
+                    3.161488000560553
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              0.15391138198579446,
+              3.2282800005501144
+            ],
+            "origin_lon_lat": [
+              -122.4189926,
+              37.80898
+            ],
+            "stratum": "pickup",
+            "service_mode": "pickup",
+            "bar": false,
+            "average_spend_per_person": 15,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue\u2019s observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "abcddc31710e8fef56fe069e6dccf1e76390f0f07ee94cfda53cb22ad544936c"
+          }
+        },
+        {
+          "id": "restaurant-259266713",
+          "name": "Nob Hill Cafe",
+          "file": "restaurant-259266713.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Ash & slate",
+          "metrics": {
+            "coverage_min": 0.9999999999999998,
+            "room_count": 3,
+            "objects": 45,
+            "seats": 20,
+            "tables": 8,
+            "booths": 4,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 28
+          },
+          "input": {
+            "id": "restaurant-259266713",
+            "osm_id": "259266713",
+            "name": "Nob Hill Cafe",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -6.140184279398578,
+                    -3.8294080004561692
+                  ],
+                  [
+                    -6.39529222207415,
+                    -2.326588000295544
+                  ],
+                  [
+                    -6.017028720606901,
+                    -1.6030080005404557
+                  ],
+                  [
+                    -5.823498556077063,
+                    -1.6030080005404557
+                  ],
+                  [
+                    -6.025825545699119,
+                    -0.044528000520358546
+                  ],
+                  [
+                    -6.175371581017554,
+                    -0.08905600024974092
+                  ],
+                  [
+                    -6.923101758859834,
+                    0.3562239994170113
+                  ],
+                  [
+                    -7.178209701535406,
+                    2.0594199995463214
+                  ],
+                  [
+                    -6.729571594329997,
+                    2.7162080001028244
+                  ],
+                  [
+                    -6.518447779615722,
+                    2.9165840000715093
+                  ],
+                  [
+                    0.5102158853511438,
+                    4.129972000013709
+                  ],
+                  [
+                    0.7301365264077395,
+                    2.8497920000819477
+                  ],
+                  [
+                    6.571228733919344,
+                    3.862804000055462
+                  ],
+                  [
+                    6.351308094112851,
+                    5.142983999987223
+                  ],
+                  [
+                    13.529517795648257,
+                    6.378636000189601
+                  ],
+                  [
+                    14.822651160460657,
+                    -1.135463999822548
+                  ],
+                  [
+                    13.978155901603563,
+                    -1.280179999931761
+                  ],
+                  [
+                    7.42452081911876,
+                    -2.415644000545285
+                  ],
+                  [
+                    7.239787480931244,
+                    -1.3581040000514122
+                  ],
+                  [
+                    1.5658349589225118,
+                    -2.3377200004256338
+                  ],
+                  [
+                    1.7505682971100271,
+                    -3.3952600001285305
+                  ],
+                  [
+                    -5.269298542764622,
+                    -4.59751599994064
+                  ],
+                  [
+                    -5.313282670725919,
+                    -4.285820000253011
+                  ],
+                  [
+                    -6.140184279398578,
+                    -3.8294080004561692
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              14.176084478054456,
+              2.6215860001835267
+            ],
+            "origin_lon_lat": [
+              -122.412576,
+              37.7931133
+            ],
+            "stratum": "regular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 32,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "05e918909e6678c34d878dab28ffc4ea7125c50764a640064c7e54d0fe074c5f"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-148741774",
+          "name": "Cafe Tiramisu",
+          "file": "restaurant-148741774.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Warm oak & sage",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 37,
+            "seats": 12,
+            "tables": 6,
+            "booths": 0,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 6
+          },
+          "input": {
+            "id": "restaurant-148741774",
+            "osm_id": "148741774",
+            "name": "Cafe Tiramisu",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -8.058098887672028,
+                    1.1131999995623687
+                  ],
+                  [
+                    -7.06403210380395,
+                    -4.864683999898887
+                  ],
+                  [
+                    10.908343471804864,
+                    -1.8813079998378157
+                  ],
+                  [
+                    9.808712073709644,
+                    4.09657599962344
+                  ],
+                  [
+                    -5.612518657868213,
+                    1.5250839996298282
+                  ],
+                  [
+                    -8.058098887672028,
+                    1.1131999995623687
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              -7.561065495737989,
+              -1.875742000168259
+            ],
+            "origin_lon_lat": [
+              -122.40364,
+              37.7912187
+            ],
+            "stratum": "narrow",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 18,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "68a463f5969a752814e862b9276621ff79c27613d42440925021c4950cda342d"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-1410116170",
+          "name": "Hotpot Champ",
+          "file": "restaurant-1410116170.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Warm oak & sage",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 3,
+            "objects": 81,
+            "seats": 39,
+            "tables": 17,
+            "booths": 5,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 63
+          },
+          "input": {
+            "id": "restaurant-1410116170",
+            "osm_id": "1410116170",
+            "name": "Hotpot Champ",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -10.45029210555361,
+                    6.801651999596174
+                  ],
+                  [
+                    -9.341927792085842,
+                    0.6233919993752579
+                  ],
+                  [
+                    -8.04003954971888,
+                    0.8571639997342118
+                  ],
+                  [
+                    -1.257905531594435,
+                    2.0816839998065007
+                  ],
+                  [
+                    1.117160856372312,
+                    -12.968780000477977
+                  ],
+                  [
+                    11.17160856372312,
+                    -11.276716000478757
+                  ],
+                  [
+                    8.849321429433443,
+                    3.9073319997848444
+                  ],
+                  [
+                    7.916887959055781,
+                    10.00766799988611
+                  ],
+                  [
+                    -10.45029210555361,
+                    6.801651999596174
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              6.144384710047716,
+              -12.122748000478367
+            ],
+            "origin_lon_lat": [
+              -122.4052502,
+              37.7954938
+            ],
+            "stratum": "irregular",
+            "service_mode": "auto",
+            "bar": false,
+            "average_spend_per_person": 40,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "29400c6365acc908de59dbe315db0f02b891c957257c8abfff8e142b06532384"
+          },
+          "service_mode": "table"
+        },
+        {
+          "id": "restaurant-149705550",
+          "name": "Mayes Oyster House",
+          "file": "restaurant-149705550.json",
+          "passed": true,
+          "storeys": 1,
+          "style": "Walnut & muted terracotta",
+          "metrics": {
+            "coverage_min": 1.0,
+            "room_count": 4,
+            "objects": 112,
+            "seats": 54,
+            "tables": 24,
+            "booths": 6,
+            "customer_route_width_m": 0.95,
+            "staff_route_width_m": 0.9,
+            "downloaded_assets_used": 92
+          },
+          "input": {
+            "id": "restaurant-149705550",
+            "osm_id": "149705550",
+            "name": "Mayes Oyster House",
+            "footprint": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    17.656380015706322,
+                    5.710716000293985
+                  ],
+                  [
+                    19.222317058305837,
+                    -3.6512959999566874
+                  ],
+                  [
+                    -13.8031192062063,
+                    -9.19503199988128
+                  ],
+                  [
+                    -15.369056247555632,
+                    0.17811200049948184
+                  ],
+                  [
+                    -12.729836514593226,
+                    0.6122600000361444
+                  ],
+                  [
+                    -4.513065744928446,
+                    1.992628000347736
+                  ],
+                  [
+                    9.545178035360038,
+                    4.352612000242573
+                  ],
+                  [
+                    17.656380015706322,
+                    5.710716000293985
+                  ]
+                ]
+              ]
+            },
+            "units": "metres",
+            "height_m": 3.2,
+            "entrance": [
+              2.709598926049768,
+              -6.423163999918984
+            ],
+            "origin_lon_lat": [
+              -122.4205693,
+              37.7882963
+            ],
+            "stratum": "large",
+            "service_mode": "auto",
+            "bar": true,
+            "average_spend_per_person": 70,
+            "currency": "USD",
+            "economics_source": "illustrative test spend, not this venue's observed price",
+            "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
+            "selection_hash": "098a2ed5fa58e88e66e56d090ef601fa2465fb1cbdd3fd7905c2914f97f93782"
+          },
+          "service_mode": "table"
+        }
+      ],
+      "selection": "five geometry strata, SHA256(id) order before inference; retain failures, exclude all prior successes"
+    }
+  ]
+}

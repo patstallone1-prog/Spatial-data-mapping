@@ -66,6 +66,11 @@ class Catalog:
     def choose(self, role: str, style: dict, size: tuple[float, float, float], key: str) -> dict:
         source_role = "dining_chair" if role == "office_chair" else role
         rows = [r for r in self.assets if r.get("role", r.get("kind")) == source_role]
+        if style.get("usage") == "restaurant":
+            if style["tier"] == "economy" and role in {"dining_chair", "dining_table"}:
+                rows = [r for r in rows if "metal" in r["id"].lower()]
+            elif role in {"dining_chair", "dining_table"}:
+                rows = [r for r in rows if r.get("style", asset_style(r["id"])) == style["style"]]
         if role in {"sofa", "bed"}:
             # Do not force an ornate source model into a contemporary palette simply
             # because that role exists. A matching parametric piece is a valid fallback.

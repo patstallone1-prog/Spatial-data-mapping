@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import math
 from itertools import combinations, pairwise
 
@@ -10,7 +11,7 @@ from shapely.ops import nearest_points, unary_union
 
 from smc.interiors.inference.catalog import Catalog
 from smc.interiors.inference.furnish import RoomFurnisher
-from smc.interiors.inference.model import HouseInput, geo
+from smc.interiors.inference.model import HouseInput, geo, stamp_inference
 from smc.interiors.inference.partition import lines, partition_candidates, shared, width
 from smc.interiors.inference.style import house_style, room_materials
 
@@ -144,7 +145,7 @@ def opening(
     }
 
 
-def connect(rooms: list[dict], footprint, entrance, level: int) -> list[dict]:
+def connect(rooms: list[dict], footprint, entrance, level: int, stair_access=None) -> list[dict]:
     connections = []
     hall = next(r for r in rooms if r["kind"] == "hallway")
     for room in rooms:
@@ -155,7 +156,11 @@ def connect(rooms: list[dict], footprint, entrance, level: int) -> list[dict]:
             edges = [e for e in edges if e.length >= 0.96]
             if not edges:
                 raise ValueError(f"{room['id']}: no doorway from hallway")
-            line = max(edges, key=lambda e: e.length)
+            line = (
+                stair_access
+                if room["kind"] == "stair" and stair_access is not None
+                else max(edges, key=lambda e: e.length)
+            )
             kind = (
                 "full_access"
                 if room["kind"] == "stair"
@@ -217,8 +222,14 @@ def connect(rooms: list[dict], footprint, entrance, level: int) -> list[dict]:
     return connections
 
 
-def stairs(core: Polygon, hall, elevation: float, height: float, level: int) -> dict:
-    line = max(lines(shared(core, hall)), key=lambda e: e.length)
+def stairs(
+    core: Polygon, hall, elevation: float, height: float, level: int, access_line=None
+) -> dict:
+    line = (
+        access_line
+        if access_line is not None
+        else max(lines(shared(core, hall)), key=lambda e: e.length)
+    )
     a, b = next(iter(line.coords)), list(line.coords)[-1]
     c = line.interpolate(0.5, normalized=True)
     ux, uy = (b[0] - a[0]) / line.length, (b[1] - a[1]) / line.length
@@ -271,6 +282,7 @@ def stairs(core: Polygon, hall, elevation: float, height: float, level: int) -> 
         "steps": steps,
         "rise_m": height / count,
         "riser_count": count,
+        "access_segment": geo(line),
         "flight_width_m": 1.04,
         "tread_m": min(run / first, run / second),
         "landing_depth_m": 1.12,
@@ -292,6 +304,17 @@ def _build(
     output = []
     stairways = []
     elevation = 0.0
+    stair_access = None
+    if partition.stair is not None:
+        common_hall = partition.floors[0]["hall"]
+        for floor in partition.floors[1:]:
+            common_hall = common_hall.intersection(floor["hall"].buffer(1e-7))
+        access = [
+            line for line in lines(shared(partition.stair, common_hall)) if line.length >= 2.20
+        ]
+        if not access:
+            raise ValueError("no shared stair approach on every floor")
+        stair_access = min(access, key=lambda line: abs(line.length - 2.24))
     for level, floor in enumerate(partition.floors):
         rooms = []
         for i, (kind, geometry) in enumerate(floor["rooms"]):
@@ -312,7 +335,7 @@ def _build(
             )
         for i, r in enumerate(rooms):
             r["materials"] = room_materials(style, r["kind"], i)
-        openings = connect(rooms, floor["inside"], spec.entrance, level)
+        openings = connect(rooms, floor["inside"], spec.entrance, level, stair_access)
         objects = []
         for r in rooms:
             portals = [
@@ -322,7 +345,13 @@ def _build(
                 zones = [shape(o["clearance"]) for o in openings if r["id"] in o["rooms"]]
                 objects.extend(
                     RoomFurnisher(
-                        r, style, catalog, portals, elevation, portal_zones=zones
+                        r,
+                        style,
+                        catalog,
+                        portals,
+                        elevation,
+                        portal_zones=zones,
+                        windows=(spec.envelope or {}).get("windows", []),
                     ).furnish()
                 )
         # Record a cabinet divider only when it physically narrows an open transition.
@@ -390,7 +419,12 @@ def _build(
         if partition.stair is not None and level < len(spec.storeys) - 1:
             stairways.append(
                 stairs(
-                    partition.stair, floor["hall"], elevation, spec.storeys[level].height_m, level
+                    partition.stair,
+                    floor["hall"],
+                    elevation,
+                    spec.storeys[level].height_m,
+                    level,
+                    stair_access,
                 )
             )
         output.append(
@@ -434,6 +468,7 @@ def _build(
             "engine": "kerbside-polygon-v1",
             "not_an_as_built_survey": True,
         },
+        "envelope": copy.deepcopy(spec.envelope),
         "style": style,
         "storeys": output,
         "stairs": stairways,
@@ -491,6 +526,7 @@ def infer_house(spec: HouseInput, catalog: Catalog | None = None) -> dict:
                 result = _build(
                     spec, candidate, catalog, style, closets=include_closets, trim_wet=trim_wet
                 )
+                stamp_inference(result, 0.25)
                 result["validation"] = validate_house(result)
                 if not result["validation"]["passed"]:
                     raise ValueError("; ".join(result["validation"]["errors"][:4]))

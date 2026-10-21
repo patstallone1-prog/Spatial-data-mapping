@@ -6,7 +6,7 @@ import itertools
 import math
 
 from shapely import affinity
-from shapely.geometry import Point, Polygon, box
+from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union
 
 from smc.interiors.inference.catalog import Catalog
@@ -43,10 +43,14 @@ class RoomFurnisher:
         portals: list,
         floor_y: float,
         portal_zones: list | None = None,
+        windows: list | None = None,
+        walk_radius: float = WALK_RADIUS,
     ):
         self.room, self.style, self.catalog = room, style, catalog
         self.p = room["shape"]
         self.floor_y = floor_y
+        self.windows = windows or []
+        self.walk_radius = walk_radius
         self.items: list[dict] = []
         self.obstacles: list[Polygon] = []
         self.targets: list[Point] = []
@@ -61,9 +65,9 @@ class RoomFurnisher:
 
     def reachable(self, obstacle: Polygon | None = None, target: Point | None = None) -> bool:
         obstacles = self.obstacles + ([obstacle] if obstacle is not None else [])
-        free = self.p.buffer(-WALK_RADIUS, join_style=2)
+        free = self.p.buffer(-self.walk_radius, join_style=2)
         if obstacles:
-            free = free.difference(unary_union(obstacles).buffer(WALK_RADIUS, join_style=2))
+            free = free.difference(unary_union(obstacles).buffer(self.walk_radius, join_style=2))
         points = self.starts + self.targets + ([target] if target is not None else [])
         return not points or any(
             all(part.buffer(0.015).covers(q) for q in points) for part in polygons(free)
@@ -99,6 +103,25 @@ class RoomFurnisher:
         poly = oriented_box(x, y, w, d, angle)
         if supported_by is None and not self.fits(poly, target):
             return None
+        if supported_by is None:
+            base = self.floor_y if base_y is None else base_y
+            for window in self.windows:
+                a, b = window["a"], window["b"]
+                length = math.dist(a, b)
+                ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+                u, width = window["u"], window["w"]
+                edge = LineString(
+                    [
+                        (a[0] + ux * u, a[1] + uy * u),
+                        (a[0] + ux * (u + width), a[1] + uy * (u + width)),
+                    ]
+                )
+                if (
+                    base + h > window["v"] + 0.02
+                    and base < window["v"] + window["h"]
+                    and poly.intersects(edge.buffer(0.23, cap_style=2))
+                ):
+                    return None
         index = len(self.items)
         item = {
             "id": f"{self.room['id']}:item:{index}",
@@ -146,7 +169,10 @@ class RoomFurnisher:
             for t in ts:
                 x = a[0] + ux * t + nx * (d / 2 + 0.075)
                 y = a[1] + uy * t + ny * (d / 2 + 0.075)
-                target = Point(x + nx * (d / 2 + 0.43), y + ny * (d / 2 + 0.43))
+                target = Point(
+                    x + nx * (d / 2 + max(0.43, self.walk_radius + 0.08)),
+                    y + ny * (d / 2 + max(0.43, self.walk_radius + 0.08)),
+                )
                 yield x, y, angle, target, nx, ny
 
     def wall(self, role, sizes, *, required=False, bed=False):

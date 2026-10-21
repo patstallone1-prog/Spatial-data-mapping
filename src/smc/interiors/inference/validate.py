@@ -167,6 +167,21 @@ def validate_house(house: dict) -> dict:
         lower, upper = house["storeys"][lo], house["storeys"][hi]
         core = shape(stair["footprint"])
         edges.append((f"{house['id']}:L{lo}:stair", f"{house['id']}:L{hi}:stair"))
+        if stair.get("access_segment"):
+            access = shape(stair["access_segment"])
+            for floor in (lower, upper):
+                portals = [
+                    shape(o["segment"])
+                    for o in floor["openings"]
+                    if f"{house['id']}:L{floor['level']}:stair" in o["rooms"]
+                ]
+                if not any(line.buffer(0.003).covers(access) for line in portals):
+                    errors.append("stair flight exit is walled off")
+                if any(
+                    shape(w["segment"]).intersection(access.buffer(0.02)).length > 0.05
+                    for w in floor["walls"]
+                ):
+                    errors.append("wall blocks stair flight exit")
         if not any(
             shape(hole).symmetric_difference(core).area < 0.002 for hole in upper["slab_holes"]
         ):

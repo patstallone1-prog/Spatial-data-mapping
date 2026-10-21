@@ -52,14 +52,15 @@ class HouseInput:
     office: bool = False
     total_height_m: float | None = None
     source: str = "user supplied footprint"
+    envelope: dict | None = None
 
     def __post_init__(self) -> None:
         polygon(self.footprint)
-        if not self.id or not 1 <= len(self.storeys) <= 3:
-            raise ValueError("single-family v1 accepts an id and one to three storeys")
+        if not self.id or not 1 <= len(self.storeys) <= 6:
+            raise ValueError("single-family v1 accepts an id and one to six storeys")
         for s in self.storeys:
-            if not math.isfinite(s.height_m) or not 2.4 <= s.height_m <= 4.5:
-                raise ValueError("storey heights must be finite and 2.4-4.5 m")
+            if not math.isfinite(s.height_m) or not 2.4 <= s.height_m <= 7:
+                raise ValueError("storey heights must be finite and 2.4-7 m")
             p = polygon(s.footprint if s.footprint is not None else self.footprint)
             if p.area < 48:
                 raise ValueError("single-family v1 requires at least 48 m² per storey")
@@ -88,6 +89,7 @@ class HouseInput:
         if row.get("units", "metres") != "metres":
             raise ValueError("convert input coordinates to local metres before inference")
         return cls(
+            envelope=row.get("envelope"),
             id=str(row["id"]),
             footprint=polygon(row["footprint"]),
             storeys=tuple(
@@ -103,3 +105,21 @@ class HouseInput:
             total_height_m=row.get("total_height_m"),
             source=row.get("source", "user input"),
         )
+
+
+def stamp_inference(document: dict, confidence: float) -> dict:
+    """Carry uncertainty on each served element, including geometry-only wall records."""
+    groups = []
+    for floor in document.get("storeys", []):
+        groups.append([floor])
+        groups.extend(floor.get(key, []) for key in ("rooms", "objects", "openings", "walls"))
+    groups.append(document.get("stairs", []))
+    groups.extend(stair.get("steps", []) for stair in document.get("stairs", []))
+    envelope = document.get("envelope") or {}
+    groups.extend(envelope.get(key, []) for key in ("windows", "balconies"))
+    for rows in groups:
+        for element in rows:
+            element.setdefault("grade", "inferred")
+            element.setdefault("confidence", confidence)
+            element.update(measured=False, freshness=None, corroboration_count=0)
+    return document

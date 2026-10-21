@@ -4672,6 +4672,512 @@
       "style": "traditional",
       "tier": "premium",
       "scale_units": "metres"
+    },
+    {
+      "id": "metal_stool_01",
+      "role": "bar_stool",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/metal_stool_01",
+      "attribution": "Poly Haven",
+      "model": "metal_stool_01/metal_stool_01.gltf",
+      "files": [
+        {
+          "path": "metal_stool_01/metal_stool_01.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/metal_stool_01/metal_stool_01_1k.gltf",
+          "bytes": 2790,
+          "sha256": "e69a99778cacbbf0a2447971d8917a2463b411cdd2a50ff2c53c2230b4c43881"
+        },
+        {
+          "path": "metal_stool_01/textures/metal_stool_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_01/metal_stool_01_nor_gl_1k.jpg",
+          "bytes": 667394,
+          "sha256": "55d71cb01dd9afba245d4513728ce0cde8b112d5a7e1695a68578445c7b02b82"
+        },
+        {
+          "path": "metal_stool_01/textures/metal_stool_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_01/metal_stool_01_diff_1k.jpg",
+          "bytes": 617390,
+          "sha256": "d11949df1f0c59b5a85145395703a2aa7617e76b80759a5ef80b09e1798acb3d"
+        },
+        {
+          "path": "metal_stool_01/textures/metal_stool_01_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_01/metal_stool_01_arm_1k.jpg",
+          "bytes": 783046,
+          "sha256": "eb13e80e9fe232d022b4136e817d4590a7279d8da327d35e525e1aa4cf30e334"
+        },
+        {
+          "path": "metal_stool_01/metal_stool_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/metal_stool_01/metal_stool_01.bin",
+          "bytes": 216340,
+          "sha256": "a57dae498990e7b56cba33b64721d1d0b940ca6352248de149740cd4678d451d"
+        }
+      ],
+      "bounds_m": [
+        [
+          -0.175995,
+          1.9e-05,
+          -0.177334
+        ],
+        [
+          0.175995,
+          0.882793,
+          0.177236
+        ]
+      ],
+      "dimensions_m": [
+        0.351991,
+        0.882774,
+        0.35457
+      ],
+      "mesh_faces": 8334,
+      "style": "contemporary",
+      "tier": "economy",
+      "scale_units": "metres"
+    },
+    {
+      "id": "metal_stool_02",
+      "role": "bar_stool",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/metal_stool_02",
+      "attribution": "Poly Haven",
+      "model": "metal_stool_02/metal_stool_02.gltf",
+      "files": [
+        {
+          "path": "metal_stool_02/metal_stool_02.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/metal_stool_02/metal_stool_02_1k.gltf",
+          "bytes": 2897,
+          "sha256": "de8d603993443294b8a0aed48ea631ac38f2b15872491ea929551f72be726fcb"
+        },
+        {
+          "path": "metal_stool_02/textures/metal_stool_02_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_02/metal_stool_02_nor_gl_1k.jpg",
+          "bytes": 724830,
+          "sha256": "65d0a8be725f094222ca5badf388042d76f24e374398fc0cfb579bc03a29a8c6"
+        },
+        {
+          "path": "metal_stool_02/textures/metal_stool_02_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_02/metal_stool_02_diff_1k.jpg",
+          "bytes": 776056,
+          "sha256": "6dd23ca9932da71c37eb537e7d996e1cc7fc8752c566cec0f7e18690c06f07af"
+        },
+        {
+          "path": "metal_stool_02/textures/metal_stool_02_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_02/metal_stool_02_arm_1k.jpg",
+          "bytes": 854331,
+          "sha256": "dff17b725379af449dae2af9f5224d8b3e863d2dbd645f13d5f4c8b2c9aa1999"
+        },
+        {
+          "path": "metal_stool_02/metal_stool_02.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/metal_stool_02/metal_stool_02.bin",
+          "bytes": 182872,
+          "sha256": "17127317d391eb90ce3446739463b1067cc490210db821769b7a46bd1ff02e1c"
+        }
+      ],
+      "bounds_m": [
+        [
+          -0.224038,
+          -1.1e-05,
+          -0.235186
+        ],
+        [
+          0.224061,
+          0.458111,
+          0.237905
+        ]
+      ],
+      "dimensions_m": [
+        0.4481,
+        0.458123,
+        0.47309
+      ],
+      "mesh_faces": 6532,
+      "style": "contemporary",
+      "tier": "economy",
+      "scale_units": "metres"
+    },
+    {
+      "id": "metal_stool_03",
+      "role": "bar_stool",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/metal_stool_03",
+      "attribution": "Poly Haven",
+      "model": "metal_stool_03/metal_stool_03.gltf",
+      "files": [
+        {
+          "path": "metal_stool_03/metal_stool_03.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/metal_stool_03/metal_stool_03_1k.gltf",
+          "bytes": 2784,
+          "sha256": "97d7b64c170f6c91982be77beab1c994743ca3d9dc90525e8d3618d402597516"
+        },
+        {
+          "path": "metal_stool_03/textures/metal_stool_03_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_03/metal_stool_03_nor_gl_1k.jpg",
+          "bytes": 518434,
+          "sha256": "dfa87bb714c4af869a375f1a12a872649017dcdba9b23c3fe5d34904b5d60096"
+        },
+        {
+          "path": "metal_stool_03/textures/metal_stool_03_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_03/metal_stool_03_diff_1k.jpg",
+          "bytes": 690251,
+          "sha256": "94c961f96343c780cc6cc0f4d6b045ea62ba9ff04ba52d30c60d933a9b650d98"
+        },
+        {
+          "path": "metal_stool_03/textures/metal_stool_03_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/metal_stool_03/metal_stool_03_arm_1k.jpg",
+          "bytes": 892710,
+          "sha256": "4919d3aa81a6657db8d5d52f077c0a687f29595b6a1177f53305a89354c9b527"
+        },
+        {
+          "path": "metal_stool_03/metal_stool_03.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/metal_stool_03/metal_stool_03.bin",
+          "bytes": 185440,
+          "sha256": "77319f207db1d63ecf8775dad6dce37809967685a73489613a9f2c67b63c9228"
+        }
+      ],
+      "bounds_m": [
+        [
+          -0.23031,
+          0.001256,
+          -0.237966
+        ],
+        [
+          0.23031,
+          1.024361,
+          0.232656
+        ]
+      ],
+      "dimensions_m": [
+        0.460619,
+        1.023106,
+        0.470622
+      ],
+      "mesh_faces": 6576,
+      "style": "contemporary",
+      "tier": "economy",
+      "scale_units": "metres"
+    },
+    {
+      "id": "wooden_stool_01",
+      "role": "bar_stool",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/wooden_stool_01",
+      "attribution": "Poly Haven",
+      "model": "wooden_stool_01/wooden_stool_01.gltf",
+      "files": [
+        {
+          "path": "wooden_stool_01/wooden_stool_01.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/wooden_stool_01/wooden_stool_01_1k.gltf",
+          "bytes": 2715,
+          "sha256": "f28566454af27175839c10645a37a2a16b373e4be8aecddd0d8a3d704cfc0330"
+        },
+        {
+          "path": "wooden_stool_01/textures/wooden_stool_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_stool_01/wooden_stool_01_diff_1k.jpg",
+          "bytes": 233863,
+          "sha256": "cb5c7ec2e27f5ad2ced7791da5e2cc9f1d03ab2c6ffbb63df8256dc271869206"
+        },
+        {
+          "path": "wooden_stool_01/textures/wooden_stool_01_rough_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_stool_01/wooden_stool_01_rough_1k.jpg",
+          "bytes": 203406,
+          "sha256": "23b43e05961731de864e4902a14c614b33d804fd91821c284fa90a8d2ca23fe1"
+        },
+        {
+          "path": "wooden_stool_01/wooden_stool_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/wooden_stool_01/wooden_stool_01.bin",
+          "bytes": 290924,
+          "sha256": "a9b21b8c75719057db549dfee5b8c1cc76edc2727367790fb9fc49963e34ae7a"
+        },
+        {
+          "path": "wooden_stool_01/textures/wooden_stool_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_stool_01/wooden_stool_01_nor_gl_1k.jpg",
+          "bytes": 230812,
+          "sha256": "10b587d76b74e752f15d03d2c4725cddb439b174dcddae2444e1534de61d77dc"
+        }
+      ],
+      "bounds_m": [
+        [
+          -0.212678,
+          3.7e-05,
+          -0.221181
+        ],
+        [
+          0.212678,
+          0.437389,
+          0.221181
+        ]
+      ],
+      "dimensions_m": [
+        0.425355,
+        0.437353,
+        0.442363
+      ],
+      "mesh_faces": 10946,
+      "style": "contemporary",
+      "tier": "standard",
+      "scale_units": "metres"
+    },
+    {
+      "id": "wooden_stool_02",
+      "role": "bar_stool",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/wooden_stool_02",
+      "attribution": "Poly Haven",
+      "model": "wooden_stool_02/wooden_stool_02.gltf",
+      "files": [
+        {
+          "path": "wooden_stool_02/wooden_stool_02.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/wooden_stool_02/wooden_stool_02_1k.gltf",
+          "bytes": 4077,
+          "sha256": "8bb8bc3e420db0f69cee3d2ee74eccad7cabd1110a864a7d945549684e6f32cf"
+        },
+        {
+          "path": "wooden_stool_02/textures/wooden_stool_02_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_stool_02/wooden_stool_02_diff_1k.jpg",
+          "bytes": 829284,
+          "sha256": "591d92444c37bc2e7ba106e4f4e267f55d43cea517ac8ea6f54cd5bfadd5cbca"
+        },
+        {
+          "path": "wooden_stool_02/textures/wooden_stool_02_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_stool_02/wooden_stool_02_nor_gl_1k.jpg",
+          "bytes": 854910,
+          "sha256": "463af01cee188aaaeb2b89298b6f3b814ef3991315fafa5ea2e66c2e8402c570"
+        },
+        {
+          "path": "wooden_stool_02/textures/wooden_stool_02_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_stool_02/wooden_stool_02_arm_1k.jpg",
+          "bytes": 699298,
+          "sha256": "dc346290637bc0ae074e8662b62b00a70d0852f2b1857bc03a751998ad69cf2c"
+        },
+        {
+          "path": "wooden_stool_02/wooden_stool_02.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/wooden_stool_02/wooden_stool_02.bin",
+          "bytes": 268448,
+          "sha256": "6b277259e77b8359fa6bd97a2b09d2b59ec615dd78f301f9ef63d25013d257b8"
+        }
+      ],
+      "bounds_m": [
+        [
+          -0.133567,
+          0.000169,
+          -0.095681
+        ],
+        [
+          0.13161,
+          0.182098,
+          0.087446
+        ]
+      ],
+      "dimensions_m": [
+        0.265177,
+        0.181928,
+        0.183127
+      ],
+      "mesh_faces": 11146,
+      "style": "contemporary",
+      "tier": "standard",
+      "scale_units": "metres"
+    },
+    {
+      "id": "folding_wooden_stool",
+      "role": "bar_stool",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/folding_wooden_stool",
+      "attribution": "Poly Haven",
+      "model": "folding_wooden_stool/folding_wooden_stool.gltf",
+      "files": [
+        {
+          "path": "folding_wooden_stool/folding_wooden_stool.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/folding_wooden_stool/folding_wooden_stool_1k.gltf",
+          "bytes": 2842,
+          "sha256": "c8ae926ce28737ca8b8f2ef928094fe114d7c71ca32e1040bace53337290a819"
+        },
+        {
+          "path": "folding_wooden_stool/textures/folding_wooden_stool_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/folding_wooden_stool/folding_wooden_stool_nor_gl_1k.jpg",
+          "bytes": 726559,
+          "sha256": "f1c2220760d244a846cf2f0281597f18052b2d96ebb84b5eef473a72c7fd4586"
+        },
+        {
+          "path": "folding_wooden_stool/folding_wooden_stool.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/folding_wooden_stool/folding_wooden_stool.bin",
+          "bytes": 193016,
+          "sha256": "84fcfeea3355ff011b9e821691fca04110705cfddba8b8617db868b4c33864fa"
+        },
+        {
+          "path": "folding_wooden_stool/textures/folding_wooden_stool_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/folding_wooden_stool/folding_wooden_stool_diff_1k.jpg",
+          "bytes": 661939,
+          "sha256": "e5927deb2ce44e6204cfd39a05960f4811cf752bacb2b687d96e04af12a4d3ad"
+        },
+        {
+          "path": "folding_wooden_stool/textures/folding_wooden_stool_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/folding_wooden_stool/folding_wooden_stool_arm_1k.jpg",
+          "bytes": 683576,
+          "sha256": "1133c852e5ba6b1b05fe643926847d8a9b710e8ba869d825076c3d94cafa700b"
+        }
+      ],
+      "bounds_m": [
+        [
+          -0.26307,
+          3.4e-05,
+          -0.271865
+        ],
+        [
+          0.264764,
+          0.442002,
+          0.275219
+        ]
+      ],
+      "dimensions_m": [
+        0.527834,
+        0.441969,
+        0.547084
+      ],
+      "mesh_faces": 6324,
+      "style": "contemporary",
+      "tier": "standard",
+      "scale_units": "metres"
+    },
+    {
+      "id": "carved_wooden_plate",
+      "role": "table_item",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/carved_wooden_plate",
+      "attribution": "Poly Haven",
+      "model": "carved_wooden_plate/carved_wooden_plate.gltf",
+      "files": [
+        {
+          "path": "carved_wooden_plate/carved_wooden_plate.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/carved_wooden_plate/carved_wooden_plate_1k.gltf",
+          "bytes": 2836,
+          "sha256": "90ec83004a3fd256fb846c7b04fbf0b2514f0e99b2bb7aeb586f62b844ed9219"
+        },
+        {
+          "path": "carved_wooden_plate/textures/carved_wooden_plate_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/carved_wooden_plate/carved_wooden_plate_diff_1k.jpg",
+          "bytes": 476516,
+          "sha256": "ae95d5de9e1dc18e5102d648b589f2043b1c712ac4103f624e1a9c5c5f05a7da"
+        },
+        {
+          "path": "carved_wooden_plate/textures/carved_wooden_plate_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/carved_wooden_plate/carved_wooden_plate_arm_1k.jpg",
+          "bytes": 450417,
+          "sha256": "54f106d208fd68e93d8f0f8da30284189bf0796e9e04425296719a9dc71dd6e8"
+        },
+        {
+          "path": "carved_wooden_plate/textures/carved_wooden_plate_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/carved_wooden_plate/carved_wooden_plate_nor_gl_1k.jpg",
+          "bytes": 582309,
+          "sha256": "3a6c6dc2f9a7def9e6a02847743f448bd855d47dbbc36cc0b80a557faf633b61"
+        },
+        {
+          "path": "carved_wooden_plate/carved_wooden_plate.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/carved_wooden_plate/carved_wooden_plate.bin",
+          "bytes": 52160,
+          "sha256": "4a605b576b1e79968f668c8624733e2e0fff073ae9fc1107b55ad4d976b99787"
+        }
+      ],
+      "bounds_m": [
+        [
+          -0.137484,
+          -0.001855,
+          -0.142082
+        ],
+        [
+          0.134347,
+          0.036255,
+          0.126698
+        ]
+      ],
+      "dimensions_m": [
+        0.271831,
+        0.038111,
+        0.26878
+      ],
+      "mesh_faces": 2112,
+      "style": "contemporary",
+      "tier": "standard",
+      "scale_units": "metres"
+    },
+    {
+      "id": "CoffeeCart_01",
+      "role": "coffee_cart",
+      "license": "CC0-1.0",
+      "source": "https://polyhaven.com/a/CoffeeCart_01",
+      "attribution": "Poly Haven",
+      "model": "CoffeeCart_01/CoffeeCart_01.gltf",
+      "files": [
+        {
+          "path": "CoffeeCart_01/CoffeeCart_01.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/CoffeeCart_01/CoffeeCart_01_1k.gltf",
+          "bytes": 6637,
+          "sha256": "3f4e7e79e751662a767c22b21c34dfb6f7d414d56dda60a236ad7d621d211934"
+        },
+        {
+          "path": "CoffeeCart_01/textures/CoffeeCart_01_cart_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/CoffeeCart_01/CoffeeCart_01_cart_arm_1k.jpg",
+          "bytes": 159358,
+          "sha256": "7481660c7b4b0c676c9143a9ae497dfa6da2c509a0e1db8080c0dfb498279175"
+        },
+        {
+          "path": "CoffeeCart_01/textures/CoffeeCart_01_props_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/CoffeeCart_01/CoffeeCart_01_props_arm_1k.jpg",
+          "bytes": 198809,
+          "sha256": "8bc6a844a23d1ccb441d40e912adf8c38c6a3f7daf468598ae990a90d73733e8"
+        },
+        {
+          "path": "CoffeeCart_01/CoffeeCart_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/CoffeeCart_01/CoffeeCart_01.bin",
+          "bytes": 865700,
+          "sha256": "0c0f9ed417ba85208c7f42b674ee3ce99a7e6fb63e67c7ea8d312304c470db50"
+        },
+        {
+          "path": "CoffeeCart_01/textures/CoffeeCart_01_props_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/CoffeeCart_01/CoffeeCart_01_props_nor_gl_1k.jpg",
+          "bytes": 156633,
+          "sha256": "8546f2ba3cfb14e9aef8e24e695a30117b03076071f11d877c15007793b3ca9e"
+        },
+        {
+          "path": "CoffeeCart_01/textures/CoffeeCart_01_cart_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/CoffeeCart_01/CoffeeCart_01_cart_nor_gl_1k.jpg",
+          "bytes": 171213,
+          "sha256": "160121cfeb3e9a6a029fd6b7be0e282c1f99abeb1b34d197dbc99d9fcaeea1f7"
+        },
+        {
+          "path": "CoffeeCart_01/textures/CoffeeCart_01_cart_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/CoffeeCart_01/CoffeeCart_01_cart_diff_1k.jpg",
+          "bytes": 118396,
+          "sha256": "654ead6c2e651e6aa3a9166e9b94333f41b33e31fcd9c75b4058e40744108bcb"
+        },
+        {
+          "path": "CoffeeCart_01/textures/CoffeeCart_01_props_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/CoffeeCart_01/CoffeeCart_01_props_diff_1k.jpg",
+          "bytes": 158758,
+          "sha256": "2583de82b450923b75eb62b9e24fca9c252969fd249e91e7bbbbf3cfbad5e703"
+        }
+      ],
+      "bounds_m": [
+        [
+          -1.397075,
+          0.004308,
+          -0.557503
+        ],
+        [
+          0.770562,
+          1.72198,
+          0.515787
+        ]
+      ],
+      "dimensions_m": [
+        2.167637,
+        1.717672,
+        1.07329
+      ],
+      "mesh_faces": 27659,
+      "style": "contemporary",
+      "tier": "standard",
+      "scale_units": "metres"
     }
   ],
   "expansion": {
@@ -4679,5 +5185,10 @@
     "failures": [],
     "dimensions_order": "X width, Y height, Z depth in metres",
     "tier_note": "illustrative selection allowance; not observed product prices"
+  },
+  "hospitality_expansion": {
+    "failures": [],
+    "source": "https://polyhaven.com/models?c=food",
+    "license": "CC0-1.0"
   }
 }

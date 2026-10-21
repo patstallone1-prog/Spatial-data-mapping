@@ -42,8 +42,19 @@ def test_all_sixteen_houses_are_connected_and_physically_valid(houses):
         assert report["metrics"]["connected_rooms"] == report["metrics"]["room_count"]
         assert report["metrics"]["hallway_area_fraction_max"] < 0.32
         assert house["grade"] == "inferred" and house["measured"] is False
+        for floor in house["storeys"]:
+            for element in [
+                floor,
+                *floor["rooms"],
+                *floor["objects"],
+                *floor["openings"],
+                *floor["walls"],
+            ]:
+                assert element["measured"] is False
+                assert 0 <= element["confidence"] <= 1
+                assert element["freshness"] is None and element["corroboration_count"] == 0
     assert sum(h["id"].startswith("osm-") for h in houses) == 8
-    assert {len(h["storeys"]) for h in houses} == {1, 2, 3}
+    assert {len(h["storeys"]) for h in houses} == {1, 2, 3, 4}
 
 
 @pytest.mark.parametrize("index", [0, 4, 6, 11])

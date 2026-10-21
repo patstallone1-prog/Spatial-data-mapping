@@ -18,7 +18,11 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
     for(const f of house.storeys)if(f.elevation_m<=feet+.22&&pointInRing(p[0],p[1],f.inside.coordinates[0])) {
       if(!(f.slab_holes||[]).some(h=>pointInRing(p[0],p[1],h.coordinates[0])))surface=floorY+f.elevation_m;
     }
-    for(const s of house.stairs)for(const step of s.steps)if(step.top_m<=feet+.22&&pointInRing(p[0],p[1],step.footprint.coordinates[0])) {
+    const onStep=ring=>pointInRing(p[0],p[1],ring)||ring.slice(1).some((b,i)=>{
+      const a=ring[i],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dz)/(dx*dx+dz*dz)));
+      return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dz)<1e-5;
+    });
+    for(const s of house.stairs)for(const step of s.steps)if(step.top_m<=feet+.22&&onStep(step.footprint.coordinates[0])) {
       const y=floorY+step.top_m;if(surface===null||y>surface){surface=y;onStair=true;}
     }
     floorSurface.stairs=onStair;return surface;

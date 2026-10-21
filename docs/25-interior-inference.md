@@ -150,19 +150,19 @@ rather than claiming an end-to-end walking pass. The overlay is opt-in for that 
 
 ## Validation and present bounds
 
-The final sixteen-house batch passes serialized-geometry validation and contains **591**
-objects. It covers compact, narrow, L, U, T, angled and one/two/three-storey cases, plus eight
+The final sixteen-house batch passes serialized-geometry validation and contains **577**
+objects. It covers compact, narrow, L, U, T, angled and one/two/three/four-storey cases, plus eight
 real outlines. No room or object extends outside its floor. All rooms connect to the exterior
 entrance, and usable polygon coverage is complete. Maximum hallway share in this batch is
-**24.5%**. This is a scored search, not a proof of a globally optimal layout.
+**25.1%**. This is a scored search, not a proof of a globally optimal layout.
 
-Thirteen new acceptance/corruption/integration checks pass. Seventy-one existing checks for
-walking, interiors, rooms, storeys, object rendering and shell assets pass. The corruption
+Ninety-three focused checks now pass across house and restaurant geometry, walking, interiors,
+rooms, storeys, object rendering and shell assets. The corruption
 checks deliberately introduce floating objects, blocked doors, missing furniture and missing
 stair slab openings. The adapter probe checks stair elevations and floor-specific room data.
 
-The pilot supports one to three storeys, per-storey area of at least 48 m² and heights of
-2.4–4.5 m. Infeasible narrow, disconnected or self-intersecting inputs fail explicitly. It
+The pilot supports one to six storeys, per-storey area of at least 48 m² and heights of
+2.4–7 m. Infeasible narrow, disconnected or self-intersecting inputs fail explicitly. It
 cannot infer a real interior accurately from the exterior alone: every generated room and
 object is labeled inferred, with confidence, corroboration and provenance fields. No ground
 truth interior survey was available for accuracy scoring. Apartments, mixed-use buildings,
@@ -176,3 +176,35 @@ the `uv pip install` command above for this worktree.
 
 Graphify's AST graph was refreshed. Its existing Terraform extraction warning remains:
 `tree_sitter_hcl` is absent for two `.tf` files; the interior Python/JS extraction is present.
+
+
+## Canonical openings and eye-level tours (2026-10-21)
+
+Run `.venv/bin/python scripts/serve_interior_lab.py --port 8794`, then open the house lab.
+**Walk inside** enables WASD, drag-to-look, arrow turning, E for private doors, and physical
+stair walking. Room and floor selection provide explicit navigation shortcuts. **Expand view**
+fills the browser. This standalone tour is verified independently of the map's existing
+region lifecycle limitation above.
+
+Before partitioning a mapped house, `scripts/export_interior_envelopes.mjs` evaluates the
+existing Kerbside `homeWindowLayout`, door-settlement, floor-count and balcony rules against
+published SF footprints, frontage fits, window observations and terrain. It records source
+hashes in `inferred-interiors/envelopes.json`. The mapped pilot now uses the canonical usable
+height above its terrain foundation rather than truncating buildings to three floors. The
+sixteen-house batch includes a four-storey mapped house as a result.
+
+The viewer cuts actual window holes and renders glazing/frames at those coordinates. Photo
+balconies preserve canonical frontage positions and platform elevations; procedural balcony
+parts are captured from `balconyPart` itself, including its offsets and heights. Their
+measured/inferred grades remain explicit. Detailed arched glazing profiles and every custom
+trim are not fully reproduced by the standalone renderer. Existing map shells continue to
+own exterior geometry in the opt-in map adapter. No full live-map walking pass is claimed.
+
+Tall furniture is excluded from window strips. A common stair approach is selected across
+all storeys; every flight exits through that same opening. The independent walking probe
+ascends and descends all 17 stair connections, including rotated houses. Surface membership
+uses a tiny boundary tolerance so adjacent treads never expose a zero-height crack.
+
+The [restaurant extension](26-restaurant-inference.md) shares the renderer, local server,
+licensed asset catalogue and walking geometry. House price-per-square-foot inputs and
+restaurant spend-per-person inputs remain separate economic contracts.

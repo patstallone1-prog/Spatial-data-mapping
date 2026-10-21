@@ -14,6 +14,7 @@
     "engine": "kerbside-polygon-v1",
     "not_an_as_built_survey": true
   },
+  "envelope": null,
   "style": {
     "id": "heritage",
     "name": "Walnut & muted terracotta",
@@ -141,7 +142,11 @@
             ]
           },
           "area_m2": 25.079420716291942,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1",
@@ -186,7 +191,11 @@
             ]
           },
           "area_m2": 11.931270975646523,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R2",
@@ -231,7 +240,11 @@
             ]
           },
           "area_m2": 10.52824116181223,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R3",
@@ -276,7 +289,11 @@
             ]
           },
           "area_m2": 11.259247798345887,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4",
@@ -321,7 +338,11 @@
             ]
           },
           "area_m2": 15.146306376986836,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4:closet",
@@ -367,7 +388,11 @@
             ]
           },
           "area_m2": 2.710401118136325,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R5",
@@ -412,7 +437,11 @@
             ]
           },
           "area_m2": 13.278824636367764,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:hall",
@@ -489,7 +518,11 @@
             ]
           },
           "area_m2": 24.51526913582551,
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "openings": [
@@ -545,7 +578,11 @@
               ]
             ]
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4:opening:1",
@@ -599,7 +636,11 @@
               ]
             ]
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4:closet:opening:2",
@@ -893,7 +934,11 @@
               ]
             ]
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R5:opening:3",
@@ -947,7 +992,11 @@
               ]
             ]
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R0:opening:4",
@@ -1260,7 +1309,11 @@
                 ]
               ]
             }
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R0:opening:5",
@@ -1554,7 +1607,11 @@
               ]
             ]
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1:opening:6",
@@ -1867,7 +1924,11 @@
                 ]
               ]
             }
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1:opening:7",
@@ -2161,7 +2222,11 @@
               ]
             ]
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R2:opening:8",
@@ -2455,7 +2520,11 @@
               ]
             ]
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R0:opening:9",
@@ -2510,7 +2579,11 @@
             ]
           },
           "grade": "inferred",
-          "entrance": true
+          "entrance": true,
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "walls": [
@@ -2541,7 +2614,12 @@
           "rooms": [
             "stress-angled:L0:R3",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2570,7 +2648,12 @@
           "rooms": [
             "stress-angled:L0:R3",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2599,7 +2682,12 @@
           "rooms": [
             "stress-angled:L0:R3",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2628,7 +2716,12 @@
           "rooms": [
             "stress-angled:L0:R4",
             "stress-angled:L0:R4:closet"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2657,7 +2750,12 @@
           "rooms": [
             "stress-angled:L0:R4",
             "stress-angled:L0:R4:closet"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2686,7 +2784,12 @@
           "rooms": [
             "stress-angled:L0:R4",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2715,7 +2818,12 @@
           "rooms": [
             "stress-angled:L0:R4",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2744,7 +2852,12 @@
           "rooms": [
             "stress-angled:L0:R4",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2773,7 +2886,12 @@
           "rooms": [
             "stress-angled:L0:R4:closet",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2802,7 +2920,12 @@
           "rooms": [
             "stress-angled:L0:R5",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2831,7 +2954,12 @@
           "rooms": [
             "stress-angled:L0:R5",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2860,7 +2988,12 @@
           "rooms": [
             "stress-angled:L0:R5",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "segment": {
@@ -2889,7 +3022,12 @@
           "rooms": [
             "stress-angled:L0:R5",
             "stress-angled:L0:hall"
-          ]
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "objects": [
@@ -2974,7 +3112,11 @@
           "interaction_point_m": [
             4.089601048779014,
             3.370905021546048
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R0:item:1",
@@ -3053,7 +3195,11 @@
             "floor_finish": "timber",
             "roughness": 0.74
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R0:item:2",
@@ -3132,7 +3278,11 @@
             "floor_finish": "timber",
             "roughness": 0.74
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R0:item:3",
@@ -3215,7 +3365,11 @@
           "interaction_point_m": [
             1.748886258792183,
             2.32301252239702
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1:item:0",
@@ -3289,7 +3443,11 @@
           "interaction_point_m": [
             7.424973670230976,
             4.666787131444868
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1:item:1",
@@ -3363,7 +3521,11 @@
           "interaction_point_m": [
             6.819939733178721,
             6.09215776345308
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1:item:2",
@@ -3437,7 +3599,11 @@
           "interaction_point_m": [
             6.194838628256081,
             5.806344372023673
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1:item:3",
@@ -3511,7 +3677,11 @@
           "interaction_point_m": [
             6.7746492679334125,
             4.184465638285304
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R1:item:4",
@@ -3590,7 +3760,11 @@
             "floor_finish": "tile",
             "roughness": 0.62
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R2:item:0",
@@ -3669,7 +3843,11 @@
             "floor_finish": "timber",
             "roughness": 0.74
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R2:item:1",
@@ -3748,7 +3926,11 @@
             "floor_finish": "timber",
             "roughness": 0.74
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R2:item:2",
@@ -3831,7 +4013,11 @@
           "interaction_point_m": [
             9.577184705048577,
             4.9275807879961935
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R2:item:3",
@@ -3914,7 +4100,11 @@
           "interaction_point_m": [
             9.577184705048577,
             7.517580787996193
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R3:item:0",
@@ -3988,7 +4178,11 @@
           "interaction_point_m": [
             6.392864191169295,
             11.058959222704015
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R3:item:1",
@@ -4062,7 +4256,11 @@
           "interaction_point_m": [
             6.192558395310697,
             11.764499801437076
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R3:item:2",
@@ -4136,7 +4334,11 @@
           "interaction_point_m": [
             7.000986022154819,
             10.078717340701223
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4:item:0",
@@ -4273,7 +4475,11 @@
                 ]
               ]
             ]
-          }
+          },
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4:item:1",
@@ -4356,7 +4562,11 @@
           "interaction_point_m": [
             -0.7823869286147249,
             6.063409790422316
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4:item:2",
@@ -4435,7 +4645,11 @@
             "floor_finish": "timber",
             "roughness": 0.74
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R4:item:3",
@@ -4518,7 +4732,11 @@
           "interaction_point_m": [
             0.133171325654577,
             9.023384683536358
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R5:item:0",
@@ -4655,7 +4873,11 @@
                 ]
               ]
             ]
-          }
+          },
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R5:item:1",
@@ -4738,7 +4960,11 @@
           "interaction_point_m": [
             3.959187939562173,
             9.478068387134924
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R5:item:2",
@@ -4817,7 +5043,11 @@
             "floor_finish": "timber",
             "roughness": 0.74
           },
-          "grade": "inferred"
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         },
         {
           "id": "stress-angled:L0:R5:item:3",
@@ -4900,9 +5130,18 @@
           "interaction_point_m": [
             4.285916525876496,
             8.580378840821705
-          ]
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
-      ]
+      ],
+      "grade": "inferred",
+      "confidence": 0.25,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
     }
   ],
   "stairs": [],

@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import math
+import subprocess
 import sys
 from pathlib import Path
 
@@ -126,6 +127,11 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=ROOT / "docs/inferred-interiors")
     parser.add_argument("--fixtures-only", action="store_true")
     parser.add_argument(
+        "--reuse-synthetic",
+        action="store_true",
+        help="reuse unchanged stress cases when only mapped evidence changes",
+    )
+    parser.add_argument(
         "--refresh-assets",
         action="store_true",
         help="refresh the asset layer while preserving existing room geometry",
@@ -135,6 +141,32 @@ def main() -> None:
     inputs = json.loads(args.input.read_text()) if args.input else fixtures()
     if not 1 <= len(inputs) <= 20:
         raise ValueError("this pilot is bounded to at most twenty houses per run")
+    # Resolve the existing facade before layout: floor lines and entrances must agree.
+    write(args.out / "inputs.json", inputs)
+    envelope = json.loads(
+        subprocess.check_output(
+            [
+                "node",
+                str(ROOT / "scripts/export_interior_envelopes.mjs"),
+                str(args.out / "inputs.json"),
+            ],
+            text=True,
+        )
+    )
+    for row in inputs:
+        if row["id"] in envelope["buildings"]:
+            e = envelope["buildings"][row["id"]]
+            row.update(
+                footprint=e["footprint"],
+                entrance=e["entrance"],
+                storeys=e["storeys"],
+                envelope=e,
+                total_height_m=e["shell_top_y_m"] - e["floor_y_m"],
+                storey_evidence=(
+                    "same Kerbside canonical floor/window rules; terrain foundation respected"
+                ),
+            )
+    write(args.out / "envelopes.json", envelope)
     write(args.out / "inputs.json", inputs)
     if args.fixtures_only:
         return
@@ -142,7 +174,9 @@ def main() -> None:
     records, overlay = [], {}
     for row in inputs:
         try:
-            if args.refresh_assets:
+            if args.reuse_synthetic and not row.get("osm_id"):
+                house = json.loads((args.out / f"{row['id']}.json").read_text())
+            elif args.refresh_assets:
                 house = refresh_assets(
                     json.loads((args.out / f"{row['id']}.json").read_text()), catalog
                 )
