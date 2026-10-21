@@ -187,7 +187,7 @@ export function logHit(o,x,z,r){
   const L=o.dx*o.dx+o.dz*o.dz,t=L>0?Math.max(-1,Math.min(1,((x-o.x)*o.dx+(z-o.z)*o.dz)/L)):0;
   return Math.hypot(x-(o.x+o.dx*t),z-(o.z+o.dz*t))<o.r+r;
 }
-export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{},motion=null,forestFloor=null,loadModel=null}) {
+export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{},motion=null,forestFloor=null,loadModel=null,overview=true}) {
   const world=new THREE.Group();world.name="nature-atlas-v1";world.userData.bayWide=true;root.add(world);
   const terrain=new THREE.Group(),features=new THREE.Group();world.add(terrain,features);
   const f=atlas.f,detailMeshes=new Map(),plantGroups=new Map(),pending=new Set(),pathTiles=new Map();
@@ -420,7 +420,9 @@ diffuseColor*=vec4(canopyLinear,canopy.a);`);
     g.boundingSphere.radius+=55;return new THREE.Points(g,mat);
   }
   const overviewStarted=performance.now();
-  const farReady=(async()=>{let yieldAt=performance.now();for(let by=0;by<(f.rows-1)*40;by+=8000)for(let bx=0;bx<(f.cols-1)*40;bx+=8000){
+  // `overview` false (the headset, whose haze ends at 150 m): no canopy for the whole Bay. Built
+  // in 12 ms slices, on a Quest it took minutes and a slice of every frame, and none of it shows.
+  const farReady=!overview?Promise.resolve():(async()=>{let yieldAt=performance.now();for(let by=0;by<(f.rows-1)*40;by+=8000)for(let bx=0;bx<(f.cols-1)*40;bx+=8000){
     const P=[],S=[],K=[],A=[];
     // Global lattice, jittered positions, continuous canopy probabilities. The
     // 8 km draw batches do not affect probability, colour or species choice.
