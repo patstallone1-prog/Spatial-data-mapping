@@ -64,7 +64,11 @@ def test_current_successes_have_connected_routes_and_required_inventory(latest):
 
 
 def test_corrupt_workstation_seat_capacity_and_props_are_rejected(latest):
-    record = next(r for r in latest["results"] if r["passed"])
+    record = next(
+        r
+        for r in latest["results"]
+        if r["passed"] and json.loads((LAB / r["file"]).read_text())["seating"]
+    )
     source = json.loads((LAB / record["file"]).read_text())
     h = copy.deepcopy(source)
     h["storeys"][0]["objects"] = [

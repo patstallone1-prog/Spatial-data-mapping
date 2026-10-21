@@ -13,7 +13,7 @@ PALETTES = (
         "id": "warm_oak",
         "name": "Warm oak & sage",
         "style": "contemporary",
-        "walls": ["#eee7dc", "#d8dfd0", "#e2d4c5", "#e7e2dc"],
+        "walls": ["#dfc5a3", "#91a183", "#c58f75", "#d6b06c"],
         "wood": "#a47a50",
         "fabric": "#a8aa98",
         "accent": "#61735f",
@@ -24,7 +24,7 @@ PALETTES = (
         "id": "coastal",
         "name": "Coastal linen & blue",
         "style": "contemporary",
-        "walls": ["#efece3", "#d8e4e6", "#dfd9cf", "#e5e8df"],
+        "walls": ["#d8c5a9", "#8dabad", "#71988b", "#c4947b"],
         "wood": "#b79a73",
         "fabric": "#d5cbbb",
         "accent": "#617e90",
@@ -35,7 +35,7 @@ PALETTES = (
         "id": "heritage",
         "name": "Walnut & muted terracotta",
         "style": "traditional",
-        "walls": ["#eee4d5", "#d9bcb0", "#c8d0bd", "#e4d8c9"],
+        "walls": ["#e0c3a4", "#b47b68", "#929d7c", "#cdb582"],
         "wood": "#71503d",
         "fabric": "#b7a18e",
         "accent": "#8f5f49",
@@ -46,7 +46,7 @@ PALETTES = (
         "id": "city",
         "name": "Ash & slate",
         "style": "contemporary",
-        "walls": ["#e8e5df", "#cbd4d8", "#d8d0c5", "#dddcd1"],
+        "walls": ["#c6b6a5", "#80939b", "#9ca88c", "#b48d86"],
         "wood": "#9d8971",
         "fabric": "#939b9f",
         "accent": "#596d74",
@@ -86,9 +86,22 @@ def house_style(house_id: str, area_m2: float, price_per_sqft: float | None) -> 
 def room_materials(style: dict, kind: str, index: int) -> dict:
     wet = kind in {"full_bathroom", "toilet", "kitchen", "utility"}
     return {
-        "wall": style["walls"][index % len(style["walls"])],
+        "wall": style["walls"][
+            {
+                "living": 0,
+                "kitchen": 1,
+                "dining": 2,
+                "toilet": 3,
+                "full_bathroom": 1,
+                "hallway": 0,
+                "office": 2,
+            }.get(kind, 1 + index % 3)
+        ],
         "accent_wall": style["accent"],
-        "trim": "#f0ece4",
+        "trim": "#eadbc3",
+        "ceiling": "#e6decf",
+        "wall_finish": "ceramic_wainscot" if wet else "matte_plaster",
+        "light_temperature_k": 3000,
         "wood": style["wood"],
         "fabric": style["fabric"],
         "metal": style["metal"],
@@ -96,4 +109,28 @@ def room_materials(style: dict, kind: str, index: int) -> dict:
         "floor": style["stone"] if wet else style["wood"],
         "floor_finish": "tile" if wet else "timber",
         "roughness": 0.62 if wet else 0.74,
+    }
+
+
+def door_finish(style: dict, kind: str, key: str, entrance: bool = False) -> dict:
+    design = (
+        "glazed_entry"
+        if entrance
+        else "reeded_privacy"
+        if kind in {"full_bathroom", "toilet"}
+        else "glazed_office"
+        if kind == "office"
+        else "recessed_panels"
+    )
+    return {
+        "design": design,
+        "timber": style["wood"],
+        "frame": style["wood"],
+        "hardware": "#a68b52" if style["id"] in {"heritage", "warm_oak"} else "#505a59",
+        "panel_count": 2 + seed_for(key) % 2,
+        "glass": "frosted_reeded"
+        if design == "reeded_privacy"
+        else "clear"
+        if "glazed" in design
+        else None,
     }

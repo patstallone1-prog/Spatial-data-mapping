@@ -325,7 +325,11 @@ class RoomFurnisher:
             self.wall("toilet", [(0.55, 0.72, 0.78)], required=True)
             self.wall("bath_sink", [(0.65, 0.5, 0.85)], required=True)
             if kind == "full_bathroom":
-                self.wall("bath_shower", [(1.6, 0.75, 2.05), (1.45, 0.7, 2.05)], required=True)
+                self.wall(
+                    "bath_shower",
+                    [(1.7, 0.75, 0.60), (1.6, 0.75, 0.60), (1.45, 0.7, 0.60)],
+                    required=True,
+                )
         elif kind == "office":
             desk = self.wall("desk", [(1.2, 0.6, 0.75), (0.95, 0.55, 0.75)], required=True)
             x, _, y = desk["position_m"]
@@ -355,7 +359,7 @@ class RoomFurnisher:
             self.on_top(desk, "counter_item", (0.12, 0.12, 0.13))
             self.wall("bookshelf", [(0.8, 0.3, 1.7)])
         elif kind == "closet":
-            self.wall("closet_rail", [(0.8, 0.36, 1.65), (0.55, 0.3, 1.65)])
+            self.wall("closet_rail", [(0.8, 0.36, 1.65), (0.55, 0.3, 1.65)], required=True)
         elif kind == "utility":
-            self.wall("washing_machine", [(0.62, 0.62, 0.9)])
+            self.wall("washing_machine", [(0.62, 0.62, 0.9)], required=True)
         return self.items

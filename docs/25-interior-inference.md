@@ -16,7 +16,7 @@ From the worktree root:
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e '.[interiors,dev]'
 .venv/bin/python scripts/build_inferred_interiors.py
-.venv/bin/python -m http.server 8794 --bind 127.0.0.1 --directory docs
+.venv/bin/python scripts/serve_interior_lab.py --port 8794
 ```
 
 Open [Interior Lab](http://127.0.0.1:8794/inferred-interiors/). The viewer provides house
@@ -63,10 +63,21 @@ doorways, single doors and double doors. The pilot emits the first four; double-
 are represented in the contract but are not automatically chosen by this minimal-door policy.
 Cabinet partitions record the blocking objects and remaining passable spans.
 
-Closets are carved only when bed access survives. Oversized wet-room regions can become a
-bathroom plus laundry/storage. Failed furnishing attempts cause a different layout or a
-closet-free variant to be tried, without address-specific rules. A WC-only room has a toilet
-and basin. A full bathroom has a toilet, basin and combined tub/shower.
+Closets are carved only when bed access survives. Wet rooms are compacted around fixtures:
+WC rooms are limited to 5.5 m² and full bathrooms to 8.5 m². Surplus is first offered to
+adjacent useful rooms or furnished sitting/study spaces. A hall-access storage region can
+become a second WC in a single-storey home when all fixtures and approaches fit. Failed
+furnishing attempts select another cut or closet-free variant, without address-specific rules.
+A WC-only room requires a toilet and basin; a full bathroom also requires a combined tub/shower.
+Laundry and closets require their functional equipment rather than passing as empty rooms.
+
+Circulation is pruned around actual room entrances and shared stair approaches. A separate
+closed-end audit detects full-width blind branches extending beyond all destinations. Those
+branches are absorbed into adjacent rooms, conserving floor area and keeping turning and door
+approaches. The final search compares three valid partitions by actual hallway share and
+oversized room area. This is a bounded heuristic, not a proof of a global space optimum.
+Rotated overlay arithmetic snaps at 0.1 micrometre resolution to avoid false disconnected
+shared edges; serialized outline coverage and room overlap are checked independently.
 
 Beds back onto a wall and reserve a foot aisle and one side aisle. Placement protects door
 approaches and verifies connected walking space between portals and furniture interaction
@@ -83,7 +94,11 @@ The map adapter selects floors and collision segments by the walker's elevation.
 
 SHA-256 of the stable house ID selects a whole-house palette. Rooms vary within it; walls,
 wood, fabric, stone, metal and accents have separate assignments. The renderer adds timber
-and tile patterns and preserves the source models' textured finishes.
+and tile patterns and preserves the source models' textured finishes. Outer-wall interior
+faces follow the adjoining room's paint, eliminating the previous white lining. Timber
+jambs, recessed door panels, glazed entries/offices, reeded bathroom glass, hinges, handles,
+skirting, cornices and warm ceiling lights carry the palette into the eye-level tour. Window
+cuts and balcony geometry still come from Kerbside's canonical envelope exporter.
 
 An explicitly supplied USD/ft² neighbourhood value selects an illustrative economy,
 standard or premium allowance. Floor area scales the furnishing budget; model selection
@@ -92,10 +107,10 @@ observed product prices or an estimate of the occupants' wealth. Missing market 
 missing in provenance. The eight mapped pilot houses use an unspecified market value;
 prices on synthetic fixtures are deliberately illustrative.
 
-The existing **44** local models are retained. The library now contains **78** assets:
-32 additional Poly Haven models and two pinned Khronos models, alongside the existing Google
+The existing **44** local models are retained. The library now contains **86** assets:
+40 additional Poly Haven models and two pinned Khronos models, alongside the existing Google
 Scanned Objects. Every local asset has dimensions, bounds, triangle count, role, style,
-allowance tier, source, license, attribution and file hashes. 29 downloaded models
+allowance tier, source, license, attribution and file hashes. Downloaded models
 are used by the pilot; unused library entries remain available for subsequent furnishing.
 
 ```sh

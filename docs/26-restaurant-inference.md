@@ -53,7 +53,9 @@ is claimed.
 ## Layout and objects
 
 The search rotates a footprint-derived frame and tries multiple back-of-house proportions
-and WC sides. It rejects disconnected, invalid or impractical cut polygons. Direct mask
+and WC sides. Pickup layouts also try 55% and 60% kitchen bands. Equipment packing tries
+three deterministic station orders and compact equipment variants before rejecting a small
+kitchen. It rejects disconnected, invalid or impractical cut polygons. Direct mask
 intersections avoid floating residual edges after rotated cuts; the input outline is never
 silently repaired. One exterior entrance must lead into customer space.
 
@@ -68,8 +70,10 @@ Required inventory comes before capacity:
 
 Each candidate seat has an interaction approach. Chair envelopes include seated pull-back
 space, and every existing approach must remain in one connected free-space component before
-another assembly is accepted. Capacity comes from the actual chairs and booths, not a floor
-area multiplier. Table props are centred, reference their support and contact its exact top.
+another assembly is accepted. A separate space audit counts disconnected clear-floor pockets
+of at least 0.5 m² after equipment, seated envelopes and walking clearances. Candidate scoring
+penalizes these unusable pockets while retaining required service routes and seated capacity.
+Capacity comes from the actual chairs and booths, not a floor area multiplier. Table props are centred, reference their support and contact its exact top.
 
 The prototype uses 0.95 m continuous customer route and 0.90 m staff route checks. These are
 geometric heuristics, not certification. The U.S. Access Board's [accessible routes guide](https://www.access-board.gov/ada/guides/chapter-4-accessible-routes/) describes further

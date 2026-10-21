@@ -372,10 +372,10 @@
     "name": "Coastal linen & blue",
     "style": "contemporary",
     "walls": [
-      "#efece3",
-      "#d8e4e6",
-      "#dfd9cf",
-      "#e5e8df"
+      "#d8c5a9",
+      "#8dabad",
+      "#71988b",
+      "#c4947b"
     ],
     "wood": "#b79a73",
     "fabric": "#d5cbbb",
@@ -535,9 +535,12 @@
           "id": "osm-407852081:L0:R0",
           "kind": "living",
           "materials": {
-            "wall": "#efece3",
+            "wall": "#d8c5a9",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -592,9 +595,12 @@
           "id": "osm-407852081:L0:R1",
           "kind": "kitchen",
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -657,9 +663,12 @@
           "id": "osm-407852081:L0:R2",
           "kind": "dining",
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -710,9 +719,12 @@
           "id": "osm-407852081:L0:R3",
           "kind": "toilet",
           "materials": {
-            "wall": "#e5e8df",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -726,57 +738,33 @@
             "coordinates": [
               [
                 [
-                  -4.370736772508528,
-                  6.002601060974944
-                ],
-                [
-                  -3.2303212221980377,
-                  6.424470288151963
-                ],
-                [
-                  -3.5247032866293235,
-                  8.5611602682751
-                ],
-                [
-                  0.9272955206111979,
-                  9.030673964500714
-                ],
-                [
-                  1.2502208169489208,
-                  6.7462935608744035
-                ],
-                [
-                  1.657641788290875,
-                  4.112109121237387
-                ],
-                [
-                  1.4654649179690928,
-                  4.080422060956659
-                ],
-                [
-                  0.931847600725259,
-                  7.3167243581374235
-                ],
-                [
-                  -1.2783100656420927,
-                  6.952302775629439
-                ],
-                [
                   -0.7446927483982592,
                   3.716000478448675
                 ],
                 [
-                  -3.907717674989885,
-                  3.194465491691249
+                  -2.5207123017291666,
+                  3.4231617067904736
                 ],
                 [
-                  -4.370736772508528,
-                  6.002601060974944
+                  -2.8623575353304016,
+                  5.495184519009866
+                ],
+                [
+                  -1.086337981999494,
+                  5.788023290668066
+                ],
+                [
+                  -0.8552717396140604,
+                  4.386644087130707
+                ],
+                [
+                  -0.7446927483982592,
+                  3.716000478448675
                 ]
               ]
             ]
           },
-          "area_m2": 18.990770416497174,
+          "area_m2": 3.7800000000000002,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -787,9 +775,12 @@
           "id": "osm-407852081:L0:hall",
           "kind": "hallway",
           "materials": {
-            "wall": "#efece3",
+            "wall": "#d8c5a9",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -836,9 +827,12 @@
           "id": "osm-407852081:L0:stair",
           "kind": "stair",
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -880,6 +874,102 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L0:R3:reclaimed:0",
+          "kind": "living",
+          "materials": {
+            "wall": "#d8c5a9",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#b79a73",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -3.2303212221980377,
+                  6.424470288151963
+                ],
+                [
+                  -3.5247032866293235,
+                  8.5611602682751
+                ],
+                [
+                  0.9272955206111979,
+                  9.030673964500714
+                ],
+                [
+                  1.2502208169489208,
+                  6.7462935608744035
+                ],
+                [
+                  1.657641788290875,
+                  4.112109121237387
+                ],
+                [
+                  1.4654649179690928,
+                  4.080422060956659
+                ],
+                [
+                  0.931847600725259,
+                  7.3167243581374235
+                ],
+                [
+                  -1.2783100656420927,
+                  6.952302775629439
+                ],
+                [
+                  -0.7446927483982592,
+                  3.716000478448675
+                ],
+                [
+                  -0.8552717396140604,
+                  4.386644087130707
+                ],
+                [
+                  -1.086337981999494,
+                  5.788023290668066
+                ],
+                [
+                  -2.8623575353304016,
+                  5.495184519009866
+                ],
+                [
+                  -2.5207123017291666,
+                  3.4231617067904736
+                ],
+                [
+                  -3.907717674989885,
+                  3.194465491691249
+                ],
+                [
+                  -4.370736772508528,
+                  6.002601060974944
+                ],
+                [
+                  -3.2303212221980377,
+                  6.424470288151963
+                ]
+              ]
+            ]
+          },
+          "area_m2": 15.210770416497171,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "openings": [
@@ -894,12 +984,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                -1.8920670986576282,
-                3.526815795919745
+                -0.7841598495833905,
+                3.709492950189604
               ],
               [
-                -2.7603433247305165,
-                3.3836501742201794
+                -1.6524360756562784,
+                3.5663273284900385
               ]
             ]
           },
@@ -913,29 +1003,37 @@
             "coordinates": [
               [
                 [
-                  -2.643207816067236,
-                  2.6732423528878164
+                  -1.5353005669929976,
+                  2.855919507157676
                 ],
                 [
-                  -2.877478833393797,
-                  4.094057995552542
+                  -1.7695715843195592,
+                  4.276735149822401
                 ],
                 [
-                  -2.009202607320909,
-                  4.237223617252107
+                  -0.9012953582466712,
+                  4.4199007715219665
                 ],
                 [
-                  -1.7749315899943474,
-                  2.816407974587382
+                  -0.6670243409201098,
+                  2.9990851288572413
                 ],
                 [
-                  -2.643207816067236,
-                  2.6732423528878164
+                  -1.5353005669929976,
+                  2.855919507157676
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#b79a73",
+            "frame": "#b79a73",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": "frosted_reeded"
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -2750,7 +2848,305 @@
           "corroboration_count": 0
         },
         {
-          "id": "osm-407852081:L0:R0:opening:7",
+          "id": "osm-407852081:L0:hall:opening:7",
+          "rooms": [
+            "osm-407852081:L0:hall",
+            "osm-407852081:L0:R3:reclaimed:0"
+          ],
+          "type": "full_access",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -3.907717674989885,
+                3.194465491691249
+              ],
+              [
+                -2.5207113150516376,
+                3.42316186947868
+              ]
+            ]
+          },
+          "width_m": 1.4057342123325591,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "material": null,
+          "swing_into": null,
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -2.9142144950207616,
+                  3.3088136805849646
+                ],
+                [
+                  -2.9156590770191024,
+                  3.2794085384860963
+                ],
+                [
+                  -2.9199789108997924,
+                  3.250286583980126
+                ],
+                [
+                  -2.9271323943010987,
+                  3.221728277408626
+                ],
+                [
+                  -2.9370506352673753,
+                  3.1940086508754377
+                ],
+                [
+                  -2.949638115716255,
+                  3.167394659537165
+                ],
+                [
+                  -2.964773611329998,
+                  3.142142610679084
+                ],
+                [
+                  -2.9823113590119403,
+                  3.118495695335871
+                ],
+                [
+                  -3.002082460664797,
+                  3.0966816462290003
+                ],
+                [
+                  -3.0238965097716677,
+                  3.0769105445761435
+                ],
+                [
+                  -3.0475434251148807,
+                  3.059372796894201
+                ],
+                [
+                  -3.072795473972962,
+                  3.044237301280458
+                ],
+                [
+                  -3.0994094653112345,
+                  3.0316498208315785
+                ],
+                [
+                  -3.127129091844423,
+                  3.021731579865302
+                ],
+                [
+                  -3.155687398415923,
+                  3.0145780964639957
+                ],
+                [
+                  -3.184809352921893,
+                  3.0102582625833056
+                ],
+                [
+                  -3.2142144950207614,
+                  3.008813680584965
+                ],
+                [
+                  -3.2436196371196298,
+                  3.0102582625833056
+                ],
+                [
+                  -3.2727415916256,
+                  3.0145780964639957
+                ],
+                [
+                  -3.3012998981971,
+                  3.021731579865302
+                ],
+                [
+                  -3.3290195247302883,
+                  3.0316498208315785
+                ],
+                [
+                  -3.355633516068561,
+                  3.044237301280458
+                ],
+                [
+                  -3.380885564926642,
+                  3.059372796894201
+                ],
+                [
+                  -3.404532480269855,
+                  3.0769105445761435
+                ],
+                [
+                  -3.4263465293767257,
+                  3.0966816462290003
+                ],
+                [
+                  -3.4461176310295825,
+                  3.118495695335871
+                ],
+                [
+                  -3.463655378711525,
+                  3.142142610679084
+                ],
+                [
+                  -3.478790874325268,
+                  3.167394659537165
+                ],
+                [
+                  -3.4913783547741475,
+                  3.1940086508754377
+                ],
+                [
+                  -3.501296595740424,
+                  3.221728277408626
+                ],
+                [
+                  -3.5084500791417303,
+                  3.250286583980126
+                ],
+                [
+                  -3.5127699130224204,
+                  3.2794085384860963
+                ],
+                [
+                  -3.514214495020761,
+                  3.3088136805849646
+                ],
+                [
+                  -3.5127699130224204,
+                  3.338218822683833
+                ],
+                [
+                  -3.5084500791417303,
+                  3.367340777189803
+                ],
+                [
+                  -3.501296595740424,
+                  3.3958990837613032
+                ],
+                [
+                  -3.4913783547741475,
+                  3.4236187102944915
+                ],
+                [
+                  -3.478790874325268,
+                  3.450232701632764
+                ],
+                [
+                  -3.463655378711525,
+                  3.4754847504908453
+                ],
+                [
+                  -3.4461176310295825,
+                  3.4991316658340583
+                ],
+                [
+                  -3.4263465293767257,
+                  3.520945714940929
+                ],
+                [
+                  -3.404532480269855,
+                  3.5407168165937857
+                ],
+                [
+                  -3.380885564926642,
+                  3.558254564275728
+                ],
+                [
+                  -3.355633516068561,
+                  3.573390059889471
+                ],
+                [
+                  -3.3290195247302883,
+                  3.5859775403383507
+                ],
+                [
+                  -3.3012998981971,
+                  3.5958957813046273
+                ],
+                [
+                  -3.2727415916256,
+                  3.6030492647059336
+                ],
+                [
+                  -3.2436196371196298,
+                  3.6073690985866236
+                ],
+                [
+                  -3.2142144950207614,
+                  3.6088136805849644
+                ],
+                [
+                  -3.1848093529218935,
+                  3.6073690985866236
+                ],
+                [
+                  -3.155687398415923,
+                  3.6030492647059336
+                ],
+                [
+                  -3.127129091844423,
+                  3.5958957813046273
+                ],
+                [
+                  -3.0994094653112345,
+                  3.5859775403383507
+                ],
+                [
+                  -3.072795473972962,
+                  3.573390059889471
+                ],
+                [
+                  -3.0475434251148807,
+                  3.558254564275728
+                ],
+                [
+                  -3.0238965097716677,
+                  3.5407168165937857
+                ],
+                [
+                  -3.002082460664797,
+                  3.520945714940929
+                ],
+                [
+                  -2.9823113590119403,
+                  3.4991316658340583
+                ],
+                [
+                  -2.964773611329998,
+                  3.4754847504908453
+                ],
+                [
+                  -2.949638115716255,
+                  3.450232701632764
+                ],
+                [
+                  -2.9370506352673753,
+                  3.423618710294492
+                ],
+                [
+                  -2.9271323943010987,
+                  3.3958990837613032
+                ],
+                [
+                  -2.9199789108997924,
+                  3.367340777189803
+                ],
+                [
+                  -2.9156590770191024,
+                  3.338218822683833
+                ],
+                [
+                  -2.9142144950207616,
+                  3.3088136805849646
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L0:R0:opening:8",
           "rooms": [
             "osm-407852081:L0:R0",
             "outside"
@@ -2803,6 +3199,14 @@
           },
           "grade": "inferred",
           "entrance": true,
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#b79a73",
+            "frame": "#b79a73",
+            "hardware": "#505a59",
+            "panel_count": 2,
+            "glass": "clear"
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -2815,58 +3219,24 @@
             "type": "LineString",
             "coordinates": [
               [
-                1.657641788290875,
-                4.112109121237387
-              ],
-              [
-                1.4654649179690928,
-                4.080422060956659
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.585766631614123,
-          "materials": [
-            "#e5e8df",
-            "#efece3"
-          ],
-          "side_materials": [
-            "#efece3",
-            "#e5e8df"
-          ],
-          "rooms": [
-            "osm-407852081:L0:R3",
-            "osm-407852081:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
                 -0.7446927483982592,
                 3.716000478448675
               ],
               [
-                -1.891080421128,
-                3.5269784841262215
+                -0.7831731720537621,
+                3.7096556383960806
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#e5e8df",
-            "#efece3"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#efece3",
-            "#e5e8df"
+            "#d8c5a9",
+            "#c4947b"
           ],
           "rooms": [
             "osm-407852081:L0:R3",
@@ -2883,28 +3253,198 @@
             "type": "LineString",
             "coordinates": [
               [
-                -2.7613300022601446,
-                3.3834874860137027
+                -1.6534227531859067,
+                3.566164640283562
               ],
               [
-                -3.907717674989885,
-                3.194465491691249
+                -2.5207123017291666,
+                3.4231617067904736
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#e5e8df",
-            "#efece3"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#efece3",
-            "#e5e8df"
+            "#d8c5a9",
+            "#c4947b"
           ],
           "rooms": [
             "osm-407852081:L0:R3",
             "osm-407852081:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.086337981999494,
+                5.788023290668066
+              ],
+              [
+                -0.7446927483982592,
+                3.716000478448675
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#c4947b",
+            "#c4947b"
+          ],
+          "side_materials": [
+            "#c4947b",
+            "#c4947b"
+          ],
+          "rooms": [
+            "osm-407852081:L0:R3",
+            "osm-407852081:L0:stair"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -2.5207123017291666,
+                3.4231617067904736
+              ],
+              [
+                -2.8623575353304016,
+                5.495184519009866
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "osm-407852081:L0:R3",
+            "osm-407852081:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -2.8623575353304016,
+                5.495184519009866
+              ],
+              [
+                -1.086337981999494,
+                5.788023290668066
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "osm-407852081:L0:R3",
+            "osm-407852081:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.086337981999494,
+                5.788023290668066
+              ],
+              [
+                -0.7446927483982592,
+                3.716000478448675
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "osm-407852081:L0:R3",
+            "osm-407852081:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.2783100656420927,
+                6.952302775629439
+              ],
+              [
+                -0.7446927483982592,
+                3.716000478448675
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "rooms": [
+            "osm-407852081:L0:stair",
+            "osm-407852081:L0:R3:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -2929,16 +3469,16 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#e5e8df",
-            "#d8e4e6"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#e5e8df"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "rooms": [
-            "osm-407852081:L0:R3",
-            "osm-407852081:L0:stair"
+            "osm-407852081:L0:stair",
+            "osm-407852081:L0:R3:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -2963,50 +3503,16 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#e5e8df",
-            "#d8e4e6"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#e5e8df"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "rooms": [
-            "osm-407852081:L0:R3",
-            "osm-407852081:L0:stair"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                -1.2783100656420927,
-                6.952302775629439
-              ],
-              [
-                -0.7446927483982592,
-                3.716000478448675
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.585766631614123,
-          "materials": [
-            "#e5e8df",
-            "#d8e4e6"
-          ],
-          "side_materials": [
-            "#d8e4e6",
-            "#e5e8df"
-          ],
-          "rooms": [
-            "osm-407852081:L0:R3",
-            "osm-407852081:L0:stair"
+            "osm-407852081:L0:stair",
+            "osm-407852081:L0:R3:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -3073,9 +3579,12 @@
             "estimated_cost_usd": 1400
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#d8c5a9",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3160,9 +3669,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#d8c5a9",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3243,9 +3755,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#d8c5a9",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3326,9 +3841,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#d8c5a9",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3404,9 +3922,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3482,9 +4003,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3560,9 +4084,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3638,9 +4165,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3725,9 +4255,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3808,9 +4341,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3891,9 +4427,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -3974,9 +4513,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4061,9 +4603,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4086,39 +4631,39 @@
           "id": "osm-407852081:L0:R3:item:0",
           "role": "toilet",
           "position_m": [
-            -1.253081214520157,
+            -2.2623301931414814,
             0.0,
-            8.363316177738959
+            4.529942482717568
           ],
           "size_m": [
             0.55,
             0.78,
             0.72
           ],
-          "rotation_deg": -173.979764524818,
+          "rotation_deg": -80.6370360756428,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.5643212577028398,
-                  8.692488830794527
+                  -2.572794847026549,
+                  4.20003840773815
                 ],
                 [
-                  -1.488807875376375,
-                  7.976459690961785
+                  -1.862387025694186,
+                  4.317173916401431
                 ],
                 [
-                  -0.9418411713374744,
-                  8.03414352468339
+                  -1.951865539256414,
+                  4.8598465576969865
                 ],
                 [
-                  -1.0173545536639392,
-                  8.750172664516132
+                  -2.662273360588777,
+                  4.742711049033706
                 ],
                 [
-                  -1.5643212577028398,
-                  8.692488830794527
+                  -2.572794847026549,
+                  4.20003840773815
                 ]
               ]
             ]
@@ -4139,9 +4684,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#e5e8df",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4152,8 +4700,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -1.1702262533563972,
-            7.577673093755811
+            -1.4828549447351387,
+            4.6584661658342235
           ],
           "confidence": 0.25,
           "measured": false,
@@ -4164,39 +4712,39 @@
           "id": "osm-407852081:L0:R3:item:1",
           "role": "bath_sink",
           "position_m": [
-            -1.940871724065349,
+            -1.6871381782732782,
             0.0,
-            8.401390902321491
+            5.359572156748009
           ],
           "size_m": [
             0.65,
             0.85,
             0.5
           ],
-          "rotation_deg": -173.979764524818,
+          "rotation_deg": -170.63703607564284,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -2.290299246325429,
-                  8.615926229685497
+                  -2.0484804270216643,
+                  5.553367872050127
                 ],
                 [
-                  -2.237859397487606,
-                  8.118683771468316
+                  -1.9671363237832753,
+                  5.0600291072359855
                 ],
                 [
-                  -1.591444201805269,
-                  8.186855574957486
+                  -1.325795929524892,
+                  5.1657764414458915
                 ],
                 [
-                  -1.6438840506430918,
-                  8.684098033174667
+                  -1.407140032763281,
+                  5.659115206260033
                 ],
                 [
-                  -2.290299246325429,
-                  8.615926229685497
+                  -2.0484804270216643,
+                  5.553367872050127
                 ]
               ]
             ]
@@ -4217,9 +4765,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#e5e8df",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4230,8 +4781,351 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -1.86955352964591,
-            7.725141159146124
+            -1.5765101978690692,
+            4.688631436600778
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L0:R3:reclaimed:0:item:0",
+          "role": "sofa",
+          "position_m": [
+            -1.3609993123822428,
+            0.0,
+            8.286574523626054
+          ],
+          "size_m": [
+            2.2,
+            0.85,
+            0.85
+          ],
+          "rotation_deg": -173.979764524818,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -2.4995065919721933,
+                  8.59386294566745
+                ],
+                [
+                  -2.4103588489478946,
+                  7.748550766698239
+                ],
+                [
+                  -0.22249203279229213,
+                  7.97928610158466
+                ],
+                [
+                  -0.3116397758165912,
+                  8.82459828055387
+                ],
+                [
+                  -2.4995065919721933,
+                  8.59386294566745
+                ]
+              ]
+            ]
+          },
+          "room_id": "osm-407852081:L0:R3:reclaimed:0",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "osm-407852081:L0:R3:reclaimed:0",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "procedural:sofa",
+            "role": "sofa",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 1400
+          },
+          "materials": {
+            "wall": "#d8c5a9",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#b79a73",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -1.271327170869566,
+            7.436289920074673
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L0:R3:reclaimed:0:item:1",
+          "role": "coffee_table",
+          "position_m": [
+            -1.8452982995816702,
+            0.0,
+            6.6982074824359765
+          ],
+          "size_m": [
+            0.9,
+            0.4,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -1.3952982995816703,
+                  6.4482074824359765
+                ],
+                [
+                  -1.3952982995816703,
+                  6.9482074824359765
+                ],
+                [
+                  -2.2952982995816704,
+                  6.9482074824359765
+                ],
+                [
+                  -2.2952982995816704,
+                  6.4482074824359765
+                ],
+                [
+                  -1.3952982995816703,
+                  6.4482074824359765
+                ]
+              ]
+            ]
+          },
+          "room_id": "osm-407852081:L0:R3:reclaimed:0",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "osm-407852081:L0:R3:reclaimed:0",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "industrial_coffee_table",
+            "model": "industrial_coffee_table/industrial_coffee_table.gltf",
+            "license": "CC0-1.0",
+            "source": "https://polyhaven.com/a/industrial_coffee_table",
+            "attribution": "Poly Haven",
+            "dimensions_m": [
+              0.778264,
+              0.638422,
+              0.757928
+            ],
+            "style": "contemporary",
+            "tier": "standard",
+            "role": "coffee_table",
+            "estimated_cost_usd": 260,
+            "procedural": false
+          },
+          "materials": {
+            "wall": "#d8c5a9",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#b79a73",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L0:R3:reclaimed:0:item:2",
+          "role": "table_item",
+          "position_m": [
+            -1.8452982995816702,
+            0.4,
+            6.6982074824359765
+          ],
+          "size_m": [
+            0.19,
+            0.12,
+            0.19
+          ],
+          "rotation_deg": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -1.7502982995816703,
+                  6.603207482435977
+                ],
+                [
+                  -1.7502982995816703,
+                  6.793207482435976
+                ],
+                [
+                  -1.9402982995816702,
+                  6.793207482435976
+                ],
+                [
+                  -1.9402982995816702,
+                  6.603207482435977
+                ],
+                [
+                  -1.7502982995816703,
+                  6.603207482435977
+                ]
+              ]
+            ]
+          },
+          "room_id": "osm-407852081:L0:R3:reclaimed:0",
+          "required": false,
+          "support": {
+            "kind": "object",
+            "id": "osm-407852081:L0:R3:reclaimed:0:item:1",
+            "surface_y_m": 0.4
+          },
+          "asset": {
+            "id": "footed_bowl_sand",
+            "model": "scanned/footed_bowl_sand.glb",
+            "license": "CC-BY-4.0",
+            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Footed_Bowl_Sand",
+            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "dimensions_m": [
+              0.161154,
+              0.108791,
+              0.161702
+            ],
+            "style": "contemporary",
+            "tier": "standard",
+            "role": "table_item",
+            "estimated_cost_usd": 30,
+            "procedural": false
+          },
+          "materials": {
+            "wall": "#d8c5a9",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#b79a73",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L0:R3:reclaimed:0:item:3",
+          "role": "armchair",
+          "position_m": [
+            0.27091716592561454,
+            0.0,
+            8.483817240569543
+          ],
+          "size_m": [
+            0.75,
+            0.9,
+            0.8
+          ],
+          "rotation_deg": -173.979764524818,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -0.14396655680753045,
+                  8.842281320514921
+                ],
+                [
+                  -0.06006279866701392,
+                  8.04669338736743
+                ],
+                [
+                  0.6858008886587595,
+                  8.125353160624165
+                ],
+                [
+                  0.601897130518243,
+                  8.920941093771656
+                ],
+                [
+                  -0.14396655680753045,
+                  8.842281320514921
+                ]
+              ]
+            ]
+          },
+          "room_id": "osm-407852081:L0:R3:reclaimed:0",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "osm-407852081:L0:R3:reclaimed:0",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "mid_century_lounge_chair",
+            "model": "mid_century_lounge_chair/mid_century_lounge_chair.gltf",
+            "license": "CC0-1.0",
+            "source": "https://polyhaven.com/a/mid_century_lounge_chair",
+            "attribution": "Poly Haven",
+            "dimensions_m": [
+              1.008614,
+              1.169085,
+              1.190311
+            ],
+            "style": "contemporary",
+            "tier": "standard",
+            "role": "armchair",
+            "estimated_cost_usd": 450,
+            "procedural": false
+          },
+          "materials": {
+            "wall": "#d8c5a9",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#b79a73",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            0.35796731499640033,
+            7.6583947599290205
           ],
           "confidence": 0.25,
           "measured": false,
@@ -4239,6 +5133,11 @@
           "corroboration_count": 0
         }
       ],
+      "space_efficiency": {
+        "wet_area_reclaimed_m2": 15.210770416497173,
+        "half_baths_added": 0,
+        "hallway_reclaimed_m2": 0.0
+      },
       "grade": "inferred",
       "confidence": 0.25,
       "measured": false,
@@ -4417,9 +5316,12 @@
           "id": "osm-407852081:L1:R0",
           "kind": "full_bathroom",
           "materials": {
-            "wall": "#efece3",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4433,10 +5335,6 @@
             "coordinates": [
               [
                 [
-                  -2.109848046105301,
-                  -7.709321589364082
-                ],
-                [
                   -2.765524114581175,
                   -3.732752804874454
                 ],
@@ -4445,21 +5343,21 @@
                   -3.3546943484938376
                 ],
                 [
-                  0.30511095324458326,
-                  -8.07175497869219
+                  -0.017134046521164563,
+                  -6.117391431453027
                 ],
                 [
-                  -1.639507731759932,
-                  -8.33335572242243
+                  -2.3099971364461958,
+                  -6.495449887833643
                 ],
                 [
-                  -2.109848046105301,
-                  -7.709321589364082
+                  -2.765524114581175,
+                  -3.732752804874454
                 ]
               ]
             ]
           },
-          "area_m2": 10.905889484702247,
+          "area_m2": 6.506701996354113,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -4470,9 +5368,12 @@
           "id": "osm-407852081:L1:R1",
           "kind": "primary_bedroom",
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4535,9 +5436,12 @@
           "id": "osm-407852081:L1:R2",
           "kind": "bedroom",
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4551,45 +5455,57 @@
             "coordinates": [
               [
                 [
-                  -3.2303212221980373,
-                  6.424470288151962
+                  -3.5247033,
+                  8.5611603
                 ],
                 [
-                  -3.5247032866293235,
-                  8.5611602682751
+                  -0.0183125,
+                  8.9309489
                 ],
                 [
-                  -0.018312513364304728,
-                  8.930948887645254
+                  0.2383589,
+                  7.2023786
                 ],
                 [
-                  0.2383588800789953,
-                  7.202378553367428
+                  -1.2783101,
+                  6.9523028
                 ],
                 [
-                  -1.278310065642092,
-                  6.952302775629439
+                  -0.7446927,
+                  3.7160005
                 ],
                 [
-                  -0.744692748398259,
-                  3.7160004784486738
+                  -2.5263692,
+                  3.422229
                 ],
                 [
-                  -3.9077176749898848,
-                  3.194465491691247
+                  -2.3441584,
+                  2.3171502
                 ],
                 [
-                  -4.370736772508527,
-                  6.002601060974942
+                  -3.7255069,
+                  2.0893867
                 ],
                 [
-                  -3.2303212221980373,
-                  6.424470288151962
+                  -3.9077177,
+                  3.1944655
+                ],
+                [
+                  -4.3707368,
+                  6.0026011
+                ],
+                [
+                  -3.2303212,
+                  6.4244703
+                ],
+                [
+                  -3.5247033,
+                  8.5611603
                 ]
               ]
             ]
           },
-          "area_m2": 16.672045258274597,
+          "area_m2": 18.2400452721172,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -4601,9 +5517,12 @@
           "kind": "closet",
           "parent_room": "osm-407852081:L1:R2",
           "materials": {
-            "wall": "#e5e8df",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4662,9 +5581,12 @@
           "id": "osm-407852081:L1:R3",
           "kind": "bedroom",
           "materials": {
-            "wall": "#efece3",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4678,29 +5600,41 @@
             "coordinates": [
               [
                 [
-                  -3.7255068837358936,
-                  2.0893866585075735
+                  -1.4326438,
+                  2.4674451
                 ],
                 [
-                  -1.4326437938108638,
-                  2.4674451148881893
+                  -0.6548718,
+                  -2.2496155
                 ],
                 [
-                  -0.6548718159101363,
-                  -2.2496155153101616
+                  -1.319717,
+                  -2.3592384
                 ],
                 [
-                  -2.947734905835167,
-                  -2.6276739716907778
+                  -1.1375062,
+                  -3.4643173
                 ],
                 [
-                  -3.7255068837358936,
-                  2.0893866585075735
+                  -2.7655241,
+                  -3.7327528
+                ],
+                [
+                  -2.9477349,
+                  -2.627674
+                ],
+                [
+                  -3.7255069,
+                  2.0893867
+                ],
+                [
+                  -1.4326438,
+                  2.4674451
                 ]
               ]
             ]
           },
-          "area_m2": 11.109617485301548,
+          "area_m2": 12.957617548286166,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -4711,9 +5645,12 @@
           "id": "osm-407852081:L1:hall",
           "kind": "hallway",
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#d8c5a9",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4727,69 +5664,69 @@
             "coordinates": [
               [
                 [
-                  1.2410994496992427,
-                  -6.864038778405283
+                  0.4222325,
+                  -8.0559991
                 ],
                 [
-                  0.8973616122970831,
-                  -6.909088624399797
+                  0.305111,
+                  -8.071755
                 ],
                 [
-                  0.42223254826424816,
-                  -8.055999141005202
+                  -0.472661,
+                  -3.3546943
                 ],
                 [
-                  0.30511095324458326,
-                  -8.07175497869219
+                  -1.1375062,
+                  -3.4643173
                 ],
                 [
-                  -0.47266102465614435,
-                  -3.3546943484938376
+                  -1.319717,
+                  -2.3592384
                 ],
                 [
-                  -2.765524114581175,
-                  -3.732752804874454
+                  -0.6548718,
+                  -2.2496155
                 ],
                 [
-                  -2.947734905835167,
-                  -2.6276739716907778
+                  -1.4326438,
+                  2.4674451
                 ],
                 [
-                  -0.6548718159101363,
-                  -2.2496155153101616
+                  -2.3441584,
+                  2.3171502
                 ],
                 [
-                  -1.4326437938108638,
-                  2.4674451148881893
+                  -2.5263692,
+                  3.422229
                 ],
                 [
-                  -3.7255068837358936,
-                  2.0893866585075735
+                  1.6576418,
+                  4.1121091
                 ],
                 [
-                  -3.907717674989885,
-                  3.194465491691249
+                  1.8288416,
+                  3.0052148
                 ],
                 [
-                  1.657641788290875,
-                  4.112109121237387
+                  -0.327565,
+                  2.6496559
                 ],
                 [
-                  1.8288416378589305,
-                  3.0052147502506155
+                  1.2410994,
+                  -6.8640388
                 ],
                 [
-                  -0.327564960627188,
-                  2.6496559061421814
+                  0.8973616,
+                  -6.9090886
                 ],
                 [
-                  1.2410994496992427,
-                  -6.864038778405283
+                  0.4222325,
+                  -8.0559991
                 ]
               ]
             ]
           },
-          "area_m2": 20.17197949252765,
+          "area_m2": 16.755978801505567,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -4800,9 +5737,12 @@
           "id": "osm-407852081:L1:stair",
           "kind": "stair",
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -4844,6 +5784,63 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L1:R0:reclaimed:0",
+          "kind": "closet",
+          "parent_room": "osm-407852081:L1:R0",
+          "materials": {
+            "wall": "#71988b",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#b79a73",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -2.3099971364461958,
+                  -6.495449887833643
+                ],
+                [
+                  -0.017134046521164563,
+                  -6.117391431453027
+                ],
+                [
+                  0.30511095324458326,
+                  -8.07175497869219
+                ],
+                [
+                  -1.639507731759932,
+                  -8.33335572242243
+                ],
+                [
+                  -2.109848046105301,
+                  -7.709321589364082
+                ],
+                [
+                  -2.3099971364461958,
+                  -6.495449887833643
+                ]
+              ]
+            ]
+          },
+          "area_m2": 4.399187488348135,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "openings": [
@@ -4858,12 +5855,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                -0.15535784655556306,
-                -5.27908655055657
+                -0.4440279003162313,
+                -3.5283495937084153
               ],
               [
-                -0.01219222485599801,
-                -6.147362776629458
+                -0.30086227861666626,
+                -4.3966258197813035
               ]
             ]
           },
@@ -4877,29 +5874,37 @@
             "coordinates": [
               [
                 [
-                  0.6982155964763649,
-                  -6.030227267966177
+                  0.40954554271569665,
+                  -4.279490311118023
                 ],
                 [
-                  -0.7226000461883609,
-                  -6.2644982852927384
+                  -1.0112700999490292,
+                  -4.513761328444584
                 ],
                 [
-                  -0.865765667887926,
-                  -5.39622205921985
+                  -1.154435721648594,
+                  -3.645485102371696
                 ],
                 [
-                  0.5550499747767998,
-                  -5.161951041893289
+                  0.2663799210161316,
+                  -3.4112140850451347
                 ],
                 [
-                  0.6982155964763649,
-                  -6.030227267966177
+                  0.40954554271569665,
+                  -4.279490311118023
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#b79a73",
+            "frame": "#b79a73",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": "frosted_reeded"
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -4916,12 +5921,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                0.5283500553858099,
-                -2.541329549167995
+                0.9675760902772105,
+                -5.205164060841285
               ],
               [
-                0.3851844336862448,
-                -1.6730533230951066
+                0.8244104685776453,
+                -4.336887834768397
               ]
             ]
           },
@@ -4935,29 +5940,37 @@
             "coordinates": [
               [
                 [
-                  -0.32522338764611813,
-                  -1.7901888317583872
+                  0.11400264724528242,
+                  -4.454023343431677
                 ],
                 [
-                  1.0955922550186077,
-                  -1.555917814431826
+                  1.5348182899100082,
+                  -4.219752326105116
                 ],
                 [
-                  1.2387578767181728,
-                  -2.424194040504714
+                  1.6779839116095734,
+                  -5.088028552178004
                 ],
                 [
-                  -0.18205776594655299,
-                  -2.6584650578312754
+                  0.25716826894484757,
+                  -5.322299569504565
                 ],
                 [
-                  -0.32522338764611813,
-                  -1.7901888317583872
+                  0.11400264724528242,
+                  -4.454023343431677
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#b79a73",
+            "frame": "#b79a73",
+            "hardware": "#505a59",
+            "panel_count": 2,
+            "glass": null
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -4974,12 +5987,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                -1.8920670986576278,
-                3.526815795919743
+                -0.7841598012442756,
+                3.70949297209963
               ],
               [
-                -2.760343324730516,
-                3.3836501742201777
+                -1.6524360286183422,
+                3.5663273582915007
               ]
             ]
           },
@@ -4993,29 +6006,37 @@
             "coordinates": [
               [
                 [
-                  -2.6432078160672354,
-                  2.6732423528878146
+                  -1.5353005264116908,
+                  2.8559195358945373
                 ],
                 [
-                  -2.8774788333937966,
-                  4.09405799555254
+                  -1.7695715308249935,
+                  4.276735180688464
                 ],
                 [
-                  -2.0092026073209084,
-                  4.237223617252106
+                  -0.901295303450927,
+                  4.419900794496593
                 ],
                 [
-                  -1.774931589994347,
-                  2.81640797458738
+                  -0.6670242990376243,
+                  2.9990851497026667
                 ],
                 [
-                  -2.6432078160672354,
-                  2.6732423528878146
+                  -1.5353005264116908,
+                  2.8559195358945373
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#b79a73",
+            "frame": "#b79a73",
+            "hardware": "#505a59",
+            "panel_count": 2,
+            "glass": null
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -5036,7 +6057,7 @@
                 7.473170887735757
               ],
               [
-                0.02189681131158204,
+                0.021896811311582012,
                 8.660156553276924
               ]
             ]
@@ -5051,7 +6072,7 @@
             "coordinates": [
               [
                 [
-                  0.4100231833573453,
+                  0.4100231833573452,
                   8.066663720506341
                 ],
                 [
@@ -5059,15 +6080,15 @@
                   8.037258578407473
                 ],
                 [
-                  0.4042587674783144,
+                  0.40425876747831435,
                   8.008136623901503
                 ],
                 [
-                  0.3971052840770079,
+                  0.39710528407700785,
                   7.979578317330002
                 ],
                 [
-                  0.3871870431107313,
+                  0.38718704311073127,
                   7.951858690796814
                 ],
                 [
@@ -5083,7 +6104,7 @@
                   7.876345735257248
                 ],
                 [
-                  0.32215521771330957,
+                  0.3221552177133095,
                   7.854531686150377
                 ],
                 [
@@ -5095,171 +6116,171 @@
                   7.817222836815578
                 ],
                 [
-                  0.25144220440514464,
+                  0.2514422044051446,
                   7.802087341201834
                 ],
                 [
-                  0.22482821306687223,
+                  0.2248282130668722,
                   7.789499860752955
                 ],
                 [
-                  0.197108586533684,
+                  0.19710858653368396,
                   7.779581619786678
                 ],
                 [
-                  0.1685502799621838,
+                  0.16855027996218375,
                   7.772428136385372
                 ],
                 [
-                  0.13942832545621353,
+                  0.13942832545621348,
                   7.7681083025046815
                 ],
                 [
-                  0.11002318335734529,
+                  0.11002318335734526,
                   7.766663720506341
                 ],
                 [
-                  0.0806180412584771,
+                  0.08061804125847707,
                   7.7681083025046815
                 ],
                 [
-                  0.05149608675250683,
+                  0.0514960867525068,
                   7.772428136385372
                 ],
                 [
-                  0.022937780181006645,
+                  0.022937780181006617,
                   7.779581619786678
                 ],
                 [
-                  -0.0047818463521816235,
+                  -0.004781846352181651,
                   7.789499860752955
                 ],
                 [
-                  -0.03139583769045401,
+                  -0.03139583769045404,
                   7.802087341201834
                 ],
                 [
-                  -0.05664788654853528,
+                  -0.05664788654853531,
                   7.817222836815577
                 ],
                 [
-                  -0.08029480189174831,
+                  -0.08029480189174834,
                   7.83476058449752
                 ],
                 [
-                  -0.10210885099861894,
+                  -0.10210885099861897,
                   7.854531686150377
                 ],
                 [
-                  -0.1218799526514758,
+                  -0.12187995265147583,
                   7.876345735257248
                 ],
                 [
-                  -0.1394177003334183,
+                  -0.13941770033341833,
                   7.89999265060046
                 ],
                 [
-                  -0.15455319594716116,
+                  -0.1545531959471612,
                   7.925244699458542
                 ],
                 [
-                  -0.16714067639604074,
+                  -0.16714067639604077,
                   7.951858690796814
                 ],
                 [
-                  -0.17705891736231733,
+                  -0.17705891736231735,
                   7.979578317330002
                 ],
                 [
-                  -0.18421240076362383,
+                  -0.18421240076362386,
                   8.008136623901501
                 ],
                 [
-                  -0.18853223464431373,
+                  -0.18853223464431376,
                   8.037258578407473
                 ],
                 [
-                  -0.1899768166426547,
+                  -0.18997681664265473,
                   8.066663720506341
                 ],
                 [
-                  -0.1885322346443138,
+                  -0.18853223464431382,
                   8.09606886260521
                 ],
                 [
-                  -0.18421240076362383,
+                  -0.18421240076362386,
                   8.125190817111179
                 ],
                 [
-                  -0.17705891736231738,
+                  -0.1770589173623174,
                   8.15374912368268
                 ],
                 [
-                  -0.16714067639604074,
+                  -0.16714067639604077,
                   8.181468750215869
                 ],
                 [
-                  -0.15455319594716121,
+                  -0.15455319594716124,
                   8.20808274155414
                 ],
                 [
-                  -0.13941770033341833,
+                  -0.13941770033341835,
                   8.233334790412222
                 ],
                 [
-                  -0.12187995265147583,
+                  -0.12187995265147586,
                   8.256981705755434
                 ],
                 [
-                  -0.10210885099861902,
+                  -0.10210885099861905,
                   8.278795754862305
                 ],
                 [
-                  -0.08029480189174845,
+                  -0.08029480189174848,
                   8.298566856515162
                 ],
                 [
-                  -0.056647886548535364,
+                  -0.05664788654853539,
                   8.316104604197104
                 ],
                 [
-                  -0.03139583769045409,
+                  -0.03139583769045412,
                   8.331240099810847
                 ],
                 [
-                  -0.004781846352181804,
+                  -0.004781846352181832,
                   8.343827580259727
                 ],
                 [
-                  0.022937780181006562,
+                  0.022937780181006534,
                   8.353745821226003
                 ],
                 [
-                  0.05149608675250669,
+                  0.051496086752506665,
                   8.36089930462731
                 ],
                 [
-                  0.08061804125847716,
+                  0.08061804125847713,
                   8.365219138508
                 ],
                 [
-                  0.11002318335734529,
+                  0.11002318335734526,
                   8.366663720506342
                 ],
                 [
-                  0.1394283254562133,
+                  0.13942832545621328,
                   8.365219138508
                 ],
                 [
-                  0.16855027996218377,
+                  0.16855027996218375,
                   8.36089930462731
                 ],
                 [
-                  0.1971085865336839,
+                  0.19710858653368388,
                   8.353745821226003
                 ],
                 [
-                  0.22482821306687228,
+                  0.22482821306687226,
                   8.343827580259727
                 ],
                 [
@@ -5271,7 +6292,7 @@
                   8.316104604197104
                 ],
                 [
-                  0.300341168606439,
+                  0.30034116860643895,
                   8.298566856515162
                 ],
                 [
@@ -5287,15 +6308,15 @@
                   8.233334790412222
                 ],
                 [
-                  0.37459956266185174,
+                  0.3745995626618517,
                   8.20808274155414
                 ],
                 [
-                  0.3871870431107312,
+                  0.38718704311073115,
                   8.181468750215869
                 ],
                 [
-                  0.3971052840770079,
+                  0.39710528407700785,
                   8.15374912368268
                 ],
                 [
@@ -5307,7 +6328,7 @@
                   8.09606886260521
                 ],
                 [
-                  0.4100231833573453,
+                  0.4100231833573452,
                   8.066663720506341
                 ]
               ]
@@ -5330,12 +6351,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                -1.1153406157102825,
-                0.5430529128254581
+                -1.3331167732760123,
+                1.8638298806363953
               ],
               [
-                -0.9721749940107175,
-                -0.3252233132474299
+                -1.1899511467239876,
+                0.9955536553636044
               ]
             ]
           },
@@ -5349,29 +6370,37 @@
             "coordinates": [
               [
                 [
-                  -0.2617671726783546,
-                  -0.20808780458414944
+                  -0.4795433260462496,
+                  1.1126891679970792
                 ],
                 [
-                  -1.6825828153430804,
-                  -0.4423588219107104
+                  -1.9003589674017256,
+                  0.8784181427301296
                 ],
                 [
-                  -1.8257484370426456,
-                  0.4259174041621776
+                  -2.0435245939537503,
+                  1.7466943680029205
                 ],
                 [
-                  -0.4049327943779196,
-                  0.6601884214887386
+                  -0.6227089525982743,
+                  1.98096539326987
                 ],
                 [
-                  -0.2617671726783546,
-                  -0.20808780458414944
+                  -0.4795433260462496,
+                  1.1126891679970792
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#b79a73",
+            "frame": "#b79a73",
+            "hardware": "#505a59",
+            "panel_count": 2,
+            "glass": null
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -5674,6 +6703,304 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L1:R0:reclaimed:0:opening:6",
+          "rooms": [
+            "osm-407852081:L1:R0:reclaimed:0",
+            "osm-407852081:L1:R0"
+          ],
+          "type": "full_access",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.755572109260649,
+                -6.404033583529402
+              ],
+              [
+                -0.5715590737067109,
+                -6.208807735757268
+              ]
+            ]
+          },
+          "width_m": 1.2,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "material": null,
+          "swing_into": null,
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -0.86356559148368,
+                  -6.306420659643335
+                ],
+                [
+                  -0.8650101734820209,
+                  -6.335825801742203
+                ],
+                [
+                  -0.8693300073627108,
+                  -6.364947756248173
+                ],
+                [
+                  -0.8764834907640173,
+                  -6.393506062819673
+                ],
+                [
+                  -0.8864017317302939,
+                  -6.421225689352862
+                ],
+                [
+                  -0.8989892121791735,
+                  -6.447839680691134
+                ],
+                [
+                  -0.9141247077929164,
+                  -6.473091729549216
+                ],
+                [
+                  -0.9316624554748589,
+                  -6.496738644892428
+                ],
+                [
+                  -0.9514335571277157,
+                  -6.518552693999299
+                ],
+                [
+                  -0.9732476062345864,
+                  -6.538323795652156
+                ],
+                [
+                  -0.9968945215777993,
+                  -6.555861543334098
+                ],
+                [
+                  -1.0221465704358808,
+                  -6.570997038947842
+                ],
+                [
+                  -1.048760561774153,
+                  -6.58358451939672
+                ],
+                [
+                  -1.0764801883073414,
+                  -6.593502760362997
+                ],
+                [
+                  -1.1050384948788414,
+                  -6.600656243764304
+                ],
+                [
+                  -1.1341604493848119,
+                  -6.604976077644994
+                ],
+                [
+                  -1.16356559148368,
+                  -6.606420659643335
+                ],
+                [
+                  -1.1929707335825481,
+                  -6.604976077644994
+                ],
+                [
+                  -1.2220926880885186,
+                  -6.600656243764304
+                ],
+                [
+                  -1.2506509946600186,
+                  -6.593502760362997
+                ],
+                [
+                  -1.2783706211932069,
+                  -6.58358451939672
+                ],
+                [
+                  -1.3049846125314792,
+                  -6.570997038947842
+                ],
+                [
+                  -1.3302366613895606,
+                  -6.555861543334099
+                ],
+                [
+                  -1.3538835767327737,
+                  -6.538323795652156
+                ],
+                [
+                  -1.3756976258396443,
+                  -6.518552693999299
+                ],
+                [
+                  -1.395468727492501,
+                  -6.496738644892428
+                ],
+                [
+                  -1.4130064751744436,
+                  -6.473091729549216
+                ],
+                [
+                  -1.4281419707881864,
+                  -6.447839680691134
+                ],
+                [
+                  -1.440729451237066,
+                  -6.421225689352862
+                ],
+                [
+                  -1.4506476922033427,
+                  -6.393506062819673
+                ],
+                [
+                  -1.4578011756046492,
+                  -6.364947756248173
+                ],
+                [
+                  -1.462121009485339,
+                  -6.335825801742203
+                ],
+                [
+                  -1.46356559148368,
+                  -6.306420659643335
+                ],
+                [
+                  -1.462121009485339,
+                  -6.277015517544466
+                ],
+                [
+                  -1.4578011756046492,
+                  -6.247893563038496
+                ],
+                [
+                  -1.4506476922033427,
+                  -6.219335256466996
+                ],
+                [
+                  -1.440729451237066,
+                  -6.191615629933808
+                ],
+                [
+                  -1.4281419707881864,
+                  -6.165001638595536
+                ],
+                [
+                  -1.4130064751744436,
+                  -6.1397495897374545
+                ],
+                [
+                  -1.395468727492501,
+                  -6.1161026743942415
+                ],
+                [
+                  -1.3756976258396443,
+                  -6.094288625287371
+                ],
+                [
+                  -1.3538835767327737,
+                  -6.074517523634514
+                ],
+                [
+                  -1.3302366613895606,
+                  -6.056979775952572
+                ],
+                [
+                  -1.3049846125314795,
+                  -6.041844280338828
+                ],
+                [
+                  -1.278370621193207,
+                  -6.029256799889949
+                ],
+                [
+                  -1.2506509946600186,
+                  -6.019338558923672
+                ],
+                [
+                  -1.2220926880885186,
+                  -6.012185075522366
+                ],
+                [
+                  -1.1929707335825481,
+                  -6.007865241641675
+                ],
+                [
+                  -1.16356559148368,
+                  -6.006420659643335
+                ],
+                [
+                  -1.1341604493848119,
+                  -6.007865241641675
+                ],
+                [
+                  -1.1050384948788414,
+                  -6.012185075522366
+                ],
+                [
+                  -1.0764801883073414,
+                  -6.019338558923672
+                ],
+                [
+                  -1.048760561774153,
+                  -6.029256799889949
+                ],
+                [
+                  -1.0221465704358808,
+                  -6.041844280338828
+                ],
+                [
+                  -0.9968945215777995,
+                  -6.056979775952571
+                ],
+                [
+                  -0.9732476062345863,
+                  -6.074517523634514
+                ],
+                [
+                  -0.9514335571277158,
+                  -6.09428862528737
+                ],
+                [
+                  -0.931662455474859,
+                  -6.116102674394241
+                ],
+                [
+                  -0.9141247077929164,
+                  -6.139749589737454
+                ],
+                [
+                  -0.8989892121791736,
+                  -6.165001638595536
+                ],
+                [
+                  -0.8864017317302941,
+                  -6.191615629933808
+                ],
+                [
+                  -0.8764834907640173,
+                  -6.219335256466996
+                ],
+                [
+                  -0.8693300073627109,
+                  -6.247893563038496
+                ],
+                [
+                  -0.8650101734820209,
+                  -6.277015517544466
+                ],
+                [
+                  -0.86356559148368,
+                  -6.306420659643335
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "walls": [
@@ -5686,6 +7013,40 @@
                 -3.732752804874454
               ],
               [
+                -1.1375052188247856,
+                -3.464317103941146
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#8dabad",
+            "#617e90"
+          ],
+          "side_materials": [
+            "#617e90",
+            "#8dabad"
+          ],
+          "rooms": [
+            "osm-407852081:L1:R0",
+            "osm-407852081:L1:R3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.1375071921798448,
+                -3.4643174293175587
+              ],
+              [
                 -0.47266102465614435,
                 -3.3546943484938376
               ]
@@ -5694,12 +7055,12 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#efece3",
-            "#d8e4e6"
+            "#8dabad",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#efece3"
+            "#d8c5a9",
+            "#8dabad"
           ],
           "rooms": [
             "osm-407852081:L1:R0",
@@ -5720,20 +7081,20 @@
                 -3.3546943484938376
               ],
               [
-                -0.15552053476203992,
-                -5.2780998730269415
+                -0.4441905885227081,
+                -3.527362916178787
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#efece3",
-            "#d8e4e6"
+            "#8dabad",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#efece3"
+            "#d8c5a9",
+            "#8dabad"
           ],
           "rooms": [
             "osm-407852081:L1:R0",
@@ -5750,28 +7111,96 @@
             "type": "LineString",
             "coordinates": [
               [
-                -0.01202953664952131,
-                -6.148349454159086
+                -0.30069959041018945,
+                -4.397612497310932
               ],
               [
-                0.30511095324458326,
-                -8.07175497869219
+                -0.017134046521164563,
+                -6.117391431453027
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#efece3",
-            "#d8e4e6"
+            "#8dabad",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#efece3"
+            "#d8c5a9",
+            "#8dabad"
           ],
           "rooms": [
             "osm-407852081:L1:R0",
             "osm-407852081:L1:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -0.017134046521164563,
+                -6.117391431453027
+              ],
+              [
+                -0.5705723961770826,
+                -6.208645047550791
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#8dabad",
+            "#71988b"
+          ],
+          "side_materials": [
+            "#71988b",
+            "#8dabad"
+          ],
+          "rooms": [
+            "osm-407852081:L1:R0",
+            "osm-407852081:L1:R0:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -1.7565587867902774,
+                -6.404196271735879
+              ],
+              [
+                -2.3099971364461958,
+                -6.495449887833643
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#8dabad",
+            "#71988b"
+          ],
+          "side_materials": [
+            "#71988b",
+            "#8dabad"
+          ],
+          "rooms": [
+            "osm-407852081:L1:R0",
+            "osm-407852081:L1:R0:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -5788,8 +7217,8 @@
                 -6.864038778405283
               ],
               [
-                0.5285127435922866,
-                -2.542316226697623
+                0.9677387784836872,
+                -5.206150738370913
               ]
             ]
           },
@@ -5797,10 +7226,10 @@
           "height_m": 2.585766631614123,
           "materials": [
             "#617e90",
-            "#d8e4e6"
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
+            "#d8c5a9",
             "#617e90"
           ],
           "rooms": [
@@ -5818,8 +7247,8 @@
             "type": "LineString",
             "coordinates": [
               [
-                0.385021745479768,
-                -1.6720666455654782
+                0.8242477803711685,
+                -4.3359011572387685
               ],
               [
                 -0.327564960627188,
@@ -5830,12 +7259,12 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#d8e4e6",
-            "#d8e4e6"
+            "#71988b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#d8e4e6"
+            "#d8c5a9",
+            "#71988b"
           ],
           "rooms": [
             "osm-407852081:L1:R1",
@@ -5864,12 +7293,12 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#d8e4e6",
-            "#d8e4e6"
+            "#71988b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#d8e4e6"
+            "#d8c5a9",
+            "#71988b"
           ],
           "rooms": [
             "osm-407852081:L1:R1",
@@ -5886,12 +7315,12 @@
             "type": "LineString",
             "coordinates": [
               [
-                -0.018312513364304728,
-                8.930948887645254
+                -0.0183125,
+                8.9309489
               ],
               [
-                0.021749934024839324,
-                8.661145707998207
+                0.021749950795870786,
+                8.661145709652523
               ]
             ]
           },
@@ -5899,10 +7328,10 @@
           "height_m": 2.585766631614123,
           "materials": [
             "#617e90",
-            "#e5e8df"
+            "#8dabad"
           ],
           "side_materials": [
-            "#e5e8df",
+            "#8dabad",
             "#617e90"
           ],
           "rooms": [
@@ -5920,24 +7349,24 @@
             "type": "LineString",
             "coordinates": [
               [
-                0.1982964326898515,
-                7.472181733014473
+                0.19829645699882661,
+                7.47218173785358
               ],
               [
-                0.2383588800789953,
-                7.202378553367428
+                0.2383589,
+                7.2023786
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#dfd9cf",
-            "#e5e8df"
+            "#c4947b",
+            "#8dabad"
           ],
           "side_materials": [
-            "#e5e8df",
-            "#dfd9cf"
+            "#8dabad",
+            "#c4947b"
           ],
           "rooms": [
             "osm-407852081:L1:R2",
@@ -5954,24 +7383,58 @@
             "type": "LineString",
             "coordinates": [
               [
-                -0.744692748398259,
-                3.7160004784486738
+                -2.3441584,
+                2.3171502
               ],
               [
-                -1.8910804211279995,
-                3.5269784841262197
+                -3.7255069,
+                2.0893867
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#dfd9cf",
-            "#d8e4e6"
+            "#c4947b",
+            "#71988b"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#dfd9cf"
+            "#71988b",
+            "#c4947b"
+          ],
+          "rooms": [
+            "osm-407852081:L1:R2",
+            "osm-407852081:L1:R3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -0.7446927,
+                3.7160005
+              ],
+              [
+                -0.7831731237131687,
+                3.7096556602971393
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#c4947b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#c4947b"
           ],
           "rooms": [
             "osm-407852081:L1:R2",
@@ -5988,24 +7451,24 @@
             "type": "LineString",
             "coordinates": [
               [
-                -2.761330002260144,
-                3.383487486013701
+                -1.653422706149449,
+                3.5661646700939915
               ],
               [
-                -3.9077176749898848,
-                3.194465491691247
+                -2.5263692,
+                3.422229
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#dfd9cf",
-            "#d8e4e6"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#dfd9cf"
+            "#d8c5a9",
+            "#c4947b"
           ],
           "rooms": [
             "osm-407852081:L1:R2",
@@ -6022,24 +7485,58 @@
             "type": "LineString",
             "coordinates": [
               [
-                0.2383588800789953,
-                7.202378553367428
+                -2.5263692,
+                3.422229
               ],
               [
-                -1.278310065642092,
-                6.952302775629439
+                -2.3441584,
+                2.3171502
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#dfd9cf",
-            "#dfd9cf"
+            "#c4947b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#dfd9cf",
-            "#dfd9cf"
+            "#d8c5a9",
+            "#c4947b"
+          ],
+          "rooms": [
+            "osm-407852081:L1:R2",
+            "osm-407852081:L1:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.2383589,
+                7.2023786
+              ],
+              [
+                -1.2783101,
+                6.9523028
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#c4947b",
+            "#8dabad"
+          ],
+          "side_materials": [
+            "#8dabad",
+            "#c4947b"
           ],
           "rooms": [
             "osm-407852081:L1:R2",
@@ -6056,24 +7553,24 @@
             "type": "LineString",
             "coordinates": [
               [
-                -1.278310065642092,
-                6.952302775629439
+                -1.2783101,
+                6.9523028
               ],
               [
-                -0.744692748398259,
-                3.7160004784486738
+                -0.7446927,
+                3.7160005
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#dfd9cf",
-            "#dfd9cf"
+            "#c4947b",
+            "#8dabad"
           ],
           "side_materials": [
-            "#dfd9cf",
-            "#dfd9cf"
+            "#8dabad",
+            "#c4947b"
           ],
           "rooms": [
             "osm-407852081:L1:R2",
@@ -6102,12 +7599,12 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#e5e8df",
-            "#d8e4e6"
+            "#8dabad",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#e5e8df"
+            "#d8c5a9",
+            "#8dabad"
           ],
           "rooms": [
             "osm-407852081:L1:R2:closet",
@@ -6136,12 +7633,12 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#e5e8df",
-            "#dfd9cf"
+            "#8dabad",
+            "#8dabad"
           ],
           "side_materials": [
-            "#dfd9cf",
-            "#e5e8df"
+            "#8dabad",
+            "#8dabad"
           ],
           "rooms": [
             "osm-407852081:L1:R2:closet",
@@ -6170,12 +7667,12 @@
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#e5e8df",
-            "#dfd9cf"
+            "#8dabad",
+            "#8dabad"
           ],
           "side_materials": [
-            "#dfd9cf",
-            "#e5e8df"
+            "#8dabad",
+            "#8dabad"
           ],
           "rooms": [
             "osm-407852081:L1:R2:closet",
@@ -6192,24 +7689,24 @@
             "type": "LineString",
             "coordinates": [
               [
-                -3.7255068837358936,
-                2.0893866585075735
+                -1.4326438,
+                2.4674451
               ],
               [
-                -1.4326437938108638,
-                2.4674451148881893
+                -1.3332794614880032,
+                1.8648165581651144
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#617e90",
-            "#d8e4e6"
+            "#71988b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#617e90"
+            "#d8c5a9",
+            "#71988b"
           ],
           "rooms": [
             "osm-407852081:L1:R3",
@@ -6226,24 +7723,24 @@
             "type": "LineString",
             "coordinates": [
               [
-                -1.4326437938108638,
-                2.4674451148881893
+                -1.1897884585119967,
+                0.9945669778348853
               ],
               [
-                -1.1155033039167594,
-                0.5440395903550864
+                -0.6548718,
+                -2.2496155
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#efece3",
-            "#d8e4e6"
+            "#71988b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#efece3"
+            "#d8c5a9",
+            "#71988b"
           ],
           "rooms": [
             "osm-407852081:L1:R3",
@@ -6260,24 +7757,24 @@
             "type": "LineString",
             "coordinates": [
               [
-                -0.9720123058042408,
-                -0.3262099907770582
+                -0.6548718,
+                -2.2496155
               ],
               [
-                -0.6548718159101363,
-                -2.2496155153101616
+                -1.319717,
+                -2.3592384
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#efece3",
-            "#d8e4e6"
+            "#71988b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#efece3"
+            "#d8c5a9",
+            "#71988b"
           ],
           "rooms": [
             "osm-407852081:L1:R3",
@@ -6294,28 +7791,96 @@
             "type": "LineString",
             "coordinates": [
               [
-                -0.6548718159101363,
-                -2.2496155153101616
+                -1.319717,
+                -2.3592384
               ],
               [
-                -2.947734905835167,
-                -2.6276739716907778
+                -1.1375062,
+                -3.4643173
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.585766631614123,
           "materials": [
-            "#efece3",
-            "#d8e4e6"
+            "#71988b",
+            "#d8c5a9"
           ],
           "side_materials": [
-            "#d8e4e6",
-            "#efece3"
+            "#d8c5a9",
+            "#71988b"
           ],
           "rooms": [
             "osm-407852081:L1:R3",
             "osm-407852081:L1:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -2.344159375689398,
+                2.3171499863840963
+              ],
+              [
+                -1.4326438,
+                2.4674451
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#71988b",
+            "#d8c5a9"
+          ],
+          "side_materials": [
+            "#d8c5a9",
+            "#71988b"
+          ],
+          "rooms": [
+            "osm-407852081:L1:R3",
+            "osm-407852081:L1:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.305111,
+                -8.071755
+              ],
+              [
+                -0.017134171076912116,
+                -6.117390440396827
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.585766631614123,
+          "materials": [
+            "#d8c5a9",
+            "#71988b"
+          ],
+          "side_materials": [
+            "#71988b",
+            "#d8c5a9"
+          ],
+          "rooms": [
+            "osm-407852081:L1:hall",
+            "osm-407852081:L1:R0:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -6329,39 +7894,39 @@
           "id": "osm-407852081:L1:R0:item:0",
           "role": "toilet",
           "position_m": [
-            -0.6479883128970834,
+            -0.6555738819059905,
             2.7357666316141227,
-            -4.9651891104445305
+            -4.91918386733183
           ],
           "size_m": [
             0.55,
             0.78,
             0.72
           ],
-          "rotation_deg": 99.3629639243572,
+          "rotation_deg": 99.36296392435722,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -0.337523659012016,
-                  -4.635285035465112
+                  -0.3451092280209232,
+                  -4.589279792352412
                 ],
                 [
-                  -1.0479314803443789,
-                  -4.752420544128393
+                  -1.0555170493532862,
+                  -4.706415301015692
                 ],
                 [
-                  -0.9584529667821508,
-                  -5.295093185423949
+                  -0.9660385357910579,
+                  -5.249087942311248
                 ],
                 [
-                  -0.24804514544978784,
-                  -5.177957676760668
+                  -0.25563071445869495,
+                  -5.131952433647967
                 ],
                 [
-                  -0.337523659012016,
-                  -4.635285035465112
+                  -0.3451092280209232,
+                  -4.589279792352412
                 ]
               ]
             ]
@@ -6382,9 +7947,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -6395,8 +7963,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -1.4274635613034259,
-            -5.093712793561186
+            -1.4350491303123332,
+            -5.047707550448485
           ],
           "confidence": 0.25,
           "measured": false,
@@ -6407,39 +7975,39 @@
           "id": "osm-407852081:L1:R0:item:1",
           "role": "bath_sink",
           "position_m": [
-            -0.272786144106494,
+            -0.406946731402987,
             2.7357666316141227,
-            -6.564589304524444
+            -5.75092714846596
           ],
           "size_m": [
             0.65,
             0.85,
             0.5
           ],
-          "rotation_deg": 99.3629639243572,
+          "rotation_deg": 99.36296392435722,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -0.07899042880437648,
-                  -6.203247055776058
+                  -0.21315101610086956,
+                  -5.389584899717574
                 ],
                 [
-                  -0.5723291936185175,
-                  -6.284591159014447
+                  -0.7064897809150106,
+                  -5.470929002955963
                 ],
                 [
-                  -0.4665818594086115,
-                  -6.92593155327283
+                  -0.6007424467051043,
+                  -6.112269397214346
                 ],
                 [
-                  0.026756905405529496,
-                  -6.844587450034441
+                  -0.10740368189096344,
+                  -6.030925293975957
                 ],
                 [
-                  -0.07899042880437648,
-                  -6.203247055776058
+                  -0.21315101610086956,
+                  -5.389584899717574
                 ]
               ]
             ]
@@ -6460,9 +8028,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -6473,8 +8044,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -0.9437268642537255,
-            -6.675217284928653
+            -1.0778874515502186,
+            -5.86155512887017
           ],
           "confidence": 0.25,
           "measured": false,
@@ -6485,39 +8056,39 @@
           "id": "osm-407852081:L1:R0:item:2",
           "role": "bath_shower",
           "position_m": [
-            -1.632023466136463,
+            -2.0937557371809583,
             2.7357666316141227,
-            -4.001931745803941
+            -5.040891653439498
           ],
           "size_m": [
-            1.6,
-            2.05,
+            1.7,
+            0.6,
             0.75
           ],
-          "rotation_deg": -170.63703607564278,
+          "rotation_deg": -80.63703607564281,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -2.4823735672678806,
-                  -3.7620782373747588
+                  -2.3254748352863026,
+                  -5.940575631052329
                 ],
                 [
-                  -2.360357412410296,
-                  -4.50208638459597
+                  -1.585466688065091,
+                  -5.818559476194746
                 ],
                 [
-                  -0.7816733650050453,
-                  -4.241785254233124
+                  -1.862036639075614,
+                  -4.141207675826667
                 ],
                 [
-                  -0.9036895198626297,
-                  -3.501777107011912
+                  -2.6020447862968257,
+                  -4.26322383068425
                 ],
                 [
-                  -2.4823735672678806,
-                  -3.7620782373747588
+                  -2.3254748352863026,
+                  -5.940575631052329
                 ]
               ]
             ]
@@ -6538,9 +8109,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -6551,8 +8125,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -1.5010594599226563,
-            -4.796207157154708
+            -1.2994803258301915,
+            -4.909927647225691
           ],
           "confidence": 0.25,
           "measured": false,
@@ -6563,9 +8137,9 @@
           "id": "osm-407852081:L1:R1:item:0",
           "role": "bed",
           "position_m": [
-            2.370609524378568,
+            2.603635891411227,
             2.7357666316141227,
-            -5.631813614264774
+            -5.601273473479514
           ],
           "size_m": [
             0.95,
@@ -6578,24 +8152,24 @@
             "coordinates": [
               [
                 [
-                  2.9715294139392094,
-                  -6.5616094447191955
+                  3.2045557809718686,
+                  -6.531069303933935
                 ],
                 [
-                  2.7116344703883004,
-                  -4.578567685623671
+                  2.9446608374209595,
+                  -4.548027544838411
                 ],
                 [
-                  1.7696896348179267,
-                  -4.702017783810353
+                  2.002716001850586,
+                  -4.671477643025093
                 ],
                 [
-                  2.0295845783688358,
-                  -6.6850595429058774
+                  2.262610945401495,
+                  -6.654519402120617
                 ],
                 [
-                  2.9715294139392094,
-                  -6.5616094447191955
+                  3.2045557809718686,
+                  -6.531069303933935
                 ]
               ]
             ]
@@ -6616,9 +8190,12 @@
             "estimated_cost_usd": 1100
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -6629,32 +8206,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            2.184784639739668,
-            -4.2139387565114745
+            2.417811006772327,
+            -4.183398615726214
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  2.707736046235037,
-                  -4.5488220592372395
+                  2.940762413267696,
+                  -4.5182819184519785
                 ],
                 [
-                  2.616772815992219,
-                  -3.854757443553806
+                  2.849799183024878,
+                  -3.824217302768545
                 ],
                 [
-                  1.6748279804218447,
-                  -3.978207541740488
+                  1.9078543474545038,
+                  -3.947667400955227
                 ],
                 [
-                  1.765791210664663,
-                  -4.6722721574239205
+                  1.998817577697322,
+                  -4.6417320166386595
                 ],
                 [
-                  2.707736046235037,
-                  -4.5488220592372395
+                  2.940762413267696,
+                  -4.5182819184519785
                 ]
               ]
             ]
@@ -6664,24 +8241,24 @@
             "coordinates": [
               [
                 [
-                  1.994881347584664,
-                  -6.689607704418019
+                  2.227907714617323,
+                  -6.6590675636327585
                 ],
                 [
-                  1.7349864040337548,
-                  -4.706565945322494
+                  1.968012771066414,
+                  -4.676025804537234
                 ],
                 [
-                  1.0904978323277095,
-                  -4.79103180197654
+                  1.3235241993603686,
+                  -4.7604916611912795
                 ],
                 [
-                  1.3503927758786187,
-                  -6.774073561072064
+                  1.5834191429112778,
+                  -6.743533420286804
                 ],
                 [
-                  1.994881347584664,
-                  -6.689607704418019
+                  2.227907714617323,
+                  -6.6590675636327585
                 ]
               ]
             ]
@@ -6695,9 +8272,9 @@
           "id": "osm-407852081:L1:R1:item:1",
           "role": "nightstand",
           "position_m": [
-            0.8435970185614253,
+            0.7281035651838048,
             2.7357666316141227,
-            -2.762901202267996
+            -2.062452179350436
           ],
           "size_m": [
             0.45,
@@ -6710,24 +8287,24 @@
             "coordinates": [
               [
                 [
-                  0.682866359093044,
-                  -3.017441287729715
+                  0.5673729057154235,
+                  -2.316992264812155
                 ],
                 [
-                  1.077537370944357,
-                  -2.9523660051390035
+                  0.9620439175667364,
+                  -2.2519169822214433
                 ],
                 [
-                  1.0043276780298065,
-                  -2.508361116806277
+                  0.8888342246521861,
+                  -1.8079120938887168
                 ],
                 [
-                  0.6096566661784938,
-                  -2.5734363993969884
+                  0.4941632128008733,
+                  -1.872987376479428
                 ],
                 [
-                  0.682866359093044,
-                  -3.017441287729715
+                  0.5673729057154235,
+                  -2.316992264812155
                 ]
               ]
             ]
@@ -6757,9 +8334,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -6770,8 +8350,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.465203862227243,
-            -2.6604076321876255
+            1.3497104088496226,
+            -1.9599586092700654
           ],
           "confidence": 0.25,
           "measured": false,
@@ -6782,9 +8362,9 @@
           "id": "osm-407852081:L1:R1:item:2",
           "role": "counter_item",
           "position_m": [
-            0.8435970185614253,
+            0.7281035651838048,
             3.2357666316141227,
-            -2.762901202267996
+            -2.062452179350436
           ],
           "size_m": [
             0.1,
@@ -6797,24 +8377,24 @@
             "coordinates": [
               [
                 [
-                  0.8023975524038501,
-                  -2.820369489073249
+                  0.6869040990262296,
+                  -2.1199204661556887
                 ],
                 [
-                  0.9010653053666784,
-                  -2.804100668425571
+                  0.7855718519890579,
+                  -2.1036516455080108
                 ],
                 [
-                  0.8847964847190005,
-                  -2.705432915462743
+                  0.76930303134138,
+                  -2.004983892545183
                 ],
                 [
-                  0.7861287317561723,
-                  -2.721701736110421
+                  0.6706352783785517,
+                  -2.021252713192861
                 ],
                 [
-                  0.8023975524038501,
-                  -2.820369489073249
+                  0.6869040990262296,
+                  -2.1199204661556887
                 ]
               ]
             ]
@@ -6844,9 +8424,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -6865,9 +8448,9 @@
           "id": "osm-407852081:L1:R1:item:3",
           "role": "dresser",
           "position_m": [
-            1.0229913834915625,
+            0.9071824348913979,
             2.7357666316141227,
-            -3.697230691235586
+            -2.9948682410725564
           ],
           "size_m": [
             0.9,
@@ -6880,24 +8463,24 @@
             "coordinates": [
               [
                 [
-                  0.8741986322397494,
-                  -4.177840426025588
+                  0.7583896836395848,
+                  -3.4754779758625585
                 ],
                 [
-                  1.3182035205724763,
-                  -4.104630733111038
+                  1.2023945719723117,
+                  -3.402268282948008
                 ],
                 [
-                  1.1717841347433757,
-                  -3.216620956445584
+                  1.0559751861432112,
+                  -2.5142585062825544
                 ],
                 [
-                  0.7277792464106487,
-                  -3.2898306493601344
+                  0.6119702978104842,
+                  -2.587468199197105
                 ],
                 [
-                  0.8741986322397494,
-                  -4.177840426025588
+                  0.7583896836395848,
+                  -3.4754779758625585
                 ]
               ]
             ]
@@ -6927,9 +8510,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d8e4e6",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -6940,8 +8526,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.6692651653980872,
-            -3.590669915993296
+            1.5534562167979227,
+            -2.8883074658302665
           ],
           "confidence": 0.25,
           "measured": false,
@@ -6952,39 +8538,39 @@
           "id": "osm-407852081:L1:R2:item:0",
           "role": "bed",
           "position_m": [
-            -2.6038554727416954,
+            -2.60385548982796,
             2.7357666316141227,
-            7.57731250597597
+            7.577312532195068
           ],
           "size_m": [
             0.95,
             0.8,
             2
           ],
-          "rotation_deg": -173.97976452481802,
+          "rotation_deg": -173.97976488341726,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -3.1811155057236635,
-                  8.521979566014403
+                  -3.181115516897505,
+                  8.52197959584642
                 ],
                 [
-                  -2.9713561103723736,
-                  6.533009733145674
+                  -2.9713561339946546,
+                  6.533009761664862
                 ],
                 [
-                  -2.0265954397597272,
-                  6.632645445937536
+                  -2.0265954627584146,
+                  6.632645468543716
                 ],
                 [
-                  -2.236354835111017,
-                  8.621615278806265
+                  -2.236354845661265,
+                  8.621615302725274
                 ],
                 [
-                  -3.1811155057236635,
-                  8.521979566014403
+                  -3.181115516897505,
+                  8.52197959584642
                 ]
               ]
             ]
@@ -7005,9 +8591,12 @@
             "estimated_cost_usd": 1100
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7018,32 +8607,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -2.4538775050655226,
-            6.155199075474828
+            -2.4538775310524215,
+            6.155199100755254
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -2.9682097194421035,
-                  6.503175185652643
+                  -2.968209743251111,
+                  6.503175214152138
                 ],
                 [
-                  -2.8947939310691524,
-                  5.807035744148588
+                  -2.894793959235114,
+                  5.807035772188593
                 ],
                 [
-                  -1.950033260456506,
-                  5.90667145694045
+                  -1.9500332879988738,
+                  5.906671479067446
                 ],
                 [
-                  -2.023449048829457,
-                  6.602810898444505
+                  -2.0234490720148712,
+                  6.602810921030992
                 ],
                 [
-                  -2.9682097194421035,
-                  6.503175185652643
+                  -2.968209743251111,
+                  6.503175214152138
                 ]
               ]
             ]
@@ -7053,24 +8642,24 @@
             "coordinates": [
               [
                 [
-                  -2.201547863035814,
-                  8.625286068224915
+                  -2.2015478735630873,
+                  8.625286091926075
                 ],
                 [
-                  -1.9917884676845246,
-                  6.636316235356185
+                  -1.9917884906602372,
+                  6.636316257744515
                 ],
                 [
-                  -1.3453732720021876,
-                  6.704488038845354
+                  -1.3453732945512307,
+                  6.704488057187942
                 ],
                 [
-                  -1.5551326673534773,
-                  8.693457871714083
+                  -1.555132677454081,
+                  8.6934578913695
                 ],
                 [
-                  -2.201547863035814,
-                  8.625286068224915
+                  -2.2015478735630873,
+                  8.625286091926075
                 ]
               ]
             ]
@@ -7084,39 +8673,39 @@
           "id": "osm-407852081:L1:R2:item:1",
           "role": "nightstand",
           "position_m": [
-            -1.027672088740341,
+            -1.0276720838781095,
             2.7357666316141227,
-            8.547975429910972
+            8.54797544793918
           ],
           "size_m": [
             0.45,
             0.5,
             0.4
           ],
-          "rotation_deg": -173.97976452481802,
+          "rotation_deg": -173.97976488341726,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.272407134473202,
-                  8.723274481220825
+                  -1.2724071285138199,
+                  8.723274500780764
                 ],
                 [
-                  -1.230455255402944,
-                  8.32548051464708
+                  -1.2304552519332497,
+                  8.325480533944454
                 ],
                 [
-                  -0.78293704300748,
-                  8.372676378601119
+                  -0.7829370392423991,
+                  8.372676395097596
                 ],
                 [
-                  -0.8248889220777379,
-                  8.770470345174864
+                  -0.8248889158229692,
+                  8.770470361933906
                 ],
                 [
-                  -1.272407134473202,
-                  8.723274481220825
+                  -1.2724071285138199,
+                  8.723274500780764
                 ]
               ]
             ]
@@ -7146,9 +8735,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7159,8 +8751,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -0.9615978792046844,
-            7.921449932557322
+            -0.9615978782637115,
+            7.921449950171989
           ],
           "confidence": 0.25,
           "measured": false,
@@ -7171,39 +8763,39 @@
           "id": "osm-407852081:L1:R2:item:2",
           "role": "counter_item",
           "position_m": [
-            -1.027672088740341,
+            -1.0276720838781095,
             3.2357666316141227,
-            8.547975429910972
+            8.54797544793918
           ],
           "size_m": [
             0.1,
             0.1,
             0.1
           ],
-          "rotation_deg": -173.97976452481802,
+          "rotation_deg": -173.97976488341726,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.0826403194458414,
-                  8.592455690848908
+                  -1.0826403143052197,
+                  8.592455709221149
                 ],
                 [
-                  -1.072152349678277,
-                  8.493007199205472
+                  -1.0721523451600772,
+                  8.49300721751207
                 ],
                 [
-                  -0.9727038580348405,
-                  8.503495168973036
+                  -0.9727038534509993,
+                  8.503495186657211
                 ],
                 [
-                  -0.983191827802405,
-                  8.602943660616472
+                  -0.9831918225961418,
+                  8.602943678366291
                 ],
                 [
-                  -1.0826403194458414,
-                  8.592455690848908
+                  -1.0826403143052197,
+                  8.592455709221149
                 ]
               ]
             ]
@@ -7233,9 +8825,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7254,39 +8849,39 @@
           "id": "osm-407852081:L1:R2:item:3",
           "role": "dresser",
           "position_m": [
-            -1.30750466590866,
+            -1.3075046576803016,
             2.7357666316141227,
-            5.2853451650960235
+            5.285345180729533
           ],
           "size_m": [
             0.9,
             0.85,
             0.45
           ],
-          "rotation_deg": 99.3629639243572,
+          "rotation_deg": 99.36296534268966,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.1587119146568468,
-                  5.765954899886026
+                  -1.1587119183257764,
+                  5.765954919202835
                 ],
                 [
-                  -1.6027168029895738,
-                  5.692745206971475
+                  -1.6027168048462286,
+                  5.692745215297135
                 ],
                 [
-                  -1.4562974171604732,
-                  4.804735430306021
+                  -1.4562973970348267,
+                  4.804735442256231
                 ],
                 [
-                  -1.0122925288277462,
-                  4.877945123220572
+                  -1.0122925105143745,
+                  4.877945146161931
                 ],
                 [
-                  -1.1587119146568468,
-                  5.765954899886026
+                  -1.1587119183257764,
+                  5.765954919202835
                 ]
               ]
             ]
@@ -7316,9 +8911,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#dfd9cf",
+            "wall": "#c4947b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7329,8 +8927,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -1.9537784478151847,
-            5.178784389853734
+            -1.95377843694896,
+            5.178784389489013
           ],
           "confidence": 0.25,
           "measured": false,
@@ -7379,7 +8977,7 @@
             ]
           },
           "room_id": "osm-407852081:L1:R2:closet",
-          "required": false,
+          "required": true,
           "support": {
             "kind": "floor",
             "id": "osm-407852081:L1:R2:closet",
@@ -7394,9 +8992,12 @@
             "estimated_cost_usd": 300
           },
           "materials": {
-            "wall": "#e5e8df",
+            "wall": "#8dabad",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7419,39 +9020,39 @@
           "id": "osm-407852081:L1:R3:item:0",
           "role": "bed",
           "position_m": [
-            -2.2839488276136644,
+            -2.7516407350719856,
             2.7357666316141227,
-            -1.428710651835113
+            1.1604474541851262
           ],
           "size_m": [
-            1.5,
-            0.85,
+            0.95,
+            0.8,
             2
           ],
-          "rotation_deg": 9.362963924357214,
+          "rotation_deg": -170.6370374876472,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.3812524739156742,
-                  -2.2933720266058106
+                  -3.383000745710814,
+                  2.0698481012962544
                 ],
                 [
-                  -1.7066288868692316,
-                  -0.320016967349247
+                  -3.0576243813888677,
+                  0.09649303402107368
                 ],
                 [
-                  -3.1866451813116545,
-                  -0.564049277064415
+                  -2.120280724433157,
+                  0.2510468070739982
                 ],
                 [
-                  -2.861268768358097,
-                  -2.5374043363209786
+                  -2.4456570887551035,
+                  2.2244018743491787
                 ],
                 [
-                  -1.3812524739156742,
-                  -2.2933720266058106
+                  -3.383000745710814,
+                  2.0698481012962544
                 ]
               ]
             ]
@@ -7472,9 +9073,12 @@
             "estimated_cost_usd": 1100
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7485,32 +9089,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -2.5165929628754578,
-            -0.017761784466669983
+            -2.518996634581794,
+            -0.2505014189166279
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.7115095330635348,
-                  -0.2904166414603988
+                  -3.0527437359240386,
+                  0.06689270801194608
                 ],
                 [
-                  -1.8253912775972798,
-                  0.40025762927939845
+                  -2.9388620084113573,
+                  -0.623781565534367
                 ],
                 [
-                  -3.3054075720397025,
-                  0.1562253195642305
+                  -2.0015183514556467,
+                  -0.4692277924814427
                 ],
                 [
-                  -3.1915258275059575,
-                  -0.5344489511755668
+                  -2.115400078968328,
+                  0.22144648106487047
                 ],
                 [
-                  -1.7115095330635348,
-                  -0.2904166414603988
+                  -3.0527437359240386,
+                  0.06689270801194608
                 ]
               ]
             ]
@@ -7520,24 +9124,24 @@
             "coordinates": [
               [
                 [
-                  -0.7053783661203014,
-                  -2.1819306051692173
+                  -2.411123375077788,
+                  2.230095960724813
                 ],
                 [
-                  -1.0307547790738587,
-                  -0.2085755459126537
+                  -2.0857470107558416,
+                  0.25674089344963225
                 ],
                 [
-                  -1.672095173332242,
-                  -0.3143228801225597
+                  -1.4444066138914078,
+                  0.36248821185426483
                 ],
                 [
-                  -1.3467187603786845,
-                  -2.2876779393791233
+                  -1.769782978213354,
+                  2.3358432791294454
                 ],
                 [
-                  -0.7053783661203014,
-                  -2.1819306051692173
+                  -2.411123375077788,
+                  2.230095960724813
                 ]
               ]
             ]
@@ -7551,39 +9155,39 @@
           "id": "osm-407852081:L1:R3:item:1",
           "role": "nightstand",
           "position_m": [
-            -1.4270982327900812,
+            -2.9159457651414806,
             2.7357666316141227,
-            0.7434622489978947
+            -1.1301200161753435
           ],
           "size_m": [
             0.45,
             0.5,
             0.4
           ],
-          "rotation_deg": 99.36296392435722,
+          "rotation_deg": -80.63703595041548,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.2663675733217,
-                  0.9980023344596138
+                  -3.076676424053532,
+                  -1.3846601019883602
                 ],
                 [
-                  -1.6610385851730127,
-                  0.9329270518689025
+                  -2.6820054123444494,
+                  -1.3195848185350445
                 ],
                 [
-                  -1.5878288922584625,
-                  0.48892216353617557
+                  -2.7552151062294294,
+                  -0.8755799303623268
                 ],
                 [
-                  -1.1931578804071497,
-                  0.553997446126887
+                  -3.149886117938512,
+                  -0.9406552138156427
                 ],
                 [
-                  -1.2663675733217,
-                  0.9980023344596138
+                  -3.076676424053532,
+                  -1.3846601019883602
                 ]
               ]
             ]
@@ -7613,9 +9217,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7626,8 +9233,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -2.0487050764558985,
-            0.6409686789175242
+            -2.294338921699676,
+            -1.027626444736371
           ],
           "confidence": 0.25,
           "measured": false,
@@ -7638,39 +9245,39 @@
           "id": "osm-407852081:L1:R3:item:2",
           "role": "counter_item",
           "position_m": [
-            -1.4270982327900812,
+            -2.9159457651414806,
             3.2357666316141227,
-            0.7434622489978947
+            -1.1301200161753435
           ],
           "size_m": [
             0.1,
             0.1,
             0.1
           ],
-          "rotation_deg": 99.36296392435722,
+          "rotation_deg": -80.63703595041548,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.385898766632506,
-                  0.8009305358031478
+                  -2.9571452311734516,
+                  -1.1875883030706433
                 ],
                 [
-                  -1.4845665195953341,
-                  0.7846617151554699
+                  -2.858477478246181,
+                  -1.1713194822073143
                 ],
                 [
-                  -1.4682976989476564,
-                  0.6859939621926416
+                  -2.8747462991095096,
+                  -1.0726517292800437
                 ],
                 [
-                  -1.3696299459848282,
-                  0.7022627828403195
+                  -2.97341405203678,
+                  -1.0889205501433727
                 ],
                 [
-                  -1.385898766632506,
-                  0.8009305358031478
+                  -2.9571452311734516,
+                  -1.1875883030706433
                 ]
               ]
             ]
@@ -7700,9 +9307,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7721,39 +9331,39 @@
           "id": "osm-407852081:L1:R3:item:3",
           "role": "dresser",
           "position_m": [
-            -1.6017426047136034,
+            -2.7412101559664976,
             2.7357666316141227,
-            1.6489838024241483
+            -2.036194896310025
           ],
           "size_m": [
             0.9,
             0.85,
             0.45
           ],
-          "rotation_deg": 99.36296392435722,
+          "rotation_deg": -80.63703595041548,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -1.4529498534617904,
-                  2.1295935372141503
+                  -2.8900029061678763,
+                  -2.5168046314252326
                 ],
                 [
-                  -1.8969547417945172,
-                  2.0563838442996
+                  -2.4459980179951586,
+                  -2.4435949375402526
                 ],
                 [
-                  -1.7505353559654164,
-                  1.1683740676341463
+                  -2.592417405765119,
+                  -1.5555851611948173
                 ],
                 [
-                  -1.3065304676326897,
-                  1.2415837605486966
+                  -3.0364222939378367,
+                  -1.6287948550797975
                 ],
                 [
-                  -1.4529498534617904,
-                  2.1295935372141503
+                  -2.8900029061678763,
+                  -2.5168046314252326
                 ]
               ]
             ]
@@ -7783,9 +9393,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#efece3",
+            "wall": "#71988b",
             "accent_wall": "#617e90",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#b79a73",
             "fabric": "#d5cbbb",
             "metal": "#4a5358",
@@ -7796,8 +9409,89 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -2.248016386620128,
-            1.5424230271818584
+            -2.0949363742928755,
+            -1.9296341196552202
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "osm-407852081:L1:R0:reclaimed:0:item:0",
+          "role": "closet_rail",
+          "position_m": [
+            -0.09165863736460567,
+            2.7357666316141227,
+            -7.232827299485275
+          ],
+          "size_m": [
+            0.8,
+            1.65,
+            0.36
+          ],
+          "rotation_deg": 99.3629639243572,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.020868035377773694,
+                  -6.808872410468142
+                ],
+                [
+                  -0.33433587528840775,
+                  -6.867440164799782
+                ],
+                [
+                  -0.20418531010698504,
+                  -7.656782188502408
+                ],
+                [
+                  0.15101860055919641,
+                  -7.598214434170768
+                ],
+                [
+                  0.020868035377773694,
+                  -6.808872410468142
+                ]
+              ]
+            ]
+          },
+          "room_id": "osm-407852081:L1:R0:reclaimed:0",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "osm-407852081:L1:R0:reclaimed:0",
+            "surface_y_m": 2.7357666316141227
+          },
+          "asset": {
+            "id": "procedural:closet_rail",
+            "role": "closet_rail",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#71988b",
+            "accent_wall": "#617e90",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#b79a73",
+            "fabric": "#d5cbbb",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#b79a73",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -0.6935319304378577,
+            -7.33206710543611
           ],
           "confidence": 0.25,
           "measured": false,
@@ -7805,6 +9499,11 @@
           "corroboration_count": 0
         }
       ],
+      "space_efficiency": {
+        "wet_area_reclaimed_m2": 4.399187488348134,
+        "half_baths_added": 0,
+        "hallway_reclaimed_m2": 3.415999917332955
+      },
       "grade": "inferred",
       "confidence": 0.25,
       "measured": false,
@@ -8509,7 +10208,7 @@
   ],
   "total_height_m": 5.471533263228245,
   "partition_score": 0.179374145892055,
-  "estimated_furniture_cost_usd": 10606,
+  "estimated_furniture_cost_usd": 13046,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -8522,25 +10221,34 @@
     "errors": [],
     "warnings": [],
     "metrics": {
-      "room_count": 13,
-      "objects": 31,
-      "coverage_min": 0.9999999999999997,
-      "hallway_area_fraction_max": 0.22755438040101722,
-      "downloaded_assets_used": 17,
-      "connected_rooms": 13
+      "room_count": 15,
+      "objects": 36,
+      "coverage_min": 0.9999999892811702,
+      "hallway_area_fraction_max": 0.18901944529547027,
+      "downloaded_assets_used": 20,
+      "connected_rooms": 15
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
   },
   "search": {
-    "candidates_tried": 5,
+    "candidates_tried": 13,
     "rejected": [
+      "osm-407852081:L1:R2: no reachable bed fits",
+      "osm-407852081:L1:R2: no reachable bed fits",
+      "osm-407852081:L1:R2: no reachable bed fits",
+      "osm-407852081:L1:R2: no reachable bed fits",
+      "osm-407852081:L1:R2: no reachable bed fits",
+      "osm-407852081:L1:R2: no reachable bed fits",
       "osm-407852081:L1:R2: no reachable bed fits",
       "osm-407852081:L1:R2: no reachable bed fits",
       "osm-407852081:L1:R2: no reachable bed fits",
       "osm-407852081:L1:R2: no reachable bed fits"
     ],
-    "built_in_closets": true
+    "built_in_closets": true,
+    "valid_layouts_compared": 3,
+    "objective": "least circulation and oversized low-use room area"
   },
+  "space_score": 1.3010667833929173,
   "name": "Union Street, San Francisco, CA, 94133",
   "input_evidence": {
     "id": "osm-407852081",

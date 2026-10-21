@@ -20,10 +20,10 @@
     "name": "Walnut & muted terracotta",
     "style": "traditional",
     "walls": [
-      "#eee4d5",
-      "#d9bcb0",
-      "#c8d0bd",
-      "#e4d8c9"
+      "#e0c3a4",
+      "#b47b68",
+      "#929d7c",
+      "#cdb582"
     ],
     "wood": "#71503d",
     "fabric": "#b7a18e",
@@ -103,9 +103,12 @@
           "id": "stress-narrow:L0:R0",
           "kind": "living",
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -152,9 +155,12 @@
           "id": "stress-narrow:L0:R1",
           "kind": "kitchen",
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -201,9 +207,12 @@
           "id": "stress-narrow:L0:R2",
           "kind": "dining",
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -250,9 +259,12 @@
           "id": "stress-narrow:L0:R3",
           "kind": "full_bathroom",
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -267,15 +279,11 @@
               [
                 [
                   2.6900000000000004,
-                  9.855999999999998
-                ],
-                [
-                  2.6900000000000004,
-                  5.562999999999999
+                  7.155999999999999
                 ],
                 [
                   0.15000000000000036,
-                  5.562999999999999
+                  7.155999999999999
                 ],
                 [
                   0.15000000000000036,
@@ -284,11 +292,15 @@
                 [
                   2.6900000000000004,
                   9.855999999999998
+                ],
+                [
+                  2.6900000000000004,
+                  7.155999999999999
                 ]
               ]
             ]
           },
-          "area_m2": 10.904219999999999,
+          "area_m2": 6.857999999999998,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -299,9 +311,12 @@
           "id": "stress-narrow:L0:R4",
           "kind": "primary_bedroom",
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -316,10 +331,6 @@
               [
                 [
                   6.35,
-                  9.855999999999998
-                ],
-                [
-                  6.35,
                   0.14999999999999858
                 ],
                 [
@@ -327,17 +338,33 @@
                   0.14999999999999858
                 ],
                 [
+                  2.6900000000000004,
+                  0.14999999999999858
+                ],
+                [
+                  2.6900000000000004,
+                  1.2653199999999987
+                ],
+                [
+                  3.8100000000000005,
+                  1.2653199999999987
+                ],
+                [
                   3.8100000000000005,
                   9.855999999999998
                 ],
                 [
                   6.35,
                   9.855999999999998
+                ],
+                [
+                  6.35,
+                  0.14999999999999858
                 ]
               ]
             ]
           },
-          "area_m2": 24.65323999999999,
+          "area_m2": 25.90239839999999,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -348,9 +375,12 @@
           "id": "stress-narrow:L0:R5",
           "kind": "bedroom",
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#cdb582",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -365,6 +395,34 @@
               [
                 [
                   2.6900000000000004,
+                  4.442999999999998
+                ],
+                [
+                  2.6900000000000004,
+                  2.942999999999998
+                ],
+                [
+                  3.81,
+                  2.942999999999998
+                ],
+                [
+                  3.81,
+                  2.813829507999998
+                ],
+                [
+                  3.81,
+                  2.1352695999999987
+                ],
+                [
+                  3.81,
+                  1.26532
+                ],
+                [
+                  2.6900000000000004,
+                  1.26532
+                ],
+                [
+                  2.6900000000000004,
                   0.14999999999999858
                 ],
                 [
@@ -378,15 +436,11 @@
                 [
                   2.6900000000000004,
                   4.442999999999998
-                ],
-                [
-                  2.6900000000000004,
-                  0.14999999999999858
                 ]
               ]
             ]
           },
-          "area_m2": 10.904219999999999,
+          "area_m2": 12.783221599999996,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -397,9 +451,12 @@
           "id": "stress-narrow:L0:hall",
           "kind": "hallway",
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -413,61 +470,187 @@
             "coordinates": [
               [
                 [
-                  6.35,
-                  9.855999999999998
+                  2.2,
+                  5.563
                 ],
                 [
-                  3.8100000000000005,
-                  9.855999999999998
+                  2.69,
+                  5.563
                 ],
                 [
-                  3.8100000000000005,
-                  0.14999999999999858
+                  2.69,
+                  9.856
                 ],
                 [
-                  2.6900000000000004,
-                  0.14999999999999858
+                  0.15,
+                  9.856
                 ],
                 [
-                  2.6900000000000004,
-                  4.442999999999998
-                ],
-                [
-                  0.15000000000000036,
-                  4.442999999999998
-                ],
-                [
-                  0.15000000000000036,
-                  5.562999999999999
-                ],
-                [
-                  2.6900000000000004,
-                  5.562999999999999
-                ],
-                [
-                  2.6900000000000004,
-                  9.855999999999998
-                ],
-                [
-                  0.15000000000000036,
-                  9.855999999999998
-                ],
-                [
-                  0.15000000000000036,
-                  10.975999999999999
+                  0.15,
+                  10.976
                 ],
                 [
                   6.35,
-                  10.975999999999999
+                  10.976
                 ],
                 [
                   6.35,
-                  9.855999999999998
+                  9.856
+                ],
+                [
+                  3.81,
+                  9.856
+                ],
+                [
+                  3.81,
+                  2.942999999999998
+                ],
+                [
+                  2.69,
+                  2.942999999999998
+                ],
+                [
+                  2.69,
+                  4.443
+                ],
+                [
+                  2.2,
+                  4.443
+                ],
+                [
+                  2.2,
+                  5.563
                 ]
               ]
             ]
           },
-          "area_m2": 20.659520000000008,
+          "area_m2": 15.235360000000009,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-narrow:L0:R3:reclaimed:0",
+          "kind": "toilet",
+          "parent_room": "stress-narrow:L0:R3",
+          "materials": {
+            "wall": "#cdb582",
+            "accent_wall": "#8f5f49",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#71503d",
+            "fabric": "#b7a18e",
+            "metal": "#756451",
+            "countertop": "#d5c7b5",
+            "floor": "#d5c7b5",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.2,
+                  5.459499999999999
+                ],
+                [
+                  0.29000000000000004,
+                  5.459499999999999
+                ],
+                [
+                  0.29000000000000004,
+                  7.156
+                ],
+                [
+                  2.69,
+                  7.156
+                ],
+                [
+                  2.69,
+                  5.563
+                ],
+                [
+                  2.2,
+                  5.563
+                ],
+                [
+                  2.2,
+                  5.459499999999999
+                ]
+              ]
+            ]
+          },
+          "area_m2": 4.020885000000001,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-narrow:L0:R3:reclaimed:0:reclaimed:0",
+          "kind": "closet",
+          "parent_room": "stress-narrow:L0:R3:reclaimed:0",
+          "materials": {
+            "wall": "#cdb582",
+            "accent_wall": "#8f5f49",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#71503d",
+            "fabric": "#b7a18e",
+            "metal": "#756451",
+            "countertop": "#d5c7b5",
+            "floor": "#71503d",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.2,
+                  4.443
+                ],
+                [
+                  0.15,
+                  4.443
+                ],
+                [
+                  0.15,
+                  5.563
+                ],
+                [
+                  0.15,
+                  7.156
+                ],
+                [
+                  0.29000000000000004,
+                  7.156
+                ],
+                [
+                  0.29000000000000004,
+                  5.459499999999999
+                ],
+                [
+                  2.2,
+                  5.459499999999999
+                ],
+                [
+                  2.2,
+                  4.443
+                ]
+              ]
+            ]
+          },
+          "area_m2": 2.3213350000000004,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -488,11 +671,11 @@
             "coordinates": [
               [
                 2.6900000000000004,
-                8.149499999999998
+                9.701999999999998
               ],
               [
                 2.6900000000000004,
-                7.269499999999998
+                8.822
               ]
             ]
           },
@@ -507,28 +690,36 @@
               [
                 [
                   3.41,
-                  7.269499999999998
+                  8.822
                 ],
                 [
                   1.9700000000000004,
-                  7.269499999999998
+                  8.822
                 ],
                 [
                   1.9700000000000004,
-                  8.149499999999998
+                  9.701999999999998
                 ],
                 [
                   3.41,
-                  8.149499999999998
+                  9.701999999999998
                 ],
                 [
                   3.41,
-                  7.269499999999998
+                  8.822
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": "frosted_reeded"
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -546,11 +737,11 @@
             "coordinates": [
               [
                 3.8100000000000005,
-                4.562999999999998
+                4.023859219999998
               ],
               [
                 3.8100000000000005,
-                5.442999999999999
+                4.903859219999998
               ]
             ]
           },
@@ -565,28 +756,36 @@
               [
                 [
                   3.0900000000000007,
-                  5.442999999999999
+                  4.903859219999998
                 ],
                 [
                   4.53,
-                  5.442999999999999
+                  4.903859219999998
                 ],
                 [
                   4.53,
-                  4.562999999999998
+                  4.023859219999998
                 ],
                 [
                   3.0900000000000007,
-                  4.562999999999998
+                  4.023859219999998
                 ],
                 [
                   3.0900000000000007,
-                  5.442999999999999
+                  4.903859219999998
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 2,
+            "glass": null
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -604,11 +803,11 @@
             "coordinates": [
               [
                 2.6900000000000004,
-                2.736499999999998
+                4.402999999999998
               ],
               [
                 2.6900000000000004,
-                1.8564999999999983
+                3.522999999999998
               ]
             ]
           },
@@ -623,23 +822,395 @@
               [
                 [
                   3.41,
-                  1.8564999999999983
+                  3.522999999999998
                 ],
                 [
                   1.9700000000000004,
-                  1.8564999999999983
+                  3.522999999999998
                 ],
                 [
                   1.9700000000000004,
-                  2.736499999999998
+                  4.402999999999998
                 ],
                 [
                   3.41,
-                  2.736499999999998
+                  4.402999999999998
                 ],
                 [
                   3.41,
-                  1.8564999999999983
+                  3.522999999999998
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": null
+          },
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-narrow:L0:R3:reclaimed:0:opening:3",
+          "rooms": [
+            "stress-narrow:L0:R3:reclaimed:0",
+            "stress-narrow:L0:hall"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.69,
+                7.1160000000000005
+              ],
+              [
+                2.69,
+                6.236
+              ]
+            ]
+          },
+          "width_m": 0.88,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "stress-narrow:L0:R3:reclaimed:0",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.41,
+                  6.236
+                ],
+                [
+                  1.97,
+                  6.236
+                ],
+                [
+                  1.97,
+                  7.1160000000000005
+                ],
+                [
+                  3.41,
+                  7.1160000000000005
+                ],
+                [
+                  3.41,
+                  6.236
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 2,
+            "glass": "frosted_reeded"
+          },
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-narrow:L0:R3:reclaimed:0:reclaimed:0:opening:4",
+          "rooms": [
+            "stress-narrow:L0:R3:reclaimed:0:reclaimed:0",
+            "stress-narrow:L0:R3:reclaimed:0"
+          ],
+          "type": "full_access",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.6450000000000001,
+                5.459499999999999
+              ],
+              [
+                1.8450000000000002,
+                5.459499999999999
+              ]
+            ]
+          },
+          "width_m": 1.2,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "material": null,
+          "swing_into": null,
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.5450000000000002,
+                  5.459499999999999
+                ],
+                [
+                  1.543555418001659,
+                  5.430094857901131
+                ],
+                [
+                  1.5392355841209693,
+                  5.400972903395161
+                ],
+                [
+                  1.5320821007196628,
+                  5.372414596823661
+                ],
+                [
+                  1.5221638597533862,
+                  5.3446949702904725
+                ],
+                [
+                  1.5095763793045065,
+                  5.3180809789522
+                ],
+                [
+                  1.4944408836907637,
+                  5.292828930094119
+                ],
+                [
+                  1.4769031360088212,
+                  5.269182014750906
+                ],
+                [
+                  1.4571320343559644,
+                  5.2473679656440355
+                ],
+                [
+                  1.4353179852490938,
+                  5.227596863991178
+                ],
+                [
+                  1.4116710699058808,
+                  5.210059116309235
+                ],
+                [
+                  1.3864190210477993,
+                  5.1949236206954925
+                ],
+                [
+                  1.359805029709527,
+                  5.182336140246614
+                ],
+                [
+                  1.3320854031763387,
+                  5.172417899280337
+                ],
+                [
+                  1.3035270966048387,
+                  5.16526441587903
+                ],
+                [
+                  1.2744051420988682,
+                  5.16094458199834
+                ],
+                [
+                  1.245,
+                  5.1594999999999995
+                ],
+                [
+                  1.215594857901132,
+                  5.16094458199834
+                ],
+                [
+                  1.1864729033951615,
+                  5.16526441587903
+                ],
+                [
+                  1.1579145968236615,
+                  5.172417899280337
+                ],
+                [
+                  1.1301949702904732,
+                  5.182336140246614
+                ],
+                [
+                  1.1035809789522009,
+                  5.1949236206954925
+                ],
+                [
+                  1.0783289300941195,
+                  5.210059116309235
+                ],
+                [
+                  1.0546820147509064,
+                  5.227596863991178
+                ],
+                [
+                  1.0328679656440358,
+                  5.2473679656440355
+                ],
+                [
+                  1.013096863991179,
+                  5.269182014750906
+                ],
+                [
+                  0.9955591163092365,
+                  5.292828930094119
+                ],
+                [
+                  0.9804236206954937,
+                  5.3180809789522
+                ],
+                [
+                  0.967836140246614,
+                  5.3446949702904725
+                ],
+                [
+                  0.9579178992803374,
+                  5.372414596823661
+                ],
+                [
+                  0.9507644158790309,
+                  5.400972903395161
+                ],
+                [
+                  0.9464445819983411,
+                  5.430094857901131
+                ],
+                [
+                  0.9450000000000001,
+                  5.459499999999999
+                ],
+                [
+                  0.946444581998341,
+                  5.488905142098868
+                ],
+                [
+                  0.9507644158790309,
+                  5.518027096604838
+                ],
+                [
+                  0.9579178992803374,
+                  5.546585403176338
+                ],
+                [
+                  0.967836140246614,
+                  5.574305029709526
+                ],
+                [
+                  0.9804236206954936,
+                  5.600919021047798
+                ],
+                [
+                  0.9955591163092365,
+                  5.62617106990588
+                ],
+                [
+                  1.013096863991179,
+                  5.649817985249093
+                ],
+                [
+                  1.0328679656440358,
+                  5.671632034355963
+                ],
+                [
+                  1.0546820147509064,
+                  5.69140313600882
+                ],
+                [
+                  1.0783289300941195,
+                  5.708940883690763
+                ],
+                [
+                  1.1035809789522006,
+                  5.724076379304506
+                ],
+                [
+                  1.130194970290473,
+                  5.736663859753385
+                ],
+                [
+                  1.1579145968236615,
+                  5.746582100719662
+                ],
+                [
+                  1.1864729033951615,
+                  5.753735584120968
+                ],
+                [
+                  1.215594857901132,
+                  5.758055418001659
+                ],
+                [
+                  1.245,
+                  5.759499999999999
+                ],
+                [
+                  1.2744051420988682,
+                  5.758055418001659
+                ],
+                [
+                  1.3035270966048387,
+                  5.753735584120968
+                ],
+                [
+                  1.3320854031763387,
+                  5.746582100719662
+                ],
+                [
+                  1.359805029709527,
+                  5.736663859753385
+                ],
+                [
+                  1.3864190210477993,
+                  5.724076379304506
+                ],
+                [
+                  1.4116710699058808,
+                  5.708940883690763
+                ],
+                [
+                  1.4353179852490938,
+                  5.69140313600882
+                ],
+                [
+                  1.4571320343559644,
+                  5.671632034355964
+                ],
+                [
+                  1.4769031360088212,
+                  5.6498179852490935
+                ],
+                [
+                  1.4944408836907637,
+                  5.62617106990588
+                ],
+                [
+                  1.5095763793045065,
+                  5.600919021047798
+                ],
+                [
+                  1.522163859753386,
+                  5.574305029709526
+                ],
+                [
+                  1.5320821007196628,
+                  5.546585403176338
+                ],
+                [
+                  1.539235584120969,
+                  5.518027096604838
+                ],
+                [
+                  1.543555418001659,
+                  5.488905142098868
+                ],
+                [
+                  1.5450000000000002,
+                  5.459499999999999
                 ]
               ]
             ]
@@ -651,7 +1222,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-narrow:L0:R0:opening:3",
+          "id": "stress-narrow:L0:R0:opening:5",
           "rooms": [
             "stress-narrow:L0:R0",
             "stress-narrow:L0:R1"
@@ -968,7 +1539,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-narrow:L0:R0:opening:4",
+          "id": "stress-narrow:L0:R0:opening:6",
           "rooms": [
             "stress-narrow:L0:R0",
             "stress-narrow:L0:R2"
@@ -1266,7 +1837,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-narrow:L0:R1:opening:5",
+          "id": "stress-narrow:L0:R1:opening:7",
           "rooms": [
             "stress-narrow:L0:R1",
             "stress-narrow:L0:R2"
@@ -1564,7 +2135,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-narrow:L0:R1:opening:6",
+          "id": "stress-narrow:L0:R1:opening:8",
           "rooms": [
             "stress-narrow:L0:R1",
             "stress-narrow:L0:hall"
@@ -1881,7 +2452,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-narrow:L0:R2:opening:7",
+          "id": "stress-narrow:L0:R2:opening:9",
           "rooms": [
             "stress-narrow:L0:R2",
             "stress-narrow:L0:hall"
@@ -2179,7 +2750,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-narrow:L0:R0:opening:8",
+          "id": "stress-narrow:L0:R0:opening:10",
           "rooms": [
             "stress-narrow:L0:R0",
             "outside"
@@ -2232,6 +2803,14 @@
           },
           "grade": "inferred",
           "entrance": true,
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": "clear"
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -2244,108 +2823,6 @@
             "type": "LineString",
             "coordinates": [
               [
-                2.6900000000000004,
-                9.855999999999998
-              ],
-              [
-                2.6900000000000004,
-                8.150499999999997
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.6,
-          "materials": [
-            "#e4d8c9",
-            "#c8d0bd"
-          ],
-          "side_materials": [
-            "#c8d0bd",
-            "#e4d8c9"
-          ],
-          "rooms": [
-            "stress-narrow:L0:R3",
-            "stress-narrow:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                2.6900000000000004,
-                7.268499999999998
-              ],
-              [
-                2.6900000000000004,
-                5.562999999999999
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.6,
-          "materials": [
-            "#e4d8c9",
-            "#c8d0bd"
-          ],
-          "side_materials": [
-            "#c8d0bd",
-            "#e4d8c9"
-          ],
-          "rooms": [
-            "stress-narrow:L0:R3",
-            "stress-narrow:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                2.6900000000000004,
-                5.562999999999999
-              ],
-              [
-                0.15000000000000036,
-                5.562999999999999
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.6,
-          "materials": [
-            "#e4d8c9",
-            "#c8d0bd"
-          ],
-          "side_materials": [
-            "#c8d0bd",
-            "#e4d8c9"
-          ],
-          "rooms": [
-            "stress-narrow:L0:R3",
-            "stress-narrow:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
                 0.15000000000000036,
                 9.855999999999998
               ],
@@ -2358,12 +2835,12 @@
           "thickness_m": 0.1,
           "height_m": 2.6,
           "materials": [
-            "#e4d8c9",
-            "#c8d0bd"
+            "#b47b68",
+            "#e0c3a4"
           ],
           "side_materials": [
-            "#c8d0bd",
-            "#e4d8c9"
+            "#e0c3a4",
+            "#b47b68"
           ],
           "rooms": [
             "stress-narrow:L0:R3",
@@ -2380,12 +2857,148 @@
             "type": "LineString",
             "coordinates": [
               [
-                3.8100000000000005,
+                2.6900000000000004,
+                9.855999999999998
+              ],
+              [
+                2.6900000000000004,
+                9.702999999999998
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#b47b68",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R3",
+            "stress-narrow:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.6900000000000004,
+                8.821
+              ],
+              [
+                2.6900000000000004,
+                7.155999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#b47b68",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R3",
+            "stress-narrow:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.6900000000000004,
+                7.155999999999999
+              ],
+              [
+                0.28999900000000006,
+                7.155999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#b47b68",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R3",
+            "stress-narrow:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.290001,
+                7.155999999999999
+              ],
+              [
+                0.15000000000000036,
+                7.155999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#b47b68",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R3",
+            "stress-narrow:L0:R3:reclaimed:0:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.6900000000000004,
                 0.14999999999999858
               ],
               [
-                3.8100000000000005,
-                4.561999999999998
+                2.6900000000000004,
+                1.2653199999999987
               ]
             ]
           },
@@ -2393,11 +3006,113 @@
           "height_m": 2.6,
           "materials": [
             "#8f5f49",
-            "#c8d0bd"
+            "#8f5f49"
           ],
           "side_materials": [
-            "#c8d0bd",
+            "#8f5f49",
             "#8f5f49"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R4",
+            "stress-narrow:L0:R5"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.6900000000000004,
+                1.2653199999999987
+              ],
+              [
+                3.8100000000000005,
+                1.2653199999999987
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#929d7c",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#929d7c"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R4",
+            "stress-narrow:L0:R5"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.8100000000000005,
+                1.2653199999999987
+              ],
+              [
+                3.8100000000000005,
+                2.943000999999998
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#929d7c",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#929d7c"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R4",
+            "stress-narrow:L0:R5"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.8100000000000005,
+                2.9429989999999977
+              ],
+              [
+                3.8100000000000005,
+                4.022859219999997
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#929d7c",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#929d7c"
           ],
           "rooms": [
             "stress-narrow:L0:R4",
@@ -2415,7 +3130,7 @@
             "coordinates": [
               [
                 3.8100000000000005,
-                5.443999999999999
+                4.904859219999999
               ],
               [
                 3.8100000000000005,
@@ -2426,12 +3141,12 @@
           "thickness_m": 0.1,
           "height_m": 2.6,
           "materials": [
-            "#eee4d5",
-            "#c8d0bd"
+            "#929d7c",
+            "#e0c3a4"
           ],
           "side_materials": [
-            "#c8d0bd",
-            "#eee4d5"
+            "#e0c3a4",
+            "#929d7c"
           ],
           "rooms": [
             "stress-narrow:L0:R4",
@@ -2460,15 +3175,151 @@
           "thickness_m": 0.1,
           "height_m": 2.6,
           "materials": [
-            "#eee4d5",
-            "#c8d0bd"
+            "#929d7c",
+            "#e0c3a4"
           ],
           "side_materials": [
-            "#c8d0bd",
-            "#eee4d5"
+            "#e0c3a4",
+            "#929d7c"
           ],
           "rooms": [
             "stress-narrow:L0:R4",
+            "stress-narrow:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.6900000000000004,
+                4.442999999999998
+              ],
+              [
+                2.6900000000000004,
+                4.403999999999998
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#cdb582",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#cdb582"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R5",
+            "stress-narrow:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.6900000000000004,
+                3.521999999999998
+              ],
+              [
+                2.6900000000000004,
+                2.942999999999998
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#cdb582",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#cdb582"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R5",
+            "stress-narrow:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.6900000000000004,
+                2.942999999999998
+              ],
+              [
+                3.81,
+                2.942999999999998
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#cdb582",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#cdb582"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R5",
+            "stress-narrow:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.199999,
+                4.442999999999998
+              ],
+              [
+                2.6900000000000004,
+                4.442999999999998
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#cdb582",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#cdb582"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R5",
             "stress-narrow:L0:hall"
           ],
           "grade": "inferred",
@@ -2486,7 +3337,7 @@
                 4.442999999999998
               ],
               [
-                2.6900000000000004,
+                2.2000010000000003,
                 4.442999999999998
               ]
             ]
@@ -2494,16 +3345,16 @@
           "thickness_m": 0.1,
           "height_m": 2.6,
           "materials": [
-            "#8f5f49",
-            "#c8d0bd"
+            "#cdb582",
+            "#cdb582"
           ],
           "side_materials": [
-            "#c8d0bd",
-            "#8f5f49"
+            "#cdb582",
+            "#cdb582"
           ],
           "rooms": [
             "stress-narrow:L0:R5",
-            "stress-narrow:L0:hall"
+            "stress-narrow:L0:R3:reclaimed:0:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -2516,28 +3367,28 @@
             "type": "LineString",
             "coordinates": [
               [
-                2.6900000000000004,
-                4.442999999999998
+                2.2,
+                5.563
               ],
               [
-                2.6900000000000004,
-                2.737499999999998
+                2.69,
+                5.563
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.6,
           "materials": [
-            "#d9bcb0",
-            "#c8d0bd"
+            "#e0c3a4",
+            "#cdb582"
           ],
           "side_materials": [
-            "#c8d0bd",
-            "#d9bcb0"
+            "#cdb582",
+            "#e0c3a4"
           ],
           "rooms": [
-            "stress-narrow:L0:R5",
-            "stress-narrow:L0:hall"
+            "stress-narrow:L0:hall",
+            "stress-narrow:L0:R3:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -2550,28 +3401,232 @@
             "type": "LineString",
             "coordinates": [
               [
-                2.6900000000000004,
-                1.8554999999999984
+                2.69,
+                5.563
               ],
               [
-                2.6900000000000004,
-                0.14999999999999858
+                2.69,
+                6.234999999999999
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.6,
           "materials": [
-            "#d9bcb0",
-            "#c8d0bd"
+            "#e0c3a4",
+            "#cdb582"
           ],
           "side_materials": [
-            "#c8d0bd",
-            "#d9bcb0"
+            "#cdb582",
+            "#e0c3a4"
           ],
           "rooms": [
-            "stress-narrow:L0:R5",
-            "stress-narrow:L0:hall"
+            "stress-narrow:L0:hall",
+            "stress-narrow:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.69,
+                7.117000000000001
+              ],
+              [
+                2.69,
+                7.156001
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#e0c3a4",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#e0c3a4"
+          ],
+          "rooms": [
+            "stress-narrow:L0:hall",
+            "stress-narrow:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.2,
+                5.459498999999999
+              ],
+              [
+                2.2,
+                5.563
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#e0c3a4",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#e0c3a4"
+          ],
+          "rooms": [
+            "stress-narrow:L0:hall",
+            "stress-narrow:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.2,
+                4.443
+              ],
+              [
+                2.2,
+                5.4595009999999995
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#e0c3a4",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#e0c3a4"
+          ],
+          "rooms": [
+            "stress-narrow:L0:hall",
+            "stress-narrow:L0:R3:reclaimed:0:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.2,
+                5.459499999999999
+              ],
+              [
+                1.846,
+                5.459499999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#cdb582",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#cdb582"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R3:reclaimed:0",
+            "stress-narrow:L0:R3:reclaimed:0:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.6440000000000001,
+                5.459499999999999
+              ],
+              [
+                0.29000000000000004,
+                5.459499999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#cdb582",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#cdb582"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R3:reclaimed:0",
+            "stress-narrow:L0:R3:reclaimed:0:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.29000000000000004,
+                5.459499999999999
+              ],
+              [
+                0.29000000000000004,
+                7.156
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "materials": [
+            "#cdb582",
+            "#cdb582"
+          ],
+          "side_materials": [
+            "#cdb582",
+            "#cdb582"
+          ],
+          "rooms": [
+            "stress-narrow:L0:R3:reclaimed:0",
+            "stress-narrow:L0:R3:reclaimed:0:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -2647,9 +3702,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2734,9 +3792,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2817,9 +3878,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2900,9 +3964,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2978,9 +4045,12 @@
             "estimated_cost_usd": 570
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3056,9 +4126,12 @@
             "estimated_cost_usd": 570
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3134,9 +4207,12 @@
             "estimated_cost_usd": 570
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3212,9 +4288,12 @@
             "estimated_cost_usd": 570
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3299,9 +4378,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3382,9 +4464,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3465,9 +4550,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3548,9 +4636,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3635,9 +4726,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3660,39 +4754,39 @@
           "id": "stress-narrow:L0:R3:item:0",
           "role": "toilet",
           "position_m": [
-            2.2550000000000003,
+            0.5850000000000004,
             0.0,
-            8.536199999999997
+            8.397666666666666
           ],
           "size_m": [
             0.55,
             0.78,
             0.72
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  2.615,
-                  8.811199999999998
+                  0.22500000000000042,
+                  8.122666666666666
                 ],
                 [
-                  1.8950000000000005,
-                  8.811199999999998
+                  0.9450000000000004,
+                  8.122666666666666
                 ],
                 [
-                  1.8950000000000005,
-                  8.261199999999997
+                  0.9450000000000004,
+                  8.672666666666666
                 ],
                 [
-                  2.615,
-                  8.261199999999997
+                  0.22500000000000042,
+                  8.672666666666666
                 ],
                 [
-                  2.615,
-                  8.811199999999998
+                  0.22500000000000042,
+                  8.122666666666666
                 ]
               ]
             ]
@@ -3713,9 +4807,12 @@
             "estimated_cost_usd": 570
           },
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3726,8 +4823,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.4650000000000003,
-            8.536199999999997
+            1.3750000000000004,
+            8.397666666666666
           ],
           "confidence": 0.25,
           "measured": false,
@@ -3738,39 +4835,39 @@
           "id": "stress-narrow:L0:R3:item:1",
           "role": "bath_sink",
           "position_m": [
-            2.365,
+            0.47500000000000037,
             0.0,
-            6.906133333333332
+            9.199749999999998
           ],
           "size_m": [
             0.65,
             0.85,
             0.5
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  2.615,
-                  7.231133333333332
+                  0.22500000000000037,
+                  8.874749999999999
                 ],
                 [
-                  2.115,
-                  7.231133333333332
+                  0.7250000000000003,
+                  8.874749999999999
                 ],
                 [
-                  2.115,
-                  6.581133333333332
+                  0.7250000000000003,
+                  9.524749999999997
                 ],
                 [
-                  2.615,
-                  6.581133333333332
+                  0.22500000000000037,
+                  9.524749999999997
                 ],
                 [
-                  2.615,
-                  7.231133333333332
+                  0.22500000000000037,
+                  8.874749999999999
                 ]
               ]
             ]
@@ -3791,9 +4888,12 @@
             "estimated_cost_usd": 570
           },
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3804,8 +4904,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.6850000000000003,
-            6.906133333333332
+            1.1550000000000002,
+            9.199749999999998
           ],
           "confidence": 0.25,
           "measured": false,
@@ -3816,39 +4916,39 @@
           "id": "stress-narrow:L0:R3:item:2",
           "role": "bath_shower",
           "position_m": [
-            0.6000000000000003,
+            1.526666666666667,
             0.0,
-            7.596181818181817
+            7.605999999999999
           ],
           "size_m": [
-            1.6,
-            2.05,
+            1.7,
+            0.6,
             0.75
           ],
-          "rotation_deg": -90.0,
+          "rotation_deg": -0.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  0.2250000000000003,
-                  6.796181818181817
+                  2.376666666666667,
+                  7.230999999999999
                 ],
                 [
-                  0.9750000000000003,
-                  6.796181818181817
+                  2.376666666666667,
+                  7.980999999999999
                 ],
                 [
-                  0.9750000000000003,
-                  8.396181818181818
+                  0.6766666666666671,
+                  7.980999999999999
                 ],
                 [
-                  0.2250000000000003,
-                  8.396181818181818
+                  0.6766666666666671,
+                  7.230999999999999
                 ],
                 [
-                  0.2250000000000003,
-                  6.796181818181817
+                  2.376666666666667,
+                  7.230999999999999
                 ]
               ]
             ]
@@ -3869,9 +4969,12 @@
             "estimated_cost_usd": 570
           },
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3882,8 +4985,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.4050000000000002,
-            7.596181818181817
+            1.526666666666667,
+            8.411
           ],
           "confidence": 0.25,
           "measured": false,
@@ -3956,9 +5059,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4097,9 +5203,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4184,9 +5293,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4267,9 +5379,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4292,7 +5407,7 @@
           "id": "stress-narrow:L0:R5:item:0",
           "role": "bed",
           "position_m": [
-            1.0000000000000004,
+            1.6300000000000003,
             0.0,
             1.2249999999999985
           ],
@@ -4307,23 +5422,23 @@
             "coordinates": [
               [
                 [
-                  1.7500000000000004,
+                  2.3800000000000003,
                   0.22499999999999853
                 ],
                 [
-                  1.7500000000000004,
+                  2.3800000000000003,
                   2.2249999999999988
                 ],
                 [
-                  0.25000000000000044,
+                  0.8800000000000003,
                   2.2249999999999988
                 ],
                 [
-                  0.25000000000000044,
+                  0.8800000000000003,
                   0.22499999999999853
                 ],
                 [
-                  1.7500000000000004,
+                  2.3800000000000003,
                   0.22499999999999853
                 ]
               ]
@@ -4354,9 +5469,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#cdb582",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4367,7 +5485,7 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.0000000000000004,
+            1.6300000000000003,
             2.6549999999999985
           ],
           "reserved_clearance": {
@@ -4375,23 +5493,23 @@
             "coordinates": [
               [
                 [
-                  1.7500000000000004,
+                  2.3800000000000003,
                   2.2549999999999986
                 ],
                 [
-                  1.7500000000000004,
+                  2.3800000000000003,
                   2.9549999999999987
                 ],
                 [
-                  0.25000000000000044,
+                  0.8800000000000003,
                   2.9549999999999987
                 ],
                 [
-                  0.25000000000000044,
+                  0.8800000000000003,
                   2.2549999999999986
                 ],
                 [
-                  1.7500000000000004,
+                  2.3800000000000003,
                   2.2549999999999986
                 ]
               ]
@@ -4402,23 +5520,23 @@
             "coordinates": [
               [
                 [
-                  2.4350000000000005,
+                  0.8450000000000004,
                   0.22499999999999853
                 ],
                 [
-                  2.4350000000000005,
+                  0.8450000000000004,
                   2.2249999999999988
                 ],
                 [
-                  1.7850000000000004,
+                  0.19500000000000045,
                   2.2249999999999988
                 ],
                 [
-                  1.7850000000000004,
+                  0.19500000000000045,
                   0.22499999999999853
                 ],
                 [
-                  2.4350000000000005,
+                  0.8450000000000004,
                   0.22499999999999853
                 ]
               ]
@@ -4435,7 +5553,7 @@
           "position_m": [
             0.4250000000000004,
             0.0,
-            3.434937499999998
+            2.5241874999999983
           ],
           "size_m": [
             0.45,
@@ -4449,23 +5567,23 @@
               [
                 [
                   0.22500000000000037,
-                  3.209937499999998
+                  2.299187499999998
                 ],
                 [
                   0.6250000000000004,
-                  3.209937499999998
+                  2.299187499999998
                 ],
                 [
                   0.6250000000000004,
-                  3.659937499999998
+                  2.7491874999999983
                 ],
                 [
                   0.22500000000000037,
-                  3.659937499999998
+                  2.7491874999999983
                 ],
                 [
                   0.22500000000000037,
-                  3.209937499999998
+                  2.299187499999998
                 ]
               ]
             ]
@@ -4495,9 +5613,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#cdb582",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4509,7 +5630,7 @@
           "grade": "inferred",
           "interaction_point_m": [
             1.0550000000000004,
-            3.434937499999998
+            2.5241874999999983
           ],
           "confidence": 0.25,
           "measured": false,
@@ -4522,7 +5643,7 @@
           "position_m": [
             0.4250000000000004,
             0.5,
-            3.434937499999998
+            2.5241874999999983
           ],
           "size_m": [
             0.1,
@@ -4536,23 +5657,23 @@
               [
                 [
                   0.3750000000000004,
-                  3.384937499999998
+                  2.4741874999999984
                 ],
                 [
                   0.47500000000000037,
-                  3.384937499999998
+                  2.4741874999999984
                 ],
                 [
                   0.47500000000000037,
-                  3.484937499999998
+                  2.574187499999998
                 ],
                 [
                   0.3750000000000004,
-                  3.484937499999998
+                  2.574187499999998
                 ],
                 [
                   0.3750000000000004,
-                  3.384937499999998
+                  2.4741874999999984
                 ]
               ]
             ]
@@ -4582,9 +5703,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#cdb582",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4603,7 +5727,7 @@
           "id": "stress-narrow:L0:R5:item:3",
           "role": "dresser",
           "position_m": [
-            2.3900000000000006,
+            0.45000000000000034,
             0.0,
             3.436857142857141
           ],
@@ -4612,30 +5736,30 @@
             0.85,
             0.45
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  2.6150000000000007,
-                  3.8868571428571412
-                ],
-                [
-                  2.1650000000000005,
-                  3.8868571428571412
-                ],
-                [
-                  2.1650000000000005,
+                  0.22500000000000034,
                   2.986857142857141
                 ],
                 [
-                  2.6150000000000007,
+                  0.6750000000000004,
                   2.986857142857141
                 ],
                 [
-                  2.6150000000000007,
+                  0.6750000000000004,
                   3.8868571428571412
+                ],
+                [
+                  0.22500000000000034,
+                  3.8868571428571412
+                ],
+                [
+                  0.22500000000000034,
+                  2.986857142857141
                 ]
               ]
             ]
@@ -4665,9 +5789,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#cdb582",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4678,8 +5805,251 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.7350000000000005,
+            1.1050000000000004,
             3.436857142857141
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-narrow:L0:R3:reclaimed:0:item:0",
+          "role": "toilet",
+          "position_m": [
+            0.665,
+            0.0,
+            6.721
+          ],
+          "size_m": [
+            0.55,
+            0.78,
+            0.72
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.39,
+                  7.081
+                ],
+                [
+                  0.39,
+                  6.361
+                ],
+                [
+                  0.9400000000000001,
+                  6.361
+                ],
+                [
+                  0.9400000000000001,
+                  7.081
+                ],
+                [
+                  0.39,
+                  7.081
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-narrow:L0:R3:reclaimed:0",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "stress-narrow:L0:R3:reclaimed:0",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 570
+          },
+          "materials": {
+            "wall": "#cdb582",
+            "accent_wall": "#8f5f49",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#71503d",
+            "fabric": "#b7a18e",
+            "metal": "#756451",
+            "countertop": "#d5c7b5",
+            "floor": "#d5c7b5",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            0.665,
+            5.931
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-narrow:L0:R3:reclaimed:0:item:1",
+          "role": "bath_sink",
+          "position_m": [
+            1.3792857142857144,
+            0.0,
+            6.8309999999999995
+          ],
+          "size_m": [
+            0.65,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.0542857142857145,
+                  7.0809999999999995
+                ],
+                [
+                  1.0542857142857145,
+                  6.5809999999999995
+                ],
+                [
+                  1.7042857142857144,
+                  6.5809999999999995
+                ],
+                [
+                  1.7042857142857144,
+                  7.0809999999999995
+                ],
+                [
+                  1.0542857142857145,
+                  7.0809999999999995
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-narrow:L0:R3:reclaimed:0",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "stress-narrow:L0:R3:reclaimed:0",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 570
+          },
+          "materials": {
+            "wall": "#cdb582",
+            "accent_wall": "#8f5f49",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#71503d",
+            "fabric": "#b7a18e",
+            "metal": "#756451",
+            "countertop": "#d5c7b5",
+            "floor": "#d5c7b5",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.3792857142857144,
+            6.151
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-narrow:L0:R3:reclaimed:0:reclaimed:0:item:0",
+          "role": "closet_rail",
+          "position_m": [
+            0.405,
+            0.0,
+            4.943
+          ],
+          "size_m": [
+            0.8,
+            1.65,
+            0.36
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22500000000000003,
+                  4.542999999999999
+                ],
+                [
+                  0.585,
+                  4.542999999999999
+                ],
+                [
+                  0.585,
+                  5.343
+                ],
+                [
+                  0.22500000000000003,
+                  5.343
+                ],
+                [
+                  0.22500000000000003,
+                  4.542999999999999
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-narrow:L0:R3:reclaimed:0:reclaimed:0",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "stress-narrow:L0:R3:reclaimed:0:reclaimed:0",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "procedural:closet_rail",
+            "role": "closet_rail",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 570
+          },
+          "materials": {
+            "wall": "#cdb582",
+            "accent_wall": "#8f5f49",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#71503d",
+            "fabric": "#b7a18e",
+            "metal": "#756451",
+            "countertop": "#d5c7b5",
+            "floor": "#71503d",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.0150000000000001,
+            4.943
           ],
           "confidence": 0.25,
           "measured": false,
@@ -4687,6 +6057,11 @@
           "corroboration_count": 0
         }
       ],
+      "space_efficiency": {
+        "wet_area_reclaimed_m2": 4.046220000000001,
+        "half_baths_added": 1,
+        "hallway_reclaimed_m2": 5.424159999999999
+      },
       "grade": "inferred",
       "confidence": 0.25,
       "measured": false,
@@ -4697,7 +6072,7 @@
   "stairs": [],
   "total_height_m": 2.75,
   "partition_score": 0.2278367935119375,
-  "estimated_furniture_cost_usd": 14790,
+  "estimated_furniture_cost_usd": 16500,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -4710,26 +6085,18 @@
     "errors": [],
     "warnings": [],
     "metrics": {
-      "room_count": 7,
-      "objects": 24,
-      "coverage_min": 1.0,
-      "hallway_area_fraction_max": 0.18825879351193736,
+      "room_count": 9,
+      "objects": 27,
+      "coverage_min": 0.9999999999999997,
+      "hallway_area_fraction_max": 0.13883141971933669,
       "downloaded_assets_used": 17,
-      "connected_rooms": 7
+      "connected_rooms": 9
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
   },
   "search": {
-    "candidates_tried": 17,
+    "candidates_tried": 11,
     "rejected": [
-      "stress-narrow:L0:R2: no reachable dining set fits",
-      "stress-narrow:L0:R2: no reachable dining set fits",
-      "stress-narrow:L0:R2: no reachable dining set fits",
-      "stress-narrow:L0:R2: no reachable dining set fits",
-      "stress-narrow:L0:R2: no reachable dining set fits",
-      "stress-narrow:L0:R2: no reachable dining set fits",
-      "stress-narrow:L0:R2: no reachable dining set fits",
-      "stress-narrow:L0:R2: no reachable dining set fits",
       "stress-narrow:L0:R2: no reachable dining set fits",
       "stress-narrow:L0:R2: no reachable dining set fits",
       "stress-narrow:L0:R2: no reachable dining set fits",
@@ -4739,8 +6106,11 @@
       "stress-narrow:L0:R2: no reachable dining set fits",
       "stress-narrow:L0:R2: no reachable dining set fits"
     ],
-    "built_in_closets": true
+    "built_in_closets": true,
+    "valid_layouts_compared": 3,
+    "objective": "least circulation and oversized low-use room area"
   },
+  "space_score": 1.3883141971933668,
   "name": "narrow",
   "input_evidence": {
     "id": "stress-narrow",

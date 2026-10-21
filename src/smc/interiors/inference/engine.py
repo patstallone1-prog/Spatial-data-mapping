@@ -6,14 +6,21 @@ import copy
 import math
 from itertools import combinations, pairwise
 
+from shapely.errors import GEOSException
 from shapely.geometry import LineString, Point, Polygon, box, shape
 from shapely.ops import nearest_points, unary_union
 
 from smc.interiors.inference.catalog import Catalog
+from smc.interiors.inference.efficiency import (
+    reclaim_hallway,
+    rightsize_wet_rooms,
+    storage_half_bath,
+    trim_blind_ends,
+)
 from smc.interiors.inference.furnish import RoomFurnisher
 from smc.interiors.inference.model import HouseInput, geo, stamp_inference
 from smc.interiors.inference.partition import lines, partition_candidates, shared, width
-from smc.interiors.inference.style import house_style, room_materials
+from smc.interiors.inference.style import door_finish, house_style, room_materials
 
 PRIVATE = {"bedroom", "primary_bedroom", "full_bathroom", "toilet", "office"}
 PUBLIC = {"living", "kitchen", "dining", "hallway"}
@@ -66,61 +73,21 @@ def closet_split(room: dict) -> list[dict]:
     return [room]
 
 
-def trim_wet_room(room: dict) -> list[dict]:
-    """Use excess bathroom area for storage/laundry instead of oversized WC chambers."""
-    if room["kind"] not in {"toilet", "full_bathroom"}:
-        return [room]
-    p = room["shape"]
-    target = 5.2 if room["kind"] == "toilet" else 8.0
-    if p.area < target + 4:
-        return [room]
-    from shapely import affinity
-
-    rect = list(p.minimum_rotated_rectangle.exterior.coords)
-    a, b = max(pairwise(rect), key=lambda ab: math.dist(*ab))
-    angle = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
-    origin = p.centroid.coords[0]
-    local = affinity.rotate(p, -angle, origin=origin)
-    x0, y0, x1, y1 = local.bounds
-    candidates = []
-    for f in (target / p.area, 1 - target / p.area):
-        for cut in (
-            box(x0 - 1, y0 - 1, x0 + (x1 - x0) * f, y1 + 1),
-            box(x0 - 1, y0 - 1, x1 + 1, y0 + (y1 - y0) * f),
-        ):
-            parts = [local.intersection(cut), local.difference(cut)]
-            parts.sort(key=lambda q: abs(q.area - target))
-            wet, surplus = parts
-            if (
-                wet.geom_type != "Polygon"
-                or surplus.geom_type != "Polygon"
-                or wet.area < target * 0.85
-                or surplus.area < 2
-                or width(wet) < 1.8
-            ):
-                continue
-            wet, surplus = (affinity.rotate(q, angle, origin=origin) for q in parts)
-            if shared(wet, room["hall"]).length < 0.96:
-                continue
-            candidates.append((abs(wet.area - target), wet, surplus))
-    if not candidates:
-        return [room]
-    _, wet, surplus = min(candidates, key=lambda c: c[0])
-    extra = {"id": room["id"] + ":storage", "shape": surplus}
-    if shared(surplus, room["hall"]).length >= 1.05:
-        extra["kind"] = "utility"
-    else:
-        extra |= {"kind": "closet", "parent_room": room["id"]}
-    return [{**room, "shape": wet}, extra]
-
-
 def opening(
-    a: dict, b: dict | None, line: LineString, kind: str, index: int, width_m: float | None = None
+    a: dict,
+    b: dict | None,
+    line: LineString,
+    kind: str,
+    index: int,
+    width_m: float | None = None,
+    fraction: float = 0.5,
 ) -> dict:
     c = line.interpolate(0.5, normalized=True)
     x, y = next(iter(line.coords)), list(line.coords)[-1]
     length = math.dist(x, y)
     use = min(length - 0.08, width_m) if width_m is not None else length
+    if use < length - 0.001:
+        c = line.interpolate(max(use / 2 + 0.04, min(length - use / 2 - 0.04, length * fraction)))
     ux, uy = (y[0] - x[0]) / length, (y[1] - x[1]) / length
     segment = LineString(
         [(c.x - ux * use / 2, c.y - uy * use / 2), (c.x + ux * use / 2, c.y + uy * use / 2)]
@@ -152,7 +119,8 @@ def connect(rooms: list[dict], footprint, entrance, level: int, stair_access=Non
         if room is hall:
             continue
         if room["kind"] in PRIVATE | {"utility", "stair"}:
-            edges = lines(shared(room["shape"], hall["shape"]))
+            access_room = next((r for r in rooms if r["id"] == room.get("access_via")), hall)
+            edges = lines(shared(room["shape"], access_room["shape"]))
             edges = [e for e in edges if e.length >= 0.96]
             if not edges:
                 raise ValueError(f"{room['id']}: no doorway from hallway")
@@ -171,11 +139,12 @@ def connect(rooms: list[dict], footprint, entrance, level: int, stair_access=Non
             connections.append(
                 opening(
                     room,
-                    hall,
+                    access_room,
                     line,
                     kind,
                     len(connections),
                     None if room["kind"] == "stair" else 0.88 if kind == "single_door" else 1.05,
+                    fraction=0.22 if kind == "single_door" else 0.5,
                 )
             )
         elif room["kind"] == "closet":
@@ -299,7 +268,6 @@ def _build(
     style: dict,
     *,
     closets: bool = True,
-    trim_wet: bool = True,
 ) -> dict:
     output = []
     stairways = []
@@ -324,18 +292,93 @@ def _build(
                 "shape": geometry,
                 "hall": floor["hall"],
             }
-            if trim_wet and kind in {"toilet", "full_bathroom"}:
-                rooms.extend(trim_wet_room(room))
-            else:
-                rooms.extend(closet_split(room) if closets else [room])
+            rooms.extend(closet_split(room) if closets else [room])
         rooms.append({"id": f"{spec.id}:L{level}:hall", "kind": "hallway", "shape": floor["hall"]})
         if partition.stair is not None:
             rooms.append(
                 {"id": f"{spec.id}:L{level}:stair", "kind": "stair", "shape": partition.stair}
             )
+        hall_room = next(r for r in rooms if r["kind"] == "hallway")
+
+        def wet_fits(room, hall_room=hall_room, elevation=elevation, floor=floor, level=level):
+            room = dict(room)
+            room["materials"] = room_materials(style, room["kind"], 0)
+            try:
+                preview = room.get("_preview_rooms")
+                if preview is not None:
+                    portals = [
+                        o
+                        for o in connect(
+                            preview, floor["inside"], spec.entrance, level, stair_access
+                        )
+                        if room["id"] in o["rooms"]
+                    ]
+                else:
+                    edges = [
+                        e
+                        for e in lines(
+                            shared(room["shape"], room.get("_access_shape", hall_room["shape"]))
+                        )
+                        if e.length >= 0.96
+                    ]
+                    if not edges:
+                        return False
+                    portals = [
+                        opening(
+                            room,
+                            hall_room,
+                            max(edges, key=lambda e: e.length),
+                            "full_access" if room["kind"] in PUBLIC | {"closet"} else "single_door",
+                            0,
+                            None
+                            if room["kind"] in PUBLIC
+                            else 1.2
+                            if room["kind"] == "closet"
+                            else 0.88,
+                            fraction=0.5 if room["kind"] in PUBLIC | {"closet"} else 0.22,
+                        )
+                    ]
+                RoomFurnisher(
+                    room,
+                    style,
+                    catalog,
+                    [shape(o["segment"]) for o in portals],
+                    elevation,
+                    portal_zones=[shape(o["clearance"]) for o in portals],
+                    windows=(spec.envelope or {}).get("windows", []),
+                ).furnish()
+                return True
+            except (ValueError, GEOSException):
+                return False
+
+        rooms, efficiency = rightsize_wet_rooms(
+            rooms,
+            hall_room["shape"],
+            wet_fits,
+            add_half_bath=len(spec.storeys) == 1 and floor["inside"].area >= 85,
+        )
+        efficiency["hallway_reclaimed_m2"] = 0.0
+        for _ in range(8):
+            preliminary = connect(rooms, floor["inside"], spec.entrance, level, stair_access)
+            rooms, reclaimed = reclaim_hallway(rooms, preliminary, partition.angle)
+            rooms, tails = trim_blind_ends(rooms, preliminary)
+            reclaimed += tails
+            efficiency["hallway_reclaimed_m2"] += reclaimed
+            if reclaimed < 0.02:
+                break
+        if len(spec.storeys) == 1 and floor["inside"].area >= 85:
+            current_hall = next(r["shape"] for r in rooms if r["kind"] == "hallway")
+            rooms, added = storage_half_bath(rooms, current_hall, wet_fits)
+            efficiency["half_baths_added"] += added
         for i, r in enumerate(rooms):
             r["materials"] = room_materials(style, r["kind"], i)
         openings = connect(rooms, floor["inside"], spec.entrance, level, stair_access)
+        for o in openings:
+            if o["leaf_count"]:
+                room = next(r for r in rooms if r["id"] == o["rooms"][0])
+                o["appearance"] = door_finish(
+                    style, room["kind"], o["id"], o.get("entrance", False)
+                )
         objects = []
         for r in rooms:
             portals = [
@@ -449,6 +492,7 @@ def _build(
                 "openings": openings,
                 "walls": walls,
                 "objects": objects,
+                "space_efficiency": efficiency,
             }
         )
         elevation += spec.storeys[level].height_m
@@ -514,18 +558,12 @@ def infer_house(spec: HouseInput, catalog: Catalog | None = None) -> dict:
     failures = []
     candidates = partition_candidates(spec)
     attempt = 0
+    solutions = []
     for candidate in candidates:
-        for include_closets, trim_wet in (
-            (True, True),
-            (False, True),
-            (True, False),
-            (False, False),
-        ):
+        for include_closets in (True, False):
             attempt += 1
             try:
-                result = _build(
-                    spec, candidate, catalog, style, closets=include_closets, trim_wet=trim_wet
-                )
+                result = _build(spec, candidate, catalog, style, closets=include_closets)
                 stamp_inference(result, 0.25)
                 result["validation"] = validate_house(result)
                 if not result["validation"]["passed"]:
@@ -535,7 +573,31 @@ def infer_house(spec: HouseInput, catalog: Catalog | None = None) -> dict:
                     "rejected": failures,
                     "built_in_closets": include_closets,
                 }
-                return result
-            except ValueError as exc:
+                hall_fraction = sum(
+                    sum(r["area_m2"] for r in f["rooms"] if r["kind"] == "hallway")
+                    / shape(f["inside"]).area
+                    for f in result["storeys"]
+                ) / len(result["storeys"])
+                oversized = (
+                    sum(
+                        max(0, r["area_m2"] - (35 if r["kind"] in PUBLIC else 28))
+                        for f in result["storeys"]
+                        for r in f["rooms"]
+                        if r["kind"] not in {"hallway", "stair"}
+                    )
+                    / area
+                )
+                result["space_score"] = 10 * hall_fraction + oversized
+                solutions.append(result)
+                break
+            except (ValueError, GEOSException) as exc:
                 failures.append(str(exc))
+        if len(solutions) >= 3:
+            break
+    if solutions:
+        result = min(solutions, key=lambda r: r["space_score"])
+        result["search"]["valid_layouts_compared"] = len(solutions)
+        result["search"]["candidates_tried"] = attempt
+        result["search"]["objective"] = "least circulation and oversized low-use room area"
+        return result
     raise ValueError("all layout candidates failed: " + "; ".join(dict.fromkeys(failures)))

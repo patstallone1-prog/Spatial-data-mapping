@@ -1,7 +1,7 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import {OrbitControls} from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 import {GLTFLoader} from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildInferredHouse} from './renderer.mjs';
+import {buildInferredHouse} from './renderer.mjs?v=space-finishes-2';
 import {TourWorld,inPolygon} from './tour-world.mjs';
 const restaurant=location.pathname.includes('inferred-restaurants');
 const $=id=>document.getElementById(id),canvas=$('canvas'),viewport=$('viewport');
@@ -29,7 +29,7 @@ function render(now=performance.now()){requestAnimationFrame(render);const dt=Ma
  const f=world.level(position.y),room=f.rooms.find(r=>inPolygon(position.x,position.z,r.polygon));$('location').textContent=`Floor ${f.level+1} · ${(room?.kind||'stairs').replaceAll('_',' ')}`;
  }else controls.update();renderer.render(scene,camera);}render();
 function escape(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function dispose(group){group.traverse(n=>{if(n.geometry&&!n.userData?.sharedInteriorAsset)n.geometry.dispose();});}
+function dispose(group){const mats=new Set(),textures=new Set();group.traverse(n=>{if(n.userData?.sharedInteriorAsset)return;if(n.geometry)n.geometry.dispose();for(const m of Array.isArray(n.material)?n.material:[n.material])if(m)mats.add(m);});for(const m of mats){for(const key of ['map','normalMap','bumpMap','roughnessMap'])if(m[key])textures.add(m[key]);m.dispose();}for(const t of textures)t.dispose();}
 function rebuild(reset=false){
  if(!current)return;if(built){scene.remove(built.group);dispose(built.group);}
  const touring=mode==='tour',level=touring?-1:Number($('floor').value),height=touring?7:(fullWalls?7:.9);
@@ -66,14 +66,14 @@ function drawPlan(){
 async function choose(record){
  const token=++generation;
  document.querySelectorAll('.house').forEach(b=>b.classList.toggle('active',b.dataset.id===record.id));
- const h=await fetch(record.file).then(r=>r.json());if(token!==generation)return;current=h;
+ const h=await fetch(record.file,{cache:'no-store'}).then(r=>r.json());if(token!==generation)return;current=h;
  $('name').textContent=h.name;$('subtitle').textContent=`${h.storeys.length} storey${h.storeys.length>1?'s':''} · ${h.style.tier} allowance · ${restaurant?'Assumed ground-floor tenant envelope':h.id.startsWith('osm-')?'Kerbside mapped footprint':'Synthetic stress shape'}`;
  $('floor').innerHTML=h.storeys.map(f=>`<option value="${f.level}">${f.level===0?'Ground floor':`Floor ${f.level+1}`} · ${f.height_m.toFixed(2)} m</option>`).join('')+(h.storeys.length>1?'<option value="-1">All floors · separated</option>':'');
  $('area').textContent=h.storeys.reduce((s,f)=>s+f.rooms.reduce((a,r)=>a+r.area_m2,0),0).toFixed(1);
  $('rooms').textContent=h.validation.metrics.room_count;$('objects').textContent=`Rooms · ${h.validation.metrics.objects} placed objects`;
  $('swatches').innerHTML=[...h.style.walls,h.style.wood,h.style.accent].map(c=>`<i style="background:${c}"></i>`).join('');$('palette').textContent=h.style.name;
  $('validation').textContent=h.validation.passed?'Geometry checks passed':'Validation failed';
- $('inspector').textContent=restaurant?`${h.validation.metrics.seats} seats · ${h.validation.metrics.tables} tables · ${h.validation.metrics.booths} booths. ${h.service_mode} service. ${h.style.economic_evidence}. Tenant boundary is an assumption. ${(h.omitted_optional_features||[]).join('; ')}`:`${(h.validation.metrics.coverage_min*100).toFixed(0)}% usable area covered. ${(h.validation.metrics.hallway_area_fraction_max*100).toFixed(0)}% maximum hallway share. ${h.style.economic_evidence}.`;
+ $('inspector').textContent=restaurant?`${h.validation.metrics.seats} seats · ${h.validation.metrics.tables} tables · ${h.validation.metrics.booths} booths. ${h.service_mode} service. ${h.style.economic_evidence}. Tenant boundary is an assumption. ${(h.omitted_optional_features||[]).join('; ')}`:`${(h.validation.metrics.coverage_min*100).toFixed(0)}% usable area covered. ${(h.validation.metrics.hallway_area_fraction_max*100).toFixed(0)}% maximum hallway share. ${h.storeys.reduce((sum,f)=>sum+(f.space_efficiency?.hallway_reclaimed_m2||0),0).toFixed(1)} m² of corridor returned to rooms. ${h.style.economic_evidence}.`;
  if(restaurant){$('spend').value=h.style.average_spend_per_person??'';$('economics').textContent=`${h.style.furnishing_finish} · ${h.style.economic_evidence}`;}
  const sources=new Map();for(const f of h.storeys)for(const o of f.objects)if(!o.asset.procedural)sources.set(o.asset.attribution,o.asset.source);
  $('credits').innerHTML=[...sources].map(([name,url])=>`<a href="${escape(url)}" target="_blank" rel="noreferrer">${escape(name)}</a>`).join(' · ');
@@ -86,9 +86,9 @@ $('floor').addEventListener('change',()=>{rebuild(mode!=='tour');if(mode==='tour
 function setMode(m){const wasTour=mode==='tour';mode=m;controls.enabled=m==='3d';canvas.style.display=m!=='2d'?'block':'none';$('plan').style.display=m==='2d'?'block':'none';$('three').classList.toggle('on',m==='3d');$('two').classList.toggle('on',m==='2d');$('tour').classList.toggle('on',m==='tour');$('tourbar').style.display=m==='tour'?'block':'none';$('walls').disabled=m==='tour';$('hint').textContent=m==='tour'?'WASD to walk · drag to look · arrows to turn · E for doors · walk up stairs or select a floor':m==='3d'?'Drag to orbit · scroll to zoom · select a floor above':'Select a room to inspect its inventory · local metre coordinates';
  if(m==='tour'){rebuild();spawnTour();}else if(wasTour){position=null;camera.fov=35;camera.updateProjectionMatrix();rebuild(true);}resize();}
 $('three').onclick=()=>setMode('3d');$('two').onclick=()=>setMode('2d');$('tour').onclick=()=>setMode('tour');$('visit-go').onclick=()=>spawnTour($('visit').value);$('door').onclick=toggleDoor;
-window.addEventListener('keydown',e=>{if(e.code==='Escape'&&viewport.classList.contains('expanded')){viewport.classList.remove('expanded');$('expand').textContent='Expand view';return;}if(mode!=='tour'||['INPUT','SELECT'].includes(document.activeElement.tagName))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();keys.add(e.code);}if(e.code==='KeyE'&&!e.repeat)toggleDoor();if(e.code==='Escape')setMode('3d');});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>keys.clear());
+window.addEventListener('keydown',e=>{if(e.code==='Escape'&&viewport.classList.contains('expanded')){viewport.classList.remove('expanded');$('expand').textContent='Expand view';return;}if(mode!=='tour'||['INPUT','SELECT'].includes(document.activeElement.tagName))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();if(!e.repeat&&e.code==='ArrowLeft')yaw+=Math.PI/12;if(!e.repeat&&e.code==='ArrowRight')yaw-=Math.PI/12;keys.add(e.code);}if(e.code==='KeyE'&&!e.repeat)toggleDoor();if(e.code==='Escape')setMode('3d');});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>keys.clear());
 let dragging=false;canvas.addEventListener('pointerdown',e=>{if(mode==='tour'){dragging=true;canvas.setPointerCapture(e.pointerId);canvas.focus();}});canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointermove',e=>{if(mode==='tour'&&dragging){yaw-=e.movementX*.004;pitch=Math.max(-1.35,Math.min(1.35,pitch-e.movementY*.004));}});
-try{const manifest=await fetch('./manifest.json').then(r=>r.json());$('batch').textContent=`${manifest.passed} / ${manifest.total} ${restaurant?'venues':'houses'} validated`;
+try{const manifest=await fetch('./manifest.json',{cache:'no-store'}).then(r=>r.json());$('batch').textContent=`${manifest.passed} / ${manifest.total} ${restaurant?'venues':'houses'} validated`;
  for(const [i,r]of manifest.houses.entries()){const b=document.createElement('button');b.className='house';b.dataset.id=r.id;
   b.innerHTML=`<span class="num">${String(i+1).padStart(2,'0')}</span><span><span class="title">${escape(r.name.split(',')[0])}</span><span class="sub">${r.passed?`${r.storeys} storey · ${r.metrics.objects} objects`:'Rejected input'}</span></span><span class="dot"></span>`;
   b.classList.toggle('failed',!r.passed);b.onclick=()=>r.passed?choose(r):$('inspector').textContent=`${r.name}: ${r.reason}`;$('houses').appendChild(b);}

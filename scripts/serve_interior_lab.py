@@ -22,6 +22,10 @@ slots = threading.BoundedSemaphore(1)
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def do_POST(self):
         if self.path != "/api/infer-restaurant":
             self.send_error(404)

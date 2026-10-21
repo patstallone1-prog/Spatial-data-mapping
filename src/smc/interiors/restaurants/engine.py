@@ -20,7 +20,7 @@ from smc.interiors.inference.engine import opening
 from smc.interiors.inference.furnish import RoomFurnisher, inward_point, oriented_box
 from smc.interiors.inference.model import geo, polygon, stamp_inference
 from smc.interiors.inference.partition import lines, polygons, shared, width
-from smc.interiors.inference.style import house_style, room_materials
+from smc.interiors.inference.style import door_finish, house_style, room_materials
 
 ROUTE_RADIUS = 0.475  # 0.95m clear customer route; design heuristic, not certification.
 KITCHEN_ROLES = {
@@ -249,8 +249,7 @@ def _furnisher(room, style, catalog, opens, radius=0.45):
 
 
 def _kitchen(room, style, catalog, opens):
-    f = _furnisher(room, style, catalog, opens)
-    for role, sizes in (
+    stations = (
         ("commercial_range", [(1.2, 0.8, 0.9), (0.9, 0.75, 0.9)]),
         ("warewash_sink", [(1.8, 0.7, 0.9), (1.5, 0.65, 0.9)]),
         ("prep_table", [(1.5, 0.7, 0.9), (1.1, 0.65, 0.9)]),
@@ -258,8 +257,24 @@ def _kitchen(room, style, catalog, opens):
         ("handwash_sink", [(0.45, 0.4, 0.85)]),
         ("dishwasher", [(0.6, 0.65, 0.85)]),
         ("dry_storage", [(0.8, 0.45, 1.8)]),
-    ):
-        f.wall(role, sizes, required=True)
+    )
+    # Greedy wall packing can strand the last station. Compare deterministic orders
+    # and compact equipment first before rejecting a small pickup kitchen.
+    last_error = None
+    for order in (stations, tuple(stations[i] for i in (1, 5, 0, 3, 2, 4, 6)), stations[::-1]):
+        for compact in (False, True):
+            f = _furnisher(room, style, catalog, opens)
+            try:
+                for role, sizes in order:
+                    f.wall(role, sizes[::-1] if compact else sizes, required=True)
+                break
+            except ValueError as exc:
+                last_error = exc
+        else:
+            continue
+        break
+    else:
+        raise last_error
     f.wall("waste_bin", [(0.4, 0.4, 0.65)], required=False)
     cooker = next(o for o in f.items if o["role"] == "commercial_range")
     x, _, y = cooker["position_m"]
@@ -510,6 +525,10 @@ def _build(spec, style, inside, rooms, opens, catalog):
         if inside.area < 60
         else "table"
     )
+    for o in opens:
+        if o["leaf_count"]:
+            room = next(r for r in rooms if r["id"] == o["rooms"][0])
+            o["appearance"] = door_finish(style, room["kind"], o["id"], o.get("entrance", False))
     objects = []
     targets = []
     groups = []
@@ -544,7 +563,19 @@ def _build(spec, style, inside, rooms, opens, catalog):
                     "segment": geo(line),
                     "height_m": spec.height_m - 0.12,
                     "thickness_m": 0.1,
-                    "materials": ["#e6e2d8", "#d9ded4"],
+                    "materials": [a["materials"]["wall"], b["materials"]["wall"]],
+                    "side_materials": (
+                        [a["materials"]["wall"], b["materials"]["wall"]]
+                        if a["shape"].covers(
+                            Point(
+                                line.centroid.x
+                                - (line.coords[-1][1] - line.coords[0][1]) / line.length * 0.1,
+                                line.centroid.y
+                                + (line.coords[-1][0] - line.coords[0][0]) / line.length * 0.1,
+                            )
+                        )
+                        else [b["materials"]["wall"], a["materials"]["wall"]]
+                    ),
                     "rooms": [a["id"], b["id"]],
                 }
             )
@@ -613,6 +644,36 @@ def _build(spec, style, inside, rooms, opens, catalog):
                 "objects": objects,
             }
         ],
+    }
+
+
+def space_audit(h):
+    """Unreachable walkable pockets are waste; active aisles and seated space are useful."""
+    f = h["storeys"][0]
+    stranded = 0.0
+    for room in f["rooms"]:
+        p = shape(room["polygon"])
+        obstacles = [
+            shape(o["footprint"])
+            for o in f["objects"]
+            if o["room_id"] == room["id"] and o["support"]["kind"] == "floor"
+        ]
+        if room["kind"] == "dining":
+            obstacles += [shape(g["occupied_envelope"]) for g in h["seating"]]
+        radius = ROUTE_RADIUS if room["kind"] == "dining" else 0.45
+        free = p.buffer(-radius, join_style=2)
+        if obstacles:
+            free = free.difference(unary_union(obstacles).buffer(radius, join_style=2))
+        approaches = [
+            inward_point(p, shape(o["segment"])) for o in f["openings"] if room["id"] in o["rooms"]
+        ]
+        for part in polygons(free):
+            if part.area >= 0.5 and not any(part.buffer(0.02).covers(q) for q in approaches):
+                stranded += part.area
+    return {
+        "isolated_clear_floor_m2": stranded,
+        "usable_area_m2": shape(f["inside"]).area,
+        "objective": "connected service routes, low isolated floor area, then seated capacity",
     }
 
 
@@ -755,7 +816,11 @@ def infer_restaurant(spec: RestaurantInput, catalog=None):
     failures = []
     solutions = []
     for rotation in (0, 90, 180, 270):
-        for fraction in (0.35, 0.42, 0.50, 0.30):
+        for fraction in (
+            (0.35, 0.42, 0.50, 0.30, 0.55, 0.60)
+            if spec.service_mode == "pickup"
+            else (0.35, 0.42, 0.50, 0.30)
+        ):
             for side in (0, 1):
                 try:
                     inside, rooms = _parts(spec, style, base + rotation, fraction, side)
@@ -765,9 +830,16 @@ def infer_restaurant(spec: RestaurantInput, catalog=None):
                     result["validation"] = validate_restaurant(result)
                     if not result["validation"]["passed"]:
                         raise ValueError("; ".join(result["validation"]["errors"]))
+                    result["space_efficiency"] = space_audit(result)
+                    result["validation"]["metrics"].update(
+                        isolated_clear_floor_m2=result["space_efficiency"][
+                            "isolated_clear_floor_m2"
+                        ]
+                    )
                     score = (
                         len(result["seating"]) * 2
                         + sum(g["booth"] for g in result["seating"]) * 0.2
+                        - result["space_efficiency"]["isolated_clear_floor_m2"] * 5
                     )
                     solutions.append((score, result))
                     # Evaluate multiple orientations without tuning to the first successful venue.

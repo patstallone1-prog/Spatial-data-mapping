@@ -20,10 +20,10 @@
     "name": "Walnut & muted terracotta",
     "style": "traditional",
     "walls": [
-      "#eee4d5",
-      "#d9bcb0",
-      "#c8d0bd",
-      "#e4d8c9"
+      "#e0c3a4",
+      "#b47b68",
+      "#929d7c",
+      "#cdb582"
     ],
     "wood": "#71503d",
     "fabric": "#b7a18e",
@@ -103,9 +103,12 @@
           "id": "stress-compact:L0:R0",
           "kind": "living",
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -152,9 +155,12 @@
           "id": "stress-compact:L0:R1",
           "kind": "kitchen",
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -201,9 +207,12 @@
           "id": "stress-compact:L0:R2",
           "kind": "dining",
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -250,9 +259,12 @@
           "id": "stress-compact:L0:R3",
           "kind": "full_bathroom",
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -266,29 +278,29 @@
             "coordinates": [
               [
                 [
-                  8.85,
-                  7.85
-                ],
-                [
-                  8.85,
-                  5.176
-                ],
-                [
                   5.0600000000000005,
                   5.176
                 ],
                 [
                   5.0600000000000005,
-                  7.85
+                  7.5760000000000005
                 ],
                 [
-                  8.85,
-                  7.85
+                  7.760000000000001,
+                  7.5760000000000005
+                ],
+                [
+                  7.760000000000001,
+                  5.176
+                ],
+                [
+                  5.0600000000000005,
+                  5.176
                 ]
               ]
             ]
           },
-          "area_m2": 10.134459999999995,
+          "area_m2": 6.480000000000001,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -299,9 +311,12 @@
           "id": "stress-compact:L0:R4",
           "kind": "primary_bedroom",
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -316,10 +331,6 @@
               [
                 [
                   3.94,
-                  7.85
-                ],
-                [
-                  3.94,
                   5.176
                 ],
                 [
@@ -333,11 +344,27 @@
                 [
                   3.94,
                   7.85
+                ],
+                [
+                  5.0600000000000005,
+                  7.85
+                ],
+                [
+                  5.0600000000000005,
+                  5.756
+                ],
+                [
+                  3.94,
+                  5.756
+                ],
+                [
+                  3.94,
+                  5.176
                 ]
               ]
             ]
           },
-          "area_m2": 10.134459999999999,
+          "area_m2": 12.47974,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -348,9 +375,12 @@
           "id": "stress-compact:L0:hall",
           "kind": "hallway",
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -365,15 +395,11 @@
               [
                 [
                   3.94,
-                  5.176
-                ],
-                [
-                  3.94,
-                  7.85
+                  5.756
                 ],
                 [
                   5.0600000000000005,
-                  7.85
+                  5.756
                 ],
                 [
                   5.0600000000000005,
@@ -397,12 +423,77 @@
                 ],
                 [
                   3.94,
+                  5.176
+                ],
+                [
+                  3.94,
+                  5.756
+                ]
+              ]
+            ]
+          },
+          "area_m2": 10.39360000000001,
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-compact:L0:R3:reclaimed:0",
+          "kind": "closet",
+          "parent_room": "stress-compact:L0:R3",
+          "materials": {
+            "wall": "#b47b68",
+            "accent_wall": "#8f5f49",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#71503d",
+            "fabric": "#b7a18e",
+            "metal": "#756451",
+            "countertop": "#d5c7b5",
+            "floor": "#71503d",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  8.85,
+                  5.176
+                ],
+                [
+                  7.760000000000001,
+                  5.176
+                ],
+                [
+                  7.760000000000001,
+                  7.5760000000000005
+                ],
+                [
+                  5.0600000000000005,
+                  7.5760000000000005
+                ],
+                [
+                  5.0600000000000005,
+                  7.85
+                ],
+                [
+                  8.85,
+                  7.85
+                ],
+                [
+                  8.85,
                   5.176
                 ]
               ]
             ]
           },
-          "area_m2": 12.738880000000012,
+          "area_m2": 3.654459999999994,
           "grade": "inferred",
           "confidence": 0.25,
           "measured": false,
@@ -422,11 +513,11 @@
             "type": "LineString",
             "coordinates": [
               [
-                7.3950000000000005,
+                7.606000000000001,
                 5.176
               ],
               [
-                6.515,
+                6.726,
                 5.176
               ]
             ]
@@ -441,29 +532,37 @@
             "coordinates": [
               [
                 [
-                  6.515,
+                  6.726,
                   4.456
                 ],
                 [
-                  6.515,
+                  6.726,
                   5.896
                 ],
                 [
-                  7.3950000000000005,
+                  7.606000000000001,
                   5.896
                 ],
                 [
-                  7.3950000000000005,
+                  7.606000000000001,
                   4.456
                 ],
                 [
-                  6.515,
+                  6.726,
                   4.456
                 ]
               ]
             ]
           },
           "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": "frosted_reeded"
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -480,11 +579,11 @@
             "type": "LineString",
             "coordinates": [
               [
-                2.485,
+                3.5462,
                 5.176
               ],
               [
-                1.605,
+                2.6662,
                 5.176
               ]
             ]
@@ -499,24 +598,330 @@
             "coordinates": [
               [
                 [
-                  1.605,
+                  2.6662,
                   4.456
                 ],
                 [
-                  1.605,
+                  2.6662,
                   5.896
                 ],
                 [
-                  2.485,
+                  3.5462,
                   5.896
                 ],
                 [
-                  2.485,
+                  3.5462,
                   4.456
                 ],
                 [
-                  1.605,
+                  2.6662,
                   4.456
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": null
+          },
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-compact:L0:R3:reclaimed:0:opening:2",
+          "rooms": [
+            "stress-compact:L0:R3:reclaimed:0",
+            "stress-compact:L0:R3"
+          ],
+          "type": "full_access",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                7.01,
+                7.5760000000000005
+              ],
+              [
+                5.8100000000000005,
+                7.5760000000000005
+              ]
+            ]
+          },
+          "width_m": 1.2,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "material": null,
+          "swing_into": null,
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.71,
+                  7.5760000000000005
+                ],
+                [
+                  6.7085554180016596,
+                  7.546594857901132
+                ],
+                [
+                  6.704235584120969,
+                  7.517472903395162
+                ],
+                [
+                  6.697082100719663,
+                  7.488914596823662
+                ],
+                [
+                  6.687163859753386,
+                  7.461194970290474
+                ],
+                [
+                  6.674576379304507,
+                  7.4345809789522015
+                ],
+                [
+                  6.659440883690763,
+                  7.409328930094119
+                ],
+                [
+                  6.641903136008821,
+                  7.385682014750907
+                ],
+                [
+                  6.622132034355964,
+                  7.363867965644037
+                ],
+                [
+                  6.600317985249093,
+                  7.3440968639911794
+                ],
+                [
+                  6.576671069905881,
+                  7.326559116309237
+                ],
+                [
+                  6.551419021047799,
+                  7.311423620695494
+                ],
+                [
+                  6.524805029709527,
+                  7.298836140246615
+                ],
+                [
+                  6.497085403176339,
+                  7.288917899280338
+                ],
+                [
+                  6.468527096604839,
+                  7.281764415879032
+                ],
+                [
+                  6.4394051420988685,
+                  7.277444581998341
+                ],
+                [
+                  6.41,
+                  7.276000000000001
+                ],
+                [
+                  6.380594857901132,
+                  7.277444581998341
+                ],
+                [
+                  6.351472903395162,
+                  7.281764415879032
+                ],
+                [
+                  6.3229145968236615,
+                  7.288917899280338
+                ],
+                [
+                  6.295194970290473,
+                  7.298836140246615
+                ],
+                [
+                  6.268580978952201,
+                  7.311423620695494
+                ],
+                [
+                  6.24332893009412,
+                  7.3265591163092365
+                ],
+                [
+                  6.219682014750907,
+                  7.3440968639911794
+                ],
+                [
+                  6.197867965644036,
+                  7.363867965644037
+                ],
+                [
+                  6.178096863991179,
+                  7.385682014750907
+                ],
+                [
+                  6.160559116309236,
+                  7.409328930094119
+                ],
+                [
+                  6.145423620695493,
+                  7.4345809789522015
+                ],
+                [
+                  6.1328361402466145,
+                  7.461194970290474
+                ],
+                [
+                  6.1229178992803375,
+                  7.488914596823662
+                ],
+                [
+                  6.115764415879031,
+                  7.517472903395162
+                ],
+                [
+                  6.111444581998341,
+                  7.546594857901132
+                ],
+                [
+                  6.11,
+                  7.5760000000000005
+                ],
+                [
+                  6.111444581998341,
+                  7.605405142098869
+                ],
+                [
+                  6.115764415879031,
+                  7.634527096604839
+                ],
+                [
+                  6.1229178992803375,
+                  7.663085403176339
+                ],
+                [
+                  6.1328361402466145,
+                  7.690805029709527
+                ],
+                [
+                  6.145423620695493,
+                  7.7174190210477995
+                ],
+                [
+                  6.160559116309236,
+                  7.742671069905881
+                ],
+                [
+                  6.178096863991179,
+                  7.766317985249094
+                ],
+                [
+                  6.197867965644035,
+                  7.788132034355964
+                ],
+                [
+                  6.219682014750906,
+                  7.807903136008822
+                ],
+                [
+                  6.243328930094119,
+                  7.825440883690764
+                ],
+                [
+                  6.268580978952201,
+                  7.840576379304507
+                ],
+                [
+                  6.295194970290473,
+                  7.853163859753386
+                ],
+                [
+                  6.3229145968236615,
+                  7.863082100719663
+                ],
+                [
+                  6.351472903395162,
+                  7.8702355841209695
+                ],
+                [
+                  6.380594857901132,
+                  7.87455541800166
+                ],
+                [
+                  6.41,
+                  7.876
+                ],
+                [
+                  6.4394051420988685,
+                  7.87455541800166
+                ],
+                [
+                  6.468527096604839,
+                  7.8702355841209695
+                ],
+                [
+                  6.497085403176339,
+                  7.863082100719663
+                ],
+                [
+                  6.524805029709527,
+                  7.853163859753386
+                ],
+                [
+                  6.551419021047799,
+                  7.840576379304507
+                ],
+                [
+                  6.57667106990588,
+                  7.8254408836907645
+                ],
+                [
+                  6.600317985249093,
+                  7.807903136008822
+                ],
+                [
+                  6.622132034355964,
+                  7.788132034355965
+                ],
+                [
+                  6.641903136008821,
+                  7.766317985249095
+                ],
+                [
+                  6.659440883690763,
+                  7.742671069905882
+                ],
+                [
+                  6.674576379304507,
+                  7.7174190210477995
+                ],
+                [
+                  6.687163859753386,
+                  7.690805029709527
+                ],
+                [
+                  6.697082100719663,
+                  7.663085403176339
+                ],
+                [
+                  6.704235584120969,
+                  7.634527096604839
+                ],
+                [
+                  6.7085554180016596,
+                  7.605405142098869
+                ],
+                [
+                  6.71,
+                  7.5760000000000005
                 ]
               ]
             ]
@@ -528,7 +933,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-compact:L0:R0:opening:2",
+          "id": "stress-compact:L0:R0:opening:3",
           "rooms": [
             "stress-compact:L0:R0",
             "stress-compact:L0:R1"
@@ -845,7 +1250,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-compact:L0:R0:opening:3",
+          "id": "stress-compact:L0:R0:opening:4",
           "rooms": [
             "stress-compact:L0:R0",
             "stress-compact:L0:hall"
@@ -1143,7 +1548,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-compact:L0:R1:opening:4",
+          "id": "stress-compact:L0:R1:opening:5",
           "rooms": [
             "stress-compact:L0:R1",
             "stress-compact:L0:R2"
@@ -1460,7 +1865,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-compact:L0:R1:opening:5",
+          "id": "stress-compact:L0:R1:opening:6",
           "rooms": [
             "stress-compact:L0:R1",
             "stress-compact:L0:hall"
@@ -1758,7 +2163,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-compact:L0:R2:opening:6",
+          "id": "stress-compact:L0:R2:opening:7",
           "rooms": [
             "stress-compact:L0:R2",
             "stress-compact:L0:hall"
@@ -2056,7 +2461,7 @@
           "corroboration_count": 0
         },
         {
-          "id": "stress-compact:L0:R0:opening:7",
+          "id": "stress-compact:L0:R0:opening:8",
           "rooms": [
             "stress-compact:L0:R0",
             "outside"
@@ -2109,6 +2514,14 @@
           },
           "grade": "inferred",
           "entrance": true,
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#71503d",
+            "frame": "#71503d",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": "clear"
+          },
           "confidence": 0.25,
           "measured": false,
           "freshness": null,
@@ -2121,130 +2534,232 @@
             "type": "LineString",
             "coordinates": [
               [
-                8.85,
-                5.176
-              ],
-              [
-                7.396000000000001,
-                5.176
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.5,
-          "materials": [
-            "#e4d8c9",
-            "#d9bcb0"
-          ],
-          "side_materials": [
-            "#d9bcb0",
-            "#e4d8c9"
-          ],
-          "rooms": [
-            "stress-compact:L0:R3",
-            "stress-compact:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                6.513999999999999,
-                5.176
+                5.0600000000000005,
+                5.755999
               ],
               [
                 5.0600000000000005,
-                5.176
+                7.5760000000000005
               ]
             ]
           },
           "thickness_m": 0.1,
           "height_m": 2.5,
           "materials": [
-            "#e4d8c9",
-            "#d9bcb0"
-          ],
-          "side_materials": [
-            "#d9bcb0",
-            "#e4d8c9"
-          ],
-          "rooms": [
-            "stress-compact:L0:R3",
-            "stress-compact:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                5.0600000000000005,
-                5.176
-              ],
-              [
-                5.0600000000000005,
-                7.85
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.5,
-          "materials": [
-            "#e4d8c9",
-            "#d9bcb0"
-          ],
-          "side_materials": [
-            "#d9bcb0",
-            "#e4d8c9"
-          ],
-          "rooms": [
-            "stress-compact:L0:R3",
-            "stress-compact:L0:hall"
-          ],
-          "grade": "inferred",
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "segment": {
-            "type": "LineString",
-            "coordinates": [
-              [
-                3.94,
-                7.85
-              ],
-              [
-                3.94,
-                5.176
-              ]
-            ]
-          },
-          "thickness_m": 0.1,
-          "height_m": 2.5,
-          "materials": [
-            "#8f5f49",
-            "#d9bcb0"
-          ],
-          "side_materials": [
-            "#d9bcb0",
+            "#b47b68",
             "#8f5f49"
           ],
+          "side_materials": [
+            "#8f5f49",
+            "#b47b68"
+          ],
           "rooms": [
-            "stress-compact:L0:R4",
+            "stress-compact:L0:R3",
+            "stress-compact:L0:R4"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.0600000000000005,
+                5.176
+              ],
+              [
+                5.0600000000000005,
+                5.756001
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#b47b68",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-compact:L0:R3",
             "stress-compact:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                7.760000000000001,
+                5.176
+              ],
+              [
+                7.607000000000001,
+                5.176
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#b47b68",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-compact:L0:R3",
+            "stress-compact:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.725,
+                5.176
+              ],
+              [
+                5.0600000000000005,
+                5.176
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#b47b68",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-compact:L0:R3",
+            "stress-compact:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.0600000000000005,
+                7.5760000000000005
+              ],
+              [
+                5.809,
+                7.5760000000000005
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#b47b68",
+            "#b47b68"
+          ],
+          "side_materials": [
+            "#b47b68",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-compact:L0:R3",
+            "stress-compact:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                7.011,
+                7.5760000000000005
+              ],
+              [
+                7.760000000000001,
+                7.5760000000000005
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#b47b68",
+            "#b47b68"
+          ],
+          "side_materials": [
+            "#b47b68",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-compact:L0:R3",
+            "stress-compact:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                7.760000000000001,
+                7.5760000000000005
+              ],
+              [
+                7.760000000000001,
+                5.176
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#b47b68",
+            "#b47b68"
+          ],
+          "side_materials": [
+            "#b47b68",
+            "#b47b68"
+          ],
+          "rooms": [
+            "stress-compact:L0:R3",
+            "stress-compact:L0:R3:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -2261,7 +2776,7 @@
                 5.176
               ],
               [
-                2.4859999999999998,
+                3.5471999999999997,
                 5.176
               ]
             ]
@@ -2269,12 +2784,12 @@
           "thickness_m": 0.1,
           "height_m": 2.5,
           "materials": [
-            "#eee4d5",
-            "#d9bcb0"
+            "#929d7c",
+            "#e0c3a4"
           ],
           "side_materials": [
-            "#d9bcb0",
-            "#eee4d5"
+            "#e0c3a4",
+            "#929d7c"
           ],
           "rooms": [
             "stress-compact:L0:R4",
@@ -2291,7 +2806,7 @@
             "type": "LineString",
             "coordinates": [
               [
-                1.604,
+                2.6652,
                 5.176
               ],
               [
@@ -2303,16 +2818,152 @@
           "thickness_m": 0.1,
           "height_m": 2.5,
           "materials": [
-            "#eee4d5",
-            "#d9bcb0"
+            "#929d7c",
+            "#e0c3a4"
           ],
           "side_materials": [
-            "#d9bcb0",
-            "#eee4d5"
+            "#e0c3a4",
+            "#929d7c"
           ],
           "rooms": [
             "stress-compact:L0:R4",
             "stress-compact:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.0600000000000005,
+                5.756
+              ],
+              [
+                3.94,
+                5.756
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#929d7c",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#929d7c"
+          ],
+          "rooms": [
+            "stress-compact:L0:R4",
+            "stress-compact:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.94,
+                5.756
+              ],
+              [
+                3.94,
+                5.176
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#929d7c",
+            "#e0c3a4"
+          ],
+          "side_materials": [
+            "#e0c3a4",
+            "#929d7c"
+          ],
+          "rooms": [
+            "stress-compact:L0:R4",
+            "stress-compact:L0:hall"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.0600000000000005,
+                7.85
+              ],
+              [
+                5.0600000000000005,
+                7.575999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#929d7c",
+            "#b47b68"
+          ],
+          "side_materials": [
+            "#b47b68",
+            "#929d7c"
+          ],
+          "rooms": [
+            "stress-compact:L0:R4",
+            "stress-compact:L0:R3:reclaimed:0"
+          ],
+          "grade": "inferred",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                7.7599990000000005,
+                5.176
+              ],
+              [
+                8.85,
+                5.176
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 2.5,
+          "materials": [
+            "#e0c3a4",
+            "#b47b68"
+          ],
+          "side_materials": [
+            "#b47b68",
+            "#e0c3a4"
+          ],
+          "rooms": [
+            "stress-compact:L0:hall",
+            "stress-compact:L0:R3:reclaimed:0"
           ],
           "grade": "inferred",
           "confidence": 0.25,
@@ -2388,9 +3039,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2475,9 +3129,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2558,9 +3215,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2641,9 +3301,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#e0c3a4",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2719,9 +3382,12 @@
             "estimated_cost_usd": 195
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2797,9 +3463,12 @@
             "estimated_cost_usd": 195
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2875,9 +3544,12 @@
             "estimated_cost_usd": 195
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -2953,9 +3625,12 @@
             "estimated_cost_usd": 195
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3040,9 +3715,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#d9bcb0",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3123,9 +3801,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3206,9 +3887,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3289,9 +3973,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3376,9 +4063,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#c8d0bd",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3401,39 +4091,39 @@
           "id": "stress-compact:L0:R3:item:0",
           "role": "toilet",
           "position_m": [
-            7.773461538461538,
+            7.168333333333334,
             0.0,
-            5.611
+            7.141000000000001
           ],
           "size_m": [
             0.55,
             0.78,
             0.72
           ],
-          "rotation_deg": -0.0,
+          "rotation_deg": -180.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  8.048461538461538,
-                  5.2509999999999994
+                  6.8933333333333335,
+                  7.501000000000001
                 ],
                 [
-                  8.048461538461538,
-                  5.971
+                  6.8933333333333335,
+                  6.781000000000001
                 ],
                 [
-                  7.498461538461537,
-                  5.971
+                  7.443333333333334,
+                  6.781000000000001
                 ],
                 [
-                  7.498461538461537,
-                  5.2509999999999994
+                  7.443333333333334,
+                  7.501000000000001
                 ],
                 [
-                  8.048461538461538,
-                  5.2509999999999994
+                  6.8933333333333335,
+                  7.501000000000001
                 ]
               ]
             ]
@@ -3454,9 +4144,12 @@
             "estimated_cost_usd": 195
           },
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3467,8 +4160,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            7.773461538461538,
-            6.401
+            7.168333333333334,
+            6.351000000000001
           ],
           "confidence": 0.25,
           "measured": false,
@@ -3479,39 +4172,39 @@
           "id": "stress-compact:L0:R3:item:1",
           "role": "bath_sink",
           "position_m": [
-            6.163461538461538,
+            5.7162500000000005,
             0.0,
-            5.501
+            7.251
           ],
           "size_m": [
             0.65,
             0.85,
             0.5
           ],
-          "rotation_deg": -0.0,
+          "rotation_deg": -180.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  6.4884615384615385,
-                  5.251
+                  5.39125,
+                  7.501
                 ],
                 [
-                  6.4884615384615385,
-                  5.751
+                  5.39125,
+                  7.001
                 ],
                 [
-                  5.838461538461538,
-                  5.751
+                  6.041250000000001,
+                  7.001
                 ],
                 [
-                  5.838461538461538,
-                  5.251
+                  6.041250000000001,
+                  7.501
                 ],
                 [
-                  6.4884615384615385,
-                  5.251
+                  5.39125,
+                  7.501
                 ]
               ]
             ]
@@ -3532,9 +4225,12 @@
             "estimated_cost_usd": 195
           },
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3545,8 +4241,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            6.163461538461538,
-            6.181
+            5.7162500000000005,
+            6.571000000000001
           ],
           "confidence": 0.25,
           "measured": false,
@@ -3557,39 +4253,39 @@
           "id": "stress-compact:L0:R3:item:2",
           "role": "bath_shower",
           "position_m": [
-            6.844444444444445,
+            5.885000000000001,
             0.0,
-            7.3999999999999995
+            5.601
           ],
           "size_m": [
-            1.6,
-            2.05,
-            0.75
+            1.45,
+            0.6,
+            0.7
           ],
-          "rotation_deg": -180.0,
+          "rotation_deg": -0.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  6.044444444444445,
-                  7.7749999999999995
+                  6.61,
+                  5.251
                 ],
                 [
-                  6.044444444444445,
-                  7.0249999999999995
+                  6.61,
+                  5.951
                 ],
                 [
-                  7.644444444444445,
-                  7.0249999999999995
+                  5.160000000000001,
+                  5.951
                 ],
                 [
-                  7.644444444444445,
-                  7.7749999999999995
+                  5.160000000000001,
+                  5.251
                 ],
                 [
-                  6.044444444444445,
-                  7.7749999999999995
+                  6.61,
+                  5.251
                 ]
               ]
             ]
@@ -3610,9 +4306,12 @@
             "estimated_cost_usd": 195
           },
           "materials": {
-            "wall": "#e4d8c9",
+            "wall": "#b47b68",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3623,8 +4322,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            6.844444444444445,
-            6.595
+            5.885000000000001,
+            6.381
           ],
           "confidence": 0.25,
           "measured": false,
@@ -3635,39 +4334,39 @@
           "id": "stress-compact:L0:R4:item:0",
           "role": "bed",
           "position_m": [
-            2.865,
+            1.2249999999999999,
             0.0,
-            7.0
+            6.2208000000000006
           ],
           "size_m": [
             1.5,
             0.85,
             2
           ],
-          "rotation_deg": 90.0,
+          "rotation_deg": -90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  3.865,
-                  7.75
+                  0.22499999999999987,
+                  5.4708000000000006
                 ],
                 [
-                  1.8650000000000002,
-                  7.75
+                  2.2249999999999996,
+                  5.4708000000000006
                 ],
                 [
-                  1.8650000000000002,
-                  6.25
+                  2.2249999999999996,
+                  6.9708000000000006
                 ],
                 [
-                  3.865,
-                  6.25
+                  0.22499999999999987,
+                  6.9708000000000006
                 ],
                 [
-                  3.865,
-                  7.75
+                  0.22499999999999987,
+                  5.4708000000000006
                 ]
               ]
             ]
@@ -3697,9 +4396,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3710,32 +4412,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.4350000000000003,
-            7.0
+            2.655,
+            6.2208000000000006
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  1.8350000000000004,
-                  7.75
+                  2.2549999999999994,
+                  5.4708000000000006
                 ],
                 [
-                  1.1350000000000002,
-                  7.75
+                  2.9549999999999996,
+                  5.4708000000000006
                 ],
                 [
-                  1.1350000000000002,
-                  6.25
+                  2.9549999999999996,
+                  6.9708000000000006
                 ],
                 [
-                  1.8350000000000004,
-                  6.25
+                  2.2549999999999994,
+                  6.9708000000000006
                 ],
                 [
-                  1.8350000000000004,
-                  7.75
+                  2.2549999999999994,
+                  5.4708000000000006
                 ]
               ]
             ]
@@ -3745,24 +4447,24 @@
             "coordinates": [
               [
                 [
-                  3.865,
-                  6.215000000000001
+                  0.22499999999999987,
+                  7.0058
                 ],
                 [
-                  1.8650000000000002,
-                  6.215000000000001
+                  2.2249999999999996,
+                  7.0058
                 ],
                 [
-                  1.8650000000000002,
-                  5.565
+                  2.2249999999999996,
+                  7.6558
                 ],
                 [
-                  3.865,
-                  5.565
+                  0.22499999999999987,
+                  7.6558
                 ],
                 [
-                  3.865,
-                  6.215000000000001
+                  0.22499999999999987,
+                  7.0058
                 ]
               ]
             ]
@@ -3776,39 +4478,39 @@
           "id": "stress-compact:L0:R4:item:1",
           "role": "nightstand",
           "position_m": [
-            1.3721428571428569,
+            2.717857142857143,
             0.0,
-            5.4510000000000005
+            7.574999999999999
           ],
           "size_m": [
             0.45,
             0.5,
             0.4
           ],
-          "rotation_deg": -0.0,
+          "rotation_deg": -180.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  1.597142857142857,
-                  5.251
+                  2.492857142857143,
+                  7.7749999999999995
                 ],
                 [
-                  1.597142857142857,
-                  5.651000000000001
+                  2.492857142857143,
+                  7.374999999999999
                 ],
                 [
-                  1.1471428571428568,
-                  5.651000000000001
+                  2.942857142857143,
+                  7.374999999999999
                 ],
                 [
-                  1.1471428571428568,
-                  5.251
+                  2.942857142857143,
+                  7.7749999999999995
                 ],
                 [
-                  1.597142857142857,
-                  5.251
+                  2.492857142857143,
+                  7.7749999999999995
                 ]
               ]
             ]
@@ -3838,9 +4540,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3851,8 +4556,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.3721428571428569,
-            6.081
+            2.717857142857143,
+            6.944999999999999
           ],
           "confidence": 0.25,
           "measured": false,
@@ -3863,39 +4568,39 @@
           "id": "stress-compact:L0:R4:item:2",
           "role": "counter_item",
           "position_m": [
-            1.3721428571428569,
+            2.717857142857143,
             0.5,
-            5.4510000000000005
+            7.574999999999999
           ],
           "size_m": [
             0.1,
             0.1,
             0.1
           ],
-          "rotation_deg": -0.0,
+          "rotation_deg": -180.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  1.422142857142857,
-                  5.401000000000001
+                  2.667857142857143,
+                  7.624999999999999
                 ],
                 [
-                  1.422142857142857,
-                  5.501
+                  2.667857142857143,
+                  7.5249999999999995
                 ],
                 [
-                  1.3221428571428568,
-                  5.501
+                  2.767857142857143,
+                  7.5249999999999995
                 ],
                 [
-                  1.3221428571428568,
-                  5.401000000000001
+                  2.767857142857143,
+                  7.624999999999999
                 ],
                 [
-                  1.422142857142857,
-                  5.401000000000001
+                  2.667857142857143,
+                  7.624999999999999
                 ]
               ]
             ]
@@ -3925,9 +4630,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -3946,39 +4654,39 @@
           "id": "stress-compact:L0:R4:item:3",
           "role": "dresser",
           "position_m": [
-            0.44999999999999996,
+            4.760000000000001,
             0.0,
-            6.400571428571428
+            6.9024
           ],
           "size_m": [
             0.9,
             0.85,
             0.45
           ],
-          "rotation_deg": -90.0,
+          "rotation_deg": 90.0,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  0.22499999999999995,
-                  5.950571428571428
+                  4.985,
+                  7.3524
                 ],
                 [
-                  0.6749999999999999,
-                  5.950571428571428
+                  4.535000000000001,
+                  7.3524
                 ],
                 [
-                  0.6749999999999999,
-                  6.8505714285714285
+                  4.535000000000001,
+                  6.4524
                 ],
                 [
-                  0.22499999999999995,
-                  6.8505714285714285
+                  4.985,
+                  6.4524
                 ],
                 [
-                  0.22499999999999995,
-                  5.950571428571428
+                  4.985,
+                  7.3524
                 ]
               ]
             ]
@@ -4008,9 +4716,12 @@
             "procedural": false
           },
           "materials": {
-            "wall": "#eee4d5",
+            "wall": "#929d7c",
             "accent_wall": "#8f5f49",
-            "trim": "#f0ece4",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
             "wood": "#71503d",
             "fabric": "#b7a18e",
             "metal": "#756451",
@@ -4021,8 +4732,89 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            1.105,
-            6.400571428571428
+            4.105,
+            6.9024
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "stress-compact:L0:R3:reclaimed:0:item:0",
+          "role": "closet_rail",
+          "position_m": [
+            8.35,
+            0.0,
+            7.595
+          ],
+          "size_m": [
+            0.8,
+            1.65,
+            0.36
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.949999999999999,
+                  7.7749999999999995
+                ],
+                [
+                  7.949999999999999,
+                  7.415
+                ],
+                [
+                  8.75,
+                  7.415
+                ],
+                [
+                  8.75,
+                  7.7749999999999995
+                ],
+                [
+                  7.949999999999999,
+                  7.7749999999999995
+                ]
+              ]
+            ]
+          },
+          "room_id": "stress-compact:L0:R3:reclaimed:0",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "stress-compact:L0:R3:reclaimed:0",
+            "surface_y_m": 0.0
+          },
+          "asset": {
+            "id": "procedural:closet_rail",
+            "role": "closet_rail",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 195
+          },
+          "materials": {
+            "wall": "#b47b68",
+            "accent_wall": "#8f5f49",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#71503d",
+            "fabric": "#b7a18e",
+            "metal": "#756451",
+            "countertop": "#d5c7b5",
+            "floor": "#71503d",
+            "floor_finish": "timber",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.35,
+            6.984999999999999
           ],
           "confidence": 0.25,
           "measured": false,
@@ -4030,6 +4822,11 @@
           "corroboration_count": 0
         }
       ],
+      "space_efficiency": {
+        "wet_area_reclaimed_m2": 3.654459999999994,
+        "half_baths_added": 0,
+        "hallway_reclaimed_m2": 2.3452800000000007
+      },
       "grade": "inferred",
       "confidence": 0.25,
       "measured": false,
@@ -4040,7 +4837,7 @@
   "stairs": [],
   "total_height_m": 2.65,
   "partition_score": 0.3067149195402302,
-  "estimated_furniture_cost_usd": 5841,
+  "estimated_furniture_cost_usd": 6036,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -4053,17 +4850,17 @@
     "errors": [],
     "warnings": [],
     "metrics": {
-      "room_count": 6,
-      "objects": 20,
+      "room_count": 7,
+      "objects": 21,
       "coverage_min": 0.9999999999999998,
-      "hallway_area_fraction_max": 0.1901609195402301,
+      "hallway_area_fraction_max": 0.15515151515151532,
       "downloaded_assets_used": 13,
-      "connected_rooms": 6
+      "connected_rooms": 7
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
   },
   "search": {
-    "candidates_tried": 81,
+    "candidates_tried": 43,
     "rejected": [
       "stress-compact:L0:R1: no reachable refrigerator fits",
       "stress-compact:L0:R1: no reachable refrigerator fits",
@@ -4081,62 +4878,22 @@
       "stress-compact:L0:R1: no reachable refrigerator fits",
       "stress-compact:L0:R1: no reachable refrigerator fits",
       "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R2: no reachable dining set fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
-      "stress-compact:L0:R1: no reachable refrigerator fits",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
+      "oversize wet room cannot be compacted with usable fixtures and surplus",
       "stress-compact:L0:R1: no reachable refrigerator fits",
       "stress-compact:L0:R1: no reachable refrigerator fits",
       "stress-compact:L0:R1: no reachable refrigerator fits",
@@ -4146,8 +4903,11 @@
       "stress-compact:L0:R1: no reachable refrigerator fits",
       "stress-compact:L0:R1: no reachable refrigerator fits"
     ],
-    "built_in_closets": true
+    "built_in_closets": true,
+    "valid_layouts_compared": 3,
+    "objective": "least circulation and oversized low-use room area"
   },
+  "space_score": 1.551515151515153,
   "name": "compact",
   "input_evidence": {
     "id": "stress-compact",

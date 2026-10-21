@@ -1,3 +1,5 @@
+import {inPolygon} from './tour-world.mjs';
+import {wallRoom,wallRoomCuts} from './finishes.mjs';
 // Shared renderer for the bounded interior lab and Kerbside's generated-house overlay.
 // Geometry uses the serialized metre contract. GLTFs fit the exact collision/support box.
 export function buildInferredHouse(THREE, house, options = {}) {
@@ -49,9 +51,9 @@ export function buildInferredHouse(THREE, house, options = {}) {
   }
   function wall(parent,a,b,y,h,color,thick=.10) {
     const length=Math.hypot(b[0]-a[0],b[1]-a[1]);if(length<.015)return;
-    const mats=Array.isArray(color)?[material('#e8e4da'),material('#e8e4da'),material('#e8e4da'),material('#e8e4da'),material(color[0]),material(color[1])]:material(color);
+    const mats=Array.isArray(color)?[material('#e8e4da'),material('#e8e4da'),material('#e8e4da'),material('#e8e4da'),color[0]?.isMaterial?color[0]:material(color[0]),color[1]?.isMaterial?color[1]:material(color[1])]:material(color);
     const mesh=box(parent,length,h,thick,(a[0]+b[0])/2,y+h/2,(a[1]+b[1])/2,mats);
-    mesh.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);return mesh;
+    mesh.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);const uv=mesh.geometry.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*length,uv.getY(i)*h);return mesh;
   }
   function fixture(parent,o) {
     const [w,h,d]=o.size_m,role=o.role;
@@ -113,11 +115,20 @@ export function buildInferredHouse(THREE, house, options = {}) {
       const seat=new THREE.Mesh(new THREE.TorusGeometry(w*.31,.045,12,32),ceramic);seat.rotation.x=Math.PI/2;
       seat.scale.y=1.2;seat.position.set(0,h*.55,.08);parent.add(seat);
     } else if(role==='shower'||role==='bath_shower') {
-      if(role==='bath_shower'){box(parent,w,.50,d,0,.25,0,ceramic);box(parent,w*.8,.03,d*.7,0,.505,0,material('#b9d1cc'));}
-      box(parent,w,.055,d,0,.0275,0,ceramic);
-      const glass=material('#a9c7c9',{transparent:true,opacity:.25,depthWrite:false});
-      box(parent,.018,h,d,-w/2+.01,h/2,0,glass);box(parent,w,h,.018,0,h/2,-d/2+.01,glass);
-      box(parent,.025,h*.8,.025,w*.25,h*.55,-d*.45,dark);box(parent,.18,.025,.18,w*.25,h*.95,-d*.3,dark);
+      const H=2.05;
+      if(role==='bath_shower'){
+        box(parent,w*.86,.12,d*.75,0,.12,0,ceramic);
+        box(parent,w,.45,.07,0,.28,-d/2+.035,ceramic);box(parent,w,.45,.07,0,.28,d/2-.035,ceramic);
+        for(const x of [-w/2+.035,w/2-.035])box(parent,.07,.45,d,x,.28,0,ceramic);
+        box(parent,w-.14,.018,d-.14,0,.19,0,material('#c5dbd5'));
+        for(const z of [-d/2+.035,d/2-.035])box(parent,w,.045,.09,0,.51,z,ceramic);
+        for(const x of [-w/2+.035,w/2-.035])box(parent,.09,.045,d,x,.51,0,ceramic);
+        const drain=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.012,20),steel);drain.position.set(-w*.33,.205,0);parent.add(drain);
+      }else box(parent,w,.055,d,0,.0275,0,ceramic);
+      const glass=material('#a9c7c9',{transparent:true,opacity:.20,depthWrite:false,roughness:.12});
+      box(parent,.018,H-.5,d,-w/2+.01,(H+.5)/2,0,glass);
+      box(parent,.025,H*.8,.025,-w*.35,H*.55,-d*.45,steel);box(parent,.18,.025,.18,-w*.35,H*.95,-d*.3,steel);
+      box(parent,.025,.16,.025,-w*.36,.60,-d*.39,steel);box(parent,.025,.025,.18,-w*.36,.68,-d*.30,steel);
     } else if(['sink_counter','counter','bath_sink','cooker'].includes(role)) {
       box(parent,w*.97,h-.055,d*.98,0,(h-.055)/2,0,wood);
       box(parent,w,.055,d,0,h-.0275,0,material(house.style.stone));
@@ -175,6 +186,48 @@ export function buildInferredHouse(THREE, house, options = {}) {
       }
     }).catch(error=>assetErrors.push({id:o.asset.id,message:String(error)}));pending.push(job);
   }
+  const joinery=new Map();
+  function timber(color){if(joinery.has(color))return joinery.get(color);const canvas=document.createElement('canvas');canvas.width=256;canvas.height=512;const ctx=canvas.getContext('2d');ctx.fillStyle=color;ctx.fillRect(0,0,256,512);
+    for(let i=0;i<100;i++){const x=(i*71)%256;ctx.strokeStyle=i%3?'#1f100b22':'#ffffff1c';ctx.lineWidth=i%7===0?2:1;ctx.beginPath();ctx.moveTo(x,0);ctx.bezierCurveTo(x+9,160,x-7,340,x+2,512);ctx.stroke();}
+    const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=4;
+    const mat=material('#ffffff',{map:tex,roughness:.57});joinery.set(color,mat);return mat;
+  }
+  function door(fg,f,o){
+    const [a,b]=o.segment.coordinates,L=o.width_m,h=Math.min(o.height_m||2.1,wallHeight),finish=o.appearance||{design:'recessed_panels',timber:house.style.wood,frame:house.style.wood,hardware:house.style.metal,panel_count:2};
+    const pivot=new THREE.Group();pivot.position.set(a[0],f.elevation_m,a[1]);pivot.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);fg.add(pivot);
+    const leaf=new THREE.Group();pivot.add(leaf);const wood=timber(finish.timber),frame=timber(finish.frame),metal=material(finish.hardware,{metalness:.8,roughness:.3});
+    const owner=f.rooms.find(r=>r.id===o.rooms[0]),dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),cx=(a[0]+b[0])/2,cz=(a[1]+b[1])/2;
+    const left=owner&&inPolygon(cx-dz/len*.2,cz+dx/len*.2,owner.polygon),angle=(left?-1:1)*Math.PI/2,open=!o.entrance;
+    leaf.rotation.y=open?angle:0;
+    for(const x of [-.035,L+.035])box(pivot,.075,h+.08,.15,x,(h+.08)/2,0,frame);box(pivot,L+.14,.075,.15,L/2,h+.045,0,frame);
+    const w=L-.045,glazed=finish.design!=='recessed_panels';
+    if(glazed&&h>1.5){
+      const bottom=finish.design==='reeded_privacy'?1.22:.92,top=h-.14;
+      for(const x of [.065,w-.065])box(leaf,.12,h,.045,x,h/2,0,wood);
+      box(leaf,w,bottom,.045,w/2,bottom/2,0,wood);box(leaf,w,.14,.045,w/2,h-.07,0,wood);
+      box(leaf,w-.24,.07,.055,w/2,bottom+.035,0,frame);
+      const pane=material('#aac6c5',{transparent:true,opacity:finish.glass==='frosted_reeded'?.78:.24,roughness:finish.glass==='frosted_reeded'?.9:.08,depthWrite:false});
+      box(leaf,w-.24,Math.max(.12,top-bottom),.015,w/2,(top+bottom)/2,0,pane);
+      if(finish.glass==='frosted_reeded')for(let x=.14;x<w-.12;x+=.035)box(leaf,.008,top-bottom,.018,x,(top+bottom)/2,0,material('#d6e5dd',{transparent:true,opacity:.5}));
+      else{box(leaf,.035,top-bottom,.045,w/2,(top+bottom)/2,0,frame);box(leaf,w-.24,.035,.045,w/2,(top+bottom)/2,0,frame);}
+    }else{
+      box(leaf,w,h,.04,w/2,h/2,0,wood);
+      const count=finish.panel_count||2,gap=.13,panelH=(h-.25-(count-1)*gap)/count;
+      for(let i=0;i<count;i++)for(const sign of [-1,1]){
+        const y=.125+panelH/2+i*(panelH+gap);
+        box(leaf,w-.22,panelH,.012,w/2,y,sign*.025,timber(finish.timber));
+        for(const x of [.10,w-.10])box(leaf,.025,panelH+.04,.016,x,y,sign*.033,frame);
+        for(const yy of [y-panelH/2,y+panelH/2])box(leaf,w-.18,.025,.016,w/2,yy,sign*.033,frame);
+      }
+    }
+    for(const side of [-1,1]){
+      const rose=new THREE.Mesh(new THREE.CylinderGeometry(.036,.036,.018,20),metal);rose.rotation.x=Math.PI/2;rose.position.set(w-.13,Math.min(1.01,h*.58),side*.047);leaf.add(rose);
+      box(leaf,.13,.023,.025,w-.18,Math.min(1.01,h*.58),side*.065,metal);
+    }
+    for(const y of [.25,h/2,h-.25]){const hinge=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,.075,12),metal);hinge.position.set(.012,y,.025);leaf.add(hinge);}
+    leaf.userData={surface:'detailed_door',design:finish.design,grade:'inferred'};
+    doors.push({x:cx,z:cz,level:f.level,segment:[a,b],leaf,open,angle,appearance:finish});
+  }
   for(const f of house.storeys) {
     const fg=new THREE.Group();fg.name=`storey:${f.level}`;fg.position.y=f.level*explode;fg.visible=floor<0||floor===f.level;
     group.add(fg);floorGroups.push(fg);
@@ -184,12 +237,19 @@ export function buildInferredHouse(THREE, house, options = {}) {
       const mesh=plane(fg,room.polygon,room.materials.floor,f.elevation_m+.01,[],room.materials.floor_finish);
       mesh.userData={roomId:room.id,kind:room.kind,grade:'inferred'};
     }
-    if(ceilings)plane(fg,f.inside,'#eeeae1',f.elevation_m+f.height_m-.15,
+    if(ceilings)plane(fg,f.inside,'#e6decf',f.elevation_m+f.height_m-.15,
       f.level<house.storeys.length-1?house.stairs.filter(s=>s.from_level===f.level).map(s=>s.footprint):[]);
     for(const w of f.walls) {
       const coords=w.segment.coordinates;
       for(let i=0;i<coords.length-1;i++)wall(fg,coords[i],coords[i+1],f.elevation_m,Math.min(wallHeight,w.height_m),w.side_materials||w.materials,w.thickness_m);
-      const a=coords[0],b=coords.at(-1);segments.push({level:f.level,line:[...a,...b]});
+      const a=coords[0],b=coords.at(-1);
+      const trim=wall(fg,a,b,f.elevation_m,.11,house.style.wood,(w.thickness_m||.10)+.025);if(trim)trim.userData.surface='skirting';
+      if(wallHeight>1.5)wall(fg,a,b,f.elevation_m+Math.min(wallHeight,w.height_m)-.06,.06,'#eadbc3',(w.thickness_m||.10)+.025);
+      const p=[(a[0]+b[0])/2,(a[1]+b[1])/2],L=Math.hypot(b[0]-a[0],b[1]-a[1]),left=[p[0]-(b[1]-a[1])/L*.12,p[1]+(b[0]-a[0])/L*.12],right=[2*p[0]-left[0],2*p[1]-left[1]];
+      const wet=point=>f.rooms.some(r=>['full_bathroom','toilet','professional_kitchen'].includes(r.kind)&&inPolygon(...point,r.polygon));
+      const paint=w.side_materials||w.materials,faces=[wet(left)?floorMaterial(house.style.stone,'tile'):paint[0],wet(right)?floorMaterial(house.style.stone,'tile'):paint[1]];
+      if(wet(left)||wet(right))wall(fg,a,b,f.elevation_m+.12,Math.min(1.08,wallHeight-.12),faces,(w.thickness_m||.10)+.006);
+      segments.push({level:f.level,line:[...a,...b]});
     }
     if(exterior) {
       const ring=f.footprint.coordinates[0];
@@ -204,10 +264,15 @@ export function buildInferredHouse(THREE, house, options = {}) {
         }
         for(const o of house.envelope?.windows||[])if(o.edge===i)cuts.push({...o,v:o.v-f.elevation_m});
         const holes=cuts.map(o=>[Math.max(0,o.u),Math.max(0,o.v),Math.min(length,o.u+o.w),Math.min(top,o.v+o.h)]).filter(o=>o[2]>o[0]&&o[3]>o[1]);
-        const xs=[...new Set([0,length,...holes.flatMap(o=>[o[0],o[2]])])].sort((a,b)=>a-b),ys=[...new Set([0,top,...holes.flatMap(o=>[o[1],o[3]])])].sort((a,b)=>a-b);
+        const xs=[...new Set([0,length,...holes.flatMap(o=>[o[0],o[2]]),...wallRoomCuts(f,a,b)])].sort((a,b)=>a-b),ys=[...new Set([0,top,...holes.flatMap(o=>[o[1],o[3]])])].sort((a,b)=>a-b);
         for(let x=0;x<xs.length-1;x++)for(let y=0;y<ys.length-1;y++) {
           const u=(xs[x]+xs[x+1])/2,v=(ys[y]+ys[y+1])/2;
-          if(!holes.some(o=>u>o[0]&&u<o[2]&&v>o[1]&&v<o[3]))wall(fg,[a[0]+ux*xs[x],a[1]+uz*xs[x]],[a[0]+ux*xs[x+1],a[1]+uz*xs[x+1]],f.elevation_m+ys[y],ys[y+1]-ys[y],'#e8e4da',.28);
+          if(!holes.some(o=>u>o[0]&&u<o[2]&&v>o[1]&&v<o[3])){
+            const room=wallRoom(f,a,b,u),insideLeft=inPolygon(a[0]+ux*u-uz*.2,a[1]+uz*u+ux*.2,f.inside),inner=room?.materials.wall||house.style.walls[0],outer=house.style.stone;
+            const p=[a[0]+ux*xs[x],a[1]+uz*xs[x]],q=[a[0]+ux*xs[x+1],a[1]+uz*xs[x+1]];
+            wall(fg,p,q,f.elevation_m+ys[y],ys[y+1]-ys[y],insideLeft?[inner,outer]:[outer,inner],.28);
+            if(ys[y]===0)wall(fg,p,q,f.elevation_m,.11,house.style.wood,.305);
+          }
         }
         for(const o of cuts.filter(o=>o.kind==='window')) {
           const lo=Math.max(0,o.v),hi=Math.min(top,o.v+o.h);if(hi<=lo)continue;
@@ -231,14 +296,16 @@ export function buildInferredHouse(THREE, house, options = {}) {
         for(let x=u;x<=u+w;x+=.16){const p=at(x,d);box(fg,.025,1.02,.025,p[0],y+.51,p[1],dark);}
       }
     }
-    for(const o of f.openings.filter(o=>o.leaf_count&&!o.entrance)) {
-      const [a,b]=o.segment.coordinates,angle=-Math.atan2(b[1]-a[1],b[0]-a[0]);
-      const pivot=new THREE.Group();pivot.position.set(a[0],f.elevation_m,a[1]);pivot.rotation.y=angle;fg.add(pivot);
-      const leaf=new THREE.Group();pivot.add(leaf);leaf.rotation.y=1.25;
-      box(leaf,o.width_m-.04,Math.min(2.05,wallHeight),.04,o.width_m/2,Math.min(2.05,wallHeight)/2,0,cream);
-      doors.push({x:(a[0]+b[0])/2,z:(a[1]+b[1])/2,level:f.level,segment:[a,b],leaf,open:true,angle:1.25});
-    }
+    for(const o of f.openings.filter(o=>o.leaf_count&&(!o.entrance||exterior)))door(fg,f,o);
     for(const o of f.objects)furnish(fg,o);
+    if(wallHeight>1.5)for(const room of f.rooms.filter(r=>!['stair','closet'].includes(r.kind))){
+      const points=room.polygon.coordinates[0],x=points.reduce((s,p)=>s+p[0],0)/points.length,z=points.reduce((s,p)=>s+p[1],0)/points.length;
+      if(!inPolygon(x,z,room.polygon))continue;
+      const y=f.elevation_m+f.height_m-.18;
+      const light=new THREE.Mesh(new THREE.CylinderGeometry(.20,.23,.065,28),material('#e8d5ab',{emissive:'#efc77b',emissiveIntensity:.35}));light.position.set(x,y-.04,z);fg.add(light);
+      const glow=new THREE.PointLight('#ffe0ad',.28,7,2);glow.position.set(x,y-.18,z);fg.add(glow);
+    }
+
     for(const s of house.stairs.filter(s=>s.from_level===f.level&&s.guard_segment)) {
       const [a,b]=s.guard_segment.coordinates,dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);
       const half=s.rise_m*Math.ceil(s.riser_count/2),height=house.storeys[f.level].height_m;

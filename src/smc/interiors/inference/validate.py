@@ -8,6 +8,7 @@ from itertools import combinations
 from shapely.geometry import Point, shape
 from shapely.ops import unary_union
 
+from smc.interiors.inference.efficiency import blind_corridor_ends
 from smc.interiors.inference.partition import polygons
 
 
@@ -75,6 +76,14 @@ def validate_house(house: dict) -> dict:
                 )
             ):
                 errors.append("unnecessary internal door leaf")
+        for key, room in rooms.items():
+            if room["kind"] == "hallway":
+                portals = [shape(o["segment"]) for o in floor["openings"] if key in o["rooms"]]
+                if blind_corridor_ends(shapes[key], portals):
+                    errors.append(f"{key}: corridor ends without a destination")
+            maximum = {"toilet": 5.5, "full_bathroom": 8.5}.get(room["kind"])
+            if maximum and shapes[key].area > maximum + 0.001:
+                errors.append(f"{key}: oversized wet room wastes usable area")
         objects = floor["objects"]
         metrics["objects"] += len(objects)
         metrics["downloaded_assets_used"] += sum(not o["asset"]["procedural"] for o in objects)
@@ -116,6 +125,8 @@ def validate_house(house: dict) -> dict:
             roles = [o["role"] for o in contents]
             required = {
                 "living": {"sofa"},
+                "closet": {"closet_rail"},
+                "utility": {"washing_machine"},
                 "kitchen": {"sink_counter", "cooker", "refrigerator"},
                 "dining": {"dining_table", "dining_chair"},
                 "office": {"desk", "office_chair"},
