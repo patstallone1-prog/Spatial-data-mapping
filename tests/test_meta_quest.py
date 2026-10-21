@@ -148,3 +148,14 @@ def test_the_headset_draws_only_what_you_could_see_and_builds_its_squares_lean()
     assert "o.layers.mask = 0;" in source and "o.layers.mask = o.userData.metaMask;" in source
     xr = (ROOT / "docs/meta-xr.mjs").read_text()
     assert "room: 25" in xr
+
+
+def test_the_headset_compiles_a_square_before_showing_it_and_builds_no_bay_canopy():
+    """Measured on a Quest 3: once every shader had compiled and the Bay-wide canopy had finished
+    building in the background, the square drew at 90 frames a second; before, each surface
+    first seen stalled the headset and the canopy took a slice of every frame for minutes."""
+    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    assert "const compiled = renderer.compileAsync(holder.root, camera, scene);" in source
+    assert "overview:!HEADSET});" in source
+    nature = (ROOT / "docs/nature-runtime.mjs").read_text()
+    assert "const farReady=!overview?Promise.resolve():" in nature

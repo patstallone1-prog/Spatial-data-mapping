@@ -6386,7 +6386,7 @@ if (NATURE) {
     waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : perimeterWaterAt(x,z)===true || s.water),
     blockedAt:(x,z)=>inCity(x,z)||mappedBuiltAt(x,z)||Boolean(typeof guestUnder==="function"&&guestUnder(x,z)),
     hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights,motion:natureMotion,
-    forestFloor:forestFloorLibrary,loadModel:(url)=>new GLTFLoader().loadAsync(url)});
+    forestFloor:forestFloorLibrary,loadModel:(url)=>new GLTFLoader().loadAsync(url),overview:!HEADSET});
   natureWorld.hostBox=hostBox;natureWorld.localBounds=localBounds.clone();
   if(globeLibrary){
     // The disc under the atlas reaches its farthest corner from here; the globe rounds off past it.
@@ -35008,6 +35008,16 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     holder.windowBox = api.windowBox || [api.bbox.west,api.bbox.south,api.bbox.east,api.bbox.north];
     holder.windowBoxes = api.windowBoxes || [holder.windowBox];
     holder.lastAt = performance.now();
+    // In the headset every surface's shader is compiled here, behind the loading panel: compiled
+    // as each first came into view, each stalled the headset a fraction of a second, and where
+    // you turned stayed black until it had. (On a Quest 3, once compiled, the square draws at
+    // the headset's 90 frames a second.)
+    if (META && renderer.compileAsync) {
+      holder.root.visible = true;
+      const compiled = renderer.compileAsync(holder.root, camera, scene);
+      holder.root.visible = false;
+      await Promise.race([compiled.catch(() => {}), new Promise((resolve) => setTimeout(resolve, 10000))]);
+    }
     holder.ready = true;
     holder.buildSeconds=(performance.now()-holder.startedAt)/1000;
     noteDetailBuild(holder.buildSeconds, holder.windowBoxes || [holder.windowBox]);

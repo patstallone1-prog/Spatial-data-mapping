@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="3a648b546f6df5ac841ab644542fbddab25cc74934fe9afd901b979c70ab9433" />
+<meta name="kerbside-renderer-sha256" content="85783c7ddd92b95f818b4a035d387f9eeddbb102ca930c838eb7983ca58d3d73" />
 <meta name="kerbside-mode" content="meta" />
 <link rel="manifest" href="meta.webmanifest" />
 </head>
@@ -325,7 +325,7 @@ const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=f1a3d93a8eafeee6"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=5d2301169661d32e"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
@@ -3456,7 +3456,7 @@ if (NATURE) {
     waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : perimeterWaterAt(x,z)===true || s.water),
     blockedAt:(x,z)=>inCity(x,z)||mappedBuiltAt(x,z)||Boolean(typeof guestUnder==="function"&&guestUnder(x,z)),
     hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights,motion:natureMotion,
-    forestFloor:forestFloorLibrary,loadModel:(url)=>new GLTFLoader().loadAsync(url)});
+    forestFloor:forestFloorLibrary,loadModel:(url)=>new GLTFLoader().loadAsync(url),overview:!HEADSET});
   natureWorld.hostBox=hostBox;natureWorld.localBounds=localBounds.clone();
   if(globeLibrary){
     // The disc under the atlas reaches its farthest corner from here; the globe rounds off past it.
@@ -32078,6 +32078,16 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     holder.windowBox = api.windowBox || [api.bbox.west,api.bbox.south,api.bbox.east,api.bbox.north];
     holder.windowBoxes = api.windowBoxes || [holder.windowBox];
     holder.lastAt = performance.now();
+    // In the headset every surface's shader is compiled here, behind the loading panel: compiled
+    // as each first came into view, each stalled the headset a fraction of a second, and where
+    // you turned stayed black until it had. (On a Quest 3, once compiled, the square draws at
+    // the headset's 90 frames a second.)
+    if (META && renderer.compileAsync) {
+      holder.root.visible = true;
+      const compiled = renderer.compileAsync(holder.root, camera, scene);
+      holder.root.visible = false;
+      await Promise.race([compiled.catch(() => {}), new Promise((resolve) => setTimeout(resolve, 10000))]);
+    }
     holder.ready = true;
     holder.buildSeconds=(performance.now()-holder.startedAt)/1000;
     noteDetailBuild(holder.buildSeconds, holder.windowBoxes || [holder.windowBox]);
