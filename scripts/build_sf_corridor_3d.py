@@ -33268,10 +33268,17 @@ function animate(now) {
   if(natureWorld && (frameCount===1 || frameCount%20===0)) {
     natureWorld.hostBox.value.copy(hostWorldActive ? natureWorld.localBounds : new THREE.Vector4(1,1,0,0));
     const focus=state.firstPerson ? avatar.position : state.target;
-    natureWorld.update(focus.x,focus.z);
+    // Not in the headset: the near detail of the hills round the Bay (nine squares two
+    // kilometres across, generated as you go) stands past its haze.
+    if(!HEADSET)natureWorld.update(focus.x,focus.z);
   }
   keepMarkersFindable();
   metaXR?.update(now);
+  // In the headset the world's positions are brought up to date every sixth frame, not every
+  // frame (scene.matrixWorldAutoUpdate is off there): almost none of it moves, and walking its
+  // thousands of objects was a fifth of every frame. What does move each frame -- the panels,
+  // the pointers -- the headset module places itself.
+  if (META && frameCount % 6 === 0) scene.updateMatrixWorld();
   renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
@@ -34240,12 +34247,12 @@ if (META) {
     if (!g.boundingSphere) g.computeBoundingSphere();
     metaSphere.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
     const near = metaSphere.center.distanceTo(avatar.position) - metaSphere.radius;
-    // Small things far off -- a door, a sign, a house's porch -- are a draw each for a few
-    // pixels: a thing a few metres across is left out past fifty metres, one under twenty past
-    // a hundred and twenty.
+    // Small things off -- a door, a sign, a house's porch -- are a draw each for a few pixels:
+    // a thing a few metres across is left out past twenty-five metres, one under twenty past
+    // a hundred.
     const r = metaSphere.radius;
     const hide = o.userData.surface === "nature_canopy_proxy" || near > metaLibrary.META_VIEW.far
-      || (r < 4 && near > 50) || (r < 20 && near > 120)
+      || (r < 4 && near > 25) || (r < 20 && near > 100)
       || (interior && !(state.indoors && near < metaLibrary.META_VIEW.room));
     if (hide) {
       if (o.userData.metaMask === undefined) o.userData.metaMask = o.layers.mask;
@@ -34270,6 +34277,7 @@ if (META) {
     metaCullTree(scene, false, false);
   }
   setInterval(metaCull, 500);
+  scene.matrixWorldAutoUpdate = false;
   window.kerbsideMeta = { xr: metaXR, memory: metaMemory, stream: STREAM, applyMemoryPlan: applyMetaMemoryPlan, culled: metaCulled, cull: metaCull,
     //: Why the window round you is or is not being built again, for looking into on the headset.
     get streaming() { return { attaching: Boolean(attaching), wanted: Boolean(attachWanted), retryIn: Math.round(detailRetryAt - performance.now()),

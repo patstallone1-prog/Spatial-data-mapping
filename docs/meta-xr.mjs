@@ -20,20 +20,22 @@
 
 const MiB = 1024 * 1024, GiB = 1024 * MiB;
 
-//: How much is built and held round you. A 300 m square in full (150 m each way), rebuilt 70 m
-//: ahead once you are within 80 m of its edge; a hop lands in a 200 m one first. 64 MiB of
-//: cells and 32 MiB of the simple city: a tenth of the desktop app's.
-export const META_STREAM = { radius: 150, arrival: 100, keep: 80, lead: 70,
+//: How much is built and held round you. A 200 m square in full (100 m each way), rebuilt 45 m
+//: ahead once you are within 55 m of its edge; a hop lands in a 160 m one first. 64 MiB of
+//: cells and 32 MiB of the simple city: a tenth of the desktop app's. (A 300 m square was
+//: three hundred draws an eye: a Quest 3 draws about a hundred at its frame rate.)
+export const META_STREAM = { radius: 100, arrival: 80, keep: 55, lead: 45,
   cellBytes: 64 * MiB, cellConcurrency: 4, tileBytes: 32 * MiB };
 //: How far you see: the near and far planes, and the haze the far edge fades into; `room`, how
-//: near a room must be (with you indoors) to be drawn at all.
-export const META_VIEW = { near: 0.1, far: 240, fogNear: 60, fogFar: 220, room: 25 };
+//: near a room must be (with you indoors) to be drawn at all; `resolution`, the share of the
+//: headset's own resolution drawn (the rest is filled in by the headset).
+export const META_VIEW = { near: 0.1, far: 150, fogNear: 40, fogFar: 140, room: 25, resolution: 0.8 };
 //: The memory the page may use, in bytes. It aims to stay under `aim` (4 GiB), sheds what it
 //: holds above it, sheds everything it can above `emergency`, and `ceiling` (5 GiB) is the line
 //: never crossed. `baseline` is what the browser itself takes before the page holds anything
 //: (an allowance, not a measurement: the Quest browser does not report its own size to a page).
 export const META_MEMORY = { aim: 4 * GiB, emergency: 4.5 * GiB, ceiling: 5 * GiB, restoreBelow: 3.2 * GiB,
-  baseline: 0.9 * GiB, minRadius: 80, maxRadius: META_STREAM.radius, step: 0.8 };
+  baseline: 0.9 * GiB, minRadius: 60, maxRadius: META_STREAM.radius, step: 0.8 };
 //: Walking: metres a second at full stick, and with the left trigger held; the stick's dead
 //: zone; snap turns of `snapDeg` once the right stick passes `snapAt`, re-armed under `release`.
 export const META_WALK = { speed: 1.4, brisk: 3.2, dead: 0.18, snapDeg: 30, snapAt: 0.7, release: 0.35 };
@@ -139,7 +141,7 @@ export function createMetaXR({ THREE, renderer, scene, camera, hooks }) {
   xr.enabled = true;
   xr.setReferenceSpaceType("local-floor");
   xr.setFoveation?.(1);
-  xr.setFramebufferScaleFactor?.(1);
+  xr.setFramebufferScaleFactor?.(META_VIEW.resolution);
   const state = { session: null, base: null, yaw: 0, armed: true, pressed: new Map(), menuOpen: false,
     query: "", results: [], mode: "walk", route: false, status: "", hover: null, info: null, infoUntil: 0,
     fade: 0, fadeTo: 0, lastMemoryAt: 0, memory: null, plan: null, planLog: [], overAtSmallest: 0, keyboard: false };
@@ -175,6 +177,12 @@ export function createMetaXR({ THREE, renderer, scene, camera, hooks }) {
     c.add(laser); scene.add(c);
   }
   const raycaster = new THREE.Raycaster();
+  //: What moves in the headset every frame: the panels, the blink and the pointers. The page
+  //: brings the rest of its world's positions up to date only now and then (most of it never
+  //: moves, and walking its thousands of objects every frame was a fifth of the frame), so these
+  //: are brought up to date here, each frame.
+  const movers = [infoPanel.mesh, menu.mesh, loading.mesh, shell, pointer, pointerB];
+  const keepMoversPlaced = () => { for (const o of movers) o.updateMatrixWorld(true); };
 
   // The headset's keyboard: an ordinary text field, focused; what is typed is read from it.
   const field = document.createElement("input");
@@ -342,6 +350,10 @@ export function createMetaXR({ THREE, renderer, scene, camera, hooks }) {
   function update(now) {
     const dt = lastAt ? Math.min(0.1, (now - lastAt) / 1000) : 0;
     lastAt = now;
+    keepMoversPlaced();
+    try { step(now, dt); } finally { keepMoversPlaced(); }
+  }
+  function step(now, dt) {
     const presenting = Boolean(state.session);
     // The blink.
     state.fade += (state.fadeTo - state.fade) * Math.min(1, dt * 12);
