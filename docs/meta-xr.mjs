@@ -1,8 +1,10 @@
 // The headset version (docs/meta.html): Kerbside on a Meta Quest, in the headset's own view.
 //
-// It is the same city as the app, cut down to what a headset needs and can hold. You are always
-// in first person, walking: the left stick walks, the right stick turns in steps, and you look
-// round with your head. The light is always the same noon. You see a short way down the street
+// It is the same city as the app, cut down to what a headset needs and can hold. You follow your
+// walker from a little behind and above (META_FOLLOW): the left stick walks, the right stick
+// turns in steps (left and right) and comes in closer (forward) -- as far as your walker's own
+// eyes -- or goes back out (back), never further than where it starts. Indoors you are in its
+// eyes. You look round with your head. The light is always the same noon. You see a short way down the street
 // -- the view ends in haze a couple of hundred metres off, as it does in other headset games --
 // so only the few blocks round you are built and held, never the whole region. A long hop is a
 // blink to black, not the map animation.
@@ -12,6 +14,7 @@
 //   B  the menu, at your side: search for a place (the headset's keyboard), go there or get
 //      directions there, end the route, reset the view
 //   X  in and out of houses (the door in front of you)
+//   right stick forward / back  closer to your walker / back out to the follow view
 //   right trigger  presses a button on the menu, pointed at with the right controller
 //
 // The page (scripts/build_sf_corridor_3d.py, its META mode) supplies the world through `hooks`;
@@ -39,6 +42,12 @@ export const META_MEMORY = { aim: 4 * GiB, emergency: 4.5 * GiB, ceiling: 5 * Gi
 //: Walking: metres a second at full stick, and with the left trigger held; the stick's dead
 //: zone; snap turns of `snapDeg` once the right stick passes `snapAt`, re-armed under `release`.
 export const META_WALK = { speed: 1.4, brisk: 3.2, dead: 0.18, snapDeg: 30, snapAt: 0.7, release: 0.35 };
+//: Following the walker: the view starts (and goes out no further than) `back` metres behind
+//: the walker's feet and `up` above them, along the way you are turned; the right stick comes in
+//: `rate` of the way a second at full push, down to its eyes (0). The walker is drawn once the
+//: view is `showAt` of the way out; a wall between it and the view brings the view in to
+//: `wallGap` metres short of the wall.
+export const META_FOLLOW = { back: 2.6, up: 1.1, rate: 0.9, dead: 0.35, showAt: 0.2, wallGap: 0.3 };
 //: Always this light: noon in San Francisco on the September equinox, clear.
 export const META_NOON = "2026-09-22T12:00:00-07:00";
 //: The xr-standard gamepad: the right controller's A and B, the left's X and Y, are buttons 4 and 5.
@@ -79,6 +88,17 @@ export function snapTurn(x, armed, W = META_WALK) {
   if (armed && Math.abs(x) >= W.snapAt) return { turn: -Math.sign(x) * W.snapDeg * Math.PI / 180, armed: false };
   if (!armed && Math.abs(x) < W.release) return { turn: 0, armed: true };
   return { turn: 0, armed };
+}
+
+//: Where the view's floor stands, following the walker at feet (x, y, z) turned by `yaw`:
+//: `share` of the way out to the follow view (0, its eyes), and no further out than `clear`
+//: metres back (a wall). Returns {x, y, z, distance}.
+export function followOrigin(x, y, z, yaw, share, clear = Infinity, F = META_FOLLOW) {
+  const s = Math.max(0, Math.min(1, share));
+  const back = Math.min(F.back * s, Math.max(0, clear));
+  const lift = F.up * (F.back > 0 ? back / F.back : 0);
+  // Behind is the way you are turned, reversed: forward is (-sin yaw, -cos yaw).
+  return { x: x + Math.sin(yaw) * back, y: y + lift, z: z + Math.cos(yaw) * back, distance: back };
 }
 
 //: The headset's floor in the page: the reference space moved so its origin stands at the
@@ -144,7 +164,8 @@ export function createMetaXR({ THREE, renderer, scene, camera, hooks }) {
   xr.setFramebufferScaleFactor?.(META_VIEW.resolution);
   const state = { session: null, base: null, yaw: 0, armed: true, pressed: new Map(), menuOpen: false,
     query: "", results: [], mode: "walk", route: false, status: "", hover: null, info: null, infoUntil: 0,
-    fade: 0, fadeTo: 0, lastMemoryAt: 0, memory: null, plan: null, planLog: [], overAtSmallest: 0, keyboard: false };
+    fade: 0, fadeTo: 0, lastMemoryAt: 0, memory: null, plan: null, planLog: [], overAtSmallest: 0, keyboard: false,
+    follow: 1, shown: null };
 
   // A panel: a canvas on a plane, drawn over the world (no depth test), always facing you.
   function panel(pixels, metres) {
@@ -333,15 +354,24 @@ export function createMetaXR({ THREE, renderer, scene, camera, hooks }) {
   }
 
   // ---- the floor under you ---------------------------------------------------------------------
-  //: The reference space moved to the walker's feet and heading. Done when either changes.
+  //: The reference space moved to follow the walker: behind and above its feet along your
+  //: heading (followOrigin), in its eyes indoors. Done when any of them changes.
   let placed = null;
   function recentre(force = false) {
     if (!state.session || !state.base) return;
     const feet = hooks.feet();
-    const key = `${feet.x.toFixed(3)},${feet.y.toFixed(3)},${feet.z.toFixed(3)},${state.yaw.toFixed(4)}`;
+    const share = hooks.indoors?.() ? 0 : state.follow;
+    const want = followOrigin(feet.x, feet.y, feet.z, state.yaw, share);
+    // A wall between the walker and the view brings the view in to just short of it.
+    const clear = want.distance > 0 && hooks.clearBehind
+      ? hooks.clearBehind(feet.x, feet.z, want.x, want.z) - META_FOLLOW.wallGap : Infinity;
+    const at = followOrigin(feet.x, feet.y, feet.z, state.yaw, share, clear);
+    const shown = at.distance >= META_FOLLOW.back * META_FOLLOW.showAt;
+    if (shown !== state.shown) { state.shown = shown; hooks.showWalker?.(shown); }
+    const key = `${at.x.toFixed(3)},${at.y.toFixed(3)},${at.z.toFixed(3)},${state.yaw.toFixed(4)}`;
     if (!force && key === placed) return;
     placed = key;
-    const { position, orientation } = rigOffset(feet.x, feet.y, feet.z, state.yaw);
+    const { position, orientation } = rigOffset(at.x, at.y, at.z, state.yaw);
     xr.setReferenceSpace(state.base.getOffsetReferenceSpace(new XRRigidTransform(position, orientation)));
   }
 
@@ -391,6 +421,9 @@ export function createMetaXR({ THREE, renderer, scene, camera, hooks }) {
           const turn = snapTurn(axes[0], state.armed);
           state.armed = turn.armed;
           if (turn.turn) state.yaw += turn.turn;
+          // Forward comes in towards the walker's eyes, back goes out to the follow view.
+          if (Math.abs(axes[1]) > META_FOLLOW.dead && Math.abs(axes[1]) > Math.abs(axes[0]))
+            state.follow = Math.max(0, Math.min(1, state.follow + axes[1] * META_FOLLOW.rate * dt));
         }
         if (down(META_BUTTONS.a) && ready) describe();
         if (down(META_BUTTONS.b)) toggleMenu();
@@ -456,7 +489,7 @@ export function createMetaXR({ THREE, renderer, scene, camera, hooks }) {
     session.addEventListener("select", (event) => {
       if (event.inputSource.handedness === "right" && state.menuOpen && state.hover) press(state.hover);
     });
-    session.addEventListener("end", () => { state.session = null; state.base = null; toggleMenu(false); hooks.onExit?.(); });
+    session.addEventListener("end", () => { state.session = null; state.base = null; state.shown = null; toggleMenu(false); hooks.onExit?.(); });
     recentre(true);
     hooks.onEnter?.();
     return true;
