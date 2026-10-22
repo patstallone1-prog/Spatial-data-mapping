@@ -51,6 +51,35 @@ export function speciesAt(x,y,lon,lat,habitat={}){
  const immigrant=noiseHash(Math.floor(x),Math.floor(y),419)<.18;
  return choose(weights,immigrant?noiseHash(Math.floor(x),Math.floor(y),421):noiseHash(...grove,431));
 }
+//: NLCD's natural classes, and what a developed cell among them is taken for (vegetatedCover).
+export const NATURAL_COVER=[31,41,42,43,52,71,81,82,90,95];
+const NATURAL_SET=new Set(NATURAL_COVER),OPEN_SET=new Set([21,...NATURAL_COVER]);
+//: NLCD labels each 30 m cell by what covers most of it, so a 2 m trail or a fire road through a
+//: wood comes out "developed" and a wooded park as low-intensity development -- most of the
+//: Presidio is classes 21 and 22 under 50 to 75 per cent measured canopy. Taken at its word that
+//: is grey ground with no tree or bush on it for thirty metres round every path. The paths and
+//: buildings themselves are mapped (nature/paths.json) and keep the plants off; so, for the
+//: plants and the floor's colour, a developed cell (21-23) whose neighbours are mostly natural
+//: is a strip through them and takes their commonest class, and a low- or medium-intensity one
+//: under real canopy beside open land is open space under trees (21). The source array is not
+//: changed; the same rule builds the floor colours (build_nature_ecology.vegetated_cover).
+export function vegetatedCover(cover,canopy,cols,rows){
+ const out=Uint8Array.from(cover),counts=new Map();
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+  const i=r*cols+c,k=cover[i];if(k<21||k>23)continue;
+  let natural=0,open=false,best=0,bestN=0;counts.clear();
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+   if(!dr&&!dc)continue;const cc=c+dc,rr=r+dr;if(cc<0||rr<0||cc>=cols||rr>=rows)continue;
+   const n=cover[rr*cols+cc];if(OPEN_SET.has(n))open=true;if(!NATURAL_SET.has(n))continue;
+   natural++;const m=(counts.get(n)||0)+1;counts.set(n,m);if(m>bestN||(m===bestN&&n<best)){best=n;bestN=m;}
+  }
+  if(natural>=(k===23?6:5))out[i]=best;
+  else if(k!==21&&open&&canopy[i]!==255&&canopy[i]>=25)out[i]=21;
+ }
+ return out;
+}
+//: How much of a developed-open-space cell is grass (NLCD 21: impervious under 20 per cent).
+export const OPEN_SPACE_GRASS=.85;
 export function habitatMixture(cover,canopy,cols,rows,c,r){
  const weights={forest:0,scrub:0,grass:0,barren:0,wetland:0,developed:0,water:0},classes={};
  let total=0,trees=0,known=0;
@@ -58,7 +87,10 @@ export function habitatMixture(cover,canopy,cols,rows,c,r){
   const cx=Math.floor(c)+dx,ry=Math.floor(r)+dy;if(cx<0||ry<0||cx>=cols||ry>=rows)continue;
   const w=Math.exp(-((cx-c)**2+(ry-r)**2)/1.15),i=ry*cols+cx,k=cover[i];total+=w;classes[k]=(classes[k]||0)+w;
   if(canopy[i]!==255){trees+=canopy[i]*w;known+=w;}
-  const group=[41,42,43].includes(k)?'forest':k===52?'scrub':[71,81,82].includes(k)?'grass':k===31?'barren':[90,95].includes(k)?'wetland':[21,22,23,24].includes(k)?'developed':k===11?'water':null;
+  // Developed open space (21) is NLCD's lawn: mostly grass, under a fifth of it paved. Counted
+  // as developed whole it grew nothing round the Presidio's trails but a few trees on bare soil.
+  if(k===21){weights.grass+=w*OPEN_SPACE_GRASS;weights.developed+=w*(1-OPEN_SPACE_GRASS);}
+  const group=k===21?null:[41,42,43].includes(k)?'forest':k===52?'scrub':[71,81,82].includes(k)?'grass':k===31?'barren':[90,95].includes(k)?'wetland':[22,23,24].includes(k)?'developed':k===11?'water':null;
   if(group)weights[group]+=w;
  }
  for(const k of Object.keys(weights))weights[k]/=total||1;

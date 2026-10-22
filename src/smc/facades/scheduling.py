@@ -9,12 +9,27 @@ def evidence_group(item: tuple) -> tuple[str, str]:
     return item[2], item[1]["observation"]["provider"]
 
 
-def fair_batch(pending: list[tuple], records: list[dict], limit: int) -> list[tuple]:
+def fair_batch(pending: list[tuple], records: list[dict], limit: int,
+               focus: dict | None = None) -> list[tuple]:
     """Least-served city/provider first, best-ranked views within each queue.
 
     This selects work, not source retention. No view or acquisition is deleted.
     History is persisted in the existing review receipts, so restarts are fair too.
+
+    ``focus`` maps ``(region, building_id)`` to a place in line (lower first): the houses a
+    focus request names (``build/frontage-supervisor/focus.request.json``,
+    scripts/request_frontage_focus.py) are screened before anything else, in that order, every
+    provider's view of one together. The rest of the batch is filled fairly as before.
     """
+    if focus:
+        def place(item):
+            return focus.get((item[2], str(item[0]["building_id"])))
+        first = sorted((item for item in pending if place(item) is not None),
+                       key=lambda item: (place(item), -int(item[1].get("pose_status") == "provider_solved")))
+        if first:
+            chosen = first[:limit]
+            rest = [item for item in pending if place(item) is None]
+            return chosen + fair_batch(rest, records, limit - len(chosen))
     served = Counter()
     buildings = Counter()
     seen = set()

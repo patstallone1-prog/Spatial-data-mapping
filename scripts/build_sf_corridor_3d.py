@@ -15716,10 +15716,21 @@ const CANOPY_TAGS = new Set(["roof", "canopy"]);
 const SLENDER_LIMIT = 1.35;
 //: What an outbuilding actually is. One storey, or two for a large one, and never more.
 const OUTBUILDING_MAX_M = 6.2;
+//: Under this a footprint is not a room anyone stands in: the smallest house in the city covers
+//: thirty square metres and more. Two at Moscone Recreation Center, 1.6 and 4.4 m^2, carry the
+//: park's parcel address and its PUBLIC land use, which made them buildings, and a default
+//: 10.5 m made each a house a storey wide and three high. What is that small is a structure:
+//: a mast, a cabinet, a booth (structureMesh), and never has a door, windows or rooms.
+const STRUCTURE_MAX_M2 = 8;
+//: A structure no wider than this is a pole, and one with no measured height is a mast that
+//: tall; a wider one is a cabinet or a booth, STRUCTURE_BOX_M high unless measured.
+const STRUCTURE_POLE_M = 2.5;
+const STRUCTURE_BOX_M = 2.6;
 
 function structureClass(feature, areaM2) {
   const tag = (feature.tags || {}).building;
   if (CANOPY_TAGS.has(tag)) return "canopy";
+  if (areaM2 > 0 && areaM2 < STRUCTURE_MAX_M2) return "structure";
   if (OUTBUILDING_TAGS.has(tag)) return "outbuilding";
   // The city's own records outrank every guess below.
   //
@@ -18093,6 +18104,79 @@ function mappedTubePortalBuilding(feature) {
   const [x, y] = xy(feature.centroid[0], feature.centroid[1]);
   return IMMERSED_MOUTHS.some(([mx, my]) => Math.hypot(x - mx, y - my) < 25);
 }
+//: A footprint too small to be a room (STRUCTURE_MAX_M2). One no wider than STRUCTURE_POLE_M
+//: is a steel monopole as tall as the footprint was measured (or the default, untold), tapering
+//: up from the footprint's width; past 9 m it carries the three-sector panel head of a cell
+//: site, which is what a monopole in a San Francisco park is. A wider one is a plain cabinet.
+//: The pole's form and its head are a visual prior, not anything observed. Footprints drawn one
+//: inside another are one mast (Moscone's two, 1.8 m apart): the larger stands, the other is
+//: left out (structurePoles).
+const structurePoles = new Map();
+function structureMesh(feature, areaM2) {
+  const local = feature.points.map((p) => xy(p[0], p[1]));
+  const xs = local.map((p) => p[0]), ys = local.map((p) => p[1]);
+  const wide = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const measured = feature.height_source && feature.height_source !== "inferred_default";
+  const base = groundBaseFor(feature.points);
+  const seed = Math.round(feature.points[0][0] * 1e5 + feature.points[0][1] * 7919e5);
+  const group = new THREE.Group();
+  const info = { surface: "structure", osm_id: feature.osm_id, area_m2: +areaM2.toFixed(1),
+                 height_basis: measured ? feature.height_source : "inferred_default",
+                 appearance_basis: "visual_prior", residential_layout: false, liftedOntoGround: true };
+  group.userData = info;
+  if (wide <= STRUCTURE_POLE_M) {
+    const height = Math.max(4, feature.height_m || 10.5);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = -(Math.min(...ys) + Math.max(...ys)) / 2;
+    const cell = `${Math.round(cx / 4)}:${Math.round(cz / 4)}`;
+    for (const [key, other] of structurePoles) {
+      if (other.id === feature.osm_id || Math.hypot(other.x - cx, other.z - cz) > STRUCTURE_POLE_M) continue;
+      if (other.area >= areaM2) return new THREE.Group();
+      other.group.removeFromParent();
+      structurePoles.delete(key);
+    }
+    const r0 = Math.max(0.22, Math.min(0.5, wide * 0.28)), r1 = r0 * 0.55;
+    const steel = new THREE.MeshStandardMaterial({ color: 0x9da3a6, roughness: 0.45, metalness: 0.55 });
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, height, 14), steel);
+    pole.position.set(cx, base + height / 2, cz);
+    pole.castShadow = true;
+    pole.userData = { ...info, surface: "structure:mast" };
+    group.add(pole);
+    if (height >= 9) {
+      const top = base + height - 1.1;
+      const frame = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.08, 3), steel);
+      frame.position.set(cx, top - 0.85, cz);
+      frame.rotation.y = random(seed) * Math.PI;
+      group.add(frame);
+      const panel = new THREE.MeshStandardMaterial({ color: 0xd7dad6, roughness: 0.6, metalness: 0.1 });
+      for (let k = 0; k < 3; k += 1) {
+        const a = frame.rotation.y + Math.PI / 6 + k * (2 * Math.PI / 3);
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.45, 0.13), panel);
+        box.position.set(cx + Math.cos(a) * 0.8, top, cz - Math.sin(a) * 0.8);
+        box.rotation.y = a + Math.PI / 2;
+        box.castShadow = true;
+        box.userData = { ...info, surface: "structure:antenna" };
+        group.add(box);
+      }
+    }
+    structurePoles.set(`${feature.osm_id}:${cell}`, { id: feature.osm_id, x: cx, z: cz, area: areaM2, group });
+    return group;
+  }
+  const shape = footprintShape(feature.points);
+  if (!shape) return null;
+  const height = measured ? Math.max(1, feature.height_m) : STRUCTURE_BOX_M;
+  const body = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false, UVGenerator: FACADE_UV });
+  body.rotateX(-Math.PI / 2);
+  body.translate(0, base, 0);
+  const mesh = new THREE.Mesh(body, [
+    new THREE.MeshStandardMaterial({ color: 0x74787a, roughness: 0.8, metalness: 0.2 }),
+    new THREE.MeshStandardMaterial({ map: outbuildingTexture(seed), color: 0x8e928c, roughness: 0.9 }),
+  ]);
+  mesh.castShadow = mesh.receiveShadow = true;
+  mesh.userData = { ...info, surface: "structure:cabinet" };
+  group.add(mesh);
+  return group;
+}
+
 function buildingMesh(feature) {
   // A station under the street has no walls above it.
   if (feature.underground) return null;
@@ -18104,6 +18188,9 @@ function buildingMesh(feature) {
   // A canopy has no walls under it. Drawing nothing leaves the parcel it stands on to the
   // ground cover, which is grass and a fence -- which is what is there.
   if (kind === "canopy") return null;
+  // Marked on the way, so its doors, windows, fit and rooms are left out (settleDoors,
+  // homeWindowLayout, buildInterior): the building pass runs before any of those.
+  if (kind === "structure") { feature._structure = true; return structureMesh(feature, areaM2); }
   // No exaggeration. This was multiplied by 1.8 to make massing read from a bird's eye, which
   // put every building eighty per cent taller than OpenStreetMap says it is -- fine as a
   // diagram, wrong the moment somebody walks down the street beside it.
@@ -23138,6 +23225,10 @@ function courtSurface(color) {
     ctx.fillRect(random(i * 5) * size, random(i * 7) * size, 1, 1);
   }
   const texture = new THREE.CanvasTexture(canvas);
+  // The canvas is painted in sRGB. Untagged, three.js read these darks as linear and lifted
+  // them: the tennis green came out the pale mint of a swimming pool, and a court read as a
+  // sheet of glass over the grass rather than as acrylic laid on asphalt.
+  texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(6, 6);
   return texture;
@@ -23358,7 +23449,7 @@ function buildCourts(ground) {
   const complexes = ground.court_complexes || [];
   const inBlock = new Set(complexes.map((c) => c.id));
   const pitches = [...(ground.pitches || []).filter((p) => !inBlock.has(p.k)),
-    ...complexes.map((c) => ({ s: c.s, p: c.p, block: true }))];
+    ...complexes.map((c) => ({ s: c.s, p: c.p, block: true, dividers: c.d || [] }))];
   if (!courts.length && !pitches.length) return;
 
   // The ground each pitch stands on, one merged mesh per sport: asphalt round the hard courts,
@@ -23536,15 +23627,17 @@ function buildCourts(ground) {
   for (const pitch of pitches) {
     const style = COURT_STYLE[pitch.s];
     if (!style || !style.fence) continue;
-    const ring = pitch.p;
-    for (let i = 0; i < ring.length - 1; i += 1) {
+    // Within a block, the fence between one sport's courts and another's (court_complexes'
+    // dividers), as tall as the taller of the two; courts of one sport share open run-off.
+    const runs = [[pitch.p, style.fence], ...(pitch.dividers || []).map((d) => [d.p,
+      Math.max(...d.s.map((s) => (COURT_STYLE[s] || COURT_STYLE[`${s}_half`] || style).fence || style.fence))])];
+    for (const [ring, h] of runs) for (let i = 0; i < ring.length - 1; i += 1) {
       const [ax, ay] = xy(ring[i][0], ring[i][1]);
       const [bx, by] = xy(ring[i + 1][0], ring[i + 1][1]);
       const az = -ay, bz = -by;
       const span = Math.hypot(bx - ax, bz - az);
       if (span < 0.4) continue;
       if (insideCarriageway(ax, az, -1.0) || insideCarriageway(bx, bz, -1.0)) continue;
-      const h = style.fence;
       groundedFencePanel({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
         ax,az,bx,bz,COURT_Y,h,.6);
       for (let d = 0; d < span; d += 3.0) {
@@ -30218,7 +30311,7 @@ function requestGeneratedInteriors() {
   fetch(new URL("map-overlay.json", base)).then(r => r.ok ? r.json() : null).then(data => {
     for (const [id, ref] of Object.entries(data?.buildings || {})) {
       const entry = footprintById.get(id);
-      if (entry && !entry.way.parkFacility) {
+      if (entry && !entry.way.parkFacility && !entry.way._structure) {
         entry.generatedInteriorRef = {...ref, base};
         if (entry.interior) removeInterior(entry);
       }
@@ -30265,7 +30358,7 @@ function requestInteriors() {
       requestGeneratedInteriors();
       for (const [id, record] of Object.entries(data.buildings)) {
         const entry = footprintById.get(id);
-        if (!entry || entry.way.parkFacility) continue;
+        if (!entry || entry.way.parkFacility || entry.way._structure) continue;
         entry.fit = record;
         entry.doors = (record[13] || []).map(([edge, t, width, source]) => doorOn(entry, edge, t, width, source))
           .filter(Boolean);
@@ -30301,6 +30394,7 @@ function garageSpansOnEdge(entry, edge) {
 //: wall beside the garage (or dropped if there is none); a mapped or photographed door stays
 //: where it was seen. A house left with no door gets the one its facade shows (_frontDoor).
 function settleDoors(entry) {
+  if (entry.way._structure) { entry.doors = []; return; }
   const kept = [];
   for (const door of entry.doors || []) {
     const a = entry.local[door.edge], b = entry.local[door.edge + 1];
@@ -31813,7 +31907,7 @@ function frontageWindowsOnEdge(entry, a, b, length, bottom) {
 }
 
 function homeWindowLayout(entry, spec) {
-  if (entry.way.parkFacility) return [];
+  if (entry.way.parkFacility || entry.way._structure) return [];
   const id = String(entry.way.osm_id);
   const bottom = spec.base, top = bottom + spec.height, floor = entryFloorY(entry);
   if (top - floor < 2.3) return null;
@@ -33380,7 +33474,7 @@ function entryTunnelConflict(entry) {
   return false;
 }
 function buildInterior(entry) {
-  if (entry.way.parkFacility) return;
+  if (entry.way.parkFacility || entry.way._structure) return;
   if(entryTunnelConflict(entry))return;
   if (entry.generatedInteriorRef && !entry.generatedInteriorFailed) {
     if (!entry.interior) requestGeneratedInterior(entry);

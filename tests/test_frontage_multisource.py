@@ -64,3 +64,16 @@ def test_restricted_dataset_cannot_be_laundered_as_a_free_license(source):
     assert source_block_reason(source)
     with pytest.raises(ValueError, match="restricted"):
         provider_for(source, "fixture")
+
+
+def test_a_focus_request_is_screened_first_in_its_own_order() -> None:
+    def item(building, provider, region="sf-corridor"):
+        return ({"building_id": building}, {"observation": {"provider": provider}, "rank": [1]}, region, "run")
+    pending = [item("far", "mapillary"), item("b", "kartaview", "sf-mission"), item("near", "mapillary"),
+               item("near", "panoramax"), item("mid", "mapillary")]
+    focus = {("sf-corridor", "near"): 0, ("sf-corridor", "mid"): 1}
+    chosen = fair_batch(pending, [], 4, focus)
+    assert [c[0]["building_id"] for c in chosen[:3]] == ["near", "near", "mid"]
+    assert len(chosen) == 4 and chosen[3][0]["building_id"] in {"far", "b"}
+    # No request, the fair order as before.
+    assert fair_batch(pending, [], 4) == fair_batch(pending, [], 4, {})
