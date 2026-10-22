@@ -81,7 +81,7 @@ def test_a_searched_place_is_shown_and_the_directions_filled_in_without_moving_t
     show = show[:show.index("\n  };") + 4]
     assert "goTo(new THREE.Vector3(x, 0, -y));" in show and "travel" not in show, "only the view moves"
     assert "route.stops[route.stops.length - 1] = place;" in show and "route.stops[0] = here();" in show
-    assert 'if (gps.fix) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat, here: true };' in page
+    assert 'if (gps.fix && regionAt(gps.fix.lon, gps.fix.lat)) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat, here: true };' in page
     assert "navigator.geolocation.watchPosition(" in page and 'localStorage.getItem(GPS_KEY) !== "off"' in page
 
 

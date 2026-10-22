@@ -7412,7 +7412,7 @@ function buildTile(tile, layers) {
     o.userData.surface = "tile"; o.userData.liftedOntoGround = true; o.renderOrder = tile.depth;
     if(typeof NATURE!=="undefined"&&NATURE&&!o.isInstancedMesh&&!o.userData.natureBuildings) {
       const p=o.geometry.getAttribute("position"),base=new Float32Array(p.count);
-      for(let i=0;i<p.count;i++)base[i]=rawTerrainHeightAt(p.getX(i),p.getZ(i));
+      for(let i=0;i<p.count;i++)base[i]=tileGroundAt(p.getX(i),p.getZ(i));
       o.userData.natureBases=base;
     }
   } });
@@ -7469,6 +7469,11 @@ const TILE_LAWN_Y = 0.08;
 //: where they meet. Built on PENINSULA_Y instead, every street outside a region stood on a
 //: two-metre plinth with a drop to the grass either side.
 const TILE_GROUND_Y = PENINSULA_Y - PERIMETER_UNDER_M;
+//: Over the landscape, the ground the simple city stands on is the landscape's as it draws it,
+//: eased to the edge of a window drawn in full as the landscape is (natureVisualHeightAt). On the
+//: bare terrain it was under that easing: the ground round a window rose over its streets and
+//: lawns by up to thirteen metres.
+function tileGroundAt(x, z) { return natureVisualHeightAt(x, z, null, false); }
 
 const TILE_BOX = new THREE.BoxGeometry(1, 1, 1);
 // Refined terrain must not bury an already-resident neighbouring city tile. Rebase its
@@ -7484,21 +7489,21 @@ function syncNatureTileHeights(boxes) {
       if(o.userData.natureMassing) {
         const a=o.userData.natureMassing,m=new THREE.Matrix4();
         for(let i=0;i<o.count;i++){
-          o.getMatrixAt(i,m);const y=rawTerrainHeightAt(m.elements[12],m.elements[14]);
+          o.getMatrixAt(i,m);const y=tileGroundAt(m.elements[12],m.elements[14]);
           m.elements[13]+=y-a[i];a[i]=y;o.setMatrixAt(i,m);
         }o.instanceMatrix.needsUpdate=true;o.computeBoundingSphere();return;
       }
       const p=o.geometry?.getAttribute("position");if(!p)return;
       if(o.userData.natureBuildings) {
         for(const b of o.userData.natureBuildings) {
-          const next=Math.min(...b.ring.map(q=>rawTerrainHeightAt(q[0],q[1]))),delta=next-b.base;
+          const next=Math.min(...b.ring.map(q=>tileGroundAt(q[0],q[1]))),delta=next-b.base;
           if(Math.abs(delta)<.0001)continue;
           for(let i=b.first;i<b.end;i++)p.setY(i,p.getY(i)+delta);b.base=next;
         }
       }else if(o.userData.natureBases) {
         const base=o.userData.natureBases;
         for(let i=0;i<p.count;i++){
-          const next=rawTerrainHeightAt(p.getX(i),p.getZ(i));p.setY(i,p.getY(i)+next-base[i]);base[i]=next;
+          const next=tileGroundAt(p.getX(i),p.getZ(i));p.setY(i,p.getY(i)+next-base[i]);base[i]=next;
         }o.geometry.computeVertexNormals();
       }else return;
       p.needsUpdate=true;o.geometry.computeBoundingSphere();
@@ -7519,7 +7524,7 @@ function tileMassing(rows, f, lonOf, latOf, material) {
   kept.forEach(([cx, cy, halfA, halfB, bearing, height], i) => {
     const h = height / 100.0;
     const mx = f.x0 + cx * f.sx, mz = -(f.y0 + cy * f.sy);
-    const base=nature ? rawTerrainHeightAt(mx,mz) : TILE_GROUND_Y-earthDrop(mx,mz);
+    const base=nature ? tileGroundAt(mx,mz) : TILE_GROUND_Y-earthDrop(mx,mz);
     if(nature)mesh.userData.natureMassing[i]=base;
     dummy.position.set(mx, base + h / 2, mz);
     dummy.rotation.set(0, -bearing / 100.0 * Math.PI / 180, 0);
@@ -7575,7 +7580,7 @@ function tileBuildings(rows, f, lonOf, latOf, material) {
     // city of different houses rather than a field of identical pale blocks.
     const wall = packed >= 0 ? roof.setHex(packed) : tileInventedColour(archetype, ring[0], height);
     const drop = earthDrop(ring[0][0], ring[0][1]);
-    const groundY = nature ? Math.min(...ring.map(p=>rawTerrainHeightAt(p[0],p[1]))) : TILE_GROUND_Y - drop;
+    const groundY = nature ? Math.min(...ring.map(p=>tileGroundAt(p[0],p[1]))) : TILE_GROUND_Y - drop;
     const firstVertex=position.length/3;
     const top = groundY + height;
     // The walls: a quad an edge, wound outward whichever way the ring runs.
@@ -7648,7 +7653,7 @@ function tileLawns(rows, f, material) {
     if (ring.length < 3) continue;
     const base = position.length / 3;
     for (const p of ring) {
-      const y = nature ? rawTerrainHeightAt(p.x, p.y) : TILE_GROUND_Y - earthDrop(p.x, p.y);
+      const y = nature ? tileGroundAt(p.x, p.y) : TILE_GROUND_Y - earthDrop(p.x, p.y);
       position.push(p.x, y + TILE_LAWN_Y, p.y);
     }
     for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(ring, [])) index.push(base + a, base + b, base + c);
@@ -7683,8 +7688,8 @@ function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
       for (const run of tileOutsideRuns(stations)) {
         const base = position.length / 3;
         (typeof NATURE!=="undefined"&&NATURE ? natureTileStations(run) : run).forEach(({ lx, lz, rx, rz }, n) => {
-          position.push(lx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(lx,lz) : TILE_GROUND_Y-earthDrop(lx,lz)) + height, lz,
-                        rx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(rx,rz) : TILE_GROUND_Y-earthDrop(rx,rz)) + height, rz);
+          position.push(lx, (typeof NATURE!=="undefined"&&NATURE ? tileGroundAt(lx,lz) : TILE_GROUND_Y-earthDrop(lx,lz)) + height, lz,
+                        rx, (typeof NATURE!=="undefined"&&NATURE ? tileGroundAt(rx,rz) : TILE_GROUND_Y-earthDrop(rx,rz)) + height, rz);
           if (n) { const k = base + n * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
         });
       }
@@ -7709,8 +7714,8 @@ function tileRoads(rows, f, lonOf, latOf, material, height = TILE_ROAD_Y) {
         const nx = -dz / len * width / 2, nz = dx / len * width / 2;
         const lx = pts[i][0] + nx, lz = pts[i][1] + nz;
         const rx = pts[i][0] - nx, rz = pts[i][1] - nz;
-        position.push(lx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(lx,lz) : TILE_GROUND_Y-earthDrop(lx,lz)) + height, lz,
-                      rx, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(rx,rz) : TILE_GROUND_Y-earthDrop(rx,rz)) + height, rz);
+        position.push(lx, (typeof NATURE!=="undefined"&&NATURE ? tileGroundAt(lx,lz) : TILE_GROUND_Y-earthDrop(lx,lz)) + height, lz,
+                      rx, (typeof NATURE!=="undefined"&&NATURE ? tileGroundAt(rx,rz) : TILE_GROUND_Y-earthDrop(rx,rz)) + height, rz);
         if (i) { const k = base + i * 2; index.push(k - 2, k, k - 1, k - 1, k, k + 1); }
       }
     }
@@ -7740,7 +7745,7 @@ function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMater
                                    [halfAlong, halfAcross], [-halfAlong, halfAcross]]) {
       const x = cx + ux * along + nx * across;
       const z = cz + uz * along + nz * across;
-      position.push(x, (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(x,z) : TILE_GROUND_Y-earthDrop(x,z)) + y, z);
+      position.push(x, (typeof NATURE!=="undefined"&&NATURE ? tileGroundAt(x,z) : TILE_GROUND_Y-earthDrop(x,z)) + y, z);
     }
     index.push(base, base + 1, base + 2, base, base + 2, base + 3);
     return base;
@@ -7831,7 +7836,7 @@ function tileCrossings(rows, style, f, lonOf, latOf, paintMaterial, tactileMater
 //: dashes running on along the line across its vertices; yellow is two solid lines.
 function tileLaneLines(rows, kind, f, material) {
   const position = [], index = [];
-  const ground = (x, z) => (typeof NATURE!=="undefined"&&NATURE ? rawTerrainHeightAt(x,z) : TILE_GROUND_Y-earthDrop(x,z)) + TILE_PAINT_Y;
+  const ground = (x, z) => (typeof NATURE!=="undefined"&&NATURE ? tileGroundAt(x,z) : TILE_GROUND_Y-earthDrop(x,z)) + TILE_PAINT_Y;
   const strip = (a, b, offset, half) => {
     const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz);
     if (!(len > 0.05)) return;
@@ -34776,6 +34781,10 @@ const ROUTE_LIFT_M = 0.3;
 const route = { mode: "walk", stops: [null, null], results: [], chosen: 0, pending: null };
 const routeGroup = new THREE.Group();
 routeGroup.name = "route";
+// Kept through the page's own world being let go for a window drawn in full (releaseHostWorld
+// takes everything else off root): the routes and their pins went with it, and the next
+// directions found no parent to put their pins on -- an error, and the map offered a reload.
+routeGroup.userData.bayWide = true;
 root.add(routeGroup);
 //: Valhalla's shapes: Google's polyline encoding at six decimal places (Transitous's at seven).
 function decodePolyline6(text, precision = 6) {
@@ -35108,8 +35117,10 @@ if (!ATTACH) {
   const stepsList = document.getElementById("route-steps");
   const clear = document.getElementById("route-clear");
   const minutes = (s) => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`;
+  // Where you are: the device's fix while it is on the map, and the walker otherwise -- a fix
+  // from outside every region (the Mac at home) is not a start anyone here can walk from.
   const here = () => {
-    if (gps.fix) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat, here: true };
+    if (gps.fix && regionAt(gps.fix.lon, gps.fix.lat)) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat, here: true };
     const p = avatar.position;
     return { label: "Your location", lon: p.x / metersPerLon + midLon, lat: -p.z / metersPerLat + midLat, here: true };
   };
@@ -35123,7 +35134,8 @@ if (!ATTACH) {
   pinHead.position.y = 6.5;
   pin.add(pinPoint, pinHead);
   pin.visible = false;
-  routeGroup.parent.add(pin);
+  pin.userData.bayWide = true;
+  root.add(pin);
   const pinMarker = { object: pin, near: 95, x: 0, z: 0 };
   findableMarkers.add(pinMarker);
   // Blue pins at the directions' start, each stop and the end, lettered in order (A, the start),
@@ -35132,7 +35144,7 @@ if (!ATTACH) {
   const routePinMaterial = new THREE.MeshBasicMaterial({ color: ROUTE_PIN_BLUE });
   let routePins = [];
   function clearRoutePins() {
-    for (const marker of routePins) { routeGroup.parent.remove(marker.object); findableMarkers.delete(marker); }
+    for (const marker of routePins) { root.remove(marker.object); findableMarkers.delete(marker); }
     routePins = [];
   }
   function placeRoutePins(stops) {
@@ -35152,7 +35164,8 @@ if (!ATTACH) {
       label.scale.set(4.2, 4.2, 1);
       object.add(point, head, label);
       object.position.set(x, walkerGroundAt(x, -y), -y);
-      routeGroup.parent.add(object);
+      object.userData.bayWide = true;
+      root.add(object);
       const marker = { object, near: 95, x, z: -y };
       findableMarkers.add(marker);
       routePins.push(marker);
