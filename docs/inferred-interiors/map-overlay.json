@@ -1351,6 +1351,1273 @@
     -122.4454185,
     37.792287
    ]
+  },
+  "819915728": {
+   "file": "houses/berkeley-downtown/osm-819915728.json",
+   "origin_lon_lat": [
+    -122.2573977,
+    37.8650901
+   ]
+  },
+  "560284471": {
+   "file": "houses/berkeley-downtown/osm-560284471.json",
+   "origin_lon_lat": [
+    -122.2726791,
+    37.8741135
+   ]
+  },
+  "560444682": {
+   "file": "houses/berkeley-downtown/osm-560444682.json",
+   "origin_lon_lat": [
+    -122.2727854,
+    37.8758908
+   ]
+  },
+  "623271748": {
+   "file": "houses/berkeley-downtown/osm-623271748.json",
+   "origin_lon_lat": [
+    -122.2721718,
+    37.8763512
+   ]
+  },
+  "669459342": {
+   "file": "houses/berkeley-downtown/osm-669459342.json",
+   "origin_lon_lat": [
+    -122.2615448,
+    37.8654617
+   ]
+  },
+  "433096681": {
+   "file": "houses/berkeley-downtown/osm-433096681.json",
+   "origin_lon_lat": [
+    -122.2704009,
+    37.8740627
+   ]
+  },
+  "433096667": {
+   "file": "houses/berkeley-downtown/osm-433096667.json",
+   "origin_lon_lat": [
+    -122.2699706,
+    37.8739205
+   ]
+  },
+  "823936357": {
+   "file": "houses/berkeley-downtown/osm-823936357.json",
+   "origin_lon_lat": [
+    -122.2740844,
+    37.8757676
+   ]
+  },
+  "826243020": {
+   "file": "houses/berkeley-downtown/osm-826243020.json",
+   "origin_lon_lat": [
+    -122.2580819,
+    37.8797205
+   ]
+  },
+  "826209165": {
+   "file": "houses/berkeley-downtown/osm-826209165.json",
+   "origin_lon_lat": [
+    -122.2574328,
+    37.8783507
+   ]
+  },
+  "826209333": {
+   "file": "houses/berkeley-downtown/osm-826209333.json",
+   "origin_lon_lat": [
+    -122.2580305,
+    37.8769175
+   ]
+  },
+  "560430815": {
+   "file": "houses/berkeley-downtown/osm-560430815.json",
+   "origin_lon_lat": [
+    -122.2731591,
+    37.8744253
+   ]
+  },
+  "560430817": {
+   "file": "houses/berkeley-downtown/osm-560430817.json",
+   "origin_lon_lat": [
+    -122.2729382,
+    37.875015
+   ]
+  },
+  "623271739": {
+   "file": "houses/berkeley-downtown/osm-623271739.json",
+   "origin_lon_lat": [
+    -122.2717275,
+    37.8767716
+   ]
+  },
+  "433096658": {
+   "file": "houses/berkeley-downtown/osm-433096658.json",
+   "origin_lon_lat": [
+    -122.2697631,
+    37.8744239
+   ]
+  },
+  "823936347": {
+   "file": "houses/berkeley-downtown/osm-823936347.json",
+   "origin_lon_lat": [
+    -122.274522,
+    37.8756949
+   ]
+  },
+  "262514523": {
+   "file": "houses/berkeley-downtown/osm-262514523.json",
+   "origin_lon_lat": [
+    -122.2685589,
+    37.879284
+   ]
+  },
+  "823936355": {
+   "file": "houses/berkeley-downtown/osm-823936355.json",
+   "origin_lon_lat": [
+    -122.2743227,
+    37.8752148
+   ]
+  },
+  "431330577": {
+   "file": "houses/berkeley-downtown/osm-431330577.json",
+   "origin_lon_lat": [
+    -122.2568311,
+    37.8675954
+   ]
+  },
+  "823497644": {
+   "file": "houses/berkeley-downtown/osm-823497644.json",
+   "origin_lon_lat": [
+    -122.2724062,
+    37.8785127
+   ]
+  },
+  "470796197": {
+   "file": "houses/berkeley-downtown/osm-470796197.json",
+   "origin_lon_lat": [
+    -122.2561953,
+    37.8789892
+   ]
+  },
+  "433096653": {
+   "file": "houses/berkeley-downtown/osm-433096653.json",
+   "origin_lon_lat": [
+    -122.2704653,
+    37.8743719
+   ]
+  },
+  "433096654": {
+   "file": "houses/berkeley-downtown/osm-433096654.json",
+   "origin_lon_lat": [
+    -122.2703478,
+    37.8744023
+   ]
+  },
+  "560055107": {
+   "file": "houses/berkeley-downtown/osm-560055107.json",
+   "origin_lon_lat": [
+    -122.2705663,
+    37.8747581
+   ]
+  },
+  "262514545": {
+   "file": "houses/berkeley-downtown/osm-262514545.json",
+   "origin_lon_lat": [
+    -122.2683606,
+    37.8796087
+   ]
+  },
+  "560444697": {
+   "file": "houses/berkeley-downtown/osm-560444697.json",
+   "origin_lon_lat": [
+    -122.2718873,
+    37.8754955
+   ]
+  },
+  "42905579": {
+   "file": "houses/berkeley-downtown/osm-42905579.json",
+   "origin_lon_lat": [
+    -122.271747,
+    37.8650624
+   ]
+  },
+  "623271724": {
+   "file": "houses/berkeley-downtown/osm-623271724.json",
+   "origin_lon_lat": [
+    -122.2717,
+    37.8779516
+   ]
+  },
+  "623271726": {
+   "file": "houses/berkeley-downtown/osm-623271726.json",
+   "origin_lon_lat": [
+    -122.2715736,
+    37.876847
+   ]
+  },
+  "560430805": {
+   "file": "houses/berkeley-downtown/osm-560430805.json",
+   "origin_lon_lat": [
+    -122.2715909,
+    37.8751903
+   ]
+  },
+  "560063810": {
+   "file": "houses/berkeley-downtown/osm-560063810.json",
+   "origin_lon_lat": [
+    -122.2696172,
+    37.8757857
+   ]
+  },
+  "826209134": {
+   "file": "houses/berkeley-downtown/osm-826209134.json",
+   "origin_lon_lat": [
+    -122.2566637,
+    37.8784665
+   ]
+  },
+  "433096651": {
+   "file": "houses/berkeley-downtown/osm-433096651.json",
+   "origin_lon_lat": [
+    -122.270758,
+    37.8743075
+   ]
+  },
+  "262514530": {
+   "file": "houses/berkeley-downtown/osm-262514530.json",
+   "origin_lon_lat": [
+    -122.2683811,
+    37.8798207
+   ]
+  },
+  "560430789": {
+   "file": "houses/berkeley-downtown/osm-560430789.json",
+   "origin_lon_lat": [
+    -122.271364,
+    37.8750169
+   ]
+  },
+  "316897632": {
+   "file": "houses/berkeley-downtown/osm-316897632.json",
+   "origin_lon_lat": [
+    -122.2745571,
+    37.8702011
+   ]
+  },
+  "227609025": {
+   "file": "houses/berkeley-downtown/osm-227609025.json",
+   "origin_lon_lat": [
+    -122.2718277,
+    37.8731815
+   ]
+  },
+  "154966218": {
+   "file": "houses/oakland-downtown/osm-154966218.json",
+   "origin_lon_lat": [
+    -122.27718,
+    37.8053208
+   ]
+  },
+  "465163411": {
+   "file": "houses/oakland-downtown/osm-465163411.json",
+   "origin_lon_lat": [
+    -122.2848063,
+    37.7858482
+   ]
+  },
+  "308818733": {
+   "file": "houses/oakland-downtown/osm-308818733.json",
+   "origin_lon_lat": [
+    -122.2601183,
+    37.8131404
+   ]
+  },
+  "369017903": {
+   "file": "houses/oakland-downtown/osm-369017903.json",
+   "origin_lon_lat": [
+    -122.2774307,
+    37.8104275
+   ]
+  },
+  "465163403": {
+   "file": "houses/oakland-downtown/osm-465163403.json",
+   "origin_lon_lat": [
+    -122.2846821,
+    37.7855734
+   ]
+  },
+  "376169662": {
+   "file": "houses/oakland-downtown/osm-376169662.json",
+   "origin_lon_lat": [
+    -122.2762148,
+    37.8117908
+   ]
+  },
+  "369017891": {
+   "file": "houses/oakland-downtown/osm-369017891.json",
+   "origin_lon_lat": [
+    -122.2766762,
+    37.8111755
+   ]
+  },
+  "376604809": {
+   "file": "houses/oakland-downtown/osm-376604809.json",
+   "origin_lon_lat": [
+    -122.2794749,
+    37.8130047
+   ]
+  },
+  "369010340": {
+   "file": "houses/oakland-downtown/osm-369010340.json",
+   "origin_lon_lat": [
+    -122.2784499,
+    37.8130795
+   ]
+  },
+  "376173301": {
+   "file": "houses/oakland-downtown/osm-376173301.json",
+   "origin_lon_lat": [
+    -122.2786762,
+    37.8115947
+   ]
+  },
+  "334466867": {
+   "file": "houses/oakland-downtown/osm-334466867.json",
+   "origin_lon_lat": [
+    -122.2769512,
+    37.8113139
+   ]
+  },
+  "369008064": {
+   "file": "houses/oakland-downtown/osm-369008064.json",
+   "origin_lon_lat": [
+    -122.2779396,
+    37.8120751
+   ]
+  },
+  "465163284": {
+   "file": "houses/oakland-downtown/osm-465163284.json",
+   "origin_lon_lat": [
+    -122.2847402,
+    37.7853692
+   ]
+  },
+  "369007542": {
+   "file": "houses/oakland-downtown/osm-369007542.json",
+   "origin_lon_lat": [
+    -122.2766813,
+    37.8126248
+   ]
+  },
+  "369008059": {
+   "file": "houses/oakland-downtown/osm-369008059.json",
+   "origin_lon_lat": [
+    -122.2774056,
+    37.8118928
+   ]
+  },
+  "369008053": {
+   "file": "houses/oakland-downtown/osm-369008053.json",
+   "origin_lon_lat": [
+    -122.2770449,
+    37.8121056
+   ]
+  },
+  "369017890": {
+   "file": "houses/oakland-downtown/osm-369017890.json",
+   "origin_lon_lat": [
+    -122.2771477,
+    37.8110234
+   ]
+  },
+  "465163410": {
+   "file": "houses/oakland-downtown/osm-465163410.json",
+   "origin_lon_lat": [
+    -122.284611,
+    37.7858438
+   ]
+  },
+  "369008069": {
+   "file": "houses/oakland-downtown/osm-369008069.json",
+   "origin_lon_lat": [
+    -122.2773976,
+    37.8122435
+   ]
+  },
+  "376173893": {
+   "file": "houses/oakland-downtown/osm-376173893.json",
+   "origin_lon_lat": [
+    -122.2784519,
+    37.8081953
+   ]
+  },
+  "369007538": {
+   "file": "houses/oakland-downtown/osm-369007538.json",
+   "origin_lon_lat": [
+    -122.2769576,
+    37.8124506
+   ]
+  },
+  "376169876": {
+   "file": "houses/oakland-downtown/osm-376169876.json",
+   "origin_lon_lat": [
+    -122.2780719,
+    37.8109339
+   ]
+  },
+  "376169869": {
+   "file": "houses/oakland-downtown/osm-376169869.json",
+   "origin_lon_lat": [
+    -122.2788065,
+    37.8112129
+   ]
+  },
+  "465163277": {
+   "file": "houses/oakland-downtown/osm-465163277.json",
+   "origin_lon_lat": [
+    -122.2845941,
+    37.785367
+   ]
+  },
+  "308818732": {
+   "file": "houses/oakland-downtown/osm-308818732.json",
+   "origin_lon_lat": [
+    -122.2603017,
+    37.8133058
+   ]
+  },
+  "376173305": {
+   "file": "houses/oakland-downtown/osm-376173305.json",
+   "origin_lon_lat": [
+    -122.2781538,
+    37.8113543
+   ]
+  },
+  "154966213": {
+   "file": "houses/oakland-downtown/osm-154966213.json",
+   "origin_lon_lat": [
+    -122.2776175,
+    37.8053695
+   ]
+  },
+  "376169661": {
+   "file": "houses/oakland-downtown/osm-376169661.json",
+   "origin_lon_lat": [
+    -122.2762564,
+    37.811851
+   ]
+  },
+  "376173889": {
+   "file": "houses/oakland-downtown/osm-376173889.json",
+   "origin_lon_lat": [
+    -122.278832,
+    37.8083449
+   ]
+  },
+  "279235245": {
+   "file": "houses/oakland-downtown/osm-279235245.json",
+   "origin_lon_lat": [
+    -122.2626866,
+    37.8122313
+   ]
+  },
+  "376604810": {
+   "file": "houses/oakland-downtown/osm-376604810.json",
+   "origin_lon_lat": [
+    -122.2794857,
+    37.8130589
+   ]
+  },
+  "376169878": {
+   "file": "houses/oakland-downtown/osm-376169878.json",
+   "origin_lon_lat": [
+    -122.2782238,
+    37.8106505
+   ]
+  },
+  "154966216": {
+   "file": "houses/oakland-downtown/osm-154966216.json",
+   "origin_lon_lat": [
+    -122.2768587,
+    37.8054947
+   ]
+  },
+  "376169874": {
+   "file": "houses/oakland-downtown/osm-376169874.json",
+   "origin_lon_lat": [
+    -122.2783125,
+    37.8110092
+   ]
+  },
+  "376169875": {
+   "file": "houses/oakland-downtown/osm-376169875.json",
+   "origin_lon_lat": [
+    -122.2781944,
+    37.8109995
+   ]
+  },
+  "376169655": {
+   "file": "houses/oakland-downtown/osm-376169655.json",
+   "origin_lon_lat": [
+    -122.2762448,
+    37.8114296
+   ]
+  },
+  "376173303": {
+   "file": "houses/oakland-downtown/osm-376173303.json",
+   "origin_lon_lat": [
+    -122.278379,
+    37.8114416
+   ]
+  },
+  "310725881": {
+   "file": "houses/oakland-downtown/osm-310725881.json",
+   "origin_lon_lat": [
+    -122.2602094,
+    37.814976
+   ]
+  },
+  "154966217": {
+   "file": "houses/oakland-downtown/osm-154966217.json",
+   "origin_lon_lat": [
+    -122.2769977,
+    37.8055615
+   ]
+  },
+  "369017902": {
+   "file": "houses/oakland-downtown/osm-369017902.json",
+   "origin_lon_lat": [
+    -122.277476,
+    37.8102977
+   ]
+  },
+  "710593271": {
+   "file": "houses/oakland-downtown/osm-710593271.json",
+   "origin_lon_lat": [
+    -122.2776203,
+    37.8110722
+   ]
+  },
+  "465163275": {
+   "file": "houses/oakland-downtown/osm-465163275.json",
+   "origin_lon_lat": [
+    -122.2844117,
+    37.7851383
+   ]
+  },
+  "465163286": {
+   "file": "houses/oakland-downtown/osm-465163286.json",
+   "origin_lon_lat": [
+    -122.2850566,
+    37.7853617
+   ]
+  },
+  "369017895": {
+   "file": "houses/oakland-downtown/osm-369017895.json",
+   "origin_lon_lat": [
+    -122.277015,
+    37.8104698
+   ]
+  },
+  "376169865": {
+   "file": "houses/oakland-downtown/osm-376169865.json",
+   "origin_lon_lat": [
+    -122.2793687,
+    37.8114187
+   ]
+  },
+  "376169656": {
+   "file": "houses/oakland-downtown/osm-376169656.json",
+   "origin_lon_lat": [
+    -122.276667,
+    37.8116769
+   ]
+  },
+  "369008052": {
+   "file": "houses/oakland-downtown/osm-369008052.json",
+   "origin_lon_lat": [
+    -122.2769298,
+    37.8121417
+   ]
+  },
+  "465163404": {
+   "file": "houses/oakland-downtown/osm-465163404.json",
+   "origin_lon_lat": [
+    -122.2848469,
+    37.7856031
+   ]
+  },
+  "465163285": {
+   "file": "houses/oakland-downtown/osm-465163285.json",
+   "origin_lon_lat": [
+    -122.2848912,
+    37.7853541
+   ]
+  },
+  "369010335": {
+   "file": "houses/oakland-downtown/osm-369010335.json",
+   "origin_lon_lat": [
+    -122.2781219,
+    37.8129244
+   ]
+  },
+  "369007544": {
+   "file": "houses/oakland-downtown/osm-369007544.json",
+   "origin_lon_lat": [
+    -122.2765244,
+    37.8127796
+   ]
+  },
+  "369017889": {
+   "file": "houses/oakland-downtown/osm-369017889.json",
+   "origin_lon_lat": [
+    -122.2770359,
+    37.8109434
+   ]
+  },
+  "376169880": {
+   "file": "houses/oakland-downtown/osm-376169880.json",
+   "origin_lon_lat": [
+    -122.2779421,
+    37.8105725
+   ]
+  },
+  "465163405": {
+   "file": "houses/oakland-downtown/osm-465163405.json",
+   "origin_lon_lat": [
+    -122.285016,
+    37.7855739
+   ]
+  },
+  "369007532": {
+   "file": "houses/oakland-downtown/osm-369007532.json",
+   "origin_lon_lat": [
+    -122.2774485,
+    37.8127323
+   ]
+  },
+  "376169866": {
+   "file": "houses/oakland-downtown/osm-376169866.json",
+   "origin_lon_lat": [
+    -122.2791282,
+    37.8113115
+   ]
+  },
+  "154966225": {
+   "file": "houses/oakland-downtown/osm-154966225.json",
+   "origin_lon_lat": [
+    -122.2774776,
+    37.805629
+   ]
+  },
+  "303176598": {
+   "file": "houses/oakland-downtown/osm-303176598.json",
+   "origin_lon_lat": [
+    -122.2639681,
+    37.8133417
+   ]
+  },
+  "376169873": {
+   "file": "houses/oakland-downtown/osm-376169873.json",
+   "origin_lon_lat": [
+    -122.2783814,
+    37.8110612
+   ]
+  },
+  "376169867": {
+   "file": "houses/oakland-downtown/osm-376169867.json",
+   "origin_lon_lat": [
+    -122.2790069,
+    37.8113023
+   ]
+  },
+  "376173312": {
+   "file": "houses/oakland-downtown/osm-376173312.json",
+   "origin_lon_lat": [
+    -122.2773573,
+    37.8115179
+   ]
+  },
+  "376169881": {
+   "file": "houses/oakland-downtown/osm-376169881.json",
+   "origin_lon_lat": [
+    -122.2778452,
+    37.8107588
+   ]
+  },
+  "369017885": {
+   "file": "houses/oakland-downtown/osm-369017885.json",
+   "origin_lon_lat": [
+    -122.2766575,
+    37.8107939
+   ]
+  },
+  "369010332": {
+   "file": "houses/oakland-downtown/osm-369010332.json",
+   "origin_lon_lat": [
+    -122.2779242,
+    37.8128405
+   ]
+  },
+  "369017893": {
+   "file": "houses/oakland-downtown/osm-369017893.json",
+   "origin_lon_lat": [
+    -122.2772313,
+    37.8106587
+   ]
+  },
+  "369017888": {
+   "file": "houses/oakland-downtown/osm-369017888.json",
+   "origin_lon_lat": [
+    -122.2769378,
+    37.8108986
+   ]
+  },
+  "465163276": {
+   "file": "houses/oakland-downtown/osm-465163276.json",
+   "origin_lon_lat": [
+    -122.2844224,
+    37.7853462
+   ]
+  },
+  "376169868": {
+   "file": "houses/oakland-downtown/osm-376169868.json",
+   "origin_lon_lat": [
+    -122.2789375,
+    37.8112393
+   ]
+  },
+  "369008062": {
+   "file": "houses/oakland-downtown/osm-369008062.json",
+   "origin_lon_lat": [
+    -122.2777538,
+    37.812039
+   ]
+  },
+  "376169663": {
+   "file": "houses/oakland-downtown/osm-376169663.json",
+   "origin_lon_lat": [
+    -122.276143,
+    37.8117593
+   ]
+  },
+  "412984149": {
+   "file": "houses/oakland-downtown/osm-412984149.json",
+   "origin_lon_lat": [
+    -122.2805449,
+    37.7996537
+   ]
+  },
+  "376173308": {
+   "file": "houses/oakland-downtown/osm-376173308.json",
+   "origin_lon_lat": [
+    -122.2775539,
+    37.8111846
+   ]
+  },
+  "369008061": {
+   "file": "houses/oakland-downtown/osm-369008061.json",
+   "origin_lon_lat": [
+    -122.2775325,
+    37.8119719
+   ]
+  },
+  "376604813": {
+   "file": "houses/oakland-downtown/osm-376604813.json",
+   "origin_lon_lat": [
+    -122.2793793,
+    37.8132519
+   ]
+  },
+  "376173311": {
+   "file": "houses/oakland-downtown/osm-376173311.json",
+   "origin_lon_lat": [
+    -122.277394,
+    37.8113782
+   ]
+  },
+  "369008054": {
+   "file": "houses/oakland-downtown/osm-369008054.json",
+   "origin_lon_lat": [
+    -122.277053,
+    37.8119858
+   ]
+  },
+  "376169872": {
+   "file": "houses/oakland-downtown/osm-376169872.json",
+   "origin_lon_lat": [
+    -122.2784975,
+    37.8110782
+   ]
+  },
+  "369010354": {
+   "file": "houses/oakland-downtown/osm-369010354.json",
+   "origin_lon_lat": [
+    -122.2778043,
+    37.8131772
+   ]
+  },
+  "154966209": {
+   "file": "houses/oakland-downtown/osm-154966209.json",
+   "origin_lon_lat": [
+    -122.2769865,
+    37.805116
+   ]
+  },
+  "376169660": {
+   "file": "houses/oakland-downtown/osm-376169660.json",
+   "origin_lon_lat": [
+    -122.2764815,
+    37.8119763
+   ]
+  },
+  "369008055": {
+   "file": "houses/oakland-downtown/osm-369008055.json",
+   "origin_lon_lat": [
+    -122.2771026,
+    37.8119077
+   ]
+  },
+  "376173304": {
+   "file": "houses/oakland-downtown/osm-376173304.json",
+   "origin_lon_lat": [
+    -122.2782575,
+    37.811398
+   ]
+  },
+  "711611062": {
+   "file": "houses/oakland-downtown/osm-711611062.json",
+   "origin_lon_lat": [
+    -122.2773444,
+    37.8127625
+   ]
+  },
+  "376169658": {
+   "file": "houses/oakland-downtown/osm-376169658.json",
+   "origin_lon_lat": [
+    -122.2765449,
+    37.8118544
+   ]
+  },
+  "376173891": {
+   "file": "houses/oakland-downtown/osm-376173891.json",
+   "origin_lon_lat": [
+    -122.2786442,
+    37.8082724
+   ]
+  },
+  "369008070": {
+   "file": "houses/oakland-downtown/osm-369008070.json",
+   "origin_lon_lat": [
+    -122.277287,
+    37.8121816
+   ]
+  },
+  "369010355": {
+   "file": "houses/oakland-downtown/osm-369010355.json",
+   "origin_lon_lat": [
+    -122.2778259,
+    37.81309
+   ]
+  },
+  "310725878": {
+   "file": "houses/oakland-downtown/osm-310725878.json",
+   "origin_lon_lat": [
+    -122.2599513,
+    37.81483
+   ]
+  },
+  "376169871": {
+   "file": "houses/oakland-downtown/osm-376169871.json",
+   "origin_lon_lat": [
+    -122.2785686,
+    37.8111173
+   ]
+  },
+  "303174323": {
+   "file": "houses/oakland-downtown/osm-303174323.json",
+   "origin_lon_lat": [
+    -122.2631212,
+    37.8126195
+   ]
+  },
+  "369008060": {
+   "file": "houses/oakland-downtown/osm-369008060.json",
+   "origin_lon_lat": [
+    -122.2775027,
+    37.8118972
+   ]
+  },
+  "369007539": {
+   "file": "houses/oakland-downtown/osm-369007539.json",
+   "origin_lon_lat": [
+    -122.276799,
+    37.8123721
+   ]
+  },
+  "376173307": {
+   "file": "houses/oakland-downtown/osm-376173307.json",
+   "origin_lon_lat": [
+    -122.2778696,
+    37.8112613
+   ]
+  },
+  "376169654": {
+   "file": "houses/oakland-downtown/osm-376169654.json",
+   "origin_lon_lat": [
+    -122.2763358,
+    37.8114488
+   ]
+  },
+  "303176596": {
+   "file": "houses/oakland-downtown/osm-303176596.json",
+   "origin_lon_lat": [
+    -122.264139,
+    37.8133274
+   ]
+  },
+  "369017892": {
+   "file": "houses/oakland-downtown/osm-369017892.json",
+   "origin_lon_lat": [
+    -122.2766444,
+    37.8111087
+   ]
+  },
+  "154966230": {
+   "file": "houses/oakland-downtown/osm-154966230.json",
+   "origin_lon_lat": [
+    -122.2767222,
+    37.8054222
+   ]
+  },
+  "369010357": {
+   "file": "houses/oakland-downtown/osm-369010357.json",
+   "origin_lon_lat": [
+    -122.2779,
+    37.8130096
+   ]
+  },
+  "310725880": {
+   "file": "houses/oakland-downtown/osm-310725880.json",
+   "origin_lon_lat": [
+    -122.2601271,
+    37.8149243
+   ]
+  },
+  "369010337": {
+   "file": "houses/oakland-downtown/osm-369010337.json",
+   "origin_lon_lat": [
+    -122.2782371,
+    37.8129963
+   ]
+  },
+  "376169659": {
+   "file": "houses/oakland-downtown/osm-376169659.json",
+   "origin_lon_lat": [
+    -122.2765406,
+    37.8119125
+   ]
+  },
+  "376169657": {
+   "file": "houses/oakland-downtown/osm-376169657.json",
+   "origin_lon_lat": [
+    -122.2766265,
+    37.8117695
+   ]
+  },
+  "465163281": {
+   "file": "houses/oakland-downtown/osm-465163281.json",
+   "origin_lon_lat": [
+    -122.285022,
+    37.7851757
+   ]
+  },
+  "310725882": {
+   "file": "houses/oakland-downtown/osm-310725882.json",
+   "origin_lon_lat": [
+    -122.2603456,
+    37.8150617
+   ]
+  },
+  "279235244": {
+   "file": "houses/oakland-downtown/osm-279235244.json",
+   "origin_lon_lat": [
+    -122.2627396,
+    37.8121512
+   ]
+  },
+  "369017904": {
+   "file": "houses/oakland-downtown/osm-369017904.json",
+   "origin_lon_lat": [
+    -122.2773722,
+    37.8106082
+   ]
+  },
+  "310725879": {
+   "file": "houses/oakland-downtown/osm-310725879.json",
+   "origin_lon_lat": [
+    -122.260045,
+    37.8148746
+   ]
+  },
+  "465163409": {
+   "file": "houses/oakland-downtown/osm-465163409.json",
+   "origin_lon_lat": [
+    -122.2844169,
+    37.7858266
+   ]
+  },
+  "408907038": {
+   "file": "houses/oakland-downtown/osm-408907038.json",
+   "origin_lon_lat": [
+    -122.2638953,
+    37.81383
+   ]
+  },
+  "154966229": {
+   "file": "houses/oakland-downtown/osm-154966229.json",
+   "origin_lon_lat": [
+    -122.2775644,
+    37.8055127
+   ]
+  },
+  "369010352": {
+   "file": "houses/oakland-downtown/osm-369010352.json",
+   "origin_lon_lat": [
+    -122.2777348,
+    37.813255
+   ]
+  },
+  "376169870": {
+   "file": "houses/oakland-downtown/osm-376169870.json",
+   "origin_lon_lat": [
+    -122.2786922,
+    37.811163
+   ]
+  },
+  "376173892": {
+   "file": "houses/oakland-downtown/osm-376173892.json",
+   "origin_lon_lat": [
+    -122.2785527,
+    37.8082377
+   ]
+  },
+  "369010351": {
+   "file": "houses/oakland-downtown/osm-369010351.json",
+   "origin_lon_lat": [
+    -122.2780089,
+    37.8133157
+   ]
+  },
+  "369017886": {
+   "file": "houses/oakland-downtown/osm-369017886.json",
+   "origin_lon_lat": [
+    -122.2767495,
+    37.8108273
+   ]
+  },
+  "369010338": {
+   "file": "houses/oakland-downtown/osm-369010338.json",
+   "origin_lon_lat": [
+    -122.2783685,
+    37.8130298
+   ]
+  },
+  "376169882": {
+   "file": "houses/oakland-downtown/osm-376169882.json",
+   "origin_lon_lat": [
+    -122.2777142,
+    37.8108396
+   ]
+  },
+  "376604826": {
+   "file": "houses/oakland-downtown/osm-376604826.json",
+   "origin_lon_lat": [
+    -122.2805039,
+    37.8117766
+   ]
+  },
+  "430094974": {
+   "file": "houses/oakland-downtown/osm-430094974.json",
+   "origin_lon_lat": [
+    -122.2820274,
+    37.8104635
+   ]
+  },
+  "376604814": {
+   "file": "houses/oakland-downtown/osm-376604814.json",
+   "origin_lon_lat": [
+    -122.2793901,
+    37.8133462
+   ]
+  },
+  "376604812": {
+   "file": "houses/oakland-downtown/osm-376604812.json",
+   "origin_lon_lat": [
+    -122.2794919,
+    37.813215
+   ]
+  },
+  "303174321": {
+   "file": "houses/oakland-downtown/osm-303174321.json",
+   "origin_lon_lat": [
+    -122.2630946,
+    37.8127064
+   ]
+  },
+  "711611061": {
+   "file": "houses/oakland-downtown/osm-711611061.json",
+   "origin_lon_lat": [
+    -122.2775382,
+    37.8127749
+   ]
+  },
+  "376169651": {
+   "file": "houses/oakland-downtown/osm-376169651.json",
+   "origin_lon_lat": [
+    -122.2767186,
+    37.811569
+   ]
+  },
+  "369010349": {
+   "file": "houses/oakland-downtown/osm-369010349.json",
+   "origin_lon_lat": [
+    -122.2780966,
+    37.8132981
+   ]
+  },
+  "369010334": {
+   "file": "houses/oakland-downtown/osm-369010334.json",
+   "origin_lon_lat": [
+    -122.2780305,
+    37.8128892
+   ]
+  },
+  "154966221": {
+   "file": "houses/oakland-downtown/osm-154966221.json",
+   "origin_lon_lat": [
+    -122.2772269,
+    37.8052072
+   ]
+  },
+  "376604811": {
+   "file": "houses/oakland-downtown/osm-376604811.json",
+   "origin_lon_lat": [
+    -122.2794843,
+    37.8131455
+   ]
+  },
+  "369007537": {
+   "file": "houses/oakland-downtown/osm-369007537.json",
+   "origin_lon_lat": [
+    -122.277046,
+    37.8125568
+   ]
+  },
+  "376169877": {
+   "file": "houses/oakland-downtown/osm-376169877.json",
+   "origin_lon_lat": [
+    -122.2783902,
+    37.8106957
+   ]
+  },
+  "376604808": {
+   "file": "houses/oakland-downtown/osm-376604808.json",
+   "origin_lon_lat": [
+    -122.2795052,
+    37.8129303
+   ]
+  },
+  "465163280": {
+   "file": "houses/oakland-downtown/osm-465163280.json",
+   "origin_lon_lat": [
+    -122.2848769,
+    37.7851547
+   ]
+  },
+  "369017894": {
+   "file": "houses/oakland-downtown/osm-369017894.json",
+   "origin_lon_lat": [
+    -122.2770862,
+    37.8105341
+   ]
+  },
+  "465163279": {
+   "file": "houses/oakland-downtown/osm-465163279.json",
+   "origin_lon_lat": [
+    -122.2847275,
+    37.7851765
+   ]
+  },
+  "465163278": {
+   "file": "houses/oakland-downtown/osm-465163278.json",
+   "origin_lon_lat": [
+    -122.2845811,
+    37.7851508
+   ]
+  },
+  "369007540": {
+   "file": "houses/oakland-downtown/osm-369007540.json",
+   "origin_lon_lat": [
+    -122.2768028,
+    37.8125143
+   ]
+  },
+  "376173302": {
+   "file": "houses/oakland-downtown/osm-376173302.json",
+   "origin_lon_lat": [
+    -122.2785453,
+    37.8115151
+   ]
+  },
+  "154966222": {
+   "file": "houses/oakland-downtown/osm-154966222.json",
+   "origin_lon_lat": [
+    -122.2772144,
+    37.8061283
+   ]
+  },
+  "376173309": {
+   "file": "houses/oakland-downtown/osm-376173309.json",
+   "origin_lon_lat": [
+    -122.2774915,
+    37.811255
+   ]
+  },
+  "308818731": {
+   "file": "houses/oakland-downtown/osm-308818731.json",
+   "origin_lon_lat": [
+    -122.2604126,
+    37.8135423
+   ]
+  },
+  "369007536": {
+   "file": "houses/oakland-downtown/osm-369007536.json",
+   "origin_lon_lat": [
+    -122.2771569,
+    37.812609
+   ]
+  },
+  "376169653": {
+   "file": "houses/oakland-downtown/osm-376169653.json",
+   "origin_lon_lat": [
+    -122.2763758,
+    37.8115239
+   ]
+  },
+  "465163412": {
+   "file": "houses/oakland-downtown/osm-465163412.json",
+   "origin_lon_lat": [
+    -122.2850037,
+    37.7858407
+   ]
+  },
+  "154966214": {
+   "file": "houses/oakland-downtown/osm-154966214.json",
+   "origin_lon_lat": [
+    -122.277118,
+    37.8054225
+   ]
   }
  }
 }
