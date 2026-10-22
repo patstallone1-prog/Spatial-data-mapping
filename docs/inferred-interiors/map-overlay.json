@@ -1,61 +1,1356 @@
 {
-  "schema": "kerbside.inferred_house_overlay/1",
-  "buildings": {
-    "460228342": {
-      "file": "osm-460228342.json",
-      "origin_lon_lat": [
-        -122.441855,
-        37.7987346
-      ]
-    },
-    "262096336": {
-      "file": "osm-262096336.json",
-      "origin_lon_lat": [
-        -122.4381901,
-        37.7922591
-      ]
-    },
-    "262727844": {
-      "file": "osm-262727844.json",
-      "origin_lon_lat": [
-        -122.4216022,
-        37.8021078
-      ]
-    },
-    "407852081": {
-      "file": "osm-407852081.json",
-      "origin_lon_lat": [
-        -122.4120737,
-        37.8004851
-      ]
-    },
-    "243591156": {
-      "file": "osm-243591156.json",
-      "origin_lon_lat": [
-        -122.4244275,
-        37.7977386
-      ]
-    },
-    "262727846": {
-      "file": "osm-262727846.json",
-      "origin_lon_lat": [
-        -122.4215928,
-        37.8021762
-      ]
-    },
-    "262096308": {
-      "file": "osm-262096308.json",
-      "origin_lon_lat": [
-        -122.4380908,
-        37.7922604
-      ]
-    },
-    "262419190": {
-      "file": "osm-262419190.json",
-      "origin_lon_lat": [
-        -122.4460009,
-        37.7920913
-      ]
-    }
+ "schema": "kerbside.inferred_house_overlay/1",
+ "buildings": {
+  "460228342": {
+   "file": "houses/sf-corridor/osm-460228342.json",
+   "origin_lon_lat": [
+    -122.441855,
+    37.7987346
+   ]
+  },
+  "262096336": {
+   "file": "houses/sf-corridor/osm-262096336.json",
+   "origin_lon_lat": [
+    -122.4381901,
+    37.7922591
+   ]
+  },
+  "262727844": {
+   "file": "houses/sf-corridor/osm-262727844.json",
+   "origin_lon_lat": [
+    -122.4216022,
+    37.8021078
+   ]
+  },
+  "407852081": {
+   "file": "houses/sf-corridor/osm-407852081.json",
+   "origin_lon_lat": [
+    -122.4120737,
+    37.8004851
+   ]
+  },
+  "243591156": {
+   "file": "houses/sf-corridor/osm-243591156.json",
+   "origin_lon_lat": [
+    -122.4244275,
+    37.7977386
+   ]
+  },
+  "262727846": {
+   "file": "houses/sf-corridor/osm-262727846.json",
+   "origin_lon_lat": [
+    -122.4215928,
+    37.8021762
+   ]
+  },
+  "262096308": {
+   "file": "houses/sf-corridor/osm-262096308.json",
+   "origin_lon_lat": [
+    -122.4380908,
+    37.7922604
+   ]
+  },
+  "262419190": {
+   "file": "houses/sf-corridor/osm-262419190.json",
+   "origin_lon_lat": [
+    -122.4460009,
+    37.7920913
+   ]
+  },
+  "823497643": {
+   "file": "houses/berkeley-downtown/osm-823497643.json",
+   "origin_lon_lat": [
+    -122.2723962,
+    37.8786058
+   ]
+  },
+  "706333252": {
+   "file": "houses/berkeley-downtown/osm-706333252.json",
+   "origin_lon_lat": [
+    -122.2750472,
+    37.8707095
+   ]
+  },
+  "826209164": {
+   "file": "houses/berkeley-downtown/osm-826209164.json",
+   "origin_lon_lat": [
+    -122.2585598,
+    37.8782485
+   ]
+  },
+  "823936383": {
+   "file": "houses/berkeley-downtown/osm-823936383.json",
+   "origin_lon_lat": [
+    -122.2745822,
+    37.8751735
+   ]
+  },
+  "262514544": {
+   "file": "houses/berkeley-downtown/osm-262514544.json",
+   "origin_lon_lat": [
+    -122.2683502,
+    37.879483
+   ]
+  },
+  "560275262": {
+   "file": "houses/berkeley-downtown/osm-560275262.json",
+   "origin_lon_lat": [
+    -122.2708602,
+    37.878009
+   ]
+  },
+  "433096666": {
+   "file": "houses/berkeley-downtown/osm-433096666.json",
+   "origin_lon_lat": [
+    -122.2697212,
+    37.8739569
+   ]
+  },
+  "262514546": {
+   "file": "houses/berkeley-downtown/osm-262514546.json",
+   "origin_lon_lat": [
+    -122.2683765,
+    37.8797227
+   ]
+  },
+  "421446339": {
+   "file": "houses/berkeley-downtown/osm-421446339.json",
+   "origin_lon_lat": [
+    -122.2658884,
+    37.8661841
+   ]
+  },
+  "560063809": {
+   "file": "houses/berkeley-downtown/osm-560063809.json",
+   "origin_lon_lat": [
+    -122.2699268,
+    37.8757623
+   ]
+  },
+  "560055090": {
+   "file": "houses/berkeley-downtown/osm-560055090.json",
+   "origin_lon_lat": [
+    -122.2701362,
+    37.8747782
+   ]
+  },
+  "433096656": {
+   "file": "houses/berkeley-downtown/osm-433096656.json",
+   "origin_lon_lat": [
+    -122.2700713,
+    37.8744238
+   ]
+  },
+  "227609022": {
+   "file": "houses/berkeley-downtown/osm-227609022.json",
+   "origin_lon_lat": [
+    -122.2710463,
+    37.8734042
+   ]
+  },
+  "560430825": {
+   "file": "houses/berkeley-downtown/osm-560430825.json",
+   "origin_lon_lat": [
+    -122.2719314,
+    37.8751405
+   ]
+  },
+  "560444683": {
+   "file": "houses/berkeley-downtown/osm-560444683.json",
+   "origin_lon_lat": [
+    -122.2720714,
+    37.8755243
+   ]
+  },
+  "258061685": {
+   "file": "houses/berkeley-downtown/osm-258061685.json",
+   "origin_lon_lat": [
+    -122.2734544,
+    37.8775976
+   ]
+  },
+  "258061896": {
+   "file": "houses/berkeley-downtown/osm-258061896.json",
+   "origin_lon_lat": [
+    -122.2733519,
+    37.8771743
+   ]
+  },
+  "560430791": {
+   "file": "houses/berkeley-downtown/osm-560430791.json",
+   "origin_lon_lat": [
+    -122.2729923,
+    37.8744293
+   ]
+  },
+  "560444711": {
+   "file": "houses/berkeley-downtown/osm-560444711.json",
+   "origin_lon_lat": [
+    -122.2726381,
+    37.8754122
+   ]
+  },
+  "826243027": {
+   "file": "houses/berkeley-downtown/osm-826243027.json",
+   "origin_lon_lat": [
+    -122.2584805,
+    37.8792899
+   ]
+  },
+  "421446336": {
+   "file": "houses/berkeley-downtown/osm-421446336.json",
+   "origin_lon_lat": [
+    -122.2659963,
+    37.8661482
+   ]
+  },
+  "560055066": {
+   "file": "houses/berkeley-downtown/osm-560055066.json",
+   "origin_lon_lat": [
+    -122.2708386,
+    37.8750605
+   ]
+  },
+  "433096662": {
+   "file": "houses/berkeley-downtown/osm-433096662.json",
+   "origin_lon_lat": [
+    -122.2692985,
+    37.8740067
+   ]
+  },
+  "823497511": {
+   "file": "houses/berkeley-downtown/osm-823497511.json",
+   "origin_lon_lat": [
+    -122.2734688,
+    37.8799017
+   ]
+  },
+  "560430785": {
+   "file": "houses/berkeley-downtown/osm-560430785.json",
+   "origin_lon_lat": [
+    -122.2712332,
+    37.87471
+   ]
+  },
+  "262514543": {
+   "file": "houses/berkeley-downtown/osm-262514543.json",
+   "origin_lon_lat": [
+    -122.2682754,
+    37.8790985
+   ]
+  },
+  "560444709": {
+   "file": "houses/berkeley-downtown/osm-560444709.json",
+   "origin_lon_lat": [
+    -122.2717439,
+    37.8755266
+   ]
+  },
+  "560063822": {
+   "file": "houses/berkeley-downtown/osm-560063822.json",
+   "origin_lon_lat": [
+    -122.2709751,
+    37.8758272
+   ]
+  },
+  "823936707": {
+   "file": "houses/berkeley-downtown/osm-823936707.json",
+   "origin_lon_lat": [
+    -122.2727043,
+    37.8773214
+   ]
+  },
+  "262514542": {
+   "file": "houses/berkeley-downtown/osm-262514542.json",
+   "origin_lon_lat": [
+    -122.2682631,
+    37.878888
+   ]
+  },
+  "320797562": {
+   "file": "houses/berkeley-downtown/osm-320797562.json",
+   "origin_lon_lat": [
+    -122.2688298,
+    37.8667931
+   ]
+  },
+  "826209161": {
+   "file": "houses/berkeley-downtown/osm-826209161.json",
+   "origin_lon_lat": [
+    -122.2578049,
+    37.8783744
+   ]
+  },
+  "826209356": {
+   "file": "houses/berkeley-downtown/osm-826209356.json",
+   "origin_lon_lat": [
+    -122.2568842,
+    37.8787283
+   ]
+  },
+  "262514533": {
+   "file": "houses/berkeley-downtown/osm-262514533.json",
+   "origin_lon_lat": [
+    -122.2682433,
+    37.8790029
+   ]
+  },
+  "560280608": {
+   "file": "houses/berkeley-downtown/osm-560280608.json",
+   "origin_lon_lat": [
+    -122.2719684,
+    37.8739474
+   ]
+  },
+  "560280603": {
+   "file": "houses/berkeley-downtown/osm-560280603.json",
+   "origin_lon_lat": [
+    -122.2712294,
+    37.8742815
+   ]
+  },
+  "560275234": {
+   "file": "houses/berkeley-downtown/osm-560275234.json",
+   "origin_lon_lat": [
+    -122.2706789,
+    37.8780194
+   ]
+  },
+  "826209157": {
+   "file": "houses/berkeley-downtown/osm-826209157.json",
+   "origin_lon_lat": [
+    -122.2584552,
+    37.8782418
+   ]
+  },
+  "560430800": {
+   "file": "houses/berkeley-downtown/osm-560430800.json",
+   "origin_lon_lat": [
+    -122.2728261,
+    37.8744412
+   ]
+  },
+  "433096657": {
+   "file": "houses/berkeley-downtown/osm-433096657.json",
+   "origin_lon_lat": [
+    -122.2699376,
+    37.8743776
+   ]
+  },
+  "560055101": {
+   "file": "houses/berkeley-downtown/osm-560055101.json",
+   "origin_lon_lat": [
+    -122.2695634,
+    37.8749283
+   ]
+  },
+  "560444687": {
+   "file": "houses/berkeley-downtown/osm-560444687.json",
+   "origin_lon_lat": [
+    -122.2722007,
+    37.8759609
+   ]
+  },
+  "823936713": {
+   "file": "houses/berkeley-downtown/osm-823936713.json",
+   "origin_lon_lat": [
+    -122.272734,
+    37.8772192
+   ]
+  },
+  "560444681": {
+   "file": "houses/berkeley-downtown/osm-560444681.json",
+   "origin_lon_lat": [
+    -122.2714814,
+    37.8758773
+   ]
+  },
+  "560063820": {
+   "file": "houses/berkeley-downtown/osm-560063820.json",
+   "origin_lon_lat": [
+    -122.2709742,
+    37.8759667
+   ]
+  },
+  "42905587": {
+   "file": "houses/berkeley-downtown/osm-42905587.json",
+   "origin_lon_lat": [
+    -122.2703507,
+    37.8651877
+   ]
+  },
+  "560284464": {
+   "file": "houses/berkeley-downtown/osm-560284464.json",
+   "origin_lon_lat": [
+    -122.2724027,
+    37.8741275
+   ]
+  },
+  "463282384": {
+   "file": "houses/berkeley-downtown/osm-463282384.json",
+   "origin_lon_lat": [
+    -122.2608298,
+    37.8796398
+   ]
+  },
+  "262514521": {
+   "file": "houses/berkeley-downtown/osm-262514521.json",
+   "origin_lon_lat": [
+    -122.2687061,
+    37.8793348
+   ]
+  },
+  "560284470": {
+   "file": "houses/berkeley-downtown/osm-560284470.json",
+   "origin_lon_lat": [
+    -122.2726634,
+    37.8739774
+   ]
+  },
+  "1029279521": {
+   "file": "houses/berkeley-downtown/osm-1029279521.json",
+   "origin_lon_lat": [
+    -122.2564725,
+    37.8787764
+   ]
+  },
+  "623271734": {
+   "file": "houses/berkeley-downtown/osm-623271734.json",
+   "origin_lon_lat": [
+    -122.272778,
+    37.8762942
+   ]
+  },
+  "826243023": {
+   "file": "houses/berkeley-downtown/osm-826243023.json",
+   "origin_lon_lat": [
+    -122.2584909,
+    37.8796422
+   ]
+  },
+  "560444712": {
+   "file": "houses/berkeley-downtown/osm-560444712.json",
+   "origin_lon_lat": [
+    -122.2730148,
+    37.8758766
+   ]
+  },
+  "560430794": {
+   "file": "houses/berkeley-downtown/osm-560430794.json",
+   "origin_lon_lat": [
+    -122.2720817,
+    37.8750621
+   ]
+  },
+  "258064614": {
+   "file": "houses/berkeley-downtown/osm-258064614.json",
+   "origin_lon_lat": [
+    -122.2713644,
+    37.8797187
+   ]
+  },
+  "433096676": {
+   "file": "houses/berkeley-downtown/osm-433096676.json",
+   "origin_lon_lat": [
+    -122.2707893,
+    37.873863
+   ]
+  },
+  "433096659": {
+   "file": "houses/berkeley-downtown/osm-433096659.json",
+   "origin_lon_lat": [
+    -122.2696389,
+    37.8744754
+   ]
+  },
+  "826209141": {
+   "file": "houses/berkeley-downtown/osm-826209141.json",
+   "origin_lon_lat": [
+    -122.2565128,
+    37.8785309
+   ]
+  },
+  "560284473": {
+   "file": "houses/berkeley-downtown/osm-560284473.json",
+   "origin_lon_lat": [
+    -122.2728251,
+    37.8741004
+   ]
+  },
+  "560055104": {
+   "file": "houses/berkeley-downtown/osm-560055104.json",
+   "origin_lon_lat": [
+    -122.2709035,
+    37.875301
+   ]
+  },
+  "560280606": {
+   "file": "houses/berkeley-downtown/osm-560280606.json",
+   "origin_lon_lat": [
+    -122.2713871,
+    37.8742575
+   ]
+  },
+  "258061681": {
+   "file": "houses/berkeley-downtown/osm-258061681.json",
+   "origin_lon_lat": [
+    -122.2733789,
+    37.8770293
+   ]
+  },
+  "227609027": {
+   "file": "houses/berkeley-downtown/osm-227609027.json",
+   "origin_lon_lat": [
+    -122.2718574,
+    37.873336
+   ]
+  },
+  "421443241": {
+   "file": "houses/berkeley-downtown/osm-421443241.json",
+   "origin_lon_lat": [
+    -122.2662686,
+    37.8657437
+   ]
+  },
+  "258064613": {
+   "file": "houses/berkeley-downtown/osm-258064613.json",
+   "origin_lon_lat": [
+    -122.2713567,
+    37.8798289
+   ]
+  },
+  "560055065": {
+   "file": "houses/berkeley-downtown/osm-560055065.json",
+   "origin_lon_lat": [
+    -122.2708667,
+    37.8746909
+   ]
+  },
+  "823936379": {
+   "file": "houses/berkeley-downtown/osm-823936379.json",
+   "origin_lon_lat": [
+    -122.2749704,
+    37.8751151
+   ]
+  },
+  "560430813": {
+   "file": "houses/berkeley-downtown/osm-560430813.json",
+   "origin_lon_lat": [
+    -122.2713459,
+    37.875122
+   ]
+  },
+  "823936377": {
+   "file": "houses/berkeley-downtown/osm-823936377.json",
+   "origin_lon_lat": [
+    -122.2741657,
+    37.8752165
+   ]
+  },
+  "433096664": {
+   "file": "houses/berkeley-downtown/osm-433096664.json",
+   "origin_lon_lat": [
+    -122.269562,
+    37.873964
+   ]
+  },
+  "560444714": {
+   "file": "houses/berkeley-downtown/osm-560444714.json",
+   "origin_lon_lat": [
+    -122.2716563,
+    37.875518
+   ]
+  },
+  "433096675": {
+   "file": "houses/berkeley-downtown/osm-433096675.json",
+   "origin_lon_lat": [
+    -122.2706455,
+    37.8738428
+   ]
+  },
+  "560055083": {
+   "file": "houses/berkeley-downtown/osm-560055083.json",
+   "origin_lon_lat": [
+    -122.2697058,
+    37.8748643
+   ]
+  },
+  "823936361": {
+   "file": "houses/berkeley-downtown/osm-823936361.json",
+   "origin_lon_lat": [
+    -122.2746332,
+    37.8756804
+   ]
+  },
+  "258061897": {
+   "file": "houses/berkeley-downtown/osm-258061897.json",
+   "origin_lon_lat": [
+    -122.2732932,
+    37.8764796
+   ]
+  },
+  "227609029": {
+   "file": "houses/berkeley-downtown/osm-227609029.json",
+   "origin_lon_lat": [
+    -122.2710738,
+    37.8731782
+   ]
+  },
+  "560430786": {
+   "file": "houses/berkeley-downtown/osm-560430786.json",
+   "origin_lon_lat": [
+    -122.2727814,
+    37.8749737
+   ]
+  },
+  "433096669": {
+   "file": "houses/berkeley-downtown/osm-433096669.json",
+   "origin_lon_lat": [
+    -122.270099,
+    37.8739278
+   ]
+  },
+  "560430784": {
+   "file": "houses/berkeley-downtown/osm-560430784.json",
+   "origin_lon_lat": [
+    -122.2713349,
+    37.8748322
+   ]
+  },
+  "309371012": {
+   "file": "houses/berkeley-downtown/osm-309371012.json",
+   "origin_lon_lat": [
+    -122.2683485,
+    37.8779369
+   ]
+  },
+  "470796048": {
+   "file": "houses/berkeley-downtown/osm-470796048.json",
+   "origin_lon_lat": [
+    -122.2557968,
+    37.8795029
+   ]
+  },
+  "623271750": {
+   "file": "houses/berkeley-downtown/osm-623271750.json",
+   "origin_lon_lat": [
+    -122.2729391,
+    37.8763006
+   ]
+  },
+  "560280611": {
+   "file": "houses/berkeley-downtown/osm-560280611.json",
+   "origin_lon_lat": [
+    -122.271993,
+    37.8740638
+   ]
+  },
+  "560280607": {
+   "file": "houses/berkeley-downtown/osm-560280607.json",
+   "origin_lon_lat": [
+    -122.2716452,
+    37.8742035
+   ]
+  },
+  "463282390": {
+   "file": "houses/berkeley-downtown/osm-463282390.json",
+   "origin_lon_lat": [
+    -122.2609446,
+    37.8800636
+   ]
+  },
+  "560063817": {
+   "file": "houses/berkeley-downtown/osm-560063817.json",
+   "origin_lon_lat": [
+    -122.2706315,
+    37.8761833
+   ]
+  },
+  "560275230": {
+   "file": "houses/berkeley-downtown/osm-560275230.json",
+   "origin_lon_lat": [
+    -122.2707279,
+    37.877848
+   ]
+  },
+  "470796436": {
+   "file": "houses/berkeley-downtown/osm-470796436.json",
+   "origin_lon_lat": [
+    -122.255768,
+    37.878637
+   ]
+  },
+  "706333251": {
+   "file": "houses/berkeley-downtown/osm-706333251.json",
+   "origin_lon_lat": [
+    -122.2750027,
+    37.8705977
+   ]
+  },
+  "560444713": {
+   "file": "houses/berkeley-downtown/osm-560444713.json",
+   "origin_lon_lat": [
+    -122.2713926,
+    37.8756763
+   ]
+  },
+  "433096678": {
+   "file": "houses/berkeley-downtown/osm-433096678.json",
+   "origin_lon_lat": [
+    -122.2708349,
+    37.8741373
+   ]
+  },
+  "433096661": {
+   "file": "houses/berkeley-downtown/osm-433096661.json",
+   "origin_lon_lat": [
+    -122.2691328,
+    37.8740016
+   ]
+  },
+  "826209209": {
+   "file": "houses/berkeley-downtown/osm-826209209.json",
+   "origin_lon_lat": [
+    -122.2604572,
+    37.877648
+   ]
+  },
+  "227609019": {
+   "file": "houses/berkeley-downtown/osm-227609019.json",
+   "origin_lon_lat": [
+    -122.2713668,
+    37.8733818
+   ]
+  },
+  "819914659": {
+   "file": "houses/berkeley-downtown/osm-819914659.json",
+   "origin_lon_lat": [
+    -122.2579874,
+    37.8650168
+   ]
+  },
+  "227618096": {
+   "file": "houses/berkeley-downtown/osm-227618096.json",
+   "origin_lon_lat": [
+    -122.2698398,
+    37.8732201
+   ]
+  },
+  "227609020": {
+   "file": "houses/berkeley-downtown/osm-227609020.json",
+   "origin_lon_lat": [
+    -122.2718259,
+    37.8730832
+   ]
+  },
+  "463282381": {
+   "file": "houses/berkeley-downtown/osm-463282381.json",
+   "origin_lon_lat": [
+    -122.2597945,
+    37.8798583
+   ]
+  },
+  "847237368": {
+   "file": "houses/berkeley-downtown/osm-847237368.json",
+   "origin_lon_lat": [
+    -122.2572129,
+    37.8780344
+   ]
+  },
+  "431330588": {
+   "file": "houses/berkeley-downtown/osm-431330588.json",
+   "origin_lon_lat": [
+    -122.256972,
+    37.8684986
+   ]
+  },
+  "470796247": {
+   "file": "houses/berkeley-downtown/osm-470796247.json",
+   "origin_lon_lat": [
+    -122.2564023,
+    37.8795557
+   ]
+  },
+  "847237367": {
+   "file": "houses/berkeley-downtown/osm-847237367.json",
+   "origin_lon_lat": [
+    -122.2578395,
+    37.877676
+   ]
+  },
+  "823936777": {
+   "file": "houses/berkeley-downtown/osm-823936777.json",
+   "origin_lon_lat": [
+    -122.2746388,
+    37.8784145
+   ]
+  },
+  "823936376": {
+   "file": "houses/berkeley-downtown/osm-823936376.json",
+   "origin_lon_lat": [
+    -122.2740349,
+    37.8752143
+   ]
+  },
+  "258061684": {
+   "file": "houses/berkeley-downtown/osm-258061684.json",
+   "origin_lon_lat": [
+    -122.2734104,
+    37.8775024
+   ]
+  },
+  "560055075": {
+   "file": "houses/berkeley-downtown/osm-560055075.json",
+   "origin_lon_lat": [
+    -122.270895,
+    37.8748814
+   ]
+  },
+  "433096650": {
+   "file": "houses/berkeley-downtown/osm-433096650.json",
+   "origin_lon_lat": [
+    -122.2708733,
+    37.8742999
+   ]
+  },
+  "470796237": {
+   "file": "houses/berkeley-downtown/osm-470796237.json",
+   "origin_lon_lat": [
+    -122.2560839,
+    37.8787444
+   ]
+  },
+  "823497655": {
+   "file": "houses/berkeley-downtown/osm-823497655.json",
+   "origin_lon_lat": [
+    -122.2723964,
+    37.8784213
+   ]
+  },
+  "560055105": {
+   "file": "houses/berkeley-downtown/osm-560055105.json",
+   "origin_lon_lat": [
+    -122.2704703,
+    37.8749467
+   ]
+  },
+  "623271742": {
+   "file": "houses/berkeley-downtown/osm-623271742.json",
+   "origin_lon_lat": [
+    -122.2715482,
+    37.8767023
+   ]
+  },
+  "560055097": {
+   "file": "houses/berkeley-downtown/osm-560055097.json",
+   "origin_lon_lat": [
+    -122.2699929,
+    37.8748375
+   ]
+  },
+  "262514532": {
+   "file": "houses/berkeley-downtown/osm-262514532.json",
+   "origin_lon_lat": [
+    -122.26852,
+    37.8790566
+   ]
+  },
+  "823497648": {
+   "file": "houses/berkeley-downtown/osm-823497648.json",
+   "origin_lon_lat": [
+    -122.2724437,
+    37.8786893
+   ]
+  },
+  "560063812": {
+   "file": "houses/berkeley-downtown/osm-560063812.json",
+   "origin_lon_lat": [
+    -122.2706997,
+    37.8756957
+   ]
+  },
+  "560444691": {
+   "file": "houses/berkeley-downtown/osm-560444691.json",
+   "origin_lon_lat": [
+    -122.2714151,
+    37.8757789
+   ]
+  },
+  "623271730": {
+   "file": "houses/berkeley-downtown/osm-623271730.json",
+   "origin_lon_lat": [
+    -122.2718701,
+    37.8763953
+   ]
+  },
+  "433096673": {
+   "file": "houses/berkeley-downtown/osm-433096673.json",
+   "origin_lon_lat": [
+    -122.2703766,
+    37.873867
+   ]
+  },
+  "623271725": {
+   "file": "houses/berkeley-downtown/osm-623271725.json",
+   "origin_lon_lat": [
+    -122.2716195,
+    37.877324
+   ]
+  },
+  "560063801": {
+   "file": "houses/berkeley-downtown/osm-560063801.json",
+   "origin_lon_lat": [
+    -122.2705338,
+    37.8756965
+   ]
+  },
+  "320796667": {
+   "file": "houses/berkeley-downtown/osm-320796667.json",
+   "origin_lon_lat": [
+    -122.2686784,
+    37.8671308
+   ]
+  },
+  "313061800": {
+   "file": "houses/berkeley-downtown/osm-313061800.json",
+   "origin_lon_lat": [
+    -122.2730654,
+    37.8680886
+   ]
+  },
+  "560444688": {
+   "file": "houses/berkeley-downtown/osm-560444688.json",
+   "origin_lon_lat": [
+    -122.2725329,
+    37.8759218
+   ]
+  },
+  "623271728": {
+   "file": "houses/berkeley-downtown/osm-623271728.json",
+   "origin_lon_lat": [
+    -122.273043,
+    37.8762647
+   ]
+  },
+  "623271747": {
+   "file": "houses/berkeley-downtown/osm-623271747.json",
+   "origin_lon_lat": [
+    -122.2717047,
+    37.8763842
+   ]
+  },
+  "560430814": {
+   "file": "houses/berkeley-downtown/osm-560430814.json",
+   "origin_lon_lat": [
+    -122.2717328,
+    37.8751506
+   ]
+  },
+  "433096655": {
+   "file": "houses/berkeley-downtown/osm-433096655.json",
+   "origin_lon_lat": [
+    -122.2702238,
+    37.8744107
+   ]
+  },
+  "433096674": {
+   "file": "houses/berkeley-downtown/osm-433096674.json",
+   "origin_lon_lat": [
+    -122.2705072,
+    37.8738772
+   ]
+  },
+  "623271752": {
+   "file": "houses/berkeley-downtown/osm-623271752.json",
+   "origin_lon_lat": [
+    -122.2725275,
+    37.8763436
+   ]
+  },
+  "560280604": {
+   "file": "houses/berkeley-downtown/osm-560280604.json",
+   "origin_lon_lat": [
+    -122.2719212,
+    37.8738531
+   ]
+  },
+  "560055089": {
+   "file": "houses/berkeley-downtown/osm-560055089.json",
+   "origin_lon_lat": [
+    -122.2707304,
+    37.8747307
+   ]
+  },
+  "823497427": {
+   "file": "houses/berkeley-downtown/osm-823497427.json",
+   "origin_lon_lat": [
+    -122.2721422,
+    37.8800562
+   ]
+  },
+  "560430822": {
+   "file": "houses/berkeley-downtown/osm-560430822.json",
+   "origin_lon_lat": [
+    -122.2716852,
+    37.8746174
+   ]
+  },
+  "560055067": {
+   "file": "houses/berkeley-downtown/osm-560055067.json",
+   "origin_lon_lat": [
+    -122.2708396,
+    37.875179
+   ]
+  },
+  "227609017": {
+   "file": "houses/berkeley-downtown/osm-227609017.json",
+   "origin_lon_lat": [
+    -122.2710328,
+    37.8732988
+   ]
+  },
+  "823936371": {
+   "file": "houses/berkeley-downtown/osm-823936371.json",
+   "origin_lon_lat": [
+    -122.2739162,
+    37.8752457
+   ]
+  },
+  "433096663": {
+   "file": "houses/berkeley-downtown/osm-433096663.json",
+   "origin_lon_lat": [
+    -122.2694409,
+    37.8740493
+   ]
+  },
+  "560444707": {
+   "file": "houses/berkeley-downtown/osm-560444707.json",
+   "origin_lon_lat": [
+    -122.2732151,
+    37.8756381
+   ]
+  },
+  "560284465": {
+   "file": "houses/berkeley-downtown/osm-560284465.json",
+   "origin_lon_lat": [
+    -122.2724541,
+    37.8740039
+   ]
+  },
+  "470796521": {
+   "file": "houses/berkeley-downtown/osm-470796521.json",
+   "origin_lon_lat": [
+    -122.2554068,
+    37.8796425
+   ]
+  },
+  "826209148": {
+   "file": "houses/berkeley-downtown/osm-826209148.json",
+   "origin_lon_lat": [
+    -122.256858,
+    37.8784556
+   ]
+  },
+  "227609024": {
+   "file": "houses/berkeley-downtown/osm-227609024.json",
+   "origin_lon_lat": [
+    -122.2713071,
+    37.8731829
+   ]
+  },
+  "623271749": {
+   "file": "houses/berkeley-downtown/osm-623271749.json",
+   "origin_lon_lat": [
+    -122.2715046,
+    37.8765364
+   ]
+  },
+  "470796038": {
+   "file": "houses/berkeley-downtown/osm-470796038.json",
+   "origin_lon_lat": [
+    -122.2561759,
+    37.8791163
+   ]
+  },
+  "42905580": {
+   "file": "houses/berkeley-downtown/osm-42905580.json",
+   "origin_lon_lat": [
+    -122.2715664,
+    37.8650391
+   ]
+  },
+  "227618086": {
+   "file": "houses/berkeley-downtown/osm-227618086.json",
+   "origin_lon_lat": [
+    -122.2702466,
+    37.872953
+   ]
+  },
+  "560063818": {
+   "file": "houses/berkeley-downtown/osm-560063818.json",
+   "origin_lon_lat": [
+    -122.2705555,
+    37.8759731
+   ]
+  },
+  "819915730": {
+   "file": "houses/berkeley-downtown/osm-819915730.json",
+   "origin_lon_lat": [
+    -122.2575823,
+    37.8650762
+   ]
+  },
+  "560444704": {
+   "file": "houses/berkeley-downtown/osm-560444704.json",
+   "origin_lon_lat": [
+    -122.2726225,
+    37.8755842
+   ]
+  },
+  "463282387": {
+   "file": "houses/berkeley-downtown/osm-463282387.json",
+   "origin_lon_lat": [
+    -122.2610529,
+    37.8797304
+   ]
+  },
+  "433096665": {
+   "file": "houses/berkeley-downtown/osm-433096665.json",
+   "origin_lon_lat": [
+    -122.2698281,
+    37.8739423
+   ]
+  },
+  "823936356": {
+   "file": "houses/berkeley-downtown/osm-823936356.json",
+   "origin_lon_lat": [
+    -122.2742103,
+    37.8757118
+   ]
+  },
+  "823936352": {
+   "file": "houses/berkeley-downtown/osm-823936352.json",
+   "origin_lon_lat": [
+    -122.2743643,
+    37.8757009
+   ]
+  },
+  "42905577": {
+   "file": "houses/berkeley-downtown/osm-42905577.json",
+   "origin_lon_lat": [
+    -122.2719991,
+    37.8650465
+   ]
+  },
+  "560430819": {
+   "file": "houses/berkeley-downtown/osm-560430819.json",
+   "origin_lon_lat": [
+    -122.2713251,
+    37.8752439
+   ]
+  },
+  "227634063": {
+   "file": "houses/berkeley-downtown/osm-227634063.json",
+   "origin_lon_lat": [
+    -122.2695722,
+    37.8735481
+   ]
+  },
+  "470796395": {
+   "file": "houses/berkeley-downtown/osm-470796395.json",
+   "origin_lon_lat": [
+    -122.2561218,
+    37.8788524
+   ]
+  },
+  "560275256": {
+   "file": "houses/berkeley-downtown/osm-560275256.json",
+   "origin_lon_lat": [
+    -122.2694085,
+    37.8776358
+   ]
+  },
+  "560444686": {
+   "file": "houses/berkeley-downtown/osm-560444686.json",
+   "origin_lon_lat": [
+    -122.2729671,
+    37.8753567
+   ]
+  },
+  "823936711": {
+   "file": "houses/berkeley-downtown/osm-823936711.json",
+   "origin_lon_lat": [
+    -122.2727133,
+    37.8768216
+   ]
+  },
+  "272838066": {
+   "file": "houses/sf-corridor/osm-272838066.json",
+   "origin_lon_lat": [
+    -122.4470557,
+    37.8006359
+   ]
+  },
+  "258786939": {
+   "file": "houses/sf-corridor/osm-258786939.json",
+   "origin_lon_lat": [
+    -122.4303977,
+    37.7991665
+   ]
+  },
+  "251710091": {
+   "file": "houses/sf-corridor/osm-251710091.json",
+   "origin_lon_lat": [
+    -122.4270909,
+    37.8002497
+   ]
+  },
+  "259741375": {
+   "file": "houses/sf-corridor/osm-259741375.json",
+   "origin_lon_lat": [
+    -122.4141143,
+    37.7961363
+   ]
+  },
+  "262419177": {
+   "file": "houses/sf-corridor/osm-262419177.json",
+   "origin_lon_lat": [
+    -122.4456397,
+    37.7922921
+   ]
+  },
+  "407853287": {
+   "file": "houses/sf-corridor/osm-407853287.json",
+   "origin_lon_lat": [
+    -122.4116479,
+    37.800568
+   ]
+  },
+  "460228341": {
+   "file": "houses/sf-corridor/osm-460228341.json",
+   "origin_lon_lat": [
+    -122.4419165,
+    37.7986947
+   ]
+  },
+  "258977236": {
+   "file": "houses/sf-corridor/osm-258977236.json",
+   "origin_lon_lat": [
+    -122.4307222,
+    37.7972842
+   ]
+  },
+  "262419180": {
+   "file": "houses/sf-corridor/osm-262419180.json",
+   "origin_lon_lat": [
+    -122.4451404,
+    37.7922675
+   ]
+  },
+  "262419185": {
+   "file": "houses/sf-corridor/osm-262419185.json",
+   "origin_lon_lat": [
+    -122.4461849,
+    37.7921242
+   ]
+  },
+  "243577300": {
+   "file": "houses/sf-corridor/osm-243577300.json",
+   "origin_lon_lat": [
+    -122.4251312,
+    37.7980593
+   ]
+  },
+  "407853283": {
+   "file": "houses/sf-corridor/osm-407853283.json",
+   "origin_lon_lat": [
+    -122.4117376,
+    37.8005449
+   ]
+  },
+  "262426959": {
+   "file": "houses/sf-corridor/osm-262426959.json",
+   "origin_lon_lat": [
+    -122.4471303,
+    37.7919279
+   ]
+  },
+  "251710090": {
+   "file": "houses/sf-corridor/osm-251710090.json",
+   "origin_lon_lat": [
+    -122.4272082,
+    37.8002406
+   ]
+  },
+  "256755979": {
+   "file": "houses/sf-corridor/osm-256755979.json",
+   "origin_lon_lat": [
+    -122.4143823,
+    37.7938565
+   ]
+  },
+  "262111840": {
+   "file": "houses/sf-corridor/osm-262111840.json",
+   "origin_lon_lat": [
+    -122.437788,
+    37.7927494
+   ]
+  },
+  "262229611": {
+   "file": "houses/sf-corridor/osm-262229611.json",
+   "origin_lon_lat": [
+    -122.4425565,
+    37.7964715
+   ]
+  },
+  "263379856": {
+   "file": "houses/sf-corridor/osm-263379856.json",
+   "origin_lon_lat": [
+    -122.4382477,
+    37.7865359
+   ]
+  },
+  "262096304": {
+   "file": "houses/sf-corridor/osm-262096304.json",
+   "origin_lon_lat": [
+    -122.4392414,
+    37.7920439
+   ]
+  },
+  "262725660": {
+   "file": "houses/sf-corridor/osm-262725660.json",
+   "origin_lon_lat": [
+    -122.4210024,
+    37.8019881
+   ]
+  },
+  "460228164": {
+   "file": "houses/sf-corridor/osm-460228164.json",
+   "origin_lon_lat": [
+    -122.4417768,
+    37.7986178
+   ]
+  },
+  "262419182": {
+   "file": "houses/sf-corridor/osm-262419182.json",
+   "origin_lon_lat": [
+    -122.4452612,
+    37.7922202
+   ]
+  },
+  "792304108": {
+   "file": "houses/sf-corridor/osm-792304108.json",
+   "origin_lon_lat": [
+    -122.4049327,
+    37.8025919
+   ]
+  },
+  "262419186": {
+   "file": "houses/sf-corridor/osm-262419186.json",
+   "origin_lon_lat": [
+    -122.4454185,
+    37.792287
+   ]
   }
+ }
 }

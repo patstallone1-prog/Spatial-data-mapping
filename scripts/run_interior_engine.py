@@ -6,6 +6,9 @@ Eligible is the pilot's own rule (scripts/build_inferred_interiors.py fixtures):
 script twenty at a time (its bound), a few batches at once, into build/inferred-interiors/
 (not docs/: publishing is a separate step). A batch with a manifest is done, so a run that
 stops picks up where it left off. ``--merge`` writes one map overlay and manifest for all.
+``--publish`` puts every accepted house (its validation passed) into docs/inferred-interiors/,
+where the map furnishes it with that interior in place of its fitted plan; a house accepted
+again replaces the one published before. ``--max-batches`` runs only so many unfinished batches.
 """
 
 from __future__ import annotations
@@ -112,6 +115,40 @@ def merge(out: Path) -> None:
     print(f"merged: {len(overlay)} houses on the map, {sum(r['passed'] for r in records)}/{len(records)} passed")
 
 
+PUBLISHED = ROOT / "docs/inferred-interiors"
+
+
+def publish(out: Path, published: Path = PUBLISHED) -> int:
+    """Copy the accepted houses into the site and add them to its overlay; returns how many."""
+    overlay_path = published / "map-overlay.json"
+    overlay = json.loads(overlay_path.read_text())["buildings"] if overlay_path.exists() else {}
+    added = 0
+    for manifest in sorted(out.glob("*/batch-*/manifest.json")):
+        folder = manifest.parent
+        refs = json.loads((folder / "map-overlay.json").read_text())["buildings"]
+        for record in json.loads(manifest.read_text())["houses"]:
+            osm_id = record["id"].removeprefix("osm-")
+            source = folder / record.get("file", "")
+            if not record.get("passed") or osm_id not in refs or not source.is_file():
+                continue
+            house = json.loads(source.read_text())
+            # The page takes only an inferred hypothesis that passed its own validation.
+            if not house.get("validation", {}).get("passed") or house.get("grade") != "inferred":
+                continue
+            name = f"houses/{folder.parent.name}/{source.name}"
+            target = published / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            text = json.dumps(house, separators=(",", ":"))  # half the batch file's size
+            if not target.exists() or target.read_text() != text:
+                target.write_text(text)
+                added += 1
+            overlay[osm_id] = {**refs[osm_id], "file": name}
+    overlay_path.write_text(json.dumps(
+        {"schema": "kerbside.inferred_house_overlay/1", "buildings": overlay}, indent=1) + "\n")
+    print(f"published: {added} new or replaced, {len(overlay)} houses furnished by the engine")
+    return added
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--regions", nargs="*", default=REGIONS)
@@ -119,9 +156,14 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--count", action="store_true", help="only count the eligible houses")
     parser.add_argument("--merge", action="store_true", help="only merge finished batches")
+    parser.add_argument("--publish", action="store_true", help="only publish the accepted houses")
+    parser.add_argument("--max-batches", type=int, help="run at most this many unfinished batches")
     args = parser.parse_args()
     if args.merge:
         merge(args.out)
+        return
+    if args.publish:
+        publish(args.out)
         return
     jobs = []
     for region in args.regions:
@@ -130,6 +172,9 @@ def main() -> None:
         jobs += [(region, i // BATCH, rows[i:i + BATCH]) for i in range(0, len(rows), BATCH)]
     if args.count:
         return
+    if args.max_batches is not None:
+        jobs = [job for job in jobs
+                if not (args.out / job[0] / f"batch-{job[1]:03d}" / "manifest.json").exists()][:args.max_batches]
     print(f"{len(jobs)} batches, {args.workers} at a time", flush=True)
     with ThreadPoolExecutor(args.workers) as pool:
         for line in pool.map(lambda job: run_batch(*job, args.out), jobs):
