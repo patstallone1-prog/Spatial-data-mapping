@@ -57,11 +57,14 @@ def test_moscone_basketball_is_fenced_from_its_tennis() -> None:
     assert len(fenced) >= 2 and all(d["s"] == ["basketball", "tennis"] for d in fenced)
 
 
-@pytest.mark.skipif(NODE is None, reason="node is not installed")
+THREE = ROOT / "tools/unreal/node_modules/three/build/three.module.js"
+
+
+@pytest.mark.skipif(NODE is None or not THREE.exists(), reason="node and tools/unreal/node_modules/three are needed")
 def test_a_mast_is_a_pole_with_a_cell_head_and_a_cabinet_is_a_low_box() -> None:
     js = _page_js()
     script = "\n".join([
-        "import * as THREE from " + json.dumps((ROOT / "tools/unreal/node_modules/three/build/three.module.js").as_uri()) + ";",
+        "import * as THREE from " + json.dumps(THREE.as_uri()) + ";",
         re.search(r"const STRUCTURE_POLE_M = [0-9.]+;", js).group(0),
         re.search(r"const STRUCTURE_BOX_M = [0-9.]+;", js).group(0),
         "const FACADE_UV = undefined;",
