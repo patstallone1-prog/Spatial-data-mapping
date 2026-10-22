@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 
 
 @dataclass(frozen=True)
@@ -287,6 +288,13 @@ COMPLEX_CELL_M = 0.25
 #: A complex's outline is simplified to this; the courts' own rings are far finer than a fence.
 COMPLEX_SIMPLIFY_M = 0.3
 GRASS_SPORTS = frozenset({"soccer"})
+#: A dividing fence shorter than this is a corner where two dividers meet, not a fence.
+DIVIDER_MIN_M = 1.5
+
+
+def _family(sport: str) -> str:
+    """The game a court is laid for: a half court and a lone hoop are basketball's."""
+    return "basketball" if sport.startswith("basketball") else sport
 
 
 def _surface(sport: str) -> str:
@@ -318,13 +326,72 @@ def _gap(a: list[tuple[float, float]], b: list[tuple[float, float]]) -> float:
     return best
 
 
+def _dividers(label, mask, sports, cell, to_point) -> list[dict]:
+    """Where a block's courts of one sport meet another's: the fence between them.
+
+    ``label`` holds, for each cell of the block, which of ``sports`` the nearest court plays.
+    Courts of one sport stand together with no fence between them; between two sports the
+    fence runs midway across the run-off they share. Each is ``{"s": [a, b], "p": [...]}``.
+    """
+    import cv2
+    import numpy as np
+
+    h, w = label.shape
+
+    def sport_at(x: float, y: float) -> int:
+        u, v = round(x), round(y)
+        if not (0 <= u < w and 0 <= v < h) or not mask[v, u]:
+            return -1
+        return int(label[v, u])
+
+    out = []
+    step = max(2.0, 0.6 / cell)
+    for a in range(len(sports)):
+        region = ((label == a) & (mask > 0)).astype(np.uint8)
+        contours, _ = cv2.findContours(region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        for contour in contours:
+            ring = cv2.approxPolyDP(contour, COMPLEX_SIMPLIFY_M / cell, True)[:, 0, :].astype(float)
+            runs: list[list[tuple[float, float]]] = []
+            for i in range(len(ring)):
+                p, q = ring[i], ring[(i + 1) % len(ring)]
+                length = math.hypot(q[0] - p[0], q[1] - p[1])
+                if length < 1e-6:
+                    continue
+                mx, my = (p[0] + q[0]) / 2, (p[1] + q[1]) / 2
+                nx, ny = -(q[1] - p[1]) / length * step, (q[0] - p[0]) / length * step
+                sides = {sport_at(mx + nx, my + ny), sport_at(mx - nx, my - ny)}
+                # Only the pair's lower sport keeps it, so each fence is drawn once.
+                other = [b for b in sides if b > a]
+                if a not in sides or not other:
+                    if runs and runs[-1]:
+                        runs.append([])
+                    continue
+                if not runs or not runs[-1]:
+                    runs.append([(p[0], p[1])])
+                runs[-1].append((q[0], q[1]))
+                runs[-1].append(("sport", other[0]))
+            for run in runs:
+                points = [pt for pt in run if pt[0] != "sport"]
+                partner = next((pt[1] for pt in run if pt[0] == "sport"), None)
+                if len(points) < 2 or partner is None:
+                    continue
+                span = sum(math.hypot(q[0] - p[0], q[1] - p[1]) for p, q in pairwise(points)) * cell
+                if span < DIVIDER_MIN_M:
+                    continue
+                out.append({"s": sorted([sports[a], sports[partner]]),
+                            "p": [[round(float(c), 6) for c in to_point(u, v)] for u, v in points]})
+    return out
+
+
 def court_complexes(pitches: list[dict], to_metres, to_lonlat) -> list[dict]:
     """Blocks of adjoining pitches, each as one outline: ``{"id", "s", "surface", "p"}``.
 
     ``pitches`` are the ground file's (``{"s", "p": [[lon, lat], ...]}``); each one in a block is
     given the block's id as ``"k"``, which is how the page knows not to pad and fence it alone (an
     index would not do: the page gathers the lists cell by cell). A pitch on its own is not a
-    complex and is drawn as before.
+    complex and is drawn as before. A block of more than one sport also carries ``"d"``, the
+    fences between them (``_dividers``): tennis beside basketball is fenced off from it, as at
+    Moscone, and two tennis courts side by side are not.
     """
     import cv2
     import numpy as np
@@ -387,6 +454,27 @@ def court_complexes(pitches: list[dict], to_metres, to_lonlat) -> list[dict]:
         key = f"c{len(out)}"
         for i in members:
             pitches[i]["k"] = key
-        out.append({"id": key, "s": max(set(sports), key=sports.count), "surface": _surface(sports[0]),
-                    "p": [[round(lon, 6), round(lat, 6)] for lon, lat in ring]})
+        complex_ = {"id": key, "s": max(set(sports), key=sports.count), "surface": _surface(sports[0]),
+                    "p": [[round(lon, 6), round(lat, 6)] for lon, lat in ring]}
+        games = [_family(s) for s in sports]
+        kinds = sorted(set(games), key=lambda s: (-games.count(s), s))
+        if len(kinds) > 1:
+            # Each cell of the block belongs to the sport of the court nearest it.
+            nearest = np.full((h, w), np.inf, dtype=np.float32)
+            label = np.zeros((h, w), dtype=np.int32)
+            for i in members:
+                own = np.zeros((h, w), dtype=np.uint8)
+                pts = np.array([[(x - x0) / COMPLEX_CELL_M, (y - y0) / COMPLEX_CELL_M] for x, y in rings[i]],
+                               dtype=np.float32)
+                cv2.fillPoly(own, [np.round(pts).astype(np.int32)], 1)
+                distance = cv2.distanceTransform(1 - own, cv2.DIST_L2, 5)
+                closer = distance < nearest
+                nearest[closer] = distance[closer]
+                label[closer] = kinds.index(_family(pitches[i]["s"]))
+            dividers = _dividers(label, mask, kinds, COMPLEX_CELL_M,
+                                 lambda u, v, x0=x0, y0=y0: to_lonlat(x0 + (u + 0.5) * COMPLEX_CELL_M,
+                                                                      y0 + (v + 0.5) * COMPLEX_CELL_M))
+            if dividers:
+                complex_["d"] = dividers
+        out.append(complex_)
     return out

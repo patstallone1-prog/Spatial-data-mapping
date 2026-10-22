@@ -15,6 +15,7 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -27,6 +28,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REGIONS = ["sf-corridor", "berkeley-downtown", "oakland-downtown", "palo-alto-downtown",
            "san-jose-downtown", "sf-haight-castro", "sf-mission", "sf-sunset"]
 BATCH = 20
+#: A batch is not started with less than this free on the disk it writes to (swap shares it).
+MIN_FREE_BYTES = int(1.5 * 2**30)
 
 
 def region_base(region: str) -> Path:
@@ -75,6 +78,8 @@ def run_batch(region: str, index: int, rows: list[dict], out: Path) -> str:
     folder = out / region / f"batch-{index:03d}"
     if (folder / "manifest.json").exists():
         return f"{region} {index}: done already"
+    if shutil.disk_usage(out).free < MIN_FREE_BYTES:
+        return f"{region} {index}: held, under {MIN_FREE_BYTES / 2**30:.1f} GB free (rerun to resume)"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "request.json").write_text(json.dumps(rows))
     started = time.time()

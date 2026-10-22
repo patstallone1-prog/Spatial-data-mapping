@@ -1,6 +1,6 @@
 // Source-backed bare earth and land cover. All individual plants/rocks are visual inference.
 // Public pure functions also run in Node regression tests; THREE is injected by the viewer.
-import {SPECIES,UNDERGROWTH,LITTER,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize,litterScatter} from './nature-ecology.mjs';
+import {SPECIES,UNDERGROWTH,LITTER,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize,litterScatter,vegetatedCover} from './nature-ecology.mjs';
 import {vegetationAssets,botanicalGeometry,BARK_GRAIN_URL} from './vegetation-geometry.mjs';
 import {createGrassStrands} from './grass-strands.mjs';
 // Keep each existing botanical LOD 30% farther out, without inventing more trees.
@@ -144,8 +144,11 @@ export async function loadNatureAtlas(resolve) {
   const ecology=await ecologyResponse.json();
   if(ecology.source_cover_sha256!==manifest.arrays.cover.sha256||ecology.source_canopy_sha256!==manifest.arrays.canopy.sha256)throw new Error('Stale ecology source');
   const [floorPixels,clearance]=await Promise.all([ecology.floor,ecology.clearance].map(r=>arrayAsset(resolve,r)));
+  // What the plants grow on: the source classes, with trail strips and wooded parks given back
+  // to the land round them (vegetatedCover). `cover` stays the source classification.
+  const plantCover=vegetatedCover(cover,canopy,f.cols,f.rows);
   if(floorPixels.length!==f.cols*f.rows*4||clearance.length!==Math.ceil(ecology.clearance.cols*ecology.clearance.rows/8))throw new Error('Invalid ecology arrays');
-  const atlas = {manifest, f, height, cover, canopy, ecology, floorPixels,detail, detailRecords, resolve,
+  const atlas = {manifest, f, height, cover, plantCover, canopy, ecology, floorPixels,detail, detailRecords, resolve,
     floorColourAt(x,y){const c=x/f.step_m,r=y/f.step_m;if(c<0||r<0||c>f.cols-1||r>f.rows-1)return null;
       const x0=Math.min(f.cols-2,Math.floor(c)),y0=Math.min(f.rows-2,Math.floor(r)),u=c-x0,v=r-y0;
       return [0,1,2].map(k=>((floorPixels[(y0*f.cols+x0)*4+k]*(1-u)+floorPixels[(y0*f.cols+x0+1)*4+k]*u)*(1-v)
@@ -153,7 +156,7 @@ export async function loadNatureAtlas(resolve) {
     farBlocked(x,y){const f=ecology.clearance,c=Math.floor(x/f.step_m),r=Math.floor(y/f.step_m);
       if(c<0||r<0||c>=f.cols||r>=f.rows)return true;const i=r*f.cols+c;return Boolean(clearance[i>>3]&(1<<(i&7)));},
     ecologicalSample(x,y){const s=this.sample(x,y);if(!s)return null;
-      const habitat=habitatMixture(cover,canopy,f.cols,f.rows,x/f.step_m,y/f.step_m),[lon,lat]=this.geographic(x,y);
+      const habitat=habitatMixture(plantCover,canopy,f.cols,f.rows,x/f.step_m,y/f.step_m),[lon,lat]=this.geographic(x,y);
       // Qualitative habitat prior, not measured soil moisture or current weather.
       const peninsula=smooth(37.78,37.50,lat)*smooth(-122.10,-122.24,lon);
       const moisture=Math.min(1,(lon<-122.32?.34:.15)+peninsula*.40+habitat.wetland*.45+field(x,y,190,997)*.12);
@@ -167,7 +170,7 @@ export async function loadNatureAtlas(resolve) {
       let h=coarseHeight(height,f,x,y);
       if(fine){const key=`${Math.floor(x/2000)}:${Math.floor(y/2000)}`,tile=detail.get(key);
         if(tile){const target=fineHeight(tile,height,f,x,y),t=final?1:tile.blend.value;h=h*(1-t)+target*t;}}
-      return {height:h,cover:cover[i],canopy:bilinear(canopy,f.cols,f.rows,c,r,255),water:cover[i]===11};
+      return {height:h,cover:plantCover[i],canopy:bilinear(canopy,f.cols,f.rows,c,r,255),water:cover[i]===11};
     },
     async loadDetail(key){
       if(detail.has(key))return detail.get(key);
@@ -178,6 +181,21 @@ export async function loadNatureAtlas(resolve) {
   return atlas;
 }
 
+//: The roads the landscape lays itself, where nothing else draws them (outside the city and the
+//: regions, as its trails): a fire road through the Presidio was kept clear of every plant and
+//: drawn as nothing, a bare strip of blurred ground twenty metres wide. Motorways and trunk
+//: roads are left out: they stand on embankments and viaducts a draped ribbon cannot follow.
+export const NATURE_ROADS=new Set(['service','unclassified','residential','living_street','road','tertiary','tertiary_link',
+  'secondary','secondary_link','primary','primary_link']);
+//: The width of a road nobody measured, by its class (OpenStreetMap's own guidance and the city's
+//: streets); it was 7 m for everything, a driveway as wide as a two-lane street. Unpaved, narrower.
+export const INFERRED_ROAD_WIDTH_M={service:4,unclassified:6,residential:7,living_street:5,road:6,tertiary:8,
+  tertiary_link:6,secondary:10,secondary_link:7,primary:12,primary_link:8};
+export const UNPAVED=new Set(['dirt','ground','earth','gravel','fine_gravel','compacted','sand','unpaved','grass','mud','pebblestone']);
+export function inferredWidth(w){
+  if(w.width_source!=='inferred'||w.trail||!INFERRED_ROAD_WIDTH_M[w.kind])return w.width_m;
+  return UNPAVED.has(w.surface)?Math.min(3.5,INFERRED_ROAD_WIDTH_M[w.kind]):INFERRED_ROAD_WIDTH_M[w.kind];
+}
 //: A fallen log this thick (radius, metres) or more is climbed round, not walked through. Every
 //: log the landscape lays down is thicker (litterScatter: 12 to 34 cm); a stick is not a log.
 export const LOG_BLOCKS_RADIUS_M=.1;
@@ -622,8 +640,12 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const trailP=[],trailC=[],trailI=[];
     const trailColours={asphalt:[.29,.30,.29],concrete:[.57,.56,.51],stone:[.52,.50,.45],paving_stones:[.54,.49,.42],gravel:[.54,.49,.39],sand:[.68,.60,.44],ground:[.47,.37,.24],dirt:[.47,.37,.24],unknown:[.47,.37,.24]};
     for(const w of nearbyWays(x0+PLANT_TILE_M/2,y0+PLANT_TILE_M/2)||[]){
-      if(!w.trail||w.grade_separated||w.area)continue;
-      const col=linearColour(trailColours[w.kind==='steps'&&w.surface==='unknown'?'stone':w.surface]||trailColours.unknown),half=w.width_m/2;
+      const road=NATURE_ROADS.has(w.kind);
+      if(!(w.trail||road)||w.grade_separated||w.area)continue;
+      // A road of no stated surface is paved; a trail of none is earth. A road lies just under
+      // the trails, so a path crossing it shows.
+      const finish=w.kind==='steps'&&w.surface==='unknown'?'stone':road&&!UNPAVED.has(w.surface)&&!trailColours[w.surface]||road&&w.surface==='unknown'?'asphalt':w.surface;
+      const col=linearColour(trailColours[finish]||trailColours.unknown),half=w.width_m/2,lift=road?.028:.035;
       for(let i=1;i<w.local.length;i++){
         const a=w.local[i-1],b=w.local[i],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<.01)continue;
         // Intersect each segment with this tile before subdivision: no repeated full paths.
@@ -641,7 +663,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
           const base=trailP.length/3;
           for(const [t,side] of [[ta,-1],[tb,-1],[tb,1],[ta,1]]){
             const x=a[0]+(b[0]-a[0])*t+nx*half*side,y=a[1]+(b[1]-a[1])*t+(b[0]-a[0])/L*half*side,s=surface(x,y);
-            trailP.push(s.p[0],(w.kind==='steps'?mid.height:s.height)+.035,s.p[1]);trailC.push(...col);
+            trailP.push(s.p[0],(w.kind==='steps'?mid.height:s.height)+lift,s.p[1]);trailC.push(...col);
           }
           trailI.push(base,base+1,base+2,base,base+2,base+3);
           if(w.kind==='steps')for(const edge of [[0,1],[1,2],[2,3],[3,0]]){
@@ -677,7 +699,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         const k=`${c}:${r}`;if(!data.grid.has(k))data.grid.set(k,[]);data.grid.get(k).push(entry);
       }
     };
-    for(const w of data.ways){w.local=w.points.map(p=>atlas.local(...p));
+    for(const w of data.ways){w.local=w.points.map(p=>atlas.local(...p));w.width_m=inferredWidth(w);
       w.localHoles=(w.holes||[]).map(ring=>ring.map(p=>atlas.local(...p)));delete w.holes;
       if(w.area){const xs=w.local.map(p=>p[0]),ys=w.local.map(p=>p[1]);insert({w,area:true},Math.min(...xs)-7,Math.min(...ys)-7,Math.max(...xs)+7,Math.max(...ys)+7);}
       else for(let i=1;i<w.local.length;i++){const a=w.local[i-1],b=w.local[i],R=w.natural==="coastline"?100:w.width_m/2+7;insert({w,a,b},Math.min(a[0],b[0])-R,Math.min(a[1],b[1])-R,Math.max(a[0],b[0])+R,Math.max(a[1],b[1])+R);}

@@ -45,7 +45,42 @@ PALETTE = {
 }
 
 
+NATURAL = (31, 41, 42, 43, 52, 71, 81, 82, 90, 95)
+
+
+def vegetated_cover(cover: np.ndarray, canopy: np.ndarray) -> np.ndarray:
+    """The classes plants grow on (docs/nature-ecology.mjs vegetatedCover, which this matches).
+
+    A developed cell (21-23) whose neighbours are mostly natural is a trail or road strip through
+    them and takes their commonest class (the lowest on a tie); a low- or medium-intensity one
+    under 25% or more measured canopy beside open land is open space under trees, 21.
+    """
+    rows, cols = cover.shape
+    padded = np.pad(cover, 1, constant_values=0)
+    neighbours = [padded[1 + dr : 1 + dr + rows, 1 + dc : 1 + dc + cols]
+                  for dr in (-1, 0, 1) for dc in (-1, 0, 1) if dr or dc]
+    natural = sum(np.isin(n, NATURAL).astype(np.int32) for n in neighbours)
+    open_ = np.zeros(cover.shape, dtype=bool)
+    for n in neighbours:
+        open_ |= np.isin(n, (21, *NATURAL))
+    best = np.zeros(cover.shape, dtype=np.uint8)
+    best_n = np.zeros(cover.shape, dtype=np.int32)
+    for kind in sorted(NATURAL):
+        count = sum((n == kind).astype(np.int32) for n in neighbours)
+        better = count > best_n
+        best[better], best_n[better] = kind, count[better]
+    out = cover.copy()
+    developed = (cover >= 21) & (cover <= 23)
+    strip = developed & (natural >= np.where(cover == 23, 6, 5))
+    out[strip] = best[strip]
+    wooded = developed & ~strip & (cover != 21) & open_ & (canopy != 255) & (canopy >= 25)
+    out[wooded] = 21
+    return out
+
+
 def floor_pixels(cover: np.ndarray, canopy: np.ndarray | None = None) -> np.ndarray:
+    if canopy is not None:
+        cover = vegetated_cover(cover, canopy)
     valid = (cover != 11).astype(np.float32)
     weight = gaussian_filter(valid, 0.8, mode="nearest")
     output = np.zeros((*cover.shape, 4), dtype=np.uint8)

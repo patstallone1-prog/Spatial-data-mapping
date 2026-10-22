@@ -76,6 +76,20 @@ CELL = 40.0
 SCREEN_WORKERS = 8
 #: A photograph that will not download is tried this many times, this far apart, then left.
 MAX_DOWNLOAD_ATTEMPTS = 3
+#: Houses to screen first (scripts/request_frontage_focus.py). Kept beside the supervisor on the
+#: internal disk, so a request outlives the external drive coming and going.
+FOCUS_REQUEST = ROOT / "build/frontage-supervisor/focus.request.json"
+
+
+def focus_order(path: Path = FOCUS_REQUEST) -> dict:
+    """``(region, building_id)`` to its place in the focus request's line; empty without one."""
+    try:
+        request = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {(item["region"], str(item["building_id"])): i
+            for i, item in enumerate(request.get("buildings") or [])
+            if isinstance(item, dict) and item.get("region") and item.get("building_id") is not None}
 DOWNLOAD_RETRY_AFTER_S = 3600
 
 
@@ -606,7 +620,8 @@ def review_samples(args, summaries, policy):
             ) not in seen_views and candidate["observation"]["provider"] not in queued_providers:
                 pending.append((row, candidate, region, run_id))
                 queued_providers.add(candidate["observation"]["provider"])
-    batch = fair_batch(pending, records, args.sample)
+    focus = focus_order()
+    batch = fair_batch(pending, records, args.sample, focus)
     batch_groups = Counter()
     emit(args.output / "pixel-worker.json", {
         "status": "screening", "pid": os.getpid(), "at": datetime.now(UTC),
@@ -616,6 +631,8 @@ def review_samples(args, summaries, policy):
             Counter((p[2], p[1]["observation"]["provider"]) for p in pending).items()
         },
         "supported_providers": SUPPORTED_PROVIDERS,
+        "focus_requested": len(focus),
+        "focus_pending": len({(p[2], str(p[0]["building_id"])) for p in pending} & focus.keys()),
         "automatically_publishes": False,
     })
     def screen_one(row, candidate, region, run_id):

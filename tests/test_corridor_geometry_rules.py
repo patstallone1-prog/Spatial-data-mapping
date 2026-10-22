@@ -1848,6 +1848,7 @@ def test_a_house_the_city_has_an_address_for_is_not_a_garden_shed() -> None:
         "const CANOPY_TAGS = new Set(['roof', 'canopy', 'carport']);",
         "const OUTBUILDING_TAGS = new Set(['shed', 'garage', 'hut', 'cabin', 'outbuilding']);",
         re.search(r"const SLENDER_LIMIT = [0-9.]+;", js).group(0),
+        re.search(r"const STRUCTURE_MAX_M2 = [0-9.]+;", js).group(0),
         _extract("structureClass", js),
         """
         const house = { tags: { building: 'yes' }, height_source: 'inferred_default',
@@ -1867,6 +1868,9 @@ def test_a_house_the_city_has_an_address_for_is_not_a_garden_shed() -> None:
           taggedShed: structureClass(taggedShed, 12),
           canopy: structureClass(canopy, 40),
           bigAnonymous: structureClass({ tags: {}, height_source: 'inferred_default' }, 400),
+          // Moscone's mast: the park's parcel address and land use, on 4.4 m2.
+          mast: structureClass({ tags: { building: 'yes' }, height_source: 'inferred_default',
+                                 address: { formatted: '1800 Chestnut St' }, land_use: 'PUBLIC' }, 4.4),
         }));
         """,
     ])
@@ -1883,6 +1887,8 @@ def test_a_house_the_city_has_an_address_for_is_not_a_garden_shed() -> None:
     # And an explicit OpenStreetMap tag still wins over an address, because somebody looked.
     assert got["taggedShed"] == "outbuilding"
     assert got["canopy"] == "canopy"
+    # A footprint too small to be a room is a structure, whatever records it carries.
+    assert got["mast"] == "structure"
 
 
 def test_an_outbuilding_roof_is_dark_but_not_a_hole() -> None:
