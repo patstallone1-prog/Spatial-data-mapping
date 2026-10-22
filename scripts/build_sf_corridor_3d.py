@@ -30303,10 +30303,14 @@ fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
   })
   .catch(() => {})
   .finally(() => { HOME_OPENINGS_SETTLED = true; });
-// Bounded pilot: opt in with ?inferredInteriors=1. Eight mapped houses only.
+// A house the interior engine has an accepted interior for (inferred-interiors/map-overlay.json:
+// its validation passed, published by scripts/run_interior_engine.py --publish) is furnished
+// with that one in place of its fitted plan; any other keeps the plan, and a hypothesis that
+// fails to load falls back to it too. Off in the headset, whose memory it would not fit, and
+// with ?inferredInteriors=0.
 let generatedInteriorModules = null;
 function requestGeneratedInteriors() {
-  if (new URLSearchParams(location.search).get("inferredInteriors") !== "1") return;
+  if (HEADSET || new URLSearchParams(location.search).get("inferredInteriors") === "0") return;
   const base = new URL("../inferred-interiors/", interiorAssetBase());
   fetch(new URL("map-overlay.json", base)).then(r => r.ok ? r.json() : null).then(data => {
     for (const [id, ref] of Object.entries(data?.buildings || {})) {
@@ -30344,6 +30348,10 @@ function requestGeneratedInterior(entry) {
     entry.generatedInteriorFailed = true;
     console.warn("kerbside: generated interior rejected; using fitted plan", error);
     buildInterior(entry);
+  }).finally(() => {
+    // Settled: an interior taken down later (the walker went on, the shell was rebuilt) is
+    // requested again when it is next wanted, instead of the house standing empty.
+    entry.generatedInteriorPending = false;
   });
 }
 let interiorsRequested = false;
