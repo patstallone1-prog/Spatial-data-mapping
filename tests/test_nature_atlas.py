@@ -218,7 +218,7 @@ console.log(JSON.stringify({far,supplied,nearMissing,measured,legacy:rawTerrainH
 def test_refinement_rebases_existing_city_meshes_once_without_losing_storeys_or_triangles():
     result = node(
         """
-let ground=100;function rawTerrainHeightAt(x,z){return ground+x;}
+let ground=100;function tileGroundAt(x,z){return ground+x;}
 class Matrix4{constructor(){this.elements=Array(16).fill(0);}}
 const THREE={Matrix4};
 function surface(ys,meta){const p={count:ys.length,getX:i=>i*5,getZ:i=>0,

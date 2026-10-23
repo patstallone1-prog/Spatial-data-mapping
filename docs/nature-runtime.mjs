@@ -181,6 +181,24 @@ export async function loadNatureAtlas(resolve) {
   return atlas;
 }
 
+//: The coarse ground (a vertex every 160 m, all that is drawn past the near detail) under a
+//: city: its flat triangles spanned the dips between their corners, and the simple city's
+//: streets and lawns, which follow the ground itself a hand above it, went under them -- large
+//: triangles of ground, and of sea by the shore, through the roads and the grass. A vertex on or
+//: beside developed land is put at the lowest of the ground round it (a lattice across the cells
+//: it corners), less a margin, so no triangle stands over any point of the cells it covers.
+export const CITY_COVER=new Set([21,22,23,24]);
+export const COARSE_CITY_MARGIN_M=1;
+export function cityEnvelope(heights,developed,cols,rows,floorAt,margin=COARSE_CITY_MARGIN_M){
+  const out=Float32Array.from(heights);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    let near=false;
+    for(let dr=-1;dr<=1&&!near;dr++)for(let dc=-1;dc<=1;dc++){
+      const rr=r+dr,cc=c+dc;if(rr>=0&&rr<rows&&cc>=0&&cc<cols&&developed[rr*cols+cc]){near=true;break;}}
+    if(near)out[r*cols+c]=Math.min(heights[r*cols+c],floorAt(c,r))-margin;
+  }
+  return out;
+}
 //: The roads the landscape lays itself, where nothing else draws them (outside the city and the
 //: regions, as its trails): a fire road through the Presidio was kept clear of every plant and
 //: drawn as nothing, a bare strip of blurred ground twenty metres wide. Motorways and trunk
@@ -348,15 +366,25 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
   function groundMesh(x0,y0,x1,y1,step,mat){
     const nx=Math.ceil((x1-x0)/step),ny=Math.ceil((y1-y0)/step),P=[],C=[],I=[],old=[],wet=[];
     const coast=mat.vertexColors?new Uint8Array((nx+1)*(ny+1)*4):null;
+    const coarse=!mat.vertexColors,heights=coarse?new Float32Array((nx+1)*(ny+1)):null,developed=coarse?new Uint8Array((nx+1)*(ny+1)):null;
     for(let r=0;r<=ny;r++)for(let c=0;c<=nx;c++){
-      const x=Math.min(x1,x0+step*c),y=Math.min(y1,y0+step*r),s=surface(x,y,true,!mat.vertexColors);
+      const x=Math.min(x1,x0+step*c),y=Math.min(y1,y0+step*r),s=surface(x,y,true,coarse);
       const base=s.water?COVER_COLOURS[11]:s.natural==="beach" ? COVER_COLOURS.sand : COVER_COLOURS[s.cover]||COVER_COLOURS[0];
+      if(coarse){heights[r*(nx+1)+c]=s.height;developed[r*(nx+1)+c]=!s.water&&CITY_COVER.has(s.cover)?1:0;}
       P.push(s.p[0],s.height-.035,s.p[1]);C.push(...linearColour(base));
       if(mat.vertexColors){old.push(surface(x,y,false,true).height-.035);wet.push(s.water?1:0);}
       if(coast){const i=(r*(nx+1)+c)*4;
         coast[i]=s.coastSigned===null?128:Math.round(127.5+Math.max(-100,Math.min(100,s.coastSigned))*1.275);
         coast[i+1]=s.natural==='beach'?255:0;coast[i+2]=s.coastSigned===null?0:255;
         coast[i+3]=['bare_rock','scree','shingle'].includes(s.natural)?255:0;}
+    }
+    if(coarse){
+      const floor=cityEnvelope(heights,developed,nx+1,ny+1,(c,r)=>{
+        const x=Math.min(x1,x0+step*c),y=Math.min(y1,y0+step*r);let low=Infinity;
+        for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++){const s=surface(x+i*step/2,y+j*step/2,true,true);if(s)low=Math.min(low,s.height);}
+        return low;
+      });
+      for(let i=0;i<floor.length;i++)P[3*i+1]=floor[i]-.035;
     }
     for(let r=0;r<ny;r++)for(let c=0;c<nx;c++){
       const x=x0+(c+.5)*(x1-x0)/nx,y=y0+(r+.5)*(y1-y0)/ny,p=geoAt(x,y);
