@@ -6356,6 +6356,55 @@
     -122.5065603,
     37.7415473
    ]
+  },
+  "288387363": {
+   "file": "houses/sf-corridor/osm-288387363.json",
+   "origin_lon_lat": [
+    -122.4271164,
+    37.806587
+   ]
+  },
+  "288387358": {
+   "file": "houses/sf-corridor/osm-288387358.json",
+   "origin_lon_lat": [
+    -122.4273596,
+    37.8070677
+   ]
+  },
+  "262106868": {
+   "file": "houses/sf-corridor/osm-262106868.json",
+   "origin_lon_lat": [
+    -122.43927,
+    37.7930222
+   ]
+  },
+  "262106873": {
+   "file": "houses/sf-corridor/osm-262106873.json",
+   "origin_lon_lat": [
+    -122.439535,
+    37.7929872
+   ]
+  },
+  "262111825": {
+   "file": "houses/sf-corridor/osm-262111825.json",
+   "origin_lon_lat": [
+    -122.4377035,
+    37.7923499
+   ]
+  },
+  "262426952": {
+   "file": "houses/sf-corridor/osm-262426952.json",
+   "origin_lon_lat": [
+    -122.446555,
+    37.7920374
+   ]
+  },
+  "262426961": {
+   "file": "houses/sf-corridor/osm-262426961.json",
+   "origin_lon_lat": [
+    -122.4468186,
+    37.7919704
+   ]
   }
  }
 }

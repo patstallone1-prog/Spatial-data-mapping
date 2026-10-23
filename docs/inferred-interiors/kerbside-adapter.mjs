@@ -29,7 +29,7 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
   };
   floorSurface.stairs=false;floorSurface.priority=2;
   const result={group:built.group,floorSurface,roomDoors,floorY,height:house.storeys[0].height_m-.15,
-    lights:roomSpecs.map(r=>r.light),plan:`Generated single-family hypothesis · ${house.id}`,generated:true,house};
+    lights:roomSpecs.map(r=>r.light),plan:`Generated ${context.kind === 'restaurant' ? 'restaurant tenancy' : 'single-family'} hypothesis · ${house.id}`,generated:true,house};
   Object.defineProperty(result,'rooms',{get:()=>roomSpecs.filter(r=>r.level===levelAt())});
   Object.defineProperty(result,'segments',{get:()=>{
     const level=levelAt(),out=built.segments.filter(s=>s.level===level).map(s=>{

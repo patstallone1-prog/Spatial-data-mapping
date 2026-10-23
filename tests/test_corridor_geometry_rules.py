@@ -3076,12 +3076,14 @@ def test_grass_excludes_paved_paths_and_hard_courts_but_not_sports_grass() -> No
     js = _page_js()
     script = "\n".join([
         "const HARD_GROUND_CELL_M = 16;",
+        "const HEADSET = false;",
         "const xy = (x, y) => [x, y];",
         "const clipRingToBox = (ring) => ring;",
         "const pavementTopAt = (x, z) => x > 10 && x < 11 ? 0.2 : undefined;",
         "const COURT_STYLE = {tennis: {surround: 1}, soccer: {surround: null}};",
         _extract("pointInRing", js),
         _extract("hardGroundExclusion", js),
+        _extract("hardCourtFootprints", js),
         "const square = (x) => [[x,1],[x+2,1],[x+2,3],[x,3],[x,1]];",
         "const DATA = {ways:[{kind:'parking_lot',points:square(16)}]};",
         "const mask = hardGroundExclusion({front_walks:[{p:square(1)}], "

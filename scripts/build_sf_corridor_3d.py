@@ -3000,7 +3000,8 @@ input::placeholder { color:#9ca3af; }
 .routes small { color:var(--muted); font-weight:500; margin-left:4px; }
 .routes { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
 .routes li { border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; }
-.routes li[aria-selected=true] { border-color:#93c5fd; background:var(--accent-soft); }
+.routes li[aria-selected=true] { border:2px solid #2563eb; background:#eff6ff; box-shadow:inset 4px 0 #2563eb; }
+.routes .route-choice { color:#1d4ed8; font-weight:700; margin:0 8px 0 0; }
 .routes b { font-size:15px; } .routes span { color:var(--muted); font-size:12px; margin-left:8px; }
 .steps { margin:8px 0 0; padding-left:18px; font-size:12px; color:#374151; max-height:220px; overflow:auto; }
 .note { color:var(--muted); font-size:12px; line-height:1.5; margin:6px 0 0; }
@@ -7644,7 +7645,7 @@ function natureTileStations(run) {
 //: and filled, all of a tile's in one mesh. Inside the region drawn in full the clip hides them
 //: (tileDetailBox), and the street renderer's turf is there instead.
 function tileLawns(rows, f, material) {
-  const position = [], index = [];
+  const position = [], index = [], uv = [];
   const nature = typeof NATURE !== "undefined" && NATURE;
   for (const row of rows) {
     const ring = [];
@@ -7655,12 +7656,22 @@ function tileLawns(rows, f, material) {
     for (const p of ring) {
       const y = nature ? tileGroundAt(p.x, p.y) : TILE_GROUND_Y - earthDrop(p.x, p.y);
       position.push(p.x, y + TILE_LAWN_Y, p.y);
+      uv.push(p.x / 8, -p.y / 8);
     }
     for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(ring, [])) index.push(base + a, base + b, base + c);
   }
   if (!index.length) return [];
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+  if (!HEADSET) {
+    // The same centimetre-grain turf as the detailed city, not a second plain-green skin.
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    if (!material.map) {
+      material.map = grassTexture("park", 0);
+      material.color.set(0xffffff);
+      material.needsUpdate = true;
+    }
+  }
   geometry.setIndex(index);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -22384,6 +22395,9 @@ function hardGroundExclusion(ground) {
     ...(ground.pitches || []).filter((p) => COURT_STYLE[p.s] && COURT_STYLE[p.s].surround !== null),
     // The pad between a block's courts is asphalt too, not grass showing between them.
     ...(ground.court_complexes || []).filter((c) => c.surface === "hard"),
+    // Exclude the surface we actually draw, not only the source pitch: an oriented playing
+    // rectangle (including its paint bleed) can extend beyond an irregular mapped outline.
+    ...(!HEADSET ? hardCourtFootprints(ground) : []),
     // A playground's safety surface and a skatepark's concrete: no grass under them to show
     // through where the hill bulges between the surface's own vertices.
     ...((typeof PARK_EVIDENCE === "undefined" ? null : PARK_EVIDENCE)?.areas || []).filter((a) => (a.kind === "playground" && a.surface?.material !== "grass")
@@ -22414,6 +22428,19 @@ function hardGroundExclusion(ground) {
     const bucket = grid.get(`${Math.floor(x / HARD_GROUND_CELL_M)}:${Math.floor(-z / HARD_GROUND_CELL_M)}`);
     return Boolean(bucket && bucket.some((ring) => pointInRing(x, -z, ring)));
   };
+}
+
+function hardCourtFootprints(ground) {
+  return (ground.courts || []).flatMap(court => {
+    const style = COURT_STYLE[court.s];
+    if (!style || style.surround === null) return [];
+    const paint = courtPainter(court, null), bleed = style.bleed ?? 1.2;
+    const l = (court.l + bleed) / 2, w = (court.w + bleed) / 2;
+    const p = [[-l,-w],[l,-w],[l,w],[-l,w],[-l,-w]].map(([a,b]) => {
+      const [x,z] = paint.at(a,b); return lonLatFromXZ(x,z);
+    });
+    return [{p}];
+  });
 }
 
 // A triangle can cover a narrow path entirely between its vertices, so vertex/centroid
@@ -23112,6 +23139,13 @@ function addGround(mesh, what) {
   // coarse terrain backdrop. Hard-surface masks remain authoritative, and roads,
   // pavements and buildings draw afterward with normal depth testing.
   if (what === "yard" || what === "park") mesh.renderOrder = -1;
+  // A mapped sports pad replaces the backdrop just as paving does. The backdrop and the
+  // pad use different terrain tessellations; depth-testing the finer pad against the coarse
+  // backdrop exposed triangular green patches even where the grass mask was entirely zero.
+  if (!HEADSET && (what === "court" || what === "court_line")) {
+    mesh.material.depthTest = false;
+    mesh.renderOrder = what === "court_line" ? -0.4 : -0.5;
+  }
   groups.ground.add(mesh);
   return mesh;
 }
@@ -23472,7 +23506,7 @@ function buildCourts(ground) {
     addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       map: style.surround === null ? grassTexture() : courtSurface(style.surround),
       color: 0xffffff, roughness: 0.94, metalness: 0.0, side: THREE.DoubleSide,
-    })), "court");
+    })), "court").renderOrder = HEADSET ? 0 : -0.6;
   }
 
   // The playing surfaces, then the paint. Two merged meshes for the whole city.
@@ -23629,6 +23663,7 @@ function buildCourts(ground) {
   const fenceUvs = [];
   const fenceIndices = [];
   const fencePosts = [];
+  const fenceRails = [], fenceJoints = new Map();
   for (const pitch of pitches) {
     const style = COURT_STYLE[pitch.s];
     if (!style || !style.fence) continue;
@@ -23645,11 +23680,38 @@ function buildCourts(ground) {
       if (insideCarriageway(ax, az, -1.0) || insideCarriageway(bx, bz, -1.0)) continue;
       groundedFencePanel({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
         ax,az,bx,bz,COURT_Y,h,.6);
-      for (let d = 0; d < span; d += 3.0) {
-        const t = d / span;
-        fencePosts.push([ax + (bx - ax) * t, az + (bz - az) * t, h]);
+      const bays = Math.max(1,Math.ceil(span/3));
+      for (let j = 0; j <= bays; j++) {
+        const t = j/bays, x=ax+(bx-ax)*t, z=az+(bz-az)*t;
+        if (HEADSET) {if(j<bays)fencePosts.push([x,z,h]);}
+        else {
+          // End and divider joints get a post too; one shared post, not two almost-touching
+          // fence islands. Keep the existing inferred fence route rather than moving courts.
+          const key=`${x.toFixed(2)}:${z.toFixed(2)}`, old=fenceJoints.get(key);
+          if(!old || old[2]<h)fenceJoints.set(key,[x,z,h]);
+        }
+      }
+      if(!HEADSET) {
+        const sections=Math.max(1,Math.ceil(span/FENCE_GROUND_STEP_M));
+        for(let j=0;j<sections;j++) {
+          const at=k=>{const t=k/sections,x=ax+(bx-ax)*t,z=az+(bz-az)*t;
+            return new THREE.Vector3(x,groundLiftAt(x,z)+COURT_Y+h,z);};
+          fenceRails.push([at(j),at(j+1)]);
+        }
       }
     }
+  }
+  if(!HEADSET)fencePosts.push(...fenceJoints.values());
+  if(fenceRails.length) {
+    const rails=new THREE.InstancedMesh(new THREE.CylinderGeometry(.026,.026,1,6),
+      new THREE.MeshStandardMaterial({color:0x8d9498,roughness:.5,metalness:.55}),fenceRails.length);
+    const dummy=new THREE.Object3D(), up=new THREE.Vector3(0,1,0);
+    fenceRails.forEach(([a,b],i)=>{const d=b.clone().sub(a),length=d.length();
+      dummy.position.copy(a).add(b).multiplyScalar(.5);
+      dummy.quaternion.setFromUnitVectors(up,d.normalize());dummy.scale.set(1,length,1);
+      dummy.updateMatrix();rails.setMatrixAt(i,dummy.matrix);});
+    rails.userData={surface:"fence:court",liftedOntoGround:true};
+    rails.instanceMatrix.needsUpdate=true;groups.ground.add(rails);
   }
   if (fenceIndices.length) {
     const geom = new THREE.BufferGeometry();
@@ -29861,7 +29923,7 @@ function keepMarkersFindable() {
   for (const marker of findableMarkers) {
     if (!marker.object.visible) continue;
     marker.object.getWorldPosition(markerAt);
-    marker.object.scale.setScalar(Math.max(1, camera.position.distanceTo(markerAt) / marker.near));
+    marker.object.scale.setScalar((marker.size ?? 1) * Math.max(1, camera.position.distanceTo(markerAt) / marker.near));
   }
 }
 const pinToast = ATTACH ? null : document.createElement("div");
@@ -29910,7 +29972,7 @@ function placePin(i, x, z) {
   mesh.position.set(x, walkerGroundAt(x, z), z);
   mesh.userData.liftedOntoGround = true;
   pinGroup.add(mesh);
-  const marker = { object: mesh, near: 45, x, z };
+  const marker = { object: mesh, near: 45, size: META ? 1 : 0.62, x, z };
   findableMarkers.add(marker);
   pins[i] = { x, z, mesh, label, marker };
 }
@@ -30314,13 +30376,35 @@ fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
 // fails to load falls back to it too. Off in the headset, whose memory it would not fit, and
 // with ?inferredInteriors=0.
 let generatedInteriorModules = null;
+function commercialInterior(entry) {
+  const w = entry.way;
+  return Boolean(w.shops?.length || ["retail","restaurant","office","hotel","industrial","commercial"].includes(w.archetype)
+    || ["retail","commercial","industrial","office","hotel"].includes(w.tags?.building));
+}
+function interiorStatus(id) {
+  const e=footprintById.get(String(id));
+  if(!e)return null;
+  const h=e.interior?.house;
+  return {id:String(id),kind:e.generatedInteriorRef?.kind || (commercialInterior(e) ? "commercial_unresolved" : "house"),
+    plan:e.interior?.plan || null,pending:Boolean(e.generatedInteriorPending),failed:Boolean(e.generatedInteriorFailed),
+    floorY:e.floorY,roomsLowered:Boolean(e.roomsLowered),
+    source:e.generatedInteriorRef?.file || null,confidence:h?.confidence,measured:h?.measured,
+    rooms:h?.storeys.flatMap(f=>f.rooms.map(r=>r.kind)) || [],
+    objects:h?.storeys.reduce((n,f)=>n+f.objects.length,0) || 0};
+}
 function requestGeneratedInteriors() {
   if (HEADSET || new URLSearchParams(location.search).get("inferredInteriors") === "0") return;
   const base = new URL("../inferred-interiors/", interiorAssetBase());
-  fetch(new URL("map-overlay.json", base)).then(r => r.ok ? r.json() : null).then(data => {
-    for (const [id, ref] of Object.entries(data?.buildings || {})) {
+  Promise.all(["map-overlay.json","../inferred-restaurants/map-overlay.json"].map(file =>
+    fetch(new URL(file,base),{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null))).then(layers => {
+    for (const data of layers) for (const [id, ref] of Object.entries(data?.buildings || {})) {
       const entry = footprintById.get(id);
       if (entry && !entry.way.parkFacility && !entry.way._structure) {
+        // A ground-floor restaurant is not a family house, even if a generic fitted plan
+        // exists for its building. Multi-tenant buildings need tenant boundaries first.
+        if (commercialInterior(entry) !== (ref.kind === "restaurant")) continue;
+        if (ref.kind === "restaurant" && (JSON.stringify(ref.footprint) !== JSON.stringify(entry.way.points)
+          || entry.way.shops?.length !== 1 || entry.way.shops[0].n !== ref.name)) continue;
         entry.generatedInteriorRef = {...ref, base};
         if (entry.interior) removeInterior(entry);
       }
@@ -30345,7 +30429,7 @@ function requestGeneratedInterior(entry) {
     const interior = adapter.mountGeneratedInterior(THREE, house, entry, {
       origin: xy(lon, lat), floorY, assetBase: interiorAssetBase(),
       loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
-      feetY: walkerFeetY, pointInRing
+      feetY: walkerFeetY, pointInRing, kind: ref.kind
     }, rendererModule.buildInferredHouse);
     entry.interior = interior;
     interiorGroup.add(interior.group); standingSurfaces.add(interior.floorSurface); interiorsBuilt.add(entry);
@@ -33493,6 +33577,9 @@ function buildInterior(entry) {
     if (!entry.interior) requestGeneratedInterior(entry);
     return;
   }
+  // Without an accepted tenant-specific layout keep a shop's shell, not domestic bedrooms,
+  // baths and sofas behind its sign. Residential upper floors require a separate envelope.
+  if (commercialInterior(entry)) return;
   if (entry.interior || !INTERIORS || !entry.fit) return;
   const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W, storeys, storeyM] = entry.fit;
   const plan = INTERIORS.library[ti];
@@ -34772,7 +34859,7 @@ const ROUTE_MAX_STOPS = 5;
 const ROUTE_MAX_SHOWN = 4;
 const ROUTE_RIBBON_M = { chosen: 2.6, other: 1.4 };
 //: From high up the ribbon widens to stay readable: about this share of the view's distance.
-const ROUTE_RIBBON_PER_M = 0.007;
+const ROUTE_RIBBON_PER_M = META ? 0.007 : 0.009;
 //: How much wider than its ground width the ribbon may grow: enough to stay a few pixels wide
 //: from the farthest the view goes (MAX_ORBIT_DIST_M).
 const ROUTE_RIBBON_MAX_SCALE = 60;
@@ -35087,6 +35174,35 @@ function routeRibbon(result, width, colour) {
 function routeScale() {
   return Math.min(ROUTE_RIBBON_MAX_SCALE, Math.max(1, (state.firstPerson ? 0 : state.dist) * ROUTE_RIBBON_PER_M / ROUTE_RIBBON_M.chosen));
 }
+// Bounds in local metres, including every bend and every requested stop. Use both screen
+// axes (a narrow window must still fit east/west routes), without moving the walker.
+function routeOverviewPlan(points, aspect, fov) {
+  const valid = points.filter(p => p.every(Number.isFinite));
+  if (!valid.length) return null;
+  const xs = valid.map(p => p[0]), zs = valid.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
+  const halfFov = Math.tan(fov * Math.PI / 360);
+  const distance = Math.max(90, (maxZ-minZ+60)/(2*halfFov), (maxX-minX+60)/(2*halfFov*aspect)) * 1.15;
+  return {x:(minX+maxX)/2, z:(minZ+maxZ)/2, distance};
+}
+function showRouteOverview() {
+  if (META) return;
+  const chosen = route.results[route.chosen];
+  const points = [...(chosen?.line || []), ...route.stops.filter(Boolean).map(s => [s.lon,s.lat])]
+    .map(([lon,lat]) => {const [x,y]=xy(lon,lat); return [x,-y];});
+  if (state.firstPerson) setFirstPerson(false);
+  const view = routeOverviewPlan(points, camera.aspect, camera.fov);
+  if (!view) return;
+  gps.follow = false;
+  state.target.set(view.x, walkerGroundAt(view.x,view.z), view.z);
+  state.yaw = 0; state.pitch = Math.PI/2; state.tilt = 0;
+  state.dist = Math.min(MAX_ORBIT_DIST_M,view.distance);
+  const hud = document.getElementById("hud"), fold = document.getElementById("fold");
+  hud.dataset.open = "false";
+  fold.setAttribute("aria-expanded","false");
+  fold.textContent = fold.title = "Open map controls";
+  placeCamera(); drawRoutes();
+}
 //: Redrawn only when the view's distance has changed a good deal, never every frame.
 function updateRouteWidth() {
   if (!route.results.length) return;
@@ -35114,6 +35230,8 @@ if (!ATTACH) {
   const stopsBox = document.getElementById("route-stops");
   const status = document.getElementById("route-status");
   const results = document.getElementById("route-results");
+  results.setAttribute("role","listbox");
+  results.setAttribute("aria-label","Route alternatives");
   const stepsList = document.getElementById("route-steps");
   const clear = document.getElementById("route-clear");
   const minutes = (s) => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`;
@@ -35136,7 +35254,7 @@ if (!ATTACH) {
   pin.visible = false;
   pin.userData.bayWide = true;
   root.add(pin);
-  const pinMarker = { object: pin, near: 95, x: 0, z: 0 };
+  const pinMarker = { object: pin, near: 95, size: META ? 1 : 0.62, x: 0, z: 0 };
   findableMarkers.add(pinMarker);
   // Blue pins at the directions' start, each stop and the end, lettered in order (A, the start),
   // and as findable from any height as the others.
@@ -35149,9 +35267,8 @@ if (!ATTACH) {
   }
   function placeRoutePins(stops) {
     clearRoutePins();
-    const b = DATA.bbox;
     stops.forEach((stop, i) => {
-      if (!(stop.lon >= b.west && stop.lon <= b.east && stop.lat >= b.south && stop.lat <= b.north)) return;
+      if (!regionAt(stop.lon,stop.lat)) return;
       const [x, y] = xy(stop.lon, stop.lat);
       const object = new THREE.Group();
       const point = new THREE.Mesh(pinPoint.geometry, routePinMaterial);
@@ -35166,7 +35283,7 @@ if (!ATTACH) {
       object.position.set(x, walkerGroundAt(x, -y), -y);
       object.userData.bayWide = true;
       root.add(object);
-      const marker = { object, near: 95, x, z: -y };
+      const marker = { object, near: 95, size: META ? 1 : 0.62, x, z: -y };
       findableMarkers.add(marker);
       routePins.push(marker);
     });
@@ -35264,13 +35381,17 @@ if (!ATTACH) {
     results.replaceChildren(...route.results.map((r, i) => {
       const item = document.createElement("li");
       item.setAttribute("aria-selected", String(i === route.chosen));
+      item.setAttribute("role", "option");
+      item.tabIndex = 0;
       const extra = r.seconds - quickest >= 60 ? ` <small>+${minutes(r.seconds - quickest)}</small>` : "";
       const tags = (r.tags || []).map((t) => `<em class="tag tag-${t.id}">${t.label}</em>`).join("");
       const detail = route.mode === "transit"
         ? `${r.transfers ? `${r.transfers} transfer${r.transfers > 1 ? "s" : ""}` : "No transfers"} · ${r.walkM} m walking`
         : `${r.km.toFixed(1)} km · ↑${r.ascent} m ↓${r.descent} m${route.mode !== "walk" ? ` · ${r.turns} turns` : ""}`;
-      item.innerHTML = `<b>${minutes(r.seconds)}</b>${extra}${tags ? `<span class="tags">${tags}</span>` : ""}<span>${detail}</span>`;
+      const choice = `<span class="route-choice">Route ${String.fromCharCode(65+i)}${i === route.chosen ? " ✓ Selected" : ""}</span>`;
+      item.innerHTML = `${choice}<b>${minutes(r.seconds)}</b>${extra}${tags ? `<span class="tags">${tags}</span>` : ""}<span>${detail}</span>`;
       item.addEventListener("click", () => { route.chosen = i; renderResults(drawRoutes()); });
+      item.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") {e.preventDefault(); item.click();} });
       return item;
     }));
     const chosen = route.results[route.chosen];
@@ -35309,6 +35430,9 @@ if (!ATTACH) {
   document.getElementById("route-go").addEventListener("click", async () => {
     const stops = route.stops.map((stop, i) => stop || (i === 0 ? here() : null));
     if (stops.some((stop) => !stop)) { status.textContent = "Choose each stop from the suggestions."; return; }
+    const queryKey = JSON.stringify([route.mode,stops.map(s=>[s.lon,s.lat])]);
+    // Reopening the panel to choose Route B must not discard it and fetch Route A again.
+    if (route.results.length && route.queryKey === queryKey) { showRouteOverview(); return; }
     // Directions from somewhere else start the walker there.
     if (!stops[0].here) walkerToStart(stops[0]);
     placeRoutePins(stops);
@@ -35319,8 +35443,10 @@ if (!ATTACH) {
       if (ticket !== route.pending) return;
       route.results = found;
       route.chosen = 0;
+      route.queryKey = queryKey;
       status.textContent = "";
       renderResults(drawRoutes());
+      showRouteOverview();
     } catch (error) {
       if (ticket !== route.pending) return;
       route.results = [];
@@ -36488,6 +36614,7 @@ function releaseModuleScope() {
   /*__RELEASE_MODULE_SCOPE__*/
 }
 window.kerbsideGuestApi = {
+  interiorStatus,
   ready:async()=>{if(await groundReady===false)throw Error("Destination ground unavailable; previous window retained");},
   cityAsTiles:(simple)=>showDetailBuildings(!simple),
   municipalUsage,

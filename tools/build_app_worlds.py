@@ -6,9 +6,11 @@ place; Oakland gets its expanded estuary build and its own data beside the app v
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import html
 import json
+import re
 import runpy
 import shutil
 from pathlib import Path
@@ -74,7 +76,7 @@ def build_visual_support(
     return name
 
 
-def main() -> None:
+def main(*, desktop_only: bool = True) -> None:
     # Never ship a stale hand-built app-viewer cache over a newer renderer.
     renderer = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
     template = renderer["tuned"](renderer["HTML"], "app")
@@ -107,7 +109,8 @@ def main() -> None:
     ).replace("<title>Kerbside for Meta Quest 3D</title>", "<title>Kerbside for Meta Quest</title>", 1).replace(
         "</head>", '<meta name="kerbside-mode" content="meta" />\n'
               '<link rel="manifest" href="meta.webmanifest" />\n</head>', 1)
-    (DOCS / "meta.html").write_text(meta_page, encoding="utf-8")
+    if not desktop_only:
+        (DOCS / "meta.html").write_text(meta_page, encoding="utf-8")
     published = 0
     for region in index["regions"]:
         if region["name"] == "sf-corridor":
@@ -166,6 +169,13 @@ def main() -> None:
         "renderer_sha256": hashlib.sha256(template.encode()).hexdigest(),
         "consumers": {str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
                       for path in viewers},
+        # Mac and Quest can deliberately ship different renderer revisions. A Mac release
+        # must neither overwrite the headset nor describe it as running the Mac's source.
+        "consumer_renderer_sha256": {
+            str(path.relative_to(DOCS)): re.search(
+                r'name="kerbside-renderer-sha256" content="([a-f0-9]+)"', path.read_text())[1]
+            for path in viewers
+        },
         "runtime_assets_sha256": {
             str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in [DOCS / "recoverable-geometry.mjs", DOCS / "world-streaming.mjs",
@@ -173,6 +183,9 @@ def main() -> None:
                          *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
                          DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
                          DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
+                         *sorted((DOCS / "inferred-interiors").glob("*.mjs")),
+                         DOCS / "inferred-interiors/map-overlay.json",
+                         DOCS / "inferred-restaurants/map-overlay.json",
                          DOCS / "meta-xr.mjs", DOCS / "meta.webmanifest",
                          *sorted((DOCS / "nature/models").glob("*")), *sorted((DOCS / "world").glob("*")),
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
@@ -190,6 +203,12 @@ def main() -> None:
             "count": json.loads((DOCS / "sf-corridor-frontage-fits.manifest.json").read_text())["houses"],
             "manifest_sha256": hashlib.sha256((DOCS / "sf-corridor-frontage-fits.manifest.json").read_bytes()).hexdigest(),
         },
+        "interior_engine": {
+            "houses": len(json.loads((DOCS / "inferred-interiors/map-overlay.json").read_text())["buildings"]),
+            "restaurants": len(json.loads((DOCS / "inferred-restaurants/map-overlay.json").read_text())["buildings"]),
+            "grade": "inferred; validated layout hypotheses, not measured real interiors",
+            "consumer": "Mac app only",
+        },
         "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
         "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates.",
     }
@@ -205,7 +224,7 @@ def main() -> None:
     app_assets += sorted((DOCS / "municipal").glob("*.json"))
     app_assets += [DOCS / "billboard-creatives.json"] if (DOCS / "billboard-creatives.json").exists() else []
     app_assets += sorted((DOCS / "billboards").glob("*"))
-    app_assets += sorted(path for directory in ("interior-assets", "materials", "vendor")
+    app_assets += sorted(path for directory in ("interior-assets", "inferred-interiors", "inferred-restaurants", "materials", "vendor")
                          for path in (DOCS / directory).rglob("*") if path.is_file())
     for name in ("app-sf-corridor-ground.json", "app-inventory-crossings.json"):
         if (DOCS / name).exists():
@@ -229,4 +248,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--desktop-only", action="store_true", help="preserve the independently released Quest page (default)")
+    mode.add_argument("--include-quest", action="store_true", help="explicitly rebuild and release the Quest consumer too")
+    main(desktop_only=not parser.parse_args().include_quest)
