@@ -199,7 +199,7 @@ def main() -> None:
         if not isinstance(items, list):
             continue
         ground[key] = [item for item in items if not isinstance(item, dict) or
-                       touches(item.get("p") or ([item["point"]] if "point" in item else []))]
+                       touches(item.get("p") or item.get("c") or ([item["point"]] if "point" in item else []))]
     (out / "preview-ground.json").write_text(json.dumps(ground))
     page = (viewer / "app-model.html").read_text()
     source = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
@@ -230,6 +230,10 @@ def main() -> None:
     page = re.sub(r'fetch\((?:asset\()?"sf-corridor-3d.json"\)?', 'fetch("sf-corridor-3d.json"', page, count=1)
     page = re.sub(r'fetch\((?:asset\()?"(?:app-)?sf-corridor-ground.json"\)?', 'fetch("preview-ground.json"', page, count=1)
     page = page.replace('const TILE_BASE = "tiles/";', 'const TILE_BASE = "/docs/tiles/";')
+    # A bounded fixture must not silently replace itself with an attached full-world
+    # viewer. It still uses the production meshes/data; only the streaming swap is disabled.
+    page = page.replace('async function attachRegion(region, centre = null, radius = META ? STREAM.arrival : 220, force = false) {',
+                        'async function attachRegion(region, centre = null, radius = META ? STREAM.arrival : 220, force = false) { return;')
     position = (f'const [previewX,previewY]=xy({args.lon},{args.lat});'
                 'goTo({x:previewX,z:-previewY},{travel:true,zoom:true});'
                 f'state.dist={args.distance};state.yaw={args.yaw};state.pitch={args.pitch};placeCamera();')

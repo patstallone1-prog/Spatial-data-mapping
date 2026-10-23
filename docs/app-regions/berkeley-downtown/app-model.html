@@ -98,7 +98,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="6c637fb1918cc3ee5ebe5b0d8030aef80f637e8110cbcb887f428ef74690962e" />
+<meta name="kerbside-renderer-sha256" content="d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -4724,7 +4724,7 @@ function tileLawns(rows, f, material) {
     for (const p of ring) {
       const y = nature ? tileGroundAt(p.x, p.y) : TILE_GROUND_Y - earthDrop(p.x, p.y);
       position.push(p.x, y + TILE_LAWN_Y, p.y);
-      uv.push(p.x / 8, -p.y / 8);
+      if (!HEADSET) uv.push(p.x / 8, -p.y / 8);
     }
     for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(ring, [])) index.push(base + a, base + b, base + c);
   }
@@ -20548,6 +20548,26 @@ function markCourt(court, paint) {
   }
 }
 
+function courtPostPoints(ax,az,bx,bz,h,headset) {
+  const span=Math.hypot(bx-ax,bz-az), points=[];
+  if(!(span>0))return points;
+  if(headset) {
+    // Attached Quest windows consume the regional viewer too: preserve their current posts.
+    for(let d=0;d<span;d+=3)points.push([ax+(bx-ax)*d/span,az+(bz-az)*d/span,h]);
+  } else {
+    const bays=Math.max(1,Math.ceil(span/3));
+    for(let j=0;j<=bays;j++)points.push([ax+(bx-ax)*j/bays,az+(bz-az)*j/bays,h]);
+  }
+  return points;
+}
+function applyCourtLayout(ground,evidence,headset) {
+  const layout=evidence?.court_layout;
+  if(headset || layout?.schema!=="kerbside.park_courts/1")return ground;
+  const near=record=>!BUILD_WINDOW || BUILD_WINDOW.near(record.c || record.p);
+  return {...ground,courts:layout.courts.filter(near),
+    pitches:[...(layout.pitches || []).filter(near),...layout.pads.filter(near).map(p=>({...p,physicalPad:true}))],
+    court_complexes:(layout.court_complexes || []).filter(near)};
+}
 function buildCourts(ground) {
   const courts = ground.courts || [];
   // A block of adjoining courts is one pad with one fence round it, not a fenced island per
@@ -20572,7 +20592,7 @@ function buildCourts(ground) {
     const geom = ringGeometry(rings, COURT_Y);
     if (!geom) continue;
     addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
-      map: style.surround === null ? grassTexture() : courtSurface(style.surround),
+      map: style.surround === null ? grassTexture() : courtSurface(!HEADSET ? style.play ?? style.surround : style.surround),
       color: 0xffffff, roughness: 0.94, metalness: 0.0, side: THREE.DoubleSide,
     })), "court").renderOrder = HEADSET ? 0 : -0.6;
   }
@@ -20606,6 +20626,7 @@ function buildCourts(ground) {
       : (court.s === "basketball_half" || court.s === "basketball_hoop") ? [-1] : [];
     for (const end of ends) {
       hoops.push({ at: paint.at(end * (court.l / 2 - 1.2), 0),
+                   support: !HEADSET ? paint.at(end * (court.l / 2 + 0.45), 0) : null,
                    face: paint.at(end * (court.l / 2 - 1.2) + end * 1.0, 0) });
     }
   }
@@ -20698,6 +20719,8 @@ function buildCourts(ground) {
       new THREE.CylinderGeometry(0.07, 0.09, 1, 6),
       new THREE.MeshStandardMaterial({ color: 0x2b3033, roughness: 0.6, metalness: 0.4 }),
       hoops.length);
+    const supports = !HEADSET ? new THREE.InstancedMesh(new THREE.CylinderGeometry(.055,.055,1,6),
+      new THREE.MeshStandardMaterial({color:0x2b3033,roughness:.6,metalness:.4}),hoops.length) : null;
     const dummy = new THREE.Object3D();
     hoops.forEach((hoop, i) => {
       const [x, z] = hoop.at;
@@ -20712,14 +20735,21 @@ function buildCourts(ground) {
       dummy.rotation.set(Math.PI / 2, 0, 0);
       dummy.updateMatrix();
       rim.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(x + Math.sin(heading) * 0.6, COURT_Y + 1.75,
-                         z + Math.cos(heading) * 0.6);
+      dummy.position.set(hoop.support?.[0] ?? x + Math.sin(heading) * 0.6, COURT_Y + 1.75,
+                         hoop.support?.[1] ?? z + Math.cos(heading) * 0.6);
       dummy.rotation.set(0, 0, 0);
       dummy.scale.set(1, 3.5, 1);
       dummy.updateMatrix();
       pole.setMatrixAt(i, dummy.matrix);
+      if(supports) {
+        const a=new THREE.Vector3(...[hoop.support[0],COURT_Y+3.35,hoop.support[1]]);
+        const b=new THREE.Vector3(x,COURT_Y+3.35,z),d=b.clone().sub(a);
+        dummy.position.copy(a).add(b).multiplyScalar(.5);
+        dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());
+        dummy.scale.set(1,d.length(),1);dummy.updateMatrix();supports.setMatrixAt(i,dummy.matrix);
+      }
     });
-    for (const mesh of [board, rim, pole]) {
+    for (const mesh of [board, rim, pole, ...(supports ? [supports] : [])]) {
       mesh.instanceMatrix.needsUpdate = true;
       groups.ground.add(mesh);
     }
@@ -20737,7 +20767,7 @@ function buildCourts(ground) {
     if (!style || !style.fence) continue;
     // Within a block, the fence between one sport's courts and another's (court_complexes'
     // dividers), as tall as the taller of the two; courts of one sport share open run-off.
-    const runs = [[pitch.p, style.fence], ...(pitch.dividers || []).map((d) => [d.p,
+    const runs = [...(pitch.fence_runs ? pitch.fence_runs.map(r=>[r.p,style.fence]) : [[pitch.p, style.fence]]), ...(pitch.dividers || []).map((d) => [d.p,
       Math.max(...d.s.map((s) => (COURT_STYLE[s] || COURT_STYLE[`${s}_half`] || style).fence || style.fence))])];
     for (const [ring, h] of runs) for (let i = 0; i < ring.length - 1; i += 1) {
       const [ax, ay] = xy(ring[i][0], ring[i][1]);
@@ -20748,10 +20778,8 @@ function buildCourts(ground) {
       if (insideCarriageway(ax, az, -1.0) || insideCarriageway(bx, bz, -1.0)) continue;
       groundedFencePanel({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
         ax,az,bx,bz,COURT_Y,h,.6);
-      const bays = Math.max(1,Math.ceil(span/3));
-      for (let j = 0; j <= bays; j++) {
-        const t = j/bays, x=ax+(bx-ax)*t, z=az+(bz-az)*t;
-        if (HEADSET) {if(j<bays)fencePosts.push([x,z,h]);}
+      for (const [x,z] of courtPostPoints(ax,az,bx,bz,h,HEADSET)) {
+        if (HEADSET) fencePosts.push([x,z,h]);
         else {
           // End and divider joints get a post too; one shared post, not two almost-touching
           // fence islands. Keep the existing inferred fence route rather than moving courts.
@@ -21435,6 +21463,7 @@ const groundReady = (async () => {
   let ground;
   try {
     ground = windowLists(await fetchWindowed(GROUND_URL, () => fetch(GROUND_URL, { cache: "no-cache" }).then((r) => r.json())));
+    ground = applyCourtLayout(ground,PARK_EVIDENCE,HEADSET);
     const publicWalks=(MUNICIPAL_CONTEXT?.sidewalks || []).filter(r=>!BUILD_WINDOW || BUILD_WINDOW.near(r));
     ground.front_walks=[...(ground.front_walks || []),...publicWalks];
     municipalUsage.sidewalks=publicWalks.length;
@@ -24402,7 +24431,7 @@ function addElectricalNetwork(furniture, lightRows = []) {
     }
   }
   // Cell and broadcast masts: a tapering monopole with three sectors of panel antennas.
-  const mastRows = (inferred.comm_towers || []).map((item) => ({ item, anchor: electricalAnchor(item) }))
+  const mastRows = (inferred.comm_towers || []).filter(item=>communicationMast(item,HEADSET)).map((item) => ({ item, anchor: electricalAnchor(item) }))
     .filter((row) => row.anchor);
   if (mastRows.length) {
     const mast = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.32, 0.6, 1, 10),
@@ -25299,8 +25328,28 @@ function streetLightParts(form, height, arm) {
   return parts;
 }
 
-function addStreetLights(records) {
-  const rows = records.map((item) => ({ item, anchor: furnitureAnchor(item) })).filter((row) => row.anchor);
+function communicationMast(item,headset) {
+  if(headset)return true; // independently released Quest appearance remains unchanged
+  const type=item.tags?.["tower:type"];
+  return type!=="lighting" && (type==="communication" || item.mobile===true);
+}
+function parkLightingRecords(inferred,headset) {
+  if(headset)return [];
+  const records=[...(inferred.lighting_masts || []),...(inferred.comm_towers || []).filter(r=>r.tags?.["tower:type"]==="lighting")];
+  const seen=new Set();
+  return records.filter(r=>{if(seen.has(r.id))return false;seen.add(r.id);return true;}).map(r=>({...r,
+    form:"mast_arm",finish:"galvanized_steel",height_m:Math.max(4,Math.min(20,parseFloat(r.height_m)||8)),arm_m:.8,
+    dimension_basis:r.height_m ? "mapped_height" : "visual_lighting_prior_not_measured"}));
+}
+function courtEquipmentClear(x,z,ground) {
+  return !(ground?.courts || []).some(c=>{
+    const paint=courtPainter(c,null),[cx,cz]=paint.at(0,0),dx=x-cx,dz=z-cz;
+    const a=-c.a, u=dx*Math.cos(a)+dz*Math.sin(a),v=-dx*Math.sin(a)+dz*Math.cos(a);
+    return Math.abs(u)<c.l/2+.15 && Math.abs(v)<c.w/2+.15;
+  });
+}
+function addStreetLights(records,anchorFor=furnitureAnchor) {
+  const rows = records.map((item) => ({ item, anchor: anchorFor(item) })).filter((row) => row.anchor);
   if (!rows.length) return { rows, drawn: 0 };
   const colour = new THREE.Color();
   const shafts = [], rods = [], heads = [], globes = [], caps = [];
@@ -25419,10 +25468,16 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   const plates = addOfficialSignPlates(officialSigns.concat(osmApproach, generic, corners), signalHeads);
   const posts = stops.concat(smallAds);
   const lights = addStreetLights(official.street_lights || []);
+  // Sports lights keep their mapped anchors, never snap across a park to a street
+  // kerb and never acquire cellular antennas merely because OSM calls them masts.
+  const parkLights=addStreetLights(parkLightingRecords(inferred,HEADSET),item=>{
+    const a=electricalAnchor(item);return a && courtEquipmentClear(a.x,a.z,GROUND) ? a : null;
+  });
   const municipalCurbs=(MUNICIPAL_CONTEXT?.curb_colours || []).filter(r=>!BUILD_WINDOW || BUILD_WINDOW.near(r));
   municipalUsage.curbColourRecords=municipalCurbs.length;
   const placed = {
     street_lights: { drawn: lights.drawn, forms: lights.forms },
+    park_lights: {drawn:parkLights.drawn,basis:"mapped_anchor_visual_fixture_prior"},
     posts: addStreetFurniturePosts(posts),
     official_signs: plates.signs,
     official_posts: plates.posts,
@@ -30647,7 +30702,7 @@ function buildInterior(entry) {
   }
   // Without an accepted tenant-specific layout keep a shop's shell, not domestic bedrooms,
   // baths and sofas behind its sign. Residential upper floors require a separate envelope.
-  if (commercialInterior(entry)) return;
+  if (!HEADSET && commercialInterior(entry)) return;
   if (entry.interior || !INTERIORS || !entry.fit) return;
   const [ti, rotated, nx, ny, lon, lat, yawDeg, L, W, storeys, storeyM] = entry.fit;
   const plan = INTERIORS.library[ti];

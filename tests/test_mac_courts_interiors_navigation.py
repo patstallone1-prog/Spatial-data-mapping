@@ -54,7 +54,11 @@ def test_far_lawns_use_the_same_texture_scale_as_full_detail_not_plain_green():
 
 def test_court_dividers_have_terminal_posts_and_continuous_grounded_top_rails():
     fn = _extract('buildCourts',_page_js())
-    assert 'j <= bays' in fn
+    out = run_js(_extract('courtPostPoints',_page_js()) + '''
+console.log(JSON.stringify({mac:courtPostPoints(0,0,10,0,4,false),quest:courtPostPoints(0,0,10,0,4,true)}));
+''')
+    assert [p[0] for p in out['mac']] == [0,2.5,5,7.5,10]
+    assert [p[0] for p in out['quest']] == [0,3,6,9]
     assert 'fenceJoints.set(key,[x,z,h])' in fn
     assert 'groundLiftAt(x,z)+COURT_Y+h' in fn
     assert 'surface:"fence:court",liftedOntoGround:true' in fn
@@ -68,7 +72,7 @@ console.log(JSON.stringify([
 ].map(way=>commercialInterior({way}))));
 ''')
     assert result == [False,True,True,True,False]
-    assert 'if (commercialInterior(entry)) return;' in _extract('buildInterior',_page_js())
+    assert 'if (!HEADSET && commercialInterior(entry)) return;' in _extract('buildInterior',_page_js())
 
 
 def test_restaurant_index_only_accepts_same_envelope_single_tenant_and_passed_layouts():

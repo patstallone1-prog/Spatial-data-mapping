@@ -3,6 +3,8 @@
 Base: `main` at `16e3dd40`. This pass extends that state, not an earlier viewer or interior
 engine. The installed Mac app is the desktop web-app consumer. Quest's `meta.html`,
 `meta-xr.mjs`, manifest, budgets and controls are not rebuilt or edited. Unreal is unchanged.
+Quest also consumes regional viewer code in attached windows, so Mac-only court, turf and
+business-fallback changes are explicitly guarded there; its existing post spacing is tested.
 
 ## Courts and grass
 
