@@ -2,17 +2,28 @@
   "schema": 1,
   "authoritative_branch": "main",
   "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
-  "renderer_sha256": "9d2ec78fdea54f128e7ba4607abc585bc8c075cb92e2892cd5ec7e5c1f4f91c9",
+  "renderer_sha256": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
   "consumers": {
-    "app-model.html": "f1468d6d8c1191460eab1169f5b144c404e001fd429c2113f598ea0148dba7fe",
+    "app-model.html": "298f8742ec9f16343d62e530d8aa3a3eaf7ed12cca2e4107ed6d77f872f736e2",
     "meta.html": "0ae6e2dc1ff4b82f958677a80b289cb6de5d142e1c32217915a68493a63d8267",
-    "app-regions/berkeley-downtown/app-model.html": "cd2cf6212f9a4197413f0db8f96031f876ac6342ac0cf91c8239d2965a7eb28e",
-    "app-regions/oakland-downtown/app-model.html": "24118deb542658b049dab87dc8378b951209dcd934642dcf1a753899c134342d",
-    "app-regions/palo-alto-downtown/app-model.html": "126057a8b8fc248cdd6cf6ffb6d4b01846fb8b6fd064182ac005e56df7a1b2ae",
-    "app-regions/san-jose-downtown/app-model.html": "20951efaad6831f0ca6388d865584450b7739cdcd0bbdf9760c188779ba7c0ec",
-    "app-regions/sf-haight-castro/app-model.html": "681ee4a3b1aade0cef2ec351e98b6a313037451c64eec6e844491efcc06fb700",
-    "app-regions/sf-mission/app-model.html": "87733a39a5d15c6819a5eaee2c6b7dd57c3a6db20a7e45944296d093240aaf6f",
-    "app-regions/sf-sunset/app-model.html": "74606809dddf28247114982c2423c54d9c04fc83d1b0114a334c5ae6c5fde6be"
+    "app-regions/berkeley-downtown/app-model.html": "7021bd2d1d5545e6af7d2a83f1acc6bce5cde0d41459ccbc8b93b1133bdf465c",
+    "app-regions/oakland-downtown/app-model.html": "a16904185fffb6974b5fff7a6e3273ce5db61ac1baf5176b21444ee06d46383d",
+    "app-regions/palo-alto-downtown/app-model.html": "3d759e201d9fa131b88e48de0b8d768a8a369ba6423723ed3d9c317cdbf20a3d",
+    "app-regions/san-jose-downtown/app-model.html": "14b85da58763464b3b514c031c5356fd7d038f21baa7c2ad6a41f78ac8810b22",
+    "app-regions/sf-haight-castro/app-model.html": "4df02a0b113b60fc32b2d6da1480f9e4fbf00188deb002f47d7f552844d04e78",
+    "app-regions/sf-mission/app-model.html": "a26787aa42b1f3b6be82de127aed93cb4758f2f8f81951ac3565520cffbea1cf",
+    "app-regions/sf-sunset/app-model.html": "62c8499bf668c1e5e74134f1d1ea5f6bdfcc62e62735691d9b96df9cd7aa203f"
+  },
+  "consumer_renderer_sha256": {
+    "app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
+    "meta.html": "9d2ec78fdea54f128e7ba4607abc585bc8c075cb92e2892cd5ec7e5c1f4f91c9",
+    "app-regions/berkeley-downtown/app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
+    "app-regions/oakland-downtown/app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
+    "app-regions/palo-alto-downtown/app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
+    "app-regions/san-jose-downtown/app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
+    "app-regions/sf-haight-castro/app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
+    "app-regions/sf-mission/app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e",
+    "app-regions/sf-sunset/app-model.html": "d614030655a82af3ab7ec8414e5a79a7b25d601f86e0158c707a3be8c9ac200e"
   },
   "runtime_assets_sha256": {
     "recoverable-geometry.mjs": "d591eb1913b11a96f0ab3c3b9d54803978c8c204a1a7725906240d467a5e138b",
@@ -33,6 +44,13 @@
     "forest-floor.mjs": "48d7346f42471236f082a0ac0b77a674dfcb3b0db10b609cac2490535c6f252e",
     "globe.mjs": "d4b5127cce4a802ed35396167dcf5d3d4f88a0c8e74c0e6ad273202f0ccb4d08",
     "teleport-map.mjs": "4e6379e42d481c8430de4888cd097500b4c8f763a3060749c6542eb16421f77e",
+    "inferred-interiors/finishes.mjs": "7ea8b9f196c9b4ce4dec2945ce2ca057ee22939a72989f7b8b469e7b18be1cca",
+    "inferred-interiors/kerbside-adapter.mjs": "ae40849a0e55cfb12bbe266181f03160f76d05b7608a2f54306eccc965601d27",
+    "inferred-interiors/lab.mjs": "c59e38e8b9e3d69999784dfd1a594c96df49e2ffaf4ebc8ab879c8422cced4d1",
+    "inferred-interiors/renderer.mjs": "3fc6ff4bb80d71e71e4872e64eb0b760d934b621a0082def0a103fcc995b4a34",
+    "inferred-interiors/tour-world.mjs": "456b82ab09345d4eff84885ee462381f11bf66473f084682a6e56fe67f43643f",
+    "inferred-interiors/map-overlay.json": "ac1a16f16a93d60423aadbf8040c10995b86207fb2ae621aecd5e7a121233704",
+    "inferred-restaurants/map-overlay.json": "f43b3be2d62bd52a13874dc657247790604657538cb8881b2be58194254c9bcd",
     "meta-xr.mjs": "ca0edc6ee4c01f2b9d169f037d4101e30b07ba2683cbb129b65cba2f9da52149",
     "meta.webmanifest": "8fe87be2a84e6c058ebd6132219aa5f1d75c841c29542a6f384e7ba8a6d2faad",
     "nature/models/dandelion_01.glb": "2db165e4ded05519095209fd625b65f747eed95c75aa1b7d01560e2be2c897f1",
@@ -83,6 +101,12 @@
   "photo_derived_houses": {
     "count": 4059,
     "manifest_sha256": "6c97efb1f37bdf983dfc57a5aea18b1ebc4a68d5edd1f853420a2e209d61b2c6"
+  },
+  "interior_engine": {
+    "houses": 915,
+    "restaurants": 42,
+    "grade": "inferred; validated layout hypotheses, not measured real interiors",
+    "consumer": "Mac app only"
   },
   "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
   "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates."

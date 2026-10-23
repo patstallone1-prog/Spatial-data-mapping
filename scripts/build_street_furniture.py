@@ -798,6 +798,7 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
         "power_lines": [],
         "power_towers": [],
         "comm_towers": [],
+        "lighting_masts": [],
     }
     seen: set[str] = set()
     for element in elements:
@@ -835,13 +836,19 @@ def records_from_osm(elements: list[dict[str, Any]]) -> dict[str, list[dict[str,
             if record["id"] not in seen:
                 out["power_towers"].append(record)
                 seen.add(record["id"])
-        if (tags.get("tower:type") == "communication" or tags.get("man_made") == "mast"):
-            record = base_record(element, "comm_tower", lon, lat, basis)
+        if (tags.get("tower:type") in {"communication", "lighting"} or tags.get("man_made") == "mast"):
+            lighting = tags.get("tower:type") == "lighting"
+            communication = tags.get("tower:type") == "communication" or tags.get("communication:mobile_phone") == "yes"
+            record = base_record(element, "lighting_mast" if lighting else "comm_tower", lon, lat, basis)
             record["height_m"] = tags.get("height")
             record["structure"] = tags.get("tower:construction") or tags.get("man_made")
             record["mobile"] = tags.get("communication:mobile_phone") == "yes"
             if record["id"] not in seen:
-                out["comm_towers"].append(record)
+                if lighting:
+                    out["lighting_masts"].append(record)
+                elif communication:
+                    out["comm_towers"].append(record)
+                # Bare man_made=mast is not enough evidence of communications use.
                 seen.add(record["id"])
 
         if tags.get("highway") == "bus_stop" or (

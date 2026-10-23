@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import argparse
 import gzip
 import hashlib
 import json
 from pathlib import Path
 
 from smc.parks.areas import build_areas
+from smc.parks.courts import compile_courts
 from smc.parks.enrichment import build_enrichment, rings
 from smc.parks.paths import annotate_paths, official_paths
 from smc.parks.surfaces import SurfaceEvidence
@@ -19,7 +21,7 @@ FOOTWAY_LOOK = {"unknown", "concrete", "paved"}
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def main() -> None:
+def main(*, courts_only: bool = False) -> None:
     source = ROOT / "data/sf_rpd"
     manifest = json.loads((source / "manifest.json").read_text())
     content = (source / manifest["artifact"]).read_bytes()
@@ -40,8 +42,22 @@ def main() -> None:
         *sorted((ROOT / "docs/regions").glob("*/sf-corridor-3d.json")),
     ]:
         world = json.loads(payload.read_text())
-        artifact = build_enrichment(inventory, world, pages)
         region = "sf-corridor" if payload.parent.name == "docs" else payload.parent.name
+        ground_file = payload.with_name("app-sf-corridor-ground.json") if region == "sf-corridor" else payload.with_name("sf-corridor-ground.json")
+        court_layout = compile_courts(inventory, json.loads(ground_file.read_text()),
+                                     json.loads((ROOT / "data/park_courts/reviews.json").read_text())) if ground_file.exists() else None
+        if courts_only:
+            out = payload.with_name("sf-corridor-parks.json")
+            artifact = json.loads(out.read_text())
+            if court_layout is not None:
+                artifact["court_layout"] = court_layout
+            out.write_text(json.dumps(artifact, separators=(",", ":")) + "\n")
+            app = ROOT / "docs/app-regions" / region
+            if (app / "sf-corridor-3d.json").exists() and (app / "sf-corridor-3d.json").read_bytes() == payload.read_bytes():
+                (app / "sf-corridor-parks.json").write_bytes(out.read_bytes())
+            print(f"{region}: {len((court_layout or {}).get('pads', []))} city court slabs", flush=True)
+            continue
+        artifact = build_enrichment(inventory, world, pages)
         path_source = ROOT / "data/park_paths" / region / "surfaces.json"
         path_reviews = source / "path_reviews" / f"{region}.json"
         osm = json.loads(path_source.read_text()) if path_source.exists() else {}
@@ -65,6 +81,8 @@ def main() -> None:
             imagery=imagery,
         )
         artifact["areas"] = build_areas(inventory, world, osm, pages)
+        if court_layout is not None:
+            artifact["court_layout"] = court_layout
         artifact["paths"] = paths
         artifact["review"].extend(rejected)
         artifact["path_source_available"] = path_source.exists()
@@ -118,4 +136,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--courts-only", action="store_true", help="preserve all unrelated park evidence")
+    main(courts_only=parser.parse_args().courts_only)

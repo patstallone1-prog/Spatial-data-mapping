@@ -39,7 +39,7 @@ def region_base(region: str) -> Path:
     return ROOT / "docs" if region == "sf-corridor" else ROOT / "docs/regions" / region
 
 
-def eligible(region: str) -> list[dict]:
+def eligible(region: str, *, max_area: float = 240) -> list[dict]:
     """The region's houses as engine inputs, in a fixed order (SHA-256 of the OSM id)."""
     base = region_base(region)
     page = json.loads((base / "sf-corridor-3d.json").read_text())
@@ -53,7 +53,7 @@ def eligible(region: str) -> list[dict]:
             continue
         lon, lat = way.get("centroid", pts[0])
         p = Polygon([((x - lon) * 111320 * math.cos(math.radians(lat)), (y - lat) * 111320) for x, y in pts])
-        if not p.is_valid or not 65 <= p.area <= 240:
+        if not p.is_valid or not 65 <= p.area <= max_area or way.get("shops"):
             continue
         height = float(way.get("height_m", 3))
         count = max(1, min(3, round(height / 3)))
@@ -73,12 +73,13 @@ def eligible(region: str) -> list[dict]:
             "source": "Kerbside published OSM footprint, local tangent-plane metres",
             "storey_evidence": "count and equal heights inferred from shell height",
             "shell_height_m": height, "office": False, "neighborhood_price_per_sqft": None,
+            "priority_area": (way.get("parcel") or {}).get("analysis_neighborhood"),
         })
     return sorted(rows, key=lambda r: hashlib.sha256(r["osm_id"].encode()).hexdigest())
 
 
-def run_batch(region: str, index: int, rows: list[dict], out: Path) -> str:
-    folder = out / region / f"batch-{index:03d}"
+def run_batch(region: str, index: int, rows: list[dict], out: Path, key: str = "") -> str:
+    folder = out / region / f"batch-{index:03d}{'-' + key if key else ''}"
     if (folder / "manifest.json").exists():
         return f"{region} {index}: done already"
     if shutil.disk_usage(out).free < MIN_FREE_BYTES:
@@ -158,7 +159,12 @@ def main() -> None:
     parser.add_argument("--merge", action="store_true", help="only merge finished batches")
     parser.add_argument("--publish", action="store_true", help="only publish the accepted houses")
     parser.add_argument("--max-batches", type=int, help="run at most this many unfinished batches")
+    parser.add_argument("--max-area", type=float, default=240, help="single-family footprint area limit; validation still gates each house")
+    parser.add_argument("--marina-first", action="store_true")
+    parser.add_argument("--batch-index", type=int, help="one stable batch for the durable cloud/local queue")
+    parser.add_argument("--batch-key", default="", help="SHA256 prefix of the expected batch inputs")
     args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=True)
     if args.merge:
         merge(args.out)
         return
@@ -167,19 +173,30 @@ def main() -> None:
         return
     jobs = []
     for region in args.regions:
-        rows = eligible(region)
+        rows = eligible(region, max_area=args.max_area)
+        if args.marina_first:
+            rows.sort(key=lambda r: r.get("priority_area") != "Marina")
         print(f"{region}: {len(rows)} eligible houses", flush=True)
         jobs += [(region, i // BATCH, rows[i:i + BATCH]) for i in range(0, len(rows), BATCH)]
     if args.count:
         return
+    if args.batch_index is not None:
+        jobs = [job for job in jobs if job[1] == args.batch_index]
+        if args.batch_key and (len(jobs) != 1 or hashlib.sha256(
+                json.dumps(jobs[0][2], sort_keys=True).encode()).hexdigest()[:16] != args.batch_key):
+            parser.error("batch inputs changed; replan rather than running a stale job")
     if args.max_batches is not None:
         jobs = [job for job in jobs
                 if not (args.out / job[0] / f"batch-{job[1]:03d}" / "manifest.json").exists()][:args.max_batches]
     print(f"{len(jobs)} batches, {args.workers} at a time", flush=True)
     with ThreadPoolExecutor(args.workers) as pool:
-        for line in pool.map(lambda job: run_batch(*job, args.out), jobs):
+        for line in pool.map(lambda job: run_batch(*job, args.out, args.batch_key), jobs):
             print(line, flush=True)
-    merge(args.out)
+    if args.batch_index is None:
+        merge(args.out)
+    elif not all((args.out / r / f"batch-{i:03d}{'-'+args.batch_key if args.batch_key else ''}/manifest.json").is_file()
+                 for r, i, _ in jobs):
+        raise SystemExit("batch incomplete; retain local files and retry")
 
 
 if __name__ == "__main__":
