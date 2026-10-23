@@ -137,3 +137,63 @@ round is independently revalidated against the current serialized contract.
 Validation tests deliberately remove kitchen equipment, obstruct interaction targets, inflate
 seat counts and float supported props. Additional fresh rectangular/rotated and compact
 pickup cases exercise a bar and small-footprint handling independently of the mapped cohort.
+
+
+## Google price ingestion and Kerbside dimensions (2026-10-22)
+
+`ingest_restaurant_prices.py` uses Google Places API (New), not scraping Maps pages.
+The existing `.env.local` / `GOOGLE_MAPS_API_KEY` configuration is reused. Normal runs
+make **zero network calls**; opt in with an explicit request budget. Cached fresh prices
+and existing Google enrichment are reused before requesting anything.
+
+```sh
+# Existing Google response/export; works without a key or network.
+.venv/bin/python scripts/ingest_restaurant_prices.py --import-google /absolute/places.json
+# Bounded live acquisition (20 mapped venues considered, at most 5 API calls).
+.venv/bin/python scripts/ingest_restaurant_prices.py --limit 20 --max-requests 5
+# The next rotating cohort automatically consumes data/restaurant-prices.json.
+.venv/bin/python scripts/build_inferred_restaurants.py
+# Both scripts also accept --region for another published Kerbside region.
+```
+
+`--input` restricts ingestion to a JSON array of mapped restaurant inputs. Imports accept
+an array or `{ "places": [...] }`, with Google `displayName`, `location`, `id`, `priceLevel`
+and/or `priceRange`; normalized enrichment field names also work. Preserve `fetched_at`
+when importing an older response. Data without a timestamp is treated as imported now.
+Records require a unique agreeing business name within 30 m of the building centroid;
+ambiguous branches and unrelated neighbours remain unmatched. Price evidence expires after
+30 days. The refreshable cache is gitignored. Explicit caller USD spend always wins.
+
+Actual Google USD ranges take precedence. Otherwise the configurable default furnishing
+bands are `$`: $1–20, `$$`: $20–40, `$$$`: $40–80, `$$$$`: $80+.
+These are local **inferred furnishing bands**, not Google's universal dollar definitions or
+observed menu prices. Midpoints drive furniture selection; open ranges use 1.25 times the
+lower bound. `--usd-bands bands.json` can replace all four bands. Unknown/free/non-USD
+prices without a usable level remain unspecified. The pilot's explicitly labelled illustrative
+prices remain in use where no Google match exists; production can leave spend unset.
+
+Google categorizes `priceLevel` and `priceRange` as Enterprise fields. The published global
+Places Details/Text Search Enterprise allowance is 1,000 free events per SKU per month;
+usage beyond that is billable and allowance is shared across the billing account. A local
+request budget cannot establish the account's remaining free allowance. Ordinary existing
+Nearby enrichment requests retain their original field mask and billing tier.
+Sources: [Google fields](https://developers.google.com/maps/documentation/places/web-service/data-fields),
+[Google pricing](https://developers.google.com/maps/billing-and-pricing/pricing),
+[Google price range](https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places#PriceRange).
+
+`smc.interiors.kerbside.mapped_geometry` transforms the actual published polygon into local
+metres. It never stretches a library rectangle to stand in for the shell. Gross square metres
+and square feet are calculated from that polygon; template fit indices 9/10 supply Kerbside's
+canonical storey count and floor height, and index 13 supplies the mapped/fitted entrance.
+Absent floor data, equal storeys inferred from shell height are labelled as such. A source
+polygon hash, region, building ID and height provenance accompany each restaurant input.
+The full ground-floor tenancy assumption remains explicit: building area is not measured
+restaurant lease area. House generation continues using the canonical Kerbside facade,
+floor/window/balcony exporter; generated houses now record footprint/floor areas and heights.
+
+Professional kitchens retain all required wall stations. A centre island uses a 1.6–2.4 m
+long, 0.8 m deep stainless prep table, lower shelf and a centred flat cutting board resting
+on its surface. Only kitchens at least 22 m² are considered. A 0.95 m equipment-free aisle
+surrounds the island, and both long-side work points must remain connected to the kitchen
+entrance and every existing workstation through the 0.9 m staff route. Independent validation
+checks island clearance and collisions. Narrow pickup kitchens keep their circulation space.

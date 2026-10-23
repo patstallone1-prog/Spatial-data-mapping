@@ -7,7 +7,8 @@ export function buildInferredHouse(THREE, house, options = {}) {
   const group = new THREE.Group(), floorGroups = [], doors = [], segments = [], pending = [], assetErrors = [];
   const material = (color, extra={}) => new THREE.MeshStandardMaterial({color, roughness:0.72, ...extra});
   const wood = material(house.style.wood), fabric = material(house.style.fabric);
-  const steel=material('#b6bdc0',{metalness:.78,roughness:.28});
+  // Retain diffuse response inside rooms: no HDR reflection map is required by the tour.
+  const steel=material('#b6bdc0',{metalness:.35,roughness:.38});
   const restaurant=house.schema==='kerbside.inferred_restaurant/1',economy=restaurant&&house.style.tier==='economy';
   const cream = material('#e8e1d3'), dark = material(house.style.metal), ceramic = material('#f0efea');
   function shapeOf(geometry) {
@@ -60,7 +61,7 @@ export function buildInferredHouse(THREE, house, options = {}) {
   }
   function fixture(parent,o) {
     const [w,h,d]=o.size_m,role=o.role;
-    if(['commercial_range','warewash_sink','handwash_sink','prep_table','commercial_fridge','commercial_hood','dishwasher','dry_storage','waste_bin','service_counter','bar_counter','pickup_shelf','payment_terminal','booth'].includes(role)) {
+    if(['commercial_range','warewash_sink','handwash_sink','prep_table','cutting_board','commercial_fridge','commercial_hood','dishwasher','dry_storage','waste_bin','service_counter','bar_counter','pickup_shelf','payment_terminal','booth'].includes(role)) {
       if(role==='commercial_range') {
         box(parent,w,h-.1,d,0,(h-.1)/2,0,steel);box(parent,w,.065,d,0,h-.03,0,dark);
         for(const x of [-w*.30,0,w*.30])for(const z of [-d*.23,d*.23]) {
@@ -79,6 +80,8 @@ export function buildInferredHouse(THREE, house, options = {}) {
       }else if(role==='commercial_fridge') {
         box(parent,w,h,d,0,h/2,0,steel);for(const sign of [-1,1]){box(parent,w*.47,h*.94,.025,sign*w*.245,h/2,d/2+.012,steel);box(parent,.025,.45,.05,sign*w*.08,h*.55,d/2+.05,dark);}
         for(let x=-w*.4;x<w*.4;x+=.055)box(parent,.018,.10,.025,x,.1,d/2+.027,dark);
+      }else if(role==='cutting_board') {
+        box(parent,w,h,d,0,h/2,0,timber('#b69562'));
       }else if(['prep_table','dry_storage','pickup_shelf'].includes(role)) {
         const mat=role==='prep_table'?steel:wood;
         for(const y of role==='dry_storage'?[.15,h*.4,h*.7,h]:[.15,h])box(parent,w,.045,d,0,y-.022,0,mat);

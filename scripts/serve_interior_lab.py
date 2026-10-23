@@ -51,12 +51,18 @@ class Handler(SimpleHTTPRequestHandler):
             # The interactive economics control cannot replace the test tenant geometry.
             history = json.loads((ROOT / "docs/inferred-restaurants/history.json").read_text())
             known = next(
-                (x for run in history["rounds"] for x in run["selected"] if x["id"] == spec.id),
+                (
+                    x
+                    for run in reversed(history["rounds"])
+                    for x in run["selected"]
+                    if x["id"] == spec.id
+                ),
                 None,
             )
             if not known:
                 raise ValueError("unknown pilot restaurant")
             known = dict(known)
+            known.pop("price_evidence", None)
             known.update(
                 average_spend_per_person=spec.average_spend_per_person,
                 currency=spec.currency,

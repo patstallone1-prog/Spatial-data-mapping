@@ -16,11 +16,13 @@ import sys
 from pathlib import Path
 
 from shapely.errors import GEOSException
-from shapely.geometry import Polygon, mapping
+from shapely.geometry import Polygon
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from smc.interiors.kerbside import mapped_geometry  # noqa: E402
 from smc.interiors.restaurants import RestaurantInput, infer_restaurant  # noqa: E402
+from smc.interiors.restaurants.prices import apply_price  # noqa: E402
 
 STRATA = ("pickup", "narrow", "irregular", "large", "regular")
 
@@ -31,10 +33,15 @@ def write(path, value):
     tmp.replace(path)
 
 
-def candidates():
-    page = json.loads((ROOT / "docs/sf-corridor-3d.json").read_text())
+def candidates(region="sf-corridor", price_path=None):
+    base = ROOT / "docs" if region == "sf-corridor" else ROOT / "docs/regions" / region
+    page = json.loads((base / "sf-corridor-3d.json").read_text())
     pool = []
-    fits = json.loads((ROOT / "docs/sf-corridor-interiors.json").read_text())["buildings"]
+    fits = json.loads((base / "sf-corridor-interiors.json").read_text())["buildings"]
+    price_path = price_path or ROOT / "data/restaurant-prices.json"
+    price_rows = (
+        json.loads(price_path.read_text()).get("restaurants", {}) if price_path.exists() else {}
+    )
     for w in page["ways"]:
         shops = w.get("shops", [])
         if (
@@ -43,13 +50,9 @@ def candidates():
             or shops[0].get("t") not in {"restaurant", "fast_food"}
         ):
             continue
-        lon, lat = w["centroid"]
-        p = Polygon(
-            [
-                ((x - lon) * 111320 * math.cos(math.radians(lat)), (y - lat) * 111320)
-                for x, y in w["points"]
-            ]
-        )
+        fit = fits.get(str(w["osm_id"]))
+        geometry = mapped_geometry(w, fit, region=region)
+        p = Polygon(geometry["footprint"]["coordinates"][0])
         if not p.is_valid or not 28 <= p.area <= 350:
             continue
         coords = list(p.minimum_rotated_rectangle.exterior.coords)
@@ -66,23 +69,13 @@ def candidates():
             if p.area > 220
             else "regular"
         )
-        fit = fits.get(str(w["osm_id"]))
-        entrance = None
-        if fit and fit[13]:
-            edge, t, _, _ = fit[13][0]
-            a, b = list(p.exterior.coords)[edge : edge + 2]
-            entrance = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
         key = "restaurant-" + str(w["osm_id"])
         pool.append(
             {
                 "id": key,
                 "osm_id": str(w["osm_id"]),
                 "name": shops[0]["n"],
-                "footprint": mapping(p),
-                "units": "metres",
-                "height_m": 3.2,
-                "entrance": entrance,
-                "origin_lon_lat": [lon, lat],
+                **geometry,
                 "stratum": stratum,
                 "service_mode": "pickup"
                 if stratum == "pickup"
@@ -106,6 +99,7 @@ def candidates():
                 "selection_hash": hashlib.sha256(key.encode()).hexdigest(),
             }
         )
+        apply_price(pool[-1], price_rows.get(key))
     return sorted(pool, key=lambda r: r["selection_hash"])
 
 
@@ -145,6 +139,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=ROOT / "docs/inferred-restaurants")
     parser.add_argument("--prices", type=Path, help="JSON venue id -> USD spend per person")
+    parser.add_argument("--google-prices", type=Path, help="ingested Google price evidence cache")
+    parser.add_argument("--region", default="sf-corridor")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     history_path = args.out / "history.json"
@@ -158,9 +154,10 @@ def main():
         round = history["rounds"][-1]
         selected = round["selected"]
     else:
-        selected = select_round(candidates(), history)
+        selected = select_round(candidates(args.region, args.google_prices), history)
         for row in selected:
             if row["id"] in prices:
+                row.pop("price_evidence", None)
                 row.update(
                     average_spend_per_person=prices[row["id"]],
                     economics_source="caller supplied USD spend per person",

@@ -12,7 +12,24 @@
     "freshness": null,
     "corroboration_count": 0,
     "engine": "kerbside-polygon-v1",
-    "not_an_as_built_survey": true
+    "not_an_as_built_survey": true,
+    "geometry": {
+      "source": "Kerbside published OSM footprint, local tangent-plane metres",
+      "footprint_area_m2": 206.35200726973304,
+      "footprint_area_sqft": 2221.1545205576335,
+      "floor_area_m2": 825.4080290789321,
+      "storey_heights_m": [
+        3.0920090781812117,
+        3.0920090781812117,
+        3.0920090781812117,
+        3.0920090781812117
+      ],
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    }
   },
   "envelope": {
     "id": "osm-243591156",
