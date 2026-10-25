@@ -19,8 +19,8 @@ for them.
 | `KERBSIDE_CONTROLLER_URL` | not secret | Empty on RunPod: the controller finds its own address (`https://<pod id>-8080.proxy.runpod.net`) from `RUNPOD_POD_ID`. Set it in the operator's shell once `create` prints it. |
 | `RUNPOD_API_KEY` | RunPod key, read/write; the account's prepaid balance is the final spend cap | Creating and deleting worker pods. Only pods named `kw-…` are listed or deleted; never `kerbside-controller` or the owner's own pods. |
 | `AWS_REGION`, `S3_ENDPOINT_URL` (optional) | not secret | The buckets' region; the endpoint only for an S3-compatible store other than AWS. |
-| `S3_PRIVATE_BUCKET`, `S3_PRIVATE_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | IAM user `kerbside-private`: `cloud/infra/s3-iam-user-policy.json` with BUCKET = the private bucket | Checkpoints, queue backups, logs. Also given to workers. |
-| `S3_PUBLIC_BUCKET`, `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | IAM user `kerbside-public`: the same policy with BUCKET = the public bucket | Publishing. **The controller only.** Workers never receive it, so a compromised worker cannot change what the public sees. |
+| `S3_PRIVATE_BUCKET`, `S3_PRIVATE_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | an IAM user for `kerbside` only: `cloud/infra/s3-iam-user-policy.json` with BUCKET = the private bucket | Checkpoints, queue backups, logs. Also given to workers. |
+| `S3_PUBLIC_BUCKET`, `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | an IAM user for `kerbside-finished-map` only: the same policy with BUCKET = the public bucket | Publishing. **The controller only.** Workers never receive it, so a compromised worker cannot change what the public sees. |
 | `S3_PUBLIC_BASE` | not secret | The public bucket's CloudFront address, e.g. `https://d1234.cloudfront.net`. |
 | `MAPILLARY_ACCESS_TOKEN`, `MAPILLARY_TOKEN` | Mapillary client token (read) | The imagery stage and the house filter. |
 | `HUGGINGFACE_TOKEN` | Hugging Face **read** token | Model downloads, if the uploaded weights are missing. |
@@ -54,8 +54,8 @@ afterwards. Workers never receive:
 | `RUNPOD_API_KEY` | secret | The watchdog deletes stray worker pods. |
 | `KERBSIDE_SECRET`, `KERBSIDE_OPS_TOKEN`, `S3_PRIVATE_ACCESS_KEY_ID`, `S3_PRIVATE_SECRET_ACCESS_KEY` | secrets | The watchdog loads the same config. It is never given a public-bucket key. |
 
-The watchdog names the buckets `kerbside-private` and `kerbside-public`
-(`.github/workflows/cloud-watchdog.yml`); change them there if yours differ.
+The buckets are `kerbside` (private) and `kerbside-finished-map` (public). The watchdog uses
+those names unless the repository variables `S3_PRIVATE_BUCKET` / `S3_PUBLIC_BUCKET` say otherwise.
 
 The image workflow (`cloud.yml`) pushes to GHCR with the workflow's own `GITHUB_TOKEN`
 (`packages: write`), and it does so only from `main`.

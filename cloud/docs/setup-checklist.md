@@ -8,18 +8,18 @@ creates each worker when there is work for it.
 ## 1. AWS storage
 
 - [ ] Pick one region (e.g. `us-west-2`, beside the USGS lidar) → `AWS_REGION`.
-- [ ] Create two buckets, e.g. `kerbside-private` and `kerbside-public`, both with Block Public
-  Access **on**. Default encryption (SSE-S3) is fine.
+- [ ] Two buckets: `kerbside` (private: checkpoints, queue backups) and `kerbside-finished-map`
+  (public, through CloudFront: the finished cells), both with Block Public Access **on**. Default encryption (SSE-S3) is fine.
 - [ ] Two IAM users, each with an access key and one inline policy,
   `cloud/infra/s3-iam-user-policy.json` with `BUCKET` replaced:
-  - `kerbside-private` → `S3_PRIVATE_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`;
-  - `kerbside-public` → `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`.
-- [ ] CloudFront distribution in front of `kerbside-public` with Origin Access Control (let it
+  - `kerbside` → `S3_PRIVATE_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`;
+  - `kerbside-finished-map` → `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`.
+- [ ] CloudFront distribution in front of `kerbside-finished-map` with Origin Access Control (let it
   update the bucket policy). Its `https://<id>.cloudfront.net` address → `S3_PUBLIC_BASE`.
-- [ ] Apply `cloud/infra/s3-cors.json` to `kerbside-public`:
+- [ ] Apply `cloud/infra/s3-cors.json` to `kerbside-finished-map`:
 
   ```
-  aws s3api put-bucket-cors --bucket kerbside-public --cors-configuration file://cloud/infra/s3-cors.json
+  aws s3api put-bucket-cors --bucket kerbside-finished-map --cors-configuration file://cloud/infra/s3-cors.json
   ```
 
 - [ ] Optionally an AWS Budgets alert at a few dollars a month.
@@ -56,7 +56,7 @@ creates each worker when there is work for it.
 - [ ] **Upload the data once** from the Mac (plug in the HP P700 first):
 
   ```
-  smc-cloud migrate --private s3://kerbside-private --cells all --shared all --house-run "/Volumes/HP P700 1/Kerbside/frontage-run-2026-10-10"
+  smc-cloud migrate --private s3://kerbside --cells all --shared all --house-run "/Volumes/HP P700 1/Kerbside/frontage-run-2026-10-10"
   ```
 
   This uses `S3_PRIVATE_*` and `AWS_REGION` in the shell. It refuses restricted data and leaves

@@ -22,8 +22,8 @@ tick_s = 20
 backup_s = 300
 
 [stores]
-private = "s3://${S3_PRIVATE_BUCKET}"   # kerbside-private: no public access at all
-public = "s3://${S3_PUBLIC_BUCKET}"     # kerbside-public: public read, CORS for the site
+private = "s3://${S3_PRIVATE_BUCKET}"   # kerbside: no public access at all
+public = "s3://${S3_PUBLIC_BUCKET}"     # kerbside-finished-map: public read, CORS for the site
 public_base = "${S3_PUBLIC_BASE}"       # its public address: a CloudFront domain, or the bucket's
 
 # Sized to the $15 prepaid on RunPod. These limits count workers and storage; the controller

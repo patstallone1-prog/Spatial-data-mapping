@@ -6,7 +6,7 @@
     smc-cloud plan     --cells none --interiors --restaurant-rounds 10   # the interior engine
     smc-cloud status
     smc-cloud review   list | approve|reject|rerun JOB --reviewer NAME --note WHY
-    smc-cloud migrate  --private s3://kerbside-private --cells all --shared all --house-run DIR
+    smc-cloud migrate  --private s3://kerbside --cells all --shared all --house-run DIR
     smc-cloud inventory --volume "/Volumes/HP P700 1" --out cloud/docs/inventory.json
     smc-cloud estimate
     smc-cloud gate     CELL                            # the parity gate on a local cell
