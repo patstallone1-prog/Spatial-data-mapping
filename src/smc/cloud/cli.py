@@ -127,18 +127,14 @@ def cmd_watchdog(args) -> int:
     """Outside the controller (a scheduled GitHub Actions job): delete every worker instance if
     the controller has not answered for ``--grace-min``, and any instance older than
     ``--max-hours`` whatever the controller says. The last line of defence against a bill."""
-    import tomllib
-
     from .controller import Config
-    from .store import open_store
 
-    raw = tomllib.loads(Path(args.config).read_text())
+    # The loaded config, whose ${...} are filled in from the environment; the raw file's are not.
     cfg = Config.load(args.config)
-    private = open_store(raw["stores"]["private"], role="private")
+    private = cfg.private
     state = private.get_json("watchdog/state.json", {}) or {}
     now = time.time()
     try:
-        # cfg.url, not the raw file's: that still reads ${KERBSIDE_CONTROLLER_URL}.
         req = urllib.request.Request(f"{cfg.url.rstrip('/')}/healthz",
                                      headers={"User-Agent": USER_AGENT})
         with urllib.request.urlopen(req, timeout=20) as r:
