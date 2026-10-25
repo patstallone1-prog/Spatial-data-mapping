@@ -72,19 +72,24 @@ def migrate_shared(store: ObjectStore, root: Path, name: str, known: set[str] | 
             "sent": stats.bytes_sent}
 
 
-def migrate_house_state(store: ObjectStore, run_dir: Path, known: set[str] | None = None) -> dict:
+def migrate_house_state(store: ObjectStore, run_dir: Path, known: set[str] | None = None, *,
+                        farm_dir: Path | None = None) -> dict:
     """``run_dir`` holds ``frontage-live``, ``facade-match``... (the drive's frontage run folder,
     linked into a worktree's ``build/``); they are saved as ``build/<name>``, where the workers'
-    commands find them."""
+    commands find them. ``farm_dir`` keeps the links and the hash index between runs, so a
+    second run after a dropped connection does not read the drive's tens of gigabytes again."""
     run_dir = Path(run_dir)
     with tempfile.TemporaryDirectory() as tmp:
-        farm = Path(tmp)
-        (farm / "build").mkdir()
+        farm = Path(farm_dir) if farm_dir else Path(tmp)
+        (farm / "build").mkdir(parents=True, exist_ok=True)
         paths = []
         for rel in HOUSE_STATE:
             name = rel.split("/", 1)[1]
+            link = farm / rel
+            if link.is_symlink():
+                link.unlink()
             if (run_dir / name).exists():
-                (farm / rel).symlink_to(run_dir / name)
+                link.symlink_to(run_dir / name)
                 paths.append(rel)
         if not paths:
             raise FileNotFoundError(f"no house state under {run_dir}")
@@ -156,7 +161,9 @@ def main(argv: list[str] | None = None) -> int:
         for name in (SHARED_INPUTS if args.shared == "all" else args.shared.split(",")):
             print(json.dumps(migrate_shared(store, args.root, name, known)), flush=True)
     if args.house_run:
-        print(json.dumps(migrate_house_state(store, args.house_run, known)), flush=True)
+        print(json.dumps(migrate_house_state(store, args.house_run, known,
+                                             farm_dir=args.root / "build/cloud-house-farm")),
+              flush=True)
     if args.interiors:
         for row in migrate_interiors(store, args.root, known):
             print(json.dumps(row), flush=True)
