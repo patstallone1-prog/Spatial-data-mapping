@@ -54,6 +54,8 @@ afterwards. Workers never receive:
 | `RUNPOD_API_KEY` | secret | The watchdog deletes stray worker pods. |
 | `KERBSIDE_SECRET`, `KERBSIDE_OPS_TOKEN`, `S3_PRIVATE_ACCESS_KEY_ID`, `S3_PRIVATE_SECRET_ACCESS_KEY` | secrets | The watchdog loads the same config. It is never given a public-bucket key. |
 
+`cloud/deploy/github-secrets.sh` sets all of these from `controller.env`.
+
 The buckets are `kerbside` (private) and `kerbside-finished-map` (public). The watchdog uses
 those names unless the repository variables `S3_PRIVATE_BUCKET` / `S3_PUBLIC_BUCKET` say otherwise.
 

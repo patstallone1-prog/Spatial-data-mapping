@@ -16,6 +16,8 @@ creates each worker when there is work for it.
   - `kerbside-finished-map` → `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`.
 - [ ] CloudFront distribution in front of `kerbside-finished-map` with Origin Access Control (let it
   update the bucket policy). Its `https://<id>.cloudfront.net` address → `S3_PUBLIC_BASE`.
+  In its default behaviour, set the origin request policy to **CORS-S3Origin**, so S3's CORS
+  headers reach the browser.
 - [ ] Apply `cloud/infra/s3-cors.json` to `kerbside-finished-map`:
 
   ```
@@ -41,15 +43,19 @@ creates each worker when there is work for it.
 
 - [ ] `smc-cloud runpod-controller plan`: the pod it would create, secrets masked, and both
   images present on GHCR for the build it runs (origin/main's commit). No network call to RunPod.
-- [ ] `smc-cloud runpod-controller check`: the key works; lists your pods. Costs nothing.
-- [ ] `smc-cloud runpod-controller create`: creates `kerbside-controller` and prints its `url`
+- [ ] `smc-cloud runpod-controller storage`: each key writes, reads, refuses a conditional
+  overwrite and deletes a probe in its own bucket; the private key is refused by the public
+  bucket; the public probe answers through CloudFront with CORS. It names what to fix if not.
+- [ ] `smc-cloud runpod-controller check`: storage again, then the RunPod key works; lists your pods. Costs nothing.
+- [ ] `smc-cloud runpod-controller create`: checks storage again (and creates nothing if it fails), then creates `kerbside-controller` and prints its `url`
   and hourly rate. Put the url into `KERBSIDE_CONTROLLER_URL` in `controller.env`.
 - [ ] Open `<url>/healthz`. Then open `/` with the ops token: the dashboard should show no
   workers and $0.
 - [ ] `smc-cloud runpod-controller stop` when nothing is queued; `start` to resume. The queue
   is backed up to the private bucket every 5 minutes and restored on start.
-- [ ] The watchdog: add the GitHub Actions secrets and variables from `secrets.md`, set the
-  repository variable `KERBSIDE_CLOUD_ENABLED=true`, and run `cloud-watchdog` once by hand.
+- [ ] The watchdog: `cloud/deploy/github-secrets.sh` sets its secrets and variables from
+  `controller.env` (never printing them) and turns it on once `KERBSIDE_CONTROLLER_URL` is set.
+  Then run `cloud-watchdog` once by hand.
 
 ## 5. First real use (spend: workers)
 

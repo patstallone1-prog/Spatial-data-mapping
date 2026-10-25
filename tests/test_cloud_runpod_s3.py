@@ -99,3 +99,68 @@ def test_the_plan_prints_no_secret_and_checks_both_images(monkeypatch, capsys) -
     assert plan["would_create"]["imageName"].endswith("kerbside-cpu:cafe")
     assert plan["would_create"]["env"]["KERBSIDE_IMAGE_TAG"] == "cafe"
     assert plan["images_on_ghcr"] == {"kerbside-cpu": True, "kerbside-gpu": True}
+
+
+class FakeS3:
+    """A bucket as the storage check sees it: conditional writes, and a key it may refuse."""
+
+    def __init__(self, objects: dict, allowed: bool = True):
+        self.objects, self.allowed = objects, allowed
+
+    def put(self, key, data, *, if_none_match=False, **kw):
+        if not self.allowed:
+            raise RuntimeError("An error occurred (AccessDenied) when calling the PutObject operation")
+        if if_none_match and key in self.objects:
+            raise runpod_controller.PreconditionFailed(key)
+        self.objects[key] = data
+        return "etag"
+
+    def get(self, key):
+        return self.objects[key]
+
+    def delete(self, key):
+        self.objects.pop(key, None)
+
+
+def fake_storage(*, cors: bool = True, worker_may_publish: bool = False):
+    buckets = {"kerbside-private": {}, "kerbside-public": {}}
+
+    def open_s3(bucket, prefix, env):
+        allowed = prefix == "S3_PUBLIC" or bucket == "kerbside-private" or worker_may_publish
+        return FakeS3(buckets[bucket], allowed=allowed)
+
+    class Response:
+        def __init__(self, body):
+            self.body, self.headers = body, {"Access-Control-Allow-Origin": "*"} if cors else {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return self.body
+
+    def fetch(req, timeout):
+        assert req.full_url.startswith("https://d1.cloudfront.net/_probe/")
+        assert req.get_header("Origin") == runpod_controller.SITE_ORIGIN
+        return Response(buckets["kerbside-public"][req.full_url.split(".net/", 1)[1]])
+
+    return buckets, open_s3, fetch
+
+
+def test_the_storage_check_proves_both_buckets_cloudfront_and_that_workers_cannot_publish() -> None:
+    buckets, open_s3, fetch = fake_storage()
+    out = runpod_controller.check_storage(ENV, fetch=fetch, open_s3=open_s3)
+    assert out["all_ok"], out
+    assert out["private key refused by the public bucket"] == "ok"
+    assert buckets == {"kerbside-private": {}, "kerbside-public": {}}  # the probes are gone
+
+
+def test_the_storage_check_names_what_to_fix() -> None:
+    _, open_s3, fetch = fake_storage(cors=False, worker_may_publish=True)
+    out = runpod_controller.check_storage(ENV, fetch=fetch, open_s3=open_s3)
+    assert not out["all_ok"]
+    assert "CORS-S3Origin" in out["public: through CloudFront with CORS"]
+    assert "scope its policy" in out["private key refused by the public bucket"]
