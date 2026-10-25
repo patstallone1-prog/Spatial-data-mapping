@@ -211,3 +211,30 @@ def test_keys_keeps_what_passed_and_says_why_a_pair_was_refused(tmp_path) -> Non
     assert env_file.read_text() == "RUNPOD_API_KEY='rpa_GOOD'\nS3_PRIVATE_ACCESS_KEY_ID=\n"
     assert any("SignatureDoesNotMatch" in m and "secret" in m for m in said)
     assert not any("s" * 40 in m or "rpa_GOOD" in m for m in said)
+
+
+def test_every_call_to_the_controller_names_itself_so_cloudflare_lets_it_through(monkeypatch) -> None:
+    """RunPod's proxy refuses Python-urllib's own agent (Cloudflare 1010) before the controller."""
+    from smc.cloud import USER_AGENT, worker
+
+    seen = []
+
+    class Answer:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b'{"env": {}, "lease": null}'
+
+    def urlopen(req, timeout):
+        seen.append(req.get_header("User-agent"))
+        return Answer()
+
+    monkeypatch.setattr(worker.urllib.request, "urlopen", urlopen)
+    worker.bootstrap({"KERBSIDE_CONTROLLER": "https://p-8080.proxy.runpod.net",
+                      "KERBSIDE_WORKER_ID": "w", "KERBSIDE_BOOT_TOKEN": "b"})
+    worker.HttpTransport("https://p-8080.proxy.runpod.net", "w", "t").lease([], 60)
+    assert seen == [USER_AGENT, USER_AGENT] and "urllib" not in USER_AGENT.lower()

@@ -303,6 +303,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--tag", help="the image build to run (default: origin/main's commit)")
     ap.add_argument("--flavor", default="cpu3c", help="RunPod CPU flavour for the controller")
     ap.add_argument("--vcpus", type=int, default=2)
+    ap.add_argument("--replace", action="store_true",
+                    help="create: delete the existing controller pod first (to move it onto a new "
+                         "build); its queue comes back from the private bucket's backup")
     args = ap.parse_args(argv)
     if args.action == "keys":
         return set_keys()
@@ -338,11 +341,19 @@ def main(argv: list[str] | None = None) -> int:
                          for p in pods]}, indent=1))
         return 0
     if args.action == "create":
+        if pod and not args.replace:
+            raise SystemExit(f"{CONTROLLER_POD} exists already ({pod.get('id')}): start it, or "
+                             "create --replace to move it onto this build")
         if pod:
-            raise SystemExit(f"{CONTROLLER_POD} exists already ({pod.get('id')}): start it instead")
+            provider.terminate(pod["id"])
         made = provider.create_pod(body)
-        print(json.dumps({"created": made.get("id"), "url": runpod_proxy_url(made["id"]),
-                          "usd_per_hour": made.get("costPerHr"), "image_tag": tag}, indent=1))
+        url = runpod_proxy_url(made["id"])
+        # The address is not secret; operator commands and github-secrets.sh read it from here.
+        if ENV_FILE.exists():
+            _save(ENV_FILE, {"KERBSIDE_CONTROLLER_URL": url})
+        print(json.dumps({"created": made.get("id"), "url": url, "replaced": pod.get("id") if pod
+                          else None, "usd_per_hour": made.get("costPerHr"), "image_tag": tag},
+                         indent=1))
         return 0
     if not pod:
         raise SystemExit(f"no pod named {CONTROLLER_POD}: create it first")

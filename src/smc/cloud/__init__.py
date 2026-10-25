@@ -17,3 +17,7 @@ object storage so no step depends on one machine, and publishes only what passed
 * :mod:`.worker`      -- lease, restore, run, heartbeat, save, report
 * :mod:`.controller`  -- the HTTP API workers and the dashboard talk to
 """
+
+#: Sent on every call to the controller. RunPod's proxy sits behind Cloudflare, which refuses
+#: Python's default ``Python-urllib/x`` agent (error 1010) before the controller sees it.
+USER_AGENT = "kerbside-cloud/1 (+https://github.com/patstallone1-prog/Spatial-data-mapping)"
