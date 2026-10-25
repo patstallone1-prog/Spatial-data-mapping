@@ -102,47 +102,31 @@ def iam_user(key_id: str, secret: str, region: str) -> str:
     return arn.rsplit("/", 1)[-1]
 
 
-def set_keys(env_file: Path = ENV_FILE, *, ask=getpass.getpass, ask_plain=input, whoami=iam_user,
-             say=print) -> int:
-    """Write the RunPod key and both buckets' key pairs into controller.env, typed at hidden
-    prompts so they never pass through a chat or a log. Each AWS pair goes to the bucket its
-    IAM user is for: a user named with "private" gets the private bucket, one with "pub" the
-    public bucket. Enter at a prompt keeps the value already in the file."""
+def runpod_key_works(key: str) -> None:
+    RunPodProvider(key).all_pods()
+
+
+#: What AWS's error codes mean for a pasted key pair.
+AWS_HINTS = {
+    "InvalidClientTokenId": "AWS doesn't know that access key ID: check it was copied whole, is "
+                            "Active in IAM, and wait a minute if it was just created",
+    "SignatureDoesNotMatch": "the ID is right but the secret isn't its own: paste the secret "
+                             "shown beside this ID when it was created",
+    "AccessDenied": "the key works but isn't allowed to identify itself (unexpected for STS)",
+}
+
+
+def _aws_code(exc: Exception) -> str:
+    return getattr(exc, "response", {}).get("Error", {}).get("Code", "") or type(exc).__name__
+
+
+def _clean(value: str) -> str:
+    """A pasted value without the spaces, newlines or quotes a copy can pick up."""
+    return "".join(value.split()).strip("'\"")
+
+
+def _save(env_file: Path, values: dict[str, str]) -> None:
     text = env_file.read_text()
-    current = dict(re.findall(r"^([A-Z0-9_]+)=(.*)$", text, flags=re.M))
-    region = os.environ.get("AWS_REGION") or current.get("AWS_REGION", "").strip("'\" ")
-    values: dict[str, str] = {}
-    runpod = ask("RunPod API key (hidden; Enter keeps the current one): ").strip()
-    if runpod:
-        if not runpod.startswith("rpa_"):
-            say("that does not look like a RunPod key (they start rpa_); nothing written")
-            return 1
-        values["RUNPOD_API_KEY"] = runpod
-    for n in (1, 2):
-        key_id = ask_plain(f"AWS access key ID {n} of 2 (Enter to skip): ").strip()
-        if not key_id:
-            continue
-        secret = ask("its secret access key (hidden): ").strip()
-        if not re.fullmatch(r"A[KS]IA[A-Z0-9]{16}", key_id) or len(secret) != 40:
-            say(f"key {n}: an access key ID is 20 characters starting AKIA, its secret 40; "
-                "nothing written")
-            return 1
-        try:
-            user = whoami(key_id, secret, region)
-        except Exception as exc:
-            say(f"key {n} ({key_id[:8]}...): AWS refused it ({type(exc).__name__}); is it active, "
-                "and is the secret the one shown when it was created? Nothing written")
-            return 1
-        role = "PRIVATE" if "private" in user.lower() else "PUBLIC" if "pub" in user.lower() else ""
-        if not role:
-            say(f"key {n} belongs to IAM user {user}, which is neither bucket's; nothing written")
-            return 1
-        if f"S3_{role}_ACCESS_KEY_ID" in values:
-            say(f"both keys belong to {role.lower()} users; nothing written")
-            return 1
-        values[f"S3_{role}_ACCESS_KEY_ID"] = key_id
-        values[f"S3_{role}_SECRET_ACCESS_KEY"] = secret
-        say(f"key {n} ({key_id[:8]}...) belongs to {user}: the {role.lower()} bucket")
     for name, value in values.items():
         line = f"{name}='{value}'"
         text, found = re.subn(rf"^{name}=.*$", lambda _m, line=line: line, text, flags=re.M)
@@ -152,8 +136,71 @@ def set_keys(env_file: Path = ENV_FILE, *, ask=getpass.getpass, ask_plain=input,
     tmp.write_text(text)
     tmp.chmod(0o600)
     tmp.replace(env_file)
-    say(f"wrote {', '.join(values) or 'nothing'} to {env_file} (secrets not shown)")
-    return 0
+
+
+def set_keys(env_file: Path = ENV_FILE, *, ask=getpass.getpass, ask_plain=input, whoami=iam_user,
+             runpod_check=runpod_key_works, say=print, tries: int = 3) -> int:
+    """Write the RunPod key and both buckets' key pairs into controller.env, typed at hidden
+    prompts so they never pass through a chat or a log. Each is checked with its service before
+    it is saved, and saved as soon as it passes, so a later mistake loses nothing. Each AWS pair
+    goes to the bucket its IAM user is for: a user named with "private" gets the private
+    bucket, one with "pub" the public bucket. Enter at a prompt skips it. Nothing secret is
+    printed: only the first 8 characters of an access key ID, and AWS's error code."""
+    current = dict(re.findall(r"^([A-Z0-9_]+)=(.*)$", env_file.read_text(), flags=re.M))
+    region = os.environ.get("AWS_REGION") or current.get("AWS_REGION", "").strip("'\" ")
+    saved: list[str] = []
+    for _ in range(tries):
+        runpod = _clean(ask("RunPod API key (hidden; Enter to skip): "))
+        if not runpod:
+            break
+        if not runpod.startswith("rpa_"):
+            say(f"that isn't a RunPod key (they start rpa_; got {len(runpod)} characters). Again:")
+            continue
+        try:
+            runpod_check(runpod)
+        except Exception as exc:
+            say(f"RunPod refused that key ({exc.__class__.__name__}: {str(exc)[:80]}). Again:")
+            continue
+        _save(env_file, {"RUNPOD_API_KEY": runpod})
+        saved.append("RUNPOD_API_KEY")
+        say("RunPod key works: saved")
+        break
+    roles: dict[str, str] = {}
+    for _ in range(2 * tries):
+        if len(roles) == 2:
+            break
+        key_id = _clean(ask_plain(f"AWS access key ID ({2 - len(roles)} pair(s) to go; Enter to "
+                                  "stop): "))
+        if not key_id:
+            break
+        if not re.fullmatch(r"A[KS]IA[A-Z0-9]{16}", key_id):
+            say(f"an access key ID is 20 letters and digits starting AKIA (got {len(key_id)}). "
+                "Again:")
+            continue
+        secret = _clean(ask(f"secret access key for {key_id[:8]}... (hidden): "))
+        if len(secret) != 40:
+            say(f"a secret access key is 40 characters (got {len(secret)}). Again:")
+            continue
+        try:
+            user = whoami(key_id, secret, region)
+        except Exception as exc:
+            code = _aws_code(exc)
+            say(f"{key_id[:8]}...: AWS said {code}: {AWS_HINTS.get(code, 'see the message above')}"
+                ". Again:")
+            continue
+        role = "PRIVATE" if "private" in user.lower() else "PUBLIC" if "pub" in user.lower() else ""
+        if not role:
+            say(f"{key_id[:8]}... belongs to IAM user {user}, which is neither bucket's. Again:")
+            continue
+        if role in roles:
+            say(f"{key_id[:8]}... is {user}'s too, already saved; paste the other user's pair:")
+            continue
+        _save(env_file, {f"S3_{role}_ACCESS_KEY_ID": key_id, f"S3_{role}_SECRET_ACCESS_KEY": secret})
+        roles[role] = user
+        saved += [f"S3_{role}_ACCESS_KEY_ID", f"S3_{role}_SECRET_ACCESS_KEY"]
+        say(f"{key_id[:8]}... belongs to {user}: saved for the {role.lower()} bucket")
+    say(f"saved {', '.join(saved) or 'nothing'} in {env_file} (values not shown)")
+    return 0 if saved else 1
 
 
 def _step(out: dict, name: str, fn) -> bool:

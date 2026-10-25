@@ -171,13 +171,14 @@ def test_keys_go_into_the_settings_by_whose_they_are_and_are_never_shown(tmp_pat
     env_file.write_text("RUNPOD_API_KEY=\nAWS_REGION=us-east-2\nS3_PRIVATE_ACCESS_KEY_ID=   # x\n"
                         "S3_PRIVATE_SECRET_ACCESS_KEY=\nS3_PUBLIC_ACCESS_KEY_ID=\n"
                         "S3_PUBLIC_SECRET_ACCESS_KEY=\nS3_PUBLIC_BASE=https://d1.cloudfront.net\n")
-    hidden = iter(["rpa_FAKE", "p" * 39 + "/", "q" * 39 + "+"])
-    plain = iter(["AKIA" + "B" * 16, "AKIA" + "A" * 16])
+    hidden = iter([" rpa_FAKE\n", "p" * 39 + "/", "q" * 39 + "+"])
+    plain = iter(["AKIA" + "B" * 16, "'AKIA" + "A" * 16 + "' "])
     owners = {"AKIA" + "A" * 16: "kerbside-private-worker", "AKIA" + "B" * 16: "kerbpublicworker"}
     said = []
     assert runpod_controller.set_keys(env_file, ask=lambda _p: next(hidden),
                                       ask_plain=lambda _p: next(plain),
-                                      whoami=lambda k, s, region: owners[k], say=said.append) == 0
+                                      whoami=lambda k, s, region: owners[k],
+                                      runpod_check=lambda key: None, say=said.append) == 0
     # The pairs were typed public first; each lands by its IAM user, quoted for the shell.
     import subprocess
     out = subprocess.run(["bash", "-c", f"set -a; source {env_file}; env"], capture_output=True,
@@ -192,15 +193,22 @@ def test_keys_go_into_the_settings_by_whose_they_are_and_are_never_shown(tmp_pat
         assert not any(secret in line for line in said)
 
 
-def test_keys_writes_nothing_for_a_key_aws_refuses(tmp_path) -> None:
+def test_keys_keeps_what_passed_and_says_why_a_pair_was_refused(tmp_path) -> None:
     env_file = tmp_path / "controller.env"
     env_file.write_text("RUNPOD_API_KEY=\nS3_PRIVATE_ACCESS_KEY_ID=\n")
-    hidden = iter(["", "s" * 40])
+    hidden = iter(["rpa_GOOD", "s" * 40])
+    plain = iter(["AKIA" + "C" * 16, ""])
+
+    class Refused(Exception):
+        response = {"Error": {"Code": "SignatureDoesNotMatch"}}
 
     def refuse(*_a):
-        raise RuntimeError("InvalidClientTokenId")
+        raise Refused()
 
+    said = []
     assert runpod_controller.set_keys(env_file, ask=lambda _p: next(hidden),
-                                      ask_plain=lambda _p: "AKIA" + "C" * 16, whoami=refuse,
-                                      say=lambda _m: None) == 1
-    assert env_file.read_text() == "RUNPOD_API_KEY=\nS3_PRIVATE_ACCESS_KEY_ID=\n"
+                                      ask_plain=lambda _p: next(plain), whoami=refuse,
+                                      runpod_check=lambda key: None, say=said.append) == 0
+    assert env_file.read_text() == "RUNPOD_API_KEY='rpa_GOOD'\nS3_PRIVATE_ACCESS_KEY_ID=\n"
+    assert any("SignatureDoesNotMatch" in m and "secret" in m for m in said)
+    assert not any("s" * 40 in m or "rpa_GOOD" in m for m in said)
