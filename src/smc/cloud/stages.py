@@ -134,3 +134,52 @@ def house_batch(number: int, sample: int, previous: str | None, *, device: str =
                    shared=["frontage-models", "frontage-inputs"], save=list(HOUSE_STATE),
                    timeout_s=6 * 3600, max_attempts=3, priority=200,
                    env={"KERBSIDE_HOUSES_PUBLISH": "0"})
+
+
+# ---- the interior engine -------------------------------------------------------------------
+#
+# The houses' inferred interiors (scripts/run_interior_engine.py): every eligible mapped house,
+# twenty to a batch, each batch independent of the others and CPU only (shapely and the
+# engine's own solver; no model). A batch is a job; a region's batches are collected into one
+# tree, ``pointers/interiors-<region>.json``, which ``smc-cloud promote --interiors`` publishes
+# onto the site (``--publish``: only houses whose validation passed). The restaurants' rounds
+# (scripts/build_inferred_restaurants.py) share one history -- a round retains its failures and
+# rotates its successes -- so they run one after another; their state is collected to
+# ``pointers/restaurants-latest.json``. Google price evidence is never read in the cloud: the
+# Places ingest (scripts/ingest_restaurant_prices.py) stays on the owner's machine.
+INTERIOR_OUT = "build/inferred-interiors"
+RESTAURANT_STATE = "build/inferred-restaurants"
+
+
+def interior_batch(region: str, index: int, *, priority: int = 300) -> JobSpec:
+    folder = f"{INTERIOR_OUT}/{region}/batch-{index:03d}"
+    return JobSpec(id=f"interior:{region}:{index:03d}", kind="interior_batch", subject=region,
+                   stage=f"batch-{index:03d}", resource="cpu",
+                   command=[[PY, "scripts/run_interior_engine.py", "--batch", f"{region}:{index}",
+                             "--out", INTERIOR_OUT]],
+                   save=[folder], timeout_s=2 * 3600, max_attempts=3, priority=priority)
+
+
+def interior_collect(region: str, batches: list[str], migrated: str | None) -> JobSpec:
+    """A region's finished batches as one tree, for promotion. The migrated folder (the Mac's
+    batches) is restored first: each later batch tree then adds its own folder beside it."""
+    restore = ([migrated] if migrated else []) + batches
+    return JobSpec(id=f"interiors:{region}:collect-{len(batches) + (1 if migrated else 0)}",
+                   kind="collect", subject=region, stage=f"interiors-{region}", resource="control",
+                   depends=restore, restore_from=restore, save=[f"{INTERIOR_OUT}/{region}"],
+                   priority=310, max_attempts=3)
+
+
+def restaurant_round(number: int, previous: str | None, *, priority: int = 320) -> JobSpec:
+    return JobSpec(id=f"restaurant:round-{number:05d}", kind="restaurant_round", subject="restaurants",
+                   stage=f"round-{number:05d}", resource="cpu",
+                   command=[[PY, "scripts/build_inferred_restaurants.py", "--out", RESTAURANT_STATE,
+                             "--seed-from", "docs/inferred-restaurants"]],
+                   depends=[previous] if previous else [], restore_from=[previous] if previous else [],
+                   save=[RESTAURANT_STATE], timeout_s=2 * 3600, max_attempts=3, priority=priority)
+
+
+def restaurant_collect(last: str) -> JobSpec:
+    return JobSpec(id=f"restaurants:collect:{last.split(':')[-1]}", kind="collect", subject="restaurants",
+                   stage="restaurants-latest", resource="control", depends=[last], restore_from=[last],
+                   save=[RESTAURANT_STATE], priority=330, max_attempts=3)

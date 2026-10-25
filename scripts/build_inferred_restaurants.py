@@ -12,6 +12,7 @@ import copy
 import hashlib
 import json
 import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -141,7 +142,11 @@ def main():
     parser.add_argument("--prices", type=Path, help="JSON venue id -> USD spend per person")
     parser.add_argument("--google-prices", type=Path, help="ingested Google price evidence cache")
     parser.add_argument("--region", default="sf-corridor")
+    parser.add_argument("--seed-from", type=Path,
+                        help="start an empty --out from this folder's rounds (a cloud worker's first round)")
     args = parser.parse_args()
+    if args.seed_from and not (args.out / "history.json").exists() and (args.seed_from / "history.json").exists():
+        shutil.copytree(args.seed_from, args.out, dirs_exist_ok=True)
     args.out.mkdir(parents=True, exist_ok=True)
     history_path = args.out / "history.json"
     history = (

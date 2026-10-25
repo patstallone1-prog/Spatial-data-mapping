@@ -63,6 +63,11 @@ lifecycle inside them, and pushes to GHCR from `main`) and `.github/workflows/cl
 | build, audit | CPU pool | Python and node, single-threaded per cell. |
 | gate, publish | controller | Small, and they need the public bucket's write key, which only the controller holds. |
 | house filter → match → materials | GPU pool (RunPod, one at a time) | torch/LightGlue with `--device cuda`. The journals are one shared state (`build/frontage-live`, `build/facade-match`), so batches run serially. Fits stay in the private bucket (`KERBSIDE_HOUSES_PUBLISH=0`). |
+| interior engine: house batches | CPU pool | `scripts/run_interior_engine.py --batch REGION:INDEX`, twenty houses a job, every batch independent (shapely and the engine's solver, no model). A region's batches are collected into `pointers/interiors-<region>.json` (a `collect` job on the controller). |
+| interior engine: restaurant rounds | CPU pool, one at a time | `scripts/build_inferred_restaurants.py`: the rounds share one history, so they chain. Collected to `pointers/restaurants-latest.json`. |
+| restaurant price ingest (Google Places) | **stays on the Mac** | Google's terms: no copies of Places content in other storage. The cloud rounds read no price cache (`data/restaurant-prices.json` is gitignored and not in the images). |
+| ground-gap inference | **stays on the Mac** (manual) | `tools/ground_capture/capture.mjs` needs headless Chrome. `tools/infer_ground_gaps.py` now cuts the region's water out of what it fills (`tools/strip_ground_water.py`). |
+| SF corridor imagery catalog | **stays on the Mac** | `scripts/update_sf_corridor.py`. Rebuilt rarely, and the corridor is not in the gap plan. |
 | Unreal worlds, DDC | **stays on the Mac** | The editor is macOS/Windows only. Linux Unreal is not supported or tested here. |
 | Google Street View reference | **stays on the Mac** | Restricted licence: no copies to other storage. It is never acquired in the cloud, and the workers get no Maps key. |
 | photo kerb / photo mesh prototypes | **stays on the Mac** | Not canonical, and never published automatically. |
@@ -112,6 +117,7 @@ pass and 3 on hold.
 
 ```
 smc-cloud plan --cells all --house-batches 50     # idempotent; resubmitting adds nothing
+smc-cloud plan --cells none --interiors --restaurant-rounds 10   # the interior engine
 smc-cloud status                                  # or open https://<controller>/ with the ops token
 smc-cloud review list
 smc-cloud requeue cell:<cell>:<stage>             # after fixing a quarantined job

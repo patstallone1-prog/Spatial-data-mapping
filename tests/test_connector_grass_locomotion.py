@@ -96,11 +96,15 @@ room:stairRecessClear(entry,5,4),landing:stairRecessClear(entry,5,3)}));
 
 
 def test_zoom_does_not_turn_climbing_into_flying_and_flat_speed_is_unchanged():
-    script = _extract("walkSurfaceSpeed", _page_js()) + """
+    script = "const SLOPE_BASE_SPEED = 5.36;" + _extract("walkSurfaceSpeed", _page_js()) + """
 console.log(JSON.stringify([walkSurfaceSpeed(100,{factor:.55,stairs:true}),
-walkSurfaceSpeed(8.94,{factor:.6,grade:.2}),walkSurfaceSpeed(5.36,{factor:1,grade:0})]));
+walkSurfaceSpeed(100,{factor:.6,grade:.2}),walkSurfaceSpeed(5.36,{factor:1.5,grade:-.35}),
+walkSurfaceSpeed(5.36,{factor:.6,grade:.3}),walkSurfaceSpeed(5.36,{factor:1,grade:0})]));
 """
-    assert json.loads(subprocess.check_output(["node", "-e", script], text=True)) == [1.35, 2.2, 5.36]
+    stairs, zoomed_up, down, up, flat = json.loads(subprocess.check_output(["node", "-e", script], text=True))
+    assert stairs == 1.35 and flat == 5.36
+    assert zoomed_up == pytest.approx(5.36 * .6), "zoomed out, a hill is still walked at a body's pace"
+    assert down == pytest.approx(5.36 * 1.5) and down > flat > up, "downhill is the quicker way"
 
 
 def test_retired_world_releases_blades_and_triangle_sampler_instead_of_rebuilding_it():

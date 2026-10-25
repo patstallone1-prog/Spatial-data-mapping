@@ -70,7 +70,8 @@ changes what is public. The owner does it, in this order. Steps marked **(spend)
   ```
 
   This uses `R2_PRIVATE_*` in the shell. It refuses restricted data and leaves out point
-  clouds unless you pass `--with-points`.
+  clouds unless you pass `--with-points`. Add `--interiors --restaurants` to upload the interior
+  engine's finished batches and the restaurants' rounds, so the cloud does not redo them.
 - [ ] **Check the provider APIs with one cell.** Run `smc-cloud plan --cells <one gap cell>` and
   watch the dashboard:
   - one Hetzner server starts;
@@ -83,7 +84,9 @@ changes what is public. The owner does it, in this order. Steps marked **(spend)
   - Add the GitHub Actions secrets and variables from `secrets.md`.
   - Set the repository variable `KERBSIDE_CLOUD_ENABLED=true`.
   - Run the workflow once by hand.
-- [ ] Run everything with `smc-cloud plan --cells all --house-batches 50`.
+- [ ] **Check the interior engine with one region.** Run `smc-cloud plan --cells none --interiors`
+  and watch the batches run on the CPU pool and each region's `interiors:<region>:collect-N` finish.
+- [ ] Run everything with `smc-cloud plan --cells all --house-batches 50 --interiors --restaurant-rounds 10`.
 
 ## 6. Putting cells on the site (each time)
 
@@ -91,6 +94,10 @@ changes what is public. The owner does it, in this order. Steps marked **(spend)
   each one with your name and a reason.
 - [ ] In a checkout, run `smc-cloud promote` and look at the diff. Then run
   `smc-cloud promote --open-pr` (needs `GITHUB_TOKEN`). The PR merges and deploys when CI passes.
+- [ ] Interiors: `smc-cloud promote --interiors` (needs `KERBSIDE_PRIVATE_STORE` and `R2_PRIVATE_*`)
+  restores each region's collected batches and runs `run_interior_engine.py --publish`, which
+  puts only houses that passed validation into `docs/inferred-interiors`. It also copies the
+  restaurants' rounds into `docs/inferred-restaurants`. Read the diff, then add `--open-pr`.
 - [ ] Check https://spatial-data-mapping.vercel.app/. If anything is wrong, run
   `smc-cloud release rollback`, then `smc-cloud promote --open-pr` again.
 
@@ -101,7 +108,13 @@ by design:
 
 - the Unreal worlds;
 - the restricted Street View reference;
-- the photo prototypes.
+- the photo prototypes;
+- the Google Places restaurant price ingest (Google's terms);
+- the ground-gap capture (headless Chrome, run by hand);
+- the SF corridor's imagery catalog refresh.
+
+Stop the overnight interior driver (`build/inferred-interiors/overnight.sh`) once the cloud's
+interiors are promoted: both publish into `docs/inferred-interiors`, and two writers would race.
 
 The Mac's local pipeline keeps working as it does today. Stop the local runners only after the
 cloud has finished the same cells.

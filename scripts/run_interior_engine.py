@@ -9,6 +9,10 @@ stops picks up where it left off. ``--merge`` writes one map overlay and manifes
 ``--publish`` puts every accepted house (its validation passed) into docs/inferred-interiors/,
 where the map furnishes it with that interior in place of its fitted plan; a house accepted
 again replaces the one published before. ``--max-batches`` runs only so many unfinished batches.
+
+In the cloud (smc.cloud.stages.interior_batch) each batch is a job of its own: ``--batch
+REGION:INDEX`` runs that one batch and nothing else, and ``--counts`` prints how many batches
+each region has, which is how the plan knows what to submit.
 """
 
 from __future__ import annotations
@@ -75,6 +79,11 @@ def eligible(region: str) -> list[dict]:
             "shell_height_m": height, "office": False, "neighborhood_price_per_sqft": None,
         })
     return sorted(rows, key=lambda r: hashlib.sha256(r["osm_id"].encode()).hexdigest())
+
+
+def batch_counts(regions: list[str]) -> dict[str, int]:
+    """How many batches of BATCH houses each region's eligible houses make."""
+    return {region: math.ceil(len(eligible(region)) / BATCH) for region in regions}
 
 
 def run_batch(region: str, index: int, rows: list[dict], out: Path) -> str:
@@ -158,7 +167,23 @@ def main() -> None:
     parser.add_argument("--merge", action="store_true", help="only merge finished batches")
     parser.add_argument("--publish", action="store_true", help="only publish the accepted houses")
     parser.add_argument("--max-batches", type=int, help="run at most this many unfinished batches")
+    parser.add_argument("--batch", help="REGION:INDEX -- run that one batch only (a cloud job)")
+    parser.add_argument("--counts", action="store_true", help="print each region's batch count as JSON")
     args = parser.parse_args()
+    if args.counts:
+        print(json.dumps(batch_counts(args.regions)))
+        return
+    if args.batch:
+        region, index = args.batch.rsplit(":", 1)
+        rows = eligible(region)[int(index) * BATCH:(int(index) + 1) * BATCH]
+        if not rows:
+            raise SystemExit(f"{region} has no batch {index}")
+        line = run_batch(region, int(index), rows, args.out)
+        print(line, flush=True)
+        # A batch held for disk, or one whose engine exited without a manifest, is not done.
+        if not (args.out / region / f"batch-{int(index):03d}" / "manifest.json").exists():
+            raise SystemExit(1)
+        return
     if args.merge:
         merge(args.out)
         return

@@ -3,6 +3,7 @@
     smc-cloud controller --config cloud/config/kerbside-cloud.toml
     smc-cloud worker                                  # environment from the boot token
     smc-cloud plan     --cells all --house-batches 50  # submit (idempotent)
+    smc-cloud plan     --cells none --interiors --restaurant-rounds 10   # the interior engine
     smc-cloud status
     smc-cloud review   list | approve|reject|rerun JOB --reviewer NAME --note WHY
     smc-cloud migrate  --private r2://kerbside-private --cells all --shared all --house-run DIR
@@ -10,7 +11,7 @@
     smc-cloud estimate
     smc-cloud gate     CELL                            # the parity gate on a local cell
     smc-cloud release  check | rollback [--to VERSION]
-    smc-cloud promote  [--open-pr]                     # the live release onto the site (manual)
+    smc-cloud promote  [--interiors] [--open-pr]       # the live release onto the site (manual)
     smc-cloud watchdog --config ...                    # the independent fail-safe
     smc-cloud selftest                                 # the whole lifecycle, locally
 
@@ -96,8 +97,15 @@ def cmd_promote(args) -> int:
     from .site import open_pull_request, promote
     from .store import open_store
 
-    pub = Publisher(open_store(args.public, role="public"), args.base)
-    result = promote(args.root, pub, rebuild=not args.no_rebuild)
+    pub = Publisher(open_store(args.public, role="public"), args.base) if args.public else None
+    private = None
+    if args.interiors:
+        if not args.private:
+            raise SystemExit("--interiors needs --private (or KERBSIDE_PRIVATE_STORE)")
+        private = open_store(args.private, role="private")
+    if pub is None and private is None:
+        raise SystemExit("set --public (or KERBSIDE_PUBLIC_STORE), or pass --interiors")
+    result = promote(args.root, pub, rebuild=not args.no_rebuild, interiors=private)
     if result.get("changed") and args.open_pr:
         token = os.environ.get("GITHUB_TOKEN", "")
         if not token:
@@ -158,6 +166,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--cells", default="all")
     p.add_argument("--house-batches", type=int, default=0)
     p.add_argument("--house-sample", type=int, default=24)
+    p.add_argument("--interiors", action="store_true", help="every region's interior engine batches")
+    p.add_argument("--restaurant-rounds", type=int, default=0)
     sub.add_parser("status")
     r = sub.add_parser("review")
     r.add_argument("action", choices=["list", "approve", "reject", "rerun"])
@@ -182,6 +192,9 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     pr.add_argument("--repo", default="patstallone1-prog/Spatial-data-mapping")
     pr.add_argument("--no-rebuild", action="store_true")
+    pr.add_argument("--interiors", action="store_true",
+                    help="also publish the collected interiors and restaurant rounds")
+    pr.add_argument("--private", default=os.environ.get("KERBSIDE_PRIVATE_STORE", ""))
     pr.add_argument("--open-pr", action="store_true")
     w = sub.add_parser("watchdog")
     w.add_argument("--config", type=Path, required=True)
@@ -204,7 +217,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "plan":
         cells = None if args.cells == "all" else [] if args.cells == "none" else args.cells.split(",")
         body = {"cells": cells,
-                "house_batches": args.house_batches, "house_sample": args.house_sample}
+                "house_batches": args.house_batches, "house_sample": args.house_sample,
+                "interiors": args.interiors, "restaurant_rounds": args.restaurant_rounds}
         print(json.dumps(_ops("/api/plan", body)))
         return 0
     if args.cmd == "status":
