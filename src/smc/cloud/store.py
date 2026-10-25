@@ -230,6 +230,12 @@ class R2Store(ObjectStore):
             raise
         return out["ETag"].strip('"')
 
+    def put_file(self, key: str, path: Path, **kw) -> str:
+        # Streamed from the file, not read into memory first: sixteen uploads of a house run's
+        # larger files at once held gigabytes, and the Mac swapped its disk full.
+        with open(path, "rb") as body:
+            return self.put(key, body, **kw)
+
     def get(self, key: str) -> bytes:
         try:
             return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
