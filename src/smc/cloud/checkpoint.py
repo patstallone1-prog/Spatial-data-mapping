@@ -14,6 +14,7 @@ import fnmatch
 import hashlib
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -103,6 +104,11 @@ def _sha(index: dict, rel: str, path: Path) -> str:
     return sha
 
 
+#: Files sent at once. Each is a HEAD and maybe a PUT, a round trip apiece to the bucket, so
+#: one at a time a folder of small files is bound by latency, not bandwidth.
+UPLOADS = 16
+
+
 def push_tree(store: ObjectStore, root: Path, paths: list[str], *,
               exclude: tuple[str, ...] = EXCLUDE, known: set[str] | None = None) -> TreeStats:
     """Save the folders ``paths`` under ``root``; returns the tree's digest and what was sent.
@@ -111,19 +117,27 @@ def push_tree(store: ObjectStore, root: Path, paths: list[str], *,
     known = known if known is not None else set()
     index = _load_index(root)
     files: dict[str, list] = {}
-    sent = total = 0
+    todo: dict[str, Path] = {}
+    total = 0
     for rel, path in walk(root, paths, exclude):
         sha = _sha(index, rel, path)
         size = path.stat().st_size
         total += size
         files[rel] = [sha, size, path.stat().st_mode & 0o777]
-        if sha in known:
-            continue
-        if store.head(cas_key(sha)) is None:
-            store.put_file(cas_key(sha), path)
-            sent += size
-        known.add(sha)
+        if sha not in known:
+            todo.setdefault(sha, path)
     _save_index(root, index)
+
+    def send(item: tuple[str, Path]) -> int:
+        sha, path = item
+        if store.head(cas_key(sha)) is not None:
+            return 0
+        store.put_file(cas_key(sha), path)
+        return path.stat().st_size
+
+    with ThreadPoolExecutor(UPLOADS) as pool:
+        sent = sum(pool.map(send, todo.items()))
+    known.update(todo)
     manifest = {"schema": "kerbside.tree/1", "paths": sorted(paths), "files": files}
     digest = manifest_digest(manifest)
     key = f"trees/{digest}.json"
