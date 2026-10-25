@@ -178,3 +178,28 @@ console.log(JSON.stringify({{ url, status: r.status, cors: r.headers.get("access
         assert hashlib.sha256(out["body"].encode()).hexdigest() == hashlib.sha256(payload.encode()).hexdigest()
     finally:
         server.shutdown()
+
+
+def test_a_file_that_vanishes_mid_push_is_left_out_of_the_tree(tmp_path) -> None:
+    """The house run is still being written while it is uploaded: a file moved on between the
+    walk and the upload must not leave the tree naming an object the store doesn't have."""
+    from smc.cloud.checkpoint import push_tree, read_tree
+    from smc.cloud.store import LocalStore
+
+    root = tmp_path / "src"
+    (root / "run").mkdir(parents=True)
+    (root / "run" / "keep.json").write_text('{"a": 1}')
+    (root / "run" / "review.json").write_text('{"b": 2}')
+    store = LocalStore(tmp_path / "store")
+    real = store.put_file
+
+    def put_file(key, path, **kw):
+        if Path(path).name == "review.json":
+            Path(path).unlink()
+            raise FileNotFoundError(path)
+        return real(key, path, **kw)
+
+    store.put_file = put_file
+    stats = push_tree(store, root, ["run"])
+    tree = read_tree(store, stats.tree)
+    assert sorted(tree["files"]) == ["run/keep.json"] and stats.files == 1
