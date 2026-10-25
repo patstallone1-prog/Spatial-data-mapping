@@ -3,6 +3,7 @@ finds its own address, an S3 store from the environment, and a plan that prints 
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -14,6 +15,9 @@ from smc.cloud.providers import CONTROLLER_POD, Pool, RunPodProvider, controller
 from smc.cloud.store import R2Store, open_store
 
 ROOT = Path(__file__).resolve().parents[1]
+# An S3 store is a boto3 client: the cloud images have it, the site CI does not.
+needs_boto3 = pytest.mark.skipif(importlib.util.find_spec("boto3") is None,
+                                 reason="boto3 (the cloud extra)")
 ENV = {"KERBSIDE_SECRET": "sekrit", "KERBSIDE_OPS_TOKEN": "opstok", "RUNPOD_API_KEY": "rpkey",
        "AWS_REGION": "us-west-2", "S3_PRIVATE_BUCKET": "kerbside-private",
        "S3_PRIVATE_ACCESS_KEY_ID": "AKPRIV", "S3_PRIVATE_SECRET_ACCESS_KEY": "privsecret",
@@ -53,6 +57,7 @@ def test_listing_keeps_each_workers_pool_and_never_the_controller_or_the_owners_
     assert found[0].created_at == 1792890000.0
 
 
+@needs_boto3
 def test_the_controller_on_runpod_takes_its_pods_proxy_address_and_runs_its_own_build() -> None:
     cfg = Config.load(ROOT / "cloud/config/kerbside-cloud.toml",
                       env={**ENV, "RUNPOD_POD_ID": "pod123", "KERBSIDE_IMAGE_TAG": "cafe"})
@@ -65,6 +70,7 @@ def test_the_controller_on_runpod_takes_its_pods_proxy_address_and_runs_its_own_
     assert cfg.budget.hard_monthly_usd <= 15
 
 
+@needs_boto3
 def test_an_s3_store_comes_from_the_environment_per_role() -> None:
     store = open_store("s3://kerbside-private", role="private", env=ENV)
     assert isinstance(store, R2Store) and store.bucket == "kerbside-private"
