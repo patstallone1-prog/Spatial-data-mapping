@@ -31,16 +31,16 @@ jobs:
         env:
           KERBSIDE_SECRET: ${{ secrets.KERBSIDE_SECRET }}
           KERBSIDE_OPS_TOKEN: ${{ secrets.KERBSIDE_OPS_TOKEN }}
+          # The controller pod's proxy address, https://<pod id>-8080.proxy.runpod.net.
           KERBSIDE_CONTROLLER_URL: ${{ vars.KERBSIDE_CONTROLLER_URL }}
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_PRIVATE_BUCKET: kerbside-private
-          R2_PRIVATE_ACCESS_KEY_ID: ${{ secrets.R2_PRIVATE_ACCESS_KEY_ID }}
-          R2_PRIVATE_SECRET_ACCESS_KEY: ${{ secrets.R2_PRIVATE_SECRET_ACCESS_KEY }}
-          R2_PUBLIC_BUCKET: kerbside-public
-          R2_PUBLIC_BASE: ${{ vars.R2_PUBLIC_BASE }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          S3_PRIVATE_BUCKET: kerbside-private
+          S3_PRIVATE_ACCESS_KEY_ID: ${{ secrets.S3_PRIVATE_ACCESS_KEY_ID }}
+          S3_PRIVATE_SECRET_ACCESS_KEY: ${{ secrets.S3_PRIVATE_SECRET_ACCESS_KEY }}
+          S3_PUBLIC_BUCKET: kerbside-public
+          S3_PUBLIC_BASE: ${{ vars.S3_PUBLIC_BASE }}
           # The watchdog never writes the public bucket: it is handed no key that could.
-          R2_PUBLIC_ACCESS_KEY_ID: ${{ secrets.R2_PRIVATE_ACCESS_KEY_ID }}
-          R2_PUBLIC_SECRET_ACCESS_KEY: ${{ secrets.R2_PRIVATE_SECRET_ACCESS_KEY }}
+          S3_PUBLIC_ACCESS_KEY_ID: ${{ secrets.S3_PRIVATE_ACCESS_KEY_ID }}
+          S3_PUBLIC_SECRET_ACCESS_KEY: ${{ secrets.S3_PRIVATE_SECRET_ACCESS_KEY }}
         run: smc-cloud watchdog --config cloud/config/kerbside-cloud.toml --grace-min 60 --max-hours 30

@@ -38,7 +38,7 @@ jobs:
           cache-from: type=gha,scope=cpu
           cache-to: type=gha,mode=max,scope=cpu
       - name: cloud tests inside the image
-        run: docker run --rm --entrypoint python kerbside-cpu:test -m pytest -q tests/test_cloud_queue.py tests/test_cloud_storage.py tests/test_cloud_scheduler.py tests/test_cloud_control.py -p no:cacheprovider
+        run: docker run --rm --entrypoint python kerbside-cpu:test -m pytest -q tests/test_cloud_queue.py tests/test_cloud_storage.py tests/test_cloud_scheduler.py tests/test_cloud_control.py tests/test_cloud_runpod_s3.py -p no:cacheprovider
       - name: the whole lifecycle inside the image
         run: docker run --rm kerbside-cpu:test selftest
       - name: push

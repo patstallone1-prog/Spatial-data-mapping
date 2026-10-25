@@ -1,57 +1,60 @@
 # Kerbside cloud: the controller's settings. Committed; holds no secret. ``${NAME}`` is filled
 # from the controller's environment (cloud/docs/secrets.md lists every variable).
 #
-# Pool sizes and prices are the starting point from cloud/docs/costs.md (measured stage times
-# on the Mac, list prices of 2026-10-18). Re-measure with bench jobs once the first cells have
+# Everything runs on RunPod (the controller, CPU and GPU workers) and stores in AWS S3
+# (2026-10-25; the Hetzner and R2 code paths remain, unused). Pool sizes and prices are a
+# starting point (cloud/docs/costs.md). Re-measure with bench jobs once the first cells have
 # run in the cloud, then adjust: the dashboard shows cost per finished stage.
 
-pass_env = ["R2_ACCOUNT_ID", "R2_PRIVATE_ACCESS_KEY_ID", "R2_PRIVATE_SECRET_ACCESS_KEY",
+pass_env = ["AWS_REGION", "S3_ENDPOINT_URL", "S3_PRIVATE_ACCESS_KEY_ID", "S3_PRIVATE_SECRET_ACCESS_KEY",
             "MAPILLARY_ACCESS_TOKEN", "MAPILLARY_TOKEN", "HUGGINGFACE_TOKEN"]
 
 [controller]
-url = "${KERBSIDE_CONTROLLER_URL}"      # e.g. https://control.example.org
-db = "/data/queue.sqlite"
+# On RunPod this is left unset and the controller takes its own pod's proxy address,
+# https://<pod id>-8080.proxy.runpod.net (controller.Config.load).
+url = "${KERBSIDE_CONTROLLER_URL}"
+# The pod's container disk; backed up to the private bucket every 5 minutes and restored by a
+# restarted controller, so no paid volume is needed.
+db = "/app/build/queue.sqlite"
 root = "/app"
 lease_ttl_s = 120
 tick_s = 20
 backup_s = 300
 
 [stores]
-private = "r2://${R2_PRIVATE_BUCKET}"   # kerbside-private
-public = "r2://${R2_PUBLIC_BUCKET}"     # kerbside-public
-public_base = "${R2_PUBLIC_BASE}"       # the public bucket's custom domain, https://assets...
+private = "s3://${S3_PRIVATE_BUCKET}"   # kerbside-private: no public access at all
+public = "s3://${S3_PUBLIC_BUCKET}"     # kerbside-public: public read, CORS for the site
+public_base = "${S3_PUBLIC_BASE}"       # its public address: a CloudFront domain, or the bucket's
 
-# The $50 month (cloud/docs/costs.md). These limits count workers and storage; the controller
-# ($6.49 a month, fixed) is on top, so $43.50 here is $50 in all. Launches stop at $40 and
-# the hard limit stops everything and pauses the queue: about 110 GPU-hours fit after the CPU.
+# Sized to the $15 prepaid on RunPod. These limits count workers and storage; the controller
+# pod is on top of them (stop it when nothing is queued: smc-cloud runpod-controller stop).
 [budget]
-daily_usd = 10.0
-monthly_usd = 40.0
-hard_monthly_usd = 43.5
+daily_usd = 4.0
+monthly_usd = 10.0
+hard_monthly_usd = 11.0
 
-# CPU: terrain and lidar spend most of their time waiting on USGS, so an 8-vCPU shared CX43
-# runs eight cells at once. The CX line is sold only in Germany and Finland, so the lidar
-# crosses the Atlantic from AWS us-west-2; measure one cell before running the plan, and move
-# to cpx32 in "hil" if that makes it slower per dollar.
+# CPU: RunPod CPU pods. Terrain and lidar spend most of their time waiting on USGS, so eight
+# vCPUs run eight cells at once. hourly_usd is an estimate kept on the high side (RunPod's
+# console shows the live price); the budget counts with it, so a high guess only stops sooner.
 [pools.cpu]
-provider = "hetzner"
-instance_type = "cx43"
-hourly_usd = 0.0253
-image = "ghcr.io/patstallone1-prog/kerbside-cpu:3530575d3cd5e6cd7336c828755c5178d58b8e53"  # pinned 2026-10-24 (main after PR #102)
-max_workers = 3
+provider = "runpod"
+instance_type = "cpu3g"
+hourly_usd = 0.32
+image = "ghcr.io/patstallone1-prog/kerbside-cpu:${KERBSIDE_IMAGE_TAG}"
+max_workers = 2
 slots = 8
 idle_minutes = 10
 max_hours = 24
-min_billed_hours = 1
-location = "fsn1"
-disk_gb = 160
+min_billed_hours = 0
+disk_gb = 80
+extra = { compute = "CPU", vcpus = 8, cloud_type = "SECURE", interruptible = false }
 
 # GPU: the house pipeline, one batch at a time (its journals are one state; smc.cloud.stages).
 [pools.gpu]
 provider = "runpod"
 instance_type = "NVIDIA RTX A5000"
 hourly_usd = 0.27
-image = "ghcr.io/patstallone1-prog/kerbside-gpu:3530575d3cd5e6cd7336c828755c5178d58b8e53"  # pinned 2026-10-24 (main after PR #102)
+image = "ghcr.io/patstallone1-prog/kerbside-gpu:${KERBSIDE_IMAGE_TAG}"
 max_workers = 1
 slots = 1
 idle_minutes = 5
@@ -69,5 +72,5 @@ firewall_ids = []
 # absent: the Google Maps key (restricted Street View is never acquired in the cloud), the
 # public bucket's write key (only the controller publishes), the contributor and launcher tokens.
 [worker_env]
-KERBSIDE_PRIVATE_STORE = "r2://${R2_PRIVATE_BUCKET}"
+KERBSIDE_PRIVATE_STORE = "s3://${S3_PRIVATE_BUCKET}"
 KERBSIDE_ROOT = "/app"

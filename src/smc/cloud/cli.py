@@ -6,7 +6,7 @@
     smc-cloud plan     --cells none --interiors --restaurant-rounds 10   # the interior engine
     smc-cloud status
     smc-cloud review   list | approve|reject|rerun JOB --reviewer NAME --note WHY
-    smc-cloud migrate  --private r2://kerbside-private --cells all --shared all --house-run DIR
+    smc-cloud migrate  --private s3://kerbside-private --cells all --shared all --house-run DIR
     smc-cloud inventory --volume "/Volumes/HP P700 1" --out cloud/docs/inventory.json
     smc-cloud estimate
     smc-cloud gate     CELL                            # the parity gate on a local cell
@@ -14,6 +14,7 @@
     smc-cloud promote  [--interiors] [--open-pr]       # the live release onto the site (manual)
     smc-cloud watchdog --config ...                    # the independent fail-safe
     smc-cloud selftest                                 # the whole lifecycle, locally
+    smc-cloud runpod-controller plan|check|create|status|stop|start   # the controller's pod
 
 Operator commands talk to the controller at ``KERBSIDE_CONTROLLER`` with ``KERBSIDE_OPS_TOKEN``.
 """
@@ -178,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     rq.add_argument("job")
     sub.add_parser("migrate", add_help=False)
     sub.add_parser("inventory", add_help=False)
+    sub.add_parser("runpod-controller", add_help=False)
     e = sub.add_parser("estimate")
     e.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     rel = sub.add_parser("release")
@@ -204,8 +206,8 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("cell")
     g.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     sub.add_parser("selftest")
-    if argv and argv[0] in ("migrate", "inventory"):
-        module = __import__(f"smc.cloud.{argv[0]}", fromlist=["main"])
+    if argv and argv[0] in ("migrate", "inventory", "runpod-controller"):
+        module = __import__(f"smc.cloud.{argv[0].replace('-', '_')}", fromlist=["main"])
         return module.main(argv[1:])
     args = ap.parse_args(argv)
     if args.cmd == "controller":

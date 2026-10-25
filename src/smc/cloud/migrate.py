@@ -126,7 +126,7 @@ def migrate_restaurants(store: ObjectStore, root: Path, known: set[str] | None =
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--private", default=os.environ.get("KERBSIDE_PRIVATE_STORE"),
-                    help="r2://kerbside-private, or a folder")
+                    help="s3://kerbside-private (or r2://...), or a folder")
     ap.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     ap.add_argument("--cells", default="", help="comma-separated, or 'all' for every folder present")
     ap.add_argument("--shared", default="", help="comma-separated names, or 'all'")
