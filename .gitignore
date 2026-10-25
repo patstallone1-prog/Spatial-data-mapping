@@ -149,3 +149,5 @@ cloud/infra/terraform/*.tfstate*
 
 # The Quest app package: its signing key and builds never go in the repo
 /Kerbside Quest/
+# Refreshable Google price evidence is a local cache, not permanent published map data.
+/data/restaurant-prices.json

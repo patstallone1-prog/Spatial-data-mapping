@@ -8,6 +8,10 @@ content-addressed tree (:mod:`.checkpoint`) with a pointer the plan and the work
   done as done, so nothing finished is run again.
 * ``pointers/shared-<name>.json`` -- an input no stage re-fetches (:data:`.stages.SHARED_INPUTS`).
 * ``pointers/house-state.json``   -- the house pipeline's journals and fits.
+* ``pointers/interiors-state-<region>.json`` -- the interior engine's finished batches
+  (``build/inferred-interiors/<region>``); the plan records each batch with a manifest done.
+* ``pointers/restaurant-state.json`` -- the restaurants' rounds so far (``docs/inferred-
+  restaurants``, saved as ``build/inferred-restaurants``, where the round jobs keep it).
 
 Refused, whatever is asked: anything :mod:`.inventory` classes ``restricted`` (Street View
 references, Waymo, PandaSet pixels). Skipped: caches and data the stages fetch again (point
@@ -26,7 +30,7 @@ from pathlib import Path
 
 from .checkpoint import EXCLUDE, get_pointer, push_tree, set_pointer
 from .inventory import classify
-from .stages import HOUSE_STATE, SHARED_INPUTS
+from .stages import HOUSE_STATE, INTERIOR_OUT, RESTAURANT_STATE, SHARED_INPUTS
 from .store import ObjectStore, open_store
 
 POINT_EXCLUDE = (*EXCLUDE, "points")
@@ -90,6 +94,35 @@ def migrate_house_state(store: ObjectStore, run_dir: Path, known: set[str] | Non
             "sent": stats.bytes_sent}
 
 
+def migrate_interiors(store: ObjectStore, root: Path, known: set[str] | None = None) -> list[dict]:
+    """Each region's finished interior batches, one tree a region."""
+    out = []
+    base = Path(root) / INTERIOR_OUT
+    for region in sorted(p.name for p in base.iterdir() if p.is_dir()) if base.is_dir() else []:
+        rel = f"{INTERIOR_OUT}/{region}"
+        done = sorted(m.parent.name for m in (base / region).glob("batch-*/manifest.json"))
+        if not done:
+            continue
+        stats = push_tree(store, root, [rel], known=known)
+        set_pointer(store, f"interiors-state-{region}", stats.tree, batches_done=done)
+        out.append({"interiors": region, "tree": stats.tree, "batches_done": len(done),
+                    "bytes": stats.bytes_total, "sent": stats.bytes_sent})
+    return out
+
+
+def migrate_restaurants(store: ObjectStore, root: Path, known: set[str] | None = None) -> dict:
+    source = Path(root) / "docs/inferred-restaurants"
+    if not (source / "history.json").is_file():
+        return {"restaurants": "skipped", "why": "no rounds here"}
+    with tempfile.TemporaryDirectory() as tmp:
+        farm = Path(tmp)
+        (farm / RESTAURANT_STATE).parent.mkdir(parents=True)
+        (farm / RESTAURANT_STATE).symlink_to(source)
+        stats = push_tree(store, farm, [RESTAURANT_STATE], known=known)
+    set_pointer(store, "restaurant-state", stats.tree, source="docs/inferred-restaurants")
+    return {"restaurants": stats.tree, "files": stats.files, "bytes": stats.bytes_total, "sent": stats.bytes_sent}
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--private", default=os.environ.get("KERBSIDE_PRIVATE_STORE"),
@@ -99,6 +132,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--shared", default="", help="comma-separated names, or 'all'")
     ap.add_argument("--house-run", type=Path, help="the drive's frontage run folder")
     ap.add_argument("--with-points", action="store_true")
+    ap.add_argument("--interiors", action="store_true", help="the interior engine's finished batches")
+    ap.add_argument("--restaurants", action="store_true", help="the restaurants' rounds so far")
     ap.add_argument("--only-missing", action="store_true", help="skip cells already migrated")
     args = ap.parse_args(argv)
     if not args.private:
@@ -122,6 +157,11 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(migrate_shared(store, args.root, name, known)), flush=True)
     if args.house_run:
         print(json.dumps(migrate_house_state(store, args.house_run, known)), flush=True)
+    if args.interiors:
+        for row in migrate_interiors(store, args.root, known):
+            print(json.dumps(row), flush=True)
+    if args.restaurants:
+        print(json.dumps(migrate_restaurants(store, args.root, known)), flush=True)
     return 0
 
 

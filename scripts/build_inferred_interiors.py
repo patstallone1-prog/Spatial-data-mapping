@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 from shapely import affinity
-from shapely.geometry import Polygon, box, mapping
+from shapely.geometry import Polygon, box, mapping, shape
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -117,8 +117,15 @@ def fixtures() -> list[dict]:
     return result
 
 
-def write(path: Path, value: dict | list) -> None:
-    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
+def write(path: Path, value: dict | list, *, indent=2) -> None:
+    path.write_text(json.dumps(value, indent=indent, allow_nan=False) + "\n")
+
+
+def update_overlay(path: Path, overlay: dict) -> None:
+    """A small review batch must retain accepted houses from every other region."""
+    existing = json.loads(path.read_text())["buildings"] if path.exists() else {}
+    existing.update(overlay)
+    write(path, {"schema": "kerbside.inferred_house_overlay/1", "buildings": existing}, indent=1)
 
 
 def main() -> None:
@@ -176,7 +183,9 @@ def main() -> None:
     for row in inputs:
         try:
             if row["id"] in rejected:
-                raise ValueError(f"Kerbside's facade rules reject this shell: {rejected[row['id']]}")
+                raise ValueError(
+                    f"Kerbside's facade rules reject this shell: {rejected[row['id']]}"
+                )
             if args.reuse_synthetic and not row.get("osm_id"):
                 house = json.loads((args.out / f"{row['id']}.json").read_text())
             elif args.refresh_assets:
@@ -189,6 +198,18 @@ def main() -> None:
                 house = infer_house(HouseInput.from_json(row), catalog)
             house["name"] = row.get("name", row["id"])
             house["input_evidence"] = row
+            house["provenance"]["geometry"] = {
+                "source": row["source"],
+                "footprint_area_m2": shape(row["footprint"]).area,
+                "footprint_area_sqft": shape(row["footprint"]).area * 10.7639104167,
+                "floor_area_m2": sum(shape(s["footprint"]).area for s in house["storeys"]),
+                "storey_heights_m": [s["height_m"] for s in house["storeys"]],
+                "canonical_rules_sha256": envelope.get("canonical_rules_sha256"),
+                "measured": False,
+                "confidence": 0.25,
+                "freshness": None,
+                "corroboration_count": 0,
+            }
             write(args.out / f"{row['id']}.json", house)
             record = {
                 "id": row["id"],
@@ -230,10 +251,7 @@ def main() -> None:
             "measured": False,
         },
     )
-    write(
-        args.out / "map-overlay.json",
-        {"schema": "kerbside.inferred_house_overlay/1", "buildings": overlay},
-    )
+    update_overlay(args.out / "map-overlay.json", overlay)
     if not all(r["passed"] for r in records):
         raise SystemExit(1)
 

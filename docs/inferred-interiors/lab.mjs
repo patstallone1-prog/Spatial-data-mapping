@@ -1,7 +1,7 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import {OrbitControls} from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 import {GLTFLoader} from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildInferredHouse} from './renderer.mjs?v=seating-laundry-3';
+import {buildInferredHouse} from './renderer.mjs?v=prep-islands-4';
 import {TourWorld,inPolygon} from './tour-world.mjs';
 const restaurant=location.pathname.includes('inferred-restaurants');
 const $=id=>document.getElementById(id),canvas=$('canvas'),viewport=$('viewport');
@@ -74,7 +74,14 @@ async function choose(record){
  $('swatches').innerHTML=[...h.style.walls,h.style.wood,h.style.accent].map(c=>`<i style="background:${c}"></i>`).join('');$('palette').textContent=h.style.name;
  $('validation').textContent=h.validation.passed?'Geometry checks passed':'Validation failed';
  $('inspector').textContent=restaurant?`${h.validation.metrics.seats} seats · ${h.validation.metrics.tables} tables · ${h.validation.metrics.booths} booths. ${Object.entries(h.validation.metrics.table_sizes||{}).filter(([_,n])=>n).map(([size,n])=>`${n} × ${size}-person`).join(', ')}. ${h.service_mode} service. ${h.style.economic_evidence}. Tenant boundary is an assumption. ${(h.omitted_optional_features||[]).join('; ')}`:`${(h.validation.metrics.coverage_min*100).toFixed(0)}% usable area covered. ${(h.validation.metrics.hallway_area_fraction_max*100).toFixed(0)}% maximum hallway share. ${h.storeys.reduce((sum,f)=>sum+(f.space_efficiency?.hallway_reclaimed_m2||0),0).toFixed(1)} m² of corridor returned to rooms. ${h.style.economic_evidence}.`;
- if(restaurant){$('spend').value=h.style.average_spend_per_person??'';$('economics').textContent=`${h.style.furnishing_finish} · ${h.style.economic_evidence}`;}
+ if(restaurant){
+  $('spend').value=h.style.average_spend_per_person??'';
+  const price=h.style.price_evidence,range=price?.range_usd;
+  const amount=range?` · $${range.min}${range.max===null?'+':`–${range.max}`} USD${price.symbols?` (${price.symbols})`:''}` : '';
+  $('economics').textContent=`${h.style.furnishing_finish} · ${h.style.economic_evidence}${amount}`;
+  if(price?.source_url){const link=document.createElement('a');link.href=price.source_url;link.textContent=' · Google Maps';link.target='_blank';link.rel='noreferrer';$('economics').append(link);}
+  if(h.footprint_area_m2)$('inspector').textContent+=` Outline ${h.footprint_area_m2.toFixed(1)} m² / ${h.footprint_area_sqft.toFixed(0)} ft²; floor height ${h.total_height_m.toFixed(2)} m. ${h.validation.metrics.prep_islands||0} central prep islands.`;
+ }
  const sources=new Map();for(const f of h.storeys)for(const o of f.objects)if(!o.asset.procedural)sources.set(o.asset.attribution,o.asset.source);
  $('credits').innerHTML=[...sources].map(([name,url])=>`<a href="${escape(url)}" target="_blank" rel="noreferrer">${escape(name)}</a>`).join(' · ');
  rebuild(true);if(mode==='tour')spawnTour();
@@ -103,11 +110,21 @@ function setMode(m){const wasTour=mode==='tour';mode=m;controls.enabled=m==='3d'
 $('three').onclick=()=>setMode('3d');$('two').onclick=()=>setMode('2d');$('tour').onclick=()=>setMode('tour');$('visit-go').onclick=()=>spawnTour($('visit').value);$('door').onclick=toggleDoor;
 window.addEventListener('keydown',e=>{if(e.code==='Escape'&&viewport.classList.contains('expanded')){viewport.classList.remove('expanded');$('expand').textContent='Expand view';return;}if(mode!=='tour'||['INPUT','SELECT'].includes(document.activeElement.tagName))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();if(!e.repeat&&e.code==='ArrowLeft')yaw+=Math.PI/12;if(!e.repeat&&e.code==='ArrowRight')yaw-=Math.PI/12;keys.add(e.code);}if(e.code==='KeyE'&&!e.repeat)toggleDoor();if(e.code==='Escape')setMode('3d');});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>keys.clear());
 let dragging=false;canvas.addEventListener('pointerdown',e=>{if(mode==='tour'){dragging=true;canvas.setPointerCapture(e.pointerId);canvas.focus();}});canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointermove',e=>{if(mode==='tour'&&dragging){yaw-=e.movementX*.004;pitch=Math.max(-1.35,Math.min(1.35,pitch-e.movementY*.004));}});
-try{const manifest=await fetch('./manifest.json',{cache:'no-store'}).then(r=>r.json());$('batch').textContent=`${manifest.passed} / ${manifest.total} ${restaurant?'venues':'houses'} validated`;
+async function showBatch(manifest){$('houses').replaceChildren();$('batch').textContent=`${manifest.passed} / ${manifest.total} ${restaurant?'venues':'houses'} validated`;
  for(const [i,r]of manifest.houses.entries()){const b=document.createElement('button');b.className='house';b.dataset.id=r.id;
   b.innerHTML=`<span class="num">${String(i+1).padStart(2,'0')}</span><span><span class="title">${escape(r.name.split(',')[0])}</span><span class="sub">${r.passed?`${r.storeys} storey · ${r.metrics.objects} objects`:'Rejected input'}</span></span><span class="dot"></span>`;
   b.classList.toggle('failed',!r.passed);b.onclick=()=>r.passed?choose(r):$('inspector').textContent=`${r.name}: ${r.reason}`;$('houses').appendChild(b);}
  await choose(restaurant?[...manifest.houses].filter(r=>r.passed).sort((a,b)=>b.metrics.seats-a.metrics.seats)[0]:manifest.houses.find(r=>r.id==='stress-family'&&r.passed)||manifest.houses.find(r=>r.passed));
+}
+try{
+ const manifest=await fetch('./manifest.json',{cache:'no-store'}).then(r=>r.json());
+ await showBatch(manifest);
+ if(restaurant){
+  const history=await fetch('./history.json',{cache:'no-store'}).then(r=>r.json());
+  const rounds=history.rounds.filter(r=>r.status==='complete');
+  $('round').innerHTML=rounds.map(r=>`<option value="${r.number}">Round ${r.number}</option>`).join('');$('round').value=String(manifest.round);
+  $('round').onchange=async()=>{const r=rounds.find(r=>String(r.number)===$('round').value);if(r)await showBatch({houses:r.results,passed:r.results.filter(v=>v.passed).length,total:r.selected.length});};
+ }
 }catch(e){$('inspector').textContent=e.message;console.error(e);}
 
 // A new spend runs the engine again, which only the local lab (scripts/serve_interior_lab.py) can;

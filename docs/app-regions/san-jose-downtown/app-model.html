@@ -97,7 +97,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="9d2ec78fdea54f128e7ba4607abc585bc8c075cb92e2892cd5ec7e5c1f4f91c9" />
+<meta name="kerbside-renderer-sha256" content="9b2ca6167f5ccd6816a1fe4acf3f3bb2cf52b3920816abbef7993b6cdf54580d" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -2393,6 +2393,21 @@ root.add(ground);
 //: the pavement at every sharp grade break -- at the foot of Grenard Terrace by half a metre.
 const TERRAIN_MESH_STRIDE = 2;
 const TERRAIN_MESH_UNDER_M = 0.35;
+//: The ground the terrain mesh covers, as x0, z0, x1, z1 in the page's metres; null with no
+//: terrain. A window drawn in full cuts the landscape away only where its own ground is: past
+//: the terrain's edge (the estuary off Jack London Square) the cut showed the bare base plane.
+function terrainPageRect() {
+  if (!TERRAIN_FRAME) return null;
+  const f=TERRAIN_FRAME,stride=TERRAIN_MESH_STRIDE;
+  const a=terrainToPage(f.x0+.5*f.step_m,f.y0+.5*f.step_m,f);
+  const b=terrainToPage(f.x0+(Math.floor((f.cols-1)/stride)*stride+.5)*f.step_m,
+    f.y0+(Math.floor((f.rows-1)/stride)*stride+.5)*f.step_m,f);
+  return [Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];
+}
+function clipToTerrain(box) {
+  const r=terrainPageRect();
+  return r ? [Math.max(box[0],r[0]),Math.max(box[1],r[1]),Math.min(box[2],r[2]),Math.min(box[3],r[3])] : box;
+}
 //: The backdrop is cut into tiles of this many mesh vertices a side, each culled on its own.
 //: As one mesh it was 1.8 million triangles that could never be culled, drawn under every
 //: view including a first-person one looking at a single block.
@@ -3631,13 +3646,9 @@ function natureVisualHeightAt(x,z,h,wet) {
   return y;
 }
 if (NATURE) {
-  const localBounds = BUILD_WINDOW ? localWindowBox(BUILD_WINDOW.box) : TERRAIN_FRAME ? (() => {
-    const f=TERRAIN_FRAME,stride=TERRAIN_MESH_STRIDE;
-    const a=terrainToPage(f.x0+.5*f.step_m,f.y0+.5*f.step_m,f);
-    const b=terrainToPage(f.x0+(Math.floor((f.cols-1)/stride)*stride+.5)*f.step_m,
-      f.y0+(Math.floor((f.rows-1)/stride)*stride+.5)*f.step_m,f);
-    return new THREE.Vector4(a[0],b[1],b[0],a[1]);
-  })() : new THREE.Vector4(1,1,0,0);
+  const localBounds = BUILD_WINDOW ? (() => {
+    const b=localWindowBox(BUILD_WINDOW.box);return new THREE.Vector4(...clipToTerrain([b.x,b.y,b.z,b.w]));
+  })() : TERRAIN_FRAME ? new THREE.Vector4(...terrainPageRect()) : new THREE.Vector4(1,1,0,0);
   const hostBox={value:localBounds};
   natureWorld=natureLibrary.createNatureWorld({THREE,root,atlas:NATURE,
     toPage:(lon,lat)=>{const [x,y]=xy(lon,lat);return [x,-y];},
@@ -18274,7 +18285,7 @@ for (const way of DRAW_ORDER) {
   const surfaceThickness = isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop;
  const surfaceKind = isCrossing ? crossingMarkingKind(way)
   : (isSidewalk || isPath) ? (widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk") : "road";
-  if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters)) continue;
+  if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters, surfaceKind ? null : "unmarked")) continue;
     // Continental unless we positively know otherwise. San Francisco has been converting its
     // marked crossings to ladders for years, and the inventory is demonstrably incomplete --
     // 598 of its points sit near no mapped crossing at all, which is the two datasets
@@ -20271,6 +20282,16 @@ function buildFences(ground) {
 // 1.15 and a sun at 2.0 over ACES tone mapping, which is about two and a half stops of gain on
 // a flat diffuse surface: a true court green of 0x41805f came out of it as pale cyan, closer to
 // concrete than to acrylic. These are the colours that land right after the light, not before.
+//: A floodlight mast (tower:type=lighting): the poles round the courts and fields. They were drawn
+//: as cell masts, thirty metres with three sectors of antennas, some of them in the middle of a
+//: tennis court where the map's point fell. A court's lights are about twelve metres, a head of
+//: lamps tilted down at the court, and they stand round it: one whose point falls on a court
+//: pad is put just outside its edge (COURT_LIGHT_OUT_M past it).
+const FLOODLIGHT_DEFAULT_M = 12;
+const COURT_LIGHT_OUT_M = 0.8;
+//: The hard courts' pads in this page's metres (buildCourts), and the floodlights to seat round them.
+const COURT_PADS = [];
+let courtLights = null;
 const COURT_STYLE = {
   tennis:     { surround: 0x1d3a2c, play: 0x28503b, line: 0.05, net: 1.07, netMid: 0.914,
                 fence: 3.66 },
@@ -20525,23 +20546,44 @@ function buildCourts(ground) {
     ...complexes.map((c) => ({ s: c.s, p: c.p, block: true, dividers: c.d || [] }))];
   if (!courts.length && !pitches.length) return;
 
-  // The ground each pitch stands on, one merged mesh per sport: asphalt round the hard courts,
-  // grass under the fields.
-  const bySport = new Map();
+  // The ground each pitch stands on round its courts: the grass of the park it is in. It was a
+  // dark green acrylic pad out to the mapped pitch's edge, which in the parks here is the lawn
+  // the courts are set in, and it read as a dark patch that belonged to nothing. The courts'
+  // own coloured surfaces (below) run their run-off past the lines; the fields are grass anyway.
+  const parkVariantAt = (lon, lat) => {
+    const park = (ground.parks || []).find((q) => pointInRing(lon, lat, q.p));
+    return park ? grassVariantForRing(park.p, GRASS_VARIANTS) : 0;
+  };
+  const byVariant = new Map();
   for (const pitch of pitches) {
-    if (!bySport.has(pitch.s)) bySport.set(pitch.s, []);
-    bySport.get(pitch.s).push(pitch.p);
+    if (!COURT_STYLE[pitch.s]) continue;
+    const [lon, lat] = ringCentroid(pitch.p);
+    const variant = COURT_STYLE[pitch.s].surround === null ? -1 : parkVariantAt(lon, lat);
+    if (!byVariant.has(variant)) byVariant.set(variant, []);
+    byVariant.get(variant).push(pitch.p);
   }
-  for (const [sport, rings] of bySport) {
-    const style = COURT_STYLE[sport];
-    if (!style) continue;
+  for (const [variant, rings] of byVariant) {
     const geom = ringGeometry(rings, COURT_Y);
     if (!geom) continue;
-    addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
-      map: style.surround === null ? grassTexture() : courtSurface(style.surround),
-      color: 0xffffff, roughness: 0.94, metalness: 0.0, side: THREE.DoubleSide,
+    // The pad is lifted onto the hill at its own triangles' corners and a court's surface at its
+    // own, a few centimetres apart over a court's length, and the pad's triangles came up through
+    // the courts in patches. It is drawn before them and leaves the depth alone, so a court laid
+    // on it is always over it; on the park it is grass on grass.
+    const pad = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+      map: variant < 0 ? grassTexture() : grassTexture("park", variant),
+      color: 0xffffff, roughness: 0.97, metalness: 0.0, side: THREE.DoubleSide, depthWrite: false,
     })), "court");
+    pad.renderOrder = -0.5;
   }
+  // Where the hard courts are, for the floodlights to stand round rather than on them.
+  COURT_PADS.length = 0;
+  for (const pitch of pitches) {
+    if (!COURT_STYLE[pitch.s] || COURT_STYLE[pitch.s].surround === null) continue;
+    const local = pitch.p.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    const [cx, cz] = ringCentroid(local);
+    COURT_PADS.push({ local, cx, cz });
+  }
+  seatCourtLights();
 
   // The playing surfaces, then the paint. Two merged meshes for the whole city.
   const surfaces = new Map();
@@ -20586,6 +20628,7 @@ function buildCourts(ground) {
     addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       map: courtSurface(COURT_STYLE[sport].play), color: 0xffffff,
       roughness: 0.72, metalness: 0.02, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
     })), "court");
   }
   if (lines.indices.length) {
@@ -20596,7 +20639,7 @@ function buildCourts(ground) {
     geom.computeVertexNormals();
     addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
       color: 0xf1f3ef, roughness: 0.82, metalness: 0.0, side: THREE.DoubleSide,
-      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+      polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6,
     })), "court_line");
   }
 
@@ -23562,6 +23605,7 @@ function expandApproachSigns(records) {
     }
     // One plate per approach and nothing under it: no ALL WAY plaque is inferred.
     for (const leg of governed) {
+      if (kind === "stop") noteLegendApproach(junction, leg, "stop");
       const spot = approachPlacement(junction, leg, junction.legs);
       if (!spot) continue;
       const [lon, lat] = lonLatFromXZ(spot.x, spot.z);
@@ -23587,6 +23631,7 @@ function expandSignalApproaches(records) {
     if (done.has(key)) continue;
     done.add(key);
     for (const leg of junction.legs.filter((l) => l.inbound)) {
+      noteLegendApproach(junction, leg, "signal");
       const spot = approachPlacement(junction, leg, junction.legs, 0.7);
       if (!spot) continue;
       const top = pavementTopAt(spot.x, spot.z);
@@ -23596,6 +23641,178 @@ function expandSignalApproaches(records) {
     }
   }
   return heads;
+}
+
+// ---- the words and lines on the road at a junction ----
+//
+// A driver coming to a stop sign meets, in order: STOP written across the lane, the stop bar
+// (a wide white line square across it), then the crosswalk. At a signal the bar is the limit
+// line and nothing is written. Every approach a stop plate or a signal head was placed for is
+// noted here (noteLegendApproach); the paint is laid once the crossings are down, and only
+// where a crosswalk crosses that approach -- the bar stands behind the crosswalk, never on it.
+// The city's own stop signs (SFMTA's inventory) are found their approach the same way.
+const ROAD_LEGEND = {
+  barWidth: 0.45,         // MUTCD: 12-24 in; SFMTA paints 18 in
+  barBehindCrossing: 1.2, // 4 ft behind the crosswalk's near line
+  wordGap: 1.5,           // from the bar to the word's foot
+  wordLength: 2.8,        // 8 ft letters, drawn long as a driver sees them foreshortened
+  wordWidth: 2.4,
+  laneMin: 2.6,
+  laneMax: 3.4,
+};
+//: Travel lanes arriving on a way, from the lane profile the lane lines are painted from:
+//: its total on a one-way street, the larger direction's on a two-way one, else one.
+function arrivingLanes(way, oneway) {
+  const profile = way ? laneMarkingProfile(way) : null;
+  if (!profile) return 1;
+  if (oneway) return profile.total || 1;
+  return Math.max(profile.forward || 0, profile.backward || 0, Math.floor((profile.total || 0) / 2), 1);
+}
+const legendApproaches = [];
+const legendApproachKeys = new Set();
+function noteLegendApproach(junction, leg, kind) {
+  const key = `${Math.round(junction.x)}:${Math.round(junction.z)}:${Math.round(leg.bearing * 10)}`;
+  if (legendApproachKeys.has(key)) return;
+  legendApproachKeys.add(key);
+  const oneway = onewaySign(leg.way) !== 0;
+  legendApproaches.push({ jx: junction.x, jz: junction.z, ux: leg.ux, uz: leg.uz, half: leg.half,
+    oneway, lanes: arrivingLanes(leg.way, oneway), kind });
+}
+//: The approach a city stop sign at (x, z) faces: the inbound leg whose post spot it is nearest.
+function noteOfficialStopApproach(x, z) {
+  const junction = junctionNear(x, z, 25);
+  if (!junction) return false;
+  let best = null, bestD = 12;
+  for (const leg of junction.legs.filter((l) => l.inbound)) {
+    const rx = leg.uz, rz = -leg.ux;
+    const along = (x - junction.x) * leg.ux + (z - junction.z) * leg.uz;
+    const side = (x - junction.x) * rx + (z - junction.z) * rz;
+    if (along < 0 || side < 0) continue;
+    const d = Math.abs(side - (leg.half + 1.5));
+    if (d < bestD) { best = leg; bestD = d; }
+  }
+  if (best) noteLegendApproach(junction, best, "stop");
+  return Boolean(best);
+}
+//: The crosswalk across an approach: the nearest drawn crossing square to it, within its road.
+function approachCrosswalk(a) {
+  const rx = a.uz, rz = -a.ux;
+  const legBearing = Math.atan2(a.uz, a.ux);
+  let best = null;
+  const reach = a.half + 26;
+  const c0x = Math.floor((a.jx - reach) / CROSSING_DEDUPE_CELL_M), c1x = Math.floor((a.jx + reach) / CROSSING_DEDUPE_CELL_M);
+  const c0z = Math.floor((a.jz - reach) / CROSSING_DEDUPE_CELL_M), c1z = Math.floor((a.jz + reach) / CROSSING_DEDUPE_CELL_M);
+  for (let cx = c0x; cx <= c1x; cx += 1) {
+    for (let cz = c0z; cz <= c1z; cz += 1) {
+      for (const pose of crossingDrawGrid.get(`${cx}:${cz}`) || []) {
+        // An unmarked crossing is a place to cross with nothing painted: no bar behind it.
+        if (pose.tag === "unmarked") continue;
+        if (crossingBearingDifference(pose.bearing, legBearing) < (55 * Math.PI) / 180) continue;
+        const along = (pose.x - a.jx) * a.ux + (pose.z - a.jz) * a.uz;
+        const side = (pose.x - a.jx) * rx + (pose.z - a.jz) * rz;
+        if (along < 1.5 || along > 24 || Math.abs(side) > a.half + 2.5) continue;
+        if (pose.length < a.half) continue;            // a crossing of part of the road only
+        if (!best || along < best.along) best = { along, width: pose.width || 3.7 };
+      }
+    }
+  }
+  return best;
+}
+//: One word, white, in a tile of its own; cached by word.
+const roadWordMaterials = new Map();
+function roadWordMaterial(word) {
+  if (roadWordMaterials.has(word)) return roadWordMaterials.get(word);
+  const canvas = document.createElement("canvas");
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f4f4ef";
+  ctx.font = "bold 150px system-ui, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  // As tall as the tile and no wider than it: the word is set, then squeezed across to fit.
+  const wide = ctx.measureText(word).width;
+  // Capitals are about 0.72 of the font size: stretched 2.2 times they fill the tile's height.
+  ctx.save(); ctx.translate(128, 128); ctx.scale(Math.min(0.62, 244 / wide), 2.2); ctx.fillText(word, 0, 0); ctx.restore();
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 8;
+  const material = new THREE.MeshStandardMaterial({ map, transparent: true, alphaTest: 0.35, roughness: 0.75,
+    side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+  roadWordMaterials.set(word, material);
+  return material;
+}
+//: The paint for every noted approach. Returns counts.
+function paintRoadLegends() {
+  const bars = { pos: [], uv: [] }, words = new Map();
+  const counts = { approaches: legendApproaches.length, bars: 0, words: 0, noCrosswalk: 0, offRoad: 0 };
+  const lift = 0.034;
+  // Cut to half a metre and each vertex stood on the ground: one quad across a street ran on
+  // its chord, and the road, lifted at its own vertices, rose through the middle of the bar.
+  const push = (list, corners) => {
+    const [p0, p1, p2, p3] = corners;
+    const n = Math.max(1, Math.ceil(Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) / 0.5));
+    const m = Math.max(1, Math.ceil(Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) / 0.5));
+    const point = (i, j) => {
+      const s = i / n, t = j / m;
+      const mix = (k) => (p0[k] * (1 - s) + p1[k] * s) * (1 - t) + (p3[k] * (1 - s) + p2[k] * s) * t;
+      const x = mix(0), z = mix(1);
+      return [x, groundLiftAt(x, z) + ROAD_TOP_M + lift, z, mix(2), mix(3)];
+    };
+    for (let i = 0; i < n; i += 1) {
+      for (let j = 0; j < m; j += 1) {
+        const q = [point(i, j), point(i + 1, j), point(i + 1, j + 1), point(i, j + 1)];
+        for (const k of [0, 1, 2, 0, 2, 3]) { list.pos.push(q[k][0], q[k][1], q[k][2]); list.uv.push(q[k][3], q[k][4]); }
+      }
+    }
+  };
+  const onRoad = (pts) => pts.every(([x, z]) => insideCarriageway(x, z, 0) && !insideJunctionBox(x, z));
+  for (const a of legendApproaches) {
+    const crosswalk = approachCrosswalk(a);
+    if (!crosswalk) { counts.noCrosswalk += 1; continue; }
+    const rx = a.uz, rz = -a.ux;
+    // The lanes arriving: the right half of a two-way street, all of a one-way one.
+    const o0 = a.oneway ? -a.half + 0.25 : 0.2, o1 = a.half - 0.25;
+    if (o1 - o0 < ROAD_LEGEND.laneMin - 0.6) continue;
+    const at = (along, side) => [a.jx + a.ux * along + rx * side, a.jz + a.uz * along + rz * side];
+    const b0 = crosswalk.along + crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing, b1 = b0 + ROAD_LEGEND.barWidth;
+    const bar = [at(b0, o0), at(b0, o1), at(b1, o1), at(b1, o0)];
+    if (!onRoad(bar)) { counts.offRoad += 1; continue; }
+    push(bars, bar.map(([x, z]) => [x, z, 0, 0]));
+    counts.bars += 1;
+    if (a.kind !== "stop") continue;
+    // STOP in each travel lane, its foot toward the driver: canvas bottom (v 0) at the far end.
+    // The lanes are counted from the way's tags (a two-way street without them has one each
+    // way) and run out from the centreline; what is left at the kerb is the parking lane.
+    const lanes = Math.max(1, Math.min(4, a.lanes || 1));
+    const lane = Math.min(ROAD_LEGEND.laneMax, (o1 - o0) / lanes);
+    const first = a.oneway ? (o0 + o1) / 2 - (lane * lanes) / 2 : o0;
+    const w0 = b1 + ROAD_LEGEND.wordGap, w1 = w0 + ROAD_LEGEND.wordLength;
+    for (let i = 0; i < lanes; i += 1) {
+      const mid = first + lane * (i + 0.5), half = Math.min(ROAD_LEGEND.wordWidth, lane - 0.5) / 2;
+      // Driver's left is -r: canvas left (u 0) there.
+      const quad = [[...at(w1, mid - half), 0, 0], [...at(w1, mid + half), 1, 0],
+                    [...at(w0, mid + half), 1, 1], [...at(w0, mid - half), 0, 1]];
+      if (!onRoad(quad)) { counts.offRoad += 1; continue; }
+      if (!words.has("STOP")) words.set("STOP", { pos: [], uv: [] });
+      push(words.get("STOP"), quad);
+      counts.words += 1;
+    }
+  }
+  const emit = (list, material) => {
+    if (!list.pos.length) return;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(list.pos, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(list.uv, 2));
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.userData = { surface: "furniture:road_legend", source: "junction_control+drawn_crossings", liftedOntoGround: true };
+    groups.furniture.add(mesh);
+  };
+  emit(bars, new THREE.MeshStandardMaterial({ color: 0xf2f5ef, roughness: 0.8, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 }));
+  for (const [word, list] of words) emit(list, roadWordMaterial(word));
+  return counts;
 }
 
 // ---- no sign inside another, and none on a crossing ----
@@ -24169,6 +24386,75 @@ const TOWER_DEFAULT_M = 32;
 //: A mapped line turning more than this at a point turns on a pole there.
 const POWER_BEND_DEG = 15;
 const MAST_DEFAULT_M = 30;
+function ringCentroid(ring) {
+  let sx = 0, sy = 0;
+  const n = ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.length - 1 : ring.length;
+  for (let i = 0; i < n; i += 1) { sx += ring[i][0]; sy += ring[i][1]; }
+  return [sx / Math.max(1, n), sy / Math.max(1, n)];
+}
+//: Where a floodlight mapped at (x, z) stands, and what it is aimed at: outside any court pad it
+//: is on, just past the nearest edge; aimed at the nearest pad's middle within thirty metres.
+function courtLightSpot(x, z, pads = COURT_PADS) {
+  let spot = { x, z }, aim = null, best = 30;
+  for (const pad of pads) {
+    if (pointInRing(x, z, pad.local)) {
+      let q = null, d = Infinity, normal = null;
+      for (let i = 0; i + 1 < pad.local.length; i += 1) {
+        const [ax, az] = pad.local[i], [bx, bz] = pad.local[i + 1];
+        const L2 = (bx - ax) ** 2 + (bz - az) ** 2;
+        if (!L2) continue;
+        const s = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / L2));
+        const px = ax + (bx - ax) * s, pz = az + (bz - az) * s, dd = Math.hypot(x - px, z - pz);
+        if (dd < d) { d = dd; q = [px, pz]; const L = Math.sqrt(L2); normal = [(bz - az) / L, -(bx - ax) / L]; }
+      }
+      if (q) {
+        let out = [q[0] + normal[0] * COURT_LIGHT_OUT_M, q[1] + normal[1] * COURT_LIGHT_OUT_M];
+        if (pointInRing(out[0], out[1], pad.local)) out = [q[0] - normal[0] * COURT_LIGHT_OUT_M, q[1] - normal[1] * COURT_LIGHT_OUT_M];
+        spot = { x: out[0], z: out[1] };
+      }
+      return { ...spot, aim: [pad.cx, pad.cz] };
+    }
+    const reach = Math.hypot(x - pad.cx, z - pad.cz);
+    if (reach < best + 40) {
+      for (let i = 0; i + 1 < pad.local.length; i += 1) {
+        const d = Math.sqrt(distanceToSegmentSquared(x, z, ...pad.local[i], ...pad.local[i + 1]));
+        if (d < best) { best = d; aim = [pad.cx, pad.cz]; }
+      }
+    }
+  }
+  return { ...spot, aim };
+}
+function seatCourtLights() {
+  if (!courtLights) return;
+  const { rows, pole, lamps } = courtLights;
+  const dummy = new THREE.Object3D();
+  rows.forEach((row, index) => {
+    const spot = courtLightSpot(row.anchor.x, row.anchor.z);
+    const H = Math.max(6, Math.min(40, parseFloat(row.item.height_m) || FLOODLIGHT_DEFAULT_M));
+    const baseY = groundLiftAt(spot.x, spot.z);
+    dummy.position.set(spot.x, baseY + H / 2, spot.z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(1, H, 1);
+    dummy.updateMatrix();
+    pole.setMatrixAt(index, dummy.matrix);
+    const yaw = spot.aim ? Math.atan2(spot.aim[0] - spot.x, spot.aim[1] - spot.z) : (row.item.bearing || 0) * Math.PI / 180;
+    for (let k = 0; k < 4; k += 1) {
+      const across = (k % 2 ? 0.32 : -0.32), up = (k < 2 ? 0.25 : -0.25);
+      dummy.position.set(spot.x + Math.sin(yaw) * 0.35 + Math.cos(yaw) * across, baseY + H + up,
+        spot.z + Math.cos(yaw) * 0.35 - Math.sin(yaw) * across);
+      dummy.rotation.set(0, 0, 0);
+      dummy.rotateY(yaw);
+      dummy.rotateX(0.35);   // tilted down at the court
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      lamps.setMatrixAt(index * 4 + k, dummy.matrix);
+    }
+  });
+  pole.instanceMatrix.needsUpdate = true;
+  lamps.instanceMatrix.needsUpdate = true;
+  pole.computeBoundingSphere(); lamps.computeBoundingSphere();
+}
 
 function catenaryPoints(a, b, out, parameter = WIRE_CATENARY_A_M) {
   // Points of the conductor from a to b ({x, y, z}), as line-segment pairs pushed onto out.
@@ -24340,8 +24626,23 @@ function addElectricalNetwork(furniture, lightRows = []) {
     }
   }
   // Cell and broadcast masts: a tapering monopole with three sectors of panel antennas.
-  const mastRows = (inferred.comm_towers || []).map((item) => ({ item, anchor: electricalAnchor(item) }))
+  const lighting = (item) => item?.tags?.["tower:type"] === "lighting";
+  const floodRows = (inferred.comm_towers || []).filter(lighting).map((item) => ({ item, anchor: electricalAnchor(item) }))
     .filter((row) => row.anchor);
+  if (floodRows.length) {
+    const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.2, 1, 10),
+      new THREE.MeshStandardMaterial({ color: 0x8e9496, roughness: 0.45, metalness: 0.6 }), floodRows.length);
+    const lamps = new THREE.InstancedMesh(new THREE.BoxGeometry(0.55, 0.42, 0.18),
+      new THREE.MeshStandardMaterial({ color: 0x4a4f53, emissive: 0x2a2a24, roughness: 0.5, metalness: 0.4 }), floodRows.length * 4);
+    courtLights = { rows: floodRows, pole, lamps };
+    seatCourtLights();
+    for (const mesh of [pole, lamps]) {
+      mesh.userData = { surface: "furniture:floodlight", source: "openstreetmap" };
+      groups.furniture.add(mesh);
+    }
+  }
+  const mastRows = (inferred.comm_towers || []).filter((item) => !lighting(item))
+    .map((item) => ({ item, anchor: electricalAnchor(item) })).filter((row) => row.anchor);
   if (mastRows.length) {
     const mast = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.32, 0.6, 1, 10),
       new THREE.MeshStandardMaterial({ color: 0x9aa0a2, roughness: 0.5, metalness: 0.55 }), mastRows.length);
@@ -24506,7 +24807,7 @@ function addElectricalNetwork(furniture, lightRows = []) {
     wires.userData = { surface: "furniture:overhead_wire", basis, sag: "catenary_a200m_inferred" };
     groups.furniture.add(wires);
   }
-  return { utility_poles: poleRows.length, power_towers: towerRows.length, comm_towers: mastRows.length,
+  return { utility_poles: poleRows.length, power_towers: towerRows.length, comm_towers: mastRows.length, floodlights: floodRows.length,
     small_cells: cellRows.length, mapped_wire_spans: mappedSpans, inferred_wire_spans: 0,
     reconstructed_spans: gripSpans, telecom_spans: telecomSpans };
 }
@@ -25326,6 +25627,8 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   // inferred ones fill the junctions it does not list.
   const officialStopPoints = (official.street_signs || []).filter((s) => ["stop", "all_way"].includes(s.sign_kind) && s.p)
     .map((s) => { const [x, y] = xy(s.p[0], s.p[1]); return [x, -y]; });
+  legendApproaches.length = 0; legendApproachKeys.clear();
+  for (const [x, z] of officialStopPoints) noteOfficialStopApproach(x, z);
   const osmApproach = expandApproachSigns((inferred.street_signs || [])
     .filter((s) => s.sign_kind === "stop" || s.sign_kind === "yield"))
     .filter((s) => {
@@ -25384,6 +25687,7 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
     parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],
       inferred.detected_parking_meters || [])),
     trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows),
+    road_legends: paintRoadLegends(),
   };
   // Checked once everything stands: no two plates meet, no post is on a crossing.
   placed.sign_audit = auditSignPlates(plates.spots);
@@ -31218,15 +31522,19 @@ function followGps(dt) {
   if (gps.follow) { state.target.copy(avatar.position); placeCamera(); }
   return true;
 }
-//: The pace of walking on a slope, relative to the level: slower uphill, and quicker downhill
-//: the steeper it is -- half as fast again at DOWNHILL_FULL_GRADE and steeper.
+//: The pace of walking on a slope, relative to the level: quicker downhill the steeper it is --
+//: half as fast again at DOWNHILL_FULL_GRADE and steeper -- and slower uphill the steeper it is,
+//: in proportion, to UPHILL_PACE_MIN at UPHILL_FULL_GRADE (a San Francisco hill: 30%, 17
+//: degrees) and no slower past it. Tobler's hiking function had a ten per cent street at a
+//: walker's 59% and Fillmore at 35%: a crawl for a map walked at a jog.
 const DOWNHILL_PACE_MAX = 1.5;
 const DOWNHILL_FULL_GRADE = 0.35;
+const UPHILL_PACE_MIN = 0.6;
+const UPHILL_FULL_GRADE = 0.3;
 function toblerPace(grade) {
-  // Up: Tobler's hiking function, every step slower. Down: the slope helps, more the steeper
-  // it is, to DOWNHILL_PACE_MAX (past MAX_DROP_GRADE the ground is a drop and is not walked).
+  // Past MAX_DROP_GRADE down, and MAX_WALK_GRADE up, the ground is not walked at all (walkPace).
   if (grade < 0) return 1 + (DOWNHILL_PACE_MAX - 1) * Math.min(1, -grade / DOWNHILL_FULL_GRADE);
-  return Math.max(0.3, Math.min(1.15, Math.exp(-3.5 * Math.abs(grade + 0.05)) / Math.exp(-3.5 * 0.05)));
+  return 1 - (1 - UPHILL_PACE_MIN) * Math.min(1, grade / UPHILL_FULL_GRADE);
 }
 //: Steeper than this, plain ground is a cliff or a wall: not walked up, or off.
 const MAX_WALK_GRADE = 0.85;
@@ -31234,9 +31542,14 @@ const MAX_DROP_GRADE = 1.2;
 //: A flight of steps is climbed at this share of the walking pace, up or down.
 const STAIR_PACE = 0.55;
 const PACE_PROBE_M = 0.6;
+//: On a hill the walker goes at its own pace (SLOPE_BASE_SPEED, the first-person walk) times the
+//: slope's, however far out the view is zoomed: zoom changes how fast the map is crossed, not how
+//: fast a body climbs. It was the whole speed that was held to 2.2 m/s on any slope past 8%,
+//: after the slope's factor, so up and down every hill were the same slow walk.
+const SLOPE_BASE_SPEED = 5.36;
 function walkSurfaceSpeed(base,pace){
   if(pace.stairs)return Math.min(1.35,base*pace.factor);
-  if(Math.abs(pace.grade||0)>.08)return Math.min(2.2,base*pace.factor);
+  if(Math.abs(pace.grade||0)>.08)return Math.min(base,SLOPE_BASE_SPEED)*pace.factor;
   return base*pace.factor;
 }
 //: How the ground ahead lets the walker go: the pace (``factor``) and, where the way ahead is
@@ -31362,14 +31675,14 @@ const DETAIL_RANGE_M = {
   // a pixel. A court's lines are five centimetres; a bike lane's green reads further off.
   tactile_warning: 300, curb_ramp: 350, court_line: 500, bike: 900, house_window: 900,
   "furniture:post": 500, "furniture:sign_plate": 400, "furniture:sign_back": 400, "furniture:bike_rack": 300,
-  "furniture:shelter": 900, "furniture:curb_zone": 500, "furniture:bus_zone": 700, sign: 400, detail: 700,
+  "furniture:shelter": 900, "furniture:curb_zone": 500, "furniture:bus_zone": 700, "furniture:road_legend": 600, sign: 400, detail: 700,
   roof_furniture: 600,
   // Poles and wires, lamps and signals: a wire is a pixel wide at a few hundred metres.
   "furniture:utility_pole": 900, "furniture:overhead_wire": 700, "furniture:trolley_wire": 700,
   "furniture:trolley_pole": 900, "furniture:street_light": 900, "furniture:traffic_signal": 700,
   "furniture:small_cell": 500, "furniture:bench": 400, "furniture:parking_meter": 400, "furniture:bus_stop": 500,
   "furniture:blank_ad": 500, "furniture:billboard": 1500, "furniture:station_entrance": 900,
-  "furniture:power_tower": 5000, "furniture:comm_tower": 5000, window: 900,
+  "furniture:power_tower": 5000, "furniture:comm_tower": 5000, "furniture:floodlight": 2500, window: 900,
 };
 let detailTiles = [];
 let detailTilesFrame = 0;
@@ -31394,7 +31707,7 @@ const ZOOM_TOP = 4;
 //: What goes at each tier, added to what went at the tier above.
 const ZOOM_DROPS = {
   3: (surface) => surface.startsWith("furniture:") && !["furniture:power_tower", "furniture:comm_tower",
-    "furniture:billboard", "furniture:station_entrance"].includes(surface)
+    "furniture:floodlight", "furniture:billboard", "furniture:station_entrance"].includes(surface)
     || surface === "tactile_warning" || surface === "curb_ramp" || surface === "detail" || surface === "sign",
   2: (surface) => surface === "house_window" || surface === "window" || surface === "roof_furniture"
     || surface === "furniture:billboard" || surface === "furniture:station_entrance",
@@ -31402,7 +31715,8 @@ const ZOOM_DROPS = {
     || surface === "court_line" || surface === "front_walk",
   0: (surface) => surface === "marking" || surface === "crossing_edges" || surface === "crossing"
     || surface === "bike" || surface.startsWith("tree:") || surface === "footprint"
-    || surface === "furniture:power_tower" || surface === "furniture:comm_tower",
+    || surface === "furniture:power_tower" || surface === "furniture:comm_tower"
+    || surface === "furniture:floodlight",
 };
 const ZOOM_HIDDEN = Object.fromEntries([0, 1, 2, 3, 4].map((tier) => [tier,
   (surface) => [3, 2, 1, 0].some((t) => t >= tier && ZOOM_DROPS[t](surface))]));
@@ -33595,6 +33909,7 @@ function releaseModuleScope() {
   try { tactilePadsLaid = null; } catch (error) { /* kept */ }
   try { treeBarkGrain = null; } catch (error) { /* kept */ }
   try { understoreyReady = null; } catch (error) { /* kept */ }
+  try { courtLights = null; } catch (error) { /* kept */ }
   try { busStopTextMaterial = null; } catch (error) { /* kept */ }
   try { stationWalls = null; } catch (error) { /* kept */ }
   try { signPlateGrid = null; } catch (error) { /* kept */ }
@@ -33741,12 +34056,16 @@ function releaseModuleScope() {
   try { GRASS_TEXTURES.clear(); } catch (error) { /* kept */ }
   try { TREE_LEAF_TEXTURES.clear(); } catch (error) { /* kept */ }
   try { TREE_BARK_MATERIALS.clear(); } catch (error) { /* kept */ }
+  try { COURT_PADS.length = 0; } catch (error) { /* kept */ }
   try { PARK_PARTS.length = 0; } catch (error) { /* kept */ }
   try { billboardFaces.length = 0; } catch (error) { /* kept */ }
   try { billboardTextureCache.clear(); } catch (error) { /* kept */ }
   try { plateAtlases.length = 0; } catch (error) { /* kept */ }
   try { PLATE_SLOTS.clear(); } catch (error) { /* kept */ }
   try { PLATE_MATERIALS.clear(); } catch (error) { /* kept */ }
+  try { legendApproaches.length = 0; } catch (error) { /* kept */ }
+  try { legendApproachKeys.clear(); } catch (error) { /* kept */ }
+  try { roadWordMaterials.clear(); } catch (error) { /* kept */ }
   try { touches.clear(); } catch (error) { /* kept */ }
   try { held.clear(); } catch (error) { /* kept */ }
   try { ARROWS.clear(); } catch (error) { /* kept */ }
@@ -33781,21 +34100,15 @@ window.kerbsideGuestApi = {
   municipalUsage,
   windowBox:BUILD_WINDOW?.core,
   windowBoxes:BUILD_WINDOW?.boxes,
-  groundBoxes:BUILD_WINDOW ? BUILD_WINDOW.boxes.map((b)=>{const a=xy(b[0],b[1]),c=xy(b[2],b[3]);return [a[0],-c[1],c[0],-a[1]];}) : null,
+  groundBoxes:BUILD_WINDOW ? BUILD_WINDOW.boxes.map((b)=>{const a=xy(b[0],b[1]),c=xy(b[2],b[3]);return clipToTerrain([a[0],-c[1],c[0],-a[1]]);}) : null,
   billboardFaces,
   root, bbox: DATA.bbox, midLon, midLat, metersPerLon,
   // The ground this world draws, in its own metres: its terrain grid and the apron round it.
   groundBox: BUILD_WINDOW ? (()=>{
-    const b=BUILD_WINDOW.box,a=xy(b[0],b[1]),c=xy(b[2],b[3]);return [a[0],-c[1],c[0],-a[1]];
+    const b=BUILD_WINDOW.box,a=xy(b[0],b[1]),c=xy(b[2],b[3]);return clipToTerrain([a[0],-c[1],c[0],-a[1]]);
   })() : TERRAIN_FRAME ? (() => {
     const f = TERRAIN_FRAME;
-    if(ATTACH?.natureBacked) {
-      const stride=TERRAIN_MESH_STRIDE;
-      const a=terrainToPage(f.x0+.5*f.step_m,f.y0+.5*f.step_m,f);
-      const b=terrainToPage(f.x0+(Math.floor((f.cols-1)/stride)*stride+.5)*f.step_m,
-        f.y0+(Math.floor((f.rows-1)/stride)*stride+.5)*f.step_m,f);
-      return [a[0],b[1],b[0],a[1]];
-    }
+    if(ATTACH?.natureBacked) return terrainPageRect();
     const corners = [[f.x0 - TERRAIN_APRON_M, f.y0 - TERRAIN_APRON_M],
                      [f.x0 + f.cols * f.step_m + TERRAIN_APRON_M, f.y0 + f.rows * f.step_m + TERRAIN_APRON_M]]
       .map(([e, n]) => terrainToPage(e, n, f));

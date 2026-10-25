@@ -37,6 +37,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import strip_ground_water  # noqa: E402
+
 CLASSES = ["none", "bare", "road", "paving", "grass", "building", "water", "service", "outside",
            "other", "structure"]
 C = {name: i for i, name in enumerate(CLASSES)}
@@ -171,10 +174,18 @@ def main() -> None:
     fill, counts = infer(mosaic)
     found = rings(fill, frame, west, north_edge_z)
     print(json.dumps({"inferred_m2": {k: v / PX_PER_M ** 2 for k, v in counts.items()}, "rings": len(found)}))
+    waters = {}
     for ground_path in grounds:
         path = Path(ground_path)
         ground = json.loads(path.read_text())
         ground["inferred"] = (ground.get("inferred", []) if append else []) + found
+        # Water the capture did not draw read as bare ground, and a large bare stretch as lawn:
+        # the region's own water comes out of the fills (tools/strip_ground_water.py).
+        if path.parent not in waters:
+            waters[path.parent] = strip_ground_water.water_shape(path.parent)
+        water, water_frame = waters[path.parent]
+        if water is not None:
+            print(json.dumps(strip_ground_water.strip(ground, water, water_frame)))
         path.write_text(json.dumps(ground, separators=(",", ":")))
         print(f"{path}: {len(ground['inferred'])} inferred rings")
 

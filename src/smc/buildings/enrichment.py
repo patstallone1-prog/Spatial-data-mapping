@@ -390,6 +390,12 @@ def normalize_google_place(place: Mapping[str, Any], *, fetched_at: datetime | N
         "cache_policy": "refresh Google Places fields; keep place_id only as durable identifier",
     }
     row["archetype"] = archetype_for(place_types=row["types"], name=row["name"])
+    # Preserve price fields when an explicitly priced API request/import supplies them.
+    # Ordinary Nearby requests keep their existing field mask and billing tier.
+    if "priceLevel" in place:
+        row["price_level"] = place["priceLevel"]
+    if "priceRange" in place:
+        row["price_range"] = place["priceRange"]
     return row
 
 

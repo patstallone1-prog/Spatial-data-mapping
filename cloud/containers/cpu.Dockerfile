@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Kerbside CPU worker and controller: geographic cell ingestion and compilation (discover, OSM,
-# terrain, lidar, imagery, city records, build, audit), the parity gate, and publication.
+# terrain, lidar, imagery, city records, build, audit), the parity gate, publication, and the
+# interior engine's house batches and restaurant rounds (shapely, trimesh: the interiors extra).
 #
 #   docker build -f cloud/containers/cpu.Dockerfile -t kerbside-cpu .
 #   docker run --rm kerbside-cpu selftest          # the whole lifecycle, inside the image
@@ -21,7 +22,7 @@ WORKDIR /app
 # Dependencies first, so a code change does not reinstall them.
 COPY pyproject.toml ./
 RUN mkdir -p src/smc && touch src/smc/__init__.py \
- && pip install -e ".[dev,nature,curb-photo,cloud]" \
+ && pip install -e ".[dev,nature,curb-photo,cloud,interiors]" \
  && rm -rf src
 COPY . .
 RUN pip install --no-deps -e . && smc-cloud --help >/dev/null

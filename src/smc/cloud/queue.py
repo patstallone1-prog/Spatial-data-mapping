@@ -130,7 +130,7 @@ class JobSpec:
     """What to run. ``id`` is the idempotency key: submitting it twice changes nothing."""
 
     id: str
-    kind: str  # cell_stage | house_batch | gate | publish | bench
+    kind: str  # cell_stage | house_batch | interior_batch | restaurant_round | gate | publish | collect | bench
     subject: str  # the cell, region or house batch
     stage: str
     resource: str  # cpu | gpu | control

@@ -41,7 +41,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from . import budget as money
-from .checkpoint import pull_tree
+from .checkpoint import pull_tree, push_tree, set_pointer
 from .gate import evaluate
 from .plan import submit_plan
 from .providers import FakeProvider, HetznerProvider, Pool, Provider, RunPodProvider
@@ -215,6 +215,14 @@ class Controller:
                     result = self.publisher.publish_cell(
                         cell, self.c.root / "data/regions" / cell, gate=gate, tree=tree)
                     self.queue.complete(spec["id"], "controller", token, {"tree": tree, **result})
+                elif spec["kind"] == "collect":
+                    # What the jobs it restored made, as one tree under a pointer that
+                    # promotion reads (the interiors of a region, the restaurants' rounds).
+                    stats = push_tree(self.c.private, self.c.root, spec["save"])
+                    set_pointer(self.c.private, spec["stage"], stats.tree, job=spec["id"],
+                                files=stats.files, bytes=stats.bytes_total)
+                    self.queue.complete(spec["id"], "controller", token,
+                                        {"tree": stats.tree, "pointer": spec["stage"], "files": stats.files})
                 else:
                     self.queue.fail(spec["id"], "controller", token,
                                     f"no control handler for {spec['kind']}", permanent=True)
@@ -305,9 +313,11 @@ class Controller:
         finished = [k for k, v in cells.items() if v["done"] == v["of"]]
         cost_by: dict[str, list[float]] = {}
         secs_by: dict[str, list[float]] = {}
+        kind_of = {j["id"]: j["kind"] for j in jobs}
         for a in attempts:
             if a["outcome"] == "done" and a["seconds"]:
-                key = a["job_id"].split(":")[-1] if a["job_id"].startswith("cell:") else "house_batch"
+                key = a["job_id"].split(":")[-1] if a["job_id"].startswith("cell:") \
+                    else kind_of.get(a["job_id"], "house_batch")
                 cost_by.setdefault(key, []).append(a["cost_usd"] or 0)
                 secs_by.setdefault(key, []).append(a["seconds"])
         remaining = 0.0
@@ -327,6 +337,8 @@ class Controller:
             "at": now, "counts": q.counts(), "cells": {"total": len(cells), "finished": len(finished),
                                                        "detail": cells},
             "houses": {s: n for s, n in q.counts().get("house_batch", {}).items()},
+            "interiors": {s: n for s, n in q.counts().get("interior_batch", {}).items()},
+            "restaurants": {s: n for s, n in q.counts().get("restaurant_round", {}).items()},
             "failures": [{"id": j["id"], "state": j["state"], "attempts": j["attempts"],
                           "error": (j["error"] or "")[-600:]}
                          for j in jobs if j["state"] in ("failed", "quarantined")],
@@ -432,7 +444,9 @@ def _handler(ctl: Controller):
                     return self._send(200, {"ok": True})
                 result = submit_plan(q, ctl.c.root, ctl.c.private, cells=body.get("cells"),
                                      house_batches=int(body.get("house_batches", 0)),
-                                     house_sample=int(body.get("house_sample", 24)))
+                                     house_sample=int(body.get("house_sample", 24)),
+                                     interiors=bool(body.get("interiors", False)),
+                                     restaurant_rounds=int(body.get("restaurant_rounds", 0)))
                 return self._send(200, result)
             worker = body.get("worker", "")
             token = self.headers.get("Authorization", "")[7:]

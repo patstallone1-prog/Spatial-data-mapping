@@ -12,7 +12,21 @@
     "freshness": null,
     "corroboration_count": 0,
     "engine": "kerbside-polygon-v1",
-    "not_an_as_built_survey": true
+    "not_an_as_built_survey": true,
+    "geometry": {
+      "source": "synthetic stress fixture; not an address",
+      "footprint_area_m2": 121.0,
+      "footprint_area_sqft": 1302.4331604207,
+      "floor_area_m2": 121.0,
+      "storey_heights_m": [
+        3.0
+      ],
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    }
   },
   "envelope": null,
   "style": {

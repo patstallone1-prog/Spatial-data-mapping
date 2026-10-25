@@ -1,73 +1,71 @@
 {
   "schema": "kerbside.restaurant_batch/1",
-  "round": 11,
+  "round": 13,
   "houses": [
     {
-      "id": "restaurant-272632304",
-      "name": "S F Hospitality Inc",
-      "file": "restaurant-272632304.json",
-      "passed": true,
-      "storeys": 1,
-      "style": "Ash & slate",
-      "metrics": {
-        "coverage_min": 0.9999999999999998,
-        "room_count": 3,
-        "objects": 14,
-        "seats": 0,
-        "tables": 0,
-        "table_sizes": {
-          "2": 0,
-          "4": 0,
-          "6": 0
-        },
-        "table_modules": 0,
-        "booths": 0,
-        "customer_route_width_m": 0.95,
-        "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 0,
-        "isolated_clear_floor_m2": 0.0
-      },
+      "id": "restaurant-939458462",
+      "name": "J&l Trading Llc",
+      "passed": false,
+      "reason": "no feasible restaurant: no workable back-of-house band",
       "input": {
-        "id": "restaurant-272632304",
-        "osm_id": "272632304",
-        "name": "S F Hospitality Inc",
+        "id": "restaurant-939458462",
+        "osm_id": "939458462",
+        "name": "J&l Trading Llc",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                -4.04616141894909,
-                2.4601719994836913
+                -2.401472361365044,
+                6.801651999596174
               ],
               [
-                3.061009073150619,
-                3.6178999995664185
+                0.11435582744599583,
+                7.157875999804162
               ],
               [
-                4.0549574227620155,
-                -2.4601720002746674
+                2.37508255551215,
+                -6.745992000527679
               ],
               [
-                -3.052213070587681,
-                -3.6290320004874843
+                -0.09676262187730318,
+                -7.2246680005847
               ],
               [
-                -4.04616141894909,
-                2.4601719994836913
+                -2.401472361365044,
+                6.801651999596174
               ]
             ]
           ]
         },
-        "units": "metres",
-        "height_m": 3.2,
-        "entrance": [
-          -0.4925761728992355,
-          3.039035999525055
-        ],
         "origin_lon_lat": [
-          -122.4402264,
-          37.8000211
+          -122.4067327,
+          37.7949909
         ],
+        "units": "metres",
+        "height_m": 4.1,
+        "entrance": [
+          -1.1435582669595241,
+          6.979763999700168
+        ],
+        "geometry_evidence": {
+          "building_id": "939458462",
+          "region": "sf-corridor",
+          "source": "Kerbside published building polygon, local tangent-plane metres",
+          "source_geometry_sha256": "5b5122537ad1705f0887f20d56d6667ee5ad886f378bf67dbb63900823bc4567",
+          "footprint_area_m2": 35.77958442777513,
+          "footprint_area_sqft": 385.12824152732577,
+          "shell_floor_area_m2": 71.55916885555025,
+          "storeys": 2,
+          "storey_height_m": 4.1,
+          "height_source": "Kerbside canonical storeys and storey_m",
+          "shell_height_source": "datasf_lidar_median_height",
+          "tenant_boundary": "full ground-floor tenancy is unverified",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        },
         "stratum": "pickup",
         "service_mode": "pickup",
         "bar": false,
@@ -75,80 +73,98 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "b4fdcd8880fd561f9b1336fff553f64dc2f62fd6906e84e82f491c9724349c6c"
-      },
-      "service_mode": "pickup"
+        "selection_hash": "e1870a99332fe831b5f96c3ddf6723c51192962725aa9cd781f4df152906dd54"
+      }
     },
     {
-      "id": "restaurant-256080526",
-      "name": "Bow Hon Seafood Restaurant",
-      "file": "restaurant-256080526.json",
+      "id": "restaurant-148741782",
+      "name": "Toy Soldier",
+      "file": "restaurant-148741782.json",
       "passed": true,
       "storeys": 1,
-      "style": "Coastal linen & blue",
+      "style": "Warm oak & sage",
       "metrics": {
-        "coverage_min": 1.0,
+        "coverage_min": 0.9999999999999999,
         "room_count": 3,
-        "objects": 45,
-        "seats": 16,
-        "tables": 5,
+        "objects": 63,
+        "seats": 24,
+        "tables": 7,
         "table_sizes": {
           "2": 3,
-          "4": 1,
+          "4": 3,
           "6": 1
         },
-        "table_modules": 8,
+        "table_modules": 12,
         "booths": 0,
+        "prep_islands": 1,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 8,
+        "downloaded_assets_used": 12,
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-256080526",
-        "osm_id": "256080526",
-        "name": "Bow Hon Seafood Restaurant",
+        "id": "restaurant-148741782",
+        "osm_id": "148741782",
+        "name": "Toy Soldier",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                7.424333994085092,
-                -2.449040000144578
+                -8.04048217240838,
+                2.304324000035365
               ],
               [
-                -6.755792071318003,
-                -4.4416679997013375
+                -7.064012236049076,
+                -3.5956360000972154
               ],
               [
-                -7.7058253311713045,
-                1.2467840003324682
+                -5.295809920243186,
+                -3.3062039998787895
               ],
               [
-                0.4134403993921356,
-                2.382248000155016
+                10.714778212178228,
+                -0.6456559996354372
               ],
               [
-                6.6150464027748965,
-                3.2505440000193175
+                9.685526117772547,
+                5.232040000236964
               ],
               [
-                7.424333994085092,
-                -2.449040000144578
+                -8.04048217240838,
+                2.304324000035365
               ]
             ]
           ]
         },
-        "units": "metres",
-        "height_m": 3.2,
-        "entrance": [
-          -7.230808701244653,
-          -1.5974419996844347
-        ],
         "origin_lon_lat": [
-          -122.4062982,
-          37.7949724
+          -122.4036861,
+          37.7914265
         ],
+        "units": "metres",
+        "height_m": 4.1,
+        "entrance": [
+          -7.552247204228728,
+          -0.6456560000309253
+        ],
+        "geometry_evidence": {
+          "building_id": "148741782",
+          "region": "sf-corridor",
+          "source": "Kerbside published building polygon, local tangent-plane metres",
+          "source_geometry_sha256": "d1a8ac106dce93275957c1b4e28dfb38d568fc2b856b864cee07fe785627a624",
+          "footprint_area_m2": 107.52328785601465,
+          "footprint_area_sqft": 1157.3710381911887,
+          "shell_floor_area_m2": 215.0465757120293,
+          "storeys": 2,
+          "storey_height_m": 4.1,
+          "height_source": "Kerbside canonical storeys and storey_m",
+          "shell_height_source": "datasf_lidar_median_height",
+          "tenant_boundary": "full ground-floor tenancy is unverified",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        },
         "stratum": "narrow",
         "service_mode": "auto",
         "bar": false,
@@ -156,76 +172,187 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "a7903230180eecb5ae18448bb87a660f3e7048755a142b9e8bd4052e7f1bb0f5"
+        "selection_hash": "b6c1f883a3280528109921fe8115ffc1a4a40c25febd0053d12f982c66e7b118"
       },
       "service_mode": "table"
     },
     {
-      "id": "restaurant-206629809",
-      "name": "Eight Tables by George Chen",
-      "file": "restaurant-206629809.json",
+      "id": "restaurant-262585102",
+      "name": "Sushi on North Beach - Katsu",
+      "file": "restaurant-262585102.json",
       "passed": true,
       "storeys": 1,
-      "style": "Coastal linen & blue",
+      "style": "Warm oak & sage",
       "metrics": {
-        "coverage_min": 1.0000000000000002,
+        "coverage_min": 0.9999999999999996,
         "room_count": 3,
-        "objects": 78,
-        "seats": 34,
-        "tables": 11,
+        "objects": 208,
+        "seats": 98,
+        "tables": 32,
         "table_sizes": {
-          "2": 6,
-          "4": 4,
+          "2": 16,
+          "4": 15,
           "6": 1
         },
-        "table_modules": 17,
+        "table_modules": 49,
         "booths": 2,
+        "prep_islands": 1,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 63,
+        "downloaded_assets_used": 191,
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-206629809",
-        "osm_id": "206629809",
-        "name": "Eight Tables by George Chen",
+        "id": "restaurant-262585102",
+        "osm_id": "262585102",
+        "name": "Sushi on North Beach - Katsu",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                5.576792080505845,
-                -11.521619999385848
+                -12.96506766767764,
+                12.768403999718316
               ],
               [
-                -1.7856290101915426,
-                -12.679347999468575
+                -10.247153210790845,
+                13.30273999963481
               ],
               [
-                -6.2365072315495125,
-                15.696119999919915
+                -9.649036113967846,
+                13.280476000165606
               ],
               [
-                2.4277517569907094,
-                8.493716000386371
+                -8.716677109655539,
+                12.49010399962998
               ],
               [
-                5.576792080505845,
-                -11.521619999385848
+                -7.643584670281951,
+                12.924251999957619
+              ],
+              [
+                0.3870169461060258,
+                6.022411999981614
+              ],
+              [
+                0.21989599236137095,
+                4.864683999898887
+              ],
+              [
+                2.4804267862364835,
+                2.9388479995407124
+              ],
+              [
+                3.667865141987973,
+                3.1392239995093973
+              ],
+              [
+                8.46159775946632,
+                -0.9907480005043112
+              ],
+              [
+                8.26808928703829,
+                -2.0037600004778255
+              ],
+              [
+                9.174060772667222,
+                -2.7718679999622964
+              ],
+              [
+                10.088828098690588,
+                -2.304324000035365
+              ],
+              [
+                11.847996031331736,
+                -3.9963880000345853
+              ],
+              [
+                11.610508360681424,
+                -4.853552000559773
+              ],
+              [
+                10.097623937835058,
+                -6.645804000147848
+              ],
+              [
+                6.895938299253204,
+                -7.124480000204869
+              ],
+              [
+                6.737613185902983,
+                -6.133732000491534
+              ],
+              [
+                3.5535192256100703,
+                -6.612408000548555
+              ],
+              [
+                3.7030484998158197,
+                -7.61428800039198
+              ],
+              [
+                -0.2550793501892177,
+                -8.204284000167945
+              ],
+              [
+                -0.34303774663378045,
+                -7.669948000251452
+              ],
+              [
+                -7.933847378299016,
+                -8.81654400020409
+              ],
+              [
+                -8.593535354133165,
+                -4.586384000601527
+              ],
+              [
+                -9.323590045623007,
+                -4.697704000320471
+              ],
+              [
+                -10.317519928946465,
+                1.7143279994684235
+              ],
+              [
+                -11.232287253719868,
+                1.5807439994893002
+              ],
+              [
+                -12.96506766767764,
+                12.768403999718316
               ]
             ]
           ]
         },
-        "units": "metres",
-        "height_m": 3.2,
-        "entrance": [
-          -1.9043777372794013,
-          12.094918000153143
-        ],
         "origin_lon_lat": [
-          -122.4077442,
-          37.7983505
+          -122.4120244,
+          37.8013934
         ],
+        "units": "metres",
+        "height_m": 4.1,
+        "entrance": [
+          -3.6282838620879625,
+          9.473331999969616
+        ],
+        "geometry_evidence": {
+          "building_id": "262585102",
+          "region": "sf-corridor",
+          "source": "Kerbside published building polygon, local tangent-plane metres",
+          "source_geometry_sha256": "168a9c42698ea6778f7e36608d32e53525ad2d1155f453e00e553663c0564f67",
+          "footprint_area_m2": 294.03931362125644,
+          "footprint_area_sqft": 3165.0128308071603,
+          "shell_floor_area_m2": 588.0786272425129,
+          "storeys": 2,
+          "storey_height_m": 4.1,
+          "height_source": "Kerbside canonical storeys and storey_m",
+          "shell_height_source": "osm_height",
+          "tenant_boundary": "full ground-floor tenancy is unverified",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        },
         "stratum": "irregular",
         "service_mode": "auto",
         "bar": false,
@@ -233,80 +360,103 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "4f4eea81390ddee59bf6bca04258d86e4145c50b3f98d5b8ea92f6ddca08cfac"
+        "selection_hash": "5a184d9b64854694f54a995089a804aeca3b4fe055ec060d24ddd544bdd1bc6b"
       },
       "service_mode": "table"
     },
     {
-      "id": "restaurant-32611674",
-      "name": "North Beach Restaurant",
-      "file": "restaurant-32611674.json",
+      "id": "restaurant-1073747194",
+      "name": "Suavecito Birria & Tacos",
+      "file": "restaurant-1073747194.json",
       "passed": true,
       "storeys": 1,
-      "style": "Warm oak & sage",
+      "style": "Coastal linen & blue",
       "metrics": {
-        "coverage_min": 1.0,
+        "coverage_min": 1.0000000000000002,
         "room_count": 4,
-        "objects": 165,
-        "seats": 76,
-        "tables": 25,
+        "objects": 163,
+        "seats": 74,
+        "tables": 24,
         "table_sizes": {
-          "2": 13,
+          "2": 12,
           "4": 11,
           "6": 1
         },
-        "table_modules": 38,
+        "table_modules": 37,
         "booths": 2,
+        "prep_islands": 1,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 149,
-        "isolated_clear_floor_m2": 0.0
+        "downloaded_assets_used": 145,
+        "isolated_clear_floor_m2": 0.7315076065953239
       },
       "input": {
-        "id": "restaurant-32611674",
-        "osm_id": "32611674",
-        "name": "North Beach Restaurant",
+        "id": "restaurant-1073747194",
+        "osm_id": "1073747194",
+        "name": "Suavecito Birria & Tacos",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                11.10938331553577,
-                -5.109587999596954
+                7.143457222474908,
+                -7.135611999543983
               ],
               [
-                -14.003276514237294,
-                -9.10597599963154
+                -10.407278193131305,
+                -9.940875999896548
               ],
               [
-                -15.929606637141957,
-                2.326588000295544
+                -12.905728748879934,
+                5.666187999773626
               ],
               [
-                9.297401555588921,
-                6.668068000408027
+                4.653804027314228,
+                8.471452000126192
               ],
               [
-                9.543690338882664,
-                5.198643999846695
+                5.480755972588532,
+                3.272808000279497
               ],
               [
-                11.10938331553577,
-                -5.109587999596954
+                6.052584444560007,
+                -0.31169599968762896
+              ],
+              [
+                7.143457222474908,
+                -7.135611999543983
               ]
             ]
           ]
         },
+        "origin_lon_lat": [
+          -122.4148193,
+          37.7886155
+        ],
         "units": "metres",
         "height_m": 3.2,
         "entrance": [
-          -14.966441575689625,
-          -3.3896939996679976
+          -1.6319104853281976,
+          -8.538243999720265
         ],
-        "origin_lon_lat": [
-          -122.4087829,
-          37.7998122
-        ],
+        "geometry_evidence": {
+          "building_id": "1073747194",
+          "region": "sf-corridor",
+          "source": "Kerbside published building polygon, local tangent-plane metres",
+          "source_geometry_sha256": "e4e1113d9ca7c39c967a8e46c4c8b14096c4079957596e3281e6eeecd663ce4d",
+          "footprint_area_m2": 280.9582467552284,
+          "footprint_area_sqft": 3024.209398906372,
+          "shell_floor_area_m2": 280.9582467552284,
+          "storeys": 1,
+          "storey_height_m": 3.2,
+          "height_source": "Kerbside canonical storeys and storey_m",
+          "shell_height_source": "inferred_default",
+          "tenant_boundary": "full ground-floor tenancy is unverified",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        },
         "stratum": "large",
         "service_mode": "auto",
         "bar": true,
@@ -314,76 +464,95 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "13e849ba96c14ecc1697e614106835df0c14546fe1c60f93c39fc66f925ac84b"
+        "selection_hash": "15b88b49b041911d902ab5464b3d8ee5b90435b6d6b8dbcedc7642b82efcc574"
       },
       "service_mode": "table"
     },
     {
-      "id": "restaurant-260526936",
-      "name": "Today Food",
-      "file": "restaurant-260526936.json",
+      "id": "restaurant-151195275",
+      "name": "Mr. Mahjong",
+      "file": "restaurant-151195275.json",
       "passed": true,
       "storeys": 1,
       "style": "Ash & slate",
       "metrics": {
-        "coverage_min": 1.0,
+        "coverage_min": 1.0000000000000002,
         "room_count": 3,
-        "objects": 42,
-        "seats": 16,
-        "tables": 4,
+        "objects": 58,
+        "seats": 24,
+        "tables": 7,
         "table_sizes": {
-          "2": 1,
-          "4": 2,
+          "2": 3,
+          "4": 3,
           "6": 1
         },
-        "table_modules": 8,
+        "table_modules": 12,
         "booths": 2,
+        "prep_islands": 0,
         "customer_route_width_m": 0.95,
         "staff_route_width_m": 0.9,
-        "downloaded_assets_used": 27,
+        "downloaded_assets_used": 43,
         "isolated_clear_floor_m2": 0.0
       },
       "input": {
-        "id": "restaurant-260526936",
-        "osm_id": "260526936",
-        "name": "Today Food",
+        "id": "restaurant-151195275",
+        "osm_id": "151195275",
+        "name": "Mr. Mahjong",
         "footprint": {
           "type": "Polygon",
           "coordinates": [
             [
               [
-                -3.712233236430601,
-                -4.630911999539933
+                -11.225131549987845,
+                1.7254599995985131
               ],
               [
-                -4.96137332992737,
-                3.2505440000193175
+                -10.10789666894857,
+                -5.176380000377492
               ],
               [
-                3.721029998383099,
-                4.619780000200819
+                11.225131548737698,
+                -1.7143280002593997
               ],
               [
-                4.970170091879868,
-                -3.261675999358431
+                10.10789666894857,
+                5.187511999716605
               ],
               [
-                -3.712233236430601,
-                -4.630911999539933
+                -11.225131549987845,
+                1.7254599995985131
               ]
             ]
           ]
         },
-        "units": "metres",
-        "height_m": 3.2,
-        "entrance": [
-          0.628968427724633,
-          -3.946293999449182
-        ],
         "origin_lon_lat": [
-          -122.4048259,
-          37.7936541
+          -122.4037851,
+          37.7905984
         ],
+        "units": "metres",
+        "height_m": 4.02,
+        "entrance": [
+          -10.666514109468206,
+          -1.7254600003894893
+        ],
+        "geometry_evidence": {
+          "building_id": "151195275",
+          "region": "sf-corridor",
+          "source": "Kerbside published building polygon, local tangent-plane metres",
+          "source_geometry_sha256": "ed071bf0a8013da80d37fea4f6b77f0e8de0e21c73473b597feeeee4fedd31ce",
+          "footprint_area_m2": 151.10507273009776,
+          "footprint_area_sqft": 1626.4814663757104,
+          "shell_floor_area_m2": 604.420290920391,
+          "storeys": 4,
+          "storey_height_m": 4.02,
+          "height_source": "Kerbside canonical storeys and storey_m",
+          "shell_height_source": "datasf_lidar_median_height",
+          "tenant_boundary": "full ground-floor tenancy is unverified",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        },
         "stratum": "regular",
         "service_mode": "auto",
         "bar": false,
@@ -391,12 +560,12 @@
         "currency": "USD",
         "economics_source": "illustrative test spend, not this venue's observed price",
         "source": "Kerbside mapped building with one listed food tenant; full ground-floor tenancy is an unverified assumption",
-        "selection_hash": "0a266185334aef67950ac816f1d7f789eda6e2d622b4a25debe7cd1d9a1b41be"
+        "selection_hash": "0babef70db98a08bad4e9da53cc28e32b951ee82e0329f6020dcb75c8b9eb3c7"
       },
       "service_mode": "table"
     }
   ],
-  "passed": 5,
+  "passed": 4,
   "total": 5,
   "measured": false
 }

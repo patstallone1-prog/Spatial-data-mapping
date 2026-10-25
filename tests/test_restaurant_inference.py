@@ -57,7 +57,9 @@ def test_current_successes_have_connected_routes_and_required_inventory(latest):
         assert validate_restaurant(h)["passed"]
         assert h["provenance"]["tenant_boundary"] != "measured"
         assert h["measured"] is False
-        assert h["style"]["economic_evidence"].startswith("illustrative")
+        assert h["style"]["economic_evidence"].startswith(("illustrative", "Google"))
+        if h["style"].get("price_evidence"):
+            assert h["style"]["price_evidence"]["venue_id"] == h["id"]
         roles = {o["role"] for o in h["storeys"][0]["objects"]}
         assert KITCHEN_ROLES <= roles
         assert h["validation"]["metrics"]["customer_route_width_m"] == 0.95

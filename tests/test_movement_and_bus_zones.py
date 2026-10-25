@@ -18,15 +18,16 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_the_pace_slows_uphill_and_quickens_downhill_the_steeper_it_is() -> None:
     js = _page_js()
     consts = "\n".join(re.search(rf"const {name} = [0-9.]+;", js).group(0)
-                       for name in ("DOWNHILL_PACE_MAX", "DOWNHILL_FULL_GRADE"))
+                       for name in ("DOWNHILL_PACE_MAX", "DOWNHILL_FULL_GRADE", "UPHILL_PACE_MIN", "UPHILL_FULL_GRADE"))
     script = consts + "\n" + _extract("toblerPace", js) + """
-        console.log(JSON.stringify([0, 0.1, 0.2, 0.3, -0.05, -0.3, -0.6, -1.0].map((g) => +toblerPace(g).toFixed(3))));
+        console.log(JSON.stringify([0, 0.1, 0.2, 0.3, -0.05, -0.3, -0.6, -1.0, 0.6].map((g) => +toblerPace(g).toFixed(3))));
     """
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
-    level, up10, up20, up30, gentle_down, steep_down, steeper_down, steepest_down = json.loads(out.stdout)
+    level, up10, up20, up30, gentle_down, steep_down, steeper_down, steepest_down, up60 = json.loads(out.stdout)
     assert abs(level - 1) < 1e-6
-    assert up10 < 0.75 and up20 < up10 and up30 < up20, "every step up the hill is slower"
+    assert 0.8 < up10 < 0.9 and up20 < up10 and up30 < up20, "steeper up is slower, in proportion"
+    assert up30 == up60 == 0.6, "to a floor at a steep hill"
     assert 1 < gentle_down < steep_down < steeper_down, "every step down the hill is quicker"
     assert steeper_down == steepest_down <= 1.5, "to a limit"
 

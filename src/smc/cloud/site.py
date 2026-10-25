@@ -9,7 +9,9 @@ lists its areas from ``app-regions.json``; a new cell needs an entry there and i
 3. lay the cell's files out under ``docs/regions/<cell>/`` -- for the page build only -- and run
    the documented rebuild (``build_sf_corridor_3d.py --page-only --detail app`` then
    ``tools/build_app_worlds.py``);
-4. commit only the small files (the map, the indexes, the pages and their release record), never
+4. with ``--interiors``, publish the interior engine's collected batches and restaurant rounds
+   (:func:`promote_interiors`) before the rebuild;
+5. commit only the small files (the map, the indexes, the pages and their release record), never
    the cell's data, which the map sends to R2; push a branch and open a pull request with
    auto-merge. CI's three gates (ruff, pytest, the render audit) and Vercel's deploy gate
    (``tools/vercel/gate.mjs``) decide, exactly as for any other change.
@@ -22,12 +24,20 @@ pull request that restores the previous map.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
+from .checkpoint import get_pointer, pull_tree
 from .publish import Publisher
+from .store import ObjectStore
+
+#: The regions the interior engine furnishes (scripts/run_interior_engine.py REGIONS).
+INTERIOR_REGIONS = ("sf-corridor", "berkeley-downtown", "oakland-downtown", "palo-alto-downtown",
+                    "san-jose-downtown", "sf-haight-castro", "sf-mission", "sf-sunset")
 
 SMALL_SUFFIXES = {".html", ".json", ".webmanifest", ".js", ".mjs"}
 
@@ -83,24 +93,52 @@ def commit_paths(repo: Path, cells: list[str]) -> list[str]:
     return sorted(paths)
 
 
-def promote(repo: Path, publisher: Publisher, *, rebuild: bool = True) -> dict:
+def promote_interiors(repo: Path, private: ObjectStore) -> dict:
+    """The collected interiors onto the site: each region's batches (``pointers/interiors-
+    <region>.json``) restored under build/inferred-interiors and published by the runner's own
+    ``--publish`` (a house only if its validation passed); the restaurants' latest rounds
+    (``pointers/restaurants-latest.json``) copied over docs/inferred-restaurants."""
+    from .stages import RESTAURANT_STATE
+
+    regions = []
+    for region in INTERIOR_REGIONS:
+        pointer = get_pointer(private, f"interiors-{region}")
+        if pointer:
+            # Not cleaned: batches this checkout ran itself stay, and are published with them.
+            pull_tree(private, pointer["tree"], repo, clean=False)
+            regions.append(region)
+    if regions:
+        subprocess.run([sys.executable, "scripts/run_interior_engine.py", "--publish"], cwd=repo, check=True)
+    restaurants = get_pointer(private, "restaurants-latest")
+    if restaurants:
+        pull_tree(private, restaurants["tree"], repo, clean=False)
+        shutil.copytree(repo / RESTAURANT_STATE, repo / "docs/inferred-restaurants", dirs_exist_ok=True)
+    return {"interior_regions": regions, "restaurants": bool(restaurants)}
+
+
+def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
+            interiors: ObjectStore | None = None) -> dict:
     repo = Path(repo)
-    release = publisher.current()
-    if not release:
+    release = publisher.current() if publisher else None
+    if not release and interiors is None:
         return {"changed": False, "reason": "nothing released"}
-    (repo / "docs/asset-map.json").write_text(json.dumps(asset_map(release), indent=1) + "\n")
-    index_path = repo / "docs/regions.json"
-    index = json.loads(index_path.read_text())
-    registry = json.loads((repo / "data/regions/regions.json").read_text())
-    added = update_regions(index, release, registry)
-    index_path.write_text(json.dumps(index, indent=1) + "\n")
-    if added:
-        materialise(publisher, release, repo, added)
+    added: list[str] = []
+    if release:
+        (repo / "docs/asset-map.json").write_text(json.dumps(asset_map(release), indent=1) + "\n")
+        index_path = repo / "docs/regions.json"
+        index = json.loads(index_path.read_text())
+        registry = json.loads((repo / "data/regions/regions.json").read_text())
+        added = update_regions(index, release, registry)
+        index_path.write_text(json.dumps(index, indent=1) + "\n")
+        if added:
+            materialise(publisher, release, repo, added)
+    furnished = promote_interiors(repo, interiors) if interiors is not None else None
     if rebuild:
         for cmd in ([sys.executable, "scripts/build_sf_corridor_3d.py", "--page-only", "--detail", "app",
                      "--out", "build/app-viewer.html"], [sys.executable, "tools/build_app_worlds.py"]):
             subprocess.run(cmd, cwd=repo, check=True)
-    return {"changed": True, "version": release["version"], "added": added,
+    version = release["version"] if release else time.strftime("interiors-%Y%m%d-%H%M%S", time.gmtime())
+    return {"changed": True, "version": version, "added": added, "interiors": furnished,
             "paths": commit_paths(repo, added)}
 
 

@@ -54,6 +54,8 @@ class RestaurantInput:
     bar: bool = False
     source: str = "caller supplied tenant envelope"
     economics_source: str = "unspecified"
+    geometry_evidence: dict | None = None
+    price_evidence: dict | None = None
 
     @classmethod
     def from_json(cls, row):
@@ -70,6 +72,8 @@ class RestaurantInput:
             bool(row.get("bar", False)),
             row.get("source", "caller supplied tenant envelope"),
             row.get("economics_source", "unspecified"),
+            row.get("geometry_evidence"),
+            row.get("price_evidence"),
         )
 
     def __post_init__(self):
@@ -108,6 +112,7 @@ def restaurant_style(spec):
         average_spend_per_person=spend,
         currency=spec.currency,
         economic_evidence=spec.economics_source,
+        price_evidence=spec.price_evidence,
         furnishing_finish={
             "economy": "powder-coated metal & laminate",
             "standard": "timber & upholstered seating",
@@ -284,6 +289,7 @@ def _kitchen(room, style, catalog, opens):
     else:
         raise last_error
     f.wall("waste_bin", [(0.4, 0.4, 0.65)], required=False)
+    _prep_island(f)
     cooker = next(o for o in f.items if o["role"] == "commercial_range")
     x, _, y = cooker["position_m"]
     w, _, d = cooker["size_m"]
@@ -304,6 +310,43 @@ def _kitchen(room, style, catalog, opens):
     return f.items, [
         {"room_id": room["id"], "point": [q.x, q.y], "kind": "staff_workstation"} for q in f.targets
     ]
+
+
+def _prep_island(f):
+    """Fill a usable kitchen centre, preserving a 0.95m aisle on all four sides."""
+    if f.p.area < 22:
+        return
+    centre = f.p.representative_point()
+    for angle in frame_angles(f.p):
+        radians = math.radians(angle)
+        nx, ny = -math.sin(radians), math.cos(radians)
+        for length in (2.4, 2.0, 1.6):
+            for dx, dy in ((0, 0), (0.6, 0), (-0.6, 0), (0, 0.6), (0, -0.6)):
+                x, y = centre.x + dx, centre.y + dy
+                footprint = oriented_box(x, y, length, 0.8, angle)
+                aisle = footprint.buffer(0.95, join_style=2)
+                if not f.p.covers(aisle) or any(aisle.intersects(o) for o in f.obstacles):
+                    continue
+                targets = [Point(x + nx * sign * 0.925, y + ny * sign * 0.925) for sign in (-1, 1)]
+                if not f.fits(footprint, targets[0]):
+                    continue
+                if (
+                    _component(f.p, [*f.obstacles, footprint], f.starts + f.targets + targets, 0.45)
+                    is None
+                ):
+                    continue
+                item = f.put("prep_table", x, y, length, 0.8, 0.9, angle, target=targets[0])
+                if item:
+                    item.update(
+                        placement="central_prep_island",
+                        finish="stainless_steel",
+                        work_aisle_m=0.95,
+                        work_aisle=geo(aisle.difference(footprint)),
+                        work_points_m=[[q.x, q.y] for q in targets],
+                    )
+                    f.targets.append(targets[1])
+                    f.on_top(item, "cutting_board", (0.55, 0.35, 0.025))
+                    return
 
 
 def _component(p, obstacles, targets, radius=ROUTE_RADIUS):
@@ -620,6 +663,7 @@ def _build(spec, style, inside, rooms, opens, catalog):
             )
     return {
         "schema": "kerbside.inferred_restaurant/1",
+        "fixture_revision": "flat-prep-board-v1",
         "id": spec.id,
         "grade": "inferred",
         "confidence": 0.2,
@@ -628,6 +672,8 @@ def _build(spec, style, inside, rooms, opens, catalog):
             "footprint": spec.source,
             "tenant_boundary": "supplied or assumed; not measured",
             "economics": spec.economics_source,
+            "geometry": spec.geometry_evidence,
+            "price_evidence": spec.price_evidence,
             "freshness": None,
             "corroboration_count": 0,
         },
@@ -636,6 +682,8 @@ def _build(spec, style, inside, rooms, opens, catalog):
         "style": style,
         "service_mode": mode,
         "total_height_m": spec.height_m,
+        "footprint_area_m2": spec.footprint.area,
+        "footprint_area_sqft": spec.footprint.area * 10.7639104167,
         "stairs": [],
         "seating": groups,
         "accessible_dining": accessible,
@@ -776,6 +824,16 @@ def validate_restaurant(h):
         ):
             errors.append("joined table modules are separated")
     for counter in objects:
+        if counter.get("placement") == "central_prep_island":
+            aisle = ps[counter["id"]].buffer(0.95, join_style=2).difference(ps[counter["id"]])
+            if counter["role"] != "prep_table" or not rooms[counter["room_id"]].covers(aisle):
+                errors.append("invalid prep island clearance")
+            if any(
+                aisle.intersection(ps[o["id"]]).area > 0.001
+                for o in objects
+                if o["id"] != counter["id"] and o["support"]["kind"] == "floor"
+            ):
+                errors.append("prep island working aisle blocked")
         if counter.get("staff_aisle"):
             aisle = shape(counter["staff_aisle"])
             if any(
@@ -847,6 +905,7 @@ def validate_restaurant(h):
             },
             "table_modules": sum(len(g.get("table_ids", [g["table_id"]])) for g in h["seating"]),
             "booths": sum(g["booth"] for g in h["seating"]),
+            "prep_islands": sum(o.get("placement") == "central_prep_island" for o in objects),
             "customer_route_width_m": 0.95,
             "staff_route_width_m": 0.9,
             "downloaded_assets_used": sum(not o["asset"]["procedural"] for o in objects),
