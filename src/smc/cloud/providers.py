@@ -1,4 +1,4 @@
-"""Compute that comes and goes: Hetzner Cloud servers for CPU work, RunPod pods for GPU work.
+"""Compute that comes and goes: RunPod pods (CPU and GPU), or Hetzner Cloud servers for CPU work.
 
 A worker is launched knowing only two things: where the controller is and a one-time bootstrap
 token. It trades the token for its environment (``/api/bootstrap``) -- the private bucket's
@@ -166,9 +166,12 @@ class HetznerProvider(Provider):
 
 
 class RunPodProvider(Provider):
-    """On-demand GPU pods. No network volume by default: the work tree is restored from R2 at
-    start (measured: ``smc.cloud.estimate``), which is cheaper than a volume billed every hour
-    of the month for a pod that runs a few hours a day."""
+    """On-demand pods: GPU pods for the house pipeline and, with ``extra.compute = "CPU"``, CPU
+    pods for the cell stages and the interior engine (``instance_type`` is then the CPU flavour,
+    ``cpu3c`` or ``cpu5c``, and ``extra.vcpus`` its size). No network volume by default: the
+    work tree is restored from the private bucket at start (measured: ``smc.cloud.estimate``),
+    which is cheaper than a volume billed every hour of the month for a pod that runs a few
+    hours a day. RunPod charges no data ingress or egress."""
 
     name = "runpod"
     API = "https://rest.runpod.io/v1"
@@ -179,17 +182,21 @@ class RunPodProvider(Provider):
 
     def launch(self, worker_id, pool, boot):
         body = {
-            "name": worker_id, "imageName": pool.image, "computeType": "GPU",
-            "gpuTypeIds": [pool.instance_type], "gpuCount": 1,
+            "name": worker_id, "imageName": pool.image,
             "cloudType": pool.extra.get("cloud_type", "SECURE"),
             "interruptible": bool(pool.extra.get("interruptible", False)),
             "containerDiskInGb": pool.disk_gb, "volumeInGb": 0,
             "env": {**boot, "KERBSIDE_WORKER_LABEL": f"kerbside-worker:{worker_id}"},
             "dockerStartCmd": ["worker"],
         }
-        # Only hosts whose driver runs the image's CUDA build.
-        if pool.extra.get("cuda_versions"):
-            body["allowedCudaVersions"] = list(pool.extra["cuda_versions"])
+        if str(pool.extra.get("compute", "GPU")).upper() == "CPU":
+            body.update(computeType="CPU", cpuFlavorIds=[pool.instance_type],
+                        vcpuCount=int(pool.extra.get("vcpus", 2)))
+        else:
+            body.update(computeType="GPU", gpuTypeIds=[pool.instance_type], gpuCount=1)
+            # Only hosts whose driver runs the image's CUDA build.
+            if pool.extra.get("cuda_versions"):
+                body["allowedCudaVersions"] = list(pool.extra["cuda_versions"])
         out = self._request("POST", f"{self.API}/pods", self.token, body)
         return Instance(str(out["id"]), worker_id, pool.name, out.get("desiredStatus", "starting"),
                         time.time())
@@ -204,10 +211,53 @@ class RunPodProvider(Provider):
         for pod in pods:
             name = pod.get("name", "")
             if not name.startswith("kw-"):
-                continue  # only pods this system named; never touch the owner's own pods
-            out.append(Instance(str(pod["id"]), name, "gpu", pod.get("desiredStatus", "?"),
-                                _iso(pod.get("createdAt"))))
+                continue  # only pods this system named; never the owner's, nor the controller
+            # kw-<pool>-<hex>: the scheduler's own names (scheduler.py).
+            pool = name.split("-")[1] if name.count("-") >= 2 else "gpu"
+            started = pod.get("createdAt") or pod.get("lastStartedAt")
+            out.append(Instance(str(pod["id"]), name, pool, pod.get("desiredStatus", "?"),
+                                _iso(started)))
         return out
+
+    # -- the controller's own pod (smc-cloud runpod-controller) -----------------------------
+
+    def get(self, pod_id: str) -> dict:
+        return self._request("GET", f"{self.API}/pods/{pod_id}", self.token)
+
+    def create_pod(self, body: dict) -> dict:
+        return self._request("POST", f"{self.API}/pods", self.token, body)
+
+    def stop(self, pod_id: str) -> dict:
+        return self._request("POST", f"{self.API}/pods/{pod_id}/stop", self.token)
+
+    def start(self, pod_id: str) -> dict:
+        return self._request("POST", f"{self.API}/pods/{pod_id}/start", self.token)
+
+    def all_pods(self) -> list[dict]:
+        found = self._request("GET", f"{self.API}/pods", self.token)
+        return found if isinstance(found, list) else found.get("pods", found.get("data", []))
+
+
+#: The controller's pod: small, CPU only, always on while the cloud works. Its queue lives on
+#: the container disk and is backed up to the private bucket every five minutes; a restarted
+#: pod restores the latest backup (controller.restore_queue), so it needs no paid volume.
+CONTROLLER_POD = "kerbside-controller"
+
+
+def controller_pod_body(image: str, env: dict, *, flavor: str = "cpu3c", vcpus: int = 2,
+                        port: int = 8080, config: str = "cloud/config/kerbside-cloud.toml") -> dict:
+    return {
+        "name": CONTROLLER_POD, "imageName": image, "computeType": "CPU",
+        "cpuFlavorIds": [flavor], "vcpuCount": vcpus, "cloudType": "SECURE",
+        "interruptible": False, "containerDiskInGb": 20, "volumeInGb": 0,
+        "ports": [f"{port}/http"], "env": {**env, "KERBSIDE_PORT": str(port)},
+        "dockerStartCmd": ["controller", "--config", config],
+    }
+
+
+def runpod_proxy_url(pod_id: str, port: int = 8080) -> str:
+    """The pod's HTTPS address for an exposed HTTP port (docs.runpod.io, expose ports)."""
+    return f"https://{pod_id}-{port}.proxy.runpod.net"
 
 
 class FakeProvider(Provider):

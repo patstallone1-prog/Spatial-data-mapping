@@ -25,7 +25,7 @@ from .queue import Queue
 
 #: Cloudflare R2 standard storage, per GB-month (https://developers.cloudflare.com/r2/pricing/,
 #: checked 2026-10-18). Egress is free; operations are billed per million and are small here.
-R2_GB_MONTH_USD = 0.015
+R2_GB_MONTH_USD = 0.023  # S3 Standard's list price (R2's is 0.015): the dearer of the two stores
 
 
 @dataclass

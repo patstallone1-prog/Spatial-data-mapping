@@ -44,7 +44,14 @@ from . import budget as money
 from .checkpoint import pull_tree, push_tree, set_pointer
 from .gate import evaluate
 from .plan import submit_plan
-from .providers import FakeProvider, HetznerProvider, Pool, Provider, RunPodProvider
+from .providers import (
+    FakeProvider,
+    HetznerProvider,
+    Pool,
+    Provider,
+    RunPodProvider,
+    runpod_proxy_url,
+)
 from .publish import Publisher
 from .queue import Queue
 from .scheduler import Scheduler, Settings
@@ -84,6 +91,8 @@ class Config:
         # ``${NAME}`` in the file is filled from the environment, so the committed config names
         # its settings and the deployment supplies them; a secret is never written in it.
         text = Path(path).read_text()
+        # The workers run the controller's own build: runpod-controller sets the tag it deployed.
+        env = {"KERBSIDE_IMAGE_TAG": "main", **env}
         for key, value in env.items():
             text = text.replace("${" + key + "}", value)
         raw = tomllib.loads(text)
@@ -105,8 +114,12 @@ class Config:
                 providers["fake"] = FakeProvider(Path(raw.get("fake_workdir", "build/cloud-fake")))
         stores = raw["stores"]
         passed = {k: env[k] for k in raw.get("pass_env", []) if env.get(k)}
+        url = raw["controller"]["url"]
+        if (not url or "${" in url) and env.get("RUNPOD_POD_ID"):
+            # On RunPod the controller's address is its own pod's proxy, known only inside it.
+            url = runpod_proxy_url(env["RUNPOD_POD_ID"], int(env.get("KERBSIDE_PORT", "8080")))
         return cls(
-            url=raw["controller"]["url"], secret=env["KERBSIDE_SECRET"],
+            url=url, secret=env["KERBSIDE_SECRET"],
             ops_token=env["KERBSIDE_OPS_TOKEN"], db=Path(raw["controller"]["db"]),
             root=Path(raw["controller"].get("root", ".")).resolve(),
             private=open_store(stores["private"], role="private", env=env),

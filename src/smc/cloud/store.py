@@ -163,18 +163,21 @@ class R2Store(ObjectStore):
     bucket, an access key pair scoped to that bucket alone (``<PREFIX>_ACCESS_KEY_ID`` /
     ``<PREFIX>_SECRET_ACCESS_KEY``, e.g. ``R2_PRIVATE_...``)."""
 
-    def __init__(self, bucket: str, *, account_id: str, access_key_id: str,
-                 secret_access_key: str, client=None):
+    def __init__(self, bucket: str, *, account_id: str = "", access_key_id: str,
+                 secret_access_key: str, client=None, endpoint_url: str | None = None,
+                 region: str = "auto"):
         self.bucket = bucket
         self.name = bucket
         if client is None:
             import boto3
             from botocore.config import Config
 
+            if endpoint_url is None and account_id:
+                endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
             client = boto3.client(
-                "s3", endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+                "s3", endpoint_url=endpoint_url,
                 aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key,
-                region_name="auto",
+                region_name=region,
                 config=Config(retries={"max_attempts": 8, "mode": "adaptive"},
                               signature_version="s3v4"))
         self.client = client
@@ -188,6 +191,20 @@ class R2Store(ObjectStore):
         return cls(env[bucket_env], account_id=env["R2_ACCOUNT_ID"],
                    access_key_id=env[f"{prefix}_ACCESS_KEY_ID"],
                    secret_access_key=env[f"{prefix}_SECRET_ACCESS_KEY"])
+
+    @classmethod
+    def s3_from_env(cls, bucket: str, prefix: str, env=os.environ) -> R2Store:
+        """An S3 bucket (AWS, or any S3-compatible service at ``S3_ENDPOINT_URL``): the same
+        calls as R2, conditional writes included (S3 has had If-Match / If-None-Match on
+        PutObject since 2024). ``AWS_REGION`` names the bucket's region; per bucket, an access
+        key pair scoped to it alone (``S3_PRIVATE_...`` / ``S3_PUBLIC_...``)."""
+        need = ("AWS_REGION", f"{prefix}_ACCESS_KEY_ID", f"{prefix}_SECRET_ACCESS_KEY")
+        missing = [k for k in need if not env.get(k)]
+        if missing:
+            raise RuntimeError(f"S3 store needs {', '.join(missing)} (cloud/docs/secrets.md)")
+        return cls(bucket, access_key_id=env[f"{prefix}_ACCESS_KEY_ID"],
+                   secret_access_key=env[f"{prefix}_SECRET_ACCESS_KEY"],
+                   endpoint_url=env.get("S3_ENDPOINT_URL") or None, region=env["AWS_REGION"])
 
     def _missing(self, exc) -> bool:
         code = getattr(exc, "response", {}).get("Error", {}).get("Code", "")
@@ -241,8 +258,13 @@ class R2Store(ObjectStore):
 
 
 def open_store(url: str, *, role: str = "private", env=os.environ) -> ObjectStore:
-    """``file:///path`` (or a bare path) for a local store; ``r2://bucket`` for R2 with the
-    credentials for ``role`` (``private`` or ``public``) from the environment."""
+    """``file:///path`` (or a bare path) for a local store; ``r2://bucket`` for R2 and
+    ``s3://bucket`` for S3, with the credentials for ``role`` (``private`` or ``public``) from
+    the environment."""
+    if url.startswith("s3://"):
+        bucket = url[len("s3://"):].strip("/")
+        prefix = {"private": "S3_PRIVATE", "public": "S3_PUBLIC"}[role]
+        return R2Store.s3_from_env(bucket, prefix, env)
     if url.startswith("r2://"):
         bucket = url[len("r2://"):].strip("/")
         prefix = {"private": "R2_PRIVATE", "public": "R2_PUBLIC"}[role]
