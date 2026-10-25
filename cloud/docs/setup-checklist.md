@@ -8,18 +8,20 @@ creates each worker when there is work for it.
 ## 1. AWS storage
 
 - [ ] Pick one region (e.g. `us-west-2`, beside the USGS lidar) → `AWS_REGION`.
-- [ ] Create two buckets, e.g. `kerbside-private` and `kerbside-public`, both with Block Public
-  Access **on**. Default encryption (SSE-S3) is fine.
+- [ ] Two buckets: `kerbside` (private: checkpoints, queue backups) and `kerbside-finished-map`
+  (public, through CloudFront: the finished cells), both with Block Public Access **on**. Default encryption (SSE-S3) is fine.
 - [ ] Two IAM users, each with an access key and one inline policy,
   `cloud/infra/s3-iam-user-policy.json` with `BUCKET` replaced:
-  - `kerbside-private` → `S3_PRIVATE_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`;
-  - `kerbside-public` → `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`.
-- [ ] CloudFront distribution in front of `kerbside-public` with Origin Access Control (let it
+  - `kerbside` → `S3_PRIVATE_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`;
+  - `kerbside-finished-map` → `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`.
+- [ ] CloudFront distribution in front of `kerbside-finished-map` with Origin Access Control (let it
   update the bucket policy). Its `https://<id>.cloudfront.net` address → `S3_PUBLIC_BASE`.
-- [ ] Apply `cloud/infra/s3-cors.json` to `kerbside-public`:
+  In its default behaviour, set the origin request policy to **CORS-S3Origin**, so S3's CORS
+  headers reach the browser.
+- [ ] Apply `cloud/infra/s3-cors.json` to `kerbside-finished-map`:
 
   ```
-  aws s3api put-bucket-cors --bucket kerbside-public --cors-configuration file://cloud/infra/s3-cors.json
+  aws s3api put-bucket-cors --bucket kerbside-finished-map --cors-configuration file://cloud/infra/s3-cors.json
   ```
 
 - [ ] Optionally an AWS Budgets alert at a few dollars a month.
@@ -34,6 +36,8 @@ creates each worker when there is work for it.
 - [ ] `cp cloud/config/controller.env.example cloud/config/controller.env`, then fill it in.
   Generate `KERBSIDE_SECRET` with `openssl rand -hex 32` and `KERBSIDE_OPS_TOKEN` with
   `openssl rand -hex 24`. Leave `KERBSIDE_CONTROLLER_URL` empty.
+- [ ] `smc-cloud runpod-controller keys` asks for the RunPod key and both AWS key pairs at hidden
+  prompts, finds each pair's IAM user (STS), and writes them into `controller.env`.
 - [ ] `set -a; source cloud/config/controller.env; set +a` in every terminal that runs
   `smc-cloud`.
 
@@ -41,22 +45,26 @@ creates each worker when there is work for it.
 
 - [ ] `smc-cloud runpod-controller plan`: the pod it would create, secrets masked, and both
   images present on GHCR for the build it runs (origin/main's commit). No network call to RunPod.
-- [ ] `smc-cloud runpod-controller check`: the key works; lists your pods. Costs nothing.
-- [ ] `smc-cloud runpod-controller create`: creates `kerbside-controller` and prints its `url`
+- [ ] `smc-cloud runpod-controller storage`: each key writes, reads, refuses a conditional
+  overwrite and deletes a probe in its own bucket; the private key is refused by the public
+  bucket; the public probe answers through CloudFront with CORS. It names what to fix if not.
+- [ ] `smc-cloud runpod-controller check`: storage again, then the RunPod key works; lists your pods. Costs nothing.
+- [ ] `smc-cloud runpod-controller create`: checks storage again (and creates nothing if it fails), then creates `kerbside-controller` and prints its `url`
   and hourly rate. Put the url into `KERBSIDE_CONTROLLER_URL` in `controller.env`.
 - [ ] Open `<url>/healthz`. Then open `/` with the ops token: the dashboard should show no
   workers and $0.
 - [ ] `smc-cloud runpod-controller stop` when nothing is queued; `start` to resume. The queue
   is backed up to the private bucket every 5 minutes and restored on start.
-- [ ] The watchdog: add the GitHub Actions secrets and variables from `secrets.md`, set the
-  repository variable `KERBSIDE_CLOUD_ENABLED=true`, and run `cloud-watchdog` once by hand.
+- [ ] The watchdog: `cloud/deploy/github-secrets.sh` sets its secrets and variables from
+  `controller.env` (never printing them) and turns it on once `KERBSIDE_CONTROLLER_URL` is set.
+  Then run `cloud-watchdog` once by hand.
 
 ## 5. First real use (spend: workers)
 
 - [ ] **Upload the data once** from the Mac (plug in the HP P700 first):
 
   ```
-  smc-cloud migrate --private s3://kerbside-private --cells all --shared all --house-run "/Volumes/HP P700 1/Kerbside/frontage-run-2026-10-10"
+  smc-cloud migrate --private s3://kerbside --cells all --shared all --house-run "/Volumes/HP P700 1/Kerbside/frontage-run-2026-10-10"
   ```
 
   This uses `S3_PRIVATE_*` and `AWS_REGION` in the shell. It refuses restricted data and leaves

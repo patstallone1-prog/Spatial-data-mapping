@@ -99,3 +99,142 @@ def test_the_plan_prints_no_secret_and_checks_both_images(monkeypatch, capsys) -
     assert plan["would_create"]["imageName"].endswith("kerbside-cpu:cafe")
     assert plan["would_create"]["env"]["KERBSIDE_IMAGE_TAG"] == "cafe"
     assert plan["images_on_ghcr"] == {"kerbside-cpu": True, "kerbside-gpu": True}
+
+
+class FakeS3:
+    """A bucket as the storage check sees it: conditional writes, and a key it may refuse."""
+
+    def __init__(self, objects: dict, allowed: bool = True):
+        self.objects, self.allowed = objects, allowed
+
+    def put(self, key, data, *, if_none_match=False, **kw):
+        if not self.allowed:
+            raise RuntimeError("An error occurred (AccessDenied) when calling the PutObject operation")
+        if if_none_match and key in self.objects:
+            raise runpod_controller.PreconditionFailed(key)
+        self.objects[key] = data
+        return "etag"
+
+    def get(self, key):
+        return self.objects[key]
+
+    def delete(self, key):
+        self.objects.pop(key, None)
+
+
+def fake_storage(*, cors: bool = True, worker_may_publish: bool = False):
+    buckets = {"kerbside-private": {}, "kerbside-public": {}}
+
+    def open_s3(bucket, prefix, env):
+        allowed = prefix == "S3_PUBLIC" or bucket == "kerbside-private" or worker_may_publish
+        return FakeS3(buckets[bucket], allowed=allowed)
+
+    class Response:
+        def __init__(self, body):
+            self.body, self.headers = body, {"Access-Control-Allow-Origin": "*"} if cors else {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return self.body
+
+    def fetch(req, timeout):
+        assert req.full_url.startswith("https://d1.cloudfront.net/_probe/")
+        assert req.get_header("Origin") == runpod_controller.SITE_ORIGIN
+        return Response(buckets["kerbside-public"][req.full_url.split(".net/", 1)[1]])
+
+    return buckets, open_s3, fetch
+
+
+def test_the_storage_check_proves_both_buckets_cloudfront_and_that_workers_cannot_publish() -> None:
+    buckets, open_s3, fetch = fake_storage()
+    out = runpod_controller.check_storage(ENV, fetch=fetch, open_s3=open_s3)
+    assert out["all_ok"], out
+    assert out["private key refused by the public bucket"] == "ok"
+    assert buckets == {"kerbside-private": {}, "kerbside-public": {}}  # the probes are gone
+
+
+def test_the_storage_check_names_what_to_fix() -> None:
+    _, open_s3, fetch = fake_storage(cors=False, worker_may_publish=True)
+    out = runpod_controller.check_storage(ENV, fetch=fetch, open_s3=open_s3)
+    assert not out["all_ok"]
+    assert "CORS-S3Origin" in out["public: through CloudFront with CORS"]
+    assert "scope its policy" in out["private key refused by the public bucket"]
+
+
+def test_keys_go_into_the_settings_by_whose_they_are_and_are_never_shown(tmp_path) -> None:
+    env_file = tmp_path / "controller.env"
+    env_file.write_text("RUNPOD_API_KEY=\nAWS_REGION=us-east-2\nS3_PRIVATE_ACCESS_KEY_ID=   # x\n"
+                        "S3_PRIVATE_SECRET_ACCESS_KEY=\nS3_PUBLIC_ACCESS_KEY_ID=\n"
+                        "S3_PUBLIC_SECRET_ACCESS_KEY=\nS3_PUBLIC_BASE=https://d1.cloudfront.net\n")
+    hidden = iter([" rpa_FAKE\n", "p" * 39 + "/", "q" * 39 + "+"])
+    plain = iter(["AKIA" + "B" * 16, "'AKIA" + "A" * 16 + "' "])
+    owners = {"AKIA" + "A" * 16: "kerbside-private-worker", "AKIA" + "B" * 16: "kerbpublicworker"}
+    said = []
+    assert runpod_controller.set_keys(env_file, ask=lambda _p: next(hidden),
+                                      ask_plain=lambda _p: next(plain),
+                                      whoami=lambda k, s, region: owners[k],
+                                      runpod_check=lambda key: None, say=said.append) == 0
+    # The pairs were typed public first; each lands by its IAM user, quoted for the shell.
+    import subprocess
+    out = subprocess.run(["bash", "-c", f"set -a; source {env_file}; env"], capture_output=True,
+                         text=True, check=True).stdout
+    got = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    assert got["RUNPOD_API_KEY"] == "rpa_FAKE" and got["AWS_REGION"] == "us-east-2"
+    assert got["S3_PRIVATE_ACCESS_KEY_ID"] == "AKIA" + "A" * 16
+    assert got["S3_PRIVATE_SECRET_ACCESS_KEY"] == "q" * 39 + "+"
+    assert got["S3_PUBLIC_SECRET_ACCESS_KEY"] == "p" * 39 + "/"
+    assert oct(env_file.stat().st_mode & 0o777) == "0o600"
+    for secret in ("rpa_FAKE", "p" * 39, "q" * 39):
+        assert not any(secret in line for line in said)
+
+
+def test_keys_keeps_what_passed_and_says_why_a_pair_was_refused(tmp_path) -> None:
+    env_file = tmp_path / "controller.env"
+    env_file.write_text("RUNPOD_API_KEY=\nS3_PRIVATE_ACCESS_KEY_ID=\n")
+    hidden = iter(["rpa_GOOD", "s" * 40])
+    plain = iter(["AKIA" + "C" * 16, ""])
+
+    def refuse(*_a):
+        exc = RuntimeError("refused")
+        exc.response = {"Error": {"Code": "SignatureDoesNotMatch"}}
+        raise exc
+
+    said = []
+    assert runpod_controller.set_keys(env_file, ask=lambda _p: next(hidden),
+                                      ask_plain=lambda _p: next(plain), whoami=refuse,
+                                      runpod_check=lambda key: None, say=said.append) == 0
+    assert env_file.read_text() == "RUNPOD_API_KEY='rpa_GOOD'\nS3_PRIVATE_ACCESS_KEY_ID=\n"
+    assert any("SignatureDoesNotMatch" in m and "secret" in m for m in said)
+    assert not any("s" * 40 in m or "rpa_GOOD" in m for m in said)
+
+
+def test_every_call_to_the_controller_names_itself_so_cloudflare_lets_it_through(monkeypatch) -> None:
+    """RunPod's proxy refuses Python-urllib's own agent (Cloudflare 1010) before the controller."""
+    from smc.cloud import USER_AGENT, worker
+
+    seen = []
+
+    class Answer:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b'{"env": {}, "lease": null}'
+
+    def urlopen(req, timeout):
+        seen.append(req.get_header("User-agent"))
+        return Answer()
+
+    monkeypatch.setattr(worker.urllib.request, "urlopen", urlopen)
+    worker.bootstrap({"KERBSIDE_CONTROLLER": "https://p-8080.proxy.runpod.net",
+                      "KERBSIDE_WORKER_ID": "w", "KERBSIDE_BOOT_TOKEN": "b"})
+    worker.HttpTransport("https://p-8080.proxy.runpod.net", "w", "t").lease([], 60)
+    assert seen == [USER_AGENT, USER_AGENT] and "urllib" not in USER_AGENT.lower()

@@ -35,10 +35,10 @@ jobs:
           KERBSIDE_CONTROLLER_URL: ${{ vars.KERBSIDE_CONTROLLER_URL }}
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           AWS_REGION: ${{ vars.AWS_REGION }}
-          S3_PRIVATE_BUCKET: kerbside-private
+          S3_PRIVATE_BUCKET: ${{ vars.S3_PRIVATE_BUCKET || 'kerbside' }}
           S3_PRIVATE_ACCESS_KEY_ID: ${{ secrets.S3_PRIVATE_ACCESS_KEY_ID }}
           S3_PRIVATE_SECRET_ACCESS_KEY: ${{ secrets.S3_PRIVATE_SECRET_ACCESS_KEY }}
-          S3_PUBLIC_BUCKET: kerbside-public
+          S3_PUBLIC_BUCKET: ${{ vars.S3_PUBLIC_BUCKET || 'kerbside-finished-map' }}
           S3_PUBLIC_BASE: ${{ vars.S3_PUBLIC_BASE }}
           # The watchdog never writes the public bucket: it is handed no key that could.
           S3_PUBLIC_ACCESS_KEY_ID: ${{ secrets.S3_PRIVATE_ACCESS_KEY_ID }}

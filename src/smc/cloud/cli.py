@@ -6,7 +6,7 @@
     smc-cloud plan     --cells none --interiors --restaurant-rounds 10   # the interior engine
     smc-cloud status
     smc-cloud review   list | approve|reject|rerun JOB --reviewer NAME --note WHY
-    smc-cloud migrate  --private s3://kerbside-private --cells all --shared all --house-run DIR
+    smc-cloud migrate  --private s3://kerbside --cells all --shared all --house-run DIR
     smc-cloud inventory --volume "/Volumes/HP P700 1" --out cloud/docs/inventory.json
     smc-cloud estimate
     smc-cloud gate     CELL                            # the parity gate on a local cell
@@ -14,9 +14,10 @@
     smc-cloud promote  [--interiors] [--open-pr]       # the live release onto the site (manual)
     smc-cloud watchdog --config ...                    # the independent fail-safe
     smc-cloud selftest                                 # the whole lifecycle, locally
-    smc-cloud runpod-controller plan|check|create|status|stop|start   # the controller's pod
+    smc-cloud runpod-controller keys|plan|storage|check|create|status|stop|start   # its pod
 
-Operator commands talk to the controller at ``KERBSIDE_CONTROLLER`` with ``KERBSIDE_OPS_TOKEN``.
+Operator commands talk to the controller at ``KERBSIDE_CONTROLLER`` (or ``KERBSIDE_CONTROLLER_URL``,
+as controller.env sets it) with ``KERBSIDE_OPS_TOKEN``.
 """
 
 from __future__ import annotations
@@ -31,16 +32,21 @@ import time
 import urllib.request
 from pathlib import Path
 
+from . import USER_AGENT
+
 
 def _ops(path: str, body: dict | None = None) -> dict:
-    base = os.environ.get("KERBSIDE_CONTROLLER", "").rstrip("/")
+    # controller.env names it KERBSIDE_CONTROLLER_URL, the controller's own setting.
+    base = (os.environ.get("KERBSIDE_CONTROLLER")
+            or os.environ.get("KERBSIDE_CONTROLLER_URL", "")).rstrip("/")
     token = os.environ.get("KERBSIDE_OPS_TOKEN", "")
     if not base or not token:
         raise SystemExit("set KERBSIDE_CONTROLLER and KERBSIDE_OPS_TOKEN")
     req = urllib.request.Request(base + path, method="POST" if body is not None else "GET",
                                  data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Authorization": f"Bearer {token}",
-                                          "Content-Type": "application/json"})
+                                          "Content-Type": "application/json",
+                                          "User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=120) as r:
         return json.loads(r.read())
 
@@ -132,9 +138,12 @@ def cmd_watchdog(args) -> int:
     state = private.get_json("watchdog/state.json", {}) or {}
     now = time.time()
     try:
-        with urllib.request.urlopen(f"{raw['controller']['url'].rstrip('/')}/healthz", timeout=20) as r:
+        # cfg.url, not the raw file's: that still reads ${KERBSIDE_CONTROLLER_URL}.
+        req = urllib.request.Request(f"{cfg.url.rstrip('/')}/healthz",
+                                     headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=20) as r:
             healthy = r.status == 200
-    except OSError:
+    except (OSError, ValueError):
         healthy = False
     if healthy:
         state["last_healthy"] = now

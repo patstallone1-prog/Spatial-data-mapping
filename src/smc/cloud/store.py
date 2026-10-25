@@ -179,7 +179,7 @@ class R2Store(ObjectStore):
                 aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key,
                 region_name=region,
                 config=Config(retries={"max_attempts": 8, "mode": "adaptive"},
-                              signature_version="s3v4"))
+                              signature_version="s3v4", max_pool_connections=32))
         self.client = client
 
     @classmethod

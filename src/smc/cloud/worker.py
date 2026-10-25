@@ -29,6 +29,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from . import USER_AGENT
 from .checkpoint import get_pointer, pull_tree, push_tree
 from .store import ObjectStore, open_store
 
@@ -56,7 +57,7 @@ class HttpTransport(Transport):
         req = urllib.request.Request(
             f"{self.base}{path}", data=json.dumps({"worker": self.worker_id, **body}).encode(),
             method="POST", headers={"Authorization": f"Bearer {self.token}",
-                                    "Content-Type": "application/json"})
+                                    "Content-Type": "application/json", "User-Agent": USER_AGENT})
         with urllib.request.urlopen(req, timeout=self.timeout) as response:
             return json.loads(response.read() or b"{}")
 
@@ -92,7 +93,8 @@ def bootstrap(env=os.environ) -> dict:
     for attempt in range(30):
         try:
             req = urllib.request.Request(f"{base}/api/bootstrap", data=body.encode(), method="POST",
-                                         headers={"Content-Type": "application/json"})
+                                         headers={"Content-Type": "application/json",
+                                                  "User-Agent": USER_AGENT})
             with urllib.request.urlopen(req, timeout=30) as response:
                 return json.loads(response.read())["env"]
         except urllib.error.HTTPError as exc:
