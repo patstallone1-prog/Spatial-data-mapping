@@ -199,11 +199,10 @@ def test_keys_keeps_what_passed_and_says_why_a_pair_was_refused(tmp_path) -> Non
     hidden = iter(["rpa_GOOD", "s" * 40])
     plain = iter(["AKIA" + "C" * 16, ""])
 
-    class Refused(Exception):
-        response = {"Error": {"Code": "SignatureDoesNotMatch"}}
-
     def refuse(*_a):
-        raise Refused()
+        exc = RuntimeError("refused")
+        exc.response = {"Error": {"Code": "SignatureDoesNotMatch"}}
+        raise exc
 
     said = []
     assert runpod_controller.set_keys(env_file, ask=lambda _p: next(hidden),
