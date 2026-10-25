@@ -164,3 +164,43 @@ def test_the_storage_check_names_what_to_fix() -> None:
     assert not out["all_ok"]
     assert "CORS-S3Origin" in out["public: through CloudFront with CORS"]
     assert "scope its policy" in out["private key refused by the public bucket"]
+
+
+def test_keys_go_into_the_settings_by_whose_they_are_and_are_never_shown(tmp_path) -> None:
+    env_file = tmp_path / "controller.env"
+    env_file.write_text("RUNPOD_API_KEY=\nAWS_REGION=us-east-2\nS3_PRIVATE_ACCESS_KEY_ID=   # x\n"
+                        "S3_PRIVATE_SECRET_ACCESS_KEY=\nS3_PUBLIC_ACCESS_KEY_ID=\n"
+                        "S3_PUBLIC_SECRET_ACCESS_KEY=\nS3_PUBLIC_BASE=https://d1.cloudfront.net\n")
+    hidden = iter(["rpa_FAKE", "p" * 39 + "/", "q" * 39 + "+"])
+    plain = iter(["AKIA" + "B" * 16, "AKIA" + "A" * 16])
+    owners = {"AKIA" + "A" * 16: "kerbside-private-worker", "AKIA" + "B" * 16: "kerbpublicworker"}
+    said = []
+    assert runpod_controller.set_keys(env_file, ask=lambda _p: next(hidden),
+                                      ask_plain=lambda _p: next(plain),
+                                      whoami=lambda k, s, region: owners[k], say=said.append) == 0
+    # The pairs were typed public first; each lands by its IAM user, quoted for the shell.
+    import subprocess
+    out = subprocess.run(["bash", "-c", f"set -a; source {env_file}; env"], capture_output=True,
+                         text=True, check=True).stdout
+    got = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    assert got["RUNPOD_API_KEY"] == "rpa_FAKE" and got["AWS_REGION"] == "us-east-2"
+    assert got["S3_PRIVATE_ACCESS_KEY_ID"] == "AKIA" + "A" * 16
+    assert got["S3_PRIVATE_SECRET_ACCESS_KEY"] == "q" * 39 + "+"
+    assert got["S3_PUBLIC_SECRET_ACCESS_KEY"] == "p" * 39 + "/"
+    assert oct(env_file.stat().st_mode & 0o777) == "0o600"
+    for secret in ("rpa_FAKE", "p" * 39, "q" * 39):
+        assert not any(secret in line for line in said)
+
+
+def test_keys_writes_nothing_for_a_key_aws_refuses(tmp_path) -> None:
+    env_file = tmp_path / "controller.env"
+    env_file.write_text("RUNPOD_API_KEY=\nS3_PRIVATE_ACCESS_KEY_ID=\n")
+    hidden = iter(["", "s" * 40])
+
+    def refuse(*_a):
+        raise RuntimeError("InvalidClientTokenId")
+
+    assert runpod_controller.set_keys(env_file, ask=lambda _p: next(hidden),
+                                      ask_plain=lambda _p: "AKIA" + "C" * 16, whoami=refuse,
+                                      say=lambda _m: None) == 1
+    assert env_file.read_text() == "RUNPOD_API_KEY=\nS3_PRIVATE_ACCESS_KEY_ID=\n"

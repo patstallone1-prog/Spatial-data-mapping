@@ -1,6 +1,8 @@
 """The controller as a RunPod CPU pod: plan it, create it, and stop or start it.
 
     smc-cloud runpod-controller plan     # what would be created, secrets masked; no network call
+    smc-cloud runpod-controller keys     # asks for the RunPod key and both AWS key pairs (hidden)
+                                         # and writes them into controller.env
     smc-cloud runpod-controller storage  # both buckets, their keys and CloudFront, end to end; ~free
     smc-cloud runpod-controller check    # storage, then the key works and what pods exist; no pod made
     smc-cloud runpod-controller create   # creates the pod (it bills from here) and prints its address
@@ -18,8 +20,10 @@ pod loses at most those five minutes, and a stopped pod costs nothing (no volume
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -84,6 +88,72 @@ def image_exists(repo: str, tag: str) -> bool:
 def build_body(env: dict, tag: str, *, flavor: str, vcpus: int) -> dict:
     return controller_pod_body(f"ghcr.io/{OWNER}/kerbside-cpu:{tag}", {**env, "KERBSIDE_IMAGE_TAG": tag},
                                flavor=flavor, vcpus=vcpus)
+
+
+ENV_FILE = ROOT / "cloud/config/controller.env"
+
+
+def iam_user(key_id: str, secret: str, region: str) -> str:
+    """The IAM user an access key belongs to (STS GetCallerIdentity, which needs no permission)."""
+    import boto3
+
+    arn = boto3.client("sts", region_name=region or "us-east-1", aws_access_key_id=key_id,
+                       aws_secret_access_key=secret).get_caller_identity()["Arn"]
+    return arn.rsplit("/", 1)[-1]
+
+
+def set_keys(env_file: Path = ENV_FILE, *, ask=getpass.getpass, ask_plain=input, whoami=iam_user,
+             say=print) -> int:
+    """Write the RunPod key and both buckets' key pairs into controller.env, typed at hidden
+    prompts so they never pass through a chat or a log. Each AWS pair goes to the bucket its
+    IAM user is for: a user named with "private" gets the private bucket, one with "pub" the
+    public bucket. Enter at a prompt keeps the value already in the file."""
+    text = env_file.read_text()
+    current = dict(re.findall(r"^([A-Z0-9_]+)=(.*)$", text, flags=re.M))
+    region = os.environ.get("AWS_REGION") or current.get("AWS_REGION", "").strip("'\" ")
+    values: dict[str, str] = {}
+    runpod = ask("RunPod API key (hidden; Enter keeps the current one): ").strip()
+    if runpod:
+        if not runpod.startswith("rpa_"):
+            say("that does not look like a RunPod key (they start rpa_); nothing written")
+            return 1
+        values["RUNPOD_API_KEY"] = runpod
+    for n in (1, 2):
+        key_id = ask_plain(f"AWS access key ID {n} of 2 (Enter to skip): ").strip()
+        if not key_id:
+            continue
+        secret = ask("its secret access key (hidden): ").strip()
+        if not re.fullmatch(r"A[KS]IA[A-Z0-9]{16}", key_id) or len(secret) != 40:
+            say(f"key {n}: an access key ID is 20 characters starting AKIA, its secret 40; "
+                "nothing written")
+            return 1
+        try:
+            user = whoami(key_id, secret, region)
+        except Exception as exc:
+            say(f"key {n} ({key_id[:8]}...): AWS refused it ({type(exc).__name__}); is it active, "
+                "and is the secret the one shown when it was created? Nothing written")
+            return 1
+        role = "PRIVATE" if "private" in user.lower() else "PUBLIC" if "pub" in user.lower() else ""
+        if not role:
+            say(f"key {n} belongs to IAM user {user}, which is neither bucket's; nothing written")
+            return 1
+        if f"S3_{role}_ACCESS_KEY_ID" in values:
+            say(f"both keys belong to {role.lower()} users; nothing written")
+            return 1
+        values[f"S3_{role}_ACCESS_KEY_ID"] = key_id
+        values[f"S3_{role}_SECRET_ACCESS_KEY"] = secret
+        say(f"key {n} ({key_id[:8]}...) belongs to {user}: the {role.lower()} bucket")
+    for name, value in values.items():
+        line = f"{name}='{value}'"
+        text, found = re.subn(rf"^{name}=.*$", lambda _m, line=line: line, text, flags=re.M)
+        if not found:
+            text += f"\n{line}\n"
+    tmp = env_file.with_suffix(".tmp")
+    tmp.write_text(text)
+    tmp.chmod(0o600)
+    tmp.replace(env_file)
+    say(f"wrote {', '.join(values) or 'nothing'} to {env_file} (secrets not shown)")
+    return 0
 
 
 def _step(out: dict, name: str, fn) -> bool:
@@ -181,12 +251,14 @@ def find(provider: RunPodProvider) -> dict | None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="smc-cloud runpod-controller", description=__doc__.split("\n\n")[0])
-    ap.add_argument("action", choices=["plan", "storage", "check", "create", "status", "stop",
-                                       "start"])
+    ap.add_argument("action", choices=["keys", "plan", "storage", "check", "create", "status",
+                                       "stop", "start"])
     ap.add_argument("--tag", help="the image build to run (default: origin/main's commit)")
     ap.add_argument("--flavor", default="cpu3c", help="RunPod CPU flavour for the controller")
     ap.add_argument("--vcpus", type=int, default=2)
     args = ap.parse_args(argv)
+    if args.action == "keys":
+        return set_keys()
     if args.action in ("plan", "create"):
         env = controller_env()
         tag = args.tag or default_tag()

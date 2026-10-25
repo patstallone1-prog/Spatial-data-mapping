@@ -36,6 +36,8 @@ creates each worker when there is work for it.
 - [ ] `cp cloud/config/controller.env.example cloud/config/controller.env`, then fill it in.
   Generate `KERBSIDE_SECRET` with `openssl rand -hex 32` and `KERBSIDE_OPS_TOKEN` with
   `openssl rand -hex 24`. Leave `KERBSIDE_CONTROLLER_URL` empty.
+- [ ] `smc-cloud runpod-controller keys` asks for the RunPod key and both AWS key pairs at hidden
+  prompts, finds each pair's IAM user (STS), and writes them into `controller.env`.
 - [ ] `set -a; source cloud/config/controller.env; set +a` in every terminal that runs
   `smc-cloud`.
 
