@@ -3343,6 +3343,10 @@ const ASSET_MAP = await fetch("/asset-map.json", { cache: "no-cache" })
 function viaStore(href) {
   const files = ASSET_MAP?.files;
   if (!files || !ASSET_MAP.base) return href;
+  // Only for a page whose origin the store's CORS lets read it; previews and local
+  // servers on other ports keep reading the site's own copies.
+  const origins = ASSET_MAP.origins;
+  if (origins && !origins.includes("*") && !origins.includes(location.origin)) return href;
   const url = new URL(href, location.href);
   if (url.origin !== location.origin) return href;
   const object = files[url.pathname.replace(/^\/+/, "")];

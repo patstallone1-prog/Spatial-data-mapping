@@ -88,12 +88,25 @@ def gcloud(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(["gcloud", "storage", *args], capture_output=True, text=True)
 
 
+#: The page origin a check asks as. A CDN that leaves Origin out of its cache key keeps whatever
+#: CORS answer the first request got, so a check without one could cache a copy the site can't read.
+SITE_ORIGIN = "https://spatial-data-mapping.vercel.app"
+
+
 def answers(url: str) -> bool:
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=20) as r:
+        req = urllib.request.Request(url, method="HEAD", headers={"Origin": SITE_ORIGIN})
+        with urllib.request.urlopen(req, timeout=20) as r:
             return r.status == 200
     except OSError:
         return False
+
+
+def cors_origins() -> list[str]:
+    """The origins whose pages may read the store: the bucket's CORS (cloud/infra/s3-cors.json),
+    or ["*"] once CloudFront answers every origin itself (cloud/docs/setup-checklist.md)."""
+    rules = json.loads((ROOT / "cloud/infra/s3-cors.json").read_text())["CORSRules"]
+    return sorted({o for rule in rules for o in rule["AllowedOrigins"]})
 
 
 def upload_gcs(bucket: str, files: list[Path], plan: dict[str, str]) -> None:
@@ -169,8 +182,12 @@ def main() -> int:
         sys.exit(f"{len(unreadable)} chunks are not publicly readable (first: {unreadable[0]}); "
                  "the map was not written. See --print-bucket-setup.")
     version = hashlib.sha256(json.dumps(plan, sort_keys=True).encode()).hexdigest()[:16]
-    MAP.write_text(json.dumps({"schema": "kerbside.asset_map/1", "version": version, "base": base,
-                               "files": plan}, indent=1, sort_keys=True))
+    record = {"schema": "kerbside.asset_map/1", "version": version, "base": base, "files": plan}
+    if bucket.startswith("s3://"):
+        # The page uses the store only from these origins: the ones the bucket's CORS allows
+        # (cloud/infra/s3-cors.json). Anywhere else it reads the site's own copies.
+        record["origins"] = cors_origins()
+    MAP.write_text(json.dumps(record, indent=1, sort_keys=True))
     print(f"asset map {version}: {len(plan)} files now served from {base}")
     if args.prune:
         for path in files:
