@@ -8,6 +8,17 @@ Re-measure in the cloud before fixing pool sizes: the queue's ledger records the
 bytes moved and cost of every attempt, and `estimate.from_attempts` turns that into the same
 table.
 
+## The configured deployment (RunPod + S3, $15 prepaid)
+
+The budget in `cloud/config/kerbside-cloud.toml` is $4 a day and $10 a month for workers and
+storage, with a hard stop at $11. The CPU pool is RunPod `cpu3g` pods at 8 vCPU (estimated at
+$0.32/h, high on purpose so the budget stops early; the real rate is in RunPod's console); the
+GPU pool is an RTX A5000 at $0.27/h. The controller pod is outside those limits: `runpod-controller
+create` prints its hourly rate, and it is stopped between campaigns. RunPod's prepaid balance is
+the final cap. S3 Standard is $0.023 per GB-month; downloads from S3 to the pods are AWS egress
+(100 GB a month free, then about $0.09/GB), and the viewer's reads go through CloudFront (1 TB a
+month free). The Hetzner and R2 figures below are kept for comparison.
+
 ## Measured stage times (Mac)
 
 | stage | samples | median | per km² |

@@ -1,11 +1,17 @@
 # Kerbside in the cloud
 
-The regional build runs without the Mac. A small controller on Hetzner owns a durable queue.
-It starts CPU workers on Hetzner and GPU workers on RunPod only when there is work for them, and
-stops them when there is none. Each finished cell goes through the Marina parity gate. A cell
-that passes is published to Cloudflare R2 as an immutable, versioned release. A cell that does
-not pass is held for a named reviewer. The viewer keeps streaming from Cloudflare exactly as it
-does today, and nothing is video-streamed from a GPU.
+The regional build runs without the Mac. A small controller, itself a RunPod CPU pod, owns a
+durable queue. It starts CPU and GPU worker pods on RunPod only when there is work for them, and
+deletes them when there is none. Each finished cell goes through the Marina parity gate. A cell
+that passes is published to the public S3 bucket, behind CloudFront, as an immutable, versioned
+release. A cell that does not pass is held for a named reviewer. The viewer keeps loading the app
+and today's regions from Vercel, and cloud-published cells from CloudFront; nothing is
+video-streamed from a GPU.
+
+The diagram and tables below still show the first design (a Hetzner controller and CPU pool,
+Cloudflare R2). That code path still works, but the configured deployment is RunPod + S3:
+[setup-checklist.md](setup-checklist.md), [secrets.md](secrets.md) and
+`smc-cloud runpod-controller`.
 
 Nothing here is switched on. Every account, token and deploy step is in
 [setup-checklist.md](setup-checklist.md) and needs the owner's action.
