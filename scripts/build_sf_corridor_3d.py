@@ -601,6 +601,8 @@ def fetch_osm_kerb_nodes(bbox: BBox) -> list[dict[str, Any]]:
 
 
 def fetch_osm(bbox: BBox, *, attempts: int = 3, minimum_elements: int = OSM_MIN_ELEMENTS) -> list[dict[str, Any]]:
+    if minimum_elements < 1:
+        raise ValueError("a positive independently justified response floor is required")
     query = overpass_query(bbox)
     data = None
     last: Exception | None = None
@@ -611,26 +613,28 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3, minimum_elements: int = OSM_MIN_
                 url, headers={"User-Agent": "Kerbside/0.1 SF corridor 3D viewer"})
             try:
                 with urllib.request.urlopen(request, timeout=180) as response:
-                    data = json.loads(response.read().decode("utf-8"))
+                    answer = json.loads(response.read().decode("utf-8"))
+                # A mirror under load answers 200 with a remark and few or no elements, and a
+                # regional mirror answers outside its region with none. One such answer built
+                # a corridor of no ways at all, wrote it over the cache, and exited 0: it is
+                # a refusal, and the next mirror is asked.
+                count = len(answer.get("elements") or [])
+                remark = str(answer.get("remark") or "")
+                if count < minimum_elements or remark:
+                    raise RuntimeError(f"answered with {count} elements"
+                                       f"{' and remark ' + remark if remark else ''}; expected "
+                                       f"at least {minimum_elements} for these bounds")
+                data = answer
                 break
             except Exception as exc:  # noqa: BLE001 - any failure means try the next mirror
                 last = exc
                 print(f"  overpass {mirror.split('/')[2]}: {exc}", file=sys.stderr)
         if data is not None:
             break
-        time.sleep(5 * (attempt + 1))
+        # Overpass throttles by address; a burst of cells from one worker waits its turn.
+        time.sleep(30 * (attempt + 1))
     if data is None:
-        raise RuntimeError(f"every Overpass mirror refused the query: {last}")
-    # A mirror under load answers 200 with a remark and few or no elements. One such answer
-    # built a corridor of no ways at all, wrote it over the cache, and exited 0.
-    elements = data.get("elements") or []
-    remark = str(data.get("remark") or "")
-    if minimum_elements < 1:
-        raise ValueError("a positive independently justified response floor is required")
-    if len(elements) < minimum_elements or remark:
-        raise RuntimeError(f"Overpass answered with {len(elements)} elements"
-                           f"{' and remark ' + remark if remark else ''}; expected at least "
-                           f"{minimum_elements} for these bounds. Not building from that.")
+        raise RuntimeError(f"every Overpass mirror refused the query: {last}. Not building from that.")
     ways = []
     # Coastlines cannot be turned into water until the buildings are known, because which side
     # of one is wet is decided by which side has no buildings on it.
