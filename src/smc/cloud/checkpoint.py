@@ -120,24 +120,37 @@ def push_tree(store: ObjectStore, root: Path, paths: list[str], *,
     todo: dict[str, Path] = {}
     total = 0
     for rel, path in walk(root, paths, exclude):
-        sha = _sha(index, rel, path)
-        size = path.stat().st_size
-        total += size
-        files[rel] = [sha, size, path.stat().st_mode & 0o777]
+        try:
+            sha = _sha(index, rel, path)
+            st = path.stat()
+        except FileNotFoundError:  # a folder still being written (the house run) moved it on
+            continue
+        total += st.st_size
+        files[rel] = [sha, st.st_size, st.st_mode & 0o777]
         if sha not in known:
             todo.setdefault(sha, path)
     _save_index(root, index)
 
-    def send(item: tuple[str, Path]) -> int:
+    def send(item: tuple[str, Path]) -> int | None:
         sha, path = item
         if store.head(cas_key(sha)) is not None:
             return 0
-        store.put_file(cas_key(sha), path)
+        try:
+            store.put_file(cas_key(sha), path)
+        except FileNotFoundError:
+            return None
         return path.stat().st_size
 
     with ThreadPoolExecutor(UPLOADS) as pool:
-        sent = sum(pool.map(send, todo.items()))
-    known.update(todo)
+        results = dict(zip(todo, pool.map(send, todo.items()), strict=True))
+    # A file gone before it was sent is left out of the tree, so the tree never names an
+    # object the store doesn't have.
+    gone = {sha for sha, n in results.items() if n is None}
+    if gone:
+        files = {rel: entry for rel, entry in files.items() if entry[0] not in gone}
+        total = sum(entry[1] for entry in files.values())
+    sent = sum(n for n in results.values() if n)
+    known.update(sha for sha in todo if sha not in gone)
     manifest = {"schema": "kerbside.tree/1", "paths": sorted(paths), "files": files}
     digest = manifest_digest(manifest)
     key = f"trees/{digest}.json"
