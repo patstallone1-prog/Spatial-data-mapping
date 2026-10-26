@@ -2033,8 +2033,7 @@
   "transit-stops.json": "chunks/a6b9138093db606f6ade7e04.json"
  },
  "origins": [
-  "http://localhost:8771",
-  "https://spatial-data-mapping.vercel.app"
+  "*"
  ],
  "schema": "kerbside.asset_map/1",
  "version": "3f90b6bde4638dcd"

@@ -102,9 +102,16 @@ def answers(url: str) -> bool:
         return False
 
 
-def cors_origins() -> list[str]:
+def cors_origins(sample: str) -> list[str]:
     """The origins whose pages may read the store: the bucket's CORS (cloud/infra/s3-cors.json),
     or ["*"] once CloudFront answers every origin itself (cloud/docs/setup-checklist.md)."""
+    try:
+        req = urllib.request.Request(sample, method="HEAD", headers={"Origin": "https://cors-probe.invalid"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            if r.headers.get("Access-Control-Allow-Origin") == "*":
+                return ["*"]
+    except OSError:
+        pass
     rules = json.loads((ROOT / "cloud/infra/s3-cors.json").read_text())["CORSRules"]
     return sorted({o for rule in rules for o in rule["AllowedOrigins"]})
 
@@ -184,9 +191,9 @@ def main() -> int:
     version = hashlib.sha256(json.dumps(plan, sort_keys=True).encode()).hexdigest()[:16]
     record = {"schema": "kerbside.asset_map/1", "version": version, "base": base, "files": plan}
     if bucket.startswith("s3://"):
-        # The page uses the store only from these origins: the ones the bucket's CORS allows
-        # (cloud/infra/s3-cors.json). Anywhere else it reads the site's own copies.
-        record["origins"] = cors_origins()
+        # The page uses the store only from these origins: every one when CloudFront answers
+        # CORS itself, else the ones the bucket's CORS allows. Elsewhere it reads the site's copies.
+        record["origins"] = cors_origins(f"{base}/{names[0]}")
     MAP.write_text(json.dumps(record, indent=1, sort_keys=True))
     print(f"asset map {version}: {len(plan)} files now served from {base}")
     if args.prune:
