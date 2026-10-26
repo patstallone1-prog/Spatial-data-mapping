@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -46,6 +47,16 @@ def test_a_cpu_pool_on_runpod_asks_for_a_cpu_pod_and_no_gpu() -> None:
     assert body["dockerStartCmd"] == ["worker"] and body["env"]["KERBSIDE_BOOT"] == "t"
 
 
+def test_a_gpu_pool_falls_back_to_its_other_cards_and_a_cpu_pod_fits_runpods_disk_cap() -> None:
+    calls, request = recorder({("POST", "https://rest.runpod.io/v1/pods"): {"id": "g1"}})
+    pool = Pool("gpu", "runpod", "NVIDIA RTX A5000", 0.6, "img",
+                extra={"gpu_types": ["NVIDIA L4", "NVIDIA RTX A5000", "NVIDIA A40"]})
+    RunPodProvider("rpkey", request=request).launch("kw-gpu-0001", pool, {})
+    assert calls[0]["body"]["gpuTypeIds"] == ["NVIDIA RTX A5000", "NVIDIA L4", "NVIDIA A40"]
+    cfg = tomllib.loads((ROOT / "cloud/config/kerbside-cloud.toml").read_text())
+    assert cfg["pools"]["cpu"]["disk_gb"] <= 80  # RunPod: "Container Disk must be <= 80"
+
+
 def test_listing_keeps_each_workers_pool_and_never_the_controller_or_the_owners_pods() -> None:
     _, request = recorder({("GET", "https://rest.runpod.io/v1/pods"): [
         {"id": "a", "name": "kw-cpu-1a2b", "desiredStatus": "RUNNING", "lastStartedAt": "2026-10-25T01:00:00Z"},
@@ -67,7 +78,7 @@ def test_the_controller_on_runpod_takes_its_pods_proxy_address_and_runs_its_own_
     assert cfg.worker_env["KERBSIDE_PRIVATE_STORE"] == "s3://kerbside-private"
     # Workers get the private bucket's key, never the public one's.
     assert "S3_PUBLIC_SECRET_ACCESS_KEY" not in cfg.worker_env
-    # The owner's $20 a month, everything counted (the controller's pod too: it sleeps idle).
+    # The owner's $5 a day, everything counted (the controller's pod too: it sleeps idle).
     assert cfg.budget.daily_usd <= 5 and cfg.budget.hard_monthly_usd <= 155 and cfg.hourly_usd and cfg.sleep_after_min
 
 

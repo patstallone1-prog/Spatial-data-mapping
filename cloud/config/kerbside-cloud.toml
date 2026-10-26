@@ -58,14 +58,17 @@ slots = 12
 idle_minutes = 10
 max_hours = 24
 min_billed_hours = 0
-disk_gb = 120
+# RunPod refuses a CPU pod's container disk over 80 GB.
+disk_gb = 80
 extra = { compute = "CPU", vcpus = 8, cloud_type = "SECURE", interruptible = false }
 
 # GPU: the house pipeline, one batch at a time (its journals are one state; smc.cloud.stages).
+# The A5000 is first choice; when none is free (2026-10-26: no secure stock) RunPod takes one of
+# gpu_types, all 24-48 GB. hourly_usd is the dearest of them, so the budget never undercounts.
 [pools.gpu]
 provider = "runpod"
 instance_type = "NVIDIA RTX A5000"
-hourly_usd = 0.27
+hourly_usd = 0.60
 image = "ghcr.io/patstallone1-prog/kerbside-gpu:${KERBSIDE_IMAGE_TAG}"
 max_workers = 1
 slots = 1
@@ -73,7 +76,7 @@ idle_minutes = 5
 max_hours = 12
 min_billed_hours = 0
 disk_gb = 120
-extra = { cloud_type = "SECURE", interruptible = false, cuda_versions = ["13.0"] }
+extra = { cloud_type = "SECURE", interruptible = false, cuda_versions = ["13.0"], gpu_types = ["NVIDIA L4", "NVIDIA RTX PRO 4000 Blackwell", "NVIDIA A40", "NVIDIA RTX A6000", "NVIDIA GeForce RTX 3090"] }
 
 [hetzner]
 ssh_keys = []
