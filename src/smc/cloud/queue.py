@@ -17,7 +17,10 @@ States::
     cancelled    withdrawn by an operator
 
 A job's dependants run only once it is ``done``. A quarantined or held job blocks only its own
-dependants: every unrelated job carries on.
+dependants: every unrelated job carries on. An *optional* job whose tries run out is not
+quarantined but skipped: recorded done, its output the checkpoint it started from, with
+``skipped`` saying why, so the cell goes on without it. A job that stalled or ran past its time
+is *deferred*: put behind every other ready job, so the workers move on to other cells first.
 """
 
 from __future__ import annotations
@@ -123,6 +126,9 @@ CREATE TABLE IF NOT EXISTS meta (
 #: (a provider's outage -- "Service ROW/rightofway/MapServer not started" -- comes back).
 BACKOFF_BASE_S = 60.0
 BACKOFF_MAX_S = 2 * 3600.0
+#: Added to a stalled or timed-out job's priority (lower runs first): every other cell's ready
+#: work goes ahead of it, and it is tried again when nothing else is waiting.
+DEFER_PRIORITY = 1000
 
 
 @dataclass
@@ -148,9 +154,17 @@ class JobSpec:
     timeout_s: float = 8 * 3600.0
     priority: int = 100
     max_attempts: int = 4
+    #: Seconds without new log output or a written file before the worker stops the job.
+    stall_s: float = 3600.0
+    #: Skipped rather than quarantined when its tries run out (module docstring).
+    optional: bool = False
 
     def digest(self) -> str:
-        body = {k: v for k, v in asdict(self).items() if k not in ("priority",)}
+        # The later fields count only when set, so a job submitted before they existed keeps
+        # its digest and is not taken for a changed one.
+        late = {"stall_s": 3600.0, "optional": False}
+        body = {k: v for k, v in asdict(self).items()
+                if k != "priority" and not (k in late and v == late[k])}
         return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -229,7 +243,8 @@ class Queue:
                      now if state == "done" else None))
                 self._event(db, "submit", spec.id, {"state": state or "pending"})
                 return "added"
-            if row["spec_digest"] == digest or not replace or row["state"] == "leased":
+            if (row["spec_digest"] == digest or not replace
+                    or row["state"] in ("leased", "done")):
                 return "kept"
             db.execute(
                 "UPDATE jobs SET spec=?, spec_digest=?, depends=?, priority=?, max_attempts=?,"
@@ -329,23 +344,51 @@ class Queue:
         return bool(changed)
 
     def fail(self, job_id: str, worker: str, token: int, error: str, *,
-             metrics: dict | None = None, permanent: bool = False) -> str | None:
-        """Record a failed attempt. Returns the job's new state, or None for a stale report."""
+             metrics: dict | None = None, permanent: bool = False,
+             deferred: bool = False) -> str | None:
+        """Record a failed attempt. Returns the job's new state (``skipped`` for an optional job
+        recorded done without its work), or None for a stale report. ``deferred``: it stalled or
+        ran out of time, so it goes behind every other ready job."""
         now = self.clock()
         with self._tx() as db:
-            row = db.execute("SELECT attempts, max_attempts FROM jobs WHERE id=? AND state='leased'"
-                             " AND lease_owner=? AND lease_token=?", (job_id, worker, token)).fetchone()
+            row = db.execute("SELECT attempts, max_attempts, priority, spec FROM jobs WHERE id=? AND"
+                             " state='leased' AND lease_owner=? AND lease_token=?",
+                             (job_id, worker, token)).fetchone()
             if row is None:
                 return None
             state = "quarantined" if permanent or row["attempts"] >= row["max_attempts"] else "failed"
+            if state == "quarantined" and self._skip(db, job_id, row, error, now):
+                self._finish_attempt(db, job_id, token, "skipped", metrics, error)
+                return "skipped"
             wait = min(self.backoff_base_s * 2 ** max(0, row["attempts"] - 1), BACKOFF_MAX_S)
+            priority = row["priority"] + (DEFER_PRIORITY if deferred and state == "failed" else 0)
             db.execute(
                 "UPDATE jobs SET state=?, error=?, lease_owner=NULL, lease_expires=NULL,"
-                " not_before=?, updated_at=?, finished_at=? WHERE id=?",
-                (state, error[-4000:], now + wait, now, now if state == "quarantined" else None, job_id))
+                " not_before=?, priority=?, updated_at=?, finished_at=? WHERE id=?",
+                (state, error[-4000:], now + wait, priority, now,
+                 now if state == "quarantined" else None, job_id))
             self._finish_attempt(db, job_id, token, state, metrics, error)
-            self._event(db, state, job_id, {"worker": worker, "error": error[-500:]})
+            self._event(db, state, job_id, {"worker": worker, "error": error[-500:],
+                                            **({"deferred": True} if deferred else {})})
         return state
+
+    def _skip(self, db, job_id: str, row, error: str, now: float) -> bool:
+        """An optional job out of tries: done, carrying forward the checkpoint it started from."""
+        spec = json.loads(row["spec"])
+        if not spec.get("optional"):
+            return False
+        output: dict = {}
+        for dep in spec.get("restore_from", []):
+            found = db.execute("SELECT output FROM jobs WHERE id=?", (dep,)).fetchone()
+            if found and found["output"]:
+                output = json.loads(found["output"])
+        output = {k: v for k, v in output.items() if k in ("tree", "files", "bytes")}
+        output["skipped"] = error.strip().splitlines()[0][:300] if error.strip() else "out of tries"
+        db.execute("UPDATE jobs SET state='done', output=?, error=?, lease_owner=NULL,"
+                   " lease_expires=NULL, updated_at=?, finished_at=? WHERE id=?",
+                   (json.dumps(output), error[-4000:], now, now, job_id))
+        self._event(db, "skipped", job_id, {"error": error[-500:]})
+        return True
 
     def release(self, job_id: str, worker: str, token: int, reason: str) -> bool:
         """Give a job back without counting the attempt (the worker is being shut down)."""
@@ -365,14 +408,19 @@ class Queue:
         now = self.clock()
         reaped = []
         with self._tx() as db:
-            rows = db.execute("SELECT id, lease_owner, lease_token, attempts, max_attempts FROM jobs"
-                              " WHERE state='leased' AND lease_expires < ?", (now,)).fetchall()
+            rows = db.execute("SELECT id, lease_owner, lease_token, attempts, max_attempts, spec"
+                              " FROM jobs WHERE state='leased' AND lease_expires < ?",
+                              (now,)).fetchall()
             for row in rows:
+                error = f"lease expired: worker {row['lease_owner']} stopped reporting"
                 state = "quarantined" if row["attempts"] >= row["max_attempts"] else "failed"
+                if state == "quarantined" and self._skip(db, row["id"], row, error, now):
+                    self._finish_attempt(db, row["id"], row["lease_token"], "skipped", None, error)
+                    reaped.append(row["id"])
+                    continue
                 db.execute("UPDATE jobs SET state=?, error=?, lease_owner=NULL, lease_expires=NULL,"
                            " not_before=?, updated_at=? WHERE id=?",
-                           (state, f"lease expired: worker {row['lease_owner']} stopped reporting",
-                            now, now, row["id"]))
+                           (state, error, now, now, row["id"]))
                 self._finish_attempt(db, row["id"], row["lease_token"], "lease_expired", None,
                                      "lease expired")
                 self._event(db, "lease_expired", row["id"], {"worker": row["lease_owner"]})
@@ -504,7 +552,7 @@ class Queue:
         now = self.clock()
         with self._lock:
             stopped = self._db.execute("SELECT COALESCE(SUM(usd),0) FROM ledger WHERE kind IN"
-                                       " ('instance','storage','transfer') AND at >= ?",
+                                       " ('instance','storage','transfer','controller') AND at >= ?",
                                        (since,)).fetchone()[0]
             running = sum(max(0.0, now - max(r["created_at"], since)) / 3600 * r["hourly_usd"]
                           for r in self._db.execute("SELECT * FROM workers WHERE terminated_at IS NULL"))

@@ -7,7 +7,8 @@ Each tick:
    does not know (the controller crashed between launch and record, or a stop failed) is
    deleted; a worker the queue thinks is live but the provider has no instance for is recorded
    gone and its leases failed. A worker silent past its grace is deleted as hung.
-3. **Budget**: at the hard limit every worker is stopped and nothing is launched.
+3. **Budget**: at the hard limit every worker is stopped and nothing is launched (until the
+   month turns); past today's limit every worker drains and nothing is launched until tomorrow.
 4. **Retire** workers idle past their pool's idle time, or older than its ``max_hours`` once they
    finish what they hold.
 5. **Launch** workers where ready jobs outnumber free slots, one pool at a time, each launch
@@ -39,7 +40,34 @@ class Settings:
     silence_grace_s: float = 300
     max_launches_per_tick: int = 4
     paused: bool = False
+    #: The controller's own pod, charged to the budget while it runs.
+    controller_hourly_usd: float = 0.0
     extra: dict = field(default_factory=dict)
+
+
+def work_waiting(queue: Queue, settings: Settings, now: float | None = None) -> tuple[bool, str]:
+    """Whether the controller has anything it could do now: a worker running or a job leased,
+    a gate or publication ready, or a pool's ready work the budget would launch a worker for.
+    The controller sleeps when this has been false a while; the watchdog wakes it when true."""
+    now = now or queue.clock()
+    if queue.workers():
+        return True, "workers running"
+    if queue.jobs(state="leased"):
+        return True, "a job is leased"
+    status = money.status(queue, settings.budget, now)
+    if status["hard_stop"]:
+        return False, "hard monthly limit reached"
+    if queue.get_meta("paused") not in (None, "", "hard budget limit"):
+        return False, f"paused: {queue.get_meta('paused')}"
+    if queue.ready_count("control"):
+        return True, "a gate or publication is ready"
+    for name, pool in settings.pools.items():
+        if queue.ready_count(name):
+            allowed, why = money.may_launch(queue, settings.budget, pool, now)
+            if allowed:
+                return True, f"{name} work is ready"
+            return False, f"{name} work waits on the budget: {why}"
+    return False, "nothing ready"
 
 
 class Scheduler:
@@ -109,6 +137,7 @@ class Scheduler:
                 self._stop(worker, "retrying stop")
 
         # 3. budget
+        money.charge_controller(self.queue, self.settings.controller_hourly_usd, now)
         status = money.status(self.queue, self.settings.budget, now)
         report["budget"] = status
         if status["hard_stop"]:
@@ -118,7 +147,18 @@ class Scheduler:
             self.queue.set_meta("paused", "hard budget limit")
             self.last = report
             return report
+        if self.queue.get_meta("paused") == "hard budget limit":
+            # A new month (or a raised limit): the stop was the budget's, and the budget allows.
+            self.queue.set_meta("paused", "")
+            report["resumed"] = "below the hard limit again"
         paused = self.settings.paused or self.queue.get_meta("paused") not in (None, "")
+        spent_today = money.over_daily(self.queue, self.settings.budget, now)
+        if spent_today:
+            report["held_back"] = [f"daily budget spent (${status['today_usd']:.2f} of "
+                                   f"${self.settings.budget.daily_usd:.2f}); draining until tomorrow"]
+            for worker in self.queue.workers():
+                if worker["state"] not in ("starting", "stopping", "draining"):
+                    self.queue.set_worker(worker["id"], state="draining")
 
         # 4. retire idle and old workers
         for worker in self.queue.workers():
@@ -129,8 +169,11 @@ class Scheduler:
             idle_for = now - (worker["last_busy"] or worker["created_at"])
             too_old = now - worker["created_at"] > pool.max_hours * 3600
             nothing_ready = self.queue.ready_count(pool.name) == 0
-            if not busy and (too_old or paused or (idle_for > pool.idle_minutes * 60 and nothing_ready)):
-                reason = "too old" if too_old else "paused" if paused else "idle"
+            draining = worker["state"] == "draining"
+            if not busy and (too_old or paused or draining
+                             or (idle_for > pool.idle_minutes * 60 and nothing_ready)):
+                reason = ("too old" if too_old else "paused" if paused
+                          else "daily budget" if draining else "idle")
                 self._stop(worker, reason)
                 report["stopped"].append((worker["id"], reason))
             elif too_old:
@@ -138,7 +181,7 @@ class Scheduler:
 
         # 5. launch
         launches = 0
-        if not paused:
+        if not paused and not spent_today:
             for name, pool in self.settings.pools.items():
                 ready = self.queue.ready_count(name)
                 if not ready:

@@ -67,7 +67,8 @@ def test_the_controller_on_runpod_takes_its_pods_proxy_address_and_runs_its_own_
     assert cfg.worker_env["KERBSIDE_PRIVATE_STORE"] == "s3://kerbside-private"
     # Workers get the private bucket's key, never the public one's.
     assert "S3_PUBLIC_SECRET_ACCESS_KEY" not in cfg.worker_env
-    assert cfg.budget.hard_monthly_usd <= 15
+    # The owner's $20 a month, everything counted (the controller's pod too: it sleeps idle).
+    assert cfg.budget.hard_monthly_usd <= 20 and cfg.hourly_usd and cfg.sleep_after_min
 
 
 @needs_boto3
