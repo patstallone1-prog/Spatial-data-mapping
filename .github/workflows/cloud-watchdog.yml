@@ -2,7 +2,9 @@
 #
 # If the controller has not answered /healthz for an hour, or any worker instance is older than
 # 30 hours, those instances are deleted (smc-cloud watchdog). It touches only instances the
-# system labelled as its own (Hetzner kerbside=worker; RunPod pods named kw-...).
+# system labelled as its own (Hetzner kerbside=worker; RunPod pods named kw-...). A controller
+# that stopped its own pod for want of work is started again when the queue it backed up has
+# work the budget allows (cli.wake_controller).
 #
 # Off until the repository variable KERBSIDE_CLOUD_ENABLED is "true" and the secrets below
 # exist (cloud/docs/secrets.md): it never runs against accounts that are not set up.

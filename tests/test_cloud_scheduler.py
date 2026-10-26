@@ -108,16 +108,50 @@ def test_a_vanished_or_silent_worker_loses_its_lease_at_once(tmp_path):
 
 
 def test_the_budget_holds_launches_back_and_the_hard_limit_stops_everything(tmp_path):
-    _clock, q, stub, sched = setup(tmp_path, budget=Budget(daily_usd=1.0, monthly_usd=300, hard_monthly_usd=400))
+    clock, q, stub, sched = setup(tmp_path, budget=Budget(daily_usd=0.15, monthly_usd=300, hard_monthly_usd=400))
     jobs(q, 3)
     report = sched.tick()
-    # $0.06/h kept to midnight for three workers would pass $1.50: fewer are started.
-    assert len(report["launched"]) < 3 and report.get("held_back")
+    # The next hour of three $0.06/h workers would pass $0.15: two are started.
+    assert len(report["launched"]) == 2 and report.get("held_back")
     q.charge("instance", 500.0, "earlier")
     report = sched.tick()
     assert report["budget"]["hard_stop"] and not stub.live
     assert q.get_meta("paused") == "hard budget limit"
     assert sched.tick()["launched"] == []
+    # The month turns: the hard stop was the budget's, and lifts by itself.
+    clock.t += 32 * 86400
+    report = sched.tick()
+    assert report.get("resumed") and report["launched"]
+
+
+def test_a_spent_day_drains_its_workers_and_launches_none_until_tomorrow(tmp_path):
+    _clock, q, _stub, sched = setup(tmp_path, budget=Budget(daily_usd=1.0, monthly_usd=300, hard_monthly_usd=400))
+    jobs(q, 2)
+    assert sched.tick()["launched"]
+    worker = q.workers()[0]
+    q.seen(worker["id"])
+    lease = q.lease(worker["id"], ["cpu"], 600)
+    q.charge("instance", 1.5, "earlier today")
+    report = sched.tick()
+    assert report["launched"] == [] and "draining" in report["held_back"][0]
+    assert q.workers()[0]["state"] == "draining"
+    q.complete(lease["job"]["id"], worker["id"], lease["token"], {})
+    report = sched.tick()
+    assert (worker["id"], "daily budget") in report["stopped"]
+
+
+def test_the_controller_is_wanted_only_for_work_the_budget_allows(tmp_path):
+    from smc.cloud.scheduler import work_waiting
+
+    _clock, q, _stub, sched = setup(tmp_path, budget=Budget(daily_usd=1.0, monthly_usd=300, hard_monthly_usd=400))
+    assert work_waiting(q, sched.settings) == (False, "nothing ready")
+    jobs(q, 1)
+    assert work_waiting(q, sched.settings)[0]
+    q.charge("instance", 1.5, "earlier today")
+    busy, why = work_waiting(q, sched.settings)
+    assert not busy and "budget" in why
+    q.submit(JobSpec(id="c:gate", kind="gate", subject="c", stage="gate", resource="control"))
+    assert work_waiting(q, sched.settings) == (True, "a gate or publication is ready")
 
 
 def test_budget_limits_are_consistent():

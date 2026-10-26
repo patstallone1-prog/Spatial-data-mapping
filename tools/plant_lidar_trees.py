@@ -53,15 +53,22 @@ def ground_files(region: str) -> list[Path]:
     if region == "sf-corridor":
         return [p for p in (ROOT / "docs/app-sf-corridor-ground.json",) if p.exists()]
     # The website's regional ground, and the app's own where it has one (Oakland's is wider).
-    return [p for p in (ROOT / "docs/regions" / region / "sf-corridor-ground.json",
-                        ROOT / "docs/app-regions" / region / "sf-corridor-ground.json") if p.exists()]
+    published = [p for p in (ROOT / "docs/regions" / region / "sf-corridor-ground.json",
+                             ROOT / "docs/app-regions" / region / "sf-corridor-ground.json")
+                 if p.exists()]
+    # A cell not yet published (a gap cell in the cloud): the ground its own build serves.
+    own = ROOT / "data/regions" / region / "site" / "sf-corridor-ground.json"
+    return published or [p for p in (own,) if p.exists()]
 
 
 def payload(region: str) -> Path:
     if region == "sf-corridor":
         return ROOT / "docs/sf-corridor-3d.json"
-    app = ROOT / "docs/app-regions" / region / "sf-corridor-3d.json"
-    return app if app.exists() else ROOT / "docs/regions" / region / "sf-corridor-3d.json"
+    for path in (ROOT / "docs/app-regions" / region / "sf-corridor-3d.json",
+                 ROOT / "docs/regions" / region / "sf-corridor-3d.json"):
+        if path.exists():
+            return path
+    return ROOT / "data/regions" / region / "site" / "sf-corridor-3d.json"
 
 
 def variant(height: float, crown: float) -> str:

@@ -7,6 +7,11 @@ elsewhere from the same checkpoint. While a job runs, a heartbeat keeps its leas
 controller says the lease is gone (the job was reaped, or another worker has it), the job's
 processes are killed at once and nothing is reported.
 
+A step that goes ``stall_s`` without a line of log or a file written under the job's saved
+folders is stuck -- a provider that stopped answering, a download hung with no timeout -- and is
+stopped then and reported *deferred*: the queue puts it behind every other cell's work, so the
+worker's slot moves on to a cell that is making progress.
+
 It stops itself when there has been no work for ``KERBSIDE_IDLE_EXIT_S`` or the controller has
 been unreachable for ``KERBSIDE_CONTROLLER_LOST_S`` -- a worker never runs on, billing, with
 no one to report to. On RunPod it also deletes its own pod (``runpodctl``, with the pod's own
@@ -71,9 +76,10 @@ class HttpTransport(Transport):
         return self.call("/api/complete", {"job": job, "token": token, "output": output,
                                            "metrics": metrics}).get("ok", False)
 
-    def fail(self, job, token, error, metrics, permanent):
+    def fail(self, job, token, error, metrics, permanent, deferred=False):
         return self.call("/api/fail", {"job": job, "token": token, "error": error,
-                                       "metrics": metrics, "permanent": permanent}).get("state")
+                                       "metrics": metrics, "permanent": permanent,
+                                       "deferred": deferred}).get("state")
 
     def release(self, job, token, reason):
         return self.call("/api/release", {"job": job, "token": token, "reason": reason}).get("ok")
@@ -242,8 +248,11 @@ class Worker:
                     proc = subprocess.Popen(argv, cwd=self.root, env=env, stdout=out,
                                             stderr=subprocess.STDOUT, start_new_session=True)
                     procs.append(proc)
+                    progress = Progress(log_path, [self.root / p for p in spec.get("save", [])],
+                                        spec.get("stall_s", 3600))
                     code, usage = _wait(proc, deadline=started + spec.get("timeout_s", 8 * 3600),
-                                        stop=lambda: lost.is_set() or self.stopping.is_set())
+                                        stop=lambda: lost.is_set() or self.stopping.is_set(),
+                                        stalled=progress.stalled)
                     if usage:
                         metrics["cpu_seconds"] += usage.ru_utime + usage.ru_stime
                         # macOS reports bytes, Linux kilobytes.
@@ -263,8 +272,12 @@ class Worker:
             self._save_log(job_id, token, log_path)
             if code == -9999:
                 self.t.fail(job_id, token, f"timed out after {spec.get('timeout_s')} s\n{tail}",
-                            metrics, False)
+                            metrics, False, deferred=True)
                 return "timeout"
+            if code == -9998:
+                self.t.fail(job_id, token, f"stalled: nothing logged or written for "
+                            f"{spec.get('stall_s', 3600):.0f} s\n{tail}", metrics, False, deferred=True)
+                return "stalled"
             if code != 0:
                 self.t.fail(job_id, token, f"exit {code}\n{tail}", metrics,
                             code in PERMANENT_EXIT_CODES)
@@ -299,8 +312,44 @@ class Worker:
             log.warning("log upload %s: %s", job_id, exc)
 
 
-def _wait(proc: subprocess.Popen, *, deadline: float, stop) -> tuple[int, object]:
-    """Wait for ``proc``, with its own resource use; -9999 means it ran past ``deadline``."""
+class Progress:
+    """Whether a step is still doing anything: its log growing, or a file under the job's saved
+    folders newer than the last look. Looked at once a minute; the folders are walked then."""
+
+    def __init__(self, log: Path, folders: list[Path], stall_s: float, *, every_s: float = 60):
+        self.log = log
+        self.folders = folders
+        self.stall_s = stall_s
+        self.every_s = every_s
+        self.checked = 0.0
+        self.last_change = time.time()
+        self.seen = self._look()
+
+    def _look(self) -> tuple[int, float]:
+        size = self.log.stat().st_size if self.log.exists() else 0
+        newest = 0.0
+        for folder in self.folders:
+            for dirpath, _dirs, files in os.walk(folder):
+                for name in files:
+                    with contextlib.suppress(OSError):
+                        newest = max(newest, os.stat(os.path.join(dirpath, name)).st_mtime)
+        return size, newest
+
+    def stalled(self) -> bool:
+        now = time.time()
+        if now - self.checked < self.every_s:
+            return False
+        self.checked = now
+        seen = self._look()
+        if seen != self.seen:
+            self.seen, self.last_change = seen, now
+            return False
+        return now - self.last_change > self.stall_s
+
+
+def _wait(proc: subprocess.Popen, *, deadline: float, stop, stalled=lambda: False) -> tuple[int, object]:
+    """Wait for ``proc``, with its own resource use; -9999 means it ran past ``deadline``,
+    -9998 that it went ``stalled``."""
     while True:
         pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
         if pid:
@@ -312,6 +361,9 @@ def _wait(proc: subprocess.Popen, *, deadline: float, stop) -> tuple[int, object
         if time.time() > deadline:
             _kill(proc)
             return -9999, None
+        if stalled():
+            _kill(proc)
+            return -9998, None
         time.sleep(0.2)
 
 

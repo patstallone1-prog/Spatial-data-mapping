@@ -19,6 +19,7 @@ from .checkpoint import get_pointer, read_tree
 from .queue import JobSpec, Queue
 from .stages import (
     CELL_CHAIN,
+    ENRICH_CHAIN,
     INTERIOR_OUT,
     cell_job,
     gate_job,
@@ -38,8 +39,11 @@ def plan_cells(root: Path) -> list[dict]:
     gap = json.loads((root / "data/regions/gap-plan.json").read_text())["jobs"]
     registry = json.loads((root / "data/regions/regions.json").read_text())["regions"]
     gap_names = {job["name"] for job in gap}
+    # The gap plan's stage order is the base chain; every cell then takes the enrichment
+    # stages the Mac's facade and ground runners used to add (smc.cloud.stages).
     cells = [{"name": j["name"], "gap": True, "bbox": j["bbox"],
-              "stages": [s for s in j.get("stage_order", CELL_CHAIN) if s in CELL_CHAIN]}
+              "stages": [s for s in j.get("stage_order", CELL_CHAIN) if s in CELL_CHAIN]
+              + [s for s in ENRICH_CHAIN if s not in j.get("stage_order", ())]}
              for j in _interleave(gap)]
     for region in registry:
         if region["name"] in gap_names or region["name"] == "sf-corridor":
@@ -122,8 +126,10 @@ def submit_restaurants(queue: Queue, private: ObjectStore, rounds: int) -> int:
 
 def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[str] | None = None,
                 house_batches: int = 0, house_sample: int = 24, interiors: bool = False,
-                restaurant_rounds: int = 0) -> dict:
-    """Submit (or re-submit) the plan. ``cells`` limits it to those names, in plan order."""
+                restaurant_rounds: int = 0, house_ahead: int = 0) -> dict:
+    """Submit (or re-submit) the plan. ``cells`` limits it to those names, in plan order.
+    ``house_ahead`` keeps that many house batches queued past the last one finished, so the
+    house chain goes on for as long as the plan is resubmitted (the controller does, daily)."""
     added = kept = recorded = 0
     planned = plan_cells(root)
     if cells is not None:
@@ -154,9 +160,11 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
                 added += result == "added"
                 kept += result == "kept"
             previous = spec.id
+        # A chain that has grown (the enrichment stages) moves its gate and publication to its
+        # new end; one already passed or published is kept as it is.
         gate = gate_job(name, previous, priority)
-        added += queue.submit(gate) == "added"
-        added += queue.submit(publish_job(name, gate.id, priority)) == "added"
+        added += queue.submit(gate, replace=True) == "added"
+        added += queue.submit(publish_job(name, gate.id, priority), replace=True) == "added"
     previous = None
     house = get_pointer(private, "house-state")
     if house:
@@ -164,6 +172,9 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
                              stage="migrate", resource="control"),
                      state="done", output={"tree": house["tree"], "source": "migration"})
         previous = "migrate:house-state"
+    if house_ahead:
+        finished = sum(1 for j in queue.jobs(kind="house_batch") if j["state"] == "done")
+        house_batches = max(house_batches, finished + house_ahead)
     for number in range(1, house_batches + 1):
         spec = house_batch(number, house_sample, previous)
         added += queue.submit(spec) == "added"

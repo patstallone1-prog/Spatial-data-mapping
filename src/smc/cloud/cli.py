@@ -4,6 +4,7 @@
     smc-cloud worker                                  # environment from the boot token
     smc-cloud plan     --cells all --house-batches 50  # submit (idempotent)
     smc-cloud plan     --cells none --interiors --restaurant-rounds 10   # the interior engine
+    smc-cloud plan     --cells all --interiors --house-ahead 2 --standing  # kept going daily
     smc-cloud status
     smc-cloud review   list | approve|reject|rerun JOB --reviewer NAME --note WHY
     smc-cloud migrate  --private s3://kerbside --cells all --shared all --house-run DIR
@@ -152,11 +153,51 @@ def cmd_watchdog(args) -> int:
                 provider.terminate(inst.id)
                 deleted.append({"provider": name, "id": inst.id, "worker": inst.worker_id,
                                 "age_h": round(age_h, 2), "controller_silent_min": round(silent_min)})
+    woke = None if healthy else wake_controller(cfg, private)
     state["last_run"] = now
     state["deleted"] = deleted
+    state["wake"] = woke
     private.put_json("watchdog/state.json", state)
-    print(json.dumps({"controller_healthy": healthy, "silent_min": round(silent_min), "deleted": deleted}))
+    print(json.dumps({"controller_healthy": healthy, "silent_min": round(silent_min),
+                      "deleted": deleted, "wake": woke}))
     return 0
+
+
+def wake_controller(cfg, private) -> dict:
+    """A controller that stopped its own pod for want of work (controller.housekeeping) is
+    started again once its queue -- the backup it left -- has work the budget allows."""
+    import re
+    import sqlite3
+    import tempfile
+
+    from .queue import Queue
+    from .scheduler import Settings, work_waiting
+
+    match = re.match(r"https://([a-z0-9]+)-\d+\.proxy\.runpod\.net", cfg.url or "")
+    provider = cfg.providers.get("runpod")
+    if not match or provider is None:
+        return {"woke": False, "why": "not a RunPod controller"}
+    pod = provider.get(match.group(1))
+    status = pod.get("desiredStatus")
+    if status != "EXITED":
+        return {"woke": False, "why": f"pod is {status}"}
+    latest = private.get_json("queue/latest.json")
+    if not latest:
+        return {"woke": False, "why": "no queue backup"}
+    with tempfile.TemporaryDirectory() as tmp:
+        db = Path(tmp) / "queue.sqlite"
+        private.get_file(latest["key"], db)
+        queue = Queue(db)
+        try:
+            busy, why = work_waiting(queue, Settings(pools=cfg.pools, budget=cfg.budget))
+        except sqlite3.Error as exc:
+            busy, why = True, f"backup unreadable ({exc}); woken to look"
+        finally:
+            queue.close()
+    if not busy:
+        return {"woke": False, "why": why}
+    provider.start(match.group(1))
+    return {"woke": True, "why": why}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -174,6 +215,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--house-sample", type=int, default=24)
     p.add_argument("--interiors", action="store_true", help="every region's interior engine batches")
     p.add_argument("--restaurant-rounds", type=int, default=0)
+    p.add_argument("--house-ahead", type=int, default=0,
+                   help="keep this many house batches queued past the last finished")
+    p.add_argument("--standing", action="store_true",
+                   help="the controller resubmits this plan every replan_h hours")
     sub.add_parser("status")
     r = sub.add_parser("review")
     r.add_argument("action", choices=["list", "approve", "reject", "rerun"])
@@ -225,7 +270,8 @@ def main(argv: list[str] | None = None) -> int:
         cells = None if args.cells == "all" else [] if args.cells == "none" else args.cells.split(",")
         body = {"cells": cells,
                 "house_batches": args.house_batches, "house_sample": args.house_sample,
-                "interiors": args.interiors, "restaurant_rounds": args.restaurant_rounds}
+                "interiors": args.interiors, "restaurant_rounds": args.restaurant_rounds,
+                "house_ahead": args.house_ahead, "standing": args.standing}
         print(json.dumps(_ops("/api/plan", body)))
         return 0
     if args.cmd == "status":

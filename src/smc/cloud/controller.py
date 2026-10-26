@@ -54,7 +54,7 @@ from .providers import (
 )
 from .publish import Publisher
 from .queue import Queue
-from .scheduler import Scheduler, Settings
+from .scheduler import Scheduler, Settings, work_waiting
 from .stages import CELL_CHAIN
 from .store import ObjectStore, open_store
 
@@ -84,6 +84,13 @@ class Config:
     boot_grace_s: float = 900
     publish_answers: object = None  # override the public-origin check (tests)
     backoff_base_s: float = 60.0
+    #: The controller pod's own price, charged to the budget while it runs.
+    hourly_usd: float = 0.0
+    #: Minutes with nothing to do (scheduler.work_waiting) before the controller stops its own
+    #: pod; 0 never. The watchdog starts it again when there is work the budget allows.
+    sleep_after_min: float = 0.0
+    #: Hours between resubmissions of the standing plan (the last ``plan --standing``).
+    replan_h: float = 24.0
 
     @classmethod
     def load(cls, path: Path, env=os.environ) -> Config:
@@ -128,7 +135,10 @@ class Config:
             providers=providers, worker_env={**raw.get("worker_env", {}), **passed},
             lease_ttl_s=raw["controller"].get("lease_ttl_s", 120),
             tick_s=raw["controller"].get("tick_s", 20),
-            backup_s=raw["controller"].get("backup_s", 300))
+            backup_s=raw["controller"].get("backup_s", 300),
+            hourly_usd=raw["controller"].get("hourly_usd", 0.0),
+            sleep_after_min=raw["controller"].get("sleep_after_min", 0.0),
+            replan_h=raw["controller"].get("replan_h", 24.0))
 
 
 def _need(env, key):
@@ -153,8 +163,11 @@ class Controller:
         self.scheduler = Scheduler(
             self.queue, config.providers,
             Settings(pools=config.pools, budget=config.budget, silence_grace_s=config.silence_grace_s,
-                     boot_grace_s=config.boot_grace_s),
+                     boot_grace_s=config.boot_grace_s, controller_hourly_usd=config.hourly_usd),
             self.issue_boot, clock=clock)
+        self.idle_since: float | None = None
+        self.slept_at = 0.0
+        self._housekeeping_lock = threading.Lock()
         self.stop = threading.Event()
         self.threads: list[threading.Thread] = []
         self.server: ThreadingHTTPServer | None = None
@@ -245,6 +258,47 @@ class Controller:
                                 permanent=isinstance(exc, PermissionError | FileNotFoundError))
             return spec["id"]
 
+    # -- the standing plan and sleeping --------------------------------------------------
+
+    def housekeeping(self) -> dict:
+        """After each tick: resubmit the standing plan when it is due (new houses, new interior
+        batches, a chain that has grown), and stop this pod when there has been nothing to do
+        for ``sleep_after_min`` -- a controller up all month would cost more than the work."""
+        with self._housekeeping_lock:
+            return self._housekeeping()
+
+    def _housekeeping(self) -> dict:
+        now = self.clock()
+        out: dict = {}
+        standing = self.queue.get_meta("plan")
+        last = float(self.queue.get_meta("planned_at", "0") or 0)
+        if standing and now - last > self.c.replan_h * 3600:
+            out["replanned"] = submit_plan(self.queue, self.c.root, self.c.private,
+                                           **json.loads(standing))
+            self.queue.set_meta("planned_at", str(now))
+        busy, why = work_waiting(self.queue, self.scheduler.settings, now)
+        out["work"] = why
+        if busy:
+            self.idle_since = None
+            return out
+        self.idle_since = self.idle_since or now
+        idle_min = (now - self.idle_since) / 60
+        pod = os.environ.get("RUNPOD_POD_ID")
+        # Asked once; again only if the pod is somehow still here ten minutes on.
+        recently = now - self.slept_at < 600
+        if self.c.sleep_after_min and pod and idle_min >= self.c.sleep_after_min and not recently:
+            self.slept_at = now
+            log.warning("nothing to do for %.0f min (%s); stopping this pod until the watchdog "
+                        "wakes it", idle_min, why)
+            self.queue.set_meta("asleep", json.dumps({"at": now, "why": why}))
+            money.charge_controller(self.queue, self.c.hourly_usd, now)
+            self.backup()
+            provider = self.c.providers.get("runpod")
+            if provider is not None:
+                provider.stop(pod)
+            out["sleeping"] = why
+        return out
+
     # -- loops ------------------------------------------------------------------------------
 
     def _loop(self, every: float, fn, name: str) -> None:
@@ -254,6 +308,10 @@ class Controller:
             except Exception:  # a loop that dies takes the controller with it
                 log.exception("%s failed", name)
             self.stop.wait(every)
+
+    def _tick(self) -> None:
+        self.scheduler.tick()
+        self.housekeeping()
 
     def _control_loop(self) -> None:
         while not self.stop.is_set():
@@ -283,7 +341,7 @@ class Controller:
             self.c.url = f"http://{host if host != '0.0.0.0' else '127.0.0.1'}:{self.server.server_address[1]}"
         loops = [
             threading.Thread(target=self.server.serve_forever, daemon=True, name="http"),
-            threading.Thread(target=self._loop, args=(self.c.tick_s, self.scheduler.tick, "tick"),
+            threading.Thread(target=self._loop, args=(self.c.tick_s, self._tick, "tick"),
                              daemon=True, name="scheduler"),
             threading.Thread(target=self._control_loop, daemon=True, name="control"),
             threading.Thread(target=self._loop, args=(self.c.backup_s, self.backup, "backup"),
@@ -455,11 +513,18 @@ def _handler(ctl: Controller):
                 if self.path == "/api/pause":
                     q.set_meta("paused", body.get("reason", ""))
                     return self._send(200, {"ok": True})
-                result = submit_plan(q, ctl.c.root, ctl.c.private, cells=body.get("cells"),
-                                     house_batches=int(body.get("house_batches", 0)),
-                                     house_sample=int(body.get("house_sample", 24)),
-                                     interiors=bool(body.get("interiors", False)),
-                                     restaurant_rounds=int(body.get("restaurant_rounds", 0)))
+                plan = {"cells": body.get("cells"),
+                        "house_batches": int(body.get("house_batches", 0)),
+                        "house_sample": int(body.get("house_sample", 24)),
+                        "interiors": bool(body.get("interiors", False)),
+                        "restaurant_rounds": int(body.get("restaurant_rounds", 0)),
+                        "house_ahead": int(body.get("house_ahead", 0))}
+                result = submit_plan(q, ctl.c.root, ctl.c.private, **plan)
+                if body.get("standing"):
+                    # Resubmitted by the controller every replan_h hours (housekeeping).
+                    q.set_meta("plan", json.dumps(plan))
+                    q.set_meta("planned_at", str(ctl.clock()))
+                    result["standing"] = True
                 return self._send(200, result)
             worker = body.get("worker", "")
             token = self.headers.get("Authorization", "")[7:]
@@ -482,7 +547,8 @@ def _handler(ctl: Controller):
             if self.path == "/api/fail":
                 return self._send(200, {"state": q.fail(body["job"], worker, int(body["token"]),
                                                         body.get("error", ""), metrics=body.get("metrics"),
-                                                        permanent=bool(body.get("permanent")))})
+                                                        permanent=bool(body.get("permanent")),
+                                                        deferred=bool(body.get("deferred")))})
             if self.path == "/api/release":
                 return self._send(200, {"ok": q.release(body["job"], worker, int(body["token"]),
                                                         body.get("reason", ""))})
