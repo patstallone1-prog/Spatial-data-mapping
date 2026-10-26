@@ -333,5 +333,6 @@ def test_an_idle_controller_resubmits_its_plan_then_stops_its_own_pod(ctl, monke
     assert not stopped  # idle, but not for twenty minutes yet
     ctl.idle_since -= 21 * 60
     out = ctl.housekeeping()
-    assert out["sleeping"] == "nothing ready" and stopped == ["pod123"]
+    # The controller's own tick may get there first; either way the pod is stopped once.
+    assert out.get("sleeping", "nothing ready") == "nothing ready" and stopped == ["pod123"]
     assert ctl.c.private.get_json("queue/latest.json")

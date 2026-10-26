@@ -193,7 +193,9 @@ class RunPodProvider(Provider):
             body.update(computeType="CPU", cpuFlavorIds=[pool.instance_type],
                         vcpuCount=int(pool.extra.get("vcpus", 2)))
         else:
-            body.update(computeType="GPU", gpuTypeIds=[pool.instance_type], gpuCount=1)
+            # ``extra.gpu_types``: other cards to take when the first has none free.
+            types = [pool.instance_type, *pool.extra.get("gpu_types", [])]
+            body.update(computeType="GPU", gpuTypeIds=list(dict.fromkeys(types)), gpuCount=1)
             # Only hosts whose driver runs the image's CUDA build.
             if pool.extra.get("cuda_versions"):
                 body["allowedCudaVersions"] = list(pool.extra["cuda_versions"])
