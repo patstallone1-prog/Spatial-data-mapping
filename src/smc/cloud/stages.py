@@ -62,7 +62,9 @@ class StageRule:
 
 RULES: dict[str, StageRule] = {
     "discover": StageRule("cpu", 900, shared=("lidar-index",), network_bound=True),
-    "osm": StageRule("cpu", 900, network_bound=True),
+    # Overpass throttles a worker's burst of cells; the queue's backoff (to two hours) spaces
+    # the retries, and eight tries is about four hours of them before a person is asked.
+    "osm": StageRule("cpu", 1800, max_attempts=8, network_bound=True),
     "terrain": StageRule("cpu", 8 * 3600, shared=("lidar-index",), network_bound=True),
     "lidar": StageRule("cpu", 8 * 3600, shared=("lidar-index",), network_bound=True),
     "imagery": StageRule("cpu", 3 * 3600, network_bound=True),

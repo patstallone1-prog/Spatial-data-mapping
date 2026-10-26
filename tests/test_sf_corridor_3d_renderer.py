@@ -660,3 +660,33 @@ def test_a_parking_lane_is_a_block_face_the_city_lets_cars_park_on(tmp_path: Pat
     assert '"parking_sides",' in _source().split("PAGE_FIELDS = {", 1)[1].split("}", 1)[0]
     assert "function travelSpan(way, roadWidth)" in _source()
     assert "const [left, right] = travelSpan(way, road);" in _source()
+
+
+def test_a_thin_overpass_answer_asks_the_next_mirror_and_never_builds(monkeypatch) -> None:
+    """A throttled or regional mirror answers 200 with nothing: that is a refusal, not data."""
+    import io
+    import time
+    import urllib.request
+
+    namespace = runpy.run_path(str(SOURCE))
+    bbox = namespace["SF_CORRIDOR"].bbox
+    answers = []
+
+    def urlopen(request, timeout):
+        body = answers.pop(0)
+        return io.BytesIO(json.dumps(body).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    thin, full = {"elements": []}, {"elements": [{"type": "node", "id": i} for i in range(3)]}
+    answers[:] = [thin, full]
+    assert namespace["fetch_osm"](bbox, minimum_elements=3) == []
+    assert not answers  # the second mirror's answer was the one taken
+    mirrors = len(namespace["OVERPASS_MIRRORS"])
+    answers[:] = [thin] * (2 * mirrors)
+    try:
+        namespace["fetch_osm"](bbox, attempts=2, minimum_elements=3)
+    except RuntimeError as exc:
+        assert "answered with 0 elements" in str(exc)
+    else:
+        raise AssertionError("built from mirrors that all answered with nothing")
