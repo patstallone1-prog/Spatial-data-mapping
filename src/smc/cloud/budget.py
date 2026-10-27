@@ -4,14 +4,17 @@ Neither Hetzner nor Cloudflare R2 offers a hard spending cap; RunPod's account b
 (prepaid credit: a pod stops when it runs out). So the limits are enforced here, independently
 of any provider, from the ledger the queue keeps:
 
-* a launch is refused if it would take today's or this month's projected spend past its limit
-  (an instance's hourly price times the hours it is billed for at least);
-* at the hard monthly limit every worker is stopped and the scheduler pauses until a person
-  raises the limit -- and the watchdog (``smc-cloud watchdog``, run outside the controller)
-  does the same if the controller itself is gone.
+* a launch is refused if the next hour of every running worker and this one would take today
+  past its limit, or this month's spend past its own;
+* once today's limit is spent the workers drain -- they take no new job, finish what they hold
+  and are stopped -- and work resumes the next UTC day; long jobs can carry a day a little over;
+* at the hard monthly limit every worker is stopped and the scheduler pauses; the pause lifts
+  by itself on the first of the next month (or when a person raises the limit) -- and the
+  watchdog (``smc-cloud watchdog``, run outside the controller) stops workers if the
+  controller itself is gone.
 
-Spend is instance time (running instances counted to now), plus storage charged daily from the
-bytes the checkpoints have stored.
+Spend is instance time (running instances counted to now), the controller's own pod while it is
+up, plus storage charged daily from the bytes the checkpoints have stored.
 """
 
 from __future__ import annotations
@@ -60,30 +63,52 @@ def status(queue: Queue, budget: Budget, now: float | None = None) -> dict:
             "hard_stop": month >= budget.hard_monthly_usd}
 
 
+#: How far ahead a launch looks: the next hour of every running worker and the new one.
+#: (Projecting every worker to midnight refused any launch early in the day once the daily
+#: limit was small; the drain at the limit is what keeps a day near it.)
+LOOKAHEAD_H = 1.0
+
+
+def over_daily(queue: Queue, budget: Budget, now: float | None = None) -> bool:
+    return status(queue, budget, now)["today_usd"] >= budget.daily_usd
+
+
 def may_launch(queue: Queue, budget: Budget, pool: Pool, now: float | None = None) -> tuple[bool, str]:
     now = now or queue.clock()
     s = status(queue, budget, now)
     if s["hard_stop"]:
         return False, f"hard monthly limit reached (${s['month_usd']:.2f} of ${budget.hard_monthly_usd:.2f})"
-    # The least this launch can cost: its billed minimum, or the rest of today's hours.
+    # The least this launch can cost: its billed minimum, or a quarter of an hour.
     least = pool.hourly_usd * max(pool.min_billed_hours, 0.25)
     running = sum(w["hourly_usd"] for w in queue.workers())
-    rest_of_day = (day_start(now) + 86400 - now) / 3600
-    # Today's projection: what is spent, plus every running instance (and this one) kept to
-    # midnight at the worst -- the idle stop usually ends them sooner.
-    projected_day = s["today_usd"] + least + (running + pool.hourly_usd) * min(rest_of_day, pool.max_hours)
     if s["today_usd"] + least > budget.daily_usd:
         return False, f"daily budget: ${s['today_usd']:.2f} spent of ${budget.daily_usd:.2f}"
     if s["month_usd"] + least > budget.monthly_usd:
         return False, f"monthly budget: ${s['month_usd']:.2f} spent of ${budget.monthly_usd:.2f}"
-    if projected_day > budget.daily_usd * 1.5:
-        return False, (f"projected ${projected_day:.2f} today with this worker against the daily "
+    next_hour = s["today_usd"] + max(least, (running + pool.hourly_usd) * LOOKAHEAD_H)
+    if next_hour > budget.daily_usd:
+        return False, (f"${next_hour:.2f} by the next hour with this worker against the daily "
                        f"budget ${budget.daily_usd:.2f}")
     return True, "within budget"
 
 
+def charge_controller(queue: Queue, hourly_usd: float, now: float | None = None,
+                      most_s: float = 300) -> float:
+    """The controller's own pod since the last charge (at most ``most_s``: a longer gap is time
+    it was stopped, and a stopped pod costs nothing)."""
+    now = now or queue.clock()
+    last = float(queue.get_meta("controller_charged_at", "0") or 0)
+    queue.set_meta("controller_charged_at", str(now))
+    if not hourly_usd or not last:
+        return 0.0
+    usd = min(max(0.0, now - last), most_s) / 3600 * hourly_usd
+    if usd:
+        queue.charge("controller", usd, "controller")
+    return usd
+
+
 def charge_storage(queue: Queue, now: float | None = None) -> float:
-    """Once a day: the stored bytes' share of a month's R2 storage."""
+    """Once a day: the stored bytes' share of a month's storage."""
     now = now or time.time()
     last = float(queue.get_meta("storage_charged_at", "0") or 0)
     if now - last < 86400:

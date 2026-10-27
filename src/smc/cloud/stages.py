@@ -14,6 +14,11 @@ Why each is CPU or GPU, from the local runs (``smc.cloud.estimate``):
 * imagery -- provider APIs, a few minutes. CPU.
 * house filter, matcher, materials -- torch models (frontage pixel screen, detail detector,
   CLIP) that the Mac ran on MPS and that run on CUDA unchanged (``--device cuda``). GPU.
+* colours, survey, ground, trees, facades -- what the Mac's facade and ground-cover runners
+  added to a built region (sampled building colours, the facade survey, parks/yards/trees, lidar
+  trees where no city inventory has them, facade textures). Photographs and city portals; CPU.
+  Each is *optional*: one that keeps failing or stalls is skipped and the cell goes on to its
+  gate, which judges what it has (:mod:`.gate`).
 
 Not moved: Unreal (macOS/Windows editor, ``unreal/``), the Street View reference acquisition
 (restricted imagery; it stays on the owner's machine under its own consent file), and the
@@ -30,7 +35,11 @@ PY = "python"
 
 #: The local pipeline's own order (scripts/ingest_region.py DEFAULT_STAGES). A cell's stages
 #: share one folder and one journal, so they run one after another; cells run side by side.
-CELL_CHAIN = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "audit")
+BASE_CHAIN = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "audit")
+#: After the audit: the photographs, the ground and the facade textures read against the built
+#: page, the page built again with them, then the lidar's trees planted on the page it serves.
+ENRICH_CHAIN = ("colours", "survey", "ground", "facades", "rebuild", "trees")
+CELL_CHAIN = BASE_CHAIN + ENRICH_CHAIN
 
 
 @dataclass(frozen=True)
@@ -42,11 +51,20 @@ class StageRule:
     shared: tuple[str, ...] = ()
     #: Mostly waiting on the network: a worker can run several at once.
     network_bound: bool = False
+    #: Seconds without a line of log or a written file before the job counts as stuck: it is
+    #: stopped and put behind every other cell's work (:meth:`.queue.Queue.fail`).
+    stall_s: float = 3600
+    #: A stage the cell can go on without: when its tries run out it is skipped, not quarantined.
+    optional: bool = False
+    #: Work folders kept with the cell (``{cell}`` filled in) so a retry resumes, not restarts.
+    keep: tuple[str, ...] = ()
 
 
 RULES: dict[str, StageRule] = {
     "discover": StageRule("cpu", 900, shared=("lidar-index",), network_bound=True),
-    "osm": StageRule("cpu", 900, network_bound=True),
+    # Overpass throttles a worker's burst of cells; the queue's backoff (to two hours) spaces
+    # the retries, and eight tries is about four hours of them before a person is asked.
+    "osm": StageRule("cpu", 1800, max_attempts=8, network_bound=True),
     "terrain": StageRule("cpu", 8 * 3600, shared=("lidar-index",), network_bound=True),
     "lidar": StageRule("cpu", 8 * 3600, shared=("lidar-index",), network_bound=True),
     "imagery": StageRule("cpu", 3 * 3600, network_bound=True),
@@ -56,7 +74,20 @@ RULES: dict[str, StageRule] = {
                           network_bound=True),
     "build": StageRule("cpu", 2 * 3600, shared=("sf-city-cache", "corridor-stats")),
     "audit": StageRule("cpu", 3600),
+    "colours": StageRule("cpu", 4 * 3600, network_bound=True, stall_s=2700, optional=True,
+                         max_attempts=3, keep=("build/building-colours/{cell}",)),
+    "survey": StageRule("cpu", 6 * 3600, network_bound=True, stall_s=2700, optional=True,
+                        max_attempts=3, keep=("build/facade-survey/{cell}",)),
+    "ground": StageRule("cpu", 2 * 3600, network_bound=True, stall_s=2700, optional=True,
+                        max_attempts=3),
+    "rebuild": StageRule("cpu", 2 * 3600, shared=("sf-city-cache", "corridor-stats"),
+                         optional=True, max_attempts=3),
+    "trees": StageRule("cpu", 6 * 3600, shared=("lidar-index",), network_bound=True,
+                       stall_s=2700, optional=True, max_attempts=3),
+    "facades": StageRule("cpu", 8 * 3600, network_bound=True, stall_s=2700, optional=True,
+                         max_attempts=3),
 }
+OPTIONAL_STAGES = tuple(name for name, rule in RULES.items() if rule.optional)
 
 #: Shared inputs that are not in git and are not re-fetched by the stage that reads them.
 #: ``smc.cloud.migrate`` uploads each once; workers restore the ones a stage names.
@@ -88,8 +119,10 @@ def cell_job(cell: str, stage: str, previous: str | None, *, gap: bool,
         id=f"cell:{cell}:{stage}", kind="cell_stage", subject=cell, stage=stage,
         resource=rule.resource, command=cell_command(cell, stage, gap=gap),
         depends=[previous] if previous else [], restore_from=[previous] if previous else [],
-        shared=list(rule.shared), save=[f"data/regions/{cell}"], timeout_s=rule.timeout_s,
-        max_attempts=rule.max_attempts, priority=priority,
+        shared=list(rule.shared),
+        save=[f"data/regions/{cell}", *(k.format(cell=cell) for k in rule.keep)],
+        timeout_s=rule.timeout_s, max_attempts=rule.max_attempts, priority=priority,
+        stall_s=rule.stall_s, optional=rule.optional,
         env={"KERBSIDE_NETWORK_BOUND": "1"} if rule.network_bound else {})
 
 

@@ -445,7 +445,19 @@ export function barkField(style,w=256,h=512,seed=1,grain=null){
 //: brighter than the species colour) and a normal map from the height, both tiling. `grain`
 //: is the photograph's fine relief, if loaded (barkGrain); without it the pattern alone.
 export const BARK_GAIN=1.4;
+//: The drawn bark, kept for the page's life: every square of detail the page builds asks for the
+//: same few styles, and drawing them a pixel at a time was a second and a half of each build.
+//: Each caller still gets its own textures (over the same canvases), to dispose as it likes.
+const BARK_CANVASES=new Map(),GRAIN_IDS=new WeakMap();let grainsSeen=0;
+const grainId=(grain)=>{if(!grain)return 0;if(!GRAIN_IDS.has(grain))GRAIN_IDS.set(grain,++grainsSeen);return GRAIN_IDS.get(grain);};
 export function barkTextures(THREE,{style='broadleaf',width=256,seed=1,grain=null}={}){
+  const key=`${style}|${width}|${seed}|${grainId(grain)}`;
+  if(!BARK_CANVASES.has(key))BARK_CANVASES.set(key,drawBark(style,width,seed,grain));
+  const {colourCanvas,normalCanvas}=BARK_CANVASES.get(key);
+  const texture=(canvas)=>{const t=new THREE.CanvasTexture(canvas);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t;};
+  return {map:texture(colourCanvas),normalMap:texture(normalCanvas)};
+}
+function drawBark(style,width,seed,grain){
   const f=barkField(style,width,width*2,seed,grain),{w,h}=f;
   const make=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
   const colourCanvas=make(),normalCanvas=make(),ci=colourCanvas.getContext('2d').createImageData(w,h),ni=normalCanvas.getContext('2d').createImageData(w,h);
@@ -455,12 +467,18 @@ export function barkTextures(THREE,{style='broadleaf',width=256,seed=1,grain=nul
     const dx=(at(x+1,y)-at(x-1,y))*4,dy=(at(x,y+1)-at(x,y-1))*4,l=Math.hypot(dx,dy,1);
     ni.data[o]=Math.round((-dx/l*.5+.5)*255);ni.data[o+1]=Math.round((dy/l*.5+.5)*255);ni.data[o+2]=Math.round((1/l*.5+.5)*255);ni.data[o+3]=255;}
   colourCanvas.getContext('2d').putImageData(ci,0,0);normalCanvas.getContext('2d').putImageData(ni,0,0);
-  const texture=(canvas)=>{const t=new THREE.CanvasTexture(canvas);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t;};
-  return {map:texture(colourCanvas),normalMap:texture(normalCanvas)};
+  return {colourCanvas,normalCanvas};
 }
 //: The photograph's grain (BARK_GRAIN_URL: a fallen trunk's bark from a Poly Haven scan, CC0,
 //: tiled), `width` by twice that, as relief about 1. Null where it cannot be had.
-export async function barkGrain(url,width=256){
+//: Loaded once a page: the same array each time, so the bark drawn with it is drawn once too.
+const BARK_GRAINS=new Map();
+export function barkGrain(url,width=256){
+  const key=`${url}|${width}`;
+  if(!BARK_GRAINS.has(key))BARK_GRAINS.set(key,loadBarkGrain(url,width));
+  return BARK_GRAINS.get(key);
+}
+async function loadBarkGrain(url,width){
   try{
     const image=new Image();image.crossOrigin='anonymous';image.src=url;await image.decode();
     const c=document.createElement('canvas');c.width=width;c.height=width*2;const x=c.getContext('2d',{willReadFrequently:true});

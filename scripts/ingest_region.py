@@ -57,7 +57,14 @@ from smc.net import use_certifi  # noqa: E402
 
 use_certifi()
 
-STAGES = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "reconstruct", "audit")
+STAGES = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "reconstruct", "audit",
+          "colours", "survey", "ground", "facades", "rebuild", "trees")
+#: What the facade and ground-cover runners added to a built region, as stages: the photographs'
+#: colours and survey, the ground cover and the facade textures, the page built again with
+#: them, then the lidar's trees planted on the ground it serves. Each judges a region on what it could find; an empty answer -- no
+#: photographs of a street, no city tree inventory -- is recorded, not failed, and the parity
+#: gate weighs it (smc.cloud.gate). So is an audit with no city kerb lines to measure against.
+EMPTY_IS_AN_ANSWER = ("audit", "colours", "survey", "ground", "trees", "facades")
 # The visual pilot requires licensed aerial images and surveyed truth.  Routine
 # region ingestion still finishes when that opt-in stage has no such inputs.
 DEFAULT_STAGES = tuple(stage for stage in STAGES if stage != "reconstruct")
@@ -114,6 +121,9 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
     corridor = region.name == SF_CORRIDOR.name
     site = ROOT / "docs" if corridor else base / "site"
     catalog = ROOT / "data" / "sf_corridor" if corridor else base / "catalog"
+    official = ROOT / "data" / "sf_public_works" if corridor else base / "official"
+    build = ([PY, "scripts/build_sf_corridor_3d.py", "--region", region.name, "--reuse-osm"],
+             [site / "sf-corridor-3d.json"])
     return {
         "discover": ([PY, "scripts/discover_region.py", region.name], [base / "capabilities.json"]),
         "osm": ([PY, "scripts/fetch_region_osm.py", region.name],
@@ -135,13 +145,23 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
                     if region.name == "berkeley-downtown" else
                     ([PY, "scripts/build_sf_official_geometry.py", "--region", region.name],
                      [] if not corridor else [ROOT / "docs/sf-corridor-official.json"]),
-        "build": ([PY, "scripts/build_sf_corridor_3d.py", "--region", region.name, "--reuse-osm"],
-                  [site / "sf-corridor-3d.json"]),
+        "build": build,
         "reconstruct": ([PY, "scripts/build_surface_fusion.py", "--region", region.name],
                          [ROOT / "build/visual/pilot/c14r03/cell.json"] if corridor else []),
         "audit": ([PY, "scripts/audit_corridor_render.py", "--page", str(site / "sf-corridor-3d.json"),
                    "--official", str(site / "sf-corridor-official.json"), "--ground", str(site / "sf-corridor-ground.json"),
                    "--baseline", str(base / "audit_baseline.json")], [base / "audit_baseline.json"]),
+        "colours": ([PY, "scripts/build_building_colours.py", "--region", region.name],
+                    [official / "building_colours.json"]),
+        "survey": ([PY, "scripts/build_facade_survey.py", "--region", region.name],
+                   [official / "facade_survey.json"]),
+        "ground": ([PY, "scripts/build_ground_cover.py", "--region", region.name],
+                   [official / "ground_cover.json"]),
+        "rebuild": build,
+        "trees": ([PY, "scripts/enrich_region.py", "trees", region.name],
+                  [site / ("app-sf-corridor-ground.json" if corridor else "sf-corridor-ground.json")]),
+        "facades": ([PY, "scripts/enrich_region.py", "facades", region.name],
+                    [site / "sf-corridor-chunks.json"]),
     }
 
 
@@ -194,6 +214,12 @@ DEPENDS_ON = {
     "build": ("osm", "terrain", "lidar", "imagery", "official"),
     "reconstruct": ("build",),
     "audit": ("build",),
+    "colours": ("build",),
+    "survey": ("build",),
+    "ground": ("build",),
+    "facades": ("build",),
+    "rebuild": ("colours", "survey", "ground", "facades"),
+    "trees": ("rebuild",),
 }
 
 
@@ -460,10 +486,11 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
             partial = "stopped at budget; catalogue built from the journal"
         present = stage_outputs_ready(stage, outputs)
         hollow = [p for p in outputs if p.exists() and produced_nothing(p)]
-        status = "done" if code == 0 and present and not hollow else "failed"
+        status = "done" if code == 0 and present and (not hollow or stage in EMPTY_IS_AN_ANSWER) else "failed"
         if hollow:
             print(f"  {stage:9s} exited 0 but measured nothing: "
-                  + ", ".join(str(p.relative_to(ROOT)) for p in hollow))
+                  + ", ".join(str(p.relative_to(ROOT)) for p in hollow)
+                  + ("; recorded, for the gate to weigh" if status == "done" else ""))
         journal["stages"][stage].update({"status": status, "exit_code": code, "seconds": round(seconds, 1),
                                          "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                                          "outputs": [str(p.relative_to(ROOT)) for p in outputs if p.exists()],

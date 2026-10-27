@@ -8,14 +8,21 @@ Re-measure in the cloud before fixing pool sizes: the queue's ledger records the
 bytes moved and cost of every attempt, and `estimate.from_attempts` turns that into the same
 table.
 
-## The configured deployment (RunPod + S3, $15 prepaid)
+## The configured deployment (RunPod + S3, $5 a day)
 
-The budget in `cloud/config/kerbside-cloud.toml` is $4 a day and $10 a month for workers and
-storage, with a hard stop at $11. The CPU pool is RunPod `cpu3g` pods at 8 vCPU (estimated at
-$0.32/h, high on purpose so the budget stops early; the real rate is in RunPod's console); the
-GPU pool is an RTX A5000 at $0.27/h. The controller pod is outside those limits: `runpod-controller
-create` prints its hourly rate, and it is stopped between campaigns. RunPod's prepaid balance is
-the final cap. S3 Standard is $0.023 per GB-month; downloads from S3 to the pods are AWS egress
+The budget in `cloud/config/kerbside-cloud.toml` is **$5 a day, everything counted**: workers,
+storage, and the controller's own pod while it is up ($0.063/h). `daily_usd = 5.0` paces it: at
+$5 spent the day's workers drain (finish what they hold, take nothing new) and the next UTC day
+starts again; `monthly_usd = 150` stops launches; `hard_monthly_usd = 155` stops everything until
+the month turns, then it resumes by itself. Up all month the controller alone would be $45, so
+it stops its own pod after 20 minutes with nothing it could do, and the watchdog (GitHub
+Actions, every 30 minutes) starts it again when its queue has work the budget allows.
+
+The CPU pool is RunPod `cpu3g` pods at 8 vCPU (estimated at $0.32/h) with 12 slots: the first
+cloud cell's lidar took 221 minutes of which 24 were CPU, so a worker carries twelve such jobs.
+At about $0.25 a cell, $5 a day is roughly 14 worker-hours, some 15–20 gap cells a day. The GPU
+pool is an RTX A5000 at $0.27/h. RunPod's prepaid balance is the final cap: keep it above the
+month's $150. S3 Standard is $0.023 per GB-month; downloads from S3 to the pods are AWS egress
 (100 GB a month free, then about $0.09/GB), and the viewer's reads go through CloudFront (1 TB a
 month free). The Hetzner and R2 figures below are kept for comparison.
 

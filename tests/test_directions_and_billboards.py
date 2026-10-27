@@ -38,7 +38,7 @@ def test_a_route_request_and_its_answer_are_read_as_valhalla_means_them() -> Non
         const drive = routeRequest([{ lat: 1, lon: 2 }, { lat: 3, lon: 4 }, { lat: 5, lon: 6 }], "drive");
         const trip = summarizeTrip({ summary: { time: 600, length: 1.2 }, legs: [
           { shape: "_izlhA~rlgdF", elevation: [10, 12, 11, 15],
-            maneuvers: [{ instruction: "Walk north.", type: 1 }, { instruction: "Turn left.", type: 15 }, { type: 9 }] }] });
+            maneuvers: [{ instruction: "Walk north.", type: 1, length: 0.2 }, { instruction: "Turn left.", type: 15 }, { type: 9 }] }] });
         const round = decodePolyline6(encodePolyline6(line));
         console.log(JSON.stringify({ line, walk, drive, trip, round }));
     """)
@@ -50,6 +50,33 @@ def test_a_route_request_and_its_answer_are_read_as_valhalla_means_them() -> Non
     assert [p["type"] for p in r["drive"]["locations"]] == ["break"] * 3
     assert (r["trip"]["seconds"], r["trip"]["ascent"], r["trip"]["descent"]) == (600, 6, 1)
     assert r["trip"]["steps"] == ["Walk north.", "Turn left."] and r["trip"]["turns"] == 1, "a slight bend is no turn"
+    # Each written step keeps its manoeuvre and length, for the turn arrows and distances beside it.
+    assert r["trip"]["stepInfo"] == [{"type": 1, "km": 0.2}, {"type": 15, "km": 0}]
+
+
+def test_a_route_under_way_shows_its_steps_where_the_sidebar_was_and_draws_over_everything() -> None:
+    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    # The steps panel: in the hud beside the map, scrollable, back to the options and closable.
+    for needle in ('<section class="panel" id="nav-panel" hidden', 'id="nav-back"', 'id="nav-close"',
+                   '<ol id="nav-steps"></ol>', 'id="route-show-steps"'):
+        assert needle in page, needle
+    assert "overflow-y:auto" in page[page.index("#nav-steps {"):page.index("#nav-steps {") + 200]
+    js = _page_js()
+    assert "if (found.length) showNavigation(true)" in js
+    # The chosen route over the grey alternatives (no strand down its middle), seen through the houses
+    # from the street, and over the houses from far out -- after the tile tree's see-through ground.
+    ribbon = _extract("routeRibbon", js)
+    assert "top ? ROUTE_TOP_LIFT_M : 0" in ribbon and "polygonOffsetFactor: -8" in ribbon
+    assert "if (over) group.renderOrder = top ? 25 : 24;" in ribbon and "transparent: over" in ribbon
+    assert "if (top && !over)" in ribbon and "ghost.renderOrder = 23;" in ribbon
+    assert "routeOverHouses() !== routeDrawnOver" in _extract("updateRouteWidth", js)
+    # Pins: small, at both ends as soon as they are chosen, drawn last, their group ordered over
+    # the tiles' (whose groups carry their depth).
+    on_top = _extract("pinOnTop", js)
+    assert "if (object.isGroup) object.renderOrder = order;" in on_top and "o.material.transparent = true" in on_top
+    assert "group.renderOrder = tile.depth;" in js
+    assert "const PLACE_PIN_BASE = 0.45, PLACE_PIN_NEAR_M = 125;" in js
+    assert "pinStops();\n    return true;" in js and "stop || (i === 0 ? here() : null)" in _extract("pinStops", js)
 
 
 @pytest.mark.skipif(NODE is None, reason="node is not installed")

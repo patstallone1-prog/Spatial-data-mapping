@@ -67,6 +67,7 @@ lifecycle inside them, and pushes to GHCR from `main`) and `.github/workflows/cl
 |---|---|---|
 | discover, osm, terrain, lidar, imagery, official | CPU pool (Hetzner CX43, 8 slots per server) | Mostly waiting on USGS, Overpass, Mapillary and city services. The CX line is EU-only, so lidar crosses the Atlantic from us-west-2; the first cell measures whether that costs more than it saves. |
 | build, audit | CPU pool | Python and node, single-threaded per cell. |
+| colours, survey, ground, facades, rebuild, trees | CPU pool, after `audit` | What the Mac's facade and ground-cover runners added to a built region, now stages of every cell (`scripts/ingest_region.py`): sampled building colours, the facade survey, parks/yards/street trees from city portals and OpenStreetMap, facade textures, the page built again with them, then lidar trees planted where no city inventory has any (`scripts/enrich_region.py`). Each is optional: out of tries, it is skipped and the gate judges the cell without it. |
 | gate, publish | controller | Small, and they need the public bucket's write key, which only the controller holds. |
 | house filter → match → materials | GPU pool (RunPod, one at a time) | torch/LightGlue with `--device cuda`. The journals are one shared state (`build/frontage-live`, `build/facade-match`), so batches run serially. Fits stay in the private bucket (`KERBSIDE_HOUSES_PUBLISH=0`). |
 | interior engine: house batches | CPU pool | `scripts/run_interior_engine.py --batch REGION:INDEX`, twenty houses a job, every batch independent (shapely and the engine's solver, no model). A region's batches are collected into `pointers/interiors-<region>.json` (a `collect` job on the controller). |
@@ -81,16 +82,24 @@ lifecycle inside them, and pushes to GHCR from `main`) and `.github/workflows/cl
 
 ## The parity gate: automatic pass, or hold for review
 
-After a cell's `audit` stage, the controller runs `gate`:
+After a cell's last stage (`trees`), the controller runs `gate` (`smc/cloud/gate.py`):
 
 1. It restores the cell's checkpoint and runs `audit_region(...)` from
-   `scripts/audit_region_parity.py`. This is the same code and the same 0.75 × Marina screen
-   the repository's tests use; the gate never has its own thresholds.
-2. **Pass** means every stage is done, there are no issues, and every measured share is at least
-   0.75 × Marina's. `publish` then runs.
-3. **Hold** records the failing shares and issues as reasons. The cell's `publish` waits, and
+   `scripts/audit_region_parity.py`, the same measurement the repository's tests use.
+2. Each share's floor is **Marina's share × 0.6 × the cell's population factor**. The factor is
+   √(cell's people per km² ÷ the Marina corridor's 12,801), between 0.4 and 1, from the 2020
+   census blocks under the cell's box (TIGERweb; kept in the cell's `population.json`). A
+   suburb with a fifth of the Marina's people is held to about 45 % of its bar; where the
+   census can't be asked, the Marina's floor stands. The audit's own 0.75 screen ranks regions
+   for more ingestion; it is not the publication bar.
+3. **Pass** means every required stage (the base chain through `audit`) is done, no share is
+   under its floor, and there is no publication fault (sampled colours not served, ground in
+   the source missing from the page). A skipped enrichment stage, no tree or yard records, or
+   up to 10 % of lidar cells still to read are *notes*, published with the cell. `publish`
+   then runs.
+4. **Hold** records the failing shares and faults as reasons. The cell's `publish` waits, and
    every other cell carries on.
-4. A reviewer acts on the held cell from the dashboard or with
+5. A reviewer acts on the held cell from the dashboard or with
    `smc-cloud review approve|reject|rerun JOB --reviewer NAME --note WHY`. A name and a note are
    required. Approve publishes the cell. Reject keeps it unpublished. Rerun requeues it from its
    first stage.

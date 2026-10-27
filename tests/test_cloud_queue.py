@@ -117,3 +117,45 @@ def test_a_backup_is_a_complete_queue(q, tmp_path):
     other = Queue(tmp_path / "copy.sqlite")
     assert other.job("c:a")["state"] == "pending"
     other.close()
+
+
+def test_an_optional_job_out_of_tries_is_skipped_and_its_chain_goes_on(q):
+    q.submit(job("c:build"))
+    q.submit(job("c:colours", ["c:build"], optional=True, max_attempts=2,
+                 restore_from=["c:build"]))
+    q.submit(job("c:gate", ["c:colours"]))
+    lease = q.lease("w", ["cpu"], 60)
+    q.complete("c:build", "w", lease["token"], {"tree": "t-build", "files": 3})
+    for expected in ("failed", "skipped"):
+        q.clock_.t += 3600
+        lease = q.lease("w", ["cpu"], 60)
+        assert lease["job"]["id"] == "c:colours"
+        assert q.fail("c:colours", "w", lease["token"], "exit 1\nno photographs") == expected
+    skipped = q.job("c:colours")
+    assert skipped["state"] == "done"
+    assert skipped["output"] == {"tree": "t-build", "files": 3, "skipped": "exit 1"}
+    lease = q.lease("w", ["cpu"], 60)
+    assert lease["job"]["id"] == "c:gate" and lease["restore"] == []
+
+
+def test_a_stalled_job_goes_behind_every_other_cells_work(q):
+    q.submit(job("a:lidar", priority=100))
+    q.submit(job("b:lidar", priority=101))
+    lease = q.lease("w", ["cpu"], 60)
+    assert lease["job"]["id"] == "a:lidar"
+    assert q.fail("a:lidar", "w", lease["token"], "stalled", deferred=True) == "failed"
+    q.clock_.t += 3600
+    assert q.lease("w", ["cpu"], 60)["job"]["id"] == "b:lidar"
+    assert q.lease("w", ["cpu"], 60)["job"]["id"] == "a:lidar"
+
+
+def test_replacing_a_spec_never_reruns_finished_work(q):
+    q.submit(job("c:gate"), state="done", output={"tree": "t"})
+    assert q.submit(job("c:gate", ["c:new-end"]), replace=True) == "kept"
+    assert q.job("c:gate")["state"] == "done"
+
+
+def test_a_job_submitted_before_the_new_fields_keeps_its_digest():
+    old = job("c:a")
+    assert old.digest() == job("c:a", stall_s=3600.0, optional=False).digest()
+    assert old.digest() != job("c:a", optional=True).digest()
