@@ -45,10 +45,9 @@ def test_walker_scales_orbit_speed_and_clicks_move_without_dragging() -> None:
     pointer = pointer.split("// The address, where the building is.", 1)[0]
     assert 'goTo(landing, { travel: true });' in pointer
     assert 'if (Math.hypot(e.clientX - pressedAt[0]' not in pointer
-    context = source.split('canvas.addEventListener("contextmenu", async (e) => {', 1)[1]
+    context = source.split('canvas.addEventListener("contextmenu", (e) => {', 1)[1]
     context = context.split('canvas.addEventListener("pointerdown", hideAddress);', 1)[0]
-    assert 'const distant = !state.firstPerson && state.dist > 1200;' in context
-    assert 'goTo(landing, { travel: true, zoom: true });' in context
+    assert "goTo(" not in context  # a two-finger tap mid-pinch flew the walker off
 
 
 def test_built_region_navigation_loads_full_city_and_preserves_arrival() -> None:
