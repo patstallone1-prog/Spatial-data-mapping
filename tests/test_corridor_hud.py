@@ -41,15 +41,15 @@ def test_hud_has_light_palette_and_menu_state_labels():
     assert '#addr .sub { color:#fff; }' in source
 
 
-def test_click_moves_and_right_click_has_distant_safe_landing():
+def test_click_moves_and_right_click_does_nothing():
     source = SOURCE.read_text()
     assert 'goTo(landing, { travel: true });' in source
-    assert 'goTo(landing, { travel: true, zoom: true });' in source
-    assert 'const distant = !state.firstPerson && state.dist > 1200;' in source
-    # Right click is a zoomed teleport only; looking a place up is the S key.
+    # A right click -- a trackpad's two-finger tap, easily made mid-pinch -- no longer teleports;
+    # looking a place up is the S key.
     menu = source[source.index('canvas.addEventListener("contextmenu"'):]
     menu = menu[:menu.index("});")]
-    assert "showAddress" not in menu
+    assert "goTo(" not in menu and "showAddress" not in menu and "e.preventDefault();" in menu
+    assert "Right-click" not in source
     assert 'if (e.key !== "s" && e.key !== "S") return;' in source
     assert 'if (feature && feature.kind === "building" && showAddress(feature, cx, cy)) {' in source
     assert 'const name = ground ? streetNameAt(ground.x, ground.z) : null;' in source
@@ -72,8 +72,9 @@ def test_published_app_viewers_and_shell_have_the_new_controls():
     for path in viewers:
         page = path.read_text()
         assert 'aria-controls="map-sidebar"' in page
-        assert 'const clicked=groundAt(e.clientX,e.clientY);' in page
-        assert 'const landing = eligibleLanding(clicked, distant);' in page
+        # A right click (a trackpad's two-finger tap) no longer teleports.
+        menu = page[page.index('canvas.addEventListener("contextmenu"'):]
+        assert "goTo(" not in menu[:menu.index("});")]
         assert 'if (zoom) state.dist = ARRIVAL_DIST;' in page
         assert '#addr .sub { color:#fff; }' in page
     app = (DOCS / "app.html").read_text()

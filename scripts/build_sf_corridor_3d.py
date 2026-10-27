@@ -3134,7 +3134,7 @@ input::placeholder { color:#9ca3af; }
   </section>
   <section class="group">
     <h2>Getting around</h2>
-    <div id="tip"><b>Click to move</b> without changing zoom. Right-click to teleport to street-level zoom. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, S for what is under the pointer, Enter to open a door or gate, 1, 2 or 3 to drop a pin (again to go back to it, then Delete to remove it), and wheel or pinch to zoom.</div>
+    <div id="tip"><b>Click to move</b> without changing zoom. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, S for what is under the pointer, Enter to open a door or gate, 1, 2 or 3 to drop a pin (again to go back to it, then Delete to remove it), and wheel or pinch to zoom.</div>
     <button type="button" class="page-link" id="controls-open" aria-controls="controls-help">Every control and what it does ›</button>
   </section>
   <section class="group subpage" id="controls-help" hidden aria-label="Controls">
@@ -3142,7 +3142,6 @@ input::placeholder { color:#9ca3af; }
     <h2>Mouse and touch</h2>
     <dl class="controls">
       <dt>Click / tap the ground</dt><dd>Walk there. The zoom stays as it is.</dd>
-      <dt>Right-click / two-finger tap</dt><dd>Teleport there, zoomed in to street level. From far out you land on the nearest street.</dd>
       <dt>Drag</dt><dd>Look around. You keep walking while you do.</dd>
       <dt>Wheel / pinch</dt><dd>Zoom in and out.</dd>
       <dt>Click a billboard</dt><dd>Opens what it advertises.</dd>
@@ -3338,6 +3337,13 @@ const ASSET_BASE = ATTACH ? ATTACH.assets
 //: Where each data file is kept: an immutable, content-named copy in the object store
 //: (tools/publish_chunks.py writes the map), or -- for anything not in the map, or with no map --
 //: the site itself. The page and its code stay on the site; the city's data does not have to.
+//: A file in the object store is named by its content (tools/publish_chunks.py): it never changes,
+//: so the browser's copy is used as it is, without asking the store again whether it is still
+//: current -- a round trip for every tile and every file of a square, each time it is built.
+//: Everything else (the site's own files, which a deploy replaces) is still revalidated.
+const IMMUTABLE_CHUNK = /\/chunks\/[0-9a-f]{24}\.[a-z0-9]+$/;
+const fetch = (input, init) => (IMMUTABLE_CHUNK.test(String(input?.url ?? input))
+  ? globalThis.fetch(input, { ...init, cache: "force-cache" }) : globalThis.fetch(input, init));
 const ASSET_MAP = await fetch("/asset-map.json", { cache: "no-cache" })
   .then((r) => (r.ok ? r.json() : null)).catch(() => null);
 function viaStore(href) {
@@ -3354,14 +3360,14 @@ const sharedAsset = (name) => viaStore(new URL(name, new URL(
 const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=__WORLD_STREAMING_HASH__"));
 //: How much of the world is held, and how wide a square is built in full round the walker. A
 //: desktop or laptop (not a phone or a tablet, and 8 GB or more where the browser says) builds an
-//: 800 m square, keeps 192 MiB of cells so a rebuild reuses what the last one fetched, and keeps
-//: more of the simple city resident; a small device keeps the 700 m square and 48 MiB it had.
+//: 800 m square, keeps 384 MiB of cells so a rebuild reuses what the last one fetched, and keeps
+//: 320 MiB of the simple city resident; a small device keeps the 700 m square and 48 MiB it had.
 //: Wider is not better: a 900 m square took 17.5 s to build round Pacific Heights, a 700 m one
 //: 7 s, and a walker who arrives before the build is on the simple city all that while. An
 //: arrival after a jump is built small (220 m) so the block underfoot comes first.
 const metaLibrary = META ? await import(sharedAsset("meta-xr.mjs?rev=__META_XR_HASH__")) : null;
 const STREAM = META ? { ...metaLibrary.META_STREAM } : (!deviceIsSmall() && !(navigator.deviceMemory && navigator.deviceMemory < 8))
-  ? { radius: 400, arrival: 220, keep: 310, lead: 200, cellBytes: 192 * 1048576, cellConcurrency: 6, tileBytes: 160 * 1048576 }
+  ? { radius: 400, arrival: 220, keep: 310, lead: 200, cellBytes: 384 * 1048576, cellConcurrency: 8, tileBytes: 320 * 1048576 }
   : { ...worldStreaming.DETAIL_SMALL, cellBytes: 48 * 1048576, cellConcurrency: 4, tileBytes: 48 * 1048576 };
 const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
@@ -4817,7 +4823,11 @@ function yieldFrame(progress) {
   // browser delivers at once and which still lets the event loop turn.
   return new Promise((resolve) => {
     let settled = false;
-    const go = () => { if (!settled) { settled = true; resolve(); } };
+    // The slice is timed from when the build resumes, not from when it stopped. Timed from the
+    // stop, a wait longer than the budget -- every wait, while a detail square is built behind
+    // a city being drawn (about sixty milliseconds each) -- had used the next slice up before
+    // it began, and the build did one step a frame: 88% of a square's sixteen seconds waiting.
+    const go = () => { if (!settled) { settled = true; lastYieldAt = performance.now(); resolve(); } };
     if (typeof document !== "undefined" && document.hidden) { yieldWaiters.push(go); yieldChannel.port2.postMessage(0); return; }
     // The rest: the build gives the machine this long between slices of work.
     // A frame when one comes, but never waiting on one: a browser on battery, or a tab it has
@@ -7930,14 +7940,19 @@ function tileRingDistance(tile) {
 //: pavements and crossings -- the simple city at its best, wherever the walker goes next in it.
 //: It grows a ring at a time while nothing else is loading, furthest ahead first.
 const TILE_FILL_STEP_M = 250, TILE_FILL_EVERY_MS = 900;
+//: Right out over the region (zoom tier 0) it is still filled, a depth up: the houses in their
+//: own colours, the carriageways and the pavements, without the lane paint and crossings that
+//: are under a pixel from there. Pulled back that far it used to give way to grey massing and
+//: road lines, and a region looked unbuilt from above.
+const TILE_FILL_FAR_DEPTH = 7;
 const tileFill = { region: null, rect: null, radius: 0, reach: 0, lastAt: 0, focus: new THREE.Vector3() };
 function tileFillDepth(tile) {
-  if (!tileFill.rect || tileFill.radius <= 0 || zoomTier < 1) return null;
+  if (!tileFill.rect || tileFill.radius <= 0) return null;
   const [x0, z0, x1, z1] = tileRect(tile), r = tileFill.rect;
   if (x1 < r[0] || x0 > r[2] || z1 < r[1] || z0 > r[3]) return null;
   // Ahead of a moving walker counts nearer, behind further: the fill leans the way it goes.
   const d = tileRingDistance(tile) * (1 - 0.45 * tileAheadness(tile));
-  return d <= tileFill.radius ? TILE_FULL_DEPTH : null;
+  return d <= tileFill.radius ? (zoomTier < 1 ? TILE_FILL_FAR_DEPTH : TILE_FULL_DEPTH) : null;
 }
 function growTileFill(now) {
   if (META) { tileFill.rect = null; return; }   // the headset holds only the blocks round you
@@ -7955,6 +7970,9 @@ function growTileFill(now) {
   const r = tileFill.rect;
   tileFill.reach = Math.max(...[[r[0], r[1]], [r[2], r[1]], [r[0], r[3]], [r[2], r[3]]]
     .map(([x, z]) => Math.hypot(x - tileFocus.x, z - tileFocus.z)));
+  // Pulled back over the map (kerbs gone, zoom tier 1 or 0) the whole region is wanted at once:
+  // there is no street underfoot to wait for, and the queue fetches the nearest first.
+  if (zoomTier <= 1) { tileFill.radius = tileFill.reach; return; }
   // Only while the window and the tiles are idle: the street underfoot always comes first.
   const cells = worldCellCache.snapshot();
   const idle = !attaching && !cells.active && !cells.queued && tileInFlight === 0 && tileQueue.length === 0;
@@ -28942,7 +28960,7 @@ document.getElementById("reset").addEventListener("click", () => {
 // ---- explore: the view without the walker ----
 //
 // E, or the Explore button: the walker is put away and the arrows move the view itself, over
-// roofs and through walls, faster the farther out the view is. A click, a right click or a pin
+// roofs and through walls, faster the farther out the view is. A click or a pin
 // moves the view, not a walker. Turned off, the walker is stood on the nearest open ground to
 // where the view is looking, and the view follows it again as before.
 //: Metres a second the view moves at, per metre of its distance, and at least.
@@ -29816,8 +29834,7 @@ function keepWalkerOutside() {
 //: fix until you move it yourself -- the arrows, a click, a teleport, a pin -- and then stays
 //: where you put it until R or Reset view brings it back (var: goTo can run before gps exists).
 var GPS_LEASH = { on: true };
-// A click moves the walker without changing zoom. Right-click is the deliberate
-// street-level teleport; dragging and wheel zoom never move the walker.
+// A click moves the walker without changing zoom; dragging and wheel zoom never move it.
 //: Further than this and the place is past what is drawn round the walker: the hop goes by the
 //: map, whose seven seconds are the time the new place has to stream in.
 const TELEPORT_MAP_M = 700;
@@ -29943,7 +29960,7 @@ function goToNow(landing, { travel = false, zoom = false } = {}) {
 canvas.addEventListener("pointerup", (e) => {
   // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
   if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
-  if (e.button === 2) return;   // handled on contextmenu, which fires first on a two-finger tap
+  if (e.button === 2) return;   // a right click (a trackpad's two-finger tap) does nothing
   // A region marker first: it opens that region's page.
   pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
@@ -29993,21 +30010,11 @@ function showAddress(feature, clientX, clientY) {
   return true;
 }
 
-canvas.addEventListener("contextmenu", async (e) => {
-  // A right click goes there, zoomed in: the walker lands on the nearest safe ground under the
-  // pointer (a street at overview scale) and the camera closes in. Looking a place up is the S
-  // key now.
+canvas.addEventListener("contextmenu", (e) => {
+  // No teleport on a right click: on a trackpad a two-finger tap is a right click, and one
+  // landed in the middle of a pinch zoom flew the walker to wherever the fingers were. A click
+  // moves the walker; search and pins go further.
   e.preventDefault();
-  if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
-  const distant = !state.firstPerson && state.dist > 1200;
-  hideAddress();
-  const clicked=groundAt(e.clientX,e.clientY);
-  const landing = eligibleLanding(clicked, distant);
-  if (!landing) return;
-  if (state.firstPerson) setFirstPerson(false);
-  goTo(landing, { travel: true, zoom: true });
-  console.info("kerbside: teleport",JSON.stringify({clicked:[clicked.x,clicked.z],landed:[avatar.position.x,avatar.position.z],
-    adjustedMetres:Math.hypot(clicked.x-avatar.position.x,clicked.z-avatar.position.z)}));
 });
 canvas.addEventListener("pointerdown", hideAddress);
 addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });
@@ -30282,7 +30289,7 @@ addEventListener("keydown", (e) => {
   pinChosen = { i, at: e.timeStamp, held: true };
   if (pins[i] && !e.shiftKey) {
     // Back to the pin: the walker stands beside it, on the street if it is in a building.
-    // Brought in as close as a right click brings you, from however far out the view was.
+    // Brought in to street level, from however far out the view was.
     const landing = eligibleLanding(new THREE.Vector3(pins[i].x, 0, pins[i].z)) || new THREE.Vector3(pins[i].x, 0, pins[i].z);
     hideAddress();
     if (state.firstPerson) setFirstPerson(false);
@@ -36556,6 +36563,10 @@ window.kerbsideRouteStrip = () => {
 function checkDetailExpansion(now) {
   if(ATTACH || !regionStreamingReady || attaching || now<detailRetryAt || now-detailCheckAt<1000
     || !window.kerbsideReady?.streets || !window.kerbsideReady?.ground)return;
+  // Right out over the map (zoom tier 0) the houses are the tile tree's and the paint is gone:
+  // a square built in full there is not seen, and building it slowed the region's tiles. It is
+  // built when the view comes back down.
+  if(!state.firstPerson && zoomTier===0)return;
   detailCheckAt=now;
   const focus=state.firstPerson ? avatar.position : state.target;
   const lon=midLon+focus.x/metersPerLon,lat=midLat-focus.z/metersPerLat;
