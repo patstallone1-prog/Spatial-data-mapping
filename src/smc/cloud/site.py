@@ -42,9 +42,15 @@ INTERIOR_REGIONS = ("sf-corridor", "berkeley-downtown", "oakland-downtown", "pal
 SMALL_SUFFIXES = {".html", ".json", ".webmanifest", ".js", ".mjs"}
 
 
-def asset_map(release: dict) -> dict:
+def asset_map(release: dict, previous: dict | None = None) -> dict:
+    """The release's files over the site's present map: what the site offloaded itself
+    (tools/publish_chunks.py -- its pages' data, interiors, paths) stays mapped beside the
+    cells, so a promotion never quietly sends those back to the site. Only a map on the same
+    base is kept: an asset map has one."""
+    files = dict(previous["files"]) if previous and previous.get("base") == release["base"] else {}
+    files.update(release["files"])
     return {"schema": "kerbside.asset_map/1", "version": release["version"], "base": release["base"],
-            "files": dict(sorted(release["files"].items()))}
+            "files": dict(sorted(files.items()))}
 
 
 def update_regions(index: dict, release: dict, registry: dict) -> list[str]:
@@ -124,7 +130,9 @@ def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
         return {"changed": False, "reason": "nothing released"}
     added: list[str] = []
     if release:
-        (repo / "docs/asset-map.json").write_text(json.dumps(asset_map(release), indent=1) + "\n")
+        map_path = repo / "docs/asset-map.json"
+        previous = json.loads(map_path.read_text()) if map_path.exists() else None
+        map_path.write_text(json.dumps(asset_map(release, previous), indent=1) + "\n")
         index_path = repo / "docs/regions.json"
         index = json.loads(index_path.read_text())
         registry = json.loads((repo / "data/regions/regions.json").read_text())
