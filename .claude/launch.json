@@ -28,6 +28,21 @@
         "127.0.0.1"
       ],
       "port": 8766
+    },
+    {
+      "name": "kerbside-site-cloud",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8771",
+        "--directory",
+        "docs",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "port": 8771,
+      "url": "http://localhost:8771"
     }
   ]
 }

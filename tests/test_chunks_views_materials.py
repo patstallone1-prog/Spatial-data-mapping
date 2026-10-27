@@ -136,3 +136,23 @@ def test_the_page_loads_only_its_own_tiles_and_follows_the_asset_map() -> None:
     assert result["plain"].startswith("https://site.test/")
     assert result["stored"] == "https://storage.googleapis.com/bucket/chunks/abc.json"
     assert result["other"] == "https://site.test/app-regions/sf-mission/regions.json"
+
+
+def test_every_file_the_asset_map_sends_to_cloudfront_is_the_file_on_the_site() -> None:
+    """A chunk is named by its content, so a docs file rebuilt without tools/publish_chunks.py
+    being run again would be served from CloudFront as it was -- silently, for a year."""
+    import hashlib
+
+    path = ROOT / "docs/asset-map.json"
+    if not path.exists():
+        pytest.skip("the site has no asset map")
+    files = json.loads(path.read_text())["files"]
+    stale = []
+    for site_path, chunk in files.items():
+        local = ROOT / "docs" / site_path
+        if local.exists():
+            digest = hashlib.sha256(local.read_bytes()).hexdigest()[:24]
+            if chunk != f"chunks/{digest}{local.suffix}":
+                stale.append(site_path)
+    assert not stale, f"rebuilt since publishing; run tools/publish_chunks.py: {stale[:10]}"
+    assert "inferred-interiors/envelopes.json" not in files, "it changes with every renderer change"

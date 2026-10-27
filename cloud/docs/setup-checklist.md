@@ -16,8 +16,14 @@ creates each worker when there is work for it.
   - `kerbside-finished-map` → `S3_PUBLIC_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY`.
 - [ ] CloudFront distribution in front of `kerbside-finished-map` with Origin Access Control (let it
   update the bucket policy). Its `https://<id>.cloudfront.net` address → `S3_PUBLIC_BASE`.
-  In its default behaviour, set the origin request policy to **CORS-S3Origin**, so S3's CORS
-  headers reach the browser.
+  In its default behaviour, attach a **response headers policy** that answers CORS itself, so
+  every page origin (the site, previews, a local server, the headset) can read every chunk:
+  Policies → Response headers → Create: CORS on, Access-Control-Allow-Origin **All origins**,
+  methods GET and HEAD, **Origin override on**. Then invalidate `/*` once (Invalidations →
+  Create). Without it CloudFront leaves Origin out of its cache key, and the first request for a
+  chunk fixes its CORS answer for everyone. Afterwards set `"AllowedOrigins": ["*"]` in
+  `cloud/infra/s3-cors.json` and rerun `tools/publish_chunks.py`, so the asset map lets every
+  origin use the store.
 - [ ] Apply `cloud/infra/s3-cors.json` to `kerbside-finished-map`:
 
   ```

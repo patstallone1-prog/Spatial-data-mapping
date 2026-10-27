@@ -113,7 +113,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="95e829cdf14eb5607862ddce3785ae0c0ec2f44ac878eed9fbb110e4faef2b30" />
+<meta name="kerbside-renderer-sha256" content="4ae47e9b55bde364377c9dc336990fcb1ba19575cd73cb96e0c25af2e125aaa9" />
 <meta name="kerbside-mode" content="meta" />
 <link rel="manifest" href="meta.webmanifest" />
 </head>
@@ -439,6 +439,10 @@ const ASSET_MAP = await fetch("/asset-map.json", { cache: "no-cache" })
 function viaStore(href) {
   const files = ASSET_MAP?.files;
   if (!files || !ASSET_MAP.base) return href;
+  // Only for a page whose origin the store's CORS lets read it; previews and local
+  // servers on other ports keep reading the site's own copies.
+  const origins = ASSET_MAP.origins;
+  if (origins && !origins.includes("*") && !origins.includes(location.origin)) return href;
   const url = new URL(href, location.href);
   if (url.origin !== location.origin) return href;
   const object = files[url.pathname.replace(/^\/+/, "")];
