@@ -39,8 +39,13 @@ def test_mutable_detail_shards_revalidate_across_all_app_consumers():
         *sorted((root / "docs/app-regions").glob("*/app-model.html")),
     ]
     for page in pages:
-        assert 'fetch(asset(shard.file), { cache: "no-cache" })' in page.read_text(), page
-        assert 'cache: "force-cache"' not in page.read_text(), page
+        text = page.read_text()
+        assert 'fetch(asset(shard.file), { cache: "no-cache" })' in text, page
+        # Only a content-named object-store chunk skips revalidation: it never changes, and a
+        # changed shard is a new chunk, named by the asset map (which is still revalidated).
+        assert text.count('cache: "force-cache"') == 1, page
+        assert 'const IMMUTABLE_CHUNK = /\\/chunks\\/[0-9a-f]{24}\\.[a-z0-9]+$/;' in text, page
+        assert 'const ASSET_MAP = await fetch("/asset-map.json", { cache: "no-cache" })' in text, page
 
 
 def test_installed_apps_check_updates_on_resume_without_automatic_reloads():

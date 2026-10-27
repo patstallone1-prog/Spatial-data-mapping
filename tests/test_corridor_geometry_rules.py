@@ -1278,7 +1278,8 @@ def _run_tiles(js_body: str) -> dict:
              "tilePending", "tileRect", "tileRingDistance", "tileFillDepth", "tileRingDepth", "selectTiles")
     parts = [TILE_PREAMBLE]
     parts.append(re.search(r"const TILE_MAX_SCREEN_ERROR_PX = [0-9.]+;", js).group(0))
-    for constant in ("TILE_FULL_DEPTH", "TILE_CORE_DEPTH", "TILE_FULL_RING_M", "TILE_CORE_RING_M"):
+    for constant in ("TILE_FULL_DEPTH", "TILE_CORE_DEPTH", "TILE_FULL_RING_M", "TILE_CORE_RING_M",
+                     "TILE_FILL_FAR_DEPTH"):
         parts.append(re.search(rf"const {constant} = [0-9.]+;", js).group(0))
     # The rings are off unless a test turns them on: up high, the screen-error rule alone.
     parts.append("const tileFocus = { x: 0, y: 0, z: 0 };\nlet tileRingsActive = false;")
@@ -1352,7 +1353,8 @@ def test_the_region_fill_brings_the_finest_tiles_out_past_the_rings_leaning_the_
     """Once the window round the walker is built, the region fills at its finest depth a ring
     at a time (growTileFill): a tile inside the fill's radius and the region is drawn to the
     finest depth even off screen; past the radius, or outside the region, the rings decide;
-    ahead of a moving walker counts nearer; and right out over the Bay the fill gives way."""
+    ahead of a moving walker counts nearer; and right out over the region it is still filled,
+    a depth up (the houses' colours, streets and pavements, without the lane paint)."""
     result = _run_tiles("""
     const far = tile("8/9/9", 8, 0.15, 900, 0, 215, []); far.rect = [750, -150, 1050, 150];
     const behind = tile("8/1/1", 8, 0.15, -900, 0, 215, []); behind.rect = [-1050, -150, -750, 150];
@@ -1371,7 +1373,7 @@ def test_the_region_fill_brings_the_finest_tiles_out_past_the_rings_leaning_the_
     assert result["small"] == [None, None, None]
     assert result["moving"] == [8, None, None]
     assert result["grown"] == [8, 8, None]
-    assert result["bay"] == [None, None, None]
+    assert result["bay"] == [7, 7, None]
 
 
 def test_a_parent_stays_drawn_until_every_child_on_screen_has_its_geometry() -> None:
