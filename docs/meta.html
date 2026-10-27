@@ -64,6 +64,22 @@ input::placeholder { color:#9ca3af; }
 .routes li[aria-selected=true] { border-color:#93c5fd; background:var(--accent-soft); }
 .routes b { font-size:15px; } .routes span { color:var(--muted); font-size:12px; margin-left:8px; }
 .steps { margin:8px 0 0; padding-left:18px; font-size:12px; color:#374151; max-height:220px; overflow:auto; }
+.hud .panel[hidden] { display:none; }
+/* The route under way: its steps in the sidebar's place, the map beside them. */
+#nav-panel { flex:1 1 auto; min-height:0; gap:10px; }
+#nav-panel header { display:flex; align-items:center; gap:8px; }
+#nav-panel header h2 { margin:0; flex:1; font-size:16px; }
+#nav-panel header button { min-height:36px; border-radius:10px; }
+#nav-summary { font-size:13px; color:var(--muted); margin:0; }
+#nav-summary b { color:var(--ink); font-size:20px; margin-right:6px; }
+#nav-steps { list-style:none; margin:0; padding:0 4px 0 0; flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  display:flex; flex-direction:column; }
+#nav-steps li { display:grid; grid-template-columns:32px 1fr; gap:2px 10px; padding:10px 2px; border-bottom:1px solid var(--line); font-size:13px; line-height:1.4; }
+#nav-steps li:last-child { border-bottom:0; }
+#nav-steps .turn { grid-row:span 2; width:32px; height:32px; border-radius:50%; background:var(--accent-soft); color:#1d4ed8;
+  display:grid; place-items:center; font-size:17px; font-weight:700; }
+#nav-steps .far { color:var(--muted); font-size:12px; }
+#route-show-steps { width:100%; margin-top:8px; }
 .note { color:var(--muted); font-size:12px; line-height:1.5; margin:6px 0 0; }
 /* The settings page: everything that is not wanted at once. */
 .sheet { position:fixed; top:16px; right:16px; bottom:16px; width:min(380px, calc(100vw - 32px)); z-index:45; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:20px; }
@@ -97,7 +113,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="94361c47bccc5db4be56389710f93d332431729b923c1d60b55de6fafc737dcf" />
+<meta name="kerbside-renderer-sha256" content="95e829cdf14eb5607862ddce3785ae0c0ec2f44ac878eed9fbb110e4faef2b30" />
 <meta name="kerbside-mode" content="meta" />
 <link rel="manifest" href="meta.webmanifest" />
 </head>
@@ -133,6 +149,7 @@ input::placeholder { color:#9ca3af; }
       <p class="note" id="route-status" role="status"></p>
       <ul class="routes" id="route-results"></ul>
       <ol class="steps" id="route-steps" hidden></ol>
+      <button type="button" id="route-show-steps" class="primary" hidden>Step-by-step directions →</button>
     </div>
     <div class="toolbar actions">
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
@@ -141,6 +158,15 @@ input::placeholder { color:#9ca3af; }
     </div>
     <button type="button" id="settings-toggle" class="settings-open" aria-controls="settings-page" aria-expanded="false">⚙ Settings</button>
   </div>
+  <section class="panel" id="nav-panel" hidden aria-label="Step-by-step directions">
+    <header>
+      <button type="button" id="nav-back" title="Back to the route options">← Options</button>
+      <h2>Directions</h2>
+      <button type="button" id="nav-close" aria-label="Close the directions" title="Close (the route stays on the map)">✕</button>
+    </header>
+    <p id="nav-summary"></p>
+    <ol id="nav-steps"></ol>
+  </section>
 </div>
 <form class="panel sheet" id="settings-page" hidden aria-label="Settings">
   <header><h1>Settings</h1><button type="button" id="settings-close" aria-label="Close settings">✕</button></header>
@@ -27233,17 +27259,34 @@ const pinGroup = new THREE.Group();
 pinGroup.name = "pins";
 if (!ATTACH) root.add(pinGroup);
 const pins = new Array(PIN_COUNT).fill(null);
-//: Markers kept findable from any height: drawn at their true size up close and, past ``near``
-//: metres from the eye, grown with the distance so they keep their size on the screen -- zoomed
-//: out over the whole city a pin is still there to find. Each stands on the ground at x, z.
+//: Markers kept findable from any height: drawn at their own size (``base`` times the model's)
+//: up close and, past ``near`` metres from the eye, grown with the distance so they keep their
+//: size on the screen -- zoomed out over the whole city a pin is still there to find. A marker
+//: of height h is h * base / near radians tall from there: about 0.04, forty pixels on a laptop
+//: (it was 0.13, a pin a seventh of the screen high). Each stands on the ground at x, z.
 const findableMarkers = new Set();
 const markerAt = new THREE.Vector3();
 function keepMarkersFindable() {
   for (const marker of findableMarkers) {
     if (!marker.object.visible) continue;
     marker.object.getWorldPosition(markerAt);
-    marker.object.scale.setScalar(Math.max(1, camera.position.distanceTo(markerAt) / marker.near));
+    marker.object.scale.setScalar((marker.base || 1) * Math.max(1, camera.position.distanceTo(markerAt) / marker.near));
   }
+}
+//: A pin for a place (a search's, a route's ends): drawn over everything, as a map's pins are --
+//: over the route's ribbon and through the houses -- in that order. It goes in the transparent
+//: pass: that is drawn after every opaque thing, render order or not, so an opaque pin without a
+//: depth test was painted over by the see-through ground near the street. And three sorts that
+//: pass by the nearest group's render order first: the tile tree's groups carry their depth (up
+//: to 8), so the pin's own group carries its order too, or the tiles' ground went over it.
+function pinOnTop(object, order = 27) {
+  if (object.isGroup) object.renderOrder = order;
+  object.traverse((o) => {
+    if (!o.material) return;
+    o.material.depthTest = false; o.material.depthWrite = false; o.material.transparent = true;
+    o.renderOrder = o.isSprite ? order + 3 : order;
+  });
+  return object;
 }
 const pinToast = ATTACH ? null : document.createElement("div");
 if (pinToast) {
@@ -27291,7 +27334,7 @@ function placePin(i, x, z) {
   mesh.position.set(x, walkerGroundAt(x, z), z);
   mesh.userData.liftedOntoGround = true;
   pinGroup.add(mesh);
-  const marker = { object: mesh, near: 45, x, z };
+  const marker = { object: mesh, near: 110, x, z };
   findableMarkers.add(marker);
   pins[i] = { x, z, mesh, label, marker };
 }
@@ -32169,6 +32212,8 @@ const ROUTE_RIBBON_PER_M = 0.007;
 const ROUTE_RIBBON_MAX_SCALE = 60;
 let routeDrawnAt = 0;
 const ROUTE_LIFT_M = 0.3;
+//: The chosen route's ribbon a little higher again, over any alternative sharing its street.
+const ROUTE_TOP_LIFT_M = 0.06;
 const route = { mode: "walk", stops: [null, null], results: [], chosen: 0, pending: null };
 const routeGroup = new THREE.Group();
 routeGroup.name = "route";
@@ -32223,7 +32268,7 @@ const TURN_MANEUVERS = new Set([10, 11, 12, 13, 14, 15, 26]);
 //: Time, length, climb, turns and the line of one trip (Valhalla's trip or one of its alternates).
 function summarizeTrip(trip) {
   let ascent = 0, descent = 0, turns = 0;
-  const line = [], steps = [];
+  const line = [], steps = [], stepInfo = [];
   for (const leg of trip.legs || []) {
     const heights = leg.elevation || [];
     for (let i = 1; i < heights.length; i += 1) {
@@ -32232,12 +32277,12 @@ function summarizeTrip(trip) {
     }
     line.push(...decodePolyline6(leg.shape || ""));
     for (const m of leg.maneuvers || []) {
-      if (m.instruction) steps.push(m.instruction);
+      if (m.instruction) { steps.push(m.instruction); stepInfo.push({ type: m.type, km: m.length || 0 }); }
       if (TURN_MANEUVERS.has(m.type)) turns += 1;
     }
   }
   return { seconds: trip.summary?.time || 0, km: trip.summary?.length || 0,
-    ascent: Math.round(ascent), descent: Math.round(descent), turns, line, steps };
+    ascent: Math.round(ascent), descent: Math.round(descent), turns, line, steps, stepInfo };
 }
 //: What the route runs over, edge by edge (Valhalla's trace_attributes on its own shape): how much
 //: of it is on a cycle track or a painted bike lane, and how many flights of steps it climbs.
@@ -32437,19 +32482,26 @@ function routeSamples(result) {
   });
   return result.samples;
 }
-function routeRibbon(result, width, colour) {
+//: `top`: the chosen route, drawn over the alternatives and the road paint. Where an alternative
+//: shares a street with it the two ribbons lay at the same height, and the narrower grey one showed
+//: through as a strand down the blue one's middle. `over`: from far out, drawn over the houses as a
+//: map draws it, rather than on the ground between them, where it was never wider than the street.
+function routeRibbon(result, width, colour, { top = false, over = false } = {}) {
   const group = new THREE.Group();
-  const material = new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, polygonOffsetFactor: -4,
-    polygonOffsetUnits: -8, side: THREE.DoubleSide });
+  // Over the houses, after the tile tree's see-through ground as the pins are (see pinOnTop).
+  if (over) group.renderOrder = top ? 25 : 24;
+  const offset = top ? { polygonOffsetFactor: -8, polygonOffsetUnits: -16 } : { polygonOffsetFactor: -4, polygonOffsetUnits: -8 };
+  const material = new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, ...offset, side: THREE.DoubleSide,
+    depthTest: !over, depthWrite: !over, transparent: over });
   const faint = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.45, depthWrite: false,
-    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8, side: THREE.DoubleSide });
+    polygonOffset: true, ...offset, side: THREE.DoubleSide, depthTest: !over });
   const lay = (points, heightOf, mat) => {
     if (points.length < 2) return;
     const positions = [], index = [];
     points.forEach((p, i) => {
       const a = points[Math.max(0, i - 1)], c = points[Math.min(points.length - 1, i + 1)];
       const len = Math.hypot(c.x - a.x, c.z - a.z) || 1, nx = -(c.z - a.z) / len * width / 2, nz = (c.x - a.x) / len * width / 2;
-      const y = heightOf(p) + ROUTE_LIFT_M;
+      const y = heightOf(p) + ROUTE_LIFT_M + (top ? ROUTE_TOP_LIFT_M : 0);
       positions.push(p.x + nx, y, p.z + nz, p.x - nx, y, p.z - nz);
       if (i) index.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
     });
@@ -32457,7 +32509,9 @@ function routeRibbon(result, width, colour) {
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
     geometry.setIndex(index);
     const mesh = new THREE.Mesh(geometry, mat);
-    mesh.renderOrder = 3;
+    // Over the houses it is drawn after them (and under the pins, 26 and up); on the ground,
+    // the chosen route after the alternatives.
+    mesh.renderOrder = over ? (top ? 25 : 24) : (top ? 4 : 3);
     group.add(mesh);
   };
   let inside = 0;
@@ -32472,31 +32526,47 @@ function routeRibbon(result, width, colour) {
       stretch = [];
     }
   }
+  // From the street, the chosen route seen faintly through the houses in front of it, as a map
+  // shows it: drawn only where it was in view, the near row hid whole stretches of it while the
+  // grey alternative in the middle of the street stayed in sight.
+  if (top && !over) {
+    const ghost = new THREE.Group();
+    ghost.renderOrder = 23;
+    const through = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.35,
+      depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+    for (const mesh of group.children) if (mesh.material === material) ghost.add(new THREE.Mesh(mesh.geometry, through));
+    group.add(ghost);
+  }
   return { group, inside };
 }
 //: How wide the ribbons are drawn at the present view: their ground width, or wider from above.
 function routeScale() {
   return Math.min(ROUTE_RIBBON_MAX_SCALE, Math.max(1, (state.firstPerson ? 0 : state.dist) * ROUTE_RIBBON_PER_M / ROUTE_RIBBON_M.chosen));
 }
+//: From this far out the ribbon is drawn over the houses: past here it is wider than the street.
+const ROUTE_OVER_HOUSES_M = 600;
+const routeOverHouses = () => !state.firstPerson && state.dist > ROUTE_OVER_HOUSES_M;
+let routeDrawnOver = false;
 //: Redrawn only when the view's distance has changed a good deal, never every frame.
 function updateRouteWidth() {
   if (!route.results.length) return;
   const scale = routeScale();
-  if (Math.abs(Math.log(scale / (routeDrawnAt || 1))) > 0.4) drawRoutes();
+  if (Math.abs(Math.log(scale / (routeDrawnAt || 1))) > 0.4 || routeOverHouses() !== routeDrawnOver) drawRoutes();
 }
 function drawRoutes() {
   routeDrawnAt = routeScale();
+  routeDrawnOver = routeOverHouses();
   for (const child of [...routeGroup.children]) {
     routeGroup.remove(child);
     child.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   }
   route.results.forEach((result, i) => {
     if (i === route.chosen) return;
-    routeGroup.add(routeRibbon(result, ROUTE_RIBBON_M.other * routeDrawnAt, 0x94a3b8).group);
+    routeGroup.add(routeRibbon(result, ROUTE_RIBBON_M.other * routeDrawnAt, 0x94a3b8, { over: routeDrawnOver }).group);
   });
   const chosen = route.results[route.chosen];
   if (!chosen) return 0;
-  const drawn = routeRibbon(chosen, ROUTE_RIBBON_M.chosen * routeDrawnAt, 0x2563eb);
+  const drawn = routeRibbon(chosen, ROUTE_RIBBON_M.chosen * routeDrawnAt, 0x2563eb, { top: true, over: routeDrawnOver });
   routeGroup.add(drawn.group);
   return drawn.inside;
 }
@@ -32507,6 +32577,50 @@ if (!ATTACH) {
   const results = document.getElementById("route-results");
   const stepsList = document.getElementById("route-steps");
   const clear = document.getElementById("route-clear");
+  // The route under way: its steps take the sidebar's place (nav-panel), the map beside them;
+  // "Options" goes back to the directions, "Step-by-step directions" comes back, and ✕ folds the
+  // sidebar away with the route still drawn (End route, or Escape, ends it).
+  const hud = document.getElementById("hud");
+  const sidebar = document.getElementById("map-sidebar");
+  const navPanel = document.getElementById("nav-panel");
+  const navSteps = document.getElementById("nav-steps");
+  const navSummary = document.getElementById("nav-summary");
+  const showSteps = document.getElementById("route-show-steps");
+  const setHudOpen = (open) => {
+    const fold = document.getElementById("fold");
+    hud.dataset.open = String(open);
+    fold.setAttribute("aria-expanded", String(open));
+  };
+  function showNavigation(steps) {
+    navPanel.hidden = !steps;
+    sidebar.hidden = Boolean(steps);
+    if (steps) { setHudOpen(true); navSteps.scrollTop = 0; }
+  }
+  //: Valhalla's maneuver types as an arrow: starts and ends, straight on, the bends and turns
+  //: each way, U-turns and roundabouts; anything else (a ramp, a ferry) a plain dot.
+  const TURN_ARROWS = { 1: "●", 2: "●", 3: "●", 4: "◉", 5: "◉", 6: "◉", 7: "↑", 8: "↑", 9: "↗", 10: "↱", 11: "↱",
+    12: "↷", 13: "↶", 14: "↰", 15: "↰", 16: "↖", 22: "↑", 23: "↗", 24: "↖", 25: "↑", 26: "⟳", 27: "↗" };
+  const distanceText = (km) => km >= 1 ? `${km.toFixed(1)} km` : `${Math.max(5, Math.round(km * 1000 / 5) * 5)} m`;
+  function renderNavigation() {
+    const chosen = route.results[route.chosen];
+    showSteps.hidden = !chosen;
+    if (!chosen) { navSteps.replaceChildren(); navSummary.textContent = ""; return; }
+    const mode = { walk: "walking", bike: "by bike", drive: "driving", transit: "by transit" }[route.mode] || "";
+    navSummary.innerHTML = `<b>${minutes(chosen.seconds)}</b>${chosen.km ? `${chosen.km.toFixed(1)} km ` : ""}${mode}`;
+    navSteps.replaceChildren(...(chosen.steps || []).map((text, i) => {
+      const info = chosen.stepInfo?.[i];
+      const item = document.createElement("li");
+      const turn = Object.assign(document.createElement("span"), { className: "turn",
+        textContent: (info && TURN_ARROWS[info.type]) || (route.mode === "transit" ? "⇢" : "•") });
+      turn.setAttribute("aria-hidden", "true");
+      item.append(turn, Object.assign(document.createElement("span"), { textContent: text }));
+      if (info?.km > 0) item.append(Object.assign(document.createElement("span"), { className: "far", textContent: distanceText(info.km) }));
+      return item;
+    }));
+  }
+  document.getElementById("nav-back").addEventListener("click", () => showNavigation(false));
+  document.getElementById("nav-close").addEventListener("click", () => setHudOpen(false));
+  showSteps.addEventListener("click", () => showNavigation(true));
   const minutes = (s) => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`;
   // Where you are: the device's fix while it is on the map, and the walker otherwise -- a fix
   // from outside every region (the Mac at home) is not a start anyone here can walk from.
@@ -32526,8 +32640,12 @@ if (!ATTACH) {
   pin.add(pinPoint, pinHead);
   pin.visible = false;
   pin.userData.bayWide = true;
+  pinOnTop(pin);
   root.add(pin);
-  const pinMarker = { object: pin, near: 95, x: 0, z: 0 };
+  //: A place's pin is 10.6 m to the top of its label as modelled: drawn at 0.45 of that (a little
+  //: under five metres, a storey and a half) and held at about forty pixels from further off.
+  const PLACE_PIN_BASE = 0.45, PLACE_PIN_NEAR_M = 125;
+  const pinMarker = { object: pin, base: PLACE_PIN_BASE, near: PLACE_PIN_NEAR_M, x: 0, z: 0 };
   findableMarkers.add(pinMarker);
   // Blue pins at the directions' start, each stop and the end, lettered in order (A, the start),
   // and as findable from any height as the others.
@@ -32556,8 +32674,9 @@ if (!ATTACH) {
       object.add(point, head, label);
       object.position.set(x, walkerGroundAt(x, -y), -y);
       object.userData.bayWide = true;
+      pinOnTop(object, 28);
       root.add(object);
-      const marker = { object, near: 95, x, z: -y };
+      const marker = { object, base: PLACE_PIN_BASE, near: PLACE_PIN_NEAR_M, x, z: -y };
       findableMarkers.add(marker);
       routePins.push(marker);
     });
@@ -32578,6 +32697,7 @@ if (!ATTACH) {
     route.stops[route.stops.length - 1] = place;
     if (!route.stops[0]) route.stops[0] = here();
     renderStops();
+    pinStops();
     return true;
   };
   // A start chosen in the directions is where the walker goes: put down there, outside, as a
@@ -32592,6 +32712,12 @@ if (!ATTACH) {
     gps.follow = false;
     goTo(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });
     return true;
+  }
+  //: A pin at each end (and each stop) once they are chosen, before the route is asked for: the
+  //: start is where you are when it is left blank.
+  function pinStops() {
+    const stops = route.stops.map((stop, i) => stop || (i === 0 ? here() : null));
+    if (stops.length >= 2 && stops[stops.length - 1]) placeRoutePins(stops.filter(Boolean));
   }
   function renderStops() {
     stopsBox.replaceChildren();
@@ -32615,6 +32741,7 @@ if (!ATTACH) {
         offered = [];
         list.replaceChildren();
         if (i === 0) walkerToStart(place);
+        pinStops();
       };
       input.addEventListener("input", () => {
         route.stops[i] = null;
@@ -32665,8 +32792,10 @@ if (!ATTACH) {
       return item;
     }));
     const chosen = route.results[route.chosen];
-    stepsList.replaceChildren(...(chosen?.steps || []).map((text) => Object.assign(document.createElement("li"), { textContent: text })));
-    stepsList.hidden = !chosen;
+    // The steps are read in their own panel (renderNavigation); the options list stays short.
+    stepsList.replaceChildren();
+    stepsList.hidden = true;
+    renderNavigation();
     clear.hidden = !route.results.length;
     document.getElementById("route-end").hidden = !route.results.length;
     if (chosen) status.textContent = (route.mode === "drive" ? "Typical time, without live traffic. " : "")
@@ -32689,6 +32818,7 @@ if (!ATTACH) {
     route.results = []; route.chosen = 0; drawRoutes(); renderResults(0); status.textContent = "";
     pin.visible = false; gps.follow = true;
     clearRoutePins();
+    showNavigation(false);
   };
   clear.addEventListener("click", endRoute);
   document.getElementById("route-end").addEventListener("click", endRoute);
@@ -32712,6 +32842,7 @@ if (!ATTACH) {
       route.chosen = 0;
       status.textContent = "";
       renderResults(drawRoutes());
+      if (found.length) showNavigation(true);
     } catch (error) {
       if (ticket !== route.pending) return;
       route.results = [];
@@ -32740,7 +32871,7 @@ if (!ATTACH) {
     return found[0] || null;
   }
   window.kerbsideRoute = { request: requestRoutes, routeRequest, decodePolyline6, tagRoutes, state: route, group: routeGroup,
-    directionsTo, end: endRoute };
+    directionsTo, end: endRoute, pins: () => routePins.map((m) => ({ at: m.object.position.toArray().map(Math.round), scale: +m.object.scale.x.toFixed(2), visible: m.object.visible, inScene: !!m.object.parent })) };
 }
 
 // The settings panel: the gear at the top right.
@@ -33979,6 +34110,7 @@ function releaseModuleScope() {
   try { frameRequest = null; } catch (error) { /* kept */ }
   try { ELEVATED_ROADS = null; } catch (error) { /* kept */ }
   try { routeDrawnAt = null; } catch (error) { /* kept */ }
+  try { routeDrawnOver = null; } catch (error) { /* kept */ }
   try { metaXR = null; } catch (error) { /* kept */ }
   try { lazyLayerBuilders.clear(); } catch (error) { /* kept */ }
   try { lazyLayersWanted.clear(); } catch (error) { /* kept */ }
