@@ -433,6 +433,17 @@ def stage_outputs_ready(stage: str, outputs: list[Path]) -> bool:
         return False
 
 
+def log_tail(log: Path, lines: int = 40) -> list[str]:
+    """The last lines of a stage's log, for its failure to say why where it is reported."""
+    try:
+        with log.open("rb") as handle:
+            handle.seek(0, 2)
+            handle.seek(max(0, handle.tell() - 16_000))
+            return handle.read().decode("utf-8", "replace").splitlines()[-lines:]
+    except OSError:
+        return []
+
+
 def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: bool = False) -> bool:
     journal = load_journal(region)
     commands = stage_commands(region)
@@ -503,6 +514,10 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
         save_journal(region, journal)
         print(f"  {stage:9s} {status} in {seconds:.0f} s" + ("" if status == "done" else f" (exit {code}; see {log})"))
         if status == "failed":
+            # The log stays on the machine that ran it; a cloud worker's goes with the worker, and
+            # only what is printed here reaches the job's saved log.
+            for line in log_tail(log):
+                print(f"  {stage:9s} | {line}")
             ok = False
             break
     return ok
