@@ -45,9 +45,11 @@ MAP = DOCS / "asset-map.json"
 MIN_BYTES = 100_000
 DATA_SUFFIXES = {".json", ".bin", ".glb", ".geojson", ".pbf"}
 #: Files the page must find on the site itself: the map, manifests that are revalidated, the
-#: service worker's and the app's own records.
+#: service worker's and the app's own records -- and the interiors' envelopes, which carry the
+#: renderer's own hash and so change with every change to the page: a copy frozen in the map
+#: went stale at the next one.
 KEEP_ON_SITE = {"asset-map.json", "regions.json", "runtime-release.json", "manifest.webmanifest",
-                "sf-corridor-frontage-fits.manifest.json"}
+                "sf-corridor-frontage-fits.manifest.json", "envelopes.json"}
 CONTENT_TYPES = {".json": "application/json", ".geojson": "application/geo+json",
                  ".bin": "application/octet-stream", ".glb": "model/gltf-binary",
                  ".pbf": "application/x-protobuf"}
