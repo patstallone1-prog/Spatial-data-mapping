@@ -153,6 +153,38 @@ def test_sparse_region_response_floor_requires_independent_matching_probe():
     assert response_floor({"bbox": box, "osm": {"highway_ways": 0, "buildings": 0}}, box) == 1
 
 
+def test_a_sparse_cell_is_held_to_a_count_of_its_own_query_from_a_whole_planet_mirror():
+    import json as _json
+
+    from scripts.fetch_region_osm import GLOBAL_MIRRORS, count_query, expected_elements
+    query = '[out:json][timeout:60];(way["highway"](1,2,3,4););out geom;'
+    assert count_query(query) == '[out:json][timeout:60];(way["highway"](1,2,3,4););out count;'
+    with pytest.raises(ValueError):
+        count_query("node(1,2,3,4);out;")
+    # The Swiss mirror answers the Bay Area with nothing; it is never asked to count.
+    assert not any("osm.ch" in m for m in GLOBAL_MIRRORS)
+    asked = []
+
+    def busy_then_counted(url):
+        asked.append(url)
+        if len(asked) == 1:  # a refusal dressed as an answer is not a count of zero
+            return _json.dumps({"remark": "runtime error: Query timed out", "elements": []}).encode()
+        return _json.dumps({"elements": [{"type": "count", "tags": {"total": "18", "ways": "12"}}]}).encode()
+
+    assert expected_elements(query, fetch=busy_then_counted, pause_s=0) == 18
+    assert "out+count" in asked[-1] or "out%20count" in asked[-1]
+    assert expected_elements(query, fetch=lambda url: (_ for _ in ()).throw(OSError("502")),
+                             attempts=2, pause_s=0) is None
+
+
+def test_a_failed_stage_prints_the_end_of_its_log(tmp_path):
+    from scripts.ingest_region import log_tail
+    log = tmp_path / "ingest.log"
+    log.write_text("".join(f"line {i}\n" for i in range(100)))
+    assert log_tail(log, 3) == ["line 97", "line 98", "line 99"]
+    assert log_tail(tmp_path / "missing.log") == []
+
+
 def test_intake_checkpoint_requires_present_parseable_unchanged_artifact(tmp_path):
     spec = importlib.util.spec_from_file_location("gap_runner", ROOT / "scripts/run_gap_intake.py")
     runner = importlib.util.module_from_spec(spec)
