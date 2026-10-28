@@ -7,6 +7,7 @@
     smc-cloud plan     --cells all --interiors --house-ahead 2 --standing  # kept going daily
     smc-cloud status
     smc-cloud review   list | approve|reject|rerun JOB --reviewer NAME --note WHY
+    smc-cloud redo     JOB | --failed-with TEXT [--from-stage colours] --note WHY
     smc-cloud migrate  --private s3://kerbside --cells all --shared all --house-run DIR
     smc-cloud inventory --volume "/Volumes/HP P700 1" --out cloud/docs/inventory.json
     smc-cloud estimate
@@ -227,6 +228,11 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--note")
     rq = sub.add_parser("requeue")
     rq.add_argument("job")
+    rd = sub.add_parser("redo")
+    rd.add_argument("job", nargs="?")
+    rd.add_argument("--failed-with", help="every cell whose enrichment failed with this in its log")
+    rd.add_argument("--from-stage", default="colours")
+    rd.add_argument("--note", required=True)
     sub.add_parser("migrate", add_help=False)
     sub.add_parser("inventory", add_help=False)
     sub.add_parser("runpod-controller", add_help=False)
@@ -279,6 +285,14 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "review":
         return cmd_review(args)
+    if args.cmd == "redo":
+        if not (args.job or args.failed_with):
+            raise SystemExit("redo needs JOB or --failed-with")
+        body = {"operator": os.environ.get("USER", "ops"), "note": args.note}
+        body.update({"failed_with": args.failed_with, "from_stage": args.from_stage} if args.failed_with
+                    else {"job": args.job})
+        print(json.dumps(_ops("/api/redo", body), indent=1))
+        return 0
     if args.cmd == "requeue":
         print(json.dumps(_ops("/api/requeue", {"job": args.job, "operator": os.environ.get("USER", "ops")})))
         return 0

@@ -493,6 +493,42 @@ class Queue:
                 self._event(db, "requeue", job_id, {"operator": operator})
         return bool(changed)
 
+    def redo(self, job_id: str, operator: str, note: str) -> list[str]:
+        """Run a finished job again, and everything downstream of it: what it made was wrong
+        (a stage that ran without a credential, skipped and recorded done). Each goes back to
+        pending with its attempts and output cleared, so each restores from the one before it.
+        A job being run now is left to finish. Returns the jobs sent back."""
+        if not operator or not note:
+            raise ValueError("a redo names its operator and gives its reason")
+        now = self.clock()
+        with self._tx() as db:
+            rows = {r["id"]: (r["state"], json.loads(r["depends"]))
+                    for r in db.execute("SELECT id, state, depends FROM jobs")}
+            if job_id not in rows:
+                return []
+            wanted, frontier = {job_id}, [job_id]
+            while frontier:
+                current = frontier.pop()
+                for other, (_, depends) in rows.items():
+                    if current in depends and other not in wanted:
+                        wanted.add(other)
+                        frontier.append(other)
+            sent = sorted(j for j in wanted if rows[j][0] != "leased")
+            for j in sent:
+                db.execute("UPDATE jobs SET state='pending', attempts=0, not_before=0, output=NULL,"
+                           " error=NULL, updated_at=? WHERE id=?", (now, j))
+            self._event(db, "redo", job_id, {"operator": operator, "note": note, "jobs": sent})
+        return sent
+
+    def failed_with(self, pattern: str, stages: tuple[str, ...]) -> list[str]:
+        """The subjects whose attempts at any of ``stages`` failed with ``pattern`` in the error."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT DISTINCT j.subject FROM attempts a JOIN jobs j ON j.id = a.job_id"
+                f" WHERE j.stage IN ({','.join('?' * len(stages))}) AND a.error LIKE ?",
+                (*stages, f"%{pattern}%")).fetchall()
+        return sorted(r["subject"] for r in rows)
+
     def cancel(self, job_id: str, operator: str) -> bool:
         now = self.clock()
         with self._tx() as db:

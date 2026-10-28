@@ -235,14 +235,23 @@ def test_the_gate_scales_its_floor_by_the_census_and_keeps_the_answer(tmp_path):
 def test_site_promotion_lists_new_cells_and_commits_none_of_their_data(tmp_path):
     release = {"version": "v1", "base": "https://assets", "files": {
         "regions/gap-a/sf-corridor-3d.json": "chunks/aa.json"}, "cells": {"gap-a": {}}}
-    assert asset_map(release) == {"schema": "kerbside.asset_map/1", "version": "v1",
-                                  "base": "https://assets", "files": release["files"]}
+    assert asset_map(release) == {"schema": "kerbside.asset_map/1", "version": "v1", "base": "/store",
+                                  "origin": "https://assets",
+                                  "origins": ["https://spatial-data-mapping.vercel.app"],
+                                  "files": release["files"]}
+    # The page asks the site, which proxies the bucket: no cross-origin request, no CORS.
+    vercel = json.loads((Path(__file__).resolve().parents[1] / "vercel.json").read_text())
+    assert {"source": "/store/:path*", "destination": "https://djllcgon03ax2.cloudfront.net/:path*"} \
+        in vercel["rewrites"]
     # The site's own offloaded files stay mapped beside the cells; a map on another base does not.
     site = {"base": "https://assets", "files": {"nature/paths/a.json": "chunks/bb.json",
                                                 "regions/gap-a/sf-corridor-3d.json": "chunks/old.json"}}
     assert asset_map(release, site)["files"] == {"nature/paths/a.json": "chunks/bb.json",
                                                  "regions/gap-a/sf-corridor-3d.json": "chunks/aa.json"}
     assert asset_map(release, {**site, "base": "https://elsewhere"})["files"] == release["files"]
+    # A map written since the proxy names the bucket as its origin, and is kept the same way.
+    assert asset_map(release, asset_map({**release, "files": site["files"]}))["files"] == \
+        asset_map(release, site)["files"]
     index = {"regions": [{"name": "sf-mission"}]}
     added = update_regions(index, release, {"regions": [{"name": "gap-a", "bbox": [1, 2, 3, 4]}]})
     assert added == ["gap-a"] and index["regions"][-1]["bbox"] == [1, 2, 3, 4]

@@ -175,3 +175,32 @@ def test_a_paused_kind_waits_and_the_rest_runs(tmp_path) -> None:
     assert q.lease("w", ["cpu"], 60) is None
     q.set_meta("paused_kinds", "[]")
     assert q.lease("w", ["cpu"], 60)["job"]["id"] == "interior:a:000"
+
+
+def test_a_redo_sends_a_finished_job_and_its_whole_chain_back(q):
+    for i, deps in (("c:audit", ()), ("c:colours", ["c:audit"]), ("c:survey", ["c:colours"]),
+                    ("c:gate", ["c:survey"]), ("d:audit", ())):
+        q.submit(job(i, deps, restore_from=list(deps)))
+    for _ in range(5):
+        lease = q.lease("w", ["cpu"], 60)
+        if lease:
+            q.complete(lease["job"]["id"], "w", lease["token"], {"tree": "t", "files": 1})
+    assert all(q.job(i)["state"] == "done" for i in ("c:audit", "c:gate", "d:audit"))
+    with pytest.raises(ValueError):
+        q.redo("c:colours", "ops", "")
+    assert q.redo("c:colours", "ops", "ran without its credential") == ["c:colours", "c:gate", "c:survey"]
+    assert q.job("c:audit")["state"] == "done" and q.job("d:audit")["state"] == "done"
+    assert q.job("c:survey")["state"] == "pending" and q.job("c:survey")["output"] is None
+    lease = q.lease("w", ["cpu"], 60)
+    assert lease["job"]["id"] == "c:colours"
+
+
+def test_cells_are_found_by_what_their_failures_said(q):
+    q.submit(job("c:survey"))
+    q.submit(job("d:survey"))
+    for expected in ("c:survey", "d:survey"):
+        lease = q.lease("w", ["cpu"], 60)
+        assert lease["job"]["id"] == expected
+        q.fail(expected, "w", lease["token"],
+               "RuntimeError: set MAPILLARY_TOKEN" if expected == "c:survey" else "timed out")
+    assert q.failed_with("MAPILLARY_TOKEN", ("survey",)) == ["c"]
