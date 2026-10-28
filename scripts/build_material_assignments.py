@@ -25,6 +25,13 @@ PHOTO = ROOT / "data/sf_public_works/facade_photo_materials.json"
 MODEL = ROOT / "docs/sf-corridor-3d.json"
 OUT = ROOT / "docs/sf-corridor-materials.json"
 MIN_CONFIDENCE = 0.70
+#: How the wall material was arrived at, by code; ``walls`` rows are [class, confidence, code].
+WALL_BASES = {"p": "photographed_texture", "s": "untextured_photo_smooth_render", "a": "archetype_prior"}
+SMOOTH_WALL = "stucco_render"
+SMOOTH_CONFIDENCE = 0.5
+#: Kinds of building whose untextured walls are taken as render; an office tower's are not.
+SMOOTH_ARCHETYPES = {"residential", "generic", "restaurant", "retail", "hotel"}
+PRIOR_CAP = 0.4
 #: The classes the page has photographed materials for (scripts/build_material_library.py).
 SUPPORTED = {"brick", "concrete", "stucco_render", "wood_siding", "stone", "vinyl_siding",
              "painted_brick", "ceramic_tile", "metal_panel"}
@@ -66,18 +73,45 @@ def build() -> dict:
             row["colour"] = reading["colour"]
         if row:
             assigned[osm_id] = row
-    payload = {"schema": "kerbside.material_assignments/2",
+    walls = wall_materials(ways, assigned, photo, labels)
+    payload = {"schema": "kerbside.material_assignments/3",
                "source": [str(LABELS.relative_to(ROOT)), str(PHOTO.relative_to(ROOT))],
                "min_confidence": MIN_CONFIDENCE,
                "assigned": assigned,
                "counts": dict(Counter(v["class"] for v in assigned.values() if "class" in v)),
                "colours": sum(1 for v in assigned.values() if "colour" in v),
-               "sources": dict(sources), "skipped": dict(skipped)}
+               "sources": dict(sources), "skipped": dict(skipped),
+               "wall_bases": WALL_BASES, "walls": walls,
+               "wall_counts": dict(Counter(f"{c}:{WALL_BASES[b]}" for c, _, b in walls.values()))}
     OUT.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
     return payload
+
+
+def wall_materials(ways: dict, assigned: dict, photo: dict, labels: dict) -> dict:
+    """[class, confidence, basis code] for every building."""
+    read: dict[str, Counter] = {}
+    for osm_id, row in assigned.items():
+        if "class" in row:
+            read.setdefault(ways[osm_id].get("archetype") or "generic", Counter())[row["class"]] += 1
+    everyone = sum(read.values(), Counter())
+    walls = {}
+    for osm_id, way in ways.items():
+        row = assigned.get(osm_id, {})
+        kind = way.get("archetype") or "generic"
+        if "class" in row:
+            walls[osm_id] = [row["class"], row["confidence"], "p"]
+        elif kind in SMOOTH_ARCHETYPES and (osm_id in photo or osm_id in labels):
+            agrees = (photo.get(osm_id) or {}).get("top") == SMOOTH_WALL
+            walls[osm_id] = [SMOOTH_WALL, SMOOTH_CONFIDENCE + (0.1 if agrees else 0.0), "s"]
+        else:
+            counts = read.get(kind) if sum((read.get(kind) or Counter()).values()) >= 20 else everyone
+            cls, n = counts.most_common(1)[0]
+            walls[osm_id] = [cls, round(min(PRIOR_CAP, n / sum(counts.values())), 3), "a"]
+    return walls
 
 
 if __name__ == "__main__":
     result = build()
     print(result["counts"], "colours:", result["colours"])
     print(result["sources"], result["skipped"])
+    print(result["wall_counts"])

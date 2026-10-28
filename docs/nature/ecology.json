@@ -76,9 +76,9 @@
     "file": "floor-colour-40m.bin",
     "encoding": "gzip",
     "dtype": "|u1",
-    "bytes": 2698439,
+    "bytes": 2699815,
     "decoded_bytes": 14056768,
-    "sha256": "45359585c43900342db56b6d40270c8efced9bbbcce5d7172bf9ad9258df1c00",
+    "sha256": "c5b0354baa1ba99c999787210ec93cb330545b570b5a374d1237bd6731e26f3a",
     "channels": 4,
     "colour_space": "srgb",
     "alpha": "source water classification",
@@ -102,5 +102,5 @@
     "attribution": "OpenStreetMap contributors, ODbL; conservative visual exclusion only"
   },
   "source_cover_sha256": "2fab8017cf42ac02bf7485ced845401e2286ae74de7fcbe7a718df3f37d61e3e",
-  "source_canopy_sha256": "590cd5244b830c1cb8ab283b32f059c3eb0dc6b6be309ec3368feb75d6fba5fb"
+  "source_canopy_sha256": "35829af2be1cf0e717ad21a360aee4a83b1acec04d4e9c077db9f6627206991e"
 }

@@ -199,7 +199,8 @@ def main() -> None:
     app_assets = [DOCS / "app.html", DOCS / "app-model.html", DOCS / "app-regions.json",
                   DOCS / "runtime-release.json", DOCS / "sf-corridor-frontage-fits.manifest.json"]
     app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
-                                           "sf-corridor-furniture.json") if (DOCS / name).exists()]
+                                           "sf-corridor-furniture.json", "sf-corridor-building-shapes.json", "sf-corridor-islands.json", "sf-corridor-roofs.json")
+                   if (DOCS / name).exists()]
     app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "sf-corridor-storefront-names.json",
                    DOCS / "search-index.json", DOCS / "world-streaming.mjs", DOCS / "environment-runtime.mjs",
                    DOCS / "sky-clock.mjs", DOCS / "sky-history.mjs", DOCS / "foliage-motion.mjs", DOCS / "municipal-context.manifest.json"]

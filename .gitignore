@@ -151,3 +151,7 @@ cloud/infra/terraform/*.tfstate*
 /Kerbside Quest/
 # Refreshable Google price evidence is a local cache, not permanent published map data.
 /data/restaurant-prices.json
+
+# Overture places pulls and their per-region joins (scripts/fetch_places.py); kept in the private bucket.
+data/places
+data/ortho

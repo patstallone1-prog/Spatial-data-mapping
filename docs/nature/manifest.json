@@ -40,9 +40,9 @@
       "file": "canopy-40m.bin",
       "encoding": "gzip",
       "dtype": "|u1",
-      "bytes": 1428053,
+      "bytes": 1441920,
       "decoded_bytes": 3514192,
-      "sha256": "590cd5244b830c1cb8ab283b32f059c3eb0dc6b6be309ec3368feb75d6fba5fb"
+      "sha256": "35829af2be1cf0e717ad21a360aee4a83b1acec04d4e9c077db9f6627206991e"
     }
   },
   "land_classes": {
@@ -17452,6 +17452,12 @@
       "attribution": "Funding for this project was provided by the U.S. Forest Service (USFS). The TCC data products are developed and maintained by the USDA Forest Service through integrated teams and support from the Geospatial Office and Research and Development - Forest Inventory and Analysis.",
       "rights": "US government public domain",
       "role": "modelled canopy percentage"
+    },
+    {
+      "id": "aerial-orthophotos",
+      "role": "measured tree cover where photographed",
+      "description": "Tree cover counted at 0.25-0.6 m from aerial photographs (NOAA NGS 2025, USDA NAIP 2022, OpenAerialMap) in berkeley-downtown, oakland-downtown, palo-alto-downtown, san-jose-downtown, sf-corridor, sf-haight-castro, sf-mission, sf-richmond, sf-soma, sf-sunset (scripts/refine_canopy_from_ortho.py)",
+      "cells": 45889
     }
   ],
   "inferred": [

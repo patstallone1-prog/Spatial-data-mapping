@@ -2882,7 +2882,8 @@ def test_nothing_runs_at_the_top_level_before_the_bindings_it_reads_exist() -> N
             return set()
         seen.add(name)
         body = re.sub(r"//[^\n]*", "", _extract(name, js))   # prose is not a read
-        words = set(re.findall(r"\b[A-Za-z_$][\w$]*\b", body))
+        # `data.bbox` is a property, not the top-level `bbox`.
+        words = set(re.findall(r"(?<![\w$.])[A-Za-z_$][\w$]*\b", body))
         # A name the function declares for itself shadows the top-level one; a name it asks
         # `typeof` about before reading is a guard, and the guard runs first.
         words -= set(re.findall(r"\b(?:const|let|var|function) ([A-Za-z_$][\w$]*)", body))

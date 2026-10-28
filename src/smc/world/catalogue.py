@@ -80,6 +80,20 @@ def validate(catalogue: dict[str, Any]) -> None:
             problems.append(f"archetype {name}: {a.get('traversal')} but blocks a character")
         if "casts" not in a.get("shadow", {}):
             problems.append(f"archetype {name}: shadow.casts missing")
+    claddings = catalogue.get("claddings", {})
+    for name, c in claddings.get("classes", {}).items():
+        if c.get("material") not in materials:
+            problems.append(f"cladding {name}: unknown base material {c.get('material')!r}")
+        f = c.get("friction", {})
+        if not all(0 <= f.get(k, -1) <= 1.5 for k in ("static", "dynamic", "wet")) or f["static"] < f["dynamic"]:
+            problems.append(f"cladding {name}: friction out of range")
+        if not (0 <= c.get("roughness", -1) <= 1 and 0 <= c.get("metalness", -1) <= 1):
+            problems.append(f"cladding {name}: roughness and metalness must be in [0, 1]")
+        if c.get("density_kg_m3", -1) <= 0 or not c.get("failure"):
+            problems.append(f"cladding {name}: needs a density and a failure mode")
+    for part, material in claddings.get("fixed_parts", {}).items():
+        if part != "about" and material not in materials:
+            problems.append(f"fixed part {part}: unknown material {material!r}")
     surfaces = catalogue.get("surfaces", {})
     for table in ("exact", "prefix"):
         for surface, archetype in surfaces.get(table, {}).items():
@@ -134,6 +148,11 @@ def blocks_player(surface: str, catalogue: dict[str, Any] | None = None) -> bool
     if a is None:
         raise ValueError(f"surface {surface!r} is not in the object catalogue")
     return "character" in a["collision"]["blocks"]
+
+
+def cladding(wall_class: str, catalogue: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    """What a wall of this photographed class is: its properties and the base material's id."""
+    return (catalogue or load()).get("claddings", {}).get("classes", {}).get(wall_class)
 
 
 def physical_material(material_id: str, catalogue: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "KerbsideWorldActors.h"
 #include "KerbsideCelestialSky.h"
+#include "KerbsidePhysicalMaterial.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/DirectionalLightComponent.h"
@@ -26,6 +27,24 @@ bool FKerbsideWalkerDefaults::RunTest(const FString& Parameters)
     TestEqual(TEXT("Gravity enabled"), Walker->GetCharacterMovement()->GravityScale, 1.f);
     TestEqual(TEXT("Curb step limit"), Walker->GetCharacterMovement()->MaxStepHeight, 20.f);
     TestTrue(TEXT("Camera rotates independently of translation"), Walker->Camera->bUsePawnControlRotation);
+    TestNotNull(TEXT("Over-the-shoulder view"), Walker->ShoulderCamera.Get());
+    TestFalse(TEXT("Through the eyes first"), Walker->ShoulderCamera->bAutoActivate);
+    TestTrue(TEXT("Body unseen from inside"), Walker->GetMesh()->bOwnerNoSee);
+    // The default character: by name, by index, else a roll; never out of the roster.
+    const TArray<FString> Names = {TEXT("Ada"), TEXT("Bo"), TEXT("Celeste")};
+    TestEqual(TEXT("Asked by name"), AKerbsideWalker::PickCharacter(Names, 3, TEXT("bo"), 7), 1);
+    TestEqual(TEXT("Asked by index"), AKerbsideWalker::PickCharacter(Names, 3, TEXT("2"), 7), 2);
+    TestEqual(TEXT("Random within roster"), AKerbsideWalker::PickCharacter(Names, 3, TEXT(""), 7), 1);
+    TestEqual(TEXT("Negative roll still inside"), AKerbsideWalker::PickCharacter(Names, 3, TEXT("zed"), -4), 2);
+    TestEqual(TEXT("Empty roster wears nothing"), AKerbsideWalker::PickCharacter(Names, 0, TEXT(""), 7), int32(INDEX_NONE));
+    TestEqual(TEXT("Dry asphalt is normal grip"), AKerbsideWalker::GripFor(.7f), 1.f);
+    TestTrue(TEXT("Wet paint grips less"), AKerbsideWalker::GripFor(.35f) < .6f);
+    UKerbsidePhysicalMaterial* Paint = NewObject<UKerbsidePhysicalMaterial>();
+    Paint->DryFriction = .55f; Paint->DryStaticFriction = .65f; Paint->WetFriction = .35f;
+    Paint->ShowWetness(1.f);
+    TestEqual(TEXT("Soaked paint has its wet friction"), Paint->Friction, .35f);
+    Paint->ShowWetness(.5f);
+    TestEqual(TEXT("Half wet is halfway"), Paint->Friction, .45f);
     TestEqual(TEXT("Game mode uses collision walker"), GetDefault<AKerbsideGameMode>()->DefaultPawnClass.Get(), AKerbsideWalker::StaticClass());
     return true;
 }
@@ -70,11 +89,29 @@ bool FKerbsideWeatherLooks::RunTest(const FString& Parameters)
     TestTrue(TEXT("fog"), AKerbsideCelestialSky::LookFor("fog", Fog));
     TestTrue(TEXT("rain"), AKerbsideCelestialSky::LookFor("rain", Rain));
     TestFalse(TEXT("Unknown weather refused"), AKerbsideCelestialSky::LookFor("hail", None));
-    TestEqual(TEXT("Five weathers to step through"), AKerbsideCelestialSky::WeatherNames().Num(), 5);
+    TestEqual(TEXT("Ten weathers to step through"), AKerbsideCelestialSky::WeatherNames().Num(), 10);
+    for (const FName& Name : AKerbsideCelestialSky::WeatherNames())
+    {
+        FKerbsideWeatherLook Look;
+        TestTrue(*FString::Printf(TEXT("%s is a weather"), *Name.ToString()), AKerbsideCelestialSky::LookFor(Name, Look));
+    }
+    FKerbsideWeatherLook High, Storm, Drizzle;
+    AKerbsideCelestialSky::LookFor("high_cloud", High);
+    AKerbsideCelestialSky::LookFor("storm", Storm);
+    AKerbsideCelestialSky::LookFor("drizzle", Drizzle);
+    TestTrue(TEXT("Cirrus is high, thin ice cloud only"), High.CloudBase > 1.f && High.CloudTypes.B == 1.f && High.CloudTypes.R == 0.f);
+    TestTrue(TEXT("A storm is the rain deck, denser than rain"), Storm.CloudTypes.A == 1.f && Storm.CloudDensity > Rain.CloudDensity);
+    TestTrue(TEXT("Drizzle rains lightly"), Drizzle.Rain > 0.f && Drizzle.Rain < Rain.Rain);
     TestTrue(TEXT("Cloud cover rises sunny < partly < cloudy"),
         Sunny.CloudCoverage < Partly.CloudCoverage && Partly.CloudCoverage < Cloudy.CloudCoverage);
     TestTrue(TEXT("Fog is the densest fog"), Fog.FogDensity > Rain.FogDensity && Fog.FogDensity > 10 * Sunny.FogDensity);
     TestTrue(TEXT("Only rain rains"), Rain.Rain > .9f && Sunny.Rain + Partly.Rain + Cloudy.Rain + Fog.Rain == 0.f);
+    // Wetting and drying: rain soaks in SoakSeconds, the sun dries, fog only dampens.
+    TestEqual(TEXT("Three minutes of rain soaks"), AKerbsideCelestialSky::NextWetness(0.f, 1.f, .02f, 180.f), 1.f);
+    TestEqual(TEXT("Drizzle soaks a quarter as fast"), AKerbsideCelestialSky::NextWetness(0.f, .25f, .012f, 180.f), .25f);
+    TestEqual(TEXT("Twenty minutes dries"), AKerbsideCelestialSky::NextWetness(1.f, 0.f, .002f, 1200.f), 0.f);
+    TestEqual(TEXT("Fog leaves it damp, not dry"), AKerbsideCelestialSky::NextWetness(1.f, 0.f, .045f, 5000.f), .2f);
+    TestTrue(TEXT("Fog dampens a dry street, slowly"), AKerbsideCelestialSky::NextWetness(0.f, 0.f, .045f, 60.f) > 0.f);
     const FKerbsideWeatherLook Half = FKerbsideWeatherLook::Lerp(Sunny, Rain, .5f);
     TestEqual(TEXT("Blends halfway"), Half.Rain, .5f);
     // A westerly blows toward the east (+X); a northerly toward the south (+Y in this frame).

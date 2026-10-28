@@ -163,3 +163,18 @@ console.log(JSON.stringify(out));
     assert ("furniture.traffic_signal", "walk_under", "mapped") in nearby
     assert ("furniture.wheel_stop", "step_over", "mapped") in nearby
     assert all(n[0] != "furniture.street_light" or n[2] != "inferred" for n in nearby)
+
+
+def test_every_wall_class_has_a_cladding_and_every_building_a_wall() -> None:
+    cat = catalogue.load()
+    walls = json.loads((ROOT / "docs/sf-corridor-materials.json").read_text())
+    bases = walls["wall_bases"]
+    for cls, confidence, basis in walls["walls"].values():
+        assert catalogue.cladding(cls, cat) is not None, cls
+        assert 0 < confidence <= 1 and basis in bases
+    assert len(walls["walls"]) == sum(1 for w in json.loads((ROOT / "docs/sf-corridor-3d.json").read_text())["ways"]
+                                      if w.get("kind") == "building" and w.get("osm_id") is not None)
+    # Untextured is read as smooth render; windows and garage doors are never guessed.
+    assert catalogue.cladding("stucco_render", cat)["texture"] == "smooth"
+    assert cat["claddings"]["fixed_parts"]["window"] == "glass"
+    assert cat["claddings"]["fixed_parts"]["garage_door"] == "lumber"
