@@ -42,15 +42,28 @@ INTERIOR_REGIONS = ("sf-corridor", "berkeley-downtown", "oakland-downtown", "pal
 SMALL_SUFFIXES = {".html", ".json", ".webmanifest", ".js", ".mjs"}
 
 
+#: Where the page asks for the bucket's files: under the site's own address, which Vercel
+#: proxies to the bucket's CloudFront (vercel.json ``rewrites``). Asked for on the bucket's own
+#: address the browser needs CloudFront's CORS headers, and CloudFront sends none when the
+#: request carries a header its policy does not list -- Chrome's ``priority`` -- which broke the
+#: site on 2026-10-27 (#117). Same-origin requests need no CORS at all.
+STORE_PATH = "/store"
+#: The pages that have that proxy: the site's. A local server or a preview reads its own copies
+#: (``viaStore`` in the renderer skips a map that does not list its origin).
+SITE_ORIGINS = ["https://spatial-data-mapping.vercel.app"]
+
+
 def asset_map(release: dict, previous: dict | None = None) -> dict:
     """The release's files over the site's present map: what the site offloaded itself
     (tools/publish_chunks.py -- its pages' data, interiors, paths) stays mapped beside the
     cells, so a promotion never quietly sends those back to the site. Only a map on the same
-    base is kept: an asset map has one."""
-    files = dict(previous["files"]) if previous and previous.get("base") == release["base"] else {}
+    bucket is kept: an asset map has one. ``base`` is the site's proxy path; ``origin`` the
+    bucket it proxies."""
+    kept = previous and previous.get("origin", previous.get("base")) == release["base"]
+    files = dict(previous["files"]) if kept else {}
     files.update(release["files"])
-    return {"schema": "kerbside.asset_map/1", "version": release["version"], "base": release["base"],
-            "files": dict(sorted(files.items()))}
+    return {"schema": "kerbside.asset_map/1", "version": release["version"], "base": STORE_PATH,
+            "origin": release["base"], "origins": SITE_ORIGINS, "files": dict(sorted(files.items()))}
 
 
 def update_regions(index: dict, release: dict, registry: dict) -> list[str]:

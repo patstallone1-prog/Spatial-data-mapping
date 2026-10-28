@@ -14,6 +14,7 @@ Endpoints (JSON over HTTPS; TLS is the reverse proxy's, ``cloud/infra``)::
     POST /api/complete | /api/fail | /api/release | /api/goodbye | /api/stored
     GET  /api/status     the dashboard's numbers                 (ops token)
     POST /api/review     approve, reject or rerun a held job     (ops token)
+    POST /api/redo       a finished job and its chain, again     (ops token)
     POST /api/plan       submit or extend the plan               (ops token)
     GET  /               the dashboard                           (ops token)
     GET  /healthz        liveness, no auth
@@ -55,7 +56,7 @@ from .providers import (
 from .publish import Publisher
 from .queue import Queue
 from .scheduler import Scheduler, Settings, work_waiting
-from .stages import CELL_CHAIN
+from .stages import CELL_CHAIN, ENRICH_CHAIN
 from .store import ObjectStore, open_store
 
 log = logging.getLogger("kerbside.controller")
@@ -508,7 +509,7 @@ def _handler(ctl: Controller):
             if self.path == "/api/bootstrap":
                 env = ctl.redeem_boot(body.get("worker", ""), body.get("boot", ""))
                 return self._send(200, {"env": env}) if env else self._send(403, {"error": "refused"})
-            if self.path in ("/api/review", "/api/plan", "/api/requeue", "/api/pause"):
+            if self.path in ("/api/review", "/api/plan", "/api/requeue", "/api/pause", "/api/redo"):
                 if not self._ops():
                     return self._send(401, {"error": "ops token required"})
                 if self.path == "/api/review":
@@ -516,6 +517,16 @@ def _handler(ctl: Controller):
                     return self._send(200 if ok else 409, {"ok": ok})
                 if self.path == "/api/requeue":
                     return self._send(200, {"ok": q.requeue(body["job"], body.get("operator", "ops"))})
+                if self.path == "/api/redo":
+                    # One job and its chain, or every cell whose enrichment failed with
+                    # ``failed_with`` in its log, each from ``from_stage`` on.
+                    operator, note = body.get("operator", "ops"), body.get("note", "")
+                    if body.get("failed_with"):
+                        cells = q.failed_with(body["failed_with"], ENRICH_CHAIN)
+                        start = body.get("from_stage", ENRICH_CHAIN[0])
+                        sent = {c: q.redo(f"cell:{c}:{start}", operator, note) for c in cells}
+                        return self._send(200, {"ok": True, "cells": sent})
+                    return self._send(200, {"ok": True, "jobs": q.redo(body["job"], operator, note)})
                 if self.path == "/api/pause":
                     q.set_meta("paused", body.get("reason", ""))
                     return self._send(200, {"ok": True})
