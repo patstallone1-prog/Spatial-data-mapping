@@ -173,7 +173,7 @@ def main() -> None:
                          *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
                          DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
                          DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
-                         DOCS / "object-catalogue.mjs", DOCS / "object-catalogue.json",
+                         DOCS / "object-catalogue.mjs", DOCS / "object-catalogue.json", DOCS / "exterior-editor.mjs",
                          DOCS / "meta-xr.mjs", DOCS / "meta.webmanifest",
                          *sorted((DOCS / "nature/models").glob("*")), *sorted((DOCS / "world").glob("*")),
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
