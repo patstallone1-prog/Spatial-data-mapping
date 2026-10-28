@@ -35,7 +35,7 @@ import urllib.request
 from pathlib import Path
 
 from . import USER_AGENT
-from .checkpoint import get_pointer, pull_tree, push_tree
+from .checkpoint import carry_forward, get_pointer, pull_tree, push_tree
 from .store import ObjectStore, open_store
 
 log = logging.getLogger("kerbside.worker")
@@ -232,9 +232,11 @@ class Worker:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             with open(log_path, "ab") as out:
+                carry = tuple(spec.get("carry", []))
                 for entry in lease.get("restore", []):
                     if entry.get("tree"):
-                        metrics["bytes_in"] += pull_tree(self.private, entry["tree"], self.root).bytes_received
+                        metrics["bytes_in"] += pull_tree(self.private, entry["tree"], self.root,
+                                                         carry=carry).bytes_received
                 metrics["bytes_in"] += self._restore_shared(spec.get("shared", []))
                 env = {**os.environ, **self.env, **spec.get("env", {}),
                        "KERBSIDE_JOB": job_id, "KERBSIDE_ATTEMPT": str(token)}
@@ -283,6 +285,11 @@ class Worker:
                             code in PERMANENT_EXIT_CODES)
                 return "failed"
             stats = push_tree(self.private, self.root, spec.get("save", [])) if spec.get("save") else None
+            base = next((e["tree"] for e in reversed(lease.get("restore", [])) if e.get("tree")), None)
+            if stats and carry and base:
+                sent = stats.bytes_sent
+                stats = carry_forward(self.private, stats.tree, base, carry)
+                stats.bytes_sent = sent
             output = {"tree": stats.tree, "files": stats.files, "bytes": stats.bytes_total} if stats else {}
             metrics["bytes_out"] = stats.bytes_sent if stats else 0
             if stats and stats.bytes_sent:

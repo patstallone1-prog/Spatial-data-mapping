@@ -168,44 +168,78 @@ def read_tree(store: ObjectStore, digest: str) -> dict:
     return manifest
 
 
-def pull_tree(store: ObjectStore, digest: str, root: Path, *, clean: bool = True) -> TreeStats:
+def _carried(rel: str, carry: tuple[str, ...]) -> bool:
+    return any(rel == c or rel.startswith(c.rstrip("/") + "/") for c in carry)
+
+
+def pull_tree(store: ObjectStore, digest: str, root: Path, *, clean: bool = True,
+              carry: tuple[str, ...] = ()) -> TreeStats:
     """Restore a tree under ``root``: files already there with the right content stay, the rest
     are fetched, hashed and moved into place. With ``clean``, any other file under the tree's
     folders is removed, so what is left is exactly the tree -- a failed attempt's leftovers
-    cannot leak into the next one. Caches (:data:`EXCLUDE`) are left for the stage to reuse."""
+    cannot leak into the next one. Caches (:data:`EXCLUDE`) are left for the stage to reuse.
+
+    ``carry`` names folders the job only adds to and never reads back (the house pipeline's
+    pixel store): they are not fetched and not cleaned; :func:`carry_forward` keeps their
+    entries in the job's saved tree. Files are fetched :data:`UPLOADS` at a time."""
     manifest = read_tree(store, digest)
     root = Path(root)
     index = _load_index(root)
-    wanted = manifest["files"]
+    wanted = {rel: entry for rel, entry in manifest["files"].items() if not _carried(rel, carry)}
     if clean:
         for top in manifest["paths"]:
             if (root / top).exists():
                 for rel, path in walk(root, [top]):
-                    if rel not in wanted:
+                    if rel not in wanted and not _carried(rel, carry):
                         path.unlink()
                         index.pop(rel, None)
-    received = total = 0
+    total = sum(entry[1] for entry in wanted.values())
+    todo = []
+    for rel, (sha, size, mode) in sorted(wanted.items()):
+        target = root / rel
+        if target.is_file() and target.stat().st_size == size and _sha(index, rel, target) == sha:
+            continue
+        todo.append((rel, sha, size, mode))
+
+    def fetch(item: tuple[str, str, int, int]) -> tuple[str, list]:
+        rel, sha, size, mode = item
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        part = target.with_name(f".{target.name}.part")
+        store.get_file(cas_key(sha), part)
+        got = sha256_file(part)
+        if got != sha:
+            part.unlink(missing_ok=True)
+            raise ValueError(f"{rel}: fetched {got[:12]}, expected {sha[:12]}")
+        os.chmod(part, mode)
+        os.replace(part, target)
+        st = target.stat()
+        return rel, [sha, st.st_size, st.st_mtime_ns]
+
+    received = 0
     try:
-        for rel, (sha, size, mode) in sorted(wanted.items()):
-            target = root / rel
-            total += size
-            if target.is_file() and target.stat().st_size == size and _sha(index, rel, target) == sha:
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            part = target.with_name(f".{target.name}.part")
-            store.get_file(cas_key(sha), part)
-            got = sha256_file(part)
-            if got != sha:
-                part.unlink(missing_ok=True)
-                raise ValueError(f"{rel}: fetched {got[:12]}, expected {sha[:12]}")
-            os.chmod(part, mode)
-            os.replace(part, target)
-            st = target.stat()
-            index[rel] = [sha, st.st_size, st.st_mtime_ns]
-            received += size
+        with ThreadPoolExecutor(UPLOADS) as pool:
+            for rel, entry in pool.map(fetch, todo):
+                index[rel] = entry
+                received += entry[1]
     finally:
         _save_index(root, index)
     return TreeStats(digest, len(wanted), total, bytes_received=received)
+
+
+def carry_forward(store: ObjectStore, digest: str, base: str, carry: tuple[str, ...]) -> TreeStats:
+    """The tree ``digest`` plus every file of ``base`` under ``carry`` that it does not have:
+    what a job saved, with the folders it was never given still referenced, not dropped."""
+    saved, previous = read_tree(store, digest), read_tree(store, base)
+    files = dict(saved["files"])
+    for rel, entry in previous["files"].items():
+        if _carried(rel, carry) and rel not in files:
+            files[rel] = entry
+    manifest = {"schema": "kerbside.tree/1", "paths": saved["paths"], "files": files}
+    merged = manifest_digest(manifest)
+    if store.head(f"trees/{merged}.json") is None:
+        store.put_json(f"trees/{merged}.json", manifest)
+    return TreeStats(merged, len(files), sum(e[1] for e in files.values()))
 
 
 def set_pointer(store: ObjectStore, name: str, digest: str, **extra) -> None:
