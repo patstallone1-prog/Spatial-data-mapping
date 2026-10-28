@@ -203,3 +203,24 @@ def test_a_file_that_vanishes_mid_push_is_left_out_of_the_tree(tmp_path) -> None
     stats = push_tree(store, root, ["run"])
     tree = read_tree(store, stats.tree)
     assert sorted(tree["files"]) == ["run/keep.json"] and stats.files == 1
+
+
+def test_a_carried_folder_is_not_fetched_and_stays_referenced(tmp_path) -> None:
+    from smc.cloud.checkpoint import carry_forward, pull_tree, push_tree, read_tree
+    from smc.cloud.store import open_store
+
+    store = open_store(str(tmp_path / "store"))
+    src = tmp_path / "src"
+    (src / "run/pixels").mkdir(parents=True)
+    (src / "run/journal.json").write_text("{}")
+    (src / "run/pixels/old.bin").write_bytes(b"x" * 1000)
+    base = push_tree(store, src, ["run"]).tree
+    work = tmp_path / "work"
+    pulled = pull_tree(store, base, work, carry=("run/pixels",))
+    assert (work / "run/journal.json").exists() and not (work / "run/pixels/old.bin").exists()
+    assert pulled.files == 1
+    (work / "run/pixels").mkdir(parents=True)
+    (work / "run/pixels/new.bin").write_bytes(b"y" * 10)
+    saved = push_tree(store, work, ["run"]).tree
+    merged = carry_forward(store, saved, base, ("run/pixels",))
+    assert set(read_tree(store, merged.tree)["files"]) == {"run/journal.json", "run/pixels/old.bin", "run/pixels/new.bin"}

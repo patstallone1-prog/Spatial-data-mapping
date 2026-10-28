@@ -159,3 +159,19 @@ def test_a_job_submitted_before_the_new_fields_keeps_its_digest():
     old = job("c:a")
     assert old.digest() == job("c:a", stall_s=3600.0, optional=False).digest()
     assert old.digest() != job("c:a", optional=True).digest()
+
+
+def test_a_paused_kind_waits_and_the_rest_runs(tmp_path) -> None:
+    import json as _json
+
+    from smc.cloud.queue import JobSpec, Queue
+
+    q = Queue(tmp_path / "q.sqlite")
+    q.submit(JobSpec(id="interior:a:000", kind="interior_batch", subject="a", stage="x", resource="cpu", priority=1))
+    q.submit(JobSpec(id="cell:c:osm", kind="cell_stage", subject="c", stage="osm", resource="cpu", priority=5))
+    q.set_meta("paused_kinds", _json.dumps(["interior_batch"]))
+    assert q.ready_count("cpu") == 1
+    assert q.lease("w", ["cpu"], 60)["job"]["id"] == "cell:c:osm"
+    assert q.lease("w", ["cpu"], 60) is None
+    q.set_meta("paused_kinds", "[]")
+    assert q.lease("w", ["cpu"], 60)["job"]["id"] == "interior:a:000"
