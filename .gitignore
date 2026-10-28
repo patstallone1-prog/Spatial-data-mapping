@@ -153,3 +153,5 @@ cloud/infra/terraform/*.tfstate*
 /data/restaurant-prices.json
 # Local residential program reviews are separate from the fixed acceptance cohort.
 /docs/inferred-residential/overrides/
+
+/docs/inferred-stores/overrides/

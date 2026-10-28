@@ -1,4 +1,4 @@
-import {TourWorld} from './tour-world.mjs';
+import {TourWorld,inPolygon} from './tour-world.mjs';
 // Adapter keeps generated geometry local, and leaves other addresses on their existing path.
 export function mountGeneratedInterior(THREE, house, entry, context, buildInferredHouse) {
   const {origin, floorY, assetBase, loadAsset, feetY, pointInRing} = context;
@@ -25,11 +25,11 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
     for(const s of [...house.stairs,...house.storeys.flatMap(f=>f.level_changes||[])])for(const step of s.steps)if(step.top_m<=feet+.22&&onStep(step.footprint.coordinates[0])) {
       const y=floorY+step.top_m;if(surface===null||y>=surface-1e-5){surface=y;onStair=true;}
     }
-    floorSurface.stairs=onStair;return surface;
+    floorSurface.stairs=onStair||(house.ramps||[]).some(r=>inPolygon(p[0],p[1],r.footprint));return surface;
   };
   floorSurface.stairs=false;floorSurface.priority=2;
   const result={group:built.group,floorSurface,roomDoors,floorY,height:house.storeys[0].height_m-.15,
-    lights:roomSpecs.map(r=>r.light),plan:`Generated ${house.households||1}-home hypothesis · ${house.id}`,generated:true,house};
+    lights:roomSpecs.map(r=>r.light),plan:house.schema==='kerbside.inferred_store/1'?`Generated ${house.kind.replaceAll('_',' ')} hypothesis · ${house.id}`:`Generated ${house.households||1}-home hypothesis · ${house.id}`,generated:true,house};
   Object.defineProperty(result,'rooms',{get:()=>roomSpecs.filter(r=>r.level===levelAt())});
   Object.defineProperty(result,'segments',{get:()=>{
     const level=levelAt(),out=built.segments.filter(s=>s.level===level).map(s=>{

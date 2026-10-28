@@ -1,0 +1,2319 @@
+[
+  {
+    "id": "retail-tiny-corner",
+    "name": "Tiny Corner",
+    "kind": "corner_store",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            6.0,
+            0.0
+          ],
+          [
+            6.0,
+            9.0
+          ],
+          [
+            0.0,
+            9.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "independent",
+    "entrances": [
+      {
+        "point": [
+          2,
+          0
+        ]
+      }
+    ],
+    "parking": null,
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-corner-snacks",
+    "name": "Corner Snacks",
+    "kind": "corner_store",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "independent",
+    "entrances": [
+      {
+        "point": [
+          2.5,
+          0
+        ]
+      }
+    ],
+    "parking": null,
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-corner-setback",
+    "name": "Corner Setback",
+    "kind": "corner_store",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            7.0
+          ],
+          [
+            8.0,
+            7.0
+          ],
+          [
+            8.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "independent",
+    "entrances": [
+      {
+        "point": [
+          2.5,
+          0
+        ]
+      }
+    ],
+    "parking": null,
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-supermarket",
+    "name": "Supermarket",
+    "kind": "grocery",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            28.0,
+            0.0
+          ],
+          [
+            28.0,
+            32.0
+          ],
+          [
+            0.0,
+            32.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            28.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "safeway",
+    "entrances": [
+      {
+        "point": [
+          7,
+          0
+        ]
+      }
+    ],
+    "parking": null,
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-fresh-market",
+    "name": "Fresh Market",
+    "kind": "grocery",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            26.730195725651036,
+            13.619714992186404
+          ],
+          [
+            10.840528234766898,
+            44.80494333877928
+          ],
+          [
+            -15.889667490884138,
+            31.185228346592876
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            26.730195725651036,
+            13.619714992186404
+          ]
+        ]
+      ]
+    },
+    "chain": "whole_foods",
+    "entrances": [],
+    "parking": null,
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-two-entrances",
+    "name": "Two Entrances",
+    "kind": "grocery",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            40.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "trader_joes",
+    "entrances": [
+      {
+        "point": [
+          7,
+          0
+        ]
+      },
+      {
+        "point": [
+          36,
+          12
+        ]
+      }
+    ],
+    "parking": null,
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-two-parking-levels",
+    "name": "Two Parking Levels",
+    "kind": "grocery",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            44.0,
+            0.0
+          ],
+          [
+            44.0,
+            44.0
+          ],
+          [
+            0.0,
+            44.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            44.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "safeway",
+    "entrances": [
+      {
+        "point": [
+          13,
+          0
+        ]
+      }
+    ],
+    "parking": {
+      "kind": "garage",
+      "levels": 2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              44.0,
+              0.0
+            ],
+            [
+              44.0,
+              44.0
+            ],
+            [
+              0.0,
+              44.0
+            ],
+            [
+              0.0,
+              0.0
+            ],
+            [
+              44.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      "evidence": [
+        {
+          "source": "synthetic test program",
+          "measured": false
+        }
+      ],
+      "storey_height_m": 3.2
+    },
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-three-parking-levels",
+    "name": "Three Parking Levels",
+    "kind": "grocery",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            46.0,
+            0.0
+          ],
+          [
+            46.0,
+            44.0
+          ],
+          [
+            0.0,
+            44.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            46.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "whole_foods",
+    "entrances": [
+      {
+        "point": [
+          13,
+          0
+        ]
+      },
+      {
+        "point": [
+          23,
+          0
+        ]
+      }
+    ],
+    "parking": {
+      "kind": "garage",
+      "levels": 3,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              46.0,
+              0.0
+            ],
+            [
+              46.0,
+              44.0
+            ],
+            [
+              0.0,
+              44.0
+            ],
+            [
+              0.0,
+              0.0
+            ],
+            [
+              46.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      "evidence": [
+        {
+          "source": "synthetic test program",
+          "measured": false
+        }
+      ],
+      "storey_height_m": 3.2
+    },
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  },
+  {
+    "id": "retail-surface-parking",
+    "name": "Corner Store With Surface Parking",
+    "kind": "corner_store",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.4,
+    "entrances": [
+      {
+        "point": [
+          3,
+          0
+        ]
+      }
+    ],
+    "chain": "independent",
+    "units": "metres",
+    "source": "synthetic stress polygon and supplied outdoor path",
+    "parking": {
+      "kind": "external",
+      "levels": null,
+      "external_footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              16.0,
+              -23.0
+            ],
+            [
+              16.0,
+              -3.0
+            ],
+            [
+              -4.0,
+              -3.0
+            ],
+            [
+              -4.0,
+              -23.0
+            ],
+            [
+              16.0,
+              -23.0
+            ]
+          ]
+        ]
+      },
+      "pedestrian_path": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              4.2,
+              -7.0
+            ],
+            [
+              4.2,
+              1.0
+            ],
+            [
+              1.8,
+              1.0
+            ],
+            [
+              1.8,
+              -7.0
+            ],
+            [
+              4.2,
+              -7.0
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "id": "retail-osm-240219342",
+    "osm_id": "240219342",
+    "name": "Whole Foods Market",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            28.497267886529585,
+            -28.909804000096074
+          ],
+          [
+            -9.786584895379633,
+            -31.926575999756324
+          ],
+          [
+            -10.314638037104146,
+            -25.180584000019735
+          ],
+          [
+            -11.22993014900976,
+            -13.38066399975446
+          ],
+          [
+            -3.529155165005591,
+            -5.699583999372976
+          ],
+          [
+            -4.576460562029752,
+            1.0464080003637264
+          ],
+          [
+            -10.077014122390096,
+            36.423904000107996
+          ],
+          [
+            21.04291770116299,
+            67.63803200023926
+          ],
+          [
+            28.497267886529585,
+            -28.909804000096074
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.427251,
+      37.7682034
+    ],
+    "units": "metres",
+    "height_m": 3.223295026712291,
+    "geometry_evidence": {
+      "building_id": "240219342",
+      "region": "sf-mission",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "55cb5a7bd77fc268a4c467ac03dfdcaf11200419110c4ee0515cc3d355c211ed",
+      "footprint_area_m2": 2786.7143530876156,
+      "footprint_area_sqft": 29992.211377874057,
+      "shell_floor_area_m2": 19504.573293307236,
+      "storeys": 7,
+      "storey_height_m": 3.94,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "lidar_region",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee"
+    },
+    "kind": "grocery",
+    "chain": "whole_foods",
+    "region": "sf-mission",
+    "parking": {
+      "kind": "garage",
+      "levels": null,
+      "evidence": [
+        {
+          "source_url": "https://archives.sfplanning.org/documents/2225-Housing_Inventory_2008.pdf",
+          "retrieved_at": "2026-10-28",
+          "claim": "2008 planning inventory describes a Whole Foods project at 2001 Market with two subsurface parking levels. This is a historical proposal, not confirmation of the current as-built level count.",
+          "proposed_levels": 2,
+          "status": "historical proposal; current level count unverified",
+          "confidence": 0.4,
+          "measured": false,
+          "freshness": "2008",
+          "corroboration_count": 1
+        }
+      ]
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "12467a41d54d617e6350ec94039954290e007b255d0a797ff6e00b5dc78ed034",
+    "envelope": {
+      "windows": [],
+      "balconies": [],
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail"
+    },
+    "entrances": [
+      {
+        "point": [
+          9.355341495574976,
+          -30.4181899999262
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-775827045",
+    "osm_id": "775827045",
+    "name": "Whole Foods Market",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -57.52454541129156,
+            -0.21150800009877457
+          ],
+          [
+            -13.094946968063828,
+            62.17221999964352
+          ],
+          [
+            -10.025681358762819,
+            66.4803040001567
+          ],
+          [
+            17.008480481155413,
+            47.23307599986896
+          ],
+          [
+            20.517468957222306,
+            44.72837599986491
+          ],
+          [
+            3.5793441342995194,
+            20.97268799988626
+          ],
+          [
+            35.432868593771886,
+            -1.7254600003894893
+          ],
+          [
+            30.041866249046798,
+            -9.29522000026111
+          ],
+          [
+            27.482679164744297,
+            -12.890856000358326
+          ],
+          [
+            22.443455113681875,
+            -19.959675999912747
+          ],
+          [
+            4.863334904855977,
+            -44.65045199974526
+          ],
+          [
+            2.5767759991730976,
+            -43.0251799997356
+          ],
+          [
+            -2.18981987576924,
+            -39.629920000398045
+          ],
+          [
+            -13.024591308581437,
+            -54.79170399961049
+          ],
+          [
+            -68.08668866798368,
+            -15.440084000091758
+          ],
+          [
+            -57.52454541129156,
+            -0.21150800009877457
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.26054,
+      37.8129998
+    ],
+    "units": "metres",
+    "height_m": 5.45,
+    "geometry_evidence": {
+      "building_id": "775827045",
+      "region": "oakland-downtown",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "830eb7d71a8cefddddefdd702d42ee0bf43541bf1303b89e8c5b12334bf86c33",
+      "footprint_area_m2": 6390.855919965274,
+      "footprint_area_sqft": 68790.60060854307,
+      "shell_floor_area_m2": 12781.711839930547,
+      "storeys": 2,
+      "storey_height_m": 5.45,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "lidar_region",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "kind": "grocery",
+    "chain": "whole_foods",
+    "region": "oakland-downtown",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "17bb2dd1eb06f01515a5b9301eef29f6a6a4595c6b9fbdca66400d369a91f4fc",
+    "entrances": [
+      {
+        "point": [
+          28.762272706895548,
+          -11.093038000309718
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-219058329",
+    "osm_id": "219058329",
+    "name": "Safeway",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -35.37309361374735,
+            -18.779684000360817
+          ],
+          [
+            -36.90454877432069,
+            8.115227999918204
+          ],
+          [
+            -38.13675407501132,
+            30.256776000017283
+          ],
+          [
+            34.02646924865284,
+            34.27542799952107
+          ],
+          [
+            36.25324025781252,
+            -5.655056000434513
+          ],
+          [
+            36.746122377838624,
+            -14.761032000066052
+          ],
+          [
+            29.41450083510217,
+            -15.161784000003422
+          ],
+          [
+            -26.034737723492892,
+            -18.245348000444324
+          ],
+          [
+            -35.37309361374735,
+            -18.779684000360817
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4888471,
+      37.7541184
+    ],
+    "units": "metres",
+    "height_m": 3.94,
+    "geometry_evidence": {
+      "building_id": "219058329",
+      "region": "sf-sunset",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "ac330541111ea94b7b1a48212e12633f94d9ceb0b624278015f769cb5b8712ee",
+      "footprint_area_m2": 3548.5529040338083,
+      "footprint_area_sqft": 38196.305567940544,
+      "shell_floor_area_m2": 7097.105808067617,
+      "storeys": 2,
+      "storey_height_m": 3.94,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "lidar_region",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "kind": "grocery",
+    "chain": "safeway",
+    "region": "sf-sunset",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "20e48e13afb19bc0aae9c2a4ed6a23d807067e8a0aeb3e3d7bfdcd71b612a290",
+    "entrances": [
+      {
+        "point": [
+          -2.05514241317924,
+          32.26610199976918
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-1262642420",
+    "osm_id": "1262642420",
+    "name": "Whole Foods Market",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            27.71998074993935,
+            24.22323199990558
+          ],
+          [
+            -3.140600802074595,
+            19.26949199975695
+          ],
+          [
+            -26.382806179297713,
+            15.540271999680613
+          ],
+          [
+            -25.863771312379164,
+            12.278596000322182
+          ],
+          [
+            -22.802345320745566,
+            12.768403999718316
+          ],
+          [
+            -20.866961072744385,
+            0.6901840001557957
+          ],
+          [
+            -18.6060803836249,
+            1.0575399997028967
+          ],
+          [
+            -14.462598652631462,
+            -24.77983200008225
+          ],
+          [
+            3.4573000425884155,
+            -21.896643999610035
+          ],
+          [
+            2.9998455836517333,
+            -19.069115999788266
+          ],
+          [
+            33.85162993506119,
+            -14.326883999738413
+          ],
+          [
+            33.45575588535654,
+            -11.733128000275599
+          ],
+          [
+            30.640651524400244,
+            6.000147999721435
+          ],
+          [
+            27.71998074993935,
+            24.22323199990558
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4233079,
+      37.7899593
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "geometry_evidence": {
+      "building_id": "1262642420",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "cd3add1e31a7e0fe77fb2231df4a63ff442e3e0296cd82f39de1c8e9125ce6b4",
+      "footprint_area_m2": 2019.1414773388408,
+      "footprint_area_sqft": 21733.857980718574,
+      "shell_floor_area_m2": 6057.424432016523,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "kind": "grocery",
+    "chain": "whole_foods",
+    "region": "sf-corridor",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "31d18c84cca9a418e71a3e4cc5b52bdd55e90c1cf9c25348cbd5fe7d6bb78aad",
+    "entrances": [
+      {
+        "point": [
+          32.04820370487839,
+          -2.866490000277082
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-26135377",
+    "osm_id": "26135377",
+    "name": "Safeway",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -32.44655095391983,
+            29.666780000241317
+          ],
+          [
+            48.639042226891206,
+            42.524240000209375
+          ],
+          [
+            56.80125401513802,
+            -8.938996000053123
+          ],
+          [
+            -23.264062692767123,
+            -21.640607999781878
+          ],
+          [
+            -24.187588811173274,
+            -15.80743999963886
+          ],
+          [
+            0.9059351445198566,
+            -11.822183999734364
+          ],
+          [
+            -0.1847052239312128,
+            -4.931475999888448
+          ],
+          [
+            -26.298505652530235,
+            -9.072580000032247
+          ],
+          [
+            -32.44655095391983,
+            29.666780000241317
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4329693,
+      37.8043561
+    ],
+    "units": "metres",
+    "height_m": 3.94,
+    "geometry_evidence": {
+      "building_id": "26135377",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "3587b586dcca7a93acea944e491dddd6a4da70f464d2391d22903828ca9c1c3a",
+      "footprint_area_m2": 4087.382059119491,
+      "footprint_area_sqft": 43996.21432318898,
+      "shell_floor_area_m2": 4087.382059119491,
+      "storeys": 1,
+      "storey_height_m": 3.94,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "kind": "grocery",
+    "chain": "safeway",
+    "region": "sf-corridor",
+    "parking": {
+      "kind": "external",
+      "levels": null,
+      "evidence": [
+        {
+          "source_url": "https://sfgov.legistar.com/View.ashx?GUID=2F1FEB4F-4BBD-4C0F-9ACD-D92680DAB4EA&ID=7148983&M=F",
+          "retrieved_at": "2026-10-28",
+          "claim": "2019 Planning memo identifies the Marina Safeway parking lot. Historical description; current footprint and redevelopment state require review.",
+          "status": "historical planning record, not current survey",
+          "confidence": 0.45,
+          "measured": false,
+          "freshness": "2019-04-08",
+          "corroboration_count": 1
+        }
+      ]
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "620d699ef8ffc8f2d6bc4007d1deb6194c2c299c755b49dc2354e07c20451cc0",
+    "entrances": [
+      {
+        "point": [
+          16.76859566118545,
+          -15.2898019999175
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-28941473",
+    "osm_id": "28941473",
+    "name": "Safeway",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            33.11589391797901,
+            24.089647999926456
+          ],
+          [
+            21.047342466868933,
+            23.41059599990075
+          ],
+          [
+            -1.9366019836684847,
+            22.13041599996899
+          ],
+          [
+            -1.4612542247685878,
+            13.636700000373594
+          ],
+          [
+            -36.945084205233634,
+            11.644072000025858
+          ],
+          [
+            -36.416920027983224,
+            2.215267999785624
+          ],
+          [
+            -39.22499290380215,
+            2.0594200003372976
+          ],
+          [
+            -37.992609822717235,
+            -19.948543999782657
+          ],
+          [
+            -37.658105843583485,
+            -25.848503999915238
+          ],
+          [
+            -27.77263299135812,
+            -25.291903999738565
+          ],
+          [
+            27.05961135175733,
+            -22.21947200021873
+          ],
+          [
+            35.68629291434799,
+            -21.72966400003162
+          ],
+          [
+            35.281367045331166,
+            -14.571788000227457
+          ],
+          [
+            33.732085459146944,
+            13.169156000446662
+          ],
+          [
+            33.503214315463275,
+            17.243467999809923
+          ],
+          [
+            33.11589391797901,
+            24.089647999926456
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4740961,
+      37.7434424
+    ],
+    "units": "metres",
+    "height_m": 3.94,
+    "geometry_evidence": {
+      "building_id": "28941473",
+      "region": "sf-sunset",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "93d8301dfeccebb527adc2d3890f6aa5a6041923445c474243305d6d00c77b8b",
+      "footprint_area_m2": 3019.006079416971,
+      "footprint_area_sqft": 32496.31098631696,
+      "shell_floor_area_m2": 3019.006079416971,
+      "storeys": 1,
+      "storey_height_m": 3.94,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "kind": "grocery",
+    "chain": "safeway",
+    "region": "sf-sunset",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "8107e46856df95fbf52a9efdff364563e0066c3a38162c5c6e7f53da19af8e1d",
+    "entrances": [
+      {
+        "point": [
+          31.752147604003568,
+          24.012915123923552
+        ],
+        "width_m": 1.5,
+        "basis": "1",
+        "measured": false
+      },
+      {
+        "point": [
+          29.748768063119297,
+          23.900192491919285
+        ],
+        "width_m": 0.75,
+        "basis": "1",
+        "measured": false
+      },
+      {
+        "point": [
+          -38.81584172088196,
+          -5.247224047702528
+        ],
+        "width_m": 2.0,
+        "basis": "1",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-256067716",
+    "osm_id": "256067716",
+    "name": "7-Eleven",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.373110940159677,
+            -2.137344000456892
+          ],
+          [
+            2.841196348621679,
+            -3.8294080004561692
+          ],
+          [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          [
+            -9.860622621025414,
+            3.2394119998892847
+          ],
+          [
+            13.018484816494038,
+            6.5901439994975135
+          ],
+          [
+            14.373110940159677,
+            -2.137344000456892
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4012934,
+      37.7923904
+    ],
+    "units": "metres",
+    "height_m": 3.744685353248265,
+    "geometry_evidence": {
+      "building_id": "256067716",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "6ccd9454e94beaba13d27d258377e66eabdcc92e570efa16947894dc28be5005",
+      "footprint_area_m2": 203.7357286238048,
+      "footprint_area_sqft": 2193.1522307640116,
+      "shell_floor_area_m2": 815.0020376837689,
+      "storeys": 4,
+      "storey_height_m": 4.02,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee"
+    },
+    "kind": "corner_store",
+    "chain": "independent",
+    "region": "sf-corridor",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "051c2374fe81de83864825025abad2875a96f5afadd1a6eeed3fe9f9cd024e69",
+    "envelope": {
+      "windows": [
+        {
+          "u": 0.6577132247512653,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:0",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.398184994548204,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:1",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.138656764345142,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:2",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.87912853414208,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:3",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 11.61960030393902,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:4",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.103736630576909,
+          "v": 0.7999999999999998,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:0",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.7612098917307275,
+          "v": 0.7999999999999998,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:1",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail"
+    },
+    "entrances": [
+      {
+        "point": [
+          13.695797878326857,
+          2.2263999995203108
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-265674114",
+    "osm_id": "265674114",
+    "name": "Adel's Wine Cellar",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -4.5675979285152835,
+            -4.2746880001229215
+          ],
+          [
+            -5.518080735764897,
+            -4.352612000242573
+          ],
+          [
+            -6.4861650741659105,
+            -3.6178999995664185
+          ],
+          [
+            -6.65337964199216,
+            -1.5028200001606251
+          ],
+          [
+            -5.931716770979278,
+            -0.7903719997446501
+          ],
+          [
+            -6.1341344061112295,
+            1.814515999848254
+          ],
+          [
+            -7.181425645324907,
+            2.382248000155016
+          ],
+          [
+            -7.427847113963708,
+            4.1633680004039775
+          ],
+          [
+            -7.322237913297158,
+            4.753364000179943
+          ],
+          [
+            -5.90531447112528,
+            5.621660000044244
+          ],
+          [
+            -4.990034731181481,
+            5.387888000476266
+          ],
+          [
+            -3.8107319901967003,
+            4.686572000190381
+          ],
+          [
+            12.11865577929973,
+            5.688452000033806
+          ],
+          [
+            12.488287981007261,
+            0.9907480005043112
+          ],
+          [
+            15.066912631761852,
+            1.1911240004729962
+          ],
+          [
+            15.374939466309684,
+            -2.7162080001028244
+          ],
+          [
+            7.982295418401009,
+            -3.2950719997487
+          ],
+          [
+            4.039551926433205,
+            -3.5956360000972154
+          ],
+          [
+            2.2881993486088277,
+            -3.7403520002064283
+          ],
+          [
+            2.1825901479422782,
+            -2.382248000155016
+          ],
+          [
+            0.11440996811825244,
+            -2.549227999733432
+          ],
+          [
+            0.22001916878480188,
+            -3.9073319997848444
+          ],
+          [
+            -4.5675979285152835,
+            -4.2746880001229215
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4489259,
+      37.7615323
+    ],
+    "units": "metres",
+    "height_m": 4.230475903192428,
+    "geometry_evidence": {
+      "building_id": "265674114",
+      "region": "sf-haight-castro",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "dcfc6ff459a6234dc5053972b8040dcc5a3b4b8146fb933028fd83f2f9cd4ca4",
+      "footprint_area_m2": 176.59342195303552,
+      "footprint_area_sqft": 1900.7963982789536,
+      "shell_floor_area_m2": 529.7692914639752,
+      "storeys": 3,
+      "storey_height_m": 3.0,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee"
+    },
+    "kind": "corner_store",
+    "chain": "independent",
+    "region": "sf-haight-castro",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "067d67a083fd8b40e6876316cc722c07677583484de750f68ec299f335b3f4d4",
+    "envelope": {
+      "windows": [],
+      "balconies": [],
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail"
+    },
+    "entrances": [
+      {
+        "point": [
+          4.153961894551514,
+          5.187512000112093
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-480561233",
+    "osm_id": "480561233",
+    "name": "Hom's Grocery and Liquor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            7.304735128648758,
+            3.5956360000972154
+          ],
+          [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          [
+            -7.73597852720286,
+            2.560360000654498
+          ],
+          [
+            7.304735128648758,
+            3.5956360000972154
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4237535,
+      37.7633039
+    ],
+    "units": "metres",
+    "height_m": 3.8062947708554606,
+    "geometry_evidence": {
+      "building_id": "480561233",
+      "region": "sf-mission",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "26fa18f0c9c4bee84600e9acbc7dc998c52951d0eaae9791b134e3dc97db6256",
+      "footprint_area_m2": 93.12314595318749,
+      "footprint_area_sqft": 1002.310879245373,
+      "shell_floor_area_m2": 186.23545541410434,
+      "storeys": 2,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee"
+    },
+    "kind": "corner_store",
+    "chain": "independent",
+    "region": "sf-mission",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "0b4d205f635d3b6bc0ad785b469029a3ac2eb844e8306b395be3dd8bc5bad76b",
+    "envelope": {
+      "windows": [
+        {
+          "u": 0.8177705925608519,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:0:0",
+          "edge": 0,
+          "a": [
+            7.304735128648758,
+            3.5956360000972154
+          ],
+          "b": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "normal": [
+            0.9975553121190837,
+            0.06988132270497933
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.9033117776825557,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:0:1",
+          "edge": 0,
+          "a": [
+            7.304735128648758,
+            3.5956360000972154
+          ],
+          "b": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "normal": [
+            0.9975553121190837,
+            0.06988132270497933
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7827069905696843,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:0",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.798120971709053,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:1",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.813534952848421,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:2",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 9.82894893398779,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:3",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 12.844362915127158,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:4",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail"
+    },
+    "entrances": [
+      {
+        "point": [
+          -7.520356827300532,
+          -0.5232039993909154
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  },
+  {
+    "id": "retail-osm-256903893",
+    "osm_id": "256903893",
+    "name": "Chevron Extra Mile",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          [
+            4.558797162314249,
+            -7.681079999590565
+          ],
+          [
+            -3.423498256086873,
+            -8.248811999897327
+          ],
+          [
+            -4.558797163564918,
+            7.681080000381542
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4344907,
+      37.7627488
+    ],
+    "units": "metres",
+    "height_m": 3.348295368219553,
+    "geometry_evidence": {
+      "building_id": "256903893",
+      "region": "sf-haight-castro",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "12f4e38a2f84bb1a03d15c85a2994cd660852f656b47cb21c1a9123c6f3ea0ca",
+      "footprint_area_m2": 127.8016494491393,
+      "footprint_area_sqft": 1375.5943850946496,
+      "shell_floor_area_m2": 127.79690018233907,
+      "storeys": 1,
+      "storey_height_m": 3.94,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee"
+    },
+    "kind": "corner_store",
+    "chain": "independent",
+    "region": "sf-haight-castro",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "1011d596f78cd83285d58e36dbf012eae39fe14825102a56ca251b9a40982c05",
+    "envelope": {
+      "windows": [
+        {
+          "u": 1.2756149018926637,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:0:0",
+          "edge": 0,
+          "a": [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          "b": [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          "normal": [
+            -0.07094468802687418,
+            0.9974802510530066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 5.276844705677991,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:0:1",
+          "edge": 0,
+          "a": [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          "b": [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          "normal": [
+            -0.07094468802687418,
+            0.9974802510530066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8720296263684953,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:1:0",
+          "edge": 1,
+          "a": [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          "b": [
+            4.558797162314249,
+            -7.681079999590565
+          ],
+          "normal": [
+            0.9974700367019514,
+            0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.066088879105486,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:1:1",
+          "edge": 1,
+          "a": [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          "b": [
+            4.558797162314249,
+            -7.681079999590565
+          ],
+          "normal": [
+            0.9974700367019514,
+            0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.260148131842477,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:1:2",
+          "edge": 1,
+          "a": [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          "b": [
+            4.558797162314249,
+            -7.681079999590565
+          ],
+          "normal": [
+            0.9974700367019514,
+            0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 10.454207384579467,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:1:3",
+          "edge": 1,
+          "a": [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          "b": [
+            4.558797162314249,
+            -7.681079999590565
+          ],
+          "normal": [
+            0.9974700367019514,
+            0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 13.648266637316459,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:1:4",
+          "edge": 1,
+          "a": [
+            3.423498254836204,
+            8.248812000688304
+          ],
+          "b": [
+            4.558797162314249,
+            -7.681079999590565
+          ],
+          "normal": [
+            0.9974700367019514,
+            0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8720296263684953,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:3:0",
+          "edge": 3,
+          "a": [
+            -3.423498256086873,
+            -8.248811999897327
+          ],
+          "b": [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          "normal": [
+            -0.9974700367019514,
+            -0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.066088879105486,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:3:1",
+          "edge": 3,
+          "a": [
+            -3.423498256086873,
+            -8.248811999897327
+          ],
+          "b": [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          "normal": [
+            -0.9974700367019514,
+            -0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.260148131842477,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:3:2",
+          "edge": 3,
+          "a": [
+            -3.423498256086873,
+            -8.248811999897327
+          ],
+          "b": [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          "normal": [
+            -0.9974700367019514,
+            -0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 10.454207384579467,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:3:3",
+          "edge": 3,
+          "a": [
+            -3.423498256086873,
+            -8.248811999897327
+          ],
+          "b": [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          "normal": [
+            -0.9974700367019514,
+            -0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 13.648266637316459,
+          "v": 0.7999999999999972,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256903893:window:3:4",
+          "edge": 3,
+          "a": [
+            -3.423498256086873,
+            -8.248811999897327
+          ],
+          "b": [
+            -4.558797163564918,
+            7.681080000381542
+          ],
+          "normal": [
+            -0.9974700367019514,
+            -0.07108815570689286
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail"
+    },
+    "entrances": [
+      {
+        "point": [
+          -3.9911477098258956,
+          -0.28386599975789295
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  }
+]

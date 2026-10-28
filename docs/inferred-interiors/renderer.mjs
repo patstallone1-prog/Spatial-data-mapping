@@ -1,4 +1,5 @@
 import {inPolygon} from './tour-world.mjs';
+import {retailFixture} from './retail-fixtures.mjs';
 import {wallRoom,wallRoomCuts,wallTileColour,wallCapColour} from './finishes.mjs';
 // Shared renderer for the bounded interior lab and Kerbside's generated-house overlay.
 // Geometry uses the serialized metre contract. GLTFs fit the exact collision/support box.
@@ -64,8 +65,10 @@ export function buildInferredHouse(THREE, house, options = {}) {
   }
   function fixture(parent,o) {
     const [w,h,d]=o.size_m,role=o.role;
+    if(retailFixture(THREE,parent,o,house.style))return;
     if(role==='parked_car') {
-      const paint=material(house.style.accent,{metalness:.2,roughness:.32}),glass=material('#425b66',{metalness:.3,roughness:.18});
+      const carColours=[house.style.accent,'#d6d8d4','#596f83','#d7cbb5','#424b4b','#e3e4df','#7b3c3c'],carSeed=String(o.id).split('').reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,0);
+      const paint=material(carColours[carSeed%carColours.length],{metalness:.2,roughness:.32}),glass=material('#425b66',{metalness:.3,roughness:.18});
       box(parent,w*.94,h*.42,d*.95,0,h*.39,0,paint);box(parent,w*.84,h*.36,d*.50,0,h*.75,-d*.04,glass);
       box(parent,w*.82,.06,d*.40,0,h*.94,-d*.04,paint);box(parent,w*.94,.12,.08,0,h*.24,d*.48,steel);
       for(const x of [-w*.44,w*.44])for(const z of [-d*.31,d*.31]){
@@ -232,6 +235,20 @@ export function buildInferredHouse(THREE, house, options = {}) {
   function door(fg,f,o){
     const [a,b]=o.segment.coordinates,L=o.width_m,h=Math.min(o.height_m||2.1,wallHeight),finish=o.appearance||{design:'recessed_panels',timber:house.style.wood,frame:house.style.wood,hardware:house.style.metal,panel_count:2};
     const pivot=new THREE.Group();pivot.position.set(a[0],f.elevation_m+(o.threshold_m||0),a[1]);pivot.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);fg.add(pivot);
+    if(o.type==='automatic_sliding') {
+      const panes=new THREE.Group();pivot.add(panes);
+      const glass=material('#adc9c7',{transparent:true,opacity:.3,roughness:.12,depthWrite:false});
+      const leaves=[];
+      for(const side of [-1,1]){const leaf=new THREE.Group();leaf.position.x=L/2+side*L/4;panes.add(leaf);leaves.push(leaf);
+        box(leaf,L/2-.025,h,.025,0,h/2,0,glass);
+        for(const x of [-L/4+.025,L/4-.025])box(leaf,.035,h,.04,x,h/2,0,steel);
+        for(const y of [.04,h-.04])box(leaf,L/2,.04,.04,0,y,0,steel);
+        box(leaf,L/2,.045,.03,0,Math.min(1.1,h*.6),0,material(house.style.accent));}
+      box(pivot,L+.16,.13,.18,L/2,h+.02,0,steel);box(pivot,.16,.07,.12,L/2,h+.11,0,dark);
+      const state={x:(a[0]+b[0])/2,z:(a[1]+b[1])/2,level:f.level,segment:[a,b],leaf:panes,open:false,automatic:true,
+        setOpen(value){this.open=value;leaves.forEach((leaf,i)=>leaf.position.x=L/2+(i?1:-1)*(L/4+(value?L/2:0)));}};
+      doors.push(state);return;
+    }
     if(o.type==='garage_door') {
       const leaf=new THREE.Group();pivot.add(leaf);const finish=material(o.source_opening?.colour||'#b5b9b0',{metalness:.25,roughness:.55});
       box(leaf,L,h,.07,L/2,h/2,0,finish);for(let y=.25;y<h;y+=.38)box(leaf,L-.06,.025,.014,L/2,y,.044,steel);
@@ -278,13 +295,14 @@ export function buildInferredHouse(THREE, house, options = {}) {
     const fg=new THREE.Group();fg.name=`storey:${f.level}`;fg.position.y=f.level*explode;fg.visible=floor<0||floor===f.level;
     group.add(fg);floorGroups.push(fg);
     const holes=f.slab_holes||[];
+    for(const area of f.outdoor_areas||[])if(area.kind==='pedestrian_path')plane(fg,area.polygon,'#c7c9bd',f.elevation_m+.018,[],'concrete');
     for(const room of f.rooms) {
       if(room.kind==='stair')continue;
       const mesh=plane(fg,room.polygon,room.materials.floor,(room.elevation_m??f.elevation_m)+.01,[],room.materials.floor_finish);
       mesh.userData={roomId:room.id,kind:room.kind,grade:'inferred'};
     }
     if(ceilings)plane(fg,f.inside,'#e6decf',f.elevation_m+f.height_m-.15,
-      f.level<house.storeys.length-1?house.stairs.filter(s=>s.from_level===f.level).map(s=>s.footprint):[]);
+      f.level<house.storeys.length-1?[...house.stairs.filter(s=>s.from_level===f.level),...(house.ramps||[]).filter(s=>s.from_level===f.level)].map(s=>s.footprint):[]);
     for(const w of f.walls) {
       const coords=w.segment.coordinates;
       for(let i=0;i<coords.length-1;i++)wall(fg,coords[i],coords[i+1],w.elevation_m??f.elevation_m,Math.min(wallHeight,w.height_m),w.side_materials||w.materials,w.thickness_m);
@@ -344,6 +362,22 @@ export function buildInferredHouse(THREE, house, options = {}) {
     }
     for(const o of f.openings.filter(o=>o.leaf_count&&(!o.entrance||exterior)))door(fg,f,o);
     for(const o of f.objects)furnish(fg,o);
+    for(const ramp of house.ramps||[])if(ramp.from_level===f.level){
+      const [a,b]=[ramp.start_m,ramp.end_m],dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz),nx=-dz/L*ramp.width_m/2,nz=dx/L*ramp.width_m/2;
+      const vertices=new Float32Array([a[0]-nx,ramp.bottom_m,a[1]-nz,a[0]+nx,ramp.bottom_m,a[1]+nz,b[0]+nx,ramp.top_m,b[1]+nz,b[0]-nx,ramp.top_m,b[1]-nz]);
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(vertices,3));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();
+      const mesh=new THREE.Mesh(g,material('#65776d',{side:THREE.DoubleSide}));mesh.receiveShadow=true;mesh.userData.surface='garage_ramp';fg.add(mesh);
+      for(let t=.04;t<.98;t+=.10){const x=a[0]+dx*t,z=a[1]+dz*t,y=ramp.bottom_m+(ramp.top_m-ramp.bottom_m)*t;
+        const stripe=box(fg,L*.045,.018,.09,x,y+.02,z,material('#e5c75c'));stripe.rotation.y=-Math.atan2(dz,dx);stripe.rotation.z=Math.atan2(ramp.top_m-ramp.bottom_m,L);}
+      for(const side of [-1,1]){const p=[a[0]+side*nx,a[1]+side*nz],q=[b[0]+side*nx,b[1]+side*nz];
+        const rail=box(fg,Math.hypot(L,ramp.top_m-ramp.bottom_m),.25,.16,(p[0]+q[0])/2,(ramp.top_m+ramp.bottom_m)/2+.125,(p[1]+q[1])/2,steel);
+        rail.rotation.y=-Math.atan2(dz,dx);rail.rotation.z=Math.atan2(ramp.top_m-ramp.bottom_m,L);}
+    }
+    for(const bay of f.parking_bays||[]){const ring=bay.footprint.coordinates[0];for(let i=0;i<ring.length-1;i++)wall(fg,ring[i],ring[i+1],f.elevation_m+.018,.012,'#eee7cd',.05);}
+    for(const lift of house.elevators||[])if(lift.levels.includes(f.level)){
+      const ring=lift.footprint.coordinates[0];plane(fg,lift.footprint,'#a2abaa',f.elevation_m+.012);
+      // The shaft walls are serialized in the same geometry used for walking.
+    }
     if(wallHeight>1.5)for(const room of f.rooms.filter(r=>!['stair','closet'].includes(r.kind))){
       const points=room.polygon.coordinates[0],x=points.reduce((s,p)=>s+p[0],0)/points.length,z=points.reduce((s,p)=>s+p[1],0)/points.length;
       if(!inPolygon(x,z,room.polygon))continue;

@@ -18,6 +18,7 @@ from shapely.errors import GEOSException  # noqa: E402
 
 from smc.interiors.inference import HouseInput, infer_house  # noqa: E402
 from smc.interiors.restaurants import RestaurantInput, infer_restaurant  # noqa: E402
+from smc.interiors.stores import StoreInput, infer_store  # noqa: E402
 
 slots = threading.BoundedSemaphore(1)
 
@@ -40,13 +41,27 @@ def residential_request(row):
     return result
 
 
+def store_request(row):
+    inputs = json.loads((ROOT / "docs/inferred-stores/inputs.json").read_text())
+    known = next((dict(r) for r in inputs if r["id"] == row.get("id")), None)
+    if known is None:
+        raise ValueError("select a known retail test case")
+    chain = row.get("chain", known.get("chain", "independent"))
+    if chain not in {"independent", "safeway", "whole_foods", "trader_joes"}:
+        raise ValueError("unknown store character")
+    known["chain"] = chain
+    result = infer_store(StoreInput.from_json(known))
+    result.update(name=known["name"], input_evidence=known)
+    return result
+
+
 class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
     def do_POST(self):
-        if self.path not in {"/api/infer-restaurant", "/api/infer-residential"}:
+        if self.path not in {"/api/infer-restaurant", "/api/infer-residential", "/api/infer-store"}:
             self.send_error(404)
             return
         origin = self.headers.get("Origin")
@@ -64,10 +79,15 @@ class Handler(SimpleHTTPRequestHandler):
             if not 1 <= length <= 65536:
                 raise ValueError("inference input must be at most 64 KiB")
             row = json.loads(self.rfile.read(length))
-            if self.path == "/api/infer-residential":
-                h = residential_request(row)
-                folder = ROOT / "docs/inferred-residential/overrides"
-                folder.mkdir(exist_ok=True)
+            if self.path in {"/api/infer-store", "/api/infer-residential"}:
+                is_store = self.path == "/api/infer-store"
+                h = store_request(row) if is_store else residential_request(row)
+                folder = ROOT / (
+                    "docs/inferred-stores/overrides"
+                    if is_store
+                    else "docs/inferred-residential/overrides"
+                )
+                folder.mkdir(exist_ok=True, parents=True)
                 target = folder / f"{h['id']}.json"
                 temp = target.with_suffix(".tmp")
                 temp.write_text(json.dumps(h, indent=2) + "\n")
@@ -131,6 +151,7 @@ def main():
     print(f"House tours: http://127.0.0.1:{args.port}/inferred-interiors/", flush=True)
     print(f"Restaurant lab: http://127.0.0.1:{args.port}/inferred-restaurants/", flush=True)
     print(f"Apartments & garages: http://127.0.0.1:{args.port}/inferred-residential/", flush=True)
+    print(f"Grocery & corner stores: http://127.0.0.1:{args.port}/inferred-stores/", flush=True)
     server.serve_forever()
 
 

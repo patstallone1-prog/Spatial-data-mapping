@@ -1,0 +1,61 @@
+{
+  "schema": "kerbside.inferred_house_overlay/1",
+  "buildings": {
+    "240219342": {
+      "file": "retail-osm-240219342.json",
+      "origin_lon_lat": [
+        -122.427251,
+        37.7682034
+      ]
+    },
+    "775827045": {
+      "file": "retail-osm-775827045.json",
+      "origin_lon_lat": [
+        -122.26054,
+        37.8129998
+      ]
+    },
+    "219058329": {
+      "file": "retail-osm-219058329.json",
+      "origin_lon_lat": [
+        -122.4888471,
+        37.7541184
+      ]
+    },
+    "1262642420": {
+      "file": "retail-osm-1262642420.json",
+      "origin_lon_lat": [
+        -122.4233079,
+        37.7899593
+      ]
+    },
+    "26135377": {
+      "file": "retail-osm-26135377.json",
+      "origin_lon_lat": [
+        -122.4329693,
+        37.8043561
+      ]
+    },
+    "28941473": {
+      "file": "retail-osm-28941473.json",
+      "origin_lon_lat": [
+        -122.4740961,
+        37.7434424
+      ]
+    },
+    "480561233": {
+      "file": "retail-osm-480561233.json",
+      "origin_lon_lat": [
+        -122.4237535,
+        37.7633039
+      ]
+    },
+    "256903893": {
+      "file": "retail-osm-256903893.json",
+      "origin_lon_lat": [
+        -122.4344907,
+        37.7627488
+      ]
+    }
+  }
+}

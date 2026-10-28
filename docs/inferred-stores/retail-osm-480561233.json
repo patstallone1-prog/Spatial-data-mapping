@@ -1,0 +1,2120 @@
+{
+  "schema": "kerbside.inferred_store/1",
+  "id": "retail-osm-480561233",
+  "kind": "corner_store",
+  "style": {
+    "id": "city",
+    "name": "Ash & slate",
+    "style": "contemporary",
+    "walls": [
+      "#e9e6dc",
+      "#d4dfd2",
+      "#e5d8c5",
+      "#d9e1e3"
+    ],
+    "wood": "#a78660",
+    "fabric": "#708778",
+    "accent": "#52766b",
+    "metal": "#373c41",
+    "stone": "#cccac5",
+    "tier": "standard",
+    "furnishing_budget_usd": 14434,
+    "budget_method": "floor area x configurable tier allowance; illustrative, not a quote",
+    "neighborhood_price_per_sqft": null,
+    "economic_evidence": "retail fixture allowance; no observed revenue estimate",
+    "seed": "11421075409025805899",
+    "version": 1,
+    "label": "Local market",
+    "produce_share": 0.18,
+    "self_checkout_share": 0.25,
+    "usage": "retail",
+    "chain": "independent",
+    "chain_prior": "department/finish heuristic; not a chain floor-plan template"
+  },
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "provenance": {
+    "footprint": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "geometry": {
+      "building_id": "480561233",
+      "region": "sf-mission",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "26fa18f0c9c4bee84600e9acbc7dc998c52951d0eaae9791b134e3dc97db6256",
+      "footprint_area_m2": 93.12314595318749,
+      "footprint_area_sqft": 1002.310879245373,
+      "shell_floor_area_m2": 186.23545541410434,
+      "storeys": 2,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee"
+    },
+    "tenant_boundary": "supplied or assumed; not measured"
+  },
+  "footprint_area_m2": 93.12314595318749,
+  "footprint_area_sqft": 1002.3692007613893,
+  "total_height_m": 3.8062947708554606,
+  "envelope": {
+    "windows": [
+      {
+        "u": 0.8177705925608519,
+        "v": 0.8000000000000007,
+        "w": 1.45,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "id": "retail-osm-480561233:window:0:0",
+        "edge": 0,
+        "a": [
+          7.304735128648758,
+          3.5956360000972154
+        ],
+        "b": [
+          7.735978527202747,
+          -2.560359999863522
+        ],
+        "normal": [
+          0.9975553121190837,
+          0.06988132270497933
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 3.9033117776825557,
+        "v": 0.8000000000000007,
+        "w": 1.45,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "id": "retail-osm-480561233:window:0:1",
+        "edge": 0,
+        "a": [
+          7.304735128648758,
+          3.5956360000972154
+        ],
+        "b": [
+          7.735978527202747,
+          -2.560359999863522
+        ],
+        "normal": [
+          0.9975553121190837,
+          0.06988132270497933
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 0.7827069905696843,
+        "v": 0.8000000000000007,
+        "w": 1.45,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "id": "retail-osm-480561233:window:1:0",
+        "edge": 1,
+        "a": [
+          7.735978527202747,
+          -2.560359999863522
+        ],
+        "b": [
+          -7.304735127398203,
+          -3.606767999436329
+        ],
+        "normal": [
+          0.0694039363163942,
+          -0.9975886394821215
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 3.798120971709053,
+        "v": 0.8000000000000007,
+        "w": 1.45,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "id": "retail-osm-480561233:window:1:1",
+        "edge": 1,
+        "a": [
+          7.735978527202747,
+          -2.560359999863522
+        ],
+        "b": [
+          -7.304735127398203,
+          -3.606767999436329
+        ],
+        "normal": [
+          0.0694039363163942,
+          -0.9975886394821215
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 6.813534952848421,
+        "v": 0.8000000000000007,
+        "w": 1.45,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "id": "retail-osm-480561233:window:1:2",
+        "edge": 1,
+        "a": [
+          7.735978527202747,
+          -2.560359999863522
+        ],
+        "b": [
+          -7.304735127398203,
+          -3.606767999436329
+        ],
+        "normal": [
+          0.0694039363163942,
+          -0.9975886394821215
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 9.82894893398779,
+        "v": 0.8000000000000007,
+        "w": 1.45,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "id": "retail-osm-480561233:window:1:3",
+        "edge": 1,
+        "a": [
+          7.735978527202747,
+          -2.560359999863522
+        ],
+        "b": [
+          -7.304735127398203,
+          -3.606767999436329
+        ],
+        "normal": [
+          0.0694039363163942,
+          -0.9975886394821215
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 12.844362915127158,
+        "v": 0.8000000000000007,
+        "w": 1.45,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "id": "retail-osm-480561233:window:1:4",
+        "edge": 1,
+        "a": [
+          7.735978527202747,
+          -2.560359999863522
+        ],
+        "b": [
+          -7.304735127398203,
+          -3.606767999436329
+        ],
+        "normal": [
+          0.0694039363163942,
+          -0.9975886394821215
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ],
+    "balconies": [],
+    "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.8062947708554606,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              7.304735128648758,
+              3.5956360000972154
+            ],
+            [
+              7.735978527202747,
+              -2.560359999863522
+            ],
+            [
+              -7.304735127398203,
+              -3.606767999436329
+            ],
+            [
+              -7.73597852720286,
+              2.560360000654498
+            ],
+            [
+              7.304735128648758,
+              3.5956360000972154
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              7.16557130057537,
+              3.4357022206845316
+            ],
+            [
+              7.575858014540204,
+              -2.4211372775515265
+            ],
+            [
+              -7.165560192468248,
+              -3.446722784403005
+            ],
+            [
+              -7.575869138824045,
+              2.4210256678743516
+            ],
+            [
+              7.16557130057537,
+              3.4357022206845316
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "retail-osm-480561233:sales",
+          "kind": "sales_floor",
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -7.165560192468248,
+                  -3.446722784403005
+                ],
+                [
+                  -7.575869138824046,
+                  2.4210256678743516
+                ],
+                [
+                  4.622326128800393,
+                  3.2606466516947687
+                ],
+                [
+                  5.032006825622165,
+                  -2.5981173261672623
+                ],
+                [
+                  7.575858014540203,
+                  -2.4211372775515265
+                ],
+                [
+                  -7.165560192468248,
+                  -3.446722784403005
+                ]
+              ]
+            ]
+          },
+          "area_m2": 71.86538447099636,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:stock",
+          "kind": "stockroom",
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.032006825622165,
+                  -2.5981173261672623
+                ],
+                [
+                  4.622326128800393,
+                  3.2606466516947687
+                ],
+                [
+                  7.16557130057537,
+                  3.435702220684532
+                ],
+                [
+                  4.771972141321622,
+                  3.270947022323476
+                ],
+                [
+                  4.927982204291546,
+                  1.0398774498417098
+                ],
+                [
+                  7.3216794655502015,
+                  1.207259437864834
+                ],
+                [
+                  7.575858014540203,
+                  -2.4211372775515265
+                ],
+                [
+                  5.032006825622165,
+                  -2.5981173261672623
+                ]
+              ]
+            ]
+          },
+          "area_m2": 9.608596983659838,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:wc",
+          "kind": "toilet",
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.16557130057537,
+                  3.435702220684532
+                ],
+                [
+                  7.3216794655502015,
+                  1.207259437864834
+                ],
+                [
+                  4.927982204291546,
+                  1.0398774498417098
+                ],
+                [
+                  4.771972141321622,
+                  3.270947022323476
+                ],
+                [
+                  7.16557130057537,
+                  3.435702220684532
+                ]
+              ]
+            ]
+          },
+          "area_m2": 5.363168401453581,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.622326128800393,
+                3.2606466516947687
+              ],
+              [
+                4.793892961725394,
+                0.8071027372882815
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:sales",
+            "retail-osm-480561233:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.860439992697164,
+                -0.14457341176077504
+              ],
+              [
+                5.032006825622165,
+                -2.598117326167262
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:sales",
+            "retail-osm-480561233:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.032006825622165,
+                -2.5981173261672623
+              ],
+              [
+                7.575858014540203,
+                -2.4211372775515265
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:sales",
+            "retail-osm-480561233:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                7.575858014540203,
+                -2.4211372775515265
+              ],
+              [
+                5.032006825622165,
+                -2.598117326167262
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:sales",
+            "retail-osm-480561233:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.7719711437349615,
+                3.270946953658016
+              ],
+              [
+                7.16557130057537,
+                3.435702220684532
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:stock",
+            "retail-osm-480561233:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                7.16557130057537,
+                3.435702220684532
+              ],
+              [
+                4.771972141321622,
+                3.270947022323476
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:stock",
+            "retail-osm-480561233:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.771972141321622,
+                3.270947022323476
+              ],
+              [
+                4.927982204291546,
+                1.0398774498417098
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:stock",
+            "retail-osm-480561233:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.927982204291546,
+                1.0398774498417098
+              ],
+              [
+                5.648992760396346,
+                1.0902949283673866
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:stock",
+            "retail-osm-480561233:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.600668909445402,
+                1.1568419593391572
+              ],
+              [
+                7.3216794655502015,
+                1.207259437864834
+              ]
+            ]
+          },
+          "height_m": 3.6862947708554605,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-osm-480561233:stock",
+            "retail-osm-480561233:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "openings": [
+        {
+          "id": "retail-osm-480561233:sales:opening:0",
+          "rooms": [
+            "retail-osm-480561233:sales",
+            "outside"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -7.335844313838012,
+                -1.0115226785091151
+              ],
+              [
+                -7.405600111502342,
+                -0.013958580973416845
+              ]
+            ]
+          },
+          "width_m": 0.9999999999999996,
+          "height_m": 2.3,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-osm-480561233:sales",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -8.502920618791611,
+                  -0.0906899584041798
+                ],
+                [
+                  -6.308279604213073,
+                  0.06277279645734611
+                ],
+                [
+                  -6.238523806548743,
+                  -0.9347913010783522
+                ],
+                [
+                  -8.433164821127281,
+                  -1.0882540559398781
+                ],
+                [
+                  -8.502920618791611,
+                  -0.0906899584041798
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "entrance": true,
+          "source_opening": {
+            "point": [
+              -7.520356827300532,
+              -0.5232039993909154
+            ],
+            "width_m": 1.0,
+            "basis": "2",
+            "measured": false
+          },
+          "source_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -7.485478928468367,
+                -1.0219860481587646
+              ],
+              [
+                -7.555234726132697,
+                -0.02442195062306629
+              ]
+            ]
+          },
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": "clear"
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:stock:opening:100",
+          "rooms": [
+            "retail-osm-480561233:stock",
+            "retail-osm-480561233:sales"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.860300481101835,
+                -0.14257828356570368
+              ],
+              [
+                4.794032473320722,
+                0.8051076090932101
+              ]
+            ]
+          },
+          "width_m": 0.95,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-osm-480561233:stock",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.075786323095019,
+                  0.7548834347748925
+                ],
+                [
+                  5.5122786235464245,
+                  0.8553317834115277
+                ],
+                [
+                  5.578546631327538,
+                  -0.09235410924738606
+                ],
+                [
+                  4.142054330876133,
+                  -0.19280245788402128
+                ],
+                [
+                  4.075786323095019,
+                  0.7548834347748925
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": null
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:wc:opening:101",
+          "rooms": [
+            "retail-osm-480561233:wc",
+            "retail-osm-480561233:stock"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.598673781250331,
+                1.1567024477438286
+              ],
+              [
+                5.650987888591417,
+                1.0904344399627155
+              ]
+            ]
+          },
+          "width_m": 0.95,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-osm-480561233:wc",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.701212062909734,
+                  0.37218828973701246
+                ],
+                [
+                  5.6007637142731,
+                  1.8086805901884184
+                ],
+                [
+                  6.548449606932014,
+                  1.8749485979695315
+                ],
+                [
+                  6.648897955568648,
+                  0.43845629751812554
+                ],
+                [
+                  5.701212062909734,
+                  0.37218828973701246
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#505a59",
+            "panel_count": 2,
+            "glass": "frosted_reeded"
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "objects": [
+        {
+          "id": "retail-osm-480561233:sales:item:0",
+          "role": "checkout_lane",
+          "position_m": [
+            -4.0497228832328505,
+            0,
+            -2.1313831335534745
+          ],
+          "size_m": [
+            0.85,
+            1.05,
+            2.2
+          ],
+          "rotation_deg": 273.9999611688914,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -5.117397176514779,
+                  -2.632079252436909
+                ],
+                [
+                  -2.922756161936242,
+                  -2.4786164975753837
+                ],
+                [
+                  -2.9820485899509217,
+                  -1.6306870146700398
+                ],
+                [
+                  -5.176689604529459,
+                  -1.7841497695315653
+                ],
+                [
+                  -5.117397176514779,
+                  -2.632079252436909
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-osm-480561233:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-osm-480561233:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:checkout_lane",
+            "design_id": null,
+            "role": "checkout_lane",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -2.3738151993728764,
+            -2.0141933934774006
+          ],
+          "section": "checkout",
+          "stock_seed": 1,
+          "queue_zone": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -6.897317497604562,
+                  -2.9820916101782347
+                ],
+                [
+                  -5.201458531793874,
+                  -2.863506754148874
+                ],
+                [
+                  -5.292141068757503,
+                  -1.5666734273524663
+                ],
+                [
+                  -6.9880000345681905,
+                  -1.6852582833818268
+                ],
+                [
+                  -6.897317497604562,
+                  -2.9820916101782347
+                ]
+              ]
+            ]
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:sales:item:1",
+          "role": "drink_cooler",
+          "position_m": [
+            -1.562497805292855,
+            0,
+            2.3487879281767277
+          ],
+          "size_m": [
+            1.7661866167049323,
+            2.05,
+            0.82
+          ],
+          "rotation_deg": -176.06245187834273,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -2.471660894130663,
+                  2.6971788998619894
+                ],
+                [
+                  -2.415352234768429,
+                  1.8791145167717413
+                ],
+                [
+                  -0.6533347164550476,
+                  2.000396956491466
+                ],
+                [
+                  -0.7096433758172813,
+                  2.818461339581714
+                ],
+                [
+                  -2.471660894130663,
+                  2.6971788998619894
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-osm-480561233:sales",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-osm-480561233:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:drink_cooler",
+            "design_id": null,
+            "role": "drink_cooler",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -1.4958887814131394,
+            1.3810776213504588
+          ],
+          "section": "drinks",
+          "stock_seed": 2,
+          "stock": [
+            {
+              "form": "bottles",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:sales:item:2",
+          "role": "gondola_shelf",
+          "position_m": [
+            0.40470609243755723,
+            0,
+            1.1145345740762274
+          ],
+          "size_m": [
+            0.72,
+            1.65,
+            2.5
+          ],
+          "rotation_deg": 273.9999611688914,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -0.8171369423229076,
+                  0.6682167518829636
+                ],
+                [
+                  1.6767733015163395,
+                  0.842606246043788
+                ],
+                [
+                  1.626549127198022,
+                  1.5608523962694911
+                ],
+                [
+                  -0.8673611166412252,
+                  1.3864629021086667
+                ],
+                [
+                  -0.8171369423229076,
+                  0.6682167518829636
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-osm-480561233:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-osm-480561233:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "design_id": null,
+            "role": "gondola_shelf",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            0.4702765422420272,
+            0.17682432239267054
+          ],
+          "section": "snacks",
+          "stock_seed": 3,
+          "stock": [
+            {
+              "form": "packages",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:stock:item:0",
+          "role": "dry_storage",
+          "position_m": [
+            5.279613861919669,
+            0,
+            -1.1215933132383853
+          ],
+          "size_m": [
+            1.8,
+            1.9,
+            0.55
+          ],
+          "rotation_deg": -86.00003883110861,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.068063952995249,
+                  -2.038583845378205
+                ],
+                [
+                  5.6167242066398835,
+                  -2.0002181566628234
+                ],
+                [
+                  5.491163770844089,
+                  -0.20460278109856567
+                ],
+                [
+                  4.942503517199455,
+                  -0.24296846981394704
+                ],
+                [
+                  5.068063952995249,
+                  -2.038583845378205
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-osm-480561233:stock",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-osm-480561233:stock",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:dry_storage",
+            "design_id": null,
+            "role": "dry_storage",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.032774755559122,
+            -1.0689276860018162
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:stock:item:1",
+          "role": "prep_table",
+          "position_m": [
+            7.057655972567682,
+            0,
+            -0.7477974609267722
+          ],
+          "size_m": [
+            1.4,
+            0.9,
+            0.65
+          ],
+          "rotation_deg": 94.00717081760527,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.332944523112899,
+                  -0.026797312564295406
+                ],
+                [
+                  6.684533570235494,
+                  -0.07222017232253186
+                ],
+                [
+                  6.782367422022465,
+                  -1.4687976092892492
+                ],
+                [
+                  7.4307783748998695,
+                  -1.4233747495310127
+                ],
+                [
+                  7.332944523112899,
+                  -0.026797312564295406
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-osm-480561233:stock",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-osm-480561233:stock",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:prep_table",
+            "design_id": null,
+            "role": "prep_table",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.25462394631182,
+            -0.8040519257042804
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:wc:item:0",
+          "role": "toilet",
+          "position_m": [
+            5.889272415114063,
+            0,
+            2.896787817003418
+          ],
+          "size_m": [
+            0.65,
+            0.8,
+            0.75
+          ],
+          "rotation_deg": -176.06245187834273,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.53928866905898,
+                  3.2485851698889268
+                ],
+                [
+                  5.590790491646389,
+                  2.5003555512088216
+                ],
+                [
+                  6.239256161169147,
+                  2.5449904641179093
+                ],
+                [
+                  6.187754338581738,
+                  3.2932200827980145
+                ],
+                [
+                  5.53928866905898,
+                  3.2485851698889268
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-osm-480561233:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-osm-480561233:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "design_id": null,
+            "role": "toilet",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            5.94798449286371,
+            2.0438060517080987
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-osm-480561233:wc:item:1",
+          "role": "bath_sink",
+          "position_m": [
+            6.62406173171383,
+            0,
+            3.112754927885367
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.42
+          ],
+          "rotation_deg": -176.06245187834273,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.360231348495987,
+                  3.3050919469199935
+                ],
+                [
+                  6.3890723691449365,
+                  2.8860833604591347
+                ],
+                [
+                  6.887892114931673,
+                  2.9204179088507405
+                ],
+                [
+                  6.859051094282724,
+                  3.3394264953115993
+                ],
+                [
+                  6.360231348495987,
+                  3.3050919469199935
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-osm-480561233:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-osm-480561233:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "design_id": null,
+            "role": "bath_sink",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#373c41",
+            "countertop": "#cccac5",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.671443408494246,
+            2.4243836786996704
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "stairs": [],
+  "ramps": [],
+  "interaction_targets": [
+    {
+      "room_id": "retail-osm-480561233:sales",
+      "point": [
+        -2.3738151993728764,
+        -2.0141933934774006
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-osm-480561233:sales",
+      "point": [
+        -1.4958887814131394,
+        1.3810776213504588
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-osm-480561233:sales",
+      "point": [
+        0.4702765422420272,
+        0.17682432239267054
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-osm-480561233:sales",
+      "point": [
+        0.33913564263308726,
+        2.052244825759784
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-osm-480561233:stock",
+      "point": [
+        6.032774755559122,
+        -1.0689276860018162
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-osm-480561233:stock",
+      "point": [
+        6.25462394631182,
+        -0.8040519257042804
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-osm-480561233:wc",
+      "point": [
+        5.94798449286371,
+        2.0438060517080987
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-osm-480561233:wc",
+      "point": [
+        6.671443408494246,
+        2.4243836786996704
+      ],
+      "kind": "staff"
+    }
+  ],
+  "sections": [
+    {
+      "id": "checkout",
+      "fixture_ids": [
+        "retail-osm-480561233:sales:item:0"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "drinks",
+      "fixture_ids": [
+        "retail-osm-480561233:sales:item:1"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "snacks",
+      "fixture_ids": [
+        "retail-osm-480561233:sales:item:2"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "checkouts": [
+    {
+      "id": "retail-osm-480561233:sales:item:0",
+      "kind": "checkout_lane",
+      "queue_zone": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -6.897317497604562,
+              -2.9820916101782347
+            ],
+            [
+              -5.201458531793874,
+              -2.863506754148874
+            ],
+            [
+              -5.292141068757503,
+              -1.5666734273524663
+            ],
+            [
+              -6.9880000345681905,
+              -1.6852582833818268
+            ],
+            [
+              -6.897317497604562,
+              -2.9820916101782347
+            ]
+          ]
+        ]
+      },
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "parking": {
+    "kind": "unknown",
+    "levels": null,
+    "render_status": "external/unknown parking retained as evidence"
+  },
+  "validation": {
+    "passed": true,
+    "errors": [],
+    "metrics": {
+      "room_count": 3,
+      "objects": 7,
+      "checkouts": 1,
+      "self_checkouts": 0,
+      "shelves": 1,
+      "sections": 3,
+      "parking_levels": 0,
+      "parking_spaces": 0,
+      "isolated_floor_m2": 0.0,
+      "coverage_min": 1.0,
+      "hallway_area_fraction_max": 0.0
+    }
+  },
+  "name": "Hom's Grocery and Liquor",
+  "input_evidence": {
+    "id": "retail-osm-480561233",
+    "osm_id": "480561233",
+    "name": "Hom's Grocery and Liquor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            7.304735128648758,
+            3.5956360000972154
+          ],
+          [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          [
+            -7.73597852720286,
+            2.560360000654498
+          ],
+          [
+            7.304735128648758,
+            3.5956360000972154
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4237535,
+      37.7633039
+    ],
+    "units": "metres",
+    "height_m": 3.8062947708554606,
+    "geometry_evidence": {
+      "building_id": "480561233",
+      "region": "sf-mission",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "26fa18f0c9c4bee84600e9acbc7dc998c52951d0eaae9791b134e3dc97db6256",
+      "footprint_area_m2": 93.12314595318749,
+      "footprint_area_sqft": 1002.310879245373,
+      "shell_floor_area_m2": 186.23545541410434,
+      "storeys": 2,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee"
+    },
+    "kind": "corner_store",
+    "chain": "independent",
+    "region": "sf-mission",
+    "parking": {
+      "kind": "unknown",
+      "levels": null
+    },
+    "source": "Kerbside building polygon; full ground-floor retail tenancy unverified",
+    "selection_hash": "0b4d205f635d3b6bc0ad785b469029a3ac2eb844e8306b395be3dd8bc5bad76b",
+    "envelope": {
+      "windows": [
+        {
+          "u": 0.8177705925608519,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:0:0",
+          "edge": 0,
+          "a": [
+            7.304735128648758,
+            3.5956360000972154
+          ],
+          "b": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "normal": [
+            0.9975553121190837,
+            0.06988132270497933
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.9033117776825557,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:0:1",
+          "edge": 0,
+          "a": [
+            7.304735128648758,
+            3.5956360000972154
+          ],
+          "b": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "normal": [
+            0.9975553121190837,
+            0.06988132270497933
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7827069905696843,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:0",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.798120971709053,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:1",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.813534952848421,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:2",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 9.82894893398779,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:3",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 12.844362915127158,
+          "v": 0.8000000000000007,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-480561233:window:1:4",
+          "edge": 1,
+          "a": [
+            7.735978527202747,
+            -2.560359999863522
+          ],
+          "b": [
+            -7.304735127398203,
+            -3.606767999436329
+          ],
+          "normal": [
+            0.0694039363163942,
+            -0.9975886394821215
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail"
+    },
+    "entrances": [
+      {
+        "point": [
+          -7.520356827300532,
+          -0.5232039993909154
+        ],
+        "width_m": 1.0,
+        "basis": "2",
+        "measured": false
+      }
+    ]
+  }
+}

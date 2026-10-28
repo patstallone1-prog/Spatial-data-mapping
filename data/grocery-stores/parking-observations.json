@@ -1,0 +1,46 @@
+{
+  "schema": "kerbside.parking_observations/1",
+  "reviewed_at": "2026-10-28",
+  "observations": [
+    {
+      "id": "rainbow-13th",
+      "name": "Rainbow Grocery Coop",
+      "osm_ids": ["osm:way:169204245"],
+      "lon_lat": [-122.4151431, 37.7690547],
+      "parking": {
+        "kind": "mixed", "levels": null,
+        "evidence": [{"source_url":"https://rainbow.coop/contact/", "retrieved_at":"2026-10-28", "claim":"Operator confirms garage at 13th Street entrance and additional surface lot at 14th and Trainor. Garage level count and polygons are not published here.", "status":"current operator description", "confidence":0.85,"measured":false,"freshness":"2026-10-28","corroboration_count":1}]
+      }
+    },
+    {
+      "id": "marina-safeway",
+      "name": "Safeway",
+      "osm_ids": ["osm:way:26135377"],
+      "lon_lat": [-122.4329693,37.8043561],
+      "parking": {
+        "kind": "external", "levels": null,
+        "evidence": [{"source_url":"https://sfgov.legistar.com/View.ashx?GUID=2F1FEB4F-4BBD-4C0F-9ACD-D92680DAB4EA&ID=7148983&M=F", "retrieved_at":"2026-10-28", "claim":"2019 Planning memo identifies the Marina Safeway parking lot. Historical description; current footprint and redevelopment state require review.","status":"historical planning record, not current survey","confidence":0.45,"measured":false,"freshness":"2019-04-08","corroboration_count":1}]
+      }
+    },
+    {
+      "id":"whole-foods-market-dolores",
+      "name":"Whole Foods Market",
+      "osm_ids":["osm:way:240219342"],
+      "lon_lat":[-122.427251,37.7682034],
+      "parking":{
+        "kind":"garage", "levels":null,
+        "evidence":[{"source_url":"https://archives.sfplanning.org/documents/2225-Housing_Inventory_2008.pdf","retrieved_at":"2026-10-28","claim":"2008 planning inventory describes a Whole Foods project at 2001 Market with two subsurface parking levels. This is a historical proposal, not confirmation of the current as-built level count.","proposed_levels":2,"status":"historical proposal; current level count unverified","confidence":0.4,"measured":false,"freshness":"2008","corroboration_count":1}]
+      }
+    },
+    {
+      "id":"trader-joes-hayes",
+      "name":"Trader Joe's",
+      "osm_ids":[],
+      "lon_lat":[-122.4262,37.7780],
+      "parking":{
+        "kind":"unknown", "levels":null,
+        "evidence":[{"source_url":"https://locations.traderjoes.com/ca/san-francisco/226/","retrieved_at":"2026-10-28","claim":"Operator states parking entrance is on Fulton. This alone does not establish garage type or level count.","status":"current operator parking access note","confidence":0.8,"measured":false,"freshness":"2026-10-28","corroboration_count":1}]
+      }
+    }
+  ]
+}

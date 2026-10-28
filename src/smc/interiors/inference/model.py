@@ -147,12 +147,23 @@ def stamp_inference(document: dict, confidence: float) -> dict:
     for floor in document.get("storeys", []):
         groups.append([floor])
         groups.extend(floor.get(key, []) for key in ("rooms", "objects", "openings", "walls"))
-        groups.extend(floor.get(key, []) for key in ("surface_patches", "level_changes"))
+        groups.extend(
+            floor.get(key, []) for key in ("surface_patches", "level_changes", "outdoor_areas")
+        )
         groups.extend(change.get("steps", []) for change in floor.get("level_changes", []))
     groups.append(document.get("stairs", []))
-    groups.extend(document.get(key, []) for key in ("residential_units", "garages"))
+    groups.extend(
+        o.get("stock", [])
+        for floor in document.get("storeys", [])
+        for o in floor.get("objects", [])
+    )
+    groups.extend(
+        document.get(key, [])
+        for key in ("residential_units", "garages", "ramps", "elevators", "sections", "checkouts")
+    )
     groups.extend(garage.get("parking_bays", []) for garage in document.get("garages", []))
     groups.extend(stair.get("steps", []) for stair in document.get("stairs", []))
+    groups.extend(floor.get("parking_bays", []) for floor in document.get("storeys", []))
     envelope = document.get("envelope") or {}
     groups.extend(envelope.get(key, []) for key in ("windows", "balconies"))
     for rows in groups:

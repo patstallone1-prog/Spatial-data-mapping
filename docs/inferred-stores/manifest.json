@@ -1,0 +1,361 @@
+{
+  "schema": "kerbside.retail_review/1",
+  "houses": [
+    {
+      "id": "retail-tiny-corner",
+      "name": "Tiny Corner",
+      "passed": true,
+      "file": "retail-tiny-corner.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 7,
+        "checkouts": 1,
+        "self_checkouts": 0,
+        "shelves": 1,
+        "sections": 3,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-corner-snacks",
+      "name": "Corner Snacks",
+      "passed": true,
+      "file": "retail-corner-snacks.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 11,
+        "checkouts": 1,
+        "self_checkouts": 0,
+        "shelves": 5,
+        "sections": 5,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-corner-setback",
+      "name": "Corner Setback",
+      "passed": true,
+      "file": "retail-corner-setback.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 10,
+        "checkouts": 1,
+        "self_checkouts": 0,
+        "shelves": 4,
+        "sections": 5,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-supermarket",
+      "name": "Supermarket",
+      "passed": true,
+      "file": "retail-supermarket.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 44,
+        "checkouts": 8,
+        "self_checkouts": 3,
+        "shelves": 21,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-fresh-market",
+      "name": "Fresh Market",
+      "passed": true,
+      "file": "retail-fresh-market.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 51,
+        "checkouts": 10,
+        "self_checkouts": 5,
+        "shelves": 22,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-two-entrances",
+      "name": "Two Entrances",
+      "passed": true,
+      "file": "retail-two-entrances.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 80,
+        "checkouts": 10,
+        "self_checkouts": 0,
+        "shelves": 42,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-two-parking-levels",
+      "name": "Two Parking Levels",
+      "passed": true,
+      "file": "retail-two-parking-levels.json",
+      "storeys": 3,
+      "metrics": {
+        "room_count": 6,
+        "objects": 231,
+        "checkouts": 12,
+        "self_checkouts": 5,
+        "shelves": 60,
+        "sections": 10,
+        "parking_levels": 2,
+        "parking_spaces": 120,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-three-parking-levels",
+      "name": "Three Parking Levels",
+      "passed": true,
+      "file": "retail-three-parking-levels.json",
+      "storeys": 4,
+      "metrics": {
+        "room_count": 7,
+        "objects": 335,
+        "checkouts": 12,
+        "self_checkouts": 6,
+        "shelves": 60,
+        "sections": 10,
+        "parking_levels": 3,
+        "parking_spaces": 195,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-surface-parking",
+      "name": "Corner Store With Surface Parking",
+      "passed": true,
+      "file": "retail-surface-parking.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 4,
+        "objects": 23,
+        "checkouts": 1,
+        "self_checkouts": 0,
+        "shelves": 5,
+        "sections": 5,
+        "parking_levels": 0,
+        "parking_spaces": 12,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-240219342",
+      "name": "Whole Foods Market",
+      "passed": true,
+      "file": "retail-osm-240219342.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 96,
+        "checkouts": 12,
+        "self_checkouts": 6,
+        "shelves": 48,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-775827045",
+      "name": "Whole Foods Market",
+      "passed": true,
+      "file": "retail-osm-775827045.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 251,
+        "checkouts": 5,
+        "self_checkouts": 0,
+        "shelves": 151,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-219058329",
+      "name": "Safeway",
+      "passed": true,
+      "file": "retail-osm-219058329.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 133,
+        "checkouts": 12,
+        "self_checkouts": 5,
+        "shelves": 80,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-1262642420",
+      "name": "Whole Foods Market",
+      "passed": true,
+      "file": "retail-osm-1262642420.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 129,
+        "checkouts": 7,
+        "self_checkouts": 6,
+        "shelves": 80,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-26135377",
+      "name": "Safeway",
+      "passed": true,
+      "file": "retail-osm-26135377.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 137,
+        "checkouts": 12,
+        "self_checkouts": 5,
+        "shelves": 91,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-28941473",
+      "name": "Safeway",
+      "passed": true,
+      "file": "retail-osm-28941473.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 116,
+        "checkouts": 12,
+        "self_checkouts": 5,
+        "shelves": 67,
+        "sections": 10,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-256067716",
+      "name": "7-Eleven",
+      "passed": false,
+      "reason": "no plausible store layout: source entry meets staff/core zone; try another layout frame; staff WC and stockroom cannot fit; checkout and queue do not fit without blocking doors; retail-osm-256067716:stock: no reachable dry_storage fits"
+    },
+    {
+      "id": "retail-osm-265674114",
+      "name": "Adel's Wine Cellar",
+      "passed": false,
+      "reason": "no plausible store layout: source entry meets staff/core zone; try another layout frame; checkout and queue do not fit without blocking doors; retail-osm-265674114:stock: no reachable dry_storage fits; staff WC and stockroom cannot fit"
+    },
+    {
+      "id": "retail-osm-480561233",
+      "name": "Hom's Grocery and Liquor",
+      "passed": true,
+      "file": "retail-osm-480561233.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 7,
+        "checkouts": 1,
+        "self_checkouts": 0,
+        "shelves": 1,
+        "sections": 3,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    },
+    {
+      "id": "retail-osm-256903893",
+      "name": "Chevron Extra Mile",
+      "passed": true,
+      "file": "retail-osm-256903893.json",
+      "storeys": 1,
+      "metrics": {
+        "room_count": 3,
+        "objects": 10,
+        "checkouts": 1,
+        "self_checkouts": 0,
+        "shelves": 4,
+        "sections": 4,
+        "parking_levels": 0,
+        "parking_spaces": 0,
+        "isolated_floor_m2": 0.0,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.0
+      }
+    }
+  ],
+  "passed": 17,
+  "total": 19,
+  "selection": "nine fixed stress programs + six grocery/four corner mapped shells in SHA order before solving; failures retained",
+  "measured": false
+}

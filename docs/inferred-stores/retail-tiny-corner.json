@@ -1,0 +1,1559 @@
+{
+  "schema": "kerbside.inferred_store/1",
+  "id": "retail-tiny-corner",
+  "kind": "corner_store",
+  "style": {
+    "id": "coastal",
+    "name": "Coastal linen & blue",
+    "style": "contemporary",
+    "walls": [
+      "#e9e6dc",
+      "#d4dfd2",
+      "#e5d8c5",
+      "#d9e1e3"
+    ],
+    "wood": "#a78660",
+    "fabric": "#708778",
+    "accent": "#52766b",
+    "metal": "#4a5358",
+    "stone": "#e3e0d6",
+    "tier": "standard",
+    "furnishing_budget_usd": 8370,
+    "budget_method": "floor area x configurable tier allowance; illustrative, not a quote",
+    "neighborhood_price_per_sqft": null,
+    "economic_evidence": "retail fixture allowance; no observed revenue estimate",
+    "seed": "7312795182869594529",
+    "version": 1,
+    "label": "Local market",
+    "produce_share": 0.18,
+    "self_checkout_share": 0.25,
+    "usage": "retail",
+    "chain": "independent",
+    "chain_prior": "department/finish heuristic; not a chain floor-plan template"
+  },
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "provenance": {
+    "footprint": "synthetic stress polygon and illustrative program",
+    "geometry": null,
+    "tenant_boundary": "supplied or assumed; not measured"
+  },
+  "footprint_area_m2": 54.0,
+  "footprint_area_sqft": 581.2511625018,
+  "total_height_m": 3.8,
+  "envelope": {
+    "windows": [],
+    "balconies": []
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.8,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              6.0,
+              0.0
+            ],
+            [
+              6.0,
+              9.0
+            ],
+            [
+              0.0,
+              9.0
+            ],
+            [
+              0.0,
+              0.0
+            ],
+            [
+              6.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              5.85,
+              0.15
+            ],
+            [
+              0.15,
+              0.15
+            ],
+            [
+              0.15,
+              8.85
+            ],
+            [
+              5.85,
+              8.85
+            ],
+            [
+              5.85,
+              0.15
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "retail-tiny-corner:sales",
+          "kind": "sales_floor",
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.15,
+                  0.15
+                ],
+                [
+                  0.15,
+                  6.3
+                ],
+                [
+                  5.85,
+                  6.3
+                ],
+                [
+                  5.85,
+                  0.15
+                ],
+                [
+                  0.15,
+                  0.15
+                ]
+              ]
+            ]
+          },
+          "area_m2": 35.05499999999999,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:stock",
+          "kind": "stockroom",
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.85,
+                  8.85
+                ],
+                [
+                  5.85,
+                  6.3
+                ],
+                [
+                  0.15,
+                  6.3
+                ],
+                [
+                  0.15,
+                  6.449999999999999
+                ],
+                [
+                  2.4,
+                  6.449999999999999
+                ],
+                [
+                  2.4,
+                  8.85
+                ],
+                [
+                  5.85,
+                  8.85
+                ]
+              ]
+            ]
+          },
+          "area_m2": 9.134999999999998,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:wc",
+          "kind": "toilet",
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4,
+                  8.85
+                ],
+                [
+                  2.4,
+                  6.449999999999999
+                ],
+                [
+                  0.15,
+                  6.449999999999999
+                ],
+                [
+                  0.15,
+                  8.85
+                ],
+                [
+                  2.4,
+                  8.85
+                ]
+              ]
+            ]
+          },
+          "area_m2": 5.4,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.15,
+                6.3
+              ],
+              [
+                2.523,
+                6.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-tiny-corner:sales",
+            "retail-tiny-corner:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.477,
+                6.3
+              ],
+              [
+                5.85,
+                6.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-tiny-corner:sales",
+            "retail-tiny-corner:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.15,
+                6.449999999999999
+              ],
+              [
+                2.4,
+                6.449999999999999
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-tiny-corner:stock",
+            "retail-tiny-corner:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                6.449999999999999
+              ],
+              [
+                2.4,
+                7.173
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-tiny-corner:stock",
+            "retail-tiny-corner:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                8.127
+              ],
+              [
+                2.4,
+                8.85
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-tiny-corner:stock",
+            "retail-tiny-corner:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "openings": [
+        {
+          "id": "retail-tiny-corner:sales:opening:0",
+          "rooms": [
+            "retail-tiny-corner:sales",
+            "outside"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.4,
+                0.15
+              ],
+              [
+                2.6,
+                0.15
+              ]
+            ]
+          },
+          "width_m": 1.2000000000000002,
+          "height_m": 2.3,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-tiny-corner:sales",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.6,
+                  1.25
+                ],
+                [
+                  2.6,
+                  -0.9500000000000001
+                ],
+                [
+                  1.4,
+                  -0.9500000000000001
+                ],
+                [
+                  1.4,
+                  1.25
+                ],
+                [
+                  2.6,
+                  1.25
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "entrance": true,
+          "source_opening": {
+            "point": [
+              2,
+              0
+            ]
+          },
+          "source_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.4,
+                0.0
+              ],
+              [
+                2.6,
+                0.0
+              ]
+            ]
+          },
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": "clear"
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:stock:opening:100",
+          "rooms": [
+            "retail-tiny-corner:stock",
+            "retail-tiny-corner:sales"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.475,
+                6.3
+              ],
+              [
+                2.525,
+                6.3
+              ]
+            ]
+          },
+          "width_m": 0.95,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-tiny-corner:stock",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.525,
+                  5.58
+                ],
+                [
+                  2.525,
+                  7.02
+                ],
+                [
+                  3.475,
+                  7.02
+                ],
+                [
+                  3.475,
+                  5.58
+                ],
+                [
+                  2.525,
+                  5.58
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": null
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:wc:opening:101",
+          "rooms": [
+            "retail-tiny-corner:wc",
+            "retail-tiny-corner:stock"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                8.125
+              ],
+              [
+                2.4,
+                7.175
+              ]
+            ]
+          },
+          "width_m": 0.95,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-tiny-corner:wc",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.12,
+                  7.175
+                ],
+                [
+                  1.68,
+                  7.175
+                ],
+                [
+                  1.68,
+                  8.125
+                ],
+                [
+                  3.12,
+                  8.125
+                ],
+                [
+                  3.12,
+                  7.175
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#505a59",
+            "panel_count": 2,
+            "glass": "frosted_reeded"
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "objects": [
+        {
+          "id": "retail-tiny-corner:sales:item:0",
+          "role": "checkout_lane",
+          "position_m": [
+            4.75,
+            0,
+            3.35
+          ],
+          "size_m": [
+            0.85,
+            1.05,
+            2.2
+          ],
+          "rotation_deg": 0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.175,
+                  2.25
+                ],
+                [
+                  5.175,
+                  4.45
+                ],
+                [
+                  4.325,
+                  4.45
+                ],
+                [
+                  4.325,
+                  2.25
+                ],
+                [
+                  5.175,
+                  2.25
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-tiny-corner:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-tiny-corner:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:checkout_lane",
+            "design_id": null,
+            "role": "checkout_lane",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            4.75,
+            5.03
+          ],
+          "section": "checkout",
+          "stock_seed": 1,
+          "queue_zone": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.4,
+                  0.44999999999999996
+                ],
+                [
+                  5.4,
+                  2.15
+                ],
+                [
+                  4.1,
+                  2.15
+                ],
+                [
+                  4.1,
+                  0.44999999999999996
+                ],
+                [
+                  5.4,
+                  0.44999999999999996
+                ]
+              ]
+            ]
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:sales:item:1",
+          "role": "drink_cooler",
+          "position_m": [
+            0.635,
+            0,
+            3.224999999999999
+          ],
+          "size_m": [
+            1.7099999999999997,
+            2.05,
+            0.82
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22500000000000003,
+                  2.369999999999999
+                ],
+                [
+                  1.045,
+                  2.369999999999999
+                ],
+                [
+                  1.045,
+                  4.079999999999999
+                ],
+                [
+                  0.22500000000000003,
+                  4.079999999999999
+                ],
+                [
+                  0.22500000000000003,
+                  2.369999999999999
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-tiny-corner:sales",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-tiny-corner:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:drink_cooler",
+            "design_id": null,
+            "role": "drink_cooler",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.605,
+            3.224999999999999
+          ],
+          "section": "drinks",
+          "stock_seed": 2,
+          "stock": [
+            {
+              "form": "bottles",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:sales:item:2",
+          "role": "gondola_shelf",
+          "position_m": [
+            0.44999999999999996,
+            0,
+            1.5624999999999996
+          ],
+          "size_m": [
+            1.2,
+            1.65,
+            0.45
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999995,
+                  0.9624999999999996
+                ],
+                [
+                  0.6749999999999999,
+                  0.9624999999999996
+                ],
+                [
+                  0.6749999999999999,
+                  2.1624999999999996
+                ],
+                [
+                  0.22499999999999995,
+                  2.1624999999999996
+                ],
+                [
+                  0.22499999999999995,
+                  0.9624999999999996
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-tiny-corner:sales",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-tiny-corner:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "design_id": null,
+            "role": "gondola_shelf",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.2349999999999999,
+            1.5624999999999996
+          ],
+          "section": "snacks",
+          "stock_seed": 0,
+          "stock": [
+            {
+              "form": "packages",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:stock:item:0",
+          "role": "dry_storage",
+          "position_m": [
+            4.387499999999999,
+            0,
+            6.6499999999999995
+          ],
+          "size_m": [
+            1.8,
+            1.9,
+            0.55
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2875,
+                  6.374999999999999
+                ],
+                [
+                  5.2875,
+                  6.925
+                ],
+                [
+                  3.4874999999999994,
+                  6.925
+                ],
+                [
+                  3.4874999999999994,
+                  6.374999999999999
+                ],
+                [
+                  5.2875,
+                  6.374999999999999
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-tiny-corner:stock",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-tiny-corner:stock",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:dry_storage",
+            "design_id": null,
+            "role": "dry_storage",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            4.387499999999999,
+            7.404999999999999
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:stock:item:1",
+          "role": "prep_table",
+          "position_m": [
+            4.125,
+            0,
+            8.45
+          ],
+          "size_m": [
+            1.4,
+            0.9,
+            0.65
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.425,
+                  8.774999999999999
+                ],
+                [
+                  3.425,
+                  8.125
+                ],
+                [
+                  4.825,
+                  8.125
+                ],
+                [
+                  4.825,
+                  8.774999999999999
+                ],
+                [
+                  3.425,
+                  8.774999999999999
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-tiny-corner:stock",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-tiny-corner:stock",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:prep_table",
+            "design_id": null,
+            "role": "prep_table",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            4.125,
+            7.645
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:wc:item:0",
+          "role": "toilet",
+          "position_m": [
+            0.6,
+            0,
+            7.539285714285714
+          ],
+          "size_m": [
+            0.65,
+            0.8,
+            0.75
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  7.2142857142857135
+                ],
+                [
+                  0.975,
+                  7.2142857142857135
+                ],
+                [
+                  0.975,
+                  7.864285714285714
+                ],
+                [
+                  0.22499999999999998,
+                  7.864285714285714
+                ],
+                [
+                  0.22499999999999998,
+                  7.2142857142857135
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-tiny-corner:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-tiny-corner:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "design_id": null,
+            "role": "toilet",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.455,
+            7.539285714285714
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-tiny-corner:wc:item:1",
+          "role": "bath_sink",
+          "position_m": [
+            0.43499999999999994,
+            0,
+            8.2875
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.42
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999995,
+                  8.0375
+                ],
+                [
+                  0.6449999999999999,
+                  8.0375
+                ],
+                [
+                  0.6449999999999999,
+                  8.5375
+                ],
+                [
+                  0.22499999999999995,
+                  8.5375
+                ],
+                [
+                  0.22499999999999995,
+                  8.0375
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-tiny-corner:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-tiny-corner:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "design_id": null,
+            "role": "bath_sink",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#4a5358",
+            "countertop": "#e3e0d6",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.125,
+            8.2875
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "stairs": [],
+  "ramps": [],
+  "interaction_targets": [
+    {
+      "room_id": "retail-tiny-corner:sales",
+      "point": [
+        4.75,
+        5.03
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-tiny-corner:sales",
+      "point": [
+        1.605,
+        3.224999999999999
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-tiny-corner:sales",
+      "point": [
+        1.2349999999999999,
+        1.5624999999999996
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-tiny-corner:stock",
+      "point": [
+        4.387499999999999,
+        7.404999999999999
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-tiny-corner:stock",
+      "point": [
+        4.125,
+        7.645
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-tiny-corner:wc",
+      "point": [
+        1.455,
+        7.539285714285714
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-tiny-corner:wc",
+      "point": [
+        1.125,
+        8.2875
+      ],
+      "kind": "staff"
+    }
+  ],
+  "sections": [
+    {
+      "id": "checkout",
+      "fixture_ids": [
+        "retail-tiny-corner:sales:item:0"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "drinks",
+      "fixture_ids": [
+        "retail-tiny-corner:sales:item:1"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "snacks",
+      "fixture_ids": [
+        "retail-tiny-corner:sales:item:2"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "checkouts": [
+    {
+      "id": "retail-tiny-corner:sales:item:0",
+      "kind": "checkout_lane",
+      "queue_zone": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              5.4,
+              0.44999999999999996
+            ],
+            [
+              5.4,
+              2.15
+            ],
+            [
+              4.1,
+              2.15
+            ],
+            [
+              4.1,
+              0.44999999999999996
+            ],
+            [
+              5.4,
+              0.44999999999999996
+            ]
+          ]
+        ]
+      },
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "parking": {
+    "kind": "unknown",
+    "levels": null,
+    "render_status": "external/unknown parking retained as evidence"
+  },
+  "validation": {
+    "passed": true,
+    "errors": [],
+    "metrics": {
+      "room_count": 3,
+      "objects": 7,
+      "checkouts": 1,
+      "self_checkouts": 0,
+      "shelves": 1,
+      "sections": 3,
+      "parking_levels": 0,
+      "parking_spaces": 0,
+      "isolated_floor_m2": 0.0,
+      "coverage_min": 1.0,
+      "hallway_area_fraction_max": 0.0
+    }
+  },
+  "name": "Tiny Corner",
+  "input_evidence": {
+    "id": "retail-tiny-corner",
+    "name": "Tiny Corner",
+    "kind": "corner_store",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            6.0,
+            0.0
+          ],
+          [
+            6.0,
+            9.0
+          ],
+          [
+            0.0,
+            9.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "chain": "independent",
+    "entrances": [
+      {
+        "point": [
+          2,
+          0
+        ]
+      }
+    ],
+    "parking": null,
+    "height_m": 3.8,
+    "units": "metres",
+    "source": "synthetic stress polygon and illustrative program"
+  }
+}
