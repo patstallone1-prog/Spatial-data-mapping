@@ -104,6 +104,7 @@ def test_the_controller_pod_is_a_small_cpu_pod_serving_its_port() -> None:
 def test_the_plan_prints_no_secret_and_checks_both_images(monkeypatch, capsys) -> None:
     for k, v in ENV.items():
         monkeypatch.setenv(k, v)
+    monkeypatch.delenv("MAPILLARY_TOKEN", raising=False)
     monkeypatch.setattr(runpod_controller, "image_exists", lambda repo, tag: True)
     assert runpod_controller.main(["plan", "--tag", "cafe"]) == 0
     out = capsys.readouterr().out
@@ -113,6 +114,18 @@ def test_the_plan_prints_no_secret_and_checks_both_images(monkeypatch, capsys) -
     assert plan["would_create"]["imageName"].endswith("kerbside-cpu:cafe")
     assert plan["would_create"]["env"]["KERBSIDE_IMAGE_TAG"] == "cafe"
     assert plan["images_on_ghcr"] == {"kerbside-cpu": True, "kerbside-gpu": True}
+    assert "MAPILLARY_TOKEN" in plan["missing_optional"]
+
+
+def test_a_controller_is_not_created_without_the_imagery_tokens(monkeypatch) -> None:
+    for k, v in ENV.items():
+        monkeypatch.setenv(k, v)
+    for k in runpod_controller.IMAGERY_TOKENS:
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setattr(runpod_controller, "image_exists", lambda repo, tag: True)
+    monkeypatch.setattr(runpod_controller, "check_storage", lambda: pytest.fail("checked storage"))
+    with pytest.raises(SystemExit, match="MAPILLARY_ACCESS_TOKEN, MAPILLARY_TOKEN not set"):
+        runpod_controller.main(["create", "--tag", "cafe"])
 
 
 class FakeS3:
