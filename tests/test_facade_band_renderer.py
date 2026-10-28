@@ -97,9 +97,9 @@ def test_near_shell_preserves_bands_trims_and_disposes_owned_materials():
 def test_storefront_overlay_does_not_repaint_observed_wall_band():
     result = run(
         """
-      const quads=[],panels=[],PHOTO_CLASS_TO_MATERIAL={brick:'brick'},STOREFRONT_STANDALONE_MAX_M=6.5,STOREFRONT_BAND_M=3.9,STOREFRONT_VARIANTS=4;
+      const quads=[],panels=[],PHOTO_CLASS_TO_MATERIAL={brick:'brick'},STOREFRONT_STANDALONE_MAX_M=6.5,STOREFRONT_BAND_M=3.9,STOREFRONT_VARIANTS=4,STOREFRONT_MIN_WALL_M=2.6;
       const THREE={Color:class{constructor(c){this.c=c;}getHex(){return Number.parseInt(this.c.slice(1),16);}clone(){return this;}multiplyScalar(){return this;}}};
-      function bestFacadeWall(){return {span:8,yaw:0};}function shopBays(){return [{trade:'shop',share:8,centre:0}];}
+      function bestFacadeWall(){return {span:8,yaw:0};}function storefrontWall(){return {span:8,yaw:0};}function shopBays(){return [{trade:'shop',share:8,centre:0}];}
       function frontageFitFor(){return {appearance:{bands:[{bottom_m:0,top_m:4,colour:'#884433',material:'brick'}]}};}
       function storefrontColour(){throw Error('observed colour overwritten');}function awningSink(){return {};}
       function wallPoint(w,a){return {x:a,z:0};}function awningQuad(...x){quads.push(x);}
@@ -110,5 +110,6 @@ def test_storefront_overlay_does_not_repaint_observed_wall_band():
         ("addStorefronts",),
     )
     assert result["quads"] == 0
-    assert result["texture"] == ["shop", 0, 0x884433, False, True]
+    # The front's width goes with it, so its doors are drawn to scale.
+    assert result["texture"] == ["shop", 0, 0x884433, False, True, 8]
     assert result["panelHeight"] < 4

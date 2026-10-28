@@ -46,7 +46,7 @@ def _run(body: str) -> dict:
                        for n in ("WINDOW_GROUND_CLEAR_M", "FRONT_DOOR_PANEL_W_M"))
     script = PREAMBLE + consts + "\n" + "\n".join(
         _extract(n, js) for n in ("frontageFitFor", "frontageNormalFor", "frontageWindowsOnEdge",
-                                 "regularHomeWindows", "homeWindowLayout")) + "\n" + body
+                                 "regularHomeWindows", "editedEdge", "homeWindowLayout")) + "\n" + body
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)

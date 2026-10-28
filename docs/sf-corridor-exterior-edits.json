@@ -1,0 +1,5 @@
+{
+ "schema": "kerbside.exterior_edits/1",
+ "note": "Fronts people corrected with the exterior editor (docs/exterior-editor.mjs), published by scripts/merge_exterior_edits.py.",
+ "edits": {}
+}
