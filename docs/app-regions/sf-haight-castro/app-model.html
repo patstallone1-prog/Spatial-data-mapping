@@ -107,13 +107,15 @@ input::placeholder { color:#9ca3af; }
 #tip { color:#374151; background:var(--soft); border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.5; }
 #addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:12px; background:rgba(17,24,39,.94); color:#fff; font-size:12px; line-height:1.45; box-shadow:var(--shadow); pointer-events:none; }
 #addr b { font-size:13px; } #addr .sub { color:#fff; }
+#nearby { position:fixed; left:16px; top:72px; z-index:9; width:min(340px, calc(100vw - 24px)); padding:9px 12px; border-radius:12px; background:rgba(17,24,39,.86); color:#fff; font-size:12px; line-height:1.4; box-shadow:var(--shadow); pointer-events:none; }
+#nearby .head { font-weight:600; margin-bottom:4px; } #nearby .row { margin-top:5px; } #nearby .sub { color:#cbd5e1; font-size:11px; }
 #progress { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; color:var(--ink); padding:14px 22px; border-radius:14px; font-size:15px; box-shadow:var(--shadow); z-index:20; pointer-events:none; }
 @media (max-width: 760px) {
   .hud { width:calc(100vw - 32px); bottom:auto; max-height:72vh; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="4ae47e9b55bde364377c9dc336990fcb1ba19575cd73cb96e0c25af2e125aaa9" />
+<meta name="kerbside-renderer-sha256" content="ee7d793f3ecff5e9eff11b6dd63fe19f7ed0f2188f39c4764db3af418b2ab39e" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -465,7 +467,7 @@ const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=e865df52f6eb8c7c"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=ac7f234d21358f04"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
@@ -494,6 +496,15 @@ var grassSampleAt = null;
 const foliageLibrary = await import(sharedAsset("foliage-motion.mjs?rev=5c8af2876c014862"))
   .catch(error=>{console.warn("kerbside: foliage motion unavailable; plants stand still",error);return null;});
 const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
+//: What each drawn thing is made of, how it breaks and how the walker passes it
+//: (docs/object-catalogue.mjs over docs/object-catalogue.json). Without it only the buildings,
+//: tunnels and the forest's logs stop the walker, as before.
+const objectCatalogueReady = ATTACH ? Promise.resolve(null) : Promise.all([
+  import(sharedAsset("object-catalogue.mjs?rev=5826d83bbb545d32")),
+  fetch(sharedAsset("object-catalogue.json?rev=8380372e7d79cac2"))
+    .then((r) => r.ok ? r.json() : Promise.reject(new Error(`object catalogue: ${r.status}`))),
+]).then(([library, data]) => ({ library, catalogue: library.createCatalogue(data) }))
+  .catch((error) => { console.warn("kerbside: object catalogue unavailable; only buildings and logs stop the walker", error); return null; });
 const natureMotion = foliageLibrary && !ATTACH ? foliageLibrary.createFoliageMotion(THREE) : null;
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
@@ -705,7 +716,7 @@ const GROUND_URL = asset("sf-corridor-ground.json");
 //: Where the square is, read from the payload's cells before anything is fetched.
 const LIGHT_SPEC = LIGHT_LEVEL ? await fetch(PAYLOAD_URL.replace(/([^/]+)\.json$/, "cells/$1/manifest.json"), { cache: "no-cache" })
   .then((r) => (r.ok ? r.json() : null)).then((m) => windowSpec(m && m.bbox)).catch(() => null) : null;
-const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS, INVENTORY_CROSSINGS] = await Promise.all([
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS, INVENTORY_CROSSINGS, BUILDING_SHAPES, ORTHO_ISLANDS, ORTHO_ROOFS] = await Promise.all([
   fetchWindowed(PAYLOAD_URL, () => fetch(PAYLOAD_URL, { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -773,12 +784,43 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
   // payload is not changed. A page without the file draws the payload's crossings alone.
   fetch(asset("app-inventory-crossings.json"), { cache: "no-cache" })
     .then(r => r.ok ? r.json() : null).catch(() => null),
+  // Building parts, roofs and courtyards from OpenStreetMap (scripts/fetch_building_shapes.py).
+  fetch(asset("sf-corridor-building-shapes.json"), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
+  // Kerb islands and roofs read off the aerial photographs (scripts/build_ortho_islands.py,
+  // scripts/build_ortho_roofs.py).
+  fetch(asset("sf-corridor-islands.json"), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
+  fetch(asset("sf-corridor-roofs.json"), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
 ]);
 if (INVENTORY_CROSSINGS?.schema === "kerbside.inventory_crossings/1" && Array.isArray(DATA?.ways)) {
   for (const crossing of INVENTORY_CROSSINGS.crossings || []) {
     if (crossing.kind === "crossing" && Array.isArray(crossing.points) && crossing.points.length >= 2) DATA.ways.push(crossing);
   }
 }
+// What OpenStreetMap says about a building's shape that its outline cannot: parts with their
+// own heights and starting heights, roof shapes, courtyards -- and the buildings mapped as
+// multipolygons, whose outer ways carry no building tag and so never reached the payload.
+// A shape applies only to the outline it was taken against (its point count and first point).
+function applyBuildingShapes(data, shapes) {
+  if (shapes?.schema !== "kerbside.building_shapes/1" || !Array.isArray(data?.ways)
+      || !["west","east","north","south"].every(k=>shapes.bbox?.[k]===data.bbox?.[k])) return 0;
+  for (const extra of shapes.extra || []) {
+    if (extra?.kind === "building" && Array.isArray(extra.points) && extra.points.length >= 4) data.ways.push(extra);
+  }
+  let applied = 0;
+  for (const feature of data.ways) {
+    if (feature.kind !== "building") continue;
+    const entry = shapes.buildings?.[String(feature.osm_id)];
+    if (!entry || entry.guard?.n !== feature.points?.length
+        || !entry.guard.first?.every((v, j) => v === feature.points[0][j])) continue;
+    feature.shape = entry;
+    applied += 1;
+  }
+  return applied;
+}
+applyBuildingShapes(DATA, BUILDING_SHAPES);
 // Evidence annotations are not a replacement world. An exact-footprint guard prevents a
 // stale sidecar from applying a restroom style to a newer/changed canonical building.
 function applyParkEvidence(data, evidence) {
@@ -7986,8 +8028,15 @@ function pickMaterial(seed, height, archetype, facade = null, osmId = null, home
     const matched = MATERIALS.find((m) => m.name === facade.m);
     if (matched) return matched;
   }
-  // Nothing read off this building: concrete, the default, rather than a draw from the city's
-  // shares or the archetype's list, which said something about no building in particular.
+  // Every building's wall class, with how sure it is (scripts/build_material_assignments.py):
+  // photographed without a texture is smooth render; never photographed, its kind's usual wall.
+  const wall = osmId == null ? null : (MATERIAL_ASSIGNMENTS.walls || {})[String(osmId)];
+  const walled = wall && MATERIALS.find((m) => m.name === PHOTO_CLASS_TO_MATERIAL[wall[0]]);
+  if (walled) {
+    return { ...walled, ...(home ? { photoLabel: wall[0] } : {}), wallConfidence: wall[1],
+      materialBasis: (MATERIAL_ASSIGNMENTS.wall_bases || {})[wall[2]] || wall[2] };
+  }
+  // Nothing at all for this building: concrete, rather than a draw from the city's shares.
   const concrete = MATERIALS.find((m) => m.name === PHOTO_CLASS_TO_MATERIAL[DEFAULT_CLADDING]);
   return { ...concrete, ...(home ? { photoLabel: DEFAULT_CLADDING } : {}), materialBasis: "default_concrete_not_inferred" };
 }
@@ -8259,10 +8308,34 @@ function facadeTextureFor(material, seed) {
   return FACADE_CACHE.get(key);
 }
 
+//: Claddings whose pattern is the material itself, so a house keeps it: courses of brick, laid
+//: stone, tile. Everything else on a house -- stucco, plaster, siding, painted anything, and
+//: walls nobody photographed -- is one colour (HOUSE_FLAT_WALL): a photographed stucco's light
+//: and shade laid under the paint read as blotches of other shades, which is not how a painted
+//: house looks from the street.
+const HOUSE_PATTERNED_CLASSES = new Set(["brick", "stone", "ceramic_tile"]);
+let HOUSE_FLAT_WALL = null;
+function houseWallIsFlat(material) {
+  return !HOUSE_PATTERNED_CLASSES.has(material.photoLabel) && material.name !== "brick" && material.name !== "stone";
+}
+
 //: The same wall as facadeTextureFor -- the same material, variant and seed -- with no windows
 //: painted on it. A house is drawn on this, its windows real ones (homeWindowLayout), so the
 //: house the street sees and the house the walker opens are one surface.
 function bareFacadeTextureFor(material, seed) {
+  if (houseWallIsFlat(material)) {
+    if (!HOUSE_FLAT_WALL) {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 4;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 4, 4);
+      HOUSE_FLAT_WALL = new THREE.CanvasTexture(canvas);
+      HOUSE_FLAT_WALL.wrapS = HOUSE_FLAT_WALL.wrapT = THREE.RepeatWrapping;
+      HOUSE_FLAT_WALL.userData = { flat: true };
+    }
+    return HOUSE_FLAT_WALL;
+  }
   const variant = Math.floor(random(seed) * MATERIAL_VARIANTS);
   const key = `${material.name}-${material.photoLabel || "prior"}-${material.neutralColourDetail ? "band" : "original"}-${variant}-bare`;
   if (!bareWallMaps.has(key)) {
@@ -12159,14 +12232,16 @@ function garagePanel(opening, tint) {
   const bearing = (opening.n || 0) * Math.PI / 180;
   const nx = Math.sin(bearing);
   const nz = -Math.cos(bearing);
-  const map = garageTextureFor(opening.s % GARAGE_STYLES, tint);
+  // Wood, every one: San Francisco's garage doors are panelled wood under their paint, and the
+  // two wood designs (4 and 5) are the ones that read as that.
+  const map = garageTextureFor(4 + (opening.s % 2), tint);
   // A photographed garage stands as tall as the photograph shows it.
   const height = Number.isFinite(opening.h) ? opening.h : GARAGE_HEIGHT_M;
   const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(width, height),
     // Drawn in front of whatever lies on the wall behind it -- a facade photograph, a window
     // panel -- even where depth precision at a distance cannot tell a few centimetres apart.
-    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.66, metalness: 0.20,
+    new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.78, metalness: 0.0,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })
   );
   mesh.position.set(cx + nx * GARAGE_STANDOFF_M, height / 2, -cy + nz * GARAGE_STANDOFF_M);
@@ -15048,6 +15123,13 @@ function roofStair(group, roof, top, seed) {
   return true;
 }
 
+//: A roof the aerial photograph read with enough of it in sun to trust the colour.
+const ROOF_READ_MIN_LIT = 0.3;
+function roofReadingFor(feature) {
+  const read = feature?.osm_id == null ? null : ORTHO_ROOFS?.roofs?.[String(feature.osm_id)];
+  return read && read.lit >= ROOF_READ_MIN_LIT && /^#[0-9a-f]{6}$/.test(read.c) ? read : null;
+}
+
 function addRoofFurniture(group, feature, seed, height, areaM2) {
   // Nothing goes on a roof too small to stand on, and nothing goes on a roof that is not flat
   // enough to be a rectangle -- which is the check that stopped solar arrays appearing on
@@ -15063,6 +15145,10 @@ function addRoofFurniture(group, feature, seed, height, areaM2) {
     // five letters and drew the same number, so solar and the stair bulkhead were perfectly
     // correlated -- every roof with panels had a stair hut and no roof had one without.
     if (random(seed + ROOF_USE_SALT[use] + 601) >= chance) continue;
+    // Panels, a deck or a garden are not invented on a roof the photograph has looked at: it
+    // saw what is there. (Its own panel finds are kept in the data, not drawn: at 0.25 m they
+    // are not yet sure enough to build.)
+    if (roofReadingFor(feature) && (use === "solar" || use === "deck" || use === "garden")) continue;
     if (use === "solar") {
       // Only a flat, rectangular roof with room on it. A panel on a ragged footprint is the
       // thing that looked wrong, and refusing is cheaper than pretending.
@@ -15309,6 +15395,173 @@ function structureMesh(feature, areaM2) {
   return group;
 }
 
+// ---- buildings in parts: setbacks, overhangs, courtyards and roofs ----
+//
+// An outline extruded to one height is a box, which is what most of the city is and what
+// downtown is not. The Transamerica Pyramid is a pyramid on a podium with its two wings
+// rising past it; a tower steps back from its base; an upper floor overhangs the plaza on
+// columns; a hotel has a light well cut out of the middle of the block. OpenStreetMap maps all
+// of it (building:part with height and min_height, roof:shape, multipolygon courtyards), and
+// scripts/fetch_building_shapes.py puts it beside the payload, keyed by the outline's way.
+// A building with parts is drawn as its parts and not as its outline, the way OpenStreetMap's
+// own 3D renderers draw it. The geometry comes back as the extrusion's did: caps (here the
+// roofs and any underside) in group 0, walls in group 1, non-indexed, in world space.
+const ROOF_DEFAULT_PITCH = 0.35;
+function compassBearing(value) {
+  const named = { n: 0, nne: 22.5, ne: 45, ene: 67.5, e: 90, ese: 112.5, se: 135, sse: 157.5,
+                  s: 180, ssw: 202.5, sw: 225, wsw: 247.5, w: 270, wnw: 292.5, nw: 315, nnw: 337.5 };
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim().toLowerCase();
+  if (text in named) return named[text];
+  const n = parseFloat(text);
+  return Number.isFinite(n) ? n : null;
+}
+function shapedBuildingGeometry(feature, height) {
+  const spec = feature.shape;
+  const parts = spec.parts?.length ? spec.parts
+    // A roof or a courtyard on the outline itself keeps the building's own height: the lidar's
+    // or the payload's, which the tag does not outrank.
+    : [{ ...(spec.self || {}), outer: feature.points, holes: spec.holes, height_m: height }];
+  const caps = [], capUv = [], walls = [], wallUv = [];
+  let top = 0;
+  const local = (ring) => {
+    const out = ring.map(([lon, lat]) => xy(lon, lat));
+    const [a, b] = [out[0], out[out.length - 1]];
+    if (out.length > 1 && Math.abs(a[0] - b[0]) < 1e-6 && Math.abs(a[1] - b[1]) < 1e-6) out.pop();
+    return out;
+  };
+  const cross2 = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const signedArea = (r) => r.reduce((s, p, i) => s + p[0] * r[(i + 1) % r.length][1] - r[(i + 1) % r.length][0] * p[1], 0) / 2;
+  // A triangle facing up (or down), whichever way round it came: x, y in the plan, z the height.
+  const roofTri = (p, q, r, down = false) => {
+    const ccw = cross2(p, q, r) > 0;
+    const [a, b, c] = ccw !== down ? [p, q, r] : [p, r, q];
+    for (const v of [a, b, c]) { caps.push(v[0], v[2], -v[1]); capUv.push(v[0] / 20, v[1] / 20); }
+  };
+  // A wall from a to b, its foot at za0/zb0 and its head at za1/zb1, facing out of a CCW ring.
+  const wallQuad = (a, b, za0, zb0, za1, zb1, storey) => {
+    if (za1 - za0 < 0.01 && zb1 - zb0 < 0.01) return;
+    const run = Math.hypot(b[0] - a[0], b[1] - a[1]) / BAY_M;
+    const base = Math.min(za0, zb0);
+    const corners = [[a, za0, 0], [b, zb0, run], [b, zb1, run], [a, za0, 0], [b, zb1, run], [a, za1, 0]];
+    for (const [p, z, u] of corners) { walls.push(p[0], z, -p[1]); wallUv.push(u, (z - base) / storey); }
+  };
+  const wallTri = (a, b, apex, z0, storey) => {
+    // A gable end: the wall's triangle above the eave, facing the way the a->b wall faces.
+    const run = Math.hypot(b[0] - a[0], b[1] - a[1]) / BAY_M;
+    for (const [p, z, u] of [[a, z0, 0], [b, z0, run], [apex, apex[2], run / 2]]) {
+      walls.push(p[0], z, -p[1]); wallUv.push(u, (z - z0) / storey);
+    }
+  };
+  for (const part of parts) {
+    if (!Array.isArray(part.outer) || part.outer.length < 4) continue;
+    const outer = local(part.outer);
+    if (outer.length < 3) continue;
+    if (signedArea(outer) < 0) outer.reverse();
+    const holes = (part.holes || []).map(local).filter((h) => h.length >= 3);
+    for (const h of holes) if (signedArea(h) > 0) h.reverse();
+    const bottom = Math.max(0, part.min_height_m || 0);
+    let partTop = Number.isFinite(part.height_m) ? part.height_m : height;
+    const span = Math.sqrt(Math.abs(signedArea(outer)));
+    let shape = holes.length && part.roof !== "flat" ? "flat" : (part.roof || "flat");
+    let roofH = shape === "flat" ? 0 : Number.isFinite(part.roof_height_m) ? part.roof_height_m
+      : Math.min(span * (shape === "dome" || shape === "onion" ? 0.5 : ROOF_DEFAULT_PITCH), Math.max(0, partTop - bottom) * 0.5);
+    // A roof taller than the part it sits on means the part's top is the roof's apex. The
+    // Transamerica Pyramid's spire is mapped as a 230 m pyramidal roof on a part whose height
+    // says 60: its apex is 260 m, which is what the building is.
+    if (roofH > 0 && bottom + roofH > partTop) partTop = bottom + roofH;
+    if (!(partTop - bottom > 0.2)) continue;
+    roofH = Math.min(roofH, partTop - bottom);
+    const eave = partTop - roofH;
+    top = Math.max(top, partTop);
+    const storey = facadeStoreyMetres(Math.max(0.1, eave - bottom || partTop - bottom));
+    // A skillion is a plane: the height of each corner along the way the roof faces down.
+    let zAt = () => eave;
+    if (shape === "skillion") {
+      let bearing = compassBearing(part.roof_direction);
+      if (bearing === null) {
+        // Unstated, it falls across the part's longest side.
+        let best = 0, angle = 0;
+        outer.forEach((p, i) => {
+          const q = outer[(i + 1) % outer.length], len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+          if (len > best) { best = len; angle = Math.atan2(q[1] - p[1], q[0] - p[0]); }
+        });
+        bearing = 90 - (angle * 180 / Math.PI) + 90;
+      }
+      const dx = Math.sin(bearing * Math.PI / 180), dy = Math.cos(bearing * Math.PI / 180);
+      const s = outer.map((p) => p[0] * dx + p[1] * dy);
+      const lo = Math.min(...s), hi = Math.max(...s);
+      zAt = (p) => eave + roofH * (hi - (p[0] * dx + p[1] * dy)) / Math.max(hi - lo, 1e-6);
+    }
+    for (const ring of [outer, ...holes]) {
+      ring.forEach((a, i) => {
+        const b = ring[(i + 1) % ring.length];
+        wallQuad(a, b, bottom, bottom, zAt(a), zAt(b), storey);
+      });
+    }
+    const contour = outer.map((p) => new THREE.Vector2(p[0], p[1]));
+    const holeVectors = holes.map((h) => h.map((p) => new THREE.Vector2(p[0], p[1])));
+    const all = [...outer, ...holes.flat()];
+    const triangles = THREE.ShapeUtils.triangulateShape(contour, holeVectors);
+    // The underside of a part that starts above the ground: the soffit of an overhang.
+    if (bottom > 0.05) {
+      for (const [i, j, k] of triangles) roofTri([...all[i], bottom], [...all[j], bottom], [...all[k], bottom], true);
+    }
+    if (shape === "flat" || shape === "skillion" || roofH < 0.05) {
+      for (const [i, j, k] of triangles) roofTri(...[i, j, k].map((n) => [...all[n], zAt(all[n])]));
+      continue;
+    }
+    // Four corners and a ridge: gabled has its ends as walls, hipped slopes them back.
+    if (outer.length === 4 && ["gabled", "hipped", "half-hipped", "gambrel", "saltbox", "mansard", "round"].includes(shape)) {
+      const sides = outer.map((p, i) => Math.hypot(outer[(i + 1) % 4][0] - p[0], outer[(i + 1) % 4][1] - p[1]));
+      let k = sides[0] + sides[2] >= sides[1] + sides[3] ? 0 : 1;
+      if (part.roof_orientation === "across") k = 1 - k;
+      const [A, B, C, D] = [0, 1, 2, 3].map((n) => outer[(n + k) % 4]);
+      const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      const m1 = mid(D, A), m2 = mid(B, C);
+      const along = Math.hypot(m2[0] - m1[0], m2[1] - m1[1]), across = (sides[(k + 1) % 4] + sides[(k + 3) % 4]) / 2;
+      const inset = shape === "gabled" || shape === "round" || shape === "saltbox" || shape === "gambrel" ? 0
+        : shape === "half-hipped" ? Math.min(across / 4, along / 2) : Math.min(across / 2, along / 2);
+      const t = along > 0 ? inset / along : 0;
+      const R1 = [m1[0] + (m2[0] - m1[0]) * t, m1[1] + (m2[1] - m1[1]) * t, partTop];
+      const R2 = [m2[0] + (m1[0] - m2[0]) * t, m2[1] + (m1[1] - m2[1]) * t, partTop];
+      const e = (p) => [...p, eave];
+      roofTri(e(A), e(B), R2); roofTri(e(A), R2, R1);
+      roofTri(e(C), e(D), R1); roofTri(e(C), R1, R2);
+      if (inset < 0.01) { wallTri(B, C, R2, eave, storey); wallTri(D, A, R1, eave, storey); }
+      else { roofTri(e(B), e(C), R2); roofTri(e(D), e(A), R1); }
+      continue;
+    }
+    // A dome is rings drawn in toward the middle; anything else comes to a point.
+    const [cx, cy] = (() => {
+      let sx = 0, sy = 0;
+      for (const p of outer) { sx += p[0]; sy += p[1]; }
+      return [sx / outer.length, sy / outer.length];
+    })();
+    const steps = shape === "dome" || shape === "onion" || shape === "round" ? 6 : 1;
+    let previous = outer.map((p) => [p[0], p[1], eave]);
+    for (let s = 1; s <= steps; s += 1) {
+      const angle = (s / steps) * Math.PI / 2;
+      const f = steps === 1 ? 0 : Math.cos(angle), z = eave + roofH * (steps === 1 ? 1 : Math.sin(angle));
+      const ring = s === steps ? null : outer.map((p) => [cx + (p[0] - cx) * f, cy + (p[1] - cy) * f, z]);
+      for (let i = 0; i < outer.length; i += 1) {
+        const j = (i + 1) % outer.length;
+        if (!ring) roofTri(previous[i], previous[j], [cx, cy, partTop]);
+        else { roofTri(previous[i], previous[j], ring[j]); roofTri(previous[i], ring[j], ring[i]); }
+      }
+      previous = ring;
+    }
+  }
+  if (!caps.length && !walls.length) return null;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute([...caps, ...walls], 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute([...capUv, ...wallUv], 2));
+  geometry.addGroup(0, caps.length / 3, 0);
+  geometry.addGroup(caps.length / 3, walls.length / 3, 1);
+  geometry.computeVertexNormals();
+  return { geometry, top };
+}
+
 function buildingMesh(feature) {
   // A station under the street has no walls above it.
   if (feature.underground) return null;
@@ -15351,6 +15604,9 @@ function buildingMesh(feature) {
     height = Math.min(height, Math.max(2.6, Math.min(OUTBUILDING_MAX_M,
                                                      1.05 * Math.sqrt(Math.max(areaM2, 1)))));
   }
+  // Drawn as its parts where OpenStreetMap maps them, and as tall as the tallest of them.
+  const shaped = feature.shape && kind === "building" ? shapedBuildingGeometry(feature, height) : null;
+  if (shaped) height = shaped.top;
   // Seeded from the footprint, so a building keeps its material and colour between reloads.
   const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
   // A building stands on the hill at the height the lidar measured the ground there -- the
@@ -15366,15 +15622,15 @@ function buildingMesh(feature) {
     if (hillLift !== 0) archetype.position.y = hillLift;
     return archetype;
   }
-  const geom = new THREE.ExtrudeGeometry(shape, {
+  const geom = shaped ? shaped.geometry : new THREE.ExtrudeGeometry(shape, {
     depth: height, bevelEnabled: false, UVGenerator: FACADE_UV,
   });
-  geom.rotateX(-Math.PI / 2);
+  if (!shaped) geom.rotateX(-Math.PI / 2);
   if (hillLift !== 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
   // A house: a home with no shop in it. Its walls carry no painted windows; its real windows are
   // drawn on them (homeWindowLayout), the same ones its shell opens when the walker is there.
   const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
-    && !hasStorefront(feature);
+    && !hasStorefront(feature) && !shaped;
   const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
                                 feature.osm_id, isHome, feature);
   const style = ARCHETYPE_STYLE[feature.archetype];
@@ -15413,7 +15669,12 @@ function buildingMesh(feature) {
   // which is sRGB 0.50 -- so a dark roof was not being stopped from going black, it was being
   // pushed up to mid grey, and every roof in the city ended up the same pale tone.
   const roofTint = new THREE.Color(tint);
-  {
+  // Where the aerial photograph saw this roof in sun, its colour is the roof's own
+  // (scripts/build_ortho_roofs.py): tar, gravel, white membrane, clay tile.
+  const roofRead = roofReadingFor(feature);
+  if (roofRead) {
+    roofTint.set(roofRead.c);
+  } else {
     const hsl = {};
     roofTint.getHSL(hsl, THREE.SRGBColorSpace);
     roofTint.setHSL(hsl.h, hsl.s, Math.max(ROOF_LIGHTNESS_FLOOR, hsl.l * 0.86),
@@ -15460,7 +15721,22 @@ function buildingMesh(feature) {
   const wallColour = material.photoLabel && !PAINTABLE_PHOTO_CLASSES.has(material.photoLabel)
     ? new THREE.Color(0xffffff).lerp(new THREE.Color(tint), 0.22)
     : new THREE.Color(tint);
-  const appearanceBands=facadeAppearanceBands(feature,{material,seed,tint:wallColour.getHex(),height,bottom:0,top:height});
+  let appearanceBands=facadeAppearanceBands(feature,{material,seed,tint:wallColour.getHex(),height,bottom:0,top:height});
+  // A house is one colour: its bands' sampled colours averaged over their heights (in linear
+  // light, where averaging means something), each already lifted for the camera's exposure.
+  if (isHome && appearanceBands.length > 1) {
+    const mean = new THREE.Color(0, 0, 0);
+    let span = 0;
+    for (const band of appearanceBands) {
+      const h = Math.max(0, band.top - band.bottom), c = new THREE.Color(band.tint);
+      mean.r += c.r * h; mean.g += c.g * h; mean.b += c.b * h; span += h;
+    }
+    if (span > 0) {
+      mean.multiplyScalar(1 / span);
+      appearanceBands = appearanceBands.map((band) => ({ ...band, tint: mean.getHex() }));
+      wallColour.setHex(mean.getHex());
+    }
+  }
   if (isHome) {
     const id = String(feature.osm_id);
     // Which way round ExtrudeGeometry walked the outline (it makes every outline clockwise):
@@ -15528,7 +15804,9 @@ function buildingMesh(feature) {
     addSouthFacadeDetail(group, feature, seed, height);
     photoDetailParts(group, feature);
     photoOpeningParts(group,feature,!isHome);
-    addRoofFurniture(group, feature, seed, height, areaM2);
+    // Plant and solar want a flat roof the size of the outline, which a building in parts or
+    // with a courtyard does not have.
+    if (!shaped) addRoofFurniture(group, feature, seed, height, areaM2);
     addShopfronts(feature, seed, height, tint);
     addBuildingNamePlaque(group, feature, seed, height, tint);
   }
@@ -18780,6 +19058,16 @@ function roadwayCovered(x, z) {
     || (pavementTopAt(x, z) || 0) > 0 || filledAt(x, z);
 }
 
+//: The islands the aerial photographs decided (scripts/build_ortho_islands.py), as x/z rings:
+//: the survey's ring where the photograph saw it raised, the photograph's own outline where the
+//: survey left only pieces, and a ring the survey closed that the photograph could not see. Where
+//: there are such islands, they are the region's islands: the fill no longer strings ragged
+//: strips between fragments of kerb.
+const ISLAND_RINGS = ORTHO_ISLANDS?.schema === "kerbside.islands/1" ? (ORTHO_ISLANDS.islands || [])
+  .filter((island) => island.basis !== "survey_unconfirmed" || island.closed_in_survey)
+  .map((island) => island.p.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }))
+  .filter((ring) => ring.length >= 4) : null;
+
 function fillRoadwayToKerbs() {
   if (!officialCurbGrid.size) return { asphalt: 0, islands: 0, lines: 0 };
   const asphalt = { positions: [], uvs: [], index: [] };
@@ -18872,7 +19160,7 @@ function fillRoadwayToKerbs() {
           const width = t1 - t0;
           const kerbed = (t) => islands.some((v) => Math.abs(v - t) <= 0.45);
           const run = { t0, t1, a: at(t0, 0), b: at(t1, 0), halfStep, at,
-                        island: width >= ROAD_FILL_ISLAND_MIN_M && kerbed(t0) && kerbed(t1), line: null };
+                        island: !ISLAND_RINGS && width >= ROAD_FILL_ISLAND_MIN_M && kerbed(t0) && kerbed(t1), line: null };
           if (!run.island) {
             // A line where two carriageways meet across the strip.
             const left = carriagewaySourceAt(...at(t0 - 0.35, 0));
@@ -18964,8 +19252,8 @@ const roadwayFilled = fillRoadwayToKerbs();
 
 function addClosedOfficialIslandSurfaces() {
   let laid = 0;
-  for (const line of OFFICIAL_GEOMETRY.curb_lines || []) {
-    const ring = closedOfficialIslandRing(line);
+  const rings = ISLAND_RINGS || (OFFICIAL_GEOMETRY.curb_lines || []).map(closedOfficialIslandRing);
+  for (const ring of rings) {
     if (!ring) continue;
     // The closed official curb is the physical evidence. Do not reject it using
     // the approximate OSM carriageway ribbon, which can miss small junction islands.
@@ -21739,6 +22027,8 @@ const groundReady = (async () => {
     for (const part of proto.children) {
       const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length-clipping.filter(Boolean).length);
       mesh.userData.surface = `tree:${kind}`;   // named for the tile exporter and the audit
+      // Each tree's own basis, by instance: a lidar crown is measured, an inventory point mapped.
+      mesh.userData.instanceBasis = [];
       let instance=0;const clipped=[];
       for (let i = 0; i < list.length; i += 1) {
         const tree = list[i];
@@ -21759,7 +22049,8 @@ const groundReady = (async () => {
           const result=vegetationLibrary.clipOutsidePrisms(attributes,clipping[i]);baked.dispose();
           if(result.position.length){const g=new THREE.BufferGeometry();for(const [name,values] of Object.entries(result))g.setAttribute(name,new THREE.Float32BufferAttribute(values,attributes[name].size));
             g.computeBoundingSphere();clipped.push(g);}
-        }else mesh.setMatrixAt(instance++, dummy.matrix);
+        }else{mesh.setMatrixAt(instance++, dummy.matrix);
+          mesh.userData.instanceBasis.push(tree.src ? `measured (${tree.src.replace(/_/g, " ")})` : "mapped (city tree inventory)");}
       }
       mesh.instanceMatrix.needsUpdate = true;
       if(mesh.count)groups.ground.add(mesh);
@@ -28063,11 +28354,39 @@ function walkerFootprintBlocked(x, z) {
   return false;
 }
 
+// What is within the interaction radius of the walker, from the object catalogue: solid where
+// it is at body height (a pole, a trunk, a bench, a fence), passed through slowed where it is
+// soft (a shrub), and described in the Nearby panel -- one radius for both.
+var objectProximity = null;
+objectCatalogueReady.then((ready) => {
+  if (!ready) return;
+  objectProximity = ready.library.createProximity({ THREE, catalogue: ready.catalogue,
+    roots: () => [root, activeGuest?.ready ? activeGuest.root : null] });
+  window.kerbsideNearby = () => ({ radius_m: objectProximity.radius, ...objectProximity.stats(),
+    nearby: objectProximity.nearby(), unresolved: objectProximity.unresolved() });
+});
+//: Where the walker may go when (toX, toZ) is inside a thing: along one axis or the other, so it
+//: slides round a pole rather than stopping dead on it. Null if neither is clear.
+function slidePastObjects(fromX, fromZ, toX, toZ, belowBuildings) {
+  const clear = (x, z) => !objectProximity.blocked(x, z, WALKER_RADIUS_M)
+    && (belowBuildings || (activeGuest?.ready ? true : !walkerFootprintBlocked(x, z)));
+  if (clear(toX, fromZ)) return [toX, fromZ];
+  if (clear(fromX, toZ)) return [fromX, toZ];
+  return null;
+}
+
 // Move the walker by (mx, mz), in steps short enough that no wall is crossed between checks,
 // sliding along whatever it meets.
 //: The walker's width against deadwood on the forest floor.
 const WALKER_DEADWOOD_RADIUS_M = 0.25;
 function moveWalker(mx, mz) {
+  const objects = typeof objectProximity !== "undefined" ? objectProximity : null;
+  if (objects) {
+    const standing = walkerFeetY();
+    objects.update(avatar.position.x, Number.isFinite(standing) ? standing : avatar.position.y, avatar.position.z);
+    const slow = objects.speedAt(avatar.position.x, avatar.position.z, WALKER_RADIUS_M);
+    mx *= slow; mz *= slow;
+  }
   const distance = Math.hypot(mx, mz);
   const steps = Math.max(1, Math.ceil(distance / WALK_SUBSTEP_M));
   const segments = wallSegmentsNear(avatar.position.x + mx / 2, avatar.position.z + mz / 2);
@@ -28104,8 +28423,16 @@ function moveWalker(mx, mz) {
     const wood = !belowBuildings && typeof natureWorld !== "undefined" && natureWorld?.deadwoodBlocked;
     if (wood && natureWorld.deadwoodBlocked(nextX, nextZ, WALKER_DEADWOOD_RADIUS_M)
         && !natureWorld.deadwoodBlocked(p.x, p.z, WALKER_DEADWOOD_RADIUS_M)) break;
-    p.x = nextX;
-    p.z = nextZ;
+    let toX = nextX, toZ = nextZ;
+    // Poles, trunks (measured or inferred alike), benches and fences at body height. One already
+    // inside one -- arrived by a teleport -- may walk out of it.
+    if (objects && objects.blocked(toX, toZ, WALKER_RADIUS_M) && !objects.blocked(p.x, p.z, WALKER_RADIUS_M)) {
+      const slide = slidePastObjects(p.x, p.z, toX, toZ, belowBuildings);
+      if (!slide) break;
+      [toX, toZ] = slide;
+    }
+    p.x = toX;
+    p.z = toZ;
     if (typeof walkerGroundAt === "function") feet=walkerGroundAt(p.x,p.z,feet);
   }
   const moved = Math.hypot(p.x - avatar.position.x, p.z - avatar.position.z);
@@ -28115,6 +28442,37 @@ function moveWalker(mx, mz) {
     avatar.position.y=AVATAR_STAND_Y+feet;
   }
   return moved;
+}
+
+// ---- nearby: what is round the walker, within the same radius that makes it solid ----------
+const NEARBY_VERB = { go_around: "go around", step_over: "step over", climb_over: "climb over or go around",
+  walk_under: "walk under", pass_through: "walk through", enter: "enter by its door", walk_on: "walk on", swim: "swim" };
+if (!ATTACH && !HEADSET) {
+  const panel = document.createElement("div");
+  panel.id = "nearby";
+  panel.hidden = true;
+  document.body.appendChild(panel);
+  setInterval(() => {
+    if (!objectProximity || !state.firstPerson) { panel.hidden = true; return; }
+    const rows = objectProximity.nearby(4);
+    if (!rows.length) { panel.hidden = true; return; }
+    panel.replaceChildren();
+    const head = document.createElement("div");
+    head.className = "head";
+    head.textContent = `Nearby · within ${objectProximity.radius} m`;
+    panel.append(head);
+    for (const r of rows) {
+      const row = document.createElement("div"), sub = document.createElement("div");
+      row.className = "row";
+      sub.className = "sub";
+      row.textContent = `${r.name} · ${r.distance_m} m · ${NEARBY_VERB[r.traversal] || r.traversal}`;
+      sub.textContent = [r.material, r.friction && `grip ${r.friction.dynamic.toFixed(2)} (wet ${r.friction.wet.toFixed(2)})`,
+        r.basis].filter(Boolean).join(" · ");
+      row.append(sub);
+      panel.append(row);
+    }
+    panel.hidden = false;
+  }, 500);
 }
 
 // ---- doors -------------------------------------------------------------------------------------
@@ -34046,6 +34404,7 @@ function releaseModuleScope() {
   try { tileLastAt = null; } catch (error) { /* kept */ }
   try { tileFrame_ = null; } catch (error) { /* kept */ }
   try { BUILDING_VISUAL_ID = null; } catch (error) { /* kept */ }
+  try { HOUSE_FLAT_WALL = null; } catch (error) { /* kept */ }
   try { facadeInFlight = null; } catch (error) { /* kept */ }
   try { drawnGroundRay = null; } catch (error) { /* kept */ }
   try { PARKING_ASPHALT = null; } catch (error) { /* kept */ }
@@ -34083,6 +34442,7 @@ function releaseModuleScope() {
   try { HOME_OPENINGS_SETTLED = null; } catch (error) { /* kept */ }
   try { generatedInteriorModules = null; } catch (error) { /* kept */ }
   try { interiorsRequested = null; } catch (error) { /* kept */ }
+  try { objectProximity = null; } catch (error) { /* kept */ }
   try { hintText = null; } catch (error) { /* kept */ }
   try { enteredEntry = null; } catch (error) { /* kept */ }
   try { indoorCutEntry = null; } catch (error) { /* kept */ }
@@ -34147,6 +34507,7 @@ function releaseModuleScope() {
   try { PAINTABLE_PHOTO_CLASSES.clear(); } catch (error) { /* kept */ }
   try { FACADE_CACHE.clear(); } catch (error) { /* kept */ }
   try { bareWallMaps.clear(); } catch (error) { /* kept */ }
+  try { HOUSE_PATTERNED_CLASSES.clear(); } catch (error) { /* kept */ }
   try { ROOF_CACHE.clear(); } catch (error) { /* kept */ }
   try { SOUTH_WINDOW_CACHE.clear(); } catch (error) { /* kept */ }
   try { ENTRY_CACHE.clear(); } catch (error) { /* kept */ }

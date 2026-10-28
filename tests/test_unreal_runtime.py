@@ -130,10 +130,14 @@ def test_import_axis_probe_matches_known_glTF_conversion_and_rejects_bad_scale(m
 
 def test_collision_semantics_include_ramps_fences_not_paint_or_borrowed_scans(monkeypatch):
     module = load_editor_helpers(monkeypatch)
-    for name in ("curb_ramp", "front_walk", "fence:chainlink", "median", "tunnel_walk", "building", "terrain"):
+    for name in ("curb_ramp", "front_walk", "fence:chainlink", "median", "tunnel_walk", "building", "terrain",
+                 "tree:street", "nature_tree", "furniture:street_light", "pier", "court"):
         assert module.blocks(name), name
-    for name in ("tactile_warning", "marking", "crossing", "detail", "tree:street", "scanned_interior"):
+    for name in ("tactile_warning", "marking", "crossing", "detail", "foliage:street", "scanned_interior",
+                 "house_window", "awning:band", "furniture:overhead_wire"):
         assert not module.blocks(name), name
+    with pytest.raises(ValueError, match=r"not in docs/object-catalogue\.json"):
+        module.blocks("no_such_surface")
     available = {"road": 10, "building": 20, "curb_ramp": 4}
     assert module.canonical_surface("building_2", available) == "building"
     assert module.canonical_surface("curb_ramp", available) == "curb_ramp"
@@ -239,3 +243,50 @@ def test_native_acceptance_checks_report_not_engine_exit_code(tmp_path):
     path.write_text(json.dumps(report))
     with pytest.raises(ValueError, match="Native acceptance"):
         module.validate_report(path)
+
+
+def test_walker_uses_the_object_catalogues_radius_step_and_shadows():
+    """The native walker's step and its Nearby radius are the catalogue's; the sun keeps its shadows."""
+    from smc.world import catalogue
+
+    player = catalogue.load()["player"]
+    actors = (ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldActors.cpp").read_text()
+    header = (ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Public/KerbsideWorldActors.h").read_text()
+    assert f"MaxStepHeight = {player['step_height_m'] * 100:g}.f" in actors
+    assert f"float RadiusCm = {player['interaction_radius_m'] * 100:g}.f;" in header
+    assert "CreateDefaultSubobject<UKerbsideNearbyComponent>" in actors
+    sky = (ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideCelestialSky.cpp").read_text()
+    assert "Light->SetCastShadows(true);" in sky
+    importer = (ROOT / "tools/unreal/setup_world.py").read_text()
+    assert 'component.set_cast_shadow(any(k["shadow"]["casts"] for k in kinds))' in importer
+    assert "set_phys_material_override" in importer
+
+
+def test_rain_wets_the_street_not_the_rooms_and_wet_friction_is_the_catalogues(monkeypatch):
+    """Weather reacts through the catalogue: what may get wet, and how slippery it gets."""
+    module = load_editor_helpers(monkeypatch)
+    spec = importlib.util.spec_from_file_location("weather_setup", ROOT / "tools/unreal/weather_setup.py")
+    weather = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(weather)
+    for surface in ("road", "curb_ramp", "building", "tree:street", "furniture:street_light", "marking"):
+        assert weather.receives_wet(module.archetype(surface)), surface
+    for surface in ("scanned_interior", "house_window"):
+        assert not weather.receives_wet(module.archetype(surface)), surface
+    importer = (ROOT / "tools/unreal/setup_world.py").read_text()
+    assert 'set_editor_property("wet_friction", values["wet_friction"])' in importer
+    assert "unreal.KerbsidePhysicalMaterial" in importer and "place_decals" in importer
+    source = ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld"
+    sky = (source / "Private/KerbsideCelestialSky.cpp").read_text()
+    assert "UKerbsidePhysicalMaterial::WetAll(Wetness)" in sky and 'TEXT("Layout_CloudType")' in sky
+    assert '"/Game/KerbsideRuntime/Weather/MPC_KerbsideWeather.MPC_KerbsideWeather"' in sky
+    assert weather.MPC == "/Game/KerbsideRuntime/Weather/MPC_KerbsideWeather"
+
+
+def test_the_walker_wears_a_default_character_and_grips_by_the_ground():
+    source = ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld"
+    header = (source / "Public/KerbsideWorldActors.h").read_text()
+    actors = (source / "Private/KerbsideWorldActors.cpp").read_text()
+    assert "UCLASS(Blueprintable, Config=Game)" in header and "UPROPERTY(Config" in header
+    assert "PickCharacter(RosterNames, Roster.Num(), Asked, FMath::Rand())" in actors
+    assert "SetLeaderPoseComponent(GetMesh())" in actors, "a MetaHuman follows the walker's animation"
+    assert "Move->GroundFriction = BaseGroundFriction * Grip" in actors

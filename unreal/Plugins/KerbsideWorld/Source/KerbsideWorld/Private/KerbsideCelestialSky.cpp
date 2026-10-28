@@ -1,4 +1,6 @@
 #include "KerbsideCelestialSky.h"
+#include "KerbsidePhysicalMaterial.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -27,7 +29,8 @@
 namespace
 {
     // The order K steps through them.
-    const FName WeatherOrder[] = {"sunny", "partly_cloudy", "cloudy", "fog", "rain"};
+    const FName WeatherOrder[] = {"sunny", "fair", "partly_cloudy", "high_cloud", "mackerel", "cloudy", "fog",
+                                  "drizzle", "rain", "storm"};
     // Calm, a breeze, the summer afternoon westerly at its height, a winter gale.
     const float WindSteps[] = {0.f, 4.f, 9.f, 16.f};
 
@@ -57,19 +60,67 @@ FKerbsideWeatherLook FKerbsideWeatherLook::Lerp(const FKerbsideWeatherLook& A, c
     Out.FogDensity = FMath::Lerp(A.FogDensity, B.FogDensity, T);
     Out.FogHeightFalloff = FMath::Lerp(A.FogHeightFalloff, B.FogHeightFalloff, T);
     Out.Rain = FMath::Lerp(A.Rain, B.Rain, T);
+    Out.CloudTypes = FMath::Lerp(A.CloudTypes, B.CloudTypes, T);
+    Out.CloudBase = FMath::Lerp(A.CloudBase, B.CloudBase, T);
+    Out.CloudDepth = FMath::Lerp(A.CloudDepth, B.CloudDepth, T);
     return Out;
 }
 
 bool AKerbsideCelestialSky::LookFor(FName Name, FKerbsideWeatherLook& Look)
 {
     Look = FKerbsideWeatherLook();
-    if (Name == "sunny") { Look.CloudCoverage = 0.f; Look.FogDensity = .002f; return true; }
-    if (Name == "partly_cloudy") { Look.CloudCoverage = .45f; Look.FogDensity = .003f; return true; }
-    if (Name == "cloudy") { Look.CloudCoverage = .95f; Look.CloudDensity = 1.2f; Look.FogDensity = .006f; return true; }
-    // The marine layer: a low, dense bank that thins with height, under an overcast.
-    if (Name == "fog") { Look.CloudCoverage = .9f; Look.FogDensity = .045f; Look.FogHeightFalloff = .06f; return true; }
-    if (Name == "rain") { Look.CloudCoverage = 1.f; Look.CloudDensity = 1.6f; Look.FogDensity = .02f; Look.Rain = 1.f; return true; }
+    auto Sky = [&Look](float Coverage, float Density, FLinearColor Types, float Base, float Depth)
+    {
+        Look.CloudCoverage = Coverage; Look.CloudDensity = Density; Look.CloudTypes = Types;
+        Look.CloudBase = Base; Look.CloudDepth = Depth;
+    };
+    if (Name == "sunny") { Sky(0.f, 1.f, FLinearColor(1.f, 0.f, 0.f, 0.f), 1.f, 1.f); Look.FogDensity = .002f; return true; }
+    // Fair-weather cumulus: separate low heaps with blue between them.
+    if (Name == "fair") { Sky(.32f, .9f, FLinearColor(1.f, 0.f, 0.f, 0.f), .6f, .6f); Look.FogDensity = .0025f; return true; }
+    if (Name == "partly_cloudy") { Sky(.45f, 1.f, FLinearColor(1.f, .4f, .3f, 0.f), 1.f, 1.f); Look.FogDensity = .003f; return true; }
+    // Cirrus and cirrostratus: thin high ice, the sun still bright through it.
+    if (Name == "high_cloud") { Sky(.55f, .35f, FLinearColor(0.f, 0.f, 1.f, 0.f), 1.6f, .4f); Look.FogDensity = .0025f; return true; }
+    // A mackerel sky: the mid-level sheet broken into ripples.
+    if (Name == "mackerel") { Sky(.62f, .7f, FLinearColor(0.f, 1.f, .2f, 0.f), 1.2f, .5f); Look.FogDensity = .003f; return true; }
+    if (Name == "cloudy") { Sky(.95f, 1.2f, FLinearColor(1.f, 1.f, 0.f, 0.f), .7f, 1.f); Look.FogDensity = .006f; return true; }
+    // The marine layer: a low, dense bank that thins with height, under a low overcast.
+    if (Name == "fog") { Sky(.9f, 1.f, FLinearColor(1.f, 0.f, 0.f, 0.f), .35f, .5f); Look.FogDensity = .045f; Look.FogHeightFalloff = .06f; return true; }
+    if (Name == "drizzle") { Sky(1.f, 1.3f, FLinearColor(1.f, 1.f, 0.f, 0.f), .45f, .8f); Look.FogDensity = .012f; Look.Rain = .25f; return true; }
+    if (Name == "rain") { Sky(1.f, 1.6f, FLinearColor(.5f, 0.f, 0.f, 1.f), .6f, 1.f); Look.FogDensity = .02f; Look.Rain = 1.f; return true; }
+    // A winter storm off the Pacific: the rain deck thick and low, the air full of it.
+    if (Name == "storm") { Sky(1.f, 2.2f, FLinearColor(0.f, 0.f, 0.f, 1.f), .5f, 1.5f); Look.FogDensity = .03f; Look.Rain = 1.f; return true; }
     return false;
+}
+
+float AKerbsideCelestialSky::NextWetness(float Wet, float Rain, float FogDensity, float DeltaSeconds, float Soak, float Dry)
+{
+    Wet = FMath::Clamp(Wet, 0.f, 1.f);
+    if (Rain > .01f) return FMath::Min(1.f, Wet + DeltaSeconds * Rain / FMath::Max(Soak, 1.f));
+    // A fog bank wets what it touches only so far: damp pavement, not puddles.
+    const float Damp = FogDensity > .015f ? .2f : 0.f;
+    if (Wet <= Damp) return FMath::Min(Damp, Wet + DeltaSeconds * .1f / FMath::Max(Soak, 1.f));
+    return FMath::Max(Damp, Wet - DeltaSeconds / FMath::Max(Dry, 1.f));
+}
+
+void AKerbsideCelestialSky::SetWetness(float NewWetness)
+{
+    Wetness = FMath::Clamp(NewWetness, 0.f, 1.f);
+    ShowWetness();
+}
+
+void AKerbsideCelestialSky::ShowWetness()
+{
+    // Friction is re-sent to physics only when it has changed enough to feel.
+    if (FMath::Abs(Wetness - ShownWetness) < .01f) return;
+    ShownWetness = Wetness;
+    UKerbsidePhysicalMaterial::WetAll(Wetness);
+    if (!WeatherCollection)
+    {
+        if (WeatherParameters.IsNull()) return;
+        WeatherCollection = WeatherParameters.LoadSynchronous();
+        if (!WeatherCollection) { WeatherParameters.Reset(); return; }
+    }
+    UKismetMaterialLibrary::SetScalarParameterValue(this, WeatherCollection, TEXT("Wetness"), Wetness);
 }
 
 TArray<FName> AKerbsideCelestialSky::WeatherNames()
@@ -97,6 +148,8 @@ AKerbsideCelestialSky::AKerbsideCelestialSky(const FObjectInitializer& Init) : S
     SetRunDayCycle(false); // Wall clock, not an accelerated game-time loop.
     FoliageParameters = TSoftObjectPtr<UMaterialParameterCollection>(
         FSoftObjectPath(TEXT("/Game/KerbsideRuntime/Foliage/MPC_KerbsideFoliage.MPC_KerbsideFoliage")));
+    WeatherParameters = TSoftObjectPtr<UMaterialParameterCollection>(
+        FSoftObjectPath(TEXT("/Game/KerbsideRuntime/Weather/MPC_KerbsideWeather.MPC_KerbsideWeather")));
 
     RainStreaks = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("RainStreaks"));
     if (USceneComponent* Root = GetRootComponent()) RainStreaks->SetupAttachment(Root);
@@ -189,7 +242,16 @@ void AKerbsideCelestialSky::ShowLook(const FKerbsideWeatherLook& Look)
             // Parameter names from Epic's bundled m_SimpleVolumetricCloud_TOD material.
             CloudMaterial->SetScalarParameterValue(TEXT("Cloud_GlobalCoverage"), Look.CloudCoverage);
             CloudMaterial->SetScalarParameterValue(TEXT("Cloud_GlobalDensity"), Look.CloudDensity);
+            CloudMaterial->SetVectorParameterValue(TEXT("Layout_CloudType"), Look.CloudTypes);
         }
+        // The layer's height as the vault set it is the reference; a weather raises or lowers it.
+        if (VaultCloudBaseKm < 0.f)
+        {
+            VaultCloudBaseKm = VolumetricCloudComponent->LayerBottomAltitude;
+            VaultCloudDepthKm = VolumetricCloudComponent->LayerHeight;
+        }
+        VolumetricCloudComponent->SetLayerBottomAltitude(FMath::Max(.1f, VaultCloudBaseKm * Look.CloudBase));
+        VolumetricCloudComponent->SetLayerHeight(FMath::Max(.2f, VaultCloudDepthKm * Look.CloudDepth));
     }
     if (ExponentialHeightFogComponent)
     {
@@ -266,12 +328,28 @@ void AKerbsideCelestialSky::UpdateRain(float DeltaSeconds)
 void AKerbsideCelestialSky::BeginPlay()
 {
     Super::BeginPlay();
+    // The sun and moon of Epic's vault are the city's shadow casters (virtual shadow maps,
+    // r.Shadow.Virtual.Enable in the managed config): never let a preset turn them off.
+    TArray<UDirectionalLightComponent*> Lights;
+    GetComponents<UDirectionalLightComponent>(Lights, true);
+    for (UDirectionalLightComponent* Light : Lights)
+    {
+        Light->SetCastShadows(true);
+        Light->bCastDeepShadow = true;
+        Light->SetDynamicShadowCascades(4);
+    }
     SyncClock();
     FString Named;
     if (FParse::Value(FCommandLine::Get(), TEXT("KerbsideWeather="), Named)) Weather = FName(*Named);
     float Wind = 0.f;
     if (FParse::Value(FCommandLine::Get(), TEXT("KerbsideWind="), Wind)) WindSpeed = FMath::Clamp(Wind, 0.f, 40.f);
+    float Wet = -1.f;
+    // -KerbsideWetness=<0..1> starts the city that wet (a shot of wet streets without waiting).
+    if (FParse::Value(FCommandLine::Get(), TEXT("KerbsideWetness="), Wet)) Wetness = FMath::Clamp(Wet, 0.f, 1.f);
+    else if (Weather == "rain" || Weather == "storm") Wetness = 1.f;
+    else if (Weather == "drizzle") Wetness = .6f;
     ApplyWeather();
+    ShowWetness();
     FString Shot;
     if (FParse::Value(FCommandLine::Get(), TEXT("KerbsideShot="), Shot))
     {
@@ -322,6 +400,8 @@ void AKerbsideCelestialSky::Tick(float DeltaSeconds)
     Current = FKerbsideWeatherLook::Lerp(Current, Target, T);
     ShowLook(Current);
     UpdateRain(DeltaSeconds);
+    Wetness = NextWetness(Wetness, Current.Rain, Current.FogDensity, DeltaSeconds, SoakSeconds, DrySeconds);
+    ShowWetness();
     ShowFoliage();
 }
 
@@ -364,7 +444,7 @@ namespace
 
     FAutoConsoleCommandWithWorldAndArgs WeatherCommand(
         TEXT("Kerbside.Weather"),
-        TEXT("Kerbside.Weather <sunny|partly_cloudy|cloudy|fog|rain>: blend the sky to that weather."),
+        TEXT("Kerbside.Weather <sunny|fair|partly_cloudy|high_cloud|mackerel|cloudy|fog|drizzle|rain|storm>: blend the sky to that weather."),
         FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
         {
             ForEachSky(World, [&](AKerbsideCelestialSky& Sky)
@@ -372,6 +452,17 @@ namespace
                 if (!Args.Num()) { Sky.CycleWeather(); return; }
                 if (!Sky.SetWeather(FName(*Args[0])))
                     UE_LOG(LogTemp, Warning, TEXT("Kerbside.Weather: no weather called %s"), *Args[0]);
+            });
+        }));
+
+    FAutoConsoleCommandWithWorldAndArgs WetnessCommand(
+        TEXT("Kerbside.Wetness"),
+        TEXT("Kerbside.Wetness <0..1>: how wet the streets are now; the weather wets or dries them from there."),
+        FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+        {
+            ForEachSky(World, [&](AKerbsideCelestialSky& Sky)
+            {
+                Sky.SetWetness(Args.Num() ? FCString::Atof(*Args[0]) : (Sky.Wetness > .5f ? 0.f : 1.f));
             });
         }));
 

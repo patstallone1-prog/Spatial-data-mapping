@@ -38,6 +38,7 @@ from scipy.spatial import cKDTree  # noqa: E402
 
 from smc.ground.exclusion import RoadMask  # noqa: E402
 from smc.imagery.naip import Vegetation  # noqa: E402
+from smc.imagery.ortho import OrthoVegetation  # noqa: E402
 
 SAME_TREE_M = 4.0
 #: The aerial check: this share of the disc round a crown must be leaves. The disc reaches
@@ -140,8 +141,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("regions", nargs="+")
     args = ap.parse_args()
-    veg = Vegetation(ROOT / "build" / "naip")
+    naip = Vegetation(ROOT / "build" / "naip")
     for region in args.regions:
+        # The region's own aerial photographs where it has them (scripts/fetch_ortho.py), sharper
+        # than NAIP's 0.6 m; NAIP's service beyond them.
+        photographed = (ROOT / "data" / "ortho" / region / "manifest.json").exists()
+        veg = OrthoVegetation(region, fallback=naip) if photographed else naip
         print(region, json.dumps(plant(region, veg)), flush=True)
     return 0
 

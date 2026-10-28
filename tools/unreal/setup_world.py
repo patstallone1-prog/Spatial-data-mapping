@@ -17,23 +17,66 @@ from pathlib import Path
 import unreal
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src"))
+from smc.world import catalogue as object_catalogue  # noqa: E402
+
+CATALOGUE = object_catalogue.load()
 REVISION = os.environ.get("KERBSIDE_WORLD_REVISION", "")
 if REVISION and not re.fullmatch(r"[A-Za-z0-9_]{1,48}", REVISION):
     raise ValueError("Invalid world revision")
 MAP_NAME = "City" + ("_" + REVISION if REVISION else "")
 LEVEL = "/Game/KerbsideRuntime/Maps/" + MAP_NAME
 CONTENT = "/Game/KerbsideRuntime/Tiles/" + MAP_NAME
-# Paint, windows, borrowed interiors and effects never create invisible collision walls.
-BLOCKING = {"road", "tunnel_floor", "tunnel_road", "tunnel_walk", "tunnel_portal",
-            "walk", "walk_narrow", "walk_underlay", "front_walk", "plaza", "service_yard",
-            "kerb", "curb_ramp", "median", "divider", "building", "garage", "roof",
-            "terrain", "yard", "park", "wall", "tunnel", "footprint", "tree_pit",
-            "furniture:post", "furniture:bike_rack", "furniture:cylinder", "bench"}
+PHYSICS = "/Game/KerbsideRuntime/Physics"
+
+
+def archetype(surface: str) -> dict:
+    """The surface's archetype in docs/object-catalogue.json; an unknown surface stops the import."""
+    found = object_catalogue.archetype(surface, CATALOGUE)
+    if found is None:
+        raise ValueError(f"Surface {surface!r} is not in docs/object-catalogue.json; catalogue it before importing")
+    return found
 
 
 def blocks(surface: str) -> bool:
-    name = surface.split("|")[0]
-    return name in BLOCKING or name.startswith("fence:")
+    """Whether the drawn mesh is solid to the walker (the catalogue's archetype stops a character).
+
+    Paint, leaves, awnings, signs overhead, borrowed interiors and effects never create invisible
+    walls; a window or facade trim is held by its wall (source "host"), not by its own pane. A
+    tree's bark is solid whether the tree was measured or inferred.
+    """
+    a = archetype(surface)
+    return "character" in a["collision"]["blocks"] and a["collision"]["source"] != "host"
+
+
+def physical_material(material_id: str, cache: dict):
+    """One KerbsidePhysicalMaterial per catalogue material: friction dry and wet, restitution and
+    density. The sky moves its friction toward the wet value as the streets soak."""
+    if material_id in cache:
+        return cache[material_id]
+    values = object_catalogue.physical_material(material_id, CATALOGUE)
+    name = "PMK_" + re.sub(r"[^A-Za-z0-9_]", "_", material_id)
+    path = f"{PHYSICS}/{name}"
+    if unreal.EditorAssetLibrary.does_asset_exist(path):
+        asset = unreal.EditorAssetLibrary.load_asset(path)
+    else:
+        factory = unreal.PhysicalMaterialFactoryNew()
+        factory.set_editor_property("physical_material_class", unreal.KerbsidePhysicalMaterial.static_class())
+        asset = unreal.AssetToolsHelpers.get_asset_tools().create_asset(
+            name, PHYSICS, unreal.KerbsidePhysicalMaterial, factory)
+    if asset is None:
+        raise RuntimeError(f"Could not create physical material {path}")
+    asset.set_editor_property("catalogue_material", material_id)
+    asset.set_editor_property("dry_friction", values["friction"])
+    asset.set_editor_property("dry_static_friction", values["static_friction"])
+    asset.set_editor_property("wet_friction", values["wet_friction"])
+    asset.set_editor_property("friction", values["friction"])
+    asset.set_editor_property("static_friction", values["static_friction"])
+    asset.set_editor_property("restitution", values["restitution"])
+    asset.set_editor_property("density", max(values["density_g_cm3"], 0.001))
+    unreal.EditorAssetLibrary.save_loaded_asset(asset)
+    cache[material_id] = asset
+    return asset
 
 
 def canonical_surface(slot: str, available: dict) -> str:
@@ -151,10 +194,16 @@ def main() -> None:
     scene.apply_weather()
     meshes, colliders = 0, 0
     collision_audit = []
+    physics = {}
+    archetype_counts: dict = {}
     # Leaves, bark, shrubs and litter get the wind-driven foliage material; lawns get grass.
     import foliage_setup
     foliage, clump = foliage_setup.ensure_assets(Path(unreal.Paths.project_saved_dir()) / "KerbsideFoliage")
     foliage_slots, grass_clumps = 0, 0
+    import weather_setup
+    weather = weather_setup.ensure_assets()
+    lo, hi = [math.inf] * 3, [-math.inf] * 3
+    kept_dry = 0
     spawn = None
     for tile in manifest["tiles"]:
         base = f"/Game/KerbsideRuntime/Tiles/City_{reuse}" if reuse else CONTENT
@@ -205,7 +254,24 @@ def main() -> None:
                 raise RuntimeError(f"Could not attach city mesh {mesh.get_name()}")
             component.set_collision_profile_name("BlockAll" if blocking else "NoCollision")
             component.set_simulate_physics(False)
-            component.set_cast_shadow(not all(s in {"marking", "crossing"} for s in surfaces))
+            # What it is, from the catalogue: its friction and bounce, whether it throws a shadow,
+            # and tags a game reads (kerbside.archetype:..., kerbside.material:..., ...).
+            kinds = [archetype(s) for s in surfaces]
+            if blocking:
+                component.set_phys_material_override(physical_material(kinds[0]["material"], physics))
+            component.set_cast_shadow(any(k["shadow"]["casts"] for k in kinds))
+            # Rain wets what is out in it: not rooms, water or glass (weather_setup.receives_wet).
+            wets = any(weather_setup.receives_wet(k) for k in kinds)
+            component.set_editor_property("receives_decals", wets)
+            kept_dry += int(not wets)
+            origin, extent = actor.get_actor_bounds(False)
+            for i, (o, e) in enumerate(((origin.x, extent.x), (origin.y, extent.y), (origin.z, extent.z))):
+                lo[i], hi[i] = min(lo[i], o - e), max(hi[i], o + e)
+            actor.set_editor_property("tags", [unreal.Name(tag) for tag in sorted(
+                {f"kerbside.{field}:{value}" for k in kinds for field, value in
+                 (("archetype", k["id"]), ("material", k["material"]), ("traversal", k["traversal"]))})])
+            for k in kinds:
+                archetype_counts[k["id"]] = archetype_counts.get(k["id"], 0) + 1
             foliage_slots += foliage_setup.dress_component(component, surfaces, foliage)
             unreal.EditorAssetLibrary.save_loaded_asset(mesh)
             meshes += 1
@@ -221,6 +287,10 @@ def main() -> None:
             spawn = tile["spawn_gltf_m"]
     if colliders == 0 or spawn is None:
         raise RuntimeError("No world collision or supported road spawn; refusing release")
+    # The wet film over everything the rain reaches, a little beyond the tiles.
+    centre = unreal.Vector(*[(a + b) / 2 for a, b in zip(lo, hi, strict=True)])
+    half = [(b - a) / 2 + 500 for a, b in zip(lo, hi, strict=True)]
+    weather_setup.place_decals(actors, weather, centre, half)
     # Probe-calibrated actor rotation makes world X=east, Y=south, Z=up in cm.
     start = actors.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(spawn[0] * 100, spawn[2] * 100, spawn[1] * 100 + 120))
     start.set_actor_label("Kerbside — road-grounded spawn")
@@ -243,7 +313,11 @@ def main() -> None:
               "static_colliders": colliders,
               "foliage_material_slots": foliage_slots, "grass_clumps": grass_clumps, "spawn_gltf_m": spawn, "import_yaw": yaw,
               "collision_triangle_audit": collision_audit,
-              "physics": "Chaos static triangle collision + CharacterMovement capsule",
+              "object_catalogue": {"version": CATALOGUE["version"], "physical_materials": sorted(physics),
+                                   "archetype_meshes": dict(sorted(archetype_counts.items()))},
+              "physics": "Chaos static triangle collision + CharacterMovement capsule; friction dry to wet with the weather",
+              "weather": {"wet_decals": 2, "meshes_kept_dry": kept_dry,
+                          "collection": weather_setup.MPC, "weathers": [str(n) for n in unreal.KerbsideCelestialSky.weather_names()]},
               "lighting": "Epic Celestial Vault sun/moon/clouds, SF live clock + realtime SkyLight + volumetric fog",
               "validation_state": "requires native walking/shadow/spawn acceptance; NOT release approved"}
     dest = Path(unreal.Paths.project_saved_dir()) / "KerbsideValidation/import.json"
