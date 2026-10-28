@@ -151,3 +151,5 @@ cloud/infra/terraform/*.tfstate*
 /Kerbside Quest/
 # Refreshable Google price evidence is a local cache, not permanent published map data.
 /data/restaurant-prices.json
+# Local residential program reviews are separate from the fixed acceptance cohort.
+/docs/inferred-residential/overrides/

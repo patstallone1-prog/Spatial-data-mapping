@@ -1,0 +1,1544 @@
+[
+  {
+    "id": "residential-duplex-one-floor",
+    "name": "Duplex One Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            15.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      }
+    ],
+    "households": 2,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-triplex-two-floors",
+    "name": "Triplex Two Floors",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            15.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 3,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-four-family",
+    "name": "Four Family",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 4,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-five-family",
+    "name": "Five Family",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 2.8
+      }
+    ],
+    "households": 5,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-five-one-floor",
+    "name": "Five One Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            25.0,
+            0.0
+          ],
+          [
+            25.0,
+            20.0
+          ],
+          [
+            0.0,
+            20.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            25.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      }
+    ],
+    "households": 5,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-rotated-four",
+    "name": "Rotated Four",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.728077655239046,
+            6.2516980558283795
+          ],
+          [
+            8.085648470921392,
+            21.900280564519868
+          ],
+          [
+            -6.6424291843176535,
+            15.648582508691486
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.728077655239046,
+            6.2516980558283795
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 4,
+    "entrance": [
+      0.7364038827619523,
+      0.312584902791419
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-setback-three",
+    "name": "Setback Three",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            18.0,
+            0.0
+          ],
+          [
+            18.0,
+            10.0
+          ],
+          [
+            13.0,
+            10.0
+          ],
+          [
+            13.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 3,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-one-car-attached",
+    "name": "One Car Attached",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            12.0,
+            0.0
+          ],
+          [
+            12.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            12.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 1,
+    "garage_mode": "room",
+    "garages": [
+      {
+        "id": "one-car-attached:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          12,
+          0
+        ],
+        "u": 4.7,
+        "w": 2.6,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0,
+        "v": -0.35
+      }
+    ]
+  },
+  {
+    "id": "residential-two-car-attached",
+    "name": "Two Car Attached",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 2,
+    "garage_mode": "room",
+    "garages": [
+      {
+        "id": "two-car-attached:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          14,
+          0
+        ],
+        "u": 4.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-three-car-floor",
+    "name": "Three Car Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 3,
+    "garage_mode": "floor",
+    "garages": [
+      {
+        "id": "three-car-floor:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          14,
+          0
+        ],
+        "u": 4.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-four-car-floor",
+    "name": "Four Car Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 2.8
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 4,
+    "garage_mode": "floor",
+    "garages": [
+      {
+        "id": "four-car-floor:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          14,
+          0
+        ],
+        "u": 4.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-apartments-with-parking",
+    "name": "Apartments With Parking",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 2.8
+      }
+    ],
+    "households": 3,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 2,
+    "garage_mode": "auto",
+    "garages": [
+      {
+        "id": "apartments-with-parking:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          16,
+          0
+        ],
+        "u": 5.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-osm-243596363",
+    "osm_id": "243596363",
+    "name": "Mapped apartments 243596363",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -14.407552525113413,
+            -0.4007519999373699
+          ],
+          [
+            -12.824304995087207,
+            -9.684840000068391
+          ],
+          [
+            11.504932054023683,
+            -5.49920800019521
+          ],
+          [
+            10.291108947045279,
+            1.4026319997807946
+          ],
+          [
+            9.640218295603956,
+            5.287700000096436
+          ],
+          [
+            2.7179082614407712,
+            4.185631999873181
+          ],
+          [
+            -3.6150818599140124,
+            3.1726199998996663
+          ],
+          [
+            -3.333615632770452,
+            1.4916880000305355
+          ],
+          [
+            -14.407552525113413,
+            -0.4007519999373699
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4242037,
+      37.8015618
+    ],
+    "units": "metres",
+    "height_m": 3.15,
+    "entrance": [
+      -0.6596864705317618,
+      -7.592024000131801
+    ],
+    "geometry_evidence": {
+      "building_id": "243596363",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "9f95fc25f03fe554321120525dd553386e7588397c440b0e6f1f05a0c116525c",
+      "footprint_area_m2": 253.85581868015277,
+      "footprint_area_sqft": 2732.481291031203,
+      "shell_floor_area_m2": 1015.4232747206111,
+      "storeys": 4,
+      "storey_height_m": 3.15,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 3.15
+      },
+      {
+        "height_m": 3.15
+      },
+      {
+        "height_m": 3.15
+      },
+      {
+        "height_m": 3.15
+      }
+    ],
+    "households": 4,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "residential-osm-262552539",
+    "osm_id": "262552539",
+    "name": "Mapped apartments 262552539",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -6.640807673327129,
+            7.2803279996531955
+          ],
+          [
+            3.720611451359108,
+            8.983523999782506
+          ],
+          [
+            5.435786942375746,
+            -1.4582920004312427
+          ],
+          [
+            0.6069082510904871,
+            -2.2597960003059825
+          ],
+          [
+            1.187429185992291,
+            -5.822036000012929
+          ],
+          [
+            -4.3363154736791865,
+            -6.734860000397589
+          ],
+          [
+            -6.640807673327129,
+            7.2803279996531955
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4185866,
+      37.8019637
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      -1.4600981109840108,
+      8.13192599971785
+    ],
+    "geometry_evidence": {
+      "building_id": "262552539",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "a26b5c4986c6f4fbe2f387191c7952d45172304b9182126c41eba0043994e8a9",
+      "footprint_area_m2": 131.39513218146777,
+      "footprint_area_sqft": 1414.3254319917744,
+      "shell_floor_area_m2": 394.1853965444033,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      }
+    ],
+    "households": 3,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "residential-osm-253203887",
+    "osm_id": "253203887",
+    "name": "Mapped apartments 253203887",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -5.41871180990382,
+            14.260091999748852
+          ],
+          [
+            0.09676271140456266,
+            15.01706799989421
+          ],
+          [
+            0.8444745677122797,
+            9.517859999698999
+          ],
+          [
+            3.131593189433086,
+            9.829555999386628
+          ],
+          [
+            3.210762680468631,
+            9.261823999870842
+          ],
+          [
+            3.8353219966933683,
+            4.731099999919763
+          ],
+          [
+            2.111186420530773,
+            4.4973279995608095
+          ],
+          [
+            3.5714236936582444,
+            -6.1782600002209165
+          ],
+          [
+            4.222372839811472,
+            -6.089203999971176
+          ],
+          [
+            4.6270169032985935,
+            -9.083712000162336
+          ],
+          [
+            3.60661013439628,
+            -9.228428000271549
+          ],
+          [
+            4.204779619442454,
+            -13.569908000384032
+          ],
+          [
+            4.301542330847017,
+            -14.260092000539828
+          ],
+          [
+            -3.0876101378855045,
+            -15.261972000383253
+          ],
+          [
+            -4.451084700858487,
+            -5.8665640005332875
+          ],
+          [
+            -3.694576233741224,
+            -5.755244000023367
+          ],
+          [
+            -4.539050801453503,
+            0.4564119997968419
+          ],
+          [
+            -5.348338929677821,
+            0.3562239994170113
+          ],
+          [
+            -6.535881290210695,
+            8.538243999324777
+          ],
+          [
+            -4.670999952346029,
+            8.79427999994391
+          ],
+          [
+            -5.41871180990382,
+            14.260091999748852
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4241683,
+      37.7949235
+    ],
+    "units": "metres",
+    "height_m": 4.02,
+    "entrance": [
+      0.6069660964807562,
+      -14.76103200046154
+    ],
+    "geometry_evidence": {
+      "building_id": "253203887",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "17ea8a7dda93f72b33eeef9c6204960ba60faab99bc53f3fb5cdf942c7ad175d",
+      "footprint_area_m2": 225.34347169036846,
+      "footprint_area_sqft": 2425.5769422632984,
+      "shell_floor_area_m2": 676.0304150711054,
+      "storeys": 3,
+      "storey_height_m": 4.02,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 4.02
+      },
+      {
+        "height_m": 4.02
+      },
+      {
+        "height_m": 4.02
+      }
+    ],
+    "households": 3,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "residential-osm-259928418",
+    "osm_id": "259928418",
+    "name": "Mapped apartments 259928418",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            6.773794823828694,
+            -17.95591599943492
+          ],
+          [
+            -2.1025155362955377,
+            -19.347415999876603
+          ],
+          [
+            -3.510057317983981,
+            -10.352759999964007
+          ],
+          [
+            -4.768047784266334,
+            -2.3488519997647472
+          ],
+          [
+            -5.14632463808729,
+            0.08905600024974092
+          ],
+          [
+            -4.020291213486624,
+            0.7569760001453574
+          ],
+          [
+            -4.768047784266334,
+            7.079952000475487
+          ],
+          [
+            -6.342735152584974,
+            7.736740000241014
+          ],
+          [
+            -7.512754258996351,
+            15.20631200052378
+          ],
+          [
+            -7.5479428026947115,
+            15.428951999961669
+          ],
+          [
+            1.3283675561793715,
+            16.82045200040335
+          ],
+          [
+            2.551169478763364,
+            8.972392000443392
+          ],
+          [
+            1.636267321353457,
+            8.092964000449001
+          ],
+          [
+            2.2168783055029704,
+            4.029784000424854
+          ],
+          [
+            3.4396802293371107,
+            3.317336000008879
+          ],
+          [
+            3.985102668538115,
+            -0.1335839999791233
+          ],
+          [
+            4.407365202919633,
+            -2.838659999951858
+          ],
+          [
+            3.6947971770884322,
+            -4.09657599962344
+          ],
+          [
+            4.486539428428705,
+            -9.473331999969616
+          ],
+          [
+            5.550992901244702,
+            -10.152383999995322
+          ],
+          [
+            5.665355670452135,
+            -10.90936000014068
+          ],
+          [
+            6.773794823828694,
+            -17.95591599943492
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4117899,
+      37.7905052
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      -3.10978762325767,
+      16.12470200018251
+    ],
+    "geometry_evidence": {
+      "building_id": "259928418",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "e90e67f7057562c3a8be8b53a6ba3ac7d712021b081e3c48e29091778dec45a5",
+      "footprint_area_m2": 295.59101621418137,
+      "footprint_area_sqft": 3181.715218510765,
+      "shell_floor_area_m2": 886.7730486425442,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      }
+    ],
+    "households": 3,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "residential-osm-262727844",
+    "osm_id": "262727844",
+    "name": "Mapped detached 262727844",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            5.514938128830178,
+            -3.573371999837036
+          ],
+          [
+            -9.490619204316602,
+            -6.100336000101265
+          ],
+          [
+            -10.783595129975323,
+            1.5473479998900075
+          ],
+          [
+            -9.569780995938554,
+            1.758855999988782
+          ],
+          [
+            6.6144074524685825,
+            4.48619599943072
+          ],
+          [
+            8.206439032727006,
+            4.753364000179943
+          ],
+          [
+            9.499414958385728,
+            -2.9054519999414197
+          ],
+          [
+            5.514938128830178,
+            -3.573371999837036
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4216022,
+      37.8021078
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      8.852926995556366,
+      0.9239560001192615
+    ],
+    "geometry_evidence": {
+      "building_id": "262727844",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "51378e47d1bf12bf8d14d8848244add521ad0368bfcace638bbf831255507568",
+      "footprint_area_m2": 149.52210030552624,
+      "footprint_area_sqft": 1609.442493005516,
+      "shell_floor_area_m2": 448.5663009165787,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "residential-osm-262727846",
+    "osm_id": "262727846",
+    "name": "Mapped detached 262727846",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            5.787601161428343,
+            -3.128092000170284
+          ],
+          [
+            -10.396572299104562,
+            -5.855431999612222
+          ],
+          [
+            -11.654364041168385,
+            1.6141399998795691
+          ],
+          [
+            -3.228038945183077,
+            3.039035999920543
+          ],
+          [
+            6.693563045301247,
+            4.70883600045056
+          ],
+          [
+            7.485180224668377,
+            -0.011132000130089637
+          ],
+          [
+            5.3214265999816,
+            -0.3784879996771906
+          ],
+          [
+            5.787601161428343,
+            -3.128092000170284
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4215928,
+      37.8021762
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      7.089371634984812,
+      2.3488520001602353
+    ],
+    "geometry_evidence": {
+      "building_id": "262727846",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "ae5d375c4fbf77baa86e8fdb43bcedace84940ee1b8743a76df329a35be3249d",
+      "footprint_area_m2": 134.86659759989976,
+      "footprint_area_sqft": 1451.6919747704483,
+      "shell_floor_area_m2": 404.5997927996993,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "residential-osm-262096308",
+    "osm_id": "262096308",
+    "name": "Mapped house 262096308",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -4.037789567928567,
+            -7.491836000542946
+          ],
+          [
+            -6.42175682871805,
+            9.061447999902157
+          ],
+          [
+            -4.0026018588670595,
+            9.228427999480573
+          ],
+          [
+            -2.2784041348550774,
+            10.241439999454087
+          ],
+          [
+            -0.8181142263041659,
+            9.662575999808212
+          ],
+          [
+            0.1407508349959124,
+            8.616167999444428
+          ],
+          [
+            -0.39586172256654717,
+            7.291459999783285
+          ],
+          [
+            0.08796927140365081,
+            4.118839999883619
+          ],
+          [
+            1.2227728755110308,
+            4.285819999462035
+          ],
+          [
+            1.601040743546824,
+            1.246783999541492
+          ],
+          [
+            5.656424164756027,
+            1.8256479999783437
+          ],
+          [
+            7.934828300861223,
+            -13.803680000742986
+          ],
+          [
+            3.6683186265330923,
+            -14.41594000077913
+          ],
+          [
+            3.1580968513918224,
+            -10.875964000541387
+          ],
+          [
+            -2.4455457510220615,
+            -11.688600000546217
+          ],
+          [
+            -3.061330653347854,
+            -7.358252000563823
+          ],
+          [
+            -4.037789567928567,
+            -7.491836000542946
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4380908,
+      37.7922604
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      6.795626232808624,
+      -5.989016000382321
+    ],
+    "geometry_evidence": {
+      "building_id": "262096308",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "d371d42c9473ae65eb14b2d89a8c7f8ca5d0f27e942809b7dfbaa603475884e9",
+      "footprint_area_m2": 200.21363254809657,
+      "footprint_area_sqft": 2155.081604949803,
+      "shell_floor_area_m2": 600.6408976442897,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  },
+  {
+    "id": "residential-osm-262419190",
+    "osm_id": "262419190",
+    "name": "Mapped detached 262419190",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -8.145973196052495,
+            0.08905599945876475
+          ],
+          [
+            -9.430327501240034,
+            8.170887999777676
+          ],
+          [
+            4.3808797532253,
+            10.37502399943321
+          ],
+          [
+            6.377786789569988,
+            -2.181872000186331
+          ],
+          [
+            5.524482901286085,
+            -2.3154560001654545
+          ],
+          [
+            5.067041642811844,
+            -3.217148000420025
+          ],
+          [
+            2.1728459818155406,
+            -3.5956360000972154
+          ],
+          [
+            1.5218718818232155,
+            -2.961112000591868
+          ],
+          [
+            -7.433420464895346,
+            -4.386008000632842
+          ],
+          [
+            -8.145973196052495,
+            0.08905599945876475
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4460009,
+      37.7920913
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      5.379333271397644,
+      4.09657599962344
+    ],
+    "geometry_evidence": {
+      "building_id": "262419190",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "d5a0fa7f38ff8dee4ad0e76e505e548e08749e0758689fa7681c253b9b4897a0",
+      "footprint_area_m2": 180.55267340762427,
+      "footprint_area_sqft": 1943.45280205536,
+      "shell_floor_area_m2": 541.6580202228728,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      },
+      {
+        "height_m": 4.1
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null
+  }
+]

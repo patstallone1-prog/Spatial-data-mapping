@@ -16,9 +16,28 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from shapely.errors import GEOSException  # noqa: E402
 
+from smc.interiors.inference import HouseInput, infer_house  # noqa: E402
 from smc.interiors.restaurants import RestaurantInput, infer_restaurant  # noqa: E402
 
 slots = threading.BoundedSemaphore(1)
+
+
+def residential_request(row):
+    inputs = json.loads((ROOT / "docs/inferred-residential/inputs.json").read_text())
+    known = next((dict(r) for r in inputs if r["id"] == row.get("id")), None)
+    if known is None:
+        raise ValueError("select a known residential test case")
+    # Program changes cannot alter Kerbside's stored shell, heights or opening evidence.
+    known["households"] = row.get("households", known.get("households", 1))
+    known.pop("units_per_floor", None)
+    if row.get("garage_cars") is None:
+        known.pop("garage_cars", None)
+    else:
+        known["garage_cars"] = row["garage_cars"]
+    known["garage_mode"] = row.get("garage_mode", known.get("garage_mode", "auto"))
+    result = infer_house(HouseInput.from_json(known))
+    result.update(name=known["name"], input_evidence=known)
+    return result
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -27,7 +46,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_POST(self):
-        if self.path != "/api/infer-restaurant":
+        if self.path not in {"/api/infer-restaurant", "/api/infer-residential"}:
             self.send_error(404)
             return
         origin = self.headers.get("Origin")
@@ -45,6 +64,16 @@ class Handler(SimpleHTTPRequestHandler):
             if not 1 <= length <= 65536:
                 raise ValueError("inference input must be at most 64 KiB")
             row = json.loads(self.rfile.read(length))
+            if self.path == "/api/infer-residential":
+                h = residential_request(row)
+                folder = ROOT / "docs/inferred-residential/overrides"
+                folder.mkdir(exist_ok=True)
+                target = folder / f"{h['id']}.json"
+                temp = target.with_suffix(".tmp")
+                temp.write_text(json.dumps(h, indent=2) + "\n")
+                temp.replace(target)
+                self.reply(200, h)
+                return
             spec = RestaurantInput.from_json(row)
             if not re.fullmatch(r"restaurant-[0-9]+", spec.id):
                 raise ValueError("select a mapped restaurant first")
@@ -101,6 +130,7 @@ def main():
     )
     print(f"House tours: http://127.0.0.1:{args.port}/inferred-interiors/", flush=True)
     print(f"Restaurant lab: http://127.0.0.1:{args.port}/inferred-restaurants/", flush=True)
+    print(f"Apartments & garages: http://127.0.0.1:{args.port}/inferred-residential/", flush=True)
     server.serve_forever()
 
 

@@ -1,0 +1,6829 @@
+[
+  {
+    "id": "residential-duplex-one-floor",
+    "name": "Duplex One Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            15.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      }
+    ],
+    "households": 2,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-triplex-two-floors",
+    "name": "Triplex Two Floors",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            15.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 3,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-four-family",
+    "name": "Four Family",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 4,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-five-family",
+    "name": "Five Family",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 2.8
+      }
+    ],
+    "households": 5,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-five-one-floor",
+    "name": "Five One Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            25.0,
+            0.0
+          ],
+          [
+            25.0,
+            20.0
+          ],
+          [
+            0.0,
+            20.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            25.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      }
+    ],
+    "households": 5,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-rotated-four",
+    "name": "Rotated Four",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.728077655239046,
+            6.2516980558283795
+          ],
+          [
+            8.085648470921392,
+            21.900280564519868
+          ],
+          [
+            -6.6424291843176535,
+            15.648582508691486
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.728077655239046,
+            6.2516980558283795
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 4,
+    "entrance": [
+      0.7364038827619523,
+      0.312584902791419
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-setback-three",
+    "name": "Setback Three",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            18.0,
+            0.0
+          ],
+          [
+            18.0,
+            10.0
+          ],
+          [
+            13.0,
+            10.0
+          ],
+          [
+            13.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 3,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600
+  },
+  {
+    "id": "residential-one-car-attached",
+    "name": "One Car Attached",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            12.0,
+            0.0
+          ],
+          [
+            12.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            12.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 1,
+    "garage_mode": "room",
+    "garages": [
+      {
+        "id": "one-car-attached:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          12,
+          0
+        ],
+        "u": 4.7,
+        "w": 2.6,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0,
+        "v": -0.35
+      }
+    ]
+  },
+  {
+    "id": "residential-two-car-attached",
+    "name": "Two Car Attached",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 2,
+    "garage_mode": "room",
+    "garages": [
+      {
+        "id": "two-car-attached:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          14,
+          0
+        ],
+        "u": 4.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-three-car-floor",
+    "name": "Three Car Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 3,
+    "garage_mode": "floor",
+    "garages": [
+      {
+        "id": "three-car-floor:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          14,
+          0
+        ],
+        "u": 4.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-four-car-floor",
+    "name": "Four Car Floor",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 2.8
+      }
+    ],
+    "households": 1,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 4,
+    "garage_mode": "floor",
+    "garages": [
+      {
+        "id": "four-car-floor:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          14,
+          0
+        ],
+        "u": 4.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-apartments-with-parking",
+    "name": "Apartments With Parking",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 2.8
+      }
+    ],
+    "households": 3,
+    "entrance": [
+      0.8,
+      0.0
+    ],
+    "units": "metres",
+    "source": "synthetic stress geometry; not a measured address",
+    "neighborhood_price_per_sqft": 600,
+    "garage_cars": 2,
+    "garage_mode": "auto",
+    "garages": [
+      {
+        "id": "apartments-with-parking:opening",
+        "a": [
+          0,
+          0
+        ],
+        "b": [
+          16,
+          0
+        ],
+        "u": 5.35,
+        "w": 5.3,
+        "h": 2.4,
+        "basis": "synthetic opening for capacity test",
+        "measured": false,
+        "confidence": 0.2,
+        "freshness": null,
+        "corroboration_count": 0
+      }
+    ]
+  },
+  {
+    "id": "residential-osm-243596363",
+    "osm_id": "243596363",
+    "name": "Mapped apartments 243596363",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          [
+            10.29164002440757,
+            1.4026319997807946
+          ],
+          [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          [
+            2.718048520333923,
+            4.185631999873181
+          ],
+          [
+            -3.6152684178592267,
+            3.1726199998996663
+          ],
+          [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          [
+            -14.40829603342064,
+            -0.4007519999373699
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4242037,
+      37.8015618
+    ],
+    "units": "metres",
+    "height_m": 3.15,
+    "entrance": [
+      -0.6597205139524362,
+      -7.592024000131801
+    ],
+    "geometry_evidence": {
+      "building_id": "243596363",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "9f95fc25f03fe554321120525dd553386e7588397c440b0e6f1f05a0c116525c",
+      "footprint_area_m2": 253.85581868015277,
+      "footprint_area_sqft": 2732.481291031203,
+      "shell_floor_area_m2": 1015.4232747206111,
+      "storeys": 4,
+      "storey_height_m": 3.15,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 3.1588823512884296
+      },
+      {
+        "height_m": 2.3168606832102245
+      },
+      {
+        "height_m": 2.3168606832102245
+      },
+      {
+        "height_m": 2.3168606832102245
+      },
+      {
+        "height_m": 2.3168606832102245
+      }
+    ],
+    "households": 4,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "entrance_level": 1,
+    "garage_mode": "floor",
+    "envelope": {
+      "id": "residential-osm-243596363",
+      "windows": [
+        {
+          "confidence": 0.2644406855106354,
+          "design": {
+            "horizontal_bars": [
+              0.1346153846153846,
+              0.3076923076923077,
+              0.519
+            ],
+            "shape": "tall",
+            "style": "divided_panes",
+            "trim": {
+              "basis": "image_inferred_white_trim; width_inferred",
+              "colour": "#b2b1af",
+              "width_m": 0.06
+            },
+            "vertical_bars": []
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 1.961,
+          "id": "residential-osm-243596363:window:0:0",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 4.835,
+          "v": 3.6033250841293274,
+          "w": 0.9340000000000002,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-5",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 0,
+          "a": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "b": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "normal": [
+            -0.9857673920708135,
+            -0.16811498663089805
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "confidence": 0.35702821612358093,
+          "design": {
+            "horizontal_bars": [
+              0.083,
+              0.43333333333333335
+            ],
+            "shape": "standard",
+            "style": "divided_panes",
+            "trim": {
+              "basis": "image_inferred_white_trim; width_inferred",
+              "colour": "#c9c6c4",
+              "width_m": 0.06
+            },
+            "vertical_bars": [
+              0.16300000000000023,
+              0.8372093023255818
+            ]
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 2.222,
+          "id": "residential-osm-243596363:window:0:1",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 4.483,
+          "v": 6.976325084129332,
+          "w": 1.572,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-0",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 0,
+          "a": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "b": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "normal": [
+            -0.9857673920708135,
+            -0.16811498663089805
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "confidence": 0.31080350279808044,
+          "design": {
+            "horizontal_bars": [
+              0.093,
+              0.537
+            ],
+            "shape": "standard",
+            "style": "divided_panes",
+            "trim": {
+              "basis": "image_inferred_white_trim; width_inferred",
+              "colour": "#c1bebc",
+              "width_m": 0.06
+            },
+            "vertical_bars": []
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 2.029,
+          "id": "residential-osm-243596363:window:0:2",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 2.144,
+          "v": 7.1063250841293275,
+          "w": 1.3239999999999998,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-1",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 0,
+          "a": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "b": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "normal": [
+            -0.9857673920708135,
+            -0.16811498663089805
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "confidence": 0.2966364920139313,
+          "design": {
+            "horizontal_bars": [
+              0.2
+            ],
+            "shape": "standard",
+            "style": "divided_panes",
+            "vertical_bars": [
+              0.4329999999999997
+            ]
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 1.115,
+          "id": "residential-osm-243596363:window:0:3",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 4.728,
+          "v": 10.41932508412933,
+          "w": 1.117,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-2",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 0,
+          "a": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "b": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "normal": [
+            -0.9857673920708135,
+            -0.16811498663089805
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "confidence": 0.25569432973861694,
+          "design": {
+            "horizontal_bars": [
+              0.17857142857142858
+            ],
+            "shape": "standard",
+            "style": "divided_panes",
+            "vertical_bars": []
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 1.038,
+          "id": "residential-osm-243596363:window:0:4",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 2.297,
+          "v": 10.484325084129328,
+          "w": 1.109,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-6",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 0,
+          "a": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "b": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "normal": [
+            -0.9857673920708135,
+            -0.16811498663089805
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 16,
+          "v": 5.326325084129326,
+          "w": 1.62,
+          "h": 1.38,
+          "confidence": 0.94,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:0",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 19.62,
+          "v": 5.326325084129326,
+          "w": 1,
+          "h": 1.12,
+          "confidence": 0.94,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:1",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.88,
+          "v": 5.446325084129331,
+          "w": 0.5,
+          "h": 1.25,
+          "confidence": 0.85,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:2",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.38,
+          "v": 5.446325084129331,
+          "w": 0.62,
+          "h": 1.25,
+          "confidence": 0.92,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:3",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 21.38,
+          "v": 5.446325084129331,
+          "w": 1.62,
+          "h": 1.25,
+          "confidence": 0.83,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:4",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.88,
+          "v": 8.076325084129326,
+          "w": 2.88,
+          "h": 1.5,
+          "confidence": 0.89,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:5",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.62,
+          "v": 8.076325084129326,
+          "w": 0.62,
+          "h": 0.88,
+          "confidence": 1,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:6",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 16.62,
+          "v": 8.076325084129326,
+          "w": 0.62,
+          "h": 0.62,
+          "confidence": 1,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:7",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 12.38,
+          "v": 8.206325084129329,
+          "w": 0.62,
+          "h": 0.62,
+          "confidence": 1,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-243596363:window:1:8",
+          "edge": 1,
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "normal": [
+            0.16954184345207485,
+            -0.9855229897464961
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.2446100968549945,
+          "v": 6.27574303449865,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:3:0",
+          "edge": 3,
+          "a": [
+            10.29164002440757,
+            1.4026319997807946
+          ],
+          "b": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "normal": [
+            0.9862530676805485,
+            0.16524190295051494
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.2446100968549945,
+          "v": 8.592603717708872,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:3:1",
+          "edge": 3,
+          "a": [
+            10.29164002440757,
+            1.4026319997807946
+          ],
+          "b": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "normal": [
+            0.9862530676805485,
+            0.16524190295051494
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.2446100968549945,
+          "v": 10.909464400919102,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:3:2",
+          "edge": 3,
+          "a": [
+            10.29164002440757,
+            1.4026319997807946
+          ],
+          "b": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "normal": [
+            0.9862530676805485,
+            0.16524190295051494
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.0274603403687133,
+          "v": 6.27574303449865,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:4:0",
+          "edge": 4,
+          "a": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "b": [
+            2.718048520333923,
+            4.185631999873181
+          ],
+          "normal": [
+            -0.15721725263000574,
+            0.9875640412021252
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.53238102110614,
+          "v": 6.27574303449865,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:4:1",
+          "edge": 4,
+          "a": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "b": [
+            2.718048520333923,
+            4.185631999873181
+          ],
+          "normal": [
+            -0.15721725263000574,
+            0.9875640412021252
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.0274603403687133,
+          "v": 8.592603717708872,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:4:2",
+          "edge": 4,
+          "a": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "b": [
+            2.718048520333923,
+            4.185631999873181
+          ],
+          "normal": [
+            -0.15721725263000574,
+            0.9875640412021252
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.53238102110614,
+          "v": 8.592603717708872,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:4:3",
+          "edge": 4,
+          "a": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "b": [
+            2.718048520333923,
+            4.185631999873181
+          ],
+          "normal": [
+            -0.15721725263000574,
+            0.9875640412021252
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.0274603403687133,
+          "v": 10.909464400919102,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:4:4",
+          "edge": 4,
+          "a": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "b": [
+            2.718048520333923,
+            4.185631999873181
+          ],
+          "normal": [
+            -0.15721725263000574,
+            0.9875640412021252
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.53238102110614,
+          "v": 10.909464400919102,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:4:5",
+          "edge": 4,
+          "a": [
+            9.640715783457836,
+            5.287700000096436
+          ],
+          "b": [
+            2.718048520333923,
+            4.185631999873181
+          ],
+          "normal": [
+            -0.15721725263000574,
+            0.9875640412021252
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6793796714659571,
+          "v": 6.27574303449865,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:0",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.488139014397871,
+          "v": 6.27574303449865,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:1",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.296898357329786,
+          "v": 6.27574303449865,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:2",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 9.1056577002617,
+          "v": 6.27574303449865,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:3",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6793796714659571,
+          "v": 8.592603717708872,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:4",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.488139014397871,
+          "v": 8.592603717708872,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:5",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.296898357329786,
+          "v": 8.592603717708872,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:6",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 9.1056577002617,
+          "v": 8.592603717708872,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:7",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6793796714659571,
+          "v": 10.909464400919102,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:8",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.488139014397871,
+          "v": 10.909464400919102,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:9",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.296898357329786,
+          "v": 10.909464400919102,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:10",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 9.1056577002617,
+          "v": 10.909464400919102,
+          "w": 1.45,
+          "h": 1.2168606832102244,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-243596363:window:7:11",
+          "edge": 7,
+          "a": [
+            -3.3337876655228342,
+            1.4916880000305355
+          ],
+          "b": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "normal": [
+            -0.16844091722650828,
+            0.985711751681947
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [
+        {
+          "kind": "balcony",
+          "u": 1.521,
+          "w": 4.739,
+          "depth_m": 0.9,
+          "platform_heights_m": [
+            3.777
+          ],
+          "material": "metal",
+          "style": "vertical_bars",
+          "inferred": true,
+          "colour": "#2b2d30",
+          "a": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "b": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "normal": [
+            -0.9857673920708141,
+            -0.16811498663089433
+          ],
+          "elevation_m": 3.6033250841293274,
+          "grade": "image_proposal_not_measured",
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "entrance": [
+        -0.6597205139524362,
+        -7.592024000131801
+      ],
+      "garages": [
+        {
+          "id": "residential-osm-243596363:garage:0",
+          "a": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "b": [
+            11.50552577128002,
+            -5.49920800019521
+          ],
+          "u": 19.897899545319927,
+          "w": 4.79,
+          "h": 2.7,
+          "v": 2.7631276180056936,
+          "source_id": "kerb-cut:13107",
+          "basis": "kerb_cut_projection",
+          "grade": "inferred_from_measured_kerb",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "opening-3",
+          "a": [
+            -14.40829603342064,
+            -0.4007519999373699
+          ],
+          "b": [
+            -12.824966799184836,
+            -9.684840000068391
+          ],
+          "u": 1.3839999999999852,
+          "w": 4.239,
+          "h": 2.465,
+          "v": 0.0,
+          "source_id": "opening-3",
+          "basis": "photographed_on_prior_geometry",
+          "grade": "image_on_prior_geometry",
+          "measured": false,
+          "confidence": 0.55,
+          "freshness": null,
+          "corroboration_count": 1
+        }
+      ],
+      "storeys": [
+        {
+          "height_m": 3.1588823512884296
+        },
+        {
+          "height_m": 2.3168606832102245
+        },
+        {
+          "height_m": 2.3168606832102245
+        },
+        {
+          "height_m": 2.3168606832102245
+        },
+        {
+          "height_m": 2.3168606832102245
+        }
+      ],
+      "floor_y_m": 30.600273496675893,
+      "shell_base_y_m": 30.426598580805223,
+      "shell_top_y_m": 43.02659858080522,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -14.40829603342064,
+              -0.4007519999373699
+            ],
+            [
+              -12.824966799184836,
+              -9.684840000068391
+            ],
+            [
+              11.50552577128002,
+              -5.49920800019521
+            ],
+            [
+              10.29164002440757,
+              1.4026319997807946
+            ],
+            [
+              9.640715783457836,
+              5.287700000096436
+            ],
+            [
+              2.718048520333923,
+              4.185631999873181
+            ],
+            [
+              -3.6152684178592267,
+              3.1726199998996663
+            ],
+            [
+              -3.3337876655228342,
+              1.4916880000305355
+            ],
+            [
+              -14.40829603342064,
+              -0.4007519999373699
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0,
+      "lower_floor_evidence": "garage threshold and upper entry floor; interior subdivision inferred"
+    },
+    "total_height_m": 12.426325084129328,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  },
+  {
+    "id": "residential-osm-262552539",
+    "osm_id": "262552539",
+    "name": "Mapped apartments 262552539",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -6.641186512037606,
+            7.2803279996531955
+          ],
+          [
+            3.720823701391595,
+            8.983523999782506
+          ],
+          [
+            5.436097038167844,
+            -1.4582920004312427
+          ],
+          [
+            0.6069428734362106,
+            -2.2597960003059825
+          ],
+          [
+            1.1874969253643286,
+            -5.822036000012929
+          ],
+          [
+            -4.336562847830507,
+            -6.734860000397589
+          ],
+          [
+            -6.641186512037606,
+            7.2803279996531955
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4185866,
+      37.8019637
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      -1.4601814053230129,
+      8.13192599971785
+    ],
+    "geometry_evidence": {
+      "building_id": "262552539",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "a26b5c4986c6f4fbe2f387191c7952d45172304b9182126c41eba0043994e8a9",
+      "footprint_area_m2": 131.39513218146777,
+      "footprint_area_sqft": 1414.3254319917744,
+      "shell_floor_area_m2": 394.1853965444033,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 3.1104644516735362
+      },
+      {
+        "height_m": 3.1104644516735362
+      }
+    ],
+    "households": 3,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "envelope": {
+      "id": "residential-osm-262552539",
+      "windows": [
+        {
+          "u": 1.0251756441859987,
+          "v": 3.9104644516735334,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262552539:window:0:0",
+          "edge": 0,
+          "a": [
+            -6.641186512037606,
+            7.2803279996531955
+          ],
+          "b": [
+            3.720823701391595,
+            8.983523999782506
+          ],
+          "normal": [
+            -0.16219286387885765,
+            0.9867590764248256
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.525526932557996,
+          "v": 3.9104644516735334,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262552539:window:0:1",
+          "edge": 0,
+          "a": [
+            -6.641186512037606,
+            7.2803279996531955
+          ],
+          "b": [
+            3.720823701391595,
+            8.983523999782506
+          ],
+          "normal": [
+            -0.16219286387885765,
+            0.9867590764248256
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.025878220929993,
+          "v": 3.9104644516735334,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262552539:window:0:2",
+          "edge": 0,
+          "a": [
+            -6.641186512037606,
+            7.2803279996531955
+          ],
+          "b": [
+            3.720823701391595,
+            8.983523999782506
+          ],
+          "normal": [
+            -0.16219286387885765,
+            0.9867590764248256
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.7226079449413505,
+          "v": 3.9104644516735334,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262552539:window:2:0",
+          "edge": 2,
+          "a": [
+            5.436097038167844,
+            -1.4582920004312427
+          ],
+          "b": [
+            0.6069428734362106,
+            -2.2597960003059825
+          ],
+          "normal": [
+            0.16373210454951873,
+            -0.9865048392885792
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.079618853298551,
+          "v": 3.9104644516735334,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262552539:window:3:0",
+          "edge": 3,
+          "a": [
+            0.6069428734362106,
+            -2.2597960003059825
+          ],
+          "b": [
+            1.1874969253643286,
+            -5.822036000012929
+          ],
+          "normal": [
+            0.9869784949868359,
+            0.16085226275536227
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.0744858471470984,
+          "v": 3.9104644516735334,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262552539:window:4:0",
+          "edge": 4,
+          "a": [
+            1.1874969253643286,
+            -5.822036000012929
+          ],
+          "b": [
+            -4.336562847830507,
+            -6.734860000397589
+          ],
+          "normal": [
+            0.16303422310830776,
+            -0.9866204143922173
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "entrance": [
+        -1.4601814053230129,
+        8.13192599971785
+      ],
+      "garages": [],
+      "storeys": [
+        {
+          "height_m": 3.1104644516735362
+        },
+        {
+          "height_m": 3.1104644516735362
+        }
+      ],
+      "floor_y_m": 66.39941533335744,
+      "shell_base_y_m": 61.33034423670451,
+      "shell_top_y_m": 72.62034423670451,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -6.641186512037606,
+              7.2803279996531955
+            ],
+            [
+              3.720823701391595,
+              8.983523999782506
+            ],
+            [
+              5.436097038167844,
+              -1.4582920004312427
+            ],
+            [
+              0.6069428734362106,
+              -2.2597960003059825
+            ],
+            [
+              1.1874969253643286,
+              -5.822036000012929
+            ],
+            [
+              -4.336562847830507,
+              -6.734860000397589
+            ],
+            [
+              -6.641186512037606,
+              7.2803279996531955
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "total_height_m": 6.2209289033470725,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  },
+  {
+    "id": "residential-osm-253203887",
+    "osm_id": "253203887",
+    "name": "Mapped apartments 253203887",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -5.418504490912483,
+            14.260091999748852
+          ],
+          [
+            0.09675900927965131,
+            15.01706799989421
+          ],
+          [
+            0.8444422582590505,
+            9.517859999698999
+          ],
+          [
+            3.13147337521076,
+            9.829555999386628
+          ],
+          [
+            3.2106398372350213,
+            9.261823999870842
+          ],
+          [
+            3.8351752579266645,
+            4.731099999919763
+          ],
+          [
+            2.1111056468977267,
+            4.4973279995608095
+          ],
+          [
+            3.571287051595675,
+            -6.1782600002209165
+          ],
+          [
+            4.22221129254541,
+            -6.089203999971176
+          ],
+          [
+            4.626839874419545,
+            -9.083712000162336
+          ],
+          [
+            3.606472146106512,
+            -9.228428000271549
+          ],
+          [
+            4.20461874529002,
+            -13.569908000384032
+          ],
+          [
+            4.301377754569728,
+            -14.260092000539828
+          ],
+          [
+            -3.0874920064472917,
+            -15.261972000383253
+          ],
+          [
+            -4.450914403115576,
+            -5.8665640005332875
+          ],
+          [
+            -3.694434879883488,
+            -5.755244000023367
+          ],
+          [
+            -4.538877138142595,
+            0.4564119997968419
+          ],
+          [
+            -5.34813430314091,
+            0.3562239994170113
+          ],
+          [
+            -6.535631228505224,
+            8.538243999324777
+          ],
+          [
+            -4.67082124068304,
+            8.79427999994391
+          ],
+          [
+            -5.418504490912483,
+            14.260091999748852
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4241683,
+      37.7949235
+    ],
+    "units": "metres",
+    "height_m": 4.02,
+    "entrance": [
+      2.8365400984093867,
+      -14.458713927599263
+    ],
+    "geometry_evidence": {
+      "building_id": "253203887",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "17ea8a7dda93f72b33eeef9c6204960ba60faab99bc53f3fb5cdf942c7ad175d",
+      "footprint_area_m2": 225.34347169036846,
+      "footprint_area_sqft": 2425.5769422632984,
+      "shell_floor_area_m2": 676.0304150711054,
+      "storeys": 3,
+      "storey_height_m": 4.02,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "osm_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 3.927942208966421
+      },
+      {
+        "height_m": 3.927942208966421
+      },
+      {
+        "height_m": 3.927942208966421
+      }
+    ],
+    "households": 3,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "envelope": {
+      "id": "residential-osm-253203887",
+      "windows": [
+        {
+          "u": 2.058484513220239,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:0:0",
+          "edge": 0,
+          "a": [
+            -5.418504490912483,
+            14.260091999748852
+          ],
+          "b": [
+            0.09675900927965131,
+            15.01706799989421
+          ],
+          "normal": [
+            -0.1359763268935175,
+            0.9907120865945602
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.058484513220239,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:0:1",
+          "edge": 0,
+          "a": [
+            -5.418504490912483,
+            14.260091999748852
+          ],
+          "b": [
+            0.09675900927965131,
+            15.01706799989421
+          ],
+          "normal": [
+            -0.1359763268935175,
+            0.9907120865945602
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.0499017491712834,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:1:0",
+          "edge": 1,
+          "a": [
+            0.09675900927965131,
+            15.01706799989421
+          ],
+          "b": [
+            0.8444422582590505,
+            9.517859999698999
+          ],
+          "normal": [
+            0.9908833712468438,
+            0.13472247246279848
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.0499017491712834,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:1:1",
+          "edge": 1,
+          "a": [
+            0.09675900927965131,
+            15.01706799989421
+          ],
+          "b": [
+            0.8444422582590505,
+            9.517859999698999
+          ],
+          "normal": [
+            0.9908833712468438,
+            0.13472247246279848
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.5617829179565335,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:4:0",
+          "edge": 4,
+          "a": [
+            3.2106398372350213,
+            9.261823999870842
+          ],
+          "b": [
+            3.8351752579266645,
+            4.731099999919763
+          ],
+          "normal": [
+            0.9906327278322788,
+            0.13655328098430244
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.5617829179565335,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:4:1",
+          "edge": 4,
+          "a": [
+            3.2106398372350213,
+            9.261823999870842
+          ],
+          "b": [
+            3.8351752579266645,
+            4.731099999919763
+          ],
+          "normal": [
+            0.9906327278322788,
+            0.13655328098430244
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.070830888441563,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:6:0",
+          "edge": 6,
+          "a": [
+            2.1111056468977267,
+            4.4973279995608095
+          ],
+          "b": [
+            3.571287051595675,
+            -6.1782600002209165
+          ],
+          "normal": [
+            0.9907751771517576,
+            0.13551586010465108
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.662492665324689,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:6:1",
+          "edge": 6,
+          "a": [
+            2.1111056468977267,
+            4.4973279995608095
+          ],
+          "b": [
+            3.571287051595675,
+            -6.1782600002209165
+          ],
+          "normal": [
+            0.9907751771517576,
+            0.13551586010465108
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.254154442207815,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:6:2",
+          "edge": 6,
+          "a": [
+            2.1111056468977267,
+            4.4973279995608095
+          ],
+          "b": [
+            3.571287051595675,
+            -6.1782600002209165
+          ],
+          "normal": [
+            0.9907751771517576,
+            0.13551586010465108
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.070830888441563,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:6:3",
+          "edge": 6,
+          "a": [
+            2.1111056468977267,
+            4.4973279995608095
+          ],
+          "b": [
+            3.571287051595675,
+            -6.1782600002209165
+          ],
+          "normal": [
+            0.9907751771517576,
+            0.13551586010465108
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.662492665324689,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:6:4",
+          "edge": 6,
+          "a": [
+            2.1111056468977267,
+            4.4973279995608095
+          ],
+          "b": [
+            3.571287051595675,
+            -6.1782600002209165
+          ],
+          "normal": [
+            0.9907751771517576,
+            0.13551586010465108
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.254154442207815,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:6:5",
+          "edge": 6,
+          "a": [
+            2.1111056468977267,
+            4.4973279995608095
+          ],
+          "b": [
+            3.571287051595675,
+            -6.1782600002209165
+          ],
+          "normal": [
+            0.9907751771517576,
+            0.13551586010465108
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.4662455331096216,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:10:0",
+          "edge": 10,
+          "a": [
+            3.606472146106512,
+            -9.228428000271549
+          ],
+          "b": [
+            4.20461874529002,
+            -13.569908000384032
+          ],
+          "normal": [
+            0.9906420650978895,
+            0.13648552618717066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.4662455331096216,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:10:1",
+          "edge": 10,
+          "a": [
+            3.606472146106512,
+            -9.228428000271549
+          ],
+          "b": [
+            4.20461874529002,
+            -13.569908000384032
+          ],
+          "normal": [
+            0.9906420650978895,
+            0.13648552618717066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.12,
+          "v": 2.6638266268992723,
+          "w": 1.38,
+          "h": 0.5,
+          "confidence": 1,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-253203887:window:12:0",
+          "edge": 12,
+          "a": [
+            4.301377754569728,
+            -14.260092000539828
+          ],
+          "b": [
+            -3.0874920064472917,
+            -15.261972000383253
+          ],
+          "normal": [
+            0.13436358793877654,
+            -0.9909320997102773
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.38,
+          "v": 5.78382662689927,
+          "w": 2.88,
+          "h": 2,
+          "confidence": 0.74,
+          "kind": "window",
+          "grade": "image_on_prior_geometry",
+          "id": "residential-osm-253203887:window:12:1",
+          "edge": 12,
+          "a": [
+            4.301377754569728,
+            -14.260092000539828
+          ],
+          "b": [
+            -3.0874920064472917,
+            -15.261972000383253
+          ],
+          "normal": [
+            0.13436358793877654,
+            -0.9909320997102773
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8421979969765337,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:15:0",
+          "edge": 15,
+          "a": [
+            -3.694434879883488,
+            -5.755244000023367
+          ],
+          "b": [
+            -4.538877138142595,
+            0.4564119997968419
+          ],
+          "normal": [
+            -0.9908856461984775,
+            -0.13470573914212186
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.9765939909296013,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:15:1",
+          "edge": 15,
+          "a": [
+            -3.694434879883488,
+            -5.755244000023367
+          ],
+          "b": [
+            -4.538877138142595,
+            0.4564119997968419
+          ],
+          "normal": [
+            -0.9908856461984775,
+            -0.13470573914212186
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8421979969765337,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:15:2",
+          "edge": 15,
+          "a": [
+            -3.694434879883488,
+            -5.755244000023367
+          ],
+          "b": [
+            -4.538877138142595,
+            0.4564119997968419
+          ],
+          "normal": [
+            -0.9908856461984775,
+            -0.13470573914212186
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.9765939909296013,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:15:3",
+          "edge": 15,
+          "a": [
+            -3.694434879883488,
+            -5.755244000023367
+          ],
+          "b": [
+            -4.538877138142595,
+            0.4564119997968419
+          ],
+          "normal": [
+            -0.9908856461984775,
+            -0.13470573914212186
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.0333568958659676,
+          "v": 4.727942208966418,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:19:0",
+          "edge": 19,
+          "a": [
+            -4.67082124068304,
+            8.79427999994391
+          ],
+          "b": [
+            -5.418504490912483,
+            14.260091999748852
+          ],
+          "normal": [
+            -0.9907731678951187,
+            -0.1355305492465493
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.0333568958659676,
+          "v": 8.655884417932846,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-253203887:window:19:1",
+          "edge": 19,
+          "a": [
+            -4.67082124068304,
+            8.79427999994391
+          ],
+          "b": [
+            -5.418504490912483,
+            14.260091999748852
+          ],
+          "normal": [
+            -0.9907731678951187,
+            -0.1355305492465493
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "entrance": [
+        2.8365400984093867,
+        -14.458713927599263
+      ],
+      "garages": [
+        {
+          "id": "residential-osm-253203887:garage:0",
+          "a": [
+            4.301377754569728,
+            -14.260092000539828
+          ],
+          "b": [
+            -3.0874920064472917,
+            -15.261972000383253
+          ],
+          "u": 2.5792164549926953,
+          "w": 4.7,
+          "h": 2.7,
+          "v": -0.16597235509361496,
+          "source_id": "kerb-cut:28153",
+          "basis": "kerb_cut_projection",
+          "grade": "inferred_from_measured_kerb",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "storeys": [
+        {
+          "height_m": 3.927942208966421
+        },
+        {
+          "height_m": 3.927942208966421
+        },
+        {
+          "height_m": 3.927942208966421
+        }
+      ],
+      "floor_y_m": 57.524460497986475,
+      "shell_base_y_m": 55.308287124885744,
+      "shell_top_y_m": 69.30828712488574,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -5.418504490912483,
+              14.260091999748852
+            ],
+            [
+              0.09675900927965131,
+              15.01706799989421
+            ],
+            [
+              0.8444422582590505,
+              9.517859999698999
+            ],
+            [
+              3.13147337521076,
+              9.829555999386628
+            ],
+            [
+              3.2106398372350213,
+              9.261823999870842
+            ],
+            [
+              3.8351752579266645,
+              4.731099999919763
+            ],
+            [
+              2.1111056468977267,
+              4.4973279995608095
+            ],
+            [
+              3.571287051595675,
+              -6.1782600002209165
+            ],
+            [
+              4.22221129254541,
+              -6.089203999971176
+            ],
+            [
+              4.626839874419545,
+              -9.083712000162336
+            ],
+            [
+              3.606472146106512,
+              -9.228428000271549
+            ],
+            [
+              4.20461874529002,
+              -13.569908000384032
+            ],
+            [
+              4.301377754569728,
+              -14.260092000539828
+            ],
+            [
+              -3.0874920064472917,
+              -15.261972000383253
+            ],
+            [
+              -4.450914403115576,
+              -5.8665640005332875
+            ],
+            [
+              -3.694434879883488,
+              -5.755244000023367
+            ],
+            [
+              -4.538877138142595,
+              0.4564119997968419
+            ],
+            [
+              -5.34813430314091,
+              0.3562239994170113
+            ],
+            [
+              -6.535631228505224,
+              8.538243999324777
+            ],
+            [
+              -4.67082124068304,
+              8.79427999994391
+            ],
+            [
+              -5.418504490912483,
+              14.260091999748852
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "total_height_m": 11.783826626899263,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  },
+  {
+    "id": "residential-osm-259928418",
+    "osm_id": "259928418",
+    "name": "Mapped apartments 259928418",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            6.773130614578122,
+            -17.955915999434865
+          ],
+          [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          [
+            -3.5097131368268037,
+            -10.35275999996395
+          ],
+          [
+            -4.767580249962748,
+            -2.3488519997647472
+          ],
+          [
+            -5.145820011578735,
+            0.08905600024979776
+          ],
+          [
+            -4.019897000983292,
+            0.7569760001454142
+          ],
+          [
+            -4.767580249962748,
+            7.079952000475487
+          ],
+          [
+            -6.342113211195851,
+            7.7367400002410704
+          ],
+          [
+            -7.512017590554706,
+            15.206312000523894
+          ],
+          [
+            -7.547202683815499,
+            15.428951999961782
+          ],
+          [
+            1.328237302157504,
+            16.820452000403407
+          ],
+          [
+            2.550919322032655,
+            8.972392000443506
+          ],
+          [
+            1.6361068760020316,
+            8.092964000449001
+          ],
+          [
+            2.216660927930093,
+            4.029784000424911
+          ],
+          [
+            3.4393429490552307,
+            3.317336000008936
+          ],
+          [
+            3.984711906472512,
+            -0.1335839999790096
+          ],
+          [
+            4.406933035602151,
+            -2.838659999951801
+          ],
+          [
+            3.694434881133475,
+            -4.096575999623383
+          ],
+          [
+            4.4860994976263555,
+            -9.47333199996956
+          ],
+          [
+            5.550448594702971,
+            -10.152383999995209
+          ],
+          [
+            5.664800149988082,
+            -10.909360000140623
+          ],
+          [
+            6.773130614578122,
+            -17.955915999434865
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4117899,
+      37.7905052
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      2.335410620966627,
+      -18.651665999655734
+    ],
+    "geometry_evidence": {
+      "building_id": "259928418",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "e90e67f7057562c3a8be8b53a6ba3ac7d712021b081e3c48e29091778dec45a5",
+      "footprint_area_m2": 295.59101621418137,
+      "footprint_area_sqft": 3181.715218510765,
+      "shell_floor_area_m2": 886.7730486425442,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 2.5560148394129008
+      },
+      {
+        "height_m": 2.5560148394129008
+      },
+      {
+        "height_m": 2.5560148394129008
+      }
+    ],
+    "households": 3,
+    "household_evidence": "illustrative 2-5 family program; mapped dwelling count unavailable",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "envelope": {
+      "id": "residential-osm-259928418",
+      "windows": [
+        {
+          "u": 0.772309691283635,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:0:0",
+          "edge": 0,
+          "a": [
+            6.773130614578122,
+            -17.955915999434865
+          ],
+          "b": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "normal": [
+            0.15488891048415565,
+            -0.9879318931024705
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.7669290738509047,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:0:1",
+          "edge": 0,
+          "a": [
+            6.773130614578122,
+            -17.955915999434865
+          ],
+          "b": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "normal": [
+            0.15488891048415565,
+            -0.9879318931024705
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.761548456418176,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:0:2",
+          "edge": 0,
+          "a": [
+            6.773130614578122,
+            -17.955915999434865
+          ],
+          "b": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "normal": [
+            0.15488891048415565,
+            -0.9879318931024705
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.772309691283635,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:0:3",
+          "edge": 0,
+          "a": [
+            6.773130614578122,
+            -17.955915999434865
+          ],
+          "b": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "normal": [
+            0.15488891048415565,
+            -0.9879318931024705
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.7669290738509047,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:0:4",
+          "edge": 0,
+          "a": [
+            6.773130614578122,
+            -17.955915999434865
+          ],
+          "b": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "normal": [
+            0.15488891048415565,
+            -0.9879318931024705
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.761548456418176,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:0:5",
+          "edge": 0,
+          "a": [
+            6.773130614578122,
+            -17.955915999434865
+          ],
+          "b": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "normal": [
+            0.15488891048415565,
+            -0.9879318931024705
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7923498636346734,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:1:0",
+          "edge": 1,
+          "a": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "b": [
+            -3.5097131368268037,
+            -10.35275999996395
+          ],
+          "normal": [
+            -0.9879786918277341,
+            -0.15459011771248268
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.82704959090402,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:1:1",
+          "edge": 1,
+          "a": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "b": [
+            -3.5097131368268037,
+            -10.35275999996395
+          ],
+          "normal": [
+            -0.9879786918277341,
+            -0.15459011771248268
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.861749318173367,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:1:2",
+          "edge": 1,
+          "a": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "b": [
+            -3.5097131368268037,
+            -10.35275999996395
+          ],
+          "normal": [
+            -0.9879786918277341,
+            -0.15459011771248268
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7923498636346734,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:1:3",
+          "edge": 1,
+          "a": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "b": [
+            -3.5097131368268037,
+            -10.35275999996395
+          ],
+          "normal": [
+            -0.9879786918277341,
+            -0.15459011771248268
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.82704959090402,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:1:4",
+          "edge": 1,
+          "a": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "b": [
+            -3.5097131368268037,
+            -10.35275999996395
+          ],
+          "normal": [
+            -0.9879786918277341,
+            -0.15459011771248268
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.861749318173367,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:1:5",
+          "edge": 1,
+          "a": [
+            -2.1023093726449815,
+            -19.347415999876603
+          ],
+          "b": [
+            -3.5097131368268037,
+            -10.35275999996395
+          ],
+          "normal": [
+            -0.9879786918277341,
+            -0.15459011771248268
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8667572000299416,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:5:0",
+          "edge": 5,
+          "a": [
+            -4.019897000983292,
+            0.7569760001454142
+          ],
+          "b": [
+            -4.767580249962748,
+            7.079952000475487
+          ],
+          "normal": [
+            -0.9930811056188618,
+            -0.11743048012683589
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.050271600089825,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:5:1",
+          "edge": 5,
+          "a": [
+            -4.019897000983292,
+            0.7569760001454142
+          ],
+          "b": [
+            -4.767580249962748,
+            7.079952000475487
+          ],
+          "normal": [
+            -0.9930811056188618,
+            -0.11743048012683589
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8667572000299416,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:5:2",
+          "edge": 5,
+          "a": [
+            -4.019897000983292,
+            0.7569760001454142
+          ],
+          "b": [
+            -4.767580249962748,
+            7.079952000475487
+          ],
+          "normal": [
+            -0.9930811056188618,
+            -0.11743048012683589
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.050271600089825,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:5:3",
+          "edge": 5,
+          "a": [
+            -4.019897000983292,
+            0.7569760001454142
+          ],
+          "b": [
+            -4.767580249962748,
+            7.079952000475487
+          ],
+          "normal": [
+            -0.9930811056188618,
+            -0.11743048012683589
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7723096910777963,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:9:0",
+          "edge": 9,
+          "a": [
+            -7.547202683815499,
+            15.428951999961782
+          ],
+          "b": [
+            1.328237302157504,
+            16.820452000403407
+          ],
+          "normal": [
+            -0.15488891050543593,
+            0.9879318930991342
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.766929073233389,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:9:1",
+          "edge": 9,
+          "a": [
+            -7.547202683815499,
+            15.428951999961782
+          ],
+          "b": [
+            1.328237302157504,
+            16.820452000403407
+          ],
+          "normal": [
+            -0.15488891050543593,
+            0.9879318930991342
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.761548455388982,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:9:2",
+          "edge": 9,
+          "a": [
+            -7.547202683815499,
+            15.428951999961782
+          ],
+          "b": [
+            1.328237302157504,
+            16.820452000403407
+          ],
+          "normal": [
+            -0.15488891050543593,
+            0.9879318930991342
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7723096910777963,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:9:3",
+          "edge": 9,
+          "a": [
+            -7.547202683815499,
+            15.428951999961782
+          ],
+          "b": [
+            1.328237302157504,
+            16.820452000403407
+          ],
+          "normal": [
+            -0.15488891050543593,
+            0.9879318930991342
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.766929073233389,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:9:4",
+          "edge": 9,
+          "a": [
+            -7.547202683815499,
+            15.428951999961782
+          ],
+          "b": [
+            1.328237302157504,
+            16.820452000403407
+          ],
+          "normal": [
+            -0.15488891050543593,
+            0.9879318930991342
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.761548455388982,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:9:5",
+          "edge": 9,
+          "a": [
+            -7.547202683815499,
+            15.428951999961782
+          ],
+          "b": [
+            1.328237302157504,
+            16.820452000403407
+          ],
+          "normal": [
+            -0.15488891050543593,
+            0.9879318930991342
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.327222863129505,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:12:0",
+          "edge": 12,
+          "a": [
+            1.6361068760020316,
+            8.092964000449001
+          ],
+          "b": [
+            2.216660927930093,
+            4.029784000424911
+          ],
+          "normal": [
+            0.9899460904133986,
+            0.1414451769245847
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.327222863129505,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:12:1",
+          "edge": 12,
+          "a": [
+            1.6361068760020316,
+            8.092964000449001
+          ],
+          "b": [
+            2.216660927930093,
+            4.029784000424911
+          ],
+          "normal": [
+            0.9899460904133986,
+            0.1414451769245847
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.992362597826495,
+          "v": 3.356014839412893,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:17:0",
+          "edge": 17,
+          "a": [
+            3.694434881133475,
+            -4.096575999623383
+          ],
+          "b": [
+            4.4860994976263555,
+            -9.47333199996956
+          ],
+          "normal": [
+            0.989333555383227,
+            0.145667828269606
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.992362597826495,
+          "v": 5.912029678825803,
+          "w": 1.45,
+          "h": 1.4560148394129007,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-259928418:window:17:1",
+          "edge": 17,
+          "a": [
+            3.694434881133475,
+            -4.096575999623383
+          ],
+          "b": [
+            4.4860994976263555,
+            -9.47333199996956
+          ],
+          "normal": [
+            0.989333555383227,
+            0.145667828269606
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "entrance": [
+        2.335410620966627,
+        -18.651665999655734
+      ],
+      "garages": [],
+      "storeys": [
+        {
+          "height_m": 2.5560148394129008
+        },
+        {
+          "height_m": 2.5560148394129008
+        },
+        {
+          "height_m": 2.5560148394129008
+        }
+      ],
+      "floor_y_m": 68.47570571893517,
+      "shell_base_y_m": 62.153750237173874,
+      "shell_top_y_m": 76.14375023717388,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              6.773130614578122,
+              -17.955915999434865
+            ],
+            [
+              -2.1023093726449815,
+              -19.347415999876603
+            ],
+            [
+              -3.5097131368268037,
+              -10.35275999996395
+            ],
+            [
+              -4.767580249962748,
+              -2.3488519997647472
+            ],
+            [
+              -5.145820011578735,
+              0.08905600024979776
+            ],
+            [
+              -4.019897000983292,
+              0.7569760001454142
+            ],
+            [
+              -4.767580249962748,
+              7.079952000475487
+            ],
+            [
+              -6.342113211195851,
+              7.7367400002410704
+            ],
+            [
+              -7.512017590554706,
+              15.206312000523894
+            ],
+            [
+              -7.547202683815499,
+              15.428951999961782
+            ],
+            [
+              1.328237302157504,
+              16.820452000403407
+            ],
+            [
+              2.550919322032655,
+              8.972392000443506
+            ],
+            [
+              1.6361068760020316,
+              8.092964000449001
+            ],
+            [
+              2.216660927930093,
+              4.029784000424911
+            ],
+            [
+              3.4393429490552307,
+              3.317336000008936
+            ],
+            [
+              3.984711906472512,
+              -0.1335839999790096
+            ],
+            [
+              4.406933035602151,
+              -2.838659999951801
+            ],
+            [
+              3.694434881133475,
+              -4.096575999623383
+            ],
+            [
+              4.4860994976263555,
+              -9.47333199996956
+            ],
+            [
+              5.550448594702971,
+              -10.152383999995209
+            ],
+            [
+              5.664800149988082,
+              -10.909360000140623
+            ],
+            [
+              6.773130614578122,
+              -17.955915999434865
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "total_height_m": 7.668044518238702,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  },
+  {
+    "id": "residential-osm-262727844",
+    "osm_id": "262727844",
+    "name": "Mapped detached 262727844",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            5.515263500192134,
+            -3.573371999837036
+          ],
+          [
+            -9.491179133662001,
+            -6.100336000101265
+          ],
+          [
+            -10.78423134255874,
+            1.5473479998900075
+          ],
+          [
+            -9.570345595686291,
+            1.758855999988782
+          ],
+          [
+            6.614797690529485,
+            4.48619599943072
+          ],
+          [
+            8.206923197767935,
+            4.753364000179943
+          ],
+          [
+            9.499975406664674,
+            -2.9054519999414197
+          ],
+          [
+            5.515263500192134,
+            -3.573371999837036
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4216022,
+      37.8021078
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      8.83275886135337,
+      1.0465065657038508
+    ],
+    "geometry_evidence": {
+      "building_id": "262727844",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "51378e47d1bf12bf8d14d8848244add521ad0368bfcace638bbf831255507568",
+      "footprint_area_m2": 149.52210030552624,
+      "footprint_area_sqft": 1609.442493005516,
+      "shell_floor_area_m2": 448.5663009165787,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 3.3884455301552165
+      },
+      {
+        "height_m": 3.3884455301552165
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "envelope": {
+      "id": "residential-osm-262727844",
+      "windows": [
+        {
+          "u": 1.2140567065369576,
+          "v": 4.188445530155207,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727844:window:1:0",
+          "edge": 1,
+          "a": [
+            -9.491179133662001,
+            -6.100336000101265
+          ],
+          "b": [
+            -10.78423134255874,
+            1.5473479998900075
+          ],
+          "normal": [
+            -0.9860057179103328,
+            -0.16671150004762567
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 5.092170119610873,
+          "v": 4.188445530155207,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727844:window:1:1",
+          "edge": 1,
+          "a": [
+            -9.491179133662001,
+            -6.100336000101265
+          ],
+          "b": [
+            -10.78423134255874,
+            1.5473479998900075
+          ],
+          "normal": [
+            -0.9860057179103328,
+            -0.16671150004762567
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.2168008159091608,
+          "v": 4.188445530155207,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727844:window:5:0",
+          "edge": 5,
+          "a": [
+            8.206923197767935,
+            4.753364000179943
+          ],
+          "b": [
+            9.499975406664674,
+            -2.9054519999414197
+          ],
+          "normal": [
+            0.9860455224568782,
+            0.16647590709391658
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 5.1004024477274825,
+          "v": 4.188445530155207,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727844:window:5:1",
+          "edge": 5,
+          "a": [
+            8.206923197767935,
+            4.753364000179943
+          ],
+          "b": [
+            9.499975406664674,
+            -2.9054519999414197
+          ],
+          "normal": [
+            0.9860455224568782,
+            0.16647590709391658
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.2951513621412496,
+          "v": 4.188445530155207,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727844:window:6:0",
+          "edge": 6,
+          "a": [
+            9.499975406664674,
+            -2.9054519999414197
+          ],
+          "b": [
+            5.515263500192134,
+            -3.573371999837036
+          ],
+          "normal": [
+            0.1653143453537209,
+            -0.9862409275731112
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [
+        {
+          "kind": "balcony",
+          "a": [
+            -5.705068400151106,
+            -5.462785465438742
+          ],
+          "b": [
+            -2.3522718075888633,
+            -4.898201539965271
+          ],
+          "u": 0,
+          "w": 3.4,
+          "depth_m": 0.72,
+          "normal": [
+            0.16605409572748256,
+            -0.9861166448712484
+          ],
+          "elevation_m": -0.34310893968957146,
+          "colour": "#d4d0c2",
+          "grade": "procedural_not_measured",
+          "parts": [
+            {
+              "x": -166.87354236640766,
+              "y": 73.12071759672313,
+              "z": -479.4564665078797,
+              "w": 3.4,
+              "h": 0.12,
+              "d": 0.72,
+              "colour": 6976632,
+              "roughness": 0.66,
+              "yaw": 0.1668268514735649,
+              "position": [
+                -3.9489641379207967,
+                -5.65382949224022
+              ],
+              "bottom_m": -0.34310893968957146
+            },
+            {
+              "x": -166.80379964620212,
+              "y": 73.24071759672313,
+              "z": -479.04229751703383,
+              "w": 3.4,
+              "h": 0.58,
+              "d": 0.055,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.1668268514735649,
+              "position": [
+                -3.8792214177152573,
+                -6.0679984830861144
+              ],
+              "bottom_m": -0.2231089396895669
+            },
+            {
+              "x": -168.49255236720538,
+              "y": 73.24071759672313,
+              "z": -478.8333726326755,
+              "w": 0.055,
+              "h": 0.5,
+              "d": 0.72,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.1668268514735649,
+              "position": [
+                -5.567974138718512,
+                -6.276923367444454
+              ],
+              "bottom_m": -0.2231089396895669
+            },
+            {
+              "x": -165.13975577464313,
+              "y": 73.24071759672313,
+              "z": -479.39795655814896,
+              "w": 0.055,
+              "h": 0.5,
+              "d": 0.72,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.1668268514735649,
+              "position": [
+                -2.2151775461562693,
+                -5.7123394419709825
+              ],
+              "bottom_m": -0.2231089396895669
+            }
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "entrance": [
+        8.83275886135337,
+        1.0465065657038508
+      ],
+      "garages": [
+        {
+          "id": "residential-osm-262727844:garage:0",
+          "a": [
+            8.206923197767935,
+            4.753364000179943
+          ],
+          "b": [
+            9.499975406664674,
+            -2.9054519999414197
+          ],
+          "u": 0.16431673543822733,
+          "w": 2.72,
+          "h": 2.7,
+          "v": -0.5824033836589138,
+          "source_id": "kerb-cut:17813",
+          "basis": "kerb_cut_projection",
+          "grade": "inferred_from_measured_kerb",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "storeys": [
+        {
+          "height_m": 3.3884455301552165
+        },
+        {
+          "height_m": 3.3884455301552165
+        }
+      ],
+      "floor_y_m": 73.4638265364127,
+      "shell_base_y_m": 69.28071759672312,
+      "shell_top_y_m": 80.24071759672313,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              5.515263500192134,
+              -3.573371999837036
+            ],
+            [
+              -9.491179133662001,
+              -6.100336000101265
+            ],
+            [
+              -10.78423134255874,
+              1.5473479998900075
+            ],
+            [
+              -9.570345595686291,
+              1.758855999988782
+            ],
+            [
+              6.614797690529485,
+              4.48619599943072
+            ],
+            [
+              8.206923197767935,
+              4.753364000179943
+            ],
+            [
+              9.499975406664674,
+              -2.9054519999414197
+            ],
+            [
+              5.515263500192134,
+              -3.573371999837036
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "total_height_m": 6.776891060310433,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  },
+  {
+    "id": "residential-osm-262727846",
+    "osm_id": "262727846",
+    "name": "Mapped detached 262727846",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            5.787947979525796,
+            -3.128092000170284
+          ],
+          [
+            -10.39719530668998,
+            -5.855431999612222
+          ],
+          [
+            -11.655062421075911,
+            1.6141399998795691
+          ],
+          [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          [
+            7.485628769046627,
+            -0.011132000130089637
+          ],
+          [
+            5.321745482882761,
+            -0.3784879996771906
+          ],
+          [
+            5.787947979525796,
+            -3.128092000170284
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4215928,
+      37.8021762
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      6.877265378980695,
+      3.6159793725580585
+    ],
+    "geometry_evidence": {
+      "building_id": "262727846",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "ae5d375c4fbf77baa86e8fdb43bcedace84940ee1b8743a76df329a35be3249d",
+      "footprint_area_m2": 134.86659759989976,
+      "footprint_area_sqft": 1451.6919747704483,
+      "shell_floor_area_m2": 404.5997927996993,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 2.4081050266406834
+      },
+      {
+        "height_m": 2.4081050266406834
+      },
+      {
+        "height_m": 2.4081050266406834
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "envelope": {
+      "id": "residential-osm-262727846",
+      "windows": [
+        {
+          "u": 1.1686858162893166,
+          "v": 3.2081050266406805,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:1:0",
+          "edge": 1,
+          "a": [
+            -10.39719530668998,
+            -5.855431999612222
+          ],
+          "b": [
+            -11.655062421075911,
+            1.6141399998795691
+          ],
+          "normal": [
+            -0.9861155339548934,
+            -0.16606069279891497
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.95605744886795,
+          "v": 3.2081050266406805,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:1:1",
+          "edge": 1,
+          "a": [
+            -10.39719530668998,
+            -5.855431999612222
+          ],
+          "b": [
+            -11.655062421075911,
+            1.6141399998795691
+          ],
+          "normal": [
+            -0.9861155339548934,
+            -0.16606069279891497
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.1686858162893166,
+          "v": 5.616210053281364,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:1:2",
+          "edge": 1,
+          "a": [
+            -10.39719530668998,
+            -5.855431999612222
+          ],
+          "b": [
+            -11.655062421075911,
+            1.6141399998795691
+          ],
+          "normal": [
+            -0.9861155339548934,
+            -0.16606069279891497
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.95605744886795,
+          "v": 5.616210053281364,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:1:3",
+          "edge": 1,
+          "a": [
+            -10.39719530668998,
+            -5.855431999612222
+          ],
+          "b": [
+            -11.655062421075911,
+            1.6141399998795691
+          ],
+          "normal": [
+            -0.9861155339548934,
+            -0.16606069279891497
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.9519533894726492,
+          "v": 3.2081050266406805,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:3:0",
+          "edge": 3,
+          "a": [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          "b": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "normal": [
+            -0.1659557157851913,
+            0.9861332062141629
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.305860168417948,
+          "v": 3.2081050266406805,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:3:1",
+          "edge": 3,
+          "a": [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          "b": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "normal": [
+            -0.1659557157851913,
+            0.9861332062141629
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.659766947363247,
+          "v": 3.2081050266406805,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:3:2",
+          "edge": 3,
+          "a": [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          "b": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "normal": [
+            -0.1659557157851913,
+            0.9861332062141629
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.9519533894726492,
+          "v": 5.616210053281364,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:3:3",
+          "edge": 3,
+          "a": [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          "b": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "normal": [
+            -0.1659557157851913,
+            0.9861332062141629
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.305860168417948,
+          "v": 5.616210053281364,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:3:4",
+          "edge": 3,
+          "a": [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          "b": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "normal": [
+            -0.1659557157851913,
+            0.9861332062141629
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.659766947363247,
+          "v": 5.616210053281364,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:3:5",
+          "edge": 3,
+          "a": [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          "b": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "normal": [
+            -0.1659557157851913,
+            0.9861332062141629
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.6679495811399825,
+          "v": 3.2081050266406805,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:4:0",
+          "edge": 4,
+          "a": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "b": [
+            7.485628769046627,
+            -0.011132000130089637
+          ],
+          "normal": [
+            0.986223871530986,
+            0.16541606700206976
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.6679495811399825,
+          "v": 5.616210053281364,
+          "w": 1.45,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262727846:window:4:1",
+          "edge": 4,
+          "a": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "b": [
+            7.485628769046627,
+            -0.011132000130089637
+          ],
+          "normal": [
+            0.986223871530986,
+            0.16541606700206976
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "entrance": [
+        6.877265378980695,
+        3.6159793725580585
+      ],
+      "garages": [
+        {
+          "id": "residential-osm-262727846:garage:0",
+          "a": [
+            6.693964152553775,
+            4.70883600045056
+          ],
+          "b": [
+            7.485628769046627,
+            -0.011132000130089637
+          ],
+          "u": 1.983122262540623,
+          "w": 2.4,
+          "h": 2.7,
+          "v": -0.2654448921973085,
+          "source_id": "kerb-cut:17874",
+          "basis": "kerb_cut_projection",
+          "grade": "inferred_from_measured_kerb",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "storeys": [
+        {
+          "height_m": 2.4081050266406834
+        },
+        {
+          "height_m": 2.4081050266406834
+        },
+        {
+          "height_m": 2.4081050266406834
+        }
+      ],
+      "floor_y_m": 72.44634526762665,
+      "shell_base_y_m": 66.9606603475487,
+      "shell_top_y_m": 79.6706603475487,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              5.787947979525796,
+              -3.128092000170284
+            ],
+            [
+              -10.39719530668998,
+              -5.855431999612222
+            ],
+            [
+              -11.655062421075911,
+              1.6141399998795691
+            ],
+            [
+              -3.228232383240453,
+              3.039035999920543
+            ],
+            [
+              6.693964152553775,
+              4.70883600045056
+            ],
+            [
+              7.485628769046627,
+              -0.011132000130089637
+            ],
+            [
+              5.321745482882761,
+              -0.3784879996771906
+            ],
+            [
+              5.787947979525796,
+              -3.128092000170284
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "total_height_m": 7.22431507992205,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  },
+  {
+    "id": "residential-osm-262096308",
+    "osm_id": "262096308",
+    "name": "Mapped house 262096308",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -4.037489548238682,
+            -7.491836000543003
+          ],
+          [
+            -6.42127967322017,
+            9.061447999902157
+          ],
+          [
+            -4.002304453727902,
+            9.228427999480573
+          ],
+          [
+            -2.278234842699021,
+            10.241439999454087
+          ],
+          [
+            -0.8180534380010158,
+            9.662575999808155
+          ],
+          [
+            0.14074037679324647,
+            8.616167999444315
+          ],
+          [
+            -0.3958323088713769,
+            7.291459999783228
+          ],
+          [
+            0.08796273502707663,
+            4.118839999883562
+          ],
+          [
+            1.2226820198752648,
+            4.285819999461978
+          ],
+          [
+            1.6009217814912517,
+            1.2467839995414352
+          ],
+          [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          [
+            3.6680460596253397,
+            -14.415940000779187
+          ],
+          [
+            3.1578621954688515,
+            -10.875964000541444
+          ],
+          [
+            -2.4453640397503023,
+            -11.68860000054633
+          ],
+          [
+            -3.06110318743913,
+            -7.35825200056388
+          ],
+          [
+            -4.037489548238682,
+            -7.491836000543003
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4380908,
+      37.7922604
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      5.801142389654842,
+      -14.109810000761172
+    ],
+    "geometry_evidence": {
+      "building_id": "262096308",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "d371d42c9473ae65eb14b2d89a8c7f8ca5d0f27e942809b7dfbaa603475884e9",
+      "footprint_area_m2": 200.21363254809657,
+      "footprint_area_sqft": 2155.081604949803,
+      "shell_floor_area_m2": 600.6408976442897,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 3.4603171257496164
+      },
+      {
+        "height_m": 3.4603171257496164
+      },
+      {
+        "height_m": 3.4603171257496164
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "envelope": {
+      "id": "residential-osm-262096308",
+      "windows": [
+        {
+          "u": 0.8796475709843629,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:6:0",
+          "edge": 6,
+          "a": [
+            -0.3958323088713769,
+            7.291459999783228
+          ],
+          "b": [
+            0.08796273502707663,
+            4.118839999883562
+          ],
+          "normal": [
+            0.9885722127611606,
+            0.15074806850007316
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8796475709843629,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:6:1",
+          "edge": 6,
+          "a": [
+            -0.3958323088713769,
+            7.291459999783228
+          ],
+          "b": [
+            0.08796273502707663,
+            4.118839999883562
+          ],
+          "normal": [
+            0.9885722127611606,
+            0.15074806850007316
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.3230951102220367,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:9:0",
+          "edge": 9,
+          "a": [
+            1.6009217814912517,
+            1.2467839995414352
+          ],
+          "b": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "normal": [
+            -0.14131765598866555,
+            0.9899643024401786
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.3230951102220367,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:9:1",
+          "edge": 9,
+          "a": [
+            1.6009217814912517,
+            1.2467839995414352
+          ],
+          "b": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "normal": [
+            -0.14131765598866555,
+            0.9899643024401786
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8544500554253517,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:0",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.013350166276055,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:1",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.172250277126759,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:2",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 10.331150387977463,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:3",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 13.490050498828165,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:4",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8544500554253517,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:5",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.013350166276055,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:6",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.172250277126759,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:7",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 10.331150387977463,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:8",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 13.490050498828165,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:10:9",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.4299513985462404,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:11:0",
+          "edge": 11,
+          "a": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "b": [
+            3.6680460596253397,
+            -14.415940000779187
+          ],
+          "normal": [
+            0.14205888830002927,
+            -0.9898582081565822
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.4299513985462404,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:11:1",
+          "edge": 11,
+          "a": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "b": [
+            3.6680460596253397,
+            -14.415940000779187
+          ],
+          "normal": [
+            0.14205888830002927,
+            -0.9898582081565822
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.0632755420729252,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:12:0",
+          "edge": 12,
+          "a": [
+            3.6680460596253397,
+            -14.415940000779187
+          ],
+          "b": [
+            3.1578621954688515,
+            -10.875964000541444
+          ],
+          "normal": [
+            -0.9897736442042624,
+            -0.1426468830315421
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.0632755420729252,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:12:1",
+          "edge": 12,
+          "a": [
+            3.6680460596253397,
+            -14.415940000779187
+          ],
+          "b": [
+            3.1578621954688515,
+            -10.875964000541444
+          ],
+          "normal": [
+            -0.9897736442042624,
+            -0.1426468830315421
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.1059239442076216,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:13:0",
+          "edge": 13,
+          "a": [
+            3.1578621954688515,
+            -10.875964000541444
+          ],
+          "b": [
+            -2.4453640397503023,
+            -11.68860000054633
+          ],
+          "normal": [
+            0.14352840557013688,
+            -0.9896461977871154
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 2.1059239442076216,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:13:1",
+          "edge": 13,
+          "a": [
+            3.1578621954688515,
+            -10.875964000541444
+          ],
+          "b": [
+            -2.4453640397503023,
+            -11.68860000054633
+          ],
+          "normal": [
+            0.14352840557013688,
+            -0.9896461977871154
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.4619527029035497,
+          "v": 4.260317125749609,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:14:0",
+          "edge": 14,
+          "a": [
+            -2.4453640397503023,
+            -11.68860000054633
+          ],
+          "b": [
+            -3.06110318743913,
+            -7.35825200056388
+          ],
+          "normal": [
+            -0.9900415299867209,
+            -0.14077559767783956
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.4619527029035497,
+          "v": 7.720634251499234,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262096308:window:14:1",
+          "edge": 14,
+          "a": [
+            -2.4453640397503023,
+            -11.68860000054633
+          ],
+          "b": [
+            -3.06110318743913,
+            -7.35825200056388
+          ],
+          "normal": [
+            -0.9900415299867209,
+            -0.14077559767783956
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [
+        {
+          "kind": "balcony",
+          "a": [
+            -0.21088745876977555,
+            -11.364533822482827
+          ],
+          "b": [
+            1.7684049368044725,
+            -11.07747701134258
+          ],
+          "u": 0,
+          "w": 2,
+          "depth_m": 0.72,
+          "normal": [
+            0.14352840557013688,
+            -0.9896461977871154
+          ],
+          "elevation_m": 1.8909513772488538,
+          "colour": "#d4d0c2",
+          "grade": "procedural_not_measured",
+          "parts": [
+            {
+              "x": -1612.4592822827874,
+              "y": 90.49739465311131,
+              "z": 622.7983075915273,
+              "w": 2,
+              "h": 0.12,
+              "d": 0.72,
+              "colour": 6976632,
+              "roughness": 0.66,
+              "yaw": 0.14402582114596774,
+              "position": [
+                0.8476523736910622,
+                -11.696035591850546
+              ],
+              "bottom_m": 1.8909513772488538
+            },
+            {
+              "x": -1612.399000352448,
+              "y": 90.61739465311132,
+              "z": 623.2139589945979,
+              "w": 2,
+              "h": 0.58,
+              "d": 0.055,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.14402582114596774,
+              "position": [
+                0.9079343040305048,
+                -12.111686994921115
+              ],
+              "bottom_m": 2.0109513772488583
+            },
+            {
+              "x": -1613.3993250636095,
+              "y": 90.61739465311132,
+              "z": 623.2838577230526,
+              "w": 0.055,
+              "h": 0.5,
+              "d": 0.72,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.14402582114596774,
+              "position": [
+                -0.09239040713100621,
+                -12.18158572337586
+              ],
+              "bottom_m": 2.0109513772488583
+            },
+            {
+              "x": -1611.4200326680352,
+              "y": 90.61739465311132,
+              "z": 622.9968009119124,
+              "w": 0.055,
+              "h": 0.5,
+              "d": 0.72,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.14402582114596774,
+              "position": [
+                1.8869019884432419,
+                -11.894528912235614
+              ],
+              "bottom_m": 2.0109513772488583
+            }
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "entrance": [
+        5.801142389654842,
+        -14.109810000761172
+      ],
+      "garages": [],
+      "storeys": [
+        {
+          "height_m": 3.4603171257496164
+        },
+        {
+          "height_m": 3.4603171257496164
+        },
+        {
+          "height_m": 3.4603171257496164
+        }
+      ],
+      "floor_y_m": 88.60644327586246,
+      "shell_base_y_m": 86.65739465311131,
+      "shell_top_y_m": 98.98739465311131,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -4.037489548238682,
+              -7.491836000543003
+            ],
+            [
+              -6.42127967322017,
+              9.061447999902157
+            ],
+            [
+              -4.002304453727902,
+              9.228427999480573
+            ],
+            [
+              -2.278234842699021,
+              10.241439999454087
+            ],
+            [
+              -0.8180534380010158,
+              9.662575999808155
+            ],
+            [
+              0.14074037679324647,
+              8.616167999444315
+            ],
+            [
+              -0.3958323088713769,
+              7.291459999783228
+            ],
+            [
+              0.08796273502707663,
+              4.118839999883562
+            ],
+            [
+              1.2226820198752648,
+              4.285819999461978
+            ],
+            [
+              1.6009217814912517,
+              1.2467839995414352
+            ],
+            [
+              5.6560038757354505,
+              1.8256479999782869
+            ],
+            [
+              7.934238719684345,
+              -13.803680000743043
+            ],
+            [
+              3.6680460596253397,
+              -14.415940000779187
+            ],
+            [
+              3.1578621954688515,
+              -10.875964000541444
+            ],
+            [
+              -2.4453640397503023,
+              -11.68860000054633
+            ],
+            [
+              -3.06110318743913,
+              -7.35825200056388
+            ],
+            [
+              -4.037489548238682,
+              -7.491836000543003
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "total_height_m": 10.380951377248849,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  },
+  {
+    "id": "residential-osm-262419190",
+    "osm_id": "262419190",
+    "name": "Mapped detached 262419190",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -8.145349284248823,
+            0.08905599945876475
+          ],
+          [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          [
+            5.524059773194949,
+            -2.3154560001654545
+          ],
+          [
+            5.0666535508044035,
+            -3.217148000420025
+          ],
+          [
+            2.172679560416782,
+            -3.5956360000972154
+          ],
+          [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          [
+            -8.145349284248823,
+            0.08905599945876475
+          ]
+        ]
+      ]
+    },
+    "origin_lon_lat": [
+      -122.4460009,
+      37.7920913
+    ],
+    "units": "metres",
+    "height_m": 4.1,
+    "entrance": [
+      -1.34360636140309,
+      9.461434583638834
+    ],
+    "geometry_evidence": {
+      "building_id": "262419190",
+      "region": "sf-corridor",
+      "source": "Kerbside published building polygon, local tangent-plane metres",
+      "source_geometry_sha256": "d5a0fa7f38ff8dee4ad0e76e505e548e08749e0758689fa7681c253b9b4897a0",
+      "footprint_area_m2": 180.55267340762427,
+      "footprint_area_sqft": 1943.45280205536,
+      "shell_floor_area_m2": 541.6580202228728,
+      "storeys": 3,
+      "storey_height_m": 4.1,
+      "height_source": "Kerbside canonical storeys and storey_m",
+      "shell_height_source": "datasf_lidar_median_height",
+      "tenant_boundary": "full ground-floor tenancy is unverified",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "storeys": [
+      {
+        "height_m": 2.9471679729727214
+      },
+      {
+        "height_m": 2.9471679729727214
+      },
+      {
+        "height_m": 2.9471679729727214
+      }
+    ],
+    "households": 1,
+    "household_evidence": "single-family OSM classification",
+    "source": "Kerbside published shell and canonical openings",
+    "neighborhood_price_per_sqft": null,
+    "envelope": {
+      "id": "residential-osm-262419190",
+      "windows": [
+        {
+          "u": 0.6734936285193723,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:0",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.4704808855581173,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:1",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.2674681425968615,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:2",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 9.064455399635607,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:3",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 11.86144265667435,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:4",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6734936285193723,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:5",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.4704808855581173,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:6",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.2674681425968615,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:7",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 9.064455399635607,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:8",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 11.86144265667435,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:1:9",
+          "edge": 1,
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "normal": [
+            -0.15760786854560524,
+            0.9875017770984066
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8643329184492051,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:0",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.042998755347615,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:1",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.221664592246026,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:2",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 10.400330429144436,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:3",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8643329184492051,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:4",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.042998755347615,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:5",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 7.221664592246026,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:6",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 10.400330429144436,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:2:7",
+          "edge": 2,
+          "a": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "b": [
+            6.377298305706518,
+            -2.181872000186331
+          ],
+          "normal": [
+            0.9875917007268653,
+            0.15704341009866624
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7862109313895719,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:7:0",
+          "edge": 7,
+          "a": [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          "b": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "normal": [
+            0.15714726630195675,
+            -0.9875751802743028
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.8086327941687155,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:7:1",
+          "edge": 7,
+          "a": [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          "b": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "normal": [
+            0.15714726630195675,
+            -0.9875751802743028
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.83105465694786,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:7:2",
+          "edge": 7,
+          "a": [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          "b": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "normal": [
+            0.15714726630195675,
+            -0.9875751802743028
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7862109313895719,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:7:3",
+          "edge": 7,
+          "a": [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          "b": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "normal": [
+            0.15714726630195675,
+            -0.9875751802743028
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.8086327941687155,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:7:4",
+          "edge": 7,
+          "a": [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          "b": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "normal": [
+            0.15714726630195675,
+            -0.9875751802743028
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.83105465694786,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:7:5",
+          "edge": 7,
+          "a": [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          "b": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "normal": [
+            0.15714726630195675,
+            -0.9875751802743028
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.5407146459129746,
+          "v": 3.7471679729727185,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:8:0",
+          "edge": 8,
+          "a": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "b": [
+            -8.145349284248823,
+            0.08905599945876475
+          ],
+          "normal": [
+            -0.9875612553778522,
+            -0.1572347508552752
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.5407146459129746,
+          "v": 6.69433594594544,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "residential-osm-262419190:window:8:1",
+          "edge": 8,
+          "a": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "b": [
+            -8.145349284248823,
+            0.08905599945876475
+          ],
+          "normal": [
+            -0.9875612553778522,
+            -0.1572347508552752
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [
+        {
+          "kind": "balcony",
+          "a": [
+            -3.442609820594498,
+            -3.7510634151957447
+          ],
+          "b": [
+            -1.2935042730755413,
+            -3.4090883751858883
+          ],
+          "u": 0,
+          "w": 2.1761437412009834,
+          "depth_m": 0.72,
+          "normal": [
+            0.15714726630195675,
+            -0.9875751802743028
+          ],
+          "elevation_m": 0.8915039189181613,
+          "colour": "#d4d0c2",
+          "grade": "procedural_not_measured",
+          "parts": [
+            {
+              "x": -2311.393593109465,
+              "y": 117.33161609045057,
+              "z": 633.9805959814895,
+              "w": 2.1761437412009834,
+              "h": 0.12,
+              "d": 0.72,
+              "colour": 6976632,
+              "roughness": 0.66,
+              "yaw": 0.15780136041176807,
+              "position": [
+                -2.292626359010228,
+                -4.054111981722485
+              ],
+              "bottom_m": 0.8915039189181613
+            },
+            {
+              "x": -2311.327591257618,
+              "y": 117.45161609045057,
+              "z": 634.3953775572047,
+              "w": 2.1761437412009834,
+              "h": 0.58,
+              "d": 0.055,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.15780136041176807,
+              "position": [
+                -2.226624507163251,
+                -4.468893557437696
+              ],
+              "bottom_m": 1.0115039189181658
+            },
+            {
+              "x": -2312.4138357879906,
+              "y": 117.45161609045057,
+              "z": 634.4928894837972,
+              "w": 0.055,
+              "h": 0.5,
+              "d": 0.72,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.15780136041176807,
+              "position": [
+                -3.31286903753562,
+                -4.566405484030156
+              ],
+              "bottom_m": 1.0115039189181658
+            },
+            {
+              "x": -2310.2647302404716,
+              "y": 117.45161609045057,
+              "z": 634.1509144437873,
+              "w": 0.055,
+              "h": 0.5,
+              "d": 0.72,
+              "colour": 13947074,
+              "roughness": 0.54,
+              "yaw": 0.15780136041176807,
+              "position": [
+                -1.1637634900166631,
+                -4.2244304440202995
+              ],
+              "bottom_m": 1.0115039189181658
+            }
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "entrance": [
+        -1.34360636140309,
+        9.461434583638834
+      ],
+      "garages": [
+        {
+          "id": "residential-osm-262419190:garage:0",
+          "a": [
+            1.5217553194670472,
+            -2.961112000591811
+          ],
+          "b": [
+            -7.432851128530274,
+            -4.386008000632842
+          ],
+          "u": 0,
+          "w": 3.6900000000000004,
+          "h": 2.7,
+          "v": -1.1436074310948925,
+          "source_id": "kerb-cut:61787",
+          "basis": "kerb_cut_projection",
+          "grade": "inferred_from_measured_kerb",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "residential-osm-262419190:garage:1",
+          "a": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "b": [
+            4.380544215343889,
+            10.37502399943321
+          ],
+          "u": 9.06333853772801,
+          "w": 3.7199999999999998,
+          "h": 2.7,
+          "v": -1.0355786292953155,
+          "source_id": "kerb-cut:61794",
+          "basis": "kerb_cut_projection",
+          "grade": "inferred_from_measured_kerb",
+          "measured": false,
+          "confidence": 0.25,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "storeys": [
+        {
+          "height_m": 2.9471679729727214
+        },
+        {
+          "height_m": 2.9471679729727214
+        },
+        {
+          "height_m": 2.9471679729727214
+        }
+      ],
+      "floor_y_m": 116.4401121715324,
+      "shell_base_y_m": 113.49161609045056,
+      "shell_top_y_m": 125.28161609045057,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -8.145349284248823,
+              0.08905599945876475
+            ],
+            [
+              -9.429605218892902,
+              8.170887999777733
+            ],
+            [
+              4.380544215343889,
+              10.37502399943321
+            ],
+            [
+              6.377298305706518,
+              -2.181872000186331
+            ],
+            [
+              5.524059773194949,
+              -2.3154560001654545
+            ],
+            [
+              5.0666535508044035,
+              -3.217148000420025
+            ],
+            [
+              2.172679560416782,
+              -3.5956360000972154
+            ],
+            [
+              1.5217553194670472,
+              -2.961112000591811
+            ],
+            [
+              -7.432851128530274,
+              -4.386008000632842
+            ],
+            [
+              -8.145349284248823,
+              0.08905599945876475
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    "total_height_m": 8.841503918918164,
+    "storey_evidence": "same Kerbside canonical floor/window rules; terrain foundation respected"
+  }
+]
