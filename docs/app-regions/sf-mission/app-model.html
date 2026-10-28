@@ -107,6 +107,7 @@ input::placeholder { color:#9ca3af; }
 #tip { color:#374151; background:var(--soft); border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.5; }
 #addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:12px; background:rgba(17,24,39,.94); color:#fff; font-size:12px; line-height:1.45; box-shadow:var(--shadow); pointer-events:none; }
 #addr b { font-size:13px; } #addr .sub { color:#fff; }
+#addr .addr-edit { margin-top:8px; border:0; border-radius:8px; padding:5px 10px; background:#1f6feb; color:#fff; font:inherit; cursor:pointer; }
 #nearby { position:fixed; left:16px; top:72px; z-index:9; width:min(340px, calc(100vw - 24px)); padding:9px 12px; border-radius:12px; background:rgba(17,24,39,.86); color:#fff; font-size:12px; line-height:1.4; box-shadow:var(--shadow); pointer-events:none; }
 #nearby .head { font-weight:600; margin-bottom:4px; } #nearby .row { margin-top:5px; } #nearby .sub { color:#cbd5e1; font-size:11px; }
 #progress { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; color:var(--ink); padding:14px 22px; border-radius:14px; font-size:15px; box-shadow:var(--shadow); z-index:20; pointer-events:none; }
@@ -115,7 +116,7 @@ input::placeholder { color:#9ca3af; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="ee7d793f3ecff5e9eff11b6dd63fe19f7ed0f2188f39c4764db3af418b2ab39e" />
+<meta name="kerbside-renderer-sha256" content="43e251ff544d325134116446a4f54fb1f64f7209df7017ae728260c532169b00" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -501,7 +502,7 @@ const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
 //: tunnels and the forest's logs stop the walker, as before.
 const objectCatalogueReady = ATTACH ? Promise.resolve(null) : Promise.all([
   import(sharedAsset("object-catalogue.mjs?rev=5826d83bbb545d32")),
-  fetch(sharedAsset("object-catalogue.json?rev=8380372e7d79cac2"))
+  fetch(sharedAsset("object-catalogue.json?rev=c067565cd79337fd"))
     .then((r) => r.ok ? r.json() : Promise.reject(new Error(`object catalogue: ${r.status}`))),
 ]).then(([library, data]) => ({ library, catalogue: library.createCatalogue(data) }))
   .catch((error) => { console.warn("kerbside: object catalogue unavailable; only buildings and logs stop the walker", error); return null; });
@@ -882,6 +883,18 @@ function applyStorefrontNames(data, inventory) {
   return applied;
 }
 applyStorefrontNames(DATA, STORE_NAMES);
+//: What people drew on their own fronts (docs/exterior-editor.mjs): the edits published for
+//: everyone (scripts/merge_exterior_edits.py), and over them this browser's own.
+const EXTERIOR_EDITS_KEY = "kerbside:exterior-edits:v1";
+const PUBLISHED_EXTERIOR_EDITS = await fetch(asset("sf-corridor-exterior-edits.json"), { cache: "no-cache" })
+  .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+function localExteriorEdits() {
+  try { return JSON.parse(localStorage.getItem(EXTERIOR_EDITS_KEY) || "{}") || {}; } catch { return {}; }
+}
+const EXTERIOR_EDITS = new Map(Object.entries({
+  ...(PUBLISHED_EXTERIOR_EDITS?.schema === "kerbside.exterior_edits/1" ? PUBLISHED_EXTERIOR_EDITS.edits || {} : {}),
+  ...(META ? {} : localExteriorEdits()),
+}));
 const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : { assigned: {} })
   .catch(() => ({ assigned: {} }));
@@ -13951,13 +13964,38 @@ function buildShed(sink, at, width, colour, slot, atlas) {
   ], slot);
 }
 
+//: The lowest building a shop's sign goes on; below SIGN_FULL_HEIGHT_M every sign and awning
+//: is taken down by the difference, so a one-storey corner shop has its board under its eaves.
+const SHOP_SIGN_MIN_HEIGHT_M = 3.4;
+const SIGN_FULL_HEIGHT_M = 4.6;
+//: Of each trade's shops, the share that also hang a sign out from the wall over the pavement,
+//: read by people walking along it (a blade); and the share whose name is cut letters fixed to
+//: the wall itself rather than a board. Estimates, like AWNING_MIX.
+const BLADE_SHARE = {
+  restaurant: 0.32, pizza: 0.3, cafe: 0.4, bakery: 0.36, bar: 0.55, grocery: 0.2, convenience: 0.25,
+  clothing: 0.3, books: 0.45, salon: 0.38, pharmacy: 0.3, bank: 0.12, laundry: 0.3, hardware: 0.3,
+  florist: 0.35, hotel: 0.5, shop: 0.28,
+};
+const LETTERS_SHARE = {
+  bank: 0.55, pharmacy: 0.45, clothing: 0.45, hotel: 0.4, office: 0.6, books: 0.25, salon: 0.25,
+  restaurant: 0.2, cafe: 0.18, shop: 0.3,
+};
+//: Trades that put tables out under umbrellas where the pavement has room, and how often.
+const SIDEWALK_SEATING = { cafe: 0.6, restaurant: 0.45, pizza: 0.4, bakery: 0.45, bar: 0.3 };
+//: Room a table needs: its umbrella's reach from the wall, and the pavement left beyond it.
+const SEATING_OUT_M = 1.35;
+const SEATING_CLEAR_M = 2.6;
+const UMBRELLA_COLOURS = [0xf1ede2, 0x2f5d43, 0x9b2a24, 0x23364f, 0xd9a441, 0x3b3b3b];
+
 function addShopfronts(feature, seed, height, tint) {
   const shops = feature.shops;
-  if (!shops || !shops.length) return;
-  // Only where a shopfront can be: a ground floor with room above the glass for a sign.
-  if (height < 4.8) return;
-  const wall = bestFacadeWall(feature, false);
-  if (!wall || wall.span < 4.0) return;
+  if (!shops || !shops.length || feature.exteriorEdit) return;
+  // Only where a shopfront can be: a ground floor with room above the glass for a sign. A
+  // one-storey shop lower than a sign's usual height takes it lower (SIGN_FULL_HEIGHT_M).
+  if (height < SHOP_SIGN_MIN_HEIGHT_M) return;
+  const wall = storefrontWall(feature);
+  if (!wall || wall.span < STOREFRONT_MIN_WALL_M) return;
+  const drop = Math.min(0, height - SIGN_FULL_HEIGHT_M);
 
   // Several businesses share a street wall by dividing it, which is what a block of shops is:
   // the same bays the storefronts are drawn in, so each sign is over its own front.
@@ -13970,15 +14008,140 @@ function addShopfronts(feature, seed, height, tint) {
     const centre = bays[i].centre;
     const width = Math.min(share * 0.82, 7.5);
     if (width < 2.2) continue;
-    const at = shopFrame(wall, centre);
+    const frame = shopFrame(wall, centre);
+    const at = (along, out, up) => frame(along, out, up + drop);
     const trade = shop.t || "shop";
-    const kind = pickAwning(trade, seed + i * 31.7);
-    const slot = signSlot(shop.n, trade, inkFor(colour));
-    const sink = awningSink(kind);
-    if (kind === "board") buildBoard(sink, at, width, colour, slot, slot.atlas);
-    else if (kind === "dome") buildDome(sink, at, width, colour, slot, slot.atlas);
-    else if (kind === "shed") buildShed(sink, at, width, colour, slot, slot.atlas);
-    else buildSloped(sink, at, width, colour, slot, slot.atlas, kind === "retractable");
+    const roll = (k) => random(seed + i * 31.7 + k);
+    let kind = pickAwning(trade, seed + i * 31.7);
+    // Cut letters on the wall stand in for a board: a bank's name in brass, a boutique's.
+    if (kind === "board" && roll(5.3) < (LETTERS_SHARE[trade] || 0)) kind = "letters";
+    const sink = awningSink(kind === "letters" ? "board" : kind);
+    if (kind === "letters") {
+      const slot = signSlot(shop.n, trade, inkFor(new THREE.Color(tint)));
+      buildLetters(at, width, slot, slot.atlas);
+    } else {
+      const slot = signSlot(shop.n, trade, inkFor(colour));
+      if (kind === "board") buildBoard(sink, at, width, colour, slot, slot.atlas);
+      else if (kind === "dome") buildDome(sink, at, width, colour, slot, slot.atlas);
+      else if (kind === "shed") buildShed(sink, at, width, colour, slot, slot.atlas);
+      else buildSloped(sink, at, width, colour, slot, slot.atlas, kind === "retractable");
+    }
+    // A sign out over the pavement as well, at one end of the front: a tall one up the storeys
+    // above for a bar, a hotel or a theatre where there are storeys to hang it on.
+    if (roll(9.1) < (BLADE_SHARE[trade] || 0.25)) {
+      const side = roll(2.2) < 0.5 ? -1 : 1;
+      const tall = ["bar", "hotel", "restaurant"].includes(trade) && height >= 7.5 && roll(4.4) < 0.5;
+      const bladeColour = roll(6.6) < 0.5 ? colour.clone().multiplyScalar(0.55) : new THREE.Color(0xf2efe6);
+      const slot = signSlot(shop.n, trade, inkFor(bladeColour));
+      buildBlade(awningSink("blade"), frame, wall, side * (width / 2 - 0.25), bladeColour, slot, slot.atlas,
+        tall ? { bottom: 4.7, top: Math.min(height - 0.4, 8.2), reach: 0.62, vertical: true }
+          : { bottom: 2.75 + drop, top: 3.45 + drop, reach: 0.95, vertical: false });
+    }
+    if (roll(12.7) < (SIDEWALK_SEATING[trade] || 0)) addSidewalkSeating(frame, width, seed + i * 7.9);
+  }
+}
+
+//: A name in letters fixed straight to the wall over the glass: no board, the wall's own colour
+//: behind it, and the letters a few centimetres proud of it.
+function buildLetters(at, width, slot, atlas) {
+  const signH = Math.min(0.62, Math.max(0.36, width * 0.08));
+  const signW = Math.min(width - 0.4, signH * slot.aspect);
+  const mid = 3.95;
+  addSignFace(atlas, [
+    at(-signW / 2, 0.07, mid - signH / 2), at(signW / 2, 0.07, mid - signH / 2),
+    at(signW / 2, 0.07, mid + signH / 2), at(-signW / 2, 0.07, mid + signH / 2),
+  ], slot);
+}
+
+//: A blade: a panel standing out from the wall on a bracket, its name on both faces so it reads
+//: walking either way along the pavement. ``frame`` is the front's shopFrame (along, out, up);
+//: ``along`` where on the front it hangs. A tall one's name runs up it.
+function buildBlade(sink, frame, wall, along, colour, slot, atlas, { bottom, top, reach, vertical }) {
+  const thick = 0.07, gap = 0.12;
+  const o0 = gap, o1 = gap + reach;
+  const edge = colour.clone().multiplyScalar(0.7);
+  const bracket = new THREE.Color(0x2a2a2a);
+  // The bracket from the wall over the panel's top, and the panel itself: a box.
+  awningQuad(sink, [frame(along - 0.02, 0, top + 0.04), frame(along + 0.02, 0, top + 0.04),
+                    frame(along + 0.02, o1 + 0.05, top + 0.04), frame(along - 0.02, o1 + 0.05, top + 0.04)], [bracket]);
+  for (const s of [-1, 1]) {
+    awningQuad(sink, [frame(along + s * thick / 2, o0, bottom), frame(along + s * thick / 2, o1, bottom),
+                      frame(along + s * thick / 2, o1, top), frame(along + s * thick / 2, o0, top)], [colour]);
+  }
+  awningQuad(sink, [frame(along - thick / 2, o1, bottom), frame(along + thick / 2, o1, bottom),
+                    frame(along + thick / 2, o1, top), frame(along - thick / 2, o1, top)], [edge]);
+  awningQuad(sink, [frame(along - thick / 2, o0, bottom), frame(along + thick / 2, o0, bottom),
+                    frame(along + thick / 2, o1, bottom), frame(along - thick / 2, o1, bottom)], [edge]);
+  // Which way "out" runs for someone reading each face: the face towards +along is read by a
+  // person looking back along the wall, whose right hand is (az, -ax) in plan.
+  const ax = Math.cos(wall.yaw), az = -Math.sin(wall.yaw);
+  const rightIsOut = az * wall.nx - ax * wall.nz > 0;
+  const pad = 0.08, w = reach - 2 * pad, h = top - bottom - 2 * pad;
+  for (const s of [-1, 1]) {
+    const a = along + s * (thick / 2 + 0.006);
+    // Reading left to right runs from the wall out on one face and from the end in on the other.
+    const outwards = (s > 0) === rightIsOut;
+    const near = outwards ? o0 + pad : o1 - pad, far = outwards ? o1 - pad : o0 + pad;
+    if (!vertical) {
+      const signH = Math.min(h, w / slot.aspect), mid = (bottom + top) / 2;
+      const signW = signH * slot.aspect, c = (near + far) / 2, dir = Math.sign(far - near);
+      addSignFace(atlas, [frame(a, c - dir * signW / 2, mid - signH / 2), frame(a, c + dir * signW / 2, mid - signH / 2),
+                          frame(a, c + dir * signW / 2, mid + signH / 2), frame(a, c - dir * signW / 2, mid + signH / 2)], slot);
+    } else {
+      // Turned a quarter: the name reads up the blade, its foot towards the reader's right.
+      const len = Math.min(h, w * slot.aspect), across = len / slot.aspect, mid = (bottom + top) / 2;
+      const c = (near + far) / 2, dir = Math.sign(far - near);
+      const footSide = c + dir * across / 2, headSide = c - dir * across / 2;
+      addSignFace(atlas, [frame(a, footSide, mid - len / 2), frame(a, footSide, mid + len / 2),
+                          frame(a, headSide, mid + len / 2), frame(a, headSide, mid - len / 2)], slot);
+    }
+  }
+}
+
+//: Tables out on the pavement under umbrellas, in front of the window, where there is room for
+//: them and for people to pass: never on the road, never against the next building.
+const SEATING_SINK = newSink();
+function addSidewalkSeating(frame, width, seed) {
+  const sets = Math.max(1, Math.min(3, Math.floor((width - 0.6) / 2.3)));
+  const colour = new THREE.Color(UMBRELLA_COLOURS[Math.floor(random(seed + 3.3) * UMBRELLA_COLOURS.length)]);
+  for (let k = 0; k < sets; k += 1) {
+    const along = -width / 2 + width * (k + 0.5) / sets;
+    const [x, , z] = frame(along, SEATING_OUT_M, 0);
+    const [fx, , fz] = frame(along, SEATING_OUT_M + SEATING_CLEAR_M, 0);
+    if (insideCarriageway(x, z, 0) || insideCarriageway(fx, fz, 0) || buildingAt(x, z)) continue;
+    umbrellaSet(frame, along, colour, random(seed + k * 1.9) < 0.5);
+  }
+}
+
+function umbrellaSet(frame, along, colour, square) {
+  const sink = SEATING_SINK;
+  const out = SEATING_OUT_M;
+  const metal = new THREE.Color(0x3a3d40), top = new THREE.Color(0xd8d2c4), chair = new THREE.Color(0x4a3a2c);
+  const box = (a0, a1, o0, o1, y0, y1, c) => {
+    const p = (a, o, y) => frame(a, o, y);
+    awningQuad(sink, [p(a0, o0, y1), p(a1, o0, y1), p(a1, o1, y1), p(a0, o1, y1)], [c]);
+    awningQuad(sink, [p(a0, o0, y0), p(a1, o0, y0), p(a1, o0, y1), p(a0, o0, y1)], [c]);
+    awningQuad(sink, [p(a1, o1, y0), p(a0, o1, y0), p(a0, o1, y1), p(a1, o1, y1)], [c]);
+    awningQuad(sink, [p(a0, o1, y0), p(a0, o0, y0), p(a0, o0, y1), p(a0, o1, y1)], [c]);
+    awningQuad(sink, [p(a1, o0, y0), p(a1, o1, y0), p(a1, o1, y1), p(a1, o0, y1)], [c]);
+  };
+  // The table: a top on a post; two chairs either side of it along the wall.
+  box(along - 0.36, along + 0.36, out - 0.36, out + 0.36, 0.72, 0.75, top);
+  box(along - 0.03, along + 0.03, out - 0.03, out + 0.03, 0, 0.72, metal);
+  for (const s of [-1, 1]) {
+    box(along + s * 0.62 - 0.21, along + s * 0.62 + 0.21, out - 0.21, out + 0.21, 0.44, 0.47, chair);
+    box(along + s * 0.81 - 0.02, along + s * 0.81 + 0.02, out - 0.21, out + 0.21, 0.47, 0.9, chair);
+  }
+  // The umbrella: its pole through the table and a canopy of eight panels (four for a square one).
+  box(along - 0.02, along + 0.02, out - 0.02, out + 0.02, 0.75, 2.45, metal);
+  const sides = square ? 4 : 8, r = square ? 1.25 : 1.15, rim = 2.05, apex = 2.5;
+  // One face: the awnings' material is two-sided, and lit from beneath it is the darker.
+  for (let k = 0; k < sides; k += 1) {
+    const t0 = (k / sides) * Math.PI * 2 + (square ? Math.PI / 4 : 0), t1 = ((k + 1) / sides) * Math.PI * 2 + (square ? Math.PI / 4 : 0);
+    const c0 = frame(along + Math.cos(t0) * r, out + Math.sin(t0) * r, rim);
+    const c1 = frame(along + Math.cos(t1) * r, out + Math.sin(t1) * r, rim);
+    const tip = frame(along, out, apex);
+    awningQuad(sink, [c0, c1, tip, tip], [k % 2 ? colour : colour.clone().multiplyScalar(0.92)]);
   }
 }
 
@@ -13999,7 +14162,8 @@ function addBuildingNamePlaque(group, feature, seed, height, tint) {
   if (!clean) return;
   const shops = feature.shops || [];
   if (shops.some((shop) => cleanName(shop.n) === clean)) return;
-  const wall = bestFacadeWall(feature, false) || bestFacadeWall(feature, true);
+  const wall = (hasStorefront(feature) ? storefrontWall(feature) : null)
+    || bestFacadeWall(feature, false) || bestFacadeWall(feature, true);
   if (!wall || wall.span < 5.0) return;
 
   const trade = buildingNameTrade(feature);
@@ -14038,6 +14202,8 @@ function emitShopfronts() {
     const mesh = flushSink(AWNING_SINKS[kind], awningMaterial(kind), `awning:${kind}`);
     if (mesh) groups.mapped3d.add(mesh);
   }
+  const seating = flushSink(SEATING_SINK, awningMaterial("seating"), "street_cafe");
+  if (seating) groups.mapped3d.add(seating);
   for (const [index, sink] of SIGN_SINKS) {
     const mesh = flushSink(sink, signMaterial(signAtlases[index]), "sign");
     if (mesh) groups.mapped3d.add(mesh);
@@ -14056,14 +14222,15 @@ function garagesOnWall(feature, wall) {
     if (Math.abs(off) > 1.0) continue;
     const along = (gx - wall.x) * tx + (gz - wall.z) * tz;
     if (Math.abs(along) > wall.span / 2 + 0.5) continue;
-    out.push({ along, w: g.w || 2.6 });
+    out.push({ along, w: g.w || 2.6, ref: g });
   }
   return out;
 }
 
 function addGroundFacadeDetail(group, feature, seed, height, tint) {
-  // Never place an extra invented front door/shop backdrop on a reviewed photo front.
-  if(frontageFitFor(feature))return;
+  // Never place an extra invented front door/shop backdrop on a reviewed photo front, nor on a
+  // front a person drew themselves (its doors and shopfronts are theirs).
+  if(frontageFitFor(feature) || feature.exteriorEdit)return;
   // A building with businesses in it, or of a business's kind, gets its storefronts; a house
   // gets its door.
   if (hasStorefront(feature)) {
@@ -14169,6 +14336,7 @@ function frontDoorSpot(feature) {
 // differently from a shop under a block of flats: full-height glazing to a fascia and a
 // parapet, rather than a storey under a cornice.
 const STOREFRONT_BAND_M = 3.9;
+const STOREFRONT_MIN_WALL_M = 2.6;
 const STOREFRONT_STANDALONE_MAX_M = 6.5;
 //: What a shopfront frame is painted, by trade: the colours the city's shopfronts have.
 const STOREFRONT_PALETTES = {
@@ -14193,7 +14361,99 @@ const STOREFRONT_PALETTES = {
 
 function hasStorefront(feature) {
   if (feature.shops && feature.shops.length) return true;
+  if (feature.inferredShop) return true;
   return ["retail", "restaurant", "office", "hotel"].includes(feature.archetype);
+}
+
+//: Zoning under which a ground floor on a shopping street is a shop: the city's neighbourhood
+//: commercial districts (NC-1..3, NCT and the named streets), community business, Chinatown's,
+//: and downtown retail. Residential-commercial (RC) is flats over the odd shop, and is left.
+const SHOP_ZONING = /NEIGHBORHOOD COMMERCIAL|COMMUNITY BUSINESS|CHINATOWN|DOWNTOWN- RETAIL|DOWNTOWN- GENERAL|NEIGHBORHOOD COMMERCIAL TRANSIT/;
+//: A building nobody named a business in is a shop when it is zoned for one and stands in a run
+//: of shops: at least this many named ones on its own street within SHOP_RUN_M of it.
+const SHOP_RUN_NEIGHBOURS = 2;
+const SHOP_RUN_M = 45;
+function streetKey(address) {
+  const street = String(address?.street || "").toLowerCase()
+    .replace(/\b(street|st|avenue|ave|boulevard|blvd|way|place|pl|road|rd|drive|dr|lane|ln)\b\.?/g, "")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+  return street || null;
+}
+//: The shops nobody has named: a building drawn as a house on a shopping street was a shop
+//: drawn wrong (Chestnut, Union, Fillmore). It is drawn as a shopfront with no name on it --
+//: a name is never made up -- and its card says why.
+function inferUnnamedShops(ways) {
+  const named = new Map();
+  for (const way of ways) {
+    if (way.kind !== "building" || !way.shops?.length || !way.centroid) continue;
+    const key = streetKey(way.address);
+    if (!key) continue;
+    if (!named.has(key)) named.set(key, []);
+    named.get(key).push(xy(...way.centroid));
+  }
+  let inferred = 0;
+  for (const way of ways) {
+    if (way.kind !== "building" || way.shops?.length || !way.centroid
+        || !["residential", "generic"].includes(way.archetype)
+        || !SHOP_ZONING.test(String(way.zoning?.district || way.land_use || ""))) continue;
+    const run = named.get(streetKey(way.address));
+    if (!run) continue;
+    const [x, y] = xy(...way.centroid);
+    if (run.filter(([a, b]) => Math.hypot(a - x, b - y) <= SHOP_RUN_M).length < SHOP_RUN_NEIGHBOURS) continue;
+    way.inferredShop = true;
+    inferred += 1;
+  }
+  return inferred;
+}
+
+//: The wall a business faces the street with: of the walls in front of a street with nothing
+//: built against them, the nearest the street (and of two about as near, the wider); a shop
+//: whose longest wall ran down its side had its glass, its sign and its door on the side.
+function storefrontWall(feature) {
+  if (feature._storefrontWall !== undefined) return feature._storefrontWall;
+  const facing = footprintWalls(feature.points).filter((w) => w.span >= 2.4)
+    .map((w) => ({ w, d: streetDistanceFacing(w) }))
+    .filter((r) => r.d < 40 && !buildingAt(r.w.x + r.w.nx * 1.0, r.w.z + r.w.nz * 1.0));
+  const nearest = Math.min(...facing.map((r) => r.d));
+  const best = facing.filter((r) => r.d <= nearest + 3).sort((a, b) => b.w.span - a.w.span)[0];
+  feature._storefrontWall = best ? best.w : bestFacadeWall(feature, false);
+  return feature._storefrontWall;
+}
+
+//: A shop's street wall is glass and a door, not a garage: a dropped kerb in front of one is a
+//: loading bay or the way into a yard behind, and its door is drawn only where there is room for
+//: a vehicle entrance beside the shops (a wide cut in a long wall). The kerb itself stays dropped.
+//: Whether the wall from ``a`` to ``b`` (scene x, z) is the one a person edited on this building:
+//: its ends where the edit's corners are, either way round.
+function editedEdge(way, a, b) {
+  const edit = way?.exteriorEdit;
+  if (!edit) return false;
+  const [px, py] = xy(...edit.wall.a), [qx, qy] = xy(...edit.wall.b);
+  const near = (p, x, z) => Math.hypot(p[0] - x, p[1] - z) < 0.25;
+  return (near(a, px, -py) && near(b, qx, -qy)) || (near(a, qx, -qy) && near(b, px, -py));
+}
+//: The garages on an edited wall are the edit's: the city's kerb cut stays dropped, but what
+//: stands behind it is what the person drew.
+function dropEditedWallGarages(feature) {
+  if (!feature.exteriorEdit || !feature.garages?.length) return;
+  const [px, py] = xy(...feature.exteriorEdit.wall.a), [qx, qy] = xy(...feature.exteriorEdit.wall.b);
+  const len = Math.hypot(qx - px, qy - py) || 1, ux = (qx - px) / len, uy = (qy - py) / len;
+  feature.garages = feature.garages.filter((g) => {
+    const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+    const gx = ax + (bx - ax) * g.t, gy = ay + (by - ay) * g.t;
+    const along = (gx - px) * ux + (gy - py) * uy, off = Math.abs((gx - px) * -uy + (gy - py) * ux);
+    return !(off < 1.0 && along > -0.5 && along < len + 0.5);
+  });
+}
+const STORE_GARAGE_MIN_CUT_M = 3.0;
+const STORE_GARAGE_MIN_WALL_M = 12;
+function dropStorefrontGarages(feature) {
+  if (!feature.garages?.length || !hasStorefront(feature)) return;
+  const wall = storefrontWall(feature);
+  if (!wall) return;
+  const onFront = new Set(garagesOnWall(feature, wall).map((g) => g.ref));
+  feature.garages = feature.garages.filter((g) => !onFront.has(g)
+    || ((g.cut_m || g.w || 0) >= STORE_GARAGE_MIN_CUT_M && wall.span >= STORE_GARAGE_MIN_WALL_M));
 }
 
 function storefrontColour(tint, trade, seed) {
@@ -14244,10 +14504,21 @@ function shopBays(feature, wall) {
 }
 
 const STOREFRONT_TEXTURES = new Map();
-const STOREFRONT_VARIANTS = 4;
+//: Six fronts per trade: the door at the centre, the left or the right, each either modern (glass
+//: nearly to the pavement) or traditional (a panelled stall riser and a transom of small panes).
+const STOREFRONT_VARIANTS = 6;
+//: A shop door is a metre wide, a pair 1.8 m: trades whose doors are a pair, and the width of
+//: front past which any shop's is.
+const DOOR_SINGLE_M = 0.95;
+const DOOR_PAIR_M = 1.8;
+const PAIR_DOOR_TRADES = new Set(["restaurant", "hotel", "bank", "grocery", "pharmacy", "office", "hardware"]);
+const PAIR_DOOR_FRONT_M = 6.5;
+//: A front's width in the texture's cache: the nearest of these, so its door is to scale.
+const STOREFRONT_WIDTHS_M = [3.5, 5.5, 8];
 
-function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = false) {
-  const key = `${trade}|${variant}|${frameHex}|${standalone ? "s" : "u"}|${preserveWall ? "photo-band" : "fallback"}`;
+function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = false, widthM = 5.5) {
+  const metres = STOREFRONT_WIDTHS_M.reduce((a, b) => (Math.abs(b - widthM) < Math.abs(a - widthM) ? b : a));
+  const key = `${trade}|${variant}|${frameHex}|${standalone ? "s" : "u"}|${preserveWall ? "photo-band" : "fallback"}|${metres}`;
   if (STOREFRONT_TEXTURES.has(key)) return STOREFRONT_TEXTURES.get(key);
   const W = 256;
   const H = 128;
@@ -14270,16 +14541,20 @@ function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = 
   // under the storey above.
   ctx.fillStyle = frame;
   if (!preserveWall) ctx.fillRect(0, 0, W, H);
-  const riser = standalone ? 10 : 16;            // the stall riser at the foot of the glass
+  const traditional = variant >= 3;
+  const riser = traditional ? 26 : standalone ? 10 : 16;   // the stall riser at the foot of the glass
   const head = standalone ? 30 : 22;             // the fascia above the glass
   const top = head;
   const bottom = H - riser;
   const gap = 6;
 
-  // The door: centre, left or right, single or double, by variant and by trade.
-  const doorW = trade === "restaurant" || trade === "hotel" || trade === "office" || trade === "bank"
-    ? 34 : 22;
-  const doorAt = variant === 0 ? "centre" : variant === 1 ? "left" : variant === 2 ? "right" : "centre";
+  // The door: centre, left or right, and to scale -- a single leaf or a pair, by trade and by
+  // how wide the front is. It was a fixed number of pixels, a narrow front's door a metre and a
+  // half wide and a supermarket's a slot.
+  const pxPerM = W / metres;
+  const pair = PAIR_DOOR_TRADES.has(trade) ? metres >= 5 : metres >= PAIR_DOOR_FRONT_M;
+  const doorW = Math.round((pair ? DOOR_PAIR_M : DOOR_SINGLE_M) * pxPerM);
+  const doorAt = ["centre", "left", "right"][variant % 3];
   const doorX = doorAt === "centre" ? W / 2 - doorW / 2 : doorAt === "left" ? gap + 4 : W - gap - 4 - doorW;
   const glass = (x0, x1, y0, y1, tone = 0) => {
     // A pane: the sky in the top of it, the dark of the shop in the bottom, a reflection
@@ -14307,8 +14582,8 @@ function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = 
     if (glazed) {
       ctx.fillStyle = "rgba(120,150,166,0.85)";
       ctx.fillRect(x + 3, top + 8, w - 6, (bottom - top) * 0.62);
-      ctx.fillStyle = trim;
-      ctx.fillRect(x + w / 2 - 0.75, top + 8, 1.5, (bottom - top) * 0.62);
+      // The meeting stiles of a pair.
+      if (w >= 1.5 * pxPerM) { ctx.fillStyle = trim; ctx.fillRect(x + w / 2 - 0.75, top + 4, 1.5, bottom - top); }
     }
     ctx.fillStyle = "rgba(255,232,160,0.8)";
     ctx.fillRect(x + w - 6, top + (bottom - top) * 0.55, 2, 3);
@@ -14359,7 +14634,6 @@ function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = 
         ctx.fillRect(x1 - 14, top + 8, 9, 12);
       }
       door(doorX, doorW, true, true);
-      if (doorW > 30) { ctx.fillStyle = trim; ctx.fillRect(doorX + doorW / 2 - 1, top + 4, 2, bottom - top); }
       break;
     }
     case "cafe":
@@ -14600,6 +14874,24 @@ function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = 
     ctx.fillStyle = "rgba(0,0,0,0.22)";
     ctx.fillRect(0, 0, W, 4);
   }
+  // A traditional front: a transom of small panes along the head of the glass, and the stall
+  // riser panelled under it.
+  if (traditional && !preserveWall) {
+    const transom = top + Math.round((bottom - top) * 0.22);
+    for (const [x0, x1] of panes) {
+      ctx.fillStyle = frame;
+      ctx.fillRect(x0, transom - 2, x1 - x0, 4);
+      const lights = Math.max(2, Math.round((x1 - x0) / (0.45 * pxPerM)));
+      for (let k = 1; k < lights; k += 1) ctx.fillRect(x0 + ((x1 - x0) * k) / lights - 1, top, 2, transom - top);
+      ctx.fillStyle = trim;
+      const panels = Math.max(1, Math.round((x1 - x0) / (0.9 * pxPerM)));
+      for (let k = 0; k < panels; k += 1) {
+        const px0 = x0 + ((x1 - x0) * k) / panels + 3, px1 = x0 + ((x1 - x0) * (k + 1)) / panels - 3;
+        ctx.strokeStyle = trim; ctx.lineWidth = 1.5;
+        ctx.strokeRect(px0, bottom + 4, px1 - px0, riser - 10);
+      }
+    }
+  }
   // The stall riser's foot and the pavement's shadow.
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   ctx.fillRect(0, H - 6, W, 6);
@@ -14612,8 +14904,9 @@ function storefrontTexture(trade, variant, frameHex, standalone, preserveWall = 
 }
 
 function addStorefronts(group, feature, seed, height, tint) {
-  const wall = bestFacadeWall(feature, false);
-  if (!wall || wall.span < 4.2) return;
+  const wall = storefrontWall(feature);
+  // A shop three and a half metres wide is a shop: a narrow front is most of a shopping street.
+  if (!wall || wall.span < STOREFRONT_MIN_WALL_M) return;
   const standalone = height <= STOREFRONT_STANDALONE_MAX_M;
   const bays = shopBays(feature, wall);
   const lead = bays[0].trade;
@@ -14656,7 +14949,7 @@ function addStorefronts(group, feature, seed, height, tint) {
       const centre = bay.centre - bay.share / 2 + each * (f + 0.5);
       const at = wallPoint(wall, centre, 0.11);
       planePart(group, at.x, 0.05, at.z, each * 0.97, panelH,
-                storefrontTexture(bay.trade, variant, frameHex, standalone, !!groundBand), wall.yaw);
+                storefrontTexture(bay.trade, variant, frameHex, standalone, !!groundBand, each), wall.yaw);
     }
   }
 }
@@ -16223,6 +16516,12 @@ function addPhotoGarages(ways) {
 }
 const garageStats = normaliseGarages(DATA.ways || []);
 Object.assign(garageStats, addPhotoGarages(DATA.ways || []));
+const unnamedShops = inferUnnamedShops(DATA.ways || []);
+for (const way of DATA.ways || []) {
+  const edit = way.kind === "building" && EXTERIOR_EDITS.get(String(way.osm_id));
+  if (edit?.wall?.a && edit?.wall?.b) way.exteriorEdit = edit;
+}
+window.kerbsideShops = () => ({ unnamed: unnamedShops, textures: STOREFRONT_TEXTURES.size });
 window.kerbsideGarages = () => ({ ...garageStats });
 
 const facadeQueue = [];
@@ -18487,6 +18786,7 @@ for (const way of DRAW_ORDER) {
     // The flat footprint under a building is the fallback for one that has no 3D mesh. Drawn
     // for the covered ones too it is 15,213 slabs lying under 15,213 buildings, entirely hidden
     // and entirely paid for: sixteen thousand draw calls a frame that cannot be seen.
+    if (way.covered) { dropEditedWallGarages(way); dropStorefrontGarages(way); }
     const building = way.covered ? buildingMesh(way) : null;
     if (!building) {
       const base = footprintMesh(way.points, way.covered ? 0x2b4148 : 0x1b2a2f,
@@ -27373,7 +27673,7 @@ canvas.addEventListener("pointerup", (e) => {
 // buildings have one.
 const addrBox = document.getElementById("addr");
 
-function hideAddress() { if (addrBox) addrBox.hidden = true; }
+function hideAddress() { if (addrBox) { addrBox.hidden = true; addrBox.style.pointerEvents = ""; } }
 
 function showAddress(feature, clientX, clientY) {
   if (!addrBox) return false;
@@ -27385,6 +27685,7 @@ function showAddress(feature, clientX, clientY) {
   const rest = [
     feature.name && line ? feature.name : "",
     ...(feature.tenant_names || []).map(s=>s.n.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))),
+    feature.inferredShop ? "Shopfront inferred: zoned for shops, between named ones; its name is not known" : "",
     parcel.blklot ? `Parcel ${parcel.blklot}` : "",
     parcel.analysis_neighborhood || "",
     `Certainty: ${houseCertainty(feature).level.toUpperCase()}; ${houseCertainty(feature).front}; ${houseCertainty(feature).metricAccuracy}`,
@@ -27518,6 +27819,7 @@ addEventListener("keydown", async (e) => {
   const [cx, cy] = pointerAt;
   const feature = pickedFeature(cx, cy);
   if (feature && feature.kind === "building" && showAddress(feature, cx, cy)) {
+    offerExteriorEdit(feature);
     // And everything known about it, in the panel: its full record is fetched on demand.
     const summary = await featureSummary(feature);
     if (summary && tip) tip.innerHTML = summary;
@@ -29753,6 +30055,8 @@ function homeWindowLayout(entry, spec) {
       const w = Math.min(g.w || 2.6, length);
       reserved.push({ u: u - w / 2, w, v: bottom, h: (Number.isFinite(g.h) ? g.h : GARAGE_HEIGHT_M) + 0.2, kind: "garage" });
     }
+    // A wall a person edited carries their windows (docs/exterior-editor.mjs), drawn over it.
+    if (editedEdge(entry.way, a, b)) { edges.push({ edge, a, b, length, ux, uz, nx, nz, windows: [] }); continue; }
     const observed = HOME_OPENINGS.buildings[id]?.walls[String(edge)];
     // A wall that wears its own photograph shows its own windows: none is added there, or its
     // frame stands out through the picture of the real one.
@@ -33630,6 +33934,183 @@ function releaseSomeGeometry() {
 // page opens on is never waiting behind the country round it.
 if (!ATTACH) await loadTileTree();
 
+// ---- the exterior editor ---------------------------------------------------------------------
+//
+// A person corrects a building's front by hand (docs/exterior-editor.mjs): right-click it, or
+// point at it and press E. The module keeps the panel and the edit; the page tells it what the
+// building's walls are and what it drew on them, and draws every saved edit on load.
+let exteriorEditorModule = null;
+const exteriorEditorLibrary = () => (exteriorEditorModule ??= import(sharedAsset("exterior-editor.mjs?rev=f08008fa7ade7a60")));
+const exteriorEditGroups = new Map();
+const buildingWayById = new Map((DATA.ways || []).filter((w) => w.kind === "building").map((w) => [String(w.osm_id), w]));
+//: A building's walls for the editor: the street-facing ones first, nearest the street first,
+//: then the rest, widest first. Each runs left to right as seen from outside it.
+function exteriorWalls(feature) {
+  const ring = feature.points.slice();
+  if (ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring.pop();
+  const local = ring.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  const cx = local.reduce((t, p) => t + p[0], 0) / local.length, cz = local.reduce((t, p) => t + p[1], 0) / local.length;
+  const base = feature._treeClipBase ?? groundBaseFor(feature.points);
+  const height = HOME_RENDER.get(String(feature.osm_id))?.height ?? ((feature._treeClipRoof ?? base + (Number(feature.height_m) || 9)) - base);
+  const walls = [];
+  for (let i = 0; i < ring.length; i += 1) {
+    let a = ring[i], b = ring[(i + 1) % ring.length], pa = local[i], pb = local[(i + 1) % ring.length];
+    const length = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]);
+    if (length < 1.2) continue;
+    let ux = (pb[0] - pa[0]) / length, uz = (pb[1] - pa[1]) / length;
+    let nx = uz, nz = -ux;
+    const mx = (pa[0] + pb[0]) / 2, mz = (pa[1] + pb[1]) / 2;
+    const probe = buildingAt(mx + nx * 0.3, mz + nz * 0.3);
+    if ((probe && String(probe.osm_id) === String(feature.osm_id)) || (!probe && (mx - cx) * nx + (mz - cz) * nz < 0)) { nx = -nx; nz = -nz; }
+    // Right-handed (along, up, out): u then runs to the right of someone outside looking at it.
+    if (nx * -uz + nz * ux < 0) { [a, b] = [b, a]; [pa, pb] = [pb, pa]; ux = -ux; uz = -uz; }
+    const d = streetDistanceFacing({ x: mx, z: mz, nx, nz });
+    const street = d < 40 && !buildingAt(mx + nx, mz + nz);
+    walls.push({ a, b, ax: pa[0], az: pa[1], ux, uz, nx, nz, length, height, base, street, streetDistance: street ? d : Infinity });
+  }
+  return walls.sort((p, q) => (p.streetDistance - q.streetDistance) || (q.length - p.length));
+}
+function exteriorWallFromEdit(edit) {
+  const feature = buildingWayById.get(String(edit.osm_id));
+  if (!feature) return null;
+  const near = (p, q) => Math.abs(p[0] - q[0]) < 1e-7 && Math.abs(p[1] - q[1]) < 1e-7;
+  const wall = exteriorWalls(feature).find((w) => (near(w.a, edit.wall.a) && near(w.b, edit.wall.b))
+    || (near(w.a, edit.wall.b) && near(w.b, edit.wall.a)));
+  return wall || null;
+}
+//: What the page drew on a wall, as the editor's openings: the house's windows and doors and
+//: their stoops, the garages behind its kerb cuts, a shop's fronts; and on a wall with nothing
+//: known on it, a window a storey for the editor to start from.
+function exteriorOpeningsOn(feature, wall) {
+  const id = String(feature.osm_id), out = [];
+  const project = (x, z, w) => ({ u: (x - wall.ax) * wall.ux + (z - wall.az) * wall.uz - w / 2,
+    off: Math.abs((x - wall.ax) * wall.nx + (z - wall.az) * wall.nz) });
+  const entry = footprintById.get(id), spec = HOME_RENDER.get(id);
+  const layout = entry && spec ? homeWindowLayout(entry, spec) : null;
+  for (const edge of layout?.edges || []) {
+    for (const o of edge.windows) {
+      const cx = edge.a[0] + edge.ux * (o.u + o.w / 2), cz = edge.a[1] + edge.uz * (o.u + o.w / 2);
+      const at = project(cx, cz, o.w);
+      if (at.off > 0.35 || at.u < -0.2 || at.u + o.w > wall.length + 0.2) continue;
+      out.push({ type: "window", u: +at.u.toFixed(2), v: +(o.v - wall.base).toFixed(2), w: +o.w.toFixed(2), h: +o.h.toFixed(2),
+        shape: homeWindowArchSpring(o) !== null ? "arched" : "rectangle",
+        panes: { cols: (o.design?.vertical_bars?.length || 0) + 1, rows: (o.design?.horizontal_bars?.length || 0) + 1 },
+        glass: "#5f7684", frame: o.design?.trim?.colour || "#f2f0ea" });
+    }
+  }
+  for (const d of entry?.doors || []) {
+    if (!Number.isFinite(d.cx)) continue;
+    const at = project(d.cx, d.cz, d.width);
+    if (at.off > 0.6) continue;
+    const floor = entryFloorY(entry), rise = d.stoopPlan ? floor - d.stoopPlan.street : 0;
+    out.push({ type: "door", u: +at.u.toFixed(2), v: +Math.max(0, floor - wall.base).toFixed(2), w: +d.width.toFixed(2), h: DOOR_HEIGHT_M,
+      style: "panel", colour: "#6b3427", recess_m: 0,
+      stairs: { steps: rise > 0.08 ? Math.ceil(rise / STEP_RISE_M) : 0, direction: "front", rail: true } });
+  }
+  if (!out.some((o) => o.type === "door") && feature._frontDoor) {
+    const at = project(feature._frontDoor.x, feature._frontDoor.z, 1.05);
+    if (at.off < 0.6) out.push({ type: "door", u: +at.u.toFixed(2), v: 0, w: 1.05, h: DOOR_HEIGHT_M, style: "panel",
+      colour: "#6b3427", recess_m: 0, stairs: { steps: 0, direction: "front", rail: true } });
+  }
+  for (const g of feature.garages || []) {
+    const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+    const w = Math.min(g.w || 2.6, wall.length), at = project(ax + (bx - ax) * g.t, -(ay + (by - ay) * g.t), w);
+    if (at.off > 1.0) continue;
+    out.push({ type: "garage", u: +at.u.toFixed(2), v: 0, w: +w.toFixed(2), h: Number.isFinite(g.h) ? g.h : GARAGE_HEIGHT_M,
+      style: "slat", colour: "#8a5a32", recess_m: 0 });
+  }
+  const shopWall = hasStorefront(feature) ? storefrontWall(feature) : null;
+  if (shopWall && Math.hypot(shopWall.x - (wall.ax + wall.ux * wall.length / 2), shopWall.z - (wall.az + wall.uz * wall.length / 2)) < 0.5) {
+    for (const bay of shopBays(feature, shopWall)) {
+      const [x, z] = [shopWall.x + Math.cos(shopWall.yaw) * bay.centre, shopWall.z - Math.sin(shopWall.yaw) * bay.centre];
+      const at = project(x, z, bay.share * 0.97);
+      out.push({ type: "shopfront", u: +at.u.toFixed(2), v: 0, w: +(bay.share * 0.97).toFixed(2),
+        h: +Math.min(3.6, wall.height - 0.3).toFixed(2), style: "modern", colour: "#1f2a30", door_at: "centre",
+        pair: PAIR_DOOR_TRADES.has(bay.trade) });
+    }
+  }
+  if (!out.some((o) => o.type === "window")) {
+    const first = out.some((o) => o.type === "shopfront") ? 4.3 : out.some((o) => o.type === "garage") ? 3.2 : 1.0;
+    const across = Math.max(1, Math.floor((wall.length - 0.6) / 2.4));
+    for (let v = first; v + 1.7 < wall.height; v += 3.0) for (let k = 0; k < across; k += 1) {
+      const u = (wall.length * (k + 0.5)) / across - 0.55;
+      if (out.some((o) => o.type !== "window" && u < o.u + o.w + 0.2 && u + 1.1 > o.u - 0.2 && v < o.v + o.h + 0.2)) continue;
+      out.push({ type: "window", u: +u.toFixed(2), v: +v.toFixed(2), w: 1.1, h: 1.5, shape: "rectangle",
+        panes: { cols: 2, rows: 2 }, glass: "#5f7684", frame: "#f2f0ea" });
+    }
+  }
+  return out;
+}
+function exteriorEditorContext() {
+  return {
+    THREE,
+    wallsOf: exteriorWalls,
+    wallFromEdit: exteriorWallFromEdit,
+    openingsOn: exteriorOpeningsOn,
+    wallColourOf: (feature) => `#${new THREE.Color(HOME_RENDER.get(String(feature.osm_id))?.tint ?? (feature.colour || 0xc8c2b8)).getHexString()}`,
+    wallColour: "#c8c2b8",
+    publishedEdit: (id) => PUBLISHED_EXTERIOR_EDITS?.edits?.[id] || null,
+    addToWorld: (group) => groups.mapped3d.add(group),
+    removeFromWorld: (group) => {
+      group.parent?.remove(group);
+      group.traverse((o) => { o.geometry?.dispose(); });
+    },
+    lookAtWall: (wall) => {
+      if (state.firstPerson) setFirstPerson(false);
+      const mx = wall.ax + wall.ux * wall.length / 2, mz = wall.az + wall.uz * wall.length / 2;
+      state.target.set(mx, wall.base + Math.min(wall.height / 2, 6), mz);
+      state.yaw = Math.atan2(wall.nx, wall.nz);
+      state.pitch = 0.1;
+      state.dist = Math.max(9, Math.min(60, Math.max(wall.length * 1.3, wall.height * 1.25)));
+      placeCamera();
+    },
+    hideOriginal: (feature) => {
+      const drawn = exteriorEditGroups.get(String(feature.osm_id));
+      if (drawn) drawn.visible = false;
+    },
+    editsChanged: (id, edit) => drawSavedExteriorEdit(id, edit === undefined ? localExteriorEdits()[id] || PUBLISHED_EXTERIOR_EDITS?.edits?.[id] : edit),
+    notify: (text) => { if (addrBox) { addrBox.textContent = text; addrBox.hidden = false; } },
+  };
+}
+async function drawSavedExteriorEdit(id, edit) {
+  const old = exteriorEditGroups.get(id);
+  if (old) { exteriorEditorContext().removeFromWorld(old); exteriorEditGroups.delete(id); }
+  if (!edit) return;
+  const library = await exteriorEditorLibrary();
+  const group = library.drawEdit(exteriorEditorContext(), edit);
+  if (group) { groups.mapped3d.add(group); exteriorEditGroups.set(id, group); }
+}
+async function openExteriorEditor(feature) {
+  if (META || !feature || feature.kind !== "building") return;
+  hideAddress();
+  (await exteriorEditorLibrary()).open(exteriorEditorContext(), feature);
+}
+//: The way into the editor from a building's card: a button on it.
+function offerExteriorEdit(feature) {
+  if (META || !addrBox || addrBox.hidden || feature?.kind !== "building") return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "addr-edit";
+  button.textContent = "Edit exterior";
+  button.title = "Correct this building's front: windows, doors, garages, stairs (E)";
+  button.addEventListener("click", () => openExteriorEditor(feature));
+  addrBox.append(document.createElement("br"), button);
+  addrBox.style.pointerEvents = "auto";
+}
+if (!META) {
+  canvas.addEventListener("contextmenu", (e) => {
+    const feature = pickedFeature(e.clientX, e.clientY);
+    if (feature?.kind === "building" && showAddress(feature, e.clientX, e.clientY)) offerExteriorEdit(feature);
+  });
+  addEventListener("keydown", (e) => {
+    if ((e.key !== "e" && e.key !== "E") || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || !pointerAt) return;
+    const feature = pickedFeature(...pointerAt);
+    if (feature?.kind === "building") openExteriorEditor(feature);
+  });
+  for (const id of EXTERIOR_EDITS.keys()) drawSavedExteriorEdit(id, EXTERIOR_EDITS.get(id));
+}
+
 window.kerbside = {
   scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
@@ -33639,7 +34120,7 @@ window.kerbside = {
   outsideTerrainGrid, drawnGroundAt, returnToGps, GPS_LEASH, gps, followGps, onCrossingGround, busZonePieces, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
-  pickedFeature,
+  pickedFeature, openExteriorEditor, exteriorEditGroups, buildingWayById,
   // The landscape (forest floor, scans) and the globe, for inspection.
   get natureWorld() { return natureWorld; }, get globe() { return globe; }, teleportTrip,
   // The corner pieces: how many cuts were decided and how many pieces laid between them.
@@ -34474,6 +34955,8 @@ function releaseModuleScope() {
   try { routeDrawnAt = null; } catch (error) { /* kept */ }
   try { routeDrawnOver = null; } catch (error) { /* kept */ }
   try { metaXR = null; } catch (error) { /* kept */ }
+  try { exteriorEditorModule = null; } catch (error) { /* kept */ }
+  try { EXTERIOR_EDITS.clear(); } catch (error) { /* kept */ }
   try { lazyLayerBuilders.clear(); } catch (error) { /* kept */ }
   try { lazyLayersWanted.clear(); } catch (error) { /* kept */ }
   try { BUILDING_SURFACES.clear(); } catch (error) { /* kept */ }
@@ -34545,6 +35028,7 @@ function releaseModuleScope() {
   try { SIGN_MATERIALS.clear(); } catch (error) { /* kept */ }
   try { SIGN_SINKS.clear(); } catch (error) { /* kept */ }
   try { STOREFRONT_TEXTURES.clear(); } catch (error) { /* kept */ }
+  try { PAIR_DOOR_TRADES.clear(); } catch (error) { /* kept */ }
   try { ROOF_PARTS.clear(); } catch (error) { /* kept */ }
   try { OUTBUILDING_CACHE.clear(); } catch (error) { /* kept */ }
   try { structurePoles.clear(); } catch (error) { /* kept */ }
@@ -34601,6 +35085,8 @@ function releaseModuleScope() {
   try { TURN_MANEUVERS.clear(); } catch (error) { /* kept */ }
   try { RELEASE_SURFACES.clear(); } catch (error) { /* kept */ }
   try { releaseQueue.length = 0; } catch (error) { /* kept */ }
+  try { exteriorEditGroups.clear(); } catch (error) { /* kept */ }
+  try { buildingWayById.clear(); } catch (error) { /* kept */ }
 }
 window.kerbsideGuestApi = {
   ready:async()=>{if(await groundReady===false)throw Error("Destination ground unavailable; previous window retained");},
