@@ -1,0 +1,953 @@
+{
+  "schema": "kerbside.interior_envelopes/1",
+  "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee",
+  "canonical_source_sha256": "15d3edf7b2140e399fa61d8557f721087642cda586eb5e001e65333df6828b4a",
+  "buildings": {
+    "retail-osm-256067716": {
+      "id": "retail-osm-256067716",
+      "windows": [
+        {
+          "u": 0.6577132247512653,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:0",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.398184994548204,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:1",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.138656764345142,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:2",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.87912853414208,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:3",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 11.61960030393902,
+          "v": 0.7999999999999998,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:4",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6577132247512653,
+          "v": 4.5446853532482665,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:5",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.398184994548204,
+          "v": 4.5446853532482665,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:6",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.138656764345142,
+          "v": 4.5446853532482665,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:7",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.87912853414208,
+          "v": 4.5446853532482665,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:8",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 11.61960030393902,
+          "v": 4.5446853532482665,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:9",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6577132247512653,
+          "v": 8.28937070649653,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:10",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.398184994548204,
+          "v": 8.28937070649653,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:11",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.138656764345142,
+          "v": 8.28937070649653,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:12",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.87912853414208,
+          "v": 8.28937070649653,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:13",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 11.61960030393902,
+          "v": 8.28937070649653,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:14",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6577132247512653,
+          "v": 12.034056059744795,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:15",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 3.398184994548204,
+          "v": 12.034056059744795,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:16",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 6.138656764345142,
+          "v": 12.034056059744795,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:17",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 8.87912853414208,
+          "v": 12.034056059744795,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:18",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 11.61960030393902,
+          "v": 12.034056059744795,
+          "w": 1.425045320294408,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:2:19",
+          "edge": 2,
+          "a": [
+            2.6036969637987113,
+            -2.371116000024813
+          ],
+          "b": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "normal": [
+            0.14623467554466765,
+            -0.9892499278081074
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.103736630576909,
+          "v": 0.7999999999999998,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:0",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.7612098917307275,
+          "v": 0.7999999999999998,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:1",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.103736630576909,
+          "v": 4.5446853532482665,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:2",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.7612098917307275,
+          "v": 4.5446853532482665,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:3",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.103736630576909,
+          "v": 8.28937070649653,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:4",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.7612098917307275,
+          "v": 8.28937070649653,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:5",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.103736630576909,
+          "v": 12.034056059744795,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:6",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 4.7612098917307275,
+          "v": 12.034056059744795,
+          "w": 1.45,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "id": "retail-osm-256067716:window:3:7",
+          "edge": 3,
+          "a": [
+            -10.951360538360177,
+            -4.374876000502695
+          ],
+          "b": [
+            -12.024505908439323,
+            2.860923999421175
+          ],
+          "normal": [
+            -0.9891801639092779,
+            -0.14670583944892635
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "confidence": 0.30278685688972473,
+          "design": {
+            "horizontal_bars": [],
+            "panes_basis": "duplicate_of_a_surer_neighbour",
+            "shape": "standard",
+            "style": "divided_panes",
+            "trim": {
+              "basis": "image_inferred_white_trim; width_inferred",
+              "colour": "#d7d0d5",
+              "width_m": 0.06
+            },
+            "vertical_bars": [
+              0.6000000000000001,
+              0.33999999999999986,
+              0.19999999999999996
+            ]
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 0.704,
+          "id": "retail-osm-256067716:window:6:0",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 1.5389906433524687,
+          "v": 4.8007414129930615,
+          "w": 0.8609999999999998,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-2",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 6,
+          "a": [
+            13.018484816494038,
+            6.5901439994975135
+          ],
+          "b": [
+            14.373110940159677,
+            -2.137344000456892
+          ],
+          "normal": [
+            0.9881677135293709,
+            0.15337721453376077
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "confidence": 0.30738186836242676,
+          "design": {
+            "horizontal_bars": [],
+            "shape": "standard",
+            "style": "divided_panes",
+            "trim": {
+              "basis": "image_inferred_white_trim; width_inferred",
+              "colour": "#d7d0d5",
+              "width_m": 0.06
+            },
+            "vertical_bars": [
+              0.6000000000000001,
+              0.33999999999999986,
+              0.19999999999999996
+            ]
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 0.704,
+          "id": "retail-osm-256067716:window:6:1",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 1.563990643352469,
+          "v": 5.949741412993061,
+          "w": 0.8609999999999998,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-1",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 6,
+          "a": [
+            13.018484816494038,
+            6.5901439994975135
+          ],
+          "b": [
+            14.373110940159677,
+            -2.137344000456892
+          ],
+          "normal": [
+            0.9881677135293709,
+            0.15337721453376077
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "confidence": 0.2746703624725342,
+          "design": {
+            "horizontal_bars": [],
+            "panes_basis": "duplicate_of_a_surer_neighbour",
+            "shape": "standard",
+            "style": "undivided_or_unresolved",
+            "trim": {
+              "basis": "image_inferred_white_trim; width_inferred",
+              "colour": "#d7d0d5",
+              "width_m": 0.06
+            },
+            "vertical_bars": [
+              0.6000000000000001,
+              0.33999999999999986,
+              0.19999999999999996
+            ]
+          },
+          "grade": "image_on_prior_geometry",
+          "h": 0.704,
+          "id": "retail-osm-256067716:window:6:2",
+          "kind": "window",
+          "role": "window",
+          "role_certainty": "high",
+          "u": 1.5809906433524694,
+          "v": 7.052741412993062,
+          "w": 0.8609999999999998,
+          "frameLeft": true,
+          "frameRight": true,
+          "sourceOpeningId": "opening-3",
+          "projectionBasis": "photo_on_existing_canonical_front_surface",
+          "edge": 6,
+          "a": [
+            13.018484816494038,
+            6.5901439994975135
+          ],
+          "b": [
+            14.373110940159677,
+            -2.137344000456892
+          ],
+          "normal": [
+            0.9881677135293709,
+            0.15337721453376077
+          ],
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "balconies": [],
+      "entrance": [
+        13.695797878326857,
+        2.226399999520254
+      ],
+      "storeys": [
+        {
+          "height_m": 3.744685353248265
+        },
+        {
+          "height_m": 3.744685353248265
+        },
+        {
+          "height_m": 3.744685353248265
+        },
+        {
+          "height_m": 3.744685353248265
+        }
+      ],
+      "floor_y_m": 5.34573038144213,
+      "shell_base_y_m": 4.9444717944351915,
+      "shell_top_y_m": 20.32447179443519,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              14.373110940159677,
+              -2.137344000456892
+            ],
+            [
+              2.841196348621679,
+              -3.8294080004561692
+            ],
+            [
+              2.6036969637987113,
+              -2.371116000024813
+            ],
+            [
+              -10.951360538360177,
+              -4.374876000502695
+            ],
+            [
+              -12.024505908439323,
+              2.860923999421175
+            ],
+            [
+              -9.860622621025414,
+              3.2394119998892847
+            ],
+            [
+              13.018484816494038,
+              6.5901439994975135
+            ],
+            [
+              14.373110940159677,
+              -2.137344000456892
+            ]
+          ]
+        ]
+      },
+      "source": "Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail",
+      "measured": false,
+      "confidence": 0.25,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  },
+  "rejected": {
+    "retail-osm-1262642420": "no habitable shell",
+    "retail-osm-26135377": "no habitable shell"
+  }
+}

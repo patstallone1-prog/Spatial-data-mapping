@@ -157,3 +157,5 @@ data/places
 data/ortho
 # Local residential program reviews are separate from the fixed acceptance cohort.
 /docs/inferred-residential/overrides/
+
+/docs/inferred-stores/overrides/

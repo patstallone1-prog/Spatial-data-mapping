@@ -1,0 +1,3832 @@
+{
+  "schema": "kerbside.inferred_store/1",
+  "id": "retail-surface-parking",
+  "kind": "corner_store",
+  "style": {
+    "id": "warm_oak",
+    "name": "Warm oak & sage",
+    "style": "contemporary",
+    "walls": [
+      "#e9e6dc",
+      "#d4dfd2",
+      "#e5d8c5",
+      "#d9e1e3"
+    ],
+    "wood": "#a78660",
+    "fabric": "#708778",
+    "accent": "#52766b",
+    "metal": "#3e4441",
+    "stone": "#ded8cb",
+    "tier": "standard",
+    "furnishing_budget_usd": 21700,
+    "budget_method": "floor area x configurable tier allowance; illustrative, not a quote",
+    "neighborhood_price_per_sqft": null,
+    "economic_evidence": "retail fixture allowance; no observed revenue estimate",
+    "seed": "3809296886454832320",
+    "version": 1,
+    "label": "Local market",
+    "produce_share": 0.18,
+    "self_checkout_share": 0.25,
+    "usage": "retail",
+    "chain": "independent",
+    "chain_prior": "department/finish heuristic; not a chain floor-plan template"
+  },
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "provenance": {
+    "footprint": "synthetic stress polygon and supplied outdoor path",
+    "geometry": null,
+    "tenant_boundary": "supplied or assumed; not measured"
+  },
+  "footprint_area_m2": 140.0,
+  "footprint_area_sqft": 1506.947458338,
+  "total_height_m": 3.4,
+  "envelope": {
+    "windows": [],
+    "balconies": []
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.4,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              10.0,
+              0.0
+            ],
+            [
+              10.0,
+              14.0
+            ],
+            [
+              0.0,
+              14.0
+            ],
+            [
+              0.0,
+              0.0
+            ],
+            [
+              10.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              9.85,
+              0.15
+            ],
+            [
+              0.15,
+              0.15
+            ],
+            [
+              0.15,
+              13.85
+            ],
+            [
+              9.85,
+              13.85
+            ],
+            [
+              9.85,
+              0.15
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "retail-surface-parking:sales",
+          "kind": "sales_floor",
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.15,
+                  0.15
+                ],
+                [
+                  0.15,
+                  11.3
+                ],
+                [
+                  9.85,
+                  11.3
+                ],
+                [
+                  9.85,
+                  0.15
+                ],
+                [
+                  0.15,
+                  0.15
+                ]
+              ]
+            ]
+          },
+          "area_m2": 108.155,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:stock",
+          "kind": "stockroom",
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.85,
+                  13.85
+                ],
+                [
+                  9.85,
+                  11.3
+                ],
+                [
+                  0.15,
+                  11.3
+                ],
+                [
+                  0.15,
+                  11.45
+                ],
+                [
+                  2.4,
+                  11.45
+                ],
+                [
+                  2.4,
+                  13.85
+                ],
+                [
+                  9.85,
+                  13.85
+                ]
+              ]
+            ]
+          },
+          "area_m2": 19.334999999999987,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:wc",
+          "kind": "toilet",
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.4,
+                  13.85
+                ],
+                [
+                  2.4,
+                  11.45
+                ],
+                [
+                  0.15,
+                  11.45
+                ],
+                [
+                  0.15,
+                  13.85
+                ],
+                [
+                  2.4,
+                  13.85
+                ]
+              ]
+            ]
+          },
+          "area_m2": 5.4,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking",
+          "kind": "surface_parking",
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  16.0,
+                  -23.0
+                ],
+                [
+                  16.0,
+                  -3.0
+                ],
+                [
+                  -4.0,
+                  -3.0
+                ],
+                [
+                  -4.0,
+                  -23.0
+                ],
+                [
+                  16.0,
+                  -23.0
+                ]
+              ]
+            ]
+          },
+          "area_m2": 400.0,
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.15,
+                11.3
+              ],
+              [
+                4.523000000000001,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.28,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-surface-parking:sales",
+            "retail-surface-parking:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.476999999999999,
+                11.3
+              ],
+              [
+                9.85,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.28,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-surface-parking:sales",
+            "retail-surface-parking:stock"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d4dfd2"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.15,
+                11.45
+              ],
+              [
+                2.4,
+                11.45
+              ]
+            ]
+          },
+          "height_m": 3.28,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-surface-parking:stock",
+            "retail-surface-parking:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                11.45
+              ],
+              [
+                2.4,
+                12.172999999999998
+              ]
+            ]
+          },
+          "height_m": 3.28,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-surface-parking:stock",
+            "retail-surface-parking:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                13.126999999999999
+              ],
+              [
+                2.4,
+                13.85
+              ]
+            ]
+          },
+          "height_m": 3.28,
+          "thickness_m": 0.1,
+          "rooms": [
+            "retail-surface-parking:stock",
+            "retail-surface-parking:wc"
+          ],
+          "materials": [
+            "#d4dfd2",
+            "#d9e1e3"
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "openings": [
+        {
+          "id": "retail-surface-parking:sales:opening:0",
+          "rooms": [
+            "retail-surface-parking:sales",
+            "outside"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                0.15
+              ],
+              [
+                3.5999999999999996,
+                0.15
+              ]
+            ]
+          },
+          "width_m": 1.1999999999999997,
+          "height_m": 2.3,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-surface-parking:sales",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.5999999999999996,
+                  1.25
+                ],
+                [
+                  3.5999999999999996,
+                  -0.9500000000000001
+                ],
+                [
+                  2.4,
+                  -0.9500000000000001
+                ],
+                [
+                  2.4,
+                  1.25
+                ],
+                [
+                  3.5999999999999996,
+                  1.25
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "entrance": true,
+          "source_opening": {
+            "point": [
+              3,
+              0
+            ]
+          },
+          "source_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                0.0
+              ],
+              [
+                3.5999999999999996,
+                0.0
+              ]
+            ]
+          },
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#a68b52",
+            "panel_count": 2,
+            "glass": "clear"
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:stock:opening:100",
+          "rooms": [
+            "retail-surface-parking:stock",
+            "retail-surface-parking:sales"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.475,
+                11.3
+              ],
+              [
+                4.525,
+                11.3
+              ]
+            ]
+          },
+          "width_m": 0.95,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-surface-parking:stock",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.525,
+                  10.58
+                ],
+                [
+                  4.525,
+                  12.020000000000001
+                ],
+                [
+                  5.475,
+                  12.020000000000001
+                ],
+                [
+                  5.475,
+                  10.58
+                ],
+                [
+                  4.525,
+                  10.58
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": null
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:wc:opening:101",
+          "rooms": [
+            "retail-surface-parking:wc",
+            "retail-surface-parking:stock"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.4,
+                13.124999999999998
+              ],
+              [
+                2.4,
+                12.174999999999999
+              ]
+            ]
+          },
+          "width_m": 0.95,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "retail-surface-parking:wc",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.12,
+                  12.174999999999999
+                ],
+                [
+                  1.68,
+                  12.174999999999999
+                ],
+                [
+                  1.68,
+                  13.124999999999998
+                ],
+                [
+                  3.12,
+                  13.124999999999998
+                ],
+                [
+                  3.12,
+                  12.174999999999999
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#a68b52",
+            "panel_count": 2,
+            "glass": "frosted_reeded"
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "objects": [
+        {
+          "id": "retail-surface-parking:sales:item:0",
+          "role": "checkout_lane",
+          "position_m": [
+            8.75,
+            0,
+            3.35
+          ],
+          "size_m": [
+            0.85,
+            1.05,
+            2.2
+          ],
+          "rotation_deg": 0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.175,
+                  2.25
+                ],
+                [
+                  9.175,
+                  4.45
+                ],
+                [
+                  8.325,
+                  4.45
+                ],
+                [
+                  8.325,
+                  2.25
+                ],
+                [
+                  9.175,
+                  2.25
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:checkout_lane",
+            "design_id": null,
+            "role": "checkout_lane",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.75,
+            5.03
+          ],
+          "section": "checkout",
+          "stock_seed": 1,
+          "queue_zone": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.4,
+                  0.44999999999999996
+                ],
+                [
+                  9.4,
+                  2.15
+                ],
+                [
+                  8.1,
+                  2.15
+                ],
+                [
+                  8.1,
+                  0.44999999999999996
+                ],
+                [
+                  9.4,
+                  0.44999999999999996
+                ]
+              ]
+            ]
+          },
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:sales:item:1",
+          "role": "drink_cooler",
+          "position_m": [
+            0.635,
+            0,
+            5.7250000000000005
+          ],
+          "size_m": [
+            2.9099999999999997,
+            2.05,
+            0.82
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22500000000000003,
+                  4.2700000000000005
+                ],
+                [
+                  1.045,
+                  4.2700000000000005
+                ],
+                [
+                  1.045,
+                  7.180000000000001
+                ],
+                [
+                  0.22500000000000003,
+                  7.180000000000001
+                ],
+                [
+                  0.22500000000000003,
+                  4.2700000000000005
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:sales",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:drink_cooler",
+            "design_id": null,
+            "role": "drink_cooler",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.605,
+            5.7250000000000005
+          ],
+          "section": "drinks",
+          "stock_seed": 2,
+          "stock": [
+            {
+              "form": "bottles",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "bottles",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:sales:item:2",
+          "role": "gondola_shelf",
+          "position_m": [
+            2.01,
+            0,
+            8.02
+          ],
+          "size_m": [
+            0.72,
+            1.65,
+            2.5
+          ],
+          "rotation_deg": 0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.3699999999999997,
+                  6.77
+                ],
+                [
+                  2.3699999999999997,
+                  9.27
+                ],
+                [
+                  1.65,
+                  9.27
+                ],
+                [
+                  1.65,
+                  6.77
+                ],
+                [
+                  2.3699999999999997,
+                  6.77
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "design_id": null,
+            "role": "gondola_shelf",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            2.9499999999999997,
+            8.02
+          ],
+          "section": "snacks",
+          "stock_seed": 3,
+          "stock": [
+            {
+              "form": "packages",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:sales:item:3",
+          "role": "gondola_shelf",
+          "position_m": [
+            4.359999999999999,
+            0,
+            5.4
+          ],
+          "size_m": [
+            0.72,
+            1.65,
+            2.5
+          ],
+          "rotation_deg": 0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.72,
+                  4.15
+                ],
+                [
+                  4.72,
+                  6.65
+                ],
+                [
+                  3.9999999999999996,
+                  6.65
+                ],
+                [
+                  3.9999999999999996,
+                  4.15
+                ],
+                [
+                  4.72,
+                  4.15
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "design_id": null,
+            "role": "gondola_shelf",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            5.299999999999999,
+            5.4
+          ],
+          "section": "pantry",
+          "stock_seed": 4,
+          "stock": [
+            {
+              "form": "packages",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:sales:item:4",
+          "role": "gondola_shelf",
+          "position_m": [
+            4.359999999999999,
+            0,
+            8.02
+          ],
+          "size_m": [
+            0.72,
+            1.65,
+            2.5
+          ],
+          "rotation_deg": 0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.72,
+                  6.77
+                ],
+                [
+                  4.72,
+                  9.27
+                ],
+                [
+                  3.9999999999999996,
+                  9.27
+                ],
+                [
+                  3.9999999999999996,
+                  6.77
+                ],
+                [
+                  4.72,
+                  6.77
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "design_id": null,
+            "role": "gondola_shelf",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            5.299999999999999,
+            8.02
+          ],
+          "section": "pantry",
+          "stock_seed": 5,
+          "stock": [
+            {
+              "form": "packages",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:sales:item:5",
+          "role": "gondola_shelf",
+          "position_m": [
+            6.709999999999999,
+            0,
+            5.4
+          ],
+          "size_m": [
+            0.72,
+            1.65,
+            2.5
+          ],
+          "rotation_deg": 0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.069999999999999,
+                  4.15
+                ],
+                [
+                  7.069999999999999,
+                  6.65
+                ],
+                [
+                  6.349999999999999,
+                  6.65
+                ],
+                [
+                  6.349999999999999,
+                  4.15
+                ],
+                [
+                  7.069999999999999,
+                  4.15
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "design_id": null,
+            "role": "gondola_shelf",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            7.649999999999999,
+            5.4
+          ],
+          "section": "household",
+          "stock_seed": 6,
+          "stock": [
+            {
+              "form": "packages",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:sales:item:6",
+          "role": "gondola_shelf",
+          "position_m": [
+            6.709999999999999,
+            0,
+            8.02
+          ],
+          "size_m": [
+            0.72,
+            1.65,
+            2.5
+          ],
+          "rotation_deg": 0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.069999999999999,
+                  6.77
+                ],
+                [
+                  7.069999999999999,
+                  9.27
+                ],
+                [
+                  6.349999999999999,
+                  9.27
+                ],
+                [
+                  6.349999999999999,
+                  6.77
+                ],
+                [
+                  7.069999999999999,
+                  6.77
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:sales",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:sales",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "design_id": null,
+            "role": "gondola_shelf",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#bdbeb2",
+            "floor_finish": "concrete",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            7.649999999999999,
+            8.02
+          ],
+          "section": "household",
+          "stock_seed": 0,
+          "stock": [
+            {
+              "form": "packages",
+              "bottom_m": 0.24,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 0.64,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.04,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            },
+            {
+              "form": "packages",
+              "bottom_m": 1.44,
+              "height_m": 0.18,
+              "support": "fixture shelf",
+              "measured": false,
+              "grade": "inferred",
+              "confidence": 0.2,
+              "freshness": null,
+              "corroboration_count": 0
+            }
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:stock:item:0",
+          "role": "dry_storage",
+          "position_m": [
+            6.516666666666666,
+            0,
+            11.65
+          ],
+          "size_m": [
+            1.8,
+            1.9,
+            0.55
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.416666666666666,
+                  11.375
+                ],
+                [
+                  7.416666666666666,
+                  11.925
+                ],
+                [
+                  5.616666666666665,
+                  11.925
+                ],
+                [
+                  5.616666666666665,
+                  11.375
+                ],
+                [
+                  7.416666666666666,
+                  11.375
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:stock",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:stock",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:dry_storage",
+            "design_id": null,
+            "role": "dry_storage",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.516666666666666,
+            12.405000000000001
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:stock:item:1",
+          "role": "prep_table",
+          "position_m": [
+            3.8088235294117645,
+            0,
+            11.700000000000001
+          ],
+          "size_m": [
+            1.4,
+            0.9,
+            0.65
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.508823529411765,
+                  11.375000000000002
+                ],
+                [
+                  4.508823529411765,
+                  12.025
+                ],
+                [
+                  3.1088235294117643,
+                  12.025
+                ],
+                [
+                  3.1088235294117643,
+                  11.375000000000002
+                ],
+                [
+                  4.508823529411765,
+                  11.375000000000002
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:stock",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:stock",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:prep_table",
+            "design_id": null,
+            "role": "prep_table",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d4dfd2",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#cbd0c4",
+            "floor_finish": "concrete",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            3.8088235294117645,
+            12.505
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:wc:item:0",
+          "role": "toilet",
+          "position_m": [
+            0.6,
+            0,
+            12.539285714285715
+          ],
+          "size_m": [
+            0.65,
+            0.8,
+            0.75
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  12.214285714285715
+                ],
+                [
+                  0.975,
+                  12.214285714285715
+                ],
+                [
+                  0.975,
+                  12.864285714285714
+                ],
+                [
+                  0.22499999999999998,
+                  12.864285714285714
+                ],
+                [
+                  0.22499999999999998,
+                  12.214285714285715
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "design_id": null,
+            "role": "toilet",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.455,
+            12.539285714285715
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:wc:item:1",
+          "role": "bath_sink",
+          "position_m": [
+            0.43499999999999994,
+            0,
+            13.2875
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.42
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999995,
+                  13.0375
+                ],
+                [
+                  0.6449999999999999,
+                  13.0375
+                ],
+                [
+                  0.6449999999999999,
+                  13.5375
+                ],
+                [
+                  0.22499999999999995,
+                  13.5375
+                ],
+                [
+                  0.22499999999999995,
+                  13.0375
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "design_id": null,
+            "role": "bath_sink",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#d9e1e3",
+            "accent_wall": "#52766b",
+            "trim": "#eadbc3",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a78660",
+            "fabric": "#708778",
+            "metal": "#3e4441",
+            "countertop": "#ded8cb",
+            "floor": "#cbd0c4",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.125,
+            13.2875
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:0",
+          "role": "parked_car",
+          "position_m": [
+            12.9,
+            0,
+            -21.45
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.3,
+                  -20.525
+                ],
+                [
+                  10.5,
+                  -20.525
+                ],
+                [
+                  10.5,
+                  -22.375
+                ],
+                [
+                  15.3,
+                  -22.375
+                ],
+                [
+                  15.3,
+                  -20.525
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.55,
+            -21.45
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:1",
+          "role": "parked_car",
+          "position_m": [
+            12.9,
+            0,
+            -18.65
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.3,
+                  -17.724999999999998
+                ],
+                [
+                  10.5,
+                  -17.724999999999998
+                ],
+                [
+                  10.5,
+                  -19.575
+                ],
+                [
+                  15.3,
+                  -19.575
+                ],
+                [
+                  15.3,
+                  -17.724999999999998
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.55,
+            -18.65
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:2",
+          "role": "parked_car",
+          "position_m": [
+            12.9,
+            0,
+            -15.849999999999998
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.3,
+                  -14.924999999999997
+                ],
+                [
+                  10.5,
+                  -14.924999999999997
+                ],
+                [
+                  10.5,
+                  -16.775
+                ],
+                [
+                  15.3,
+                  -16.775
+                ],
+                [
+                  15.3,
+                  -14.924999999999997
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.55,
+            -15.849999999999998
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:3",
+          "role": "parked_car",
+          "position_m": [
+            12.9,
+            0,
+            -13.049999999999997
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.3,
+                  -12.124999999999996
+                ],
+                [
+                  10.5,
+                  -12.124999999999996
+                ],
+                [
+                  10.5,
+                  -13.974999999999998
+                ],
+                [
+                  15.3,
+                  -13.974999999999998
+                ],
+                [
+                  15.3,
+                  -12.124999999999996
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.55,
+            -13.049999999999997
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:4",
+          "role": "parked_car",
+          "position_m": [
+            12.9,
+            0,
+            -10.249999999999996
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.3,
+                  -9.324999999999996
+                ],
+                [
+                  10.5,
+                  -9.324999999999996
+                ],
+                [
+                  10.5,
+                  -11.174999999999997
+                ],
+                [
+                  15.3,
+                  -11.174999999999997
+                ],
+                [
+                  15.3,
+                  -9.324999999999996
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.55,
+            -10.249999999999996
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:5",
+          "role": "parked_car",
+          "position_m": [
+            12.9,
+            0,
+            -7.449999999999997
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.3,
+                  -6.524999999999997
+                ],
+                [
+                  10.5,
+                  -6.524999999999997
+                ],
+                [
+                  10.5,
+                  -8.374999999999996
+                ],
+                [
+                  15.3,
+                  -8.374999999999996
+                ],
+                [
+                  15.3,
+                  -6.524999999999997
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.55,
+            -7.449999999999997
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:6",
+          "role": "parked_car",
+          "position_m": [
+            12.9,
+            0,
+            -4.649999999999997
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.3,
+                  -3.724999999999997
+                ],
+                [
+                  10.5,
+                  -3.724999999999997
+                ],
+                [
+                  10.5,
+                  -5.574999999999997
+                ],
+                [
+                  15.3,
+                  -5.574999999999997
+                ],
+                [
+                  15.3,
+                  -3.724999999999997
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            9.55,
+            -4.649999999999997
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:7",
+          "role": "parked_car",
+          "position_m": [
+            1.3000000000000007,
+            0,
+            -21.45
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7000000000000006,
+                  -20.525
+                ],
+                [
+                  -1.0999999999999992,
+                  -20.525
+                ],
+                [
+                  -1.0999999999999992,
+                  -22.375
+                ],
+                [
+                  3.7000000000000006,
+                  -22.375
+                ],
+                [
+                  3.7000000000000006,
+                  -20.525
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -2.0499999999999994,
+            -21.45
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:8",
+          "role": "parked_car",
+          "position_m": [
+            1.3000000000000007,
+            0,
+            -18.65
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7000000000000006,
+                  -17.724999999999998
+                ],
+                [
+                  -1.0999999999999992,
+                  -17.724999999999998
+                ],
+                [
+                  -1.0999999999999992,
+                  -19.575
+                ],
+                [
+                  3.7000000000000006,
+                  -19.575
+                ],
+                [
+                  3.7000000000000006,
+                  -17.724999999999998
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -2.0499999999999994,
+            -18.65
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:9",
+          "role": "parked_car",
+          "position_m": [
+            1.3000000000000007,
+            0,
+            -15.849999999999998
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7000000000000006,
+                  -14.924999999999997
+                ],
+                [
+                  -1.0999999999999992,
+                  -14.924999999999997
+                ],
+                [
+                  -1.0999999999999992,
+                  -16.775
+                ],
+                [
+                  3.7000000000000006,
+                  -16.775
+                ],
+                [
+                  3.7000000000000006,
+                  -14.924999999999997
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -2.0499999999999994,
+            -15.849999999999998
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:10",
+          "role": "parked_car",
+          "position_m": [
+            1.3000000000000007,
+            0,
+            -13.049999999999997
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7000000000000006,
+                  -12.124999999999996
+                ],
+                [
+                  -1.0999999999999992,
+                  -12.124999999999996
+                ],
+                [
+                  -1.0999999999999992,
+                  -13.974999999999998
+                ],
+                [
+                  3.7000000000000006,
+                  -13.974999999999998
+                ],
+                [
+                  3.7000000000000006,
+                  -12.124999999999996
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -2.0499999999999994,
+            -13.049999999999997
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "id": "retail-surface-parking:surface-parking:item:11",
+          "role": "parked_car",
+          "position_m": [
+            1.3000000000000007,
+            0,
+            -10.249999999999996
+          ],
+          "size_m": [
+            1.85,
+            1.5,
+            4.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7000000000000006,
+                  -9.324999999999996
+                ],
+                [
+                  -1.0999999999999992,
+                  -9.324999999999996
+                ],
+                [
+                  -1.0999999999999992,
+                  -11.174999999999997
+                ],
+                [
+                  3.7000000000000006,
+                  -11.174999999999997
+                ],
+                [
+                  3.7000000000000006,
+                  -9.324999999999996
+                ]
+              ]
+            ]
+          },
+          "room_id": "retail-surface-parking:surface-parking",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "retail-surface-parking:surface-parking",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:parked_car",
+            "design_id": null,
+            "role": "parked_car",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#bec8b9",
+            "floor": "#8f9992",
+            "floor_finish": "concrete"
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            -2.0499999999999994,
+            -10.249999999999996
+          ],
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "outdoor_areas": [
+        {
+          "kind": "surface_parking",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  16.0,
+                  -23.0
+                ],
+                [
+                  16.0,
+                  -3.0
+                ],
+                [
+                  -4.0,
+                  -3.0
+                ],
+                [
+                  -4.0,
+                  -23.0
+                ],
+                [
+                  16.0,
+                  -23.0
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "kind": "pedestrian_path",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.2,
+                  -7.0
+                ],
+                [
+                  4.2,
+                  1.0
+                ],
+                [
+                  1.8,
+                  1.0
+                ],
+                [
+                  1.8,
+                  -7.0
+                ],
+                [
+                  4.2,
+                  -7.0
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "parking_bays": [
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:0",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.600000000000001,
+                  -20.099999999999998
+                ],
+                [
+                  10.2,
+                  -20.099999999999998
+                ],
+                [
+                  10.2,
+                  -22.8
+                ],
+                [
+                  15.600000000000001,
+                  -22.8
+                ],
+                [
+                  15.600000000000001,
+                  -20.099999999999998
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            9.55,
+            -21.45
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:1",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.600000000000001,
+                  -17.299999999999997
+                ],
+                [
+                  10.2,
+                  -17.299999999999997
+                ],
+                [
+                  10.2,
+                  -20.0
+                ],
+                [
+                  15.600000000000001,
+                  -20.0
+                ],
+                [
+                  15.600000000000001,
+                  -17.299999999999997
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            9.55,
+            -18.65
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:2",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.600000000000001,
+                  -14.499999999999998
+                ],
+                [
+                  10.2,
+                  -14.499999999999998
+                ],
+                [
+                  10.2,
+                  -17.2
+                ],
+                [
+                  15.600000000000001,
+                  -17.2
+                ],
+                [
+                  15.600000000000001,
+                  -14.499999999999998
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            9.55,
+            -15.849999999999998
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:3",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.600000000000001,
+                  -11.699999999999998
+                ],
+                [
+                  10.2,
+                  -11.699999999999998
+                ],
+                [
+                  10.2,
+                  -14.399999999999997
+                ],
+                [
+                  15.600000000000001,
+                  -14.399999999999997
+                ],
+                [
+                  15.600000000000001,
+                  -11.699999999999998
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            9.55,
+            -13.049999999999997
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:4",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.600000000000001,
+                  -8.899999999999997
+                ],
+                [
+                  10.2,
+                  -8.899999999999997
+                ],
+                [
+                  10.2,
+                  -11.599999999999996
+                ],
+                [
+                  15.600000000000001,
+                  -11.599999999999996
+                ],
+                [
+                  15.600000000000001,
+                  -8.899999999999997
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            9.55,
+            -10.249999999999996
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:5",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.600000000000001,
+                  -6.099999999999996
+                ],
+                [
+                  10.2,
+                  -6.099999999999996
+                ],
+                [
+                  10.2,
+                  -8.799999999999997
+                ],
+                [
+                  15.600000000000001,
+                  -8.799999999999997
+                ],
+                [
+                  15.600000000000001,
+                  -6.099999999999996
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            9.55,
+            -7.449999999999997
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:6",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  15.600000000000001,
+                  -3.2999999999999967
+                ],
+                [
+                  10.2,
+                  -3.2999999999999967
+                ],
+                [
+                  10.2,
+                  -5.9999999999999964
+                ],
+                [
+                  15.600000000000001,
+                  -5.9999999999999964
+                ],
+                [
+                  15.600000000000001,
+                  -3.2999999999999967
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            9.55,
+            -4.649999999999997
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:7",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.000000000000001,
+                  -20.099999999999998
+                ],
+                [
+                  -1.3999999999999995,
+                  -20.099999999999998
+                ],
+                [
+                  -1.3999999999999995,
+                  -22.8
+                ],
+                [
+                  4.000000000000001,
+                  -22.8
+                ],
+                [
+                  4.000000000000001,
+                  -20.099999999999998
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            -2.0499999999999994,
+            -21.45
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:8",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.000000000000001,
+                  -17.299999999999997
+                ],
+                [
+                  -1.3999999999999995,
+                  -17.299999999999997
+                ],
+                [
+                  -1.3999999999999995,
+                  -20.0
+                ],
+                [
+                  4.000000000000001,
+                  -20.0
+                ],
+                [
+                  4.000000000000001,
+                  -17.299999999999997
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            -2.0499999999999994,
+            -18.65
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:9",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.000000000000001,
+                  -14.499999999999998
+                ],
+                [
+                  -1.3999999999999995,
+                  -14.499999999999998
+                ],
+                [
+                  -1.3999999999999995,
+                  -17.2
+                ],
+                [
+                  4.000000000000001,
+                  -17.2
+                ],
+                [
+                  4.000000000000001,
+                  -14.499999999999998
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            -2.0499999999999994,
+            -15.849999999999998
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:10",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.000000000000001,
+                  -11.699999999999998
+                ],
+                [
+                  -1.3999999999999995,
+                  -11.699999999999998
+                ],
+                [
+                  -1.3999999999999995,
+                  -14.399999999999997
+                ],
+                [
+                  4.000000000000001,
+                  -14.399999999999997
+                ],
+                [
+                  4.000000000000001,
+                  -11.699999999999998
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            -2.0499999999999994,
+            -13.049999999999997
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "car_id": "retail-surface-parking:surface-parking:item:11",
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.000000000000001,
+                  -8.899999999999997
+                ],
+                [
+                  -1.3999999999999995,
+                  -8.899999999999997
+                ],
+                [
+                  -1.3999999999999995,
+                  -11.599999999999996
+                ],
+                [
+                  4.000000000000001,
+                  -11.599999999999996
+                ],
+                [
+                  4.000000000000001,
+                  -8.899999999999997
+                ]
+              ]
+            ]
+          },
+          "approach_m": [
+            -2.0499999999999994,
+            -10.249999999999996
+          ],
+          "grade": "inferred",
+          "confidence": 0.2,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        }
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "stairs": [],
+  "ramps": [],
+  "interaction_targets": [
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        8.75,
+        5.03
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        1.605,
+        5.7250000000000005
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        2.9499999999999997,
+        8.02
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        1.0699999999999998,
+        8.02
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        5.299999999999999,
+        5.4
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        3.4199999999999995,
+        5.4
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        5.299999999999999,
+        8.02
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        3.4199999999999995,
+        8.02
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        7.649999999999999,
+        5.4
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        5.77,
+        5.4
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        7.649999999999999,
+        8.02
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:sales",
+      "point": [
+        5.77,
+        8.02
+      ],
+      "kind": "shopping"
+    },
+    {
+      "room_id": "retail-surface-parking:stock",
+      "point": [
+        6.516666666666666,
+        12.405000000000001
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-surface-parking:stock",
+      "point": [
+        3.8088235294117645,
+        12.505
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-surface-parking:wc",
+      "point": [
+        1.455,
+        12.539285714285715
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-surface-parking:wc",
+      "point": [
+        1.125,
+        13.2875
+      ],
+      "kind": "staff"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        9.55,
+        -21.45
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        9.55,
+        -18.65
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        9.55,
+        -15.849999999999998
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        9.55,
+        -13.049999999999997
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        9.55,
+        -10.249999999999996
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        9.55,
+        -7.449999999999997
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        9.55,
+        -4.649999999999997
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        -2.0499999999999994,
+        -21.45
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        -2.0499999999999994,
+        -18.65
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        -2.0499999999999994,
+        -15.849999999999998
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        -2.0499999999999994,
+        -13.049999999999997
+      ],
+      "kind": "parking"
+    },
+    {
+      "room_id": "retail-surface-parking:surface-parking",
+      "point": [
+        -2.0499999999999994,
+        -10.249999999999996
+      ],
+      "kind": "parking"
+    }
+  ],
+  "sections": [
+    {
+      "id": "checkout",
+      "fixture_ids": [
+        "retail-surface-parking:sales:item:0"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "drinks",
+      "fixture_ids": [
+        "retail-surface-parking:sales:item:1"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "snacks",
+      "fixture_ids": [
+        "retail-surface-parking:sales:item:2"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "pantry",
+      "fixture_ids": [
+        "retail-surface-parking:sales:item:3",
+        "retail-surface-parking:sales:item:4"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    },
+    {
+      "id": "household",
+      "fixture_ids": [
+        "retail-surface-parking:sales:item:5",
+        "retail-surface-parking:sales:item:6"
+      ],
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "checkouts": [
+    {
+      "id": "retail-surface-parking:sales:item:0",
+      "kind": "checkout_lane",
+      "queue_zone": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              9.4,
+              0.44999999999999996
+            ],
+            [
+              9.4,
+              2.15
+            ],
+            [
+              8.1,
+              2.15
+            ],
+            [
+              8.1,
+              0.44999999999999996
+            ],
+            [
+              9.4,
+              0.44999999999999996
+            ]
+          ]
+        ]
+      },
+      "grade": "inferred",
+      "confidence": 0.2,
+      "measured": false,
+      "freshness": null,
+      "corroboration_count": 0
+    }
+  ],
+  "parking": {
+    "kind": "external",
+    "levels": null,
+    "external_footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            16.0,
+            -23.0
+          ],
+          [
+            16.0,
+            -3.0
+          ],
+          [
+            -4.0,
+            -3.0
+          ],
+          [
+            -4.0,
+            -23.0
+          ],
+          [
+            16.0,
+            -23.0
+          ]
+        ]
+      ]
+    },
+    "pedestrian_path": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            4.2,
+            -7.0
+          ],
+          [
+            4.2,
+            1.0
+          ],
+          [
+            1.8,
+            1.0
+          ],
+          [
+            1.8,
+            -7.0
+          ],
+          [
+            4.2,
+            -7.0
+          ]
+        ]
+      ]
+    },
+    "render_status": "external/unknown parking retained as evidence",
+    "surface_status": "source lot and supplied pedestrian path",
+    "surface_spaces": 12
+  },
+  "validation": {
+    "passed": true,
+    "errors": [],
+    "metrics": {
+      "room_count": 4,
+      "objects": 23,
+      "checkouts": 1,
+      "self_checkouts": 0,
+      "shelves": 5,
+      "sections": 5,
+      "parking_levels": 0,
+      "parking_spaces": 12,
+      "isolated_floor_m2": 0.0,
+      "coverage_min": 1.0,
+      "hallway_area_fraction_max": 0.0
+    }
+  },
+  "name": "Corner Store With Surface Parking",
+  "input_evidence": {
+    "id": "retail-surface-parking",
+    "name": "Corner Store With Surface Parking",
+    "kind": "corner_store",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.4,
+    "entrances": [
+      {
+        "point": [
+          3,
+          0
+        ]
+      }
+    ],
+    "chain": "independent",
+    "units": "metres",
+    "source": "synthetic stress polygon and supplied outdoor path",
+    "parking": {
+      "kind": "external",
+      "levels": null,
+      "external_footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              16.0,
+              -23.0
+            ],
+            [
+              16.0,
+              -3.0
+            ],
+            [
+              -4.0,
+              -3.0
+            ],
+            [
+              -4.0,
+              -23.0
+            ],
+            [
+              16.0,
+              -23.0
+            ]
+          ]
+        ]
+      },
+      "pedestrian_path": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              4.2,
+              -7.0
+            ],
+            [
+              4.2,
+              1.0
+            ],
+            [
+              1.8,
+              1.0
+            ],
+            [
+              1.8,
+              -7.0
+            ],
+            [
+              4.2,
+              -7.0
+            ]
+          ]
+        ]
+      }
+    }
+  }
+}
