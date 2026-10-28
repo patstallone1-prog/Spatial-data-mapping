@@ -202,7 +202,7 @@ def pull_tree(store: ObjectStore, digest: str, root: Path, *, clean: bool = True
         todo.append((rel, sha, size, mode))
 
     def fetch(item: tuple[str, str, int, int]) -> tuple[str, list]:
-        rel, sha, size, mode = item
+        rel, sha, _size, mode = item
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         part = target.with_name(f".{target.name}.part")
