@@ -2,17 +2,17 @@
   "schema": 1,
   "authoritative_branch": "main",
   "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
-  "renderer_sha256": "4ae47e9b55bde364377c9dc336990fcb1ba19575cd73cb96e0c25af2e125aaa9",
+  "renderer_sha256": "4e35b116993dbe40d488b59f25a664d1d5e1f50a9437c21f309943e7598db24a",
   "consumers": {
-    "app-model.html": "8064c16ac4ea0e52320603174e7e2db73f5e8e5ad3c8a0947e1cb5926d4d7439",
-    "meta.html": "219be6a3ed11ddead73790bcc5fc7336a47a0c7529f813d78fbda20d9525c1c9",
-    "app-regions/berkeley-downtown/app-model.html": "123f477e17a4fda364a4f027136c15eb5f95202834ffa0c0cd33b745f9b27101",
-    "app-regions/oakland-downtown/app-model.html": "e15fd665fe753d5bdbcfee2b22df82645a22ae8eea701c13fdf0ca8b1d9d2f47",
-    "app-regions/palo-alto-downtown/app-model.html": "29e24eb7df40f29b022c4524be659ca5adf2ed77e69845f2e67787f5f4d6934a",
-    "app-regions/san-jose-downtown/app-model.html": "4e025569550a38f6de0c0e493dd561babe447e7ceca9ba81da33032f4682a96d",
-    "app-regions/sf-haight-castro/app-model.html": "3ec5104a1bffc1caeb69ac5e9fa64adf7f9d6b6283ef04deac725b2cb5dbf076",
-    "app-regions/sf-mission/app-model.html": "2898bb1862f7e97900883ca571843a02c77eae37f91a597e7696b761255ceb10",
-    "app-regions/sf-sunset/app-model.html": "be289ece45382e10bdf2544a4b6721ff558d918cd97c2c7c1fc1e5685f8c9527"
+    "app-model.html": "c46e271176710c2095a2b883a253dc86aed3d544c3f38387a24d933da17dda97",
+    "meta.html": "322c6b9dceec90176c28d289ae5d3ec9cf203799f4ea516b386d124f3592ee6e",
+    "app-regions/berkeley-downtown/app-model.html": "c0c4f8683354813a8799aec995399fee0d0ab979cb1f58b4371ec14f6a37cb3d",
+    "app-regions/oakland-downtown/app-model.html": "368ab9a3d78cf2dd13d7395c12ae8abba37127a52afe06c19997462d458607c8",
+    "app-regions/palo-alto-downtown/app-model.html": "d7d8c6ddd6bcb1e8fd3da901af8a1f38c1ca482033ecd43395c61a923f9ecf13",
+    "app-regions/san-jose-downtown/app-model.html": "7d617dad8d4a07cf587bdc33c6354c6f301f8a14abba1f2ded471820984ac33e",
+    "app-regions/sf-haight-castro/app-model.html": "d105ea98165fb33938b253afe75dbd06e782c6c2db8a8abe20a63f80a14f36b2",
+    "app-regions/sf-mission/app-model.html": "316f7c780b7d0515ca8acdcc9332c1576c6313b04254acd2f94fb3b751c0c3c2",
+    "app-regions/sf-sunset/app-model.html": "bd0c2f6957e56fa1e8d4b86fe56fea205e1f2800fe6c8657e0ecea3ccfab8bff"
   },
   "runtime_assets_sha256": {
     "recoverable-geometry.mjs": "d591eb1913b11a96f0ab3c3b9d54803978c8c204a1a7725906240d467a5e138b",
@@ -24,7 +24,7 @@
     "municipal/oakland-downtown-bfd98b91b57b.json": "9617152dcff6ae39c77532f399483e05ab806743525469671f24ea9a08668e52",
     "municipal/palo-alto-downtown-97c7bdfc8976.json": "07699ae5431ace4d3063c338777f3841da9b5474ecabb179856ff2e87afbd44f",
     "municipal/san-jose-downtown-1a61e7d26102.json": "51dced217cd4ce863bbb538bd0625cf4a5b07a2c3dde515eacc728954c9545ab",
-    "nature-runtime.mjs": "e865df52f6eb8c7c3544737fcabbe9ac69f2a69f4587f464c5ffe9caf6c0916d",
+    "nature-runtime.mjs": "ac7f234d21358f04a9bc9ca1e4b99c89cc3aaedc8d44afe5750e0bd62fe011e5",
     "nature-ecology.mjs": "f87bd3871eeaf92f38ca42abbd4212271e07de53fcd4aebfb31d1a5a0f105749",
     "vegetation-geometry.mjs": "a7b0e46a7e9dc5d8a6d9818965b3b3ff6df23ff46dedf05d38d3bc0fe17ee861",
     "grass-strands.mjs": "d404dc5a5460f17f00401158c7a12796a4056b005039f2d3cad3fd8fd0c51b6f",
@@ -33,6 +33,8 @@
     "forest-floor.mjs": "48d7346f42471236f082a0ac0b77a674dfcb3b0db10b609cac2490535c6f252e",
     "globe.mjs": "d4b5127cce4a802ed35396167dcf5d3d4f88a0c8e74c0e6ad273202f0ccb4d08",
     "teleport-map.mjs": "4e6379e42d481c8430de4888cd097500b4c8f763a3060749c6542eb16421f77e",
+    "object-catalogue.mjs": "5826d83bbb545d32aa40127944e21c9c13920b397144d8388151f8fcf2777891",
+    "object-catalogue.json": "1cfd2ca5d27c7b2027279ffc67d3dada415af6a8b5f7109cce655275a016710a",
     "meta-xr.mjs": "ca0edc6ee4c01f2b9d169f037d4101e30b07ba2683cbb129b65cba2f9da52149",
     "meta.webmanifest": "8fe87be2a84e6c058ebd6132219aa5f1d75c841c29542a6f384e7ba8a6d2faad",
     "nature/models/dandelion_01.glb": "2db165e4ded05519095209fd625b65f747eed95c75aa1b7d01560e2be2c897f1",
@@ -72,12 +74,12 @@
   "native_sources_sha256": {
     "unreal/Plugins/KerbsideWorld/KerbsideWorld.uplugin": "15fcdcf9e3d20241e9e3d09cddb75ed0d729422cbb0f2b744e0292b43d676650",
     "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/KerbsideWorld.Build.cs": "35f686e27a90370d8001633f0b55805169fe0ff13bef7c1de38efc4612d3aabc",
-    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideCelestialSky.cpp": "a18abf4e2974d93f5692664b4fab427775c940d31d0efbed44b4d857e516fb32",
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideCelestialSky.cpp": "6b057d8d286eb9084ce0585599cad3b6990c72cd9ab17f329d1f18d04bcc4fec",
     "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorld.cpp": "43abbe9b20a7972a3ab9248b1d29e144d82fad1964b680f5ad32a7b019efde24",
-    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldActors.cpp": "96ce7123d30ac5f58e39b66f9b28c1eaaad9a21e2a1f6b686d8122ee0300c410",
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldActors.cpp": "53f5bf2b009d40deaa9f2b45339025d3de3fbb67c7962259a628b560bb2b9a56",
     "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldTests.cpp": "5fcbddc95c3ce82445d298a68721a64bdee93f60c1997c1277f08a3b4590b320",
     "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Public/KerbsideCelestialSky.h": "e3160dc34198ddae52ae14c2fa6b5ef25b5297d9065123c2f455ab5ff4d6f6ac",
-    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Public/KerbsideWorldActors.h": "b32429e8d0c8bb0087e72d18785387143e69f02d644394571ae278d7d17b2efd"
+    "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Public/KerbsideWorldActors.h": "e1256ef2d0f6f3f0baa9a73d65316dea2a36fe7eba7cadfe0ea5048d406fb194"
   },
   "app_shell_sha256": "6444dec4da5e6af4c84226001375f5e5e925f6b99b2ff238a95edee16185f34c",
   "photo_derived_houses": {

@@ -107,13 +107,15 @@ input::placeholder { color:#9ca3af; }
 #tip { color:#374151; background:var(--soft); border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.5; }
 #addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:12px; background:rgba(17,24,39,.94); color:#fff; font-size:12px; line-height:1.45; box-shadow:var(--shadow); pointer-events:none; }
 #addr b { font-size:13px; } #addr .sub { color:#fff; }
+#nearby { position:fixed; left:16px; top:72px; z-index:9; width:min(340px, calc(100vw - 24px)); padding:9px 12px; border-radius:12px; background:rgba(17,24,39,.86); color:#fff; font-size:12px; line-height:1.4; box-shadow:var(--shadow); pointer-events:none; }
+#nearby .head { font-weight:600; margin-bottom:4px; } #nearby .row { margin-top:5px; } #nearby .sub { color:#cbd5e1; font-size:11px; }
 #progress { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; color:var(--ink); padding:14px 22px; border-radius:14px; font-size:15px; box-shadow:var(--shadow); z-index:20; pointer-events:none; }
 @media (max-width: 760px) {
   .hud { width:calc(100vw - 32px); bottom:auto; max-height:72vh; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
 </style>
-<meta name="kerbside-renderer-sha256" content="4ae47e9b55bde364377c9dc336990fcb1ba19575cd73cb96e0c25af2e125aaa9" />
+<meta name="kerbside-renderer-sha256" content="4e35b116993dbe40d488b59f25a664d1d5e1f50a9437c21f309943e7598db24a" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -465,7 +467,7 @@ const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=e865df52f6eb8c7c"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=ac7f234d21358f04"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
@@ -494,6 +496,15 @@ var grassSampleAt = null;
 const foliageLibrary = await import(sharedAsset("foliage-motion.mjs?rev=5c8af2876c014862"))
   .catch(error=>{console.warn("kerbside: foliage motion unavailable; plants stand still",error);return null;});
 const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
+//: What each drawn thing is made of, how it breaks and how the walker passes it
+//: (docs/object-catalogue.mjs over docs/object-catalogue.json). Without it only the buildings,
+//: tunnels and the forest's logs stop the walker, as before.
+const objectCatalogueReady = ATTACH ? Promise.resolve(null) : Promise.all([
+  import(sharedAsset("object-catalogue.mjs?rev=5826d83bbb545d32")),
+  fetch(sharedAsset("object-catalogue.json?rev=1cfd2ca5d27c7b20"))
+    .then((r) => r.ok ? r.json() : Promise.reject(new Error(`object catalogue: ${r.status}`))),
+]).then(([library, data]) => ({ library, catalogue: library.createCatalogue(data) }))
+  .catch((error) => { console.warn("kerbside: object catalogue unavailable; only buildings and logs stop the walker", error); return null; });
 const natureMotion = foliageLibrary && !ATTACH ? foliageLibrary.createFoliageMotion(THREE) : null;
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
@@ -21739,6 +21750,8 @@ const groundReady = (async () => {
     for (const part of proto.children) {
       const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length-clipping.filter(Boolean).length);
       mesh.userData.surface = `tree:${kind}`;   // named for the tile exporter and the audit
+      // Each tree's own basis, by instance: a lidar crown is measured, an inventory point mapped.
+      mesh.userData.instanceBasis = [];
       let instance=0;const clipped=[];
       for (let i = 0; i < list.length; i += 1) {
         const tree = list[i];
@@ -21759,7 +21772,8 @@ const groundReady = (async () => {
           const result=vegetationLibrary.clipOutsidePrisms(attributes,clipping[i]);baked.dispose();
           if(result.position.length){const g=new THREE.BufferGeometry();for(const [name,values] of Object.entries(result))g.setAttribute(name,new THREE.Float32BufferAttribute(values,attributes[name].size));
             g.computeBoundingSphere();clipped.push(g);}
-        }else mesh.setMatrixAt(instance++, dummy.matrix);
+        }else{mesh.setMatrixAt(instance++, dummy.matrix);
+          mesh.userData.instanceBasis.push(tree.src ? `measured (${tree.src.replace(/_/g, " ")})` : "mapped (city tree inventory)");}
       }
       mesh.instanceMatrix.needsUpdate = true;
       if(mesh.count)groups.ground.add(mesh);
@@ -28063,11 +28077,39 @@ function walkerFootprintBlocked(x, z) {
   return false;
 }
 
+// What is within the interaction radius of the walker, from the object catalogue: solid where
+// it is at body height (a pole, a trunk, a bench, a fence), passed through slowed where it is
+// soft (a shrub), and described in the Nearby panel -- one radius for both.
+var objectProximity = null;
+objectCatalogueReady.then((ready) => {
+  if (!ready) return;
+  objectProximity = ready.library.createProximity({ THREE, catalogue: ready.catalogue,
+    roots: () => [root, activeGuest?.ready ? activeGuest.root : null] });
+  window.kerbsideNearby = () => ({ radius_m: objectProximity.radius, ...objectProximity.stats(),
+    nearby: objectProximity.nearby(), unresolved: objectProximity.unresolved() });
+});
+//: Where the walker may go when (toX, toZ) is inside a thing: along one axis or the other, so it
+//: slides round a pole rather than stopping dead on it. Null if neither is clear.
+function slidePastObjects(fromX, fromZ, toX, toZ, belowBuildings) {
+  const clear = (x, z) => !objectProximity.blocked(x, z, WALKER_RADIUS_M)
+    && (belowBuildings || (activeGuest?.ready ? true : !walkerFootprintBlocked(x, z)));
+  if (clear(toX, fromZ)) return [toX, fromZ];
+  if (clear(fromX, toZ)) return [fromX, toZ];
+  return null;
+}
+
 // Move the walker by (mx, mz), in steps short enough that no wall is crossed between checks,
 // sliding along whatever it meets.
 //: The walker's width against deadwood on the forest floor.
 const WALKER_DEADWOOD_RADIUS_M = 0.25;
 function moveWalker(mx, mz) {
+  const objects = typeof objectProximity !== "undefined" ? objectProximity : null;
+  if (objects) {
+    const standing = walkerFeetY();
+    objects.update(avatar.position.x, Number.isFinite(standing) ? standing : avatar.position.y, avatar.position.z);
+    const slow = objects.speedAt(avatar.position.x, avatar.position.z, WALKER_RADIUS_M);
+    mx *= slow; mz *= slow;
+  }
   const distance = Math.hypot(mx, mz);
   const steps = Math.max(1, Math.ceil(distance / WALK_SUBSTEP_M));
   const segments = wallSegmentsNear(avatar.position.x + mx / 2, avatar.position.z + mz / 2);
@@ -28104,8 +28146,16 @@ function moveWalker(mx, mz) {
     const wood = !belowBuildings && typeof natureWorld !== "undefined" && natureWorld?.deadwoodBlocked;
     if (wood && natureWorld.deadwoodBlocked(nextX, nextZ, WALKER_DEADWOOD_RADIUS_M)
         && !natureWorld.deadwoodBlocked(p.x, p.z, WALKER_DEADWOOD_RADIUS_M)) break;
-    p.x = nextX;
-    p.z = nextZ;
+    let toX = nextX, toZ = nextZ;
+    // Poles, trunks (measured or inferred alike), benches and fences at body height. One already
+    // inside one -- arrived by a teleport -- may walk out of it.
+    if (objects && objects.blocked(toX, toZ, WALKER_RADIUS_M) && !objects.blocked(p.x, p.z, WALKER_RADIUS_M)) {
+      const slide = slidePastObjects(p.x, p.z, toX, toZ, belowBuildings);
+      if (!slide) break;
+      [toX, toZ] = slide;
+    }
+    p.x = toX;
+    p.z = toZ;
     if (typeof walkerGroundAt === "function") feet=walkerGroundAt(p.x,p.z,feet);
   }
   const moved = Math.hypot(p.x - avatar.position.x, p.z - avatar.position.z);
@@ -28115,6 +28165,37 @@ function moveWalker(mx, mz) {
     avatar.position.y=AVATAR_STAND_Y+feet;
   }
   return moved;
+}
+
+// ---- nearby: what is round the walker, within the same radius that makes it solid ----------
+const NEARBY_VERB = { go_around: "go around", step_over: "step over", climb_over: "climb over or go around",
+  walk_under: "walk under", pass_through: "walk through", enter: "enter by its door", walk_on: "walk on", swim: "swim" };
+if (!ATTACH && !HEADSET) {
+  const panel = document.createElement("div");
+  panel.id = "nearby";
+  panel.hidden = true;
+  document.body.appendChild(panel);
+  setInterval(() => {
+    if (!objectProximity || !state.firstPerson) { panel.hidden = true; return; }
+    const rows = objectProximity.nearby(4);
+    if (!rows.length) { panel.hidden = true; return; }
+    panel.replaceChildren();
+    const head = document.createElement("div");
+    head.className = "head";
+    head.textContent = `Nearby · within ${objectProximity.radius} m`;
+    panel.append(head);
+    for (const r of rows) {
+      const row = document.createElement("div"), sub = document.createElement("div");
+      row.className = "row";
+      sub.className = "sub";
+      row.textContent = `${r.name} · ${r.distance_m} m · ${NEARBY_VERB[r.traversal] || r.traversal}`;
+      sub.textContent = [r.material, r.friction && `grip ${r.friction.dynamic.toFixed(2)} (wet ${r.friction.wet.toFixed(2)})`,
+        r.basis].filter(Boolean).join(" · ");
+      row.append(sub);
+      panel.append(row);
+    }
+    panel.hidden = false;
+  }, 500);
 }
 
 // ---- doors -------------------------------------------------------------------------------------
@@ -34083,6 +34164,7 @@ function releaseModuleScope() {
   try { HOME_OPENINGS_SETTLED = null; } catch (error) { /* kept */ }
   try { generatedInteriorModules = null; } catch (error) { /* kept */ }
   try { interiorsRequested = null; } catch (error) { /* kept */ }
+  try { objectProximity = null; } catch (error) { /* kept */ }
   try { hintText = null; } catch (error) { /* kept */ }
   try { enteredEntry = null; } catch (error) { /* kept */ }
   try { indoorCutEntry = null; } catch (error) { /* kept */ }

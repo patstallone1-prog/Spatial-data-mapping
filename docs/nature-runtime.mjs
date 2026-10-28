@@ -637,8 +637,12 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const group=new THREE.Group();group.userData.bayWide=true;
     const midP=[],midS=[],midK=[],midA=[];
     for(const [key,items] of trees){const [species,variant]=key.split(':');for(const part of assets.tree(species,Number(variant))){
-      fadePlant(part.material);motion?.apply(part.material,part.material.userData.barkStyle||!part.material.map?'bark':'leaves');
+      const bark=Boolean(part.material.userData.barkStyle||!part.material.map);
+      fadePlant(part.material);motion?.apply(part.material,bark?'bark':'leaves');
       const mesh=instances(part.geometry,part.material,items.map(v=>({...v,colour:part.colour.map(c=>c*v.shade)})));
+      // Its bark is a tree's trunk and limbs, solid to the walker as a street tree's is
+      // (docs/object-catalogue.json); its leaves are its crown. Both stay marked inferred.
+      mesh.traverse(o=>{if(o.isMesh)o.userData.surface=bark?'nature_tree':'nature_foliage';});
       mesh.userData.species=species;group.add(mesh);
     }
       for(const v of items){midP.push(v.p[0],v.p[1]+v.scale[1]*.5,v.p[2]);midS.push(v.scale[1]);midK.push(speciesKeys.indexOf(species)*2+Number(variant));midA.push(v.scale[0]*2/v.scale[1]/(144/256));}
@@ -664,7 +668,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     for(const [kind,items] of [['log',logs]]){if(!items.length)continue;const part=assets.deadwood(kind);fadePlant(part.material);
       if(floorKit)floorKit.rangeFade(part.material,{fadeIn:floorBand,key:'mid-log-v1'});
       const mesh=instances(part.geometry,part.material,items);mesh.traverse(o=>{if(o.isMesh){o.castShadow=kind==='log';o.receiveShadow=true;o.userData.surface=`nature_${kind}`;}});group.add(mesh);}
-    const rockMesh=instances(sphere,leafMat,rocks);if(rockMesh)group.add(rockMesh);
+    const rockMesh=instances(sphere,leafMat,rocks);if(rockMesh){rockMesh.traverse(o=>{if(o.isMesh)o.userData.surface='nature_rock';});group.add(rockMesh);}
     const trailP=[],trailC=[],trailI=[];
     const trailColours={asphalt:[.29,.30,.29],concrete:[.57,.56,.51],stone:[.52,.50,.45],paving_stones:[.54,.49,.42],gravel:[.54,.49,.39],sand:[.68,.60,.44],ground:[.47,.37,.24],dirt:[.47,.37,.24],unknown:[.47,.37,.24]};
     for(const w of nearbyWays(x0+PLANT_TILE_M/2,y0+PLANT_TILE_M/2)||[]){

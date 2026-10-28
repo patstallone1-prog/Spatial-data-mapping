@@ -130,10 +130,14 @@ def test_import_axis_probe_matches_known_glTF_conversion_and_rejects_bad_scale(m
 
 def test_collision_semantics_include_ramps_fences_not_paint_or_borrowed_scans(monkeypatch):
     module = load_editor_helpers(monkeypatch)
-    for name in ("curb_ramp", "front_walk", "fence:chainlink", "median", "tunnel_walk", "building", "terrain"):
+    for name in ("curb_ramp", "front_walk", "fence:chainlink", "median", "tunnel_walk", "building", "terrain",
+                 "tree:street", "nature_tree", "furniture:street_light", "pier", "court"):
         assert module.blocks(name), name
-    for name in ("tactile_warning", "marking", "crossing", "detail", "tree:street", "scanned_interior"):
+    for name in ("tactile_warning", "marking", "crossing", "detail", "foliage:street", "scanned_interior",
+                 "house_window", "awning:band", "furniture:overhead_wire"):
         assert not module.blocks(name), name
+    with pytest.raises(ValueError, match="not in docs/object-catalogue.json"):
+        module.blocks("no_such_surface")
     available = {"road": 10, "building": 20, "curb_ramp": 4}
     assert module.canonical_surface("building_2", available) == "building"
     assert module.canonical_surface("curb_ramp", available) == "curb_ramp"
@@ -239,3 +243,20 @@ def test_native_acceptance_checks_report_not_engine_exit_code(tmp_path):
     path.write_text(json.dumps(report))
     with pytest.raises(ValueError, match="Native acceptance"):
         module.validate_report(path)
+
+
+def test_walker_uses_the_object_catalogues_radius_step_and_shadows():
+    """The native walker's step and its Nearby radius are the catalogue's; the sun keeps its shadows."""
+    from smc.world import catalogue
+
+    player = catalogue.load()["player"]
+    actors = (ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideWorldActors.cpp").read_text()
+    header = (ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Public/KerbsideWorldActors.h").read_text()
+    assert f"MaxStepHeight = {player['step_height_m'] * 100:g}.f" in actors
+    assert f"float RadiusCm = {player['interaction_radius_m'] * 100:g}.f;" in header
+    assert "CreateDefaultSubobject<UKerbsideNearbyComponent>" in actors
+    sky = (ROOT / "unreal/Plugins/KerbsideWorld/Source/KerbsideWorld/Private/KerbsideCelestialSky.cpp").read_text()
+    assert "Light->SetCastShadows(true);" in sky
+    importer = (ROOT / "tools/unreal/setup_world.py").read_text()
+    assert 'component.set_cast_shadow(any(k["shadow"]["casts"] for k in kinds))' in importer
+    assert "set_phys_material_override" in importer

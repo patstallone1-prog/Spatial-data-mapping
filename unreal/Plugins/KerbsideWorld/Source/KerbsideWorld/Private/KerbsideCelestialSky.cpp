@@ -1,4 +1,5 @@
 #include "KerbsideCelestialSky.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -266,6 +267,16 @@ void AKerbsideCelestialSky::UpdateRain(float DeltaSeconds)
 void AKerbsideCelestialSky::BeginPlay()
 {
     Super::BeginPlay();
+    // The sun and moon of Epic's vault are the city's shadow casters (virtual shadow maps,
+    // r.Shadow.Virtual.Enable in the managed config): never let a preset turn them off.
+    TArray<UDirectionalLightComponent*> Lights;
+    GetComponents<UDirectionalLightComponent>(Lights, true);
+    for (UDirectionalLightComponent* Light : Lights)
+    {
+        Light->SetCastShadows(true);
+        Light->bCastDeepShadow = true;
+        Light->SetDynamicShadowCascades(4);
+    }
     SyncClock();
     FString Named;
     if (FParse::Value(FCommandLine::Get(), TEXT("KerbsideWeather="), Named)) Weather = FName(*Named);

@@ -13,6 +13,9 @@
 #include "Engine/StaticMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Engine/Engine.h"
+#include "Engine/OverlapResult.h"
+#include "Engine/World.h"
 #if WITH_EDITOR
 #include "StaticMeshCompiler.h"
 #endif
@@ -60,7 +63,7 @@ AKerbsideWalker::AKerbsideWalker()
     bUseControllerRotationYaw = true;
     GetCharacterMovement()->bOrientRotationToMovement = false;
     GetCharacterMovement()->MaxWalkSpeed = 536.448f; // Existing first-person 12 mph.
-    GetCharacterMovement()->MaxStepHeight = 20.f; // Curbs, not wall/fence climbing.
+    GetCharacterMovement()->MaxStepHeight = 20.f; // Curbs, not wall/fence climbing (catalogue step_height_m).
     GetCharacterMovement()->SetWalkableFloorAngle(45.f);
     GetCharacterMovement()->GravityScale = 1.f;
     GetCharacterMovement()->bUseFlatBaseForFloorChecks = true;
@@ -69,6 +72,79 @@ AKerbsideWalker::AKerbsideWalker()
     Camera->SetRelativeLocation(FVector(0.f, 0.f, 91.f));
     Camera->bUsePawnControlRotation = true;
     Camera->FieldOfView = 85.f;
+    NearbyThings = CreateDefaultSubobject<UKerbsideNearbyComponent>(TEXT("NearbyThings"));
+}
+
+UKerbsideNearbyComponent::UKerbsideNearbyComponent()
+{
+    PrimaryComponentTick.bCanEverTick = true;
+}
+
+void UKerbsideNearbyComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    SinceRefresh += DeltaTime;
+    if (SinceRefresh < IntervalSeconds) return;
+    SinceRefresh = 0.f;
+    Refresh();
+}
+
+void UKerbsideNearbyComponent::Refresh()
+{
+    AActor* Owner = GetOwner();
+    UWorld* World = GetWorld();
+    if (!Owner || !World) return;
+    const FVector At = Owner->GetActorLocation();
+    FCollisionQueryParams Query(SCENE_QUERY_STAT(KerbsideNearby), true, Owner);
+    TMap<AActor*, FKerbsideNearbyThing> Found;
+    auto Describe = [&Found](AActor* Actor) -> FKerbsideNearbyThing*
+    {
+        if (!Actor) return nullptr;
+        if (FKerbsideNearbyThing* Known = Found.Find(Actor)) return Known;
+        FKerbsideNearbyThing Thing;
+        for (const FName& Tag : Actor->Tags)
+        {
+            FString Text = Tag.ToString(), Value;
+            if (Text.Split(TEXT("kerbside.archetype:"), nullptr, &Value)) Thing.Archetype = FName(*Value);
+            else if (Text.Split(TEXT("kerbside.material:"), nullptr, &Value)) Thing.Material = FName(*Value);
+            else if (Text.Split(TEXT("kerbside.traversal:"), nullptr, &Value)) Thing.Traversal = FName(*Value);
+        }
+        if (Thing.Archetype.IsNone()) return nullptr;
+        return &Found.Add(Actor, Thing);
+    };
+    TArray<FOverlapResult> Overlaps;
+    World->OverlapMultiByChannel(Overlaps, At, FQuat::Identity, ECC_WorldStatic, FCollisionShape::MakeSphere(RadiusCm), Query);
+    for (const FOverlapResult& Overlap : Overlaps) Describe(Overlap.GetActor());
+    // Distances: rays round the walker at knee and chest height, the nearest hit per thing.
+    for (const float Up : {-50.f, 40.f})
+        for (int32 Ray = 0; Ray < 24; ++Ray)
+        {
+            const FVector Dir = FRotator(0.f, Ray * 15.f, 0.f).Vector();
+            FHitResult Hit;
+            if (!World->LineTraceSingleByChannel(Hit, At + FVector(0, 0, Up), At + FVector(0, 0, Up) + Dir * RadiusCm, ECC_Visibility, Query)) continue;
+            if (FKerbsideNearbyThing* Thing = Describe(Hit.GetActor()))
+                if (Thing->DistanceCm < 0.f || Hit.Distance < Thing->DistanceCm) Thing->DistanceCm = Hit.Distance;
+        }
+    Nearby.Reset();
+    TSet<FName> Listed;
+    Found.GenerateValueArray(Nearby);
+    Nearby.Sort([](const FKerbsideNearbyThing& A, const FKerbsideNearbyThing& B)
+    {
+        return (A.DistanceCm < 0.f ? 1e9f : A.DistanceCm) < (B.DistanceCm < 0.f ? 1e9f : B.DistanceCm);
+    });
+    // One line per kind: the city is merged a surface per tile, so two tiles' trees are one kind.
+    Nearby.RemoveAll([&Listed](const FKerbsideNearbyThing& Thing) { bool Seen = false; Listed.Add(Thing.Archetype, &Seen); return Seen; });
+    if (bShowOnScreen && GEngine)
+    {
+        FString Text = FString::Printf(TEXT("Nearby within %.0f m"), RadiusCm / 100.f);
+        for (const FKerbsideNearbyThing& Thing : Nearby)
+        {
+            if (Thing.Traversal == FName(TEXT("walk_on"))) continue;  // the ground underfoot
+            Text += FString::Printf(TEXT("\n%s  %s  %s%s"), *Thing.Archetype.ToString(), *Thing.Traversal.ToString(), *Thing.Material.ToString(),
+                Thing.DistanceCm >= 0.f ? *FString::Printf(TEXT("  %.1f m"), Thing.DistanceCm / 100.f) : TEXT(""));
+        }
+        GEngine->AddOnScreenDebugMessage(static_cast<uint64>(reinterpret_cast<UPTRINT>(this)), IntervalSeconds + .1f, FColor::White, Text);
+    }
 }
 
 void AKerbsideWalker::SetupPlayerInputComponent(UInputComponent* Input)
