@@ -288,8 +288,8 @@ def main() -> None:
     if colliders == 0 or spawn is None:
         raise RuntimeError("No world collision or supported road spawn; refusing release")
     # The wet film over everything the rain reaches, a little beyond the tiles.
-    centre = unreal.Vector(*[(a + b) / 2 for a, b in zip(lo, hi)])
-    half = [(b - a) / 2 + 500 for a, b in zip(lo, hi)]
+    centre = unreal.Vector(*[(a + b) / 2 for a, b in zip(lo, hi, strict=True)])
+    half = [(b - a) / 2 + 500 for a, b in zip(lo, hi, strict=True)]
     weather_setup.place_decals(actors, weather, centre, half)
     # Probe-calibrated actor rotation makes world X=east, Y=south, Z=up in cm.
     start = actors.spawn_actor_from_class(unreal.PlayerStart, unreal.Vector(spawn[0] * 100, spawn[2] * 100, spawn[1] * 100 + 120))

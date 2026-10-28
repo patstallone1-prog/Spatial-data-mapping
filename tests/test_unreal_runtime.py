@@ -136,7 +136,7 @@ def test_collision_semantics_include_ramps_fences_not_paint_or_borrowed_scans(mo
     for name in ("tactile_warning", "marking", "crossing", "detail", "foliage:street", "scanned_interior",
                  "house_window", "awning:band", "furniture:overhead_wire"):
         assert not module.blocks(name), name
-    with pytest.raises(ValueError, match="not in docs/object-catalogue.json"):
+    with pytest.raises(ValueError, match=r"not in docs/object-catalogue\.json"):
         module.blocks("no_such_surface")
     available = {"road": 10, "building": 20, "curb_ramp": 4}
     assert module.canonical_surface("building_2", available) == "building"
