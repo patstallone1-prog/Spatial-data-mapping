@@ -158,11 +158,14 @@ class JobSpec:
     stall_s: float = 3600.0
     #: Skipped rather than quarantined when its tries run out (module docstring).
     optional: bool = False
+    #: Folders of the restored checkpoint the job only adds to: not fetched, and still referenced
+    #: in its saved tree (checkpoint.carry_forward). The house pipeline's 43 GB pixel store.
+    carry: list[str] = field(default_factory=list)
 
     def digest(self) -> str:
         # The later fields count only when set, so a job submitted before they existed keeps
         # its digest and is not taken for a changed one.
-        late = {"stall_s": 3600.0, "optional": False}
+        late = {"stall_s": 3600.0, "optional": False, "carry": []}
         body = {k: v for k, v in asdict(self).items()
                 if k != "priority" and not (k in late and v == late[k])}
         return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()[:16]
@@ -259,9 +262,13 @@ class Queue:
 
     def _ready_rows(self, db, resources: list[str], now: float, limit: int | None = None):
         marks = ",".join("?" * len(resources))
+        # Kinds the operator has paused (controller.paused_kinds) wait, without blocking the rest.
+        held = db.execute("SELECT value FROM meta WHERE key='paused_kinds'").fetchone()
+        paused = set(json.loads(held["value"])) if held and held["value"] else set()
         rows = db.execute(
             f"SELECT * FROM jobs WHERE resource IN ({marks}) AND state IN ('pending','failed')"
             " AND not_before <= ? ORDER BY priority, created_at, id", (*resources, now)).fetchall()
+        rows = [row for row in rows if row["kind"] not in paused]
         done = {r["id"] for r in db.execute("SELECT id FROM jobs WHERE state='done'")}
         out = []
         for row in rows:

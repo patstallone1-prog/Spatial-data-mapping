@@ -165,6 +165,9 @@ def house_batch(number: int, sample: int, previous: str | None, *, device: str =
                    depends=[previous] if previous else [],
                    restore_from=[previous] if previous else ["migrate:house-state"],
                    shared=["frontage-models", "frontage-inputs"], save=list(HOUSE_STATE),
+                   # The filter only adds to its pixel store (put_if_absent); the matcher reads the
+                   # review JPEGs. 43 of the state's 56 GB stay in the bucket, referenced.
+                   carry=["build/frontage-live/pixel-store"],
                    timeout_s=6 * 3600, max_attempts=3, priority=200,
                    env={"KERBSIDE_HOUSES_PUBLISH": "0"})
 

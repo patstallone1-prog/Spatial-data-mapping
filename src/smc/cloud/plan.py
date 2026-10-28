@@ -177,7 +177,8 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
         house_batches = max(house_batches, finished + house_ahead)
     for number in range(1, house_batches + 1):
         spec = house_batch(number, house_sample, previous)
-        added += queue.submit(spec) == "added"
+        # replace: a batch not yet run takes the current spec (a finished or running one is kept).
+        added += queue.submit(spec, replace=True) == "added"
         previous = spec.id
     if interiors:
         added += submit_interiors(queue, private, interior_batch_counts(root))

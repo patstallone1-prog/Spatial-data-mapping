@@ -91,6 +91,9 @@ class Config:
     sleep_after_min: float = 0.0
     #: Hours between resubmissions of the standing plan (the last ``plan --standing``).
     replan_h: float = 24.0
+    #: Job kinds that wait however long the queue is (interior_batch while the houses and cells
+    #: go first). Set from the config on every start, so a redeploy cannot forget it.
+    paused_kinds: tuple[str, ...] = ()
 
     @classmethod
     def load(cls, path: Path, env=os.environ) -> Config:
@@ -138,7 +141,8 @@ class Config:
             backup_s=raw["controller"].get("backup_s", 300),
             hourly_usd=raw["controller"].get("hourly_usd", 0.0),
             sleep_after_min=raw["controller"].get("sleep_after_min", 0.0),
-            replan_h=raw["controller"].get("replan_h", 24.0))
+            replan_h=raw["controller"].get("replan_h", 24.0),
+            paused_kinds=tuple(raw["controller"].get("paused_kinds", [])))
 
 
 def _need(env, key):
@@ -157,6 +161,7 @@ class Controller:
         self.clock = clock
         restore_queue(config.private, config.db)
         self.queue = Queue(config.db, clock=clock, backoff_base_s=config.backoff_base_s)
+        self.queue.set_meta("paused_kinds", json.dumps(sorted(config.paused_kinds)))
         self.publisher = Publisher(config.public, config.public_base, clock=clock,
                                    **({"answers": config.publish_answers}
                                       if config.publish_answers else {}))
@@ -424,6 +429,7 @@ class Controller:
                          "basis": "median measured cost of finished attempts, times the jobs left"},
             "release": (self.publisher.pointer()[0] or {}),
             "paused": q.get_meta("paused"),
+            "paused_kinds": json.loads(q.get_meta("paused_kinds") or "[]"),
             "last_tick": self.scheduler.last,
         }
 
